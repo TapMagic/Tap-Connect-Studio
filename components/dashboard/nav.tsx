@@ -1,0 +1,111 @@
+"use client";
+
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import {
+  BarChart3,
+  CreditCard,
+  LayoutDashboard,
+  Layers3,
+  MapPin,
+  Nfc,
+  Palette,
+  PenTool,
+  ScanLine,
+  Users,
+  Zap,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+
+const navItems = [
+  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard/workbench", label: "Workbench", icon: PenTool },
+  { href: "/dashboard/campaigns", label: "Campaigns", icon: Layers3 },
+  { href: "/dashboard/devices", label: "Devices", icon: Nfc },
+  { href: "/dashboard/leads", label: "Leads", icon: Users },
+  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/dashboard/brand", label: "Brand Kit", icon: Palette },
+  { href: "/dashboard/scan", label: "Scan Mode", icon: ScanLine },
+  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
+];
+
+export function DashboardNav({ businessName }: { businessName: string }) {
+  const pathname = usePathname();
+
+  return (
+    <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-card/40 lg:flex lg:flex-col">
+      <div className="border-b border-border/60 px-5 py-5">
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
+            <Zap className="h-4 w-4" />
+          </span>
+          <div>
+            <p className="text-sm font-semibold">TapConnect Studio</p>
+            <p className="truncate text-xs text-muted-foreground">{businessName}</p>
+          </div>
+        </Link>
+      </div>
+      <nav className="flex-1 space-y-1 p-3">
+        {navItems.map((item) => {
+          const active =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+          const Icon = item.icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                active
+                  ? "bg-primary/15 text-primary"
+                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+              )}
+            >
+              <Icon className="h-4 w-4" />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+      <div className="border-t border-border/60 p-4 text-xs text-muted-foreground">
+        <div className="flex items-center gap-2">
+          <MapPin className="h-3.5 w-3.5" />
+          <span>Multi-location ready</span>
+        </div>
+      </div>
+    </aside>
+  );
+}
+
+export function MobileDashboardNav({ businessName }: { businessName: string }) {
+  const pathname = usePathname();
+
+  return (
+    <div className="border-b border-border/60 bg-card/40 lg:hidden">
+      <div className="flex items-center justify-between px-4 py-3">
+        <div>
+          <p className="text-sm font-semibold">TapConnect Studio</p>
+          <p className="text-xs text-muted-foreground">{businessName}</p>
+        </div>
+      </div>
+      <div className="flex gap-1 overflow-x-auto px-3 pb-3">
+        {navItems.slice(0, 6).map((item) => {
+          const active = pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
+                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+              )}
+            >
+              {item.label}
+            </Link>
+          );
+        })}
+      </div>
+    </div>
+  );
+}

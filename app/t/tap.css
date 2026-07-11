@@ -1,0 +1,57 @@
+.tap-page {
+  background: var(--tap-bg);
+  color: var(--tap-text);
+}
+
+.tap-block + .tap-block {
+  margin-top: 0;
+}
+
+.tap-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: opacity 0.15s, transform 0.15s;
+}
+
+.tap-btn:active {
+  transform: scale(0.98);
+}
+
+.tap-btn-primary {
+  background: var(--tap-primary);
+  color: #0b0f19;
+}
+
+.tap-btn-secondary {
+  background: var(--tap-secondary);
+  color: #0b0f19;
+}
+
+.tap-btn-outline {
+  border: 1px solid color-mix(in oklch, var(--tap-text) 25%, transparent);
+  background: transparent;
+  color: var(--tap-text);
+}
+
+.tap-input {
+  border-radius: 0.625rem;
+  border: 1px solid color-mix(in oklch, var(--tap-text) 20%, transparent);
+  background: color-mix(in oklch, var(--tap-text) 5%, transparent);
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  color: var(--tap-text);
+  outline: none;
+}
+
+.tap-input::placeholder {
+  color: color-mix(in oklch, var(--tap-text) 50%, transparent);
+}
+
+.tap-input:focus {
+  border-color: var(--tap-primary);
+}

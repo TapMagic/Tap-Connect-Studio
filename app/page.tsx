@@ -45,48 +45,67 @@ const featureCards = [
 
 const pricingTiers = [
   {
-    name: "Starter",
-    price: "$29",
-    description: "For small teams piloting connected physical touchpoints.",
-    callout: "Best for one brand or location",
+    name: "Basic",
+    price: "$19",
+    description: "One TapConnect profile with essential mini pages.",
+    callout: "Best for getting started",
     cta: "Start free",
     accent: "from-primary/18 via-emerald-400/6 to-transparent",
     featured: false,
     features: [
-      "Up to 100 live NFC or QR destinations",
-      "Drag-and-drop mini-page builder",
-      "Scan and tap analytics dashboard",
-      "Basic lead capture forms",
+      "1 active device",
+      "3 mini pages",
+      "QR codes",
+      "Basic analytics",
+      "Email capture",
     ],
   },
   {
     name: "Studio",
-    price: "$99",
-    description: "For marketing teams shipping campaigns across multiple channels.",
+    price: "$49",
+    description: "For businesses running multiple tap campaigns.",
     callout: "Most popular",
-    cta: "Book a demo",
+    cta: "Get started",
     accent: "from-primary/24 via-cyan-400/8 to-transparent",
     featured: true,
     features: [
-      "Everything in Starter",
-      "Brand kits and reusable page blocks",
-      "A/B touchpoint variants",
-      "CRM, Zapier, and webhook integrations",
+      "10 active devices",
+      "10 active campaigns",
+      "Campaign Workbench",
+      "Company templates",
+      "Coupons & offers",
     ],
   },
   {
     name: "Pro",
-    price: "$249",
-    description: "For agencies and multi-location brands scaling offline-to-online journeys.",
-    callout: "Built for scale and reporting",
-    cta: "Talk to sales",
+    price: "$99",
+    description: "Advanced tools for growing businesses.",
+    callout: "For serious marketers",
+    cta: "Get started",
     accent: "from-emerald-400/18 via-cyan-400/8 to-transparent",
     featured: false,
     features: [
-      "Everything in Studio",
-      "Unlimited workspaces and collaborator roles",
-      "Advanced attribution and source breakdowns",
-      "Priority support and strategic onboarding",
+      "50 active devices",
+      "Scan mode & staff roles",
+      "Auto-reply emails",
+      "Lead export",
+      "Multi-location lite",
+    ],
+  },
+  {
+    name: "Growth",
+    price: "$199",
+    description: "For multi-location brands scaling tap marketing.",
+    callout: "Built for scale",
+    cta: "Talk to sales",
+    accent: "from-cyan-400/18 via-primary/8 to-transparent",
+    featured: false,
+    features: [
+      "150 active devices",
+      "Team users",
+      "Campaign scheduling",
+      "Advanced analytics",
+      "Priority support",
     ],
   },
 ];
@@ -153,7 +172,7 @@ export default function Home() {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <a
-                href="#pricing"
+                href="/onboarding"
                 className={cn(buttonVariants({ size: "lg" }), "px-6")}
               >
                 Start building
@@ -371,7 +390,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="mt-12 grid gap-6 lg:grid-cols-3">
+          <div className="mt-12 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {pricingTiers.map((tier) => (
               <Card
                 key={tier.name}
@@ -428,7 +447,7 @@ export default function Home() {
 
                 <CardFooter className="relative flex-col items-stretch gap-3 border-t border-border/60 bg-background/55">
                   <a
-                    href="#"
+                    href="/onboarding"
                     className={cn(
                       buttonVariants({
                         variant: tier.featured ? "default" : "outline",

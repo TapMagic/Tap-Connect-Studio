@@ -1,0 +1,424 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ───────────────────────────────────────────────────────────────────
+
+enum UserRole {
+  OWNER
+  MANAGER
+  MARKETING
+  STAFF_SCANNER
+  VIEWER
+}
+
+enum PlanTier {
+  BASIC
+  STUDIO
+  PRO
+  GROWTH
+  ENTERPRISE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  TRIALING
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
+enum DeviceStatus {
+  UNASSIGNED
+  ACTIVE
+  INACTIVE
+  ARCHIVED
+  LOST
+  REPLACED
+  SUSPENDED
+  CLOSED
+  RETIRED
+}
+
+enum DeviceType {
+  BUSINESS_CARD
+  PRODUCT_DISC
+  SHELF_TAG
+  TABLE_TENT
+  WINDOW_SIGN
+  EVENT_SIGN
+  PACKAGE_INSERT
+  REVIEW_STAND
+  STAFF_INTERNAL
+  GENERIC_NFC
+}
+
+enum AuthMode {
+  STANDARD
+  LOCKED_STANDARD
+  VERIFIED
+  MANUAL
+  INTERNAL_TEST
+}
+
+enum CampaignStatus {
+  DRAFT
+  READY
+  SCHEDULED
+  LIVE
+  PAUSED
+  ARCHIVED
+  CLOSED
+}
+
+enum CampaignType {
+  PRODUCT_STORY
+  VIDEO_DEMO
+  COUPON_OFFER
+  REVIEW_REQUEST
+  FEEDBACK_FORM
+  CONTACT_VCARD
+  EVENT_ANNOUNCEMENT
+  STAFF_PICK
+  LINK_HUB
+  MENU_INFO
+  MULTI_LOCATION
+  LEAD_CAPTURE
+}
+
+enum AssignmentStatus {
+  SCHEDULED
+  ACTIVE
+  ENDED
+  REPLACED
+  CANCELED
+}
+
+enum ScanSessionStatus {
+  WAITING
+  SCANNED
+  EXPIRED
+  CANCELED
+}
+
+enum ScanSessionType {
+  OWNER_PHONE
+  DESKTOP_PHONE
+  REMOTE_STAFF
+  SUPPORT_ASSISTED
+}
+
+enum ComplianceCategory {
+  GENERAL
+  TOBACCO
+  VAPE
+  CANNABIS
+  ALCOHOL
+  SUPPLEMENTS
+  HEALTH_WELLNESS
+  WEAPONS
+  ADULT
+  FINANCIAL
+  MEDICAL
+}
+
+enum FontStyle {
+  MODERN
+  CLASSIC
+  PLAYFUL
+  PREMIUM
+  MINIMAL
+}
+
+enum ButtonStyle {
+  ROUNDED
+  PILL
+  SHARP
+  SOFT
+}
+
+// ─── Users & Business ────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String?  @unique
+  email     String   @unique
+  firstName String?
+  lastName  String?
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships      BusinessUser[]
+  campaignsCreated Campaign[]     @relation("CampaignCreatedBy")
+  campaignsUpdated Campaign[]     @relation("CampaignUpdatedBy")
+  assignmentsMade  DeviceAssignment[]
+  scanSessions     ScanSession[]
+}
+
+model Business {
+  id                  String             @id @default(cuid())
+  name                String
+  slug                String             @unique
+  logoUrl             String?
+  website             String?
+  phone               String?
+  email               String?
+  googleReviewUrl     String?
+  complianceCategory  ComplianceCategory @default(GENERAL)
+  subscriptionTier    PlanTier           @default(BASIC)
+  activeDeviceLimit   Int                @default(1)
+  activeCampaignLimit Int                @default(3)
+  billingStatus       SubscriptionStatus @default(INCOMPLETE)
+  stripeCustomerId    String?            @unique
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  users        BusinessUser[]
+  brandKit     BrandKit?
+  locations    Location[]
+  devices      DeviceSlot[]
+  campaigns    Campaign[]
+  assignments  DeviceAssignment[]
+  leads        Lead[]
+  tapEvents    TapEvent[]
+  clickEvents  ClickEvent[]
+  scanSessions ScanSession[]
+  subscription Subscription?
+}
+
+model BusinessUser {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  role       UserRole @default(OWNER)
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId])
+}
+
+model Location {
+  id        String   @id @default(cuid())
+  businessId String
+  name      String
+  address   String?
+  city      String?
+  state     String?
+  zip       String?
+  phone     String?
+  mapUrl    String?
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  devices  DeviceSlot[]
+}
+
+// ─── Brand Kit ───────────────────────────────────────────────────────────────
+
+model BrandKit {
+  id               String      @id @default(cuid())
+  businessId       String      @unique
+  primaryColor     String      @default("#22c55e")
+  secondaryColor   String      @default("#0ea5e9")
+  accentColor      String      @default("#f59e0b")
+  backgroundColor  String      @default("#0b0f19")
+  textColor        String      @default("#f8fafc")
+  fontStyle        FontStyle   @default(MODERN)
+  buttonStyle      ButtonStyle @default(ROUNDED)
+  defaultLanguage  String      @default("en")
+  tone             String      @default("professional")
+  defaultDisclaimer String?
+  ageGateEnabled   Boolean     @default(false)
+  ageGateMinAge    Int         @default(21)
+  socialLinks      Json        @default("{}")
+  defaultFooter    Json        @default("[]")
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+// ─── Subscription ────────────────────────────────────────────────────────────
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  businessId           String             @unique
+  stripeSubscriptionId String?            @unique
+  stripePriceId        String?
+  tier                 PlanTier           @default(BASIC)
+  status               SubscriptionStatus @default(INCOMPLETE)
+  currentPeriodStart   DateTime?
+  currentPeriodEnd     DateTime?
+  cancelAtPeriodEnd    Boolean            @default(false)
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+// ─── Devices ─────────────────────────────────────────────────────────────────
+
+model DeviceSlot {
+  id                   String       @id @default(cuid())
+  businessId           String?
+  deviceCode           String       @unique
+  deviceType           DeviceType   @default(GENERIC_NFC)
+  status               DeviceStatus @default(UNASSIGNED)
+  authMode             AuthMode     @default(STANDARD)
+  nickname             String?
+  locationId           String?
+  locationNote         String?
+  totalTapCount        Int          @default(0)
+  lastTappedAt         DateTime?
+  issuedAt             DateTime     @default(now())
+  activatedAt          DateTime?
+  batchId              String?
+  metadata             Json         @default("{}")
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+
+  business    Business?          @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  location    Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  assignments DeviceAssignment[]
+  tapEvents   TapEvent[]
+  leads       Lead[]
+  clickEvents ClickEvent[]
+}
+
+// ─── Campaigns ───────────────────────────────────────────────────────────────
+
+model Campaign {
+  id                 String         @id @default(cuid())
+  businessId         String
+  title              String
+  campaignType       CampaignType
+  status             CampaignStatus @default(DRAFT)
+  templateId         String?
+  contentBlocks      Json           @default("[]")
+  primaryMedia       Json           @default("{}")
+  offerSettings      Json           @default("{}")
+  formSettings       Json           @default("{}")
+  complianceSettings Json           @default("{}")
+  themeOverrides     Json           @default("{}")
+  scheduledStart     DateTime?
+  scheduledEnd       DateTime?
+  createdById        String?
+  updatedById        String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  business    Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy   User?              @relation("CampaignCreatedBy", fields: [createdById], references: [id])
+  updatedBy   User?              @relation("CampaignUpdatedBy", fields: [updatedById], references: [id])
+  assignments DeviceAssignment[]
+  leads       Lead[]
+  tapEvents   TapEvent[]
+  clickEvents ClickEvent[]
+}
+
+model DeviceAssignment {
+  id                  String           @id @default(cuid())
+  deviceSlotId        String
+  campaignId          String
+  businessId          String
+  status              AssignmentStatus @default(ACTIVE)
+  startsAt            DateTime         @default(now())
+  endsAt              DateTime?
+  assignedById        String?
+  replacedAssignmentId String?
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
+
+  deviceSlot DeviceSlot @relation(fields: [deviceSlotId], references: [id], onDelete: Cascade)
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  assignedBy User?      @relation(fields: [assignedById], references: [id])
+}
+
+// ─── Analytics & Leads ───────────────────────────────────────────────────────
+
+model TapEvent {
+  id           String   @id @default(cuid())
+  businessId   String?
+  deviceSlotId String
+  campaignId   String?
+  visitorHash  String?
+  userAgent    String?
+  referrer     String?
+  createdAt    DateTime @default(now())
+
+  business   Business?  @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  deviceSlot DeviceSlot @relation(fields: [deviceSlotId], references: [id], onDelete: Cascade)
+  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([deviceSlotId, createdAt])
+  @@index([businessId, createdAt])
+}
+
+model ClickEvent {
+  id           String   @id @default(cuid())
+  businessId   String?
+  deviceSlotId String?
+  campaignId   String?
+  eventType    String
+  blockId      String?
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now())
+
+  business   Business?   @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  deviceSlot DeviceSlot? @relation(fields: [deviceSlotId], references: [id], onDelete: SetNull)
+  campaign   Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([campaignId, eventType])
+}
+
+model Lead {
+  id           String   @id @default(cuid())
+  businessId   String
+  campaignId   String?
+  deviceSlotId String?
+  name         String?
+  email        String
+  phone        String?
+  metadata     Json     @default("{}")
+  consentGiven Boolean  @default(false)
+  couponClaimed Boolean @default(false)
+  createdAt    DateTime @default(now())
+
+  business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaign   Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  deviceSlot DeviceSlot? @relation(fields: [deviceSlotId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+}
+
+// ─── Scan Sessions ───────────────────────────────────────────────────────────
+
+model ScanSession {
+  id                 String            @id @default(cuid())
+  businessId         String
+  createdByUserId    String
+  status             ScanSessionStatus @default(WAITING)
+  sessionType        ScanSessionType   @default(OWNER_PHONE)
+  expiresAt          DateTime
+  scannedDeviceSlotId String?
+  scannedByUserId    String?
+  scannedAt          DateTime?
+  accessCode         String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  business  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status])
+}
