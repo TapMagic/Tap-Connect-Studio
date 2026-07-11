@@ -1,49 +1,38 @@
-import Link from "next/link";
-import { ArrowRight } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireBusiness } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { CAMPAIGN_TEMPLATES } from "@/lib/campaign-templates";
 import { TemplatePicker } from "@/components/workbench/template-picker";
+import { TemplateGallery } from "@/components/workbench/template-gallery";
 
-export default function WorkbenchPage() {
+export default async function WorkbenchPage() {
+  const { business } = await requireBusiness();
+  const brandKit = await prisma.brandKit.findUnique({
+    where: { businessId: business.id },
+  });
+
   return (
     <div className="space-y-8 p-6 lg:p-8">
       <div>
         <h1 className="text-2xl font-bold tracking-tight">Campaign Workbench</h1>
         <p className="text-muted-foreground">
-          Start with an intent, not a blank page. Pick a template and customize with guided blocks.
+          Start with an intent, not a blank page. Templates show your brand colors when saved in Brand Kit.
         </p>
       </div>
 
       <TemplatePicker templates={CAMPAIGN_TEMPLATES} />
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {CAMPAIGN_TEMPLATES.map((template) => (
-          <Card key={template.id} className="border-border/60 bg-card/60">
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <CardTitle className="text-lg">{template.name}</CardTitle>
-                {template.industry && (
-                  <Badge variant="outline" className="text-xs capitalize">
-                    {template.industry}
-                  </Badge>
-                )}
-              </div>
-              <CardDescription>{template.description}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="mb-3 text-xs text-muted-foreground">
-                Includes: {template.suggestedBlocks.slice(0, 4).join(", ").replace(/_/g, " ")}...
-              </p>
-              <Link
-                href={`/dashboard/workbench?template=${template.id}`}
-                className="inline-flex items-center text-sm text-primary hover:underline"
-              >
-                Use template <ArrowRight className="ml-1 h-3.5 w-3.5" />
-              </Link>
-            </CardContent>
-          </Card>
-        ))}
+      <div>
+        <h2 className="mb-4 text-lg font-semibold">Template gallery</h2>
+        <TemplateGallery
+          templates={CAMPAIGN_TEMPLATES}
+          brandColors={{
+            primaryColor: brandKit?.primaryColor ?? "#22c55e",
+            secondaryColor: brandKit?.secondaryColor ?? "#0ea5e9",
+            backgroundColor: brandKit?.backgroundColor ?? "#0b0f19",
+            textColor: brandKit?.textColor ?? "#f8fafc",
+            logoUrl: business.logoUrl,
+          }}
+        />
       </div>
     </div>
   );

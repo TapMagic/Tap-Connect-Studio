@@ -189,6 +189,9 @@ model Business {
   clickEvents  ClickEvent[]
   scanSessions ScanSession[]
   subscription Subscription?
+  mediaAssets  MediaAsset[]
+  savedTemplates SavedTemplate[]
+  scheduleRules ScheduleRule[]
 }
 
 model BusinessUser {
@@ -292,6 +295,7 @@ model DeviceSlot {
   tapEvents   TapEvent[]
   leads       Lead[]
   clickEvents ClickEvent[]
+  scheduleRules ScheduleRule[]
 }
 
 // ─── Campaigns ───────────────────────────────────────────────────────────────
@@ -323,6 +327,8 @@ model Campaign {
   leads       Lead[]
   tapEvents   TapEvent[]
   clickEvents ClickEvent[]
+  mediaAssets MediaAsset[]
+  scheduleRules ScheduleRule[]
 }
 
 model DeviceAssignment {
@@ -421,4 +427,62 @@ model ScanSession {
   createdBy User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
 
   @@index([businessId, status])
+}
+
+// ─── Media & Templates (placeholders — wired when integrations added) ─────────
+
+model MediaAsset {
+  id         String   @id @default(cuid())
+  businessId String
+  campaignId String?
+  url        String
+  filename   String?
+  mimeType   String
+  sizeBytes  Int      @default(0)
+  source     String   @default("upload") // upload | stock | url
+  createdAt  DateTime @default(now())
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
+}
+
+model SavedTemplate {
+  id             String   @id @default(cuid())
+  businessId     String
+  name           String
+  campaignType   CampaignType
+  contentBlocks  Json     @default("[]")
+  themeOverrides Json     @default("{}")
+  thumbnailUrl   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId])
+}
+
+model ScheduleRule {
+  id           String   @id @default(cuid())
+  businessId   String
+  deviceSlotId String
+  campaignId   String
+  label        String
+  daysOfWeek   Json     @default("[]") // [1,2,3,4,5] Mon=1
+  startTime    String?  // "17:00"
+  endTime      String?  // "23:59"
+  startDate    DateTime?
+  endDate      DateTime?
+  priority     Int      @default(0)
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  deviceSlot DeviceSlot @relation(fields: [deviceSlotId], references: [id], onDelete: Cascade)
+  campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([deviceSlotId, enabled])
 }

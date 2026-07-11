@@ -3,6 +3,12 @@ import { CampaignEditor } from "@/components/workbench/campaign-editor";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseContentBlocks } from "@/lib/services/devices";
+import {
+  isMediaUploadReady,
+  isStockImagesReady,
+  isAiReady,
+  isEmailReady,
+} from "@/lib/config/integrations";
 import type { ContentBlock } from "@/lib/types/campaign";
 
 type PageProps = {
@@ -31,6 +37,7 @@ export default async function CampaignEditPage({ params }: PageProps) {
     secondaryColor: "#0ea5e9",
     backgroundColor: "#0b0f19",
     textColor: "#f8fafc",
+    logoUrl: business.logoUrl,
   };
 
   return (
@@ -42,9 +49,16 @@ export default async function CampaignEditPage({ params }: PageProps) {
         contentBlocks: parseContentBlocks(campaign.contentBlocks) as ContentBlock[],
         themeOverrides: (campaign.themeOverrides as Record<string, string>) ?? {},
       }}
-      brandKit={brandKit ?? defaultBrand}
+      brandKit={{ ...defaultBrand, ...brandKit, logoUrl: business.logoUrl }}
       businessId={business.id}
       devices={devices}
+      integrations={{
+        mediaUpload: isMediaUploadReady(),
+        stockImages: isStockImagesReady(),
+        ai: isAiReady(),
+        email: isEmailReady(),
+      }}
+      subscriptionTier={business.subscriptionTier}
     />
   );
 }

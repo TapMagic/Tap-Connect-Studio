@@ -25,6 +25,7 @@ const navItems = [
   { href: "/dashboard/leads", label: "Leads", icon: Users },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/dashboard/brand", label: "Brand Kit", icon: Palette },
+  { href: "/dashboard/integrations", label: "Integrations", icon: Zap },
   { href: "/dashboard/scan", label: "Scan Mode", icon: ScanLine },
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
 ];

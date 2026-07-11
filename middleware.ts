@@ -9,6 +9,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/health(.*)",
   "/api/leads(.*)",
   "/api/tap/(.*)",
+  "/api/qr(.*)",
+  "/api/integrations/status(.*)",
 ]);
 
 const isClerkConfigured = Boolean(
