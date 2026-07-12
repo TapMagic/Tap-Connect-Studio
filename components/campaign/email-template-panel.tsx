@@ -27,7 +27,7 @@ export function EmailTemplatePanel({ emailReady = false }: EmailTemplatePanelPro
           description="Branded emails with images require Resend. Free tier: 100 emails/day."
           envVars={["RESEND_API_KEY", "RESEND_FROM_EMAIL"]}
           signupUrl="https://resend.com"
-          costNote="GetResponse reserved for future marketing campaigns add-on."
+          costNote="Use a verified Resend domain (tapstaymagic.com for now)."
           comingSoon
         />
       )}

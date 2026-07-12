@@ -12,6 +12,7 @@ import {
 
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
+import { AuthLinks } from "@/components/auth/auth-controls";
 import {
   Card,
   CardContent,
@@ -137,15 +138,18 @@ export default function Home() {
             </div>
           </div>
 
-          <a
-            href="#pricing"
-            className={cn(
-              buttonVariants({ variant: "outline", size: "lg" }),
-              "hidden sm:inline-flex",
-            )}
-          >
-            View pricing
-          </a>
+          <div className="flex items-center gap-3">
+            <a
+              href="#pricing"
+              className={cn(
+                buttonVariants({ variant: "outline", size: "sm" }),
+                "hidden sm:inline-flex",
+              )}
+            >
+              View pricing
+            </a>
+            <AuthLinks />
+          </div>
         </div>
 
         <div className="grid items-center gap-14 lg:grid-cols-[1.1fr_0.9fr]">
@@ -172,7 +176,7 @@ export default function Home() {
 
             <div className="flex flex-col gap-3 sm:flex-row">
               <a
-                href="/onboarding"
+                href="/sign-up"
                 className={cn(buttonVariants({ size: "lg" }), "px-6")}
               >
                 Start building

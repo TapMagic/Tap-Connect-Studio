@@ -43,9 +43,9 @@ export const integrations: IntegrationStatus[] = [
     name: "UploadThing",
     configured: has("UPLOADTHING_TOKEN"),
     description: "Browse, paste, and drag-drop file uploads in the builder.",
-    envVars: ["UPLOADTHING_TOKEN", "UPLOADTHING_APP_ID"],
+    envVars: ["UPLOADTHING_TOKEN"],
     signupUrl: "https://uploadthing.com",
-    costNote: "Free hobby tier — stay within limits",
+    costNote: "Free hobby tier — TOKEN is enough; APP_ID optional",
   },
   {
     id: "r2",
