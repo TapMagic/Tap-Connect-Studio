@@ -49,6 +49,26 @@ export function CampaignActions({
     router.refresh();
   }
 
+  async function remove() {
+    if (!confirm("Delete this campaign permanently? Active device assignments will be cleared.")) {
+      return;
+    }
+    setLoading("delete");
+    setMessage(null);
+    const res = await fetch("/api/campaigns/actions", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ campaignId }),
+    });
+    setLoading(null);
+    if (!res.ok) {
+      setMessage("Delete failed");
+      return;
+    }
+    router.push("/dashboard/campaigns");
+    router.refresh();
+  }
+
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button variant="outline" size="sm" onClick={clone} disabled={!!loading}>
@@ -69,6 +89,9 @@ export function CampaignActions({
           Close
         </Button>
       )}
+      <Button variant="ghost" size="sm" onClick={remove} disabled={!!loading} className="text-red-400 hover:text-red-300">
+        {loading === "delete" ? "Deleting..." : "Delete"}
+      </Button>
       {message && <span className="text-xs text-primary">{message}</span>}
     </div>
   );

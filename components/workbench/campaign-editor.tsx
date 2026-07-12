@@ -46,6 +46,7 @@ interface CampaignEditorProps {
   };
   businessId: string;
   devices: { id: string; nickname: string | null; deviceCode: string }[];
+  siblingCampaigns: { id: string; title: string; status: string }[];
   integrations: {
     mediaUpload: boolean;
     stockImages: boolean;
@@ -68,6 +69,7 @@ export function CampaignEditor({
   brandKit,
   businessId,
   devices,
+  siblingCampaigns,
   integrations,
   subscriptionTier,
 }: CampaignEditorProps) {
@@ -298,7 +300,13 @@ export function CampaignEditor({
             />
           )}
 
-          {tab === "schedule" && <SchedulePanel campaignId={campaign.id} />}
+          {tab === "schedule" && (
+            <SchedulePanel
+              campaignId={campaign.id}
+              devices={devices}
+              campaigns={siblingCampaigns.length ? siblingCampaigns : [{ id: campaign.id, title, status: campaign.status }]}
+            />
+          )}
 
           {tab === "email" && <EmailTemplatePanel emailReady={integrations.email} />}
 
@@ -389,7 +397,7 @@ function BlockFields({
       { key: "headline", label: "Headline" },
       { key: "description", label: "Description" },
       { key: "buttonLabel", label: "Button label" },
-      { key: "successMessage", label: "Success message" },
+      { key: "successMessage", label: "Success message (after contact submitted)" },
     ],
     feedback_form: [
       { key: "headline", label: "Headline" },
@@ -415,6 +423,18 @@ function BlockFields({
     return <p className="text-xs text-muted-foreground">More field options coming for this block type.</p>;
   }
 
+  const emailFields = ((data.fields as string[]) ?? ["email"]).filter(Boolean);
+  const hasName = emailFields.includes("name");
+  const hasPhone = emailFields.includes("phone");
+
+  function setEmailField(field: "name" | "phone", enabled: boolean) {
+    const next = new Set(emailFields);
+    next.add("email");
+    if (enabled) next.add(field);
+    else next.delete(field);
+    onUpdate("fields", Array.from(next));
+  }
+
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {fields.map((field) => (
@@ -435,6 +455,69 @@ function BlockFields({
           )}
         </div>
       ))}
+      {block.type === "email_capture" && (
+        <div className="sm:col-span-2 space-y-3 rounded-lg border border-border/50 p-3">
+          <p className="text-xs font-medium text-muted-foreground">Contact fields</p>
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>Collect name</span>
+            <input
+              type="checkbox"
+              checked={hasName}
+              onChange={(e) => {
+                setEmailField("name", e.target.checked);
+                if (!e.target.checked) onUpdate("requireName", false);
+              }}
+            />
+          </label>
+          {hasName && (
+            <label className="flex items-center justify-between gap-3 text-sm pl-2">
+              <span>Require name</span>
+              <input
+                type="checkbox"
+                checked={Boolean(data.requireName)}
+                onChange={(e) => onUpdate("requireName", e.target.checked)}
+              />
+            </label>
+          )}
+          <label className="flex items-center justify-between gap-3 text-sm">
+            <span>Collect phone</span>
+            <input
+              type="checkbox"
+              checked={hasPhone}
+              onChange={(e) => {
+                setEmailField("phone", e.target.checked);
+                if (!e.target.checked) onUpdate("requirePhone", false);
+              }}
+            />
+          </label>
+          {hasPhone && (
+            <label className="flex items-center justify-between gap-3 text-sm pl-2">
+              <span>Require phone</span>
+              <input
+                type="checkbox"
+                checked={Boolean(data.requirePhone)}
+                onChange={(e) => onUpdate("requirePhone", e.target.checked)}
+              />
+            </label>
+          )}
+          <p className="text-xs text-muted-foreground">
+            Email is always collected. For coupon pages, put Contact Capture above the Coupon block —
+            the code stays locked until they submit.
+          </p>
+        </div>
+      )}
+      {block.type === "offer_coupon" && (
+        <div className="sm:col-span-2">
+          <label className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3 text-sm">
+            <span>Lock coupon until contact info is submitted</span>
+            <input
+              type="checkbox"
+              checked={data.lockedUntilContact !== false}
+              onChange={(e) => onUpdate("lockedUntilContact", e.target.checked)}
+            />
+          </label>
+        </div>
+      )}
       {block.type === "product_details" && (
         <div className="sm:col-span-2">
           <Label className="text-xs">Features (one per line)</Label>

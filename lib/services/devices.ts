@@ -1,6 +1,7 @@
 import { CampaignStatus, DeviceStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { ContentBlock } from "@/lib/types/campaign";
+import { resolveScheduledCampaign } from "@/lib/services/schedule";
 
 export async function getDeviceWithActiveCampaign(deviceCode: string) {
   const device = await prisma.deviceSlot.findUnique({
@@ -20,9 +21,10 @@ export async function getDeviceWithActiveCampaign(deviceCode: string) {
   if (!device) return null;
 
   const assignment = device.assignments[0];
-  const campaign = assignment?.campaign;
+  const scheduled = await resolveScheduledCampaign(device.id);
+  const campaign = scheduled?.campaign ?? assignment?.campaign ?? null;
 
-  return { device, assignment, campaign };
+  return { device, assignment, campaign, scheduleRule: scheduled?.rule ?? null };
 }
 
 export async function logTapEvent(params: {

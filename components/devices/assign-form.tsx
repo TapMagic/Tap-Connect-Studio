@@ -16,12 +16,12 @@ export function DeviceAssignForm({
 }) {
   const router = useRouter();
   const [campaignId, setCampaignId] = useState(currentCampaignId ?? "");
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   async function handleAssign() {
     if (!campaignId) return;
-    setLoading(true);
+    setLoading("assign");
     setMessage(null);
 
     const res = await fetch("/api/campaigns/assign", {
@@ -32,12 +32,31 @@ export function DeviceAssignForm({
 
     if (!res.ok) {
       setMessage("Failed to assign campaign");
-      setLoading(false);
+      setLoading(null);
       return;
     }
 
     setMessage("Campaign assigned and live!");
-    setLoading(false);
+    setLoading(null);
+    router.refresh();
+  }
+
+  async function handleClear() {
+    setLoading("clear");
+    setMessage(null);
+    const res = await fetch("/api/campaigns/assign", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceSlotId: deviceId, reopenSlot: true }),
+    });
+    if (!res.ok) {
+      setMessage("Failed to clear campaign");
+      setLoading(null);
+      return;
+    }
+    setCampaignId("");
+    setMessage("Campaign removed — slot reopened (UNASSIGNED).");
+    setLoading(null);
     router.refresh();
   }
 
@@ -54,6 +73,7 @@ export function DeviceAssignForm({
       <h3 className="font-semibold">Assign Campaign</h3>
       <p className="mt-1 text-sm text-muted-foreground">
         Choose a Workbench campaign to show on this device. The physical URL stays the same.
+        Clear the assignment to reopen the slot for another campaign.
       </p>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1 space-y-2">
@@ -71,9 +91,16 @@ export function DeviceAssignForm({
             ))}
           </select>
         </div>
-        <Button onClick={handleAssign} disabled={loading || !campaignId}>
-          {loading ? "Assigning..." : "Assign & Go Live"}
-        </Button>
+        <div className="flex flex-wrap gap-2">
+          <Button onClick={handleAssign} disabled={!!loading || !campaignId}>
+            {loading === "assign" ? "Assigning..." : "Assign & Go Live"}
+          </Button>
+          {currentCampaignId && (
+            <Button variant="outline" onClick={handleClear} disabled={!!loading}>
+              {loading === "clear" ? "Clearing..." : "Clear / Reopen slot"}
+            </Button>
+          )}
+        </div>
       </div>
       {message && <p className="mt-3 text-sm text-primary">{message}</p>}
     </div>

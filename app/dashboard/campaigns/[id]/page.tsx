@@ -19,7 +19,7 @@ export default async function CampaignEditPage({ params }: PageProps) {
   const { id } = await params;
   const { business } = await requireBusiness();
 
-  const [campaign, brandKit, devices] = await Promise.all([
+  const [campaign, brandKit, devices, siblingCampaigns] = await Promise.all([
     prisma.campaign.findFirst({
       where: { id, businessId: business.id },
     }),
@@ -27,6 +27,11 @@ export default async function CampaignEditPage({ params }: PageProps) {
     prisma.deviceSlot.findMany({
       where: { businessId: business.id },
       select: { id: true, nickname: true, deviceCode: true },
+    }),
+    prisma.campaign.findMany({
+      where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+      orderBy: { updatedAt: "desc" },
+      select: { id: true, title: true, status: true },
     }),
   ]);
 
@@ -52,6 +57,7 @@ export default async function CampaignEditPage({ params }: PageProps) {
       brandKit={{ ...defaultBrand, ...brandKit, logoUrl: business.logoUrl }}
       businessId={business.id}
       devices={devices}
+      siblingCampaigns={siblingCampaigns}
       integrations={{
         mediaUpload: isMediaUploadReady(),
         stockImages: isStockImagesReady(),

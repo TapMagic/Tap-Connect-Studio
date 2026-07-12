@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { cloneCampaign } from "@/lib/services/campaigns";
+import { cloneCampaign, deleteCampaign } from "@/lib/services/campaigns";
 import { prisma } from "@/lib/db";
 
 const cloneSchema = z.object({
@@ -11,6 +11,10 @@ const cloneSchema = z.object({
 const statusSchema = z.object({
   campaignId: z.string(),
   status: z.enum(["DRAFT", "READY", "LIVE", "PAUSED", "ARCHIVED", "CLOSED"]),
+});
+
+const deleteSchema = z.object({
+  campaignId: z.string(),
 });
 
 export async function POST(request: Request) {
@@ -54,5 +58,20 @@ export async function PATCH(request: Request) {
   } catch (error) {
     console.error("Update campaign status error:", error);
     return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { business } = await requireBusiness();
+    const body = deleteSchema.parse(await request.json());
+    await deleteCampaign({ businessId: business.id, campaignId: body.campaignId });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    if (error instanceof Error && error.message === "Campaign not found") {
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    }
+    console.error("Delete campaign error:", error);
+    return NextResponse.json({ error: "Failed to delete campaign" }, { status: 500 });
   }
 }

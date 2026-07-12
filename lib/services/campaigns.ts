@@ -117,6 +117,59 @@ export async function assignCampaignToDevice(params: {
   });
 }
 
+export async function endDeviceAssignment(params: {
+  businessId: string;
+  deviceSlotId: string;
+  reopenSlot?: boolean;
+}) {
+  return prisma.$transaction(async (tx) => {
+    const active = await tx.deviceAssignment.findMany({
+      where: {
+        deviceSlotId: params.deviceSlotId,
+        businessId: params.businessId,
+        status: "ACTIVE",
+      },
+    });
+
+    for (const assignment of active) {
+      await tx.deviceAssignment.update({
+        where: { id: assignment.id },
+        data: { status: "ENDED", endsAt: new Date() },
+      });
+    }
+
+    const device = await tx.deviceSlot.update({
+      where: { id: params.deviceSlotId },
+      data: params.reopenSlot === false ? {} : { status: "UNASSIGNED" },
+    });
+
+    return { ended: active.length, device };
+  });
+}
+
+export async function deleteCampaign(params: {
+  businessId: string;
+  campaignId: string;
+}) {
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: params.campaignId, businessId: params.businessId },
+  });
+  if (!campaign) {
+    throw new Error("Campaign not found");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.deviceAssignment.updateMany({
+      where: { campaignId: params.campaignId, status: "ACTIVE" },
+      data: { status: "ENDED", endsAt: new Date() },
+    });
+    await tx.scheduleRule.deleteMany({ where: { campaignId: params.campaignId } });
+    await tx.campaign.delete({ where: { id: params.campaignId } });
+  });
+
+  return { ok: true };
+}
+
 export async function createDeviceForBusiness(
   businessId: string,
   nickname?: string,

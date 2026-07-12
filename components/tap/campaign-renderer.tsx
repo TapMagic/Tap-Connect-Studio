@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import type { BrandKit } from "@prisma/client";
 import type { ContentBlock } from "@/lib/types/campaign";
 import { extractYouTubeId } from "@/lib/utils/app";
@@ -34,6 +37,9 @@ export function CampaignPageRenderer({
     .filter((b) => b.enabled)
     .sort((a, b) => a.order - b.order);
 
+  const hasEmailCapture = enabledBlocks.some((b) => b.type === "email_capture");
+  const [contactUnlocked, setContactUnlocked] = useState(false);
+
   const style = {
     "--tap-primary": theme.primaryColor,
     "--tap-secondary": theme.secondaryColor,
@@ -53,6 +59,9 @@ export function CampaignPageRenderer({
             businessId={businessId}
             businessName={businessName}
             brandKit={brandKit}
+            contactUnlocked={contactUnlocked}
+            hasEmailCapture={hasEmailCapture}
+            onContactCaptured={() => setContactUnlocked(true)}
           />
         ))}
         <footer className="px-4 py-8 text-center text-xs opacity-50">
@@ -70,6 +79,9 @@ function BlockRenderer({
   businessId,
   businessName,
   brandKit,
+  contactUnlocked,
+  hasEmailCapture,
+  onContactCaptured,
 }: {
   block: ContentBlock;
   campaignId: string;
@@ -77,6 +89,9 @@ function BlockRenderer({
   businessId: string;
   businessName: string;
   brandKit?: BrandKit | null;
+  contactUnlocked: boolean;
+  hasEmailCapture: boolean;
+  onContactCaptured: () => void;
 }) {
   const data = block.data as Record<string, unknown>;
 
@@ -163,9 +178,31 @@ function BlockRenderer({
         </div>
       );
 
-    case "offer_coupon":
+    case "offer_coupon": {
+      const lockedUntilContact = data.lockedUntilContact !== false;
+      const isLocked = lockedUntilContact && hasEmailCapture && !contactUnlocked;
+
+      if (isLocked) {
+        return (
+          <div className="tap-block px-4 pt-4" id={`offer-${block.id}`}>
+            <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-5 text-center">
+              <h3 className="text-lg font-bold">{data.title as string}</h3>
+              <p className="mt-2 text-sm opacity-80">
+                Enter your contact info above to unlock this coupon.
+              </p>
+              <p className="mt-4 font-mono text-2xl font-bold tracking-widest text-white/20 blur-sm select-none">
+                {(data.code as string) || "••••••"}
+              </p>
+              <button type="button" disabled className="tap-btn tap-btn-secondary mt-4 w-full opacity-50">
+                Locked until contact info
+              </button>
+            </div>
+          </div>
+        );
+      }
+
       return (
-        <div className="tap-block px-4 pt-4">
+        <div className="tap-block px-4 pt-4" id={`offer-${block.id}`}>
           <div className="rounded-xl border-2 border-dashed border-[var(--tap-primary)] bg-[var(--tap-primary)]/10 p-5 text-center">
             <h3 className="text-lg font-bold">{data.title as string}</h3>
             <p className="mt-2 text-sm opacity-80">{data.description as string}</p>
@@ -187,6 +224,7 @@ function BlockRenderer({
           </div>
         </div>
       );
+    }
 
     case "email_capture":
       return (
@@ -196,6 +234,7 @@ function BlockRenderer({
           deviceSlotId={deviceSlotId}
           businessId={businessId}
           type="email_capture"
+          onSuccess={onContactCaptured}
         />
       );
 
@@ -233,7 +272,9 @@ function BlockRenderer({
     }
 
     case "map_location": {
-      const mapUrl = (data.mapUrl as string) || `https://maps.google.com/?q=${encodeURIComponent((data.address as string) ?? "")}`;
+      const mapUrl =
+        (data.mapUrl as string) ||
+        `https://maps.google.com/?q=${encodeURIComponent((data.address as string) ?? "")}`;
       return (
         <div className="tap-block px-4 pt-4">
           <h3 className="mb-2 text-lg font-semibold">{data.headline as string}</h3>

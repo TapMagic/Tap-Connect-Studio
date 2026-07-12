@@ -9,6 +9,7 @@ interface CampaignLeadFormProps {
   deviceSlotId: string;
   businessId: string;
   type: "email_capture" | "feedback";
+  onSuccess?: () => void;
 }
 
 export function CampaignLeadForm({
@@ -17,9 +18,12 @@ export function CampaignLeadForm({
   deviceSlotId,
   businessId,
   type,
+  onSuccess,
 }: CampaignLeadFormProps) {
   const data = block.data as Record<string, unknown>;
   const fields = (data.fields as string[]) ?? ["email"];
+  const requireName = Boolean(data.requireName);
+  const requirePhone = Boolean(data.requirePhone);
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +59,7 @@ export function CampaignLeadForm({
 
     setSubmitted(true);
     setLoading(false);
+    onSuccess?.();
   }
 
   if (submitted) {
@@ -69,6 +74,9 @@ export function CampaignLeadForm({
     );
   }
 
+  const showName = fields.includes("name") || requireName;
+  const showPhone = fields.includes("phone") || requirePhone;
+
   return (
     <div className="tap-block px-4 pt-4">
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
@@ -77,10 +85,11 @@ export function CampaignLeadForm({
           <p className="mt-1 text-sm opacity-80">{data.description as string}</p>
         ) : null}
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
-          {fields.includes("name") && (
+          {showName && (
             <input
               name="name"
-              placeholder="Your name"
+              required={requireName}
+              placeholder={requireName ? "Your name" : "Your name (optional)"}
               className="tap-input w-full"
             />
           )}
@@ -91,11 +100,12 @@ export function CampaignLeadForm({
             placeholder="Email address"
             className="tap-input w-full"
           />
-          {fields.includes("phone") && (
+          {showPhone && (
             <input
               name="phone"
               type="tel"
-              placeholder="Phone (optional)"
+              required={requirePhone}
+              placeholder={requirePhone ? "Phone number" : "Phone (optional)"}
               className="tap-input w-full"
             />
           )}

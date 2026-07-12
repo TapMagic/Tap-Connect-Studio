@@ -80,6 +80,8 @@ export interface OfferCouponData {
   code?: string;
   expiresAt?: string;
   ctaLabel: string;
+  /** When true (default with email capture), hide code until contact is submitted */
+  lockedUntilContact?: boolean;
 }
 
 export interface EmailCaptureData {
@@ -87,6 +89,8 @@ export interface EmailCaptureData {
   description?: string;
   buttonLabel: string;
   fields: ("name" | "email" | "phone")[];
+  requireName?: boolean;
+  requirePhone?: boolean;
   successMessage: string;
 }
 

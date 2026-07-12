@@ -17,13 +17,36 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     name: "Product Story",
     description: "Showcase a product with video, features, and a call to action.",
     industry: "retail",
-    suggestedBlocks: ["hero_video", "headline", "product_details", "offer_coupon", "email_capture", "action_block"],
+    suggestedBlocks: ["hero_video", "headline", "product_details", "email_capture", "offer_coupon", "action_block"],
     defaultBlocks: [
       block("hero_video", "Product Video", { videoUrl: "", provider: "youtube", title: "" }, 0),
       block("headline", "Headline", { headline: "Featured Product", subheadline: "Tap to learn more", alignment: "center" }, 1),
       block("product_details", "Product Details", { name: "", description: "", features: [] }, 2),
-      block("offer_coupon", "Special Offer", { title: "Limited Offer", description: "", code: "", ctaLabel: "Claim Offer" }, 3),
-      block("email_capture", "Join VIP List", { headline: "Stay in the loop", buttonLabel: "Join VIP", fields: ["name", "email"], successMessage: "Thanks! Check your inbox." }, 4),
+      block(
+        "email_capture",
+        "Join VIP List",
+        {
+          headline: "Unlock the offer",
+          description: "Share your contact info to reveal today’s special.",
+          buttonLabel: "Unlock Offer",
+          fields: ["name", "email"],
+          requireName: true,
+          successMessage: "You're in — your offer is below.",
+        },
+        3
+      ),
+      block(
+        "offer_coupon",
+        "Special Offer",
+        {
+          title: "Limited Offer",
+          description: "",
+          code: "",
+          ctaLabel: "Claim Offer",
+          lockedUntilContact: true,
+        },
+        4
+      ),
       block("action_block", "Quick Actions", { actions: [{ id: "1", type: "call", label: "Call Store" }, { id: "2", type: "directions", label: "Get Directions" }, { id: "3", type: "review", label: "Leave a Review" }] }, 5),
     ],
   },
@@ -44,13 +67,42 @@ export const CAMPAIGN_TEMPLATES: CampaignTemplate[] = [
     id: "coupon-offer",
     campaignType: "COUPON_OFFER",
     name: "Coupon / Offer",
-    description: "Drive conversions with a clear offer and email capture.",
-    suggestedBlocks: ["hero_image", "headline", "offer_coupon", "email_capture", "disclaimer"],
+    description: "Collect contact info first, then unlock the coupon on the same page.",
+    suggestedBlocks: ["hero_image", "headline", "email_capture", "offer_coupon", "disclaimer"],
     defaultBlocks: [
       block("hero_image", "Hero Image", { imageUrl: "", altText: "Offer" }, 0),
-      block("headline", "Headline", { headline: "Exclusive Offer", subheadline: "Tap to claim" }, 1),
-      block("offer_coupon", "Coupon", { title: "Your Offer", description: "", code: "SAVE10", ctaLabel: "Claim Now" }, 2),
-      block("email_capture", "Email Capture", { headline: "Get your coupon", buttonLabel: "Send My Coupon", fields: ["email"], successMessage: "Coupon sent!" }, 3),
+      block(
+        "headline",
+        "Headline",
+        { headline: "Exclusive Offer", subheadline: "Enter your info to unlock your coupon", alignment: "center" },
+        1
+      ),
+      block(
+        "email_capture",
+        "Contact Capture",
+        {
+          headline: "Unlock your coupon",
+          description: "Tell us how to reach you, then your offer appears below.",
+          buttonLabel: "Unlock My Coupon",
+          fields: ["name", "email"],
+          requireName: true,
+          requirePhone: false,
+          successMessage: "You're in — your coupon is below.",
+        },
+        2
+      ),
+      block(
+        "offer_coupon",
+        "Coupon",
+        {
+          title: "Your Offer",
+          description: "Show this code in store.",
+          code: "SAVE10",
+          ctaLabel: "I've Got My Code",
+          lockedUntilContact: true,
+        },
+        3
+      ),
       block("disclaimer", "Disclaimer", { text: "Offer valid while supplies last. One per customer." }, 4),
     ],
   },

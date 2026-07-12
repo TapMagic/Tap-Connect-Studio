@@ -5,11 +5,12 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
 const STATUS_ACTIONS = [
+  { status: "UNASSIGNED", label: "Reopen slot" },
   { status: "ACTIVE", label: "Activate" },
   { status: "INACTIVE", label: "Deactivate" },
   { status: "LOST", label: "Mark lost" },
   { status: "REPLACED", label: "Mark replaced" },
-  { status: "CLOSED", label: "Close device" },
+  { status: "CLOSED", label: "Close / remove tag" },
 ] as const;
 
 export function DeviceStatusActions({

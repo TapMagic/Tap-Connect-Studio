@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { endDeviceAssignment } from "@/lib/services/campaigns";
 
 const schema = z.object({
   deviceId: z.string(),
@@ -31,6 +32,17 @@ export async function PATCH(request: Request) {
     });
     if (!existing) {
       return NextResponse.json({ error: "Device not found" }, { status: 404 });
+    }
+
+    if (
+      body.status &&
+      ["UNASSIGNED", "CLOSED", "REPLACED", "RETIRED", "ARCHIVED"].includes(body.status)
+    ) {
+      await endDeviceAssignment({
+        businessId: business.id,
+        deviceSlotId: body.deviceId,
+        reopenSlot: false,
+      });
     }
 
     const device = await prisma.deviceSlot.update({
