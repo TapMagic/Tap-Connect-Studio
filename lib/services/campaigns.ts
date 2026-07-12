@@ -159,15 +159,74 @@ export async function deleteCampaign(params: {
   }
 
   await prisma.$transaction(async (tx) => {
-    await tx.deviceAssignment.updateMany({
+    const activeAssignments = await tx.deviceAssignment.findMany({
       where: { campaignId: params.campaignId, status: "ACTIVE" },
-      data: { status: "ENDED", endsAt: new Date() },
+      select: { id: true, deviceSlotId: true },
     });
+
+    if (activeAssignments.length > 0) {
+      await tx.deviceAssignment.updateMany({
+        where: { id: { in: activeAssignments.map((a) => a.id) } },
+        data: { status: "ENDED", endsAt: new Date() },
+      });
+
+      // Free linked devices so slots can be reassigned
+      await tx.deviceSlot.updateMany({
+        where: {
+          id: { in: activeAssignments.map((a) => a.deviceSlotId) },
+          businessId: params.businessId,
+        },
+        data: { status: "UNASSIGNED" },
+      });
+    }
+
     await tx.scheduleRule.deleteMany({ where: { campaignId: params.campaignId } });
     await tx.campaign.delete({ where: { id: params.campaignId } });
   });
 
   return { ok: true };
+}
+
+/** Archive/close a campaign and clear any active device assignments. */
+export async function archiveCampaign(params: {
+  businessId: string;
+  campaignId: string;
+  status?: "ARCHIVED" | "CLOSED";
+}) {
+  const campaign = await prisma.campaign.findFirst({
+    where: { id: params.campaignId, businessId: params.businessId },
+  });
+  if (!campaign) {
+    throw new Error("Campaign not found");
+  }
+
+  const nextStatus = params.status ?? "ARCHIVED";
+
+  return prisma.$transaction(async (tx) => {
+    const activeAssignments = await tx.deviceAssignment.findMany({
+      where: { campaignId: params.campaignId, status: "ACTIVE" },
+      select: { id: true, deviceSlotId: true },
+    });
+
+    if (activeAssignments.length > 0) {
+      await tx.deviceAssignment.updateMany({
+        where: { id: { in: activeAssignments.map((a) => a.id) } },
+        data: { status: "ENDED", endsAt: new Date() },
+      });
+      await tx.deviceSlot.updateMany({
+        where: {
+          id: { in: activeAssignments.map((a) => a.deviceSlotId) },
+          businessId: params.businessId,
+        },
+        data: { status: "UNASSIGNED" },
+      });
+    }
+
+    return tx.campaign.update({
+      where: { id: params.campaignId },
+      data: { status: nextStatus },
+    });
+  });
 }
 
 export async function createDeviceForBusiness(

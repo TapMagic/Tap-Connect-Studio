@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { cloneCampaign, deleteCampaign } from "@/lib/services/campaigns";
+import { archiveCampaign, cloneCampaign, deleteCampaign } from "@/lib/services/campaigns";
 import { prisma } from "@/lib/db";
 
 const cloneSchema = z.object({
@@ -42,6 +42,15 @@ export async function PATCH(request: Request) {
     const { business } = await requireBusiness();
     const body = statusSchema.parse(await request.json());
 
+    if (body.status === "ARCHIVED" || body.status === "CLOSED") {
+      const campaign = await archiveCampaign({
+        businessId: business.id,
+        campaignId: body.campaignId,
+        status: body.status,
+      });
+      return NextResponse.json({ campaign });
+    }
+
     const existing = await prisma.campaign.findFirst({
       where: { id: body.campaignId, businessId: business.id },
     });
@@ -56,6 +65,9 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ campaign });
   } catch (error) {
+    if (error instanceof Error && error.message === "Campaign not found") {
+      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    }
     console.error("Update campaign status error:", error);
     return NextResponse.json({ error: "Failed to update status" }, { status: 500 });
   }

@@ -16,7 +16,10 @@ export default async function DashboardPage() {
 
   const [recentCampaigns, recentDevices] = await Promise.all([
     prisma.campaign.findMany({
-      where: { businessId: business.id },
+      where: {
+        businessId: business.id,
+        status: { notIn: ["ARCHIVED", "CLOSED"] },
+      },
       orderBy: { updatedAt: "desc" },
       take: 8,
       select: {
@@ -27,7 +30,10 @@ export default async function DashboardPage() {
       },
     }),
     prisma.deviceSlot.findMany({
-      where: { businessId: business.id },
+      where: {
+        businessId: business.id,
+        status: { notIn: ["CLOSED", "RETIRED", "ARCHIVED", "REPLACED"] },
+      },
       orderBy: { updatedAt: "desc" },
       take: 8,
       include: {
