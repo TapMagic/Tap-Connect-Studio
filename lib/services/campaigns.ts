@@ -159,28 +159,45 @@ export async function deleteCampaign(params: {
   }
 
   await prisma.$transaction(async (tx) => {
-    const activeAssignments = await tx.deviceAssignment.findMany({
-      where: { campaignId: params.campaignId, status: "ACTIVE" },
-      select: { id: true, deviceSlotId: true },
+    const assignments = await tx.deviceAssignment.findMany({
+      where: { campaignId: params.campaignId },
+      select: { id: true, deviceSlotId: true, status: true },
     });
 
-    if (activeAssignments.length > 0) {
-      await tx.deviceAssignment.updateMany({
-        where: { id: { in: activeAssignments.map((a) => a.id) } },
-        data: { status: "ENDED", endsAt: new Date() },
-      });
+    const activeDeviceIds = assignments
+      .filter((a) => a.status === "ACTIVE")
+      .map((a) => a.deviceSlotId);
 
-      // Free linked devices so slots can be reassigned
+    if (activeDeviceIds.length > 0) {
       await tx.deviceSlot.updateMany({
         where: {
-          id: { in: activeAssignments.map((a) => a.deviceSlotId) },
+          id: { in: activeDeviceIds },
           businessId: params.businessId,
         },
         data: { status: "UNASSIGNED" },
       });
     }
 
+    // Explicit cleanup — do not rely on DB cascade (migrations may differ)
     await tx.scheduleRule.deleteMany({ where: { campaignId: params.campaignId } });
+    await tx.deviceAssignment.deleteMany({ where: { campaignId: params.campaignId } });
+    await tx.mediaAsset.updateMany({
+      where: { campaignId: params.campaignId },
+      data: { campaignId: null },
+    });
+    await tx.lead.updateMany({
+      where: { campaignId: params.campaignId },
+      data: { campaignId: null },
+    });
+    await tx.tapEvent.updateMany({
+      where: { campaignId: params.campaignId },
+      data: { campaignId: null },
+    });
+    await tx.clickEvent.updateMany({
+      where: { campaignId: params.campaignId },
+      data: { campaignId: null },
+    });
+
     await tx.campaign.delete({ where: { id: params.campaignId } });
   });
 

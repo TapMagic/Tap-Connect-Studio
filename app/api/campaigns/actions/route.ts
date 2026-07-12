@@ -114,6 +114,16 @@ export async function POST(request: Request) {
     revalidateCampaignViews();
     return NextResponse.json({ campaign });
   } catch (error) {
+    // Let Next.js auth redirects pass through (do not turn into 500 JSON)
+    if (
+      error &&
+      typeof error === "object" &&
+      "digest" in error &&
+      typeof (error as { digest?: string }).digest === "string" &&
+      (error as { digest: string }).digest.startsWith("NEXT_REDIRECT")
+    ) {
+      throw error;
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid action", details: error.flatten() }, { status: 400 });
     }
@@ -121,7 +131,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
     }
     console.error("Campaign action error:", error);
-    return NextResponse.json({ error: "Action failed" }, { status: 500 });
+    const message = error instanceof Error ? error.message : "Action failed";
+    return NextResponse.json({ error: message }, { status: 500 });
   }
 }
 

@@ -33,7 +33,11 @@ async function campaignAction(body: Record<string, unknown>) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? "Failed");
+  if (!res.ok) {
+    throw new Error(
+      typeof data.error === "string" ? data.error : `Action failed (${res.status})`
+    );
+  }
   return data;
 }
 

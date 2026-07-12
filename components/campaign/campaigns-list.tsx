@@ -49,7 +49,11 @@ async function campaignAction(body: Record<string, unknown>) {
     body: JSON.stringify(body),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error ?? "Action failed");
+  if (!res.ok) {
+    throw new Error(
+      typeof data.error === "string" ? data.error : `Action failed (${res.status})`
+    );
+  }
   return data;
 }
 
@@ -149,7 +153,10 @@ export function CampaignsList({
       await campaignAction({ action: "delete", campaignId: id });
       setMessage("Campaign deleted");
     });
-    if (!ok) setCampaigns(prev);
+    if (!ok) {
+      setCampaigns(prev);
+      // Keep the API error visible (run already set message)
+    }
   }
 
   async function setStatus(id: string, status: string) {
@@ -214,7 +221,14 @@ export function CampaignsList({
         ))}
       </div>
 
-      {message && <p className="text-sm text-primary">{message}</p>}
+      {message && (
+        <p
+          className={`text-sm ${message.toLowerCase().includes("fail") || message.toLowerCase().includes("error") || message.toLowerCase().includes("foreign") || message.toLowerCase().includes("constraint") ? "text-amber-300" : "text-primary"}`}
+          role="status"
+        >
+          {message}
+        </p>
+      )}
 
       {filtered.length === 0 ? (
         <Card className="border-dashed">
