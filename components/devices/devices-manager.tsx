@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { getDeviceUrl } from "@/lib/utils/app";
+import { getDevicePath } from "@/lib/utils/app";
 
 interface DeviceRow {
   id: string;
@@ -52,7 +52,8 @@ export function DevicesManager({
   }
 
   function copyUrl(code: string) {
-    void navigator.clipboard.writeText(getDeviceUrl(code));
+    const url = `${window.location.origin}/t/${code}`;
+    void navigator.clipboard.writeText(url);
   }
 
   return (
@@ -95,7 +96,7 @@ export function DevicesManager({
                     <p className="font-semibold">{d.nickname ?? d.deviceCode}</p>
                     <Badge variant="outline">{d.status.toLowerCase()}</Badge>
                   </div>
-                  <p className="mt-1 font-mono text-xs text-muted-foreground">/t/{d.deviceCode}</p>
+                  <p className="mt-1 font-mono text-xs text-muted-foreground">{getDevicePath(d.deviceCode)}</p>
                   <p className="mt-1 text-sm text-muted-foreground">
                     {d.campaignTitle ?? "No campaign assigned"} · {d.totalTapCount} taps
                   </p>

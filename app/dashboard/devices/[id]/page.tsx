@@ -6,7 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { formatRelativeDate, getDeviceUrl } from "@/lib/utils/app";
+import { formatRelativeDate, getDevicePath } from "@/lib/utils/app";
 import { DeviceAssignForm } from "@/components/devices/assign-form";
 import { DeviceStatusActions } from "@/components/devices/device-status-actions";
 
@@ -37,7 +37,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
   });
 
   const activeAssignment = device.assignments.find((a) => a.status === "ACTIVE");
-  const tapUrl = getDeviceUrl(device.deviceCode);
+  const tapPath = getDevicePath(device.deviceCode);
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -47,10 +47,10 @@ export default async function DeviceDetailPage({ params }: PageProps) {
             <h1 className="text-2xl font-bold">{device.nickname ?? device.deviceCode}</h1>
             <Badge variant="outline">{device.status.toLowerCase()}</Badge>
           </div>
-          <p className="mt-1 font-mono text-sm text-muted-foreground">{tapUrl}</p>
+          <p className="mt-1 font-mono text-sm text-muted-foreground">{tapPath}</p>
         </div>
         <a
-          href={tapUrl}
+          href={tapPath}
           target="_blank"
           rel="noopener noreferrer"
           className={buttonVariants({ variant: "outline" })}

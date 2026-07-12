@@ -42,7 +42,8 @@ export async function PATCH(request: Request) {
       await endDeviceAssignment({
         businessId: business.id,
         deviceSlotId: body.deviceId,
-        reopenSlot: false,
+        // UNASSIGNED frees the paid slot; other terminal statuses keep the slot closed
+        reopenSlot: body.status === "UNASSIGNED",
       });
     }
 

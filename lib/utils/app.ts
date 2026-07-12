@@ -16,23 +16,48 @@ export function slugify(text: string): string {
     .slice(0, 48);
 }
 
+function normalizeBaseUrl(raw: string): string {
+  const trimmed = raw.trim().replace(/\/$/, "");
+  if (!trimmed) return "";
+  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) return trimmed;
+  return `https://${trimmed}`;
+}
+
+/** Public site origin for tap/QR links. Never treat empty env as set. */
 export function getAppUrl(): string {
-  return (
-    process.env.NEXT_PUBLIC_APP_URL ??
-    (process.env.RAILWAY_PUBLIC_DOMAIN
-      ? `https://${process.env.RAILWAY_PUBLIC_DOMAIN}`
-      : "http://localhost:3000")
+  const explicit = normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL ?? "");
+  if (explicit && !explicit.includes("localhost")) return explicit;
+
+  const railway = normalizeBaseUrl(
+    process.env.RAILWAY_PUBLIC_DOMAIN ??
+      process.env.RAILWAY_STATIC_URL ??
+      process.env.RAILWAY_SERVICE_TAP_CONNECT_STUDIO_URL ??
+      ""
   );
+  if (railway) return railway;
+
+  if (explicit) return explicit;
+
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return window.location.origin;
+  }
+
+  return "http://localhost:3000";
 }
 
 export function getDeviceUrl(deviceCode: string): string {
   return `${getAppUrl()}/t/${deviceCode}`;
 }
 
+/** Prefer same-origin relative tap path in the browser (always opens on current host). */
+export function getDevicePath(deviceCode: string): string {
+  return `/t/${deviceCode}`;
+}
+
 export function isClerkConfigured(): boolean {
   return Boolean(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-      process.env.CLERK_SECRET_KEY
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() &&
+      process.env.CLERK_SECRET_KEY?.trim()
   );
 }
 
