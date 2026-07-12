@@ -6,7 +6,8 @@ export default function ScanModePage() {
       <div>
         <h1 className="text-2xl font-bold">Scan Mode</h1>
         <p className="text-muted-foreground">
-          Tap a physical device to identify and manage it. Coming in Phase 4 with polling-based sync.
+          Tap a physical device to identify and manage it. ScanSession model exists — wire create/poll APIs next.
+          {/* TODO: verified secure tags (NTAG 424), realtime optional */}
         </p>
       </div>
 

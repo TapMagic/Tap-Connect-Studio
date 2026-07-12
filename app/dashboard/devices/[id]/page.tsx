@@ -8,6 +8,7 @@ import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatRelativeDate, getDeviceUrl } from "@/lib/utils/app";
 import { DeviceAssignForm } from "@/components/devices/assign-form";
+import { DeviceStatusActions } from "@/components/devices/device-status-actions";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -93,6 +94,8 @@ export default async function DeviceDetailPage({ params }: PageProps) {
         campaigns={campaigns}
         currentCampaignId={activeAssignment?.campaign?.id}
       />
+
+      <DeviceStatusActions deviceId={device.id} currentStatus={device.status} />
 
       <Card>
         <CardHeader>

@@ -77,7 +77,7 @@ export function isCampaignLive(campaign: {
 }
 
 export function shouldShowInactiveDevice(status: DeviceStatus): boolean {
-  return ["INACTIVE", "LOST", "CLOSED", "RETIRED", "SUSPENDED", "ARCHIVED"].includes(status);
+  return ["INACTIVE", "LOST", "CLOSED", "RETIRED", "SUSPENDED", "ARCHIVED", "REPLACED"].includes(status);
 }
 
 export async function getDashboardStats(businessId: string) {

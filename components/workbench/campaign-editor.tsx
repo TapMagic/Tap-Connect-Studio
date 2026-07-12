@@ -23,6 +23,7 @@ import { QrPanel } from "@/components/campaign/qr-panel";
 import { SchedulePanel } from "@/components/campaign/schedule-panel";
 import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
 import { AiAssistPanel } from "@/components/campaign/ai-assist-panel";
+import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
 import type { ContentBlock } from "@/lib/types/campaign";
 
@@ -168,7 +169,8 @@ export function CampaignEditor({
               onChange={(e) => setTitle(e.target.value)}
               className="max-w-md font-semibold"
             />
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <CampaignActions campaignId={campaign.id} status={campaign.status} />
               <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
                 <Eye className="mr-1 h-4 w-4" />
                 Preview
