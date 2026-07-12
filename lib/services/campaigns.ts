@@ -158,6 +158,15 @@ export async function deleteCampaign(params: {
     throw new Error("Campaign not found");
   }
 
+  // ScheduleRule may not exist on older DBs — never block delete
+  try {
+    const { ensureScheduleRuleTable } = await import("@/lib/db/ensure-schedule");
+    await ensureScheduleRuleTable();
+    await prisma.scheduleRule.deleteMany({ where: { campaignId: params.campaignId } });
+  } catch (error) {
+    console.warn("Schedule cleanup skipped:", error);
+  }
+
   await prisma.$transaction(async (tx) => {
     const assignments = await tx.deviceAssignment.findMany({
       where: { campaignId: params.campaignId },
@@ -178,8 +187,6 @@ export async function deleteCampaign(params: {
       });
     }
 
-    // Explicit cleanup — do not rely on DB cascade (migrations may differ)
-    await tx.scheduleRule.deleteMany({ where: { campaignId: params.campaignId } });
     await tx.deviceAssignment.deleteMany({ where: { campaignId: params.campaignId } });
     await tx.mediaAsset.updateMany({
       where: { campaignId: params.campaignId },
@@ -200,6 +207,55 @@ export async function deleteCampaign(params: {
 
     await tx.campaign.delete({ where: { id: params.campaignId } });
   });
+
+  return { ok: true };
+}
+
+/** Wipe all campaigns (and optionally devices) for a business — test reset. */
+export async function wipeBusinessContent(params: {
+  businessId: string;
+  includeDevices?: boolean;
+}) {
+  const { businessId, includeDevices = true } = params;
+
+  try {
+    const { ensureScheduleRuleTable } = await import("@/lib/db/ensure-schedule");
+    await ensureScheduleRuleTable();
+    await prisma.scheduleRule.deleteMany({ where: { businessId } });
+  } catch {
+    /* ok */
+  }
+
+  await prisma.deviceAssignment.deleteMany({ where: { businessId } });
+  await prisma.mediaAsset.updateMany({
+    where: { businessId },
+    data: { campaignId: null },
+  });
+  await prisma.lead.updateMany({
+    where: { businessId },
+    data: { campaignId: null, deviceSlotId: null },
+  });
+  await prisma.tapEvent.updateMany({
+    where: { businessId },
+    data: { campaignId: null },
+  });
+  await prisma.clickEvent.updateMany({
+    where: { businessId },
+    data: { campaignId: null, deviceSlotId: null },
+  });
+  await prisma.campaign.deleteMany({ where: { businessId } });
+
+  if (includeDevices) {
+    const devices = await prisma.deviceSlot.findMany({
+      where: { businessId },
+      select: { id: true },
+    });
+    const ids = devices.map((d) => d.id);
+    if (ids.length) {
+      await prisma.tapEvent.deleteMany({ where: { deviceSlotId: { in: ids } } });
+      await prisma.deviceSlot.deleteMany({ where: { businessId } });
+    }
+  }
 
   return { ok: true };
 }

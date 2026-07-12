@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { ensureScheduleRuleTable, isMissingRelationError } from "@/lib/db/ensure-schedule";
 
 /** JS Sunday=0 → schema Mon=1 … Sun=7 */
 export function dayOfWeekMon1(date = new Date()): number {
@@ -20,14 +21,22 @@ function timeInRange(now: string, start?: string | null, end?: string | null): b
 }
 
 export async function resolveScheduledCampaign(deviceSlotId: string, at = new Date()) {
+  await ensureScheduleRuleTable();
+
   const day = dayOfWeekMon1(at);
   const time = currentTimeHHMM(at);
 
-  const rules = await prisma.scheduleRule.findMany({
-    where: { deviceSlotId, enabled: true },
-    include: { campaign: true },
-    orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
-  });
+  let rules;
+  try {
+    rules = await prisma.scheduleRule.findMany({
+      where: { deviceSlotId, enabled: true },
+      include: { campaign: true },
+      orderBy: [{ priority: "desc" }, { createdAt: "asc" }],
+    });
+  } catch (error) {
+    if (isMissingRelationError(error)) return null;
+    throw error;
+  }
 
   for (const rule of rules) {
     const days = Array.isArray(rule.daysOfWeek) ? (rule.daysOfWeek as number[]) : [];

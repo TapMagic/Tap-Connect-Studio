@@ -73,9 +73,32 @@ export function CampaignsList({
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
+  const [confirmWipe, setConfirmWipe] = useState(false);
+
   useEffect(() => {
     setCampaigns(initial);
   }, [initial]);
+
+  async function wipeAll() {
+    if (!confirmWipe) {
+      setConfirmWipe(true);
+      setMessage("Click Clear all again to permanently delete EVERY campaign and device");
+      return;
+    }
+    setConfirmWipe(false);
+    setBusy("wipe");
+    setMessage(null);
+    try {
+      await campaignAction({ action: "wipe_all", includeDevices: true });
+      setCampaigns([]);
+      setMessage("All campaigns and devices cleared");
+      router.refresh();
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Wipe failed");
+    } finally {
+      setBusy(null);
+    }
+  }
 
   const counts = useMemo(() => {
     const map: Record<string, number> = { ALL: campaigns.length };
@@ -194,12 +217,29 @@ export function CampaignsList({
         <p className="text-sm text-muted-foreground">
           {activeCount} active of {campaignLimit} plan limit · {campaigns.length} total
         </p>
-        <Input
-          placeholder="Search title, type, or device…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          className="max-w-sm"
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          <Input
+            placeholder="Search title, type, or device…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            className="max-w-sm"
+          />
+          {campaigns.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={!!busy}
+              className={
+                confirmWipe
+                  ? "border-red-500/50 bg-red-500/20 text-red-200"
+                  : "text-red-400"
+              }
+              onClick={() => void wipeAll()}
+            >
+              {busy === "wipe" ? "Clearing…" : "Clear all test data"}
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="flex gap-1 overflow-x-auto pb-1">

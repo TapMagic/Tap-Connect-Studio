@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { archiveCampaign, cloneCampaign, deleteCampaign } from "@/lib/services/campaigns";
+import { archiveCampaign, cloneCampaign, deleteCampaign, wipeBusinessContent } from "@/lib/services/campaigns";
 import { prisma } from "@/lib/db";
 
 const actionSchema = z.discriminatedUnion("action", [
@@ -26,6 +26,10 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("restore"),
     campaignId: z.string(),
+  }),
+  z.object({
+    action: z.literal("wipe_all"),
+    includeDevices: z.boolean().optional().default(true),
   }),
 ]);
 
@@ -60,6 +64,15 @@ export async function POST(request: Request) {
 
     if (body.action === "delete") {
       await deleteCampaign({ businessId: business.id, campaignId: body.campaignId });
+      revalidateCampaignViews();
+      return NextResponse.json({ ok: true });
+    }
+
+    if (body.action === "wipe_all") {
+      await wipeBusinessContent({
+        businessId: business.id,
+        includeDevices: body.includeDevices,
+      });
       revalidateCampaignViews();
       return NextResponse.json({ ok: true });
     }

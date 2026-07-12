@@ -9,6 +9,9 @@ import { prisma } from "@/lib/db";
 import { formatRelativeDate, getDevicePath } from "@/lib/utils/app";
 import { DeviceAssignForm } from "@/components/devices/assign-form";
 import { DeviceStatusActions } from "@/components/devices/device-status-actions";
+import { DeviceScheduleGroup } from "@/components/devices/device-schedule-group";
+
+export const dynamic = "force-dynamic";
 
 type PageProps = { params: Promise<{ id: string }> };
 
@@ -31,20 +34,24 @@ export default async function DeviceDetailPage({ params }: PageProps) {
   if (!device) notFound();
 
   const campaigns = await prisma.campaign.findMany({
-    where: { businessId: business.id, status: { in: ["DRAFT", "READY", "LIVE", "SCHEDULED"] } },
+    where: {
+      businessId: business.id,
+      status: { in: ["DRAFT", "READY", "LIVE", "SCHEDULED"] },
+    },
     orderBy: { updatedAt: "desc" },
     select: { id: true, title: true, status: true },
   });
 
   const activeAssignment = device.assignments.find((a) => a.status === "ACTIVE");
   const tapPath = getDevicePath(device.deviceCode);
+  const deviceLabel = device.nickname ?? device.deviceCode;
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-2xl font-bold">{device.nickname ?? device.deviceCode}</h1>
+            <h1 className="text-2xl font-bold">{deviceLabel}</h1>
             <Badge variant="outline">{device.status.toLowerCase()}</Badge>
           </div>
           <p className="mt-1 font-mono text-sm text-muted-foreground">{tapPath}</p>
@@ -79,7 +86,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm text-muted-foreground">Current Campaign</CardTitle>
+            <CardTitle className="text-sm text-muted-foreground">Default Campaign</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-lg font-semibold">
@@ -95,6 +102,12 @@ export default async function DeviceDetailPage({ params }: PageProps) {
         currentCampaignId={activeAssignment?.campaign?.id}
       />
 
+      <DeviceScheduleGroup
+        deviceId={device.id}
+        deviceLabel={deviceLabel}
+        campaigns={campaigns}
+      />
+
       <DeviceStatusActions deviceId={device.id} currentStatus={device.status} />
 
       <Card>
@@ -106,9 +119,15 @@ export default async function DeviceDetailPage({ params }: PageProps) {
             <p className="text-sm text-muted-foreground">No assignment history yet.</p>
           ) : (
             device.assignments.map((a) => (
-              <div key={a.id} className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-2 text-sm">
+              <div
+                key={a.id}
+                className="flex items-center justify-between rounded-lg border border-border/40 px-3 py-2 text-sm"
+              >
                 <div>
-                  <Link href={`/dashboard/campaigns/${a.campaign.id}`} className="font-medium hover:text-primary">
+                  <Link
+                    href={`/dashboard/campaigns/${a.campaign.id}`}
+                    className="font-medium hover:text-primary"
+                  >
                     {a.campaign.title}
                   </Link>
                   <p className="text-xs text-muted-foreground">
