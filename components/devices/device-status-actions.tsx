@@ -41,6 +41,23 @@ export function DeviceStatusActions({
     router.refresh();
   }
 
+  async function resetCounters() {
+    setLoading("reset");
+    setMessage(null);
+    const res = await fetch("/api/devices/update", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ deviceId, resetTapCount: true }),
+    });
+    setLoading(null);
+    if (!res.ok) {
+      setMessage("Reset failed");
+      return;
+    }
+    setMessage("Tap counter reset to 0");
+    router.refresh();
+  }
+
   return (
     <div className="space-y-3 rounded-xl border border-border/60 p-5">
       <h3 className="font-semibold">Device status</h3>
@@ -60,6 +77,9 @@ export function DeviceStatusActions({
             {loading === action.status ? "..." : action.label}
           </Button>
         ))}
+        <Button variant="ghost" size="sm" disabled={!!loading} onClick={resetCounters}>
+          {loading === "reset" ? "..." : "Reset tap counter"}
+        </Button>
       </div>
       {message && <p className="text-xs text-primary">{message}</p>}
     </div>

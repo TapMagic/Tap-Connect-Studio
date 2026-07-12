@@ -8,10 +8,12 @@ import {
   Eye,
   Mail,
   Calendar,
+  Plus,
   QrCode,
   Save,
   Send,
   Sparkles,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,9 +27,75 @@ import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
 import { AiAssistPanel } from "@/components/campaign/ai-assist-panel";
 import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
-import type { ContentBlock } from "@/lib/types/campaign";
+import { nanoid } from "nanoid";
+import type { BlockType, ContentBlock } from "@/lib/types/campaign";
 
 type EditorTab = "content" | "qr" | "schedule" | "email" | "ai";
+
+const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unknown> }[] = [
+  {
+    type: "headline",
+    label: "Headline",
+    data: { headline: "New headline", subheadline: "", alignment: "center" },
+  },
+  { type: "rich_text", label: "Text", data: { body: "Add your story here." } },
+  { type: "hero_image", label: "Hero image", data: { imageUrl: "", altText: "" } },
+  {
+    type: "product_details",
+    label: "Product details",
+    data: { name: "Product", description: "", features: [], price: "" },
+  },
+  {
+    type: "email_capture",
+    label: "Contact capture",
+    data: {
+      headline: "Unlock your offer",
+      description: "Enter your info to reveal the coupon below.",
+      buttonLabel: "Unlock",
+      fields: ["name", "email"],
+      requireName: true,
+      successMessage: "You're in — your coupon is below.",
+    },
+  },
+  {
+    type: "offer_coupon",
+    label: "Offer / Coupon",
+    data: {
+      title: "Special offer",
+      description: "Show this code in store.",
+      code: "SAVE10",
+      ctaLabel: "Got it",
+      lockedUntilContact: true,
+    },
+  },
+  {
+    type: "button_group",
+    label: "Buttons",
+    data: { buttons: [{ id: nanoid(6), label: "Learn more", url: "", style: "primary" }] },
+  },
+  {
+    type: "action_block",
+    label: "Quick actions",
+    data: {
+      actions: [
+        { id: nanoid(6), type: "call", label: "Call" },
+        { id: nanoid(6), type: "directions", label: "Directions" },
+      ],
+    },
+  },
+  { type: "faq", label: "FAQ", data: { headline: "FAQ", items: [{ id: nanoid(6), question: "Question?", answer: "Answer." }] } },
+  { type: "disclaimer", label: "Disclaimer", data: { text: "Offer terms apply." } },
+  {
+    type: "google_review",
+    label: "Google review",
+    data: { headline: "Leave a review", reviewUrl: "", buttonLabel: "Review on Google" },
+  },
+  {
+    type: "map_location",
+    label: "Map / directions",
+    data: { headline: "Find us", address: "", buttonLabel: "Get directions" },
+  },
+];
 
 interface CampaignEditorProps {
   campaign: {
@@ -76,6 +144,7 @@ export function CampaignEditor({
   const router = useRouter();
   const [tab, setTab] = useState<EditorTab>("content");
   const [title, setTitle] = useState(campaign.title);
+  const [status, setStatus] = useState(campaign.status);
   const [blocks, setBlocks] = useState<ContentBlock[]>(campaign.contentBlocks);
   const [theme, setTheme] = useState({
     primaryColor: campaign.themeOverrides?.primaryColor ?? brandKit.primaryColor,
@@ -87,6 +156,7 @@ export function CampaignEditor({
   const [showPreview, setShowPreview] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [addType, setAddType] = useState<BlockType>("offer_coupon");
 
   const selectedDeviceCode = devices.find((d) => d.id === selectedDevice)?.deviceCode;
 
@@ -100,6 +170,31 @@ export function CampaignEditor({
         b.id === id ? { ...b, data: { ...b.data, [key]: value } } : b
       )
     );
+  }
+
+  function removeBlock(id: string) {
+    setBlocks((prev) =>
+      prev
+        .filter((b) => b.id !== id)
+        .sort((a, b) => a.order - b.order)
+        .map((b, i) => ({ ...b, order: i }))
+    );
+  }
+
+  function addBlock(type: BlockType = addType) {
+    const preset = ADDABLE_BLOCKS.find((b) => b.type === type) ?? ADDABLE_BLOCKS[0];
+    const nextOrder = blocks.length ? Math.max(...blocks.map((b) => b.order)) + 1 : 0;
+    setBlocks((prev) => [
+      ...prev,
+      {
+        id: nanoid(8),
+        type: preset.type,
+        label: preset.label,
+        order: nextOrder,
+        enabled: true,
+        data: structuredClone(preset.data),
+      },
+    ]);
   }
 
   function moveBlock(id: string, direction: "up" | "down") {
@@ -120,6 +215,12 @@ export function CampaignEditor({
     setSaving(true);
     setMessage(null);
 
+    const nextStatus = publish
+      ? "LIVE"
+      : status === "LIVE" || status === "READY" || status === "SCHEDULED"
+        ? status
+        : "DRAFT";
+
     const res = await fetch("/api/campaigns/assign", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -128,15 +229,18 @@ export function CampaignEditor({
         title,
         contentBlocks: blocks,
         themeOverrides: theme,
-        status: publish ? "READY" : "DRAFT",
+        status: nextStatus,
       }),
     });
 
     if (!res.ok) {
-      setMessage("Failed to save");
+      const data = await res.json().catch(() => ({}));
+      setMessage(data.error ?? "Failed to save");
       setSaving(false);
       return;
     }
+
+    setStatus(nextStatus);
 
     if (publish && selectedDevice) {
       const assignRes = await fetch("/api/campaigns/assign", {
@@ -152,9 +256,10 @@ export function CampaignEditor({
         setSaving(false);
         return;
       }
+      setStatus("LIVE");
     }
 
-    setMessage(publish ? "Published to device!" : "Saved — revisit anytime to edit.");
+    setMessage(publish ? "Published to device!" : "Saved — live pages keep their status.");
     setSaving(false);
     router.refresh();
   }
@@ -255,7 +360,30 @@ export function CampaignEditor({
               )}
 
               <div className="space-y-4">
-                <h3 className="text-sm font-semibold">Content blocks</h3>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h3 className="text-sm font-semibold">Content blocks</h3>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <select
+                      value={addType}
+                      onChange={(e) => setAddType(e.target.value as BlockType)}
+                      className="flex h-9 rounded-lg border border-input bg-background/50 px-2 text-sm"
+                    >
+                      {ADDABLE_BLOCKS.map((b) => (
+                        <option key={b.type} value={b.type}>
+                          {b.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Button type="button" size="sm" variant="outline" onClick={() => addBlock()}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add block
+                    </Button>
+                    <Button type="button" size="sm" onClick={() => addBlock("offer_coupon")}>
+                      <Plus className="mr-1 h-4 w-4" />
+                      Add offer
+                    </Button>
+                  </div>
+                </div>
                 {sortedBlocks.map((block, index) => (
                   <div
                     key={block.id}
@@ -268,7 +396,11 @@ export function CampaignEditor({
                           checked={block.enabled}
                           onChange={(e) => updateBlock(block.id, { enabled: e.target.checked })}
                         />
-                        <span className="font-medium">{block.label}</span>
+                        <Input
+                          value={block.label}
+                          onChange={(e) => updateBlock(block.id, { label: e.target.value })}
+                          className="h-8 max-w-[180px] font-medium"
+                        />
                         <span className="text-xs text-muted-foreground">({block.type.replace(/_/g, " ")})</span>
                       </div>
                       <div className="flex gap-1">
@@ -278,6 +410,14 @@ export function CampaignEditor({
                         <Button variant="ghost" size="sm" onClick={() => moveBlock(block.id, "down")} disabled={index === sortedBlocks.length - 1}>
                           <ArrowDown className="h-4 w-4" />
                         </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeBlock(block.id)}
+                          className="text-red-400 hover:text-red-300"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                     <BlockFields
@@ -285,6 +425,7 @@ export function CampaignEditor({
                       onUpdate={(key, value) => updateBlockData(block.id, key, value)}
                       mediaUploadReady={integrations.mediaUpload}
                       stockReady={integrations.stockImages}
+                      campaignId={campaign.id}
                     />
                   </div>
                 ))}
@@ -304,7 +445,7 @@ export function CampaignEditor({
             <SchedulePanel
               campaignId={campaign.id}
               devices={devices}
-              campaigns={siblingCampaigns.length ? siblingCampaigns : [{ id: campaign.id, title, status: campaign.status }]}
+              campaigns={siblingCampaigns.length ? siblingCampaigns : [{ id: campaign.id, title, status }]}
             />
           )}
 
@@ -330,7 +471,7 @@ export function CampaignEditor({
       {showPreview && tab === "content" && (
         <div className="w-full shrink-0 overflow-hidden bg-black/40 lg:w-[400px]">
           <div className="border-b border-border/60 px-4 py-2 text-center text-xs text-muted-foreground">
-            Mobile preview {brandKit.logoUrl ? "· brand applied" : ""}
+            Mobile preview {brandKit.logoUrl ? "· brand applied" : ""} · {status.toLowerCase()}
           </div>
           <div className="h-full overflow-y-auto">
             <CampaignPageRenderer
@@ -353,11 +494,13 @@ function BlockFields({
   onUpdate,
   mediaUploadReady,
   stockReady,
+  campaignId,
 }: {
   block: ContentBlock;
   onUpdate: (key: string, value: unknown) => void;
   mediaUploadReady: boolean;
   stockReady: boolean;
+  campaignId: string;
 }) {
   const data = block.data as Record<string, unknown>;
 
@@ -369,6 +512,7 @@ function BlockFields({
         onChange={(url) => onUpdate("imageUrl", url)}
         mediaUploadReady={mediaUploadReady}
         stockReady={stockReady}
+        campaignId={campaignId}
       />
     );
   }

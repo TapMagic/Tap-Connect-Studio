@@ -67,15 +67,14 @@ export function isCampaignLive(campaign: {
   scheduledEnd: Date | null;
 }): boolean {
   const now = new Date();
-  if (campaign.status === "LIVE") {
-    if (campaign.scheduledStart && campaign.scheduledStart > now) return false;
-    if (campaign.scheduledEnd && campaign.scheduledEnd < now) return false;
-    return true;
-  }
-  if (campaign.status === "SCHEDULED" && campaign.scheduledStart) {
-    return campaign.scheduledStart <= now && (!campaign.scheduledEnd || campaign.scheduledEnd >= now);
-  }
-  return false;
+  if (["ARCHIVED", "CLOSED", "PAUSED"].includes(campaign.status)) return false;
+
+  if (campaign.scheduledStart && campaign.scheduledStart > now) return false;
+  if (campaign.scheduledEnd && campaign.scheduledEnd < now) return false;
+
+  // Assigned/scheduled campaigns should render even if still marked READY/DRAFT
+  // (Publish sets LIVE; Save must not demote LIVE → DRAFT).
+  return ["LIVE", "READY", "SCHEDULED", "DRAFT"].includes(campaign.status);
 }
 
 export function shouldShowInactiveDevice(status: DeviceStatus): boolean {

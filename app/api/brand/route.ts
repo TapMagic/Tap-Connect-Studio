@@ -17,27 +17,32 @@ const schema = z.object({
   ageGateEnabled: z.boolean().optional(),
   ageGateMinAge: z.number().optional(),
   googleReviewUrl: z.string().nullable().optional(),
+  logoUrl: z.string().nullable().optional(),
 });
 
 export async function PATCH(request: Request) {
   try {
     const { business } = await requireBusiness();
     const body = schema.parse(await request.json());
+    const { logoUrl, googleReviewUrl, ...brandFields } = body;
 
     const brandKit = await prisma.brandKit.upsert({
       where: { businessId: business.id },
-      create: { businessId: business.id, ...body },
-      update: body,
+      create: { businessId: business.id, ...brandFields },
+      update: brandFields,
     });
 
-    if (body.googleReviewUrl !== undefined) {
+    if (googleReviewUrl !== undefined || logoUrl !== undefined) {
       await prisma.business.update({
         where: { id: business.id },
-        data: { googleReviewUrl: body.googleReviewUrl },
+        data: {
+          ...(googleReviewUrl !== undefined ? { googleReviewUrl } : {}),
+          ...(logoUrl !== undefined ? { logoUrl } : {}),
+        },
       });
     }
 
-    return NextResponse.json({ brandKit });
+    return NextResponse.json({ brandKit, logoUrl: logoUrl ?? business.logoUrl });
   } catch (error) {
     console.error("Brand kit update error:", error);
     return NextResponse.json({ error: "Failed to update brand kit" }, { status: 500 });

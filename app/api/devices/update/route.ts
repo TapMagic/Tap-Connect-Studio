@@ -20,6 +20,7 @@ const schema = z.object({
     ])
     .optional(),
   nickname: z.string().max(80).optional(),
+  resetTapCount: z.boolean().optional(),
 });
 
 export async function PATCH(request: Request) {
@@ -50,6 +51,7 @@ export async function PATCH(request: Request) {
       data: {
         ...(body.status ? { status: body.status } : {}),
         ...(body.nickname !== undefined ? { nickname: body.nickname } : {}),
+        ...(body.resetTapCount ? { totalTapCount: 0 } : {}),
       },
     });
 

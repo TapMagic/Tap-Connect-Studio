@@ -117,7 +117,8 @@ export function getIntegration(id: IntegrationId): IntegrationStatus {
 }
 
 export function isMediaUploadReady(): boolean {
-  return getIntegration("uploadthing").configured && getIntegration("r2").configured;
+  // R2 alone is enough for server-side uploads; UploadThing is optional UX helper.
+  return getIntegration("r2").configured && Boolean(process.env.R2_PUBLIC_URL?.trim());
 }
 
 export function isStockImagesReady(): boolean {

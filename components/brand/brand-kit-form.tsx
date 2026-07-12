@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MediaPicker } from "@/components/media/media-picker";
 
 interface BrandKitFormProps {
   brandKit: {
@@ -24,10 +25,17 @@ interface BrandKitFormProps {
     ageGateMinAge: number;
     website: string | null;
     googleReviewUrl: string | null;
+    logoUrl: string | null;
   };
+  mediaUploadReady?: boolean;
+  stockReady?: boolean;
 }
 
-export function BrandKitForm({ brandKit }: BrandKitFormProps) {
+export function BrandKitForm({
+  brandKit,
+  mediaUploadReady = false,
+  stockReady = false,
+}: BrandKitFormProps) {
   const router = useRouter();
   const [form, setForm] = useState(brandKit);
   const [saving, setSaving] = useState(false);
@@ -55,27 +63,44 @@ export function BrandKitForm({ brandKit }: BrandKitFormProps) {
     <div className="space-y-6">
       <Card>
         <CardHeader>
+          <CardTitle>Logo & assets</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <MediaPicker
+            label="Brand logo"
+            value={form.logoUrl ?? ""}
+            onChange={(url) => setForm((f) => ({ ...f, logoUrl: url }))}
+            mediaUploadReady={mediaUploadReady}
+            stockReady={stockReady}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Colors</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {(["primaryColor", "secondaryColor", "accentColor", "backgroundColor", "textColor"] as const).map((key) => (
-            <div key={key} className="space-y-2">
-              <Label className="capitalize">{key.replace("Color", " color")}</Label>
-              <div className="flex gap-2">
-                <input
-                  type="color"
-                  value={form[key]}
-                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="h-10 w-12 cursor-pointer rounded"
-                />
-                <Input
-                  value={form[key]}
-                  onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
-                  className="font-mono text-xs"
-                />
+          {(["primaryColor", "secondaryColor", "accentColor", "backgroundColor", "textColor"] as const).map(
+            (key) => (
+              <div key={key} className="space-y-2">
+                <Label className="capitalize">{key.replace("Color", " color")}</Label>
+                <div className="flex gap-2">
+                  <input
+                    type="color"
+                    value={form[key]}
+                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                    className="h-10 w-12 cursor-pointer rounded"
+                  />
+                  <Input
+                    value={form[key]}
+                    onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))}
+                    className="font-mono text-xs"
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          )}
         </CardContent>
       </Card>
 
@@ -154,7 +179,9 @@ export function BrandKitForm({ brandKit }: BrandKitFormProps) {
               <Input
                 type="number"
                 value={form.ageGateMinAge}
-                onChange={(e) => setForm((f) => ({ ...f, ageGateMinAge: parseInt(e.target.value) || 21 }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, ageGateMinAge: parseInt(e.target.value) || 21 }))
+                }
                 className="w-20"
               />
             )}

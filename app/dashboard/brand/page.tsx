@@ -1,6 +1,7 @@
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BrandKitForm } from "@/components/brand/brand-kit-form";
+import { isMediaUploadReady, isStockImagesReady } from "@/lib/config/integrations";
 
 export default async function BrandPage() {
   const { business } = await requireBusiness();
@@ -24,6 +25,7 @@ export default async function BrandPage() {
     ageGateMinAge: 21,
     website: business.website,
     googleReviewUrl: business.googleReviewUrl,
+    logoUrl: business.logoUrl,
   };
 
   return (
@@ -31,10 +33,21 @@ export default async function BrandPage() {
       <div>
         <h1 className="text-2xl font-bold">Brand Kit</h1>
         <p className="text-muted-foreground">
-          Set colors, fonts, tone, and compliance defaults for all campaigns.
+          Colors, logo, tone, and compliance defaults for all campaigns. Uploaded assets also
+          appear in your media library.
         </p>
       </div>
-      <BrandKitForm brandKit={{ ...defaults, ...brandKit, website: business.website, googleReviewUrl: business.googleReviewUrl }} />
+      <BrandKitForm
+        brandKit={{
+          ...defaults,
+          ...brandKit,
+          website: business.website,
+          googleReviewUrl: business.googleReviewUrl,
+          logoUrl: business.logoUrl,
+        }}
+        mediaUploadReady={isMediaUploadReady()}
+        stockReady={isStockImagesReady()}
+      />
     </div>
   );
 }
