@@ -5,30 +5,65 @@ import { Sparkles } from "lucide-react";
 import { FeaturePlaceholder } from "@/components/integrations/feature-placeholder";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import type { ContentBlock } from "@/lib/types/campaign";
 
 interface AiAssistPanelProps {
   aiReady?: boolean;
   tier?: string;
+  onApplyDraft?: (draft: { title?: string; blocks: ContentBlock[] }) => void;
 }
 
-export function AiAssistPanel({ aiReady = false, tier = "BASIC" }: AiAssistPanelProps) {
+export function AiAssistPanel({
+  aiReady = false,
+  tier = "BASIC",
+  onApplyDraft,
+}: AiAssistPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [previewCount, setPreviewCount] = useState<number | null>(null);
 
   async function handleGenerate() {
     setLoading(true);
     setMessage(null);
-    const res = await fetch("/api/ai/generate", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ prompt }),
-    });
-    const data = await res.json();
-    if (data.placeholder) {
-      setMessage(data.message);
+    setPreviewCount(null);
+
+    try {
+      const res = await fetch("/api/ai/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await res.json();
+
+      if (data.placeholder) {
+        setMessage(data.message);
+        return;
+      }
+
+      if (!res.ok) {
+        setMessage(data.error ?? "Generation failed");
+        return;
+      }
+
+      const blocks = (data.blocks ?? []) as ContentBlock[];
+      if (!blocks.length) {
+        setMessage("No blocks were generated. Try a more specific prompt.");
+        return;
+      }
+
+      onApplyDraft?.({ title: data.title, blocks });
+      setPreviewCount(blocks.length);
+      setMessage(
+        data.title
+          ? `Applied “${data.title}” with ${blocks.length} blocks. Review on the Content tab, then Save.`
+          : `Applied ${blocks.length} blocks. Review on the Content tab, then Save.`
+      );
+    } catch {
+      setMessage("Generation failed. Check your connection and try again.");
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   }
 
   const tierAllowsAi = tier !== "BASIC";
@@ -60,11 +95,17 @@ export function AiAssistPanel({ aiReady = false, tier = "BASIC" }: AiAssistPanel
         onChange={(e) => setPrompt(e.target.value)}
         placeholder="e.g. Make a page for our new premium cigar with YouTube demo, VIP signup for 10% off, and directions..."
         rows={4}
-        disabled={!tierAllowsAi}
+        disabled={!tierAllowsAi || !aiReady || loading}
       />
-      <Button onClick={handleGenerate} disabled={loading || !prompt || !tierAllowsAi}>
+      <Button
+        onClick={handleGenerate}
+        disabled={loading || !prompt || !tierAllowsAi || !aiReady}
+      >
         {loading ? "Generating..." : "Generate campaign draft"}
       </Button>
+      {previewCount != null && (
+        <p className="text-xs text-muted-foreground">{previewCount} blocks ready in the editor</p>
+      )}
       {message && <p className="text-sm text-muted-foreground">{message}</p>}
     </div>
   );

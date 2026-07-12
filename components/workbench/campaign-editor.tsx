@@ -303,7 +303,17 @@ export function CampaignEditor({
           {tab === "email" && <EmailTemplatePanel emailReady={integrations.email} />}
 
           {tab === "ai" && (
-            <AiAssistPanel aiReady={integrations.ai} tier={subscriptionTier} />
+            <AiAssistPanel
+              aiReady={integrations.ai}
+              tier={subscriptionTier}
+              onApplyDraft={({ title: nextTitle, blocks: nextBlocks }) => {
+                if (nextTitle) setTitle(nextTitle);
+                setBlocks(nextBlocks);
+                setShowPreview(true);
+                setTab("content");
+                setMessage("AI draft applied — review blocks, then Save.");
+              }}
+            />
           )}
         </div>
       </div>
