@@ -7,6 +7,8 @@ import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatRelativeDate } from "@/lib/utils/app";
 
+export const dynamic = "force-dynamic";
+
 export default async function CampaignsPage() {
   const { business } = await requireBusiness();
 

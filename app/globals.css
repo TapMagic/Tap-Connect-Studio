@@ -87,6 +87,14 @@
   * {
     @apply border-border outline-ring/50;
   }
+  html {
+    @apply scroll-smooth font-sans;
+    color-scheme: dark;
+  }
+  html.dark,
+  html {
+    color-scheme: dark;
+  }
   body {
     @apply min-h-screen bg-background text-foreground;
     background-image:
@@ -94,11 +102,15 @@
       radial-gradient(circle at 18% 12%, oklch(0.56 0.08 235 / 0.24), transparent 26%),
       linear-gradient(to bottom, oklch(0.2 0.018 255), oklch(0.15 0.018 258));
   }
-  html {
-    @apply scroll-smooth font-sans;
-  }
   ::selection {
     background: oklch(0.84 0.24 147 / 0.45);
     color: oklch(0.98 0.01 230);
+  }
+}
+
+/* Ignore OS light-mode preference — app is always dark */
+@media (prefers-color-scheme: light) {
+  :root {
+    color-scheme: dark;
   }
 }

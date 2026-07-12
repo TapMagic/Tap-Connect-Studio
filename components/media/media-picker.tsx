@@ -209,20 +209,44 @@ export function MediaPicker({
             <Button type="button" variant="outline" onClick={() => void searchStock()} disabled={!!loading}>
               {loading === "stock" ? "..." : "Search"}
             </Button>
+            {stockResults.length > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setStockResults([]);
+                  setMessage(null);
+                }}
+              >
+                Close
+              </Button>
+            )}
           </div>
           {stockResults.length > 0 && (
-            <div className="grid grid-cols-3 gap-2">
-              {stockResults.map((hit) => (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-muted-foreground">{stockResults.length} results — tap to use</p>
                 <button
-                  key={hit.id}
                   type="button"
-                  className="overflow-hidden rounded border border-border/40 text-left hover:border-primary/50"
-                  onClick={() => void chooseStock(hit)}
-                  title={`${hit.alt} — ${hit.photographer} (${hit.source})`}
+                  className="text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setStockResults([])}
                 >
-                  <img src={hit.thumb} alt={hit.alt} className="aspect-square w-full object-cover" />
+                  Clear results
                 </button>
-              ))}
+              </div>
+              <div className="grid grid-cols-3 gap-2">
+                {stockResults.map((hit) => (
+                  <button
+                    key={hit.id}
+                    type="button"
+                    className="overflow-hidden rounded border border-border/40 text-left hover:border-primary/50"
+                    onClick={() => void chooseStock(hit)}
+                    title={`${hit.alt} — ${hit.photographer} (${hit.source})`}
+                  >
+                    <img src={hit.thumb} alt={hit.alt} className="aspect-square w-full object-cover" />
+                  </button>
+                ))}
+              </div>
             </div>
           )}
         </div>

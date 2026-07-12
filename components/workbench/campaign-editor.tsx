@@ -6,6 +6,7 @@ import {
   ArrowDown,
   ArrowUp,
   Eye,
+  GripVertical,
   Mail,
   Calendar,
   Plus,
@@ -157,6 +158,7 @@ export function CampaignEditor({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [addType, setAddType] = useState<BlockType>("offer_coupon");
+  const [dragId, setDragId] = useState<string | null>(null);
 
   const selectedDeviceCode = devices.find((d) => d.id === selectedDevice)?.deviceCode;
 
@@ -209,6 +211,18 @@ export function CampaignEditor({
       return b;
     });
     setBlocks(newBlocks);
+  }
+
+  function reorderBlocks(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    const sorted = [...blocks].sort((a, b) => a.order - b.order);
+    const fromIndex = sorted.findIndex((b) => b.id === fromId);
+    const toIndex = sorted.findIndex((b) => b.id === toId);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const next = [...sorted];
+    const [item] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, item);
+    setBlocks(next.map((b, i) => ({ ...b, order: i })));
   }
 
   async function saveCampaign(publish = false) {
@@ -387,10 +401,28 @@ export function CampaignEditor({
                 {sortedBlocks.map((block, index) => (
                   <div
                     key={block.id}
-                    className={`rounded-lg border p-4 transition-opacity ${block.enabled ? "border-border/60" : "border-border/30 opacity-50"}`}
+                    draggable
+                    onDragStart={() => setDragId(block.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragId) reorderBlocks(dragId, block.id);
+                      setDragId(null);
+                    }}
+                    onDragEnd={() => setDragId(null)}
+                    className={`rounded-lg border p-4 transition-opacity ${
+                      block.enabled ? "border-border/60" : "border-border/30 opacity-50"
+                    } ${dragId === block.id ? "opacity-60 ring-1 ring-primary/40" : ""}`}
                   >
                     <div className="mb-3 flex items-center justify-between">
                       <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          className="cursor-grab text-muted-foreground active:cursor-grabbing"
+                          title="Drag to reorder"
+                          aria-label="Drag to reorder"
+                        >
+                          <GripVertical className="h-4 w-4" />
+                        </button>
                         <input
                           type="checkbox"
                           checked={block.enabled}

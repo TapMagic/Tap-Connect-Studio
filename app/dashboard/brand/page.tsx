@@ -3,30 +3,14 @@ import { prisma } from "@/lib/db";
 import { BrandKitForm } from "@/components/brand/brand-kit-form";
 import { isMediaUploadReady, isStockImagesReady } from "@/lib/config/integrations";
 
+export const dynamic = "force-dynamic";
+
 export default async function BrandPage() {
   const { business } = await requireBusiness();
 
   const brandKit = await prisma.brandKit.findUnique({
     where: { businessId: business.id },
   });
-
-  const defaults = {
-    primaryColor: "#22c55e",
-    secondaryColor: "#0ea5e9",
-    accentColor: "#f59e0b",
-    backgroundColor: "#0b0f19",
-    textColor: "#f8fafc",
-    fontStyle: "MODERN",
-    buttonStyle: "ROUNDED",
-    defaultLanguage: "en",
-    tone: "professional",
-    defaultDisclaimer: null as string | null,
-    ageGateEnabled: false,
-    ageGateMinAge: 21,
-    website: business.website,
-    googleReviewUrl: business.googleReviewUrl,
-    logoUrl: business.logoUrl,
-  };
 
   return (
     <div className="space-y-6 p-6 lg:p-8">
@@ -39,8 +23,18 @@ export default async function BrandPage() {
       </div>
       <BrandKitForm
         brandKit={{
-          ...defaults,
-          ...brandKit,
+          primaryColor: brandKit?.primaryColor ?? "#22c55e",
+          secondaryColor: brandKit?.secondaryColor ?? "#0ea5e9",
+          accentColor: brandKit?.accentColor ?? "#f59e0b",
+          backgroundColor: brandKit?.backgroundColor ?? "#0b0f19",
+          textColor: brandKit?.textColor ?? "#f8fafc",
+          fontStyle: brandKit?.fontStyle ?? "MODERN",
+          buttonStyle: brandKit?.buttonStyle ?? "ROUNDED",
+          defaultLanguage: brandKit?.defaultLanguage ?? "en",
+          tone: brandKit?.tone ?? "professional",
+          defaultDisclaimer: brandKit?.defaultDisclaimer ?? null,
+          ageGateEnabled: brandKit?.ageGateEnabled ?? false,
+          ageGateMinAge: brandKit?.ageGateMinAge ?? 21,
           website: business.website,
           googleReviewUrl: business.googleReviewUrl,
           logoUrl: business.logoUrl,

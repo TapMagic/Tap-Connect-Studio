@@ -27,7 +27,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const body = (
-    <body className="min-h-full flex flex-col">
+    <body className="min-h-full flex flex-col bg-background text-foreground">
       {isClerkConfigured() ? (
         <ClerkProvider appearance={{ theme: shadcn }}>{children}</ClerkProvider>
       ) : (
@@ -39,7 +39,9 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      style={{ colorScheme: "dark" }}
+      suppressHydrationWarning
     >
       {body}
     </html>

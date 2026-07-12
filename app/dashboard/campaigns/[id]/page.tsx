@@ -11,6 +11,8 @@ import {
 } from "@/lib/config/integrations";
 import type { ContentBlock } from "@/lib/types/campaign";
 
+export const dynamic = "force-dynamic";
+
 type PageProps = {
   params: Promise<{ id: string }>;
 };
@@ -37,14 +39,6 @@ export default async function CampaignEditPage({ params }: PageProps) {
 
   if (!campaign) notFound();
 
-  const defaultBrand = {
-    primaryColor: "#22c55e",
-    secondaryColor: "#0ea5e9",
-    backgroundColor: "#0b0f19",
-    textColor: "#f8fafc",
-    logoUrl: business.logoUrl,
-  };
-
   return (
     <CampaignEditor
       campaign={{
@@ -52,9 +46,20 @@ export default async function CampaignEditPage({ params }: PageProps) {
         title: campaign.title,
         status: campaign.status,
         contentBlocks: parseContentBlocks(campaign.contentBlocks) as ContentBlock[],
-        themeOverrides: (campaign.themeOverrides as Record<string, string>) ?? {},
+        themeOverrides:
+          campaign.themeOverrides &&
+          typeof campaign.themeOverrides === "object" &&
+          !Array.isArray(campaign.themeOverrides)
+            ? (campaign.themeOverrides as Record<string, string>)
+            : {},
       }}
-      brandKit={{ ...defaultBrand, ...brandKit, logoUrl: business.logoUrl }}
+      brandKit={{
+        primaryColor: brandKit?.primaryColor ?? "#22c55e",
+        secondaryColor: brandKit?.secondaryColor ?? "#0ea5e9",
+        backgroundColor: brandKit?.backgroundColor ?? "#0b0f19",
+        textColor: brandKit?.textColor ?? "#f8fafc",
+        logoUrl: business.logoUrl,
+      }}
       businessId={business.id}
       devices={devices}
       siblingCampaigns={siblingCampaigns}
