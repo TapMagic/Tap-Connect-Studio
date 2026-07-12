@@ -9,7 +9,10 @@ export default function SignUpPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
-      <SignUp />
+      <SignUp
+        forceRedirectUrl="/onboarding"
+        signInUrl="/sign-in"
+      />
     </div>
   );
 }

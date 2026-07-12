@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { AuthLinks } from "@/components/auth/auth-controls";
+import { HeroCtas } from "@/components/auth/hero-ctas";
 import {
   Card,
   CardContent,
@@ -174,24 +175,7 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
-              <a
-                href="/sign-up"
-                className={cn(buttonVariants({ size: "lg" }), "px-6")}
-              >
-                Start building
-                <ArrowRight className="size-4" />
-              </a>
-              <a
-                href="#preview"
-                className={cn(
-                  buttonVariants({ variant: "outline", size: "lg" }),
-                  "px-6",
-                )}
-              >
-                Explore the platform
-              </a>
-            </div>
+            <HeroCtas />
 
             <div className="grid gap-3 sm:grid-cols-3">
               {[
