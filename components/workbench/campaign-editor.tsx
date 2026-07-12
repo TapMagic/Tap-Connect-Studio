@@ -314,12 +314,13 @@ export function CampaignEditor({
             <AiAssistPanel
               aiReady={integrations.ai}
               tier={subscriptionTier}
-              onApplyDraft={({ title: nextTitle, blocks: nextBlocks }) => {
+              onApplyDraft={({ title: nextTitle, blocks: nextBlocks, theme: nextTheme }) => {
                 if (nextTitle) setTitle(nextTitle);
                 setBlocks(nextBlocks);
+                if (nextTheme) setTheme(nextTheme);
                 setShowPreview(true);
                 setTab("content");
-                setMessage("AI draft applied — review blocks, then Save.");
+                setMessage("AI draft applied — review blocks & colors, then Save.");
               }}
             />
           )}

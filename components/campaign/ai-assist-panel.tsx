@@ -10,7 +10,16 @@ import type { ContentBlock } from "@/lib/types/campaign";
 interface AiAssistPanelProps {
   aiReady?: boolean;
   tier?: string;
-  onApplyDraft?: (draft: { title?: string; blocks: ContentBlock[] }) => void;
+  onApplyDraft?: (draft: {
+    title?: string;
+    blocks: ContentBlock[];
+    theme?: {
+      primaryColor: string;
+      secondaryColor: string;
+      backgroundColor: string;
+      textColor: string;
+    };
+  }) => void;
 }
 
 export function AiAssistPanel({
@@ -52,11 +61,11 @@ export function AiAssistPanel({
         return;
       }
 
-      onApplyDraft?.({ title: data.title, blocks });
+      onApplyDraft?.({ title: data.title, blocks, theme: data.theme });
       setPreviewCount(blocks.length);
       setMessage(
         data.title
-          ? `Applied “${data.title}” with ${blocks.length} blocks. Review on the Content tab, then Save.`
+          ? `Applied “${data.title}” with ${blocks.length} blocks${data.theme ? " and custom colors" : ""}. Review on Content, then Save.`
           : `Applied ${blocks.length} blocks. Review on the Content tab, then Save.`
       );
     } catch {
@@ -93,10 +102,14 @@ export function AiAssistPanel({
       <Textarea
         value={prompt}
         onChange={(e) => setPrompt(e.target.value)}
-        placeholder="e.g. Make a page for our new premium cigar with YouTube demo, VIP signup for 10% off, and directions..."
-        rows={4}
+        placeholder={`Example: Weekend cigar lounge promo, Apr 18–20, 20% off reserve boxes, unlock coupon after name+email, blue premium palette, include tasting hours and FAQ.`}
+        rows={5}
         disabled={!tierAllowsAi || !aiReady || loading}
       />
+      <p className="text-xs text-muted-foreground">
+        Tip: mention industry, offer/dates/discount, required contact fields, and colors. AI fills gaps with
+        specific products and copy — then review before Save.
+      </p>
       <Button
         onClick={handleGenerate}
         disabled={loading || !prompt || !tierAllowsAi || !aiReady}

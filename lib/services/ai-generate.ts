@@ -24,6 +24,13 @@ const BLOCK_TYPES = [
   "action_block",
 ] as const satisfies readonly BlockType[];
 
+const themeSchema = z.object({
+  primaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  secondaryColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  backgroundColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+  textColor: z.string().regex(/^#[0-9A-Fa-f]{6}$/),
+});
+
 const aiBlockSchema = z.object({
   type: z.enum(BLOCK_TYPES),
   label: z.string().min(1).max(80),
@@ -31,51 +38,77 @@ const aiBlockSchema = z.object({
 });
 
 const aiResponseSchema = z.object({
-  title: z.string().min(1).max(120).optional(),
-  blocks: z.array(aiBlockSchema).min(1).max(12),
+  title: z.string().min(1).max(120),
+  industry: z.string().min(1).max(60).optional(),
+  theme: themeSchema,
+  blocks: z.array(aiBlockSchema).min(4).max(10),
 });
 
 export type AiGenerateResult = {
-  title?: string;
+  title: string;
+  industry?: string;
+  theme: z.infer<typeof themeSchema>;
   blocks: ContentBlock[];
 };
 
-const SYSTEM_PROMPT = `You are a campaign page builder for Tap Connect Studio.
-NFC/QR taps open a mobile mini-webpage made of typed content blocks.
+const SYSTEM_PROMPT = `You are the senior campaign creative for Tap Connect Studio.
+People tap an NFC/QR tag and land on a mobile mini-webpage built from typed content blocks.
 
-Return ONLY valid JSON matching this shape:
+MOST USERS GIVE WEAK PROMPTS. Your job is to over-deliver:
+- Infer industry (cigars, vape, salon, restaurant, retail, real estate, events, fitness, etc.)
+- Invent specific product names, prices, dates, discount codes, and FAQs when missing
+- Write polished marketing copy — never a single vague sentence
+- Honor explicit requests (colors, dates, discounts, brand tone) exactly
+- If they ask for blues, return a blue palette in theme — never default green unless they ask for green
+
+Return ONLY valid JSON:
 {
-  "title": "optional short campaign title",
+  "title": "campaign title",
+  "industry": "short industry label",
+  "theme": {
+    "primaryColor": "#hex",
+    "secondaryColor": "#hex",
+    "backgroundColor": "#hex",
+    "textColor": "#hex"
+  },
   "blocks": [
-    { "type": "<block_type>", "label": "short editor label", "data": { ... } }
+    { "type": "block_type", "label": "editor label", "data": { ... } }
   ]
 }
 
-Allowed block types and typical data:
+Allowed block types + data:
 - headline: { headline, subheadline?, alignment?: "left"|"center"|"right" }
-- rich_text: { body }
-- hero_image: { imageUrl (can be ""), altText?, overlayText? }
-- hero_video: { videoUrl (can be ""), provider: "youtube"|"vimeo"|"other", title? }
-- product_details: { name, description, features: string[], price? }
-- offer_coupon: { title, description, code?, ctaLabel }
-- email_capture: { headline, description?, buttonLabel, fields: ("name"|"email"|"phone")[], successMessage }
-- feedback_form: { headline, description?, buttonLabel, successMessage }
-- google_review: { headline, description?, reviewUrl (can be ""), buttonLabel }
-- map_location: { headline, address, mapUrl?, buttonLabel }
-- button_group: { buttons: [{ id, label, url, style: "primary"|"secondary"|"outline" }] }
-- action_block: { headline?, actions: [{ id, type: "review"|"feedback"|"call"|"directions"|"website"|"vcard"|"social"|"vip"|"shop"|"book"|"contact", label, url? }] }
-- social_links: { headline?, links: [{ platform, url }] }
-- faq: { headline, items: [{ id, question, answer }] }
-- disclaimer: { text }
-- age_gate: { minAge, message }
-- vcard_download: { name, title?, phone?, email?, website?, buttonLabel }
-- image_gallery: { images: [{ id, url, caption? }] }
+- rich_text: { body }  // multi-sentence value prop, dates, fine print highlights
+- hero_image: { imageUrl: "", altText?, overlayText? }
+- hero_video: { videoUrl: "", provider: "youtube"|"vimeo"|"other", title? }
+- product_details: { name, description, features: string[3-6], price? }
+- offer_coupon: { title, description, code?, ctaLabel, lockedUntilContact: true }
+- email_capture: { headline, description?, buttonLabel, fields: ("name"|"email"|"phone")[], requireName?: boolean, requirePhone?: boolean, successMessage }
+- feedback_form, google_review, map_location, button_group, action_block, social_links, faq, disclaimer, age_gate, vcard_download, image_gallery
 
-Rules:
-- Prefer 4–8 blocks, mobile-first, conversion-focused.
-- Fill realistic marketing copy from the user prompt; leave media URLs empty unless provided.
-- Use unique string ids inside nested arrays (buttons, actions, faq items, images).
-- Do not invent block types outside the allowed list.`;
+MANDATORY STRUCTURE for sales / coupon / promo prompts:
+1) headline (specific offer + dates if given)
+2) rich_text OR product_details (concrete details)
+3) email_capture BEFORE offer_coupon (contact unlocks coupon)
+   - fields include name+email (and phone when it helps)
+   - requireName true for offers
+   - successMessage like "You're in — your coupon is below."
+4) offer_coupon with lockedUntilContact true, real code, clear terms in description
+5) disclaimer with eligibility / expiry
+Optional: faq, action_block (call/directions/review)
+
+COLOR RULES:
+- Always set theme from the brief. Examples:
+  - blues → primary ~#3B82F6, secondary ~#0EA5E9, dark navy background, light text
+  - warm premium → deep charcoal + gold/amber
+  - never ignore requested palette
+
+COPY RULES:
+- Specific > generic. Use dates, % off, dollar amounts, product names.
+- Mobile-first. 5–8 blocks typical.
+- Leave image/video URLs empty unless user provided them.
+- Unique string ids in nested arrays (buttons, actions, faq items).
+- Do not invent block types outside the list.`;
 
 function toContentBlocks(
   raw: z.infer<typeof aiResponseSchema>["blocks"]
@@ -86,8 +119,28 @@ function toContentBlocks(
     label: block.label,
     order: index,
     enabled: true,
-    data: block.data,
+    data: normalizeBlockData(block.type, block.data),
   }));
+}
+
+function normalizeBlockData(type: BlockType, data: Record<string, unknown>) {
+  if (type === "offer_coupon" && data.lockedUntilContact === undefined) {
+    return { ...data, lockedUntilContact: true };
+  }
+  if (type === "email_capture") {
+    const fields = Array.isArray(data.fields) ? (data.fields as string[]) : ["email"];
+    const next = new Set(fields);
+    next.add("email");
+    if (!next.has("name")) next.add("name");
+    return {
+      ...data,
+      fields: Array.from(next),
+      requireName: data.requireName !== false,
+      successMessage:
+        (data.successMessage as string) || "You're in — your coupon is below.",
+    };
+  }
+  return data;
 }
 
 export async function generateCampaignDraft(prompt: string): Promise<AiGenerateResult> {
@@ -99,13 +152,18 @@ export async function generateCampaignDraft(prompt: string): Promise<AiGenerateR
   const client = new OpenAI({ apiKey });
   const completion = await client.chat.completions.create({
     model: process.env.OPENAI_MODEL || "gpt-4o-mini",
-    temperature: 0.7,
+    temperature: 0.85,
     response_format: { type: "json_object" },
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       {
         role: "user",
-        content: `Build a tap campaign page from this brief:\n\n${prompt}`,
+        content: `Build a complete tap campaign page from this brief.
+If anything is vague, invent strong industry-specific details that still match the intent.
+Honor colors, dates, and discounts exactly when provided.
+
+Brief:
+${prompt}`,
       },
     ],
   });
@@ -126,6 +184,8 @@ export async function generateCampaignDraft(prompt: string): Promise<AiGenerateR
 
   return {
     title: parsed.title,
+    industry: parsed.industry,
+    theme: parsed.theme,
     blocks: toContentBlocks(parsed.blocks),
   };
 }
