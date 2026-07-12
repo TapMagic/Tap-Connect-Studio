@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "postinstall": "prisma generate",
+    "postinstall": "prisma generate || true",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
@@ -27,6 +27,7 @@
     "nanoid": "^5.1.16",
     "next": "16.2.10",
     "pg": "^8.22.0",
+    "prisma": "^7.8.0",
     "qrcode": "^1.5.4",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -45,8 +46,10 @@
     "clerk": "^2.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
-    "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=22"
   }
 }
