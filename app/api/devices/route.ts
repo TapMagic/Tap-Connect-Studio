@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireBusiness } from "@/lib/auth";
+import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
 import { createDeviceForBusiness } from "@/lib/services/campaigns";
 
 const schema = z.object({
@@ -9,10 +9,12 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const { business } = await requireBusiness();
+    const { user, business } = await requireBusiness();
     const body = schema.parse(await request.json().catch(() => ({})));
 
-    const device = await createDeviceForBusiness(business.id, body.nickname);
+    const device = await createDeviceForBusiness(business.id, body.nickname, {
+      bypassLimit: isPlatformAdmin(user),
+    });
     return NextResponse.json({ device });
   } catch (error) {
     if (error instanceof Error && error.message.includes("limit")) {

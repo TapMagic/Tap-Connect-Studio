@@ -3,7 +3,7 @@ import { ArrowRight, Building2 } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingForm } from "@/components/onboarding/form";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, isPlatformAdmin } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
@@ -11,6 +11,10 @@ export const dynamic = "force-dynamic";
 export default async function OnboardingPage() {
   const user = await getSessionUser();
   if (!user) redirect("/sign-in");
+
+  if (isPlatformAdmin(user)) {
+    redirect("/admin");
+  }
 
   if (user.memberships.length > 0) {
     redirect("/dashboard");

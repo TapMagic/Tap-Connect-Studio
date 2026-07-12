@@ -4,13 +4,13 @@ import { isClerkConfigured } from "@/lib/utils/app";
 
 export default function SignInPage() {
   if (!isClerkConfigured()) {
-    redirect("/dashboard");
+    redirect("/auth/continue");
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center px-6">
       <SignIn
-        forceRedirectUrl="/dashboard"
+        forceRedirectUrl="/auth/continue"
         signUpUrl="/sign-up"
       />
     </div>

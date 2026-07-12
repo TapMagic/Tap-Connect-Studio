@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireBusiness } from "@/lib/auth";
+import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
 import { createCampaignFromTemplate } from "@/lib/services/campaigns";
 
 const schema = z.object({
@@ -13,17 +13,19 @@ export async function POST(request: Request) {
     const { user, business } = await requireBusiness();
     const body = schema.parse(await request.json());
 
-    const activeCount = await import("@/lib/db").then(({ prisma }) =>
-      prisma.campaign.count({
-        where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
-      })
-    );
-
-    if (activeCount >= business.activeCampaignLimit) {
-      return NextResponse.json(
-        { error: `Campaign limit reached (${business.activeCampaignLimit})` },
-        { status: 400 }
+    if (!isPlatformAdmin(user)) {
+      const activeCount = await import("@/lib/db").then(({ prisma }) =>
+        prisma.campaign.count({
+          where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+        })
       );
+
+      if (activeCount >= business.activeCampaignLimit) {
+        return NextResponse.json(
+          { error: `Campaign limit reached (${business.activeCampaignLimit})` },
+          { status: 400 }
+        );
+      }
     }
 
     const campaign = await createCampaignFromTemplate({

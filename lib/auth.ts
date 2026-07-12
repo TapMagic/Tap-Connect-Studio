@@ -2,6 +2,11 @@ import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { isClerkConfigured } from "@/lib/utils/app";
+import { isPlatformAdminEmail, normalizeEmail } from "@/lib/config/admins";
+import {
+  ensureAdminWorkspace,
+  postAuthPath,
+} from "@/lib/services/admins";
 import type { Business, BusinessUser, User } from "@prisma/client";
 
 export type SessionUser = User & {
@@ -36,8 +41,9 @@ export async function getSessionUser(): Promise<SessionUser | null> {
   const clerkUser = await currentUser();
   if (!clerkUser) return null;
 
-  const email =
-    clerkUser.emailAddresses[0]?.emailAddress ?? `${userId}@clerk.local`;
+  const email = normalizeEmail(
+    clerkUser.emailAddresses[0]?.emailAddress ?? `${userId}@clerk.local`
+  );
 
   let user = await prisma.user.findUnique({
     where: { clerkId: userId },
@@ -62,11 +68,12 @@ export async function getSessionUser(): Promise<SessionUser | null> {
       },
       include: { memberships: { include: { business: true } } },
     });
-  } else if (!user.clerkId) {
+  } else if (!user.clerkId || user.email !== email) {
     user = await prisma.user.update({
       where: { id: user.id },
       data: {
         clerkId: userId,
+        email,
         firstName: clerkUser.firstName ?? user.firstName,
         lastName: clerkUser.lastName ?? user.lastName,
         imageUrl: clerkUser.imageUrl ?? user.imageUrl,
@@ -93,16 +100,46 @@ export async function getActiveBusiness(user: SessionUser): Promise<Business | n
   return user.memberships[0]?.business ?? null;
 }
 
+export function isPlatformAdmin(user: { email: string }): boolean {
+  return isPlatformAdminEmail(user.email);
+}
+
+export async function requirePlatformAdmin(): Promise<{
+  user: SessionUser;
+  business: Business;
+}> {
+  const user = await requireSessionUser();
+  if (!isPlatformAdminEmail(user.email)) {
+    redirect(postAuthPath(user));
+  }
+  const business = await ensureAdminWorkspace(user);
+  return { user, business };
+}
+
 export async function requireBusiness(): Promise<{
   user: SessionUser;
   business: Business;
 }> {
   const user = await requireSessionUser();
-  const business = await getActiveBusiness(user);
 
+  if (isPlatformAdminEmail(user.email)) {
+    const business = await ensureAdminWorkspace(user);
+    return { user, business };
+  }
+
+  const business = await getActiveBusiness(user);
   if (!business) {
     redirect("/onboarding");
   }
 
   return { user, business };
+}
+
+export async function resolvePostAuthRedirect(): Promise<string> {
+  const user = await requireSessionUser();
+  if (isPlatformAdminEmail(user.email)) {
+    await ensureAdminWorkspace(user);
+    return "/admin";
+  }
+  return postAuthPath(user);
 }

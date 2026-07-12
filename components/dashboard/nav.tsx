@@ -12,6 +12,7 @@ import {
   Palette,
   PenTool,
   ScanLine,
+  Shield,
   Users,
   Zap,
 } from "lucide-react";
@@ -30,8 +31,17 @@ const navItems = [
   { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
 ];
 
-export function DashboardNav({ businessName }: { businessName: string }) {
+export function DashboardNav({
+  businessName,
+  showAdminLink = false,
+}: {
+  businessName: string;
+  showAdminLink?: boolean;
+}) {
   const pathname = usePathname();
+  const items = showAdminLink
+    ? [{ href: "/admin", label: "Admin", icon: Shield }, ...navItems]
+    : navItems;
 
   return (
     <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-card/40 lg:flex lg:flex-col">
@@ -47,7 +57,7 @@ export function DashboardNav({ businessName }: { businessName: string }) {
         </Link>
       </div>
       <nav className="flex-1 space-y-1 p-3">
-        {navItems.map((item) => {
+        {items.map((item) => {
           const active =
             pathname === item.href ||
             (item.href !== "/dashboard" && pathname.startsWith(item.href));
@@ -79,8 +89,17 @@ export function DashboardNav({ businessName }: { businessName: string }) {
   );
 }
 
-export function MobileDashboardNav({ businessName }: { businessName: string }) {
+export function MobileDashboardNav({
+  businessName,
+  showAdminLink = false,
+}: {
+  businessName: string;
+  showAdminLink?: boolean;
+}) {
   const pathname = usePathname();
+  const items = showAdminLink
+    ? [{ href: "/admin", label: "Admin", icon: Shield }, ...navItems]
+    : navItems;
 
   return (
     <div className="border-b border-border/60 bg-card/40 lg:hidden">
@@ -91,7 +110,7 @@ export function MobileDashboardNav({ businessName }: { businessName: string }) {
         </div>
       </div>
       <div className="flex gap-1 overflow-x-auto px-3 pb-3">
-        {navItems.slice(0, 6).map((item) => {
+        {items.slice(0, 6).map((item) => {
           const active = pathname.startsWith(item.href);
           return (
             <Link

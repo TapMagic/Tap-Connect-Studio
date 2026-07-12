@@ -117,7 +117,11 @@ export async function assignCampaignToDevice(params: {
   });
 }
 
-export async function createDeviceForBusiness(businessId: string, nickname?: string) {
+export async function createDeviceForBusiness(
+  businessId: string,
+  nickname?: string,
+  options?: { bypassLimit?: boolean }
+) {
   const { generateDeviceCode } = await import("@/lib/utils/app");
   const business = await prisma.business.findUniqueOrThrow({
     where: { id: businessId },
@@ -127,7 +131,7 @@ export async function createDeviceForBusiness(businessId: string, nickname?: str
     where: { businessId, status: { in: ["ACTIVE", "UNASSIGNED"] } },
   });
 
-  if (activeCount >= business.activeDeviceLimit) {
+  if (!options?.bypassLimit && activeCount >= business.activeDeviceLimit) {
     throw new Error(
       `Device limit reached (${business.activeDeviceLimit}). Upgrade your plan to add more devices.`
     );

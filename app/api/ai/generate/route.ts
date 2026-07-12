@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireBusiness } from "@/lib/auth";
+import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
 import { PLAN_MEDIA_LIMITS } from "@/lib/config/limits";
 import { aiGeneratePlaceholder } from "@/lib/integrations/placeholders";
 import { generateCampaignDraft } from "@/lib/services/ai-generate";
@@ -17,15 +17,16 @@ export async function POST(request: Request) {
       return NextResponse.json(placeholder, { status: 503 });
     }
 
-    const { business } = await requireBusiness();
-    const tier = business.subscriptionTier as PlanTier;
-    const aiLimit = PLAN_MEDIA_LIMITS[tier]?.aiRequestsPerMonth ?? 0;
-
-    if (aiLimit <= 0) {
-      return NextResponse.json(
-        { error: "AI builder is available on Studio plan and above." },
-        { status: 403 }
-      );
+    const { user, business } = await requireBusiness();
+    if (!isPlatformAdmin(user)) {
+      const tier = business.subscriptionTier as PlanTier;
+      const aiLimit = PLAN_MEDIA_LIMITS[tier]?.aiRequestsPerMonth ?? 0;
+      if (aiLimit <= 0) {
+        return NextResponse.json(
+          { error: "AI builder is available on Studio plan and above." },
+          { status: 403 }
+        );
+      }
     }
 
     const body = schema.parse(await request.json());
