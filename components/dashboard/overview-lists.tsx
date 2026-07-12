@@ -26,6 +26,17 @@ type DeviceRow = {
   campaignTitle: string | null;
 };
 
+async function campaignAction(body: Record<string, unknown>) {
+  const res = await fetch("/api/campaigns/actions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? "Failed");
+  return data;
+}
+
 export function OverviewLists({
   campaigns: initialCampaigns,
   devices: initialDevices,
@@ -72,21 +83,17 @@ export function OverviewLists({
         )
       );
     }
-
-    const res = await fetch("/api/campaigns/actions", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaignId: id, status: "ARCHIVED" }),
-    });
-    setBusy(null);
-    if (!res.ok) {
+    try {
+      await campaignAction({ action: "archive", campaignId: id });
+      setMessage("Campaign archived — linked devices cleared");
+      router.refresh();
+    } catch {
       setCampaigns(prevCampaigns);
       setDevices(prevDevices);
       setMessage("Archive failed");
-      return;
+    } finally {
+      setBusy(null);
     }
-    setMessage("Campaign archived — linked devices cleared");
-    router.refresh();
   }
 
   async function deleteCampaign(id: string) {
@@ -115,21 +122,17 @@ export function OverviewLists({
         )
       );
     }
-
-    const res = await fetch("/api/campaigns/actions", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaignId: id }),
-    });
-    setBusy(null);
-    if (!res.ok) {
+    try {
+      await campaignAction({ action: "delete", campaignId: id });
+      setMessage("Campaign deleted — devices freed");
+      router.refresh();
+    } catch {
       setCampaigns(prevCampaigns);
       setDevices(prevDevices);
       setMessage("Delete campaign failed");
-      return;
+    } finally {
+      setBusy(null);
     }
-    setMessage("Campaign deleted — devices freed for reuse");
-    router.refresh();
   }
 
   async function deleteDevice(id: string) {
@@ -147,22 +150,22 @@ export function OverviewLists({
     if (removed?.status === "ACTIVE") {
       setActiveDevices((n) => Math.max(0, n - 1));
     }
-
-    // Close device: ends assignment and removes from active/unassigned quota
-    const res = await fetch("/api/devices/update", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ deviceId: id, status: "CLOSED" }),
-    });
-    setBusy(null);
-    if (!res.ok) {
+    try {
+      const res = await fetch("/api/devices/update", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ deviceId: id, status: "CLOSED" }),
+      });
+      if (!res.ok) throw new Error("fail");
+      setMessage("Device removed — slot free for a new device");
+      router.refresh();
+    } catch {
       setDevices(prev);
       if (removed?.status === "ACTIVE") setActiveDevices((n) => n + 1);
       setMessage("Failed to delete device");
-      return;
+    } finally {
+      setBusy(null);
     }
-    setMessage("Device removed — slot free for a new device");
-    router.refresh();
   }
 
   return (
@@ -188,7 +191,10 @@ export function OverviewLists({
                   key={c.id}
                   className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/40 px-3 py-2"
                 >
-                  <Link href={`/dashboard/campaigns/${c.id}`} className="min-w-0 flex-1 hover:text-primary">
+                  <Link
+                    href={`/dashboard/campaigns/${c.id}`}
+                    className="min-w-0 flex-1 hover:text-primary"
+                  >
                     <p className="font-medium">{c.title}</p>
                     <p className="text-xs text-muted-foreground">
                       {c.campaignType.replace(/_/g, " ").toLowerCase()}
@@ -248,13 +254,19 @@ export function OverviewLists({
                   className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/40 px-3 py-2"
                 >
                   <div className="min-w-0 flex-1">
-                    <Link href={`/dashboard/devices/${d.id}`} className="font-medium hover:text-primary">
+                    <Link
+                      href={`/dashboard/devices/${d.id}`}
+                      className="font-medium hover:text-primary"
+                    >
                       {d.nickname ?? d.deviceCode}
                     </Link>
                     <p className="text-xs text-muted-foreground">
-                      {d.campaignTitle ?? "No campaign"} · {d.totalTapCount} taps · {d.lastTappedLabel}
+                      {d.campaignTitle ?? "No campaign"} · {d.totalTapCount} taps ·{" "}
+                      {d.lastTappedLabel}
                     </p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{getDevicePath(d.deviceCode)}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground">
+                      {getDevicePath(d.deviceCode)}
+                    </p>
                   </div>
                   <div className="flex items-center gap-1">
                     <Badge variant="outline">{d.status.toLowerCase()}</Badge>

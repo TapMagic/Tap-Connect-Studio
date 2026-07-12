@@ -1,0 +1,12 @@
+---
+description: Tap Connect / Tap The Magic brand usage
+alwaysApply: true
+---
+
+# Branding
+
+- **Product name:** Tap Connect / TapConnect Studio (this app). Brand UI, nav, titles, and customer-facing product copy around Tap Connect.
+- **Parent / powered-by:** Tap The Magic. Use **"Powered by Tap The Magic"** on public tap pages, emails, marketing footers, and empty states where a vendor credit fits — not as the primary product name in the dashboard.
+- **Visual language:** Dark backgrounds, neon lime/green accent (~logo green), high contrast white + black. Prefer the Tap Connect logo (hat + phone) for the product; Tap The Magic logo for powered-by / parent marks.
+- **Assets (when wiring):** logo files provided as `Tap_Connect_Logo` and `Tap_The_Magic_Logo` — copy into `public/` when implementing brand chrome; do not invent alternate purple/cream themes.
+- Do not rename the product to Tap The Magic in nav or page titles.

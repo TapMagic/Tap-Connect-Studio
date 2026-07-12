@@ -4,6 +4,17 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
+async function campaignAction(body: Record<string, unknown>) {
+  const res = await fetch("/api/campaigns/actions", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error ?? "Action failed");
+  return data;
+}
+
 export function CampaignActions({
   campaignId,
   status,
@@ -14,59 +25,53 @@ export function CampaignActions({
   const router = useRouter();
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
   async function clone() {
     setLoading("clone");
     setMessage(null);
-    const res = await fetch("/api/campaigns/actions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaignId }),
-    });
-    const data = await res.json();
-    setLoading(null);
-    if (!res.ok) {
-      setMessage(data.error ?? "Clone failed");
-      return;
+    try {
+      const data = await campaignAction({ action: "clone", campaignId });
+      router.push(`/dashboard/campaigns/${data.campaign.id}`);
+    } catch (e) {
+      setMessage(e instanceof Error ? e.message : "Clone failed");
+    } finally {
+      setLoading(null);
     }
-    router.push(`/dashboard/campaigns/${data.campaign.id}`);
   }
 
   async function setStatus(next: string) {
     setLoading(next);
     setMessage(null);
-    const res = await fetch("/api/campaigns/actions", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaignId, status: next }),
-    });
-    setLoading(null);
-    if (!res.ok) {
+    try {
+      await campaignAction({ action: "status", campaignId, status: next });
+      setMessage(`Marked ${next.toLowerCase()}`);
+      router.refresh();
+    } catch {
       setMessage("Status update failed");
-      return;
+    } finally {
+      setLoading(null);
     }
-    setMessage(`Marked ${next.toLowerCase()}`);
-    router.refresh();
   }
 
   async function remove() {
-    if (!confirm("Delete this campaign permanently? Active device assignments will be cleared.")) {
+    if (!confirmDelete) {
+      setConfirmDelete(true);
+      setMessage("Click Delete again to confirm — devices will be freed");
       return;
     }
+    setConfirmDelete(false);
     setLoading("delete");
     setMessage(null);
-    const res = await fetch("/api/campaigns/actions", {
-      method: "DELETE",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ campaignId }),
-    });
-    setLoading(null);
-    if (!res.ok) {
+    try {
+      await campaignAction({ action: "delete", campaignId });
+      router.push("/dashboard/campaigns");
+      router.refresh();
+    } catch {
       setMessage("Delete failed");
-      return;
+    } finally {
+      setLoading(null);
     }
-    router.push("/dashboard/campaigns");
-    router.refresh();
   }
 
   return (
@@ -75,12 +80,22 @@ export function CampaignActions({
         {loading === "clone" ? "Cloning..." : "Clone"}
       </Button>
       {status !== "ARCHIVED" && (
-        <Button variant="outline" size="sm" onClick={() => setStatus("ARCHIVED")} disabled={!!loading}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setStatus("ARCHIVED")}
+          disabled={!!loading}
+        >
           Archive
         </Button>
       )}
       {status === "ARCHIVED" && (
-        <Button variant="outline" size="sm" onClick={() => setStatus("READY")} disabled={!!loading}>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => setStatus("DRAFT")}
+          disabled={!!loading}
+        >
           Unarchive / Ready
         </Button>
       )}
@@ -89,7 +104,15 @@ export function CampaignActions({
           Close
         </Button>
       )}
-      <Button variant="ghost" size="sm" onClick={remove} disabled={!!loading} className="text-red-400 hover:text-red-300">
+      <Button
+        variant="ghost"
+        size="sm"
+        onClick={remove}
+        disabled={!!loading}
+        className={
+          confirmDelete ? "bg-red-500/20 text-red-300" : "text-red-400 hover:text-red-300"
+        }
+      >
         {loading === "delete" ? "Deleting..." : "Delete"}
       </Button>
       {message && <span className="text-xs text-primary">{message}</span>}

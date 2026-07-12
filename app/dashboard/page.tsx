@@ -1,5 +1,14 @@
 import Link from "next/link";
-import { ArrowRight, Layers3, Nfc, PenTool, Users } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  Layers3,
+  Nfc,
+  Palette,
+  PenTool,
+  ScanLine,
+  Users,
+} from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { OverviewLists } from "@/components/dashboard/overview-lists";
@@ -14,7 +23,7 @@ export default async function DashboardPage() {
   const { business } = await requireBusiness();
   const stats = await getDashboardStats(business.id);
 
-  const [recentCampaigns, recentDevices] = await Promise.all([
+  const [recentCampaigns, recentDevices, statusGroups] = await Promise.all([
     prisma.campaign.findMany({
       where: {
         businessId: business.id,
@@ -44,13 +53,29 @@ export default async function DashboardPage() {
         },
       },
     }),
+    prisma.campaign.groupBy({
+      by: ["status"],
+      where: { businessId: business.id },
+      _count: true,
+    }),
   ]);
+
+  const byStatus = Object.fromEntries(statusGroups.map((g) => [g.status, g._count]));
 
   const statCards = [
     { label: "Taps this month", value: stats.tapsThisMonth, icon: Nfc },
     { label: "Leads this month", value: stats.leadsThisMonth, icon: Users },
     { label: "Active devices", value: stats.activeDevices, icon: Nfc },
     { label: "Live campaigns", value: stats.liveCampaigns, icon: Layers3 },
+  ];
+
+  const quickActions = [
+    { href: "/dashboard/workbench", label: "Create Campaign", icon: PenTool },
+    { href: "/dashboard/devices", label: "Manage Devices", icon: Nfc },
+    { href: "/dashboard/scan", label: "Scan Device", icon: ScanLine },
+    { href: "/dashboard/leads", label: "View Leads", icon: Users },
+    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/dashboard/brand", label: "Brand Kit", icon: Palette },
   ];
 
   return (
@@ -65,8 +90,8 @@ export default async function DashboardPage() {
             <PenTool className="mr-2 h-4 w-4" />
             New Campaign
           </Link>
-          <Link href="/dashboard/devices" className={buttonVariants({ variant: "outline" })}>
-            Manage Devices
+          <Link href="/dashboard/campaigns" className={buttonVariants({ variant: "outline" })}>
+            All Campaigns
           </Link>
         </div>
       </div>
@@ -84,6 +109,55 @@ export default async function DashboardPage() {
                 <p className="text-3xl font-bold">{stat.value}</p>
               </CardContent>
             </Card>
+          );
+        })}
+      </div>
+
+      <Card className="border-border/60 bg-card/60">
+        <CardHeader className="pb-2">
+          <CardDescription>Campaign pipeline</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-3 text-sm">
+          {(
+            [
+              ["DRAFT", "Drafts"],
+              ["READY", "Ready"],
+              ["SCHEDULED", "Scheduled"],
+              ["LIVE", "Live"],
+              ["PAUSED", "Paused"],
+              ["ARCHIVED", "Archived"],
+            ] as const
+          ).map(([key, label]) => (
+            <Link
+              key={key}
+              href="/dashboard/campaigns"
+              className="rounded-lg border border-border/50 px-3 py-2 hover:border-primary/40"
+            >
+              <span className="text-muted-foreground">{label}</span>{" "}
+              <span className="font-semibold">{byStatus[key] ?? 0}</span>
+            </Link>
+          ))}
+          <span className="rounded-lg border border-border/50 px-3 py-2">
+            <span className="text-muted-foreground">Devices</span>{" "}
+            <span className="font-semibold">
+              {stats.activeDevices}/{business.activeDeviceLimit}
+            </span>
+          </span>
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-wrap gap-2">
+        {quickActions.map((action) => {
+          const Icon = action.icon;
+          return (
+            <Link
+              key={action.href}
+              href={action.href}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              <Icon className="mr-1.5 h-3.5 w-3.5" />
+              {action.label}
+            </Link>
           );
         })}
       </div>

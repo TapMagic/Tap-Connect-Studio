@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
 import { createCampaignFromTemplate } from "@/lib/services/campaigns";
@@ -22,7 +23,9 @@ export async function POST(request: Request) {
 
       if (activeCount >= business.activeCampaignLimit) {
         return NextResponse.json(
-          { error: `Campaign limit reached (${business.activeCampaignLimit})` },
+          {
+            error: `Campaign limit reached (${business.activeCampaignLimit}). Archive or delete old campaigns, or upgrade.`,
+          },
           { status: 400 }
         );
       }
@@ -35,12 +38,19 @@ export async function POST(request: Request) {
       userId: user.id,
     });
 
+    revalidatePath("/dashboard");
+    revalidatePath("/dashboard/campaigns");
+    revalidatePath("/dashboard/workbench");
+
     return NextResponse.json({ campaign });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
     console.error("Create campaign error:", error);
-    return NextResponse.json({ error: "Failed to create campaign" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : "Failed to create campaign" },
+      { status: 500 }
+    );
   }
 }
