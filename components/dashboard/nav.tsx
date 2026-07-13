@@ -47,11 +47,13 @@ export function DashboardNav({
     <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-card/40 lg:flex lg:flex-col">
       <div className="border-b border-border/60 px-5 py-5">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Zap className="h-4 w-4" />
-          </span>
+          <img
+            src="/tap-connect-logo.png"
+            alt="Tap Connect"
+            className="h-9 w-9 rounded-lg object-cover"
+          />
           <div>
-            <p className="text-sm font-semibold">TapConnect Studio</p>
+            <p className="text-sm font-semibold">Tap Connect</p>
             <p className="truncate text-xs text-muted-foreground">{businessName}</p>
           </div>
         </Link>

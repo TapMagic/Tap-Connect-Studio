@@ -25,6 +25,15 @@ export default async function CampaignsPage() {
     },
   });
 
+  const devices = await prisma.deviceSlot.findMany({
+    where: {
+      businessId: business.id,
+      status: { notIn: ["CLOSED", "RETIRED", "ARCHIVED", "REPLACED"] },
+    },
+    orderBy: { updatedAt: "desc" },
+    select: { id: true, nickname: true, deviceCode: true },
+  });
+
   const rows = campaigns.map((c) => ({
     id: c.id,
     title: c.title,
@@ -54,7 +63,14 @@ export default async function CampaignsPage() {
         </Link>
       </div>
 
-      <CampaignsList campaigns={rows} campaignLimit={business.activeCampaignLimit} />
+      <CampaignsList
+        campaigns={rows}
+        campaignLimit={business.activeCampaignLimit}
+        devices={devices.map((d) => ({
+          id: d.id,
+          label: d.nickname ?? d.deviceCode,
+        }))}
+      />
     </div>
   );
 }

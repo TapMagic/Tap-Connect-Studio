@@ -6,6 +6,7 @@ import type { ContentBlock } from "@/lib/types/campaign";
 import { extractYouTubeId } from "@/lib/utils/app";
 import { CampaignLeadForm } from "@/components/tap/lead-form";
 import { TapActionButton } from "@/components/tap/action-button";
+import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 
 interface CampaignTheme {
   primaryColor: string;
@@ -22,6 +23,7 @@ interface CampaignPageProps {
   businessId: string;
   businessName: string;
   brandKit?: BrandKit | null;
+  logoUrl?: string | null;
 }
 
 export function CampaignPageRenderer({
@@ -32,6 +34,7 @@ export function CampaignPageRenderer({
   businessId,
   businessName,
   brandKit,
+  logoUrl,
 }: CampaignPageProps) {
   const enabledBlocks = [...blocks]
     .filter((b) => b.enabled)
@@ -39,6 +42,7 @@ export function CampaignPageRenderer({
 
   const hasEmailCapture = enabledBlocks.some((b) => b.type === "email_capture");
   const [contactUnlocked, setContactUnlocked] = useState(false);
+  const mark = logoUrl;
 
   const style = {
     "--tap-primary": theme.primaryColor,
@@ -50,6 +54,11 @@ export function CampaignPageRenderer({
   return (
     <div className="tap-page min-h-screen" style={style}>
       <div className="mx-auto max-w-lg">
+        {mark && (
+          <div className="flex justify-center px-4 pt-6">
+            <img src={mark} alt={businessName} className="h-10 w-auto object-contain" />
+          </div>
+        )}
         {enabledBlocks.map((block) => (
           <BlockRenderer
             key={block.id}
@@ -64,8 +73,8 @@ export function CampaignPageRenderer({
             onContactCaptured={() => setContactUnlocked(true)}
           />
         ))}
-        <footer className="px-4 py-8 text-center text-xs opacity-50">
-          Powered by TapConnect Studio
+        <footer className="px-4 py-10">
+          <PoweredByTapTheMagic />
         </footer>
       </div>
     </div>

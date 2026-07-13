@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { QuickAssignButton } from "@/components/campaign/quick-assign";
 
 export type CampaignListItem = {
   id: string;
@@ -30,6 +31,8 @@ export type CampaignListItem = {
   deviceCodes: string[];
   deviceNicknames: string[];
 };
+
+export type AssignableDevice = { id: string; label: string };
 
 const TABS = [
   { id: "ALL", label: "All" },
@@ -60,9 +63,11 @@ async function campaignAction(body: Record<string, unknown>) {
 export function CampaignsList({
   campaigns: initial,
   campaignLimit,
+  devices = [],
 }: {
   campaigns: CampaignListItem[];
   campaignLimit: number;
+  devices?: AssignableDevice[];
 }) {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState(initial);
@@ -322,6 +327,7 @@ export function CampaignsList({
                       Edit
                     </Button>
                   </Link>
+                  <QuickAssignButton campaignId={c.id} devices={devices} />
                   {previewHref ? (
                     <a href={previewHref} target="_blank" rel="noopener noreferrer">
                       <Button variant="outline" size="sm">
