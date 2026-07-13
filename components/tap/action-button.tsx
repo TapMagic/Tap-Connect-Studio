@@ -1,7 +1,5 @@
 "use client";
 
-import Link from "next/link";
-
 interface TapActionButtonProps {
   children: React.ReactNode;
   href?: string;
@@ -11,6 +9,8 @@ interface TapActionButtonProps {
   deviceSlotId: string;
   businessId: string;
   blockId?: string;
+  /** Override default: http(s) opens in new tab */
+  openInNewTab?: boolean;
 }
 
 export function TapActionButton({
@@ -22,6 +22,7 @@ export function TapActionButton({
   deviceSlotId,
   businessId,
   blockId,
+  openInNewTab,
 }: TapActionButtonProps) {
   async function logClick() {
     try {
@@ -36,8 +37,16 @@ export function TapActionButton({
   }
 
   if (href) {
+    const isHttp = /^https?:\/\//i.test(href);
+    const targetBlank = openInNewTab === true || (openInNewTab !== false && isHttp);
     return (
-      <a href={href} className={className} onClick={() => void logClick()} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined}>
+      <a
+        href={href}
+        className={className}
+        onClick={() => void logClick()}
+        target={targetBlank ? "_blank" : undefined}
+        rel={targetBlank ? "noopener noreferrer" : undefined}
+      >
         {children}
       </a>
     );

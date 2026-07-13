@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { ImageIcon, Link2, Upload } from "lucide-react";
+import { ImageIcon, Link2, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { FeaturePlaceholder } from "@/components/integrations/feature-placeholder";
 
 interface MediaPickerProps {
   value?: string;
@@ -32,6 +31,8 @@ type LibraryAsset = {
   source: string;
 };
 
+const MAX_INLINE_BYTES = 700_000;
+
 export function MediaPicker({
   value = "",
   onChange,
@@ -41,19 +42,20 @@ export function MediaPicker({
   campaignId,
 }: MediaPickerProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const pasteRef = useRef<HTMLDivElement>(null);
   const [stockQuery, setStockQuery] = useState("");
   const [stockResults, setStockResults] = useState<StockHit[]>([]);
+  const [galleryOpen, setGalleryOpen] = useState(false);
   const [library, setLibrary] = useState<LibraryAsset[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!mediaUploadReady && !stockReady) return;
     fetch("/api/media")
       .then((r) => r.json())
       .then((d) => setLibrary(d.assets ?? []))
       .catch(() => undefined);
-  }, [mediaUploadReady, stockReady, value]);
+  }, [value]);
 
   async function searchStock() {
     if (!stockQuery.trim()) return;
@@ -67,14 +69,17 @@ export function MediaPicker({
       return;
     }
     setStockResults(data.results ?? []);
+    setGalleryOpen(true);
     if (!(data.results ?? []).length) setMessage("No results — try another search.");
   }
 
-  async function uploadFile(file: File) {
-    if (!mediaUploadReady) {
-      setMessage("Upload requires R2 (and public URL) configured.");
-      return;
-    }
+  function closeGallery() {
+    setGalleryOpen(false);
+    setStockResults([]);
+    setMessage(null);
+  }
+
+  async function uploadViaR2(file: File) {
     setLoading("upload");
     setMessage(null);
     const form = new FormData();
@@ -88,12 +93,46 @@ export function MediaPicker({
       return;
     }
     onChange?.(data.url);
-    setLibrary((prev) => [{ id: data.asset?.id ?? data.url, url: data.url, filename: file.name, source: "upload" }, ...prev]);
+    setLibrary((prev) => [
+      { id: data.asset?.id ?? data.url, url: data.url, filename: file.name, source: "upload" },
+      ...prev,
+    ]);
     setMessage("Uploaded");
+  }
+
+  async function embedAsDataUrl(file: File) {
+    if (file.size > MAX_INLINE_BYTES) {
+      setMessage("Image too large for inline upload (max ~700KB). Configure R2 for larger files.");
+      return;
+    }
+    setLoading("upload");
+    setMessage(null);
+    const reader = new FileReader();
+    const dataUrl = await new Promise<string>((resolve, reject) => {
+      reader.onload = () => resolve(String(reader.result));
+      reader.onerror = () => reject(new Error("read failed"));
+      reader.readAsDataURL(file);
+    });
+    onChange?.(dataUrl);
+    setLoading(null);
+    setMessage("Image embedded (works without R2 — use R2 for large files)");
+  }
+
+  async function uploadFile(file: File) {
+    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+      setMessage("Only images (or PDF) allowed");
+      return;
+    }
+    if (mediaUploadReady) {
+      await uploadViaR2(file);
+      return;
+    }
+    await embedAsDataUrl(file);
   }
 
   async function chooseStock(hit: StockHit) {
     onChange?.(hit.url);
+    closeGallery();
     await fetch("/api/media", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -107,13 +146,21 @@ export function MediaPicker({
     }).catch(() => undefined);
   }
 
-  function onPasteZone(e: React.ClipboardEvent<HTMLDivElement>) {
+  function onPasteZone(e: React.ClipboardEvent) {
     const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
-    if (!item) return;
-    const file = item.getAsFile();
-    if (file) {
+    if (item) {
+      const file = item.getAsFile();
+      if (file) {
+        e.preventDefault();
+        void uploadFile(file);
+        return;
+      }
+    }
+    const text = e.clipboardData.getData("text");
+    if (text && /^https?:\/\//i.test(text.trim())) {
       e.preventDefault();
-      void uploadFile(file);
+      onChange?.(text.trim());
+      setMessage("URL pasted");
     }
   }
 
@@ -124,10 +171,26 @@ export function MediaPicker({
       <div className="flex gap-2">
         <Link2 className="mt-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
         <Input
-          value={value}
-          onChange={(e) => onChange?.(e.target.value)}
-          placeholder="Paste image URL"
+          value={value.startsWith("data:") ? "[embedded image]" : value}
+          onChange={(e) => {
+            if (e.target.value === "[embedded image]") return;
+            onChange?.(e.target.value);
+          }}
+          onPaste={(e) => {
+            const text = e.clipboardData.getData("text");
+            if (text && /^https?:\/\//i.test(text.trim())) {
+              // let default paste work
+              return;
+            }
+            onPasteZone(e);
+          }}
+          placeholder="Paste image URL (https://…)"
         />
+        {value && (
+          <Button type="button" variant="ghost" size="sm" onClick={() => onChange?.("")}>
+            Clear
+          </Button>
+        )}
       </div>
 
       {value && (
@@ -143,57 +206,52 @@ export function MediaPicker({
         </div>
       )}
 
-      {mediaUploadReady ? (
-        <div
-          className="rounded-lg border border-dashed border-border/60 p-3"
-          onPaste={onPasteZone}
-          tabIndex={0}
-        >
-          <input
-            ref={fileRef}
-            type="file"
-            accept="image/*,application/pdf"
-            className="hidden"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void uploadFile(file);
+      <div
+        ref={pasteRef}
+        className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 outline-none focus:border-primary"
+        onPaste={onPasteZone}
+        tabIndex={0}
+        onClick={() => pasteRef.current?.focus()}
+      >
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={(e) => {
+            const file = e.target.files?.[0];
+            if (file) void uploadFile(file);
+            e.target.value = "";
+          }}
+        />
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <button
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              fileRef.current?.click();
             }}
-          />
-          <div className="flex gap-2">
-            <button
-              type="button"
-              onClick={() => fileRef.current?.click()}
-              disabled={!!loading}
-              className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 py-3 text-sm hover:border-primary/40"
-            >
-              <Upload className="h-4 w-4" />
-              {loading === "upload" ? "Uploading..." : "Browse files"}
-            </button>
-            <div className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 py-3 text-sm text-muted-foreground">
-              <ImageIcon className="h-4 w-4" /> Click here & paste image
-            </div>
+            disabled={!!loading}
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 bg-background py-3 text-sm font-medium hover:border-primary/40"
+          >
+            <Upload className="h-4 w-4" />
+            {loading === "upload" ? "Uploading…" : "Browse files"}
+          </button>
+          <div className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 bg-background/50 py-3 text-sm text-muted-foreground">
+            <ImageIcon className="h-4 w-4" />
+            Click here & paste image / URL
           </div>
         </div>
-      ) : (
-        <FeaturePlaceholder
-          title="Browse & paste uploads"
-          description="Upload from your computer or paste images. Requires Cloudflare R2 + public URL."
-          envVars={[
-            "R2_ACCOUNT_ID",
-            "R2_ACCESS_KEY_ID",
-            "R2_SECRET_ACCESS_KEY",
-            "R2_BUCKET_NAME",
-            "R2_PUBLIC_URL",
-          ]}
-          signupUrl="https://dash.cloudflare.com"
-          costNote="Stays $0 within free tier limits."
-          comingSoon
-        />
-      )}
+        {!mediaUploadReady && (
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            R2 not configured — images under ~700KB embed directly. Add R2 for full-size uploads.
+          </p>
+        )}
+      </div>
 
       {stockReady ? (
         <div className="space-y-2 rounded-lg border border-border/50 p-3">
-          <Label className="text-xs">Stock search (Pexels{process.env.NEXT_PUBLIC_HAS_UNSPLASH ? " + Unsplash" : ""})</Label>
+          <Label className="text-xs">Stock search (Pexels)</Label>
           <div className="flex gap-2">
             <Input
               value={stockQuery}
@@ -207,58 +265,64 @@ export function MediaPicker({
               }}
             />
             <Button type="button" variant="outline" onClick={() => void searchStock()} disabled={!!loading}>
-              {loading === "stock" ? "..." : "Search"}
+              {loading === "stock" ? "…" : "Search"}
             </Button>
-            {stockResults.length > 0 && (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  setStockResults([]);
-                  setMessage(null);
-                }}
-              >
-                Close
-              </Button>
-            )}
           </div>
-          {stockResults.length > 0 && (
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs text-muted-foreground">{stockResults.length} results — tap to use</p>
-                <button
-                  type="button"
-                  className="text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setStockResults([])}
-                >
-                  Clear results
-                </button>
-              </div>
-              <div className="grid grid-cols-3 gap-2">
-                {stockResults.map((hit) => (
-                  <button
-                    key={hit.id}
-                    type="button"
-                    className="overflow-hidden rounded border border-border/40 text-left hover:border-primary/50"
-                    onClick={() => void chooseStock(hit)}
-                    title={`${hit.alt} — ${hit.photographer} (${hit.source})`}
-                  >
-                    <img src={hit.thumb} alt={hit.alt} className="aspect-square w-full object-cover" />
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       ) : (
-        <FeaturePlaceholder
-          title="Stock image library"
-          description="Search free photos from Pexels (and Unsplash when approved)."
-          envVars={["PEXELS_API_KEY", "UNSPLASH_ACCESS_KEY"]}
-          signupUrl="https://www.pexels.com/api"
-          costNote="Free API — no storage cost."
-          comingSoon
-        />
+        <p className="text-xs text-muted-foreground">
+          Stock search needs <code className="text-primary">PEXELS_API_KEY</code>
+        </p>
+      )}
+
+      {galleryOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
+          onClick={closeGallery}
+          role="presentation"
+        >
+          <div
+            className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-label="Stock gallery"
+          >
+            <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
+              <div>
+                <p className="font-semibold">Stock gallery</p>
+                <p className="text-xs text-muted-foreground">
+                  {stockResults.length} results — tap a photo to use it
+                </p>
+              </div>
+              <Button type="button" variant="outline" size="sm" onClick={closeGallery}>
+                <X className="mr-1 h-4 w-4" />
+                Close
+              </Button>
+            </div>
+            <div className="overflow-y-auto p-4">
+              {stockResults.length === 0 ? (
+                <p className="py-8 text-center text-sm text-muted-foreground">No results</p>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                  {stockResults.map((hit) => (
+                    <button
+                      key={hit.id}
+                      type="button"
+                      className="overflow-hidden rounded-xl border border-border/40 text-left transition hover:border-primary/60"
+                      onClick={() => void chooseStock(hit)}
+                      title={`${hit.alt} — ${hit.photographer}`}
+                    >
+                      <img src={hit.thumb} alt={hit.alt} className="aspect-square w-full object-cover" />
+                      <p className="truncate px-2 py-1 text-[10px] text-muted-foreground">
+                        {hit.photographer}
+                      </p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {library.length > 0 && (
@@ -272,7 +336,11 @@ export function MediaPicker({
                 className="overflow-hidden rounded border border-border/40 hover:border-primary/50"
                 onClick={() => onChange?.(asset.url)}
               >
-                <img src={asset.url} alt={asset.filename ?? "asset"} className="aspect-square w-full object-cover" />
+                <img
+                  src={asset.url}
+                  alt={asset.filename ?? "asset"}
+                  className="aspect-square w-full object-cover"
+                />
               </button>
             ))}
           </div>

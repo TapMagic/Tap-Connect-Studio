@@ -23,6 +23,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { MediaPicker } from "@/components/media/media-picker";
+import { BlockStyleControls } from "@/components/workbench/block-style-controls";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { SchedulePanel } from "@/components/campaign/schedule-panel";
 import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
@@ -30,7 +31,7 @@ import { AiAssistPanel } from "@/components/campaign/ai-assist-panel";
 import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
 import { nanoid } from "nanoid";
-import type { BlockType, ContentBlock } from "@/lib/types/campaign";
+import type { BlockStyle, BlockType, ButtonItem, ContentBlock } from "@/lib/types/campaign";
 
 type EditorTab = "content" | "qr" | "schedule" | "email" | "ai";
 
@@ -79,8 +80,18 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
     type: "button_group",
     label: "Link buttons",
     data: {
+      layout: "stack",
       buttons: [
-        { id: nanoid(6), label: "Visit website", url: "https://", style: "primary" },
+        {
+          id: nanoid(6),
+          label: "Visit website",
+          url: "https://",
+          style: "primary",
+          icon: "link",
+          size: "md",
+          fullWidth: true,
+          openInNewTab: true,
+        },
       ],
     },
   },
@@ -99,7 +110,13 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
   {
     type: "google_review",
     label: "Google review",
-    data: { headline: "Leave a review", reviewUrl: "", buttonLabel: "Review on Google" },
+    data: {
+      headline: "Enjoyed your visit?",
+      description: "Your review helps others find us.",
+      reviewUrl: "",
+      buttonLabel: "Review us on Google",
+      badgeStyle: "google_g",
+    },
   },
   {
     type: "map_location",
@@ -166,6 +183,7 @@ export function CampaignEditor({
     backgroundOverlayOpacity: Number(
       campaign.themeOverrides?.backgroundOverlayOpacity ?? 55
     ),
+    fontStyle: campaign.themeOverrides?.fontStyle ?? "sans",
   });
   const [selectedDevice, setSelectedDevice] = useState(devices[0]?.id ?? "");
   const [showPreview, setShowPreview] = useState(true);
@@ -385,6 +403,20 @@ export function CampaignEditor({
                     </div>
                   ))}
                 </div>
+                <div className="mt-3 space-y-1">
+                  <Label className="text-xs">Page font</Label>
+                  <select
+                    className="flex h-9 w-full max-w-xs rounded-lg border border-input bg-background/50 px-2 text-sm"
+                    value={theme.fontStyle ?? "sans"}
+                    onChange={(e) =>
+                      setTheme((t) => ({ ...t, fontStyle: e.target.value }))
+                    }
+                  >
+                    <option value="sans">Modern sans</option>
+                    <option value="serif">Classic serif</option>
+                    <option value="display">Display / bold</option>
+                  </select>
+                </div>
                 <div className="mt-4 space-y-3">
                   <MediaPicker
                     label="Page background image (optional)"
@@ -542,6 +574,7 @@ export function CampaignEditor({
                     <BlockFields
                       block={block}
                       onUpdate={(key, value) => updateBlockData(block.id, key, value)}
+                      onStyleChange={(style) => updateBlock(block.id, { style })}
                       mediaUploadReady={integrations.mediaUpload}
                       stockReady={integrations.stockImages}
                       campaignId={campaign.id}
@@ -632,17 +665,23 @@ export function CampaignEditor({
 function BlockFields({
   block,
   onUpdate,
+  onStyleChange,
   mediaUploadReady,
   stockReady,
   campaignId,
 }: {
   block: ContentBlock;
   onUpdate: (key: string, value: unknown) => void;
+  onStyleChange: (style: BlockStyle) => void;
   mediaUploadReady: boolean;
   stockReady: boolean;
   campaignId: string;
 }) {
   const data = block.data as Record<string, unknown>;
+
+  const styleControls = (
+    <BlockStyleControls style={block.style} onChange={onStyleChange} />
+  );
 
   if (block.type === "hero_image") {
     return (
@@ -703,6 +742,7 @@ function BlockFields({
             placeholder="Optional caption on the image"
           />
         </div>
+        {styleControls}
       </div>
     );
   }
@@ -736,30 +776,40 @@ function BlockFields({
         <p className="text-[11px] text-muted-foreground">
           Browsers require muted autoplay. Sound stays off until the visitor unmutes on YouTube.
         </p>
+        {styleControls}
       </div>
     );
   }
 
   if (block.type === "button_group") {
-    const buttons =
-      (data.buttons as {
-        id: string;
-        label: string;
-        url: string;
-        style: string;
-      }[]) ?? [];
+    const buttons = (data.buttons as ButtonItem[]) ?? [];
+    const layout = (data.layout as string) ?? "stack";
 
-    function setButtons(
-      next: { id: string; label: string; url: string; style: string }[]
-    ) {
+    function setButtons(next: ButtonItem[]) {
       onUpdate("buttons", next);
+    }
+
+    function patchBtn(id: string, patch: Partial<ButtonItem>) {
+      setButtons(buttons.map((b) => (b.id === id ? { ...b, ...patch } : b)));
     }
 
     return (
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Each button opens a link (website, menu, booking, Instagram, phone tel:, etc.)
+          Link buttons for website, menu, booking, Instagram, phone (<code>tel:</code>), email (
+          <code>mailto:</code>), and more.
         </p>
+        <div className="space-y-1">
+          <Label className="text-xs">Layout</Label>
+          <select
+            className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+            value={layout}
+            onChange={(e) => onUpdate("layout", e.target.value)}
+          >
+            <option value="stack">Stacked (full width)</option>
+            <option value="row">Side by side</option>
+          </select>
+        </div>
         {buttons.map((btn, index) => (
           <div
             key={btn.id}
@@ -780,40 +830,106 @@ function BlockFields({
             <Input
               placeholder="Button label (e.g. Book now)"
               value={btn.label}
-              onChange={(e) =>
-                setButtons(
-                  buttons.map((b) =>
-                    b.id === btn.id ? { ...b, label: e.target.value } : b
-                  )
-                )
-              }
+              onChange={(e) => patchBtn(btn.id, { label: e.target.value })}
             />
             <Input
               placeholder="https://… or tel:+15551234567 or mailto:hello@…"
               value={btn.url}
-              onChange={(e) =>
-                setButtons(
-                  buttons.map((b) =>
-                    b.id === btn.id ? { ...b, url: e.target.value } : b
-                  )
-                )
-              }
+              onChange={(e) => patchBtn(btn.id, { url: e.target.value })}
             />
-            <select
-              className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
-              value={btn.style}
-              onChange={(e) =>
-                setButtons(
-                  buttons.map((b) =>
-                    b.id === btn.id ? { ...b, style: e.target.value } : b
-                  )
-                )
-              }
-            >
-              <option value="primary">Primary</option>
-              <option value="secondary">Secondary</option>
-              <option value="outline">Outline</option>
-            </select>
+            <div className="grid gap-2 sm:grid-cols-2">
+              <div className="space-y-1">
+                <Label className="text-[10px]">Style</Label>
+                <select
+                  className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                  value={btn.style}
+                  onChange={(e) =>
+                    patchBtn(btn.id, { style: e.target.value as ButtonItem["style"] })
+                  }
+                >
+                  <option value="primary">Primary fill</option>
+                  <option value="secondary">Secondary fill</option>
+                  <option value="outline">Outline</option>
+                  <option value="ghost">Ghost / text</option>
+                  <option value="soft">Soft tint</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Icon</Label>
+                <select
+                  className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                  value={btn.icon ?? "none"}
+                  onChange={(e) =>
+                    patchBtn(btn.id, { icon: e.target.value as ButtonItem["icon"] })
+                  }
+                >
+                  <option value="none">None</option>
+                  <option value="link">Link</option>
+                  <option value="phone">Phone</option>
+                  <option value="mail">Email</option>
+                  <option value="map">Map</option>
+                  <option value="star">Star</option>
+                  <option value="cart">Cart</option>
+                  <option value="calendar">Calendar</option>
+                  <option value="play">Play</option>
+                  <option value="external">External</option>
+                </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Size</Label>
+                <select
+                  className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                  value={btn.size ?? "md"}
+                  onChange={(e) =>
+                    patchBtn(btn.id, { size: e.target.value as ButtonItem["size"] })
+                  }
+                >
+                  <option value="sm">Small</option>
+                  <option value="md">Medium</option>
+                  <option value="lg">Large</option>
+                </select>
+              </div>
+              <div className="flex flex-col justify-end gap-2 pb-1">
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={btn.fullWidth !== false}
+                    onChange={(e) => patchBtn(btn.id, { fullWidth: e.target.checked })}
+                  />
+                  Full width
+                </label>
+                <label className="flex items-center gap-2 text-xs">
+                  <input
+                    type="checkbox"
+                    checked={btn.openInNewTab !== false}
+                    onChange={(e) => patchBtn(btn.id, { openInNewTab: e.target.checked })}
+                  />
+                  Open in new tab
+                </label>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {[
+                { label: "Call", url: "tel:+1", icon: "phone" as const },
+                { label: "Email", url: "mailto:", icon: "mail" as const },
+                { label: "Maps", url: "https://maps.google.com/?q=", icon: "map" as const },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  className="rounded border border-border/50 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-foreground"
+                  onClick={() =>
+                    patchBtn(btn.id, {
+                      label: preset.label,
+                      url: preset.url,
+                      icon: preset.icon,
+                    })
+                  }
+                >
+                  {preset.label} preset
+                </button>
+              ))}
+            </div>
           </div>
         ))}
         <Button
@@ -828,6 +944,10 @@ function BlockFields({
                 label: "New link",
                 url: "https://",
                 style: "primary",
+                icon: "link",
+                size: "md",
+                fullWidth: true,
+                openInNewTab: true,
               },
             ])
           }
@@ -835,6 +955,72 @@ function BlockFields({
           <Plus className="mr-1 h-3.5 w-3.5" />
           Add another button
         </Button>
+        {styleControls}
+      </div>
+    );
+  }
+
+  if (block.type === "google_review") {
+    return (
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Headline</Label>
+          <Input
+            value={(data.headline as string) ?? ""}
+            onChange={(e) => onUpdate("headline", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Description</Label>
+          <Textarea
+            value={(data.description as string) ?? ""}
+            onChange={(e) => onUpdate("description", e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Google Review URL</Label>
+          <Input
+            value={(data.reviewUrl as string) ?? ""}
+            onChange={(e) => onUpdate("reviewUrl", e.target.value)}
+            placeholder="https://g.page/r/… or maps.google.com/…"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Button label</Label>
+          <Input
+            value={(data.buttonLabel as string) ?? ""}
+            onChange={(e) => onUpdate("buttonLabel", e.target.value)}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label className="text-xs">Badge / logo style</Label>
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+            {(
+              [
+                { id: "google_g", label: "Google G" },
+                { id: "stars", label: "5 stars" },
+                { id: "badge", label: "Reviews badge" },
+                { id: "pill", label: "Google pill" },
+                { id: "outline", label: "Clean outline" },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onUpdate("badgeStyle", opt.id)}
+                className={cn(
+                  "rounded-lg border px-2 py-2 text-left text-xs transition",
+                  (data.badgeStyle ?? "google_g") === opt.id
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border/50 text-muted-foreground hover:border-primary/40"
+                )}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        {styleControls}
       </div>
     );
   }
@@ -868,11 +1054,6 @@ function BlockFields({
       { key: "buttonLabel", label: "Button label" },
       { key: "successMessage", label: "Success message" },
     ],
-    google_review: [
-      { key: "headline", label: "Headline" },
-      { key: "reviewUrl", label: "Google Review URL" },
-      { key: "buttonLabel", label: "Button label" },
-    ],
     map_location: [
       { key: "headline", label: "Headline" },
       { key: "address", label: "Address" },
@@ -883,7 +1064,14 @@ function BlockFields({
 
   const fields = textFields[block.type];
   if (!fields) {
-    return <p className="text-xs text-muted-foreground">More field options coming for this block type.</p>;
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Content fields for this block type are limited — use Block design below to style it.
+        </p>
+        {styleControls}
+      </div>
+    );
   }
 
   const emailFields = ((data.fields as string[]) ?? ["email"]).filter(Boolean);
@@ -899,98 +1087,115 @@ function BlockFields({
   }
 
   return (
-    <div className="grid gap-3 sm:grid-cols-2">
-      {fields.map((field) => (
-        <div key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
-          <Label className="text-xs">{field.label}</Label>
-          {field.multiline ? (
+    <div className="space-y-3">
+      <div className="grid gap-3 sm:grid-cols-2">
+        {fields.map((field) => (
+          <div key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
+            <Label className="text-xs">{field.label}</Label>
+            {field.multiline ? (
+              <Textarea
+                value={(data[field.key] as string) ?? ""}
+                onChange={(e) => onUpdate(field.key, e.target.value)}
+                className="mt-1"
+              />
+            ) : (
+              <Input
+                value={(data[field.key] as string) ?? ""}
+                onChange={(e) => onUpdate(field.key, e.target.value)}
+                className="mt-1"
+              />
+            )}
+          </div>
+        ))}
+        {block.type === "headline" && (
+          <div className="space-y-1">
+            <Label className="text-xs">Alignment</Label>
+            <select
+              className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+              value={(data.alignment as string) ?? "center"}
+              onChange={(e) => onUpdate("alignment", e.target.value)}
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+        )}
+        {block.type === "email_capture" && (
+          <div className="sm:col-span-2 space-y-3 rounded-lg border border-border/50 p-3">
+            <p className="text-xs font-medium text-muted-foreground">Contact fields</p>
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span>Collect name</span>
+              <input
+                type="checkbox"
+                checked={hasName}
+                onChange={(e) => {
+                  setEmailField("name", e.target.checked);
+                  if (!e.target.checked) onUpdate("requireName", false);
+                }}
+              />
+            </label>
+            {hasName && (
+              <label className="flex items-center justify-between gap-3 text-sm pl-2">
+                <span>Require name</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(data.requireName)}
+                  onChange={(e) => onUpdate("requireName", e.target.checked)}
+                />
+              </label>
+            )}
+            <label className="flex items-center justify-between gap-3 text-sm">
+              <span>Collect phone</span>
+              <input
+                type="checkbox"
+                checked={hasPhone}
+                onChange={(e) => {
+                  setEmailField("phone", e.target.checked);
+                  if (!e.target.checked) onUpdate("requirePhone", false);
+                }}
+              />
+            </label>
+            {hasPhone && (
+              <label className="flex items-center justify-between gap-3 text-sm pl-2">
+                <span>Require phone</span>
+                <input
+                  type="checkbox"
+                  checked={Boolean(data.requirePhone)}
+                  onChange={(e) => onUpdate("requirePhone", e.target.checked)}
+                />
+              </label>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Email is always collected. For coupon pages, put Contact Capture above the Coupon block —
+              the code stays locked until they submit.
+            </p>
+          </div>
+        )}
+        {block.type === "offer_coupon" && (
+          <div className="sm:col-span-2">
+            <label className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3 text-sm">
+              <span>Lock coupon until contact info is submitted</span>
+              <input
+                type="checkbox"
+                checked={data.lockedUntilContact !== false}
+                onChange={(e) => onUpdate("lockedUntilContact", e.target.checked)}
+              />
+            </label>
+          </div>
+        )}
+        {block.type === "product_details" && (
+          <div className="sm:col-span-2">
+            <Label className="text-xs">Features (one per line)</Label>
             <Textarea
-              value={(data[field.key] as string) ?? ""}
-              onChange={(e) => onUpdate(field.key, e.target.value)}
+              value={((data.features as string[]) ?? []).join("\n")}
+              onChange={(e) => onUpdate("features", e.target.value.split("\n").filter(Boolean))}
               className="mt-1"
             />
-          ) : (
-            <Input
-              value={(data[field.key] as string) ?? ""}
-              onChange={(e) => onUpdate(field.key, e.target.value)}
-              className="mt-1"
-            />
-          )}
-        </div>
-      ))}
-      {block.type === "email_capture" && (
-        <div className="sm:col-span-2 space-y-3 rounded-lg border border-border/50 p-3">
-          <p className="text-xs font-medium text-muted-foreground">Contact fields</p>
-          <label className="flex items-center justify-between gap-3 text-sm">
-            <span>Collect name</span>
-            <input
-              type="checkbox"
-              checked={hasName}
-              onChange={(e) => {
-                setEmailField("name", e.target.checked);
-                if (!e.target.checked) onUpdate("requireName", false);
-              }}
-            />
-          </label>
-          {hasName && (
-            <label className="flex items-center justify-between gap-3 text-sm pl-2">
-              <span>Require name</span>
-              <input
-                type="checkbox"
-                checked={Boolean(data.requireName)}
-                onChange={(e) => onUpdate("requireName", e.target.checked)}
-              />
-            </label>
-          )}
-          <label className="flex items-center justify-between gap-3 text-sm">
-            <span>Collect phone</span>
-            <input
-              type="checkbox"
-              checked={hasPhone}
-              onChange={(e) => {
-                setEmailField("phone", e.target.checked);
-                if (!e.target.checked) onUpdate("requirePhone", false);
-              }}
-            />
-          </label>
-          {hasPhone && (
-            <label className="flex items-center justify-between gap-3 text-sm pl-2">
-              <span>Require phone</span>
-              <input
-                type="checkbox"
-                checked={Boolean(data.requirePhone)}
-                onChange={(e) => onUpdate("requirePhone", e.target.checked)}
-              />
-            </label>
-          )}
-          <p className="text-xs text-muted-foreground">
-            Email is always collected. For coupon pages, put Contact Capture above the Coupon block —
-            the code stays locked until they submit.
-          </p>
-        </div>
-      )}
-      {block.type === "offer_coupon" && (
-        <div className="sm:col-span-2">
-          <label className="flex items-center justify-between gap-3 rounded-lg border border-border/50 p-3 text-sm">
-            <span>Lock coupon until contact info is submitted</span>
-            <input
-              type="checkbox"
-              checked={data.lockedUntilContact !== false}
-              onChange={(e) => onUpdate("lockedUntilContact", e.target.checked)}
-            />
-          </label>
-        </div>
-      )}
-      {block.type === "product_details" && (
-        <div className="sm:col-span-2">
-          <Label className="text-xs">Features (one per line)</Label>
-          <Textarea
-            value={((data.features as string[]) ?? []).join("\n")}
-            onChange={(e) => onUpdate("features", e.target.value.split("\n").filter(Boolean))}
-            className="mt-1"
-          />
-        </div>
-      )}
+          </div>
+        )}
+      </div>
+      {styleControls}
     </div>
   );
 }

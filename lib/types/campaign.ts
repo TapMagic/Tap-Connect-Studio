@@ -27,6 +27,20 @@ export interface ContentBlock<T = Record<string, unknown>> {
   enabled: boolean;
   label: string;
   data: T;
+  /** Per-block visual overrides for mini-page design */
+  style?: BlockStyle;
+}
+
+export interface BlockStyle {
+  textColor?: string;
+  backgroundColor?: string;
+  fontSize?: "sm" | "base" | "lg" | "xl" | "2xl" | "3xl";
+  fontWeight?: "normal" | "medium" | "semibold" | "bold";
+  fontFamily?: "sans" | "serif" | "display";
+  align?: "left" | "center" | "right";
+  spacing?: "compact" | "normal" | "spacious";
+  /** Soft card behind the block */
+  card?: boolean;
 }
 
 export interface HeroImageData {
@@ -60,12 +74,26 @@ export interface ButtonItem {
   id: string;
   label: string;
   url: string;
-  style: "primary" | "secondary" | "outline";
-  icon?: string;
+  style: "primary" | "secondary" | "outline" | "ghost" | "soft";
+  icon?:
+    | "none"
+    | "link"
+    | "phone"
+    | "mail"
+    | "map"
+    | "star"
+    | "cart"
+    | "calendar"
+    | "external"
+    | "play";
+  size?: "sm" | "md" | "lg";
+  fullWidth?: boolean;
+  openInNewTab?: boolean;
 }
 
 export interface ButtonGroupData {
   buttons: ButtonItem[];
+  layout?: "stack" | "row";
 }
 
 export interface ProductDetailsData {
@@ -111,6 +139,8 @@ export interface GoogleReviewData {
   description?: string;
   reviewUrl: string;
   buttonLabel: string;
+  /** Visual treatment for the review CTA */
+  badgeStyle?: "pill" | "google_g" | "stars" | "badge" | "outline";
 }
 
 export interface MapLocationData {
