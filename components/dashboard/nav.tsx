@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   BarChart3,
   CreditCard,
+  FolderKanban,
   LayoutDashboard,
   Layers3,
   MapPin,
@@ -22,6 +23,7 @@ const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/workbench", label: "Workbench", icon: PenTool },
   { href: "/dashboard/campaigns", label: "Campaigns", icon: Layers3 },
+  { href: "/dashboard/groups", label: "Groups", icon: FolderKanban },
   { href: "/dashboard/devices", label: "Devices", icon: Nfc },
   { href: "/dashboard/leads", label: "Leads", icon: Users },
   { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },

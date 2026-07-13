@@ -23,6 +23,7 @@ export default async function DeviceDetailPage({ params }: PageProps) {
     where: { id, businessId: business.id },
     include: {
       location: true,
+      campaignGroup: { select: { id: true, title: true, status: true } },
       assignments: {
         orderBy: { createdAt: "desc" },
         take: 10,
@@ -96,18 +97,51 @@ export default async function DeviceDetailPage({ params }: PageProps) {
         </Card>
       </div>
 
+      {device.campaignGroup && (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm">Campaign group (shared schedule)</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <p className="font-semibold">{device.campaignGroup.title}</p>
+              <p className="text-xs text-muted-foreground">
+                This tag follows the group’s day/time rotation ({device.campaignGroup.status})
+              </p>
+            </div>
+            <Link
+              href={`/dashboard/groups/${device.campaignGroup.id}`}
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Open group
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
       <DeviceAssignForm
         deviceId={device.id}
         campaigns={campaigns}
         currentCampaignId={activeAssignment?.campaign?.id}
       />
 
-      <DeviceScheduleGroup
-        deviceId={device.id}
-        deviceLabel={deviceLabel}
-        campaigns={campaigns}
-      />
+      {!device.campaignGroup && (
+        <DeviceScheduleGroup
+          deviceId={device.id}
+          deviceLabel={deviceLabel}
+          campaigns={campaigns}
+        />
+      )}
 
+      {device.campaignGroup && (
+        <p className="text-sm text-muted-foreground">
+          Per-device schedules are skipped while this tag is in a campaign group. Manage timing on the{" "}
+          <Link href={`/dashboard/groups/${device.campaignGroup.id}`} className="text-primary underline">
+            group page
+          </Link>
+          .
+        </p>
+      )}
       <DeviceStatusActions deviceId={device.id} currentStatus={device.status} />
 
       <Card>

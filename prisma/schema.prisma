@@ -183,6 +183,7 @@ model Business {
   locations    Location[]
   devices      DeviceSlot[]
   campaigns    Campaign[]
+  campaignGroups CampaignGroup[]
   assignments  DeviceAssignment[]
   leads        Lead[]
   tapEvents    TapEvent[]
@@ -192,6 +193,7 @@ model Business {
   mediaAssets  MediaAsset[]
   savedTemplates SavedTemplate[]
   scheduleRules ScheduleRule[]
+  groupSlots   CampaignGroupSlot[]
 }
 
 model BusinessUser {
@@ -286,11 +288,14 @@ model DeviceSlot {
   activatedAt          DateTime?
   batchId              String?
   metadata             Json         @default("{}")
+  /** When set, tap resolves via this group's schedule (shared across all table/bar tags) */
+  campaignGroupId      String?
   createdAt            DateTime     @default(now())
   updatedAt            DateTime     @updatedAt
 
   business    Business?          @relation(fields: [businessId], references: [id], onDelete: SetNull)
   location    Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  campaignGroup CampaignGroup?   @relation(fields: [campaignGroupId], references: [id], onDelete: SetNull)
   assignments DeviceAssignment[]
   tapEvents   TapEvent[]
   leads       Lead[]
@@ -315,12 +320,15 @@ model Campaign {
   themeOverrides     Json           @default("{}")
   scheduledStart     DateTime?
   scheduledEnd       DateTime?
+  /** Optional parent group — this campaign is a scheduled “special” in the group */
+  groupId            String?
   createdById        String?
   updatedById        String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   business    Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  group       CampaignGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
   createdBy   User?              @relation("CampaignCreatedBy", fields: [createdById], references: [id])
   updatedBy   User?              @relation("CampaignUpdatedBy", fields: [updatedById], references: [id])
   assignments DeviceAssignment[]
@@ -329,6 +337,51 @@ model Campaign {
   clickEvents ClickEvent[]
   mediaAssets MediaAsset[]
   scheduleRules ScheduleRule[]
+  groupSlots  CampaignGroupSlot[]
+  defaultForGroups CampaignGroup[] @relation("GroupDefaultCampaign")
+}
+
+/** Shared schedule hub — e.g. “Bar Specials”. Many devices tap into one group. */
+model CampaignGroup {
+  id                 String         @id @default(cuid())
+  businessId         String
+  title              String
+  description        String?
+  status             CampaignStatus @default(LIVE)
+  /** Shown when no slot matches the current day/time */
+  defaultCampaignId  String?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  business         Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  defaultCampaign  Campaign?          @relation("GroupDefaultCampaign", fields: [defaultCampaignId], references: [id], onDelete: SetNull)
+  campaigns        Campaign[]
+  slots            CampaignGroupSlot[]
+  devices          DeviceSlot[]
+
+  @@index([businessId])
+}
+
+/** One timed “special” inside a group (Tue after 4 → Wing Night, etc.) */
+model CampaignGroupSlot {
+  id           String   @id @default(cuid())
+  businessId   String
+  groupId      String
+  campaignId   String
+  label        String
+  daysOfWeek   Json     @default("[]") // [1,2,3,4,5] Mon=1
+  startTime    String?  // "16:00"
+  endTime      String?  // "23:59"
+  priority     Int      @default(0)
+  enabled      Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  group    CampaignGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  campaign Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([groupId, enabled])
 }
 
 model DeviceAssignment {

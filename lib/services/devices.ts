@@ -1,14 +1,18 @@
 import { CampaignStatus, DeviceStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { ContentBlock } from "@/lib/types/campaign";
-import { resolveScheduledCampaign } from "@/lib/services/schedule";
+import { resolveGroupCampaign, resolveScheduledCampaign } from "@/lib/services/schedule";
+import { ensureCampaignGroupTables } from "@/lib/db/ensure-group";
 
 export async function getDeviceWithActiveCampaign(deviceCode: string) {
+  await ensureCampaignGroupTables();
+
   const device = await prisma.deviceSlot.findUnique({
     where: { deviceCode },
     include: {
       business: { include: { brandKit: true } },
       location: true,
+      campaignGroup: true,
       assignments: {
         where: { status: "ACTIVE" },
         orderBy: { startsAt: "desc" },
@@ -21,10 +25,44 @@ export async function getDeviceWithActiveCampaign(deviceCode: string) {
   if (!device) return null;
 
   const assignment = device.assignments[0];
-  const scheduled = await resolveScheduledCampaign(device.id);
-  const campaign = scheduled?.campaign ?? assignment?.campaign ?? null;
 
-  return { device, assignment, campaign, scheduleRule: scheduled?.rule ?? null };
+  // 1) Campaign group (shared bar/table schedule) wins when device is linked
+  if (device.campaignGroupId) {
+    const fromGroup = await resolveGroupCampaign(device.campaignGroupId);
+    if (fromGroup?.campaign) {
+      return {
+        device,
+        assignment,
+        campaign: fromGroup.campaign,
+        scheduleRule: null,
+        groupSlot: fromGroup.slot,
+        campaignGroup: fromGroup.group,
+      };
+    }
+  }
+
+  // 2) Per-device schedule rules
+  const scheduled = await resolveScheduledCampaign(device.id);
+  if (scheduled?.campaign) {
+    return {
+      device,
+      assignment,
+      campaign: scheduled.campaign,
+      scheduleRule: scheduled.rule,
+      groupSlot: null,
+      campaignGroup: device.campaignGroup,
+    };
+  }
+
+  // 3) Default assignment
+  return {
+    device,
+    assignment,
+    campaign: assignment?.campaign ?? null,
+    scheduleRule: null,
+    groupSlot: null,
+    campaignGroup: device.campaignGroup,
+  };
 }
 
 export async function logTapEvent(params: {
