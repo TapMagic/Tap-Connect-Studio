@@ -1,6 +1,7 @@
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { LeadsManager } from "@/components/leads/leads-manager";
+import { EmptyState } from "@/components/ui/empty-state";
 import { formatRelativeDate } from "@/lib/utils/app";
 
 export const dynamic = "force-dynamic";
@@ -51,7 +52,16 @@ export default async function LeadsPage() {
           Contacts from tap pages — mark contacted, add notes, export CSV
         </p>
       </div>
-      <LeadsManager leads={rows} />
+      {rows.length === 0 ? (
+        <EmptyState
+          title="No leads yet"
+          description="Add a contact capture block to a live campaign. When someone submits, you'll get an email and they'll get a thank-you."
+          actionHref="/dashboard/workbench"
+          actionLabel="Open Workbench"
+        />
+      ) : (
+        <LeadsManager leads={rows} />
+      )}
     </div>
   );
 }

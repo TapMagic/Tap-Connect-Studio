@@ -52,7 +52,8 @@ export function EmailTemplatePanel({
         <h3 className="font-semibold">Branded email templates</h3>
       </div>
       <p className="text-sm text-muted-foreground">
-        Draft thank-you / coupon emails. Auto-send on lead capture can hook here next.
+        Test custom emails here. New leads already auto-notify owners and send a thank-you when
+        Resend is configured — set your notification email in Brand Kit.
       </p>
 
       {!emailReady && (

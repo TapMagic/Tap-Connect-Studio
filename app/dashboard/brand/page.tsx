@@ -38,6 +38,7 @@ export default async function BrandPage() {
           website: business.website,
           googleReviewUrl: business.googleReviewUrl,
           logoUrl: business.logoUrl,
+          email: business.email,
         }}
         mediaUploadReady={isMediaUploadReady()}
         stockReady={isStockImagesReady()}

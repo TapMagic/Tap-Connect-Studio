@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { Resend } from "resend";
 import { requireBusiness } from "@/lib/auth";
 import { sendEmailPlaceholder } from "@/lib/integrations/placeholders";
+import { sendTransactionalEmail } from "@/lib/services/email";
 
 const schema = z.object({
   to: z.string().email(),
@@ -20,26 +20,18 @@ export async function POST(request: Request) {
 
     await requireBusiness();
     const body = schema.parse(await request.json());
-    const from = process.env.RESEND_FROM_EMAIL?.trim();
-    if (!from) {
-      return NextResponse.json({ error: "RESEND_FROM_EMAIL missing" }, { status: 500 });
-    }
-
-    const resend = new Resend(process.env.RESEND_API_KEY);
-    const { data, error } = await resend.emails.send({
-      from,
+    const result = await sendTransactionalEmail({
       to: body.to,
       subject: body.subject,
       html: body.html,
       text: body.previewText,
     });
 
-    if (error) {
-      console.error("Resend error:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+    if (!result.ok) {
+      return NextResponse.json({ error: result.error }, { status: 500 });
     }
 
-    return NextResponse.json({ ok: true, sent: true, id: data?.id });
+    return NextResponse.json({ ok: true, sent: true, id: result.id });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid email data" }, { status: 400 });

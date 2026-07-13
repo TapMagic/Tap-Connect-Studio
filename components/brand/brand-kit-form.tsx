@@ -26,6 +26,7 @@ interface BrandKitFormProps {
     website: string | null;
     googleReviewUrl: string | null;
     logoUrl: string | null;
+    email: string | null;
   };
   mediaUploadReady?: boolean;
   stockReady?: boolean;
@@ -193,6 +194,18 @@ export function BrandKitForm({
               onChange={(e) => setForm((f) => ({ ...f, defaultDisclaimer: e.target.value }))}
               placeholder="e.g. Must be 21+ with valid ID. Availability varies."
             />
+          </div>
+          <div className="space-y-2">
+            <Label>Notification email</Label>
+            <Input
+              type="email"
+              value={form.email ?? ""}
+              onChange={(e) => setForm((f) => ({ ...f, email: e.target.value || null }))}
+              placeholder="you@yourbusiness.com"
+            />
+            <p className="text-xs text-muted-foreground">
+              New leads are emailed here (and to account owners) when Resend is configured.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Google Review URL</Label>

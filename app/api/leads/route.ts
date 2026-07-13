@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
+import { notifyOnLeadCapture } from "@/lib/services/lead-notify";
 
 const schema = z.object({
   businessId: z.string(),
@@ -47,6 +48,19 @@ export async function POST(request: Request) {
         },
       });
     }
+
+    // Don't block the visitor response on email delivery
+    void notifyOnLeadCapture({
+      businessId: body.businessId,
+      leadId: lead.id,
+      leadEmail: body.email,
+      leadName: body.name,
+      leadPhone: body.phone,
+      campaignId: body.campaignId,
+      deviceSlotId: body.deviceSlotId,
+      message: body.message,
+      type: body.type,
+    });
 
     return NextResponse.json({ success: true, leadId: lead.id });
   } catch (error) {
