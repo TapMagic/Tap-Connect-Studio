@@ -77,8 +77,12 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
   },
   {
     type: "button_group",
-    label: "Buttons",
-    data: { buttons: [{ id: nanoid(6), label: "Learn more", url: "", style: "primary" }] },
+    label: "Link buttons",
+    data: {
+      buttons: [
+        { id: nanoid(6), label: "Visit website", url: "https://", style: "primary" },
+      ],
+    },
   },
   {
     type: "action_block",
@@ -434,30 +438,45 @@ export function CampaignEditor({
               )}
 
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold">Content blocks</h3>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <select
-                      value={addType}
-                      onChange={(e) => setAddType(e.target.value as BlockType)}
-                      className="flex h-9 rounded-lg border border-input bg-background/50 px-2 text-sm"
-                    >
-                      {ADDABLE_BLOCKS.map((b) => (
-                        <option key={b.type} value={b.type}>
-                          {b.label}
-                        </option>
-                      ))}
-                    </select>
-                    <Button type="button" size="sm" variant="outline" onClick={() => addBlock()}>
-                      <Plus className="mr-1 h-4 w-4" />
-                      Add block
-                    </Button>
-                    <Button type="button" size="sm" onClick={() => addBlock("offer_coupon")}>
-                      <Plus className="mr-1 h-4 w-4" />
-                      Add offer
-                    </Button>
+                <div className="rounded-xl border-2 border-dashed border-primary/50 bg-primary/10 p-4 shadow-[0_0_24px_rgba(163,230,53,0.08)]">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-primary">Add a content block</p>
+                      <p className="text-xs text-muted-foreground">
+                        Buttons, links, images, offers, forms — drop them into your mini-page
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <select
+                        value={addType}
+                        onChange={(e) => setAddType(e.target.value as BlockType)}
+                        className="flex h-10 min-w-[160px] rounded-lg border border-primary/30 bg-background px-3 text-sm"
+                      >
+                        {ADDABLE_BLOCKS.map((b) => (
+                          <option key={b.type} value={b.type}>
+                            {b.label}
+                          </option>
+                        ))}
+                      </select>
+                      <Button type="button" size="default" onClick={() => addBlock()}>
+                        <Plus className="mr-1 h-4 w-4" />
+                        Add block
+                      </Button>
+                      <Button
+                        type="button"
+                        size="default"
+                        variant="outline"
+                        className="border-primary/40"
+                        onClick={() => addBlock("button_group")}
+                      >
+                        <Plus className="mr-1 h-4 w-4" />
+                        Add link buttons
+                      </Button>
+                    </div>
                   </div>
                 </div>
+
+                <h3 className="text-sm font-semibold text-muted-foreground">Your blocks</h3>
                 {sortedBlocks.map((block, index) => (
                   <div
                     key={block.id}
@@ -529,6 +548,15 @@ export function CampaignEditor({
                     />
                   </div>
                 ))}
+
+                <button
+                  type="button"
+                  onClick={() => addBlock()}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/15"
+                >
+                  <Plus className="h-5 w-5" />
+                  Add another block
+                </button>
               </div>
             </>
           )}
@@ -708,6 +736,105 @@ function BlockFields({
         <p className="text-[11px] text-muted-foreground">
           Browsers require muted autoplay. Sound stays off until the visitor unmutes on YouTube.
         </p>
+      </div>
+    );
+  }
+
+  if (block.type === "button_group") {
+    const buttons =
+      (data.buttons as {
+        id: string;
+        label: string;
+        url: string;
+        style: string;
+      }[]) ?? [];
+
+    function setButtons(
+      next: { id: string; label: string; url: string; style: string }[]
+    ) {
+      onUpdate("buttons", next);
+    }
+
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Each button opens a link (website, menu, booking, Instagram, phone tel:, etc.)
+        </p>
+        {buttons.map((btn, index) => (
+          <div
+            key={btn.id}
+            className="space-y-2 rounded-lg border border-border/50 bg-background/40 p-3"
+          >
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Button {index + 1}</Label>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="h-7 text-red-400"
+                onClick={() => setButtons(buttons.filter((b) => b.id !== btn.id))}
+              >
+                Remove
+              </Button>
+            </div>
+            <Input
+              placeholder="Button label (e.g. Book now)"
+              value={btn.label}
+              onChange={(e) =>
+                setButtons(
+                  buttons.map((b) =>
+                    b.id === btn.id ? { ...b, label: e.target.value } : b
+                  )
+                )
+              }
+            />
+            <Input
+              placeholder="https://… or tel:+15551234567 or mailto:hello@…"
+              value={btn.url}
+              onChange={(e) =>
+                setButtons(
+                  buttons.map((b) =>
+                    b.id === btn.id ? { ...b, url: e.target.value } : b
+                  )
+                )
+              }
+            />
+            <select
+              className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+              value={btn.style}
+              onChange={(e) =>
+                setButtons(
+                  buttons.map((b) =>
+                    b.id === btn.id ? { ...b, style: e.target.value } : b
+                  )
+                )
+              }
+            >
+              <option value="primary">Primary</option>
+              <option value="secondary">Secondary</option>
+              <option value="outline">Outline</option>
+            </select>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() =>
+            setButtons([
+              ...buttons,
+              {
+                id: nanoid(6),
+                label: "New link",
+                url: "https://",
+                style: "primary",
+              },
+            ])
+          }
+        >
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          Add another button
+        </Button>
       </div>
     );
   }

@@ -12,6 +12,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
 import { OverviewLists } from "@/components/dashboard/overview-lists";
+import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { requireBusiness } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/services/devices";
 import { prisma } from "@/lib/db";
@@ -23,7 +24,15 @@ export default async function DashboardPage() {
   const { business } = await requireBusiness();
   const stats = await getDashboardStats(business.id);
 
-  const [recentCampaigns, recentDevices, statusGroups] = await Promise.all([
+  const [
+    recentCampaigns,
+    recentDevices,
+    statusGroups,
+    brandKit,
+    liveAssigned,
+    totalTaps,
+    campaignCount,
+  ] = await Promise.all([
     prisma.campaign.findMany({
       where: {
         businessId: business.id,
@@ -58,9 +67,52 @@ export default async function DashboardPage() {
       where: { businessId: business.id },
       _count: true,
     }),
+    prisma.brandKit.findUnique({ where: { businessId: business.id } }),
+    prisma.deviceAssignment.count({
+      where: { businessId: business.id, status: "ACTIVE" },
+    }),
+    prisma.tapEvent.count({ where: { businessId: business.id } }),
+    prisma.campaign.count({
+      where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+    }),
   ]);
 
   const byStatus = Object.fromEntries(statusGroups.map((g) => [g.status, g._count]));
+
+  const onboardingSteps = [
+    {
+      id: "brand",
+      label: "Add logo & brand colors",
+      href: "/dashboard/brand",
+      done: Boolean(business.logoUrl || brandKit),
+    },
+    {
+      id: "campaign",
+      label: "Create your first campaign",
+      href: "/dashboard/workbench",
+      done: campaignCount > 0,
+    },
+    {
+      id: "device",
+      label: "Create a device slot",
+      href: "/dashboard/devices",
+      done: recentDevices.length > 0,
+    },
+    {
+      id: "assign",
+      label: "Assign a campaign to a device",
+      href: "/dashboard/devices",
+      done: liveAssigned > 0,
+    },
+    {
+      id: "test",
+      label: "Test the public tap page",
+      href: recentDevices[0]
+        ? `/t/${recentDevices[0].deviceCode}`
+        : "/dashboard/devices",
+      done: totalTaps > 0,
+    },
+  ];
 
   const statCards = [
     { label: "Taps this month", value: stats.tapsThisMonth, icon: Nfc },
@@ -95,6 +147,8 @@ export default async function DashboardPage() {
           </Link>
         </div>
       </div>
+
+      <OnboardingChecklist steps={onboardingSteps} businessName={business.name} />
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         {statCards.map((stat) => {

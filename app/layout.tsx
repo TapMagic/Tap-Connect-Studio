@@ -19,6 +19,10 @@ export const metadata: Metadata = {
   title: "Tap Connect Studio",
   description:
     "Turn physical NFC and QR touchpoints into dynamic branded mini-webpages with measurable conversion data.",
+  icons: {
+    icon: "/tap-connect-logo.png",
+    apple: "/tap-connect-logo.png",
+  },
 };
 
 export default function RootLayout({
