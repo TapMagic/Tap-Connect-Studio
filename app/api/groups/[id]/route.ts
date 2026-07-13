@@ -4,7 +4,9 @@ import { z } from "zod";
 import { CampaignStatus } from "@prisma/client";
 import { requireBusiness } from "@/lib/auth";
 import {
+  attachDevicesByLocation,
   attachDevicesToGroup,
+  buildGroupLivePreview,
   detachDeviceFromGroup,
   getCampaignGroup,
   updateCampaignGroup,
@@ -16,10 +18,14 @@ const patchSchema = z.object({
   description: z.string().max(500).nullable().optional(),
   status: z.nativeEnum(CampaignStatus).optional(),
   defaultCampaignId: z.string().nullable().optional(),
+  timezone: z.string().max(80).nullable().optional(),
+  showUpcomingOnPages: z.boolean().optional(),
+  industryHint: z.string().max(40).nullable().optional(),
 });
 
 const devicesSchema = z.object({
-  deviceIds: z.array(z.string()).min(1),
+  deviceIds: z.array(z.string()).min(1).optional(),
+  locationId: z.string().optional(),
 });
 
 export async function GET(
@@ -31,7 +37,8 @@ export async function GET(
     const { id } = await context.params;
     const group = await getCampaignGroup(business.id, id);
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json({ group });
+    const preview = buildGroupLivePreview(group);
+    return NextResponse.json({ group, preview });
   } catch (error) {
     console.error("Get group error:", error);
     return NextResponse.json({ error: "Failed to load group" }, { status: 500 });
@@ -98,7 +105,7 @@ export async function DELETE(
   }
 }
 
-/** Attach devices: POST body { deviceIds } — also used via /devices subroute */
+/** Attach devices by id list and/or entire location */
 export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> }
@@ -107,6 +114,23 @@ export async function PUT(
     const { business } = await requireBusiness();
     const { id } = await context.params;
     const body = devicesSchema.parse(await request.json());
+
+    if (body.locationId) {
+      const result = await attachDevicesByLocation({
+        businessId: business.id,
+        groupId: id,
+        locationId: body.locationId,
+      });
+      if (!result.group) return NextResponse.json({ error: "Not found" }, { status: 404 });
+      revalidatePath(`/dashboard/groups/${id}`);
+      revalidatePath("/dashboard/devices");
+      return NextResponse.json({ group: result.group, attached: result.attached });
+    }
+
+    if (!body.deviceIds?.length) {
+      return NextResponse.json({ error: "deviceIds or locationId required" }, { status: 400 });
+    }
+
     const group = await attachDevicesToGroup({
       businessId: business.id,
       groupId: id,
@@ -115,7 +139,7 @@ export async function PUT(
     if (!group) return NextResponse.json({ error: "Not found" }, { status: 404 });
     revalidatePath(`/dashboard/groups/${id}`);
     revalidatePath("/dashboard/devices");
-    return NextResponse.json({ group });
+    return NextResponse.json({ group, attached: body.deviceIds.length });
   } catch (error) {
     console.error("Attach devices error:", error);
     return NextResponse.json({ error: "Failed to attach devices" }, { status: 500 });

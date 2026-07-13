@@ -18,7 +18,14 @@ export type BlockType =
   | "disclaimer"
   | "age_gate"
   | "faq"
-  | "action_block";
+  | "action_block"
+  | "upcoming_schedule";
+
+export interface UpcomingScheduleData {
+  headline?: string;
+  /** Filled at render time from the device's campaign group when empty */
+  items?: { label: string; whenLabel: string; scheduleLabel?: string }[];
+}
 
 export interface ContentBlock<T = Record<string, unknown>> {
   id: string;

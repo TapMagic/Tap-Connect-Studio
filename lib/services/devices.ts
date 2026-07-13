@@ -26,7 +26,7 @@ export async function getDeviceWithActiveCampaign(deviceCode: string) {
 
   const assignment = device.assignments[0];
 
-  // 1) Campaign group (shared bar/table schedule) wins when device is linked
+  // 1) Campaign group (shared schedule across devices) wins when device is linked
   if (device.campaignGroupId) {
     const fromGroup = await resolveGroupCampaign(device.campaignGroupId);
     if (fromGroup?.campaign) {

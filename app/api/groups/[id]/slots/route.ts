@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { createGroupSlot } from "@/lib/services/groups";
+import { createGroupSlot, cloneGroupSlot } from "@/lib/services/groups";
 import { prisma } from "@/lib/db";
 import { ensureCampaignGroupTables } from "@/lib/db/ensure-group";
 
@@ -16,6 +16,11 @@ const createSchema = z.object({
   enabled: z.boolean().default(true),
 });
 
+const cloneSchema = z.object({
+  action: z.literal("clone"),
+  slotId: z.string(),
+});
+
 const patchSchema = createSchema.partial().extend({
   id: z.string(),
 });
@@ -25,10 +30,25 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { business } = await requireBusiness();
+    const { user, business } = await requireBusiness();
     const { id: groupId } = await context.params;
-    const body = createSchema.parse(await request.json());
+    const raw = await request.json();
 
+    if (raw?.action === "clone") {
+      const body = cloneSchema.parse(raw);
+      const result = await cloneGroupSlot({
+        businessId: business.id,
+        groupId,
+        slotId: body.slotId,
+        userId: user.id,
+      });
+      if (!result) return NextResponse.json({ error: "Slot not found" }, { status: 404 });
+      revalidatePath(`/dashboard/groups/${groupId}`);
+      revalidatePath("/dashboard/campaigns");
+      return NextResponse.json(result);
+    }
+
+    const body = createSchema.parse(raw);
     const slot = await createGroupSlot({
       businessId: business.id,
       groupId,

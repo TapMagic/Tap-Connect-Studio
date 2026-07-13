@@ -7,13 +7,15 @@ import { FolderKanban, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatScheduleWindow } from "@/lib/utils/schedule-time";
+import { formatScheduleWindow, COMMON_TIMEZONES } from "@/lib/utils/schedule-time";
+import { GROUP_SEED_OPTIONS, type GroupSeedPack } from "@/lib/campaign/group-seeds";
 
 type GroupRow = {
   id: string;
   title: string;
   description: string | null;
   status: string;
+  timezone?: string | null;
   _count: { slots: number; devices: number; campaigns: number };
   slots: {
     id: string;
@@ -27,11 +29,18 @@ type GroupRow = {
   defaultCampaign: { title: string } | null;
 };
 
-export function GroupsList({ groups: initial }: { groups: GroupRow[] }) {
+export function GroupsList({
+  groups: initial,
+  defaultTimezone,
+}: {
+  groups: GroupRow[];
+  defaultTimezone: string;
+}) {
   const router = useRouter();
-  const [groups, setGroups] = useState(initial);
-  const [title, setTitle] = useState("Bar Specials");
-  const [seed, setSeed] = useState(true);
+  const [groups] = useState(initial);
+  const [title, setTitle] = useState("Seasonal offers");
+  const [seedPack, setSeedPack] = useState<GroupSeedPack>("general");
+  const [timezone, setTimezone] = useState(defaultTimezone || "America/New_York");
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,8 +52,9 @@ export function GroupsList({ groups: initial }: { groups: GroupRow[] }) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         title: title.trim() || "Campaign group",
-        description: "Shared schedule for table & bar tags",
-        seedBarExample: seed,
+        description: "Shared schedule for every linked tap device",
+        timezone,
+        seedPack,
       }),
     });
     const data = await res.json();
@@ -62,25 +72,57 @@ export function GroupsList({ groups: initial }: { groups: GroupRow[] }) {
       <div className="rounded-xl border border-border/60 bg-card/30 p-5">
         <h2 className="font-semibold">New campaign group</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          One schedule for every table and bar rail. Waitstaff say “tap for tonight’s special” —
-          the right page shows by day and time.
+          One shared schedule for every tag — salon chairs, venue tables, job-site cards, lobby stands.
+          Guests tap once; the right page shows by day and time in your timezone.
         </p>
-        <div className="mt-4 grid gap-3 sm:grid-cols-[1fr_auto]">
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label className="text-xs">Group name</Label>
-            <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+            <Input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. Front desk offers, Event season, Service promos"
+            />
           </div>
-          <div className="flex items-end">
-            <Button type="button" disabled={creating} onClick={() => void create()}>
-              <Plus className="mr-1 h-4 w-4" />
-              {creating ? "Creating…" : "Create group"}
-            </Button>
+          <div className="space-y-1">
+            <Label className="text-xs">Timezone</Label>
+            <select
+              className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+              value={timezone}
+              onChange={(e) => setTimezone(e.target.value)}
+            >
+              {COMMON_TIMEZONES.map((tz) => (
+                <option key={tz} value={tz}>
+                  {tz}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-xs">Starter pack (optional)</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {GROUP_SEED_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  onClick={() => setSeedPack(opt.id)}
+                  className={`rounded-lg border p-3 text-left text-sm transition ${
+                    seedPack === opt.id
+                      ? "border-primary bg-primary/10"
+                      : "border-border/50 hover:border-primary/40"
+                  }`}
+                >
+                  <p className="font-medium">{opt.label}</p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">{opt.blurb}</p>
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-        <label className="mt-3 flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={seed} onChange={(e) => setSeed(e.target.checked)} />
-          Seed bar example ($1 Wing Night Tue 4pm+, BOGO drafts Mon–Thu lunch, house default)
-        </label>
+        <Button type="button" className="mt-4" disabled={creating} onClick={() => void create()}>
+          <Plus className="mr-1 h-4 w-4" />
+          {creating ? "Creating…" : "Create group"}
+        </Button>
         {error && <p className="mt-2 text-sm text-red-400">{error}</p>}
       </div>
 
@@ -99,8 +141,9 @@ export function GroupsList({ groups: initial }: { groups: GroupRow[] }) {
               <span className="text-[11px] uppercase text-muted-foreground">{g.status}</span>
             </div>
             <p className="mt-2 text-xs text-muted-foreground">
-              {g._count.devices} devices · {g._count.slots} timed specials · {g._count.campaigns}{" "}
-              pages
+              {g._count.devices} devices · {g._count.slots} timed pages · {g._count.campaigns}{" "}
+              campaigns
+              {g.timezone ? ` · ${g.timezone}` : ""}
             </p>
             <ul className="mt-3 space-y-1.5">
               {g.slots.slice(0, 3).map((s) => {
@@ -128,7 +171,7 @@ export function GroupsList({ groups: initial }: { groups: GroupRow[] }) {
 
       {!groups.length && (
         <p className="text-sm text-muted-foreground">
-          No groups yet — create one above to start rotating specials across all tags.
+          No groups yet — create one above to rotate offers across all of your tags.
         </p>
       )}
     </div>

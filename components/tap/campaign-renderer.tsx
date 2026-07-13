@@ -28,6 +28,9 @@ interface CampaignPageProps {
   businessName: string;
   brandKit?: BrandKit | null;
   logoUrl?: string | null;
+  /** Coming-up windows from the device's campaign group */
+  upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
+  showUpcomingStrip?: boolean;
 }
 
 const PAGE_FONT: Record<string, string> = {
@@ -129,11 +132,14 @@ export function CampaignPageRenderer({
   businessName,
   brandKit,
   logoUrl,
+  upcomingItems = [],
+  showUpcomingStrip = false,
 }: CampaignPageProps) {
   const enabledBlocks = [...blocks]
     .filter((b) => b.enabled)
     .sort((a, b) => a.order - b.order);
 
+  const hasUpcomingBlock = enabledBlocks.some((b) => b.type === "upcoming_schedule");
   const hasEmailCapture = enabledBlocks.some((b) => b.type === "email_capture");
   const [contactUnlocked, setContactUnlocked] = useState(false);
   const mark = logoUrl;
@@ -180,11 +186,46 @@ export function CampaignPageRenderer({
             contactUnlocked={contactUnlocked}
             hasEmailCapture={hasEmailCapture}
             onContactCaptured={() => setContactUnlocked(true)}
+            upcomingItems={upcomingItems}
           />
         ))}
+        {showUpcomingStrip && !hasUpcomingBlock && upcomingItems.length > 0 && (
+          <UpcomingStrip
+            headline="Coming up"
+            items={upcomingItems}
+          />
+        )}
         <footer className="px-4 py-10">
           <PoweredByTapTheMagic />
         </footer>
+      </div>
+    </div>
+  );
+}
+
+function UpcomingStrip({
+  headline,
+  items,
+}: {
+  headline: string;
+  items: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
+}) {
+  if (!items.length) return null;
+  return (
+    <div className="tap-block px-4 pt-5">
+      <div className="tap-upcoming">
+        <p className="tap-upcoming-title">{headline}</p>
+        <ul className="tap-upcoming-list">
+          {items.map((item, i) => (
+            <li key={`${item.label}-${i}`}>
+              <span className="tap-upcoming-when">{item.whenLabel}</span>
+              <span className="tap-upcoming-label">{item.label}</span>
+              {item.campaignTitle && item.campaignTitle !== item.label ? (
+                <span className="tap-upcoming-sub">{item.campaignTitle}</span>
+              ) : null}
+            </li>
+          ))}
+        </ul>
       </div>
     </div>
   );
@@ -200,6 +241,7 @@ function BlockRenderer({
   contactUnlocked,
   hasEmailCapture,
   onContactCaptured,
+  upcomingItems = [],
 }: {
   block: ContentBlock;
   campaignId: string;
@@ -210,6 +252,7 @@ function BlockRenderer({
   contactUnlocked: boolean;
   hasEmailCapture: boolean;
   onContactCaptured: () => void;
+  upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
 }) {
   const data = block.data as Record<string, unknown>;
 
@@ -581,6 +624,19 @@ function BlockRenderer({
           <p className="text-xs leading-relaxed opacity-50">{data.text as string}</p>
         </StyledBlockShell>
       );
+
+    case "upcoming_schedule": {
+      const manual = (data.items as { label: string; whenLabel: string; scheduleLabel?: string }[]) ?? [];
+      const items = manual.length ? manual : upcomingItems;
+      return (
+        <StyledBlockShell block={block}>
+          <UpcomingStrip
+            headline={(data.headline as string) || "Coming up"}
+            items={items}
+          />
+        </StyledBlockShell>
+      );
+    }
 
     case "age_gate":
       return (

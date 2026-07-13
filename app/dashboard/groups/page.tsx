@@ -13,15 +13,17 @@ export default async function GroupsPage() {
       <div>
         <h1 className="text-2xl font-bold">Campaign groups</h1>
         <p className="text-muted-foreground">
-          Shared day/time schedules for every table and bar tag — one place to live/pause specials.
+          Shared day/time schedules for every linked tag — salons, venues, job sites, storefronts, and more.
         </p>
       </div>
       <GroupsList
+        defaultTimezone={business.timezone || "America/New_York"}
         groups={groups.map((g) => ({
           id: g.id,
           title: g.title,
           description: g.description,
           status: g.status,
+          timezone: g.timezone,
           _count: g._count,
           slots: g.slots,
           defaultCampaign: g.defaultCampaign,

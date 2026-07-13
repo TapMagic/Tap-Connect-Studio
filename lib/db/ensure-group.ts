@@ -15,6 +15,9 @@ export async function ensureCampaignGroupTables(): Promise<boolean> {
         "title" TEXT NOT NULL,
         "description" TEXT,
         "status" TEXT NOT NULL DEFAULT 'LIVE',
+        "timezone" TEXT,
+        "showUpcomingOnPages" BOOLEAN NOT NULL DEFAULT true,
+        "industryHint" TEXT,
         "defaultCampaignId" TEXT,
         "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
         "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -63,6 +66,26 @@ export async function ensureCampaignGroupTables(): Promise<boolean> {
       `);
     } catch {
       /* exists */
+    }
+
+    try {
+      await prisma.$executeRawUnsafe(`
+        ALTER TABLE "Business" ADD COLUMN IF NOT EXISTS "timezone" TEXT DEFAULT 'America/New_York';
+      `);
+    } catch {
+      /* exists */
+    }
+
+    for (const col of [
+      `ALTER TABLE "CampaignGroup" ADD COLUMN IF NOT EXISTS "timezone" TEXT`,
+      `ALTER TABLE "CampaignGroup" ADD COLUMN IF NOT EXISTS "showUpcomingOnPages" BOOLEAN DEFAULT true`,
+      `ALTER TABLE "CampaignGroup" ADD COLUMN IF NOT EXISTS "industryHint" TEXT`,
+    ]) {
+      try {
+        await prisma.$executeRawUnsafe(col);
+      } catch {
+        /* exists */
+      }
     }
 
     for (const sql of [

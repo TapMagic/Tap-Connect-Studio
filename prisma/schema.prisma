@@ -169,6 +169,8 @@ model Business {
   phone               String?
   email               String?
   googleReviewUrl     String?
+  /** IANA timezone, e.g. America/New_York — used when a group has no timezone set */
+  timezone            String             @default("America/New_York")
   complianceCategory  ComplianceCategory @default(GENERAL)
   subscriptionTier    PlanTier           @default(BASIC)
   activeDeviceLimit   Int                @default(1)
@@ -341,13 +343,19 @@ model Campaign {
   defaultForGroups CampaignGroup[] @relation("GroupDefaultCampaign")
 }
 
-/** Shared schedule hub — e.g. “Bar Specials”. Many devices tap into one group. */
+/** Shared schedule hub — many devices share one rotating set of timed pages. */
 model CampaignGroup {
   id                 String         @id @default(cuid())
   businessId         String
   title              String
   description        String?
   status             CampaignStatus @default(LIVE)
+  /** IANA timezone for day/time matching (falls back to business.timezone) */
+  timezone           String?
+  /** When true, tap pages from this group can show an upcoming schedule strip */
+  showUpcomingOnPages Boolean       @default(true)
+  /** Optional industry hint for starter seeds / copy (hospitality, salon, wedding, …) */
+  industryHint       String?
   /** Shown when no slot matches the current day/time */
   defaultCampaignId  String?
   createdAt          DateTime       @default(now())
@@ -362,7 +370,7 @@ model CampaignGroup {
   @@index([businessId])
 }
 
-/** One timed “special” inside a group (Tue after 4 → Wing Night, etc.) */
+/** One timed page inside a group (weekday offer, weekend promo, after-hours consult, etc.) */
 model CampaignGroupSlot {
   id           String   @id @default(cuid())
   businessId   String

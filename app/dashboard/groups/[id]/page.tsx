@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { GroupManager } from "@/components/campaign/group-manager";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { getCampaignGroup } from "@/lib/services/groups";
+import { buildGroupLivePreview, getCampaignGroup } from "@/lib/services/groups";
 import { buttonVariants } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -18,19 +18,36 @@ export default async function GroupDetailPage({
   const group = await getCampaignGroup(business.id, id);
   if (!group) notFound();
 
-  const [devices, campaigns] = await Promise.all([
+  const preview = buildGroupLivePreview(group);
+
+  const [devices, campaigns, locations] = await Promise.all([
     prisma.deviceSlot.findMany({
       where: {
         businessId: business.id,
         status: { notIn: ["CLOSED", "RETIRED", "ARCHIVED", "REPLACED"] },
       },
-      select: { id: true, nickname: true, deviceCode: true, campaignGroupId: true },
+      select: {
+        id: true,
+        nickname: true,
+        deviceCode: true,
+        campaignGroupId: true,
+        locationId: true,
+      },
       orderBy: { nickname: "asc" },
     }),
     prisma.campaign.findMany({
       where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
       select: { id: true, title: true, status: true },
       orderBy: { title: "asc" },
+    }),
+    prisma.location.findMany({
+      where: { businessId: business.id },
+      select: {
+        id: true,
+        name: true,
+        _count: { select: { devices: true } },
+      },
+      orderBy: { name: "asc" },
     }),
   ]);
 
@@ -57,6 +74,8 @@ export default async function GroupDetailPage({
           title: group.title,
           description: group.description,
           status: group.status,
+          timezone: group.timezone,
+          showUpcomingOnPages: group.showUpcomingOnPages,
           defaultCampaignId: group.defaultCampaignId,
           defaultCampaign: group.defaultCampaign,
           slots: group.slots.map((s) => ({
@@ -66,12 +85,20 @@ export default async function GroupDetailPage({
           campaigns: group.campaigns,
           devices: group.devices,
         }}
+        preview={preview}
+        previewDeviceCode={group.devices[0]?.deviceCode}
         allDevices={devices.map((d) => ({
           id: d.id,
           label: d.nickname ?? d.deviceCode,
           groupId: d.campaignGroupId,
+          locationId: d.locationId,
         }))}
         allCampaigns={campaigns}
+        locations={locations.map((l) => ({
+          id: l.id,
+          name: l.name,
+          deviceCount: l._count.devices,
+        }))}
       />
     </div>
   );

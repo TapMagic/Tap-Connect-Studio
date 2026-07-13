@@ -209,3 +209,49 @@
 .tap-hero-image {
   border-radius: 0 0 1.25rem 1.25rem;
 }
+
+.tap-upcoming {
+  border-radius: 1.15rem;
+  border: 1px solid color-mix(in oklch, var(--tap-text) 12%, transparent);
+  background: color-mix(in oklch, var(--tap-text) 5%, transparent);
+  padding: 1rem 1.15rem;
+}
+
+.tap-upcoming-title {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.65;
+  margin-bottom: 0.75rem;
+}
+
+.tap-upcoming-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.tap-upcoming-list li {
+  display: grid;
+  gap: 0.1rem;
+}
+
+.tap-upcoming-when {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--tap-primary);
+}
+
+.tap-upcoming-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.tap-upcoming-sub {
+  font-size: 0.75rem;
+  opacity: 0.65;
+}

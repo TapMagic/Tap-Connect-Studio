@@ -106,11 +106,24 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   const themeOverrides = (campaign.themeOverrides as Record<string, string>) ?? {};
   const blocks = parseContentBlocks(campaign.contentBlocks);
 
+  let upcomingItems: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[] = [];
+  let showUpcomingStrip = false;
+  if (result.campaignGroup?.id) {
+    const { getUpcomingForGroup } = await import("@/lib/services/groups");
+    upcomingItems = await getUpcomingForGroup(result.campaignGroup.id);
+    showUpcomingStrip = result.campaignGroup.showUpcomingOnPages !== false;
+  }
+
   const theme = {
     primaryColor: themeOverrides.primaryColor ?? brandKit?.primaryColor ?? "#a3e635",
     secondaryColor: themeOverrides.secondaryColor ?? brandKit?.secondaryColor ?? "#0ea5e9",
     backgroundColor: themeOverrides.backgroundColor ?? brandKit?.backgroundColor ?? "#0b0f19",
     textColor: themeOverrides.textColor ?? brandKit?.textColor ?? "#f8fafc",
+    backgroundImage: themeOverrides.backgroundImage,
+    backgroundOverlayOpacity: themeOverrides.backgroundOverlayOpacity
+      ? Number(themeOverrides.backgroundOverlayOpacity)
+      : undefined,
+    fontStyle: themeOverrides.fontStyle,
   };
 
   return (
@@ -123,6 +136,8 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       businessName={device.business?.name ?? "Business"}
       brandKit={brandKit}
       logoUrl={device.business?.logoUrl ?? null}
+      upcomingItems={upcomingItems}
+      showUpcomingStrip={showUpcomingStrip}
     />
   );
 }

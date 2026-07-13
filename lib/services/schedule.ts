@@ -4,6 +4,7 @@ import { ensureCampaignGroupTables } from "@/lib/db/ensure-group";
 import {
   currentTimeHHMM,
   dayOfWeekMon1,
+  getZonedParts,
   timeInRange,
 } from "@/lib/utils/schedule-time";
 
@@ -13,6 +14,10 @@ export {
   formatDaysLabel,
   formatScheduleWindow,
   timeInRange,
+  getZonedParts,
+  listUpcomingWindows,
+  matchSlotAt,
+  COMMON_TIMEZONES,
 } from "@/lib/utils/schedule-time";
 
 const LIVE_STATUSES = ["LIVE", "READY", "SCHEDULED", "DRAFT"];
@@ -21,12 +26,25 @@ function campaignIsPlayable(status: string) {
   return LIVE_STATUSES.includes(status);
 }
 
-/** Resolve from a Campaign Group (shared across table/bar devices). */
+async function resolveGroupTimezone(group: {
+  timezone: string | null;
+  businessId: string;
+}) {
+  if (group.timezone?.trim()) return group.timezone.trim();
+  try {
+    const business = await prisma.business.findUnique({
+      where: { id: group.businessId },
+      select: { timezone: true },
+    });
+    return business?.timezone || "America/New_York";
+  } catch {
+    return "America/New_York";
+  }
+}
+
+/** Resolve from a Campaign Group (shared across devices). */
 export async function resolveGroupCampaign(groupId: string, at = new Date()) {
   await ensureCampaignGroupTables();
-
-  const day = dayOfWeekMon1(at);
-  const time = currentTimeHHMM(at);
 
   let group;
   try {
@@ -49,12 +67,15 @@ export async function resolveGroupCampaign(groupId: string, at = new Date()) {
   if (!group) return null;
   if (["PAUSED", "ARCHIVED", "CLOSED"].includes(group.status)) return null;
 
+  const tz = await resolveGroupTimezone(group);
+  const { dayMon1, hhmm } = getZonedParts(at, tz);
+
   for (const slot of group.slots) {
     const days = Array.isArray(slot.daysOfWeek) ? (slot.daysOfWeek as number[]) : [];
-    if (days.length && !days.includes(day)) continue;
-    if (!timeInRange(time, slot.startTime, slot.endTime)) continue;
+    if (days.length && !days.includes(dayMon1)) continue;
+    if (!timeInRange(hhmm, slot.startTime, slot.endTime)) continue;
     if (!slot.campaign || !campaignIsPlayable(slot.campaign.status)) continue;
-    return { slot, campaign: slot.campaign, group, via: "slot" as const };
+    return { slot, campaign: slot.campaign, group, via: "slot" as const, timezone: tz };
   }
 
   if (group.defaultCampaign && campaignIsPlayable(group.defaultCampaign.status)) {
@@ -63,6 +84,7 @@ export async function resolveGroupCampaign(groupId: string, at = new Date()) {
       campaign: group.defaultCampaign,
       group,
       via: "default" as const,
+      timezone: tz,
     };
   }
 

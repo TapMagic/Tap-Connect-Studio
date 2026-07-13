@@ -119,6 +119,11 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
     },
   },
   {
+    type: "upcoming_schedule",
+    label: "Coming up",
+    data: { headline: "Coming up" },
+  },
+  {
     type: "map_location",
     label: "Map / directions",
     data: { headline: "Find us", address: "", buttonLabel: "Get directions" },

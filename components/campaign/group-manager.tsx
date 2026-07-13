@@ -3,11 +3,11 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Calendar, Pause, Play, Plus, Trash2 } from "lucide-react";
+import { Calendar, Copy, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { formatScheduleWindow } from "@/lib/utils/schedule-time";
+import { COMMON_TIMEZONES, formatScheduleWindow } from "@/lib/utils/schedule-time";
 import { cn } from "@/lib/utils";
 
 const DAY_OPTIONS = [
@@ -31,11 +31,33 @@ type Slot = {
   campaign: { id: string; title: string; status: string; campaignType?: string };
 };
 
+type Preview = {
+  timezone: string;
+  localClock: string;
+  paused: boolean;
+  live: {
+    via: "slot" | "default";
+    slotId: string | null;
+    label: string;
+    campaignId: string;
+    campaignTitle: string;
+  } | null;
+  upcoming: {
+    label: string;
+    whenLabel: string;
+    scheduleLabel: string;
+    isLive: boolean;
+    campaignTitle?: string;
+  }[];
+};
+
 type GroupDetail = {
   id: string;
   title: string;
   description: string | null;
   status: string;
+  timezone: string | null;
+  showUpcomingOnPages: boolean;
   defaultCampaignId: string | null;
   defaultCampaign: { id: string; title: string; status: string } | null;
   slots: Slot[];
@@ -46,20 +68,29 @@ type GroupDetail = {
     deviceCode: string;
     status: string;
     locationNote: string | null;
+    locationId: string | null;
+    location?: { id: string; name: string } | null;
   }[];
 };
 
 export function GroupManager({
   group: initial,
+  preview: initialPreview,
   allDevices,
   allCampaigns,
+  locations,
+  previewDeviceCode,
 }: {
   group: GroupDetail;
-  allDevices: { id: string; label: string; groupId: string | null }[];
+  preview: Preview;
+  allDevices: { id: string; label: string; groupId: string | null; locationId: string | null }[];
   allCampaigns: { id: string; title: string; status: string }[];
+  locations: { id: string; name: string; deviceCount: number }[];
+  previewDeviceCode?: string | null;
 }) {
   const router = useRouter();
   const [group, setGroup] = useState(initial);
+  const [preview, setPreview] = useState(initialPreview);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -67,12 +98,13 @@ export function GroupManager({
     label: "",
     campaignId: allCampaigns[0]?.id ?? "",
     daysOfWeek: [1, 2, 3, 4, 5] as number[],
-    startTime: "16:00",
-    endTime: "23:59",
+    startTime: "09:00",
+    endTime: "17:00",
     priority: 5,
   });
 
   const [attachIds, setAttachIds] = useState<string[]>([]);
+  const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
 
   const availableDevices = useMemo(
     () => allDevices.filter((d) => d.groupId !== group.id),
@@ -83,24 +115,29 @@ export function GroupManager({
     const res = await fetch(`/api/groups/${group.id}`);
     const data = await res.json();
     if (data.group) setGroup(data.group);
+    if (data.preview) setPreview(data.preview);
     router.refresh();
   }
 
-  async function toggleGroupLive() {
+  async function patchGroup(body: Record<string, unknown>) {
     setBusy(true);
-    const next = group.status === "PAUSED" ? "LIVE" : "PAUSED";
     const res = await fetch(`/api/groups/${group.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status: next }),
+      body: JSON.stringify(body),
     });
     setBusy(false);
     if (!res.ok) {
       setMessage("Could not update group");
       return;
     }
-    setMessage(next === "LIVE" ? "Group is live" : "Group paused — taps show nothing from this group");
     await refresh();
+  }
+
+  async function toggleGroupLive() {
+    const next = group.status === "PAUSED" ? "LIVE" : "PAUSED";
+    await patchGroup({ status: next });
+    setMessage(next === "LIVE" ? "Group is live" : "Group paused — linked tags won’t serve this schedule");
   }
 
   async function toggleSlot(slot: Slot) {
@@ -126,6 +163,22 @@ export function GroupManager({
     await refresh();
   }
 
+  async function cloneSlot(slotId: string) {
+    setBusy(true);
+    const res = await fetch(`/api/groups/${group.id}/slots`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "clone", slotId }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setMessage("Could not clone");
+      return;
+    }
+    setMessage("Cloned as paused — edit the copy, then turn Live when ready");
+    await refresh();
+  }
+
   async function addSlot() {
     if (!slotForm.campaignId || !slotForm.label.trim()) return;
     setBusy(true);
@@ -140,7 +193,7 @@ export function GroupManager({
       return;
     }
     setSlotForm((f) => ({ ...f, label: "" }));
-    setMessage("Special added to schedule");
+    setMessage("Timed page added");
     await refresh();
   }
 
@@ -165,7 +218,25 @@ export function GroupManager({
       return;
     }
     setAttachIds([]);
-    setMessage("Devices now tap into this group’s schedule");
+    setMessage("Devices now follow this group’s schedule");
+    await refresh();
+  }
+
+  async function attachLocation() {
+    if (!locationId) return;
+    setBusy(true);
+    const res = await fetch(`/api/groups/${group.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ locationId }),
+    });
+    const data = await res.json();
+    setBusy(false);
+    if (!res.ok) {
+      setMessage("Could not attach location");
+      return;
+    }
+    setMessage(`Attached ${data.attached ?? 0} device(s) from that location`);
     await refresh();
   }
 
@@ -176,56 +247,113 @@ export function GroupManager({
     await refresh();
   }
 
-  async function setDefault(campaignId: string | null) {
-    setBusy(true);
-    await fetch(`/api/groups/${group.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ defaultCampaignId: campaignId }),
-    });
-    setBusy(false);
-    await refresh();
-  }
-
-  const groupLive = group.status === "LIVE" || group.status === "READY" || group.status === "SCHEDULED";
+  const groupLive = ["LIVE", "READY", "SCHEDULED"].includes(group.status);
+  const previewHref = previewDeviceCode ? `/t/${previewDeviceCode}?public=1` : null;
 
   return (
     <div className="space-y-8">
       {message && <p className="text-sm text-primary">{message}</p>}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border/60 bg-card/40 p-4">
-        <div>
-          <p className="text-xs uppercase tracking-wide text-muted-foreground">Group status</p>
-          <p className="text-lg font-semibold">
-            {groupLive ? "Live — schedule is active" : "Paused"}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            All linked table/bar tags share this schedule. Highest priority matching window wins.
-          </p>
+      <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p className="text-xs uppercase tracking-wide text-muted-foreground">Live right now</p>
+            {preview.paused ? (
+              <p className="mt-1 text-lg font-semibold">Group paused</p>
+            ) : preview.live ? (
+              <>
+                <p className="mt-1 text-lg font-semibold">{preview.live.campaignTitle}</p>
+                <p className="text-sm text-muted-foreground">
+                  {preview.live.label} · via {preview.live.via} · {preview.localClock} (
+                  {preview.timezone})
+                </p>
+              </>
+            ) : (
+              <p className="mt-1 text-lg font-semibold text-muted-foreground">
+                Nothing matching — set a default page or enable a slot
+              </p>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {preview.live && (
+              <Link href={`/dashboard/campaigns/${preview.live.campaignId}`}>
+                <Button type="button" size="sm" variant="outline">
+                  Edit live page
+                </Button>
+              </Link>
+            )}
+            {previewHref && (
+              <a href={previewHref} target="_blank" rel="noopener noreferrer">
+                <Button type="button" size="sm" variant="outline">
+                  Preview tap
+                </Button>
+              </a>
+            )}
+            <Button
+              type="button"
+              size="sm"
+              variant={groupLive ? "outline" : "default"}
+              disabled={busy}
+              onClick={() => void toggleGroupLive()}
+            >
+              {groupLive ? (
+                <>
+                  <Pause className="mr-1 h-3.5 w-3.5" /> Pause group
+                </>
+              ) : (
+                <>
+                  <Play className="mr-1 h-3.5 w-3.5" /> Go live
+                </>
+              )}
+            </Button>
+          </div>
         </div>
-        <Button
-          type="button"
-          variant={groupLive ? "outline" : "default"}
-          disabled={busy}
-          onClick={() => void toggleGroupLive()}
-        >
-          {groupLive ? (
-            <>
-              <Pause className="mr-1.5 h-4 w-4" /> Pause group
-            </>
-          ) : (
-            <>
-              <Play className="mr-1.5 h-4 w-4" /> Go live
-            </>
-          )}
-        </Button>
+        {preview.upcoming.filter((u) => !u.isLive).length > 0 && (
+          <ul className="mt-3 space-y-1 border-t border-border/40 pt-3 text-xs text-muted-foreground">
+            {preview.upcoming
+              .filter((u) => !u.isLive)
+              .slice(0, 4)
+              .map((u, i) => (
+                <li key={`${u.label}-${i}`}>
+                  <span className="text-primary">{u.whenLabel}</span> — {u.label}
+                </li>
+              ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="grid gap-3 rounded-xl border border-border/60 p-4 sm:grid-cols-2">
+        <div className="space-y-1">
+          <Label className="text-xs">Group timezone</Label>
+          <select
+            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+            value={group.timezone ?? preview.timezone}
+            disabled={busy}
+            onChange={(e) => void patchGroup({ timezone: e.target.value })}
+          >
+            {COMMON_TIMEZONES.map((tz) => (
+              <option key={tz} value={tz}>
+                {tz}
+              </option>
+            ))}
+          </select>
+        </div>
+        <label className="flex items-end gap-2 pb-1 text-sm">
+          <input
+            type="checkbox"
+            checked={group.showUpcomingOnPages !== false}
+            disabled={busy}
+            onChange={(e) => void patchGroup({ showUpcomingOnPages: e.target.checked })}
+          />
+          Show “Coming up” strip on public tap pages
+        </label>
       </div>
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Scheduled specials</h2>
+          <h2 className="text-lg font-semibold">Timed pages</h2>
           <p className="text-xs text-muted-foreground">
-            Default off-hours:{" "}
+            Default:{" "}
             {group.defaultCampaign ? (
               <Link href={`/dashboard/campaigns/${group.defaultCampaign.id}`} className="text-primary">
                 {group.defaultCampaign.title}
@@ -241,19 +369,27 @@ export function GroupManager({
             const days = Array.isArray(slot.daysOfWeek) ? (slot.daysOfWeek as number[]) : [];
             const schedule = formatScheduleWindow(days, slot.startTime, slot.endTime);
             const campaignLive = !["PAUSED", "ARCHIVED", "CLOSED"].includes(slot.campaign.status);
+            const isLiveNow = preview.live?.slotId === slot.id;
             return (
               <div
                 key={slot.id}
                 className={cn(
                   "rounded-xl border p-4 transition",
-                  slot.enabled && campaignLive
-                    ? "border-primary/30 bg-primary/5"
-                    : "border-border/50 bg-muted/20 opacity-80"
+                  isLiveNow
+                    ? "border-primary bg-primary/10"
+                    : slot.enabled && campaignLive
+                      ? "border-primary/30 bg-primary/5"
+                      : "border-border/50 bg-muted/20 opacity-80"
                 )}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div>
-                    <p className="font-semibold">{slot.label}</p>
+                    <p className="font-semibold">
+                      {slot.label}
+                      {isLiveNow ? (
+                        <span className="ml-2 text-[10px] uppercase text-primary">Now</span>
+                      ) : null}
+                    </p>
                     <Link
                       href={`/dashboard/campaigns/${slot.campaign.id}`}
                       className="text-sm text-primary hover:underline"
@@ -289,6 +425,17 @@ export function GroupManager({
                     size="sm"
                     variant="ghost"
                     disabled={busy}
+                    onClick={() => void cloneSlot(slot.id)}
+                    title="Clone page + schedule"
+                  >
+                    <Copy className="mr-1 h-3.5 w-3.5" />
+                    Clone
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    disabled={busy}
                     onClick={() => void toggleCampaign(slot.campaign.id, slot.campaign.status)}
                   >
                     {campaignLive ? "Pause page" : "Resume page"}
@@ -308,32 +455,17 @@ export function GroupManager({
             );
           })}
         </div>
-
-        {group.defaultCampaign && (
-          <div className="rounded-xl border border-dashed border-border/60 p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Default (no schedule match)
-            </p>
-            <p className="mt-1 font-medium">{group.defaultCampaign.title}</p>
-            <Link
-              href={`/dashboard/campaigns/${group.defaultCampaign.id}`}
-              className="text-sm text-primary"
-            >
-              Edit welcome page
-            </Link>
-          </div>
-        )}
       </section>
 
       <section className="space-y-3 rounded-xl border border-border/60 p-4">
-        <h3 className="font-semibold">Add a timed special</h3>
+        <h3 className="font-semibold">Add a timed page</h3>
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1">
             <Label className="text-xs">Label</Label>
             <Input
               value={slotForm.label}
               onChange={(e) => setSlotForm((f) => ({ ...f, label: e.target.value }))}
-              placeholder="e.g. Thu Trivia Night"
+              placeholder="e.g. Color special, Weekend consult, Spring cleanup"
             />
           </div>
           <div className="space-y-1">
@@ -403,7 +535,7 @@ export function GroupManager({
           <select
             className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
             value={group.defaultCampaignId ?? ""}
-            onChange={(e) => void setDefault(e.target.value || null)}
+            onChange={(e) => void patchGroup({ defaultCampaignId: e.target.value || null })}
           >
             <option value="">No default page</option>
             {allCampaigns.map((c) => (
@@ -418,7 +550,7 @@ export function GroupManager({
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Devices on this group</h2>
         <p className="text-sm text-muted-foreground">
-          Link every table tent and bar rail tag here once — they all follow the same day/time rotation.
+          Link every tag once — front desk, chairs, tables, yard signs — they all follow this schedule.
         </p>
         <ul className="space-y-2">
           {group.devices.map((d) => (
@@ -428,7 +560,10 @@ export function GroupManager({
             >
               <span>
                 {d.nickname ?? d.deviceCode}
-                <span className="ml-2 text-xs text-muted-foreground">{d.deviceCode}</span>
+                <span className="ml-2 text-xs text-muted-foreground">
+                  {d.deviceCode}
+                  {d.location?.name ? ` · ${d.location.name}` : ""}
+                </span>
               </span>
               <Button type="button" size="sm" variant="ghost" onClick={() => void detach(d.id)}>
                 Remove
@@ -439,9 +574,37 @@ export function GroupManager({
             <p className="text-sm text-muted-foreground">No devices linked yet.</p>
           )}
         </ul>
+
+        {locations.length > 0 && (
+          <div className="rounded-lg border border-border/50 p-3">
+            <Label className="text-xs">Attach entire location</Label>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <select
+                className="h-9 min-w-[12rem] rounded-lg border border-input bg-background px-2 text-sm"
+                value={locationId}
+                onChange={(e) => setLocationId(e.target.value)}
+              >
+                {locations.map((loc) => (
+                  <option key={loc.id} value={loc.id}>
+                    {loc.name} ({loc.deviceCount} devices)
+                  </option>
+                ))}
+              </select>
+              <Button
+                type="button"
+                size="sm"
+                disabled={!locationId || busy}
+                onClick={() => void attachLocation()}
+              >
+                Attach all at location
+              </Button>
+            </div>
+          </div>
+        )}
+
         {availableDevices.length > 0 && (
           <div className="rounded-lg border border-border/50 p-3">
-            <Label className="text-xs">Attach devices</Label>
+            <Label className="text-xs">Or pick devices</Label>
             <div className="mt-2 flex flex-wrap gap-2">
               {availableDevices.map((d) => {
                 const on = attachIds.includes(d.id);
