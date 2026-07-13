@@ -1,21 +1,65 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import type { ButtonItem } from "@/lib/types/campaign";
 import type { SocialPlatform } from "@/lib/brand/contact-profile";
 
 const size = 18;
 
+/** Official-ish brand colors for social platforms */
+export const SOCIAL_BRAND: Record<
+  string,
+  { bg: string; fg: string; label: string }
+> = {
+  instagram: {
+    bg: "linear-gradient(135deg, #f58529 0%, #dd2a7b 45%, #8134af 75%, #515bd4 100%)",
+    fg: "#ffffff",
+    label: "Instagram",
+  },
+  facebook: { bg: "#1877F2", fg: "#ffffff", label: "Facebook" },
+  tiktok: { bg: "#010101", fg: "#ffffff", label: "TikTok" },
+  youtube: { bg: "#FF0000", fg: "#ffffff", label: "YouTube" },
+  linkedin: { bg: "#0A66C2", fg: "#ffffff", label: "LinkedIn" },
+  x: { bg: "#000000", fg: "#ffffff", label: "X" },
+  twitter: { bg: "#000000", fg: "#ffffff", label: "X" },
+  whatsapp: { bg: "#25D366", fg: "#ffffff", label: "WhatsApp" },
+  threads: { bg: "#000000", fg: "#ffffff", label: "Threads" },
+  snapchat: { bg: "#FFFC00", fg: "#000000", label: "Snapchat" },
+  pinterest: { bg: "#E60023", fg: "#ffffff", label: "Pinterest" },
+  yelp: { bg: "#FF1A1A", fg: "#ffffff", label: "Yelp" },
+  spotify: { bg: "#1DB954", fg: "#ffffff", label: "Spotify" },
+  phone: { bg: "#34C759", fg: "#ffffff", label: "Call" },
+  mail: { bg: "#5AC8FA", fg: "#0b0f19", label: "Email" },
+  email: { bg: "#5AC8FA", fg: "#0b0f19", label: "Email" },
+  map: { bg: "#FF9500", fg: "#ffffff", label: "Maps" },
+  apple_maps: { bg: "#FF9500", fg: "#ffffff", label: "Maps" },
+};
+
+export function socialBrandStyle(platform?: string | null): CSSProperties | undefined {
+  if (!platform || platform === "none") return undefined;
+  const key = platform.toLowerCase().replace(/\s+/g, "_");
+  const brand = SOCIAL_BRAND[key];
+  if (!brand) return undefined;
+  return {
+    background: brand.bg,
+    color: brand.fg,
+    borderColor: "transparent",
+  };
+}
+
 export function SocialGlyph({
   platform,
   className = "",
+  sizePx = size,
 }: {
   platform: string;
   className?: string;
+  sizePx?: number;
 }) {
   const p = platform.toLowerCase().replace(/\s+/g, "_") as SocialPlatform | string;
   const common = {
-    width: size,
-    height: size,
+    width: sizePx,
+    height: sizePx,
     viewBox: "0 0 24 24",
     fill: "currentColor",
     className,

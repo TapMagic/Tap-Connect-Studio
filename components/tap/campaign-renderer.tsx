@@ -9,11 +9,10 @@ import { CampaignLeadForm } from "@/components/tap/lead-form";
 import { TapActionButton } from "@/components/tap/action-button";
 import { RichTapButton } from "@/components/tap/rich-button";
 import {
-  SaveContactButton,
-  SharePageButton,
+  ContactCardSurface,
   SocialIconRow,
 } from "@/components/tap/save-contact";
-import { SocialGlyph } from "@/components/tap/social-icons";
+import { SocialGlyph, socialBrandStyle } from "@/components/tap/social-icons";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import {
   parseBrandContactProfile,
@@ -546,7 +545,6 @@ function BlockRenderer({
       const links = (data.links as { platform: string; url: string; label?: string }[]) ?? [];
       const layout = (data.layout as string) ?? "row";
       if (!links.length) {
-        // Fall back to brand profile socials
         return (
           <StyledBlockShell block={block} className="px-4 pt-4">
             {data.headline ? (
@@ -567,7 +565,8 @@ function BlockRenderer({
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="tap-btn tap-btn-outline w-full"
+                  className="tap-btn tap-btn-social w-full"
+                  style={socialBrandStyle(link.platform)}
                 >
                   <SocialGlyph platform={link.platform} />
                   {link.label || link.platform}
@@ -578,9 +577,10 @@ function BlockRenderer({
                   href={link.url}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="tap-social-chip"
+                  className="tap-social-chip tap-social-brand"
                   aria-label={link.label || link.platform}
                   title={link.label || link.platform}
+                  style={socialBrandStyle(link.platform)}
                 >
                   <SocialGlyph platform={link.platform} />
                 </a>
@@ -690,11 +690,13 @@ function BlockRenderer({
           };
       return (
         <StyledBlockShell block={block} className="px-4 pt-4">
-          <SaveContactButton
+          <ContactCardSurface
             profile={profile}
             logoUrl={logoUrl}
-            buttonLabel={(data.buttonLabel as string) || "Save to contacts"}
-            className="tap-btn tap-btn-primary w-full"
+            businessName={businessName}
+            buttonLabel={(data.buttonLabel as string) || "Add to contacts"}
+            showShare={false}
+            showSocials={Boolean(profile.socials && Object.values(profile.socials).some(Boolean))}
             onSaved={() => {
               void fetch("/api/tap/click", {
                 method: "POST",
@@ -714,55 +716,31 @@ function BlockRenderer({
     }
 
     case "digital_card": {
-      const showSave = data.showSaveContact !== false;
-      const showShare = data.showShare !== false;
-      const showSocials = data.showSocials !== false;
-      const name =
-        contactProfile.displayName || contactProfile.organization || businessName;
       return (
         <StyledBlockShell block={block} className="px-4 pt-5">
-          <div className="tap-digital-card">
-            {logoUrl ? (
-              <img src={logoUrl} alt="" className="tap-digital-card-logo" />
-            ) : null}
-            <p className="tap-digital-card-name">{name}</p>
-            {contactProfile.jobTitle ? (
-              <p className="tap-digital-card-title">{contactProfile.jobTitle}</p>
-            ) : null}
-            {contactProfile.organization && contactProfile.organization !== name ? (
-              <p className="tap-digital-card-org">{contactProfile.organization}</p>
-            ) : null}
-            {data.headline ? (
-              <p className="mt-2 text-sm opacity-80">{data.headline as string}</p>
-            ) : null}
-            {showSocials ? <SocialIconRow socials={contactProfile.socials} /> : null}
-            <div className="tap-digital-card-actions">
-              {showSave ? (
-                <SaveContactButton
-                  profile={contactProfile}
-                  logoUrl={logoUrl}
-                  buttonLabel={(data.buttonLabel as string) || "Save contact"}
-                  className="tap-btn tap-btn-primary w-full"
-                  onSaved={() => {
-                    void fetch("/api/tap/click", {
-                      method: "POST",
-                      headers: { "Content-Type": "application/json" },
-                      body: JSON.stringify({
-                        eventType: "vcard_download",
-                        campaignId,
-                        deviceSlotId,
-                        businessId,
-                        blockId: block.id,
-                      }),
-                    });
-                  }}
-                />
-              ) : null}
-              {showShare ? (
-                <SharePageButton title={name} text={`Connect with ${name}`} />
-              ) : null}
-            </div>
-          </div>
+          <ContactCardSurface
+            profile={contactProfile}
+            logoUrl={logoUrl}
+            businessName={businessName}
+            headline={data.headline as string | undefined}
+            buttonLabel={(data.buttonLabel as string) || "Add to contacts"}
+            showSave={data.showSaveContact !== false}
+            showShare={data.showShare !== false}
+            showSocials={data.showSocials !== false}
+            onSaved={() => {
+              void fetch("/api/tap/click", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  eventType: "vcard_download",
+                  campaignId,
+                  deviceSlotId,
+                  businessId,
+                  blockId: block.id,
+                }),
+              });
+            }}
+          />
         </StyledBlockShell>
       );
     }

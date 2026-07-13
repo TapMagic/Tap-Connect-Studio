@@ -1,9 +1,12 @@
 "use client";
 
+import type { CSSProperties } from "react";
+
 interface TapActionButtonProps {
   children: React.ReactNode;
   href?: string;
   className?: string;
+  style?: CSSProperties;
   eventType: string;
   campaignId: string;
   deviceSlotId: string;
@@ -17,6 +20,7 @@ export function TapActionButton({
   children,
   href,
   className,
+  style,
   eventType,
   campaignId,
   deviceSlotId,
@@ -44,6 +48,7 @@ export function TapActionButton({
       <a
         href={href}
         className={className}
+        style={style}
         onClick={() => void logClick()}
         target={targetBlank ? "_blank" : undefined}
         rel={targetBlank ? "noopener noreferrer" : undefined}
@@ -55,7 +60,13 @@ export function TapActionButton({
   }
 
   return (
-    <button type="button" className={className} onClick={() => void logClick()} aria-label={ariaLabel}>
+    <button
+      type="button"
+      className={className}
+      style={style}
+      onClick={() => void logClick()}
+      aria-label={ariaLabel}
+    >
       {children}
     </button>
   );

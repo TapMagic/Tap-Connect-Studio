@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ImageIcon, Link2, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,7 +31,16 @@ type LibraryAsset = {
   source: string;
 };
 
-const MAX_INLINE_BYTES = 700_000;
+const MAX_INLINE_BYTES = 900_000;
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = () => reject(new Error("Could not read file"));
+    reader.readAsDataURL(file);
+  });
+}
 
 export function MediaPicker({
   value = "",
@@ -42,13 +51,13 @@ export function MediaPicker({
   campaignId,
 }: MediaPickerProps) {
   const fileRef = useRef<HTMLInputElement>(null);
-  const pasteRef = useRef<HTMLDivElement>(null);
   const [stockQuery, setStockQuery] = useState("");
   const [stockResults, setStockResults] = useState<StockHit[]>([]);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [library, setLibrary] = useState<LibraryAsset[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+  const [dragOver, setDragOver] = useState(false);
 
   useEffect(() => {
     fetch("/api/media")
@@ -61,77 +70,101 @@ export function MediaPicker({
     if (!stockQuery.trim()) return;
     setLoading("stock");
     setMessage(null);
-    const res = await fetch(`/api/stock/search?q=${encodeURIComponent(stockQuery.trim())}`);
-    const data = await res.json();
-    setLoading(null);
-    if (!res.ok) {
-      setMessage(data.message ?? data.error ?? "Stock search failed");
-      return;
+    try {
+      const res = await fetch(`/api/stock/search?q=${encodeURIComponent(stockQuery.trim())}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.message ?? data.error ?? "Stock search failed");
+        return;
+      }
+      setStockResults(data.results ?? []);
+      setGalleryOpen(true);
+      if (!(data.results ?? []).length) setMessage("No results — try another search.");
+    } catch {
+      setMessage("Stock search failed");
+    } finally {
+      setLoading(null);
     }
-    setStockResults(data.results ?? []);
-    setGalleryOpen(true);
-    if (!(data.results ?? []).length) setMessage("No results — try another search.");
   }
 
   function closeGallery() {
     setGalleryOpen(false);
     setStockResults([]);
-    setMessage(null);
+  }
+
+  const applyUrl = useCallback(
+    (url: string, note?: string) => {
+      onChange?.(url);
+      if (note) setMessage(note);
+    },
+    [onChange]
+  );
+
+  async function embedAsDataUrl(file: File) {
+    if (file.size > MAX_INLINE_BYTES) {
+      setMessage(
+        `Image is ${(file.size / 1024 / 1024).toFixed(1)}MB — too large to embed (max ~900KB). Configure R2 for larger files, or compress the image.`
+      );
+      return false;
+    }
+    const dataUrl = await readFileAsDataUrl(file);
+    applyUrl(dataUrl, "Image added");
+    return true;
   }
 
   async function uploadViaR2(file: File) {
-    setLoading("upload");
-    setMessage(null);
     const form = new FormData();
     form.set("file", file);
     if (campaignId) form.set("campaignId", campaignId);
     const res = await fetch("/api/upload", { method: "POST", body: form });
-    const data = await res.json();
-    setLoading(null);
+    const data = await res.json().catch(() => ({}));
     if (!res.ok || !data.url) {
-      setMessage(data.error ?? "Upload failed");
-      return;
+      throw new Error(data.error ?? "Upload failed");
     }
-    onChange?.(data.url);
+    applyUrl(data.url, "Uploaded");
     setLibrary((prev) => [
       { id: data.asset?.id ?? data.url, url: data.url, filename: file.name, source: "upload" },
       ...prev,
     ]);
-    setMessage("Uploaded");
   }
 
-  async function embedAsDataUrl(file: File) {
-    if (file.size > MAX_INLINE_BYTES) {
-      setMessage("Image too large for inline upload (max ~700KB). Configure R2 for larger files.");
-      return;
-    }
-    setLoading("upload");
-    setMessage(null);
-    const reader = new FileReader();
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-      reader.onload = () => resolve(String(reader.result));
-      reader.onerror = () => reject(new Error("read failed"));
-      reader.readAsDataURL(file);
-    });
-    onChange?.(dataUrl);
-    setLoading(null);
-    setMessage("Image embedded (works without R2 — use R2 for large files)");
-  }
-
-  async function uploadFile(file: File) {
-    if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
-      setMessage("Only images (or PDF) allowed");
-      return;
-    }
-    if (mediaUploadReady) {
-      await uploadViaR2(file);
-      return;
-    }
-    await embedAsDataUrl(file);
-  }
+  const uploadFile = useCallback(
+    async (file: File) => {
+      if (!file.type.startsWith("image/") && file.type !== "application/pdf") {
+        setMessage("Only images (or PDF) allowed");
+        return;
+      }
+      setLoading("upload");
+      setMessage(null);
+      try {
+        if (mediaUploadReady) {
+          try {
+            await uploadViaR2(file);
+            return;
+          } catch (err) {
+            // Always fall back so Browse/Paste never dead-ends
+            const ok = await embedAsDataUrl(file);
+            if (ok) {
+              setMessage(
+                `Cloud upload failed — image embedded instead. (${err instanceof Error ? err.message : "error"})`
+              );
+            }
+            return;
+          }
+        }
+        await embedAsDataUrl(file);
+      } catch (err) {
+        setMessage(err instanceof Error ? err.message : "Could not add image");
+      } finally {
+        setLoading(null);
+      }
+    },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mediaUploadReady, campaignId, applyUrl]
+  );
 
   async function chooseStock(hit: StockHit) {
-    onChange?.(hit.url);
+    applyUrl(hit.url, "Stock image selected");
     closeGallery();
     await fetch("/api/media", {
       method: "POST",
@@ -146,22 +179,35 @@ export function MediaPicker({
     }).catch(() => undefined);
   }
 
-  function onPasteZone(e: React.ClipboardEvent) {
-    const item = Array.from(e.clipboardData.items).find((i) => i.type.startsWith("image/"));
-    if (item) {
-      const file = item.getAsFile();
-      if (file) {
-        e.preventDefault();
-        void uploadFile(file);
-        return;
+  function handleClipboard(e: React.ClipboardEvent | ClipboardEvent) {
+    const items = e.clipboardData?.items;
+    if (items) {
+      const imageItem = Array.from(items).find((i) => i.type.startsWith("image/"));
+      if (imageItem) {
+        const file = imageItem.getAsFile();
+        if (file) {
+          e.preventDefault();
+          void uploadFile(file);
+          return true;
+        }
       }
     }
-    const text = e.clipboardData.getData("text");
-    if (text && /^https?:\/\//i.test(text.trim())) {
+    const text = e.clipboardData?.getData("text")?.trim() ?? "";
+    if (text && /^https?:\/\//i.test(text)) {
       e.preventDefault();
-      onChange?.(text.trim());
-      setMessage("URL pasted");
+      applyUrl(text, "URL pasted");
+      return true;
     }
+    return false;
+  }
+
+  function onDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setDragOver(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) void uploadFile(file);
+    const uri = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text");
+    if (uri && /^https?:\/\//i.test(uri.trim())) applyUrl(uri.trim(), "URL dropped");
   }
 
   return (
@@ -177,14 +223,9 @@ export function MediaPicker({
             onChange?.(e.target.value);
           }}
           onPaste={(e) => {
-            const text = e.clipboardData.getData("text");
-            if (text && /^https?:\/\//i.test(text.trim())) {
-              // let default paste work
-              return;
-            }
-            onPasteZone(e);
+            handleClipboard(e);
           }}
-          placeholder="Paste image URL (https://…)"
+          placeholder="Paste https://… image URL here"
         />
         {value && (
           <Button type="button" variant="ghost" size="sm" onClick={() => onChange?.("")}>
@@ -195,6 +236,7 @@ export function MediaPicker({
 
       {value && (
         <div className="overflow-hidden rounded-lg border border-border/40">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
             alt="Preview"
@@ -206,47 +248,65 @@ export function MediaPicker({
         </div>
       )}
 
+      {/* Native label+input is the most reliable Browse across browsers */}
+      <input
+        ref={fileRef}
+        id={`media-file-${label.replace(/\s+/g, "-")}`}
+        type="file"
+        accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg"
+        className="sr-only"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) void uploadFile(file);
+          e.target.value = "";
+        }}
+      />
+
       <div
-        ref={pasteRef}
-        className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3 outline-none focus:border-primary"
-        onPaste={onPasteZone}
+        className={`rounded-lg border border-dashed p-3 transition ${
+          dragOver ? "border-primary bg-primary/10" : "border-primary/30 bg-primary/5"
+        }`}
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragOver(true);
+        }}
+        onDragLeave={() => setDragOver(false)}
+        onDrop={onDrop}
+        onPaste={(e) => {
+          handleClipboard(e);
+        }}
         tabIndex={0}
-        onClick={() => pasteRef.current?.focus()}
+        role="group"
+        aria-label="Upload or paste image"
       >
-        <input
-          ref={fileRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void uploadFile(file);
-            e.target.value = "";
-          }}
-        />
         <div className="flex flex-col gap-2 sm:flex-row">
-          <button
-            type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              fileRef.current?.click();
-            }}
-            disabled={!!loading}
-            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 bg-background py-3 text-sm font-medium hover:border-primary/40"
+          <label
+            htmlFor={`media-file-${label.replace(/\s+/g, "-")}`}
+            className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border/60 bg-background py-3 text-sm font-medium hover:border-primary/40"
           >
             <Upload className="h-4 w-4" />
-            {loading === "upload" ? "Uploading…" : "Browse files"}
-          </button>
-          <div className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 bg-background/50 py-3 text-sm text-muted-foreground">
+            {loading === "upload" ? "Adding…" : "Browse files"}
+          </label>
+          <button
+            type="button"
+            className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 bg-background/80 py-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground"
+            onClick={() => {
+              setMessage("Paste an image or URL now (⌘V / Ctrl+V)");
+              // Focus this drop zone so paste lands here
+              (document.activeElement as HTMLElement)?.blur?.();
+            }}
+            onPaste={(e) => handleClipboard(e)}
+          >
             <ImageIcon className="h-4 w-4" />
-            Click here & paste image / URL
-          </div>
+            Paste image or URL
+          </button>
         </div>
-        {!mediaUploadReady && (
-          <p className="mt-2 text-[11px] text-muted-foreground">
-            R2 not configured — images under ~700KB embed directly. Add R2 for full-size uploads.
-          </p>
-        )}
+        <p className="mt-2 text-[11px] text-muted-foreground">
+          Browse opens your files · Paste works in the URL field or here · Drag & drop also works
+          {!mediaUploadReady
+            ? " · Images under ~900KB embed without R2"
+            : " · Cloud storage on; embeds as backup if upload fails"}
+        </p>
       </div>
 
       {stockReady ? (
@@ -256,7 +316,7 @@ export function MediaPicker({
             <Input
               value={stockQuery}
               onChange={(e) => setStockQuery(e.target.value)}
-              placeholder="e.g. cigar lounge, cocktail, storefront"
+              placeholder="e.g. salon, wedding, landscaping"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -312,6 +372,7 @@ export function MediaPicker({
                       onClick={() => void chooseStock(hit)}
                       title={`${hit.alt} — ${hit.photographer}`}
                     >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img src={hit.thumb} alt={hit.alt} className="aspect-square w-full object-cover" />
                       <p className="truncate px-2 py-1 text-[10px] text-muted-foreground">
                         {hit.photographer}
@@ -336,6 +397,7 @@ export function MediaPicker({
                 className="overflow-hidden rounded border border-border/40 hover:border-primary/50"
                 onClick={() => onChange?.(asset.url)}
               >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src={asset.url}
                   alt={asset.filename ?? "asset"}

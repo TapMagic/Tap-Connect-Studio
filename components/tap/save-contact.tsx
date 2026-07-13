@@ -4,10 +4,10 @@ import { useState } from "react";
 import {
   buildVCard,
   downloadVCardFile,
+  SOCIAL_PLATFORM_OPTIONS,
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
-import { SocialGlyph } from "@/components/tap/social-icons";
-import { SOCIAL_PLATFORM_OPTIONS } from "@/lib/brand/contact-profile";
+import { SocialGlyph, socialBrandStyle } from "@/components/tap/social-icons";
 
 export function SaveContactButton({
   profile,
@@ -26,10 +26,7 @@ export function SaveContactButton({
 
   async function save() {
     const fullName =
-      profile.fullName ||
-      profile.displayName ||
-      profile.organization ||
-      "Contact";
+      profile.fullName || profile.displayName || profile.organization || "Contact";
     setBusy(true);
     let photoBase64: string | undefined;
     let photoType: "JPEG" | "PNG" | undefined;
@@ -73,7 +70,7 @@ export function SaveContactButton({
 
   return (
     <button type="button" className={className} disabled={busy} onClick={() => void save()}>
-      <SocialGlyph platform="link" />
+      <SocialGlyph platform="mail" />
       {busy ? "Preparing…" : buttonLabel}
     </button>
   );
@@ -137,13 +134,112 @@ export function SocialIconRow({
           href={e.url}
           target="_blank"
           rel="noopener noreferrer"
-          className="tap-social-chip"
+          className="tap-social-chip tap-social-brand"
           aria-label={e.label}
           title={e.label}
+          style={socialBrandStyle(e.id)}
         >
-          <SocialGlyph platform={e.id} />
+          <SocialGlyph platform={e.id} sizePx={18} />
         </a>
       ))}
+    </div>
+  );
+}
+
+/** Full contact-card chrome used by vCard + Digital Card blocks */
+export function ContactCardSurface({
+  profile,
+  logoUrl,
+  businessName,
+  headline,
+  buttonLabel,
+  showSave = true,
+  showShare = true,
+  showSocials = true,
+  onSaved,
+}: {
+  profile: BrandContactProfile;
+  logoUrl?: string | null;
+  businessName: string;
+  headline?: string;
+  buttonLabel?: string;
+  showSave?: boolean;
+  showShare?: boolean;
+  showSocials?: boolean;
+  onSaved?: () => void;
+}) {
+  const name = profile.displayName || profile.organization || businessName;
+  const initial = (name.trim()[0] || "?").toUpperCase();
+
+  return (
+    <div className="tap-contact-card">
+      <div className="tap-contact-card-banner" />
+      <div className="tap-contact-card-avatar-wrap">
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" className="tap-contact-card-avatar" />
+        ) : (
+          <div className="tap-contact-card-avatar tap-contact-card-initial">{initial}</div>
+        )}
+      </div>
+      <div className="tap-contact-card-body">
+        <p className="tap-contact-card-name">{name}</p>
+        {profile.jobTitle ? <p className="tap-contact-card-role">{profile.jobTitle}</p> : null}
+        {profile.organization && profile.organization !== name ? (
+          <p className="tap-contact-card-org">{profile.organization}</p>
+        ) : null}
+        {headline ? <p className="tap-contact-card-headline">{headline}</p> : null}
+
+        <ul className="tap-contact-card-facts">
+          {profile.phone ? (
+            <li>
+              <a href={`tel:${profile.phone.replace(/\s+/g, "")}`}>
+                <SocialGlyph platform="phone" sizePx={14} />
+                {profile.phone}
+              </a>
+            </li>
+          ) : null}
+          {profile.email ? (
+            <li>
+              <a href={`mailto:${profile.email}`}>
+                <SocialGlyph platform="mail" sizePx={14} />
+                {profile.email}
+              </a>
+            </li>
+          ) : null}
+          {profile.website ? (
+            <li>
+              <a href={profile.website} target="_blank" rel="noopener noreferrer">
+                <SocialGlyph platform="link" sizePx={14} />
+                {profile.website.replace(/^https?:\/\//, "")}
+              </a>
+            </li>
+          ) : null}
+          {profile.address ? (
+            <li>
+              <span>
+                <SocialGlyph platform="map" sizePx={14} />
+                {profile.address}
+              </span>
+            </li>
+          ) : null}
+        </ul>
+
+        {showSocials ? <SocialIconRow socials={profile.socials} /> : null}
+
+        <div className="tap-contact-card-actions">
+          {showSave ? (
+            <SaveContactButton
+              profile={profile}
+              logoUrl={logoUrl}
+              buttonLabel={buttonLabel || "Add to contacts"}
+              className="tap-btn tap-btn-primary w-full"
+              onSaved={onSaved}
+            />
+          ) : null}
+          {showShare ? <SharePageButton title={name} text={`Connect with ${name}`} /> : null}
+        </div>
+      </div>
     </div>
   );
 }
