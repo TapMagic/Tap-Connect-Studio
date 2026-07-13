@@ -14,6 +14,7 @@ const isPublicRoute = createRouteMatcher([
   "/api/qr(.*)",
   "/api/scan/claim(.*)",
   "/api/integrations/status(.*)",
+  "/api/public/(.*)",
 ]);
 
 const isClerkConfigured = Boolean(

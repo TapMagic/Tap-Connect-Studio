@@ -7,7 +7,18 @@ import { blockStyleToCss } from "@/components/workbench/block-style-controls";
 import { extractYouTubeId } from "@/lib/utils/app";
 import { CampaignLeadForm } from "@/components/tap/lead-form";
 import { TapActionButton } from "@/components/tap/action-button";
+import { RichTapButton } from "@/components/tap/rich-button";
+import {
+  SaveContactButton,
+  SharePageButton,
+  SocialIconRow,
+} from "@/components/tap/save-contact";
+import { SocialGlyph } from "@/components/tap/social-icons";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
+import {
+  parseBrandContactProfile,
+  type BrandContactProfile,
+} from "@/lib/brand/contact-profile";
 
 interface CampaignTheme {
   primaryColor: string;
@@ -28,7 +39,7 @@ interface CampaignPageProps {
   businessName: string;
   brandKit?: BrandKit | null;
   logoUrl?: string | null;
-  /** Coming-up windows from the device's campaign group */
+  contactProfile?: BrandContactProfile;
   upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
   showUpcomingStrip?: boolean;
 }
@@ -38,32 +49,6 @@ const PAGE_FONT: Record<string, string> = {
   serif: "ui-serif, Georgia, Cambria, 'Times New Roman', serif",
   display: "'Segoe UI', 'Helvetica Neue', Impact, sans-serif",
 };
-
-function ButtonIcon({ icon }: { icon?: ButtonItem["icon"] }) {
-  if (!icon || icon === "none") return null;
-  const common = "tap-btn-icon";
-  switch (icon) {
-    case "phone":
-      return <span className={common} aria-hidden>☎</span>;
-    case "mail":
-      return <span className={common} aria-hidden>✉</span>;
-    case "map":
-      return <span className={common} aria-hidden>⌖</span>;
-    case "star":
-      return <span className={common} aria-hidden>★</span>;
-    case "cart":
-      return <span className={common} aria-hidden>▣</span>;
-    case "calendar":
-      return <span className={common} aria-hidden>▣</span>;
-    case "play":
-      return <span className={common} aria-hidden>▶</span>;
-    case "external":
-      return <span className={common} aria-hidden>↗</span>;
-    case "link":
-    default:
-      return <span className={common} aria-hidden>↗</span>;
-  }
-}
 
 function GoogleMark({ variant }: { variant: string }) {
   if (variant === "stars") {
@@ -132,9 +117,22 @@ export function CampaignPageRenderer({
   businessName,
   brandKit,
   logoUrl,
+  contactProfile: contactProfileProp,
   upcomingItems = [],
   showUpcomingStrip = false,
 }: CampaignPageProps) {
+  const contactProfile: BrandContactProfile = {
+    ...parseBrandContactProfile(brandKit?.socialLinks),
+    ...contactProfileProp,
+    organization:
+      contactProfileProp?.organization ||
+      parseBrandContactProfile(brandKit?.socialLinks).organization ||
+      businessName,
+    displayName:
+      contactProfileProp?.displayName ||
+      parseBrandContactProfile(brandKit?.socialLinks).displayName ||
+      businessName,
+  };
   const enabledBlocks = [...blocks]
     .filter((b) => b.enabled)
     .sort((a, b) => a.order - b.order);
@@ -187,6 +185,8 @@ export function CampaignPageRenderer({
             hasEmailCapture={hasEmailCapture}
             onContactCaptured={() => setContactUnlocked(true)}
             upcomingItems={upcomingItems}
+            contactProfile={contactProfile}
+            logoUrl={logoUrl}
           />
         ))}
         {showUpcomingStrip && !hasUpcomingBlock && upcomingItems.length > 0 && (
@@ -242,6 +242,8 @@ function BlockRenderer({
   hasEmailCapture,
   onContactCaptured,
   upcomingItems = [],
+  contactProfile = {},
+  logoUrl,
 }: {
   block: ContentBlock;
   campaignId: string;
@@ -253,6 +255,8 @@ function BlockRenderer({
   hasEmailCapture: boolean;
   onContactCaptured: () => void;
   upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
+  contactProfile?: BrandContactProfile;
+  logoUrl?: string | null;
 }) {
   const data = block.data as Record<string, unknown>;
 
@@ -512,64 +516,76 @@ function BlockRenderer({
       const buttons = (data.buttons as ButtonItem[]) ?? [];
       const layout = (data.layout as string) ?? "stack";
       if (!buttons.length) return null;
+      const layoutClass =
+        layout === "icon_row"
+          ? "tap-btn-icon-row"
+          : layout === "row"
+            ? "tap-btn-row"
+            : "tap-btn-stack";
       return (
-        <StyledBlockShell
-          block={block}
-          className={`px-4 pt-4 ${layout === "row" ? "tap-btn-row" : "tap-btn-stack"}`}
-        >
-          {buttons.map((btn) => {
-            const styleClass =
-              btn.style === "primary"
-                ? "tap-btn-primary"
-                : btn.style === "outline"
-                  ? "tap-btn-outline"
-                  : btn.style === "ghost"
-                    ? "tap-btn-ghost"
-                    : btn.style === "soft"
-                      ? "tap-btn-soft"
-                      : "tap-btn-secondary";
-            const sizeClass =
-              btn.size === "sm" ? "tap-btn-sm" : btn.size === "lg" ? "tap-btn-lg" : "";
-            const widthClass = btn.fullWidth === false ? "" : "w-full";
-            return (
-              <TapActionButton
-                key={btn.id}
-                eventType="button_click"
-                campaignId={campaignId}
-                deviceSlotId={deviceSlotId}
-                businessId={businessId}
-                blockId={block.id}
-                href={btn.url || undefined}
-                openInNewTab={btn.openInNewTab}
-                className={`tap-btn ${styleClass} ${sizeClass} ${widthClass}`.trim()}
-              >
-                <ButtonIcon icon={btn.icon} />
-                {btn.label}
-              </TapActionButton>
-            );
-          })}
+        <StyledBlockShell block={block} className={`px-4 pt-4 ${layoutClass}`}>
+          {buttons.map((btn) => (
+            <RichTapButton
+              key={btn.id}
+              btn={
+                layout === "icon_row" && !btn.appearance
+                  ? { ...btn, appearance: "icon_only", fullWidth: false }
+                  : btn
+              }
+              campaignId={campaignId}
+              deviceSlotId={deviceSlotId}
+              businessId={businessId}
+              blockId={block.id}
+            />
+          ))}
         </StyledBlockShell>
       );
     }
 
     case "social_links": {
-      const links = (data.links as { platform: string; url: string }[]) ?? [];
-      if (!links.length) return null;
+      const links = (data.links as { platform: string; url: string; label?: string }[]) ?? [];
+      const layout = (data.layout as string) ?? "row";
+      if (!links.length) {
+        // Fall back to brand profile socials
+        return (
+          <StyledBlockShell block={block} className="px-4 pt-4">
+            {data.headline ? (
+              <h3 className="mb-3 text-lg font-semibold">{data.headline as string}</h3>
+            ) : null}
+            <SocialIconRow socials={contactProfile.socials} />
+          </StyledBlockShell>
+        );
+      }
       return (
         <StyledBlockShell block={block} className="px-4 pt-4">
           {data.headline ? <h3 className="mb-3 text-lg font-semibold">{data.headline as string}</h3> : null}
-          <div className="flex flex-wrap gap-2">
-            {links.map((link, i) => (
-              <a
-                key={i}
-                href={link.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="tap-btn tap-btn-outline px-4 py-2 text-sm"
-              >
-                {link.platform}
-              </a>
-            ))}
+          <div className={layout === "stack" ? "tap-btn-stack" : "tap-social-row"}>
+            {links.map((link, i) =>
+              layout === "stack" ? (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tap-btn tap-btn-outline w-full"
+                >
+                  <SocialGlyph platform={link.platform} />
+                  {link.label || link.platform}
+                </a>
+              ) : (
+                <a
+                  key={i}
+                  href={link.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tap-social-chip"
+                  aria-label={link.label || link.platform}
+                  title={link.label || link.platform}
+                >
+                  <SocialGlyph platform={link.platform} />
+                </a>
+              )
+            )}
           </div>
         </StyledBlockShell>
       );
@@ -650,36 +666,140 @@ function BlockRenderer({
         </StyledBlockShell>
       );
 
-    case "vcard_download":
+    case "vcard_download": {
+      const useBrand = data.useBrandProfile !== false;
+      const profile: BrandContactProfile = useBrand
+        ? {
+            ...contactProfile,
+            displayName: (data.name as string) || contactProfile.displayName,
+            jobTitle: (data.title as string) || contactProfile.jobTitle,
+            phone: (data.phone as string) || contactProfile.phone,
+            email: (data.email as string) || contactProfile.email,
+            website: (data.website as string) || contactProfile.website,
+            organization: (data.organization as string) || contactProfile.organization,
+            address: (data.address as string) || contactProfile.address,
+          }
+        : {
+            displayName: (data.name as string) || businessName,
+            jobTitle: data.title as string | undefined,
+            phone: data.phone as string | undefined,
+            email: data.email as string | undefined,
+            website: data.website as string | undefined,
+            organization: data.organization as string | undefined,
+            address: data.address as string | undefined,
+          };
       return (
         <StyledBlockShell block={block} className="px-4 pt-4">
-          <TapActionButton
-            eventType="vcard_download"
-            campaignId={campaignId}
-            deviceSlotId={deviceSlotId}
-            businessId={businessId}
-            blockId={block.id}
-            className="tap-btn tap-btn-secondary w-full"
-          >
-            {(data.buttonLabel as string) || "Save contact"}
-          </TapActionButton>
+          <SaveContactButton
+            profile={profile}
+            logoUrl={logoUrl}
+            buttonLabel={(data.buttonLabel as string) || "Save to contacts"}
+            className="tap-btn tap-btn-primary w-full"
+            onSaved={() => {
+              void fetch("/api/tap/click", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  eventType: "vcard_download",
+                  campaignId,
+                  deviceSlotId,
+                  businessId,
+                  blockId: block.id,
+                }),
+              });
+            }}
+          />
         </StyledBlockShell>
       );
+    }
+
+    case "digital_card": {
+      const showSave = data.showSaveContact !== false;
+      const showShare = data.showShare !== false;
+      const showSocials = data.showSocials !== false;
+      const name =
+        contactProfile.displayName || contactProfile.organization || businessName;
+      return (
+        <StyledBlockShell block={block} className="px-4 pt-5">
+          <div className="tap-digital-card">
+            {logoUrl ? (
+              <img src={logoUrl} alt="" className="tap-digital-card-logo" />
+            ) : null}
+            <p className="tap-digital-card-name">{name}</p>
+            {contactProfile.jobTitle ? (
+              <p className="tap-digital-card-title">{contactProfile.jobTitle}</p>
+            ) : null}
+            {contactProfile.organization && contactProfile.organization !== name ? (
+              <p className="tap-digital-card-org">{contactProfile.organization}</p>
+            ) : null}
+            {data.headline ? (
+              <p className="mt-2 text-sm opacity-80">{data.headline as string}</p>
+            ) : null}
+            {showSocials ? <SocialIconRow socials={contactProfile.socials} /> : null}
+            <div className="tap-digital-card-actions">
+              {showSave ? (
+                <SaveContactButton
+                  profile={contactProfile}
+                  logoUrl={logoUrl}
+                  buttonLabel={(data.buttonLabel as string) || "Save contact"}
+                  className="tap-btn tap-btn-primary w-full"
+                  onSaved={() => {
+                    void fetch("/api/tap/click", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        eventType: "vcard_download",
+                        campaignId,
+                        deviceSlotId,
+                        businessId,
+                        blockId: block.id,
+                      }),
+                    });
+                  }}
+                />
+              ) : null}
+              {showShare ? (
+                <SharePageButton title={name} text={`Connect with ${name}`} />
+              ) : null}
+            </div>
+          </div>
+        </StyledBlockShell>
+      );
+    }
 
     case "image_gallery": {
-      const images = (data.images as { id: string; url: string; caption?: string }[]) ?? [];
+      const images =
+        (data.images as { id: string; url: string; caption?: string; linkUrl?: string }[]) ??
+        [];
       if (!images.length) return null;
       return (
         <StyledBlockShell block={block} className="px-4 pt-4">
           <div className="grid grid-cols-2 gap-2">
-            {images.map((img) => (
-              <figure key={img.id} className="overflow-hidden rounded-xl">
-                <img src={img.url} alt={img.caption ?? ""} className="aspect-square w-full object-cover" />
-                {img.caption ? (
-                  <figcaption className="px-1 py-1 text-xs opacity-70">{img.caption}</figcaption>
-                ) : null}
-              </figure>
-            ))}
+            {images.map((img) => {
+              const body = (
+                <>
+                  <img
+                    src={img.url}
+                    alt={img.caption ?? ""}
+                    className="aspect-square w-full object-cover"
+                  />
+                  {img.caption ? (
+                    <figcaption className="px-1 py-1 text-xs opacity-70">{img.caption}</figcaption>
+                  ) : null}
+                </>
+              );
+              return (
+                <figure key={img.id} className="overflow-hidden rounded-xl">
+                  {img.linkUrl ? (
+                    <a href={img.linkUrl} target="_blank" rel="noopener noreferrer">
+                      {body}
+                    </a>
+                  ) : (
+                    body
+                  )}
+                </figure>
+              );
+            })}
           </div>
         </StyledBlockShell>
       );

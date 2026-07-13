@@ -255,3 +255,119 @@
   font-size: 0.75rem;
   opacity: 0.65;
 }
+
+.tap-btn-custom-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  object-fit: contain;
+  border-radius: 0.25rem;
+}
+
+.tap-btn-icon-only {
+  width: 3rem;
+  height: 3rem;
+  padding: 0;
+  border-radius: 999px;
+}
+
+.tap-btn-icon-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  justify-content: center;
+}
+
+.tap-image-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.tap-image-btn-img {
+  width: 100%;
+  max-width: 9rem;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 1rem;
+  border: 1px solid color-mix(in oklch, var(--tap-text) 15%, transparent);
+  transition: transform 0.15s;
+}
+
+.tap-image-btn:active .tap-image-btn-img {
+  transform: scale(0.97);
+}
+
+.tap-image-btn-bare .tap-image-btn-img {
+  max-width: 100%;
+  border-radius: 1.15rem;
+}
+
+.tap-image-btn-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.tap-social-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: center;
+  margin-top: 0.75rem;
+}
+
+.tap-social-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--tap-text) 18%, transparent);
+  background: color-mix(in oklch, var(--tap-text) 6%, transparent);
+  color: var(--tap-text);
+  transition: transform 0.15s, background 0.15s;
+}
+
+.tap-social-chip:active {
+  transform: scale(0.95);
+}
+
+.tap-digital-card {
+  border-radius: 1.35rem;
+  border: 1px solid color-mix(in oklch, var(--tap-text) 12%, transparent);
+  background: color-mix(in oklch, var(--tap-text) 5%, transparent);
+  padding: 1.35rem 1.25rem 1.25rem;
+  text-align: center;
+}
+
+.tap-digital-card-logo {
+  height: 3.25rem;
+  width: auto;
+  max-width: 8rem;
+  object-fit: contain;
+  margin: 0 auto 0.85rem;
+}
+
+.tap-digital-card-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.tap-digital-card-title,
+.tap-digital-card-org {
+  font-size: 0.9rem;
+  opacity: 0.75;
+  margin-top: 0.15rem;
+}
+
+.tap-digital-card-actions {
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+}

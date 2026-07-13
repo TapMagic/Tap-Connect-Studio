@@ -9,8 +9,8 @@ interface TapActionButtonProps {
   deviceSlotId: string;
   businessId: string;
   blockId?: string;
-  /** Override default: http(s) opens in new tab */
   openInNewTab?: boolean;
+  "aria-label"?: string;
 }
 
 export function TapActionButton({
@@ -23,6 +23,7 @@ export function TapActionButton({
   businessId,
   blockId,
   openInNewTab,
+  "aria-label": ariaLabel,
 }: TapActionButtonProps) {
   async function logClick() {
     try {
@@ -46,6 +47,7 @@ export function TapActionButton({
         onClick={() => void logClick()}
         target={targetBlank ? "_blank" : undefined}
         rel={targetBlank ? "noopener noreferrer" : undefined}
+        aria-label={ariaLabel}
       >
         {children}
       </a>
@@ -53,7 +55,7 @@ export function TapActionButton({
   }
 
   return (
-    <button type="button" className={className} onClick={() => void logClick()}>
+    <button type="button" className={className} onClick={() => void logClick()} aria-label={ariaLabel}>
       {children}
     </button>
   );

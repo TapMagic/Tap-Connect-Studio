@@ -2,6 +2,7 @@ import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BrandKitForm } from "@/components/brand/brand-kit-form";
 import { isMediaUploadReady, isStockImagesReady } from "@/lib/config/integrations";
+import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -17,8 +18,7 @@ export default async function BrandPage() {
       <div>
         <h1 className="text-2xl font-bold">Brand Kit</h1>
         <p className="text-muted-foreground">
-          Colors, logo, tone, and compliance defaults for all campaigns. Uploaded assets also
-          appear in your media library.
+          Colors, logo, contact card, socials, and compliance defaults for every tap page.
         </p>
       </div>
       <BrandKitForm
@@ -36,9 +36,11 @@ export default async function BrandPage() {
           ageGateEnabled: brandKit?.ageGateEnabled ?? false,
           ageGateMinAge: brandKit?.ageGateMinAge ?? 21,
           website: business.website,
+          phone: business.phone,
           googleReviewUrl: business.googleReviewUrl,
           logoUrl: business.logoUrl,
           email: business.email,
+          contactProfile: parseBrandContactProfile(brandKit?.socialLinks),
         }}
         mediaUploadReady={isMediaUploadReady()}
         stockReady={isStockImagesReady()}

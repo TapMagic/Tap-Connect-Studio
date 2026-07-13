@@ -19,7 +19,8 @@ export type BlockType =
   | "age_gate"
   | "faq"
   | "action_block"
-  | "upcoming_schedule";
+  | "upcoming_schedule"
+  | "digital_card";
 
 export interface UpcomingScheduleData {
   headline?: string;
@@ -92,7 +93,22 @@ export interface ButtonItem {
     | "cart"
     | "calendar"
     | "external"
-    | "play";
+    | "play"
+    | "instagram"
+    | "facebook"
+    | "tiktok"
+    | "youtube"
+    | "linkedin"
+    | "x"
+    | "whatsapp"
+    | "threads"
+    | "snapchat"
+    | "pinterest"
+    | "yelp"
+    | "spotify";
+  /** Custom art (beer stein, logo mark, photo) — works with any appearance */
+  imageUrl?: string;
+  appearance?: "icon_text" | "icon_only" | "text" | "image" | "image_label";
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   openInNewTab?: boolean;
@@ -100,7 +116,7 @@ export interface ButtonItem {
 
 export interface ButtonGroupData {
   buttons: ButtonItem[];
-  layout?: "stack" | "row";
+  layout?: "stack" | "row" | "icon_row";
 }
 
 export interface ProductDetailsData {
@@ -111,7 +127,7 @@ export interface ProductDetailsData {
 }
 
 export interface ImageGalleryData {
-  images: { id: string; url: string; caption?: string }[];
+  images: { id: string; url: string; caption?: string; linkUrl?: string }[];
 }
 
 export interface OfferCouponData {
@@ -158,17 +174,32 @@ export interface MapLocationData {
 }
 
 export interface VcardDownloadData {
-  name: string;
+  /** When true (default), pull contact from Brand Kit contact card */
+  useBrandProfile?: boolean;
+  name?: string;
   title?: string;
   phone?: string;
   email?: string;
   website?: string;
+  organization?: string;
+  address?: string;
   buttonLabel: string;
 }
 
 export interface SocialLinksData {
   headline?: string;
-  links: { platform: string; url: string }[];
+  links: { platform: string; url: string; label?: string }[];
+  layout?: "row" | "stack";
+}
+
+/** Branded mini business card — save contact + share + socials */
+export interface DigitalCardData {
+  headline?: string;
+  useBrandProfile?: boolean;
+  showSaveContact?: boolean;
+  showShare?: boolean;
+  showSocials?: boolean;
+  buttonLabel?: string;
 }
 
 export interface DisclaimerData {

@@ -105,6 +105,26 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   const brandKit = device.business?.brandKit;
   const themeOverrides = (campaign.themeOverrides as Record<string, string>) ?? {};
   const blocks = parseContentBlocks(campaign.contentBlocks);
+  const { parseBrandContactProfile } = await import("@/lib/brand/contact-profile");
+  const contactProfile = {
+    ...parseBrandContactProfile(brandKit?.socialLinks),
+    organization:
+      parseBrandContactProfile(brandKit?.socialLinks).organization ||
+      device.business?.name ||
+      undefined,
+    phone:
+      parseBrandContactProfile(brandKit?.socialLinks).phone ||
+      device.business?.phone ||
+      undefined,
+    email:
+      parseBrandContactProfile(brandKit?.socialLinks).email ||
+      device.business?.email ||
+      undefined,
+    website:
+      parseBrandContactProfile(brandKit?.socialLinks).website ||
+      device.business?.website ||
+      undefined,
+  };
 
   let upcomingItems: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[] = [];
   let showUpcomingStrip = false;
@@ -136,6 +156,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       businessName={device.business?.name ?? "Business"}
       brandKit={brandKit}
       logoUrl={device.business?.logoUrl ?? null}
+      contactProfile={contactProfile}
       upcomingItems={upcomingItems}
       showUpcomingStrip={showUpcomingStrip}
     />

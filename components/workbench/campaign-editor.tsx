@@ -124,6 +124,27 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
     data: { headline: "Coming up" },
   },
   {
+    type: "vcard_download",
+    label: "Save contact",
+    data: { useBrandProfile: true, buttonLabel: "Save to contacts" },
+  },
+  {
+    type: "digital_card",
+    label: "Digital card",
+    data: {
+      useBrandProfile: true,
+      showSaveContact: true,
+      showShare: true,
+      showSocials: true,
+      buttonLabel: "Save contact",
+    },
+  },
+  {
+    type: "social_links",
+    label: "Social icons",
+    data: { headline: "Follow us", links: [], layout: "row" },
+  },
+  {
     type: "map_location",
     label: "Map / directions",
     data: { headline: "Find us", address: "", buttonLabel: "Get directions" },
@@ -801,8 +822,8 @@ function BlockFields({
     return (
       <div className="space-y-3">
         <p className="text-xs text-muted-foreground">
-          Link buttons for website, menu, booking, Instagram, phone (<code>tel:</code>), email (
-          <code>mailto:</code>), and more.
+          Text buttons, social icons, or custom art (beer stein, logo mark, photo) — any button can
+          be an image with a link.
         </p>
         <div className="space-y-1">
           <Label className="text-xs">Layout</Label>
@@ -813,6 +834,7 @@ function BlockFields({
           >
             <option value="stack">Stacked (full width)</option>
             <option value="row">Side by side</option>
+            <option value="icon_row">Icon row (circles)</option>
           </select>
         </div>
         {buttons.map((btn, index) => (
@@ -844,6 +866,24 @@ function BlockFields({
             />
             <div className="grid gap-2 sm:grid-cols-2">
               <div className="space-y-1">
+                <Label className="text-[10px]">Look</Label>
+                <select
+                  className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                  value={btn.appearance ?? "icon_text"}
+                  onChange={(e) =>
+                    patchBtn(btn.id, {
+                      appearance: e.target.value as ButtonItem["appearance"],
+                    })
+                  }
+                >
+                  <option value="icon_text">Icon + text</option>
+                  <option value="text">Text only</option>
+                  <option value="icon_only">Icon only</option>
+                  <option value="image_label">Custom image + label</option>
+                  <option value="image">Image only (picture is the button)</option>
+                </select>
+              </div>
+              <div className="space-y-1">
                 <Label className="text-[10px]">Style</Label>
                 <select
                   className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
@@ -860,7 +900,7 @@ function BlockFields({
                 </select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px]">Icon</Label>
+                <Label className="text-[10px]">Icon / social</Label>
                 <select
                   className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
                   value={btn.icon ?? "none"}
@@ -873,6 +913,18 @@ function BlockFields({
                   <option value="phone">Phone</option>
                   <option value="mail">Email</option>
                   <option value="map">Map</option>
+                  <option value="instagram">Instagram</option>
+                  <option value="facebook">Facebook</option>
+                  <option value="tiktok">TikTok</option>
+                  <option value="youtube">YouTube</option>
+                  <option value="linkedin">LinkedIn</option>
+                  <option value="x">X / Twitter</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="threads">Threads</option>
+                  <option value="snapchat">Snapchat</option>
+                  <option value="pinterest">Pinterest</option>
+                  <option value="yelp">Yelp</option>
+                  <option value="spotify">Spotify</option>
                   <option value="star">Star</option>
                   <option value="cart">Cart</option>
                   <option value="calendar">Calendar</option>
@@ -894,31 +946,42 @@ function BlockFields({
                   <option value="lg">Large</option>
                 </select>
               </div>
-              <div className="flex flex-col justify-end gap-2 pb-1">
-                <label className="flex items-center gap-2 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={btn.fullWidth !== false}
-                    onChange={(e) => patchBtn(btn.id, { fullWidth: e.target.checked })}
-                  />
-                  Full width
-                </label>
-                <label className="flex items-center gap-2 text-xs">
-                  <input
-                    type="checkbox"
-                    checked={btn.openInNewTab !== false}
-                    onChange={(e) => patchBtn(btn.id, { openInNewTab: e.target.checked })}
-                  />
-                  Open in new tab
-                </label>
-              </div>
+            </div>
+            <MediaPicker
+              label="Custom button art (optional — beer stein, photo, logo…)"
+              value={btn.imageUrl ?? ""}
+              onChange={(url) => patchBtn(btn.id, { imageUrl: url || undefined })}
+              mediaUploadReady={mediaUploadReady}
+              stockReady={stockReady}
+              campaignId={campaignId}
+            />
+            <div className="flex flex-wrap gap-3 text-xs">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={btn.fullWidth !== false}
+                  onChange={(e) => patchBtn(btn.id, { fullWidth: e.target.checked })}
+                />
+                Full width
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={btn.openInNewTab !== false}
+                  onChange={(e) => patchBtn(btn.id, { openInNewTab: e.target.checked })}
+                />
+                Open in new tab
+              </label>
             </div>
             <div className="flex flex-wrap gap-1">
-              {[
-                { label: "Call", url: "tel:+1", icon: "phone" as const },
-                { label: "Email", url: "mailto:", icon: "mail" as const },
-                { label: "Maps", url: "https://maps.google.com/?q=", icon: "map" as const },
-              ].map((preset) => (
+              {(
+                [
+                  { label: "Call", url: "tel:+1", icon: "phone" as const },
+                  { label: "Email", url: "mailto:", icon: "mail" as const },
+                  { label: "Instagram", url: "https://instagram.com/", icon: "instagram" as const },
+                  { label: "Maps", url: "https://maps.google.com/?q=", icon: "map" as const },
+                ] as const
+              ).map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
@@ -931,7 +994,7 @@ function BlockFields({
                     })
                   }
                 >
-                  {preset.label} preset
+                  {preset.label}
                 </button>
               ))}
             </div>
@@ -950,6 +1013,7 @@ function BlockFields({
                 url: "https://",
                 style: "primary",
                 icon: "link",
+                appearance: "icon_text",
                 size: "md",
                 fullWidth: true,
                 openInNewTab: true,
@@ -959,6 +1023,135 @@ function BlockFields({
         >
           <Plus className="mr-1 h-3.5 w-3.5" />
           Add another button
+        </Button>
+        {styleControls}
+      </div>
+    );
+  }
+
+  if (block.type === "vcard_download" || block.type === "digital_card") {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Uses your Brand Kit → Contact card by default. Set that up once under Brand Kit.
+        </p>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={data.useBrandProfile !== false}
+            onChange={(e) => onUpdate("useBrandProfile", e.target.checked)}
+          />
+          Use Brand Kit contact profile
+        </label>
+        <div className="space-y-1">
+          <Label className="text-xs">Button label</Label>
+          <Input
+            value={(data.buttonLabel as string) ?? "Save to contacts"}
+            onChange={(e) => onUpdate("buttonLabel", e.target.value)}
+          />
+        </div>
+        {block.type === "digital_card" && (
+          <>
+            <div className="space-y-1">
+              <Label className="text-xs">Optional headline</Label>
+              <Input
+                value={(data.headline as string) ?? ""}
+                onChange={(e) => onUpdate("headline", e.target.value)}
+              />
+            </div>
+            {(
+              [
+                ["showSaveContact", "Show Save contact"],
+                ["showShare", "Show Share this page"],
+                ["showSocials", "Show social icons"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="flex items-center gap-2 text-sm">
+                <input
+                  type="checkbox"
+                  checked={data[key] !== false}
+                  onChange={(e) => onUpdate(key, e.target.checked)}
+                />
+                {label}
+              </label>
+            ))}
+          </>
+        )}
+        {data.useBrandProfile === false && (
+          <div className="grid gap-2 sm:grid-cols-2">
+            {(["name", "title", "phone", "email", "website", "organization", "address"] as const).map(
+              (key) => (
+                <div key={key} className="space-y-1">
+                  <Label className="text-xs capitalize">{key}</Label>
+                  <Input
+                    value={(data[key] as string) ?? ""}
+                    onChange={(e) => onUpdate(key, e.target.value)}
+                  />
+                </div>
+              )
+            )}
+          </div>
+        )}
+        {styleControls}
+      </div>
+    );
+  }
+
+  if (block.type === "social_links") {
+    const links =
+      (data.links as { platform: string; url: string; label?: string }[]) ?? [];
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Leave empty to use Brand Kit socials automatically. Or add overrides below.
+        </p>
+        <div className="space-y-1">
+          <Label className="text-xs">Headline</Label>
+          <Input
+            value={(data.headline as string) ?? ""}
+            onChange={(e) => onUpdate("headline", e.target.value)}
+          />
+        </div>
+        <select
+          className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+          value={(data.layout as string) ?? "row"}
+          onChange={(e) => onUpdate("layout", e.target.value)}
+        >
+          <option value="row">Icon row</option>
+          <option value="stack">Stacked with labels</option>
+        </select>
+        {links.map((link, i) => (
+          <div key={i} className="grid gap-2 rounded-lg border border-border/40 p-2 sm:grid-cols-2">
+            <Input
+              placeholder="platform (instagram)"
+              value={link.platform}
+              onChange={(e) => {
+                const next = [...links];
+                next[i] = { ...link, platform: e.target.value };
+                onUpdate("links", next);
+              }}
+            />
+            <Input
+              placeholder="https://…"
+              value={link.url}
+              onChange={(e) => {
+                const next = [...links];
+                next[i] = { ...link, url: e.target.value };
+                onUpdate("links", next);
+              }}
+            />
+          </div>
+        ))}
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() =>
+            onUpdate("links", [...links, { platform: "instagram", url: "https://" }])
+          }
+        >
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          Add link
         </Button>
         {styleControls}
       </div>

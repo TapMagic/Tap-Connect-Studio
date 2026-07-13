@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MediaPicker } from "@/components/media/media-picker";
+import {
+  SOCIAL_PLATFORM_OPTIONS,
+  type BrandContactProfile,
+} from "@/lib/brand/contact-profile";
 
 interface BrandKitFormProps {
   brandKit: {
@@ -24,9 +28,11 @@ interface BrandKitFormProps {
     ageGateEnabled: boolean;
     ageGateMinAge: number;
     website: string | null;
+    phone: string | null;
     googleReviewUrl: string | null;
     logoUrl: string | null;
     email: string | null;
+    contactProfile: BrandContactProfile;
   };
   mediaUploadReady?: boolean;
   stockReady?: boolean;
@@ -39,6 +45,17 @@ export function BrandKitForm({
 }: BrandKitFormProps) {
   const router = useRouter();
   const [form, setForm] = useState(brandKit);
+  const [contact, setContact] = useState<BrandContactProfile>({
+    displayName: brandKit.contactProfile.displayName ?? "",
+    jobTitle: brandKit.contactProfile.jobTitle ?? "",
+    organization: brandKit.contactProfile.organization ?? brandKit.contactProfile.displayName ?? "",
+    phone: brandKit.contactProfile.phone ?? brandKit.phone ?? "",
+    email: brandKit.contactProfile.email ?? brandKit.email ?? "",
+    website: brandKit.contactProfile.website ?? brandKit.website ?? "",
+    address: brandKit.contactProfile.address ?? "",
+    note: brandKit.contactProfile.note ?? "",
+    socials: brandKit.contactProfile.socials ?? {},
+  });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
 
@@ -48,14 +65,20 @@ export function BrandKitForm({
     const res = await fetch("/api/brand", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({
+        ...form,
+        phone: contact.phone || null,
+        website: contact.website || null,
+        email: form.email,
+        contactProfile: contact,
+      }),
     });
     if (!res.ok) {
       setMessage("Failed to save");
       setSaving(false);
       return;
     }
-    setMessage("Brand kit saved");
+    setMessage("Brand kit saved — Save Contact buttons can use this profile");
     setSaving(false);
     router.refresh();
   }
@@ -68,12 +91,73 @@ export function BrandKitForm({
         </CardHeader>
         <CardContent>
           <MediaPicker
-            label="Brand logo"
+            label="Brand logo (also used as vCard photo)"
             value={form.logoUrl ?? ""}
             onChange={(url) => setForm((f) => ({ ...f, logoUrl: url }))}
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
           />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Contact card (vCard)</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Fill this once. Tap pages can offer “Save to contacts” with one click — branded with your
+            logo.
+          </p>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {(
+              [
+                ["displayName", "Display name"],
+                ["jobTitle", "Title / role"],
+                ["organization", "Business / org"],
+                ["phone", "Phone"],
+                ["email", "Public email"],
+                ["website", "Website"],
+                ["address", "Address"],
+              ] as const
+            ).map(([key, label]) => (
+              <div key={key} className="space-y-1">
+                <Label className="text-xs">{label}</Label>
+                <Input
+                  value={contact[key] ?? ""}
+                  onChange={(e) => setContact((c) => ({ ...c, [key]: e.target.value }))}
+                />
+              </div>
+            ))}
+            <div className="space-y-1 sm:col-span-2">
+              <Label className="text-xs">Note on contact card</Label>
+              <Input
+                value={contact.note ?? ""}
+                onChange={(e) => setContact((c) => ({ ...c, note: e.target.value }))}
+                placeholder="Optional note guests see in their address book"
+              />
+            </div>
+          </div>
+          <div className="space-y-2 pt-2">
+            <Label className="text-xs">Social links</Label>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {SOCIAL_PLATFORM_OPTIONS.map((opt) => (
+                <div key={opt.id} className="space-y-1">
+                  <Label className="text-[10px] text-muted-foreground">{opt.label}</Label>
+                  <Input
+                    value={contact.socials?.[opt.id] ?? ""}
+                    onChange={(e) =>
+                      setContact((c) => ({
+                        ...c,
+                        socials: { ...c.socials, [opt.id]: e.target.value },
+                      }))
+                    }
+                    placeholder={opt.placeholder}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
         </CardContent>
       </Card>
 
@@ -166,7 +250,7 @@ export function BrandKitForm({
 
       <Card>
         <CardHeader>
-          <CardTitle>Compliance & Links</CardTitle>
+          <CardTitle>Compliance & alerts</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-3">
@@ -196,16 +280,13 @@ export function BrandKitForm({
             />
           </div>
           <div className="space-y-2">
-            <Label>Notification email</Label>
+            <Label>Lead notification email</Label>
             <Input
               type="email"
               value={form.email ?? ""}
               onChange={(e) => setForm((f) => ({ ...f, email: e.target.value || null }))}
               placeholder="you@yourbusiness.com"
             />
-            <p className="text-xs text-muted-foreground">
-              New leads are emailed here (and to account owners) when Resend is configured.
-            </p>
           </div>
           <div className="space-y-2">
             <Label>Google Review URL</Label>
