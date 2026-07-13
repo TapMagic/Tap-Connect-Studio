@@ -33,12 +33,17 @@ export interface HeroImageData {
   imageUrl: string;
   altText?: string;
   overlayText?: string;
+  aspect?: "4/3" | "16/9" | "1/1" | "21/9" | "auto";
+  objectFit?: "cover" | "contain";
+  focalY?: number;
 }
 
 export interface HeroVideoData {
   videoUrl: string;
   provider: "youtube" | "vimeo" | "other";
   title?: string;
+  /** Muted autoplay when the tap page opens (YouTube requires mute) */
+  autoplay?: boolean;
 }
 
 export interface HeadlineData {
@@ -176,6 +181,9 @@ export interface CampaignTheme {
   backgroundColor?: string;
   textColor?: string;
   fontStyle?: string;
+  backgroundImage?: string;
+  /** Dark overlay 0–100 over backgroundImage */
+  backgroundOverlayOpacity?: number;
 }
 
 export interface CampaignTemplate {

@@ -21,6 +21,24 @@ export async function createCampaignFromTemplate(params: {
     order: index,
   }));
 
+  const brandKit = await prisma.brandKit.findUnique({
+    where: { businessId: params.businessId },
+  });
+  const business = await prisma.business.findUnique({
+    where: { id: params.businessId },
+    select: { logoUrl: true },
+  });
+
+  const themeOverrides = brandKit
+    ? {
+        primaryColor: brandKit.primaryColor,
+        secondaryColor: brandKit.secondaryColor,
+        backgroundColor: brandKit.backgroundColor,
+        textColor: brandKit.textColor,
+        ...(business?.logoUrl ? { logoUrl: business.logoUrl } : {}),
+      }
+    : {};
+
   return prisma.campaign.create({
     data: {
       businessId: params.businessId,
@@ -28,6 +46,7 @@ export async function createCampaignFromTemplate(params: {
       campaignType: template.campaignType as CampaignType,
       templateId: template.id,
       contentBlocks: blocks as unknown as Prisma.InputJsonValue,
+      themeOverrides: themeOverrides as Prisma.InputJsonValue,
       status: "DRAFT",
       createdById: params.userId,
       updatedById: params.userId,

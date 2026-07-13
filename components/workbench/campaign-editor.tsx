@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
+  Copy,
   Eye,
   GripVertical,
   Mail,
@@ -40,7 +41,12 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
     data: { headline: "New headline", subheadline: "", alignment: "center" },
   },
   { type: "rich_text", label: "Text", data: { body: "Add your story here." } },
-  { type: "hero_image", label: "Hero image", data: { imageUrl: "", altText: "" } },
+  { type: "hero_image", label: "Hero image", data: { imageUrl: "", altText: "", aspect: "4/3", objectFit: "cover", focalY: 50 } },
+  {
+    type: "hero_video",
+    label: "Hero video",
+    data: { videoUrl: "", title: "", provider: "youtube", autoplay: true },
+  },
   {
     type: "product_details",
     label: "Product details",
@@ -152,6 +158,10 @@ export function CampaignEditor({
     secondaryColor: campaign.themeOverrides?.secondaryColor ?? brandKit.secondaryColor,
     backgroundColor: campaign.themeOverrides?.backgroundColor ?? brandKit.backgroundColor,
     textColor: campaign.themeOverrides?.textColor ?? brandKit.textColor,
+    backgroundImage: campaign.themeOverrides?.backgroundImage ?? "",
+    backgroundOverlayOpacity: Number(
+      campaign.themeOverrides?.backgroundOverlayOpacity ?? 55
+    ),
   });
   const [selectedDevice, setSelectedDevice] = useState(devices[0]?.id ?? "");
   const [showPreview, setShowPreview] = useState(true);
@@ -181,6 +191,23 @@ export function CampaignEditor({
         .sort((a, b) => a.order - b.order)
         .map((b, i) => ({ ...b, order: i }))
     );
+  }
+
+  function duplicateBlock(id: string) {
+    const sorted = [...blocks].sort((a, b) => a.order - b.order);
+    const index = sorted.findIndex((b) => b.id === id);
+    if (index < 0) return;
+    const source = sorted[index];
+    const clone: ContentBlock = {
+      ...structuredClone(source),
+      id: nanoid(8),
+      label: `${source.label} copy`,
+      order: source.order + 1,
+    };
+    const next = [...sorted];
+    next.splice(index + 1, 0, clone);
+    setBlocks(next.map((b, i) => ({ ...b, order: i })));
+    setMessage("Block duplicated");
   }
 
   function addBlock(type: BlockType = addType) {
@@ -354,6 +381,39 @@ export function CampaignEditor({
                     </div>
                   ))}
                 </div>
+                <div className="mt-4 space-y-3">
+                  <MediaPicker
+                    label="Page background image (optional)"
+                    value={theme.backgroundImage}
+                    onChange={(url) => setTheme((t) => ({ ...t, backgroundImage: url }))}
+                    mediaUploadReady={integrations.mediaUpload}
+                    stockReady={integrations.stockImages}
+                    campaignId={campaign.id}
+                  />
+                  {theme.backgroundImage ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs">
+                        Background dim / transparency ({theme.backgroundOverlayOpacity}%)
+                      </Label>
+                      <input
+                        type="range"
+                        min={0}
+                        max={90}
+                        value={theme.backgroundOverlayOpacity}
+                        onChange={(e) =>
+                          setTheme((t) => ({
+                            ...t,
+                            backgroundOverlayOpacity: Number(e.target.value),
+                          }))
+                        }
+                        className="w-full"
+                      />
+                      <p className="text-[11px] text-muted-foreground">
+                        Higher = darker overlay so text stays readable over the photo.
+                      </p>
+                    </div>
+                  ) : null}
+                </div>
               </div>
 
               {devices.length > 0 && (
@@ -445,6 +505,14 @@ export function CampaignEditor({
                         <Button
                           variant="ghost"
                           size="sm"
+                          onClick={() => duplicateBlock(block.id)}
+                          title="Duplicate block"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           onClick={() => removeBlock(block.id)}
                           className="text-red-400 hover:text-red-300"
                         >
@@ -490,7 +558,18 @@ export function CampaignEditor({
               onApplyDraft={({ title: nextTitle, blocks: nextBlocks, theme: nextTheme }) => {
                 if (nextTitle) setTitle(nextTitle);
                 setBlocks(nextBlocks);
-                if (nextTheme) setTheme(nextTheme);
+                if (nextTheme) {
+                  setTheme((t) => ({
+                    ...t,
+                    ...nextTheme,
+                    backgroundImage:
+                      (nextTheme as { backgroundImage?: string }).backgroundImage ??
+                      t.backgroundImage,
+                    backgroundOverlayOpacity:
+                      (nextTheme as { backgroundOverlayOpacity?: number })
+                        .backgroundOverlayOpacity ?? t.backgroundOverlayOpacity,
+                  }));
+                }
                 setShowPreview(true);
                 setTab("content");
                 setMessage("AI draft applied — review blocks & colors, then Save.");
@@ -513,6 +592,7 @@ export function CampaignEditor({
               deviceSlotId="preview"
               businessId={businessId}
               businessName="Preview"
+              logoUrl={brandKit.logoUrl}
             />
           </div>
         </div>
@@ -538,14 +618,97 @@ function BlockFields({
 
   if (block.type === "hero_image") {
     return (
-      <MediaPicker
-        label="Hero image"
-        value={(data.imageUrl as string) ?? ""}
-        onChange={(url) => onUpdate("imageUrl", url)}
-        mediaUploadReady={mediaUploadReady}
-        stockReady={stockReady}
-        campaignId={campaignId}
-      />
+      <div className="space-y-3">
+        <MediaPicker
+          label="Hero image"
+          value={(data.imageUrl as string) ?? ""}
+          onChange={(url) => onUpdate("imageUrl", url)}
+          mediaUploadReady={mediaUploadReady}
+          stockReady={stockReady}
+          campaignId={campaignId}
+        />
+        <div className="grid gap-3 sm:grid-cols-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Frame shape</Label>
+            <select
+              className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+              value={(data.aspect as string) ?? "4/3"}
+              onChange={(e) => onUpdate("aspect", e.target.value)}
+            >
+              <option value="4/3">4:3 classic</option>
+              <option value="16/9">16:9 wide</option>
+              <option value="1/1">1:1 square</option>
+              <option value="21/9">21:9 cinematic</option>
+              <option value="auto">Natural height</option>
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Fit</Label>
+            <select
+              className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+              value={(data.objectFit as string) ?? "cover"}
+              onChange={(e) => onUpdate("objectFit", e.target.value)}
+            >
+              <option value="cover">Fill / crop (cover)</option>
+              <option value="contain">Fit whole image (contain)</option>
+            </select>
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">
+            Vertical focus ({typeof data.focalY === "number" ? data.focalY : 50}%)
+          </Label>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={typeof data.focalY === "number" ? data.focalY : 50}
+            onChange={(e) => onUpdate("focalY", Number(e.target.value))}
+            className="w-full"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Overlay text</Label>
+          <Input
+            value={(data.overlayText as string) ?? ""}
+            onChange={(e) => onUpdate("overlayText", e.target.value)}
+            placeholder="Optional caption on the image"
+          />
+        </div>
+      </div>
+    );
+  }
+
+  if (block.type === "hero_video") {
+    return (
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label className="text-xs">YouTube URL</Label>
+          <Input
+            value={(data.videoUrl as string) ?? ""}
+            onChange={(e) => onUpdate("videoUrl", e.target.value)}
+            placeholder="https://www.youtube.com/watch?v=..."
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Title</Label>
+          <Input
+            value={(data.title as string) ?? ""}
+            onChange={(e) => onUpdate("title", e.target.value)}
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={data.autoplay === true}
+            onChange={(e) => onUpdate("autoplay", e.target.checked)}
+          />
+          Autoplay muted when page opens
+        </label>
+        <p className="text-[11px] text-muted-foreground">
+          Browsers require muted autoplay. Sound stays off until the visitor unmutes on YouTube.
+        </p>
+      </div>
     );
   }
 
@@ -555,10 +718,6 @@ function BlockFields({
       { key: "subheadline", label: "Subheadline" },
     ],
     rich_text: [{ key: "body", label: "Body text", multiline: true }],
-    hero_video: [
-      { key: "videoUrl", label: "Video URL (YouTube — free embed)" },
-      { key: "title", label: "Title" },
-    ],
     product_details: [
       { key: "name", label: "Product name" },
       { key: "description", label: "Description", multiline: true },

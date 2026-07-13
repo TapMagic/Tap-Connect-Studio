@@ -13,6 +13,8 @@ interface CampaignTheme {
   secondaryColor: string;
   backgroundColor: string;
   textColor: string;
+  backgroundImage?: string;
+  backgroundOverlayOpacity?: number;
 }
 
 interface CampaignPageProps {
@@ -43,12 +45,26 @@ export function CampaignPageRenderer({
   const hasEmailCapture = enabledBlocks.some((b) => b.type === "email_capture");
   const [contactUnlocked, setContactUnlocked] = useState(false);
   const mark = logoUrl;
+  const overlay =
+    typeof theme.backgroundOverlayOpacity === "number"
+      ? theme.backgroundOverlayOpacity
+      : theme.backgroundImage
+        ? 55
+        : 0;
 
   const style = {
     "--tap-primary": theme.primaryColor,
     "--tap-secondary": theme.secondaryColor,
     "--tap-bg": theme.backgroundColor,
     "--tap-text": theme.textColor,
+    ...(theme.backgroundImage
+      ? {
+          backgroundImage: `linear-gradient(rgba(0,0,0,${overlay / 100}), rgba(0,0,0,${overlay / 100})), url(${theme.backgroundImage})`,
+          backgroundSize: "cover",
+          backgroundPosition: "center",
+          backgroundAttachment: "fixed",
+        }
+      : {}),
   } as React.CSSProperties;
 
   return (
@@ -108,9 +124,27 @@ function BlockRenderer({
     case "hero_image": {
       const imageUrl = data.imageUrl as string;
       if (!imageUrl) return null;
+      const aspect = (data.aspect as string) ?? "4/3";
+      const fit = (data.objectFit as string) ?? "cover";
+      const focalY = typeof data.focalY === "number" ? data.focalY : 50;
+      const aspectClass =
+        aspect === "16/9"
+          ? "aspect-video"
+          : aspect === "1/1"
+            ? "aspect-square"
+            : aspect === "21/9"
+              ? "aspect-[21/9]"
+              : aspect === "auto"
+                ? ""
+                : "aspect-[4/3]";
       return (
-        <div className="tap-hero-image relative aspect-[4/3] w-full overflow-hidden">
-          <img src={imageUrl} alt={(data.altText as string) ?? ""} className="h-full w-full object-cover" />
+        <div className={`tap-hero-image relative w-full overflow-hidden ${aspectClass}`}>
+          <img
+            src={imageUrl}
+            alt={(data.altText as string) ?? ""}
+            className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
+            style={{ objectPosition: `center ${focalY}%` }}
+          />
           {data.overlayText ? (
             <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-6">
               <p className="text-lg font-semibold text-white">{data.overlayText as string}</p>
@@ -124,12 +158,21 @@ function BlockRenderer({
       const videoUrl = data.videoUrl as string;
       if (!videoUrl) return null;
       const ytId = extractYouTubeId(videoUrl);
+      const autoplay = data.autoplay === true;
+      const embedSrc = ytId
+        ? `https://www.youtube.com/embed/${ytId}?${new URLSearchParams({
+            ...(autoplay
+              ? { autoplay: "1", mute: "1", playsinline: "1" }
+              : {}),
+            rel: "0",
+          }).toString()}`
+        : null;
       return (
         <div className="tap-block px-4 pt-4">
-          {ytId ? (
+          {embedSrc ? (
             <div className="aspect-video overflow-hidden rounded-xl">
               <iframe
-                src={`https://www.youtube.com/embed/${ytId}`}
+                src={embedSrc}
                 title={(data.title as string) ?? "Video"}
                 className="h-full w-full"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
@@ -137,7 +180,12 @@ function BlockRenderer({
               />
             </div>
           ) : (
-            <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="tap-btn tap-btn-primary block text-center">
+            <a
+              href={videoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tap-btn tap-btn-primary block text-center"
+            >
               Watch Video
             </a>
           )}
