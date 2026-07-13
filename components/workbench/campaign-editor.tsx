@@ -165,6 +165,10 @@ interface CampaignEditorProps {
     backgroundColor: string;
     textColor: string;
     logoUrl?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    address?: string | null;
+    website?: string | null;
   };
   businessId: string;
   devices: { id: string; nickname: string | null; deviceCode: string }[];
@@ -604,6 +608,12 @@ export function CampaignEditor({
                       mediaUploadReady={integrations.mediaUpload}
                       stockReady={integrations.stockImages}
                       campaignId={campaign.id}
+                      contact={{
+                        phone: brandKit.phone ?? undefined,
+                        email: brandKit.email ?? undefined,
+                        address: brandKit.address ?? undefined,
+                        website: brandKit.website ?? undefined,
+                      }}
                     />
                   </div>
                 ))}
@@ -695,6 +705,7 @@ function BlockFields({
   mediaUploadReady,
   stockReady,
   campaignId,
+  contact,
 }: {
   block: ContentBlock;
   onUpdate: (key: string, value: unknown) => void;
@@ -702,6 +713,7 @@ function BlockFields({
   mediaUploadReady: boolean;
   stockReady: boolean;
   campaignId: string;
+  contact?: { phone?: string; email?: string; address?: string; website?: string };
 }) {
   const data = block.data as Record<string, unknown>;
 
@@ -834,6 +846,8 @@ function BlockFields({
           >
             <option value="stack">Stacked (full width)</option>
             <option value="row">Side by side</option>
+            <option value="grid_2">2-column grid</option>
+            <option value="cards_2">2-column cards</option>
             <option value="icon_row">Icon row (circles)</option>
           </select>
         </div>
@@ -967,6 +981,14 @@ function BlockFields({
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"
+                  checked={Boolean(btn.card)}
+                  onChange={(e) => patchBtn(btn.id, { card: e.target.checked })}
+                />
+                Card look
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
                   checked={btn.openInNewTab !== false}
                   onChange={(e) => patchBtn(btn.id, { openInNewTab: e.target.checked })}
                 />
@@ -976,21 +998,46 @@ function BlockFields({
             <div className="flex flex-wrap gap-1">
               {(
                 [
-                  { label: "Call", url: "tel:+1", icon: "phone" as const },
-                  { label: "Email", url: "mailto:", icon: "mail" as const },
-                  { label: "Instagram", url: "https://instagram.com/", icon: "instagram" as const },
-                  { label: "Maps", url: "https://maps.google.com/?q=", icon: "map" as const },
+                  {
+                    label: "Call",
+                    url: contact?.phone
+                      ? `tel:${contact.phone.replace(/[^\d+]/g, "")}`
+                      : "tel:",
+                    icon: "phone" as const,
+                    hint: contact?.phone ? undefined : "Add phone in Brand Kit",
+                  },
+                  {
+                    label: "Email",
+                    url: contact?.email ? `mailto:${contact.email}` : "mailto:",
+                    icon: "mail" as const,
+                    hint: contact?.email ? undefined : "Add email in Brand Kit",
+                  },
+                  {
+                    label: "Maps",
+                    url: contact?.address
+                      ? `https://maps.google.com/?q=${encodeURIComponent(contact.address)}`
+                      : "https://maps.google.com/?q=",
+                    icon: "map" as const,
+                    hint: contact?.address ? undefined : "Add address in Brand Kit",
+                  },
+                  {
+                    label: "Instagram",
+                    url: "https://instagram.com/",
+                    icon: "instagram" as const,
+                  },
                 ] as const
               ).map((preset) => (
                 <button
                   key={preset.label}
                   type="button"
+                  title={"hint" in preset ? preset.hint : undefined}
                   className="rounded border border-border/50 px-2 py-0.5 text-[10px] text-muted-foreground hover:border-primary/40 hover:text-foreground"
                   onClick={() =>
                     patchBtn(btn.id, {
                       label: preset.label,
                       url: preset.url,
                       icon: preset.icon,
+                      openInNewTab: preset.icon === "phone" || preset.icon === "mail" ? false : true,
                     })
                   }
                 >
@@ -998,6 +1045,15 @@ function BlockFields({
                 </button>
               ))}
             </div>
+            {contact && (contact.phone || contact.address || contact.email) ? (
+              <p className="text-[10px] text-muted-foreground">
+                Call / Email / Maps presets use Brand Kit contact when available.
+              </p>
+            ) : (
+              <p className="text-[10px] text-amber-500/90">
+                Set phone, email, and address in Brand Kit so Call and Maps work automatically.
+              </p>
+            )}
           </div>
         ))}
         <Button

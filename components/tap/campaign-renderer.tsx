@@ -7,7 +7,7 @@ import { blockStyleToCss } from "@/components/workbench/block-style-controls";
 import { extractYouTubeId } from "@/lib/utils/app";
 import { CampaignLeadForm } from "@/components/tap/lead-form";
 import { TapActionButton } from "@/components/tap/action-button";
-import { RichTapButton } from "@/components/tap/rich-button";
+import { RichTapButton, resolveActionHref } from "@/components/tap/rich-button";
 import {
   ContactCardSurface,
   SocialIconRow,
@@ -488,13 +488,19 @@ function BlockRenderer({
     }
 
     case "map_location": {
+      const address =
+        ((data.address as string) || "").trim() || contactProfile.address?.trim() || "";
+      const rawMap = ((data.mapUrl as string) || "").trim();
       const mapUrl =
-        (data.mapUrl as string) ||
-        `https://maps.google.com/?q=${encodeURIComponent((data.address as string) ?? "")}`;
+        rawMap && !/[?&]q=$/.test(rawMap)
+          ? rawMap
+          : address
+            ? `https://maps.google.com/?q=${encodeURIComponent(address)}`
+            : undefined;
       return (
         <StyledBlockShell block={block} className="px-4 pt-4">
           <h3 className="mb-2 text-lg font-semibold">{data.headline as string}</h3>
-          <p className="mb-4 text-sm opacity-80">{data.address as string}</p>
+          {address ? <p className="mb-4 text-sm opacity-80">{address}</p> : null}
           <TapActionButton
             eventType="map_click"
             campaignId={campaignId}
@@ -503,9 +509,9 @@ function BlockRenderer({
             blockId={block.id}
             href={mapUrl}
             openInNewTab
-            className="tap-btn tap-btn-secondary w-full"
+            className="tap-btn tap-btn-pressable tap-btn-secondary w-full"
           >
-            {data.buttonLabel as string}
+            {(data.buttonLabel as string) || "Get directions"}
           </TapActionButton>
         </StyledBlockShell>
       );
@@ -516,11 +522,15 @@ function BlockRenderer({
       const layout = (data.layout as string) ?? "stack";
       if (!buttons.length) return null;
       const layoutClass =
-        layout === "icon_row"
-          ? "tap-btn-icon-row"
-          : layout === "row"
-            ? "tap-btn-row"
-            : "tap-btn-stack";
+        layout === "cards_2"
+          ? "tap-btn-cards-2"
+          : layout === "grid_2"
+            ? "tap-btn-grid-2"
+            : layout === "icon_row"
+              ? "tap-btn-icon-row"
+              : layout === "row"
+                ? "tap-btn-row"
+                : "tap-btn-stack";
       return (
         <StyledBlockShell block={block} className={`px-4 pt-4 ${layoutClass}`}>
           {buttons.map((btn) => (
@@ -529,12 +539,17 @@ function BlockRenderer({
               btn={
                 layout === "icon_row" && !btn.appearance
                   ? { ...btn, appearance: "icon_only", fullWidth: false }
-                  : btn
+                  : layout === "cards_2"
+                    ? { ...btn, card: true, fullWidth: true }
+                    : layout === "grid_2"
+                      ? { ...btn, fullWidth: true }
+                      : btn
               }
               campaignId={campaignId}
               deviceSlotId={deviceSlotId}
               businessId={businessId}
               blockId={block.id}
+              contact={contactProfile}
             />
           ))}
         </StyledBlockShell>
@@ -597,21 +612,41 @@ function BlockRenderer({
       return (
         <StyledBlockShell block={block} className="px-4 pt-4">
           {data.headline ? <h3 className="mb-3 text-lg font-semibold">{data.headline as string}</h3> : null}
-          <div className="grid grid-cols-2 gap-2">
-            {actions.map((action) => (
-              <TapActionButton
-                key={action.id}
-                eventType={`action_${action.type}`}
-                campaignId={campaignId}
-                deviceSlotId={deviceSlotId}
-                businessId={businessId}
-                blockId={block.id}
-                href={action.url}
-                className="tap-btn tap-btn-outline text-sm"
-              >
-                {action.label}
-              </TapActionButton>
-            ))}
+          <div className="tap-btn-grid-2">
+            {actions.map((action) => {
+              const href = resolveActionHref(action, contactProfile);
+              const icon =
+                action.type === "call"
+                  ? "phone"
+                  : action.type === "email"
+                    ? "mail"
+                    : action.type === "directions" || action.type === "map"
+                      ? "map"
+                      : "link";
+              return (
+                <RichTapButton
+                  key={action.id}
+                  btn={{
+                    id: action.id,
+                    label: action.label,
+                    url: href || action.url || "",
+                    style: "outline",
+                    icon,
+                    appearance: "icon_text",
+                    size: "md",
+                    fullWidth: true,
+                    card: true,
+                    openInNewTab:
+                      action.type === "call" || action.type === "email" ? false : undefined,
+                  }}
+                  campaignId={campaignId}
+                  deviceSlotId={deviceSlotId}
+                  businessId={businessId}
+                  blockId={block.id}
+                  contact={contactProfile}
+                />
+              );
+            })}
           </div>
         </StyledBlockShell>
       );

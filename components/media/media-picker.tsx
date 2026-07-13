@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ImageIcon, Link2, Upload, X } from "lucide-react";
+import { ChevronDown, ImageIcon, Link2, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -42,6 +42,24 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
+async function saveToLibrary(params: {
+  url: string;
+  filename?: string;
+  mimeType?: string;
+  source: "upload" | "stock" | "url";
+  campaignId?: string;
+}) {
+  try {
+    await fetch("/api/media", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(params),
+    });
+  } catch {
+    // non-blocking
+  }
+}
+
 export function MediaPicker({
   value = "",
   onChange,
@@ -51,20 +69,43 @@ export function MediaPicker({
   campaignId,
 }: MediaPickerProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileId = `media-file-${label.replace(/\s+/g, "-")}`;
   const [stockQuery, setStockQuery] = useState("");
   const [stockResults, setStockResults] = useState<StockHit[]>([]);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [library, setLibrary] = useState<LibraryAsset[]>([]);
+  const [libraryOpen, setLibraryOpen] = useState(false);
+  const [sessionAdds, setSessionAdds] = useState<LibraryAsset[]>([]);
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
 
-  useEffect(() => {
-    fetch("/api/media")
+  const refreshLibrary = useCallback(() => {
+    fetch("/api/media?usedOnly=1")
       .then((r) => r.json())
       .then((d) => setLibrary(d.assets ?? []))
       .catch(() => undefined);
-  }, [value]);
+  }, []);
+
+  useEffect(() => {
+    refreshLibrary();
+  }, [value, refreshLibrary]);
+
+  const visibleLibrary = (() => {
+    const byUrl = new Map<string, LibraryAsset>();
+    for (const a of [...library, ...sessionAdds]) {
+      if (a.url) byUrl.set(a.url, a);
+    }
+    if (value && !byUrl.has(value)) {
+      byUrl.set(value, {
+        id: "current",
+        url: value,
+        filename: "Current selection",
+        source: "upload",
+      });
+    }
+    return Array.from(byUrl.values());
+  })();
 
   async function searchStock() {
     if (!stockQuery.trim()) return;
@@ -93,11 +134,23 @@ export function MediaPicker({
   }
 
   const applyUrl = useCallback(
-    (url: string, note?: string) => {
+    (url: string, note?: string, meta?: { filename?: string; source?: "upload" | "stock" | "url" }) => {
       onChange?.(url);
       if (note) setMessage(note);
+      setSessionAdds((prev) => [
+        { id: url, url, filename: meta?.filename ?? "Added image", source: meta?.source ?? "upload" },
+        ...prev.filter((p) => p.url !== url),
+      ]);
+      setLibraryOpen(true);
+      void saveToLibrary({
+        url,
+        filename: meta?.filename,
+        mimeType: url.startsWith("data:") ? "image/png" : "image/jpeg",
+        source: meta?.source ?? "upload",
+        campaignId,
+      }).then(() => refreshLibrary());
     },
-    [onChange]
+    [onChange, campaignId, refreshLibrary]
   );
 
   async function embedAsDataUrl(file: File) {
@@ -108,7 +161,10 @@ export function MediaPicker({
       return false;
     }
     const dataUrl = await readFileAsDataUrl(file);
-    applyUrl(dataUrl, "Image added");
+    applyUrl(dataUrl, "Image added to page & library", {
+      filename: file.name,
+      source: "upload",
+    });
     return true;
   }
 
@@ -121,11 +177,7 @@ export function MediaPicker({
     if (!res.ok || !data.url) {
       throw new Error(data.error ?? "Upload failed");
     }
-    applyUrl(data.url, "Uploaded");
-    setLibrary((prev) => [
-      { id: data.asset?.id ?? data.url, url: data.url, filename: file.name, source: "upload" },
-      ...prev,
-    ]);
+    applyUrl(data.url, "Uploaded to library", { filename: file.name, source: "upload" });
   }
 
   const uploadFile = useCallback(
@@ -142,7 +194,6 @@ export function MediaPicker({
             await uploadViaR2(file);
             return;
           } catch (err) {
-            // Always fall back so Browse/Paste never dead-ends
             const ok = await embedAsDataUrl(file);
             if (ok) {
               setMessage(
@@ -164,19 +215,8 @@ export function MediaPicker({
   );
 
   async function chooseStock(hit: StockHit) {
-    applyUrl(hit.url, "Stock image selected");
+    applyUrl(hit.url, "Stock image selected", { filename: hit.alt, source: "stock" });
     closeGallery();
-    await fetch("/api/media", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        url: hit.url,
-        filename: hit.alt,
-        mimeType: "image/jpeg",
-        source: "stock",
-        campaignId,
-      }),
-    }).catch(() => undefined);
   }
 
   function handleClipboard(e: React.ClipboardEvent | ClipboardEvent) {
@@ -195,7 +235,7 @@ export function MediaPicker({
     const text = e.clipboardData?.getData("text")?.trim() ?? "";
     if (text && /^https?:\/\//i.test(text)) {
       e.preventDefault();
-      applyUrl(text, "URL pasted");
+      applyUrl(text, "URL pasted into library", { source: "url" });
       return true;
     }
     return false;
@@ -205,9 +245,14 @@ export function MediaPicker({
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) void uploadFile(file);
+    if (file) {
+      void uploadFile(file);
+      return;
+    }
     const uri = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text");
-    if (uri && /^https?:\/\//i.test(uri.trim())) applyUrl(uri.trim(), "URL dropped");
+    if (uri && /^https?:\/\//i.test(uri.trim())) {
+      applyUrl(uri.trim(), "URL dropped into library", { source: "url" });
+    }
   }
 
   return (
@@ -248,10 +293,9 @@ export function MediaPicker({
         </div>
       )}
 
-      {/* Native label+input is the most reliable Browse across browsers */}
       <input
         ref={fileRef}
-        id={`media-file-${label.replace(/\s+/g, "-")}`}
+        id={fileId}
         type="file"
         accept="image/*,.jpg,.jpeg,.png,.gif,.webp,.svg"
         className="sr-only"
@@ -281,7 +325,7 @@ export function MediaPicker({
       >
         <div className="flex flex-col gap-2 sm:flex-row">
           <label
-            htmlFor={`media-file-${label.replace(/\s+/g, "-")}`}
+            htmlFor={fileId}
             className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-lg border border-border/60 bg-background py-3 text-sm font-medium hover:border-primary/40"
           >
             <Upload className="h-4 w-4" />
@@ -292,8 +336,6 @@ export function MediaPicker({
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 bg-background/80 py-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground"
             onClick={() => {
               setMessage("Paste an image or URL now (⌘V / Ctrl+V)");
-              // Focus this drop zone so paste lands here
-              (document.activeElement as HTMLElement)?.blur?.();
             }}
             onPaste={(e) => handleClipboard(e)}
           >
@@ -302,10 +344,10 @@ export function MediaPicker({
           </button>
         </div>
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Browse opens your files · Paste works in the URL field or here · Drag & drop also works
+          Add logos & photos: browse, paste, or drag & drop
           {!mediaUploadReady
             ? " · Images under ~900KB embed without R2"
-            : " · Cloud storage on; embeds as backup if upload fails"}
+            : " · Saved to your library"}
         </p>
       </div>
 
@@ -386,28 +428,53 @@ export function MediaPicker({
         </div>
       )}
 
-      {library.length > 0 && (
-        <div className="space-y-2">
-          <Label className="text-xs">Your media library</Label>
-          <div className="grid grid-cols-4 gap-2">
-            {library.slice(0, 12).map((asset) => (
-              <button
-                key={asset.id}
-                type="button"
-                className="overflow-hidden rounded border border-border/40 hover:border-primary/50"
-                onClick={() => onChange?.(asset.url)}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={asset.url}
-                  alt={asset.filename ?? "asset"}
-                  className="aspect-square w-full object-cover"
-                />
-              </button>
-            ))}
+      <div className="rounded-lg border border-border/40">
+        <button
+          type="button"
+          className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium"
+          onClick={() => setLibraryOpen((o) => !o)}
+        >
+          <span>
+            Media library
+            <span className="ml-1.5 font-normal text-muted-foreground">
+              ({visibleLibrary.length} in use)
+            </span>
+          </span>
+          <ChevronDown
+            className={`h-4 w-4 text-muted-foreground transition ${libraryOpen ? "rotate-180" : ""}`}
+          />
+        </button>
+        {libraryOpen && (
+          <div className="border-t border-border/40 px-3 pb-3 pt-2">
+            {visibleLibrary.length === 0 ? (
+              <p className="text-[11px] text-muted-foreground">
+                No images on your pages yet. Browse, paste, or drop a logo above to add one.
+              </p>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {visibleLibrary.slice(0, 16).map((asset) => (
+                  <button
+                    key={asset.id}
+                    type="button"
+                    className={`overflow-hidden rounded border transition hover:border-primary/50 ${
+                      asset.url === value ? "border-primary ring-1 ring-primary/40" : "border-border/40"
+                    }`}
+                    onClick={() => onChange?.(asset.url)}
+                    title={asset.filename ?? "asset"}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={asset.url}
+                      alt={asset.filename ?? "asset"}
+                      className="aspect-square w-full object-cover"
+                    />
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {message && <p className="text-xs text-primary">{message}</p>}
     </div>

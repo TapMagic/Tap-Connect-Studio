@@ -16,6 +16,14 @@ interface TapActionButtonProps {
   "aria-label"?: string;
 }
 
+function isHttpUrl(href: string) {
+  return /^https?:\/\//i.test(href);
+}
+
+function isAppScheme(href: string) {
+  return /^(tel|mailto|sms|geo):/i.test(href);
+}
+
 export function TapActionButton({
   children,
   href,
@@ -42,8 +50,12 @@ export function TapActionButton({
   }
 
   if (href) {
-    const isHttp = /^https?:\/\//i.test(href);
-    const targetBlank = openInNewTab === true || (openInNewTab !== false && isHttp);
+    // Never force a new tab for phone/email — breaks dialers on mobile
+    const targetBlank =
+      !isAppScheme(href) &&
+      isHttpUrl(href) &&
+      (openInNewTab === true || openInNewTab === undefined);
+
     return (
       <a
         href={href}

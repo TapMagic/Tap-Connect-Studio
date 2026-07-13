@@ -3,6 +3,7 @@ import { CampaignEditor } from "@/components/workbench/campaign-editor";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { parseContentBlocks } from "@/lib/services/devices";
+import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   isMediaUploadReady,
   isStockImagesReady,
@@ -59,6 +60,13 @@ export default async function CampaignEditPage({ params }: PageProps) {
         backgroundColor: brandKit?.backgroundColor ?? "#0b0f19",
         textColor: brandKit?.textColor ?? "#f8fafc",
         logoUrl: business.logoUrl,
+        phone:
+          parseBrandContactProfile(brandKit?.socialLinks).phone ?? business.phone ?? null,
+        email:
+          parseBrandContactProfile(brandKit?.socialLinks).email ?? business.email ?? null,
+        address: parseBrandContactProfile(brandKit?.socialLinks).address ?? null,
+        website:
+          parseBrandContactProfile(brandKit?.socialLinks).website ?? business.website ?? null,
       }}
       businessId={business.id}
       devices={devices}

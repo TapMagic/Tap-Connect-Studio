@@ -50,8 +50,11 @@
   padding: 0.75rem 1.25rem;
   font-size: 0.9375rem;
   font-weight: 600;
-  transition: opacity 0.15s, transform 0.15s, background 0.15s;
+  transition: opacity 0.15s, transform 0.15s, background 0.15s, filter 0.15s;
   text-decoration: none;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tap-btn:active {
@@ -91,6 +94,60 @@
 .tap-btn-row .tap-btn {
   flex: 1 1 calc(50% - 0.25rem);
   min-width: 8rem;
+}
+
+.tap-btn-grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.tap-btn-cards-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.tap-btn-pressable {
+  box-shadow:
+    0 1px 0 color-mix(in oklch, var(--tap-text) 12%, transparent),
+    0 6px 16px color-mix(in oklch, #000 18%, transparent);
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tap-btn-pressable:hover {
+  filter: brightness(1.04);
+  transform: translateY(-1px);
+}
+
+.tap-btn-pressable:active {
+  transform: translateY(0) scale(0.98);
+  filter: brightness(0.98);
+}
+
+.tap-btn-card {
+  min-height: 3.25rem;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 0.75rem;
+  border-radius: 1rem;
+  background: color-mix(in oklch, var(--tap-text) 6%, transparent);
+  border: 1px solid color-mix(in oklch, var(--tap-text) 14%, transparent);
+  box-shadow: 0 4px 14px color-mix(in oklch, #000 14%, transparent);
+}
+
+.tap-btn-card.tap-btn-outline,
+.tap-btn-card.tap-btn-ghost,
+.tap-btn-card.tap-btn-soft {
+  background: color-mix(in oklch, var(--tap-text) 7%, transparent);
+}
+
+.tap-btn-card .tap-btn-label {
+  font-size: 0.8125rem;
+  font-weight: 650;
+  letter-spacing: 0.01em;
 }
 
 .tap-btn-primary {

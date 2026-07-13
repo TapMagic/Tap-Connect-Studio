@@ -112,11 +112,13 @@ export interface ButtonItem {
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   openInNewTab?: boolean;
+  /** Soft card chrome around the button */
+  card?: boolean;
 }
 
 export interface ButtonGroupData {
   buttons: ButtonItem[];
-  layout?: "stack" | "row" | "icon_row";
+  layout?: "stack" | "row" | "icon_row" | "grid_2" | "cards_2";
 }
 
 export interface ProductDetailsData {
