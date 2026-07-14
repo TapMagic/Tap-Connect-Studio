@@ -37,7 +37,6 @@ import {
   parseEndExperience,
   type EndExperience,
 } from "@/lib/end-experience";
-import "@/app/t/tap.css";
 
 type EditorTab = "content" | "qr" | "schedule" | "email" | "ai";
 

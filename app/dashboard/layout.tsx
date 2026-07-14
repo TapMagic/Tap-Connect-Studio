@@ -3,6 +3,7 @@ import { DevModeBanner } from "@/components/dev-mode-banner";
 import { AuthControls } from "@/components/auth/auth-controls";
 import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
 import { isClerkConfigured } from "@/lib/utils/app";
+import "@/app/t/tap.css";
 
 export const dynamic = "force-dynamic";
 
