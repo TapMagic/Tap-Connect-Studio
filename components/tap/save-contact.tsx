@@ -146,7 +146,7 @@ export function SocialIconRow({
   );
 }
 
-/** Full contact-card chrome used by vCard + Digital Card blocks */
+/** Full contact-card chrome — Tap The Magic style digital card / vCard layout */
 export function ContactCardSurface({
   profile,
   logoUrl,
@@ -170,10 +170,23 @@ export function ContactCardSurface({
 }) {
   const name = profile.displayName || profile.organization || businessName;
   const initial = (name.trim()[0] || "?").toUpperCase();
+  const phoneHref = profile.phone
+    ? `tel:${profile.phone.replace(/[^\d+]/g, "")}`
+    : undefined;
+  const mapsHref = profile.address
+    ? `https://maps.google.com/?q=${encodeURIComponent(profile.address)}`
+    : undefined;
 
   return (
     <div className="tap-contact-card">
-      <div className="tap-contact-card-banner" />
+      <div className="tap-contact-card-banner">
+        <div className="tap-contact-card-banner-glow" />
+        {logoUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrl} alt="" className="tap-contact-card-banner-mark" />
+        ) : null}
+      </div>
+
       <div className="tap-contact-card-avatar-wrap">
         {logoUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -182,6 +195,7 @@ export function ContactCardSurface({
           <div className="tap-contact-card-avatar tap-contact-card-initial">{initial}</div>
         )}
       </div>
+
       <div className="tap-contact-card-body">
         <p className="tap-contact-card-name">{name}</p>
         {profile.jobTitle ? <p className="tap-contact-card-role">{profile.jobTitle}</p> : null}
@@ -190,10 +204,47 @@ export function ContactCardSurface({
         ) : null}
         {headline ? <p className="tap-contact-card-headline">{headline}</p> : null}
 
+        <div className="tap-contact-action-grid">
+          {phoneHref ? (
+            <a href={phoneHref} className="tap-contact-action">
+              <SocialGlyph platform="phone" sizePx={18} />
+              <span>Call</span>
+            </a>
+          ) : null}
+          {profile.email ? (
+            <a href={`mailto:${profile.email}`} className="tap-contact-action">
+              <SocialGlyph platform="mail" sizePx={18} />
+              <span>Email</span>
+            </a>
+          ) : null}
+          {profile.website ? (
+            <a
+              href={profile.website}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tap-contact-action"
+            >
+              <SocialGlyph platform="link" sizePx={18} />
+              <span>Web</span>
+            </a>
+          ) : null}
+          {mapsHref ? (
+            <a
+              href={mapsHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="tap-contact-action"
+            >
+              <SocialGlyph platform="map" sizePx={18} />
+              <span>Map</span>
+            </a>
+          ) : null}
+        </div>
+
         <ul className="tap-contact-card-facts">
           {profile.phone ? (
             <li>
-              <a href={`tel:${profile.phone.replace(/\s+/g, "")}`}>
+              <a href={phoneHref}>
                 <SocialGlyph platform="phone" sizePx={14} />
                 {profile.phone}
               </a>
@@ -233,11 +284,17 @@ export function ContactCardSurface({
               profile={profile}
               logoUrl={logoUrl}
               buttonLabel={buttonLabel || "Add to contacts"}
-              className="tap-btn tap-btn-primary w-full"
+              className="tap-btn tap-btn-primary tap-btn-pressable w-full"
               onSaved={onSaved}
             />
           ) : null}
-          {showShare ? <SharePageButton title={name} text={`Connect with ${name}`} /> : null}
+          {showShare ? (
+            <SharePageButton
+              title={name}
+              text={`Connect with ${name}`}
+              className="tap-btn tap-btn-outline w-full"
+            />
+          ) : null}
         </div>
       </div>
     </div>

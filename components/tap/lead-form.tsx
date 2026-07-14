@@ -10,6 +10,8 @@ interface CampaignLeadFormProps {
   businessId: string;
   type: "email_capture" | "feedback";
   onSuccess?: () => void;
+  /** Marketing demos: skip API and unlock locally */
+  previewMode?: boolean;
 }
 
 export function CampaignLeadForm({
@@ -19,6 +21,7 @@ export function CampaignLeadForm({
   businessId,
   type,
   onSuccess,
+  previewMode = false,
 }: CampaignLeadFormProps) {
   const data = block.data as Record<string, unknown>;
   const fields = (data.fields as string[]) ?? ["email"];
@@ -32,6 +35,14 @@ export function CampaignLeadForm({
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (previewMode) {
+      await new Promise((r) => setTimeout(r, 350));
+      setSubmitted(true);
+      setLoading(false);
+      onSuccess?.();
+      return;
+    }
 
     const form = new FormData(e.currentTarget);
     const res = await fetch("/api/leads", {

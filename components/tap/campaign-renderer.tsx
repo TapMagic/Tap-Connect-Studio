@@ -46,6 +46,8 @@ interface CampaignPageProps {
   selectedBlockId?: string | null;
   onSelectBlock?: (blockId: string) => void;
   editMode?: boolean;
+  /** Skip lead API (homepage / marketing demos) */
+  previewMode?: boolean;
 }
 
 const PAGE_FONT: Record<string, string> = {
@@ -150,6 +152,7 @@ export function CampaignPageRenderer({
   selectedBlockId = null,
   onSelectBlock,
   editMode = false,
+  previewMode = false,
 }: CampaignPageProps) {
   const contactProfile: BrandContactProfile = {
     ...parseBrandContactProfile(brandKit?.socialLinks),
@@ -230,6 +233,7 @@ export function CampaignPageRenderer({
             logoUrl={logoUrl}
             selected={selectedBlockId === block.id}
             editMode={editMode}
+            previewMode={previewMode}
             onSelect={() => onSelectBlock?.(block.id)}
           />
         ))}
@@ -287,6 +291,7 @@ function BlockRenderer({
   logoUrl,
   selected = false,
   editMode = false,
+  previewMode = false,
   onSelect,
 }: {
   block: ContentBlock;
@@ -303,6 +308,7 @@ function BlockRenderer({
   logoUrl?: string | null;
   selected?: boolean;
   editMode?: boolean;
+  previewMode?: boolean;
   onSelect?: () => void;
 }) {
   const data = block.data as Record<string, unknown>;
@@ -506,6 +512,7 @@ function BlockRenderer({
             deviceSlotId={deviceSlotId}
             businessId={businessId}
             type="email_capture"
+            previewMode={previewMode}
             onSuccess={onContactCaptured}
           />
         </StyledBlockShell>
@@ -520,6 +527,7 @@ function BlockRenderer({
             deviceSlotId={deviceSlotId}
             businessId={businessId}
             type="feedback"
+            previewMode={previewMode}
           />
         </StyledBlockShell>
       );
