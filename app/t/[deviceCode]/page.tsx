@@ -1,6 +1,7 @@
 import { cookies, headers } from "next/headers";
 import { createHash } from "crypto";
 import Link from "next/link";
+import type { Metadata } from "next";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import {
@@ -19,6 +20,20 @@ type TapPageProps = {
   params: Promise<{ deviceCode: string }>;
   searchParams: Promise<{ public?: string }>;
 };
+
+export async function generateMetadata({ params }: TapPageProps): Promise<Metadata> {
+  const { deviceCode } = await params;
+  const result = await getDeviceWithActiveCampaign(deviceCode);
+  const business = result?.device.business;
+  const logo = business?.logoUrl;
+  const title = business?.name ? `${business.name} · Tap Connect` : "Tap Connect";
+  return {
+    title,
+    icons: logo
+      ? { icon: [{ url: logo }], apple: [{ url: logo }] }
+      : { icon: "/tap-connect-logo.png", apple: "/tap-connect-logo.png" },
+  };
+}
 
 export default async function TapPage({ params, searchParams }: TapPageProps) {
   const { deviceCode } = await params;

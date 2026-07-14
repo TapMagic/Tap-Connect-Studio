@@ -110,10 +110,11 @@ function StyledBlockShell({
   const style = block.style;
   const css = blockStyleToCss(style);
   const card = style?.card === true;
+  const emailOnly = editMode && (block.channel ?? "page") === "email";
   return (
     <div
       data-block-id={block.id}
-      className={`tap-block ${card ? "tap-block-card" : ""} ${selected ? "tap-block-selected" : ""} ${editMode ? "tap-block-editable" : ""} ${className}`.trim()}
+      className={`tap-block ${card ? "tap-block-card" : ""} ${selected ? "tap-block-selected" : ""} ${editMode ? "tap-block-editable" : ""} ${emailOnly ? "tap-block-email-only" : ""} ${className}`.trim()}
       style={css}
       onClick={
         editMode
@@ -126,6 +127,9 @@ function StyledBlockShell({
       role={editMode ? "button" : undefined}
       tabIndex={editMode ? 0 : undefined}
     >
+      {emailOnly ? (
+        <div className="tap-email-only-banner">Email only — will not display on tap page</div>
+      ) : null}
       {children}
     </div>
   );
@@ -161,6 +165,12 @@ export function CampaignPageRenderer({
   };
   const enabledBlocks = [...blocks]
     .filter((b) => b.enabled)
+    .filter((b) => {
+      // In edit mode show all; live pages hide email-only
+      if (editMode) return true;
+      const ch = b.channel ?? "page";
+      return ch === "page" || ch === "both";
+    })
     .sort((a, b) => a.order - b.order);
 
   const hasUpcomingBlock = enabledBlocks.some((b) => b.type === "upcoming_schedule");
@@ -305,6 +315,9 @@ function BlockRenderer({
       const aspect = (data.aspect as string) ?? "4/3";
       const fit = (data.objectFit as string) ?? "cover";
       const focalY = typeof data.focalY === "number" ? data.focalY : 50;
+      const widthPercent =
+        typeof data.widthPercent === "number" ? Math.min(100, Math.max(20, data.widthPercent)) : 100;
+      const maxHeight = typeof data.maxHeight === "number" ? data.maxHeight : undefined;
       const aspectClass =
         aspect === "16/9"
           ? "aspect-video"
@@ -316,13 +329,28 @@ function BlockRenderer({
                 ? ""
                 : "aspect-[4/3]";
       return (
-        <StyledBlockShell block={block} {...shell} className={`tap-hero-image relative w-full overflow-hidden ${aspectClass}`}>
-          <img
-            src={imageUrl}
-            alt={(data.altText as string) ?? ""}
-            className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
-            style={{ objectPosition: `center ${focalY}%` }}
-          />
+        <StyledBlockShell
+          block={block}
+          {...shell}
+          className={`tap-hero-image relative overflow-hidden ${aspectClass}`}
+        >
+          <div
+            className="mx-auto"
+            style={{
+              width: `${widthPercent}%`,
+              maxHeight: maxHeight ? `${maxHeight}px` : undefined,
+            }}
+          >
+            <img
+              src={imageUrl}
+              alt={(data.altText as string) ?? ""}
+              className={`h-full w-full ${fit === "contain" ? "object-contain" : "object-cover"}`}
+              style={{
+                objectPosition: `center ${focalY}%`,
+                maxHeight: maxHeight ? `${maxHeight}px` : undefined,
+              }}
+            />
+          </div>
           {data.overlayText ? (
             <div className="absolute inset-0 flex items-end bg-gradient-to-t from-black/60 to-transparent p-6">
               <p className="text-lg font-semibold text-white">{data.overlayText as string}</p>

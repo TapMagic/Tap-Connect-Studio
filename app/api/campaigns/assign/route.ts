@@ -26,6 +26,7 @@ const updateSchema = z.object({
   scheduledStart: z.string().datetime().nullable().optional(),
   scheduledEnd: z.string().datetime().nullable().optional(),
   endExperience: z.any().optional(),
+  formSettings: z.any().optional(),
 });
 
 export async function POST(request: Request) {
@@ -108,6 +109,9 @@ export async function PATCH(request: Request) {
         : {}),
       ...(updates.endExperience !== undefined
         ? { endExperience: updates.endExperience as Prisma.InputJsonValue }
+        : {}),
+      ...(updates.formSettings !== undefined
+        ? { formSettings: updates.formSettings as Prisma.InputJsonValue }
         : {}),
     };
 

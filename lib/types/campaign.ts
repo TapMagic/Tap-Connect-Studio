@@ -40,6 +40,13 @@ export interface ContentBlock<T = Record<string, unknown>> {
   data: T;
   /** Per-block visual overrides for mini-page design */
   style?: BlockStyle;
+  /**
+   * Where this block appears:
+   * - page: tap page only (default)
+   * - email: email response only (hidden on tap)
+   * - both: page + included in email offer
+   */
+  channel?: "page" | "email" | "both";
 }
 
 export interface BlockStyle {
@@ -61,6 +68,10 @@ export interface HeroImageData {
   aspect?: "4/3" | "16/9" | "1/1" | "21/9" | "auto";
   objectFit?: "cover" | "contain";
   focalY?: number;
+  /** Display width as % of page (auto = 100) */
+  widthPercent?: number;
+  /** Cap height in px; auto crop/scale within frame */
+  maxHeight?: number;
 }
 
 export interface HeroVideoData {

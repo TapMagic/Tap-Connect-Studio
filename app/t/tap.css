@@ -533,12 +533,21 @@
   gap: 0.55rem;
 }
 
-.tap-block-selected {
-  outline: 2px solid var(--tap-primary, #a3e635);
-  outline-offset: 2px;
-  border-radius: 0.75rem;
-  position: relative;
-  z-index: 1;
+.tap-block-email-only {
+  outline: 1px solid color-mix(in oklch, #f97316 55%, transparent);
+  box-shadow: 0 0 18px rgba(249, 115, 22, 0.28);
+}
+
+.tap-email-only-banner {
+  margin: 0.35rem 0.75rem 0.25rem;
+  border-radius: 0.5rem;
+  border: 1px solid rgba(249, 115, 22, 0.5);
+  background: rgba(249, 115, 22, 0.2);
+  padding: 0.35rem 0.5rem;
+  text-align: center;
+  font-size: 0.625rem;
+  font-weight: 650;
+  color: #fed7aa;
 }
 
 .tap-block-editable {

@@ -99,12 +99,16 @@ export function renderEmailPromoHtml(params: {
   for (const block of blocks) {
     const data = block.data as Record<string, unknown>;
     if (block.type === "headline") {
+      const headline = String(data.headline || "").replaceAll("{{name}}", name);
+      const sub = data.subheadline
+        ? String(data.subheadline).replaceAll("{{name}}", name)
+        : "";
       parts.push(
-        `<h1 style="font-size:22px;margin:0 0 8px;text-align:${(data.alignment as string) || "left"}">${escapeHtml(String(data.headline || ""))}</h1>`
+        `<h1 style="font-size:22px;margin:0 0 8px;text-align:${(data.alignment as string) || "left"}">${escapeHtml(headline)}</h1>`
       );
-      if (data.subheadline) {
+      if (sub) {
         parts.push(
-          `<p style="margin:0 0 16px;color:#64748b;text-align:${(data.alignment as string) || "left"}">${escapeHtml(String(data.subheadline))}</p>`
+          `<p style="margin:0 0 16px;color:#64748b;text-align:${(data.alignment as string) || "left"}">${escapeHtml(sub)}</p>`
         );
       }
     } else if (block.type === "rich_text") {
@@ -115,7 +119,7 @@ export function renderEmailPromoHtml(params: {
         .join("<br/>");
       parts.push(`<p style="margin:0 0 16px">${body}</p>`);
     } else if (block.type === "hero_image" && data.imageUrl) {
-      const maxW = Number(data.emailMaxWidth) || 480;
+      const maxW = Number(data.emailMaxWidth) || Math.round(((Number(data.widthPercent) || 100) / 100) * 480);
       parts.push(
         `<div style="text-align:center;margin:0 0 16px"><img src="${escapeAttr(String(data.imageUrl))}" alt="" style="max-width:${maxW}px;width:100%;height:auto;border-radius:12px" /></div>`
       );
@@ -130,6 +134,35 @@ export function renderEmailPromoHtml(params: {
       parts.push(
         `<div style="background:${escapeAttr(String(data.backgroundColor || primary))};color:${escapeAttr(String(data.textColor || "#0b0f19"))};padding:14px 16px;border-radius:10px;margin:0 0 16px;text-align:center;font-weight:600">${escapeHtml(String(data.text || ""))}</div>`
       );
+    } else if (block.type === "offer_coupon") {
+      parts.push(
+        `<div style="margin:0 0 20px;padding:20px;border-radius:14px;border:2px dashed ${primary};background:#f8fafc;text-align:center">` +
+          `<div style="font-size:18px;font-weight:700;margin-bottom:6px">${escapeHtml(String(data.title || "Your offer"))}</div>` +
+          (data.description
+            ? `<p style="margin:0 0 12px;color:#64748b;font-size:14px">${escapeHtml(String(data.description))}</p>`
+            : "") +
+          (data.code
+            ? `<div style="display:inline-block;font-size:22px;font-weight:800;letter-spacing:0.08em;padding:10px 18px;border-radius:10px;background:${primary};color:#0b0f19">${escapeHtml(String(data.code))}</div>`
+            : "") +
+          `</div>`
+      );
+    } else if (block.type === "spacer") {
+      const h = data.height === "sm" ? 12 : data.height === "lg" ? 36 : data.height === "xl" ? 48 : 20;
+      parts.push(`<div style="height:${h}px"></div>`);
+    } else if (block.type === "columns") {
+      const cols = (data.columns as { id: string; body: string }[]) ?? [];
+      if (cols.length) {
+        parts.push(
+          `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px"><tr>` +
+            cols
+              .map(
+                (c) =>
+                  `<td valign="top" style="width:${Math.floor(100 / cols.length)}%;padding:8px;font-size:14px">${escapeHtml(c.body).replace(/\n/g, "<br/>")}</td>`
+              )
+              .join("") +
+            `</tr></table>`
+        );
+      }
     }
   }
 

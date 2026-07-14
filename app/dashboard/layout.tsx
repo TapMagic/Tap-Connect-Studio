@@ -4,8 +4,24 @@ import { AuthControls } from "@/components/auth/auth-controls";
 import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
 import { isClerkConfigured } from "@/lib/utils/app";
 import "@/app/t/tap.css";
+import type { Metadata } from "next";
 
 export const dynamic = "force-dynamic";
+
+export async function generateMetadata(): Promise<Metadata> {
+  try {
+    const { business } = await requireBusiness();
+    const logo = business.logoUrl;
+    return {
+      title: `${business.name} · Tap Connect Studio`,
+      icons: logo
+        ? { icon: [{ url: logo }], apple: [{ url: logo }] }
+        : { icon: "/tap-connect-logo.png", apple: "/tap-connect-logo.png" },
+    };
+  } catch {
+    return { title: "Tap Connect Studio" };
+  }
+}
 
 export default async function DashboardLayout({
   children,

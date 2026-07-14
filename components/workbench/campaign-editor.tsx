@@ -530,6 +530,8 @@ export function CampaignEditor({
                       selectedBlockId === block.id
                         ? "border-primary bg-primary/10"
                         : "border-border/50 hover:border-primary/40",
+                      block.channel === "email" &&
+                        "border-orange-500/50 bg-orange-500/10 shadow-[0_0_12px_rgba(249,115,22,0.2)]",
                       !block.enabled && "opacity-50",
                       dragId === block.id && "opacity-60"
                     )}
@@ -583,6 +585,11 @@ export function CampaignEditor({
                     </div>
                     <p className="mt-0.5 pl-5 text-[10px] text-muted-foreground">
                       {block.type.replace(/_/g, " ")}
+                      {block.channel === "email"
+                        ? " · email only"
+                        : block.channel === "both"
+                          ? " · page + email"
+                          : ""}
                     </p>
                   </div>
                 ))}
@@ -697,7 +704,25 @@ export function CampaignEditor({
             )}
 
             {tab === "email" && (
-              <EmailTemplatePanel emailReady={integrations.email} campaignId={campaign.id} />
+              <div className="space-y-4">
+                <div className="rounded-xl border border-orange-500/40 bg-orange-500/10 p-4 shadow-[0_0_24px_rgba(249,115,22,0.15)]">
+                  <p className="flex items-center gap-2 font-semibold text-orange-300">
+                    <Mail className="h-4 w-4" />
+                    Email Response
+                  </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Build the offer email sent when someone submits contact capture — same block
+                    idea as the page, laid out for email.
+                  </p>
+                  <a
+                    href={`/dashboard/campaigns/${campaign.id}/email`}
+                    className="mt-3 inline-flex h-8 w-full items-center justify-center rounded-lg border border-primary/20 bg-background/70 text-sm font-medium hover:border-primary/45 hover:bg-primary/10"
+                  >
+                    Open email builder
+                  </a>
+                </div>
+                <EmailTemplatePanel emailReady={integrations.email} campaignId={campaign.id} />
+              </div>
             )}
 
             {tab === "ai" && (
@@ -737,6 +762,15 @@ export function CampaignEditor({
             <div className="builder-phone">
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen">
+                <a
+                  href={`/dashboard/campaigns/${campaign.id}/email`}
+                  className="mx-3 mt-3 block rounded-xl border border-orange-500/50 bg-orange-500/15 px-3 py-3 text-center shadow-[0_0_20px_rgba(249,115,22,0.25)] transition hover:bg-orange-500/25"
+                >
+                  <p className="text-xs font-semibold text-orange-300">Email Response</p>
+                  <p className="mt-0.5 text-[10px] text-orange-200/80">
+                    Contact submit → offer email · click to edit
+                  </p>
+                </a>
                 <CampaignPageRenderer
                   blocks={blocks}
                   theme={theme}
@@ -842,6 +876,28 @@ export function CampaignEditor({
 
               {selectedBlock && (
                 <>
+                  {(selectedBlock.channel ?? "page") === "email" && (
+                    <div className="rounded-lg border border-orange-500/50 bg-orange-500/15 px-3 py-2 text-xs text-orange-200 shadow-[0_0_16px_rgba(249,115,22,0.2)]">
+                      <strong>Email only</strong> — this block will not display on the tap page. It
+                      can feed the follow-up offer email.
+                    </div>
+                  )}
+                  <div className="space-y-1">
+                    <Label className="text-xs">Show on</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selectedBlock.channel ?? "page"}
+                      onChange={(e) =>
+                        updateBlock(selectedBlock.id, {
+                          channel: e.target.value as "page" | "email" | "both",
+                        })
+                      }
+                    >
+                      <option value="page">Tap page only</option>
+                      <option value="email">Email only (hidden on page)</option>
+                      <option value="both">Page + email offer</option>
+                    </select>
+                  </div>
                   <div className="flex items-center gap-2">
                     <input
                       type="checkbox"
@@ -962,6 +1018,33 @@ function BlockFields({
             value={typeof data.focalY === "number" ? data.focalY : 50}
             onChange={(e) => onUpdate("focalY", Number(e.target.value))}
             className="w-full"
+          />
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">
+            Width ({typeof data.widthPercent === "number" ? data.widthPercent : 100}%)
+          </Label>
+          <input
+            type="range"
+            min={30}
+            max={100}
+            value={typeof data.widthPercent === "number" ? data.widthPercent : 100}
+            onChange={(e) => onUpdate("widthPercent", Number(e.target.value))}
+            className="w-full"
+          />
+          <p className="text-[10px] text-muted-foreground">Auto fits the page; slide to shrink.</p>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-xs">Max height (px, optional)</Label>
+          <Input
+            type="number"
+            min={80}
+            max={800}
+            placeholder="Auto"
+            value={typeof data.maxHeight === "number" ? data.maxHeight : ""}
+            onChange={(e) =>
+              onUpdate("maxHeight", e.target.value ? Number(e.target.value) : undefined)
+            }
           />
         </div>
         <div className="space-y-1">

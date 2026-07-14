@@ -6,6 +6,11 @@ import {
 } from "@/lib/services/email";
 import { isEmailReady } from "@/lib/config/integrations";
 import { parseEmailPromo, renderEmailPromoHtml } from "@/lib/email-promo";
+import {
+  parseFormSettingsEmail,
+  resolveEmailOfferBlocks,
+} from "@/lib/campaign-email";
+import { parseContentBlocks } from "@/lib/services/devices";
 
 /** Fire-and-forget emails after a lead is captured. Never throws to the caller. */
 export async function notifyOnLeadCapture(params: {
@@ -43,7 +48,7 @@ export async function notifyOnLeadCapture(params: {
       params.campaignId
         ? prisma.campaign.findUnique({
             where: { id: params.campaignId },
-            select: { title: true },
+            select: { title: true, formSettings: true, contentBlocks: true },
           })
         : null,
       params.deviceSlotId
@@ -81,6 +86,35 @@ export async function notifyOnLeadCapture(params: {
         })
       )
     );
+
+    // Prefer per-campaign email offer (contact → email offer)
+    if (campaign) {
+      const emailResponse = parseFormSettingsEmail(campaign.formSettings, business.name);
+      if (emailResponse.enabled && emailResponse.sendOnCapture !== false) {
+        const pageBlocks = parseContentBlocks(campaign.contentBlocks);
+        const offerBlocks = resolveEmailOfferBlocks({
+          emailResponse,
+          pageBlocks,
+        });
+        const template = {
+          ...emailResponse,
+          blocks: offerBlocks.length ? offerBlocks : emailResponse.blocks,
+        };
+        await sendTransactionalEmail({
+          to: params.leadEmail,
+          subject: template.subject || `Your offer from ${business.name}`,
+          html: renderEmailPromoHtml({
+            template,
+            businessName: business.name,
+            leadName: params.leadName,
+            logoUrl: business.logoUrl,
+            primaryColor: business.brandKit?.primaryColor,
+          }),
+          text: `Thanks for connecting with ${business.name}. Check this email for your offer.`,
+        });
+        return;
+      }
+    }
 
     const promo = parseEmailPromo(business.brandKit?.emailPromo, business.name);
     if (promo.enabled) {
