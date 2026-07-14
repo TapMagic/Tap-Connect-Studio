@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
+import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import {
   getDeviceWithActiveCampaign,
   isCampaignLive,
@@ -31,7 +32,13 @@ export async function generateMetadata({ params }: TapPageProps): Promise<Metada
     title,
     icons: logo
       ? { icon: [{ url: logo }], apple: [{ url: logo }] }
-      : { icon: "/tap-connect-logo.png", apple: "/tap-connect-logo.png" },
+      : {
+          icon: [
+            { url: "/favicon.ico", sizes: "any" },
+            { url: TAP_CONNECT_LOGO, type: "image/png" },
+          ],
+          apple: "/apple-touch-icon.png",
+        },
   };
 }
 
@@ -269,10 +276,11 @@ function TapStatusPage({
       className={`flex min-h-screen flex-col items-center justify-center bg-gradient-to-b ${colors[variant]} to-[#0b0f19] px-6`}
     >
       <div className="max-w-md text-center">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src="/tap-connect-logo.png"
+          src={TAP_CONNECT_LOGO}
           alt="Tap Connect"
-          className="mx-auto mb-6 h-16 w-auto object-contain opacity-90"
+          className="mx-auto mb-6 h-24 w-auto object-contain opacity-90"
         />
         <p className="text-sm uppercase tracking-widest text-white/50">Tap Connect</p>
         {businessName && <p className="mt-2 text-lg font-medium text-white/80">{businessName}</p>}

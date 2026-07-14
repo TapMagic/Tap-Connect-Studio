@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, Building2 } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { OnboardingForm } from "@/components/onboarding/form";
 import { getSessionUser, isPlatformAdmin } from "@/lib/auth";
@@ -22,14 +21,14 @@ export default async function OnboardingPage() {
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-6 py-16">
+      <div className="mb-6 flex justify-center">
+        <TapConnectLogo variant="full" priority imgClassName="h-24 w-auto" />
+      </div>
       <Card className="border-border/60 bg-card/80">
         <CardHeader>
-          <div className="mb-2 flex h-10 w-10 items-center justify-center rounded-lg bg-primary/15 text-primary">
-            <Building2 className="h-5 w-5" />
-          </div>
           <CardTitle className="text-2xl">Set up your business</CardTitle>
           <CardDescription>
-            Create your TapConnect Studio account. You can customize branding, campaigns, and
+            Create your Tap Connect Studio account. You can customize branding, campaigns, and
             devices after setup.
           </CardDescription>
         </CardHeader>

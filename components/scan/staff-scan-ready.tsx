@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
+import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 
 export function StaffScanReady({ accessCode }: { accessCode: string }) {
   const code = accessCode.toUpperCase();
@@ -12,10 +13,11 @@ export function StaffScanReady({ accessCode }: { accessCode: string }) {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-primary/20 to-[#0b0f19] px-6 text-center">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src="/tap-connect-logo.png"
+        src={TAP_CONNECT_LOGO}
         alt="Tap Connect"
-        className="mb-6 h-24 w-auto object-contain"
+        className="mb-6 h-28 w-auto object-contain"
       />
       <p className="text-sm uppercase tracking-[0.2em] text-white/50">Staff scan</p>
       <h1 className="mt-3 text-3xl font-bold text-white">Ready to tap</h1>

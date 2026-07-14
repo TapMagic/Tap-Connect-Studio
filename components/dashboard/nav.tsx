@@ -17,6 +17,7 @@ import {
   Users,
   Zap,
 } from "lucide-react";
+import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -49,11 +50,7 @@ export function DashboardNav({
     <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-card/40 lg:flex lg:flex-col">
       <div className="border-b border-border/60 px-5 py-5">
         <Link href="/dashboard" className="flex items-center gap-2">
-          <img
-            src="/tap-connect-logo.png"
-            alt="Tap Connect"
-            className="h-9 w-9 rounded-lg object-cover"
-          />
+          <TapConnectLogo variant="mark" priority />
           <div>
             <p className="text-sm font-semibold">Tap Connect</p>
             <p className="truncate text-xs text-muted-foreground">{businessName}</p>
@@ -108,10 +105,13 @@ export function MobileDashboardNav({
   return (
     <div className="border-b border-border/60 bg-card/40 lg:hidden">
       <div className="flex items-center justify-between px-4 py-3">
-        <div>
-          <p className="text-sm font-semibold">TapConnect Studio</p>
-          <p className="text-xs text-muted-foreground">{businessName}</p>
-        </div>
+        <Link href="/dashboard" className="flex items-center gap-2">
+          <TapConnectLogo variant="mark" imgClassName="h-8 w-8 rounded-md" />
+          <div>
+            <p className="text-sm font-semibold">Tap Connect</p>
+            <p className="text-xs text-muted-foreground">{businessName}</p>
+          </div>
+        </Link>
       </div>
       <div className="flex gap-1 overflow-x-auto px-3 pb-3">
         {items.slice(0, 6).map((item) => {

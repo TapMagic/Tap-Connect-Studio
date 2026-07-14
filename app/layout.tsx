@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark, shadcn } from "@clerk/ui/themes";
 import { Geist, Geist_Mono } from "next/font/google";
+import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { isClerkConfigured } from "@/lib/utils/app";
 import "./globals.css";
 
@@ -20,8 +21,12 @@ export const metadata: Metadata = {
   description:
     "Turn physical NFC and QR touchpoints into dynamic branded mini-webpages with measurable conversion data.",
   icons: {
-    icon: "/tap-connect-logo.png",
-    apple: "/tap-connect-logo.png",
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: TAP_CONNECT_LOGO, type: "image/png" },
+    ],
+    apple: "/apple-touch-icon.png",
+    shortcut: "/favicon.ico",
   },
 };
 

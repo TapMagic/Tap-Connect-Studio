@@ -1,8 +1,15 @@
 import { Resend } from "resend";
 import { isEmailReady } from "@/lib/config/integrations";
+import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
+import { getAppUrl } from "@/lib/utils/app";
 
 export function getEmailFromAddress(): string | null {
   return process.env.RESEND_FROM_EMAIL?.trim() || null;
+}
+
+function brandLogoImg() {
+  const src = `${getAppUrl()}${TAP_CONNECT_LOGO}`;
+  return `<img src="${src}" alt="Tap Connect" width="72" height="72" style="display:block;margin:0 auto 16px;border-radius:12px;width:72px;height:72px;object-fit:cover" />`;
 }
 
 export async function sendTransactionalEmail(params: {
@@ -70,7 +77,8 @@ export function ownerLeadNotifyHtml(params: {
     <tr><td align="center">
       <table width="100%" style="max-width:520px;background:#121826;border-radius:16px;border:1px solid #1f2937;padding:28px;">
         <tr><td>
-          <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#a3e635;">Tap Connect</p>
+          ${brandLogoImg()}
+          <p style="margin:0;font-size:12px;letter-spacing:0.2em;text-transform:uppercase;color:#a3e635;text-align:center;">Tap Connect</p>
           <h1 style="margin:12px 0 8px;font-size:22px;color:#fff;">New ${params.type === "feedback" ? "feedback" : "lead"}</h1>
           <p style="margin:0 0 20px;color:#94a3b8;font-size:14px;">Someone just engaged with ${escapeHtml(params.businessName)}.</p>
           <table width="100%" style="font-size:14px;color:#e2e8f0;">

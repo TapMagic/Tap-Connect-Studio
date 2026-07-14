@@ -17,8 +17,10 @@ import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/components/ui/button";
 import { AuthLinks } from "@/components/auth/auth-controls";
 import { HeroCtas } from "@/components/auth/hero-ctas";
+import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { LiveDemoPhone } from "@/components/marketing/live-demo-phone";
 import { cn } from "@/lib/utils";
+import "@/app/t/tap.css";
 
 const trust = [
   "Works on iPhone & Android",
@@ -189,8 +191,7 @@ export default function Home() {
       {/* Nav */}
       <header className="mx-auto flex max-w-7xl items-center justify-between px-6 py-5 lg:px-8">
         <div className="flex items-center gap-3">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/tap-connect-logo.png" alt="Tap Connect" className="h-9 w-auto object-contain" />
+          <TapConnectLogo variant="mark" priority imgClassName="h-11 w-11 rounded-xl" />
           <div>
             <p className="text-sm font-semibold tracking-tight">Tap Connect Studio</p>
             <p className="text-[11px] text-slate-400">Powered by Tap The Magic</p>

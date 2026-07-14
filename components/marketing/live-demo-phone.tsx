@@ -5,7 +5,7 @@ import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { ContactCardSurface } from "@/components/tap/save-contact";
 import type { ContentBlock } from "@/lib/types/campaign";
 import { nanoid } from "nanoid";
-import "@/app/t/tap.css";
+import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 
 const DEMO_THEME = {
   primaryColor: "#a3e635",
@@ -154,7 +154,7 @@ export function LiveDemoPhone({ className = "" }: { className?: string }) {
               businessId="demo"
               businessName="Demo Studio"
               previewMode
-              logoUrl="/tap-connect-logo.png"
+              logoUrl={TAP_CONNECT_LOGO}
               contactProfile={{
                 displayName: "Demo Studio",
                 phone: "+1 (555) 123-4567",
@@ -192,7 +192,7 @@ export function LiveDemoPhone({ className = "" }: { className?: string }) {
                     linkedin: "https://linkedin.com/",
                   },
                 }}
-                logoUrl="/tap-connect-logo.png"
+                logoUrl={TAP_CONNECT_LOGO}
                 businessName="Demo Studio"
                 headline="Every conversation → a customer"
                 buttonLabel="Add to contacts"

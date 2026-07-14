@@ -2,6 +2,7 @@ import { DashboardNav, MobileDashboardNav } from "@/components/dashboard/nav";
 import { DevModeBanner } from "@/components/dev-mode-banner";
 import { AuthControls } from "@/components/auth/auth-controls";
 import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
+import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { isClerkConfigured } from "@/lib/utils/app";
 import "@/app/t/tap.css";
 import type { Metadata } from "next";
@@ -16,7 +17,13 @@ export async function generateMetadata(): Promise<Metadata> {
       title: `${business.name} · Tap Connect Studio`,
       icons: logo
         ? { icon: [{ url: logo }], apple: [{ url: logo }] }
-        : { icon: "/tap-connect-logo.png", apple: "/tap-connect-logo.png" },
+        : {
+            icon: [
+              { url: "/favicon.ico", sizes: "any" },
+              { url: TAP_CONNECT_LOGO, type: "image/png" },
+            ],
+            apple: "/apple-touch-icon.png",
+          },
     };
   } catch {
     return { title: "Tap Connect Studio" };
