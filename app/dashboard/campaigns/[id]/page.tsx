@@ -53,6 +53,9 @@ export default async function CampaignEditPage({ params }: PageProps) {
           !Array.isArray(campaign.themeOverrides)
             ? (campaign.themeOverrides as Record<string, string>)
             : {},
+        scheduledStart: campaign.scheduledStart?.toISOString() ?? null,
+        scheduledEnd: campaign.scheduledEnd?.toISOString() ?? null,
+        endExperience: campaign.endExperience ?? {},
       }}
       brandKit={{
         primaryColor: brandKit?.primaryColor ?? "#22c55e",

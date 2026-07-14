@@ -20,7 +20,10 @@ export type BlockType =
   | "faq"
   | "action_block"
   | "upcoming_schedule"
-  | "digital_card";
+  | "digital_card"
+  | "spacer"
+  | "columns"
+  | "banner";
 
 export interface UpcomingScheduleData {
   headline?: string;
@@ -114,6 +117,9 @@ export interface ButtonItem {
   openInNewTab?: boolean;
   /** Soft card chrome around the button */
   card?: boolean;
+  /** Per-button color overrides */
+  backgroundColor?: string;
+  textColor?: string;
 }
 
 export interface ButtonGroupData {
@@ -245,12 +251,30 @@ export interface ActionBlockData {
   }[];
 }
 
+export interface SpacerData {
+  height?: "sm" | "md" | "lg" | "xl";
+}
+
+export interface ColumnsData {
+  columns: { id: string; body: string }[];
+  gap?: "sm" | "md" | "lg";
+}
+
+export interface BannerData {
+  text: string;
+  backgroundColor?: string;
+  textColor?: string;
+  linkUrl?: string;
+}
+
 export interface CampaignTheme {
   primaryColor?: string;
   secondaryColor?: string;
   backgroundColor?: string;
   textColor?: string;
   fontStyle?: string;
+  /** CSS font-family override when set */
+  fontFamily?: string;
   backgroundImage?: string;
   /** Dark overlay 0–100 over backgroundImage */
   backgroundOverlayOpacity?: number;

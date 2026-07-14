@@ -12,6 +12,15 @@ import {
   SOCIAL_PLATFORM_OPTIONS,
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
+import { defaultEndExperience, parseEndExperience, type EndExperience } from "@/lib/end-experience";
+
+type OtherLink = {
+  id: string;
+  title: string;
+  description?: string;
+  iconUrl?: string;
+  href: string;
+};
 
 interface BrandKitFormProps {
   brandKit: {
@@ -33,6 +42,8 @@ interface BrandKitFormProps {
     logoUrl: string | null;
     email: string | null;
     contactProfile: BrandContactProfile;
+    otherLinks?: OtherLink[];
+    endExperience?: unknown;
   };
   mediaUploadReady?: boolean;
   stockReady?: boolean;
@@ -58,6 +69,12 @@ export function BrandKitForm({
   });
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [otherLinks, setOtherLinks] = useState<OtherLink[]>(
+    Array.isArray(brandKit.otherLinks) ? brandKit.otherLinks : []
+  );
+  const [endExperience, setEndExperience] = useState<EndExperience>(() =>
+    parseEndExperience(brandKit.endExperience ?? defaultEndExperience())
+  );
 
   async function handleSave() {
     setSaving(true);
@@ -71,6 +88,8 @@ export function BrandKitForm({
         website: contact.website || null,
         email: form.email,
         contactProfile: contact,
+        otherLinks,
+        endExperience,
       }),
     });
     if (!res.ok) {
@@ -200,10 +219,10 @@ export function BrandKitForm({
               value={form.fontStyle}
               onChange={(e) => setForm((f) => ({ ...f, fontStyle: e.target.value }))}
             >
-              <option value="MODERN">Modern</option>
-              <option value="CLASSIC">Classic</option>
-              <option value="PLAYFUL">Playful</option>
-              <option value="PREMIUM">Premium</option>
+              <option value="MODERN">Modern sans</option>
+              <option value="CLASSIC">Classic serif</option>
+              <option value="PLAYFUL">Playful rounded</option>
+              <option value="PREMIUM">Premium display</option>
               <option value="MINIMAL">Minimal</option>
             </Select>
           </div>
@@ -296,6 +315,107 @@ export function BrandKitForm({
               placeholder="https://g.page/..."
             />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Other links</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Custom items (partners, menus, portals) with title, description, icon, and link. Keep
+            adding as needed.
+          </p>
+          {otherLinks.map((link, index) => (
+            <div key={link.id} className="space-y-2 rounded-lg border border-border/50 p-3">
+              <div className="flex justify-between">
+                <Label className="text-xs">Link {index + 1}</Label>
+                <button
+                  type="button"
+                  className="text-xs text-red-400"
+                  onClick={() => setOtherLinks((prev) => prev.filter((l) => l.id !== link.id))}
+                >
+                  Remove
+                </button>
+              </div>
+              <Input
+                placeholder="Title"
+                value={link.title}
+                onChange={(e) =>
+                  setOtherLinks((prev) =>
+                    prev.map((l) => (l.id === link.id ? { ...l, title: e.target.value } : l))
+                  )
+                }
+              />
+              <Input
+                placeholder="Description"
+                value={link.description ?? ""}
+                onChange={(e) =>
+                  setOtherLinks((prev) =>
+                    prev.map((l) =>
+                      l.id === link.id ? { ...l, description: e.target.value } : l
+                    )
+                  )
+                }
+              />
+              <Input
+                placeholder="Link URL"
+                value={link.href}
+                onChange={(e) =>
+                  setOtherLinks((prev) =>
+                    prev.map((l) => (l.id === link.id ? { ...l, href: e.target.value } : l))
+                  )
+                }
+              />
+              <MediaPicker
+                label="Icon / favicon"
+                value={link.iconUrl ?? ""}
+                onChange={(url) =>
+                  setOtherLinks((prev) =>
+                    prev.map((l) => (l.id === link.id ? { ...l, iconUrl: url } : l))
+                  )
+                }
+                mediaUploadReady={mediaUploadReady}
+                stockReady={stockReady}
+              />
+            </div>
+          ))}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() =>
+              setOtherLinks((prev) => [
+                ...prev,
+                { id: crypto.randomUUID(), title: "", description: "", href: "", iconUrl: "" },
+              ])
+            }
+          >
+            Add other link
+          </Button>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Default end page</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-xs text-muted-foreground">
+            Safety net when a campaign ends and no group end page is set — orphan tags still collect
+            contacts.
+          </p>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={endExperience.enabled}
+              onChange={(e) =>
+                setEndExperience((x) => ({ ...x, enabled: e.target.checked }))
+              }
+            />
+            Enable brand default end experience
+          </label>
         </CardContent>
       </Card>
 

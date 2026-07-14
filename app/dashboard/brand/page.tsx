@@ -41,6 +41,16 @@ export default async function BrandPage() {
           logoUrl: business.logoUrl,
           email: business.email,
           contactProfile: parseBrandContactProfile(brandKit?.socialLinks),
+          otherLinks: Array.isArray(brandKit?.otherLinks)
+            ? (brandKit.otherLinks as {
+                id: string;
+                title: string;
+                description?: string;
+                iconUrl?: string;
+                href: string;
+              }[])
+            : [],
+          endExperience: brandKit?.endExperience ?? {},
         }}
         mediaUploadReady={isMediaUploadReady()}
         stockReady={isStockImagesReady()}

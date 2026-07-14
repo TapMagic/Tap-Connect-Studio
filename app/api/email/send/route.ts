@@ -3,12 +3,16 @@ import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { sendEmailPlaceholder } from "@/lib/integrations/placeholders";
 import { sendTransactionalEmail } from "@/lib/services/email";
+import { prisma } from "@/lib/db";
+import { parseEmailPromo, renderEmailPromoHtml } from "@/lib/email-promo";
 
 const schema = z.object({
   to: z.string().email(),
-  subject: z.string().min(2).max(160),
-  html: z.string().min(2).max(20000),
+  subject: z.string().min(2).max(160).optional(),
+  html: z.string().min(2).max(20000).optional(),
   previewText: z.string().max(200).optional(),
+  usePromoTemplate: z.boolean().optional(),
+  campaignId: z.string().optional(),
 });
 
 export async function POST(request: Request) {
@@ -18,12 +22,29 @@ export async function POST(request: Request) {
       return NextResponse.json(placeholder, { status: 503 });
     }
 
-    await requireBusiness();
+    const { business } = await requireBusiness();
     const body = schema.parse(await request.json());
+
+    let subject = body.subject ?? `Thanks from ${business.name}`;
+    let html = body.html ?? "";
+
+    if (body.usePromoTemplate || !html) {
+      const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
+      const template = parseEmailPromo(brandKit?.emailPromo, business.name);
+      subject = template.subject || subject;
+      html = renderEmailPromoHtml({
+        template,
+        businessName: business.name,
+        leadName: "there",
+        logoUrl: business.logoUrl,
+        primaryColor: brandKit?.primaryColor,
+      });
+    }
+
     const result = await sendTransactionalEmail({
       to: body.to,
-      subject: body.subject,
-      html: body.html,
+      subject,
+      html,
       text: body.previewText,
     });
 

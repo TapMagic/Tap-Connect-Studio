@@ -5,6 +5,7 @@ import {
   sendTransactionalEmail,
 } from "@/lib/services/email";
 import { isEmailReady } from "@/lib/config/integrations";
+import { parseEmailPromo, renderEmailPromoHtml } from "@/lib/email-promo";
 
 /** Fire-and-forget emails after a lead is captured. Never throws to the caller. */
 export async function notifyOnLeadCapture(params: {
@@ -26,7 +27,9 @@ export async function notifyOnLeadCapture(params: {
       select: {
         name: true,
         email: true,
+        logoUrl: true,
         googleReviewUrl: true,
+        brandKit: true,
         users: {
           where: { role: { in: ["OWNER", "MANAGER"] } },
           take: 3,
@@ -57,7 +60,6 @@ export async function notifyOnLeadCapture(params: {
     ].filter((e): e is string => Boolean(e?.trim()));
 
     const uniqueOwners = [...new Set(ownerEmails.map((e) => e.trim().toLowerCase()))];
-
     const deviceLabel = device?.nickname ?? device?.deviceCode ?? null;
 
     await Promise.all(
@@ -80,16 +82,32 @@ export async function notifyOnLeadCapture(params: {
       )
     );
 
-    await sendTransactionalEmail({
-      to: params.leadEmail,
-      subject: `Thanks from ${business.name}`,
-      html: leadThankYouHtml({
-        businessName: business.name,
-        leadName: params.leadName,
-        reviewUrl: business.googleReviewUrl,
-      }),
-      text: `Thanks for connecting with ${business.name}.`,
-    });
+    const promo = parseEmailPromo(business.brandKit?.emailPromo, business.name);
+    if (promo.enabled) {
+      await sendTransactionalEmail({
+        to: params.leadEmail,
+        subject: promo.subject || `Thanks from ${business.name}`,
+        html: renderEmailPromoHtml({
+          template: promo,
+          businessName: business.name,
+          leadName: params.leadName,
+          logoUrl: business.logoUrl,
+          primaryColor: business.brandKit?.primaryColor,
+        }),
+        text: `Thanks for connecting with ${business.name}.`,
+      });
+    } else {
+      await sendTransactionalEmail({
+        to: params.leadEmail,
+        subject: `Thanks from ${business.name}`,
+        html: leadThankYouHtml({
+          businessName: business.name,
+          leadName: params.leadName,
+          reviewUrl: business.googleReviewUrl,
+        }),
+        text: `Thanks for connecting with ${business.name}.`,
+      });
+    }
   } catch (error) {
     console.error("Lead email notify error:", error);
   }

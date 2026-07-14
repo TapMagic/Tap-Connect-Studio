@@ -36,7 +36,7 @@ type Preview = {
   localClock: string;
   paused: boolean;
   live: {
-    via: "slot" | "default";
+    via: "slot" | "default" | "end";
     slotId: string | null;
     label: string;
     campaignId: string;
@@ -60,6 +60,8 @@ type GroupDetail = {
   showUpcomingOnPages: boolean;
   defaultCampaignId: string | null;
   defaultCampaign: { id: string; title: string; status: string } | null;
+  endCampaignId?: string | null;
+  endCampaign?: { id: string; title: string; status: string } | null;
   slots: Slot[];
   campaigns: { id: string; title: string; status: string; campaignType: string }[];
   devices: {
@@ -544,7 +546,34 @@ export function GroupManager({
               </option>
             ))}
           </select>
+          <select
+            className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+            value={group.endCampaignId ?? ""}
+            onChange={(e) => void patchGroup({ endCampaignId: e.target.value || null })}
+          >
+            <option value="">No end page</option>
+            {allCampaigns.map((c) => (
+              <option key={`end-${c.id}`} value={c.id}>
+                End page: {c.title}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            variant="outline"
+            disabled={busy}
+            onClick={() => {
+              const first = allCampaigns[0];
+              if (first) void patchGroup({ endCampaignId: first.id });
+            }}
+          >
+            Use campaign as end page
+          </Button>
         </div>
+        <p className="text-[11px] text-muted-foreground">
+          End page shows when no timed slot matches — great for “offer over, stay in touch.”
+          Create/edit that campaign like any other page.
+        </p>
       </section>
 
       <section className="space-y-3">

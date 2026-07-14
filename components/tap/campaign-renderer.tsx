@@ -27,6 +27,7 @@ interface CampaignTheme {
   backgroundImage?: string;
   backgroundOverlayOpacity?: number;
   fontStyle?: string;
+  fontFamily?: string;
 }
 
 interface CampaignPageProps {
@@ -41,12 +42,18 @@ interface CampaignPageProps {
   contactProfile?: BrandContactProfile;
   upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
   showUpcomingStrip?: boolean;
+  /** Editor: outline the block being edited */
+  selectedBlockId?: string | null;
+  onSelectBlock?: (blockId: string) => void;
+  editMode?: boolean;
 }
 
 const PAGE_FONT: Record<string, string> = {
   sans: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
   serif: "ui-serif, Georgia, Cambria, 'Times New Roman', serif",
   display: "'Segoe UI', 'Helvetica Neue', Impact, sans-serif",
+  mono: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace",
+  rounded: "'Trebuchet MS', 'Segoe UI', sans-serif",
 };
 
 function GoogleMark({ variant }: { variant: string }) {
@@ -89,18 +96,35 @@ function StyledBlockShell({
   block,
   children,
   className = "",
+  selected,
+  editMode,
+  onSelect,
 }: {
   block: ContentBlock;
   children: ReactNode;
   className?: string;
+  selected?: boolean;
+  editMode?: boolean;
+  onSelect?: () => void;
 }) {
   const style = block.style;
   const css = blockStyleToCss(style);
   const card = style?.card === true;
   return (
     <div
-      className={`tap-block ${card ? "tap-block-card" : ""} ${className}`.trim()}
+      data-block-id={block.id}
+      className={`tap-block ${card ? "tap-block-card" : ""} ${selected ? "tap-block-selected" : ""} ${editMode ? "tap-block-editable" : ""} ${className}`.trim()}
       style={css}
+      onClick={
+        editMode
+          ? (e) => {
+              e.stopPropagation();
+              onSelect?.();
+            }
+          : undefined
+      }
+      role={editMode ? "button" : undefined}
+      tabIndex={editMode ? 0 : undefined}
     >
       {children}
     </div>
@@ -119,6 +143,9 @@ export function CampaignPageRenderer({
   contactProfile: contactProfileProp,
   upcomingItems = [],
   showUpcomingStrip = false,
+  selectedBlockId = null,
+  onSelectBlock,
+  editMode = false,
 }: CampaignPageProps) {
   const contactProfile: BrandContactProfile = {
     ...parseBrandContactProfile(brandKit?.socialLinks),
@@ -152,7 +179,8 @@ export function CampaignPageRenderer({
     "--tap-secondary": theme.secondaryColor,
     "--tap-bg": theme.backgroundColor,
     "--tap-text": theme.textColor,
-    fontFamily: PAGE_FONT[theme.fontStyle ?? "sans"] ?? PAGE_FONT.sans,
+    fontFamily:
+      theme.fontFamily || PAGE_FONT[theme.fontStyle ?? "sans"] || PAGE_FONT.sans,
     ...(theme.backgroundImage
       ? {
           backgroundImage: `linear-gradient(rgba(0,0,0,${overlay / 100}), rgba(0,0,0,${overlay / 100})), url(${theme.backgroundImage})`,
@@ -164,7 +192,11 @@ export function CampaignPageRenderer({
   } as CSSProperties;
 
   return (
-    <div className="tap-page min-h-screen" style={style}>
+    <div
+      className="tap-page min-h-screen"
+      style={style}
+      onClick={editMode ? () => onSelectBlock?.("") : undefined}
+    >
       <div className="tap-page-inner mx-auto max-w-lg">
         {mark && (
           <div className="flex justify-center px-4 pt-6">
@@ -186,13 +218,13 @@ export function CampaignPageRenderer({
             upcomingItems={upcomingItems}
             contactProfile={contactProfile}
             logoUrl={logoUrl}
+            selected={selectedBlockId === block.id}
+            editMode={editMode}
+            onSelect={() => onSelectBlock?.(block.id)}
           />
         ))}
         {showUpcomingStrip && !hasUpcomingBlock && upcomingItems.length > 0 && (
-          <UpcomingStrip
-            headline="Coming up"
-            items={upcomingItems}
-          />
+          <UpcomingStrip headline="Coming up" items={upcomingItems} />
         )}
         <footer className="px-4 py-10">
           <PoweredByTapTheMagic />
@@ -243,6 +275,9 @@ function BlockRenderer({
   upcomingItems = [],
   contactProfile = {},
   logoUrl,
+  selected = false,
+  editMode = false,
+  onSelect,
 }: {
   block: ContentBlock;
   campaignId: string;
@@ -256,8 +291,12 @@ function BlockRenderer({
   upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
   contactProfile?: BrandContactProfile;
   logoUrl?: string | null;
+  selected?: boolean;
+  editMode?: boolean;
+  onSelect?: () => void;
 }) {
   const data = block.data as Record<string, unknown>;
+  const shell = { selected, editMode, onSelect };
 
   switch (block.type) {
     case "hero_image": {
@@ -277,7 +316,7 @@ function BlockRenderer({
                 ? ""
                 : "aspect-[4/3]";
       return (
-        <StyledBlockShell block={block} className={`tap-hero-image relative w-full overflow-hidden ${aspectClass}`}>
+        <StyledBlockShell block={block} {...shell} className={`tap-hero-image relative w-full overflow-hidden ${aspectClass}`}>
           <img
             src={imageUrl}
             alt={(data.altText as string) ?? ""}
@@ -307,7 +346,7 @@ function BlockRenderer({
           }).toString()}`
         : null;
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           {embedSrc ? (
             <div className="aspect-video overflow-hidden rounded-xl shadow-lg">
               <iframe
@@ -337,7 +376,7 @@ function BlockRenderer({
       const alignClass =
         alignment === "left" ? "text-left" : alignment === "right" ? "text-right" : "text-center";
       return (
-        <StyledBlockShell block={block} className={`px-5 pt-8 ${alignClass}`}>
+        <StyledBlockShell block={block} {...shell} className={`px-5 pt-8 ${alignClass}`}>
           <h1 className="tap-headline tracking-tight">{data.headline as string}</h1>
           {data.subheadline ? (
             <p className="tap-subheadline mt-2 opacity-80">{data.subheadline as string}</p>
@@ -348,7 +387,7 @@ function BlockRenderer({
 
     case "rich_text":
       return (
-        <StyledBlockShell block={block} className="px-5 pt-3">
+        <StyledBlockShell block={block} {...shell} className="px-5 pt-3">
           <p className="tap-body whitespace-pre-wrap leading-relaxed opacity-90">
             {data.body as string}
           </p>
@@ -357,7 +396,7 @@ function BlockRenderer({
 
     case "product_details":
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-sm">
             <h3 className="text-lg font-semibold">{data.name as string}</h3>
             {data.price ? <p className="mt-1 text-sm opacity-70">{data.price as string}</p> : null}
@@ -382,7 +421,7 @@ function BlockRenderer({
 
       if (isLocked) {
         return (
-          <StyledBlockShell block={block} className="px-4 pt-4">
+          <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
             <div
               className="rounded-2xl border border-dashed border-white/20 bg-white/5 p-5 text-center"
               id={`offer-${block.id}`}
@@ -403,7 +442,7 @@ function BlockRenderer({
       }
 
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <div
             className="rounded-2xl border-2 border-dashed border-[var(--tap-primary)] bg-[var(--tap-primary)]/10 p-5 text-center"
             id={`offer-${block.id}`}
@@ -432,7 +471,7 @@ function BlockRenderer({
 
     case "email_capture":
       return (
-        <StyledBlockShell block={block}>
+        <StyledBlockShell block={block} {...shell}>
           <CampaignLeadForm
             block={block}
             campaignId={campaignId}
@@ -446,7 +485,7 @@ function BlockRenderer({
 
     case "feedback_form":
       return (
-        <StyledBlockShell block={block}>
+        <StyledBlockShell block={block} {...shell}>
           <CampaignLeadForm
             block={block}
             campaignId={campaignId}
@@ -463,7 +502,7 @@ function BlockRenderer({
       const badgeStyle = (data.badgeStyle as string) ?? "google_g";
       const outline = badgeStyle === "outline";
       return (
-        <StyledBlockShell block={block} className="px-4 pt-5">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-5">
           <div className={`tap-google-card ${outline ? "tap-google-card-outline" : ""}`}>
             <GoogleMark variant={badgeStyle} />
             <h3 className="mt-3 text-lg font-semibold">{data.headline as string}</h3>
@@ -498,7 +537,7 @@ function BlockRenderer({
             ? `https://maps.google.com/?q=${encodeURIComponent(address)}`
             : undefined;
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <h3 className="mb-2 text-lg font-semibold">{data.headline as string}</h3>
           {address ? <p className="mb-4 text-sm opacity-80">{address}</p> : null}
           <TapActionButton
@@ -532,7 +571,7 @@ function BlockRenderer({
                 ? "tap-btn-row"
                 : "tap-btn-stack";
       return (
-        <StyledBlockShell block={block} className={`px-4 pt-4 ${layoutClass}`}>
+        <StyledBlockShell block={block} {...shell} className={`px-4 pt-4 ${layoutClass}`}>
           {buttons.map((btn) => (
             <RichTapButton
               key={btn.id}
@@ -561,7 +600,7 @@ function BlockRenderer({
       const layout = (data.layout as string) ?? "row";
       if (!links.length) {
         return (
-          <StyledBlockShell block={block} className="px-4 pt-4">
+          <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
             {data.headline ? (
               <h3 className="mb-3 text-lg font-semibold">{data.headline as string}</h3>
             ) : null}
@@ -570,7 +609,7 @@ function BlockRenderer({
         );
       }
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           {data.headline ? <h3 className="mb-3 text-lg font-semibold">{data.headline as string}</h3> : null}
           <div className={layout === "stack" ? "tap-btn-stack" : "tap-social-row"}>
             {links.map((link, i) =>
@@ -610,7 +649,7 @@ function BlockRenderer({
       const actions = (data.actions as { id: string; type: string; label: string; url?: string }[]) ?? [];
       if (!actions.length) return null;
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           {data.headline ? <h3 className="mb-3 text-lg font-semibold">{data.headline as string}</h3> : null}
           <div className="tap-btn-grid-2">
             {actions.map((action) => {
@@ -655,7 +694,7 @@ function BlockRenderer({
     case "faq": {
       const items = (data.items as { id: string; question: string; answer: string }[]) ?? [];
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           {data.headline ? <h3 className="mb-3 text-lg font-semibold">{data.headline as string}</h3> : null}
           <div className="space-y-3">
             {items.map((item) => (
@@ -671,7 +710,7 @@ function BlockRenderer({
 
     case "disclaimer":
       return (
-        <StyledBlockShell block={block} className="px-5 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-5 pt-4">
           <p className="text-xs leading-relaxed opacity-50">{data.text as string}</p>
         </StyledBlockShell>
       );
@@ -680,7 +719,7 @@ function BlockRenderer({
       const manual = (data.items as { label: string; whenLabel: string; scheduleLabel?: string }[]) ?? [];
       const items = manual.length ? manual : upcomingItems;
       return (
-        <StyledBlockShell block={block}>
+        <StyledBlockShell block={block} {...shell}>
           <UpcomingStrip
             headline={(data.headline as string) || "Coming up"}
             items={items}
@@ -691,7 +730,7 @@ function BlockRenderer({
 
     case "age_gate":
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-center">
             <p className="font-semibold">{(data.headline as string) || "Age verification"}</p>
             <p className="mt-2 text-sm opacity-80">
@@ -724,7 +763,7 @@ function BlockRenderer({
             address: data.address as string | undefined,
           };
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <ContactCardSurface
             profile={profile}
             logoUrl={logoUrl}
@@ -752,7 +791,7 @@ function BlockRenderer({
 
     case "digital_card": {
       return (
-        <StyledBlockShell block={block} className="px-4 pt-5">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-5">
           <ContactCardSurface
             profile={contactProfile}
             logoUrl={logoUrl}
@@ -786,7 +825,7 @@ function BlockRenderer({
         [];
       if (!images.length) return null;
       return (
-        <StyledBlockShell block={block} className="px-4 pt-4">
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <div className="grid grid-cols-2 gap-2">
             {images.map((img) => {
               const body = (
@@ -814,6 +853,53 @@ function BlockRenderer({
               );
             })}
           </div>
+        </StyledBlockShell>
+      );
+    }
+
+    case "spacer": {
+      const h = (data.height as string) || "md";
+      const px = h === "sm" ? 12 : h === "lg" ? 40 : h === "xl" ? 64 : 24;
+      return (
+        <StyledBlockShell block={block} {...shell} className="px-0">
+          <div style={{ height: px }} aria-hidden />
+        </StyledBlockShell>
+      );
+    }
+
+    case "columns": {
+      const cols = (data.columns as { id: string; body: string }[]) ?? [];
+      if (!cols.length) return null;
+      return (
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
+          <div className="tap-columns">
+            {cols.map((col) => (
+              <div key={col.id} className="tap-column">
+                <p className="whitespace-pre-wrap text-sm opacity-90">{col.body}</p>
+              </div>
+            ))}
+          </div>
+        </StyledBlockShell>
+      );
+    }
+
+    case "banner": {
+      const bg = (data.backgroundColor as string) || "var(--tap-primary)";
+      const fg = (data.textColor as string) || "#0b0f19";
+      const inner = (
+        <div className="tap-banner" style={{ background: bg, color: fg }}>
+          {(data.text as string) || ""}
+        </div>
+      );
+      return (
+        <StyledBlockShell block={block} {...shell} className="px-4 pt-3">
+          {data.linkUrl ? (
+            <a href={data.linkUrl as string} className="block no-underline">
+              {inner}
+            </a>
+          ) : (
+            inner
+          )}
         </StyledBlockShell>
       );
     }

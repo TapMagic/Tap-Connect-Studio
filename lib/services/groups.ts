@@ -38,6 +38,7 @@ export async function getCampaignGroup(businessId: string, groupId: string) {
     include: {
       business: { select: { timezone: true } },
       defaultCampaign: { select: { id: true, title: true, status: true } },
+      endCampaign: { select: { id: true, title: true, status: true } },
       campaigns: {
         orderBy: { updatedAt: "desc" },
         select: {
@@ -84,6 +85,7 @@ export function buildGroupLivePreview(group: {
   business?: { timezone?: string | null } | null;
   status: string;
   defaultCampaign?: { id: string; title: string; status: string } | null;
+  endCampaign?: { id: string; title: string; status: string } | null;
   slots: {
     id: string;
     label: string;
@@ -142,7 +144,15 @@ export function buildGroupLivePreview(group: {
             campaignId: group.defaultCampaign.id,
             campaignTitle: group.defaultCampaign.title,
           }
-        : null,
+        : group.endCampaign && !paused
+          ? {
+              via: "end" as const,
+              slotId: null as string | null,
+              label: "End page",
+              campaignId: group.endCampaign.id,
+              campaignTitle: group.endCampaign.title,
+            }
+          : null,
     upcoming,
   };
 }
@@ -418,6 +428,7 @@ export async function updateCampaignGroup(
     description?: string | null;
     status?: CampaignStatus;
     defaultCampaignId?: string | null;
+    endCampaignId?: string | null;
     timezone?: string | null;
     showUpcomingOnPages?: boolean;
     industryHint?: string | null;
@@ -438,6 +449,7 @@ export async function updateCampaignGroup(
       ...(data.defaultCampaignId !== undefined
         ? { defaultCampaignId: data.defaultCampaignId }
         : {}),
+      ...(data.endCampaignId !== undefined ? { endCampaignId: data.endCampaignId } : {}),
       ...(data.timezone !== undefined ? { timezone: data.timezone } : {}),
       ...(data.showUpcomingOnPages !== undefined
         ? { showUpcomingOnPages: data.showUpcomingOnPages }

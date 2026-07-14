@@ -88,6 +88,28 @@ export async function resolveGroupCampaign(groupId: string, at = new Date()) {
     };
   }
 
+  // End page when nothing matches
+  try {
+    const withEnd = await prisma.campaignGroup.findUnique({
+      where: { id: groupId },
+      include: { endCampaign: true },
+    });
+    if (
+      withEnd?.endCampaign &&
+      !["ARCHIVED", "CLOSED", "PAUSED"].includes(withEnd.endCampaign.status)
+    ) {
+      return {
+        slot: null,
+        campaign: withEnd.endCampaign,
+        group: withEnd,
+        via: "end" as const,
+        timezone: tz,
+      };
+    }
+  } catch {
+    /* endCampaignId may not exist yet */
+  }
+
   return null;
 }
 

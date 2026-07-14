@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { TapActionButton } from "@/components/tap/action-button";
 import { SocialGlyph, socialBrandStyle, SOCIAL_BRAND } from "@/components/tap/social-icons";
 import type { ButtonItem } from "@/lib/types/campaign";
@@ -126,6 +127,16 @@ export function RichTapButton({
     btn.size === "sm" ? "tap-btn-sm" : btn.size === "lg" ? "tap-btn-lg" : "";
   const widthClass = btn.fullWidth === false ? "" : "w-full";
   const cardClass = btn.card ? "tap-btn-card" : "";
+  const customStyle: CSSProperties | undefined =
+    btn.backgroundColor || btn.textColor
+      ? {
+          ...(btn.backgroundColor ? { background: btn.backgroundColor } : {}),
+          ...(btn.textColor ? { color: btn.textColor } : {}),
+        }
+      : undefined;
+  const combinedStyle = useBrand
+    ? { ...brand, ...customStyle }
+    : customStyle;
 
   // Phone / maps / mailto never open in a new tab
   const openInNewTab =
@@ -169,7 +180,7 @@ export function RichTapButton({
         openInNewTab={openInNewTab}
         className={cn("tap-btn tap-btn-icon-only tap-btn-pressable", styleClass, sizeClass, cardClass)}
         aria-label={btn.label}
-        style={useBrand ? brand : undefined}
+        style={combinedStyle}
       >
         {btn.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -191,7 +202,7 @@ export function RichTapButton({
       href={href}
       openInNewTab={openInNewTab}
       className={cn("tap-btn tap-btn-pressable", styleClass, sizeClass, widthClass, cardClass)}
-      style={useBrand ? brand : undefined}
+      style={combinedStyle}
     >
       {btn.imageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element

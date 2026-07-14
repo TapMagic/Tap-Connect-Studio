@@ -18,6 +18,7 @@ const patchSchema = z.object({
   description: z.string().max(500).nullable().optional(),
   status: z.nativeEnum(CampaignStatus).optional(),
   defaultCampaignId: z.string().nullable().optional(),
+  endCampaignId: z.string().nullable().optional(),
   timezone: z.string().max(80).nullable().optional(),
   showUpcomingOnPages: z.boolean().optional(),
   industryHint: z.string().max(40).nullable().optional(),

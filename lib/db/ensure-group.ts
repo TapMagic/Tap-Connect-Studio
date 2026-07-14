@@ -80,6 +80,11 @@ export async function ensureCampaignGroupTables(): Promise<boolean> {
       `ALTER TABLE "CampaignGroup" ADD COLUMN IF NOT EXISTS "timezone" TEXT`,
       `ALTER TABLE "CampaignGroup" ADD COLUMN IF NOT EXISTS "showUpcomingOnPages" BOOLEAN DEFAULT true`,
       `ALTER TABLE "CampaignGroup" ADD COLUMN IF NOT EXISTS "industryHint" TEXT`,
+      `ALTER TABLE "CampaignGroup" ADD COLUMN IF NOT EXISTS "endCampaignId" TEXT`,
+      `ALTER TABLE "Campaign" ADD COLUMN IF NOT EXISTS "endExperience" JSONB DEFAULT '{}'`,
+      `ALTER TABLE "BrandKit" ADD COLUMN IF NOT EXISTS "endExperience" JSONB DEFAULT '{}'`,
+      `ALTER TABLE "BrandKit" ADD COLUMN IF NOT EXISTS "emailPromo" JSONB DEFAULT '{}'`,
+      `ALTER TABLE "BrandKit" ADD COLUMN IF NOT EXISTS "otherLinks" JSONB DEFAULT '[]'`,
     ]) {
       try {
         await prisma.$executeRawUnsafe(col);

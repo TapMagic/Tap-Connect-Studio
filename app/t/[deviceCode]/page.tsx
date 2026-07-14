@@ -7,10 +7,11 @@ import {
   getDeviceWithActiveCampaign,
   isCampaignLive,
   logTapEvent,
-  parseContentBlocks,
   shouldShowInactiveDevice,
 } from "@/lib/services/devices";
+import { resolveTapContent } from "@/lib/services/tap-resolve";
 import { claimScanSession } from "@/lib/services/scan";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -87,23 +88,86 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   }
 
   if (!campaign || !isCampaignLive(campaign)) {
+    const brandKit = device.business?.brandKit;
+    const resolved = await resolveTapContent({
+      campaign,
+      campaignGroupId: device.campaignGroupId,
+      brandKit,
+    });
+
+    if (!resolved) {
+      return (
+        <TapStatusPage
+          title="No active campaign"
+          message={
+            device.status === "UNASSIGNED"
+              ? "This Tap Connect device has not been assigned a campaign yet."
+              : "This device does not have a live campaign right now."
+          }
+          code={deviceCode}
+          variant="waiting"
+          businessName={device.business?.name}
+        />
+      );
+    }
+
+    if (resolved.redirectUrl) {
+      redirect(resolved.redirectUrl);
+    }
+
+    const { parseBrandContactProfile } = await import("@/lib/brand/contact-profile");
+    const contactProfile = {
+      ...parseBrandContactProfile(brandKit?.socialLinks),
+      organization:
+        parseBrandContactProfile(brandKit?.socialLinks).organization ||
+        device.business?.name ||
+        undefined,
+      phone:
+        parseBrandContactProfile(brandKit?.socialLinks).phone ||
+        device.business?.phone ||
+        undefined,
+      email:
+        parseBrandContactProfile(brandKit?.socialLinks).email ||
+        device.business?.email ||
+        undefined,
+      website:
+        parseBrandContactProfile(brandKit?.socialLinks).website ||
+        device.business?.website ||
+        undefined,
+    };
+
+    const themeOverrides = resolved.themeOverrides;
+    const theme = {
+      primaryColor: themeOverrides.primaryColor ?? brandKit?.primaryColor ?? "#a3e635",
+      secondaryColor: themeOverrides.secondaryColor ?? brandKit?.secondaryColor ?? "#0ea5e9",
+      backgroundColor: themeOverrides.backgroundColor ?? brandKit?.backgroundColor ?? "#0b0f19",
+      textColor: themeOverrides.textColor ?? brandKit?.textColor ?? "#f8fafc",
+      backgroundImage: themeOverrides.backgroundImage,
+      backgroundOverlayOpacity: themeOverrides.backgroundOverlayOpacity
+        ? Number(themeOverrides.backgroundOverlayOpacity)
+        : undefined,
+      fontStyle: themeOverrides.fontStyle,
+      fontFamily: themeOverrides.fontFamily,
+    };
+
     return (
-      <TapStatusPage
-        title="No active campaign"
-        message={
-          device.status === "UNASSIGNED"
-            ? "This Tap Connect device has not been assigned a campaign yet."
-            : "This device does not have a live campaign right now."
-        }
-        code={deviceCode}
-        variant="waiting"
-        businessName={device.business?.name}
+      <CampaignPageRenderer
+        blocks={resolved.blocks}
+        theme={theme}
+        campaignId={resolved.campaign?.id ?? campaign?.id ?? "end"}
+        deviceSlotId={device.id}
+        businessId={device.businessId!}
+        businessName={device.business?.name ?? "Business"}
+        brandKit={brandKit}
+        logoUrl={device.business?.logoUrl ?? null}
+        contactProfile={contactProfile}
       />
     );
   }
 
   const brandKit = device.business?.brandKit;
   const themeOverrides = (campaign.themeOverrides as Record<string, string>) ?? {};
+  const { parseContentBlocks } = await import("@/lib/services/devices");
   const blocks = parseContentBlocks(campaign.contentBlocks);
   const { parseBrandContactProfile } = await import("@/lib/brand/contact-profile");
   const contactProfile = {

@@ -32,6 +32,12 @@ import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
 import { nanoid } from "nanoid";
 import type { BlockStyle, BlockType, ButtonItem, ContentBlock } from "@/lib/types/campaign";
+import {
+  defaultEndExperience,
+  parseEndExperience,
+  type EndExperience,
+} from "@/lib/end-experience";
+import "@/app/t/tap.css";
 
 type EditorTab = "content" | "qr" | "schedule" | "email" | "ai";
 
@@ -149,6 +155,23 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
     label: "Map / directions",
     data: { headline: "Find us", address: "", buttonLabel: "Get directions" },
   },
+  { type: "spacer", label: "Spacer", data: { height: "md" } },
+  {
+    type: "columns",
+    label: "2 columns",
+    data: {
+      columns: [
+        { id: nanoid(6), body: "Left column" },
+        { id: nanoid(6), body: "Right column" },
+      ],
+      gap: "md",
+    },
+  },
+  {
+    type: "banner",
+    label: "Banner",
+    data: { text: "Limited time — tap to learn more", backgroundColor: "#a3e635", textColor: "#0b0f19" },
+  },
 ];
 
 interface CampaignEditorProps {
@@ -158,6 +181,9 @@ interface CampaignEditorProps {
     status: string;
     contentBlocks: ContentBlock[];
     themeOverrides: Record<string, string>;
+    scheduledStart?: string | null;
+    scheduledEnd?: string | null;
+    endExperience?: unknown;
   };
   brandKit: {
     primaryColor: string;
@@ -221,8 +247,20 @@ export function CampaignEditor({
   const [message, setMessage] = useState<string | null>(null);
   const [addType, setAddType] = useState<BlockType>("offer_coupon");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
+  const [selectedButtonId, setSelectedButtonId] = useState<string | null>(null);
+  const [scheduledStart, setScheduledStart] = useState(
+    campaign.scheduledStart ? campaign.scheduledStart.slice(0, 16) : ""
+  );
+  const [scheduledEnd, setScheduledEnd] = useState(
+    campaign.scheduledEnd ? campaign.scheduledEnd.slice(0, 16) : ""
+  );
+  const [endExperience, setEndExperience] = useState<EndExperience>(() =>
+    parseEndExperience(campaign.endExperience ?? defaultEndExperience())
+  );
 
   const selectedDeviceCode = devices.find((d) => d.id === selectedDevice)?.deviceCode;
+  const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
 
   function updateBlock(id: string, updates: Partial<ContentBlock>) {
     setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
@@ -265,10 +303,11 @@ export function CampaignEditor({
   function addBlock(type: BlockType = addType) {
     const preset = ADDABLE_BLOCKS.find((b) => b.type === type) ?? ADDABLE_BLOCKS[0];
     const nextOrder = blocks.length ? Math.max(...blocks.map((b) => b.order)) + 1 : 0;
+    const id = nanoid(8);
     setBlocks((prev) => [
       ...prev,
       {
-        id: nanoid(8),
+        id,
         type: preset.type,
         label: preset.label,
         order: nextOrder,
@@ -276,6 +315,9 @@ export function CampaignEditor({
         data: structuredClone(preset.data),
       },
     ]);
+    setSelectedBlockId(id);
+    setSelectedButtonId(null);
+    setTab("content");
   }
 
   function moveBlock(id: string, direction: "up" | "down") {
@@ -323,6 +365,9 @@ export function CampaignEditor({
         contentBlocks: blocks,
         themeOverrides: theme,
         status: nextStatus,
+        scheduledStart: scheduledStart ? new Date(scheduledStart).toISOString() : null,
+        scheduledEnd: scheduledEnd ? new Date(scheduledEnd).toISOString() : null,
+        endExperience,
       }),
     });
 
@@ -360,32 +405,36 @@ export function CampaignEditor({
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col lg:flex-row">
-      <div className="flex-1 overflow-y-auto border-r border-border/60">
-        <div className="sticky top-0 z-10 border-b border-border/60 bg-background/95 px-6 py-3 backdrop-blur">
-          <div className="mb-3 flex items-center justify-between gap-4">
-            <Input
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="max-w-md font-semibold"
-            />
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <CampaignActions campaignId={campaign.id} status={campaign.status} />
-              <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
-                <Eye className="mr-1 h-4 w-4" />
-                Preview
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => saveCampaign(false)} disabled={saving}>
-                <Save className="mr-1 h-4 w-4" />
-                Save
-              </Button>
-              <Button size="sm" onClick={() => saveCampaign(true)} disabled={saving || !selectedDevice}>
-                <Send className="mr-1 h-4 w-4" />
-                Publish
-              </Button>
-            </div>
-          </div>
-          <div className="flex gap-1 overflow-x-auto">
+    <div className="flex h-[calc(100vh-4rem)] flex-col">
+      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-2.5 backdrop-blur">
+        <Input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="max-w-md font-semibold"
+        />
+        <div className="flex flex-wrap items-center gap-2">
+          <CampaignActions campaignId={campaign.id} status={campaign.status} />
+          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
+            <Eye className="mr-1 h-4 w-4" />
+            Preview
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => saveCampaign(false)} disabled={saving}>
+            <Save className="mr-1 h-4 w-4" />
+            Save
+          </Button>
+          <Button size="sm" onClick={() => saveCampaign(true)} disabled={saving || !selectedDevice}>
+            <Send className="mr-1 h-4 w-4" />
+            Publish
+          </Button>
+        </div>
+      </div>
+
+      {message && <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>}
+
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* Left rail */}
+        <aside className="flex w-full shrink-0 flex-col border-r border-border/60 lg:w-[280px]">
+          <div className="flex gap-1 overflow-x-auto border-b border-border/50 p-2">
             {TABS.map((t) => {
               const Icon = t.icon;
               return (
@@ -394,7 +443,7 @@ export function CampaignEditor({
                   type="button"
                   onClick={() => setTab(t.id)}
                   className={cn(
-                    "flex items-center gap-1.5 whitespace-nowrap rounded-lg px-3 py-1.5 text-sm transition-colors",
+                    "flex items-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors",
                     tab === t.id ? "bg-primary/15 text-primary" : "text-muted-foreground hover:bg-accent"
                   )}
                 >
@@ -404,52 +453,365 @@ export function CampaignEditor({
               );
             })}
           </div>
-        </div>
 
-        <div className="p-6">
-          {message && <p className="mb-4 text-sm text-primary">{message}</p>}
-
-          {tab === "content" && (
-            <>
-              <div className="mb-6 rounded-lg border border-border/60 p-4">
-                <h3 className="mb-3 text-sm font-semibold">Theme & branding</h3>
-                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                  {(["primaryColor", "secondaryColor", "backgroundColor", "textColor"] as const).map((key) => (
-                    <div key={key} className="space-y-1">
-                      <Label className="text-xs capitalize">{key.replace("Color", "")}</Label>
-                      <div className="flex gap-2">
-                        <input
-                          type="color"
-                          value={theme[key]}
-                          onChange={(e) => setTheme((t) => ({ ...t, [key]: e.target.value }))}
-                          className="h-9 w-10 cursor-pointer rounded border-0"
-                        />
-                        <Input
-                          value={theme[key]}
-                          onChange={(e) => setTheme((t) => ({ ...t, [key]: e.target.value }))}
-                          className="font-mono text-xs"
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <div className="mt-3 space-y-1">
-                  <Label className="text-xs">Page font</Label>
+          <div className="flex-1 overflow-y-auto p-3">
+            {tab === "content" && (
+              <div className="space-y-3">
+                <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
+                  <Label className="text-xs text-primary">Add block</Label>
                   <select
-                    className="flex h-9 w-full max-w-xs rounded-lg border border-input bg-background/50 px-2 text-sm"
-                    value={theme.fontStyle ?? "sans"}
+                    value={addType}
+                    onChange={(e) => setAddType(e.target.value as BlockType)}
+                    className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                  >
+                    {ADDABLE_BLOCKS.map((b) => (
+                      <option key={b.type} value={b.type}>
+                        {b.label}
+                      </option>
+                    ))}
+                  </select>
+                  <Button type="button" size="sm" className="mt-2 w-full" onClick={() => addBlock()}>
+                    <Plus className="mr-1 h-4 w-4" />
+                    Add
+                  </Button>
+                </div>
+
+                {devices.length > 0 && (
+                  <div className="space-y-1">
+                    <Label className="text-xs">Publish device</Label>
+                    <select
+                      value={selectedDevice}
+                      onChange={(e) => setSelectedDevice(e.target.value)}
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                    >
+                      {devices.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.nickname ?? d.deviceCode}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Blocks
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedBlockId(null);
+                    setSelectedButtonId(null);
+                  }}
+                  className={cn(
+                    "w-full rounded-lg border px-2 py-1.5 text-left text-xs",
+                    !selectedBlockId
+                      ? "border-primary bg-primary/10 text-primary"
+                      : "border-border/50 text-muted-foreground hover:border-primary/40"
+                  )}
+                >
+                  Page theme
+                </button>
+                {sortedBlocks.map((block, index) => (
+                  <div
+                    key={block.id}
+                    draggable
+                    onDragStart={() => setDragId(block.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragId) reorderBlocks(dragId, block.id);
+                      setDragId(null);
+                    }}
+                    onDragEnd={() => setDragId(null)}
+                    onClick={() => {
+                      setSelectedBlockId(block.id);
+                      setSelectedButtonId(null);
+                    }}
+                    className={cn(
+                      "cursor-pointer rounded-lg border px-2 py-2 text-sm transition",
+                      selectedBlockId === block.id
+                        ? "border-primary bg-primary/10"
+                        : "border-border/50 hover:border-primary/40",
+                      !block.enabled && "opacity-50",
+                      dragId === block.id && "opacity-60"
+                    )}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <span className="min-w-0 flex-1 truncate font-medium">{block.label}</span>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveBlock(block.id, "up");
+                        }}
+                        disabled={index === 0}
+                      >
+                        <ArrowUp className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveBlock(block.id, "down");
+                        }}
+                        disabled={index === sortedBlocks.length - 1}
+                      >
+                        <ArrowDown className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-muted-foreground hover:text-foreground"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          duplicateBlock(block.id);
+                        }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        className="text-red-400 hover:text-red-300"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeBlock(block.id);
+                          if (selectedBlockId === block.id) setSelectedBlockId(null);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                    <p className="mt-0.5 pl-5 text-[10px] text-muted-foreground">
+                      {block.type.replace(/_/g, " ")}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {tab === "qr" && (
+              <QrPanel campaignId={campaign.id} campaignTitle={title} deviceCode={selectedDeviceCode} />
+            )}
+
+            {tab === "schedule" && (
+              <div className="space-y-4">
+                <div className="space-y-2 rounded-lg border border-border/50 p-3">
+                  <h3 className="text-sm font-semibold">Campaign window</h3>
+                  <p className="text-[11px] text-muted-foreground">
+                    Runs only between these times. After it ends, the end page collects contacts.
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Start</Label>
+                    <Input
+                      type="datetime-local"
+                      value={scheduledStart}
+                      onChange={(e) => setScheduledStart(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">End</Label>
+                    <Input
+                      type="datetime-local"
+                      value={scheduledEnd}
+                      onChange={(e) => setScheduledEnd(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2 rounded-lg border border-border/50 p-3">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold">After this ends</h3>
+                    <label className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={endExperience.enabled}
+                        onChange={(e) =>
+                          setEndExperience((x) => ({ ...x, enabled: e.target.checked }))
+                        }
+                      />
+                      On
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    Default on — orphan tags still get a contact opportunity.
+                  </p>
+                  <select
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                    value={endExperience.mode}
                     onChange={(e) =>
-                      setTheme((t) => ({ ...t, fontStyle: e.target.value }))
+                      setEndExperience((x) => ({
+                        ...x,
+                        mode: e.target.value as EndExperience["mode"],
+                      }))
                     }
                   >
-                    <option value="sans">Modern sans</option>
-                    <option value="serif">Classic serif</option>
-                    <option value="display">Display / bold</option>
+                    <option value="blocks">Custom blocks (message + form)</option>
+                    <option value="link">Single link / CTA</option>
+                    <option value="redirect">Redirect URL</option>
                   </select>
+                  {endExperience.mode === "link" && (
+                    <>
+                      <Input
+                        placeholder="Link URL"
+                        value={endExperience.linkUrl ?? ""}
+                        onChange={(e) =>
+                          setEndExperience((x) => ({ ...x, linkUrl: e.target.value }))
+                        }
+                      />
+                      <Input
+                        placeholder="Button label"
+                        value={endExperience.linkLabel ?? ""}
+                        onChange={(e) =>
+                          setEndExperience((x) => ({ ...x, linkLabel: e.target.value }))
+                        }
+                      />
+                    </>
+                  )}
+                  {endExperience.mode === "redirect" && (
+                    <Input
+                      placeholder="https://…"
+                      value={endExperience.redirectUrl ?? ""}
+                      onChange={(e) =>
+                        setEndExperience((x) => ({ ...x, redirectUrl: e.target.value }))
+                      }
+                    />
+                  )}
+                  {endExperience.mode === "blocks" && (
+                    <p className="text-[11px] text-muted-foreground">
+                      Uses a default “offer ended + contact capture” page. Customize blocks in a
+                      dedicated end campaign from Groups, or replace via link/redirect.
+                    </p>
+                  )}
                 </div>
-                <div className="mt-4 space-y-3">
+
+                <SchedulePanel
+                  campaignId={campaign.id}
+                  devices={devices}
+                  campaigns={
+                    siblingCampaigns.length
+                      ? siblingCampaigns
+                      : [{ id: campaign.id, title, status }]
+                  }
+                />
+              </div>
+            )}
+
+            {tab === "email" && (
+              <EmailTemplatePanel emailReady={integrations.email} campaignId={campaign.id} />
+            )}
+
+            {tab === "ai" && (
+              <AiAssistPanel
+                aiReady={integrations.ai}
+                tier={subscriptionTier}
+                onApplyDraft={({ title: nextTitle, blocks: nextBlocks, theme: nextTheme }) => {
+                  if (nextTitle) setTitle(nextTitle);
+                  setBlocks(nextBlocks);
+                  if (nextTheme) {
+                    setTheme((t) => ({
+                      ...t,
+                      ...nextTheme,
+                      backgroundImage:
+                        (nextTheme as { backgroundImage?: string }).backgroundImage ??
+                        t.backgroundImage,
+                      backgroundOverlayOpacity:
+                        (nextTheme as { backgroundOverlayOpacity?: number })
+                          .backgroundOverlayOpacity ?? t.backgroundOverlayOpacity,
+                    }));
+                  }
+                  setShowPreview(true);
+                  setTab("content");
+                  setMessage("AI draft applied — review blocks & colors, then Save.");
+                }}
+              />
+            )}
+          </div>
+        </aside>
+
+        {/* Center phone preview */}
+        {showPreview && tab === "content" && (
+          <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden bg-black/30 p-4">
+            <p className="mb-2 text-center text-[11px] text-muted-foreground">
+              Live preview · tap a block to edit · {status.toLowerCase()}
+            </p>
+            <div className="builder-phone">
+              <div className="builder-phone-notch" />
+              <div className="builder-phone-screen">
+                <CampaignPageRenderer
+                  blocks={blocks}
+                  theme={theme}
+                  campaignId={campaign.id}
+                  deviceSlotId="preview"
+                  businessId={businessId}
+                  businessName="Preview"
+                  logoUrl={brandKit.logoUrl}
+                  contactProfile={{
+                    phone: brandKit.phone ?? undefined,
+                    email: brandKit.email ?? undefined,
+                    address: brandKit.address ?? undefined,
+                    website: brandKit.website ?? undefined,
+                  }}
+                  selectedBlockId={selectedBlockId}
+                  editMode
+                  onSelectBlock={(id) => {
+                    setSelectedBlockId(id || null);
+                    setSelectedButtonId(null);
+                  }}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Right inspector */}
+        {tab === "content" && (
+          <aside className="w-full shrink-0 overflow-y-auto border-l border-border/60 lg:w-[340px]">
+            <div className="sticky top-0 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur">
+              {selectedBlock ? `Edit: ${selectedBlock.label}` : "Page & design"}
+            </div>
+            <div className="space-y-4 p-4">
+              {!selectedBlock && (
+                <>
+                  <h3 className="text-sm font-semibold">Theme & branding</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    {(["primaryColor", "secondaryColor", "backgroundColor", "textColor"] as const).map(
+                      (key) => (
+                        <div key={key} className="space-y-1">
+                          <Label className="text-xs capitalize">{key.replace("Color", "")}</Label>
+                          <div className="flex gap-2">
+                            <input
+                              type="color"
+                              value={theme[key]}
+                              onChange={(e) => setTheme((t) => ({ ...t, [key]: e.target.value }))}
+                              className="h-9 w-10 cursor-pointer rounded border-0"
+                            />
+                            <Input
+                              value={theme[key]}
+                              onChange={(e) => setTheme((t) => ({ ...t, [key]: e.target.value }))}
+                              className="font-mono text-xs"
+                            />
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Page font</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                      value={theme.fontStyle ?? "sans"}
+                      onChange={(e) => setTheme((t) => ({ ...t, fontStyle: e.target.value }))}
+                    >
+                      <option value="sans">Modern sans</option>
+                      <option value="serif">Classic serif</option>
+                      <option value="display">Display / bold</option>
+                      <option value="rounded">Friendly rounded</option>
+                      <option value="mono">Mono</option>
+                    </select>
+                  </div>
                   <MediaPicker
-                    label="Page background image (optional)"
+                    label="Page background image"
                     value={theme.backgroundImage}
                     onChange={(url) => setTheme((t) => ({ ...t, backgroundImage: url }))}
                     mediaUploadReady={integrations.mediaUpload}
@@ -459,7 +821,7 @@ export function CampaignEditor({
                   {theme.backgroundImage ? (
                     <div className="space-y-1">
                       <Label className="text-xs">
-                        Background dim / transparency ({theme.backgroundOverlayOpacity}%)
+                        Overlay ({theme.backgroundOverlayOpacity}%)
                       </Label>
                       <input
                         type="range"
@@ -474,226 +836,53 @@ export function CampaignEditor({
                         }
                         className="w-full"
                       />
-                      <p className="text-[11px] text-muted-foreground">
-                        Higher = darker overlay so text stays readable over the photo.
-                      </p>
                     </div>
                   ) : null}
-                </div>
-              </div>
-
-              {devices.length > 0 && (
-                <div className="mb-6 space-y-2">
-                  <Label>Publish to device</Label>
-                  <select
-                    value={selectedDevice}
-                    onChange={(e) => setSelectedDevice(e.target.value)}
-                    className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 text-sm"
-                  >
-                    {devices.map((d) => (
-                      <option key={d.id} value={d.id}>
-                        {d.nickname ?? d.deviceCode}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                </>
               )}
 
-              <div className="space-y-4">
-                <div className="rounded-xl border-2 border-dashed border-primary/50 bg-primary/10 p-4 shadow-[0_0_24px_rgba(163,230,53,0.08)]">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <p className="text-sm font-semibold text-primary">Add a content block</p>
-                      <p className="text-xs text-muted-foreground">
-                        Buttons, links, images, offers, forms — drop them into your mini-page
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <select
-                        value={addType}
-                        onChange={(e) => setAddType(e.target.value as BlockType)}
-                        className="flex h-10 min-w-[160px] rounded-lg border border-primary/30 bg-background px-3 text-sm"
-                      >
-                        {ADDABLE_BLOCKS.map((b) => (
-                          <option key={b.type} value={b.type}>
-                            {b.label}
-                          </option>
-                        ))}
-                      </select>
-                      <Button type="button" size="default" onClick={() => addBlock()}>
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add block
-                      </Button>
-                      <Button
-                        type="button"
-                        size="default"
-                        variant="outline"
-                        className="border-primary/40"
-                        onClick={() => addBlock("button_group")}
-                      >
-                        <Plus className="mr-1 h-4 w-4" />
-                        Add link buttons
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-
-                <h3 className="text-sm font-semibold text-muted-foreground">Your blocks</h3>
-                {sortedBlocks.map((block, index) => (
-                  <div
-                    key={block.id}
-                    draggable
-                    onDragStart={() => setDragId(block.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={() => {
-                      if (dragId) reorderBlocks(dragId, block.id);
-                      setDragId(null);
-                    }}
-                    onDragEnd={() => setDragId(null)}
-                    className={`rounded-lg border p-4 transition-opacity ${
-                      block.enabled ? "border-border/60" : "border-border/30 opacity-50"
-                    } ${dragId === block.id ? "opacity-60 ring-1 ring-primary/40" : ""}`}
-                  >
-                    <div className="mb-3 flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          className="cursor-grab text-muted-foreground active:cursor-grabbing"
-                          title="Drag to reorder"
-                          aria-label="Drag to reorder"
-                        >
-                          <GripVertical className="h-4 w-4" />
-                        </button>
-                        <input
-                          type="checkbox"
-                          checked={block.enabled}
-                          onChange={(e) => updateBlock(block.id, { enabled: e.target.checked })}
-                        />
-                        <Input
-                          value={block.label}
-                          onChange={(e) => updateBlock(block.id, { label: e.target.value })}
-                          className="h-8 max-w-[180px] font-medium"
-                        />
-                        <span className="text-xs text-muted-foreground">({block.type.replace(/_/g, " ")})</span>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" onClick={() => moveBlock(block.id, "up")} disabled={index === 0}>
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" onClick={() => moveBlock(block.id, "down")} disabled={index === sortedBlocks.length - 1}>
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => duplicateBlock(block.id)}
-                          title="Duplicate block"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => removeBlock(block.id)}
-                          className="text-red-400 hover:text-red-300"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                    <BlockFields
-                      block={block}
-                      onUpdate={(key, value) => updateBlockData(block.id, key, value)}
-                      onStyleChange={(style) => updateBlock(block.id, { style })}
-                      mediaUploadReady={integrations.mediaUpload}
-                      stockReady={integrations.stockImages}
-                      campaignId={campaign.id}
-                      contact={{
-                        phone: brandKit.phone ?? undefined,
-                        email: brandKit.email ?? undefined,
-                        address: brandKit.address ?? undefined,
-                        website: brandKit.website ?? undefined,
-                      }}
+              {selectedBlock && (
+                <>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedBlock.enabled}
+                      onChange={(e) =>
+                        updateBlock(selectedBlock.id, { enabled: e.target.checked })
+                      }
+                    />
+                    <Input
+                      value={selectedBlock.label}
+                      onChange={(e) => updateBlock(selectedBlock.id, { label: e.target.value })}
+                      className="h-8 font-medium"
                     />
                   </div>
-                ))}
+                  <BlockFields
+                    block={selectedBlock}
+                    onUpdate={(key, value) => updateBlockData(selectedBlock.id, key, value)}
+                    onStyleChange={(style) => updateBlock(selectedBlock.id, { style })}
+                    mediaUploadReady={integrations.mediaUpload}
+                    stockReady={integrations.stockImages}
+                    campaignId={campaign.id}
+                    contact={{
+                      phone: brandKit.phone ?? undefined,
+                      email: brandKit.email ?? undefined,
+                      address: brandKit.address ?? undefined,
+                      website: brandKit.website ?? undefined,
+                    }}
+                    selectedButtonId={selectedButtonId}
+                    onSelectButton={setSelectedButtonId}
+                  />
+                </>
+              )}
+            </div>
+          </aside>
+        )}
 
-                <button
-                  type="button"
-                  onClick={() => addBlock()}
-                  className="flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary/40 bg-primary/5 py-4 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary/15"
-                >
-                  <Plus className="h-5 w-5" />
-                  Add another block
-                </button>
-              </div>
-            </>
-          )}
-
-          {tab === "qr" && (
-            <QrPanel
-              campaignId={campaign.id}
-              campaignTitle={title}
-              deviceCode={selectedDeviceCode}
-            />
-          )}
-
-          {tab === "schedule" && (
-            <SchedulePanel
-              campaignId={campaign.id}
-              devices={devices}
-              campaigns={siblingCampaigns.length ? siblingCampaigns : [{ id: campaign.id, title, status }]}
-            />
-          )}
-
-          {tab === "email" && <EmailTemplatePanel emailReady={integrations.email} />}
-
-          {tab === "ai" && (
-            <AiAssistPanel
-              aiReady={integrations.ai}
-              tier={subscriptionTier}
-              onApplyDraft={({ title: nextTitle, blocks: nextBlocks, theme: nextTheme }) => {
-                if (nextTitle) setTitle(nextTitle);
-                setBlocks(nextBlocks);
-                if (nextTheme) {
-                  setTheme((t) => ({
-                    ...t,
-                    ...nextTheme,
-                    backgroundImage:
-                      (nextTheme as { backgroundImage?: string }).backgroundImage ??
-                      t.backgroundImage,
-                    backgroundOverlayOpacity:
-                      (nextTheme as { backgroundOverlayOpacity?: number })
-                        .backgroundOverlayOpacity ?? t.backgroundOverlayOpacity,
-                  }));
-                }
-                setShowPreview(true);
-                setTab("content");
-                setMessage("AI draft applied — review blocks & colors, then Save.");
-              }}
-            />
-          )}
-        </div>
+        {tab !== "content" && (
+          <div className="flex-1 overflow-y-auto p-6 text-sm text-muted-foreground lg:hidden" />
+        )}
       </div>
-
-      {showPreview && tab === "content" && (
-        <div className="w-full shrink-0 overflow-hidden bg-black/40 lg:w-[400px]">
-          <div className="border-b border-border/60 px-4 py-2 text-center text-xs text-muted-foreground">
-            Mobile preview {brandKit.logoUrl ? "· brand applied" : ""} · {status.toLowerCase()}
-          </div>
-          <div className="h-full overflow-y-auto">
-            <CampaignPageRenderer
-              blocks={blocks}
-              theme={theme}
-              campaignId={campaign.id}
-              deviceSlotId="preview"
-              businessId={businessId}
-              businessName="Preview"
-              logoUrl={brandKit.logoUrl}
-            />
-          </div>
-        </div>
-      )}
     </div>
   );
 }
@@ -706,6 +895,8 @@ function BlockFields({
   stockReady,
   campaignId,
   contact,
+  selectedButtonId,
+  onSelectButton,
 }: {
   block: ContentBlock;
   onUpdate: (key: string, value: unknown) => void;
@@ -714,6 +905,8 @@ function BlockFields({
   stockReady: boolean;
   campaignId: string;
   contact?: { phone?: string; email?: string; address?: string; website?: string };
+  selectedButtonId?: string | null;
+  onSelectButton?: (id: string | null) => void;
 }) {
   const data = block.data as Record<string, unknown>;
 
@@ -854,7 +1047,13 @@ function BlockFields({
         {buttons.map((btn, index) => (
           <div
             key={btn.id}
-            className="space-y-2 rounded-lg border border-border/50 bg-background/40 p-3"
+            className={cn(
+              "space-y-2 rounded-lg border bg-background/40 p-3",
+              selectedButtonId === btn.id
+                ? "border-primary ring-1 ring-primary/40"
+                : "border-border/50"
+            )}
+            onClick={() => onSelectButton?.(btn.id)}
           >
             <div className="flex items-center justify-between">
               <Label className="text-xs">Button {index + 1}</Label>
@@ -959,6 +1158,37 @@ function BlockFields({
                   <option value="md">Medium</option>
                   <option value="lg">Large</option>
                 </select>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Button color</Label>
+                <div className="flex gap-1">
+                  <input
+                    type="color"
+                    value={btn.backgroundColor ?? "#a3e635"}
+                    onChange={(e) => patchBtn(btn.id, { backgroundColor: e.target.value })}
+                    className="h-9 w-10 cursor-pointer rounded border-0"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-9 text-[10px]"
+                    onClick={() =>
+                      patchBtn(btn.id, { backgroundColor: undefined, textColor: undefined })
+                    }
+                  >
+                    Reset
+                  </Button>
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Label color</Label>
+                <input
+                  type="color"
+                  value={btn.textColor ?? "#0b0f19"}
+                  onChange={(e) => patchBtn(btn.id, { textColor: e.target.value })}
+                  className="h-9 w-10 cursor-pointer rounded border-0"
+                />
               </div>
             </div>
             <MediaPicker
@@ -1272,6 +1502,89 @@ function BlockFields({
                 {opt.label}
               </button>
             ))}
+          </div>
+        </div>
+        {styleControls}
+      </div>
+    );
+  }
+
+  if (block.type === "spacer") {
+    return (
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label className="text-xs">Height</Label>
+          <select
+            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+            value={(data.height as string) ?? "md"}
+            onChange={(e) => onUpdate("height", e.target.value)}
+          >
+            <option value="sm">Small</option>
+            <option value="md">Medium</option>
+            <option value="lg">Large</option>
+            <option value="xl">XL</option>
+          </select>
+        </div>
+        {styleControls}
+      </div>
+    );
+  }
+
+  if (block.type === "columns") {
+    const cols = (data.columns as { id: string; body: string }[]) ?? [];
+    return (
+      <div className="space-y-3">
+        {cols.map((col, i) => (
+          <div key={col.id} className="space-y-1">
+            <Label className="text-xs">Column {i + 1}</Label>
+            <Textarea
+              value={col.body}
+              onChange={(e) => {
+                const next = cols.map((c) =>
+                  c.id === col.id ? { ...c, body: e.target.value } : c
+                );
+                onUpdate("columns", next);
+              }}
+              rows={3}
+            />
+          </div>
+        ))}
+        {styleControls}
+      </div>
+    );
+  }
+
+  if (block.type === "banner") {
+    return (
+      <div className="space-y-3">
+        <Input
+          placeholder="Banner text"
+          value={(data.text as string) ?? ""}
+          onChange={(e) => onUpdate("text", e.target.value)}
+        />
+        <Input
+          placeholder="Optional link URL"
+          value={(data.linkUrl as string) ?? ""}
+          onChange={(e) => onUpdate("linkUrl", e.target.value)}
+        />
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label className="text-xs">Background</Label>
+            <input
+              type="color"
+              value={(data.backgroundColor as string) ?? "#a3e635"}
+              onChange={(e) => onUpdate("backgroundColor", e.target.value)}
+              className="h-9 w-full cursor-pointer rounded border-0"
+            />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-xs">Text</Label>
+            <input
+              type="color"
+              value={(data.textColor as string) ?? "#0b0f19"}
+              onChange={(e) => onUpdate("textColor", e.target.value)}
+              className="h-9 w-full cursor-pointer rounded border-0"
+            />
           </div>
         </div>
         {styleControls}

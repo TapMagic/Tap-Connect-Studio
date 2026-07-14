@@ -248,6 +248,12 @@ model BrandKit {
   ageGateMinAge    Int         @default(21)
   socialLinks      Json        @default("{}")
   defaultFooter    Json        @default("[]")
+  /** Default orphan-tag end page (same shape as EndExperience) */
+  endExperience    Json        @default("{}")
+  /** Lead follow-up promo email template */
+  emailPromo       Json        @default("{}")
+  /** Extra custom links: [{ title, description, iconUrl, href }] */
+  otherLinks       Json        @default("[]")
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
@@ -322,6 +328,8 @@ model Campaign {
   themeOverrides     Json           @default("{}")
   scheduledStart     DateTime?
   scheduledEnd       DateTime?
+  /** After schedule ends — contact opportunity (EndExperience JSON) */
+  endExperience      Json           @default("{}")
   /** Optional parent group — this campaign is a scheduled “special” in the group */
   groupId            String?
   createdById        String?
@@ -341,6 +349,7 @@ model Campaign {
   scheduleRules ScheduleRule[]
   groupSlots  CampaignGroupSlot[]
   defaultForGroups CampaignGroup[] @relation("GroupDefaultCampaign")
+  endForGroups     CampaignGroup[] @relation("GroupEndCampaign")
 }
 
 /** Shared schedule hub — many devices share one rotating set of timed pages. */
@@ -358,11 +367,14 @@ model CampaignGroup {
   industryHint       String?
   /** Shown when no slot matches the current day/time */
   defaultCampaignId  String?
+  /** End / “offer over” page — normal campaign used when nothing else matches */
+  endCampaignId      String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
   business         Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
   defaultCampaign  Campaign?          @relation("GroupDefaultCampaign", fields: [defaultCampaignId], references: [id], onDelete: SetNull)
+  endCampaign      Campaign?          @relation("GroupEndCampaign", fields: [endCampaignId], references: [id], onDelete: SetNull)
   campaigns        Campaign[]
   slots            CampaignGroupSlot[]
   devices          DeviceSlot[]
