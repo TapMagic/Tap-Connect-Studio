@@ -1,6 +1,6 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { ClerkProvider } from "@clerk/nextjs";
-import { shadcn } from "@clerk/ui/themes";
+import { dark, shadcn } from "@clerk/ui/themes";
 import { Geist, Geist_Mono } from "next/font/google";
 import { isClerkConfigured } from "@/lib/utils/app";
 import "./globals.css";
@@ -25,6 +25,11 @@ export const metadata: Metadata = {
   },
 };
 
+export const viewport: Viewport = {
+  colorScheme: "dark",
+  themeColor: "#070b12",
+};
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,7 +38,7 @@ export default function RootLayout({
   const body = (
     <body className="min-h-full flex flex-col bg-background text-foreground">
       {isClerkConfigured() ? (
-        <ClerkProvider appearance={{ theme: shadcn }}>{children}</ClerkProvider>
+        <ClerkProvider appearance={{ theme: [shadcn, dark] }}>{children}</ClerkProvider>
       ) : (
         children
       )}
@@ -44,7 +49,8 @@ export default function RootLayout({
     <html
       lang="en"
       className={`dark ${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-      style={{ colorScheme: "dark" }}
+      data-theme="dark"
+      style={{ colorScheme: "only dark" }}
       suppressHydrationWarning
     >
       {body}
