@@ -9,6 +9,8 @@ export type IntegrationId =
   | "r2"
   | "unsplash"
   | "pexels"
+  | "logo_dev"
+  | "brave_search"
   | "openai"
   | "resend"
   | "stripe"
@@ -75,6 +77,24 @@ export const integrations: IntegrationStatus[] = [
     costNote: "Free API within rate limits",
   },
   {
+    id: "logo_dev",
+    name: "Logo.dev (optional)",
+    configured: has("LOGO_DEV_TOKEN"),
+    description: "Higher-quality brand logos in web logo search (Wikimedia + favicons work without this).",
+    envVars: ["LOGO_DEV_TOKEN"],
+    signupUrl: "https://logo.dev",
+    costNote: "Free tier available",
+  },
+  {
+    id: "brave_search",
+    name: "Brave Image Search (optional)",
+    configured: has("BRAVE_SEARCH_API_KEY"),
+    description: "Extra web logo/icon results in the media picker.",
+    envVars: ["BRAVE_SEARCH_API_KEY"],
+    signupUrl: "https://brave.com/search/api",
+    costNote: "Free tier available",
+  },
+  {
     id: "openai",
     name: "OpenAI (AI Builder)",
     configured: has("OPENAI_API_KEY"),
@@ -125,6 +145,11 @@ export function isStockImagesReady(): boolean {
   return getIntegration("unsplash").configured || getIntegration("pexels").configured;
 }
 
+/** Web logo search works out of the box (Wikimedia + favicons); optional keys improve results. */
+export function isLogoWebSearchEnhanced(): boolean {
+  return getIntegration("logo_dev").configured || getIntegration("brave_search").configured;
+}
+
 export function isAiReady(): boolean {
   return getIntegration("openai").configured;
 }
@@ -145,6 +170,7 @@ export function getPendingIntegrations(): IntegrationStatus[] {
 export const nativeFeatures = {
   qrCodes: true,
   urlMedia: true,
+  logoWebSearch: true,
   youtubeEmbed: true,
   campaignEdit: true,
   schedulingUi: true, // UI placeholder until rules engine wired

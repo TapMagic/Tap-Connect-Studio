@@ -24,6 +24,15 @@ type StockHit = {
   source: string;
 };
 
+type LogoHit = {
+  id: string;
+  url: string;
+  thumb: string;
+  alt: string;
+  source: string;
+  domain?: string;
+};
+
 type LibraryAsset = {
   id: string;
   url: string;
@@ -72,7 +81,10 @@ export function MediaPicker({
   const fileId = `media-file-${label.replace(/\s+/g, "-")}`;
   const [stockQuery, setStockQuery] = useState("");
   const [stockResults, setStockResults] = useState<StockHit[]>([]);
+  const [logoQuery, setLogoQuery] = useState("");
+  const [logoResults, setLogoResults] = useState<LogoHit[]>([]);
   const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryMode, setGalleryMode] = useState<"stock" | "logo">("stock");
   const [library, setLibrary] = useState<LibraryAsset[]>([]);
   const [libraryOpen, setLibraryOpen] = useState(false);
   const [sessionAdds, setSessionAdds] = useState<LibraryAsset[]>([]);
@@ -81,7 +93,7 @@ export function MediaPicker({
   const [dragOver, setDragOver] = useState(false);
 
   const refreshLibrary = useCallback(() => {
-    fetch("/api/media?usedOnly=1")
+    fetch("/api/media")
       .then((r) => r.json())
       .then((d) => setLibrary(d.assets ?? []))
       .catch(() => undefined);
@@ -119,6 +131,7 @@ export function MediaPicker({
         return;
       }
       setStockResults(data.results ?? []);
+      setGalleryMode("stock");
       setGalleryOpen(true);
       if (!(data.results ?? []).length) setMessage("No results — try another search.");
     } catch {
@@ -131,6 +144,31 @@ export function MediaPicker({
   function closeGallery() {
     setGalleryOpen(false);
     setStockResults([]);
+    setLogoResults([]);
+  }
+
+  async function searchLogos() {
+    if (!logoQuery.trim()) return;
+    setLoading("logo");
+    setMessage(null);
+    try {
+      const res = await fetch(`/api/logos/search?q=${encodeURIComponent(logoQuery.trim())}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.message ?? data.error ?? "Logo search failed");
+        return;
+      }
+      setLogoResults(data.results ?? []);
+      setGalleryMode("logo");
+      setGalleryOpen(true);
+      if (!(data.results ?? []).length) {
+        setMessage("No logos found — try a brand name or domain (e.g. acme.com).");
+      }
+    } catch {
+      setMessage("Logo search failed");
+    } finally {
+      setLoading(null);
+    }
   }
 
   const applyUrl = useCallback(
@@ -216,6 +254,11 @@ export function MediaPicker({
 
   async function chooseStock(hit: StockHit) {
     applyUrl(hit.url, "Stock image selected", { filename: hit.alt, source: "stock" });
+    closeGallery();
+  }
+
+  async function chooseLogo(hit: LogoHit) {
+    applyUrl(hit.url, "Logo added to library", { filename: hit.alt, source: "url" });
     closeGallery();
   }
 
@@ -353,7 +396,7 @@ export function MediaPicker({
 
       {stockReady ? (
         <div className="space-y-2 rounded-lg border border-border/50 p-3">
-          <Label className="text-xs">Stock search (Pexels)</Label>
+          <Label className="text-xs">Stock photos (Pexels / Unsplash)</Label>
           <div className="flex gap-2">
             <Input
               value={stockQuery}
@@ -373,9 +416,38 @@ export function MediaPicker({
         </div>
       ) : (
         <p className="text-xs text-muted-foreground">
-          Stock search needs <code className="text-primary">PEXELS_API_KEY</code>
+          Stock search needs <code className="text-primary">PEXELS_API_KEY</code> or{" "}
+          <code className="text-primary">UNSPLASH_ACCESS_KEY</code>
         </p>
       )}
+
+      <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+        <Label className="text-xs">Web logo / icon search</Label>
+        <p className="text-[10px] text-muted-foreground">
+          Brand name or domain — results save to your media library when selected
+        </p>
+        <div className="flex gap-2">
+          <Input
+            value={logoQuery}
+            onChange={(e) => setLogoQuery(e.target.value)}
+            placeholder="e.g. Nike, starbucks.com, @acme"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                void searchLogos();
+              }
+            }}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => void searchLogos()}
+            disabled={!!loading}
+          >
+            {loading === "logo" ? "…" : "Find"}
+          </Button>
+        </div>
+      </div>
 
       {galleryOpen && (
         <div
@@ -387,13 +459,17 @@ export function MediaPicker({
             className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
-            aria-label="Stock gallery"
+            aria-label={galleryMode === "logo" ? "Logo gallery" : "Stock gallery"}
           >
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
               <div>
-                <p className="font-semibold">Stock gallery</p>
+                <p className="font-semibold">
+                  {galleryMode === "logo" ? "Logo & icon results" : "Stock gallery"}
+                </p>
                 <p className="text-xs text-muted-foreground">
-                  {stockResults.length} results — tap a photo to use it
+                  {galleryMode === "logo"
+                    ? `${logoResults.length} results — tap to add to library`
+                    : `${stockResults.length} results — tap a photo to use it`}
                 </p>
               </div>
               <Button type="button" variant="outline" size="sm" onClick={closeGallery}>
@@ -402,7 +478,36 @@ export function MediaPicker({
               </Button>
             </div>
             <div className="overflow-y-auto p-4">
-              {stockResults.length === 0 ? (
+              {galleryMode === "logo" ? (
+                logoResults.length === 0 ? (
+                  <p className="py-8 text-center text-sm text-muted-foreground">No results</p>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+                    {logoResults.map((hit) => (
+                      <button
+                        key={hit.id}
+                        type="button"
+                        className="overflow-hidden rounded-xl border border-border/40 bg-muted/20 text-left transition hover:border-primary/60"
+                        onClick={() => void chooseLogo(hit)}
+                        title={hit.alt}
+                      >
+                        <div className="flex aspect-square items-center justify-center p-3">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={hit.thumb}
+                            alt={hit.alt}
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        </div>
+                        <p className="truncate px-2 py-1 text-[10px] text-muted-foreground">
+                          {hit.alt}
+                          {hit.domain ? ` · ${hit.domain}` : ""}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                )
+              ) : stockResults.length === 0 ? (
                 <p className="py-8 text-center text-sm text-muted-foreground">No results</p>
               ) : (
                 <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -437,7 +542,7 @@ export function MediaPicker({
           <span>
             Media library
             <span className="ml-1.5 font-normal text-muted-foreground">
-              ({visibleLibrary.length} in use)
+              ({visibleLibrary.length} saved)
             </span>
           </span>
           <ChevronDown
@@ -448,7 +553,7 @@ export function MediaPicker({
           <div className="border-t border-border/40 px-3 pb-3 pt-2">
             {visibleLibrary.length === 0 ? (
               <p className="text-[11px] text-muted-foreground">
-                No images on your pages yet. Browse, paste, or drop a logo above to add one.
+                No saved images yet. Upload, paste, stock search, or web logo search above.
               </p>
             ) : (
               <div className="grid grid-cols-4 gap-2">
@@ -459,7 +564,12 @@ export function MediaPicker({
                     className={`overflow-hidden rounded border transition hover:border-primary/50 ${
                       asset.url === value ? "border-primary ring-1 ring-primary/40" : "border-border/40"
                     }`}
-                    onClick={() => onChange?.(asset.url)}
+                    onClick={() => {
+                      applyUrl(asset.url, "Selected from library", {
+                        filename: asset.filename ?? undefined,
+                        source: (asset.source as "upload" | "stock" | "url") || "url",
+                      });
+                    }}
                     title={asset.filename ?? "asset"}
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}

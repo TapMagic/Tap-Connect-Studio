@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ArrowDown,
@@ -92,9 +92,15 @@ export function TapCardBuilder({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
+  const inspectorRef = useRef<HTMLDivElement>(null);
 
   const sorted = [...config.sections].sort((a, b) => a.order - b.order);
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
+
+  useEffect(() => {
+    if (!selectedId || !inspectorRef.current) return;
+    inspectorRef.current.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+  }, [selectedId]);
 
   const catalogFiltered = TAP_CARD_ACTION_CATALOG.filter((c) => {
     if (!actionSearch.trim()) return COMMON_ACTION_KINDS.includes(c.kind);
@@ -233,7 +239,7 @@ export function TapCardBuilder({
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
-            Side panels stay put · scroll the page for the full Tap Card
+            Side panels match card height · scroll the page for the full Tap Card
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -484,10 +490,10 @@ export function TapCardBuilder({
         <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
       ) : null}
 
-      <div className="grid lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-start">
-        {/* Column 2 — stays visible while center scrolls */}
-        <aside className="border-r border-border/60 bg-background lg:sticky lg:top-14 lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
-          <div className="space-y-3 p-4">
+      <div className="grid lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-stretch">
+        {/* Column 2 — full-height shell alongside preview */}
+        <aside className="relative flex min-h-full flex-col border-r border-border/60 bg-background">
+          <div className="min-h-full flex-1 space-y-3 p-4">
             <TextFormatControls
               title="Title typography"
               value={config.titleFormat}
@@ -638,8 +644,8 @@ export function TapCardBuilder({
           </div>
         </aside>
 
-        {/* Column 3 — Tap Card preview (natural height; page scrolls) */}
-        <div className="min-w-0 bg-black/30 p-4 pb-16">
+        {/* Column 3 — Tap Card preview sets row height */}
+        <div className="flex min-h-full min-w-0 flex-col bg-black/30 p-4 pb-16">
           <p className="mb-2 text-center text-[11px] text-muted-foreground">
             Scroll the page to see the full Tap Card
           </p>
@@ -658,9 +664,12 @@ export function TapCardBuilder({
           </div>
         </div>
 
-        {/* Column 4 — stays visible while center scrolls */}
-        <aside className="border-l border-border/60 bg-background lg:sticky lg:top-14 lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
-          <div className="p-4">
+        {/* Column 4 — full-height shell; inspector sticks while scrolling */}
+        <aside className="relative flex min-h-full flex-col border-l border-border/60 bg-background">
+          <div
+            ref={inspectorRef}
+            className="sticky top-14 scroll-mt-16 p-4 lg:max-h-[calc(100dvh-3.5rem)] lg:overflow-y-auto"
+          >
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
           </p>
