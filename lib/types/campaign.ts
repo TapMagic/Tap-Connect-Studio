@@ -54,7 +54,7 @@ export interface BlockStyle {
   backgroundColor?: string;
   fontSize?: "sm" | "base" | "lg" | "xl" | "2xl" | "3xl";
   fontWeight?: "normal" | "medium" | "semibold" | "bold";
-  fontFamily?: "sans" | "serif" | "display";
+  fontFamily?: "sans" | "serif" | "display" | "mono" | "script" | "rounded";
   align?: "left" | "center" | "right";
   spacing?: "compact" | "normal" | "spacious";
   /** Soft card behind the block */
@@ -160,6 +160,17 @@ export interface ButtonItem {
   italic?: boolean;
   bold?: boolean;
   neonColor?: string;
+  /** Corner / button shape — shared with Tap Card */
+  shape?:
+    | "pill"
+    | "round"
+    | "square"
+    | "rounded_sm"
+    | "rounded_md"
+    | "rounded_lg"
+    | "rounded_xl"
+    | "stadium";
+  opacity?: number;
 }
 
 export interface ButtonGroupData {

@@ -32,6 +32,9 @@ export function BlockStyleControls({
             <option value="sans">Modern sans</option>
             <option value="serif">Classic serif</option>
             <option value="display">Display / impact</option>
+            <option value="mono">Mono / tech</option>
+            <option value="script">Script / elegant</option>
+            <option value="rounded">Rounded friendly</option>
           </select>
         </div>
         <div className="space-y-1">
@@ -138,6 +141,17 @@ export function BlockStyleControls({
             <option value="ghost">Ghost</option>
           </select>
         </div>
+        {style.finish === "neon" ? (
+          <div className="space-y-1 sm:col-span-2">
+            <Label className="text-[10px]">Neon glow color</Label>
+            <input
+              type="color"
+              value={style.neonColor ?? "#a3e635"}
+              onChange={(e) => set("neonColor", e.target.value)}
+              className="h-8 w-10 cursor-pointer rounded border-0"
+            />
+          </div>
+        ) : null}
         <div className="space-y-1">
           <Label className="text-[10px]">Text color</Label>
           <div className="flex gap-1">
@@ -197,6 +211,9 @@ export function blockStyleToCss(style?: BlockStyle): CSSProperties {
     sans: "var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif",
     serif: "ui-serif, Georgia, Cambria, 'Times New Roman', serif",
     display: "'Segoe UI', 'Helvetica Neue', Impact, sans-serif",
+    mono: "var(--font-geist-mono), ui-monospace, monospace",
+    script: "Georgia, 'Palatino Linotype', 'Book Antiqua', serif",
+    rounded: "'Segoe UI Rounded', 'Nunito', ui-sans-serif, system-ui, sans-serif",
   };
   const padMap = {
     compact: "0.5rem 1rem",

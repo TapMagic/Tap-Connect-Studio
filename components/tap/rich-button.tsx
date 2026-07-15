@@ -5,6 +5,7 @@ import { TapActionButton } from "@/components/tap/action-button";
 import { socialBrandStyle, SOCIAL_BRAND } from "@/components/tap/social-icons";
 import { PremiumIcon } from "@/components/design/premium-icon";
 import { finishClass } from "@/lib/design/premium-finish";
+import { shapeRadius } from "@/lib/brand/tap-card";
 import type { ButtonItem } from "@/lib/types/campaign";
 import { cn } from "@/lib/utils";
 
@@ -135,6 +136,8 @@ export function RichTapButton({
     ...(btn.backgroundColor ? { background: btn.backgroundColor } : {}),
     ...(btn.textColor ? { color: btn.textColor } : {}),
     ...(btn.neonColor ? ({ ["--tcc-neon"]: btn.neonColor } as CSSProperties) : {}),
+    ...(btn.shape ? { borderRadius: shapeRadius(btn.shape) } : {}),
+    ...(typeof btn.opacity === "number" ? { opacity: btn.opacity / 100 } : {}),
     ...(btn.italic ? { fontStyle: "italic" } : {}),
     ...(btn.bold ? { fontWeight: 700 } : {}),
   };

@@ -34,6 +34,7 @@ import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
 import { nanoid } from "nanoid";
 import type { BlockStyle, BlockType, ButtonItem, ContentBlock } from "@/lib/types/campaign";
+import { TAP_CARD_SHAPE_OPTIONS, type TapCardButtonShape } from "@/lib/brand/tap-card";
 import {
   defaultEndExperience,
   parseEndExperience,
@@ -1201,6 +1202,44 @@ function BlockFields({
                   label="Premium finish"
                   value={btn.finish}
                   onChange={(finish) => patchBtn(btn.id, { finish })}
+                />
+              </div>
+              <div className="sm:col-span-2 space-y-1">
+                <Label className="text-[10px]">Shape (pill / square / corners)</Label>
+                <select
+                  className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                  value={btn.shape ?? "pill"}
+                  onChange={(e) =>
+                    patchBtn(btn.id, { shape: e.target.value as TapCardButtonShape })
+                  }
+                >
+                  {TAP_CARD_SHAPE_OPTIONS.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              {(btn.finish === "neon") && (
+                <div className="space-y-1">
+                  <Label className="text-[10px]">Neon glow color</Label>
+                  <input
+                    type="color"
+                    value={btn.neonColor ?? "#a3e635"}
+                    onChange={(e) => patchBtn(btn.id, { neonColor: e.target.value })}
+                    className="h-9 w-10 cursor-pointer rounded border-0"
+                  />
+                </div>
+              )}
+              <div className="space-y-1 sm:col-span-2">
+                <Label className="text-[10px]">Transparency {btn.opacity ?? 100}%</Label>
+                <input
+                  type="range"
+                  min={25}
+                  max={100}
+                  value={btn.opacity ?? 100}
+                  onChange={(e) => patchBtn(btn.id, { opacity: Number(e.target.value) })}
+                  className="w-full"
                 />
               </div>
               <div className="sm:col-span-2">

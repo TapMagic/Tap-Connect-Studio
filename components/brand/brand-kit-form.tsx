@@ -106,6 +106,21 @@ export function BrandKitForm({
     <div className="space-y-6">
       <Card>
         <CardHeader>
+          <CardTitle>Tap Connect Card</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <p className="text-sm text-muted-foreground">
+            Premium digital card: two-column layouts, pill colors, neon glow, 3-D view, logo
+            window, image & text blocks, tiles and shapes — shared with campaign buttons.
+          </p>
+          <a href="/dashboard/card">
+            <Button type="button">Open Tap Card builder</Button>
+          </a>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Logo & assets</CardTitle>
         </CardHeader>
         <CardContent>

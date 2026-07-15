@@ -809,10 +809,53 @@
 }
 
 .tcc-shell {
-  background: var(--tcc-surface);
+  background: color-mix(in srgb, var(--tcc-surface) calc(var(--tcc-surface-alpha, 1) * 100%), transparent);
   border-radius: 0 0 1.25rem 1.25rem;
   padding: 0 0.85rem 1rem;
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+}
+
+.tcc-view-3d {
+  perspective: 900px;
+  perspective-origin: 50% 40%;
+}
+
+.tcc-shell-3d {
+  transform: rotateX(6deg) rotateY(-4deg);
+  transform-style: preserve-3d;
+  transition: transform 0.35s ease;
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.45),
+    0 8px 0 color-mix(in srgb, var(--tcc-accent) 25%, transparent);
+}
+
+.tcc-shell-3d:hover {
+  transform: rotateX(3deg) rotateY(0deg) translateY(-2px);
+}
+
+.tcc-image-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 0.5rem 0;
+}
+
+.tcc-image-block {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  object-fit: cover;
+}
+
+.tcc-text-block {
+  margin: 0.45rem 0;
+  padding: 0.55rem 0.65rem;
+  border-radius: 0.75rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.tcc-spacer {
+  width: 100%;
 }
 
 .tcc-hero {
@@ -915,6 +958,21 @@
   text-decoration: none;
 }
 
+/* Centered movable / scalable logo window on hero */
+.tcc-logo-window {
+  bottom: auto;
+  top: 50%;
+  left: 50%;
+  width: 5.75rem;
+  height: 5.75rem;
+  transform: translate(-50%, -50%);
+  border: 3px solid color-mix(in srgb, var(--tcc-accent) 85%, white);
+  box-shadow:
+    0 0 0 2px rgba(0, 0, 0, 0.35),
+    0 10px 28px rgba(0, 0, 0, 0.4),
+    inset 0 0 18px color-mix(in srgb, var(--tcc-accent) 22%, transparent);
+}
+
 .tcc-seal-img {
   width: 100%;
   height: 100%;
@@ -929,42 +987,38 @@
 
 .tcc-call-fab {
   position: absolute;
-  left: 50%;
-  bottom: -4.85rem;
+  right: 0.65rem;
+  bottom: 0.65rem;
+  left: auto;
   z-index: 5;
-  transform: translateX(-50%);
+  transform: none;
   width: 4.25rem;
   height: 4.25rem;
   border-radius: 999px;
   background: radial-gradient(circle at 35% 30%, #2a2a2a, #050505 70%);
-  border: 3px solid var(--tcc-accent);
-  color: #a3e635;
+  border: 2px solid var(--tcc-accent);
+  color: #f5e6a8;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 0.1rem;
   text-decoration: none;
-  box-shadow: 0 10px 24px rgba(0,0,0,0.4);
-  font-size: 0.45rem;
+  font-size: 0.48rem;
   font-weight: 700;
   letter-spacing: 0.02em;
   text-transform: uppercase;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
 .tcc-identity {
-  margin-top: 5.5rem;
+  margin-top: 0.85rem;
   text-align: center;
   padding: 0 0.5rem 0.5rem;
 }
 
-.tcc-hero:has(+ .tcc-identity) ~ .tcc-identity,
-.tcc-shell:has(.tcc-call-fab) .tcc-identity {
-  margin-top: 5.75rem;
-}
-
-.tcc-shell:has(.tcc-call-fab) .tcc-identity {
-  margin-top: 6.25rem;
+.tcc-shell:has(.tcc-logo-window) .tcc-identity {
+  margin-top: 0.85rem;
 }
 
 .tcc-name {

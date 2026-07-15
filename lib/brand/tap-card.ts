@@ -33,6 +33,8 @@ export type TapCardSectionType =
   | "identity"
   | "action"
   | "action_row"
+  | "image"
+  | "text"
   | "spacer"
   | "footer_cta";
 
@@ -40,6 +42,38 @@ export type TapCardSectionType =
 export type TapCardActionStyle = PremiumFinish;
 
 export type TapCardActionsLayout = "stack" | "grid_2";
+
+export type TapCardButtonShape =
+  | "pill"
+  | "round"
+  | "square"
+  | "rounded_sm"
+  | "rounded_md"
+  | "rounded_lg"
+  | "rounded_xl"
+  | "stadium";
+
+export const TAP_CARD_SHAPE_OPTIONS: { id: TapCardButtonShape; label: string; radius: string }[] =
+  [
+    { id: "pill", label: "Pill", radius: "999px" },
+    { id: "stadium", label: "Stadium", radius: "999px" },
+    { id: "round", label: "Fully round", radius: "999px" },
+    { id: "square", label: "Square (best for 2-col)", radius: "0.35rem" },
+    { id: "rounded_sm", label: "Corners soft", radius: "0.4rem" },
+    { id: "rounded_md", label: "Corners medium", radius: "0.75rem" },
+    { id: "rounded_lg", label: "Corners large", radius: "1rem" },
+    { id: "rounded_xl", label: "Corners XL", radius: "1.35rem" },
+  ];
+
+export const COMMON_SOCIAL_KINDS: TapCardActionKind[] = [
+  "instagram",
+  "facebook",
+  "tiktok",
+  "x",
+  "youtube",
+  "linkedin",
+  "whatsapp",
+];
 
 export type TapCardSection = {
   id: string;
@@ -52,14 +86,16 @@ export type TapCardSection = {
   href?: string;
   imageUrl?: string;
   logoUrl?: string;
+  showLogoWindow?: boolean;
+  logoScale?: number;
+  logoOffsetX?: number;
+  logoOffsetY?: number;
   actionKind?: TapCardActionKind;
   icon?: string;
-  /** Custom uploaded / pasted icon art */
   iconUrl?: string;
-  /** Premium finish */
   finish?: PremiumFinish;
-  /** Legacy alias for finish */
   style?: TapCardActionStyle;
+  shape?: TapCardButtonShape;
   format?: TextFormat;
   name?: string;
   title?: string;
@@ -72,32 +108,35 @@ export type TapCardSection = {
   backgroundColor?: string;
   textColor?: string;
   accentColor?: string;
-  /** Two-column row: pair this action with siblingId (or nest children) */
+  neonColor?: string;
+  opacity?: number;
   siblingId?: string;
-  /** For action_row containers */
   children?: TapCardSection[];
   layout?: TapCardActionsLayout;
+  imageWidthPercent?: number;
+  imageRadius?: TapCardButtonShape;
+  altText?: string;
 };
 
 export type TapConnectCardConfig = {
-  version: 1 | 2;
+  version: 1 | 2 | 3;
   accentColor: string;
   surfaceColor: string;
   textColor: string;
   neonColor?: string;
+  pillColor?: string;
+  pillTextColor?: string;
   headerEnergy: number;
   collapsible: boolean;
   defaultCollapsed: boolean;
-  /** Default layout for action buttons */
   actionsLayout: TapCardActionsLayout;
-  /** Default finish for new actions */
   defaultFinish: PremiumFinish;
-  /** Card shell finish */
   cardFinish: PremiumFinish;
-  /** Global typography defaults */
+  defaultShape: TapCardButtonShape;
+  view3d?: boolean;
+  surfaceOpacity?: number;
   titleFormat?: TextFormat;
   bodyFormat?: TextFormat;
-  /** Compact mode: hide hero/identity and show only action grid (e.g. two buttons) */
   compactActionsOnly?: boolean;
   sections: TapCardSection[];
 };
@@ -140,6 +179,14 @@ export function sectionFinish(section: TapCardSection, fallback: PremiumFinish =
   return (section.finish || section.style || fallback) as PremiumFinish;
 }
 
+export function shapeRadius(
+  shape?: TapCardButtonShape | null,
+  fallback: TapCardButtonShape = "pill"
+): string {
+  const id = shape || fallback;
+  return TAP_CARD_SHAPE_OPTIONS.find((o) => o.id === id)?.radius ?? "999px";
+}
+
 export function defaultTapConnectCard(params: {
   businessName: string;
   profile?: BrandContactProfile;
@@ -173,6 +220,10 @@ export function defaultTapConnectCard(params: {
       imageUrl: params.heroImageUrl || undefined,
       logoUrl: params.logoUrl || undefined,
       showCallBadge: Boolean(params.profile?.phone),
+      showLogoWindow: true,
+      logoScale: 100,
+      logoOffsetX: 0,
+      logoOffsetY: 0,
       href: params.profile?.website || undefined,
       label: "Hero",
     },
@@ -233,11 +284,12 @@ export function defaultTapConnectCard(params: {
     key: keyof NonNullable<BrandContactProfile["socials"]>;
     kind: TapCardActionKind;
   }[] = [
-    { key: "facebook", kind: "facebook" },
     { key: "instagram", kind: "instagram" },
+    { key: "facebook", kind: "facebook" },
     { key: "tiktok", kind: "tiktok" },
-    { key: "snapchat", kind: "snapchat" },
     { key: "x", kind: "x" },
+    { key: "youtube", kind: "youtube" },
+    { key: "linkedin", kind: "linkedin" },
   ];
   for (const s of socialOrder) {
     const url = params.profile?.socials?.[s.key];
@@ -251,6 +303,7 @@ export function defaultTapConnectCard(params: {
       label: TAP_CARD_ACTION_CATALOG.find((c) => c.kind === s.kind)?.label ?? s.kind,
       href: url,
       finish: "metallic",
+      shape: "pill",
       icon: s.kind,
     });
   }
@@ -264,6 +317,7 @@ export function defaultTapConnectCard(params: {
       actionKind: "homescreen",
       label: "Add to Home Screen",
       finish: "outline",
+      shape: "pill",
       icon: "homescreen",
     },
     {
@@ -281,18 +335,23 @@ export function defaultTapConnectCard(params: {
   );
 
   return {
-    version: 2,
+    version: 3,
     accentColor: accent,
     surfaceColor: "#f4f1ea",
     textColor: "#0b0f19",
     neonColor: accent,
+    pillColor: "#0c0a07",
+    pillTextColor: "#f5e6a8",
     headerEnergy: 72,
     collapsible: true,
     defaultCollapsed: false,
     actionsLayout: "stack",
     defaultFinish: "metallic",
     cardFinish: "soft",
-    titleFormat: { fontFamily: "sans", fontWeight: "bold", align: "center" },
+    defaultShape: "pill",
+    view3d: false,
+    surfaceOpacity: 100,
+    titleFormat: { fontFamily: "sans", fontWeight: "bold", align: "center", fontSize: "xl" },
     bodyFormat: { fontFamily: "sans", fontSize: "sm", align: "center" },
     compactActionsOnly: false,
     sections,
@@ -314,17 +373,23 @@ export function parseTapConnectCard(
   }));
 
   return {
-    version: 2,
+    version: 3,
     accentColor: typeof o.accentColor === "string" ? o.accentColor : base.accentColor,
     surfaceColor: typeof o.surfaceColor === "string" ? o.surfaceColor : base.surfaceColor,
     textColor: typeof o.textColor === "string" ? o.textColor : base.textColor,
     neonColor: typeof o.neonColor === "string" ? o.neonColor : base.neonColor,
+    pillColor: typeof o.pillColor === "string" ? o.pillColor : base.pillColor,
+    pillTextColor: typeof o.pillTextColor === "string" ? o.pillTextColor : base.pillTextColor,
     headerEnergy: typeof o.headerEnergy === "number" ? o.headerEnergy : base.headerEnergy,
     collapsible: o.collapsible !== false,
     defaultCollapsed: o.defaultCollapsed === true,
     actionsLayout: o.actionsLayout === "grid_2" ? "grid_2" : "stack",
     defaultFinish: (o.defaultFinish as PremiumFinish) || base.defaultFinish,
     cardFinish: (o.cardFinish as PremiumFinish) || base.cardFinish,
+    defaultShape: (o.defaultShape as TapCardButtonShape) || base.defaultShape,
+    view3d: o.view3d === true,
+    surfaceOpacity:
+      typeof o.surfaceOpacity === "number" ? o.surfaceOpacity : base.surfaceOpacity,
     titleFormat: (o.titleFormat as TextFormat) || base.titleFormat,
     bodyFormat: (o.bodyFormat as TextFormat) || base.bodyFormat,
     compactActionsOnly: o.compactActionsOnly === true,

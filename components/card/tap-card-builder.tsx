@@ -5,10 +5,14 @@ import { useRouter } from "next/navigation";
 import {
   ArrowDown,
   ArrowUp,
+  Columns2,
   Copy,
   GripVertical,
+  ImageIcon,
   Plus,
+  Rows3,
   Save,
+  Type,
   Trash2,
 } from "lucide-react";
 import { nanoid } from "nanoid";
@@ -21,9 +25,13 @@ import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
+  COMMON_SOCIAL_KINDS,
   TAP_CARD_ACTION_CATALOG,
+  TAP_CARD_SHAPE_OPTIONS,
   type TapCardActionKind,
+  type TapCardButtonShape,
   type TapCardSection,
+  type TapCardSectionType,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 import type { PremiumFinish } from "@/lib/design/premium-finish";
@@ -41,6 +49,23 @@ type Props = {
   isLandingDemo?: boolean;
 };
 
+const COMMON_ACTION_KINDS: TapCardActionKind[] = [
+  "vcard",
+  "call",
+  "email",
+  "sms",
+  "website",
+  "map",
+  "review",
+  "calendar",
+  "shop",
+  "book",
+  "homescreen",
+  "bookmark",
+  ...COMMON_SOCIAL_KINDS,
+  "custom",
+];
+
 export function TapCardBuilder({
   initialConfig,
   profile,
@@ -56,13 +81,20 @@ export function TapCardBuilder({
   const [config, setConfig] = useState(initialConfig);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
-  const [addKind, setAddKind] = useState<TapCardActionKind>("calendar");
+  const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
+  const [actionSearch, setActionSearch] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
 
   const sorted = [...config.sections].sort((a, b) => a.order - b.order);
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
+
+  const catalogFiltered = TAP_CARD_ACTION_CATALOG.filter((c) => {
+    if (!actionSearch.trim()) return COMMON_ACTION_KINDS.includes(c.kind);
+    const q = actionSearch.toLowerCase();
+    return c.label.toLowerCase().includes(q) || c.kind.includes(q);
+  });
 
   function patchConfig(patch: Partial<TapConnectCardConfig>) {
     setConfig((c) => ({ ...c, ...patch }));
@@ -99,23 +131,58 @@ export function TapCardBuilder({
     setSections(next);
   }
 
+  function addSection(type: Exclude<TapCardSectionType, "action_row">) {
+    const id = nanoid(8);
+    const base: TapCardSection = {
+      id,
+      type,
+      enabled: true,
+      order: sorted.length,
+      label:
+        type === "image"
+          ? "Image block"
+          : type === "text"
+            ? "Text box"
+            : type === "spacer"
+              ? "Spacer"
+              : type,
+    };
+    if (type === "image") {
+      base.imageWidthPercent = 100;
+      base.imageRadius = "rounded_md";
+      base.opacity = 100;
+    }
+    if (type === "text") {
+      base.text = "Your message here";
+      base.format = { fontFamily: "sans", fontSize: "lg", align: "center" };
+    }
+    if (type === "spacer") base.height = "md";
+    setSections([...sorted, base]);
+    setSelectedId(id);
+  }
+
   function addAction() {
     const catalog = TAP_CARD_ACTION_CATALOG.find((c) => c.kind === addKind);
     const id = nanoid(8);
     setSections([
       ...sorted,
-        {
-          id,
-          type: "action",
-          enabled: true,
-          order: sorted.length,
-          actionKind: addKind,
-          label: catalog?.label ?? addKind,
-          icon: catalog?.icon ?? addKind,
-          finish: addKind === "review" ? "soft" : config.defaultFinish,
-          style: addKind === "review" ? "soft" : config.defaultFinish,
-          href: "",
-        },
+      {
+        id,
+        type: "action",
+        enabled: true,
+        order: sorted.length,
+        actionKind: addKind,
+        label: catalog?.label ?? addKind,
+        icon: catalog?.icon ?? addKind,
+        finish: addKind === "review" ? "soft" : config.defaultFinish,
+        style: addKind === "review" ? "soft" : config.defaultFinish,
+        shape: config.defaultShape,
+        backgroundColor: config.pillColor,
+        textColor: config.pillTextColor,
+        neonColor: config.neonColor,
+        opacity: 100,
+        href: "",
+      },
     ]);
     setSelectedId(id);
   }
@@ -156,11 +223,11 @@ export function TapCardBuilder({
 
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
+      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
-            Real preview · drag segments · infinite action types
+            Design menus stay visible · drag segments · live preview
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -181,6 +248,149 @@ export function TapCardBuilder({
         </div>
       </div>
 
+      {/* Always-visible design menus */}
+      <div className="sticky top-[3.25rem] z-20 space-y-3 border-b border-border/60 bg-background/98 px-4 py-3 backdrop-blur">
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="space-y-1">
+            <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+              Layout
+            </Label>
+            <div className="flex gap-1 rounded-lg border border-border/60 p-1">
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+                  config.actionsLayout === "stack"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                )}
+                onClick={() => patchConfig({ actionsLayout: "stack" })}
+              >
+                <Rows3 className="h-3.5 w-3.5" />
+                Stack
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+                  config.actionsLayout === "grid_2"
+                    ? "bg-primary text-primary-foreground"
+                    : "hover:bg-muted"
+                )}
+                onClick={() =>
+                  patchConfig({
+                    actionsLayout: "grid_2",
+                    defaultShape:
+                      config.defaultShape === "pill" ? "square" : config.defaultShape,
+                  })
+                }
+              >
+                <Columns2 className="h-3.5 w-3.5" />
+                Two columns
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <Label className="text-[10px] font-semibold uppercase tracking-wide">
+              Button shape
+            </Label>
+            <select
+              className="flex h-9 min-w-[11rem] rounded-lg border border-input bg-background px-2 text-xs"
+              value={config.defaultShape}
+              onChange={(e) =>
+                patchConfig({ defaultShape: e.target.value as TapCardButtonShape })
+              }
+            >
+              {TAP_CARD_SHAPE_OPTIONS.map((o) => (
+                <option key={o.id} value={o.id}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <FinishPicker
+            label="Tile / finish"
+            value={config.defaultFinish}
+            onChange={(defaultFinish) => patchConfig({ defaultFinish })}
+          />
+          <FinishPicker
+            label="Card shell"
+            value={config.cardFinish}
+            onChange={(cardFinish) => patchConfig({ cardFinish })}
+          />
+
+          <label className="flex items-center gap-2 pb-1 text-xs font-medium">
+            <input
+              type="checkbox"
+              checked={Boolean(config.view3d)}
+              onChange={(e) => patchConfig({ view3d: e.target.checked })}
+            />
+            3-D view
+          </label>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3">
+          {(
+            [
+              ["accentColor", "Accent"],
+              ["surfaceColor", "Surface"],
+              ["textColor", "Text"],
+              ["pillColor", "Pill fill"],
+              ["pillTextColor", "Pill text"],
+              ["neonColor", "Neon glow"],
+            ] as const
+          ).map(([key, label]) => (
+            <div key={key} className="space-y-1">
+              <Label className="text-[10px]">{label}</Label>
+              <Input
+                type="color"
+                className="h-9 w-14 cursor-pointer p-1"
+                value={
+                  (config[key] as string | undefined) ||
+                  (key === "pillColor"
+                    ? "#0c0a07"
+                    : key === "pillTextColor"
+                      ? "#f5e6a8"
+                      : config.accentColor)
+                }
+                onChange={(e) => patchConfig({ [key]: e.target.value })}
+              />
+            </div>
+          ))}
+          <div className="min-w-[140px] flex-1 space-y-1">
+            <Label className="text-[10px]">
+              Transparency {config.surfaceOpacity ?? 100}%
+            </Label>
+            <input
+              type="range"
+              min={35}
+              max={100}
+              value={config.surfaceOpacity ?? 100}
+              onChange={(e) => patchConfig({ surfaceOpacity: Number(e.target.value) })}
+              className="w-full"
+            />
+          </div>
+          <label className="flex items-center gap-2 pb-1 text-xs">
+            <input
+              type="checkbox"
+              checked={config.collapsible}
+              onChange={(e) => patchConfig({ collapsible: e.target.checked })}
+            />
+            Collapsible
+          </label>
+          <label className="flex items-center gap-2 pb-1 text-xs">
+            <input
+              type="checkbox"
+              checked={Boolean(config.compactActionsOnly)}
+              onChange={(e) => patchConfig({ compactActionsOnly: e.target.checked })}
+            />
+            Buttons only
+          </label>
+        </div>
+      </div>
+
       {message ? (
         <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
       ) : null}
@@ -188,89 +398,6 @@ export function TapCardBuilder({
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside className="w-full shrink-0 overflow-y-auto border-r border-border/60 p-4 lg:w-[300px]">
           <div className="space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Accent</Label>
-                <Input
-                  type="color"
-                  value={config.accentColor}
-                  onChange={(e) => patchConfig({ accentColor: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Surface</Label>
-                <Input
-                  type="color"
-                  value={config.surfaceColor}
-                  onChange={(e) => patchConfig({ surfaceColor: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Text</Label>
-                <Input
-                  type="color"
-                  value={config.textColor}
-                  onChange={(e) => patchConfig({ textColor: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Neon</Label>
-                <Input
-                  type="color"
-                  value={config.neonColor || config.accentColor}
-                  onChange={(e) => patchConfig({ neonColor: e.target.value })}
-                />
-              </div>
-            </div>
-            <FinishPicker
-              label="Card shell finish"
-              value={config.cardFinish}
-              onChange={(cardFinish) => patchConfig({ cardFinish })}
-            />
-            <FinishPicker
-              label="Default button finish"
-              value={config.defaultFinish}
-              onChange={(defaultFinish) => patchConfig({ defaultFinish })}
-            />
-            <div className="space-y-1">
-              <Label className="text-xs">Actions layout</Label>
-              <select
-                className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
-                value={config.actionsLayout}
-                onChange={(e) =>
-                  patchConfig({
-                    actionsLayout: e.target.value as TapConnectCardConfig["actionsLayout"],
-                  })
-                }
-              >
-                <option value="stack">Stack (full width)</option>
-                <option value="grid_2">Two columns</option>
-              </select>
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={config.collapsible}
-                onChange={(e) => patchConfig({ collapsible: e.target.checked })}
-              />
-              Collapsible in campaigns
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={config.defaultCollapsed}
-                onChange={(e) => patchConfig({ defaultCollapsed: e.target.checked })}
-              />
-              Start collapsed
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={Boolean(config.compactActionsOnly)}
-                onChange={(e) => patchConfig({ compactActionsOnly: e.target.checked })}
-              />
-              Compact — buttons only (no hero)
-            </label>
             <TextFormatControls
               title="Title typography"
               value={config.titleFormat}
@@ -282,22 +409,46 @@ export function TapCardBuilder({
               onChange={(bodyFormat) => patchConfig({ bodyFormat })}
             />
 
-            <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
-              <Label className="text-xs">Add action</Label>
+            <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
+              <Label className="text-xs font-semibold">Add block</Label>
+              <div className="grid grid-cols-2 gap-1.5">
+                <Button type="button" size="sm" variant="outline" onClick={() => addSection("image")}>
+                  <ImageIcon className="mr-1 h-3.5 w-3.5" />
+                  Image
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => addSection("text")}>
+                  <Type className="mr-1 h-3.5 w-3.5" />
+                  Text
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => addSection("spacer")}>
+                  Spacer
+                </Button>
+              </div>
+              <Label className="text-[10px] text-muted-foreground">Common actions + socials</Label>
+              <Input
+                value={actionSearch}
+                onChange={(e) => setActionSearch(e.target.value)}
+                placeholder="Search icons / actions…"
+                className="h-8 text-xs"
+              />
               <select
-                className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                 value={addKind}
                 onChange={(e) => setAddKind(e.target.value as TapCardActionKind)}
               >
-                {TAP_CARD_ACTION_CATALOG.map((c) => (
+                {catalogFiltered.map((c) => (
                   <option key={c.kind} value={c.kind}>
                     {c.label}
                   </option>
                 ))}
               </select>
-              <Button type="button" size="sm" className="mt-2 w-full" onClick={addAction}>
+              <p className="text-[10px] text-muted-foreground">
+                Custom link: URL format https://… · Socials need profile URL in Brand Kit or paste
+                below after adding.
+              </p>
+              <Button type="button" size="sm" className="w-full" onClick={addAction}>
                 <Plus className="mr-1 h-4 w-4" />
-                Add
+                Add action
               </Button>
             </div>
 
@@ -411,9 +562,9 @@ export function TapCardBuilder({
           </p>
           {!selected ? (
             <p className="text-xs text-muted-foreground">
-              Promo header is a clickable deal strip. Hero supports photo + logo seal. Actions
-              support Square, calendar, email, socials, homescreen tips, and more. Downloaded .vcf
-              stays contact-only — live actions are the magic.
+              Use the sticky Design bar for Two columns, shapes, pill colors, neon glow, 3-D, and
+              transparency. Add Image / Text blocks from the left. Hero logo window is movable and
+              scalable.
             </p>
           ) : (
             <div className="space-y-3">
@@ -430,6 +581,7 @@ export function TapCardBuilder({
                 onChange={(e) => patchSection(selected.id, { label: e.target.value })}
                 placeholder="Label"
               />
+
               {selected.type === "action" && (
                 <>
                   <select
@@ -451,14 +603,10 @@ export function TapCardBuilder({
                       </option>
                     ))}
                   </select>
-                  <p className="text-[10px] text-muted-foreground">
-                    Use &quot;Any custom link&quot; for Square, Shopify, Calendly, TikTok shops —
-                    any URL.
-                  </p>
                   <Input
                     value={selected.href ?? ""}
                     onChange={(e) => patchSection(selected.id, { href: e.target.value })}
-                    placeholder="https://… (any link)"
+                    placeholder="https://… (URL format)"
                   />
                   <FinishPicker
                     value={selected.finish || selected.style || config.defaultFinish}
@@ -466,6 +614,24 @@ export function TapCardBuilder({
                       patchSection(selected.id, { finish, style: finish })
                     }
                   />
+                  <div className="space-y-1">
+                    <Label className="text-xs">Shape</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selected.shape || config.defaultShape}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          shape: e.target.value as TapCardButtonShape,
+                        })
+                      }
+                    >
+                      {TAP_CARD_SHAPE_OPTIONS.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                   <IconPicker
                     icon={selected.icon || selected.actionKind || "link"}
                     customUrl={selected.iconUrl}
@@ -478,34 +644,64 @@ export function TapCardBuilder({
                     mediaUploadReady={mediaUploadReady}
                   />
                   <TextFormatControls
-                    title="Button label format"
+                    title="Button label — font & size"
                     value={selected.format}
                     onChange={(format) => patchSection(selected.id, { format })}
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <div>
-                      <Label className="text-xs">Fill color</Label>
+                      <Label className="text-xs">Pill fill</Label>
                       <Input
                         type="color"
-                        value={selected.backgroundColor || "#0c0a07"}
+                        value={
+                          selected.backgroundColor || config.pillColor || "#0c0a07"
+                        }
                         onChange={(e) =>
                           patchSection(selected.id, { backgroundColor: e.target.value })
                         }
                       />
                     </div>
                     <div>
-                      <Label className="text-xs">Label color</Label>
+                      <Label className="text-xs">Pill text</Label>
                       <Input
                         type="color"
-                        value={selected.textColor || config.textColor}
+                        value={selected.textColor || config.pillTextColor || "#f5e6a8"}
                         onChange={(e) =>
                           patchSection(selected.id, { textColor: e.target.value })
                         }
                       />
                     </div>
+                    {(selected.finish || config.defaultFinish) === "neon" ? (
+                      <div className="col-span-2">
+                        <Label className="text-xs">Neon glow color</Label>
+                        <Input
+                          type="color"
+                          value={selected.neonColor || config.neonColor || config.accentColor}
+                          onChange={(e) =>
+                            patchSection(selected.id, { neonColor: e.target.value })
+                          }
+                        />
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      Transparency {selected.opacity ?? 100}%
+                    </Label>
+                    <input
+                      type="range"
+                      min={20}
+                      max={100}
+                      value={selected.opacity ?? 100}
+                      onChange={(e) =>
+                        patchSection(selected.id, { opacity: Number(e.target.value) })
+                      }
+                      className="w-full"
+                    />
                   </div>
                 </>
               )}
+
               {selected.type === "promo_header" && (
                 <>
                   <Input
@@ -524,12 +720,13 @@ export function TapCardBuilder({
                     placeholder="Click URL"
                   />
                   <TextFormatControls
-                    title="Promo typography"
+                    title="Promo — font & size"
                     value={selected.format}
                     onChange={(format) => patchSection(selected.id, { format })}
                   />
                 </>
               )}
+
               {selected.type === "identity" && (
                 <>
                   <Input
@@ -555,12 +752,13 @@ export function TapCardBuilder({
                     placeholder="Headline"
                   />
                   <TextFormatControls
-                    title="Identity typography"
+                    title="Identity — font & size"
                     value={selected.format}
                     onChange={(format) => patchSection(selected.id, { format })}
                   />
                 </>
               )}
+
               {selected.type === "hero" && (
                 <>
                   <MediaPicker
@@ -570,13 +768,78 @@ export function TapCardBuilder({
                     mediaUploadReady={mediaUploadReady}
                     stockReady={stockReady}
                   />
-                  <MediaPicker
-                    label="Logo seal"
-                    value={selected.logoUrl ?? logoUrl ?? ""}
-                    onChange={(url) => patchSection(selected.id, { logoUrl: url })}
-                    mediaUploadReady={mediaUploadReady}
-                    stockReady={stockReady}
-                  />
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selected.showLogoWindow !== false}
+                      onChange={(e) =>
+                        patchSection(selected.id, { showLogoWindow: e.target.checked })
+                      }
+                    />
+                    Logo window (centered on hero)
+                  </label>
+                  {selected.showLogoWindow !== false ? (
+                    <>
+                      <MediaPicker
+                        label="Logo in window"
+                        value={selected.logoUrl ?? logoUrl ?? ""}
+                        onChange={(url) => patchSection(selected.id, { logoUrl: url })}
+                        mediaUploadReady={mediaUploadReady}
+                        stockReady={stockReady}
+                      />
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          Scale {selected.logoScale ?? 100}%
+                        </Label>
+                        <input
+                          type="range"
+                          min={40}
+                          max={180}
+                          value={selected.logoScale ?? 100}
+                          onChange={(e) =>
+                            patchSection(selected.id, {
+                              logoScale: Number(e.target.value),
+                            })
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          Move X {selected.logoOffsetX ?? 0}px
+                        </Label>
+                        <input
+                          type="range"
+                          min={-80}
+                          max={80}
+                          value={selected.logoOffsetX ?? 0}
+                          onChange={(e) =>
+                            patchSection(selected.id, {
+                              logoOffsetX: Number(e.target.value),
+                            })
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          Move Y {selected.logoOffsetY ?? 0}px
+                        </Label>
+                        <input
+                          type="range"
+                          min={-80}
+                          max={80}
+                          value={selected.logoOffsetY ?? 0}
+                          onChange={(e) =>
+                            patchSection(selected.id, {
+                              logoOffsetY: Number(e.target.value),
+                            })
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                    </>
+                  ) : null}
                   <Input
                     value={selected.href ?? ""}
                     onChange={(e) => patchSection(selected.id, { href: e.target.value })}
@@ -594,6 +857,136 @@ export function TapCardBuilder({
                   </label>
                 </>
               )}
+
+              {selected.type === "image" && (
+                <>
+                  <MediaPicker
+                    label="Image"
+                    value={selected.imageUrl ?? ""}
+                    onChange={(url) => patchSection(selected.id, { imageUrl: url })}
+                    mediaUploadReady={mediaUploadReady}
+                    stockReady={stockReady}
+                  />
+                  <Input
+                    value={selected.href ?? ""}
+                    onChange={(e) => patchSection(selected.id, { href: e.target.value })}
+                    placeholder="Optional link https://…"
+                  />
+                  <Input
+                    value={selected.altText ?? ""}
+                    onChange={(e) => patchSection(selected.id, { altText: e.target.value })}
+                    placeholder="Alt text"
+                  />
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      Width {selected.imageWidthPercent ?? 100}%
+                    </Label>
+                    <input
+                      type="range"
+                      min={40}
+                      max={100}
+                      value={selected.imageWidthPercent ?? 100}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          imageWidthPercent: Number(e.target.value),
+                        })
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Corners</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selected.imageRadius || "rounded_md"}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          imageRadius: e.target.value as TapCardButtonShape,
+                        })
+                      }
+                    >
+                      {TAP_CARD_SHAPE_OPTIONS.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      Transparency {selected.opacity ?? 100}%
+                    </Label>
+                    <input
+                      type="range"
+                      min={20}
+                      max={100}
+                      value={selected.opacity ?? 100}
+                      onChange={(e) =>
+                        patchSection(selected.id, { opacity: Number(e.target.value) })
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                </>
+              )}
+
+              {selected.type === "text" && (
+                <>
+                  <textarea
+                    className="min-h-[100px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    value={selected.text ?? ""}
+                    onChange={(e) => patchSection(selected.id, { text: e.target.value })}
+                    placeholder="Text content"
+                  />
+                  <TextFormatControls
+                    title="Full font & size"
+                    value={selected.format}
+                    onChange={(format) => patchSection(selected.id, { format })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Text color</Label>
+                      <Input
+                        type="color"
+                        value={selected.textColor || config.textColor}
+                        onChange={(e) =>
+                          patchSection(selected.id, { textColor: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Background</Label>
+                      <Input
+                        type="color"
+                        value={selected.backgroundColor || "#00000000"}
+                        onChange={(e) =>
+                          patchSection(selected.id, { backgroundColor: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {selected.type === "spacer" && (
+                <div className="space-y-1">
+                  <Label className="text-xs">Height</Label>
+                  <select
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                    value={selected.height || "md"}
+                    onChange={(e) =>
+                      patchSection(selected.id, {
+                        height: e.target.value as "sm" | "md" | "lg",
+                      })
+                    }
+                  >
+                    <option value="sm">Small</option>
+                    <option value="md">Medium</option>
+                    <option value="lg">Large</option>
+                  </select>
+                </div>
+              )}
+
               {selected.type === "footer_cta" && (
                 <>
                   <Input
