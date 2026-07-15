@@ -34,6 +34,8 @@ type TapConnectCardProps = {
   forceExpanded?: boolean;
   /** Highlight + scroll anchor for builder selection */
   selectedSectionId?: string | null;
+  /** Builder-only chrome (e.g. Linked badge) — hidden on live taps */
+  builderChrome?: boolean;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
 };
@@ -54,6 +56,7 @@ export function TapConnectCard({
   reviewUrl,
   forceExpanded = false,
   selectedSectionId = null,
+  builderChrome = false,
   className = "",
   onAction,
 }: TapConnectCardProps) {
@@ -136,6 +139,18 @@ export function TapConnectCard({
       filename: `${name.replace(/\s+/g, "-").toLowerCase()}.vcf`,
       content: vcf,
       title: name,
+    }).then((result) => {
+      if (result === "cancelled") {
+        setToast("Save cancelled");
+        window.setTimeout(() => setToast(null), 2200);
+      } else if (result === "downloaded") {
+        setToast("Contact file saved — open it to add to Contacts");
+        window.setTimeout(() => setToast(null), 4200);
+      } else if (result === "shared") {
+        setToast("Pick Contacts to finish saving");
+        window.setTimeout(() => setToast(null), 3200);
+      }
+      // "opened" navigates away on mobile — no toast needed
     });
     onAction?.("vcard", "download");
   }
@@ -244,7 +259,7 @@ export function TapConnectCard({
     const teaser = (
       <>
         <div className="tcc-special-copy">
-          {campaignLinked ? (
+          {builderChrome && campaignLinked ? (
             <span className="tcc-special-linked" title={section.linkedCampaignTitle || "Campaign"}>
               <Link2 className="size-3.5" aria-hidden />
               Linked
@@ -268,7 +283,7 @@ export function TapConnectCard({
               {section.description}
             </p>
           ) : null}
-          {campaignLinked && section.linkedCampaignTitle ? (
+          {builderChrome && campaignLinked && section.linkedCampaignTitle ? (
             <p className="tcc-special-campaign-name">{section.linkedCampaignTitle}</p>
           ) : null}
         </div>
@@ -955,6 +970,20 @@ export function TapConnectCard({
       )}
       style={style}
     >
+      {config.showHeaderLogo === true && (config.headerLogoUrl || logoUrl) ? (
+        <div className="tcc-header-logo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={config.headerLogoUrl || logoUrl || ""}
+            alt={businessName}
+            className="tcc-header-logo-img"
+            style={{
+              maxHeight: `${Math.round(2.75 * ((config.headerLogoScale ?? 100) / 100))}rem`,
+              maxWidth: `${Math.round(4.25 * ((config.headerLogoScale ?? 100) / 100))}rem`,
+            }}
+          />
+        </div>
+      ) : null}
       {outerNodes}
       <div
         className="tcc-shell"

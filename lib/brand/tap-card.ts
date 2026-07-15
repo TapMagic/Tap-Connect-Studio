@@ -194,11 +194,9 @@ export type TapConnectCardConfig = {
   cardFinish: PremiumFinish;
   defaultShape: TapCardButtonShape;
   view3d?: boolean;
-  /** @deprecated removed — use logo_block / hero instead */
+  /** Optional logo strip above the card shell (opt-in) */
   showHeaderLogo?: boolean;
-  /** @deprecated */
   headerLogoUrl?: string;
-  /** @deprecated */
   headerLogoScale?: number;
   surfaceOpacity?: number;
   surfaceFill?: TapCardSurfaceFill;
@@ -218,7 +216,7 @@ export const TAP_CARD_ACTION_CATALOG: {
   icon: string;
   placeholder?: string;
 }[] = [
-  { kind: "vcard", label: "Download vCard", icon: "vcard" },
+  { kind: "vcard", label: "Save to contacts", icon: "vcard" },
   { kind: "call", label: "Click to Call", icon: "phone" },
   { kind: "email", label: "Send an Email", icon: "mail" },
   { kind: "sms", label: "Text Us", icon: "sms" },
@@ -333,7 +331,7 @@ export function defaultTapConnectCard(params: {
       enabled: true,
       order: 3,
       actionKind: "vcard",
-      label: "Download VCard",
+      label: "Save to contacts",
       finish: "metallic",
       icon: "vcard",
       format: { fontFamily: "serif", fontWeight: "semibold", fontSize: "lg" },
@@ -439,6 +437,8 @@ export function defaultTapConnectCard(params: {
     defaultShape: "pill",
     view3d: false,
     showHeaderLogo: false,
+    headerLogoUrl: params.logoUrl || undefined,
+    headerLogoScale: 100,
     surfaceOpacity: 100,
     surfaceFill: "solid",
     surfaceGradientStart: accent,
@@ -493,7 +493,13 @@ export function parseTapConnectCard(
     cardFinish: (o.cardFinish as PremiumFinish) || base.cardFinish,
     defaultShape: normalizeShape(o.defaultShape as TapCardButtonShapeLegacy, base.defaultShape),
     view3d: o.view3d === true,
-    showHeaderLogo: false,
+    showHeaderLogo: o.showHeaderLogo === true,
+    headerLogoUrl:
+      typeof o.headerLogoUrl === "string"
+        ? o.headerLogoUrl
+        : base.headerLogoUrl,
+    headerLogoScale:
+      typeof o.headerLogoScale === "number" ? o.headerLogoScale : base.headerLogoScale,
     surfaceOpacity:
       typeof o.surfaceOpacity === "number" ? o.surfaceOpacity : base.surfaceOpacity,
     surfaceFill: o.surfaceFill === "gradient" ? "gradient" : "solid",

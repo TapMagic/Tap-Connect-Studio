@@ -29,6 +29,7 @@ interface CampaignTheme {
   backgroundOverlayOpacity?: number;
   fontStyle?: string;
   fontFamily?: string;
+  showPageLogo?: boolean;
 }
 
 interface CampaignPageProps {
@@ -226,11 +227,11 @@ export function CampaignPageRenderer({
       onClick={editMode ? () => onSelectBlock?.("") : undefined}
     >
       <div className="tap-page-inner mx-auto max-w-lg">
-        {mark && (
+        {theme.showPageLogo && mark ? (
           <div className="flex justify-center px-4 pt-6">
             <img src={mark} alt={businessName} className="h-10 w-auto object-contain" />
           </div>
-        )}
+        ) : null}
         {enabledBlocks.map((block) => (
           <BlockRenderer
             key={block.id}

@@ -333,6 +333,8 @@ export interface CampaignTheme {
   backgroundImage?: string;
   /** Dark overlay 0–100 over backgroundImage */
   backgroundOverlayOpacity?: number;
+  /** Business logo strip at top of live campaign page (opt-in) */
+  showPageLogo?: boolean;
 }
 
 export interface CampaignTemplate {

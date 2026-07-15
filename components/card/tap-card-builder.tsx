@@ -537,6 +537,42 @@ export function TapCardBuilder({
             />
             Buttons only
           </label>
+          <label className="flex items-center gap-2 pb-1 text-xs">
+            <input
+              type="checkbox"
+              checked={config.showHeaderLogo === true}
+              onChange={(e) => patchConfig({ showHeaderLogo: e.target.checked })}
+            />
+            Logo above card
+          </label>
+          {config.showHeaderLogo === true ? (
+            <div className="flex w-full flex-wrap items-end gap-3">
+              <div className="min-w-[200px] flex-1">
+                <MediaPicker
+                  label="Header logo"
+                  value={config.headerLogoUrl ?? logoUrl ?? ""}
+                  onChange={(url) => patchConfig({ headerLogoUrl: url })}
+                  mediaUploadReady={mediaUploadReady}
+                  stockReady={stockReady}
+                />
+              </div>
+              <div className="min-w-[140px] flex-1 space-y-1">
+                <Label className="text-[10px]">
+                  Logo size {config.headerLogoScale ?? 100}%
+                </Label>
+                <input
+                  type="range"
+                  min={40}
+                  max={180}
+                  value={config.headerLogoScale ?? 100}
+                  onChange={(e) =>
+                    patchConfig({ headerLogoScale: Number(e.target.value) })
+                  }
+                  className="w-full"
+                />
+              </div>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -742,6 +778,7 @@ export function TapCardBuilder({
                   logoUrl={logoUrl}
                   reviewUrl={reviewUrl}
                   forceExpanded
+                  builderChrome
                   selectedSectionId={selectedId}
                 />
               </div>
@@ -758,8 +795,9 @@ export function TapCardBuilder({
           {!selected ? (
             <p className="text-xs text-muted-foreground">
               Use the Design bar for Two columns, shapes, pill colors, neon glow, 3-D, and
-              transparency. Add Image / Logo / Text blocks from the left. Hero logo is off by
-              default — enable it on the Hero segment if you want one.
+              transparency. Add Image / Logo / Text blocks from the left. Top logos are opt-in:
+              Design bar → <span className="text-foreground">Logo above card</span>, or select
+              Hero → <span className="text-foreground">Show logo on hero</span>.
             </p>
           ) : (
             <div className="space-y-3">

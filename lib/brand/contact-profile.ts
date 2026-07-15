@@ -95,53 +95,139 @@ export function buildVCard(params: {
   return lines.join("\r\n");
 }
 
-export function downloadVCardFile(filename: string, content: string) {
+export type SaveContactResult =
+  | "shared"
+  | "opened"
+  | "downloaded"
+  | "cancelled";
+
+function vcfFilename(filename: string) {
+  const base = filename.trim() || "contact";
+  return base.endsWith(".vcf") ? base : `${base}.vcf`;
+}
+
+function detectMobilePlatform(): "ios" | "android" | "other" {
+  if (typeof navigator === "undefined") return "other";
+  const ua = navigator.userAgent || "";
+  const iOS =
+    /iPad|iPhone|iPod/i.test(ua) ||
+    (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  if (iOS) return "ios";
+  if (/Android/i.test(ua)) return "android";
+  return "other";
+}
+
+function downloadVCardFile(filename: string, content: string) {
   const blob = new Blob([content], { type: "text/vcard;charset=utf-8" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
-  a.download = filename.endsWith(".vcf") ? filename : `${filename}.vcf`;
+  a.download = vcfFilename(filename);
   document.body.appendChild(a);
   a.click();
   a.remove();
-  URL.revokeObjectURL(url);
+  window.setTimeout(() => URL.revokeObjectURL(url), 2_000);
+}
+
+async function stashContactUrl(filename: string, content: string): Promise<string | null> {
+  try {
+    const res = await fetch("/api/public/vcard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content, filename: vcfFilename(filename) }),
+    });
+    if (!res.ok) return null;
+    const data = (await res.json()) as { url?: string };
+    return typeof data.url === "string" ? data.url : null;
+  } catch {
+    return null;
+  }
+}
+
+function makeVcfFile(filename: string, content: string) {
+  const name = vcfFilename(filename);
+  // text/x-vcard improves Contacts handoff on some Android builds
+  return new File([content], name, {
+    type: "text/x-vcard",
+  });
+}
+
+async function shareVcfFile(
+  file: File,
+  title?: string
+): Promise<"shared" | "cancelled" | "unsupported"> {
+  if (typeof navigator === "undefined" || typeof navigator.share !== "function") {
+    return "unsupported";
+  }
+
+  const tryShare = async (candidate: File) => {
+    const payload: ShareData = { files: [candidate], title: title || "Save contact" };
+    if (typeof navigator.canShare === "function" && !navigator.canShare(payload)) {
+      return false;
+    }
+    await navigator.share(payload);
+    return true;
+  };
+
+  try {
+    if (await tryShare(file)) return "shared";
+    // Retry with alternate MIME if the first File type was rejected for sharing
+    const alt = new File([await file.text()], file.name, { type: "text/vcard" });
+    if (await tryShare(alt)) return "shared";
+    return "unsupported";
+  } catch (err) {
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return "cancelled";
+    }
+    return "unsupported";
+  }
 }
 
 /**
  * Save contact with a single user gesture.
- * Prefers system share sheet (Add to Contacts) when the browser allows sharing .vcf files;
- * otherwise downloads the vCard — no extra confirmation beyond the tap.
+ *
+ * - Android: share sheet when possible (pick Contacts / Save) — nearly one-tap
+ * - iOS: open .vcf inline so Safari shows Add Contact → Create (checkmark flow)
+ * - Desktop: download .vcf as last resort
+ *
+ * Avoids mobile `a.download`, which forces a file download instead of Contacts.
  */
 export async function saveContactWithUserGesture(params: {
   filename: string;
   content: string;
   title?: string;
-}): Promise<"shared" | "downloaded"> {
-  const name = params.filename.endsWith(".vcf")
-    ? params.filename
-    : `${params.filename}.vcf`;
-  const file = new File([params.content], name, { type: "text/vcard" });
+}): Promise<SaveContactResult> {
+  const platform = detectMobilePlatform();
+  const file = makeVcfFile(params.filename, params.content);
 
-  try {
-    if (
-      typeof navigator !== "undefined" &&
-      typeof navigator.canShare === "function" &&
-      navigator.canShare({ files: [file] })
-    ) {
-      await navigator.share({
-        files: [file],
-        title: params.title || "Save contact",
-        text: params.title || "Add to contacts",
-      });
-      return "shared";
-    }
-  } catch (err) {
-    // User cancelled share — don't force a download
-    if (err instanceof DOMException && err.name === "AbortError") {
-      return "downloaded";
-    }
+  // Android: Web Share → Contacts is the lowest-friction path
+  if (platform === "android") {
+    const shared = await shareVcfFile(file, params.title);
+    if (shared === "shared" || shared === "cancelled") return shared;
   }
 
-  downloadVCardFile(name, params.content);
+  // iOS (and Android share fallback): real URL with Content-Disposition: inline
+  // opens the native Add Contact UI instead of a downloads list.
+  if (platform === "ios" || platform === "android") {
+    const url = await stashContactUrl(params.filename, params.content);
+    if (url) {
+      // Same-tab navigation keeps the user gesture; iOS presents Create Contact.
+      window.location.assign(url);
+      return "opened";
+    }
+
+    // Blob fallback if stash failed (still never use download= on mobile)
+    const blobUrl = URL.createObjectURL(
+      new Blob([params.content], { type: "text/vcard;charset=utf-8" })
+    );
+    window.location.assign(blobUrl);
+    return "opened";
+  }
+
+  // Desktop / other: share if the OS supports contact import from share sheet
+  const shared = await shareVcfFile(file, params.title);
+  if (shared === "shared" || shared === "cancelled") return shared;
+
+  downloadVCardFile(params.filename, params.content);
   return "downloaded";
 }

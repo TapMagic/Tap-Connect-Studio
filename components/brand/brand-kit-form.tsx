@@ -359,7 +359,7 @@ export function BrandKitForm({
                 onClick={() => void testVcardDownload()}
               >
                 <Download className="mr-1.5 h-3.5 w-3.5" />
-                {testingVcard ? "Preparing…" : "Test Save contact (.vcf)"}
+                {testingVcard ? "Opening Contacts…" : "Test Save to contacts"}
               </Button>
             </CardContent>
           </Card>

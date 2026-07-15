@@ -182,7 +182,7 @@ interface CampaignEditorProps {
     title: string;
     status: string;
     contentBlocks: ContentBlock[];
-    themeOverrides: Record<string, string>;
+    themeOverrides: Record<string, unknown>;
     scheduledStart?: string | null;
     scheduledEnd?: string | null;
     endExperience?: unknown;
@@ -232,16 +232,28 @@ export function CampaignEditor({
   const [title, setTitle] = useState(campaign.title);
   const [status, setStatus] = useState(campaign.status);
   const [blocks, setBlocks] = useState<ContentBlock[]>(campaign.contentBlocks);
-  const [theme, setTheme] = useState({
-    primaryColor: campaign.themeOverrides?.primaryColor ?? brandKit.primaryColor,
-    secondaryColor: campaign.themeOverrides?.secondaryColor ?? brandKit.secondaryColor,
-    backgroundColor: campaign.themeOverrides?.backgroundColor ?? brandKit.backgroundColor,
-    textColor: campaign.themeOverrides?.textColor ?? brandKit.textColor,
-    backgroundImage: campaign.themeOverrides?.backgroundImage ?? "",
+  const [theme, setTheme] = useState<{
+    primaryColor: string;
+    secondaryColor: string;
+    backgroundColor: string;
+    textColor: string;
+    backgroundImage: string;
+    backgroundOverlayOpacity: number;
+    fontStyle: string;
+    showPageLogo: boolean;
+  }>({
+    primaryColor: String(campaign.themeOverrides?.primaryColor ?? brandKit.primaryColor),
+    secondaryColor: String(campaign.themeOverrides?.secondaryColor ?? brandKit.secondaryColor),
+    backgroundColor: String(campaign.themeOverrides?.backgroundColor ?? brandKit.backgroundColor),
+    textColor: String(campaign.themeOverrides?.textColor ?? brandKit.textColor),
+    backgroundImage: String(campaign.themeOverrides?.backgroundImage ?? ""),
     backgroundOverlayOpacity: Number(
       campaign.themeOverrides?.backgroundOverlayOpacity ?? 55
     ),
-    fontStyle: campaign.themeOverrides?.fontStyle ?? "sans",
+    fontStyle: String(campaign.themeOverrides?.fontStyle ?? "sans"),
+    showPageLogo:
+      campaign.themeOverrides?.showPageLogo === true ||
+      campaign.themeOverrides?.showPageLogo === "true",
   });
   const [selectedDevice, setSelectedDevice] = useState(devices[0]?.id ?? "");
   const [showPreview, setShowPreview] = useState(true);
@@ -884,6 +896,20 @@ export function CampaignEditor({
                       />
                     </div>
                   ) : null}
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={Boolean(theme.showPageLogo)}
+                      onChange={(e) =>
+                        setTheme((t) => ({ ...t, showPageLogo: e.target.checked }))
+                      }
+                    />
+                    Show business logo at top of page
+                  </label>
+                  <p className="text-[11px] text-muted-foreground">
+                    Off by default so Tap Card / hero logos aren’t doubled. Turn on for a small
+                    brand mark above all blocks.
+                  </p>
                 </>
               )}
 

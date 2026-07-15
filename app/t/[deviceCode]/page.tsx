@@ -158,18 +158,22 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
         undefined,
     };
 
-    const themeOverrides = resolved.themeOverrides;
+    const themeOverrides = resolved.themeOverrides as Record<string, unknown>;
     const theme = {
-      primaryColor: themeOverrides.primaryColor ?? brandKit?.primaryColor ?? "#a3e635",
-      secondaryColor: themeOverrides.secondaryColor ?? brandKit?.secondaryColor ?? "#0ea5e9",
-      backgroundColor: themeOverrides.backgroundColor ?? brandKit?.backgroundColor ?? "#0b0f19",
-      textColor: themeOverrides.textColor ?? brandKit?.textColor ?? "#f8fafc",
-      backgroundImage: themeOverrides.backgroundImage,
+      primaryColor: (themeOverrides.primaryColor as string) ?? brandKit?.primaryColor ?? "#a3e635",
+      secondaryColor:
+        (themeOverrides.secondaryColor as string) ?? brandKit?.secondaryColor ?? "#0ea5e9",
+      backgroundColor:
+        (themeOverrides.backgroundColor as string) ?? brandKit?.backgroundColor ?? "#0b0f19",
+      textColor: (themeOverrides.textColor as string) ?? brandKit?.textColor ?? "#f8fafc",
+      backgroundImage: themeOverrides.backgroundImage as string | undefined,
       backgroundOverlayOpacity: themeOverrides.backgroundOverlayOpacity
         ? Number(themeOverrides.backgroundOverlayOpacity)
         : undefined,
-      fontStyle: themeOverrides.fontStyle,
-      fontFamily: themeOverrides.fontFamily,
+      fontStyle: themeOverrides.fontStyle as string | undefined,
+      fontFamily: themeOverrides.fontFamily as string | undefined,
+      showPageLogo:
+        themeOverrides.showPageLogo === true || themeOverrides.showPageLogo === "true",
     };
 
     return (
@@ -189,7 +193,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   }
 
   const brandKit = device.business?.brandKit;
-  const themeOverrides = (campaign.themeOverrides as Record<string, string>) ?? {};
+  const themeOverrides = (campaign.themeOverrides as Record<string, unknown>) ?? {};
   const { parseContentBlocks } = await import("@/lib/services/devices");
   const blocks = parseContentBlocks(campaign.contentBlocks);
   const { parseBrandContactProfile } = await import("@/lib/brand/contact-profile");
@@ -222,15 +226,19 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   }
 
   const theme = {
-    primaryColor: themeOverrides.primaryColor ?? brandKit?.primaryColor ?? "#a3e635",
-    secondaryColor: themeOverrides.secondaryColor ?? brandKit?.secondaryColor ?? "#0ea5e9",
-    backgroundColor: themeOverrides.backgroundColor ?? brandKit?.backgroundColor ?? "#0b0f19",
-    textColor: themeOverrides.textColor ?? brandKit?.textColor ?? "#f8fafc",
-    backgroundImage: themeOverrides.backgroundImage,
+    primaryColor: (themeOverrides.primaryColor as string) ?? brandKit?.primaryColor ?? "#a3e635",
+    secondaryColor:
+      (themeOverrides.secondaryColor as string) ?? brandKit?.secondaryColor ?? "#0ea5e9",
+    backgroundColor:
+      (themeOverrides.backgroundColor as string) ?? brandKit?.backgroundColor ?? "#0b0f19",
+    textColor: (themeOverrides.textColor as string) ?? brandKit?.textColor ?? "#f8fafc",
+    backgroundImage: themeOverrides.backgroundImage as string | undefined,
     backgroundOverlayOpacity: themeOverrides.backgroundOverlayOpacity
       ? Number(themeOverrides.backgroundOverlayOpacity)
       : undefined,
-    fontStyle: themeOverrides.fontStyle,
+    fontStyle: themeOverrides.fontStyle as string | undefined,
+    showPageLogo:
+      themeOverrides.showPageLogo === true || themeOverrides.showPageLogo === "true",
   };
 
   return (

@@ -349,7 +349,7 @@ export default function Home() {
             </p>
             <ul className="mt-6 space-y-3 text-sm text-slate-300">
               {[
-                "vCard download with optional logo photo",
+                "Save to contacts with photo — opens Contacts on phone",
                 "Brand kit colors, logo, fonts, socials",
                 "Reveal offers after contact capture",
                 "QR + NFC share the same live page",

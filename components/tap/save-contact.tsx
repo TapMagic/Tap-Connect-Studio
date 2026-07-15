@@ -69,20 +69,20 @@ export function SaveContactButton({
       photoBase64,
       photoType,
     });
-    // Single user-gesture save — share sheet when available, else direct download
-    await saveContactWithUserGesture({
+    // Single user-gesture save — Contacts on mobile, download only on desktop fallback
+    const result = await saveContactWithUserGesture({
       filename: fullName.replace(/\s+/g, "-"),
       content: vcf,
       title: fullName,
     });
-    onSaved?.();
+    if (result !== "cancelled") onSaved?.();
     setBusy(false);
   }
 
   return (
     <button type="button" className={className} disabled={busy} onClick={() => void save()}>
       <SocialGlyph platform="mail" />
-      {busy ? "Preparing…" : buttonLabel}
+      {busy ? "Opening Contacts…" : buttonLabel}
     </button>
   );
 }
