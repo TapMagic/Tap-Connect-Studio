@@ -7,14 +7,18 @@ import {
   ArrowUp,
   Columns2,
   Copy,
+  ExternalLink,
   GripVertical,
   ImageIcon,
+  Link2,
   Plus,
   Rows3,
   Save,
   Type,
   Trash2,
+  Unlink,
 } from "lucide-react";
+import Link from "next/link";
 import { nanoid } from "nanoid";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +47,15 @@ import {
 import type { PremiumFinish } from "@/lib/design/premium-finish";
 import { cn } from "@/lib/utils";
 
+type CampaignLinkOption = {
+  id: string;
+  title: string;
+  status: string;
+  campaignType: string;
+  features: string[];
+  devices: { code: string; label: string }[];
+};
+
 type Props = {
   initialConfig: TapConnectCardConfig;
   profile: BrandContactProfile;
@@ -54,6 +67,7 @@ type Props = {
   isAdmin?: boolean;
   isLandingDemo?: boolean;
   devices?: { id: string; nickname: string | null; deviceCode: string }[];
+  campaigns?: CampaignLinkOption[];
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -84,6 +98,7 @@ export function TapCardBuilder({
   isAdmin = false,
   isLandingDemo = false,
   devices = [],
+  campaigns = [],
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -135,6 +150,37 @@ export function TapCardBuilder({
 
   function patchSection(id: string, patch: Partial<TapCardSection>) {
     setSections(sorted.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+  }
+
+  function linkCampaignToSection(sectionId: string, campaignId: string) {
+    const campaign = campaigns.find((c) => c.id === campaignId);
+    if (!campaign) return;
+    const current = sorted.find((s) => s.id === sectionId);
+    const deviceCode = campaign.devices[0]?.code || devices[0]?.deviceCode || "";
+    const href = deviceCode ? `/t/${deviceCode}?public=1` : "";
+    patchSection(sectionId, {
+      offerMode: "campaign",
+      linkedCampaignId: campaign.id,
+      linkedCampaignTitle: campaign.title,
+      linkedDeviceCode: deviceCode || undefined,
+      href,
+      offerCta: current?.offerCta || "Open campaign",
+      headline: current?.headline?.trim() ? current.headline : campaign.title,
+      description: current?.description?.trim()
+        ? current.description
+        : campaign.features.length
+          ? `Includes: ${campaign.features.slice(0, 3).join(" · ")}`
+          : "Opens this campaign page",
+    });
+  }
+
+  function unlinkCampaignFromSection(sectionId: string) {
+    patchSection(sectionId, {
+      offerMode: "link",
+      linkedCampaignId: undefined,
+      linkedCampaignTitle: undefined,
+      linkedDeviceCode: undefined,
+    });
   }
 
   function reorder(fromId: string, toId: string) {
@@ -608,6 +654,14 @@ export function TapCardBuilder({
                   <span className="min-w-0 flex-1 truncate font-medium">
                     {section.label || section.type}
                   </span>
+                  {section.linkedCampaignId ? (
+                    <span
+                      className="inline-flex items-center text-primary"
+                      title={section.linkedCampaignTitle || "Linked campaign"}
+                    >
+                      <Link2 className="h-3.5 w-3.5" aria-hidden />
+                    </span>
+                  ) : null}
                   <button
                     type="button"
                     onClick={(e) => {
@@ -660,6 +714,9 @@ export function TapCardBuilder({
                 <p className="pl-5 text-[10px] text-muted-foreground">
                   {section.type}
                   {section.actionKind ? ` · ${section.actionKind}` : ""}
+                  {section.linkedCampaignId
+                    ? ` · → ${section.linkedCampaignTitle || "campaign"}`
+                    : ""}
                 </p>
               </div>
             ))}
@@ -974,16 +1031,179 @@ export function TapCardBuilder({
                     <select
                       className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                       value={selected.offerMode || "link"}
-                      onChange={(e) =>
-                        patchSection(selected.id, {
-                          offerMode: e.target.value as TapCardOfferMode,
-                        })
-                      }
+                      onChange={(e) => {
+                        const mode = e.target.value as TapCardOfferMode;
+                        if (mode !== "campaign") {
+                          patchSection(selected.id, {
+                            offerMode: mode,
+                            ...(mode === "expand"
+                              ? {
+                                  linkedCampaignId: undefined,
+                                  linkedCampaignTitle: undefined,
+                                  linkedDeviceCode: undefined,
+                                }
+                              : {}),
+                          });
+                          return;
+                        }
+                        patchSection(selected.id, { offerMode: mode });
+                      }}
                     >
                       <option value="link">Open a page / URL</option>
                       <option value="expand">Expand offer on this card</option>
+                      <option value="campaign">Open linked campaign</option>
                     </select>
                   </div>
+
+                  {selected.offerMode === "campaign" && (
+                    <div className="space-y-2 rounded-xl border border-primary/40 bg-primary/5 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 text-sm font-semibold text-primary">
+                          <Link2 className="size-4 shrink-0" aria-hidden />
+                          {selected.linkedCampaignId ? "Linked campaign" : "Link a campaign"}
+                        </div>
+                        {selected.linkedCampaignId ? (
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full border border-primary/40 bg-background px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary"
+                            title="Linked to a campaign"
+                          >
+                            <Link2 className="size-3" aria-hidden />
+                            Linked
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Send people to contact capture, coupons, banners, or anything you built in
+                        Campaign builder.
+                      </p>
+
+                      {selected.linkedCampaignId ? (
+                        <>
+                          <div className="rounded-lg border border-border bg-background px-3 py-2">
+                            <p className="text-sm font-medium">
+                              {selected.linkedCampaignTitle || "Campaign"}
+                            </p>
+                            {(() => {
+                              const linked = campaigns.find(
+                                (c) => c.id === selected.linkedCampaignId
+                              );
+                              if (!linked?.features.length) return null;
+                              return (
+                                <div className="mt-1.5 flex flex-wrap gap-1">
+                                  {linked.features.map((f) => (
+                                    <span
+                                      key={f}
+                                      className="rounded-md border border-border bg-muted/50 px-1.5 py-0.5 text-[10px] text-muted-foreground"
+                                    >
+                                      {f}
+                                    </span>
+                                  ))}
+                                </div>
+                              );
+                            })()}
+                            {selected.linkedDeviceCode || selected.href ? (
+                              <p className="mt-1 truncate font-mono text-[11px] text-muted-foreground">
+                                {selected.href || `/t/${selected.linkedDeviceCode}`}
+                              </p>
+                            ) : (
+                              <p className="mt-1 text-[11px] text-amber-600 dark:text-amber-400">
+                                No device on this campaign yet — pick a tap URL below or assign one
+                                in Campaign builder.
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            <Link
+                              href={`/dashboard/campaigns/${selected.linkedCampaignId}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex h-7 items-center gap-1 rounded-lg border border-primary/20 bg-background/70 px-2.5 text-[0.8rem] font-medium hover:border-primary/45 hover:bg-primary/10 hover:text-primary"
+                            >
+                              <ExternalLink className="size-3.5" />
+                              Open campaign
+                            </Link>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => unlinkCampaignFromSection(selected.id)}
+                            >
+                              <Unlink className="size-3.5" />
+                              Unlink
+                            </Button>
+                          </div>
+                          {(() => {
+                            const linked = campaigns.find(
+                              (c) => c.id === selected.linkedCampaignId
+                            );
+                            const deviceChoices =
+                              linked?.devices.length
+                                ? linked.devices
+                                : devices.map((d) => ({
+                                    code: d.deviceCode,
+                                    label: d.nickname || d.deviceCode,
+                                  }));
+                            if (!deviceChoices.length) return null;
+                            return (
+                              <div className="space-y-1">
+                                <Label className="text-xs">Tap page that opens this campaign</Label>
+                                <select
+                                  className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                                  value={selected.linkedDeviceCode || ""}
+                                  onChange={(e) => {
+                                    const code = e.target.value;
+                                    patchSection(selected.id, {
+                                      linkedDeviceCode: code || undefined,
+                                      href: code ? `/t/${code}?public=1` : selected.href,
+                                    });
+                                  }}
+                                >
+                                  <option value="">Select device…</option>
+                                  {deviceChoices.map((d) => (
+                                    <option key={d.code} value={d.code}>
+                                      {d.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                            );
+                          })()}
+                        </>
+                      ) : (
+                        <div className="space-y-2">
+                          <select
+                            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                            value=""
+                            onChange={(e) => {
+                              if (!e.target.value) return;
+                              linkCampaignToSection(selected.id, e.target.value);
+                            }}
+                          >
+                            <option value="">
+                              {campaigns.length ? "Choose a campaign…" : "No campaigns yet"}
+                            </option>
+                            {campaigns.map((c) => (
+                              <option key={c.id} value={c.id}>
+                                {c.title}
+                                {c.features.length
+                                  ? ` — ${c.features.slice(0, 2).join(", ")}`
+                                  : ""}
+                              </option>
+                            ))}
+                          </select>
+                          <Link
+                            href="/dashboard/campaigns"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-7 items-center gap-1 rounded-lg border border-primary/20 bg-background/70 px-2.5 text-[0.8rem] font-medium hover:border-primary/45 hover:bg-primary/10 hover:text-primary"
+                          >
+                            <Plus className="size-3.5" />
+                            Campaign builder
+                          </Link>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {(selected.offerMode || "link") === "link" ? (
                     <>
@@ -999,8 +1219,40 @@ export function TapCardBuilder({
                         }
                         placeholder="CTA label (e.g. Open offer)"
                       />
+                      {devices.length > 0 ? (
+                        <div className="space-y-1">
+                          <Label className="text-xs">Or pick a tap device page</Label>
+                          <select
+                            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                            value=""
+                            onChange={(e) => {
+                              if (!e.target.value) return;
+                              patchSection(selected.id, { href: `/t/${e.target.value}` });
+                            }}
+                          >
+                            <option value="">Select device → /t/…</option>
+                            {devices.map((d) => (
+                              <option key={d.id} value={d.deviceCode}>
+                                {d.nickname || d.deviceCode}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      ) : null}
                     </>
-                  ) : (
+                  ) : null}
+
+                  {selected.offerMode === "campaign" ? (
+                    <Input
+                      value={selected.offerCta ?? ""}
+                      onChange={(e) =>
+                        patchSection(selected.id, { offerCta: e.target.value })
+                      }
+                      placeholder="CTA label (e.g. Claim deal)"
+                    />
+                  ) : null}
+
+                  {selected.offerMode === "expand" ? (
                     <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
                       <p className="text-xs font-semibold text-primary">Build the offer</p>
                       <Input
@@ -1056,31 +1308,6 @@ export function TapCardBuilder({
                         />
                         Start with offer open
                       </label>
-                    </div>
-                  )}
-
-                  {devices.length > 0 ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs">Link to a tap device page</Label>
-                      <select
-                        className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
-                        value=""
-                        onChange={(e) => {
-                          if (!e.target.value) return;
-                          patchSection(selected.id, { href: `/t/${e.target.value}` });
-                        }}
-                      >
-                        <option value="">Select device → /t/…</option>
-                        {devices.map((d) => (
-                          <option key={d.id} value={d.deviceCode}>
-                            {d.nickname || d.deviceCode}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="text-[10px] text-muted-foreground">
-                        Device URLs open whatever campaign is assigned to that tap — including
-                        offer-style campaign pages.
-                      </p>
                     </div>
                   ) : null}
                 </>

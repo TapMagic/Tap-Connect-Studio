@@ -36,6 +36,65 @@ export default async function TapCardPage() {
     orderBy: { createdAt: "desc" },
   });
 
+  const campaignRows = await prisma.campaign.findMany({
+    where: {
+      businessId: business.id,
+      status: { notIn: ["ARCHIVED", "CLOSED"] },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: 80,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      campaignType: true,
+      contentBlocks: true,
+      assignments: {
+        where: { status: "ACTIVE" },
+        take: 3,
+        include: {
+          deviceSlot: { select: { deviceCode: true, nickname: true } },
+        },
+      },
+    },
+  });
+
+  function campaignFeatures(raw: unknown): string[] {
+    if (!Array.isArray(raw)) return [];
+    const labels: Record<string, string> = {
+      email_capture: "Contact capture",
+      offer_coupon: "Coupon / offer",
+      banner: "Banner",
+      button_group: "Buttons",
+      digital_card: "Tap Card",
+      headline: "Headline",
+      rich_text: "Text",
+      product_details: "Product",
+      social_links: "Socials",
+      hero_image: "Hero",
+      hero_video: "Video",
+    };
+    const found = new Set<string>();
+    for (const b of raw) {
+      if (!b || typeof b !== "object") continue;
+      const type = (b as { type?: string }).type;
+      if (type && labels[type]) found.add(labels[type]);
+    }
+    return Array.from(found);
+  }
+
+  const campaigns = campaignRows.map((c) => ({
+    id: c.id,
+    title: c.title,
+    status: c.status,
+    campaignType: c.campaignType,
+    features: campaignFeatures(c.contentBlocks),
+    devices: c.assignments.map((a) => ({
+      code: a.deviceSlot.deviceCode,
+      label: a.deviceSlot.nickname || a.deviceSlot.deviceCode,
+    })),
+  }));
+
   return (
     <div className="h-full min-h-0 max-lg:min-h-[100dvh]">
       <TapCardBuilder
@@ -54,6 +113,7 @@ export default async function TapCardPage() {
         isAdmin={isPlatformAdmin(user)}
         isLandingDemo={Boolean(landingDemo)}
         devices={devices}
+        campaigns={campaigns}
       />
     </div>
   );

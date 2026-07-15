@@ -2,7 +2,7 @@
 
 import { useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
-import { ChevronDown, ChevronRight } from "lucide-react";
+import { ChevronDown, ChevronRight, Link2 } from "lucide-react";
 import {
   buildVCard,
   saveContactWithUserGesture,
@@ -216,8 +216,10 @@ export function TapConnectCard({
 
   function renderSpecialOffer(section: TapCardSection) {
     const styleKind = section.specialStyle || "banner";
-    const mode = section.offerMode || "link";
+    const rawMode = section.offerMode || "link";
+    const mode = rawMode === "campaign" ? "link" : rawMode;
     const href = section.href?.trim();
+    const campaignLinked = Boolean(section.linkedCampaignId);
     const open =
       openOffers[section.id] !== undefined
         ? openOffers[section.id]
@@ -242,6 +244,12 @@ export function TapConnectCard({
     const teaser = (
       <>
         <div className="tcc-special-copy">
+          {campaignLinked ? (
+            <span className="tcc-special-linked" title={section.linkedCampaignTitle || "Campaign"}>
+              <Link2 className="size-3.5" aria-hidden />
+              Linked
+            </span>
+          ) : null}
           <p className="tcc-special-kicker" style={textFormatToCss(section.format)}>
             {section.text || "Special"}
           </p>
@@ -260,9 +268,16 @@ export function TapConnectCard({
               {section.description}
             </p>
           ) : null}
+          {campaignLinked && section.linkedCampaignTitle ? (
+            <p className="tcc-special-campaign-name">{section.linkedCampaignTitle}</p>
+          ) : null}
         </div>
         <span className="tcc-special-cta">
-          {mode === "expand" ? (open ? "Hide offer" : section.offerCta || "View offer") : section.offerCta || "Open"}
+          {mode === "expand"
+            ? open
+              ? "Hide offer"
+              : section.offerCta || "View offer"
+            : section.offerCta || (campaignLinked ? "Open campaign" : "Open")}
           <ChevronRight className={cn("size-4", open && mode === "expand" && "rotate-90")} />
         </span>
       </>

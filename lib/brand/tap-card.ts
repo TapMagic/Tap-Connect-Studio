@@ -41,7 +41,7 @@ export type TapCardSectionType =
   | "footer_cta";
 
 export type TapCardSpecialStyle = "banner" | "ribbon" | "tile" | "card";
-export type TapCardOfferMode = "link" | "expand";
+export type TapCardOfferMode = "link" | "expand" | "campaign";
 
 /** @deprecated use PremiumFinish via `finish` — kept for older cards */
 export type TapCardActionStyle = PremiumFinish;
@@ -137,6 +137,10 @@ export type TapCardSection = {
   offerExpires?: string;
   /** When expand mode: start with offer panel open */
   offerDefaultOpen?: boolean;
+  /** Linked campaign (contact capture / offer page opened via tap URL) */
+  linkedCampaignId?: string;
+  linkedCampaignTitle?: string;
+  linkedDeviceCode?: string;
   heroFill?: TapCardHeroFill;
   gradientStart?: string;
   gradientEnd?: string;
