@@ -576,9 +576,10 @@ export function TapConnectCard({
             alt={businessName}
             className="tcc-header-logo-img"
             style={{
-              width: `${Math.round(88 * ((config.headerLogoScale ?? 100) / 100))}px`,
+              maxWidth: `${Math.round(68 * ((config.headerLogoScale ?? 100) / 100))}px`,
+              maxHeight: `${Math.round(44 * ((config.headerLogoScale ?? 100) / 100))}px`,
+              width: "auto",
               height: "auto",
-              maxHeight: `${Math.round(72 * ((config.headerLogoScale ?? 100) / 100))}px`,
             }}
           />
         </div>

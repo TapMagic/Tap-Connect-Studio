@@ -768,11 +768,11 @@ export function CampaignEditor({
 
         {/* Center phone preview */}
         {showPreview && tab === "content" && (
-          <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden bg-black/30 p-4">
-            <p className="mb-2 text-center text-[11px] text-muted-foreground">
-              Live preview · tap a block to edit · {status.toLowerCase()}
+          <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden bg-black/30 p-3">
+            <p className="mb-2 shrink-0 text-center text-[11px] text-muted-foreground">
+              Live preview · scroll inside phone · tap a block to edit · {status.toLowerCase()}
             </p>
-            <div className="builder-phone">
+            <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1">
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen">
                 <a
@@ -1254,9 +1254,9 @@ function BlockFields({
               </div>
               <div className="sm:col-span-2">
                 <IconPicker
-                  icon={(btn.icon as string) || "link"}
+                  icon={(btn.icon as string) || "FiLink"}
                   customUrl={btn.imageUrl && (btn.appearance === "icon_text" || btn.appearance === "icon_only") ? "" : undefined}
-                  color={btn.iconColor || "#000000"}
+                  color={btn.iconColor || "#f8fafc"}
                   onChange={({ icon, customUrl, color }) =>
                     patchBtn(btn.id, {
                       icon: (icon as ButtonItem["icon"]) || "link",

@@ -438,7 +438,7 @@ export function TapCardBuilder({
       ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="w-full shrink-0 overflow-y-auto border-r border-border/60 p-4 lg:w-[300px]">
+        <aside className="w-full shrink-0 overflow-y-auto border-r border-border/60 p-4 lg:w-[300px] lg:max-h-full">
           <div className="space-y-3">
             <TextFormatControls
               title="Title typography"
@@ -590,11 +590,11 @@ export function TapCardBuilder({
           </div>
         </aside>
 
-        <div className="flex min-h-0 flex-1 flex-col items-center overflow-auto bg-black/30 p-4">
-          <p className="mb-2 text-[11px] text-muted-foreground">
-            Live card · same renderer as production taps
+        <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden bg-black/30 p-3">
+          <p className="mb-2 shrink-0 text-[11px] text-muted-foreground">
+            Live card · scroll inside the phone to see the full card
           </p>
-          <div className="builder-phone">
+          <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1">
             <div className="builder-phone-notch" />
             <div className="builder-phone-screen !bg-[#1a1a1a] p-3">
               <TapConnectCard
@@ -686,9 +686,9 @@ export function TapCardBuilder({
                     </select>
                   </div>
                   <IconPicker
-                    icon={selected.icon || selected.actionKind || "link"}
+                    icon={selected.icon || selected.actionKind || "FiLink"}
                     customUrl={selected.iconUrl}
-                    color={selected.iconColor || "#000000"}
+                    color={selected.iconColor || "#f8fafc"}
                     onChange={({ icon, customUrl, color }) =>
                       patchSection(selected.id, {
                         icon: icon || selected.icon,
@@ -699,7 +699,6 @@ export function TapCardBuilder({
                     mediaUploadReady={mediaUploadReady}
                     stockReady={stockReady}
                     showLogoPicker
-                    persist
                   />
                   <TextFormatControls
                     title="Button label — font & size"

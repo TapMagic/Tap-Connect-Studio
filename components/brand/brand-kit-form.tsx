@@ -549,9 +549,9 @@ export function BrandKitForm({
                   />
                   <IconPicker
                     label="Icon (when no logo)"
-                    icon={editing.icon || editing.platform || "link"}
+                    icon={editing.icon || editing.platform || "FiLink"}
                     customUrl=""
-                    color={editing.iconColor || "#000000"}
+                    color={editing.iconColor || "#f8fafc"}
                     onChange={({ icon, color }) =>
                       patchLink(editing.id, {
                         icon: icon || editing.icon,

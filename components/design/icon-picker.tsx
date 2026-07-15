@@ -1,13 +1,13 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Check, ImageIcon, Link2, Loader2, Search, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { MediaPicker } from "@/components/media/media-picker";
 import {
-  REACT_ICON_COLLECTION,
+  REACT_ICON_COUNT,
   searchReactIcons,
   getReactIconById,
   type ReactIconCategory,
@@ -16,35 +16,37 @@ import { cn } from "@/lib/utils";
 
 type IconPickerProps = {
   icon?: string;
-  /** Custom / uploaded logo mark — preferred over library icon when set */
   customUrl?: string;
-  /** Custom hex tint — defaults to #000000 */
+  /** Hex tint — defaults to a light UI-friendly color on dark surfaces */
   color?: string;
   onChange: (next: { icon?: string; customUrl?: string; color?: string }) => void;
   mediaUploadReady?: boolean;
   stockReady?: boolean;
   label?: string;
   hideCustom?: boolean;
-  /** Show logo MediaPicker above the icon grid (preferred when available) */
   showLogoPicker?: boolean;
   /**
-   * Persist selection to PostgreSQL via `/api/save-icon`.
-   * - `true` → save to BrandKit defaults (iconName / iconColor)
-   * - `{ linkId }` → save to that BrandLink row
+   * When set, POSTs to `/api/save-icon` (BrandKit defaults or BrandLink by linkId).
+   * Leave off for Tap Card / campaign editors — those save with the parent form.
    */
   persist?: boolean | { linkId: string };
 };
 
 const PRESET_COLORS = [
+  "#f8fafc",
   "#000000",
-  "#ffffff",
   "#a3e635",
   "#d4af37",
   "#ef4444",
   "#3b82f6",
   "#a855f7",
   "#f97316",
+  "#1877F2",
+  "#E4405F",
+  "#25D366",
 ];
+
+const DEFAULT_COLOR = "#f8fafc";
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -56,13 +58,12 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 /**
- * Advanced searchable Icon Picker — react-icons brands + UI,
- * custom hex coloring, optional logo picker, Prisma persist via /api/save-icon.
+ * Searchable Icon + Logo picker backed by react-icons (Simple Icons + Feather + extras).
  */
 export function IconPicker({
-  icon = "link",
+  icon = "FiLink",
   customUrl = "",
-  color = "#000000",
+  color = DEFAULT_COLOR,
   onChange,
   mediaUploadReady = false,
   stockReady = false,
@@ -73,12 +74,27 @@ export function IconPicker({
 }: IconPickerProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<"all" | ReactIconCategory>("all");
-  const [selectedColor, setSelectedColor] = useState(color || "#000000");
+  const [selectedColor, setSelectedColor] = useState(color || DEFAULT_COLOR);
   const [pasteUrl, setPasteUrl] = useState(customUrl || "");
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (color) setSelectedColor(color);
+  }, [color]);
+
+  useEffect(() => {
+    setPasteUrl(customUrl || "");
+  }, [customUrl]);
+
+  useEffect(() => {
+    return () => {
+      if (persistTimer.current) clearTimeout(persistTimer.current);
+    };
+  }, []);
 
   const results = useMemo(() => {
     const list = searchReactIcons(query, 120);
@@ -86,8 +102,16 @@ export function IconPicker({
     return list.filter((i) => i.category === category);
   }, [query, category]);
 
-  const selectedItem = getReactIconById(icon) ?? REACT_ICON_COLLECTION[0];
+  const selectedItem = getReactIconById(icon);
   const shouldPersist = Boolean(persist);
+
+  function queuePersist(iconName: string, iconColor: string, logo?: string) {
+    if (!shouldPersist || !iconName) return;
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      void persistSelection(iconName, iconColor, logo);
+    }, 350);
+  }
 
   async function persistSelection(iconName: string, iconColor: string, logo?: string) {
     if (!shouldPersist) return;
@@ -116,62 +140,60 @@ export function IconPicker({
       }
       setSaveMessage(
         data.savedTo === "brandLink"
-          ? "Icon saved to link"
-          : "Icon saved to Brand Kit"
+          ? "Saved icon to Brand Link"
+          : "Saved icon to Brand Kit"
       );
-      window.setTimeout(() => setSaveMessage(null), 2500);
+      window.setTimeout(() => setSaveMessage(null), 2200);
     } catch {
-      setSaveError("Network error — could not save");
+      setSaveError("Could not reach /api/save-icon");
     } finally {
       setSaving(false);
     }
   }
 
   function applyColor(next: string) {
-    const value = next || "#000000";
+    const value = next || DEFAULT_COLOR;
     setSelectedColor(value);
     onChange({
       icon: customUrl ? undefined : icon,
       customUrl: customUrl || undefined,
       color: value,
     });
-    if (icon && !customUrl) {
-      void persistSelection(icon, value);
-    }
+    if (icon && !customUrl) queuePersist(icon, value);
   }
 
-  async function selectIcon(iconId: string) {
+  function selectIcon(iconId: string) {
     onChange({
       icon: iconId,
       customUrl: undefined,
       color: selectedColor,
     });
     setPasteUrl("");
-    await persistSelection(iconId, selectedColor);
+    queuePersist(iconId, selectedColor);
   }
 
   async function onUpload(file: File | null) {
     if (!file || !file.type.startsWith("image/")) return;
     const dataUrl = await readFileAsDataUrl(file);
-    onChange({ icon: undefined, customUrl: dataUrl, color: selectedColor });
+    onChange({ icon: icon || undefined, customUrl: dataUrl, color: selectedColor });
     setPasteUrl(dataUrl);
-    if (icon) {
-      await persistSelection(icon, selectedColor, dataUrl);
-    }
+    if (icon) queuePersist(icon, selectedColor, dataUrl);
   }
 
   return (
     <div className="space-y-3 rounded-xl border border-border/50 bg-muted/15 p-3">
       <div className="flex items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <Label className="text-xs font-semibold">{label}</Label>
           <p className="text-[10px] text-muted-foreground">
-            Logo preferred · react-icons search · hex color
-            {shouldPersist ? " · auto-saves to database" : ""}
+            Search {REACT_ICON_COUNT.toLocaleString()}+ brand & UI icons · hex color
+            {shouldPersist
+              ? " · auto-saves to Brand Kit / Brand Link"
+              : " · saved with parent form"}
           </p>
         </div>
         <div
-          className="flex size-10 items-center justify-center rounded-lg border border-border/60 bg-background shadow-sm"
+          className="flex size-10 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-background shadow-sm"
           style={{ color: selectedColor }}
         >
           {saving ? (
@@ -204,16 +226,16 @@ export function IconPicker({
       {showLogoPicker && !hideCustom ? (
         <fieldset disabled={saving} className="min-w-0 disabled:opacity-60">
           <MediaPicker
-            label="Logo mark (preferred over icon)"
+            label="Logo image (preferred — shown instead of icon)"
             value={customUrl || ""}
             onChange={(url) => {
               setPasteUrl(url);
               onChange({
-                icon: url ? undefined : icon,
+                icon: icon || undefined,
                 customUrl: url || undefined,
                 color: selectedColor,
               });
-              if (icon) void persistSelection(icon, selectedColor, url || undefined);
+              if (icon) queuePersist(icon, selectedColor, url || undefined);
             }}
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
@@ -222,15 +244,16 @@ export function IconPicker({
       ) : null}
 
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative min-w-[10rem] flex-1">
+        <div className="relative min-w-[12rem] flex-1">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
           <Input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search icons by name…"
+            placeholder="Type to search — etsy, poshmark, slack, home…"
             className="h-9 pl-9 text-sm"
             aria-label="Search icons"
             disabled={saving}
+            autoComplete="off"
           />
           {query ? (
             <button
@@ -245,22 +268,22 @@ export function IconPicker({
           ) : null}
         </div>
 
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 rounded-lg border border-border/50 bg-background/60 px-2 py-1">
           <Label className="text-[10px] text-muted-foreground">Color</Label>
           <input
             type="color"
-            value={selectedColor || "#000000"}
+            value={/^#[0-9a-fA-F]{6}$/.test(selectedColor) ? selectedColor : "#f8fafc"}
             onChange={(e) => applyColor(e.target.value)}
-            className="h-9 w-10 cursor-pointer rounded border-0 bg-transparent p-0 disabled:opacity-50"
-            title="Custom icon color"
+            className="h-8 w-9 cursor-pointer rounded border-0 bg-transparent p-0 disabled:opacity-50"
+            title="Icon color"
             aria-label="Icon color"
             disabled={saving}
           />
           <Input
             value={selectedColor}
             onChange={(e) => applyColor(e.target.value)}
-            className="h-9 w-[5.5rem] font-mono text-[11px]"
-            placeholder="#000000"
+            className="h-8 w-[5.75rem] font-mono text-[11px]"
+            placeholder="#f8fafc"
             disabled={saving}
           />
         </div>
@@ -284,7 +307,7 @@ export function IconPicker({
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap items-center gap-1">
         {(["all", "brand", "ui"] as const).map((c) => (
           <button
             key={c}
@@ -301,11 +324,15 @@ export function IconPicker({
             {c}
           </button>
         ))}
+        <span className="ml-auto text-[10px] text-muted-foreground">
+          {results.length} shown
+          {query ? ` for “${query}”` : ""}
+        </span>
       </div>
 
       <div
         className={cn(
-          "grid max-h-56 grid-cols-6 gap-1.5 overflow-y-auto rounded-lg border border-border/40 bg-background/70 p-2 sm:grid-cols-8",
+          "grid max-h-64 grid-cols-6 gap-1.5 overflow-y-auto overscroll-contain rounded-lg border border-border/40 bg-background/70 p-2 sm:grid-cols-8",
           saving && "pointer-events-none opacity-60"
         )}
         role="listbox"
@@ -314,7 +341,7 @@ export function IconPicker({
       >
         {results.length === 0 ? (
           <p className="col-span-full px-2 py-6 text-center text-xs text-muted-foreground">
-            No icons match “{query}”
+            No icons match “{query}”. Try etsy, shopify, github, calendar…
           </p>
         ) : (
           results.map((item) => {
@@ -326,9 +353,9 @@ export function IconPicker({
                 type="button"
                 role="option"
                 aria-selected={selected}
-                title={item.name}
+                title={`${item.name} (${item.category})`}
                 disabled={saving}
-                onClick={() => void selectIcon(item.id)}
+                onClick={() => selectIcon(item.id)}
                 className={cn(
                   "flex aspect-square flex-col items-center justify-center rounded-md border p-1 transition disabled:cursor-wait",
                   selected
@@ -343,14 +370,23 @@ export function IconPicker({
         )}
       </div>
 
-      {icon && !customUrl ? (
+      {(icon || customUrl) && (
         <p className="text-[11px] text-muted-foreground">
-          Selected: <span className="font-medium text-foreground">{selectedItem?.name}</span>
+          {customUrl ? (
+            <>Using <span className="font-medium text-foreground">logo image</span></>
+          ) : (
+            <>
+              Selected:{" "}
+              <span className="font-medium text-foreground">
+                {selectedItem?.name || icon}
+              </span>
+            </>
+          )}
           {" · "}
           <span style={{ color: selectedColor }}>{selectedColor}</span>
           {saving ? " · Saving…" : null}
         </p>
-      ) : null}
+      )}
 
       {!hideCustom ? (
         <div className="space-y-1.5 border-t border-border/40 pt-2">
@@ -374,11 +410,11 @@ export function IconPicker({
               onClick={() => {
                 if (!pasteUrl.trim()) return;
                 onChange({
-                  icon: undefined,
+                  icon: icon || undefined,
                   customUrl: pasteUrl.trim(),
                   color: selectedColor,
                 });
-                if (icon) void persistSelection(icon, selectedColor, pasteUrl.trim());
+                if (icon) queuePersist(icon, selectedColor, pasteUrl.trim());
               }}
             >
               <Link2 className="size-3.5" />
@@ -409,7 +445,7 @@ export function IconPicker({
             </Button>
             <span className="self-center text-[10px] text-muted-foreground">
               <ImageIcon className="mr-1 inline size-3" />
-              Logos preferred when present
+              Logo overrides library icon when set
             </span>
             {customUrl ? (
               <Button
@@ -420,7 +456,7 @@ export function IconPicker({
                 disabled={saving}
                 onClick={() => {
                   onChange({
-                    icon: icon || "link",
+                    icon: icon || "FiLink",
                     customUrl: undefined,
                     color: selectedColor,
                   });
