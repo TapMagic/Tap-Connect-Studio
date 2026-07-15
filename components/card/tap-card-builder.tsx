@@ -33,8 +33,10 @@ import {
   type TapCardActionKind,
   type TapCardButtonShape,
   type TapCardHeroFill,
+  type TapCardOfferMode,
   type TapCardSection,
   type TapCardSectionType,
+  type TapCardSpecialStyle,
   type TapCardSurfaceFill,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
@@ -167,11 +169,15 @@ export function TapCardBuilder({
           ? "Image block"
           : type === "logo_block"
             ? "Logo block"
-            : type === "text"
-              ? "Text box"
-              : type === "spacer"
-                ? "Spacer"
-                : type,
+            : type === "special_offer"
+              ? "Special offer"
+              : type === "promo_header"
+                ? "Hottest Deal banner"
+                : type === "text"
+                  ? "Text box"
+                  : type === "spacer"
+                    ? "Spacer"
+                    : type,
     };
     if (type === "image") {
       base.imageWidthPercent = 100;
@@ -187,6 +193,27 @@ export function TapCardBuilder({
       base.logoScale = 100;
       base.href = "";
       base.columnRightHref = "";
+    }
+    if (type === "special_offer") {
+      base.specialStyle = "banner";
+      base.offerMode = "expand";
+      base.text = "Limited time";
+      base.headline = "Hottest Deal";
+      base.description = "Tap to reveal today's offer";
+      base.offerTitle = "Featured offer";
+      base.offerDescription = "Mention this card when you visit.";
+      base.offerCode = "TAPSAVE";
+      base.offerCta = "Claim offer";
+      base.href = devices[0]?.deviceCode ? `/t/${devices[0].deviceCode}` : "";
+      base.finish = "neon";
+      base.offerDefaultOpen = false;
+    }
+    if (type === "promo_header") {
+      base.text = "Click Here to";
+      base.textRight = "Hottest Deal!!!";
+      base.href = "";
+      base.pinTop = false;
+      base.format = { fontFamily: "script", italic: true, fontSize: "base" };
     }
     if (type === "text") {
       base.text = "Your message here";
@@ -500,6 +527,12 @@ export function TapCardBuilder({
             <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
               <Label className="text-xs font-semibold">Add block</Label>
               <div className="grid grid-cols-2 gap-1.5">
+                <Button type="button" size="sm" variant="outline" onClick={() => addSection("special_offer")}>
+                  Special
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={() => addSection("promo_header")}>
+                  Deal banner
+                </Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => addSection("image")}>
                   <ImageIcon className="mr-1 h-3.5 w-3.5" />
                   Image
@@ -813,6 +846,16 @@ export function TapCardBuilder({
 
               {selected.type === "promo_header" && (
                 <>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selected.pinTop !== false}
+                      onChange={(e) =>
+                        patchSection(selected.id, { pinTop: e.target.checked })
+                      }
+                    />
+                    Pin to top of card (uncheck to place anywhere in the stack)
+                  </label>
                   <Input
                     value={selected.text ?? ""}
                     onChange={(e) => patchSection(selected.id, { text: e.target.value })}
@@ -826,13 +869,220 @@ export function TapCardBuilder({
                   <Input
                     value={selected.href ?? ""}
                     onChange={(e) => patchSection(selected.id, { href: e.target.value })}
-                    placeholder="Click URL"
+                    placeholder="Link URL or /t/DEVICECODE"
                   />
+                  {devices.length > 0 ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Quick link to device / camppage</Label>
+                      <select
+                        className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                        value=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          patchSection(selected.id, { href: `/t/${e.target.value}` });
+                        }}
+                      >
+                        <option value="">Select a tap device…</option>
+                        {devices.map((d) => (
+                          <option key={d.id} value={d.deviceCode}>
+                            {d.nickname || d.deviceCode} → /t/{d.deviceCode}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  ) : null}
                   <TextFormatControls
                     title="Promo — font & size"
                     value={selected.format}
                     onChange={(format) => patchSection(selected.id, { format })}
                   />
+                </>
+              )}
+
+              {selected.type === "special_offer" && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Format (not just a button)</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selected.specialStyle || "banner"}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          specialStyle: e.target.value as TapCardSpecialStyle,
+                        })
+                      }
+                    >
+                      <option value="banner">Banner strip</option>
+                      <option value="ribbon">Ribbon</option>
+                      <option value="tile">Tile</option>
+                      <option value="card">Offer card</option>
+                    </select>
+                  </div>
+                  <Input
+                    value={selected.text ?? ""}
+                    onChange={(e) => patchSection(selected.id, { text: e.target.value })}
+                    placeholder="Kicker (e.g. Limited time)"
+                  />
+                  <Input
+                    value={selected.headline ?? ""}
+                    onChange={(e) => patchSection(selected.id, { headline: e.target.value })}
+                    placeholder="Headline"
+                  />
+                  <textarea
+                    className="min-h-[72px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                    value={selected.description ?? ""}
+                    onChange={(e) =>
+                      patchSection(selected.id, { description: e.target.value })
+                    }
+                    placeholder="Supporting line"
+                  />
+                  <TextFormatControls
+                    title="Special — typography"
+                    value={selected.format}
+                    onChange={(format) => patchSection(selected.id, { format })}
+                  />
+                  <FinishPicker
+                    label="Finish"
+                    value={selected.finish || config.defaultFinish}
+                    onChange={(finish) => patchSection(selected.id, { finish })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Fill</Label>
+                      <Input
+                        type="color"
+                        value={selected.backgroundColor || "#1a1208"}
+                        onChange={(e) =>
+                          patchSection(selected.id, { backgroundColor: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Text</Label>
+                      <Input
+                        type="color"
+                        value={selected.textColor || "#f5e6a8"}
+                        onChange={(e) =>
+                          patchSection(selected.id, { textColor: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">When tapped</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selected.offerMode || "link"}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          offerMode: e.target.value as TapCardOfferMode,
+                        })
+                      }
+                    >
+                      <option value="link">Open a page / URL</option>
+                      <option value="expand">Expand offer on this card</option>
+                    </select>
+                  </div>
+
+                  {(selected.offerMode || "link") === "link" ? (
+                    <>
+                      <Input
+                        value={selected.href ?? ""}
+                        onChange={(e) => patchSection(selected.id, { href: e.target.value })}
+                        placeholder="https://… or /t/DEVICECODE"
+                      />
+                      <Input
+                        value={selected.offerCta ?? ""}
+                        onChange={(e) =>
+                          patchSection(selected.id, { offerCta: e.target.value })
+                        }
+                        placeholder="CTA label (e.g. Open offer)"
+                      />
+                    </>
+                  ) : (
+                    <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+                      <p className="text-xs font-semibold text-primary">Build the offer</p>
+                      <Input
+                        value={selected.offerTitle ?? ""}
+                        onChange={(e) =>
+                          patchSection(selected.id, { offerTitle: e.target.value })
+                        }
+                        placeholder="Offer title"
+                      />
+                      <textarea
+                        className="min-h-[72px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                        value={selected.offerDescription ?? ""}
+                        onChange={(e) =>
+                          patchSection(selected.id, { offerDescription: e.target.value })
+                        }
+                        placeholder="Offer details"
+                      />
+                      <Input
+                        value={selected.offerCode ?? ""}
+                        onChange={(e) =>
+                          patchSection(selected.id, { offerCode: e.target.value })
+                        }
+                        placeholder="Coupon / code (optional)"
+                      />
+                      <Input
+                        value={selected.offerExpires ?? ""}
+                        onChange={(e) =>
+                          patchSection(selected.id, { offerExpires: e.target.value })
+                        }
+                        placeholder="Expires (optional text)"
+                      />
+                      <Input
+                        value={selected.offerCta ?? ""}
+                        onChange={(e) =>
+                          patchSection(selected.id, { offerCta: e.target.value })
+                        }
+                        placeholder="Claim button label"
+                      />
+                      <Input
+                        value={selected.href ?? ""}
+                        onChange={(e) => patchSection(selected.id, { href: e.target.value })}
+                        placeholder="Claim link (optional) — campaign or page URL"
+                      />
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(selected.offerDefaultOpen)}
+                          onChange={(e) =>
+                            patchSection(selected.id, {
+                              offerDefaultOpen: e.target.checked,
+                            })
+                          }
+                        />
+                        Start with offer open
+                      </label>
+                    </div>
+                  )}
+
+                  {devices.length > 0 ? (
+                    <div className="space-y-1">
+                      <Label className="text-xs">Link to a tap device page</Label>
+                      <select
+                        className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                        value=""
+                        onChange={(e) => {
+                          if (!e.target.value) return;
+                          patchSection(selected.id, { href: `/t/${e.target.value}` });
+                        }}
+                      >
+                        <option value="">Select device → /t/…</option>
+                        {devices.map((d) => (
+                          <option key={d.id} value={d.deviceCode}>
+                            {d.nickname || d.deviceCode}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-muted-foreground">
+                        Device URLs open whatever campaign is assigned to that tap — including
+                        offer-style campaign pages.
+                      </p>
+                    </div>
+                  ) : null}
                 </>
               )}
 

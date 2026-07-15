@@ -35,9 +35,13 @@ export type TapCardSectionType =
   | "action_row"
   | "image"
   | "logo_block"
+  | "special_offer"
   | "text"
   | "spacer"
   | "footer_cta";
+
+export type TapCardSpecialStyle = "banner" | "ribbon" | "tile" | "card";
+export type TapCardOfferMode = "link" | "expand";
 
 /** @deprecated use PremiumFinish via `finish` — kept for older cards */
 export type TapCardActionStyle = PremiumFinish;
@@ -120,6 +124,19 @@ export type TapCardSection = {
   columnRightHref?: string;
   /** logo_block: single row or two columns */
   logoBlockLayout?: "stack" | "columns";
+  /** promo_header: pin above card shell (legacy Hottest Deal) vs inline */
+  pinTop?: boolean;
+  /** special_offer visual treatment */
+  specialStyle?: TapCardSpecialStyle;
+  /** link out to URL/campaign page vs expand inline offer builder content */
+  offerMode?: TapCardOfferMode;
+  offerTitle?: string;
+  offerDescription?: string;
+  offerCode?: string;
+  offerCta?: string;
+  offerExpires?: string;
+  /** When expand mode: start with offer panel open */
+  offerDefaultOpen?: boolean;
   heroFill?: TapCardHeroFill;
   gradientStart?: string;
   gradientEnd?: string;
@@ -274,7 +291,8 @@ export function defaultTapConnectCard(params: {
       text: "Click Here to",
       textRight: "Hottest Deal!!!",
       href: params.profile?.website || "#",
-      label: "Promo header",
+      label: "Special / Hottest Deal",
+      pinTop: true,
       format: { fontFamily: "script", italic: true, fontSize: "base" },
     },
     {

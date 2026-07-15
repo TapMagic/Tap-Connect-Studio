@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
@@ -61,6 +61,7 @@ export function TapConnectCard({
     !forceExpanded && config.collapsible && config.defaultCollapsed
   );
   const [toast, setToast] = useState<string | null>(null);
+  const [openOffers, setOpenOffers] = useState<Record<string, boolean>>({});
 
   const sections = useMemo(
     () => sortTapCardSections(config.sections).filter((s) => s.enabled),
@@ -172,12 +173,16 @@ export function TapConnectCard({
   const compact = config.compactActionsOnly;
   const peekCount = config.actionsLayout === "grid_2" ? 2 : 2;
 
-  function renderPromo(promo: TapCardSection) {
+  function renderPromo(promo: TapCardSection, inline = false) {
     return (
       <a
         key={promo.id}
         href={promo.href || "#"}
-        className={cn("tcc-promo", selectedSectionId === promo.id && "tcc-section-selected")}
+        className={cn(
+          "tcc-promo",
+          inline && "tcc-promo-inline",
+          selectedSectionId === promo.id && "tcc-section-selected"
+        )}
         {...sectionDomProps(promo.id, selectedSectionId)}
         style={{
           backgroundColor: promo.backgroundColor,
@@ -206,6 +211,139 @@ export function TapConnectCard({
         </span>
         <span className="tcc-promo-sheen" aria-hidden />
       </a>
+    );
+  }
+
+  function renderSpecialOffer(section: TapCardSection) {
+    const styleKind = section.specialStyle || "banner";
+    const mode = section.offerMode || "link";
+    const href = section.href?.trim();
+    const open =
+      openOffers[section.id] !== undefined
+        ? openOffers[section.id]
+        : Boolean(section.offerDefaultOpen);
+
+    function activate(e: MouseEvent) {
+      onAction?.("special_offer", section.id);
+      if (mode === "expand") {
+        e.preventDefault();
+        setOpenOffers((prev) => ({
+          ...prev,
+          [section.id]: !(prev[section.id] !== undefined ? prev[section.id] : open),
+        }));
+        return;
+      }
+      if (!href || href === "#") {
+        e.preventDefault();
+        return;
+      }
+    }
+
+    const teaser = (
+      <>
+        <div className="tcc-special-copy">
+          <p className="tcc-special-kicker" style={textFormatToCss(section.format)}>
+            {section.text || "Special"}
+          </p>
+          <p
+            className="tcc-special-headline"
+            style={textFormatToCss({
+              ...config.titleFormat,
+              ...section.format,
+              fontWeight: "bold",
+            })}
+          >
+            {section.headline || section.textRight || "Hottest Deal"}
+          </p>
+          {section.description ? (
+            <p className="tcc-special-desc" style={textFormatToCss(config.bodyFormat)}>
+              {section.description}
+            </p>
+          ) : null}
+        </div>
+        <span className="tcc-special-cta">
+          {mode === "expand" ? (open ? "Hide offer" : section.offerCta || "View offer") : section.offerCta || "Open"}
+          <ChevronRight className={cn("size-4", open && mode === "expand" && "rotate-90")} />
+        </span>
+      </>
+    );
+
+    const offerPanel =
+      mode === "expand" && open ? (
+        <div className="tcc-special-offer-panel">
+          <p className="tcc-special-offer-title">
+            {section.offerTitle || section.headline || "Your offer"}
+          </p>
+          {section.offerDescription ? (
+            <p className="tcc-special-offer-body">{section.offerDescription}</p>
+          ) : null}
+          {section.offerCode ? (
+            <p className="tcc-special-offer-code">{section.offerCode}</p>
+          ) : null}
+          {section.offerExpires ? (
+            <p className="tcc-special-offer-exp">Expires {section.offerExpires}</p>
+          ) : null}
+          {href && href !== "#" ? (
+            <a
+              href={href}
+              className="tcc-special-offer-btn"
+              target={href.startsWith("http") ? "_blank" : undefined}
+              rel="noopener noreferrer"
+              onClick={() => onAction?.("special_offer_cta", section.id)}
+            >
+              {section.offerCta || "Claim offer"}
+            </a>
+          ) : null}
+        </div>
+      ) : null;
+
+    const shellStyle = {
+      backgroundColor: section.backgroundColor,
+      color: section.textColor,
+      borderRadius: shapeRadius(section.shape, config.defaultShape),
+      opacity: (section.opacity ?? 100) / 100,
+      ["--tcc-accent" as string]: section.accentColor || undefined,
+    } as CSSProperties;
+
+    const className = cn(
+      "tcc-special",
+      `tcc-special-${styleKind}`,
+      finishClass(sectionFinish(section, config.defaultFinish), "tcc-special"),
+      selectedSectionId === section.id && "tcc-section-selected"
+    );
+
+    if (mode === "link" && href && href !== "#") {
+      return (
+        <div
+          key={section.id}
+          className="tcc-special-wrap"
+          {...sectionDomProps(section.id, selectedSectionId)}
+        >
+          <a
+            href={href}
+            className={className}
+            style={shellStyle}
+            target={href.startsWith("http") ? "_blank" : undefined}
+            rel="noopener noreferrer"
+            onClick={() => onAction?.("special_offer", section.id)}
+          >
+            {teaser}
+          </a>
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={section.id}
+        className="tcc-special-wrap"
+        {...sectionDomProps(section.id, selectedSectionId)}
+      >
+        <button type="button" className={className} style={shellStyle} onClick={activate}>
+          {teaser}
+        </button>
+        {offerPanel}
+      </div>
     );
   }
 
@@ -716,7 +854,9 @@ export function TapConnectCard({
     }
 
     if (s.type === "promo_header") {
-      outerNodes.push(renderPromo(s));
+      const pinTop = s.pinTop !== false;
+      if (pinTop) outerNodes.push(renderPromo(s, false));
+      else bodyNodes.push(renderPromo(s, true));
       i++;
       continue;
     }
@@ -771,6 +911,9 @@ export function TapConnectCard({
         break;
       case "logo_block":
         bodyNodes.push(renderLogoBlock(s));
+        break;
+      case "special_offer":
+        bodyNodes.push(renderSpecialOffer(s));
         break;
       case "text":
         bodyNodes.push(renderText(s));
