@@ -225,12 +225,12 @@ export function TapCardBuilder({
   }
 
   return (
-    <div className="flex flex-col">
-      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
+    <div className="flex flex-col pb-10">
+      <div className="z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background px-4 py-3">
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
-            Design menus stay visible · drag segments · scroll the page to see the full card
+            Drag segments · scroll the page to see the full Tap Card
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -251,8 +251,8 @@ export function TapCardBuilder({
         </div>
       </div>
 
-      {/* Always-visible design menus */}
-      <div className="sticky top-[57px] z-20 space-y-3 border-b border-border/60 bg-background/98 px-4 py-3 backdrop-blur">
+      {/* Design menus — in normal flow so the page can scroll the full card */}
+      <div className="z-20 space-y-3 border-b border-border/60 bg-background px-4 py-3">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
             <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
@@ -438,7 +438,7 @@ export function TapCardBuilder({
       ) : null}
 
       <div className="flex flex-col lg:flex-row lg:items-start">
-        <aside className="w-full border-r border-border/60 p-4 lg:sticky lg:top-[140px] lg:max-h-[calc(100dvh-140px)] lg:w-[300px] lg:overflow-y-auto">
+        <aside className="w-full border-r border-border/60 p-4 lg:w-[300px]">
           <div className="space-y-3">
             <TextFormatControls
               title="Title typography"
@@ -609,13 +609,13 @@ export function TapCardBuilder({
           </div>
         </div>
 
-        <aside className="w-full border-l border-border/60 p-4 lg:sticky lg:top-[140px] lg:max-h-[calc(100dvh-140px)] lg:w-[320px] lg:overflow-y-auto">
+        <aside className="w-full border-l border-border/60 p-4 lg:w-[320px]">
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
           </p>
           {!selected ? (
             <p className="text-xs text-muted-foreground">
-              Use the sticky Design bar for Two columns, shapes, pill colors, neon glow, 3-D, and
+              Use the Design bar for Two columns, shapes, pill colors, neon glow, 3-D, and
               transparency. Add Image / Text blocks from the left. Hero logo window is movable and
               scalable.
             </p>
