@@ -779,6 +779,12 @@
 }
 
 /* ── Tap Connect Card (premium flexible digital card) ─────────────────────── */
+.tcc-section-selected {
+  outline: 2px solid color-mix(in srgb, var(--tcc-accent) 85%, #a3e635);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tcc-accent) 25%, transparent);
+}
+
 .tcc {
   --tcc-accent: #d4af37;
   --tcc-surface: #f4f1ea;

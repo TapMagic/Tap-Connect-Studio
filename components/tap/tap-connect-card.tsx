@@ -32,9 +32,19 @@ type TapConnectCardProps = {
   logoUrl?: string | null;
   reviewUrl?: string | null;
   forceExpanded?: boolean;
+  /** Highlight + scroll anchor for builder selection */
+  selectedSectionId?: string | null;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
 };
+
+function sectionDomProps(id: string, selectedSectionId?: string | null) {
+  return {
+    id: `tap-section-${id}`,
+    "data-section-id": id,
+    "data-selected": selectedSectionId === id ? "true" : undefined,
+  } as const;
+}
 
 export function TapConnectCard({
   config,
@@ -43,6 +53,7 @@ export function TapConnectCard({
   logoUrl,
   reviewUrl,
   forceExpanded = false,
+  selectedSectionId = null,
   className = "",
   onAction,
 }: TapConnectCardProps) {
@@ -166,7 +177,8 @@ export function TapConnectCard({
       <a
         key={promo.id}
         href={promo.href || "#"}
-        className="tcc-promo"
+        className={cn("tcc-promo", selectedSectionId === promo.id && "tcc-section-selected")}
+        {...sectionDomProps(promo.id, selectedSectionId)}
         style={{
           backgroundColor: promo.backgroundColor,
           ...textFormatToCss(promo.format),
@@ -280,7 +292,12 @@ export function TapConnectCard({
       return (
         <div
           key={hero.id}
-          className={cn("tcc-hero tcc-hero-logo-top", outlined && "tcc-hero-outlined")}
+          className={cn(
+            "tcc-hero tcc-hero-logo-top",
+            outlined && "tcc-hero-outlined",
+            selectedSectionId === hero.id && "tcc-section-selected"
+          )}
+          {...sectionDomProps(hero.id, selectedSectionId)}
         >
           {showLogo && logoSrc ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -307,7 +324,12 @@ export function TapConnectCard({
       return (
         <div
           key={hero.id}
-          className={cn("tcc-hero tcc-hero-columns", outlined && "tcc-hero-outlined")}
+          className={cn(
+            "tcc-hero tcc-hero-columns",
+            outlined && "tcc-hero-outlined",
+            selectedSectionId === hero.id && "tcc-section-selected"
+          )}
+          {...sectionDomProps(hero.id, selectedSectionId)}
           style={showGradient && !showPhoto ? { background: gradientCss } : undefined}
         >
           {showPhoto ? (
@@ -330,7 +352,12 @@ export function TapConnectCard({
     return (
       <div
         key={hero.id}
-        className={cn("tcc-hero", outlined && "tcc-hero-outlined")}
+        className={cn(
+          "tcc-hero",
+          outlined && "tcc-hero-outlined",
+          selectedSectionId === hero.id && "tcc-section-selected"
+        )}
+        {...sectionDomProps(hero.id, selectedSectionId)}
       >
         {!showPhoto && showGradient ? null : (
           <div className="tcc-hero-mesh" aria-hidden>
@@ -378,7 +405,12 @@ export function TapConnectCard({
 
   function renderIdentity(identity: TapCardSection) {
     return (
-      <div key={identity.id} className="tcc-identity" style={textFormatToCss(config.titleFormat)}>
+      <div
+        key={identity.id}
+        className={cn("tcc-identity", selectedSectionId === identity.id && "tcc-section-selected")}
+        style={textFormatToCss(config.titleFormat)}
+        {...sectionDomProps(identity.id, selectedSectionId)}
+      >
         <p
           className="tcc-name"
           style={textFormatToCss({ ...config.titleFormat, ...identity.format })}
@@ -430,7 +462,11 @@ export function TapConnectCard({
         <a
           key={section.id}
           href={section.href}
-          className="tcc-image-wrap"
+          className={cn(
+            "tcc-image-wrap",
+            selectedSectionId === section.id && "tcc-section-selected"
+          )}
+          {...sectionDomProps(section.id, selectedSectionId)}
           target="_blank"
           rel="noopener noreferrer"
         >
@@ -439,7 +475,14 @@ export function TapConnectCard({
       );
     }
     return (
-      <div key={section.id} className="tcc-image-wrap">
+      <div
+        key={section.id}
+        className={cn(
+          "tcc-image-wrap",
+          selectedSectionId === section.id && "tcc-section-selected"
+        )}
+        {...sectionDomProps(section.id, selectedSectionId)}
+      >
         {img}
       </div>
     );
@@ -524,8 +567,12 @@ export function TapConnectCard({
       return (
         <div
           key={section.id}
-          className="tcc-logo-block tcc-logo-block-stack"
+          className={cn(
+            "tcc-logo-block tcc-logo-block-stack",
+            selectedSectionId === section.id && "tcc-section-selected"
+          )}
           style={{ backgroundColor: section.backgroundColor }}
+          {...sectionDomProps(section.id, selectedSectionId)}
         >
           {leftKind !== "empty" ? cell(leftKind, "left") : null}
           {rightKind !== "empty" ? cell(rightKind, "right") : null}
@@ -536,8 +583,12 @@ export function TapConnectCard({
     return (
       <div
         key={section.id}
-        className="tcc-logo-block tcc-logo-block-columns"
+        className={cn(
+          "tcc-logo-block tcc-logo-block-columns",
+          selectedSectionId === section.id && "tcc-section-selected"
+        )}
         style={{ backgroundColor: section.backgroundColor }}
+        {...sectionDomProps(section.id, selectedSectionId)}
       >
         <div className="tcc-logo-block-col">{cell(leftKind, "left")}</div>
         <div className="tcc-logo-block-col">{cell(rightKind, "right")}</div>
@@ -549,12 +600,13 @@ export function TapConnectCard({
     return (
       <div
         key={section.id}
-        className="tcc-text-block"
+        className={cn("tcc-text-block", selectedSectionId === section.id && "tcc-section-selected")}
         style={{
           backgroundColor: section.backgroundColor,
           color: section.textColor,
           ...textFormatToCss(section.format),
         }}
+        {...sectionDomProps(section.id, selectedSectionId)}
       >
         {section.text}
       </div>
@@ -563,14 +615,26 @@ export function TapConnectCard({
 
   function renderSpacer(section: TapCardSection) {
     const h = section.height === "sm" ? 12 : section.height === "lg" ? 36 : 22;
-    return <div key={section.id} className="tcc-spacer" style={{ height: h }} />;
+    return (
+      <div
+        key={section.id}
+        className={cn("tcc-spacer", selectedSectionId === section.id && "tcc-section-selected")}
+        style={{ height: h }}
+        {...sectionDomProps(section.id, selectedSectionId)}
+      />
+    );
   }
 
   function renderFooter(footer: TapCardSection) {
     return (
       <div
         key={footer.id}
-        className={cn("tcc-footer-cta", finishClass(sectionFinish(footer, "neon"), "tcc-pill"))}
+        className={cn(
+          "tcc-footer-cta",
+          finishClass(sectionFinish(footer, "neon"), "tcc-pill"),
+          selectedSectionId === footer.id && "tcc-section-selected"
+        )}
+        {...sectionDomProps(footer.id, selectedSectionId)}
       >
         <div className="tcc-footer-brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -621,6 +685,7 @@ export function TapConnectCard({
               <ActionPill
                 key={section.id}
                 section={section}
+                selected={selectedSectionId === section.id}
                 defaultFinish={config.defaultFinish}
                 defaultShape={config.defaultShape}
                 actionsLayout={config.actionsLayout}
@@ -752,6 +817,7 @@ export function TapConnectCard({
 
 function ActionPill({
   section,
+  selected,
   defaultFinish,
   defaultShape,
   actionsLayout,
@@ -762,6 +828,7 @@ function ActionPill({
   onActivate,
 }: {
   section: TapCardSection;
+  selected?: boolean;
   defaultFinish: TapConnectCardConfig["defaultFinish"];
   defaultShape: TapConnectCardConfig["defaultShape"];
   actionsLayout: TapConnectCardConfig["actionsLayout"];
@@ -788,8 +855,10 @@ function ActionPill({
         "tcc-pill",
         finishClass(finish, "tcc-pill"),
         shape === "circle" && "tcc-pill-circle",
-        iconOnly && "tcc-pill-icon-only"
+        iconOnly && "tcc-pill-icon-only",
+        selected && "tcc-section-selected"
       )}
+      {...sectionDomProps(section.id, selected ? section.id : null)}
       style={
         {
           "--tcc-accent": section.accentColor || undefined,

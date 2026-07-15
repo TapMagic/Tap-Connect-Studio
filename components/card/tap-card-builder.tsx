@@ -93,13 +93,22 @@ export function TapCardBuilder({
   const [message, setMessage] = useState<string | null>(null);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
   const inspectorRef = useRef<HTMLDivElement>(null);
+  const previewScrollRef = useRef<HTMLDivElement>(null);
 
   const sorted = [...config.sections].sort((a, b) => a.order - b.order);
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
 
   useEffect(() => {
-    if (!selectedId || !inspectorRef.current) return;
-    inspectorRef.current.scrollIntoView({ behavior: "smooth", block: "start", inline: "nearest" });
+    if (!selectedId || !previewScrollRef.current) return;
+    const el = previewScrollRef.current.querySelector(
+      `[data-section-id="${CSS.escape(selectedId)}"]`
+    );
+    if (el instanceof HTMLElement) {
+      // Snap selected block into the card preview viewport
+      requestAnimationFrame(() => {
+        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
+      });
+    }
   }, [selectedId]);
 
   const catalogFiltered = TAP_CARD_ACTION_CATALOG.filter((c) => {
@@ -246,12 +255,12 @@ export function TapCardBuilder({
   }
 
   return (
-    <div className="pb-16">
-      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto">
+      <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background px-4 py-3">
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
-            Blocks column scrolls · card &amp; editor stay in view · scroll card to review
+            Blocks scroll left · card &amp; editor stay fixed · select a block to snap the preview
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -272,8 +281,8 @@ export function TapCardBuilder({
         </div>
       </div>
 
-      {/* Design menus — scroll with page (keeps preview scroll free) */}
-      <div className="space-y-3 border-b border-border/60 bg-background px-4 py-3">
+      {/* Design menus — fixed chrome, scrolls if tall */}
+      <div className="z-20 max-h-[28vh] shrink-0 space-y-3 overflow-y-auto border-b border-border/60 bg-background px-4 py-3">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
             <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
@@ -456,12 +465,12 @@ export function TapCardBuilder({
       </div>
 
       {message ? (
-        <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
+        <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
       ) : null}
 
-      <div className="grid lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-start">
-        {/* Column 2 — Add block / segments (page scrolls here) */}
-        <aside className="border-r border-border/60 bg-background">
+      <div className="grid min-h-0 flex-1 grid-cols-1 max-lg:flex-none lg:grid-cols-[300px_minmax(0,1fr)_320px]">
+        {/* Left — blocks / add (independent scroll) */}
+        <aside className="min-h-0 overflow-y-auto overscroll-contain border-r border-border/60 bg-background max-lg:max-h-[50vh] lg:h-auto">
           <div className="space-y-3 p-4">
             <TextFormatControls
               title="Title typography"
@@ -621,11 +630,14 @@ export function TapCardBuilder({
           </div>
         </aside>
 
-        {/* Column 3 — sticky; scroll inside to review full card */}
-        <div className="min-w-0 border-x border-border/40 bg-black/30 lg:sticky lg:top-14 lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
-          <div className="p-4 pb-10">
+        {/* Center — always in view; scroll to review full / snap to selection */}
+        <div
+          ref={previewScrollRef}
+          className="min-h-0 min-w-0 overflow-y-auto overscroll-contain border-x border-border/40 bg-black/30 max-lg:min-h-[55vh] lg:h-auto"
+        >
+          <div className="p-4 pb-12">
             <p className="mb-2 text-center text-[11px] text-muted-foreground">
-              Scroll here to review the full Tap Card
+              Scroll to review · selecting a block snaps the preview
             </p>
             <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
               <div className="builder-phone-notch" />
@@ -637,15 +649,16 @@ export function TapCardBuilder({
                   logoUrl={logoUrl}
                   reviewUrl={reviewUrl}
                   forceExpanded
+                  selectedSectionId={selectedId}
                 />
               </div>
             </div>
           </div>
         </div>
 
-        {/* Column 4 — sticky editor stays in view while working in Add block */}
-        <aside className="border-l border-border/60 bg-background lg:sticky lg:top-14 lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
-          <div ref={inspectorRef} className="scroll-mt-16 p-4">
+        {/* Right — editor always visible */}
+        <aside className="min-h-0 overflow-y-auto overscroll-contain border-l border-border/60 bg-background max-lg:max-h-[50vh] lg:h-auto">
+          <div ref={inspectorRef} className="p-4">
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
           </p>

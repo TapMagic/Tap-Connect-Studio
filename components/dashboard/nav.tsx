@@ -48,7 +48,7 @@ export function DashboardNav({
     : navItems;
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start overflow-y-auto border-r border-border/60 bg-card/40 lg:flex">
+    <aside className="hidden h-full w-64 shrink-0 flex-col self-stretch overflow-y-auto border-r border-border/60 bg-card/40 lg:flex">
       <div className="shrink-0 border-b border-border/60 px-5 py-5">
         <Link href="/dashboard" className="flex items-center gap-2">
           <TapConnectLogo variant="mark" priority />
