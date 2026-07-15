@@ -35,6 +35,7 @@ const schema = z.object({
       website: z.string().optional(),
       address: z.string().optional(),
       note: z.string().optional(),
+      photoUrl: z.string().optional(),
       socials: z.record(z.string(), z.string()).optional(),
     })
     .optional(),
@@ -46,8 +47,13 @@ const schema = z.object({
         id: z.string(),
         title: z.string(),
         description: z.string().optional(),
-        iconUrl: z.string().optional(),
         href: z.string(),
+        /** Prefer logo art when set */
+        logoUrl: z.string().optional(),
+        iconUrl: z.string().optional(),
+        icon: z.string().optional(),
+        iconColor: z.string().optional(),
+        platform: z.string().optional(),
       })
     )
     .optional(),

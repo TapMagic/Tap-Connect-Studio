@@ -90,6 +90,14 @@ export type TapCardSection = {
   logoScale?: number;
   logoOffsetX?: number;
   logoOffsetY?: number;
+  /** classic = photo + window; logo_top = scalable logo header; columns = two-col text/image/logo */
+  heroLayout?: "classic" | "logo_top" | "columns";
+  columnLeft?: "logo" | "text" | "image" | "empty";
+  columnRight?: "logo" | "text" | "image" | "empty";
+  columnText?: string;
+  columnImageUrl?: string;
+  /** Keep card outline / frame around the hero */
+  showOutline?: boolean;
   actionKind?: TapCardActionKind;
   icon?: string;
   iconUrl?: string;

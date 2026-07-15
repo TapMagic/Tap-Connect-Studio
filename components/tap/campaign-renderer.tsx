@@ -822,8 +822,11 @@ function BlockRenderer({
       return (
         <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <ContactCardSurface
-            profile={profile}
-            logoUrl={logoUrl}
+            profile={{
+              ...profile,
+              photoUrl: (data.logoUrl as string) || profile.photoUrl || logoUrl || undefined,
+            }}
+            logoUrl={(data.logoUrl as string) || logoUrl}
             businessName={businessName}
             buttonLabel={(data.buttonLabel as string) || "Download VCard"}
             showShare={false}
@@ -853,8 +856,12 @@ function BlockRenderer({
       return (
         <StyledBlockShell block={block} {...shell} className="px-4 pt-5">
           <ContactCardSurface
-            profile={contactProfile}
-            logoUrl={logoUrl}
+            profile={{
+              ...contactProfile,
+              photoUrl:
+                (data.logoUrl as string) || contactProfile.photoUrl || logoUrl || undefined,
+            }}
+            logoUrl={(data.logoUrl as string) || logoUrl}
             businessName={businessName}
             headline={data.headline as string | undefined}
             buttonLabel={(data.buttonLabel as string) || "Download VCard"}

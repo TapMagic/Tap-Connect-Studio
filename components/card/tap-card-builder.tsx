@@ -777,49 +777,81 @@ export function TapCardBuilder({
 
               {selected.type === "hero" && (
                 <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hero layout</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selected.heroLayout || "classic"}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          heroLayout: e.target.value as
+                            | "classic"
+                            | "logo_top"
+                            | "columns",
+                        })
+                      }
+                    >
+                      <option value="classic">Classic photo + logo window</option>
+                      <option value="logo_top">Logo at top (scalable)</option>
+                      <option value="columns">Two columns</option>
+                    </select>
+                  </div>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={selected.showOutline !== false}
+                      onChange={(e) =>
+                        patchSection(selected.id, { showOutline: e.target.checked })
+                      }
+                    />
+                    Card outline around hero
+                  </label>
                   <MediaPicker
-                    label="Hero photo"
+                    label="Hero photo / background"
                     value={selected.imageUrl ?? ""}
                     onChange={(url) => patchSection(selected.id, { imageUrl: url })}
                     mediaUploadReady={mediaUploadReady}
                     stockReady={stockReady}
                   />
-                  <label className="flex items-center gap-2 text-sm">
+                  <MediaPicker
+                    label="Logo (preferred)"
+                    value={selected.logoUrl ?? logoUrl ?? ""}
+                    onChange={(url) => patchSection(selected.id, { logoUrl: url })}
+                    mediaUploadReady={mediaUploadReady}
+                    stockReady={stockReady}
+                  />
+                  <div className="space-y-1">
+                    <Label className="text-xs">
+                      Logo scale {selected.logoScale ?? 100}%
+                    </Label>
                     <input
-                      type="checkbox"
-                      checked={selected.showLogoWindow !== false}
+                      type="range"
+                      min={40}
+                      max={180}
+                      value={selected.logoScale ?? 100}
                       onChange={(e) =>
-                        patchSection(selected.id, { showLogoWindow: e.target.checked })
+                        patchSection(selected.id, {
+                          logoScale: Number(e.target.value),
+                        })
                       }
+                      className="w-full"
                     />
-                    Logo window (centered on hero)
-                  </label>
-                  {selected.showLogoWindow !== false ? (
+                  </div>
+
+                  {(selected.heroLayout || "classic") === "classic" ? (
                     <>
-                      <MediaPicker
-                        label="Logo in window"
-                        value={selected.logoUrl ?? logoUrl ?? ""}
-                        onChange={(url) => patchSection(selected.id, { logoUrl: url })}
-                        mediaUploadReady={mediaUploadReady}
-                        stockReady={stockReady}
-                      />
-                      <div className="space-y-1">
-                        <Label className="text-xs">
-                          Scale {selected.logoScale ?? 100}%
-                        </Label>
+                      <label className="flex items-center gap-2 text-sm">
                         <input
-                          type="range"
-                          min={40}
-                          max={180}
-                          value={selected.logoScale ?? 100}
+                          type="checkbox"
+                          checked={selected.showLogoWindow !== false}
                           onChange={(e) =>
                             patchSection(selected.id, {
-                              logoScale: Number(e.target.value),
+                              showLogoWindow: e.target.checked,
                             })
                           }
-                          className="w-full"
                         />
-                      </div>
+                        Logo window (centered on hero)
+                      </label>
                       <div className="space-y-1">
                         <Label className="text-xs">
                           Move X {selected.logoOffsetX ?? 0}px
@@ -854,23 +886,96 @@ export function TapCardBuilder({
                           className="w-full"
                         />
                       </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(selected.showCallBadge)}
+                          onChange={(e) =>
+                            patchSection(selected.id, {
+                              showCallBadge: e.target.checked,
+                            })
+                          }
+                        />
+                        Show Call badge
+                      </label>
                     </>
                   ) : null}
+
+                  {selected.heroLayout === "columns" ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Left column</Label>
+                          <select
+                            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                            value={selected.columnLeft || "logo"}
+                            onChange={(e) =>
+                              patchSection(selected.id, {
+                                columnLeft: e.target.value as
+                                  | "logo"
+                                  | "text"
+                                  | "image"
+                                  | "empty",
+                              })
+                            }
+                          >
+                            <option value="logo">Logo</option>
+                            <option value="text">Text</option>
+                            <option value="image">Image</option>
+                            <option value="empty">Empty</option>
+                          </select>
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Right column</Label>
+                          <select
+                            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                            value={selected.columnRight || "text"}
+                            onChange={(e) =>
+                              patchSection(selected.id, {
+                                columnRight: e.target.value as
+                                  | "logo"
+                                  | "text"
+                                  | "image"
+                                  | "empty",
+                              })
+                            }
+                          >
+                            <option value="logo">Logo</option>
+                            <option value="text">Text</option>
+                            <option value="image">Image</option>
+                            <option value="empty">Empty</option>
+                          </select>
+                        </div>
+                      </div>
+                      <Input
+                        value={selected.columnText ?? ""}
+                        onChange={(e) =>
+                          patchSection(selected.id, { columnText: e.target.value })
+                        }
+                        placeholder="Column text"
+                      />
+                      <MediaPicker
+                        label="Column image"
+                        value={selected.columnImageUrl ?? ""}
+                        onChange={(url) =>
+                          patchSection(selected.id, { columnImageUrl: url })
+                        }
+                        mediaUploadReady={mediaUploadReady}
+                        stockReady={stockReady}
+                      />
+                      <TextFormatControls
+                        title="Column text format"
+                        value={selected.format}
+                        onChange={(format) => patchSection(selected.id, { format })}
+                      />
+                    </>
+                  ) : null}
+
                   <Input
                     value={selected.href ?? ""}
                     onChange={(e) => patchSection(selected.id, { href: e.target.value })}
                     placeholder="Logo / hero link"
                   />
-                  <label className="flex items-center gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      checked={Boolean(selected.showCallBadge)}
-                      onChange={(e) =>
-                        patchSection(selected.id, { showCallBadge: e.target.checked })
-                      }
-                    />
-                    Show Call badge
-                  </label>
                 </>
               )}
 

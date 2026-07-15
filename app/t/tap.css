@@ -866,6 +866,97 @@
   background: #0b0f19;
 }
 
+/* Continue card outline / frame around the hero */
+.tcc-hero-outlined {
+  margin: 0.55rem 0 0;
+  border: 2px solid color-mix(in srgb, var(--tcc-accent) 70%, transparent);
+  border-radius: 1rem;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tcc-accent) 25%, transparent),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+}
+
+.tcc-hero-logo-top {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  height: auto;
+  min-height: 8.5rem;
+  padding: 0.85rem 0.75rem 0.65rem;
+  gap: 0.55rem;
+}
+
+.tcc-top-logo {
+  position: relative;
+  z-index: 3;
+  object-fit: contain;
+  border-radius: 0.85rem;
+  background: rgba(0, 0, 0, 0.25);
+  border: 2px solid color-mix(in srgb, var(--tcc-accent) 80%, white);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.35);
+}
+
+.tcc-hero-photo-under {
+  position: relative !important;
+  inset: auto !important;
+  z-index: 1;
+  width: 100%;
+  height: 6.5rem;
+  border-radius: 0.75rem;
+  object-fit: cover;
+}
+
+.tcc-hero-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+  height: auto;
+  min-height: 7.5rem;
+  padding: 0.55rem;
+}
+
+.tcc-hero-col {
+  display: grid;
+  place-items: center;
+  min-height: 6.5rem;
+  border-radius: 0.75rem;
+  background: color-mix(in srgb, var(--tcc-surface) 12%, rgba(0, 0, 0, 0.35));
+  overflow: hidden;
+  padding: 0.45rem;
+}
+
+.tcc-hero-col-logo {
+  max-width: 88%;
+  max-height: 5.5rem;
+  object-fit: contain;
+}
+
+.tcc-hero-col-img {
+  width: 100%;
+  height: 100%;
+  min-height: 5.5rem;
+  object-fit: cover;
+  border-radius: 0.5rem;
+}
+
+.tcc-hero-col-text {
+  margin: 0;
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--tcc-text, #f8fafc);
+  line-height: 1.25;
+  padding: 0.25rem;
+}
+
+.tcc-hero-col-empty {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
 .tcc-hero-photo,
 .tcc-hero-fallback {
   position: absolute;

@@ -43,6 +43,8 @@ export type BrandContactProfile = {
   website?: string;
   address?: string;
   note?: string;
+  /** Photo / logo at top of downloaded vCard (preferred over business logo) */
+  photoUrl?: string;
   socials?: Partial<Record<SocialPlatform, string>>;
 };
 
@@ -103,4 +105,43 @@ export function downloadVCardFile(filename: string, content: string) {
   a.click();
   a.remove();
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Save contact with a single user gesture.
+ * Prefers system share sheet (Add to Contacts) when the browser allows sharing .vcf files;
+ * otherwise downloads the vCard — no extra confirmation beyond the tap.
+ */
+export async function saveContactWithUserGesture(params: {
+  filename: string;
+  content: string;
+  title?: string;
+}): Promise<"shared" | "downloaded"> {
+  const name = params.filename.endsWith(".vcf")
+    ? params.filename
+    : `${params.filename}.vcf`;
+  const file = new File([params.content], name, { type: "text/vcard" });
+
+  try {
+    if (
+      typeof navigator !== "undefined" &&
+      typeof navigator.canShare === "function" &&
+      navigator.canShare({ files: [file] })
+    ) {
+      await navigator.share({
+        files: [file],
+        title: params.title || "Save contact",
+        text: params.title || "Add to contacts",
+      });
+      return "shared";
+    }
+  } catch (err) {
+    // User cancelled share — don't force a download
+    if (err instanceof DOMException && err.name === "AbortError") {
+      return "downloaded";
+    }
+  }
+
+  downloadVCardFile(name, params.content);
+  return "downloaded";
 }

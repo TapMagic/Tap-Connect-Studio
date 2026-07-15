@@ -46,8 +46,12 @@ export default async function BrandPage() {
                 id: string;
                 title: string;
                 description?: string;
-                iconUrl?: string;
                 href: string;
+                logoUrl?: string;
+                iconUrl?: string;
+                icon?: string;
+                iconColor?: string;
+                platform?: string;
               }[])
             : [],
           endExperience: brandKit?.endExperience ?? {},

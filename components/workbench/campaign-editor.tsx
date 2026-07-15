@@ -1469,6 +1469,26 @@ function BlockFields({
                 onChange={(e) => onUpdate("headline", e.target.value)}
               />
             </div>
+            <MediaPicker
+              label="Card / vCard logo at top (preferred)"
+              value={(data.logoUrl as string) ?? ""}
+              onChange={(url) => onUpdate("logoUrl", url)}
+              mediaUploadReady={mediaUploadReady}
+              stockReady={stockReady}
+              campaignId={campaignId}
+            />
+            <div className="space-y-1">
+              <Label className="text-xs">Social display</Label>
+              <select
+                className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                value={(data.socialDisplay as string) ?? "pill"}
+                onChange={(e) => onUpdate("socialDisplay", e.target.value)}
+              >
+                <option value="pill">Pills</option>
+                <option value="tile">Tiles</option>
+                <option value="row">Icon row</option>
+              </select>
+            </div>
             {(
               [
                 ["showSaveContact", "Show Save contact"],
@@ -1486,6 +1506,16 @@ function BlockFields({
               </label>
             ))}
           </>
+        )}
+        {block.type === "vcard_download" && (
+          <MediaPicker
+            label="vCard photo / logo at top"
+            value={(data.logoUrl as string) ?? ""}
+            onChange={(url) => onUpdate("logoUrl", url)}
+            mediaUploadReady={mediaUploadReady}
+            stockReady={stockReady}
+            campaignId={campaignId}
+          />
         )}
         {data.useBrandProfile === false && (
           <div className="grid gap-2 sm:grid-cols-2">

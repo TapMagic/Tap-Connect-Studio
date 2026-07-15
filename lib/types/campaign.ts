@@ -261,6 +261,9 @@ export interface DigitalCardData {
   showShare?: boolean;
   showSocials?: boolean;
   buttonLabel?: string;
+  /** Override logo / photo at top of card + vCard */
+  logoUrl?: string;
+  socialDisplay?: "pill" | "tile" | "row";
 }
 
 export interface DisclaimerData {

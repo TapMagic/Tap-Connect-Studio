@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   buildVCard,
-  downloadVCardFile,
+  saveContactWithUserGesture,
   SOCIAL_PLATFORM_OPTIONS,
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
@@ -35,10 +35,11 @@ export function SaveContactButton({
     setBusy(true);
     let photoBase64: string | undefined;
     let photoType: "JPEG" | "PNG" | undefined;
-    if (logoUrl && !logoUrl.startsWith("data:")) {
+    const photoSrc = profile.photoUrl || logoUrl;
+    if (photoSrc && !photoSrc.startsWith("data:")) {
       try {
         const res = await fetch(
-          `/api/public/vcard-photo?url=${encodeURIComponent(logoUrl)}`
+          `/api/public/vcard-photo?url=${encodeURIComponent(photoSrc)}`
         );
         if (res.ok) {
           const data = await res.json();
@@ -48,8 +49,8 @@ export function SaveContactButton({
       } catch {
         /* skip photo */
       }
-    } else if (logoUrl?.startsWith("data:image/")) {
-      const match = /^data:image\/(png|jpeg|jpg);base64,(.+)$/i.exec(logoUrl);
+    } else if (photoSrc?.startsWith("data:image/")) {
+      const match = /^data:image\/(png|jpeg|jpg);base64,(.+)$/i.exec(photoSrc);
       if (match) {
         photoType = match[1].toLowerCase() === "png" ? "PNG" : "JPEG";
         photoBase64 = match[2];
@@ -68,7 +69,12 @@ export function SaveContactButton({
       photoBase64,
       photoType,
     });
-    downloadVCardFile(fullName.replace(/\s+/g, "-"), vcf);
+    // Single user-gesture save — share sheet when available, else direct download
+    await saveContactWithUserGesture({
+      filename: fullName.replace(/\s+/g, "-"),
+      content: vcf,
+      title: fullName,
+    });
     onSaved?.();
     setBusy(false);
   }

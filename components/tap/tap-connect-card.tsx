@@ -5,7 +5,7 @@ import Link from "next/link";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import {
   buildVCard,
-  downloadVCardFile,
+  saveContactWithUserGesture,
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
 import {
@@ -74,17 +74,18 @@ export function TapConnectCard({
   async function downloadVcf() {
     let photoBase64: string | undefined;
     let photoType: "JPEG" | "PNG" | undefined;
-    if (mark) {
+    const photoSrc = profile.photoUrl || mark;
+    if (photoSrc) {
       try {
-        if (mark.startsWith("data:")) {
-          const m = /^data:image\/(png|jpeg|jpg);base64,(.+)$/i.exec(mark);
+        if (photoSrc.startsWith("data:")) {
+          const m = /^data:image\/(png|jpeg|jpg);base64,(.+)$/i.exec(photoSrc);
           if (m) {
             photoType = m[1].toLowerCase() === "png" ? "PNG" : "JPEG";
             photoBase64 = m[2];
           }
         } else {
           const res = await fetch(
-            `/api/public/vcard-photo?url=${encodeURIComponent(mark)}`
+            `/api/public/vcard-photo?url=${encodeURIComponent(photoSrc)}`
           );
           if (res.ok) {
             const data = (await res.json()) as { base64?: string; type?: "JPEG" | "PNG" };
@@ -108,7 +109,11 @@ export function TapConnectCard({
       photoBase64,
       photoType,
     });
-    downloadVCardFile(`${name.replace(/\s+/g, "-").toLowerCase()}.vcf`, vcf);
+    await saveContactWithUserGesture({
+      filename: `${name.replace(/\s+/g, "-").toLowerCase()}.vcf`,
+      content: vcf,
+      title: name,
+    });
     onAction?.("vcard", "download");
   }
 
@@ -182,14 +187,92 @@ export function TapConnectCard({
   }
 
   function renderHero(hero: TapCardSection) {
-    const logoSrc = hero.logoUrl || logoUrl;
+    const logoSrc = hero.logoUrl || logoUrl || profile.photoUrl;
     const scale = (hero.logoScale ?? 100) / 100;
     const ox = hero.logoOffsetX ?? 0;
     const oy = hero.logoOffsetY ?? 0;
     const showLogo = hero.showLogoWindow !== false;
+    const layout = hero.heroLayout || "classic";
+    const outlined = hero.showOutline !== false;
+
+    function cell(kind: "logo" | "text" | "image" | "empty" | undefined) {
+      if (kind === "logo" && logoSrc) {
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={logoSrc}
+            alt={businessName}
+            className="tcc-hero-col-logo"
+            style={{ transform: `scale(${scale})` }}
+          />
+        );
+      }
+      if (kind === "image" && (hero.columnImageUrl || hero.imageUrl)) {
+        return (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={hero.columnImageUrl || hero.imageUrl}
+            alt=""
+            className="tcc-hero-col-img"
+          />
+        );
+      }
+      if (kind === "text") {
+        return (
+          <p className="tcc-hero-col-text" style={textFormatToCss(hero.format)}>
+            {hero.columnText || hero.text || name}
+          </p>
+        );
+      }
+      return <span className="tcc-hero-col-empty" aria-hidden />;
+    }
+
+    if (layout === "logo_top") {
+      return (
+        <div
+          key={hero.id}
+          className={cn("tcc-hero tcc-hero-logo-top", outlined && "tcc-hero-outlined")}
+        >
+          {showLogo && logoSrc ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={logoSrc}
+              alt={businessName}
+              className="tcc-top-logo"
+              style={{
+                transform: `translate(${ox}px, ${oy}px) scale(${scale})`,
+                width: `${Math.round(72 * scale)}px`,
+                height: `${Math.round(72 * scale)}px`,
+              }}
+            />
+          ) : null}
+          {hero.imageUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={hero.imageUrl} alt="" className="tcc-hero-photo tcc-hero-photo-under" />
+          ) : (
+            <div className="tcc-hero-fallback tcc-hero-photo-under" />
+          )}
+        </div>
+      );
+    }
+
+    if (layout === "columns") {
+      return (
+        <div
+          key={hero.id}
+          className={cn("tcc-hero tcc-hero-columns", outlined && "tcc-hero-outlined")}
+        >
+          <div className="tcc-hero-col">{cell(hero.columnLeft || "logo")}</div>
+          <div className="tcc-hero-col">{cell(hero.columnRight || "text")}</div>
+        </div>
+      );
+    }
 
     return (
-      <div key={hero.id} className="tcc-hero">
+      <div
+        key={hero.id}
+        className={cn("tcc-hero", outlined && "tcc-hero-outlined")}
+      >
         <div className="tcc-hero-mesh" aria-hidden>
           <span className="tcc-orb tcc-orb-a" />
           <span className="tcc-orb tcc-orb-b" />
