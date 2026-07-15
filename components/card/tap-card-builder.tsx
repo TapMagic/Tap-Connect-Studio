@@ -100,15 +100,18 @@ export function TapCardBuilder({
 
   useEffect(() => {
     if (!selectedId || !previewScrollRef.current) return;
-    const el = previewScrollRef.current.querySelector(
-      `[data-section-id="${CSS.escape(selectedId)}"]`
+    const container = previewScrollRef.current;
+    const el = container.querySelector(
+      `[data-section-id="${typeof CSS !== "undefined" && CSS.escape ? CSS.escape(selectedId) : selectedId}"]`
     );
-    if (el instanceof HTMLElement) {
-      // Snap selected block into the card preview viewport
-      requestAnimationFrame(() => {
-        el.scrollIntoView({ behavior: "smooth", block: "center", inline: "nearest" });
-      });
-    }
+    if (!(el instanceof HTMLElement)) return;
+    requestAnimationFrame(() => {
+      const cRect = container.getBoundingClientRect();
+      const eRect = el.getBoundingClientRect();
+      const delta =
+        eRect.top - cRect.top - container.clientHeight / 2 + eRect.height / 2;
+      container.scrollBy({ top: delta, behavior: "smooth" });
+    });
   }, [selectedId]);
 
   const catalogFiltered = TAP_CARD_ACTION_CATALOG.filter((c) => {
