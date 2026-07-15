@@ -24,6 +24,7 @@ const navItems = [
   { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
   { href: "/dashboard/workbench", label: "Workbench", icon: PenTool },
   { href: "/dashboard/campaigns", label: "Campaigns", icon: Layers3 },
+  { href: "/dashboard/card", label: "Tap Card", icon: CreditCard },
   { href: "/dashboard/groups", label: "Groups", icon: FolderKanban },
   { href: "/dashboard/devices", label: "Devices", icon: Nfc },
   { href: "/dashboard/leads", label: "Leads", icon: Users },

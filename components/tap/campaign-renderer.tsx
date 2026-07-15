@@ -18,6 +18,7 @@ import {
   parseBrandContactProfile,
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
+import { parseTapConnectCard, type TapConnectCardConfig } from "@/lib/brand/tap-card";
 
 interface CampaignTheme {
   primaryColor: string;
@@ -40,6 +41,7 @@ interface CampaignPageProps {
   brandKit?: BrandKit | null;
   logoUrl?: string | null;
   contactProfile?: BrandContactProfile;
+  reviewUrl?: string | null;
   upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
   showUpcomingStrip?: boolean;
   /** Editor: outline the block being edited */
@@ -147,6 +149,7 @@ export function CampaignPageRenderer({
   brandKit,
   logoUrl,
   contactProfile: contactProfileProp,
+  reviewUrl = null,
   upcomingItems = [],
   showUpcomingStrip = false,
   selectedBlockId = null,
@@ -166,6 +169,12 @@ export function CampaignPageRenderer({
       parseBrandContactProfile(brandKit?.socialLinks).displayName ||
       businessName,
   };
+  const tapCardConfig: TapConnectCardConfig = parseTapConnectCard(brandKit?.tapCard, {
+    businessName,
+    profile: contactProfile,
+    logoUrl,
+    accentColor: brandKit?.accentColor || theme.primaryColor,
+  });
   const enabledBlocks = [...blocks]
     .filter((b) => b.enabled)
     .filter((b) => {
@@ -230,6 +239,8 @@ export function CampaignPageRenderer({
             onContactCaptured={() => setContactUnlocked(true)}
             upcomingItems={upcomingItems}
             contactProfile={contactProfile}
+            tapCardConfig={tapCardConfig}
+            reviewUrl={reviewUrl}
             logoUrl={logoUrl}
             selected={selectedBlockId === block.id}
             editMode={editMode}
@@ -288,6 +299,8 @@ function BlockRenderer({
   onContactCaptured,
   upcomingItems = [],
   contactProfile = {},
+  tapCardConfig,
+  reviewUrl = null,
   logoUrl,
   selected = false,
   editMode = false,
@@ -305,6 +318,8 @@ function BlockRenderer({
   onContactCaptured: () => void;
   upcomingItems?: { label: string; whenLabel: string; scheduleLabel?: string; campaignTitle?: string }[];
   contactProfile?: BrandContactProfile;
+  tapCardConfig?: TapConnectCardConfig;
+  reviewUrl?: string | null;
   logoUrl?: string | null;
   selected?: boolean;
   editMode?: boolean;
@@ -804,9 +819,12 @@ function BlockRenderer({
             profile={profile}
             logoUrl={logoUrl}
             businessName={businessName}
-            buttonLabel={(data.buttonLabel as string) || "Add to contacts"}
+            buttonLabel={(data.buttonLabel as string) || "Download VCard"}
             showShare={false}
             showSocials={Boolean(profile.socials && Object.values(profile.socials).some(Boolean))}
+            cardConfig={tapCardConfig}
+            reviewUrl={reviewUrl}
+            forceExpanded={editMode}
             onSaved={() => {
               void fetch("/api/tap/click", {
                 method: "POST",
@@ -833,10 +851,13 @@ function BlockRenderer({
             logoUrl={logoUrl}
             businessName={businessName}
             headline={data.headline as string | undefined}
-            buttonLabel={(data.buttonLabel as string) || "Add to contacts"}
+            buttonLabel={(data.buttonLabel as string) || "Download VCard"}
             showSave={data.showSaveContact !== false}
             showShare={data.showShare !== false}
             showSocials={data.showSocials !== false}
+            cardConfig={tapCardConfig}
+            reviewUrl={reviewUrl}
+            forceExpanded={editMode}
             onSaved={() => {
               void fetch("/api/tap/click", {
                 method: "POST",

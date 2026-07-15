@@ -51,6 +51,7 @@ const schema = z.object({
       })
     )
     .optional(),
+  tapCard: z.any().optional(),
 });
 
 export async function GET() {
@@ -89,6 +90,7 @@ export async function PATCH(request: Request) {
       endExperience,
       emailPromo,
       otherLinks,
+      tapCard,
       ...brandFields
     } = body;
 
@@ -98,6 +100,7 @@ export async function PATCH(request: Request) {
         : {}),
       ...(emailPromo !== undefined ? { emailPromo: emailPromo as Prisma.InputJsonValue } : {}),
       ...(otherLinks !== undefined ? { otherLinks: otherLinks as Prisma.InputJsonValue } : {}),
+      ...(tapCard !== undefined ? { tapCard: tapCard as Prisma.InputJsonValue } : {}),
     };
 
     const brandKit = await prisma.brandKit.upsert({
@@ -111,6 +114,7 @@ export async function PATCH(request: Request) {
           : {}),
         ...(emailPromo !== undefined ? { emailPromo: emailPromo as Prisma.InputJsonValue } : {}),
         ...(otherLinks !== undefined ? { otherLinks: otherLinks as Prisma.InputJsonValue } : {}),
+        ...(tapCard !== undefined ? { tapCard: tapCard as Prisma.InputJsonValue } : {}),
       },
       update: {
         ...brandFields,

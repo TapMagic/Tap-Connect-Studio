@@ -1,17 +1,37 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
-import { ContactCardSurface } from "@/components/tap/save-contact";
+import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import type { ContentBlock } from "@/lib/types/campaign";
 import { nanoid } from "nanoid";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
+import {
+  defaultTapConnectCard,
+  type TapConnectCardConfig,
+} from "@/lib/brand/tap-card";
+import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 
 const DEMO_THEME = {
   primaryColor: "#a3e635",
   secondaryColor: "#22d3ee",
   backgroundColor: "#0b0f19",
   textColor: "#f8fafc",
+};
+
+const FALLBACK_PROFILE: BrandContactProfile = {
+  displayName: "Alex Rivera",
+  jobTitle: "Owner · Demo Studio",
+  organization: "Demo Studio",
+  phone: "+1 (555) 123-4567",
+  email: "alex@demo.studio",
+  website: "https://tapthemagic.com",
+  address: "Orlando, FL",
+  socials: {
+    instagram: "https://instagram.com/",
+    facebook: "https://facebook.com/",
+    linkedin: "https://linkedin.com/",
+  },
 };
 
 function buildOfferBlocks(): ContentBlock[] {
@@ -114,9 +134,48 @@ function buildOfferBlocks(): ContentBlock[] {
   ];
 }
 
+type DemoPayload = {
+  published?: boolean;
+  businessName?: string;
+  logoUrl?: string | null;
+  reviewUrl?: string | null;
+  profile?: BrandContactProfile;
+  tapCard?: TapConnectCardConfig;
+  contentBlocks?: ContentBlock[];
+};
+
 export function LiveDemoPhone({ className = "" }: { className?: string }) {
-  const [mode, setMode] = useState<"offer" | "card">("offer");
+  const [mode, setMode] = useState<"offer" | "card">("card");
+  const [demo, setDemo] = useState<DemoPayload | null>(null);
   const offerBlocks = useMemo(() => buildOfferBlocks(), []);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/public/landing-demo")
+      .then((r) => r.json())
+      .then((data: DemoPayload) => {
+        if (!cancelled) setDemo(data);
+      })
+      .catch(() => {
+        if (!cancelled) setDemo({ published: false });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const profile = demo?.profile ?? FALLBACK_PROFILE;
+  const businessName = demo?.businessName ?? "Demo Studio";
+  const logoUrl = demo?.logoUrl ?? TAP_CONNECT_LOGO;
+  const tapCard =
+    demo?.tapCard ??
+    defaultTapConnectCard({
+      businessName,
+      profile,
+      logoUrl,
+      accentColor: "#d4af37",
+      reviewUrl: demo?.reviewUrl,
+    });
 
   return (
     <div className={className}>
@@ -124,7 +183,7 @@ export function LiveDemoPhone({ className = "" }: { className?: string }) {
         {(
           [
             { id: "offer" as const, label: "Offer page" },
-            { id: "card" as const, label: "Digital card" },
+            { id: "card" as const, label: "Tap Connect Card" },
           ] as const
         ).map((m) => (
           <button
@@ -142,26 +201,31 @@ export function LiveDemoPhone({ className = "" }: { className?: string }) {
         ))}
       </div>
 
+      {demo?.published ? (
+        <p className="mb-2 text-center text-[10px] uppercase tracking-[0.18em] text-primary/80">
+          Live admin demo · {businessName}
+        </p>
+      ) : null}
+
       <div className="builder-phone mx-auto max-w-[360px]">
         <div className="builder-phone-notch" />
         <div className="builder-phone-screen">
           {mode === "offer" ? (
             <CampaignPageRenderer
-              blocks={offerBlocks}
+              blocks={
+                Array.isArray(demo?.contentBlocks) && demo.contentBlocks.length
+                  ? demo.contentBlocks
+                  : offerBlocks
+              }
               theme={DEMO_THEME}
               campaignId="demo"
               deviceSlotId="demo"
               businessId="demo"
-              businessName="Demo Studio"
+              businessName={businessName}
               previewMode
-              logoUrl={TAP_CONNECT_LOGO}
-              contactProfile={{
-                displayName: "Demo Studio",
-                phone: "+1 (555) 123-4567",
-                email: "hello@demo.studio",
-                address: "Orlando, FL",
-                website: "https://tapthemagic.com",
-              }}
+              logoUrl={logoUrl}
+              contactProfile={profile}
+              reviewUrl={demo?.reviewUrl}
             />
           ) : (
             <div
@@ -172,34 +236,19 @@ export function LiveDemoPhone({ className = "" }: { className?: string }) {
                   "--tap-secondary": DEMO_THEME.secondaryColor,
                   "--tap-bg": DEMO_THEME.backgroundColor,
                   "--tap-text": DEMO_THEME.textColor,
-                  background: DEMO_THEME.backgroundColor,
+                  background: "#1a1a1a",
                   color: DEMO_THEME.textColor,
                 } as CSSProperties
               }
             >
-              <ContactCardSurface
-                profile={{
-                  displayName: "Alex Rivera",
-                  jobTitle: "Owner · Demo Studio",
-                  organization: "Demo Studio",
-                  phone: "+1 (555) 123-4567",
-                  email: "alex@demo.studio",
-                  website: "https://tapthemagic.com",
-                  address: "Orlando, FL",
-                  socials: {
-                    instagram: "https://instagram.com/",
-                    facebook: "https://facebook.com/",
-                    linkedin: "https://linkedin.com/",
-                  },
-                }}
-                logoUrl={TAP_CONNECT_LOGO}
-                businessName="Demo Studio"
-                headline="Every conversation → a customer"
-                buttonLabel="Add to contacts"
+              <TapConnectCard
+                config={tapCard}
+                profile={profile}
+                businessName={businessName}
+                logoUrl={logoUrl}
+                reviewUrl={demo?.reviewUrl}
+                forceExpanded
               />
-              <p className="mt-4 text-center text-[11px] text-white/45">
-                Live demo · Save Contact downloads a real .vcf
-              </p>
             </div>
           )}
         </div>

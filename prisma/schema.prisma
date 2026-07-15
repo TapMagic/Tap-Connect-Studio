@@ -254,6 +254,8 @@ model BrandKit {
   emailPromo       Json        @default("{}")
   /** Extra custom links: [{ title, description, iconUrl, href }] */
   otherLinks       Json        @default("[]")
+  /** Tap Connect Card layout — flexible digital business card */
+  tapCard          Json        @default("{}")
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
@@ -330,6 +332,8 @@ model Campaign {
   scheduledEnd       DateTime?
   /** After schedule ends — contact opportunity (EndExperience JSON) */
   endExperience      Json           @default("{}")
+  /** When true (admin only), this card/campaign powers the public landing live demo */
+  isLandingDemo      Boolean        @default(false)
   /** Optional parent group — this campaign is a scheduled “special” in the group */
   groupId            String?
   createdById        String?

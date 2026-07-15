@@ -183,6 +183,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
         brandKit={brandKit}
         logoUrl={device.business?.logoUrl ?? null}
         contactProfile={contactProfile}
+        reviewUrl={device.business?.googleReviewUrl ?? null}
       />
     );
   }
@@ -243,6 +244,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       brandKit={brandKit}
       logoUrl={device.business?.logoUrl ?? null}
       contactProfile={contactProfile}
+      reviewUrl={device.business?.googleReviewUrl ?? null}
       upcomingItems={upcomingItems}
       showUpcomingStrip={showUpcomingStrip}
     />

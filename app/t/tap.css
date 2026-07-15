@@ -753,3 +753,404 @@
   padding: 0.1rem 0.4rem;
   pointer-events: none;
 }
+
+/* ── Tap Connect Card (premium flexible digital card) ─────────────────────── */
+.tcc {
+  --tcc-accent: #d4af37;
+  --tcc-surface: #f4f1ea;
+  --tcc-text: #0b0f19;
+  width: 100%;
+  color: var(--tcc-text);
+  font-family: ui-sans-serif, system-ui, sans-serif;
+}
+
+.tcc-promo {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  overflow: hidden;
+  padding: 0.55rem 0.85rem 0.65rem;
+  background: linear-gradient(90deg, #fff 0%, #fff8e7 40%, #1a1208 70%, #000 100%);
+  text-decoration: none;
+  border-radius: 1.15rem 1.15rem 0 0;
+}
+
+.tcc-promo-left {
+  font-family: Georgia, "Times New Roman", serif;
+  font-style: italic;
+  font-size: 0.95rem;
+  color: #111;
+}
+
+.tcc-promo-right {
+  font-weight: 800;
+  font-style: italic;
+  font-size: 1.05rem;
+  letter-spacing: 0.01em;
+  color: #ff2d2d;
+  text-shadow: 0 0 12px rgba(255, 220, 50, 0.95), 0 0 2px #fff;
+  transform: skewX(-8deg);
+}
+
+.tcc-promo-sheen {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 40%, rgba(255,255,255,0.35) 50%, transparent 60%);
+  animation: tcc-sheen 3.8s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes tcc-sheen {
+  0%, 100% { transform: translateX(-30%); opacity: 0; }
+  40% { opacity: 1; }
+  70% { transform: translateX(30%); opacity: 0; }
+}
+
+.tcc-shell {
+  background: var(--tcc-surface);
+  border-radius: 0 0 1.25rem 1.25rem;
+  padding: 0 0.85rem 1rem;
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+}
+
+.tcc-hero {
+  position: relative;
+  margin: 0 -0.85rem;
+  height: 11.5rem;
+  overflow: hidden;
+  background: #0b0f19;
+}
+
+.tcc-hero-photo,
+.tcc-hero-fallback {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tcc-hero-fallback {
+  background:
+    radial-gradient(circle at 30% 40%, color-mix(in srgb, var(--tcc-accent) 55%, transparent), transparent 50%),
+    radial-gradient(circle at 70% 30%, rgba(163, 230, 53, 0.35), transparent 45%),
+    linear-gradient(160deg, #1a1208, #0b0f19 60%);
+}
+
+.tcc-hero-mesh {
+  position: absolute;
+  inset: -20%;
+  z-index: 1;
+  pointer-events: none;
+  opacity: calc(0.35 + var(--tcc-energy, 0.7) * 0.5);
+}
+
+.tcc-orb {
+  position: absolute;
+  border-radius: 40% 60% 55% 45%;
+  filter: blur(18px);
+  mix-blend-mode: screen;
+  animation: tcc-orb 9s ease-in-out infinite;
+}
+
+.tcc-orb-a {
+  width: 55%;
+  height: 55%;
+  left: -10%;
+  top: -15%;
+  background: color-mix(in srgb, var(--tcc-accent) 70%, #fff);
+  animation-delay: 0s;
+}
+.tcc-orb-b {
+  width: 45%;
+  height: 50%;
+  right: -5%;
+  bottom: -10%;
+  background: rgba(163, 230, 53, 0.55);
+  animation-delay: -3s;
+  border-radius: 60% 40% 45% 55%;
+}
+.tcc-orb-c {
+  width: 35%;
+  height: 35%;
+  left: 40%;
+  top: 35%;
+  background: rgba(255, 80, 80, 0.35);
+  animation-delay: -5.5s;
+}
+
+@keyframes tcc-orb {
+  0%, 100% { transform: translate(0, 0) rotate(0deg) scale(1); }
+  33% { transform: translate(8%, -6%) rotate(25deg) scale(1.08); }
+  66% { transform: translate(-6%, 8%) rotate(-18deg) scale(0.94); }
+}
+
+.tcc-hero-veil {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: linear-gradient(180deg, transparent 35%, rgba(0,0,0,0.55) 100%);
+}
+
+.tcc-seal {
+  position: absolute;
+  left: 50%;
+  bottom: -2.4rem;
+  z-index: 4;
+  transform: translateX(-50%);
+  width: 6.5rem;
+  height: 6.5rem;
+  border-radius: 999px;
+  border: 4px solid var(--tcc-accent);
+  background: #0b0f19;
+  box-shadow:
+    0 0 0 3px rgba(0,0,0,0.35),
+    0 12px 30px rgba(0,0,0,0.45),
+    inset 0 0 20px rgba(212, 175, 55, 0.25);
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.tcc-seal-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tcc-seal-initial {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--tcc-accent);
+}
+
+.tcc-call-fab {
+  position: absolute;
+  left: 50%;
+  bottom: -4.85rem;
+  z-index: 5;
+  transform: translateX(-50%);
+  width: 4.25rem;
+  height: 4.25rem;
+  border-radius: 999px;
+  background: radial-gradient(circle at 35% 30%, #2a2a2a, #050505 70%);
+  border: 3px solid var(--tcc-accent);
+  color: #a3e635;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.1rem;
+  text-decoration: none;
+  box-shadow: 0 10px 24px rgba(0,0,0,0.4);
+  font-size: 0.45rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.tcc-identity {
+  margin-top: 5.5rem;
+  text-align: center;
+  padding: 0 0.5rem 0.5rem;
+}
+
+.tcc-hero:has(+ .tcc-identity) ~ .tcc-identity,
+.tcc-shell:has(.tcc-call-fab) .tcc-identity {
+  margin-top: 5.75rem;
+}
+
+.tcc-shell:has(.tcc-call-fab) .tcc-identity {
+  margin-top: 6.25rem;
+}
+
+.tcc-name {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.tcc-role,
+.tcc-org {
+  margin: 0.15rem 0 0;
+  font-size: 0.85rem;
+  opacity: 0.7;
+}
+
+.tcc-headline {
+  margin: 0.55rem 0 0;
+  font-size: 0.8rem;
+  font-style: italic;
+  opacity: 0.85;
+}
+
+.tcc-collapse-toggle {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  margin: 0.35rem 0 0.65rem;
+  padding: 0.4rem;
+  border: 1px dashed color-mix(in srgb, var(--tcc-accent) 45%, transparent);
+  border-radius: 999px;
+  background: transparent;
+  color: color-mix(in srgb, var(--tcc-text) 70%, transparent);
+  font-size: 0.72rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tcc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  padding-bottom: 0.35rem;
+}
+
+.tcc-pill {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.15rem;
+  padding: 0.45rem 0.85rem 0.45rem 0.45rem;
+  border-radius: 999px;
+  border: 2px solid var(--tcc-accent);
+  cursor: pointer;
+  text-align: left;
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tcc-pill:active {
+  transform: scale(0.985);
+}
+
+.tcc-pill-metallic {
+  background: linear-gradient(180deg, #2a2418 0%, #0c0a07 55%, #1a150c 100%);
+  color: #f5e6a8;
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--tcc-accent) 55%, transparent),
+    0 8px 18px rgba(0,0,0,0.28),
+    inset 0 1px 0 rgba(255,255,255,0.12);
+}
+
+.tcc-pill-soft {
+  background: #fff;
+  color: #111;
+  border-color: #c9c4b8;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.tcc-pill-outline {
+  background: transparent;
+  color: var(--tcc-text);
+  border-style: dashed;
+}
+
+.tcc-pill-brand {
+  color: inherit;
+}
+
+.tcc-pill-icon {
+  display: grid;
+  place-items: center;
+  width: 2.35rem;
+  height: 2.35rem;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.tcc-pill-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tcc-pill-label {
+  flex: 1;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.02rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+.tcc-pill-soft .tcc-pill-label {
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
+}
+
+.tcc-pill-chevron {
+  width: 1rem;
+  height: 1rem;
+  opacity: 0.7;
+  flex-shrink: 0;
+}
+
+.tcc-footer-cta {
+  margin-top: 0.85rem;
+  padding: 0.85rem;
+  border-radius: 1rem;
+  background: linear-gradient(135deg, #0b0f19, #16140c);
+  color: #f8fafc;
+  border: 1px solid color-mix(in srgb, var(--tcc-accent) 40%, transparent);
+}
+
+.tcc-footer-brand {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.tcc-footer-logo {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 0.65rem;
+  object-fit: cover;
+}
+
+.tcc-footer-title {
+  margin: 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.tcc-footer-body {
+  margin: 0.15rem 0 0;
+  font-size: 0.72rem;
+  color: rgba(248,250,252,0.65);
+  line-height: 1.35;
+}
+
+.tcc-footer-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  width: 100%;
+  min-height: 2.4rem;
+  border-radius: 999px;
+  background: #a3e635;
+  color: #0b0f19;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.tcc-toast {
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.75rem;
+  background: rgba(11, 15, 25, 0.9);
+  color: #f8fafc;
+  font-size: 0.72rem;
+  line-height: 1.4;
+  text-align: center;
+}

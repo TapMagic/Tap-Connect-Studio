@@ -78,6 +78,10 @@ export default async function AdminDashboardPage() {
               <PenTool className="mr-2 h-4 w-4" />
               Campaign Workbench
             </Link>
+            <Link href="/dashboard/card" className={buttonVariants({ variant: "outline" })}>
+              <Zap className="mr-2 h-4 w-4" />
+              Landing demo card
+            </Link>
             <Link href="/dashboard" className={buttonVariants({ variant: "outline" })}>
               Business view
             </Link>

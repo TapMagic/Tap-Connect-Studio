@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   buildVCard,
   downloadVCardFile,
   SOCIAL_PLATFORM_OPTIONS,
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
+import {
+  defaultTapConnectCard,
+  type TapConnectCardConfig,
+} from "@/lib/brand/tap-card";
+import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { SocialGlyph, socialBrandStyle } from "@/components/tap/social-icons";
 
 export function SaveContactButton({
@@ -146,7 +151,7 @@ export function SocialIconRow({
   );
 }
 
-/** Full contact-card chrome — Tap The Magic style digital card / vCard layout */
+/** Full contact-card chrome — premium Tap Connect Card */
 export function ContactCardSurface({
   profile,
   logoUrl,
@@ -156,6 +161,9 @@ export function ContactCardSurface({
   showSave = true,
   showShare = true,
   showSocials = true,
+  reviewUrl,
+  cardConfig,
+  forceExpanded,
   onSaved,
 }: {
   profile: BrandContactProfile;
@@ -166,137 +174,84 @@ export function ContactCardSurface({
   showSave?: boolean;
   showShare?: boolean;
   showSocials?: boolean;
+  reviewUrl?: string | null;
+  cardConfig?: TapConnectCardConfig | null;
+  forceExpanded?: boolean;
   onSaved?: () => void;
 }) {
-  const name = profile.displayName || profile.organization || businessName;
-  const initial = (name.trim()[0] || "?").toUpperCase();
-  const phoneHref = profile.phone
-    ? `tel:${profile.phone.replace(/[^\d+]/g, "")}`
-    : undefined;
-  const mapsHref = profile.address
-    ? `https://maps.google.com/?q=${encodeURIComponent(profile.address)}`
-    : undefined;
+  const config = useMemo(() => {
+    const base =
+      cardConfig ??
+      defaultTapConnectCard({
+        businessName,
+        profile,
+        logoUrl,
+        reviewUrl,
+      });
+    let sections = [...base.sections];
+    if (headline) {
+      sections = sections.map((s) =>
+        s.type === "identity" ? { ...s, headline } : s
+      );
+    }
+    if (buttonLabel) {
+      sections = sections.map((s) =>
+        s.actionKind === "vcard" ? { ...s, label: buttonLabel } : s
+      );
+    }
+    if (!showSave) {
+      sections = sections.map((s) =>
+        s.actionKind === "vcard" ? { ...s, enabled: false } : s
+      );
+    }
+    if (!showShare) {
+      sections = sections.map((s) =>
+        s.actionKind === "bookmark" || s.actionKind === "homescreen"
+          ? { ...s, enabled: false }
+          : s
+      );
+    }
+    if (!showSocials) {
+      const socials = new Set([
+        "instagram",
+        "facebook",
+        "tiktok",
+        "snapchat",
+        "x",
+        "youtube",
+        "linkedin",
+        "whatsapp",
+        "yelp",
+      ]);
+      sections = sections.map((s) =>
+        s.actionKind && socials.has(s.actionKind) ? { ...s, enabled: false } : s
+      );
+    }
+    return { ...base, sections };
+  }, [
+    cardConfig,
+    businessName,
+    profile,
+    logoUrl,
+    reviewUrl,
+    headline,
+    buttonLabel,
+    showSave,
+    showShare,
+    showSocials,
+  ]);
 
   return (
-    <div className="tap-contact-card">
-      <div className="tap-contact-card-banner">
-        <div className="tap-contact-card-banner-glow" />
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="tap-contact-card-banner-mark" />
-        ) : null}
-      </div>
-
-      <div className="tap-contact-card-avatar-wrap">
-        {logoUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrl} alt="" className="tap-contact-card-avatar" />
-        ) : (
-          <div className="tap-contact-card-avatar tap-contact-card-initial">{initial}</div>
-        )}
-      </div>
-
-      <div className="tap-contact-card-body">
-        <p className="tap-contact-card-name">{name}</p>
-        {profile.jobTitle ? <p className="tap-contact-card-role">{profile.jobTitle}</p> : null}
-        {profile.organization && profile.organization !== name ? (
-          <p className="tap-contact-card-org">{profile.organization}</p>
-        ) : null}
-        {headline ? <p className="tap-contact-card-headline">{headline}</p> : null}
-
-        <div className="tap-contact-action-grid">
-          {phoneHref ? (
-            <a href={phoneHref} className="tap-contact-action">
-              <SocialGlyph platform="phone" sizePx={18} />
-              <span>Call</span>
-            </a>
-          ) : null}
-          {profile.email ? (
-            <a href={`mailto:${profile.email}`} className="tap-contact-action">
-              <SocialGlyph platform="mail" sizePx={18} />
-              <span>Email</span>
-            </a>
-          ) : null}
-          {profile.website ? (
-            <a
-              href={profile.website}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="tap-contact-action"
-            >
-              <SocialGlyph platform="link" sizePx={18} />
-              <span>Web</span>
-            </a>
-          ) : null}
-          {mapsHref ? (
-            <a
-              href={mapsHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="tap-contact-action"
-            >
-              <SocialGlyph platform="map" sizePx={18} />
-              <span>Map</span>
-            </a>
-          ) : null}
-        </div>
-
-        <ul className="tap-contact-card-facts">
-          {profile.phone ? (
-            <li>
-              <a href={phoneHref}>
-                <SocialGlyph platform="phone" sizePx={14} />
-                {profile.phone}
-              </a>
-            </li>
-          ) : null}
-          {profile.email ? (
-            <li>
-              <a href={`mailto:${profile.email}`}>
-                <SocialGlyph platform="mail" sizePx={14} />
-                {profile.email}
-              </a>
-            </li>
-          ) : null}
-          {profile.website ? (
-            <li>
-              <a href={profile.website} target="_blank" rel="noopener noreferrer">
-                <SocialGlyph platform="link" sizePx={14} />
-                {profile.website.replace(/^https?:\/\//, "")}
-              </a>
-            </li>
-          ) : null}
-          {profile.address ? (
-            <li>
-              <span>
-                <SocialGlyph platform="map" sizePx={14} />
-                {profile.address}
-              </span>
-            </li>
-          ) : null}
-        </ul>
-
-        {showSocials ? <SocialIconRow socials={profile.socials} /> : null}
-
-        <div className="tap-contact-card-actions">
-          {showSave ? (
-            <SaveContactButton
-              profile={profile}
-              logoUrl={logoUrl}
-              buttonLabel={buttonLabel || "Add to contacts"}
-              className="tap-btn tap-btn-primary tap-btn-pressable w-full"
-              onSaved={onSaved}
-            />
-          ) : null}
-          {showShare ? (
-            <SharePageButton
-              title={name}
-              text={`Connect with ${name}`}
-              className="tap-btn tap-btn-outline w-full"
-            />
-          ) : null}
-        </div>
-      </div>
-    </div>
+    <TapConnectCard
+      config={config}
+      profile={profile}
+      businessName={businessName}
+      logoUrl={logoUrl}
+      reviewUrl={reviewUrl}
+      forceExpanded={forceExpanded}
+      onAction={(kind) => {
+        if (kind === "vcard") onSaved?.();
+      }}
+    />
   );
 }
