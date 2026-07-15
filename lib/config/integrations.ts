@@ -89,10 +89,11 @@ export const integrations: IntegrationStatus[] = [
     id: "brave_search",
     name: "Brave Image Search (optional)",
     configured: has("BRAVE_SEARCH_API_KEY"),
-    description: "Extra web logo/icon results in the media picker.",
+    description:
+      "Extra web logo/icon results. Not required — Logo.dev + Wikimedia + favicons work without this.",
     envVars: ["BRAVE_SEARCH_API_KEY"],
-    signupUrl: "https://brave.com/search/api",
-    costNote: "Free tier available",
+    signupUrl: "https://api-dashboard.search.brave.com/app/subscriptions/subscribe",
+    costNote: "Paid plans only (~$5/mo credits, card required) — skip unless you need more results",
   },
   {
     id: "openai",
