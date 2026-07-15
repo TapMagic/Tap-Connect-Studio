@@ -165,13 +165,12 @@ export interface ButtonItem {
   /** Corner / button shape — shared with Tap Card */
   shape?:
     | "pill"
-    | "round"
+    | "circle"
     | "square"
     | "rounded_sm"
     | "rounded_md"
     | "rounded_lg"
-    | "rounded_xl"
-    | "stadium";
+    | "rounded_xl";
   opacity?: number;
 }
 

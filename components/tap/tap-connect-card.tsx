@@ -9,7 +9,9 @@ import {
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
 import {
+  buildGradientCss,
   groupActionsForLayout,
+  normalizeShape,
   resolveActionHref,
   sectionFinish,
   shapeRadius,
@@ -59,6 +61,15 @@ export function TapConnectCard({
   const mark = logoUrl || sections.find((s) => s.type === "hero")?.logoUrl;
 
   const surfaceAlpha = Math.min(100, Math.max(35, config.surfaceOpacity ?? 100)) / 100;
+
+  const shellBackground =
+    config.surfaceFill === "gradient"
+      ? buildGradientCss(
+          config.surfaceGradientStart || config.surfaceColor,
+          config.surfaceGradientEnd || config.accentColor,
+          config.surfaceGradientAngle ?? 160
+        )
+      : undefined;
 
   const style = {
     "--tcc-accent": config.accentColor,
@@ -194,8 +205,20 @@ export function TapConnectCard({
     const showLogo = hero.showLogoWindow !== false;
     const layout = hero.heroLayout || "classic";
     const outlined = hero.showOutline !== false;
+    const heroFill = hero.heroFill || (hero.imageUrl ? "photo" : "gradient");
+    const gradientCss = buildGradientCss(
+      hero.gradientStart || config.accentColor,
+      hero.gradientEnd || "#0b0f19",
+      hero.gradientAngle ?? 160
+    );
+    const showPhoto = heroFill !== "gradient" && Boolean(hero.imageUrl);
+    const showGradient = heroFill !== "photo";
+    const gradientOverlay = heroFill === "photo_gradient";
 
-    function cell(kind: "logo" | "text" | "image" | "empty" | undefined) {
+    function cell(
+      kind: "logo" | "text" | "image" | "empty" | undefined,
+      side: "left" | "right"
+    ) {
       if (kind === "logo" && logoSrc) {
         return (
           // eslint-disable-next-line @next/next/no-img-element
@@ -207,24 +230,50 @@ export function TapConnectCard({
           />
         );
       }
-      if (kind === "image" && (hero.columnImageUrl || hero.imageUrl)) {
+      if (kind === "image") {
+        const url =
+          side === "left"
+            ? hero.columnLeftImageUrl || hero.columnImageUrl || hero.imageUrl
+            : hero.columnRightImageUrl || hero.columnImageUrl || hero.imageUrl;
+        if (!url) return <span className="tcc-hero-col-empty" aria-hidden />;
         return (
           // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={hero.columnImageUrl || hero.imageUrl}
-            alt=""
-            className="tcc-hero-col-img"
-          />
+          <img src={url} alt="" className="tcc-hero-col-img" />
         );
       }
       if (kind === "text") {
+        const text =
+          side === "left"
+            ? hero.columnLeftText || hero.columnText || hero.text || name
+            : hero.columnRightText || hero.columnText || hero.text || name;
         return (
           <p className="tcc-hero-col-text" style={textFormatToCss(hero.format)}>
-            {hero.columnText || hero.text || name}
+            {text}
           </p>
         );
       }
       return <span className="tcc-hero-col-empty" aria-hidden />;
+    }
+
+    function heroBackdrop(photoClass: string, fallbackClass?: string) {
+      const fallback = fallbackClass || photoClass.replace("tcc-hero-photo", "tcc-hero-fallback");
+      return (
+        <>
+          {showGradient ? (
+            <div
+              className={cn("tcc-hero-gradient", gradientOverlay && "tcc-hero-gradient-overlay")}
+              style={{ background: gradientCss }}
+              aria-hidden
+            />
+          ) : null}
+          {showPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={hero.imageUrl} alt="" className={photoClass} />
+          ) : !showGradient ? (
+            <div className={fallback} />
+          ) : null}
+        </>
+      );
     }
 
     if (layout === "logo_top") {
@@ -246,11 +295,9 @@ export function TapConnectCard({
               }}
             />
           ) : null}
-          {hero.imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={hero.imageUrl} alt="" className="tcc-hero-photo tcc-hero-photo-under" />
-          ) : (
-            <div className="tcc-hero-fallback tcc-hero-photo-under" />
+          {heroBackdrop(
+            "tcc-hero-photo tcc-hero-photo-under",
+            "tcc-hero-fallback tcc-hero-photo-under"
           )}
         </div>
       );
@@ -261,9 +308,21 @@ export function TapConnectCard({
         <div
           key={hero.id}
           className={cn("tcc-hero tcc-hero-columns", outlined && "tcc-hero-outlined")}
+          style={showGradient && !showPhoto ? { background: gradientCss } : undefined}
         >
-          <div className="tcc-hero-col">{cell(hero.columnLeft || "logo")}</div>
-          <div className="tcc-hero-col">{cell(hero.columnRight || "text")}</div>
+          {showPhoto ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={hero.imageUrl} alt="" className="tcc-hero-columns-bg" aria-hidden />
+          ) : null}
+          {gradientOverlay && showPhoto ? (
+            <div
+              className="tcc-hero-gradient tcc-hero-gradient-overlay"
+              style={{ background: gradientCss }}
+              aria-hidden
+            />
+          ) : null}
+          <div className="tcc-hero-col">{cell(hero.columnLeft || "image", "left")}</div>
+          <div className="tcc-hero-col">{cell(hero.columnRight || "text", "right")}</div>
         </div>
       );
     }
@@ -273,18 +332,15 @@ export function TapConnectCard({
         key={hero.id}
         className={cn("tcc-hero", outlined && "tcc-hero-outlined")}
       >
-        <div className="tcc-hero-mesh" aria-hidden>
-          <span className="tcc-orb tcc-orb-a" />
-          <span className="tcc-orb tcc-orb-b" />
-          <span className="tcc-orb tcc-orb-c" />
-        </div>
-        {hero.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={hero.imageUrl} alt="" className="tcc-hero-photo" />
-        ) : (
-          <div className="tcc-hero-fallback" />
+        {!showPhoto && showGradient ? null : (
+          <div className="tcc-hero-mesh" aria-hidden>
+            <span className="tcc-orb tcc-orb-a" />
+            <span className="tcc-orb tcc-orb-b" />
+            <span className="tcc-orb tcc-orb-c" />
+          </div>
         )}
-        <div className="tcc-hero-veil" />
+        {heroBackdrop("tcc-hero-photo")}
+        {showPhoto || gradientOverlay ? <div className="tcc-hero-veil" /> : null}
 
         {showLogo ? (
           <a
@@ -449,13 +505,17 @@ export function TapConnectCard({
         className={cn(
           "tcc-actions",
           config.actionsLayout === "grid_2" && "tcc-actions-grid",
+          config.actionsLayout === "icon_row" && "tcc-actions-icon-row",
           peekOnly && "tcc-actions-peek"
         )}
       >
         {rows.map((row, ri) => (
           <div
             key={ri}
-            className={cn("tcc-action-row", row.length === 2 && "tcc-action-row-2")}
+            className={cn(
+              "tcc-action-row",
+              row.length === 2 && config.actionsLayout === "grid_2" && "tcc-action-row-2"
+            )}
           >
             {row.map((section) => (
               <ActionPill
@@ -463,6 +523,7 @@ export function TapConnectCard({
                 section={section}
                 defaultFinish={config.defaultFinish}
                 defaultShape={config.defaultShape}
+                actionsLayout={config.actionsLayout}
                 defaultPill={config.pillColor}
                 defaultPillText={config.pillTextColor}
                 defaultNeon={config.neonColor}
@@ -568,7 +629,7 @@ export function TapConnectCard({
       )}
       style={style}
     >
-      {config.showHeaderLogo !== false && (config.headerLogoUrl || logoUrl) ? (
+      {config.showHeaderLogo === true && (config.headerLogoUrl || logoUrl) ? (
         <div className="tcc-header-logo">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
@@ -585,7 +646,18 @@ export function TapConnectCard({
         </div>
       ) : null}
       {outerNodes}
-      <div className="tcc-shell">{bodyNodes}</div>
+      <div
+        className="tcc-shell"
+        style={
+          shellBackground
+            ? {
+                background: shellBackground,
+              }
+            : undefined
+        }
+      >
+        {bodyNodes}
+      </div>
       {toast ? <p className="tcc-toast">{toast}</p> : null}
     </div>
   );
@@ -595,6 +667,7 @@ function ActionPill({
   section,
   defaultFinish,
   defaultShape,
+  actionsLayout,
   defaultPill,
   defaultPillText,
   defaultNeon,
@@ -604,6 +677,7 @@ function ActionPill({
   section: TapCardSection;
   defaultFinish: TapConnectCardConfig["defaultFinish"];
   defaultShape: TapConnectCardConfig["defaultShape"];
+  actionsLayout: TapConnectCardConfig["actionsLayout"];
   defaultPill?: string;
   defaultPillText?: string;
   defaultNeon?: string;
@@ -614,14 +688,21 @@ function ActionPill({
   const icon = section.icon || kind;
   const finish = sectionFinish(section, defaultFinish);
   const brand = !section.iconUrl && !section.iconColor ? socialBrandStyle(icon) : undefined;
-  const radius = shapeRadius(section.shape, defaultShape);
+  const shape = normalizeShape(section.shape, defaultShape);
+  const radius = shapeRadius(shape);
   const neon = section.neonColor || defaultNeon;
   const opacity = (section.opacity ?? 100) / 100;
+  const iconOnly = actionsLayout === "icon_row";
 
   return (
     <button
       type="button"
-      className={cn("tcc-pill", finishClass(finish, "tcc-pill"))}
+      className={cn(
+        "tcc-pill",
+        finishClass(finish, "tcc-pill"),
+        shape === "circle" && "tcc-pill-circle",
+        iconOnly && "tcc-pill-icon-only"
+      )}
       style={
         {
           "--tcc-accent": section.accentColor || undefined,
@@ -648,10 +729,13 @@ function ActionPill({
           />
         )}
       </span>
-      <span className="tcc-pill-label" style={textFormatToCss(section.format)}>
+      <span
+        className={cn("tcc-pill-label", iconOnly && "sr-only")}
+        style={textFormatToCss(section.format)}
+      >
         {section.label || kind}
       </span>
-      <ChevronRight className="tcc-pill-chevron" />
+      {!iconOnly ? <ChevronRight className="tcc-pill-chevron" /> : null}
     </button>
   );
 }

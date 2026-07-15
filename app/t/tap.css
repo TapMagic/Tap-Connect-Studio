@@ -921,6 +921,75 @@
   width: 100%;
 }
 
+.tcc-hero-gradient {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+}
+
+.tcc-hero-gradient-overlay {
+  mix-blend-mode: multiply;
+  opacity: 0.72;
+}
+
+.tcc-hero-columns-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  z-index: 0;
+}
+
+.tcc-hero-columns .tcc-hero-col {
+  position: relative;
+  z-index: 1;
+}
+
+.tcc-actions-icon-row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.tcc-actions-icon-row .tcc-action-row {
+  display: contents;
+}
+
+.tcc-pill-circle {
+  aspect-ratio: 1;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem;
+}
+
+.tcc-actions-grid .tcc-pill-circle {
+  width: 100%;
+}
+
+.tcc-pill-circle .tcc-pill-label {
+  font-size: 0.68rem;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.tcc-pill-icon-only {
+  width: 3.15rem;
+  min-height: 3.15rem;
+  padding: 0.45rem;
+  justify-content: center;
+}
+
+.tcc-pill-icon-only .tcc-pill-icon {
+  width: 2rem;
+  height: 2rem;
+}
+
+.tcc-pill-icon-only .tcc-pill-chevron {
+  display: none;
+}
+
 .tcc-hero {
   position: relative;
   margin: 0 -0.85rem;

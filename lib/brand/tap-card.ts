@@ -41,29 +41,39 @@ export type TapCardSectionType =
 /** @deprecated use PremiumFinish via `finish` — kept for older cards */
 export type TapCardActionStyle = PremiumFinish;
 
-export type TapCardActionsLayout = "stack" | "grid_2";
+export type TapCardActionsLayout = "stack" | "grid_2" | "icon_row";
 
 export type TapCardButtonShape =
   | "pill"
-  | "round"
+  | "circle"
   | "square"
   | "rounded_sm"
   | "rounded_md"
   | "rounded_lg"
-  | "rounded_xl"
-  | "stadium";
+  | "rounded_xl";
+
+/** @deprecated legacy stored values — normalized on read */
+export type TapCardButtonShapeLegacy = TapCardButtonShape | "round" | "stadium";
 
 export const TAP_CARD_SHAPE_OPTIONS: { id: TapCardButtonShape; label: string; radius: string }[] =
   [
     { id: "pill", label: "Pill", radius: "999px" },
-    { id: "stadium", label: "Stadium", radius: "999px" },
-    { id: "round", label: "Fully round", radius: "999px" },
-    { id: "square", label: "Square (best for 2-col)", radius: "0.35rem" },
-    { id: "rounded_sm", label: "Corners soft", radius: "0.4rem" },
-    { id: "rounded_md", label: "Corners medium", radius: "0.75rem" },
-    { id: "rounded_lg", label: "Corners large", radius: "1rem" },
-    { id: "rounded_xl", label: "Corners XL", radius: "1.35rem" },
+    { id: "circle", label: "Circle", radius: "50%" },
+    { id: "square", label: "Square", radius: "0" },
+    { id: "rounded_sm", label: "Soft corners", radius: "0.4rem" },
+    { id: "rounded_md", label: "Medium corners", radius: "0.75rem" },
+    { id: "rounded_lg", label: "Large corners", radius: "1rem" },
+    { id: "rounded_xl", label: "Extra large corners", radius: "1.35rem" },
   ];
+
+export const TAP_CARD_LAYOUT_OPTIONS: { id: TapCardActionsLayout; label: string }[] = [
+  { id: "stack", label: "Stack" },
+  { id: "grid_2", label: "Two columns" },
+  { id: "icon_row", label: "Icon row" },
+];
+
+export type TapCardSurfaceFill = "solid" | "gradient";
+export type TapCardHeroFill = "photo" | "gradient" | "photo_gradient";
 
 export const COMMON_SOCIAL_KINDS: TapCardActionKind[] = [
   "instagram",
@@ -94,8 +104,19 @@ export type TapCardSection = {
   heroLayout?: "classic" | "logo_top" | "columns";
   columnLeft?: "logo" | "text" | "image" | "empty";
   columnRight?: "logo" | "text" | "image" | "empty";
+  /** @deprecated use columnLeftText / columnRightText */
   columnText?: string;
+  /** @deprecated use columnLeftImageUrl / columnRightImageUrl */
   columnImageUrl?: string;
+  columnLeftText?: string;
+  columnRightText?: string;
+  columnLeftImageUrl?: string;
+  columnRightImageUrl?: string;
+  heroFill?: TapCardHeroFill;
+  gradientStart?: string;
+  gradientEnd?: string;
+  /** Gradient direction in degrees (0 = up, 90 = right) */
+  gradientAngle?: number;
   /** Keep card outline / frame around the hero */
   showOutline?: boolean;
   actionKind?: TapCardActionKind;
@@ -149,6 +170,11 @@ export type TapConnectCardConfig = {
   headerLogoUrl?: string;
   headerLogoScale?: number;
   surfaceOpacity?: number;
+  surfaceFill?: TapCardSurfaceFill;
+  surfaceGradientStart?: string;
+  surfaceGradientEnd?: string;
+  /** Gradient direction in degrees (0 = up, 90 = right) */
+  surfaceGradientAngle?: number;
   titleFormat?: TextFormat;
   bodyFormat?: TextFormat;
   compactActionsOnly?: boolean;
@@ -193,12 +219,27 @@ export function sectionFinish(section: TapCardSection, fallback: PremiumFinish =
   return (section.finish || section.style || fallback) as PremiumFinish;
 }
 
+export function normalizeShape(
+  shape?: TapCardButtonShapeLegacy | null,
+  fallback: TapCardButtonShape = "pill"
+): TapCardButtonShape {
+  if (!shape) return fallback;
+  if (shape === "round" || shape === "stadium") return "pill";
+  if (TAP_CARD_SHAPE_OPTIONS.some((o) => o.id === shape)) return shape as TapCardButtonShape;
+  return fallback;
+}
+
 export function shapeRadius(
-  shape?: TapCardButtonShape | null,
+  shape?: TapCardButtonShapeLegacy | null,
   fallback: TapCardButtonShape = "pill"
 ): string {
-  const id = shape || fallback;
+  const id = normalizeShape(shape, fallback);
   return TAP_CARD_SHAPE_OPTIONS.find((o) => o.id === id)?.radius ?? "999px";
+}
+
+export function buildGradientCss(start: string, end: string, angle = 160): string {
+  const deg = Number.isFinite(angle) ? angle : 160;
+  return `linear-gradient(${deg}deg, ${start}, ${end})`;
 }
 
 export function defaultTapConnectCard(params: {
@@ -364,10 +405,14 @@ export function defaultTapConnectCard(params: {
     cardFinish: "soft",
     defaultShape: "pill",
     view3d: false,
-    showHeaderLogo: true,
+    showHeaderLogo: false,
     headerLogoUrl: params.logoUrl || undefined,
     headerLogoScale: 100,
     surfaceOpacity: 100,
+    surfaceFill: "solid",
+    surfaceGradientStart: accent,
+    surfaceGradientEnd: "#0b0f19",
+    surfaceGradientAngle: 160,
     titleFormat: { fontFamily: "sans", fontWeight: "bold", align: "center", fontSize: "xl" },
     bodyFormat: { fontFamily: "sans", fontSize: "sm", align: "center" },
     compactActionsOnly: false,
@@ -387,6 +432,10 @@ export function parseTapConnectCard(
   const sections = (o.sections as TapCardSection[]).map((s) => ({
     ...s,
     finish: s.finish || s.style || base.defaultFinish,
+    shape: s.shape ? normalizeShape(s.shape as TapCardButtonShapeLegacy) : s.shape,
+    imageRadius: s.imageRadius
+      ? normalizeShape(s.imageRadius as TapCardButtonShapeLegacy)
+      : s.imageRadius,
   }));
 
   return {
@@ -400,18 +449,34 @@ export function parseTapConnectCard(
     headerEnergy: typeof o.headerEnergy === "number" ? o.headerEnergy : base.headerEnergy,
     collapsible: o.collapsible !== false,
     defaultCollapsed: o.defaultCollapsed === true,
-    actionsLayout: o.actionsLayout === "grid_2" ? "grid_2" : "stack",
+    actionsLayout:
+      o.actionsLayout === "grid_2"
+        ? "grid_2"
+        : o.actionsLayout === "icon_row"
+          ? "icon_row"
+          : "stack",
     defaultFinish: (o.defaultFinish as PremiumFinish) || base.defaultFinish,
     cardFinish: (o.cardFinish as PremiumFinish) || base.cardFinish,
-    defaultShape: (o.defaultShape as TapCardButtonShape) || base.defaultShape,
+    defaultShape: normalizeShape(o.defaultShape as TapCardButtonShapeLegacy, base.defaultShape),
     view3d: o.view3d === true,
-    showHeaderLogo: o.showHeaderLogo !== false,
+    showHeaderLogo: o.showHeaderLogo === true,
     headerLogoUrl:
       typeof o.headerLogoUrl === "string" ? o.headerLogoUrl : base.headerLogoUrl,
     headerLogoScale:
       typeof o.headerLogoScale === "number" ? o.headerLogoScale : base.headerLogoScale,
     surfaceOpacity:
       typeof o.surfaceOpacity === "number" ? o.surfaceOpacity : base.surfaceOpacity,
+    surfaceFill: o.surfaceFill === "gradient" ? "gradient" : "solid",
+    surfaceGradientStart:
+      typeof o.surfaceGradientStart === "string"
+        ? o.surfaceGradientStart
+        : base.surfaceGradientStart,
+    surfaceGradientEnd:
+      typeof o.surfaceGradientEnd === "string" ? o.surfaceGradientEnd : base.surfaceGradientEnd,
+    surfaceGradientAngle:
+      typeof o.surfaceGradientAngle === "number"
+        ? o.surfaceGradientAngle
+        : base.surfaceGradientAngle,
     titleFormat: (o.titleFormat as TextFormat) || base.titleFormat,
     bodyFormat: (o.bodyFormat as TextFormat) || base.bodyFormat,
     compactActionsOnly: o.compactActionsOnly === true,
@@ -473,6 +538,7 @@ export function groupActionsForLayout(
   actions: TapCardSection[],
   layout: TapCardActionsLayout
 ): TapCardSection[][] {
+  if (layout === "icon_row") return actions.map((a) => [a]);
   if (layout !== "grid_2") return actions.map((a) => [a]);
   const rows: TapCardSection[][] = [];
   for (let i = 0; i < actions.length; i += 2) {

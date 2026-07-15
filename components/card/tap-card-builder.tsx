@@ -28,11 +28,14 @@ import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   COMMON_SOCIAL_KINDS,
   TAP_CARD_ACTION_CATALOG,
+  TAP_CARD_LAYOUT_OPTIONS,
   TAP_CARD_SHAPE_OPTIONS,
   type TapCardActionKind,
   type TapCardButtonShape,
+  type TapCardHeroFill,
   type TapCardSection,
   type TapCardSectionType,
+  type TapCardSurfaceFill,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 import type { PremiumFinish } from "@/lib/design/premium-finish";
@@ -259,38 +262,28 @@ export function TapCardBuilder({
               Layout
             </Label>
             <div className="flex gap-1 rounded-lg border border-border/60 p-1">
-              <button
-                type="button"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                  config.actionsLayout === "stack"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )}
-                onClick={() => patchConfig({ actionsLayout: "stack" })}
-              >
-                <Rows3 className="h-3.5 w-3.5" />
-                Stack
-              </button>
-              <button
-                type="button"
-                className={cn(
-                  "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
-                  config.actionsLayout === "grid_2"
-                    ? "bg-primary text-primary-foreground"
-                    : "hover:bg-muted"
-                )}
-                onClick={() =>
-                  patchConfig({
-                    actionsLayout: "grid_2",
-                    defaultShape:
-                      config.defaultShape === "pill" ? "square" : config.defaultShape,
-                  })
-                }
-              >
-                <Columns2 className="h-3.5 w-3.5" />
-                Two columns
-              </button>
+              {TAP_CARD_LAYOUT_OPTIONS.map((opt) => (
+                <button
+                  key={opt.id}
+                  type="button"
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium",
+                    config.actionsLayout === opt.id
+                      ? "bg-primary text-primary-foreground"
+                      : "hover:bg-muted"
+                  )}
+                  onClick={() => patchConfig({ actionsLayout: opt.id })}
+                >
+                  {opt.id === "stack" ? (
+                    <Rows3 className="h-3.5 w-3.5" />
+                  ) : opt.id === "grid_2" ? (
+                    <Columns2 className="h-3.5 w-3.5" />
+                  ) : (
+                    <Rows3 className="h-3.5 w-3.5 rotate-90" />
+                  )}
+                  {opt.label}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -338,12 +331,16 @@ export function TapCardBuilder({
           <label className="flex items-center gap-2 text-xs font-medium">
             <input
               type="checkbox"
-              checked={config.showHeaderLogo !== false}
+              checked={config.showHeaderLogo === true}
               onChange={(e) => patchConfig({ showHeaderLogo: e.target.checked })}
             />
-            Logo at top of Tap Card
+            Optional logo strip above card
           </label>
-          {config.showHeaderLogo !== false ? (
+          <p className="w-full text-[10px] text-muted-foreground">
+            Off by default — your hero already shows a logo. Turn this on only for a separate
+            branding strip above the card shell.
+          </p>
+          {config.showHeaderLogo === true ? (
             <>
               <div className="min-w-[220px] flex-1">
                 <MediaPicker
@@ -401,6 +398,56 @@ export function TapCardBuilder({
               />
             </div>
           ))}
+          <div className="space-y-1">
+            <Label className="text-[10px]">Card background</Label>
+            <select
+              className="flex h-9 min-w-[8rem] rounded-lg border border-input bg-background px-2 text-xs"
+              value={config.surfaceFill || "solid"}
+              onChange={(e) =>
+                patchConfig({ surfaceFill: e.target.value as TapCardSurfaceFill })
+              }
+            >
+              <option value="solid">Solid</option>
+              <option value="gradient">Gradient</option>
+            </select>
+          </div>
+          {config.surfaceFill === "gradient" ? (
+            <>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Gradient start</Label>
+                <Input
+                  type="color"
+                  className="h-9 w-14 cursor-pointer p-1"
+                  value={config.surfaceGradientStart || config.surfaceColor}
+                  onChange={(e) => patchConfig({ surfaceGradientStart: e.target.value })}
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-[10px]">Gradient end</Label>
+                <Input
+                  type="color"
+                  className="h-9 w-14 cursor-pointer p-1"
+                  value={config.surfaceGradientEnd || config.accentColor}
+                  onChange={(e) => patchConfig({ surfaceGradientEnd: e.target.value })}
+                />
+              </div>
+              <div className="min-w-[140px] flex-1 space-y-1">
+                <Label className="text-[10px]">
+                  Direction {config.surfaceGradientAngle ?? 160}°
+                </Label>
+                <input
+                  type="range"
+                  min={0}
+                  max={360}
+                  value={config.surfaceGradientAngle ?? 160}
+                  onChange={(e) =>
+                    patchConfig({ surfaceGradientAngle: Number(e.target.value) })
+                  }
+                  className="w-full"
+                />
+              </div>
+            </>
+          ) : null}
           <div className="min-w-[140px] flex-1 space-y-1">
             <Label className="text-[10px]">
               Transparency {config.surfaceOpacity ?? 100}%
@@ -832,11 +879,72 @@ export function TapCardBuilder({
                         })
                       }
                     >
-                      <option value="classic">Classic photo + logo window</option>
-                      <option value="logo_top">Logo at top (scalable)</option>
-                      <option value="columns">Two columns</option>
+                      <option value="classic">Classic — photo + logo window</option>
+                      <option value="logo_top">Logo header + photo</option>
+                      <option value="columns">Two columns — image &amp; text</option>
                     </select>
                   </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Hero background</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selected.heroFill || "photo"}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          heroFill: e.target.value as TapCardHeroFill,
+                        })
+                      }
+                    >
+                      <option value="photo">Photo</option>
+                      <option value="gradient">Gradient</option>
+                      <option value="photo_gradient">Photo + gradient overlay</option>
+                    </select>
+                  </div>
+                  {(selected.heroFill || "photo") !== "photo" ? (
+                    <>
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                          <Label className="text-xs">Gradient start</Label>
+                          <Input
+                            type="color"
+                            className="h-9 w-full cursor-pointer p-1"
+                            value={selected.gradientStart || config.accentColor}
+                            onChange={(e) =>
+                              patchSection(selected.id, { gradientStart: e.target.value })
+                            }
+                          />
+                        </div>
+                        <div className="space-y-1">
+                          <Label className="text-xs">Gradient end</Label>
+                          <Input
+                            type="color"
+                            className="h-9 w-full cursor-pointer p-1"
+                            value={selected.gradientEnd || "#0b0f19"}
+                            onChange={(e) =>
+                              patchSection(selected.id, { gradientEnd: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs">
+                          Gradient direction {selected.gradientAngle ?? 160}°
+                        </Label>
+                        <input
+                          type="range"
+                          min={0}
+                          max={360}
+                          value={selected.gradientAngle ?? 160}
+                          onChange={(e) =>
+                            patchSection(selected.id, {
+                              gradientAngle: Number(e.target.value),
+                            })
+                          }
+                          className="w-full"
+                        />
+                      </div>
+                    </>
+                  ) : null}
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -949,7 +1057,7 @@ export function TapCardBuilder({
                           <Label className="text-xs">Left column</Label>
                           <select
                             className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
-                            value={selected.columnLeft || "logo"}
+                            value={selected.columnLeft || "image"}
                             onChange={(e) =>
                               patchSection(selected.id, {
                                 columnLeft: e.target.value as
@@ -988,22 +1096,64 @@ export function TapCardBuilder({
                           </select>
                         </div>
                       </div>
-                      <Input
-                        value={selected.columnText ?? ""}
-                        onChange={(e) =>
-                          patchSection(selected.id, { columnText: e.target.value })
-                        }
-                        placeholder="Column text"
-                      />
-                      <MediaPicker
-                        label="Column image"
-                        value={selected.columnImageUrl ?? ""}
-                        onChange={(url) =>
-                          patchSection(selected.id, { columnImageUrl: url })
-                        }
-                        mediaUploadReady={mediaUploadReady}
-                        stockReady={stockReady}
-                      />
+                      {(selected.columnLeft === "text" || selected.columnRight === "text") && (
+                        <div className="grid grid-cols-2 gap-2">
+                          {selected.columnLeft === "text" ? (
+                            <Input
+                              value={selected.columnLeftText ?? selected.columnText ?? ""}
+                              onChange={(e) =>
+                                patchSection(selected.id, { columnLeftText: e.target.value })
+                              }
+                              placeholder="Left column text"
+                            />
+                          ) : (
+                            <span />
+                          )}
+                          {selected.columnRight === "text" ? (
+                            <Input
+                              value={selected.columnRightText ?? selected.columnText ?? ""}
+                              onChange={(e) =>
+                                patchSection(selected.id, { columnRightText: e.target.value })
+                              }
+                              placeholder="Right column text"
+                            />
+                          ) : null}
+                        </div>
+                      )}
+                      {(selected.columnLeft === "image" || selected.columnRight === "image") && (
+                        <div className="space-y-2">
+                          {selected.columnLeft === "image" ? (
+                            <MediaPicker
+                              label="Left column image"
+                              value={
+                                selected.columnLeftImageUrl ??
+                                selected.columnImageUrl ??
+                                ""
+                              }
+                              onChange={(url) =>
+                                patchSection(selected.id, { columnLeftImageUrl: url })
+                              }
+                              mediaUploadReady={mediaUploadReady}
+                              stockReady={stockReady}
+                            />
+                          ) : null}
+                          {selected.columnRight === "image" ? (
+                            <MediaPicker
+                              label="Right column image"
+                              value={
+                                selected.columnRightImageUrl ??
+                                selected.columnImageUrl ??
+                                ""
+                              }
+                              onChange={(url) =>
+                                patchSection(selected.id, { columnRightImageUrl: url })
+                              }
+                              mediaUploadReady={mediaUploadReady}
+                              stockReady={stockReady}
+                            />
+                          ) : null}
+                        </div>
+                      )}
                       <TextFormatControls
                         title="Column text format"
                         value={selected.format}
