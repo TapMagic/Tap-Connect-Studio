@@ -214,7 +214,7 @@ export function TapConnectCard({
     const scale = (hero.logoScale ?? 100) / 100;
     const ox = hero.logoOffsetX ?? 0;
     const oy = hero.logoOffsetY ?? 0;
-    const showLogo = hero.showLogoWindow !== false;
+    const showLogo = hero.showHeroLogo === true;
     const layout = hero.heroLayout || "classic";
     const outlined = hero.showOutline !== false;
     const heroFill = hero.heroFill || (hero.imageUrl ? "photo" : "gradient");

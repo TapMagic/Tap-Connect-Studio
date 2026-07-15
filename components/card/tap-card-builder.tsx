@@ -668,8 +668,8 @@ export function TapCardBuilder({
           {!selected ? (
             <p className="text-xs text-muted-foreground">
               Use the Design bar for Two columns, shapes, pill colors, neon glow, 3-D, and
-              transparency. Add Image / Text blocks from the left. Hero logo window is movable and
-              scalable.
+              transparency. Add Image / Logo / Text blocks from the left. Hero logo is off by
+              default — enable it on the Hero segment if you want one.
             </p>
           ) : (
             <div className="space-y-3">
@@ -884,8 +884,8 @@ export function TapCardBuilder({
                         })
                       }
                     >
-                      <option value="classic">Classic — photo + logo window</option>
-                      <option value="logo_top">Logo header + photo</option>
+                      <option value="classic">Classic — photo hero</option>
+                      <option value="logo_top">Logo above photo</option>
                       <option value="columns">Two columns — image &amp; text</option>
                     </select>
                   </div>
@@ -967,79 +967,95 @@ export function TapCardBuilder({
                     mediaUploadReady={mediaUploadReady}
                     stockReady={stockReady}
                   />
-                  <MediaPicker
-                    label="Logo (preferred)"
-                    value={selected.logoUrl ?? logoUrl ?? ""}
-                    onChange={(url) => patchSection(selected.id, { logoUrl: url })}
-                    mediaUploadReady={mediaUploadReady}
-                    stockReady={stockReady}
-                  />
-                  <div className="space-y-1">
-                    <Label className="text-xs">
-                      Logo scale {selected.logoScale ?? 100}%
-                    </Label>
-                    <input
-                      type="range"
-                      min={40}
-                      max={180}
-                      value={selected.logoScale ?? 100}
-                      onChange={(e) =>
-                        patchSection(selected.id, {
-                          logoScale: Number(e.target.value),
-                        })
-                      }
-                      className="w-full"
-                    />
+
+                  <div className="space-y-2 rounded-lg border border-border/50 bg-muted/10 p-3">
+                    <label className="flex items-center gap-2 text-sm font-medium">
+                      <input
+                        type="checkbox"
+                        checked={selected.showHeroLogo === true}
+                        onChange={(e) =>
+                          patchSection(selected.id, {
+                            showHeroLogo: e.target.checked,
+                            showLogoWindow: e.target.checked,
+                          })
+                        }
+                      />
+                      Show logo on hero
+                    </label>
+                    <p className="text-[10px] text-muted-foreground">
+                      Off by default. Turn on for a logo on the hero photo, then adjust size below.
+                    </p>
+                    {selected.showHeroLogo === true ? (
+                      <>
+                        <MediaPicker
+                          label="Hero logo"
+                          value={selected.logoUrl ?? logoUrl ?? ""}
+                          onChange={(url) => patchSection(selected.id, { logoUrl: url })}
+                          mediaUploadReady={mediaUploadReady}
+                          stockReady={stockReady}
+                        />
+                        <div className="space-y-1">
+                          <Label className="text-xs">
+                            Logo size {selected.logoScale ?? 100}%
+                          </Label>
+                          <input
+                            type="range"
+                            min={40}
+                            max={180}
+                            value={selected.logoScale ?? 100}
+                            onChange={(e) =>
+                              patchSection(selected.id, {
+                                logoScale: Number(e.target.value),
+                              })
+                            }
+                            className="w-full"
+                          />
+                        </div>
+                        {(selected.heroLayout || "classic") === "classic" ||
+                        selected.heroLayout === "logo_top" ? (
+                          <>
+                            <div className="space-y-1">
+                              <Label className="text-xs">
+                                Move X {selected.logoOffsetX ?? 0}px
+                              </Label>
+                              <input
+                                type="range"
+                                min={-80}
+                                max={80}
+                                value={selected.logoOffsetX ?? 0}
+                                onChange={(e) =>
+                                  patchSection(selected.id, {
+                                    logoOffsetX: Number(e.target.value),
+                                  })
+                                }
+                                className="w-full"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <Label className="text-xs">
+                                Move Y {selected.logoOffsetY ?? 0}px
+                              </Label>
+                              <input
+                                type="range"
+                                min={-80}
+                                max={80}
+                                value={selected.logoOffsetY ?? 0}
+                                onChange={(e) =>
+                                  patchSection(selected.id, {
+                                    logoOffsetY: Number(e.target.value),
+                                  })
+                                }
+                                className="w-full"
+                              />
+                            </div>
+                          </>
+                        ) : null}
+                      </>
+                    ) : null}
                   </div>
 
                   {(selected.heroLayout || "classic") === "classic" ? (
                     <>
-                      <label className="flex items-center gap-2 text-sm">
-                        <input
-                          type="checkbox"
-                          checked={selected.showLogoWindow !== false}
-                          onChange={(e) =>
-                            patchSection(selected.id, {
-                              showLogoWindow: e.target.checked,
-                            })
-                          }
-                        />
-                        Logo window (centered on hero)
-                      </label>
-                      <div className="space-y-1">
-                        <Label className="text-xs">
-                          Move X {selected.logoOffsetX ?? 0}px
-                        </Label>
-                        <input
-                          type="range"
-                          min={-80}
-                          max={80}
-                          value={selected.logoOffsetX ?? 0}
-                          onChange={(e) =>
-                            patchSection(selected.id, {
-                              logoOffsetX: Number(e.target.value),
-                            })
-                          }
-                          className="w-full"
-                        />
-                      </div>
-                      <div className="space-y-1">
-                        <Label className="text-xs">
-                          Move Y {selected.logoOffsetY ?? 0}px
-                        </Label>
-                        <input
-                          type="range"
-                          min={-80}
-                          max={80}
-                          value={selected.logoOffsetY ?? 0}
-                          onChange={(e) =>
-                            patchSection(selected.id, {
-                              logoOffsetY: Number(e.target.value),
-                            })
-                          }
-                          className="w-full"
-                        />
-                      </div>
                       <label className="flex items-center gap-2 text-sm">
                         <input
                           type="checkbox"

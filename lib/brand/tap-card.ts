@@ -98,6 +98,8 @@ export type TapCardSection = {
   imageUrl?: string;
   logoUrl?: string;
   showLogoWindow?: boolean;
+  /** Opt-in hero logo overlay (replaces legacy showLogoWindow default-on) */
+  showHeroLogo?: boolean;
   logoScale?: number;
   logoOffsetX?: number;
   logoOffsetY?: number;
@@ -283,7 +285,8 @@ export function defaultTapConnectCard(params: {
       imageUrl: params.heroImageUrl || undefined,
       logoUrl: params.logoUrl || undefined,
       showCallBadge: Boolean(params.profile?.phone),
-      showLogoWindow: true,
+      showLogoWindow: false,
+      showHeroLogo: false,
       logoScale: 100,
       logoOffsetX: 0,
       logoOffsetY: 0,
@@ -442,6 +445,9 @@ export function parseTapConnectCard(
     imageRadius: s.imageRadius
       ? normalizeShape(s.imageRadius as TapCardButtonShapeLegacy)
       : s.imageRadius,
+    // Hero logo overlay is opt-in via showHeroLogo (legacy showLogoWindow defaults are ignored)
+    showHeroLogo: s.type === "hero" ? s.showHeroLogo === true : s.showHeroLogo,
+    showLogoWindow: s.type === "hero" ? s.showHeroLogo === true : s.showLogoWindow,
   }));
 
   return {
