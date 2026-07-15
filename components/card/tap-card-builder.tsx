@@ -225,12 +225,12 @@ export function TapCardBuilder({
   }
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
+    <div className="flex flex-col">
       <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-3 backdrop-blur">
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
-            Design menus stay visible · drag segments · live preview
+            Design menus stay visible · drag segments · scroll the page to see the full card
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -252,7 +252,7 @@ export function TapCardBuilder({
       </div>
 
       {/* Always-visible design menus */}
-      <div className="sticky top-[3.25rem] z-20 space-y-3 border-b border-border/60 bg-background/98 px-4 py-3 backdrop-blur">
+      <div className="sticky top-[57px] z-20 space-y-3 border-b border-border/60 bg-background/98 px-4 py-3 backdrop-blur">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
             <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
@@ -437,8 +437,8 @@ export function TapCardBuilder({
         <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
       ) : null}
 
-      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
-        <aside className="w-full shrink-0 overflow-y-auto border-r border-border/60 p-4 lg:w-[300px] lg:max-h-full">
+      <div className="flex flex-col lg:flex-row lg:items-start">
+        <aside className="w-full border-r border-border/60 p-4 lg:sticky lg:top-[140px] lg:max-h-[calc(100dvh-140px)] lg:w-[300px] lg:overflow-y-auto">
           <div className="space-y-3">
             <TextFormatControls
               title="Title typography"
@@ -590,13 +590,13 @@ export function TapCardBuilder({
           </div>
         </aside>
 
-        <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden bg-black/30 p-3">
-          <p className="mb-2 shrink-0 text-[11px] text-muted-foreground">
-            Live card · scroll inside the phone to see the full card
+        <div className="min-w-0 flex-1 bg-black/30 p-4 pb-16">
+          <p className="mb-2 text-center text-[11px] text-muted-foreground">
+            Scroll the page to see the full Tap Card · same renderer as production
           </p>
-          <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1">
+          <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
             <div className="builder-phone-notch" />
-            <div className="builder-phone-screen !bg-[#1a1a1a] p-3">
+            <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
               <TapConnectCard
                 config={config}
                 profile={profile}
@@ -609,7 +609,7 @@ export function TapCardBuilder({
           </div>
         </div>
 
-        <aside className="w-full shrink-0 overflow-y-auto border-l border-border/60 p-4 lg:w-[320px]">
+        <aside className="w-full border-l border-border/60 p-4 lg:sticky lg:top-[140px] lg:max-h-[calc(100dvh-140px)] lg:w-[320px] lg:overflow-y-auto">
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
           </p>

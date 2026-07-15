@@ -49,7 +49,7 @@ export default async function DashboardLayout({
       )}
       <div className="mx-auto flex min-h-screen max-w-[1600px]">
         <DashboardNav businessName={business.name} showAdminLink={showAdminLink} />
-        <main className="flex-1 overflow-x-hidden">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );
