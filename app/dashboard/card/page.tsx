@@ -30,6 +30,12 @@ export default async function TapCardPage() {
     select: { id: true },
   });
 
+  const devices = await prisma.deviceSlot.findMany({
+    where: { businessId: business.id },
+    select: { id: true, nickname: true, deviceCode: true },
+    orderBy: { createdAt: "desc" },
+  });
+
   return (
     <TapCardBuilder
       initialConfig={config}
@@ -46,6 +52,7 @@ export default async function TapCardPage() {
       stockReady={isStockImagesReady()}
       isAdmin={isPlatformAdmin(user)}
       isLandingDemo={Boolean(landingDemo)}
+      devices={devices}
     />
   );
 }

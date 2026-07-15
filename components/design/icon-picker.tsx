@@ -5,25 +5,37 @@ import { ImageIcon, Link2, Search, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { BrandSvg } from "@/components/design/brand-svg";
 import { SocialGlyph } from "@/components/tap/social-icons";
 import {
   LUCIDE_ICON_CATEGORIES,
   searchLucideIcons,
   type LucideLibraryItem,
 } from "@/lib/design/lucide-icon-registry";
+import { BRAND_ICON_BY_ID } from "@/lib/design/brand-icons";
 import { cn } from "@/lib/utils";
 
 type IconPickerProps = {
-  /** Currently selected library id */
   icon?: string;
-  /** Optional custom image instead of a library icon */
   customUrl?: string;
-  onChange: (next: { icon?: string; customUrl?: string }) => void;
+  /** Custom icon tint — empty/undefined keeps brand scheme (Google Reviews, etc.) */
+  color?: string;
+  onChange: (next: { icon?: string; customUrl?: string; color?: string }) => void;
   mediaUploadReady?: boolean;
   label?: string;
-  /** Hide upload/paste custom section */
   hideCustom?: boolean;
 };
+
+const PRESET_COLORS = [
+  "#f8fafc",
+  "#0b0f19",
+  "#a3e635",
+  "#d4af37",
+  "#ef4444",
+  "#3b82f6",
+  "#a855f7",
+  "#f97316",
+];
 
 function readFileAsDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -37,27 +49,43 @@ function readFileAsDataUrl(file: File): Promise<string> {
 function LibraryGlyph({
   item,
   size = 18,
+  color,
 }: {
   item: LucideLibraryItem;
   size?: number;
+  color?: string;
 }) {
+  if (item.brand && BRAND_ICON_BY_ID[item.brand]) {
+    return <BrandSvg id={item.brand} sizePx={size} color={color} />;
+  }
   if (item.brand) {
-    return <SocialGlyph platform={item.brand} sizePx={size} />;
+    return (
+      <span style={{ color: color || "currentColor" }}>
+        <SocialGlyph platform={item.brand} sizePx={size} />
+      </span>
+    );
   }
   if (item.Icon) {
     const Icon = item.Icon;
-    return <Icon style={{ width: size, height: size }} aria-hidden />;
+    return (
+      <Icon
+        aria-hidden
+        style={{ width: size, height: size, color: color || "currentColor" }}
+        color={color || "currentColor"}
+      />
+    );
   }
-  return <Search style={{ width: size, height: size }} aria-hidden />;
+  return <Search style={{ width: size, height: size, color }} aria-hidden />;
 }
 
 /**
- * Searchable Lucide (+ brand) icon picker.
- * Type to filter · click a cell to select.
+ * Advanced searchable Icon Picker — Lucide utilities + simple-icons brands,
+ * with live custom coloring (brand schemes preserved when color is cleared).
  */
 export function IconPicker({
   icon = "link",
   customUrl = "",
+  color,
   onChange,
   mediaUploadReady = false,
   label = "Icon library",
@@ -65,24 +93,36 @@ export function IconPicker({
 }: IconPickerProps) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<string>("all");
+  const [selectedColor, setSelectedColor] = useState(color || "");
   const [pasteUrl, setPasteUrl] = useState(customUrl || "");
   const fileRef = useRef<HTMLInputElement>(null);
 
   const results = useMemo(() => {
-    const list = searchLucideIcons(query, 120);
+    const list = searchLucideIcons(query, 140);
     if (category === "all") return list;
     return list.filter((i) => i.category === category);
   }, [query, category]);
 
   const selectedItem = useMemo(
-    () => results.find((i) => i.id === icon) ?? searchLucideIcons(icon, 1)[0],
+    () =>
+      searchLucideIcons(icon, 8).find((i) => i.id === icon) ??
+      results.find((i) => i.id === icon),
     [results, icon]
   );
+
+  function applyColor(next: string) {
+    setSelectedColor(next);
+    onChange({
+      icon: customUrl ? undefined : icon,
+      customUrl: customUrl || undefined,
+      color: next || undefined,
+    });
+  }
 
   async function onUpload(file: File | null) {
     if (!file || !file.type.startsWith("image/")) return;
     const dataUrl = await readFileAsDataUrl(file);
-    onChange({ icon: undefined, customUrl: dataUrl });
+    onChange({ icon: undefined, customUrl: dataUrl, color: selectedColor || undefined });
     setPasteUrl(dataUrl);
   }
 
@@ -91,40 +131,84 @@ export function IconPicker({
       <div className="flex items-center justify-between gap-2">
         <div>
           <Label className="text-xs font-semibold">{label}</Label>
-          <p className="text-[10px] text-muted-foreground">Lucide Icons · live search</p>
+          <p className="text-[10px] text-muted-foreground">
+            Lucide + brand logos · search · custom color
+          </p>
         </div>
-        <div className="flex size-10 items-center justify-center rounded-lg border border-border/60 bg-background text-foreground shadow-sm">
+        <div
+          className="flex size-10 items-center justify-center rounded-lg border border-border/60 bg-background shadow-sm"
+          style={{ color: selectedColor || undefined }}
+        >
           {customUrl ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={customUrl} alt="" className="size-5 object-contain" />
           ) : selectedItem ? (
-            <LibraryGlyph item={selectedItem} size={18} />
+            <LibraryGlyph item={selectedItem} size={18} color={selectedColor || undefined} />
           ) : (
             <Search className="size-4 text-muted-foreground" />
           )}
         </div>
       </div>
 
-      {/* 3–5: search bar + live filter */}
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
-        <Input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search icons (home, facebook, cart…)"
-          className="h-9 pl-9 text-sm"
-          aria-label="Search icons"
-        />
-        {query ? (
-          <button
+      <div className="flex flex-wrap items-center gap-2">
+        <div className="relative min-w-[10rem] flex-1">
+          <Search className="pointer-events-none absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search icons (home, github, cart…)"
+            className="h-9 pl-9 text-sm"
+            aria-label="Search icons"
+          />
+          {query ? (
+            <button
+              type="button"
+              className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-foreground"
+              onClick={() => setQuery("")}
+              aria-label="Clear search"
+            >
+              <X className="size-3.5" />
+            </button>
+          ) : null}
+        </div>
+
+        <div className="flex items-center gap-1.5">
+          <Label className="text-[10px] text-muted-foreground">Color</Label>
+          <input
+            type="color"
+            value={selectedColor || "#a3e635"}
+            onChange={(e) => applyColor(e.target.value)}
+            className="h-9 w-10 cursor-pointer rounded border-0 bg-transparent p-0"
+            title="Custom icon color"
+            aria-label="Icon color"
+          />
+          <Button
             type="button"
-            className="absolute right-2 top-2 rounded p-0.5 text-muted-foreground hover:text-foreground"
-            onClick={() => setQuery("")}
-            aria-label="Clear search"
+            size="sm"
+            variant="ghost"
+            className="h-8 px-2 text-[10px]"
+            onClick={() => applyColor("")}
+            title="Use brand / default scheme (Google Reviews, socials…)"
           >
-            <X className="size-3.5" />
-          </button>
-        ) : null}
+            Brand
+          </Button>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-1">
+        {PRESET_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            title={c}
+            onClick={() => applyColor(c)}
+            className={cn(
+              "size-5 rounded-full border border-border/60",
+              selectedColor === c && "ring-2 ring-primary ring-offset-1 ring-offset-background"
+            )}
+            style={{ background: c }}
+          />
+        ))}
       </div>
 
       <div className="flex flex-wrap gap-1">
@@ -157,7 +241,6 @@ export function IconPicker({
         ))}
       </div>
 
-      {/* Icon grid — click to select */}
       <div
         className="grid max-h-52 grid-cols-6 gap-1 overflow-y-auto rounded-lg border border-border/40 bg-background/70 p-1.5 sm:grid-cols-8"
         role="listbox"
@@ -178,7 +261,11 @@ export function IconPicker({
                 aria-selected={selected}
                 title={item.label}
                 onClick={() => {
-                  onChange({ icon: item.id, customUrl: undefined });
+                  onChange({
+                    icon: item.id,
+                    customUrl: undefined,
+                    color: selectedColor || undefined,
+                  });
                   setPasteUrl("");
                 }}
                 className={cn(
@@ -188,7 +275,7 @@ export function IconPicker({
                     : "border-transparent text-foreground/80 hover:border-border hover:bg-muted hover:text-foreground"
                 )}
               >
-                <LibraryGlyph item={item} size={16} />
+                <LibraryGlyph item={item} size={16} color={selectedColor || undefined} />
               </button>
             );
           })
@@ -199,6 +286,14 @@ export function IconPicker({
         <p className="text-[11px] text-muted-foreground">
           Selected: <span className="font-medium text-foreground">{icon}</span>
           {selectedItem ? ` · ${selectedItem.label}` : ""}
+          {selectedColor ? (
+            <span>
+              {" "}
+              · <span style={{ color: selectedColor }}>{selectedColor}</span>
+            </span>
+          ) : (
+            " · brand / default colors"
+          )}
         </p>
       ) : null}
 
@@ -221,7 +316,11 @@ export function IconPicker({
               className="h-8 shrink-0 px-2"
               onClick={() => {
                 if (!pasteUrl.trim()) return;
-                onChange({ icon: undefined, customUrl: pasteUrl.trim() });
+                onChange({
+                  icon: undefined,
+                  customUrl: pasteUrl.trim(),
+                  color: selectedColor || undefined,
+                });
               }}
             >
               <Link2 className="size-3.5" />
@@ -256,7 +355,11 @@ export function IconPicker({
                 variant="ghost"
                 className="h-8 text-red-400"
                 onClick={() => {
-                  onChange({ icon: icon || "link", customUrl: undefined });
+                  onChange({
+                    icon: icon || "link",
+                    customUrl: undefined,
+                    color: selectedColor || undefined,
+                  });
                   setPasteUrl("");
                 }}
               >

@@ -57,6 +57,7 @@ import {
   Stethoscope,
   Tag,
   Ticket,
+  Trash2,
   Upload,
   User,
   Users,
@@ -64,27 +65,31 @@ import {
   Wallet,
   Zap,
 } from "lucide-react";
+import { BRAND_ICON_DEFS } from "@/lib/design/brand-icons";
 
 export type LucideLibraryItem = {
   id: string;
   label: string;
   keywords: string[];
   category: "common" | "social" | "commerce" | "media" | "places" | "actions";
-  /** Lucide component — social brands may be null and rendered via SocialGlyph */
+  /** Lucide component — social brands may be null and rendered via BrandSvg */
   Icon?: LucideIcon;
-  /** Use brand SocialGlyph id when set */
+  /** Use simple-icons / brand glyph id when set */
   brand?: string;
+  /** Official brand hex (for preview defaults) */
+  brandHex?: string;
 };
 
 /**
- * Curated Lucide-backed icon library.
- * Social brands use our SocialGlyph (Lucide dropped most brand icons).
+ * Curated Lucide + simple-icons library.
+ * Social brands use BrandSvg (simple-icons paths).
  */
 export const LUCIDE_ICON_LIBRARY: LucideLibraryItem[] = [
   // Common
   { id: "home", label: "Home", keywords: ["house", "main"], category: "common", Icon: Home },
   { id: "settings", label: "Settings", keywords: ["gear", "prefs", "cog"], category: "common", Icon: Settings },
   { id: "user", label: "User", keywords: ["person", "profile", "account"], category: "common", Icon: User },
+  { id: "trash", label: "Trash", keywords: ["delete", "remove", "bin"], category: "common", Icon: Trash2 },
   { id: "search", label: "Search", keywords: ["find", "magnify"], category: "common", Icon: Search },
   { id: "users", label: "Users", keywords: ["team", "people", "group"], category: "common", Icon: Users },
   { id: "bell", label: "Notifications", keywords: ["alert", "bell"], category: "common", Icon: Bell },
@@ -118,20 +123,17 @@ export const LUCIDE_ICON_LIBRARY: LucideLibraryItem[] = [
   { id: "at", label: "Mention", keywords: ["email", "handle", "@"], category: "common", Icon: AtSign },
   { id: "chat", label: "Message", keywords: ["chat", "support"], category: "common", Icon: MessageCircle },
 
-  // Social (brand glyphs)
-  { id: "facebook", label: "Facebook", keywords: ["fb", "meta", "social"], category: "social", brand: "facebook" },
-  { id: "instagram", label: "Instagram", keywords: ["ig", "photo", "reels", "social"], category: "social", brand: "instagram" },
-  { id: "x", label: "X / Twitter", keywords: ["twitter", "tweet", "social"], category: "social", brand: "x" },
-  { id: "linkedin", label: "LinkedIn", keywords: ["job", "career", "biz", "social"], category: "social", brand: "linkedin" },
-  { id: "youtube", label: "YouTube", keywords: ["video", "watch", "social"], category: "social", brand: "youtube" },
-  { id: "tiktok", label: "TikTok", keywords: ["video", "short", "social"], category: "social", brand: "tiktok" },
-  { id: "snapchat", label: "Snapchat", keywords: ["snap", "ghost", "social"], category: "social", brand: "snapchat" },
-  { id: "whatsapp", label: "WhatsApp", keywords: ["chat", "wa", "social"], category: "social", brand: "whatsapp" },
-  { id: "threads", label: "Threads", keywords: ["meta", "social"], category: "social", brand: "threads" },
-  { id: "pinterest", label: "Pinterest", keywords: ["pin", "social"], category: "social", brand: "pinterest" },
-  { id: "yelp", label: "Yelp", keywords: ["review", "social"], category: "social", brand: "yelp" },
-  { id: "spotify", label: "Spotify", keywords: ["music", "audio", "social"], category: "social", brand: "spotify" },
-  { id: "google", label: "Google", keywords: ["g", "review", "maps"], category: "social", brand: "google" },
+  // Social — simple-icons brands
+  ...BRAND_ICON_DEFS.map(
+    (b): LucideLibraryItem => ({
+      id: b.id,
+      label: b.label,
+      keywords: b.keywords,
+      category: "social",
+      brand: b.id,
+      brandHex: b.hex,
+    })
+  ),
 
   // Commerce
   { id: "cart", label: "Cart / Shop", keywords: ["buy", "store", "ecommerce"], category: "commerce", Icon: ShoppingCart },

@@ -23,6 +23,7 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
+import { QrPanel } from "@/components/campaign/qr-panel";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   COMMON_SOCIAL_KINDS,
@@ -47,6 +48,7 @@ type Props = {
   stockReady: boolean;
   isAdmin?: boolean;
   isLandingDemo?: boolean;
+  devices?: { id: string; nickname: string | null; deviceCode: string }[];
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -76,6 +78,7 @@ export function TapCardBuilder({
   stockReady,
   isAdmin = false,
   isLandingDemo = false,
+  devices = [],
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -409,6 +412,17 @@ export function TapCardBuilder({
               onChange={(bodyFormat) => patchConfig({ bodyFormat })}
             />
 
+            <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
+              <QrPanel
+                title="Tap Card · Device / QR"
+                campaignTitle={businessName}
+                filenamePrefix="tap-card"
+                devices={devices}
+                deviceCode={devices[0]?.deviceCode}
+                allowCustomUrl
+              />
+            </div>
+
             <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3 space-y-2">
               <Label className="text-xs font-semibold">Add block</Label>
               <div className="grid grid-cols-2 gap-1.5">
@@ -635,10 +649,12 @@ export function TapCardBuilder({
                   <IconPicker
                     icon={selected.icon || selected.actionKind || "link"}
                     customUrl={selected.iconUrl}
-                    onChange={({ icon, customUrl }) =>
+                    color={selected.iconColor}
+                    onChange={({ icon, customUrl, color }) =>
                       patchSection(selected.id, {
                         icon: icon || selected.icon,
                         iconUrl: customUrl,
+                        iconColor: color,
                       })
                     }
                     mediaUploadReady={mediaUploadReady}

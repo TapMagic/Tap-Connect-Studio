@@ -514,7 +514,7 @@ function ActionPill({
   const kind = section.actionKind || "custom";
   const icon = section.icon || kind;
   const finish = sectionFinish(section, defaultFinish);
-  const brand = !section.iconUrl ? socialBrandStyle(icon) : undefined;
+  const brand = !section.iconUrl && !section.iconColor ? socialBrandStyle(icon) : undefined;
   const radius = shapeRadius(section.shape, defaultShape);
   const neon = section.neonColor || defaultNeon;
   const opacity = (section.opacity ?? 100) / 100;
@@ -541,7 +541,12 @@ function ActionPill({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={avatarUrl} alt="" className="tcc-pill-avatar" />
         ) : (
-          <PremiumIcon icon={icon} customUrl={section.iconUrl} sizePx={18} />
+          <PremiumIcon
+            icon={icon}
+            customUrl={section.iconUrl}
+            color={section.iconColor}
+            sizePx={18}
+          />
         )}
       </span>
       <span className="tcc-pill-label" style={textFormatToCss(section.format)}>

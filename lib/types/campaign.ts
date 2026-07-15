@@ -160,6 +160,8 @@ export interface ButtonItem {
   italic?: boolean;
   bold?: boolean;
   neonColor?: string;
+  /** Custom icon tint */
+  iconColor?: string;
   /** Corner / button shape — shared with Tap Card */
   shape?:
     | "pill"

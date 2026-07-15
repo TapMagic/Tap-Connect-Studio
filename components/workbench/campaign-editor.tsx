@@ -600,7 +600,17 @@ export function CampaignEditor({
             )}
 
             {tab === "qr" && (
-              <QrPanel campaignId={campaign.id} campaignTitle={title} deviceCode={selectedDeviceCode} />
+              <QrPanel
+                campaignId={campaign.id}
+                campaignTitle={title}
+                deviceCode={selectedDeviceCode}
+                devices={devices.map((d) => ({
+                  id: d.id,
+                  nickname: d.nickname,
+                  deviceCode: d.deviceCode,
+                }))}
+                allowCustomUrl
+              />
             )}
 
             {tab === "schedule" && (
@@ -1246,9 +1256,11 @@ function BlockFields({
                 <IconPicker
                   icon={(btn.icon as string) || "link"}
                   customUrl={btn.imageUrl && (btn.appearance === "icon_text" || btn.appearance === "icon_only") ? "" : undefined}
-                  onChange={({ icon, customUrl }) =>
+                  color={btn.iconColor}
+                  onChange={({ icon, customUrl, color }) =>
                     patchBtn(btn.id, {
                       icon: (icon as ButtonItem["icon"]) || "link",
+                      iconColor: color,
                       ...(customUrl
                         ? { imageUrl: customUrl, appearance: btn.appearance ?? "icon_text" }
                         : {}),

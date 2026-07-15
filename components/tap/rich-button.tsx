@@ -113,6 +113,7 @@ export function RichTapButton({
   const useBrand =
     isSocialIcon(btn.icon) &&
     !btn.imageUrl &&
+    !btn.iconColor &&
     (appearance === "icon_only" || appearance === "icon_text" || appearance === "text");
 
   const styleClass = btn.finish
@@ -197,6 +198,7 @@ export function RichTapButton({
         ) : (
           <PremiumIcon
             icon={btn.icon && btn.icon !== "none" ? btn.icon : "link"}
+            color={btn.iconColor}
             sizePx={18}
           />
         )}
@@ -220,7 +222,7 @@ export function RichTapButton({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={btn.imageUrl} alt="" className="tap-btn-custom-icon" />
       ) : btn.icon && btn.icon !== "none" ? (
-        <PremiumIcon icon={btn.icon} sizePx={18} />
+        <PremiumIcon icon={btn.icon} color={btn.iconColor} sizePx={18} />
       ) : null}
       <span className="tap-btn-label">{btn.label}</span>
     </TapActionButton>

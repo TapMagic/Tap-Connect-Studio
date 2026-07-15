@@ -93,6 +93,8 @@ export type TapCardSection = {
   actionKind?: TapCardActionKind;
   icon?: string;
   iconUrl?: string;
+  /** Custom icon tint — omit to keep brand schemes (Google Reviews, socials) */
+  iconColor?: string;
   finish?: PremiumFinish;
   style?: TapCardActionStyle;
   shape?: TapCardButtonShape;
