@@ -115,11 +115,17 @@ function StyledBlockShell({
   const css = blockStyleToCss(style);
   const card = style?.card === true;
   const emailOnly = editMode && (block.channel ?? "page") === "email";
+  const finish = style?.finish ? `tap-finish-${style.finish}` : "";
   return (
     <div
       data-block-id={block.id}
-      className={`tap-block ${card ? "tap-block-card" : ""} ${selected ? "tap-block-selected" : ""} ${editMode ? "tap-block-editable" : ""} ${emailOnly ? "tap-block-email-only" : ""} ${className}`.trim()}
-      style={css}
+      className={`tap-block ${card ? "tap-block-card" : ""} ${selected ? "tap-block-selected" : ""} ${editMode ? "tap-block-editable" : ""} ${emailOnly ? "tap-block-email-only" : ""} ${finish} ${className}`.trim()}
+      style={
+        {
+          ...css,
+          ...(style?.neonColor ? { ["--tcc-neon"]: style.neonColor } : {}),
+        } as CSSProperties
+      }
       onClick={
         editMode
           ? (e) => {

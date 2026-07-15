@@ -1,7 +1,8 @@
 import { nanoid } from "nanoid";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import type { PremiumFinish, TextFormat } from "@/lib/design/premium-finish";
 
-/** Action kinds supported on a Tap Connect Card (beyond .vcf download). */
+/** Action kinds — link target helpers. Any custom URL still works with kind "custom". */
 export type TapCardActionKind =
   | "vcard"
   | "call"
@@ -11,7 +12,6 @@ export type TapCardActionKind =
   | "map"
   | "review"
   | "calendar"
-  | "square"
   | "shop"
   | "book"
   | "homescreen"
@@ -32,53 +32,73 @@ export type TapCardSectionType =
   | "hero"
   | "identity"
   | "action"
+  | "action_row"
   | "spacer"
   | "footer_cta";
 
-export type TapCardActionStyle = "metallic" | "soft" | "brand" | "outline";
+/** @deprecated use PremiumFinish via `finish` — kept for older cards */
+export type TapCardActionStyle = PremiumFinish;
+
+export type TapCardActionsLayout = "stack" | "grid_2";
 
 export type TapCardSection = {
   id: string;
   type: TapCardSectionType;
   enabled: boolean;
   order: number;
-  /** Display label in builder / pill rows */
   label?: string;
-  /** Promo text (left/right or body) */
   text?: string;
   textRight?: string;
   href?: string;
-  /** Hero / media */
   imageUrl?: string;
   logoUrl?: string;
-  /** Action row */
   actionKind?: TapCardActionKind;
   icon?: string;
+  /** Custom uploaded / pasted icon art */
+  iconUrl?: string;
+  /** Premium finish */
+  finish?: PremiumFinish;
+  /** Legacy alias for finish */
   style?: TapCardActionStyle;
-  /** Identity overrides */
+  format?: TextFormat;
   name?: string;
   title?: string;
   organization?: string;
   headline?: string;
-  /** Show circular Call badge over hero */
   showCallBadge?: boolean;
-  /** Spacer height */
   height?: "sm" | "md" | "lg";
-  /** Footer CTA copy */
   buttonLabel?: string;
   description?: string;
+  backgroundColor?: string;
+  textColor?: string;
+  accentColor?: string;
+  /** Two-column row: pair this action with siblingId (or nest children) */
+  siblingId?: string;
+  /** For action_row containers */
+  children?: TapCardSection[];
+  layout?: TapCardActionsLayout;
 };
 
 export type TapConnectCardConfig = {
-  version: 1;
-  /** Living header accent — brand gold / lime / custom */
+  version: 1 | 2;
   accentColor: string;
   surfaceColor: string;
   textColor: string;
-  /** Mesh / glow intensity 0–100 */
+  neonColor?: string;
   headerEnergy: number;
   collapsible: boolean;
   defaultCollapsed: boolean;
+  /** Default layout for action buttons */
+  actionsLayout: TapCardActionsLayout;
+  /** Default finish for new actions */
+  defaultFinish: PremiumFinish;
+  /** Card shell finish */
+  cardFinish: PremiumFinish;
+  /** Global typography defaults */
+  titleFormat?: TextFormat;
+  bodyFormat?: TextFormat;
+  /** Compact mode: hide hero/identity and show only action grid (e.g. two buttons) */
+  compactActionsOnly?: boolean;
   sections: TapCardSection[];
 };
 
@@ -87,35 +107,37 @@ export const TAP_CARD_ACTION_CATALOG: {
   label: string;
   icon: string;
   placeholder?: string;
-  brand?: boolean;
 }[] = [
   { kind: "vcard", label: "Download vCard", icon: "vcard" },
   { kind: "call", label: "Click to Call", icon: "phone" },
   { kind: "email", label: "Send an Email", icon: "mail" },
   { kind: "sms", label: "Text Us", icon: "sms" },
-  { kind: "website", label: "Website", icon: "link" },
+  { kind: "website", label: "Website", icon: "globe" },
   { kind: "map", label: "Directions", icon: "map" },
   { kind: "review", label: "Leave a Review", icon: "google" },
   { kind: "calendar", label: "Book / Schedule", icon: "calendar", placeholder: "https://cal.com/…" },
-  { kind: "square", label: "Pay with Square", icon: "square", placeholder: "https://square.link/…" },
-  { kind: "shop", label: "Shop", icon: "cart", placeholder: "https://" },
+  { kind: "shop", label: "Shop / Store", icon: "cart", placeholder: "https://" },
   { kind: "book", label: "Book Now", icon: "calendar", placeholder: "https://" },
   { kind: "homescreen", label: "Add to Home Screen", icon: "homescreen" },
   { kind: "bookmark", label: "Bookmark This Card", icon: "bookmark" },
-  { kind: "instagram", label: "Instagram", icon: "instagram", brand: true },
-  { kind: "facebook", label: "Facebook", icon: "facebook", brand: true },
-  { kind: "tiktok", label: "TikTok", icon: "tiktok", brand: true },
-  { kind: "snapchat", label: "Snapchat", icon: "snapchat", brand: true },
-  { kind: "x", label: "X", icon: "x", brand: true },
-  { kind: "youtube", label: "YouTube", icon: "youtube", brand: true },
-  { kind: "linkedin", label: "LinkedIn", icon: "linkedin", brand: true },
-  { kind: "whatsapp", label: "WhatsApp", icon: "whatsapp", brand: true },
-  { kind: "yelp", label: "Yelp", icon: "yelp", brand: true },
-  { kind: "custom", label: "Custom Link", icon: "link", placeholder: "https://" },
+  { kind: "instagram", label: "Instagram", icon: "instagram" },
+  { kind: "facebook", label: "Facebook", icon: "facebook" },
+  { kind: "tiktok", label: "TikTok", icon: "tiktok" },
+  { kind: "snapchat", label: "Snapchat", icon: "snapchat" },
+  { kind: "x", label: "X", icon: "x" },
+  { kind: "youtube", label: "YouTube", icon: "youtube" },
+  { kind: "linkedin", label: "LinkedIn", icon: "linkedin" },
+  { kind: "whatsapp", label: "WhatsApp", icon: "whatsapp" },
+  { kind: "yelp", label: "Yelp", icon: "yelp" },
+  { kind: "custom", label: "Any custom link", icon: "link", placeholder: "https://" },
 ];
 
 function sid() {
   return nanoid(8);
+}
+
+export function sectionFinish(section: TapCardSection, fallback: PremiumFinish = "metallic"): PremiumFinish {
+  return (section.finish || section.style || fallback) as PremiumFinish;
 }
 
 export function defaultTapConnectCard(params: {
@@ -130,6 +152,7 @@ export function defaultTapConnectCard(params: {
     params.profile?.displayName ||
     params.profile?.organization ||
     params.businessName;
+  const accent = params.accentColor || "#d4af37";
   const sections: TapCardSection[] = [
     {
       id: sid(),
@@ -140,6 +163,7 @@ export function defaultTapConnectCard(params: {
       textRight: "Hottest Deal!!!",
       href: params.profile?.website || "#",
       label: "Promo header",
+      format: { fontFamily: "script", italic: true, fontSize: "base" },
     },
     {
       id: sid(),
@@ -162,6 +186,7 @@ export function defaultTapConnectCard(params: {
       organization: params.profile?.organization || params.businessName,
       headline: "Every conversation → a customer",
       label: "Identity",
+      format: { fontFamily: "sans", fontWeight: "bold", align: "center", fontSize: "xl" },
     },
     {
       id: sid(),
@@ -170,8 +195,9 @@ export function defaultTapConnectCard(params: {
       order: 3,
       actionKind: "vcard",
       label: "Download VCard",
-      style: "metallic",
+      finish: "metallic",
       icon: "vcard",
+      format: { fontFamily: "serif", fontWeight: "semibold", fontSize: "lg" },
     },
   ];
 
@@ -185,7 +211,7 @@ export function defaultTapConnectCard(params: {
       actionKind: "review",
       label: "Please Leave Us a Review",
       href: params.reviewUrl,
-      style: "soft",
+      finish: "soft",
       icon: "google",
     });
   }
@@ -198,19 +224,21 @@ export function defaultTapConnectCard(params: {
       actionKind: "website",
       label: "Website",
       href: params.profile.website,
-      style: "metallic",
-      icon: "link",
+      finish: "metallic",
+      icon: "globe",
     });
   }
 
-  const socialOrder: { key: keyof NonNullable<BrandContactProfile["socials"]>; kind: TapCardActionKind }[] =
-    [
-      { key: "facebook", kind: "facebook" },
-      { key: "instagram", kind: "instagram" },
-      { key: "tiktok", kind: "tiktok" },
-      { key: "snapchat", kind: "snapchat" },
-      { key: "x", kind: "x" },
-    ];
+  const socialOrder: {
+    key: keyof NonNullable<BrandContactProfile["socials"]>;
+    kind: TapCardActionKind;
+  }[] = [
+    { key: "facebook", kind: "facebook" },
+    { key: "instagram", kind: "instagram" },
+    { key: "tiktok", kind: "tiktok" },
+    { key: "snapchat", kind: "snapchat" },
+    { key: "x", kind: "x" },
+  ];
   for (const s of socialOrder) {
     const url = params.profile?.socials?.[s.key];
     if (!url) continue;
@@ -222,7 +250,7 @@ export function defaultTapConnectCard(params: {
       actionKind: s.kind,
       label: TAP_CARD_ACTION_CATALOG.find((c) => c.kind === s.kind)?.label ?? s.kind,
       href: url,
-      style: "metallic",
+      finish: "metallic",
       icon: s.kind,
     });
   }
@@ -235,7 +263,7 @@ export function defaultTapConnectCard(params: {
       order: order++,
       actionKind: "homescreen",
       label: "Add to Home Screen",
-      style: "outline",
+      finish: "outline",
       icon: "homescreen",
     },
     {
@@ -248,17 +276,25 @@ export function defaultTapConnectCard(params: {
       description: "Build your Tap Connect Card — offers, reviews, and follow-up in one tap.",
       buttonLabel: "Get Tap Connect",
       href: "/sign-up",
+      finish: "neon",
     }
   );
 
   return {
-    version: 1,
-    accentColor: params.accentColor || "#d4af37",
+    version: 2,
+    accentColor: accent,
     surfaceColor: "#f4f1ea",
     textColor: "#0b0f19",
+    neonColor: accent,
     headerEnergy: 72,
     collapsible: true,
     defaultCollapsed: false,
+    actionsLayout: "stack",
+    defaultFinish: "metallic",
+    cardFinish: "soft",
+    titleFormat: { fontFamily: "sans", fontWeight: "bold", align: "center" },
+    bodyFormat: { fontFamily: "sans", fontSize: "sm", align: "center" },
+    compactActionsOnly: false,
     sections,
   };
 }
@@ -267,22 +303,32 @@ export function parseTapConnectCard(
   raw: unknown,
   fallback: Parameters<typeof defaultTapConnectCard>[0]
 ): TapConnectCardConfig {
-  if (!raw || typeof raw !== "object" || Array.isArray(raw)) {
-    return defaultTapConnectCard(fallback);
-  }
+  const base = defaultTapConnectCard(fallback);
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
   const o = raw as Record<string, unknown>;
-  if (!Array.isArray(o.sections) || o.sections.length === 0) {
-    return defaultTapConnectCard(fallback);
-  }
+  if (!Array.isArray(o.sections) || o.sections.length === 0) return base;
+
+  const sections = (o.sections as TapCardSection[]).map((s) => ({
+    ...s,
+    finish: s.finish || s.style || base.defaultFinish,
+  }));
+
   return {
-    version: 1,
-    accentColor: typeof o.accentColor === "string" ? o.accentColor : "#d4af37",
-    surfaceColor: typeof o.surfaceColor === "string" ? o.surfaceColor : "#f4f1ea",
-    textColor: typeof o.textColor === "string" ? o.textColor : "#0b0f19",
-    headerEnergy: typeof o.headerEnergy === "number" ? o.headerEnergy : 72,
+    version: 2,
+    accentColor: typeof o.accentColor === "string" ? o.accentColor : base.accentColor,
+    surfaceColor: typeof o.surfaceColor === "string" ? o.surfaceColor : base.surfaceColor,
+    textColor: typeof o.textColor === "string" ? o.textColor : base.textColor,
+    neonColor: typeof o.neonColor === "string" ? o.neonColor : base.neonColor,
+    headerEnergy: typeof o.headerEnergy === "number" ? o.headerEnergy : base.headerEnergy,
     collapsible: o.collapsible !== false,
     defaultCollapsed: o.defaultCollapsed === true,
-    sections: o.sections as TapCardSection[],
+    actionsLayout: o.actionsLayout === "grid_2" ? "grid_2" : "stack",
+    defaultFinish: (o.defaultFinish as PremiumFinish) || base.defaultFinish,
+    cardFinish: (o.cardFinish as PremiumFinish) || base.cardFinish,
+    titleFormat: (o.titleFormat as TextFormat) || base.titleFormat,
+    bodyFormat: (o.bodyFormat as TextFormat) || base.bodyFormat,
+    compactActionsOnly: o.compactActionsOnly === true,
+    sections,
   };
 }
 
@@ -333,4 +379,17 @@ export function resolveActionHref(
     default:
       return section.href;
   }
+}
+
+/** Pair consecutive actions when layout is grid_2 (for rendering). */
+export function groupActionsForLayout(
+  actions: TapCardSection[],
+  layout: TapCardActionsLayout
+): TapCardSection[][] {
+  if (layout !== "grid_2") return actions.map((a) => [a]);
+  const rows: TapCardSection[][] = [];
+  for (let i = 0; i < actions.length; i += 2) {
+    rows.push(actions.slice(i, i + 2));
+  }
+  return rows;
 }

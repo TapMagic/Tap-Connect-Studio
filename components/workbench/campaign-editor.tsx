@@ -24,6 +24,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { MediaPicker } from "@/components/media/media-picker";
 import { BlockStyleControls } from "@/components/workbench/block-style-controls";
+import { IconPicker } from "@/components/design/icon-picker";
+import { FinishPicker } from "@/components/design/format-controls";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { SchedulePanel } from "@/components/campaign/schedule-panel";
 import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
@@ -1179,7 +1181,7 @@ function BlockFields({
                 </select>
               </div>
               <div className="space-y-1">
-                <Label className="text-[10px]">Style</Label>
+                <Label className="text-[10px]">Style (legacy)</Label>
                 <select
                   className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
                   value={btn.style}
@@ -1194,38 +1196,27 @@ function BlockFields({
                   <option value="soft">Soft tint</option>
                 </select>
               </div>
-              <div className="space-y-1">
-                <Label className="text-[10px]">Icon / social</Label>
-                <select
-                  className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
-                  value={btn.icon ?? "none"}
-                  onChange={(e) =>
-                    patchBtn(btn.id, { icon: e.target.value as ButtonItem["icon"] })
+              <div className="sm:col-span-2">
+                <FinishPicker
+                  label="Premium finish"
+                  value={btn.finish}
+                  onChange={(finish) => patchBtn(btn.id, { finish })}
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <IconPicker
+                  icon={(btn.icon as string) || "link"}
+                  customUrl={btn.imageUrl && (btn.appearance === "icon_text" || btn.appearance === "icon_only") ? "" : undefined}
+                  onChange={({ icon, customUrl }) =>
+                    patchBtn(btn.id, {
+                      icon: (icon as ButtonItem["icon"]) || "link",
+                      ...(customUrl
+                        ? { imageUrl: customUrl, appearance: btn.appearance ?? "icon_text" }
+                        : {}),
+                    })
                   }
-                >
-                  <option value="none">None</option>
-                  <option value="link">Link</option>
-                  <option value="phone">Phone</option>
-                  <option value="mail">Email</option>
-                  <option value="map">Map</option>
-                  <option value="instagram">Instagram</option>
-                  <option value="facebook">Facebook</option>
-                  <option value="tiktok">TikTok</option>
-                  <option value="youtube">YouTube</option>
-                  <option value="linkedin">LinkedIn</option>
-                  <option value="x">X / Twitter</option>
-                  <option value="whatsapp">WhatsApp</option>
-                  <option value="threads">Threads</option>
-                  <option value="snapchat">Snapchat</option>
-                  <option value="pinterest">Pinterest</option>
-                  <option value="yelp">Yelp</option>
-                  <option value="spotify">Spotify</option>
-                  <option value="star">Star</option>
-                  <option value="cart">Cart</option>
-                  <option value="calendar">Calendar</option>
-                  <option value="play">Play</option>
-                  <option value="external">External</option>
-                </select>
+                  mediaUploadReady={mediaUploadReady}
+                />
               </div>
               <div className="space-y-1">
                 <Label className="text-[10px]">Size</Label>

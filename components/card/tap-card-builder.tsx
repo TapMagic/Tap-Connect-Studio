@@ -17,6 +17,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MediaPicker } from "@/components/media/media-picker";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { IconPicker } from "@/components/design/icon-picker";
+import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   TAP_CARD_ACTION_CATALOG,
@@ -24,6 +26,7 @@ import {
   type TapCardSection,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
+import type { PremiumFinish } from "@/lib/design/premium-finish";
 import { cn } from "@/lib/utils";
 
 type Props = {
@@ -101,17 +104,18 @@ export function TapCardBuilder({
     const id = nanoid(8);
     setSections([
       ...sorted,
-      {
-        id,
-        type: "action",
-        enabled: true,
-        order: sorted.length,
-        actionKind: addKind,
-        label: catalog?.label ?? addKind,
-        icon: catalog?.icon ?? addKind,
-        style: addKind === "review" ? "soft" : "metallic",
-        href: "",
-      },
+        {
+          id,
+          type: "action",
+          enabled: true,
+          order: sorted.length,
+          actionKind: addKind,
+          label: catalog?.label ?? addKind,
+          icon: catalog?.icon ?? addKind,
+          finish: addKind === "review" ? "soft" : config.defaultFinish,
+          style: addKind === "review" ? "soft" : config.defaultFinish,
+          href: "",
+        },
     ]);
     setSelectedId(id);
   }
@@ -201,6 +205,47 @@ export function TapCardBuilder({
                   onChange={(e) => patchConfig({ surfaceColor: e.target.value })}
                 />
               </div>
+              <div>
+                <Label className="text-xs">Text</Label>
+                <Input
+                  type="color"
+                  value={config.textColor}
+                  onChange={(e) => patchConfig({ textColor: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label className="text-xs">Neon</Label>
+                <Input
+                  type="color"
+                  value={config.neonColor || config.accentColor}
+                  onChange={(e) => patchConfig({ neonColor: e.target.value })}
+                />
+              </div>
+            </div>
+            <FinishPicker
+              label="Card shell finish"
+              value={config.cardFinish}
+              onChange={(cardFinish) => patchConfig({ cardFinish })}
+            />
+            <FinishPicker
+              label="Default button finish"
+              value={config.defaultFinish}
+              onChange={(defaultFinish) => patchConfig({ defaultFinish })}
+            />
+            <div className="space-y-1">
+              <Label className="text-xs">Actions layout</Label>
+              <select
+                className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                value={config.actionsLayout}
+                onChange={(e) =>
+                  patchConfig({
+                    actionsLayout: e.target.value as TapConnectCardConfig["actionsLayout"],
+                  })
+                }
+              >
+                <option value="stack">Stack (full width)</option>
+                <option value="grid_2">Two columns</option>
+              </select>
             </div>
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -218,6 +263,24 @@ export function TapCardBuilder({
               />
               Start collapsed
             </label>
+            <label className="flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={Boolean(config.compactActionsOnly)}
+                onChange={(e) => patchConfig({ compactActionsOnly: e.target.checked })}
+              />
+              Compact — buttons only (no hero)
+            </label>
+            <TextFormatControls
+              title="Title typography"
+              value={config.titleFormat}
+              onChange={(titleFormat) => patchConfig({ titleFormat })}
+            />
+            <TextFormatControls
+              title="Body typography"
+              value={config.bodyFormat}
+              onChange={(bodyFormat) => patchConfig({ bodyFormat })}
+            />
 
             <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
               <Label className="text-xs">Add action</Label>
@@ -367,6 +430,82 @@ export function TapCardBuilder({
                 onChange={(e) => patchSection(selected.id, { label: e.target.value })}
                 placeholder="Label"
               />
+              {selected.type === "action" && (
+                <>
+                  <select
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                    value={selected.actionKind ?? "custom"}
+                    onChange={(e) => {
+                      const kind = e.target.value as TapCardActionKind;
+                      const cat = TAP_CARD_ACTION_CATALOG.find((c) => c.kind === kind);
+                      patchSection(selected.id, {
+                        actionKind: kind,
+                        icon: cat?.icon ?? kind,
+                        label: selected.label || cat?.label,
+                      });
+                    }}
+                  >
+                    {TAP_CARD_ACTION_CATALOG.map((c) => (
+                      <option key={c.kind} value={c.kind}>
+                        {c.label}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-muted-foreground">
+                    Use &quot;Any custom link&quot; for Square, Shopify, Calendly, TikTok shops —
+                    any URL.
+                  </p>
+                  <Input
+                    value={selected.href ?? ""}
+                    onChange={(e) => patchSection(selected.id, { href: e.target.value })}
+                    placeholder="https://… (any link)"
+                  />
+                  <FinishPicker
+                    value={selected.finish || selected.style || config.defaultFinish}
+                    onChange={(finish: PremiumFinish) =>
+                      patchSection(selected.id, { finish, style: finish })
+                    }
+                  />
+                  <IconPicker
+                    icon={selected.icon || selected.actionKind || "link"}
+                    customUrl={selected.iconUrl}
+                    onChange={({ icon, customUrl }) =>
+                      patchSection(selected.id, {
+                        icon: icon || selected.icon,
+                        iconUrl: customUrl,
+                      })
+                    }
+                    mediaUploadReady={mediaUploadReady}
+                  />
+                  <TextFormatControls
+                    title="Button label format"
+                    value={selected.format}
+                    onChange={(format) => patchSection(selected.id, { format })}
+                  />
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <Label className="text-xs">Fill color</Label>
+                      <Input
+                        type="color"
+                        value={selected.backgroundColor || "#0c0a07"}
+                        onChange={(e) =>
+                          patchSection(selected.id, { backgroundColor: e.target.value })
+                        }
+                      />
+                    </div>
+                    <div>
+                      <Label className="text-xs">Label color</Label>
+                      <Input
+                        type="color"
+                        value={selected.textColor || config.textColor}
+                        onChange={(e) =>
+                          patchSection(selected.id, { textColor: e.target.value })
+                        }
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
               {selected.type === "promo_header" && (
                 <>
                   <Input
@@ -383,6 +522,42 @@ export function TapCardBuilder({
                     value={selected.href ?? ""}
                     onChange={(e) => patchSection(selected.id, { href: e.target.value })}
                     placeholder="Click URL"
+                  />
+                  <TextFormatControls
+                    title="Promo typography"
+                    value={selected.format}
+                    onChange={(format) => patchSection(selected.id, { format })}
+                  />
+                </>
+              )}
+              {selected.type === "identity" && (
+                <>
+                  <Input
+                    value={selected.name ?? ""}
+                    onChange={(e) => patchSection(selected.id, { name: e.target.value })}
+                    placeholder="Name"
+                  />
+                  <Input
+                    value={selected.title ?? ""}
+                    onChange={(e) => patchSection(selected.id, { title: e.target.value })}
+                    placeholder="Title"
+                  />
+                  <Input
+                    value={selected.organization ?? ""}
+                    onChange={(e) =>
+                      patchSection(selected.id, { organization: e.target.value })
+                    }
+                    placeholder="Organization"
+                  />
+                  <Input
+                    value={selected.headline ?? ""}
+                    onChange={(e) => patchSection(selected.id, { headline: e.target.value })}
+                    placeholder="Headline"
+                  />
+                  <TextFormatControls
+                    title="Identity typography"
+                    value={selected.format}
+                    onChange={(format) => patchSection(selected.id, { format })}
                   />
                 </>
               )}
@@ -417,74 +592,6 @@ export function TapCardBuilder({
                     />
                     Show Call badge
                   </label>
-                </>
-              )}
-              {selected.type === "identity" && (
-                <>
-                  <Input
-                    value={selected.name ?? ""}
-                    onChange={(e) => patchSection(selected.id, { name: e.target.value })}
-                    placeholder="Name"
-                  />
-                  <Input
-                    value={selected.title ?? ""}
-                    onChange={(e) => patchSection(selected.id, { title: e.target.value })}
-                    placeholder="Title"
-                  />
-                  <Input
-                    value={selected.organization ?? ""}
-                    onChange={(e) =>
-                      patchSection(selected.id, { organization: e.target.value })
-                    }
-                    placeholder="Organization"
-                  />
-                  <Input
-                    value={selected.headline ?? ""}
-                    onChange={(e) => patchSection(selected.id, { headline: e.target.value })}
-                    placeholder="Headline"
-                  />
-                </>
-              )}
-              {selected.type === "action" && (
-                <>
-                  <select
-                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
-                    value={selected.actionKind ?? "custom"}
-                    onChange={(e) => {
-                      const kind = e.target.value as TapCardActionKind;
-                      const cat = TAP_CARD_ACTION_CATALOG.find((c) => c.kind === kind);
-                      patchSection(selected.id, {
-                        actionKind: kind,
-                        icon: cat?.icon ?? kind,
-                        label: selected.label || cat?.label,
-                      });
-                    }}
-                  >
-                    {TAP_CARD_ACTION_CATALOG.map((c) => (
-                      <option key={c.kind} value={c.kind}>
-                        {c.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    value={selected.href ?? ""}
-                    onChange={(e) => patchSection(selected.id, { href: e.target.value })}
-                    placeholder="URL (optional if using brand contact)"
-                  />
-                  <select
-                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
-                    value={selected.style ?? "metallic"}
-                    onChange={(e) =>
-                      patchSection(selected.id, {
-                        style: e.target.value as TapCardSection["style"],
-                      })
-                    }
-                  >
-                    <option value="metallic">Metallic pill</option>
-                    <option value="soft">Soft / review</option>
-                    <option value="outline">Outline</option>
-                    <option value="brand">Brand color</option>
-                  </select>
                 </>
               )}
               {selected.type === "footer_cta" && (

@@ -59,6 +59,20 @@ export interface BlockStyle {
   spacing?: "compact" | "normal" | "spacious";
   /** Soft card behind the block */
   card?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  uppercase?: boolean;
+  finish?:
+    | "metallic"
+    | "soft"
+    | "glass"
+    | "tile"
+    | "neon"
+    | "outline"
+    | "brand"
+    | "solid"
+    | "ghost";
+  neonColor?: string;
 }
 
 export interface HeroImageData {
@@ -97,6 +111,17 @@ export interface ButtonItem {
   label: string;
   url: string;
   style: "primary" | "secondary" | "outline" | "ghost" | "soft";
+  /** Premium finish overrides legacy style chrome when set */
+  finish?:
+    | "metallic"
+    | "soft"
+    | "glass"
+    | "tile"
+    | "neon"
+    | "outline"
+    | "brand"
+    | "solid"
+    | "ghost";
   icon?:
     | "none"
     | "link"
@@ -119,7 +144,8 @@ export interface ButtonItem {
     | "snapchat"
     | "pinterest"
     | "yelp"
-    | "spotify";
+    | "spotify"
+    | string;
   /** Custom art (beer stein, logo mark, photo) — works with any appearance */
   imageUrl?: string;
   appearance?: "icon_text" | "icon_only" | "text" | "image" | "image_label";
@@ -131,6 +157,9 @@ export interface ButtonItem {
   /** Per-button color overrides */
   backgroundColor?: string;
   textColor?: string;
+  italic?: boolean;
+  bold?: boolean;
+  neonColor?: string;
 }
 
 export interface ButtonGroupData {

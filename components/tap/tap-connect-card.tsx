@@ -9,13 +9,18 @@ import {
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
 import {
+  groupActionsForLayout,
   resolveActionHref,
+  sectionFinish,
   sortTapCardSections,
   type TapCardSection,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
-import { SocialGlyph, socialBrandStyle } from "@/components/tap/social-icons";
+import { PremiumIcon } from "@/components/design/premium-icon";
+import { finishClass, textFormatToCss } from "@/lib/design/premium-finish";
+import { socialBrandStyle } from "@/components/tap/social-icons";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
+import { cn } from "@/lib/utils";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -23,7 +28,6 @@ type TapConnectCardProps = {
   businessName: string;
   logoUrl?: string | null;
   reviewUrl?: string | null;
-  /** Force expanded (builder) */
   forceExpanded?: boolean;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
@@ -49,8 +53,7 @@ export function TapConnectCard({
     [config.sections]
   );
 
-  const name =
-    profile.displayName || profile.organization || businessName;
+  const name = profile.displayName || profile.organization || businessName;
   const initial = (name.trim()[0] || "?").toUpperCase();
   const mark = logoUrl || sections.find((s) => s.type === "hero")?.logoUrl;
 
@@ -58,6 +61,7 @@ export function TapConnectCard({
     "--tcc-accent": config.accentColor,
     "--tcc-surface": config.surfaceColor,
     "--tcc-text": config.textColor,
+    "--tcc-neon": config.neonColor || config.accentColor,
     "--tcc-energy": String(config.headerEnergy / 100),
   } as CSSProperties;
 
@@ -83,7 +87,7 @@ export function TapConnectCard({
           }
         }
       } catch {
-        /* photo optional */
+        /* optional */
       }
     }
     const vcf = buildVCard({
@@ -129,7 +133,7 @@ export function TapConnectCard({
     }
 
     const href = resolveActionHref(section, profile, reviewUrl);
-    if (href) window.location.href = href;
+    if (href) window.open(href, href.startsWith("http") ? "_blank" : "_self", "noopener,noreferrer");
   }
 
   const promo = sections.find((s) => s.type === "promo_header");
@@ -137,29 +141,56 @@ export function TapConnectCard({
   const identity = sections.find((s) => s.type === "identity");
   const actions = sections.filter((s) => s.type === "action");
   const footer = sections.find((s) => s.type === "footer_cta");
+  const compact = config.compactActionsOnly;
 
-  const peekActions = actions.slice(0, 2);
+  const peekActions = actions.slice(0, config.actionsLayout === "grid_2" ? 2 : 2);
   const visibleActions = collapsed ? peekActions : actions;
+  const actionRows = groupActionsForLayout(visibleActions, config.actionsLayout);
 
   return (
-    <div className={`tcc ${className}`.trim()} style={style}>
-      {promo ? (
+    <div
+      className={cn(
+        "tcc",
+        finishClass(config.cardFinish, "tcc-shell-finish"),
+        className
+      )}
+      style={style}
+    >
+      {!compact && promo ? (
         <a
           href={promo.href || "#"}
           className="tcc-promo"
+          style={{
+            backgroundColor: promo.backgroundColor,
+            ...textFormatToCss(promo.format),
+          }}
           onClick={(e) => {
             if (!promo.href || promo.href === "#") e.preventDefault();
             onAction?.("promo_header", promo.id);
           }}
         >
-          <span className="tcc-promo-left">{promo.text || "Click Here to"}</span>
-          <span className="tcc-promo-right">{promo.textRight || "Hottest Deal!!!"}</span>
+          <span className="tcc-promo-left" style={textFormatToCss(promo.format)}>
+            {promo.text || "Click Here to"}
+          </span>
+          <span
+            className="tcc-promo-right"
+            style={{
+              color: promo.textColor || undefined,
+              ...textFormatToCss({
+                ...promo.format,
+                italic: true,
+                fontWeight: "black",
+              }),
+            }}
+          >
+            {promo.textRight || "Hottest Deal!!!"}
+          </span>
           <span className="tcc-promo-sheen" aria-hidden />
         </a>
       ) : null}
 
       <div className="tcc-shell">
-        {hero ? (
+        {!compact && hero ? (
           <div className="tcc-hero">
             <div className="tcc-hero-mesh" aria-hidden>
               <span className="tcc-orb tcc-orb-a" />
@@ -195,27 +226,47 @@ export function TapConnectCard({
                 className="tcc-call-fab"
                 onClick={() => onAction?.("call", "fab")}
               >
-                <SocialGlyph platform="phone" sizePx={22} />
+                <PremiumIcon icon="phone" sizePx={22} />
                 <span>Click to Call</span>
               </a>
             ) : null}
           </div>
         ) : null}
 
-        {identity ? (
-          <div className="tcc-identity">
-            <p className="tcc-name">{identity.name || name}</p>
-            {identity.title ? <p className="tcc-role">{identity.title}</p> : null}
+        {!compact && identity ? (
+          <div className="tcc-identity" style={textFormatToCss(config.titleFormat)}>
+            <p
+              className="tcc-name"
+              style={textFormatToCss({ ...config.titleFormat, ...identity.format })}
+            >
+              {identity.name || name}
+            </p>
+            {identity.title ? (
+              <p className="tcc-role" style={textFormatToCss(config.bodyFormat)}>
+                {identity.title}
+              </p>
+            ) : null}
             {identity.organization ? (
-              <p className="tcc-org">{identity.organization}</p>
+              <p className="tcc-org" style={textFormatToCss(config.bodyFormat)}>
+                {identity.organization}
+              </p>
             ) : null}
             {identity.headline ? (
-              <p className="tcc-headline">{identity.headline}</p>
+              <p
+                className="tcc-headline"
+                style={textFormatToCss({
+                  ...config.bodyFormat,
+                  italic: true,
+                  ...identity.format,
+                })}
+              >
+                {identity.headline}
+              </p>
             ) : null}
           </div>
         ) : null}
 
-        {config.collapsible && !forceExpanded ? (
+        {config.collapsible && !forceExpanded && !compact ? (
           <button
             type="button"
             className="tcc-collapse-toggle"
@@ -233,25 +284,48 @@ export function TapConnectCard({
           </button>
         ) : null}
 
-        <div className={`tcc-actions ${collapsed ? "tcc-actions-peek" : ""}`}>
-          {visibleActions.map((section) => (
-            <ActionPill
-              key={section.id}
-              section={section}
-              accent={config.accentColor}
-              avatarUrl={mark}
-              onActivate={() => void handleAction(section)}
-            />
+        <div
+          className={cn(
+            "tcc-actions",
+            config.actionsLayout === "grid_2" && "tcc-actions-grid",
+            collapsed && "tcc-actions-peek"
+          )}
+        >
+          {actionRows.map((row, ri) => (
+            <div
+              key={ri}
+              className={cn(
+                "tcc-action-row",
+                row.length === 2 && "tcc-action-row-2"
+              )}
+            >
+              {row.map((section) => (
+                <ActionPill
+                  key={section.id}
+                  section={section}
+                  defaultFinish={config.defaultFinish}
+                  avatarUrl={mark}
+                  onActivate={() => void handleAction(section)}
+                />
+              ))}
+            </div>
           ))}
         </div>
 
-        {!collapsed && footer ? (
-          <div className="tcc-footer-cta">
+        {!collapsed && !compact && footer ? (
+          <div
+            className={cn(
+              "tcc-footer-cta",
+              finishClass(sectionFinish(footer, "neon"), "tcc-pill")
+            )}
+          >
             <div className="tcc-footer-brand">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={TAP_CONNECT_LOGO} alt="" className="tcc-footer-logo" />
               <div>
-                <p className="tcc-footer-title">{footer.text || "Want a card like this?"}</p>
+                <p className="tcc-footer-title" style={textFormatToCss(footer.format)}>
+                  {footer.text || "Want a card like this?"}
+                </p>
                 <p className="tcc-footer-body">
                   {footer.description ||
                     "Offers, reviews, and follow-up — one tap."}
@@ -277,44 +351,46 @@ export function TapConnectCard({
 
 function ActionPill({
   section,
-  accent,
+  defaultFinish,
   avatarUrl,
   onActivate,
 }: {
   section: TapCardSection;
-  accent: string;
+  defaultFinish: TapConnectCardConfig["defaultFinish"];
   avatarUrl?: string | null;
   onActivate: () => void;
 }) {
   const kind = section.actionKind || "custom";
   const icon = section.icon || kind;
-  const style = section.style || "metallic";
-  const brand = socialBrandStyle(icon);
+  const finish = sectionFinish(section, defaultFinish);
+  const brand = !section.iconUrl ? socialBrandStyle(icon) : undefined;
 
   return (
     <button
       type="button"
-      className={`tcc-pill tcc-pill-${style}`}
+      className={cn("tcc-pill", finishClass(finish, "tcc-pill"))}
       style={
-        style === "metallic"
-          ? ({ "--tcc-accent": accent } as CSSProperties)
-          : style === "brand" && brand
-            ? brand
-            : undefined
+        {
+          "--tcc-accent": section.accentColor || undefined,
+          backgroundColor: section.backgroundColor,
+          color: section.textColor,
+          ...(finish === "brand" && brand ? brand : {}),
+        } as CSSProperties
       }
       onClick={onActivate}
     >
-      <span className="tcc-pill-icon" style={brand}>
-        {kind === "vcard" && avatarUrl ? (
+      <span className="tcc-pill-icon" style={finish === "brand" ? brand : undefined}>
+        {kind === "vcard" && avatarUrl && !section.iconUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={avatarUrl} alt="" className="tcc-pill-avatar" />
         ) : (
-          <SocialGlyph platform={icon} sizePx={18} />
+          <PremiumIcon icon={icon} customUrl={section.iconUrl} sizePx={18} />
         )}
       </span>
-      <span className="tcc-pill-label">{section.label || kind}</span>
+      <span className="tcc-pill-label" style={textFormatToCss(section.format)}>
+        {section.label || kind}
+      </span>
       <ChevronRight className="tcc-pill-chevron" />
     </button>
   );
 }
-

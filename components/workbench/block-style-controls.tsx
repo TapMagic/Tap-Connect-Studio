@@ -94,6 +94,50 @@ export function BlockStyleControls({
           />
           Card background
         </label>
+        <label className="flex items-end gap-2 pb-1 text-xs">
+          <input
+            type="checkbox"
+            checked={style.italic === true}
+            onChange={(e) => set("italic", e.target.checked)}
+          />
+          Italic
+        </label>
+        <label className="flex items-end gap-2 pb-1 text-xs">
+          <input
+            type="checkbox"
+            checked={style.underline === true}
+            onChange={(e) => set("underline", e.target.checked)}
+          />
+          Underline
+        </label>
+        <label className="flex items-end gap-2 pb-1 text-xs">
+          <input
+            type="checkbox"
+            checked={style.uppercase === true}
+            onChange={(e) => set("uppercase", e.target.checked)}
+          />
+          ALL CAPS
+        </label>
+        <div className="space-y-1 sm:col-span-2">
+          <Label className="text-[10px]">Premium finish</Label>
+          <select
+            className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+            value={style.finish ?? ""}
+            onChange={(e) =>
+              set("finish", (e.target.value || undefined) as BlockStyle["finish"])
+            }
+          >
+            <option value="">None</option>
+            <option value="metallic">Metallic</option>
+            <option value="glass">Glass</option>
+            <option value="tile">Tile</option>
+            <option value="neon">Neon glow</option>
+            <option value="soft">Soft</option>
+            <option value="solid">Solid</option>
+            <option value="outline">Outline</option>
+            <option value="ghost">Ghost</option>
+          </select>
+        </div>
         <div className="space-y-1">
           <Label className="text-[10px]">Text color</Label>
           <div className="flex gap-1">
@@ -168,5 +212,9 @@ export function blockStyleToCss(style?: BlockStyle): CSSProperties {
     fontFamily: style.fontFamily ? familyMap[style.fontFamily] : undefined,
     textAlign: style.align,
     padding: style.spacing ? padMap[style.spacing] : undefined,
+    fontStyle: style.italic ? "italic" : undefined,
+    textDecoration: style.underline ? "underline" : undefined,
+    textTransform: style.uppercase ? "uppercase" : undefined,
+    ...(style.neonColor ? ({ ["--tcc-neon" as string]: style.neonColor } as CSSProperties) : {}),
   };
 }

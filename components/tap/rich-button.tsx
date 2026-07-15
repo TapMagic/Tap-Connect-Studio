@@ -2,7 +2,9 @@
 
 import type { CSSProperties } from "react";
 import { TapActionButton } from "@/components/tap/action-button";
-import { SocialGlyph, socialBrandStyle, SOCIAL_BRAND } from "@/components/tap/social-icons";
+import { socialBrandStyle, SOCIAL_BRAND } from "@/components/tap/social-icons";
+import { PremiumIcon } from "@/components/design/premium-icon";
+import { finishClass } from "@/lib/design/premium-finish";
 import type { ButtonItem } from "@/lib/types/campaign";
 import { cn } from "@/lib/utils";
 
@@ -112,31 +114,35 @@ export function RichTapButton({
     !btn.imageUrl &&
     (appearance === "icon_only" || appearance === "icon_text" || appearance === "text");
 
-  const styleClass = useBrand
-    ? "tap-btn-social"
-    : btn.style === "primary"
-      ? "tap-btn-primary"
-      : btn.style === "outline"
-        ? "tap-btn-outline"
-        : btn.style === "ghost"
-          ? "tap-btn-ghost"
-          : btn.style === "soft"
-            ? "tap-btn-soft"
-            : "tap-btn-secondary";
+  const styleClass = btn.finish
+    ? finishClass(btn.finish, "tap-finish")
+    : useBrand
+      ? "tap-btn-social"
+      : btn.style === "primary"
+        ? "tap-btn-primary"
+        : btn.style === "outline"
+          ? "tap-btn-outline"
+          : btn.style === "ghost"
+            ? "tap-btn-ghost"
+            : btn.style === "soft"
+              ? "tap-btn-soft"
+              : "tap-btn-secondary";
   const sizeClass =
     btn.size === "sm" ? "tap-btn-sm" : btn.size === "lg" ? "tap-btn-lg" : "";
   const widthClass = btn.fullWidth === false ? "" : "w-full";
   const cardClass = btn.card ? "tap-btn-card" : "";
-  const customStyle: CSSProperties | undefined =
-    btn.backgroundColor || btn.textColor
-      ? {
-          ...(btn.backgroundColor ? { background: btn.backgroundColor } : {}),
-          ...(btn.textColor ? { color: btn.textColor } : {}),
-        }
-      : undefined;
-  const combinedStyle = useBrand
+  const customStyle: CSSProperties | undefined = {
+    ...(btn.backgroundColor ? { background: btn.backgroundColor } : {}),
+    ...(btn.textColor ? { color: btn.textColor } : {}),
+    ...(btn.neonColor ? ({ ["--tcc-neon"]: btn.neonColor } as CSSProperties) : {}),
+    ...(btn.italic ? { fontStyle: "italic" } : {}),
+    ...(btn.bold ? { fontWeight: 700 } : {}),
+  };
+  const combinedStyle = useBrand && !btn.finish
     ? { ...brand, ...customStyle }
-    : customStyle;
+    : Object.keys(customStyle).length
+      ? customStyle
+      : undefined;
 
   // Phone / maps / mailto never open in a new tab
   const openInNewTab =
@@ -186,7 +192,10 @@ export function RichTapButton({
           // eslint-disable-next-line @next/next/no-img-element
           <img src={btn.imageUrl} alt="" className="tap-btn-custom-icon" />
         ) : (
-          <SocialGlyph platform={btn.icon && btn.icon !== "none" ? btn.icon : "link"} />
+          <PremiumIcon
+            icon={btn.icon && btn.icon !== "none" ? btn.icon : "link"}
+            sizePx={18}
+          />
         )}
       </TapActionButton>
     );
@@ -208,7 +217,7 @@ export function RichTapButton({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={btn.imageUrl} alt="" className="tap-btn-custom-icon" />
       ) : btn.icon && btn.icon !== "none" ? (
-        <SocialGlyph platform={btn.icon} />
+        <PremiumIcon icon={btn.icon} sizePx={18} />
       ) : null}
       <span className="tap-btn-label">{btn.label}</span>
     </TapActionButton>
