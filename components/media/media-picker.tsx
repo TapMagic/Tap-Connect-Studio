@@ -83,6 +83,8 @@ export function MediaPicker({
   const [stockResults, setStockResults] = useState<StockHit[]>([]);
   const [logoQuery, setLogoQuery] = useState("");
   const [logoResults, setLogoResults] = useState<LogoHit[]>([]);
+  const [logoTheme, setLogoTheme] = useState<"auto" | "light" | "dark">("dark");
+  const [logoGreyscale, setLogoGreyscale] = useState(false);
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryMode, setGalleryMode] = useState<"stock" | "logo">("stock");
   const [library, setLibrary] = useState<LibraryAsset[]>([]);
@@ -152,7 +154,12 @@ export function MediaPicker({
     setLoading("logo");
     setMessage(null);
     try {
-      const res = await fetch(`/api/logos/search?q=${encodeURIComponent(logoQuery.trim())}`);
+      const params = new URLSearchParams({
+        q: logoQuery.trim(),
+        theme: logoTheme,
+        greyscale: logoGreyscale ? "1" : "0",
+      });
+      const res = await fetch(`/api/logos/search?${params}`);
       const data = await res.json();
       if (!res.ok) {
         setMessage(data.message ?? data.error ?? "Logo search failed");
@@ -162,7 +169,9 @@ export function MediaPicker({
       setGalleryMode("logo");
       setGalleryOpen(true);
       if (!(data.results ?? []).length) {
-        setMessage("No logos found — try a brand name or domain (e.g. acme.com).");
+        setMessage("No logos found — try a brand name or domain (e.g. Nike, starbucks.com).");
+      } else if (data.logoDev) {
+        setMessage(null);
       }
     } catch {
       setMessage("Logo search failed");
@@ -424,13 +433,34 @@ export function MediaPicker({
       <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
         <Label className="text-xs">Web logo / icon search</Label>
         <p className="text-[10px] text-muted-foreground">
-          Brand name or domain — results save to your media library when selected
+          Brand name or domain — powered by Logo.dev when configured. Tap a result to save it to
+          your library.
         </p>
+        <div className="flex flex-wrap items-center gap-2">
+          <select
+            className="flex h-9 rounded-lg border border-input bg-background px-2 text-xs"
+            value={logoTheme}
+            onChange={(e) => setLogoTheme(e.target.value as "auto" | "light" | "dark")}
+            aria-label="Logo theme"
+          >
+            <option value="auto">Theme: auto</option>
+            <option value="dark">Theme: dark bg</option>
+            <option value="light">Theme: light bg</option>
+          </select>
+          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            <input
+              type="checkbox"
+              checked={logoGreyscale}
+              onChange={(e) => setLogoGreyscale(e.target.checked)}
+            />
+            Greyscale
+          </label>
+        </div>
         <div className="flex gap-2">
           <Input
             value={logoQuery}
             onChange={(e) => setLogoQuery(e.target.value)}
-            placeholder="e.g. Nike, starbucks.com, @acme"
+            placeholder="e.g. Nike, starbucks.com"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();

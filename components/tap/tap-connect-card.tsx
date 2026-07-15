@@ -445,6 +445,106 @@ export function TapConnectCard({
     );
   }
 
+  function renderLogoBlock(section: TapCardSection) {
+    const scale = (section.logoScale ?? 100) / 100;
+    const layout = section.logoBlockLayout || "columns";
+    const leftKind = section.columnLeft || "logo";
+    const rightKind = section.columnRight || "text";
+
+    function cell(
+      kind: "logo" | "text" | "image" | "empty" | undefined,
+      side: "left" | "right"
+    ) {
+      const href =
+        side === "left"
+          ? section.columnLeftHref || (kind === "logo" ? section.href : undefined)
+          : section.columnRightHref || undefined;
+      const wrap = (node: ReactNode) => {
+        if (!href?.trim()) return node;
+        return (
+          <a
+            href={href.trim()}
+            className="tcc-logo-block-link"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={() => onAction?.("logo_block", section.id)}
+          >
+            {node}
+          </a>
+        );
+      };
+
+      if (kind === "logo" || kind === "image") {
+        const src =
+          side === "left"
+            ? section.logoUrl ||
+              section.columnLeftImageUrl ||
+              section.imageUrl ||
+              logoUrl
+            : section.columnRightImageUrl || section.logoUrl || section.imageUrl || logoUrl;
+        if (!src) return <span className="tcc-logo-block-empty" aria-hidden />;
+        return wrap(
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={src}
+            alt={section.altText || businessName}
+            className="tcc-logo-block-img"
+            style={{
+              transform: `scale(${scale})`,
+              maxWidth: `${Math.round(120 * scale)}px`,
+              maxHeight: `${Math.round(72 * scale)}px`,
+            }}
+          />
+        );
+      }
+
+      if (kind === "text") {
+        const text =
+          side === "left"
+            ? section.columnLeftText || section.text || name
+            : section.columnRightText || section.textRight || section.text || "";
+        if (!text) return <span className="tcc-logo-block-empty" aria-hidden />;
+        return wrap(
+          <p
+            className="tcc-logo-block-text"
+            style={{
+              color: section.textColor,
+              ...textFormatToCss(section.format || config.bodyFormat),
+            }}
+          >
+            {text}
+          </p>
+        );
+      }
+
+      return <span className="tcc-logo-block-empty" aria-hidden />;
+    }
+
+    if (layout === "stack") {
+      return (
+        <div
+          key={section.id}
+          className="tcc-logo-block tcc-logo-block-stack"
+          style={{ backgroundColor: section.backgroundColor }}
+        >
+          {leftKind !== "empty" ? cell(leftKind, "left") : null}
+          {rightKind !== "empty" ? cell(rightKind, "right") : null}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={section.id}
+        className="tcc-logo-block tcc-logo-block-columns"
+        style={{ backgroundColor: section.backgroundColor }}
+      >
+        <div className="tcc-logo-block-col">{cell(leftKind, "left")}</div>
+        <div className="tcc-logo-block-col">{cell(rightKind, "right")}</div>
+      </div>
+    );
+  }
+
   function renderText(section: TapCardSection) {
     return (
       <div
@@ -604,6 +704,9 @@ export function TapConnectCard({
       case "image":
         bodyNodes.push(renderImage(s));
         break;
+      case "logo_block":
+        bodyNodes.push(renderLogoBlock(s));
+        break;
       case "text":
         bodyNodes.push(renderText(s));
         break;
@@ -629,22 +732,6 @@ export function TapConnectCard({
       )}
       style={style}
     >
-      {config.showHeaderLogo === true && (config.headerLogoUrl || logoUrl) ? (
-        <div className="tcc-header-logo">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={config.headerLogoUrl || logoUrl || ""}
-            alt={businessName}
-            className="tcc-header-logo-img"
-            style={{
-              maxWidth: `${Math.round(68 * ((config.headerLogoScale ?? 100) / 100))}px`,
-              maxHeight: `${Math.round(44 * ((config.headerLogoScale ?? 100) / 100))}px`,
-              width: "auto",
-              height: "auto",
-            }}
-          />
-        </div>
-      ) : null}
       {outerNodes}
       <div
         className="tcc-shell"

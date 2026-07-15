@@ -153,16 +153,28 @@ export function TapCardBuilder({
       label:
         type === "image"
           ? "Image block"
-          : type === "text"
-            ? "Text box"
-            : type === "spacer"
-              ? "Spacer"
-              : type,
+          : type === "logo_block"
+            ? "Logo block"
+            : type === "text"
+              ? "Text box"
+              : type === "spacer"
+                ? "Spacer"
+                : type,
     };
     if (type === "image") {
       base.imageWidthPercent = 100;
       base.imageRadius = "rounded_md";
       base.opacity = 100;
+    }
+    if (type === "logo_block") {
+      base.logoBlockLayout = "columns";
+      base.columnLeft = "logo";
+      base.columnRight = "text";
+      base.logoUrl = logoUrl || undefined;
+      base.columnRightText = businessName;
+      base.logoScale = 100;
+      base.href = "";
+      base.columnRightHref = "";
     }
     if (type === "text") {
       base.text = "Your message here";
@@ -239,7 +251,7 @@ export function TapCardBuilder({
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
-            Side panels match card height · scroll the page for the full Tap Card
+            Blocks column scrolls · card &amp; editor stay in view · scroll card to review
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -331,49 +343,6 @@ export function TapCardBuilder({
             />
             3-D raised buttons
           </label>
-        </div>
-
-        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border/40 bg-muted/10 p-2">
-          <label className="flex items-center gap-2 text-xs font-medium">
-            <input
-              type="checkbox"
-              checked={config.showHeaderLogo === true}
-              onChange={(e) => patchConfig({ showHeaderLogo: e.target.checked })}
-            />
-            Optional logo strip above card
-          </label>
-          <p className="w-full text-[10px] text-muted-foreground">
-            Off by default — your hero already shows a logo. Turn this on only for a separate
-            branding strip above the card shell.
-          </p>
-          {config.showHeaderLogo === true ? (
-            <>
-              <div className="min-w-[220px] flex-1">
-                <MediaPicker
-                  label="Header logo"
-                  value={config.headerLogoUrl || logoUrl || ""}
-                  onChange={(url) => patchConfig({ headerLogoUrl: url })}
-                  mediaUploadReady={mediaUploadReady}
-                  stockReady={stockReady}
-                />
-              </div>
-              <div className="min-w-[140px] space-y-1">
-                <Label className="text-[10px]">
-                  Header logo scale {config.headerLogoScale ?? 100}%
-                </Label>
-                <input
-                  type="range"
-                  min={40}
-                  max={180}
-                  value={config.headerLogoScale ?? 100}
-                  onChange={(e) =>
-                    patchConfig({ headerLogoScale: Number(e.target.value) })
-                  }
-                  className="w-full"
-                />
-              </div>
-            </>
-          ) : null}
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
@@ -490,10 +459,10 @@ export function TapCardBuilder({
         <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
       ) : null}
 
-      <div className="grid lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-stretch">
-        {/* Column 2 — full-height shell alongside preview */}
-        <aside className="relative flex min-h-full flex-col border-r border-border/60 bg-background">
-          <div className="min-h-full flex-1 space-y-3 p-4">
+      <div className="grid lg:grid-cols-[300px_minmax(0,1fr)_320px] lg:items-start">
+        {/* Column 2 — Add block / segments (page scrolls here) */}
+        <aside className="border-r border-border/60 bg-background">
+          <div className="space-y-3 p-4">
             <TextFormatControls
               title="Title typography"
               value={config.titleFormat}
@@ -522,6 +491,14 @@ export function TapCardBuilder({
                 <Button type="button" size="sm" variant="outline" onClick={() => addSection("image")}>
                   <ImageIcon className="mr-1 h-3.5 w-3.5" />
                   Image
+                </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => addSection("logo_block")}
+                >
+                  Logo
                 </Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => addSection("text")}>
                   <Type className="mr-1 h-3.5 w-3.5" />
@@ -644,32 +621,31 @@ export function TapCardBuilder({
           </div>
         </aside>
 
-        {/* Column 3 — Tap Card preview sets row height */}
-        <div className="flex min-h-full min-w-0 flex-col bg-black/30 p-4 pb-16">
-          <p className="mb-2 text-center text-[11px] text-muted-foreground">
-            Scroll the page to see the full Tap Card
-          </p>
-          <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
-            <div className="builder-phone-notch" />
-            <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
-              <TapConnectCard
-                config={config}
-                profile={profile}
-                businessName={businessName}
-                logoUrl={logoUrl}
-                reviewUrl={reviewUrl}
-                forceExpanded
-              />
+        {/* Column 3 — sticky; scroll inside to review full card */}
+        <div className="min-w-0 border-x border-border/40 bg-black/30 lg:sticky lg:top-14 lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
+          <div className="p-4 pb-10">
+            <p className="mb-2 text-center text-[11px] text-muted-foreground">
+              Scroll here to review the full Tap Card
+            </p>
+            <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
+              <div className="builder-phone-notch" />
+              <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
+                <TapConnectCard
+                  config={config}
+                  profile={profile}
+                  businessName={businessName}
+                  logoUrl={logoUrl}
+                  reviewUrl={reviewUrl}
+                  forceExpanded
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Column 4 — full-height shell; inspector sticks while scrolling */}
-        <aside className="relative flex min-h-full flex-col border-l border-border/60 bg-background">
-          <div
-            ref={inspectorRef}
-            className="sticky top-14 scroll-mt-16 p-4 lg:max-h-[calc(100dvh-3.5rem)] lg:overflow-y-auto"
-          >
+        {/* Column 4 — sticky editor stays in view while working in Add block */}
+        <aside className="border-l border-border/60 bg-background lg:sticky lg:top-14 lg:max-h-[calc(100dvh-3.5rem)] lg:self-start lg:overflow-y-auto">
+          <div ref={inspectorRef} className="scroll-mt-16 p-4">
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
           </p>
@@ -1252,6 +1228,136 @@ export function TapCardBuilder({
                       className="w-full"
                     />
                   </div>
+                </>
+              )}
+
+              {selected.type === "logo_block" && (
+                <>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Layout</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      value={selected.logoBlockLayout || "columns"}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          logoBlockLayout: e.target.value as "stack" | "columns",
+                        })
+                      }
+                    >
+                      <option value="columns">Two columns</option>
+                      <option value="stack">Stack (vertical)</option>
+                    </select>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">Left</Label>
+                      <select
+                        className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                        value={selected.columnLeft || "logo"}
+                        onChange={(e) =>
+                          patchSection(selected.id, {
+                            columnLeft: e.target.value as "logo" | "text" | "empty",
+                          })
+                        }
+                      >
+                        <option value="logo">Logo</option>
+                        <option value="text">Text</option>
+                        <option value="empty">Empty</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">Right</Label>
+                      <select
+                        className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                        value={selected.columnRight || "text"}
+                        onChange={(e) =>
+                          patchSection(selected.id, {
+                            columnRight: e.target.value as "logo" | "text" | "empty",
+                          })
+                        }
+                      >
+                        <option value="logo">Logo</option>
+                        <option value="text">Text</option>
+                        <option value="empty">Empty</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  {(selected.columnLeft === "logo" ||
+                    selected.columnRight === "logo" ||
+                    !selected.columnLeft) && (
+                    <MediaPicker
+                      label="Logo image"
+                      value={selected.logoUrl ?? logoUrl ?? ""}
+                      onChange={(url) => patchSection(selected.id, { logoUrl: url })}
+                      mediaUploadReady={mediaUploadReady}
+                      stockReady={stockReady}
+                    />
+                  )}
+
+                  {(selected.columnLeft === "text" || selected.columnRight === "text") && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {selected.columnLeft === "text" ? (
+                        <Input
+                          value={selected.columnLeftText ?? ""}
+                          onChange={(e) =>
+                            patchSection(selected.id, { columnLeftText: e.target.value })
+                          }
+                          placeholder="Left text"
+                        />
+                      ) : (
+                        <span />
+                      )}
+                      {selected.columnRight === "text" ? (
+                        <Input
+                          value={selected.columnRightText ?? ""}
+                          onChange={(e) =>
+                            patchSection(selected.id, { columnRightText: e.target.value })
+                          }
+                          placeholder="Right text"
+                        />
+                      ) : null}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <Input
+                      value={selected.columnLeftHref ?? selected.href ?? ""}
+                      onChange={(e) =>
+                        patchSection(selected.id, {
+                          columnLeftHref: e.target.value,
+                          href: e.target.value,
+                        })
+                      }
+                      placeholder="Left link https://…"
+                    />
+                    <Input
+                      value={selected.columnRightHref ?? ""}
+                      onChange={(e) =>
+                        patchSection(selected.id, { columnRightHref: e.target.value })
+                      }
+                      placeholder="Right link https://…"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs">Logo scale {selected.logoScale ?? 100}%</Label>
+                    <input
+                      type="range"
+                      min={40}
+                      max={180}
+                      value={selected.logoScale ?? 100}
+                      onChange={(e) =>
+                        patchSection(selected.id, { logoScale: Number(e.target.value) })
+                      }
+                      className="w-full"
+                    />
+                  </div>
+                  <TextFormatControls
+                    title="Text format"
+                    value={selected.format}
+                    onChange={(format) => patchSection(selected.id, { format })}
+                  />
                 </>
               )}
 

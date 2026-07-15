@@ -10,7 +10,6 @@ export type IntegrationId =
   | "unsplash"
   | "pexels"
   | "logo_dev"
-  | "brave_search"
   | "openai"
   | "resend"
   | "stripe"
@@ -78,22 +77,13 @@ export const integrations: IntegrationStatus[] = [
   },
   {
     id: "logo_dev",
-    name: "Logo.dev (optional)",
+    name: "Logo.dev",
     configured: has("LOGO_DEV_TOKEN"),
-    description: "Higher-quality brand logos in web logo search (Wikimedia + favicons work without this).",
+    description:
+      "Brand logos by name or domain in the media picker (theme + greyscale supported).",
     envVars: ["LOGO_DEV_TOKEN"],
     signupUrl: "https://logo.dev",
-    costNote: "Free tier available",
-  },
-  {
-    id: "brave_search",
-    name: "Brave Image Search (optional)",
-    configured: has("BRAVE_SEARCH_API_KEY"),
-    description:
-      "Extra web logo/icon results. Not required — Logo.dev + Wikimedia + favicons work without this.",
-    envVars: ["BRAVE_SEARCH_API_KEY"],
-    signupUrl: "https://api-dashboard.search.brave.com/app/subscriptions/subscribe",
-    costNote: "Paid plans only (~$5/mo credits, card required) — skip unless you need more results",
+    costNote: "Free tier available — publishable token",
   },
   {
     id: "openai",
@@ -146,9 +136,9 @@ export function isStockImagesReady(): boolean {
   return getIntegration("unsplash").configured || getIntegration("pexels").configured;
 }
 
-/** Web logo search works out of the box (Wikimedia + favicons); optional keys improve results. */
+/** Web logo search works with Wikimedia + favicons; Logo.dev enhances results. */
 export function isLogoWebSearchEnhanced(): boolean {
-  return getIntegration("logo_dev").configured || getIntegration("brave_search").configured;
+  return getIntegration("logo_dev").configured;
 }
 
 export function isAiReady(): boolean {

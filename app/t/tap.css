@@ -909,6 +909,65 @@
   object-fit: cover;
 }
 
+.tcc-logo-block {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  margin: 0.55rem 0;
+  padding: 0.65rem 0.35rem;
+}
+
+.tcc-logo-block-stack {
+  flex-direction: column;
+  text-align: center;
+}
+
+.tcc-logo-block-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.tcc-logo-block-col {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+}
+
+.tcc-logo-block-img {
+  display: block;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+}
+
+.tcc-logo-block-text {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.tcc-logo-block-link {
+  color: inherit;
+  text-decoration: none;
+  transition: opacity 0.12s ease;
+}
+
+.tcc-logo-block-link:hover {
+  opacity: 0.85;
+  text-decoration: underline;
+}
+
+.tcc-logo-block-empty {
+  display: block;
+  min-height: 1rem;
+}
+
 .tcc-text-block {
   margin: 0.45rem 0;
   padding: 0.55rem 0.65rem;

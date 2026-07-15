@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireBusiness } from "@/lib/auth";
-import { searchLogosAndIcons } from "@/lib/services/logo-search";
+import {
+  searchLogosAndIcons,
+  type LogoDevTheme,
+} from "@/lib/services/logo-search";
 
 export async function GET(request: Request) {
   try {
@@ -12,14 +15,23 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, results: [], query });
     }
 
-    const results = await searchLogosAndIcons(query);
+    const themeRaw = (searchParams.get("theme") ?? "auto").toLowerCase();
+    const theme: LogoDevTheme =
+      themeRaw === "light" || themeRaw === "dark" || themeRaw === "auto"
+        ? themeRaw
+        : "auto";
+    const greyscale =
+      searchParams.get("greyscale") === "1" ||
+      searchParams.get("greyscale") === "true";
+
+    const results = await searchLogosAndIcons(query, { theme, greyscale });
     return NextResponse.json({
       ok: true,
       query,
+      theme,
+      greyscale,
       results,
-      enhanced: Boolean(
-        process.env.LOGO_DEV_TOKEN?.trim() || process.env.BRAVE_SEARCH_API_KEY?.trim()
-      ),
+      logoDev: Boolean(process.env.LOGO_DEV_TOKEN?.trim()),
     });
   } catch (error) {
     console.error("Logo search error:", error);

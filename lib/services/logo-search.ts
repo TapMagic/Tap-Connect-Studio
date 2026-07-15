@@ -1,10 +1,18 @@
+export type LogoDevTheme = "auto" | "light" | "dark";
+
 export type LogoSearchHit = {
   id: string;
   url: string;
   thumb: string;
   alt: string;
-  source: "logo_dev" | "wikimedia" | "favicon" | "duckduckgo" | "brave" | "domain";
+  source: "logo_dev" | "wikimedia" | "favicon" | "duckduckgo" | "domain";
   domain?: string;
+};
+
+export type LogoSearchOptions = {
+  theme?: LogoDevTheme;
+  greyscale?: boolean;
+  size?: number;
 };
 
 function normalizeDomain(raw: string): string | null {
@@ -19,6 +27,18 @@ function normalizeDomain(raw: string): string | null {
   } catch {
     return null;
   }
+}
+
+function brandSlug(query: string): string {
+  return query
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .split(/[/?#]/)[0]
+    .replace(/[^a-z0-9.-]+/g, " ")
+    .trim()
+    .replace(/\s+/g, "-");
 }
 
 function domainCandidates(query: string): string[] {
@@ -48,11 +68,46 @@ function domainCandidates(query: string): string[] {
   return Array.from(out).slice(0, 4);
 }
 
+function logoDevParams(
+  token: string,
+  opts: LogoSearchOptions,
+  size: number
+): string {
+  const params = new URLSearchParams({
+    token,
+    size: String(size),
+    format: "png",
+    theme: opts.theme || "auto",
+    fallback: "404",
+  });
+  if (opts.greyscale) params.set("greyscale", "true");
+  return params.toString();
+}
+
+function logoDevDomainUrl(
+  domain: string,
+  token: string,
+  opts: LogoSearchOptions,
+  size: number
+): string {
+  return `https://img.logo.dev/${encodeURIComponent(domain)}?${logoDevParams(token, opts, size)}`;
+}
+
+function logoDevNameUrl(
+  name: string,
+  token: string,
+  opts: LogoSearchOptions,
+  size: number
+): string {
+  const slug = brandSlug(name);
+  return `https://img.logo.dev/name/${encodeURIComponent(slug)}?${logoDevParams(token, opts, size)}`;
+}
+
 async function urlExists(url: string): Promise<boolean> {
   try {
     const res = await fetch(url, { method: "HEAD", next: { revalidate: 0 } });
     if (res.ok) return true;
-    if (res.status === 405) {
+    if (res.status === 405 || res.status === 403) {
       const getRes = await fetch(url, { method: "GET", next: { revalidate: 0 } });
       return getRes.ok;
     }
@@ -62,15 +117,19 @@ async function urlExists(url: string): Promise<boolean> {
   }
 }
 
-function domainHits(domain: string, logoDevToken?: string): LogoSearchHit[] {
+function domainHits(
+  domain: string,
+  logoDevToken: string | undefined,
+  opts: LogoSearchOptions
+): LogoSearchHit[] {
   const hits: LogoSearchHit[] = [];
   const label = domain;
 
   if (logoDevToken) {
     hits.push({
-      id: `logo-dev-${domain}`,
-      url: `https://img.logo.dev/${domain}?token=${logoDevToken}&size=256&format=png`,
-      thumb: `https://img.logo.dev/${domain}?token=${logoDevToken}&size=128&format=png`,
+      id: `logo-dev-${domain}-${opts.theme || "auto"}-${opts.greyscale ? "g" : "c"}`,
+      url: logoDevDomainUrl(domain, logoDevToken, opts, 256),
+      thumb: logoDevDomainUrl(domain, logoDevToken, opts, 128),
       alt: `${label} logo`,
       source: "logo_dev",
       domain,
@@ -108,7 +167,7 @@ async function searchWikimedia(query: string): Promise<LogoSearchHit[]> {
     generator: "search",
     gsrsearch: q,
     gsrnamespace: "6",
-    gsrlimit: "16",
+    gsrlimit: "12",
     prop: "imageinfo",
     iiprop: "url|thumburl|mime",
     iiurlwidth: "256",
@@ -144,7 +203,6 @@ async function searchWikimedia(query: string): Promise<LogoSearchHit[]> {
       const mime = info?.mime ?? "";
       if (!url || !thumb) continue;
       if (!mime.startsWith("image/")) continue;
-      if (/\.svg$/i.test(url) && !mime.includes("svg")) continue;
 
       hits.push({
         id: `wiki-${page.pageid}`,
@@ -161,57 +219,39 @@ async function searchWikimedia(query: string): Promise<LogoSearchHit[]> {
   }
 }
 
-async function searchBraveImages(query: string, apiKey: string): Promise<LogoSearchHit[]> {
-  try {
-    const params = new URLSearchParams({
-      q: `${query.trim()} logo icon`,
-      count: "12",
-      search_lang: "en",
-      country: "US",
-      spellcheck: "1",
-    });
-    const res = await fetch(`https://api.search.brave.com/res/v1/images/search?${params}`, {
-      headers: {
-        Accept: "application/json",
-        "X-Subscription-Token": apiKey,
-      },
-      next: { revalidate: 0 },
-    });
-    if (!res.ok) return [];
-
-    const data = (await res.json()) as {
-      results?: { url?: string; thumbnail?: { src?: string }; title?: string }[];
-    };
-
-    return (data.results ?? [])
-      .filter((r) => r.url && r.thumbnail?.src)
-      .map((r, i) => ({
-        id: `brave-${i}-${r.url}`,
-        url: r.url!,
-        thumb: r.thumbnail!.src!,
-        alt: r.title || query,
-        source: "brave" as const,
-      }));
-  } catch {
-    return [];
-  }
-}
-
-export async function searchLogosAndIcons(query: string): Promise<LogoSearchHit[]> {
+export async function searchLogosAndIcons(
+  query: string,
+  opts: LogoSearchOptions = {}
+): Promise<LogoSearchHit[]> {
   const trimmed = query.trim();
   if (trimmed.length < 2) return [];
 
   const logoDevToken = process.env.LOGO_DEV_TOKEN?.trim();
-  const braveKey = process.env.BRAVE_SEARCH_API_KEY?.trim();
   const byId = new Map<string, LogoSearchHit>();
+  const options: LogoSearchOptions = {
+    theme: opts.theme || "auto",
+    greyscale: Boolean(opts.greyscale),
+  };
 
   function add(hit: LogoSearchHit) {
     if (!hit.url || byId.has(hit.id)) return;
     byId.set(hit.id, hit);
   }
 
+  // Prefer Logo.dev name lookup for brand queries (no domain needed)
+  if (logoDevToken && !normalizeDomain(trimmed)) {
+    const name = brandSlug(trimmed) || trimmed;
+    add({
+      id: `logo-dev-name-${name}-${options.theme}-${options.greyscale ? "g" : "c"}`,
+      url: logoDevNameUrl(name, logoDevToken, options, 256),
+      thumb: logoDevNameUrl(name, logoDevToken, options, 128),
+      alt: `${trimmed} logo`,
+      source: "logo_dev",
+    });
+  }
+
   for (const domain of domainCandidates(trimmed)) {
-    for (const hit of domainHits(domain, logoDevToken)) {
+    for (const hit of domainHits(domain, logoDevToken, options)) {
       add(hit);
     }
   }
@@ -219,15 +259,9 @@ export async function searchLogosAndIcons(query: string): Promise<LogoSearchHit[
   const wiki = await searchWikimedia(trimmed);
   for (const hit of wiki) add(hit);
 
-  if (braveKey) {
-    const brave = await searchBraveImages(trimmed, braveKey);
-    for (const hit of brave) add(hit);
-  }
-
-  // Validate domain-sourced hits (skip broken favicons)
   const validated: LogoSearchHit[] = [];
   for (const hit of byId.values()) {
-    if (hit.source === "wikimedia" || hit.source === "brave" || hit.source === "logo_dev") {
+    if (hit.source === "wikimedia" || hit.source === "logo_dev") {
       validated.push(hit);
       continue;
     }
@@ -237,5 +271,30 @@ export async function searchLogosAndIcons(query: string): Promise<LogoSearchHit[
     }
   }
 
+  // Logo.dev hits first
+  validated.sort((a, b) => {
+    const rank = (s: LogoSearchHit["source"]) =>
+      s === "logo_dev" ? 0 : s === "wikimedia" ? 1 : 2;
+    return rank(a.source) - rank(b.source);
+  });
+
   return validated.slice(0, 24);
+}
+
+/** Rebuild a Logo.dev URL with new theme / greyscale (client-safe helper). */
+export function applyLogoDevAppearance(
+  url: string,
+  opts: { theme?: LogoDevTheme; greyscale?: boolean }
+): string {
+  if (!url.includes("img.logo.dev")) return url;
+  try {
+    const u = new URL(url);
+    if (opts.theme) u.searchParams.set("theme", opts.theme);
+    if (opts.greyscale) u.searchParams.set("greyscale", "true");
+    else u.searchParams.delete("greyscale");
+    if (!u.searchParams.get("format")) u.searchParams.set("format", "png");
+    return u.toString();
+  } catch {
+    return url;
+  }
 }

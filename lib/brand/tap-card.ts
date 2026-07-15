@@ -34,6 +34,7 @@ export type TapCardSectionType =
   | "action"
   | "action_row"
   | "image"
+  | "logo_block"
   | "text"
   | "spacer"
   | "footer_cta";
@@ -112,6 +113,11 @@ export type TapCardSection = {
   columnRightText?: string;
   columnLeftImageUrl?: string;
   columnRightImageUrl?: string;
+  /** Per-column link (logo block / hero columns) */
+  columnLeftHref?: string;
+  columnRightHref?: string;
+  /** logo_block: single row or two columns */
+  logoBlockLayout?: "stack" | "columns";
   heroFill?: TapCardHeroFill;
   gradientStart?: string;
   gradientEnd?: string;
@@ -165,9 +171,11 @@ export type TapConnectCardConfig = {
   cardFinish: PremiumFinish;
   defaultShape: TapCardButtonShape;
   view3d?: boolean;
-  /** Logo strip at the very top of the Tap Card page */
+  /** @deprecated removed — use logo_block / hero instead */
   showHeaderLogo?: boolean;
+  /** @deprecated */
   headerLogoUrl?: string;
+  /** @deprecated */
   headerLogoScale?: number;
   surfaceOpacity?: number;
   surfaceFill?: TapCardSurfaceFill;
@@ -406,8 +414,6 @@ export function defaultTapConnectCard(params: {
     defaultShape: "pill",
     view3d: false,
     showHeaderLogo: false,
-    headerLogoUrl: params.logoUrl || undefined,
-    headerLogoScale: 100,
     surfaceOpacity: 100,
     surfaceFill: "solid",
     surfaceGradientStart: accent,
@@ -459,11 +465,7 @@ export function parseTapConnectCard(
     cardFinish: (o.cardFinish as PremiumFinish) || base.cardFinish,
     defaultShape: normalizeShape(o.defaultShape as TapCardButtonShapeLegacy, base.defaultShape),
     view3d: o.view3d === true,
-    showHeaderLogo: o.showHeaderLogo === true,
-    headerLogoUrl:
-      typeof o.headerLogoUrl === "string" ? o.headerLogoUrl : base.headerLogoUrl,
-    headerLogoScale:
-      typeof o.headerLogoScale === "number" ? o.headerLogoScale : base.headerLogoScale,
+    showHeaderLogo: false,
     surfaceOpacity:
       typeof o.surfaceOpacity === "number" ? o.surfaceOpacity : base.surfaceOpacity,
     surfaceFill: o.surfaceFill === "gradient" ? "gradient" : "solid",
