@@ -551,7 +551,7 @@ export function BrandKitForm({
                     label="Icon (when no logo)"
                     icon={editing.icon || editing.platform || "link"}
                     customUrl=""
-                    color={editing.iconColor}
+                    color={editing.iconColor || "#000000"}
                     onChange={({ icon, color }) =>
                       patchLink(editing.id, {
                         icon: icon || editing.icon,
@@ -559,7 +559,14 @@ export function BrandKitForm({
                       })
                     }
                     mediaUploadReady={mediaUploadReady}
+                    stockReady={stockReady}
                     hideCustom
+                    showLogoPicker={false}
+                    persist={
+                      editing.id.startsWith("social-")
+                        ? true
+                        : { linkId: editing.id }
+                    }
                   />
                   <div className="space-y-1">
                     <Label className="text-[10px]">Platform (optional)</Label>

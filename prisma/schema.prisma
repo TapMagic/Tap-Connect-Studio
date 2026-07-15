@@ -196,6 +196,7 @@ model Business {
   savedTemplates SavedTemplate[]
   scheduleRules ScheduleRule[]
   groupSlots   CampaignGroupSlot[]
+  brandLinks   BrandLink[]
 }
 
 model BusinessUser {
@@ -252,14 +253,44 @@ model BrandKit {
   endExperience    Json        @default("{}")
   /** Lead follow-up promo email template */
   emailPromo       Json        @default("{}")
-  /** Extra custom links: [{ title, description, iconUrl, href }] */
+  /** Extra custom links: [{ title, description, iconUrl, href }] — legacy JSON */
   otherLinks       Json        @default("[]")
   /** Tap Connect Card layout — flexible digital business card */
   tapCard          Json        @default("{}")
+  /** Last / default library icon selected in the Brand Kit IconPicker */
+  iconName         String?
+  /** Hex color for the Brand Kit default icon */
+  iconColor        String      @default("#000000")
   createdAt        DateTime    @default(now())
   updatedAt        DateTime    @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  links    BrandLink[]
+}
+
+/** Normalized brand / social / custom links with persisted icon + color */
+model BrandLink {
+  id          String   @id @default(cuid())
+  businessId  String
+  brandKitId  String?
+  title       String   @default("")
+  description String?
+  href        String   @default("")
+  /** Library icon id from IconPicker (e.g. "home", "slack") */
+  iconName    String?
+  /** Custom hex tint from IconPicker */
+  iconColor   String   @default("#000000")
+  /** Preferred logo / image mark when set */
+  logoUrl     String?
+  platform    String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  brandKit BrandKit? @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
+
+  @@index([businessId])
 }
 
 // ─── Subscription ────────────────────────────────────────────────────────────

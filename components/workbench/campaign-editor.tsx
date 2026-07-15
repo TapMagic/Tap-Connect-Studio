@@ -1256,7 +1256,7 @@ function BlockFields({
                 <IconPicker
                   icon={(btn.icon as string) || "link"}
                   customUrl={btn.imageUrl && (btn.appearance === "icon_text" || btn.appearance === "icon_only") ? "" : undefined}
-                  color={btn.iconColor}
+                  color={btn.iconColor || "#000000"}
                   onChange={({ icon, customUrl, color }) =>
                     patchBtn(btn.id, {
                       icon: (icon as ButtonItem["icon"]) || "link",
@@ -1267,6 +1267,8 @@ function BlockFields({
                     })
                   }
                   mediaUploadReady={mediaUploadReady}
+                  stockReady={stockReady}
+                  showLogoPicker
                 />
               </div>
               <div className="space-y-1">

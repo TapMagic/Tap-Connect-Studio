@@ -330,8 +330,47 @@ export function TapCardBuilder({
               checked={Boolean(config.view3d)}
               onChange={(e) => patchConfig({ view3d: e.target.checked })}
             />
-            3-D view
+            3-D raised buttons
           </label>
+        </div>
+
+        <div className="flex flex-wrap items-end gap-3 rounded-lg border border-border/40 bg-muted/10 p-2">
+          <label className="flex items-center gap-2 text-xs font-medium">
+            <input
+              type="checkbox"
+              checked={config.showHeaderLogo !== false}
+              onChange={(e) => patchConfig({ showHeaderLogo: e.target.checked })}
+            />
+            Logo at top of Tap Card
+          </label>
+          {config.showHeaderLogo !== false ? (
+            <>
+              <div className="min-w-[220px] flex-1">
+                <MediaPicker
+                  label="Header logo"
+                  value={config.headerLogoUrl || logoUrl || ""}
+                  onChange={(url) => patchConfig({ headerLogoUrl: url })}
+                  mediaUploadReady={mediaUploadReady}
+                  stockReady={stockReady}
+                />
+              </div>
+              <div className="min-w-[140px] space-y-1">
+                <Label className="text-[10px]">
+                  Header logo scale {config.headerLogoScale ?? 100}%
+                </Label>
+                <input
+                  type="range"
+                  min={40}
+                  max={180}
+                  value={config.headerLogoScale ?? 100}
+                  onChange={(e) =>
+                    patchConfig({ headerLogoScale: Number(e.target.value) })
+                  }
+                  className="w-full"
+                />
+              </div>
+            </>
+          ) : null}
         </div>
 
         <div className="flex flex-wrap items-end gap-3">
@@ -649,7 +688,7 @@ export function TapCardBuilder({
                   <IconPicker
                     icon={selected.icon || selected.actionKind || "link"}
                     customUrl={selected.iconUrl}
-                    color={selected.iconColor}
+                    color={selected.iconColor || "#000000"}
                     onChange={({ icon, customUrl, color }) =>
                       patchSection(selected.id, {
                         icon: icon || selected.icon,
@@ -658,6 +697,9 @@ export function TapCardBuilder({
                       })
                     }
                     mediaUploadReady={mediaUploadReady}
+                    stockReady={stockReady}
+                    showLogoPicker
+                    persist
                   />
                   <TextFormatControls
                     title="Button label — font & size"

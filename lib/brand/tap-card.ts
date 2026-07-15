@@ -144,6 +144,10 @@ export type TapConnectCardConfig = {
   cardFinish: PremiumFinish;
   defaultShape: TapCardButtonShape;
   view3d?: boolean;
+  /** Logo strip at the very top of the Tap Card page */
+  showHeaderLogo?: boolean;
+  headerLogoUrl?: string;
+  headerLogoScale?: number;
   surfaceOpacity?: number;
   titleFormat?: TextFormat;
   bodyFormat?: TextFormat;
@@ -360,6 +364,9 @@ export function defaultTapConnectCard(params: {
     cardFinish: "soft",
     defaultShape: "pill",
     view3d: false,
+    showHeaderLogo: true,
+    headerLogoUrl: params.logoUrl || undefined,
+    headerLogoScale: 100,
     surfaceOpacity: 100,
     titleFormat: { fontFamily: "sans", fontWeight: "bold", align: "center", fontSize: "xl" },
     bodyFormat: { fontFamily: "sans", fontSize: "sm", align: "center" },
@@ -398,6 +405,11 @@ export function parseTapConnectCard(
     cardFinish: (o.cardFinish as PremiumFinish) || base.cardFinish,
     defaultShape: (o.defaultShape as TapCardButtonShape) || base.defaultShape,
     view3d: o.view3d === true,
+    showHeaderLogo: o.showHeaderLogo !== false,
+    headerLogoUrl:
+      typeof o.headerLogoUrl === "string" ? o.headerLogoUrl : base.headerLogoUrl,
+    headerLogoScale:
+      typeof o.headerLogoScale === "number" ? o.headerLogoScale : base.headerLogoScale,
     surfaceOpacity:
       typeof o.surfaceOpacity === "number" ? o.surfaceOpacity : base.surfaceOpacity,
     titleFormat: (o.titleFormat as TextFormat) || base.titleFormat,

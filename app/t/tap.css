@@ -816,21 +816,53 @@
 }
 
 .tcc-view-3d {
-  perspective: 900px;
-  perspective-origin: 50% 40%;
+  /* reserved — raised buttons via .tcc-pill-raised */
+}
+
+.tcc-view-3d .tcc-pill {
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.18) inset,
+    0 0 0 1px color-mix(in srgb, var(--tcc-accent) 35%, transparent),
+    0 7px 0 color-mix(in srgb, var(--tcc-accent) 55%, #1a1208),
+    0 12px 22px rgba(0, 0, 0, 0.4);
+  transform: translateY(0);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+}
+
+.tcc-view-3d .tcc-pill:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 0 0 1px color-mix(in srgb, var(--tcc-accent) 45%, transparent),
+    0 8px 0 color-mix(in srgb, var(--tcc-accent) 55%, #1a1208),
+    0 16px 26px rgba(0, 0, 0, 0.42);
+}
+
+.tcc-view-3d .tcc-pill:active {
+  transform: translateY(5px);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.1) inset,
+    0 0 0 1px color-mix(in srgb, var(--tcc-accent) 30%, transparent),
+    0 2px 0 color-mix(in srgb, var(--tcc-accent) 45%, #1a1208),
+    0 4px 10px rgba(0, 0, 0, 0.3);
+}
+
+.tcc-header-logo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.75rem 0.85rem 0.35rem;
+}
+
+.tcc-header-logo-img {
+  display: block;
+  object-fit: contain;
+  max-width: 100%;
+  border-radius: 0.65rem;
 }
 
 .tcc-shell-3d {
-  transform: rotateX(6deg) rotateY(-4deg);
-  transform-style: preserve-3d;
-  transition: transform 0.35s ease;
-  box-shadow:
-    0 30px 60px rgba(0, 0, 0, 0.45),
-    0 8px 0 color-mix(in srgb, var(--tcc-accent) 25%, transparent);
-}
-
-.tcc-shell-3d:hover {
-  transform: rotateX(3deg) rotateY(0deg) translateY(-2px);
+  /* legacy perspective removed — 3D now means raised pills */
 }
 
 .tcc-image-wrap {

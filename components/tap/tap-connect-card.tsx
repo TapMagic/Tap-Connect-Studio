@@ -568,8 +568,23 @@ export function TapConnectCard({
       )}
       style={style}
     >
+      {config.showHeaderLogo !== false && (config.headerLogoUrl || logoUrl) ? (
+        <div className="tcc-header-logo">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={config.headerLogoUrl || logoUrl || ""}
+            alt={businessName}
+            className="tcc-header-logo-img"
+            style={{
+              width: `${Math.round(88 * ((config.headerLogoScale ?? 100) / 100))}px`,
+              height: "auto",
+              maxHeight: `${Math.round(72 * ((config.headerLogoScale ?? 100) / 100))}px`,
+            }}
+          />
+        </div>
+      ) : null}
       {outerNodes}
-      <div className={cn("tcc-shell", config.view3d && "tcc-shell-3d")}>{bodyNodes}</div>
+      <div className="tcc-shell">{bodyNodes}</div>
       {toast ? <p className="tcc-toast">{toast}</p> : null}
     </div>
   );
