@@ -48,7 +48,7 @@ export function DashboardNav({
     : navItems;
 
   return (
-    <aside className="hidden w-64 shrink-0 border-r border-border/60 bg-card/40 lg:sticky lg:top-0 lg:flex lg:h-full lg:max-h-[100dvh] lg:flex-col lg:self-stretch">
+    <aside className="sticky top-0 hidden h-screen w-64 shrink-0 flex-col self-start overflow-y-auto border-r border-border/60 bg-card/40 lg:flex">
       <div className="shrink-0 border-b border-border/60 px-5 py-5">
         <Link href="/dashboard" className="flex items-center gap-2">
           <TapConnectLogo variant="mark" priority />
@@ -58,7 +58,7 @@ export function DashboardNav({
           </div>
         </Link>
       </div>
-      <nav className="min-h-0 flex-1 space-y-1 overflow-y-auto p-3">
+      <nav className="min-h-0 flex-1 space-y-1 p-3">
         {items.map((item) => {
           const active =
             pathname === item.href ||

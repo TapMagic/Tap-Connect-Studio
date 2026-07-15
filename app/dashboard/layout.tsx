@@ -39,19 +39,17 @@ export default async function DashboardLayout({
   const showAdminLink = isPlatformAdmin(user);
 
   return (
-    <div className="flex min-h-screen flex-col bg-background lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden">
+    <div className="min-h-screen bg-background">
       <DevModeBanner />
       <MobileDashboardNav businessName={business.name} showAdminLink={showAdminLink} />
       {isClerkConfigured() && (
-        <div className="shrink-0 flex justify-end border-b border-border/40 px-4 py-2 lg:px-6">
+        <div className="flex justify-end border-b border-border/40 px-4 py-2 lg:px-6">
           <AuthControls />
         </div>
       )}
-      <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
+      <div className="mx-auto flex min-h-screen max-w-[1600px]">
         <DashboardNav businessName={business.name} showAdminLink={showAdminLink} />
-        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
-          {children}
-        </main>
+        <main className="min-w-0 flex-1 overflow-x-hidden">{children}</main>
       </div>
     </div>
   );
