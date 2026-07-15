@@ -228,12 +228,12 @@ export function TapCardBuilder({
   }
 
   return (
-    <div className="flex flex-col pb-10">
-      <div className="z-30 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background px-4 py-3">
+    <div className="flex h-full min-h-0 flex-col overflow-hidden max-lg:min-h-0 max-lg:overflow-visible">
+      <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background px-4 py-3">
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
-            Drag segments · scroll the page to see the full Tap Card
+            Side panels stay put · scroll the center preview for the full card
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -254,8 +254,8 @@ export function TapCardBuilder({
         </div>
       </div>
 
-      {/* Design menus — in normal flow so the page can scroll the full card */}
-      <div className="z-20 space-y-3 border-b border-border/60 bg-background px-4 py-3">
+      {/* Design menus — pinned above the three editor columns */}
+      <div className="z-20 shrink-0 space-y-3 border-b border-border/60 bg-background px-4 py-3">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
             <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
@@ -481,12 +481,13 @@ export function TapCardBuilder({
       </div>
 
       {message ? (
-        <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
+        <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
       ) : null}
 
-      <div className="flex flex-col lg:flex-row lg:items-start">
-        <aside className="w-full border-r border-border/60 p-4 lg:w-[300px]">
-          <div className="space-y-3">
+      <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
+        {/* Column 2 — segments / tools (stays visible, scrolls independently) */}
+        <aside className="flex w-full shrink-0 flex-col border-r border-border/60 bg-background lg:h-full lg:w-[300px]">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto overscroll-contain p-4">
             <TextFormatControls
               title="Title typography"
               value={config.titleFormat}
@@ -637,26 +638,31 @@ export function TapCardBuilder({
           </div>
         </aside>
 
-        <div className="min-w-0 flex-1 bg-black/30 p-4 pb-16">
-          <p className="mb-2 text-center text-[11px] text-muted-foreground">
-            Scroll the page to see the full Tap Card · same renderer as production
+        {/* Column 3 — Tap Card preview (scroll while side panels stay) */}
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col bg-black/30 lg:h-full">
+          <p className="shrink-0 px-4 pt-3 text-center text-[11px] text-muted-foreground">
+            Scroll this column to see the full Tap Card
           </p>
-          <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
-            <div className="builder-phone-notch" />
-            <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
-              <TapConnectCard
-                config={config}
-                profile={profile}
-                businessName={businessName}
-                logoUrl={logoUrl}
-                reviewUrl={reviewUrl}
-                forceExpanded
-              />
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4 pb-16">
+            <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
+              <div className="builder-phone-notch" />
+              <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
+                <TapConnectCard
+                  config={config}
+                  profile={profile}
+                  businessName={businessName}
+                  logoUrl={logoUrl}
+                  reviewUrl={reviewUrl}
+                  forceExpanded
+                />
+              </div>
             </div>
           </div>
         </div>
 
-        <aside className="w-full border-l border-border/60 p-4 lg:w-[320px]">
+        {/* Column 4 — segment inspector (stays visible, scrolls independently) */}
+        <aside className="flex w-full shrink-0 flex-col border-l border-border/60 bg-background lg:h-full lg:w-[320px]">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-4">
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
           </p>
@@ -1329,6 +1335,7 @@ export function TapCardBuilder({
               )}
             </div>
           )}
+          </div>
         </aside>
       </div>
     </div>

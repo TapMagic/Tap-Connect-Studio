@@ -37,22 +37,24 @@ export default async function TapCardPage() {
   });
 
   return (
-    <TapCardBuilder
-      initialConfig={config}
-      profile={{
-        ...profile,
-        phone: profile.phone || business.phone || undefined,
-        email: profile.email || business.email || undefined,
-        website: profile.website || business.website || undefined,
-      }}
-      businessName={business.name}
-      logoUrl={business.logoUrl}
-      reviewUrl={business.googleReviewUrl}
-      mediaUploadReady={isMediaUploadReady()}
-      stockReady={isStockImagesReady()}
-      isAdmin={isPlatformAdmin(user)}
-      isLandingDemo={Boolean(landingDemo)}
-      devices={devices}
-    />
+    <div className="h-full min-h-0">
+      <TapCardBuilder
+        initialConfig={config}
+        profile={{
+          ...profile,
+          phone: profile.phone || business.phone || undefined,
+          email: profile.email || business.email || undefined,
+          website: profile.website || business.website || undefined,
+        }}
+        businessName={business.name}
+        logoUrl={business.logoUrl}
+        reviewUrl={business.googleReviewUrl}
+        mediaUploadReady={isMediaUploadReady()}
+        stockReady={isStockImagesReady()}
+        isAdmin={isPlatformAdmin(user)}
+        isLandingDemo={Boolean(landingDemo)}
+        devices={devices}
+      />
+    </div>
   );
 }
