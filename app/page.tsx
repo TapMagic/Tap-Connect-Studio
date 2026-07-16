@@ -48,9 +48,12 @@ import {
   WORKBENCH_FEATURES,
   WORKFLOW_STEPS,
 } from "@/lib/marketing/landing-content";
+import { getPublicLandingUseCases } from "@/lib/services/landing-use-cases";
 import { cn } from "@/lib/utils";
 import "@/app/t/tap.css";
 import "@/components/marketing/landing.css";
+
+export const dynamic = "force-dynamic";
 
 const EVOLUTION_ICONS = [
   CreditCard,
@@ -117,7 +120,9 @@ function DeviceChip({ label }: { label: string }) {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const useCaseTiles = await getPublicLandingUseCases();
+
   return (
     <main className="lp relative overflow-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[48rem]">
@@ -578,7 +583,7 @@ export default function Home() {
             Cards, smart display tags, review signs, booth tags, table tents, window signs, package
             inserts, and more — same visual language across every industry story.
           </p>
-          <UseCaseImageCards />
+          <UseCaseImageCards tiles={useCaseTiles} />
         </div>
       </section>
 

@@ -594,3 +594,28 @@ model ScheduleRule {
 
   @@index([deviceSlotId, enabled])
 }
+
+// ─── Platform marketing CMS ───────────────────────────────────────────────────
+
+/** Editable "Built for the physical world" tiles on the public landing page. */
+model LandingUseCase {
+  id                String   @id @default(cuid())
+  industry          String
+  imageUrl          String
+  imageAlt          String   @default("")
+  tap               String   @default("")
+  opens             String   @default("")
+  action            String   @default("")
+  captures          String   @default("")
+  imageFit          String   @default("cover") // cover | contain
+  imagePositionX    Int      @default(50)
+  imagePositionY    Int      @default(50)
+  imageScale        Float    @default(1)
+  imagePanelPercent Int      @default(38)
+  sortOrder         Int      @default(0)
+  enabled           Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([enabled, sortOrder])
+}
