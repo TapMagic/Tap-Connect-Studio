@@ -2,13 +2,24 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
+  BarChart3,
+  Bookmark,
+  CalendarClock,
   Check,
+  CreditCard,
   LayoutGrid,
+  Library,
   Mail,
   MapPin,
+  MapPinned,
+  MessageSquare,
+  Palette,
   Radio,
   Sparkles,
+  Store,
   TabletSmartphone,
+  Tags,
+  Users,
 } from "lucide-react";
 import { AuthLinks } from "@/components/auth/auth-controls";
 import { HeroCtas } from "@/components/auth/hero-ctas";
@@ -17,9 +28,11 @@ import { LiveDemoPhone } from "@/components/marketing/live-demo-phone";
 import { FeatureComparisonChart } from "@/components/marketing/feature-comparison";
 import { PlatformCollageGraphic } from "@/components/marketing/platform-collage";
 import { TapVideoSection } from "@/components/marketing/tap-video-section";
+import { DeviceManagerShowcase } from "@/components/marketing/device-manager-showcase";
+import { TapCardLaunchpadGraphic } from "@/components/marketing/tap-card-launchpad";
+import { UseCaseImageCards } from "@/components/marketing/use-case-image-cards";
 import { buttonVariants } from "@/components/ui/button";
 import {
-  ANALYTICS_FEATURES,
   BLOCK_LIBRARY_GROUPS,
   BOUTIQUE_SCHEDULE,
   BRAND_LIBRARY_FEATURES,
@@ -31,13 +44,62 @@ import {
   FAQS,
   HERO_PILLS,
   PRICING_PREVIEW,
-  USE_CASES,
+  ANALYTICS_FEATURES,
   WORKBENCH_FEATURES,
   WORKFLOW_STEPS,
 } from "@/lib/marketing/landing-content";
 import { cn } from "@/lib/utils";
 import "@/app/t/tap.css";
 import "@/components/marketing/landing.css";
+
+const EVOLUTION_ICONS = [
+  CreditCard,
+  LayoutGrid,
+  Tags,
+  Radio,
+  MessageSquare,
+  Users,
+  TabletSmartphone,
+  CalendarClock,
+  BarChart3,
+  Library,
+  Mail,
+  Store,
+] as const;
+
+const EVOLUTION_TONES = [
+  "lp-icon-gold",
+  "lp-icon-blue",
+  "lp-icon-green",
+  "lp-icon-violet",
+] as const;
+
+const VALUE_BLOCKS = [
+  {
+    title: "Every Tap Can Become a Contact.",
+    items: CAPTURE_FEATURES,
+    Icon: Users,
+    tone: "lp-icon-green",
+  },
+  {
+    title: "Follow Up Before They Forget You.",
+    items: EMAIL_FEATURES,
+    Icon: Mail,
+    tone: "lp-icon-gold",
+  },
+  {
+    title: "Know What Gets Tapped. Know What Converts.",
+    items: ANALYTICS_FEATURES,
+    Icon: BarChart3,
+    tone: "lp-icon-blue",
+  },
+  {
+    title: "Your Brand Kit, Ready for Every Campaign.",
+    items: BRAND_LIBRARY_FEATURES,
+    Icon: Palette,
+    tone: "lp-icon-violet",
+  },
+] as const;
 
 function SectionEyebrow({ children }: { children: ReactNode }) {
   return (
@@ -178,12 +240,24 @@ export default function Home() {
             touchpoint.
           </p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {EVOLUTION_CARDS.map((c) => (
-              <div key={c.title} className="lp-card-hover rounded-2xl bg-[#0f172a]/90 p-5">
-                <h3 className="font-semibold text-white">{c.title}</h3>
-                <p className="mt-2 text-sm leading-6 text-slate-400">{c.body}</p>
-              </div>
-            ))}
+            {EVOLUTION_CARDS.map((c, i) => {
+              const Icon = EVOLUTION_ICONS[i % EVOLUTION_ICONS.length];
+              const tone = EVOLUTION_TONES[i % EVOLUTION_TONES.length];
+              return (
+                <div key={c.title} className="lp-card-hover rounded-2xl bg-[#0f172a]/90 p-5">
+                  <div
+                    className={cn(
+                      "mb-3 flex size-10 items-center justify-center rounded-xl",
+                      tone
+                    )}
+                  >
+                    <Icon className="size-5" />
+                  </div>
+                  <h3 className="font-semibold text-white">{c.title}</h3>
+                  <p className="mt-2 text-sm leading-6 text-slate-400">{c.body}</p>
+                </div>
+              );
+            })}
           </div>
         </div>
       </section>
@@ -277,12 +351,19 @@ export default function Home() {
             </Link>
           </div>
           <ul className="grid gap-3 sm:grid-cols-2">
-            {WORKBENCH_FEATURES.map((f) => (
+            {WORKBENCH_FEATURES.map((f, i) => (
               <li
                 key={f}
                 className="lp-card-hover flex gap-2 rounded-xl bg-white/[0.03] px-3 py-2.5 text-sm text-slate-300"
               >
-                <Check className="mt-0.5 size-4 shrink-0 text-[var(--lp-gold,#d6a84f)]" />
+                <span
+                  className={cn(
+                    "mt-0.5 flex size-7 shrink-0 items-center justify-center rounded-lg",
+                    EVOLUTION_TONES[i % EVOLUTION_TONES.length]
+                  )}
+                >
+                  <Check className="size-3.5" />
+                </span>
                 {f}
               </li>
             ))}
@@ -330,7 +411,7 @@ export default function Home() {
 
       {/* 8 · Device manager */}
       <section className="py-20">
-        <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:px-8">
+        <div className="mx-auto grid max-w-7xl items-start gap-10 px-6 lg:grid-cols-[0.95fr_1.05fr] lg:px-8">
           <div>
             <SectionEyebrow>Tap Device Manager</SectionEyebrow>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -340,44 +421,64 @@ export default function Home() {
               An employee can tap a device in the store and the owner can immediately see exactly
               what it is assigned to and update it remotely — without replacing the physical device.
             </p>
+            <ul className="mt-6 space-y-2.5">
+              {DEVICE_FEATURES.slice(0, 6).map((f) => (
+                <li key={f} className="flex gap-2 text-sm text-slate-300">
+                  <Radio className="mt-0.5 size-4 shrink-0 text-[var(--lp-signal,#72ff8a)]" />
+                  {f}
+                </li>
+              ))}
+            </ul>
           </div>
-          <ul className="space-y-3">
-            {DEVICE_FEATURES.map((f) => (
-              <li key={f} className="lp-card-hover flex gap-2 rounded-xl px-3 py-2.5 text-sm text-slate-300">
-                <Radio className="mt-0.5 size-4 shrink-0 text-[var(--lp-signal,#72ff8a)]" />
-                {f}
-              </li>
-            ))}
-          </ul>
+          <DeviceManagerShowcase />
         </div>
       </section>
 
       {/* 9 · Tap Card builder */}
       <section className="border-y border-white/8 bg-[#07111f] py-20">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <SectionEyebrow>Tap Card Builder</SectionEyebrow>
-          <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
-            The Card Became a Launchpad.
-          </h2>
-          <p className="mt-4 max-w-3xl text-lg text-slate-300">
-            Meet someone in a grocery store. Tap their phone. The top action can open a contact
-            collector and return a special offer you designed — then unlink or relink campaigns
-            anytime.
-          </p>
-          <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {CARD_LAUNCHPAD_FEATURES.map((f) => (
-              <div key={f} className="lp-card-hover rounded-2xl bg-[#0f172a] p-4 text-sm text-slate-300">
-                {f}
-              </div>
-            ))}
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
+          <div>
+            <SectionEyebrow>Tap Card Builder</SectionEyebrow>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              The Card Became a Launchpad.
+            </h2>
+            <p className="mt-4 text-lg text-slate-300">
+              Meet someone in a grocery store. Tap their phone. The top action can open a contact
+              collector and return a special offer you designed — then unlink or relink campaigns
+              anytime.
+            </p>
+            <div className="mt-8 grid gap-3 sm:grid-cols-2">
+              {CARD_LAUNCHPAD_FEATURES.map((f, i) => {
+                const tones = EVOLUTION_TONES;
+                const Icons = [CreditCard, LayoutGrid, Users, Bookmark, Palette, MapPinned, Mail, Tags];
+                const Icon = Icons[i % Icons.length];
+                return (
+                  <div
+                    key={f}
+                    className="lp-card-hover flex items-start gap-3 rounded-2xl bg-[#0f172a] p-3.5 text-sm text-slate-300"
+                  >
+                    <span
+                      className={cn(
+                        "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg",
+                        tones[i % tones.length]
+                      )}
+                    >
+                      <Icon className="size-4" />
+                    </span>
+                    <span>{f}</span>
+                  </div>
+                );
+              })}
+            </div>
+            <Link
+              href="/dashboard/card"
+              className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-8 inline-flex px-6")}
+            >
+              Explore Tap Card Builder
+              <ArrowRight className="size-4" />
+            </Link>
           </div>
-          <Link
-            href="/dashboard/card"
-            className={cn(buttonVariants({ variant: "outline", size: "lg" }), "mt-8 inline-flex px-6")}
-          >
-            Explore Tap Card Builder
-            <ArrowRight className="size-4" />
-          </Link>
+          <TapCardLaunchpadGraphic />
         </div>
       </section>
 
@@ -395,18 +496,38 @@ export default function Home() {
               service businesses, product education, networking, reviews, and promotions.
             </p>
           </div>
-          <div className="mt-10 space-y-8">
-            {BLOCK_LIBRARY_GROUPS.map((group) => (
+          <div className="mt-10 space-y-10">
+            {BLOCK_LIBRARY_GROUPS.map((group, gi) => (
               <div key={group.title}>
                 <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--lp-gold,#d6a84f)]">
                   {group.title}
                 </p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-                  {group.items.map((b) => (
+                <div
+                  className={cn(
+                    "grid gap-2",
+                    gi === 0
+                      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4"
+                      : "grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
+                  )}
+                >
+                  {group.items.map((b, i) => (
                     <div
                       key={b}
-                      className="lp-card-hover rounded-xl bg-white/[0.03] px-3 py-3 text-center text-xs font-medium text-slate-300"
+                      className={cn(
+                        "lp-card-hover flex items-center gap-2 rounded-xl bg-white/[0.03] px-3 py-3 text-left text-xs font-medium text-slate-300",
+                        gi === 1 && i % 5 === 2 && "md:translate-y-2",
+                        gi === 1 && i % 5 === 3 && "md:translate-y-1"
+                      )}
                     >
+                      <span
+                        className={cn(
+                          "size-1.5 shrink-0 rounded-full",
+                          i % 4 === 0 && "bg-[var(--lp-gold,#d6a84f)]",
+                          i % 4 === 1 && "bg-blue-400",
+                          i % 4 === 2 && "bg-[var(--lp-signal,#72ff8a)]",
+                          i % 4 === 3 && "bg-violet-400"
+                        )}
+                      />
                       {b}
                     </div>
                   ))}
@@ -420,25 +541,30 @@ export default function Home() {
       {/* 11–13 · Capture / Email / Analytics / Brand */}
       <section className="border-y border-white/8 bg-[#07111f] py-20">
         <div className="mx-auto grid max-w-7xl gap-6 px-6 md:grid-cols-2 lg:px-8">
-          {[
-            { title: "Every Tap Can Become a Contact.", items: CAPTURE_FEATURES },
-            { title: "Follow Up Before They Forget You.", items: EMAIL_FEATURES, icon: true },
-            { title: "Know What Gets Tapped. Know What Converts.", items: ANALYTICS_FEATURES },
-            { title: "Your Brand Kit, Ready for Every Campaign.", items: BRAND_LIBRARY_FEATURES },
-          ].map((block) => (
-            <div key={block.title} className="lp-card-hover rounded-3xl bg-[#0f172a] p-6">
-              {block.icon ? <Mail className="mb-3 size-6 text-[var(--lp-gold,#d6a84f)]" /> : null}
-              <h3 className="text-xl font-semibold">{block.title}</h3>
-              <ul className="mt-4 space-y-2">
-                {block.items.map((item) => (
-                  <li key={item} className="flex gap-2 text-sm text-slate-400">
-                    <Check className="mt-0.5 size-3.5 shrink-0 text-[var(--lp-gold,#d6a84f)]" />
-                    {item}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ))}
+          {VALUE_BLOCKS.map((block) => {
+            const Icon = block.Icon;
+            return (
+              <div key={block.title} className="lp-card-hover rounded-3xl bg-[#0f172a] p-6">
+                <div
+                  className={cn(
+                    "mb-3 flex size-11 items-center justify-center rounded-xl",
+                    block.tone
+                  )}
+                >
+                  <Icon className="size-5" />
+                </div>
+                <h3 className="text-xl font-semibold">{block.title}</h3>
+                <ul className="mt-4 space-y-2">
+                  {block.items.map((item) => (
+                    <li key={item} className="flex gap-2 text-sm text-slate-400">
+                      <Check className="mt-0.5 size-3.5 shrink-0 text-[var(--lp-gold,#d6a84f)]" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
         </div>
       </section>
 
@@ -450,36 +576,9 @@ export default function Home() {
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-300">
             Cards, smart display tags, review signs, booth tags, table tents, window signs, package
-            inserts, and more.
+            inserts, and more — same visual language across every industry story.
           </p>
-          <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {USE_CASES.map((u) => (
-              <div
-                key={u.industry}
-                className="lp-card-hover rounded-3xl bg-[#0f172a]/90 p-5"
-              >
-                <h3 className="font-semibold text-[var(--lp-gold-bright,#f3c96b)]">{u.industry}</h3>
-                <dl className="mt-3 space-y-2 text-xs text-slate-400">
-                  <div>
-                    <dt className="inline font-semibold text-slate-300">Tap: </dt>
-                    <dd className="inline">{u.tap}</dd>
-                  </div>
-                  <div>
-                    <dt className="inline font-semibold text-slate-300">Opens: </dt>
-                    <dd className="inline">{u.opens}</dd>
-                  </div>
-                  <div>
-                    <dt className="inline font-semibold text-slate-300">Action: </dt>
-                    <dd className="inline">{u.action}</dd>
-                  </div>
-                  <div>
-                    <dt className="inline font-semibold text-slate-300">Captures: </dt>
-                    <dd className="inline">{u.captures}</dd>
-                  </div>
-                </dl>
-              </div>
-            ))}
-          </div>
+          <UseCaseImageCards />
         </div>
       </section>
 

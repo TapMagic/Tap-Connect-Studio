@@ -168,8 +168,6 @@ export const BLOCK_LIBRARY_GROUPS = [
       "Upcoming Schedule",
       "Digital Card",
       "vCard Download",
-      "Columns",
-      "Spacer",
     ],
   },
   {
