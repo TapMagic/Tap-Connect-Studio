@@ -48,8 +48,8 @@ function buildOfferBlocks(): ContentBlock[] {
       enabled: true,
       label: "Headline",
       data: {
-        headline: "Thursday · $1 Wings",
-        subheadline: "5–10 PM · Same tap device, scheduled offer.",
+        headline: "VIP 15% Off Denim",
+        subheadline: "Wed–Thu · same Tap Device, scheduled offer.",
         alignment: "center",
       },
     },
@@ -60,7 +60,7 @@ function buildOfferBlocks(): ContentBlock[] {
       enabled: true,
       label: "Banner",
       data: {
-        text: "Live from Campaign Groups · rotates by day/time",
+        text: "Weekly Store Promotions · rotates by day/time",
         backgroundColor: "#d6a84f",
         textColor: "#0b0f19",
       },
@@ -72,7 +72,7 @@ function buildOfferBlocks(): ContentBlock[] {
       enabled: true,
       label: "Capture",
       data: {
-        headline: "Unlock your code",
+        headline: "Unlock your VIP code",
         description: "Enter your email — we'll send the offer & notify the owner.",
         buttonLabel: "Get my offer",
         fields: ["name", "email"],
@@ -86,9 +86,9 @@ function buildOfferBlocks(): ContentBlock[] {
       enabled: true,
       label: "Offer",
       data: {
-        title: "Wings special",
-        description: "Show this in store or use online.",
-        code: "WINGS1",
+        title: "VIP Denim",
+        description: "Show this in store this week.",
+        code: "DENIM15",
         lockedUntilContact: true,
       },
     },
@@ -245,7 +245,7 @@ const MODES: { id: DemoMode; label: string }[] = [
   { id: "card", label: "Tap Card" },
   { id: "offer", label: "Special Offer" },
   { id: "product", label: "Product Story" },
-  { id: "review", label: "Review / Contact" },
+  { id: "review", label: "Contact Collector" },
 ];
 
 export function LiveDemoPhone({
@@ -373,12 +373,17 @@ export function LiveDemoPhone({
 
       {framed ? (
         <div className="lp-demo-frame">
-          <div className="flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
             <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--lp-gold-bright,#f3c96b)]">
               <span className="lp-live-dot" aria-hidden />
               Live Demo
             </div>
-            <p className="text-[11px] text-slate-400">Scroll inside demo</p>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-[rgba(214,168,79,0.4)] bg-[rgba(214,168,79,0.12)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--lp-gold-bright,#f3c96b)]">
+                {MODES.find((m) => m.id === mode)?.label}
+              </span>
+              <p className="text-[11px] text-slate-400">Scroll inside</p>
+            </div>
           </div>
           <div className="lp-demo-scroll px-3 py-4 sm:px-6">{phone}</div>
         </div>

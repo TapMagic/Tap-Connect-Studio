@@ -19,7 +19,7 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "TapConnect Studio — Every Tap Becomes a Customer Journey",
   description:
-    "Turn cards, NFC discs, shelf tags, and signs into editable mini campaigns with Workbench, scheduled offers, contact collectors, branded emails, and analytics.",
+    "Turn cards, Tap Devices, smart signs, and product displays into live campaigns with Workbench, scheduled offers, contact collectors, branded emails, and analytics.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },

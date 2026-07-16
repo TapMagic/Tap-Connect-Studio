@@ -15,10 +15,13 @@ import { HeroCtas } from "@/components/auth/hero-ctas";
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { LiveDemoPhone } from "@/components/marketing/live-demo-phone";
 import { FeatureComparisonChart } from "@/components/marketing/feature-comparison";
+import { PlatformCollageGraphic } from "@/components/marketing/platform-collage";
+import { TapVideoSection } from "@/components/marketing/tap-video-section";
 import { buttonVariants } from "@/components/ui/button";
 import {
   ANALYTICS_FEATURES,
-  BLOCK_LIBRARY,
+  BLOCK_LIBRARY_GROUPS,
+  BOUTIQUE_SCHEDULE,
   BRAND_LIBRARY_FEATURES,
   CAPTURE_FEATURES,
   CARD_LAUNCHPAD_FEATURES,
@@ -46,7 +49,7 @@ function SectionEyebrow({ children }: { children: ReactNode }) {
 
 function DeviceChip({ label }: { label: string }) {
   return (
-    <div className="lp-card-hover rounded-2xl border border-white/10 bg-[#0b1020]/90 px-3 py-2 text-center text-[11px] font-medium text-slate-200 shadow-lg">
+    <div className="lp-card-hover rounded-2xl bg-[#0b1020]/90 px-3 py-2 text-center text-[11px] font-medium text-slate-200">
       {label}
     </div>
   );
@@ -57,7 +60,7 @@ export default function Home() {
     <main className="lp relative overflow-hidden">
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[48rem]">
         <div className="lp-orb left-[10%] top-16 size-[28rem] bg-[rgba(214,168,79,0.14)]" />
-        <div className="lp-orb right-[5%] top-32 size-[22rem] bg-[rgba(114,255,138,0.08)]" />
+        <div className="lp-orb right-[5%] top-32 size-[22rem] bg-[rgba(59,130,246,0.12)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(15,23,42,0.9),transparent_55%),linear-gradient(to_bottom,#050814,#07111f_40%,#050814)]" />
       </div>
 
@@ -105,16 +108,16 @@ export default function Home() {
         <div className="space-y-7">
           <div className="inline-flex items-center gap-2 rounded-full border border-[rgba(214,168,79,0.35)] bg-[rgba(214,168,79,0.1)] px-3 py-1 text-xs font-medium text-[var(--lp-gold-bright,#f3c96b)]">
             <Sparkles className="size-3.5" />
-            Programmable tap-to-campaign platform
+            Tap-to-campaign platform
           </div>
           <h1 className="max-w-3xl text-4xl font-semibold tracking-tight text-balance sm:text-5xl lg:text-6xl">
             Every Tap Becomes a{" "}
             <span className="lp-gold-text">Customer Journey.</span>
           </h1>
           <p className="max-w-xl text-lg leading-8 text-slate-300">
-            TapConnect Studio turns cards, NFC discs, shelf tags, signs, and product displays into
-            editable mini webpages with video, offers, lead capture, reviews, maps, branded emails,
-            campaign scheduling, and analytics.
+            TapConnect Studio turns cards, Tap Devices, smart signs, product displays, and physical
+            touchpoints into live campaigns — with offers, lead capture, reviews, maps, branded
+            emails, scheduling, and analytics.
           </p>
           <HeroCtas />
           <div className="flex flex-wrap gap-2">
@@ -135,10 +138,10 @@ export default function Home() {
             <span className="lp-signal-ring" />
             <span className="lp-signal-ring" />
           </div>
-          <div className="relative z-10 rounded-[2rem] border border-white/10 bg-[#0b1020]/80 p-5 shadow-[0_30px_80px_rgba(0,0,0,0.5)] backdrop-blur">
+          <div className="lp-card-gold relative z-10 rounded-[2rem] bg-[#0b1020]/80 p-5 backdrop-blur">
             <div className="mb-4 flex items-center justify-center gap-2 text-xs text-slate-400">
               <TabletSmartphone className="size-4 text-[var(--lp-gold,#d6a84f)]" />
-              Physical tap → live mini page
+              Physical touchpoint → live mini page
             </div>
             <div className="mx-auto flex h-48 max-w-[200px] flex-col justify-between rounded-[1.75rem] border border-white/15 bg-gradient-to-b from-[#111827] to-[#050814] p-4 shadow-inner">
               <div className="mx-auto h-1.5 w-16 rounded-full bg-white/15" />
@@ -153,8 +156,8 @@ export default function Home() {
                 Save to contacts
               </div>
             </div>
-            <div className="mt-5 grid grid-cols-3 gap-2 sm:grid-cols-5">
-              {["Tap Card", "NFC Disc", "Shelf Tag", "Review Sign", "Display"].map((d) => (
+            <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {["Tap Card", "Smart Display", "Review Sign", "Product Tag"].map((d) => (
                 <DeviceChip key={d} label={d} />
               ))}
             </div>
@@ -170,17 +173,13 @@ export default function Home() {
             From smart card to command center for every physical touchpoint.
           </h2>
           <p className="mt-4 max-w-3xl text-lg text-slate-300">
-            TapConnect started as a smart card. Studio turns every card, disc, sign, product
-            display, and physical touchpoint into a live campaign surface. TapConnect v1.0 helped
-            people share a profile with one tap. Studio lets businesses control entire campaigns
-            behind every device.
+            TapConnect v1.0 helped people share a profile with one tap. Studio lets businesses
+            control entire campaigns behind every card, smart sign, product display, and interactive
+            touchpoint.
           </p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             {EVOLUTION_CARDS.map((c) => (
-              <div
-                key={c.title}
-                className="lp-card-hover rounded-2xl border border-white/10 bg-[#0f172a]/80 p-5"
-              >
+              <div key={c.title} className="lp-card-hover rounded-2xl bg-[#0f172a]/90 p-5">
                 <h3 className="font-semibold text-white">{c.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-slate-400">{c.body}</p>
               </div>
@@ -215,7 +214,7 @@ export default function Home() {
             Build → Assign → Tap → Capture
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-300">
-            The core product loop: every physical interaction becomes a measurable customer journey.
+            The Studio loop: every physical interaction becomes a measurable customer journey.
           </p>
           <div className="relative mt-14">
             <div className="lp-workflow-line hidden md:block" aria-hidden />
@@ -223,7 +222,7 @@ export default function Home() {
               {WORKFLOW_STEPS.map((s) => (
                 <div
                   key={s.n}
-                  className="lp-card-hover relative rounded-3xl border border-white/10 bg-[#0f172a] p-5"
+                  className="lp-card-hover relative rounded-3xl bg-[#0f172a] p-5"
                 >
                   <p className="text-sm font-bold text-[var(--lp-gold,#d6a84f)]">{s.n}</p>
                   <h3 className="mt-2 text-lg font-semibold">{s.title}</h3>
@@ -235,17 +234,39 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 5 · Workbench */}
+      {/* 5 · Visual break — platform collage */}
+      <section className="py-20">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <SectionEyebrow>The platform</SectionEyebrow>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Build here. Deploy there. Track results everywhere.
+            </h2>
+            <p className="mt-4 text-slate-300">
+              Workbench, Tap Devices, collectors, and analytics — one system behind every physical
+              touchpoint.
+            </p>
+          </div>
+          <div className="mt-10">
+            <PlatformCollageGraphic />
+          </div>
+        </div>
+      </section>
+
+      {/* Video break */}
+      <TapVideoSection />
+
+      {/* 6 · Workbench */}
       <section className="py-20">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:px-8">
           <div>
             <SectionEyebrow>Campaign Workbench</SectionEyebrow>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Build campaigns before you even know which tag will run them.
+              Build campaigns before you even know which device will run them.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Can&apos;t sleep at 4:00 AM? Build tomorrow&apos;s offer in Workbench, save it as a
-              draft, and assign it later when someone at the store taps the right device.
+              Can&apos;t sleep at 4:00 AM? Build tomorrow&apos;s campaign in Workbench, save it as a
+              draft, and assign it to a device later when someone at the store taps the right tag.
             </p>
             <Link
               href="/dashboard/workbench"
@@ -259,7 +280,7 @@ export default function Home() {
             {WORKBENCH_FEATURES.map((f) => (
               <li
                 key={f}
-                className="flex gap-2 rounded-xl border border-white/8 bg-white/[0.03] px-3 py-2.5 text-sm text-slate-300"
+                className="lp-card-hover flex gap-2 rounded-xl bg-white/[0.03] px-3 py-2.5 text-sm text-slate-300"
               >
                 <Check className="mt-0.5 size-4 shrink-0 text-[var(--lp-gold,#d6a84f)]" />
                 {f}
@@ -269,53 +290,34 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 6 · Scheduled offers */}
+      {/* 7 · Scheduled offers — boutique */}
       <section className="border-y border-white/8 bg-[#07111f] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <SectionEyebrow>Campaign groups</SectionEyebrow>
+          <SectionEyebrow>Campaign groups · Weekly Store Promotions</SectionEyebrow>
           <h2 className="mt-3 max-w-3xl text-3xl font-semibold tracking-tight sm:text-4xl">
             Schedule Offers Once. Let the Tap Device Rotate Them.
           </h2>
           <p className="mt-4 max-w-3xl text-lg text-slate-300">
-            Run happy hour, daily specials, limited promos, and recurring offers from the same NFC
-            device — automatically. If no offer is active, customers see a branded fallback.
+            Boutique and retail weekly promos from the same Tap Device — automatically. Build in
+            Workbench, schedule by day and time, and collect contacts with branded follow-up.
           </p>
-          <div className="mt-10 grid gap-4 md:grid-cols-3">
-            {[
-              {
-                when: "Mon–Wed · 2–4 PM",
-                title: "Draft special",
-                body: "Soft promo window while traffic is light.",
-              },
-              {
-                when: "Thu · 5–10 PM",
-                title: "$1 Wings",
-                body: "Same bar tags — different campaign on schedule.",
-              },
-              {
-                when: "Fri–Sat",
-                title: "Free fries w/ entrée $15+",
-                body: "Weekend rotation · contact claim · owner notified.",
-              },
-            ].map((slot) => (
-              <div
-                key={slot.title}
-                className="lp-card-hover rounded-3xl border border-[rgba(214,168,79,0.25)] bg-[#0f172a] p-6"
-              >
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {BOUTIQUE_SCHEDULE.map((slot) => (
+              <div key={slot.title} className="lp-card-gold rounded-3xl bg-[#0f172a] p-5">
                 <p className="text-xs font-semibold uppercase tracking-wider text-[var(--lp-signal,#72ff8a)]">
                   {slot.when}
                 </p>
-                <h3 className="mt-2 text-xl font-semibold">{slot.title}</h3>
+                <h3 className="mt-2 text-lg font-semibold">{slot.title}</h3>
                 <p className="mt-2 text-sm text-slate-400">{slot.body}</p>
               </div>
             ))}
           </div>
           <ul className="mt-8 grid gap-2 text-sm text-slate-300 sm:grid-cols-2">
             {[
-              "Start day/time, end time, duration per campaign",
-              "Publish, pause, complete, archive, republish, or schedule",
-              "Multi-location location-specific offers",
-              "Contact collection → owner notification + branded coupon email",
+              "Same Tap Device rotates the correct offer by day/time",
+              "No active campaign → branded fallback message",
+              "Draft in Workbench, schedule, assign later",
+              "Multi-location schedules · owner notified on contact claim",
             ].map((item) => (
               <li key={item} className="flex gap-2">
                 <Check className="mt-0.5 size-4 text-[var(--lp-gold,#d6a84f)]" />
@@ -326,23 +328,22 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 7 · Device manager */}
+      {/* 8 · Device manager */}
       <section className="py-20">
         <div className="mx-auto grid max-w-7xl gap-12 px-6 lg:grid-cols-2 lg:px-8">
           <div>
             <SectionEyebrow>Tap Device Manager</SectionEyebrow>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Every Tag Has a Profile. Every Device Can Be Reused.
+              Every Tap Device Has a Profile. Every Device Can Be Reused.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Owner is remote. A staff member taps a device in the store. The owner&apos;s desktop
-              opens the exact device profile and can assign or update the campaign — without
-              rewriting the NFC chip.
+              An employee can tap a device in the store and the owner can immediately see exactly
+              what it is assigned to and update it remotely — without replacing the physical device.
             </p>
           </div>
           <ul className="space-y-3">
             {DEVICE_FEATURES.map((f) => (
-              <li key={f} className="flex gap-2 text-sm text-slate-300">
+              <li key={f} className="lp-card-hover flex gap-2 rounded-xl px-3 py-2.5 text-sm text-slate-300">
                 <Radio className="mt-0.5 size-4 shrink-0 text-[var(--lp-signal,#72ff8a)]" />
                 {f}
               </li>
@@ -351,7 +352,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 8 · Tap Card builder */}
+      {/* 9 · Tap Card builder */}
       <section className="border-y border-white/8 bg-[#07111f] py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <SectionEyebrow>Tap Card Builder</SectionEyebrow>
@@ -365,10 +366,7 @@ export default function Home() {
           </p>
           <div className="mt-10 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {CARD_LAUNCHPAD_FEATURES.map((f) => (
-              <div
-                key={f}
-                className="lp-card-hover rounded-2xl border border-white/10 bg-[#0f172a] p-4 text-sm text-slate-300"
-              >
+              <div key={f} className="lp-card-hover rounded-2xl bg-[#0f172a] p-4 text-sm text-slate-300">
                 {f}
               </div>
             ))}
@@ -383,7 +381,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 9 · Block library */}
+      {/* 10 · Block library */}
       <section className="py-20">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
@@ -392,51 +390,44 @@ export default function Home() {
               What you can build
             </h2>
             <p className="mt-3 text-slate-300">
-              A rich block library for product stories, offers, collectors, reviews, maps, and more.
+              See the original tap card for the first chapter. Inside Studio, you&apos;re only
+              limited by how creatively you use physical touchpoints — retail, hospitality, events,
+              service businesses, product education, networking, reviews, and promotions.
             </p>
           </div>
-          <div className="mt-10 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
-            {BLOCK_LIBRARY.map((b) => (
-              <div
-                key={b}
-                className="lp-card-hover rounded-xl border border-white/8 bg-white/[0.03] px-3 py-3 text-center text-xs font-medium text-slate-300"
-              >
-                {b}
+          <div className="mt-10 space-y-8">
+            {BLOCK_LIBRARY_GROUPS.map((group) => (
+              <div key={group.title}>
+                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--lp-gold,#d6a84f)]">
+                  {group.title}
+                </p>
+                <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
+                  {group.items.map((b) => (
+                    <div
+                      key={b}
+                      className="lp-card-hover rounded-xl bg-white/[0.03] px-3 py-3 text-center text-xs font-medium text-slate-300"
+                    >
+                      {b}
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* 10–13 · Capture / Email / Analytics / Brand */}
+      {/* 11–13 · Capture / Email / Analytics / Brand */}
       <section className="border-y border-white/8 bg-[#07111f] py-20">
-        <div className="mx-auto grid max-w-7xl gap-8 px-6 md:grid-cols-2 lg:px-8">
+        <div className="mx-auto grid max-w-7xl gap-6 px-6 md:grid-cols-2 lg:px-8">
           {[
-            {
-              title: "Every Tap Can Become a Contact.",
-              items: CAPTURE_FEATURES,
-            },
-            {
-              title: "Follow Up Before They Forget You.",
-              items: EMAIL_FEATURES,
-              icon: true,
-            },
-            {
-              title: "Know What Gets Tapped. Know What Converts.",
-              items: ANALYTICS_FEATURES,
-            },
-            {
-              title: "Your Brand Kit, Ready for Every Campaign.",
-              items: BRAND_LIBRARY_FEATURES,
-            },
+            { title: "Every Tap Can Become a Contact.", items: CAPTURE_FEATURES },
+            { title: "Follow Up Before They Forget You.", items: EMAIL_FEATURES, icon: true },
+            { title: "Know What Gets Tapped. Know What Converts.", items: ANALYTICS_FEATURES },
+            { title: "Your Brand Kit, Ready for Every Campaign.", items: BRAND_LIBRARY_FEATURES },
           ].map((block) => (
-            <div
-              key={block.title}
-              className="lp-card-hover rounded-3xl border border-white/10 bg-[#0f172a] p-6"
-            >
-              {block.icon ? (
-                <Mail className="mb-3 size-6 text-[var(--lp-gold,#d6a84f)]" />
-              ) : null}
+            <div key={block.title} className="lp-card-hover rounded-3xl bg-[#0f172a] p-6">
+              {block.icon ? <Mail className="mb-3 size-6 text-[var(--lp-gold,#d6a84f)]" /> : null}
               <h3 className="text-xl font-semibold">{block.title}</h3>
               <ul className="mt-4 space-y-2">
                 {block.items.map((item) => (
@@ -458,14 +449,14 @@ export default function Home() {
             Built for the physical world
           </h2>
           <p className="mx-auto mt-3 max-w-2xl text-center text-slate-300">
-            Cards, discs, shelf tags, review signs, booth tags, table tents, window signs, package
+            Cards, smart display tags, review signs, booth tags, table tents, window signs, package
             inserts, and more.
           </p>
           <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {USE_CASES.map((u) => (
               <div
                 key={u.industry}
-                className="lp-card-hover rounded-3xl border border-white/10 bg-[#0f172a]/90 p-5"
+                className="lp-card-hover rounded-3xl bg-[#0f172a]/90 p-5"
               >
                 <h3 className="font-semibold text-[var(--lp-gold-bright,#f3c96b)]">{u.industry}</h3>
                 <dl className="mt-3 space-y-2 text-xs text-slate-400">
@@ -492,44 +483,44 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 15 · Pricing preview */}
-      <section id="pricing" className="border-y border-white/8 bg-[#07111f] py-20">
+      {/* 15 · Pricing — compact */}
+      <section id="pricing" className="border-y border-white/8 bg-[#07111f] py-16">
         <div className="mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
             <SectionEyebrow>Pricing</SectionEyebrow>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
               Plans that scale with every tap.
             </h2>
-            <p className="mt-4 text-slate-300">
-              Launch pricing. Device packs, verified tags, and premium setup sold separately.
+            <p className="mt-3 text-sm text-slate-400">
+              Device packs and premium setup sold separately.
             </p>
           </div>
-          <div className="mt-12 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {PRICING_PREVIEW.map((tier) => (
               <div
                 key={tier.name}
                 className={cn(
-                  "lp-card-hover relative flex flex-col rounded-3xl border bg-[#050814]/80 p-6",
-                  tier.recommended
-                    ? "border-[rgba(214,168,79,0.55)] shadow-[0_0_0_1px_rgba(214,168,79,0.2),0_24px_60px_rgba(0,0,0,0.45)]"
-                    : "border-white/10"
+                  "lp-price-card relative",
+                  tier.recommended ? "lp-price-gold" : "lp-price-blue"
                 )}
               >
                 {tier.recommended ? (
-                  <span className="absolute -top-3 left-6 rounded-full bg-[var(--lp-gold,#d6a84f)] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-[#0b0f19]">
-                    Recommended
+                  <span className="absolute -top-2.5 left-4 rounded-full bg-[var(--lp-gold,#d6a84f)] px-2.5 py-0.5 text-[9px] font-bold uppercase tracking-wide text-[#0b0f19]">
+                    Best Value
                   </span>
                 ) : null}
-                <h3 className="text-xl font-semibold">{tier.name}</h3>
-                <p className="mt-1 text-sm text-slate-400">{tier.blurb}</p>
-                <p className="mt-5 flex items-end gap-1">
-                  <span className="text-4xl font-semibold tracking-tight">{tier.price}</span>
-                  <span className="pb-1 text-sm text-slate-400">/mo</span>
-                </p>
-                <ul className="mt-6 flex-1 space-y-3">
+                <div className="flex items-baseline justify-between gap-2">
+                  <h3 className="text-lg font-semibold">{tier.name}</h3>
+                  <p className="flex items-end gap-0.5">
+                    <span className="text-2xl font-semibold tracking-tight">{tier.price}</span>
+                    <span className="pb-0.5 text-[11px] text-slate-400">/mo</span>
+                  </p>
+                </div>
+                <p className="mt-1 text-xs text-slate-400">{tier.blurb}</p>
+                <ul className="mt-3 space-y-1.5">
                   {tier.features.map((f) => (
-                    <li key={f} className="flex gap-2 text-sm text-slate-300">
-                      <Check className="mt-0.5 size-4 shrink-0 text-[var(--lp-gold,#d6a84f)]" />
+                    <li key={f} className="flex gap-1.5 text-xs text-slate-300">
+                      <Check className="mt-0.5 size-3.5 shrink-0 text-[var(--lp-gold,#d6a84f)]" />
                       {f}
                     </li>
                   ))}
@@ -539,19 +530,20 @@ export default function Home() {
                   className={cn(
                     buttonVariants({
                       variant: tier.recommended ? "default" : "outline",
-                      size: "lg",
+                      size: "sm",
                     }),
-                    "mt-8 w-full justify-center",
-                    tier.recommended && "bg-[var(--lp-gold,#d6a84f)] text-[#0b0f19] hover:bg-[var(--lp-gold-bright,#f3c96b)]"
+                    "mt-4 w-full justify-center",
+                    tier.recommended &&
+                      "bg-[var(--lp-gold,#d6a84f)] text-[#0b0f19] hover:bg-[var(--lp-gold-bright,#f3c96b)]"
                   )}
                 >
                   Get started
-                  <ArrowRight className="size-4" />
+                  <ArrowRight className="size-3.5" />
                 </Link>
               </div>
             ))}
           </div>
-          <div className="mt-10 text-center">
+          <div className="mt-8 text-center">
             <a
               href="#compare"
               className={cn(
@@ -575,8 +567,8 @@ export default function Home() {
               Depth that matches the platform behind the page.
             </h2>
             <p className="mt-4 text-slate-300">
-              Basic → Studio → Pro → Growth → Enterprise. Pro is recommended for serious retail and
-              active campaign management.
+              Basic → Studio → Pro → Growth → Enterprise. Pro is the best value for serious retail
+              and active campaign management.
             </p>
           </div>
           <div className="mt-12">
@@ -593,7 +585,7 @@ export default function Home() {
             {FAQS.map((f) => (
               <details
                 key={f.q}
-                className="rounded-2xl border border-white/10 bg-[#050814]/70 px-5 py-4 open:border-[rgba(214,168,79,0.35)]"
+                className="lp-card-hover rounded-2xl bg-[#050814]/70 px-5 py-4"
               >
                 <summary className="cursor-pointer font-medium">{f.q}</summary>
                 <p className="mt-3 text-sm leading-6 text-slate-400">{f.a}</p>
@@ -603,7 +595,10 @@ export default function Home() {
           <p className="mt-8 text-center text-sm text-slate-400">
             <MapPin className="mr-1 inline size-3.5" />
             Questions?{" "}
-            <a className="text-[var(--lp-gold,#d6a84f)] hover:underline" href="mailto:info@tapthemagic.com">
+            <a
+              className="text-[var(--lp-gold,#d6a84f)] hover:underline"
+              href="mailto:info@tapthemagic.com"
+            >
               info@tapthemagic.com
             </a>
           </p>
@@ -617,8 +612,8 @@ export default function Home() {
             Start Building Tap Experiences
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-lg text-slate-300">
-            Build your first campaign, assign it to a reusable tap device, and turn every physical
-            interaction into a measurable customer journey.
+            Turn every physical touchpoint into a measurable customer journey with live campaigns,
+            reusable Tap Devices, contact capture, and analytics.
           </p>
           <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Link
@@ -646,7 +641,7 @@ export default function Home() {
           <div>
             <p className="font-semibold">TapConnect Studio</p>
             <p className="mt-1 text-sm text-slate-400">
-              NFC & QR campaign platform · Powered by Tap The Magic
+              Tap-to-campaign platform · Powered by Tap The Magic
             </p>
           </div>
           <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-slate-400">
@@ -655,6 +650,9 @@ export default function Home() {
             </Link>
             <a href="#demo" className="hover:text-[var(--lp-gold,#d6a84f)]">
               Demo
+            </a>
+            <a href="#video" className="hover:text-[var(--lp-gold,#d6a84f)]">
+              Video
             </a>
             <a href="#pricing" className="hover:text-[var(--lp-gold,#d6a84f)]">
               Pricing

@@ -1,17 +1,18 @@
-/* Landing page — TapStay-style midnight + gold, green for live signal only */
+/* Landing page — midnight + gold, blue glow on standard tiles, green for live only */
 
 .lp {
   --lp-bg: #050814;
   --lp-bg-2: #07111f;
   --lp-panel: #0f172a;
-  --lp-panel-2: #111827;
   --lp-gold: #d6a84f;
   --lp-gold-bright: #f3c96b;
+  --lp-blue: #3b82f6;
+  --lp-blue-glow: rgba(59, 130, 246, 0.45);
   --lp-ivory: #f8fafc;
   --lp-muted: #94a3b8;
   --lp-signal: #72ff8a;
   --lp-border: rgba(255, 255, 255, 0.08);
-  --lp-gold-border: rgba(214, 168, 79, 0.35);
+  --lp-gold-border: rgba(214, 168, 79, 0.4);
   color: var(--lp-ivory);
   background: var(--lp-bg);
 }
@@ -72,7 +73,13 @@
   }
 }
 
+/* Standard feature tiles — blue neon edge */
 .lp-card-hover {
+  border: 1px solid rgba(59, 130, 246, 0.28);
+  box-shadow:
+    0 0 0 1px rgba(59, 130, 246, 0.08),
+    0 0 24px rgba(59, 130, 246, 0.12),
+    0 12px 28px rgba(0, 0, 0, 0.35);
   transition:
     transform 0.25s ease,
     border-color 0.25s ease,
@@ -80,11 +87,78 @@
 }
 
 .lp-card-hover:hover {
-  transform: translateY(-4px);
-  border-color: var(--lp-gold-border);
+  transform: translateY(-5px);
+  border-color: rgba(59, 130, 246, 0.55);
   box-shadow:
-    0 0 0 1px rgba(214, 168, 79, 0.12),
-    0 24px 48px rgba(0, 0, 0, 0.4);
+    0 0 0 1px rgba(59, 130, 246, 0.2),
+    0 0 36px rgba(59, 130, 246, 0.28),
+    0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* Gold accent tiles */
+.lp-card-gold {
+  border: 1px solid var(--lp-gold-border);
+  box-shadow:
+    0 0 0 1px rgba(214, 168, 79, 0.1),
+    0 0 28px rgba(214, 168, 79, 0.16),
+    0 12px 28px rgba(0, 0, 0, 0.35);
+  transition:
+    transform 0.25s ease,
+    border-color 0.25s ease,
+    box-shadow 0.25s ease;
+}
+
+.lp-card-gold:hover {
+  transform: translateY(-5px);
+  border-color: rgba(243, 201, 107, 0.65);
+  box-shadow:
+    0 0 0 1px rgba(214, 168, 79, 0.25),
+    0 0 40px rgba(214, 168, 79, 0.32),
+    0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+/* Compact pricing cards */
+.lp-price-card {
+  display: flex;
+  flex-direction: column;
+  border-radius: 1.25rem;
+  padding: 1.1rem 1.15rem 1.15rem;
+  background: linear-gradient(165deg, rgba(15, 23, 42, 0.95), rgba(5, 8, 20, 0.98));
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    border-color 0.25s ease;
+}
+
+.lp-price-blue {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  box-shadow:
+    0 0 20px rgba(59, 130, 246, 0.14),
+    0 10px 28px rgba(0, 0, 0, 0.4);
+}
+
+.lp-price-blue:hover {
+  transform: translateY(-4px);
+  border-color: rgba(59, 130, 246, 0.6);
+  box-shadow:
+    0 0 32px rgba(59, 130, 246, 0.28),
+    0 18px 40px rgba(0, 0, 0, 0.45);
+}
+
+.lp-price-gold {
+  border: 1px solid rgba(214, 168, 79, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(214, 168, 79, 0.15),
+    0 0 36px rgba(214, 168, 79, 0.28),
+    0 14px 36px rgba(0, 0, 0, 0.45);
+}
+
+.lp-price-gold:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    0 0 0 1px rgba(243, 201, 107, 0.3),
+    0 0 48px rgba(214, 168, 79, 0.4),
+    0 20px 44px rgba(0, 0, 0, 0.5);
 }
 
 .lp-demo-frame {
@@ -93,10 +167,11 @@
   border-radius: 1.5rem;
   border: 1px solid var(--lp-gold-border);
   background:
-    linear-gradient(160deg, rgba(214, 168, 79, 0.08), transparent 40%),
+    linear-gradient(160deg, rgba(214, 168, 79, 0.1), transparent 42%),
     var(--lp-panel);
   box-shadow:
     0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 0 40px rgba(214, 168, 79, 0.12),
     0 30px 80px rgba(0, 0, 0, 0.55);
 }
 
@@ -167,4 +242,75 @@
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+/* Platform collage */
+.lp-collage {
+  position: relative;
+  min-height: 420px;
+  border-radius: 1.75rem;
+  border: 1px solid rgba(59, 130, 246, 0.25);
+  background:
+    radial-gradient(ellipse at 50% 40%, rgba(214, 168, 79, 0.12), transparent 50%),
+    radial-gradient(ellipse at 80% 20%, rgba(59, 130, 246, 0.15), transparent 40%),
+    linear-gradient(165deg, #0b1020, #050814);
+  overflow: hidden;
+  box-shadow:
+    0 0 40px rgba(59, 130, 246, 0.12),
+    0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.lp-collage-float {
+  position: absolute;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(15, 23, 42, 0.92);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #e2e8f0;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  animation: lp-float 5s ease-in-out infinite;
+}
+
+.lp-collage-float span {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6rem;
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+@keyframes lp-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+.lp-video-frame {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.5rem;
+  border: 1px solid rgba(214, 168, 79, 0.35);
+  background: #0b1020;
+  box-shadow:
+    0 0 32px rgba(214, 168, 79, 0.15),
+    0 24px 60px rgba(0, 0, 0, 0.5);
+  aspect-ratio: 9 / 16;
+  max-height: 560px;
+  margin-inline: auto;
+  max-width: 320px;
+}
+
+.lp-video-frame iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
 }
