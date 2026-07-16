@@ -1,9 +1,6 @@
 import Image from "next/image";
 import { USE_CASES } from "@/lib/marketing/landing-content";
 
-/** Same real-world photo on every use-case card for visual consistency */
-const USE_CASE_IMAGE = "/marketing/physical-touchpoint.jpg";
-
 export function UseCaseImageCards() {
   return (
     <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -35,13 +32,13 @@ export function UseCaseImageCards() {
           </div>
           <div className="relative w-[34%] shrink-0 min-[420px]:w-[38%]">
             <Image
-              src={USE_CASE_IMAGE}
-              alt="Physical retail touchpoint — shared across industries"
+              src={u.image}
+              alt={u.imageAlt}
               fill
               className="object-cover transition duration-500 group-hover:scale-[1.03]"
               sizes="(max-width: 640px) 34vw, 220px"
             />
-            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#0f172a]/50" />
+            <div className="absolute inset-0 bg-gradient-to-l from-transparent to-[#0f172a]/55" />
           </div>
         </article>
       ))}

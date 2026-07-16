@@ -236,6 +236,8 @@ export const BRAND_LIBRARY_FEATURES = [
 export const USE_CASES = [
   {
     industry: "Boutiques",
+    image: "/marketing/use-cases/boutiques.jpg",
+    imageAlt: "Boutique clothing rack and fitting area",
     tap: "Shelf tags & fitting-room signs",
     opens: "New arrivals, VIP offers, size tips",
     action: "VIP signup / claim promo",
@@ -243,6 +245,8 @@ export const USE_CASES = [
   },
   {
     industry: "Specialty Retail",
+    image: "/marketing/use-cases/specialty-retail.jpg",
+    imageAlt: "Specialty retail product display shelf",
     tap: "Product displays",
     opens: "Product story, video, details",
     action: "Learn & claim deal",
@@ -250,6 +254,8 @@ export const USE_CASES = [
   },
   {
     industry: "Salons / Med Spas",
+    image: "/marketing/use-cases/salons.jpg",
+    imageAlt: "Salon styling chairs and mirror station",
     tap: "Counter & mirror cards",
     opens: "Booking + review + offer",
     action: "Book / leave review",
@@ -257,6 +263,8 @@ export const USE_CASES = [
   },
   {
     industry: "Restaurants / Cafés",
+    image: "/marketing/use-cases/restaurants.jpg",
+    imageAlt: "Restaurant table with menu tent display",
     tap: "Table tents & window signs",
     opens: "Specials, menu highlights, loyalty",
     action: "Join list / claim offer",
@@ -264,6 +272,8 @@ export const USE_CASES = [
   },
   {
     industry: "Trade Shows",
+    image: "/marketing/use-cases/trade-shows.jpg",
+    imageAlt: "Trade show booth and expo hall",
     tap: "Booth signs",
     opens: "Product demos & stories",
     action: "Lead capture",
@@ -271,6 +281,8 @@ export const USE_CASES = [
   },
   {
     industry: "Event Pros",
+    image: "/marketing/use-cases/event-pros.jpg",
+    imageAlt: "Wedding reception venue with table settings",
     tap: "Entry & table displays",
     opens: "Schedule, VIP, directions",
     action: "Add calendar / signup",
@@ -278,6 +290,8 @@ export const USE_CASES = [
   },
   {
     industry: "Real Estate",
+    image: "/marketing/use-cases/real-estate.jpg",
+    imageAlt: "For sale sign in front of a home",
     tap: "Yard signs & open-house cards",
     opens: "Listing story + agent card",
     action: "Save contact / tour request",
@@ -285,6 +299,8 @@ export const USE_CASES = [
   },
   {
     industry: "Pet Businesses",
+    image: "/marketing/use-cases/pet-businesses.jpg",
+    imageAlt: "Pet store with supplies and grooming area",
     tap: "Store displays & service cards",
     opens: "Services, offers, booking",
     action: "Book / join list",
@@ -292,6 +308,8 @@ export const USE_CASES = [
   },
   {
     industry: "Service Businesses",
+    image: "/marketing/use-cases/service-businesses.jpg",
+    imageAlt: "Service technician at a customer location",
     tap: "Truck magnets & counter cards",
     opens: "Quote request + reviews",
     action: "Request quote",
@@ -299,6 +317,8 @@ export const USE_CASES = [
   },
   {
     industry: "Venues",
+    image: "/marketing/use-cases/venues.jpg",
+    imageAlt: "Elegant event venue ballroom setup",
     tap: "Lobby & suite signs",
     opens: "Wayfinding, VIP, events",
     action: "Signup / directions",
@@ -306,6 +326,8 @@ export const USE_CASES = [
   },
   {
     industry: "Fitness / Studios",
+    image: "/marketing/use-cases/fitness.jpg",
+    imageAlt: "Fitness studio with weights and class space",
     tap: "Front desk & class boards",
     opens: "Class schedule + trial offer",
     action: "Trial signup",
@@ -313,6 +335,8 @@ export const USE_CASES = [
   },
   {
     industry: "Multi-Location Retail",
+    image: "/marketing/use-cases/multi-location.jpg",
+    imageAlt: "Shopping district with multiple storefronts",
     tap: "Shelf & review stations",
     opens: "Location-specific offers",
     action: "Claim / review",
