@@ -612,6 +612,7 @@ model LandingUseCase {
   imagePositionY    Int      @default(50)
   imageScale        Float    @default(1)
   imagePanelPercent Int      @default(38)
+  glowColor         String   @default("#3b82f6")
   sortOrder         Int      @default(0)
   enabled           Boolean  @default(true)
   createdAt         DateTime @default(now())

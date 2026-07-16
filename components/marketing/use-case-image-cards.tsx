@@ -1,19 +1,46 @@
 import type { LandingUseCaseTile } from "@/lib/marketing/use-case-types";
+import { glowToRgba } from "@/lib/marketing/use-case-types";
+import { cn } from "@/lib/utils";
 
-export function UseCaseImageCards({ tiles }: { tiles: LandingUseCaseTile[] }) {
+export function UseCaseImageCards({
+  tiles,
+  layout = "grid",
+}: {
+  tiles: LandingUseCaseTile[];
+  /** `single` fills the container (admin preview); `grid` is the landing layout. */
+  layout?: "grid" | "single";
+}) {
   return (
-    <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+    <div
+      className={cn(
+        layout === "single"
+          ? "mt-0 grid grid-cols-1 gap-4"
+          : "mt-12 grid items-stretch gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      )}
+    >
       {tiles.map((u) => {
         const panel = Math.min(55, Math.max(20, u.imagePanelPercent ?? 38));
         const fit = u.imageFit === "contain" ? "contain" : "cover";
         const scale = Math.min(3, Math.max(0.5, u.imageScale ?? 1));
         const posX = u.imagePositionX ?? 50;
         const posY = u.imagePositionY ?? 50;
+        const glow = u.glowColor || "#3b82f6";
 
         return (
           <article
             key={u.id}
-            className="lp-card-hover lp-usecase-stair group flex min-h-[168px] overflow-hidden rounded-3xl bg-[#0f172a]/95"
+            className={cn(
+              "lp-usecase-card group flex h-full min-h-[180px] overflow-hidden rounded-3xl bg-[#0f172a]/95",
+              layout === "single" && "min-h-[200px]"
+            )}
+            style={{
+              border: `1px solid ${glowToRgba(glow, 0.45)}`,
+              boxShadow: `
+                0 0 0 1px ${glowToRgba(glow, 0.12)},
+                0 0 28px ${glowToRgba(glow, 0.22)},
+                0 12px 28px rgba(0, 0, 0, 0.35)
+              `,
+            }}
           >
             <div className="flex min-w-0 flex-1 flex-col justify-center p-4 sm:p-5">
               <h3 className="font-semibold text-[var(--lp-gold-bright,#f3c96b)]">
@@ -38,10 +65,7 @@ export function UseCaseImageCards({ tiles }: { tiles: LandingUseCaseTile[] }) {
                 </div>
               </dl>
             </div>
-            <div
-              className="relative shrink-0 overflow-hidden"
-              style={{ width: `${panel}%` }}
-            >
+            <div className="relative shrink-0 self-stretch overflow-hidden" style={{ width: `${panel}%` }}>
               {u.image ? (
                 // eslint-disable-next-line @next/next/no-img-element -- admin may use R2, data URLs, or local paths
                 <img

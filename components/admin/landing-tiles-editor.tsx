@@ -1,15 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import {
-  ArrowDown,
-  ArrowUp,
-  Eye,
-  EyeOff,
-  Plus,
-  Save,
-  Trash2,
-} from "lucide-react";
+import { Eye, EyeOff, GripVertical, Plus, Save, Trash2 } from "lucide-react";
 import { MediaPicker } from "@/components/media/media-picker";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { UseCaseImageCards } from "@/components/marketing/use-case-image-cards";
 import {
+  DEFAULT_GLOW_COLOR,
   defaultImageFraming,
   type LandingUseCaseTile,
 } from "@/lib/marketing/use-case-types";
@@ -53,6 +46,7 @@ export function LandingTilesEditor({
   const [expandedId, setExpandedId] = useState<string | null>(
     initialTiles[0]?.id ?? null
   );
+  const [dragId, setDragId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -61,15 +55,16 @@ export function LandingTilesEditor({
     setTiles((prev) => prev.map((t) => (t.id === id ? { ...t, ...patch } : t)));
   }
 
-  function moveTile(id: string, dir: -1 | 1) {
+  function reorderTiles(fromId: string, toId: string) {
+    if (fromId === toId) return;
     setTiles((prev) => {
-      const idx = prev.findIndex((t) => t.id === id);
-      if (idx < 0) return prev;
-      const next = idx + dir;
-      if (next < 0 || next >= prev.length) return prev;
-      const copy = [...prev];
-      [copy[idx], copy[next]] = [copy[next], copy[idx]];
-      return copy.map((t, i) => ({ ...t, sortOrder: i }));
+      const from = prev.findIndex((t) => t.id === fromId);
+      const to = prev.findIndex((t) => t.id === toId);
+      if (from < 0 || to < 0) return prev;
+      const next = [...prev];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next.map((t, i) => ({ ...t, sortOrder: i }));
     });
   }
 
@@ -99,6 +94,7 @@ export function LandingTilesEditor({
           tiles: tiles.map((t, i) => ({
             ...t,
             industry: t.industry.trim() || "Untitled",
+            glowColor: t.glowColor || DEFAULT_GLOW_COLOR,
             sortOrder: i,
           })),
         }),
@@ -121,6 +117,7 @@ export function LandingTilesEditor({
   }
 
   const previewTiles = tiles.filter((t) => t.enabled && t.industry.trim());
+  const editing = tiles.find((t) => t.id === expandedId);
 
   return (
     <div className="space-y-8">
@@ -128,10 +125,9 @@ export function LandingTilesEditor({
         <div>
           <h2 className="text-xl font-semibold tracking-tight">Landing tiles</h2>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Edit the “Built for the physical world” cards. Change industry titles, Tap / Opens /
-            Action / Captures copy, and images (browse, paste, drag & drop, URL, library, stock).
-            Frame each photo with position, zoom, and panel width — then save to update the
-            public landing page.
+            Edit the “Built for the physical world” cards. Drag the grip handle to reorder. Change
+            copy, images (browse, paste, drag & drop, URL, library, stock), framing, and glow
+            color — then save to update the public landing page.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -157,18 +153,34 @@ export function LandingTilesEditor({
         </p>
       ) : null}
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {tiles.map((tile, index) => {
           const open = expandedId === tile.id;
           return (
             <div
               key={tile.id}
+              draggable
+              onDragStart={() => setDragId(tile.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (dragId) reorderTiles(dragId, tile.id);
+                setDragId(null);
+              }}
+              onDragEnd={() => setDragId(null)}
               className={cn(
                 "rounded-2xl border border-border/60 bg-card/50",
-                !tile.enabled && "opacity-70"
+                !tile.enabled && "opacity-70",
+                dragId === tile.id && "opacity-50 ring-2 ring-primary/40"
               )}
             >
-              <div className="flex flex-wrap items-center gap-2 border-b border-border/40 px-4 py-3">
+              <div className="flex flex-wrap items-center gap-2 border-b border-border/40 px-3 py-3 sm:px-4">
+                <span
+                  className="inline-flex cursor-grab touch-none text-muted-foreground active:cursor-grabbing"
+                  title="Drag to reorder"
+                  aria-label="Drag to reorder"
+                >
+                  <GripVertical className="h-5 w-5" />
+                </span>
                 <button
                   type="button"
                   className="min-w-0 flex-1 text-left"
@@ -179,6 +191,11 @@ export function LandingTilesEditor({
                   </span>
                   <span className="ml-2 text-xs text-muted-foreground">#{index + 1}</span>
                 </button>
+                <span
+                  className="hidden size-3 rounded-full sm:inline-block"
+                  style={{ background: tile.glowColor || DEFAULT_GLOW_COLOR }}
+                  title="Glow color"
+                />
                 <Button
                   type="button"
                   size="sm"
@@ -187,24 +204,6 @@ export function LandingTilesEditor({
                   title={tile.enabled ? "Hide on landing" : "Show on landing"}
                 >
                   {tile.enabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  disabled={index === 0}
-                  onClick={() => moveTile(tile.id, -1)}
-                >
-                  <ArrowUp className="h-4 w-4" />
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  disabled={index === tiles.length - 1}
-                  onClick={() => moveTile(tile.id, 1)}
-                >
-                  <ArrowDown className="h-4 w-4" />
                 </Button>
                 <Button
                   type="button"
@@ -257,6 +256,28 @@ export function LandingTilesEditor({
                         placeholder="Short description of the photo"
                       />
                     </div>
+                    <div className="space-y-2">
+                      <Label htmlFor={`glow-${tile.id}`}>Outside glow border</Label>
+                      <div className="flex items-center gap-3">
+                        <input
+                          id={`glow-${tile.id}`}
+                          type="color"
+                          value={
+                            /^#[0-9a-fA-F]{6}$/.test(tile.glowColor)
+                              ? tile.glowColor
+                              : DEFAULT_GLOW_COLOR
+                          }
+                          onChange={(e) => updateTile(tile.id, { glowColor: e.target.value })}
+                          className="h-10 w-14 cursor-pointer rounded border border-input bg-transparent p-1"
+                        />
+                        <Input
+                          value={tile.glowColor || DEFAULT_GLOW_COLOR}
+                          onChange={(e) => updateTile(tile.id, { glowColor: e.target.value })}
+                          placeholder="#3b82f6"
+                          className="font-mono text-sm"
+                        />
+                      </div>
+                    </div>
                   </div>
 
                   <div className="space-y-4">
@@ -268,7 +289,7 @@ export function LandingTilesEditor({
                       stockReady={stockReady}
                     />
 
-                    <div className="rounded-xl border border-border/50 bg-background/40 p-4 space-y-4">
+                    <div className="space-y-4 rounded-xl border border-border/50 bg-background/40 p-4">
                       <p className="text-sm font-medium">Image framing</p>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-2">
@@ -349,11 +370,12 @@ export function LandingTilesEditor({
                       </div>
                     </div>
 
-                    {/* Live single-tile preview */}
-                    <div className="overflow-hidden rounded-2xl border border-border/50 bg-[#0a1220] p-2">
-                      <p className="mb-2 px-1 text-xs text-muted-foreground">Tile preview</p>
-                      <UseCaseImageCards tiles={[tile]} />
-                    </div>
+                    {editing?.id === tile.id ? (
+                      <div className="overflow-hidden rounded-2xl border border-border/50 bg-[#0a1220] p-3 sm:p-4">
+                        <p className="mb-3 px-1 text-xs text-muted-foreground">Tile preview</p>
+                        <UseCaseImageCards tiles={[tile]} layout="single" />
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               ) : null}
@@ -367,7 +389,7 @@ export function LandingTilesEditor({
           <div>
             <h3 className="font-semibold text-white">Landing preview</h3>
             <p className="text-xs text-slate-400">
-              How enabled tiles will appear in “Built for the physical world”.
+              How enabled tiles will appear in “Built for the physical world” (equal height rows).
             </p>
           </div>
           <Button type="button" onClick={saveAll} disabled={saving}>

@@ -3,8 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowDown,
-  ArrowUp,
   Copy,
   Eye,
   GripVertical,
@@ -334,20 +332,6 @@ export function CampaignEditor({
     setTab("content");
   }
 
-  function moveBlock(id: string, direction: "up" | "down") {
-    const sorted = [...blocks].sort((a, b) => a.order - b.order);
-    const index = sorted.findIndex((b) => b.id === id);
-    if (index < 0) return;
-    const swapIndex = direction === "up" ? index - 1 : index + 1;
-    if (swapIndex < 0 || swapIndex >= sorted.length) return;
-    const newBlocks = sorted.map((b, i) => {
-      if (i === index) return { ...b, order: swapIndex };
-      if (i === swapIndex) return { ...b, order: index };
-      return b;
-    });
-    setBlocks(newBlocks);
-  }
-
   function reorderBlocks(fromId: string, toId: string) {
     if (fromId === toId) return;
     const sorted = [...blocks].sort((a, b) => a.order - b.order);
@@ -525,7 +509,7 @@ export function CampaignEditor({
                 >
                   Page theme
                 </button>
-                {sortedBlocks.map((block, index) => (
+                {sortedBlocks.map((block) => (
                   <div
                     key={block.id}
                     draggable
@@ -552,30 +536,8 @@ export function CampaignEditor({
                     )}
                   >
                     <div className="flex items-center gap-1.5">
-                      <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                      <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
                       <span className="min-w-0 flex-1 truncate font-medium">{block.label}</span>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveBlock(block.id, "up");
-                        }}
-                        disabled={index === 0}
-                      >
-                        <ArrowUp className="h-3.5 w-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        className="text-muted-foreground hover:text-foreground"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          moveBlock(block.id, "down");
-                        }}
-                        disabled={index === sortedBlocks.length - 1}
-                      >
-                        <ArrowDown className="h-3.5 w-3.5" />
-                      </button>
                       <button
                         type="button"
                         className="text-muted-foreground hover:text-foreground"

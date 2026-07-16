@@ -19,6 +19,7 @@ function mapRow(row: {
   imagePositionY: number;
   imageScale: number;
   imagePanelPercent: number;
+  glowColor: string;
   sortOrder: number;
   enabled: boolean;
 }): LandingUseCaseTile {
@@ -36,6 +37,7 @@ function mapRow(row: {
     imagePositionY: row.imagePositionY,
     imageScale: row.imageScale,
     imagePanelPercent: row.imagePanelPercent,
+    glowColor: row.glowColor || "#3b82f6",
     sortOrder: row.sortOrder,
     enabled: row.enabled,
   };
@@ -120,6 +122,7 @@ export type LandingUseCaseInput = {
   imagePositionY?: number;
   imageScale?: number;
   imagePanelPercent?: number;
+  glowColor?: string;
   sortOrder?: number;
   enabled?: boolean;
 };
@@ -156,6 +159,7 @@ export async function replaceLandingUseCases(
             20,
             55
           ),
+          glowColor: normalizeGlow(t.glowColor ?? framing.glowColor),
           sortOrder: t.sortOrder ?? i,
           enabled: t.enabled !== false,
         },
@@ -164,6 +168,16 @@ export async function replaceLandingUseCases(
   });
 
   return listLandingUseCases();
+}
+
+function normalizeGlow(hex: string) {
+  const raw = hex.trim();
+  if (/^#[0-9a-fA-F]{3}$/.test(raw) || /^#[0-9a-fA-F]{6}$/.test(raw)) return raw;
+  return framingSafeGlow();
+}
+
+function framingSafeGlow() {
+  return "#3b82f6";
 }
 
 function clampInt(n: number, min: number, max: number) {

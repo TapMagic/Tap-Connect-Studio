@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ArrowDown,
   ArrowLeft,
-  ArrowUp,
   Copy,
   GripVertical,
   Mail,
@@ -184,20 +182,6 @@ export function CampaignEmailBuilder({
     setMessage("Block duplicated");
   }
 
-  function moveBlock(id: string, direction: "up" | "down") {
-    const ordered = [...template.blocks].sort((a, b) => a.order - b.order);
-    const index = ordered.findIndex((b) => b.id === id);
-    if (index < 0) return;
-    const swapIndex = direction === "up" ? index - 1 : index + 1;
-    if (swapIndex < 0 || swapIndex >= ordered.length) return;
-    const next = ordered.map((b, i) => {
-      if (i === index) return { ...b, order: swapIndex };
-      if (i === swapIndex) return { ...b, order: index };
-      return b;
-    });
-    setBlocks(() => next);
-  }
-
   function reorderBlocks(fromId: string, toId: string) {
     if (fromId === toId) return;
     const ordered = [...template.blocks].sort((a, b) => a.order - b.order);
@@ -369,7 +353,7 @@ export function CampaignEmailBuilder({
               Email settings
             </button>
 
-            {sorted.map((block, index) => (
+            {sorted.map((block) => (
               <div
                 key={block.id}
                 draggable
@@ -391,30 +375,8 @@ export function CampaignEmailBuilder({
                 )}
               >
                 <div className="flex items-center gap-1.5">
-                  <GripVertical className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                  <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
                   <span className="min-w-0 flex-1 truncate font-medium">{block.label}</span>
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      moveBlock(block.id, "up");
-                    }}
-                    disabled={index === 0}
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      moveBlock(block.id, "down");
-                    }}
-                    disabled={index === sorted.length - 1}
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </button>
                   <button
                     type="button"
                     className="text-muted-foreground hover:text-foreground"

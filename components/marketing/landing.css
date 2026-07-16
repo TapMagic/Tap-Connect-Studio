@@ -307,10 +307,10 @@
     0 0 48px rgba(214, 168, 79, 0.18),
     0 28px 70px rgba(0, 0, 0, 0.55);
   aspect-ratio: 9 / 16;
-  max-height: min(640px, 78vh);
+  max-height: min(480px, 62vh);
   margin-inline: auto;
   width: 100%;
-  max-width: 360px;
+  max-width: 280px;
 }
 
 .lp-video-frame iframe {
@@ -321,17 +321,14 @@
   border: 0;
 }
 
-.lp-usecase-stair:nth-child(3n + 2) {
-  margin-top: 0;
+.lp-usecase-card {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease;
 }
 
-@media (min-width: 1024px) {
-  .lp-usecase-stair:nth-child(3n + 2) {
-    margin-top: 1.25rem;
-  }
-  .lp-usecase-stair:nth-child(3n) {
-    margin-top: 2.5rem;
-  }
+.lp-usecase-card:hover {
+  transform: translateY(-4px);
 }
 
 .lp-icon-gold {

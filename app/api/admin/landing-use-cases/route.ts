@@ -20,6 +20,11 @@ const tileSchema = z.object({
   imagePositionY: z.number().min(0).max(100).optional().default(50),
   imageScale: z.number().min(0.5).max(3).optional().default(1),
   imagePanelPercent: z.number().min(20).max(55).optional().default(38),
+  glowColor: z
+    .string()
+    .regex(/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/)
+    .optional()
+    .default("#3b82f6"),
   sortOrder: z.number().int().optional(),
   enabled: z.boolean().optional().default(true),
 });

@@ -3,8 +3,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
-  ArrowDown,
-  ArrowUp,
   Columns2,
   Copy,
   ExternalLink,
@@ -191,15 +189,6 @@ export function TapCardBuilder({
     const next = [...sorted];
     const [item] = next.splice(from, 1);
     next.splice(to, 0, item);
-    setSections(next);
-  }
-
-  function move(id: string, dir: "up" | "down") {
-    const i = sorted.findIndex((s) => s.id === id);
-    const j = dir === "up" ? i - 1 : i + 1;
-    if (i < 0 || j < 0 || j >= sorted.length) return;
-    const next = [...sorted];
-    [next[i], next[j]] = [next[j], next[i]];
     setSections(next);
   }
 
@@ -686,7 +675,7 @@ export function TapCardBuilder({
                 )}
               >
                 <div className="flex items-center gap-1.5">
-                  <GripVertical className="h-3.5 w-3.5 text-muted-foreground" />
+                  <GripVertical className="h-3.5 w-3.5 cursor-grab text-muted-foreground active:cursor-grabbing" />
                   <span className="min-w-0 flex-1 truncate font-medium">
                     {section.label || section.type}
                   </span>
@@ -698,26 +687,6 @@ export function TapCardBuilder({
                       <Link2 className="h-3.5 w-3.5" aria-hidden />
                     </span>
                   ) : null}
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      move(section.id, "up");
-                    }}
-                    disabled={index === 0}
-                  >
-                    <ArrowUp className="h-3.5 w-3.5" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      move(section.id, "down");
-                    }}
-                    disabled={index === sorted.length - 1}
-                  >
-                    <ArrowDown className="h-3.5 w-3.5" />
-                  </button>
                   <button
                     type="button"
                     onClick={(e) => {
