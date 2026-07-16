@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react";
+import Link from "next/link";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import type { ContentBlock } from "@/lib/types/campaign";
@@ -11,10 +12,12 @@ import {
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 
 const DEMO_THEME = {
-  primaryColor: "#a3e635",
-  secondaryColor: "#22d3ee",
+  primaryColor: "#d6a84f",
+  secondaryColor: "#72ff8a",
   backgroundColor: "#0b0f19",
   textColor: "#f8fafc",
 };
@@ -34,6 +37,8 @@ const FALLBACK_PROFILE: BrandContactProfile = {
   },
 };
 
+type DemoMode = "card" | "offer" | "product" | "review";
+
 function buildOfferBlocks(): ContentBlock[] {
   return [
     {
@@ -43,8 +48,8 @@ function buildOfferBlocks(): ContentBlock[] {
       enabled: true,
       label: "Headline",
       data: {
-        headline: "Spring Special — 20% Off",
-        subheadline: "Tap once. Unlock the offer. Book today.",
+        headline: "Thursday · $1 Wings",
+        subheadline: "5–10 PM · Same tap device, scheduled offer.",
         alignment: "center",
       },
     },
@@ -55,8 +60,8 @@ function buildOfferBlocks(): ContentBlock[] {
       enabled: true,
       label: "Banner",
       data: {
-        text: "Limited time · ends Sunday",
-        backgroundColor: "#a3e635",
+        text: "Live from Campaign Groups · rotates by day/time",
+        backgroundColor: "#d6a84f",
         textColor: "#0b0f19",
       },
     },
@@ -68,7 +73,7 @@ function buildOfferBlocks(): ContentBlock[] {
       label: "Capture",
       data: {
         headline: "Unlock your code",
-        description: "Enter your email — we'll send the offer & keep you posted.",
+        description: "Enter your email — we'll send the offer & notify the owner.",
         buttonLabel: "Get my offer",
         fields: ["name", "email"],
         successMessage: "You're in — check your email for the code.",
@@ -81,9 +86,9 @@ function buildOfferBlocks(): ContentBlock[] {
       enabled: true,
       label: "Offer",
       data: {
-        title: "Welcome offer",
+        title: "Wings special",
         description: "Show this in store or use online.",
-        code: "TAP20",
+        code: "WINGS1",
         lockedUntilContact: true,
       },
     },
@@ -117,17 +122,109 @@ function buildOfferBlocks(): ContentBlock[] {
         ],
       },
     },
+  ];
+}
+
+function buildProductBlocks(): ContentBlock[] {
+  return [
+    {
+      id: nanoid(6),
+      type: "headline",
+      order: 0,
+      enabled: true,
+      label: "Headline",
+      data: {
+        headline: "Product Story",
+        subheadline: "Shelf tag → video, details, and buy link.",
+        alignment: "center",
+      },
+    },
+    {
+      id: nanoid(6),
+      type: "rich_text",
+      order: 1,
+      enabled: true,
+      label: "Story",
+      data: {
+        body: "Tap a product disc on the shelf. Customers see the story, specs, and a CTA — without waiting for staff.",
+      },
+    },
+    {
+      id: nanoid(6),
+      type: "product_details",
+      order: 2,
+      enabled: true,
+      label: "Details",
+      data: {
+        name: "Signature Blend",
+        price: "Limited drop",
+        description: "Small-batch · in-store pickup · tap the shelf disc for the full story.",
+        features: ["Origin story", "How to use", "Pairing ideas"],
+      },
+    },
+    {
+      id: nanoid(6),
+      type: "button_group",
+      order: 3,
+      enabled: true,
+      label: "Actions",
+      data: {
+        layout: "stack",
+        buttons: [
+          {
+            id: nanoid(4),
+            label: "Shop this product",
+            url: "https://tapthemagic.com",
+            style: "primary",
+            icon: "shop",
+            card: true,
+            fullWidth: true,
+          },
+        ],
+      },
+    },
+  ];
+}
+
+function buildReviewBlocks(): ContentBlock[] {
+  return [
+    {
+      id: nanoid(6),
+      type: "headline",
+      order: 0,
+      enabled: true,
+      label: "Headline",
+      data: {
+        headline: "Loved your visit?",
+        subheadline: "Review station + contact collector in one tap.",
+        alignment: "center",
+      },
+    },
+    {
+      id: nanoid(6),
+      type: "email_capture",
+      order: 1,
+      enabled: true,
+      label: "Capture",
+      data: {
+        headline: "Join the list",
+        description: "Get a thank-you offer after you leave a review.",
+        buttonLabel: "Save my contact",
+        fields: ["name", "email", "phone"],
+        successMessage: "Thanks — check your email for a thank-you offer.",
+      },
+    },
     {
       id: nanoid(6),
       type: "google_review",
-      order: 5,
+      order: 2,
       enabled: true,
       label: "Review",
       data: {
-        headline: "Loved your visit?",
+        headline: "Leave a Google review",
         description: "A 30-second review helps neighbors find us.",
         reviewUrl: "https://g.page/r/",
-        buttonLabel: "Leave a Google review",
+        buttonLabel: "Open Google Reviews",
         badgeStyle: "google_g",
       },
     },
@@ -144,10 +241,26 @@ type DemoPayload = {
   contentBlocks?: ContentBlock[];
 };
 
-export function LiveDemoPhone({ className = "" }: { className?: string }) {
-  const [mode, setMode] = useState<"offer" | "card">("card");
+const MODES: { id: DemoMode; label: string }[] = [
+  { id: "card", label: "Tap Card" },
+  { id: "offer", label: "Special Offer" },
+  { id: "product", label: "Product Story" },
+  { id: "review", label: "Review / Contact" },
+];
+
+export function LiveDemoPhone({
+  className = "",
+  framed = true,
+}: {
+  className?: string;
+  /** Confines demo in fixed-height scrollable frame (landing requirement) */
+  framed?: boolean;
+}) {
+  const [mode, setMode] = useState<DemoMode>("card");
   const [demo, setDemo] = useState<DemoPayload | null>(null);
   const offerBlocks = useMemo(() => buildOfferBlocks(), []);
+  const productBlocks = useMemo(() => buildProductBlocks(), []);
+  const reviewBlocks = useMemo(() => buildReviewBlocks(), []);
 
   useEffect(() => {
     let cancelled = false;
@@ -173,28 +286,79 @@ export function LiveDemoPhone({ className = "" }: { className?: string }) {
       businessName,
       profile,
       logoUrl,
-      accentColor: "#d4af37",
+      accentColor: "#d6a84f",
       reviewUrl: demo?.reviewUrl,
     });
 
+  const campaignBlocks =
+    mode === "offer"
+      ? Array.isArray(demo?.contentBlocks) && demo.contentBlocks.length
+        ? demo.contentBlocks
+        : offerBlocks
+      : mode === "product"
+        ? productBlocks
+        : reviewBlocks;
+
+  const phoneInner: ReactNode =
+    mode === "card" ? (
+      <div
+        className="tap-page min-h-full px-3 pb-8 pt-4"
+        style={
+          {
+            "--tap-primary": DEMO_THEME.primaryColor,
+            "--tap-secondary": DEMO_THEME.secondaryColor,
+            "--tap-bg": DEMO_THEME.backgroundColor,
+            "--tap-text": DEMO_THEME.textColor,
+            background: "#1a1a1a",
+            color: DEMO_THEME.textColor,
+          } as CSSProperties
+        }
+      >
+        <TapConnectCard
+          config={tapCard}
+          profile={profile}
+          businessName={businessName}
+          logoUrl={logoUrl}
+          reviewUrl={demo?.reviewUrl}
+          forceExpanded
+        />
+      </div>
+    ) : (
+      <CampaignPageRenderer
+        blocks={campaignBlocks}
+        theme={DEMO_THEME}
+        campaignId="demo"
+        deviceSlotId="demo"
+        businessId="demo"
+        businessName={businessName}
+        previewMode
+        logoUrl={logoUrl}
+        contactProfile={profile}
+        reviewUrl={demo?.reviewUrl}
+      />
+    );
+
+  const phone = (
+    <div className="builder-phone mx-auto max-w-[360px]">
+      <div className="builder-phone-notch" />
+      <div className="builder-phone-screen">{phoneInner}</div>
+    </div>
+  );
+
   return (
     <div className={className}>
-      <div className="mb-3 flex justify-center gap-2">
-        {(
-          [
-            { id: "offer" as const, label: "Offer page" },
-            { id: "card" as const, label: "Tap Connect Card" },
-          ] as const
-        ).map((m) => (
+      <div className="mb-4 flex flex-wrap justify-center gap-2">
+        {MODES.map((m) => (
           <button
             key={m.id}
             type="button"
             onClick={() => setMode(m.id)}
-            className={`rounded-full px-3 py-1.5 text-xs font-semibold transition ${
+            className={cn(
+              "rounded-full px-3 py-1.5 text-xs font-semibold transition",
               mode === m.id
-                ? "bg-primary text-primary-foreground shadow-[0_0_20px_rgba(163,230,53,0.35)]"
-                : "border border-border/60 bg-background/50 text-muted-foreground hover:border-primary/40"
-            }`}
+                ? "bg-[var(--lp-gold,#d6a84f)] text-[#0b0f19] shadow-[0_0_20px_rgba(214,168,79,0.35)]"
+                : "border border-white/10 bg-white/5 text-slate-300 hover:border-[rgba(214,168,79,0.45)]"
+            )}
           >
             {m.label}
           </button>
@@ -202,56 +366,39 @@ export function LiveDemoPhone({ className = "" }: { className?: string }) {
       </div>
 
       {demo?.published ? (
-        <p className="mb-2 text-center text-[10px] uppercase tracking-[0.18em] text-primary/80">
+        <p className="mb-2 text-center text-[10px] uppercase tracking-[0.18em] text-[var(--lp-signal,#72ff8a)]">
           Live admin demo · {businessName}
         </p>
       ) : null}
 
-      <div className="builder-phone mx-auto max-w-[360px]">
-        <div className="builder-phone-notch" />
-        <div className="builder-phone-screen">
-          {mode === "offer" ? (
-            <CampaignPageRenderer
-              blocks={
-                Array.isArray(demo?.contentBlocks) && demo.contentBlocks.length
-                  ? demo.contentBlocks
-                  : offerBlocks
-              }
-              theme={DEMO_THEME}
-              campaignId="demo"
-              deviceSlotId="demo"
-              businessId="demo"
-              businessName={businessName}
-              previewMode
-              logoUrl={logoUrl}
-              contactProfile={profile}
-              reviewUrl={demo?.reviewUrl}
-            />
-          ) : (
-            <div
-              className="tap-page min-h-full px-3 pb-8 pt-4"
-              style={
-                {
-                  "--tap-primary": DEMO_THEME.primaryColor,
-                  "--tap-secondary": DEMO_THEME.secondaryColor,
-                  "--tap-bg": DEMO_THEME.backgroundColor,
-                  "--tap-text": DEMO_THEME.textColor,
-                  background: "#1a1a1a",
-                  color: DEMO_THEME.textColor,
-                } as CSSProperties
-              }
-            >
-              <TapConnectCard
-                config={tapCard}
-                profile={profile}
-                businessName={businessName}
-                logoUrl={logoUrl}
-                reviewUrl={demo?.reviewUrl}
-                forceExpanded
-              />
+      {framed ? (
+        <div className="lp-demo-frame">
+          <div className="flex items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
+            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--lp-gold-bright,#f3c96b)]">
+              <span className="lp-live-dot" aria-hidden />
+              Live Demo
             </div>
-          )}
+            <p className="text-[11px] text-slate-400">Scroll inside demo</p>
+          </div>
+          <div className="lp-demo-scroll px-3 py-4 sm:px-6">{phone}</div>
         </div>
+      ) : (
+        phone
+      )}
+
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        <a href="#demo" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
+          Open Full Demo
+        </a>
+        <Link href="/sign-up" className={cn(buttonVariants({ size: "sm" }))}>
+          Build Your First Campaign
+        </Link>
+        <Link
+          href="/dashboard"
+          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-slate-300")}
+        >
+          See Dashboard
+        </Link>
       </div>
     </div>
   );

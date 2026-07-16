@@ -17,9 +17,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Tap Connect Studio",
+  title: "TapConnect Studio — Every Tap Becomes a Customer Journey",
   description:
-    "Turn physical NFC and QR touchpoints into dynamic branded mini-webpages with measurable conversion data.",
+    "Turn cards, NFC discs, shelf tags, and signs into editable mini campaigns with Workbench, scheduled offers, contact collectors, branded emails, and analytics.",
   icons: {
     icon: [
       { url: "/favicon.ico", sizes: "any" },
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   colorScheme: "dark",
-  themeColor: "#070b12",
+  themeColor: "#050814",
 };
 
 export default function RootLayout({
