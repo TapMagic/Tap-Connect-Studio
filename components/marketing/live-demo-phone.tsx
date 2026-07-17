@@ -134,53 +134,36 @@ function buildProductBlocks(): ContentBlock[] {
       enabled: true,
       label: "Headline",
       data: {
-        headline: "Product Story",
-        subheadline: "Shelf tag → video, details, and buy link.",
+        headline: "Heritage Leather Tote",
+        subheadline: "Full-grain · hand-finished · built to last.",
         alignment: "center",
       },
     },
     {
       id: nanoid(6),
-      type: "rich_text",
-      order: 1,
-      enabled: true,
-      label: "Story",
-      data: {
-        body: "Tap a product disc on the shelf. Customers see the story, specs, and a CTA — without waiting for staff.",
-      },
-    },
-    {
-      id: nanoid(6),
       type: "product_details",
-      order: 2,
+      order: 1,
       enabled: true,
       label: "Details",
       data: {
-        name: "Signature Blend",
-        price: "Limited drop",
-        description: "Small-batch · in-store pickup · tap the shelf disc for the full story.",
-        features: ["Origin story", "How to use", "Pairing ideas"],
+        name: "Heritage Leather Tote",
+        price: "$189",
+        description:
+          "Tap the shelf tag to open the product story, specs, care tips, and a claimable intro offer — without waiting for a clerk.",
+        features: ["Full-grain leather", '14 × 11 × 5 in', "Made in USA"],
       },
     },
     {
       id: nanoid(6),
-      type: "button_group",
-      order: 3,
+      type: "offer_coupon",
+      order: 2,
       enabled: true,
-      label: "Actions",
+      label: "Offer",
       data: {
-        layout: "stack",
-        buttons: [
-          {
-            id: nanoid(4),
-            label: "Shop this product",
-            url: "https://tapthemagic.com",
-            style: "primary",
-            icon: "shop",
-            card: true,
-            fullWidth: true,
-          },
-        ],
+        title: "First tote perk",
+        description: "10% off your first tote this month.",
+        code: "TOTE10",
+        lockedUntilContact: false,
       },
     },
   ];
@@ -195,8 +178,8 @@ function buildReviewBlocks(): ContentBlock[] {
       enabled: true,
       label: "Headline",
       data: {
-        headline: "Loved your visit?",
-        subheadline: "Review station + contact collector in one tap.",
+        headline: "How was your visit?",
+        subheadline: "Leave a review — then grab a thank-you offer.",
         alignment: "center",
       },
     },
@@ -241,11 +224,27 @@ type DemoPayload = {
   contentBlocks?: ContentBlock[];
 };
 
-const MODES: { id: DemoMode; label: string }[] = [
-  { id: "card", label: "Tap Card" },
-  { id: "offer", label: "Special Offer" },
-  { id: "product", label: "Product Story" },
-  { id: "review", label: "Contact Collector" },
+const MODES: { id: DemoMode; label: string; description: string }[] = [
+  {
+    id: "card",
+    label: "Tap Card",
+    description: "Premium profile that launches campaigns, offers, and contact save.",
+  },
+  {
+    id: "offer",
+    label: "Special Offer",
+    description: "Scheduled promo with lead capture and a locked coupon code.",
+  },
+  {
+    id: "product",
+    label: "Product Story",
+    description: "Shelf-tag story with details and a claimable intro perk.",
+  },
+  {
+    id: "review",
+    label: "Contact Collector",
+    description: "Review route plus signup that returns a thank-you offer.",
+  },
 ];
 
 export function LiveDemoPhone({
@@ -299,6 +298,8 @@ export function LiveDemoPhone({
         ? productBlocks
         : reviewBlocks;
 
+  const activeMode = MODES.find((m) => m.id === mode) ?? MODES[0];
+
   const phoneInner: ReactNode =
     mode === "card" ? (
       <div
@@ -339,11 +340,96 @@ export function LiveDemoPhone({
     );
 
   const phone = (
-    <div className="builder-phone mx-auto max-w-[360px]">
+    <div className="builder-phone mx-auto w-full max-w-[300px] sm:max-w-[320px]">
       <div className="builder-phone-notch" />
       <div className="builder-phone-screen">{phoneInner}</div>
     </div>
   );
+
+  const scenarioPicker = (
+    <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
+      {MODES.map((m) => {
+        const selected = mode === m.id;
+        return (
+          <button
+            key={m.id}
+            type="button"
+            onClick={() => setMode(m.id)}
+            aria-pressed={selected}
+            className={cn("lp-demo-scenario text-left", selected && "lp-demo-scenario-active")}
+          >
+            <span className="block text-sm font-semibold text-white">{m.label}</span>
+            <span className="mt-1 block text-xs leading-5 text-slate-400">{m.description}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  const ctas = (
+    <div className="flex flex-wrap gap-2">
+      <Link href="/sign-up" className={cn(buttonVariants({ size: "sm" }))}>
+        Build Your First Campaign
+      </Link>
+      <Link
+        href="/dashboard"
+        className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-slate-300")}
+      >
+        See Dashboard
+      </Link>
+    </div>
+  );
+
+  if (framed) {
+    return (
+      <div
+        className={cn(
+          "grid items-start gap-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(280px,360px)] lg:gap-12",
+          className
+        )}
+      >
+        <div className="space-y-6">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--lp-gold,#d6a84f)]">
+              Live demo
+            </p>
+            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
+              Same campaign engine customers use inside Studio.
+            </h2>
+            <p className="mt-3 max-w-xl text-base leading-7 text-slate-300">
+              Pick a journey on the left. The phone updates instantly — scroll inside the device to
+              explore without stretching the page.
+            </p>
+          </div>
+
+          {demo?.published ? (
+            <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--lp-signal,#72ff8a)]">
+              Live admin demo · {businessName}
+            </p>
+          ) : null}
+
+          {scenarioPicker}
+          {ctas}
+        </div>
+
+        <div className="lp-demo-frame mx-auto w-full max-w-[360px] lg:mx-0 lg:max-w-none">
+          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/8 px-3 py-2.5 sm:px-4">
+            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--lp-gold-bright,#f3c96b)]">
+              <span className="lp-live-dot" aria-hidden />
+              Preview
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="rounded-full border border-[rgba(214,168,79,0.4)] bg-[rgba(214,168,79,0.12)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--lp-gold-bright,#f3c96b)]">
+                {activeMode.label}
+              </span>
+              <p className="text-[11px] text-slate-400">Scroll inside</p>
+            </div>
+          </div>
+          <div className="lp-demo-scroll px-3 py-3 sm:px-4">{phone}</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={className}>
@@ -371,40 +457,9 @@ export function LiveDemoPhone({
         </p>
       ) : null}
 
-      {framed ? (
-        <div className="lp-demo-frame">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/8 px-4 py-3">
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--lp-gold-bright,#f3c96b)]">
-              <span className="lp-live-dot" aria-hidden />
-              Live Demo
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="rounded-full border border-[rgba(214,168,79,0.4)] bg-[rgba(214,168,79,0.12)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--lp-gold-bright,#f3c96b)]">
-                {MODES.find((m) => m.id === mode)?.label}
-              </span>
-              <p className="text-[11px] text-slate-400">Scroll inside</p>
-            </div>
-          </div>
-          <div className="lp-demo-scroll px-3 py-4 sm:px-6">{phone}</div>
-        </div>
-      ) : (
-        phone
-      )}
+      {phone}
 
-      <div className="mt-4 flex flex-wrap justify-center gap-2">
-        <a href="#demo" className={cn(buttonVariants({ variant: "outline", size: "sm" }))}>
-          Open Full Demo
-        </a>
-        <Link href="/sign-up" className={cn(buttonVariants({ size: "sm" }))}>
-          Build Your First Campaign
-        </Link>
-        <Link
-          href="/dashboard"
-          className={cn(buttonVariants({ variant: "ghost", size: "sm" }), "text-slate-300")}
-        >
-          See Dashboard
-        </Link>
-      </div>
+      <div className="mt-4 flex flex-wrap justify-center gap-2">{ctas}</div>
     </div>
   );
 }

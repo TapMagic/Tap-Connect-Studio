@@ -324,22 +324,10 @@ export default async function Home() {
         </div>
       </section>
 
-      {/* 3 · Live demo */}
-      <section id="demo" className="py-20">
-        <div className="mx-auto max-w-3xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <SectionEyebrow>Live demo</SectionEyebrow>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
-              Same campaign engine customers use inside Studio.
-            </h2>
-            <p className="mt-4 text-slate-300">
-              Change the campaign in the dashboard, and the tap experience changes instantly. Scroll
-              inside the frame — the demo stays contained so the page never blows out.
-            </p>
-          </div>
-          <div className="mt-10">
-            <LiveDemoPhone framed />
-          </div>
+      {/* 3 · Live demo — compact scenario picker + phone */}
+      <section id="demo" className="py-14 lg:py-16">
+        <div className="mx-auto max-w-7xl px-6 lg:px-8">
+          <LiveDemoPhone framed />
         </div>
       </section>
 
