@@ -6,7 +6,6 @@ import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import type { ContentBlock } from "@/lib/types/campaign";
 import { nanoid } from "nanoid";
-import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import {
   defaultTapConnectCard,
   type TapConnectCardConfig,
@@ -14,6 +13,10 @@ import {
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  LANDING_DEMO_MODE_META,
+  type LandingDemoMode,
+} from "@/lib/marketing/landing-demo-types";
 
 const DEMO_THEME = {
   primaryColor: "#d6a84f",
@@ -37,7 +40,7 @@ const FALLBACK_PROFILE: BrandContactProfile = {
   },
 };
 
-type DemoMode = "card" | "offer" | "product" | "review";
+type DemoMode = LandingDemoMode;
 
 function buildOfferBlocks(): ContentBlock[] {
   return [
@@ -92,36 +95,6 @@ function buildOfferBlocks(): ContentBlock[] {
         lockedUntilContact: true,
       },
     },
-    {
-      id: nanoid(6),
-      type: "button_group",
-      order: 4,
-      enabled: true,
-      label: "Actions",
-      data: {
-        layout: "grid_2",
-        buttons: [
-          {
-            id: nanoid(4),
-            label: "Call",
-            url: "tel:+15551234567",
-            style: "outline",
-            icon: "phone",
-            card: true,
-            fullWidth: true,
-          },
-          {
-            id: nanoid(4),
-            label: "Directions",
-            url: "https://maps.google.com/?q=Orlando+FL",
-            style: "outline",
-            icon: "map",
-            card: true,
-            fullWidth: true,
-          },
-        ],
-      },
-    },
   ];
 }
 
@@ -149,8 +122,8 @@ function buildProductBlocks(): ContentBlock[] {
         name: "Heritage Leather Tote",
         price: "$189",
         description:
-          "Tap the shelf tag to open the product story, specs, care tips, and a claimable intro offer — without waiting for a clerk.",
-        features: ["Full-grain leather", '14 × 11 × 5 in', "Made in USA"],
+          "Tap the shelf tag to open the product story, specs, care tips, and a claimable intro offer.",
+        features: ["Full-grain leather", "14 × 11 × 5 in", "Made in USA"],
       },
     },
     {
@@ -214,45 +187,35 @@ function buildReviewBlocks(): ContentBlock[] {
   ];
 }
 
-type DemoPayload = {
-  published?: boolean;
-  businessName?: string;
-  logoUrl?: string | null;
-  reviewUrl?: string | null;
+type ModePayload = {
+  mode: DemoMode;
+  label: string;
+  description: string;
+  enabled: boolean;
+  published: boolean;
+  businessName: string;
+  showLogo: boolean;
+  logoUrl: string | null;
+  reviewUrl: string | null;
   profile?: BrandContactProfile;
   tapCard?: TapConnectCardConfig;
+  theme?: Record<string, unknown>;
   contentBlocks?: ContentBlock[];
+  campaignTitle?: string | null;
 };
 
-const MODES: { id: DemoMode; label: string; description: string }[] = [
-  {
-    id: "card",
-    label: "Tap Card",
-    description: "Premium profile that launches campaigns, offers, and contact save.",
-  },
-  {
-    id: "offer",
-    label: "Special Offer",
-    description: "Scheduled promo with lead capture and a locked coupon code.",
-  },
-  {
-    id: "product",
-    label: "Product Story",
-    description: "Shelf-tag story with details and a claimable intro perk.",
-  },
-  {
-    id: "review",
-    label: "Contact Collector",
-    description: "Review route plus signup that returns a thank-you offer.",
-  },
-];
+type DemoPayload = {
+  published?: boolean;
+  modes?: ModePayload[];
+};
+
+const MODE_ORDER: DemoMode[] = ["card", "offer", "product", "review"];
 
 export function LiveDemoPhone({
   className = "",
   framed = true,
 }: {
   className?: string;
-  /** Confines demo in fixed-height scrollable frame (landing requirement) */
   framed?: boolean;
 }) {
   const [mode, setMode] = useState<DemoMode>("card");
@@ -269,49 +232,73 @@ export function LiveDemoPhone({
         if (!cancelled) setDemo(data);
       })
       .catch(() => {
-        if (!cancelled) setDemo({ published: false });
+        if (!cancelled) setDemo({ published: false, modes: [] });
       });
     return () => {
       cancelled = true;
     };
   }, []);
 
-  const profile = demo?.profile ?? FALLBACK_PROFILE;
-  const businessName = demo?.businessName ?? "Demo Studio";
-  const logoUrl = demo?.logoUrl ?? TAP_CONNECT_LOGO;
+  const modesUi = MODE_ORDER.map((id) => {
+    const fromApi = demo?.modes?.find((m) => m.mode === id);
+    const meta = LANDING_DEMO_MODE_META[id];
+    return {
+      id,
+      label: fromApi?.label ?? meta.label,
+      description: fromApi?.description ?? meta.description,
+      enabled: fromApi?.enabled !== false,
+    };
+  }).filter((m) => m.enabled);
+
+  const activeModeId = modesUi.some((m) => m.id === mode) ? mode : modesUi[0]?.id ?? "card";
+  const activeMeta = modesUi.find((m) => m.id === activeModeId) ?? modesUi[0];
+  const activePayload = demo?.modes?.find((m) => m.mode === activeModeId);
+
+  const profile = activePayload?.profile ?? FALLBACK_PROFILE;
+  const businessName = activePayload?.businessName ?? "Demo Studio";
+  const showLogo = activePayload?.showLogo !== false;
+  const logoUrl = showLogo ? activePayload?.logoUrl ?? null : null;
+
   const tapCard =
-    demo?.tapCard ??
+    activePayload?.tapCard ??
     defaultTapConnectCard({
       businessName,
       profile,
-      logoUrl,
+      logoUrl: logoUrl ?? undefined,
       accentColor: "#d6a84f",
-      reviewUrl: demo?.reviewUrl,
+      reviewUrl: activePayload?.reviewUrl,
     });
 
-  const campaignBlocks =
-    mode === "offer"
-      ? Array.isArray(demo?.contentBlocks) && demo.contentBlocks.length
-        ? demo.contentBlocks
-        : offerBlocks
-      : mode === "product"
+  const fallbackBlocks =
+    activeModeId === "offer"
+      ? offerBlocks
+      : activeModeId === "product"
         ? productBlocks
         : reviewBlocks;
 
-  const activeMode = MODES.find((m) => m.id === mode) ?? MODES[0];
+  const campaignBlocks =
+    Array.isArray(activePayload?.contentBlocks) && activePayload.contentBlocks.length
+      ? activePayload.contentBlocks
+      : fallbackBlocks;
+
+  const theme = {
+    ...DEMO_THEME,
+    ...(activePayload?.theme ?? {}),
+    showPageLogo: showLogo && Boolean(logoUrl),
+  };
 
   const phoneInner: ReactNode =
-    mode === "card" ? (
+    activeModeId === "card" ? (
       <div
         className="tap-page min-h-full px-3 pb-8 pt-4"
         style={
           {
-            "--tap-primary": DEMO_THEME.primaryColor,
-            "--tap-secondary": DEMO_THEME.secondaryColor,
-            "--tap-bg": DEMO_THEME.backgroundColor,
-            "--tap-text": DEMO_THEME.textColor,
+            "--tap-primary": String(theme.primaryColor ?? DEMO_THEME.primaryColor),
+            "--tap-secondary": String(theme.secondaryColor ?? DEMO_THEME.secondaryColor),
+            "--tap-bg": String(theme.backgroundColor ?? DEMO_THEME.backgroundColor),
+            "--tap-text": String(theme.textColor ?? DEMO_THEME.textColor),
             background: "#1a1a1a",
-            color: DEMO_THEME.textColor,
+            color: String(theme.textColor ?? DEMO_THEME.textColor),
           } as CSSProperties
         }
       >
@@ -320,14 +307,14 @@ export function LiveDemoPhone({
           profile={profile}
           businessName={businessName}
           logoUrl={logoUrl}
-          reviewUrl={demo?.reviewUrl}
+          reviewUrl={activePayload?.reviewUrl}
           forceExpanded
         />
       </div>
     ) : (
       <CampaignPageRenderer
         blocks={campaignBlocks}
-        theme={DEMO_THEME}
+        theme={theme}
         campaignId="demo"
         deviceSlotId="demo"
         businessId="demo"
@@ -335,7 +322,7 @@ export function LiveDemoPhone({
         previewMode
         logoUrl={logoUrl}
         contactProfile={profile}
-        reviewUrl={demo?.reviewUrl}
+        reviewUrl={activePayload?.reviewUrl}
       />
     );
 
@@ -348,8 +335,8 @@ export function LiveDemoPhone({
 
   const scenarioPicker = (
     <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-1">
-      {MODES.map((m) => {
-        const selected = mode === m.id;
+      {modesUi.map((m) => {
+        const selected = activeModeId === m.id;
         return (
           <button
             key={m.id}
@@ -402,9 +389,10 @@ export function LiveDemoPhone({
             </p>
           </div>
 
-          {demo?.published ? (
+          {activePayload?.published ? (
             <p className="text-[10px] uppercase tracking-[0.18em] text-[var(--lp-signal,#72ff8a)]">
               Live admin demo · {businessName}
+              {activePayload.campaignTitle ? ` · ${activePayload.campaignTitle}` : ""}
             </p>
           ) : null}
 
@@ -420,7 +408,7 @@ export function LiveDemoPhone({
             </div>
             <div className="flex items-center gap-2">
               <span className="rounded-full border border-[rgba(214,168,79,0.4)] bg-[rgba(214,168,79,0.12)] px-2.5 py-0.5 text-[10px] font-semibold text-[var(--lp-gold-bright,#f3c96b)]">
-                {activeMode.label}
+                {activeMeta?.label}
               </span>
               <p className="text-[11px] text-slate-400">Scroll inside</p>
             </div>
@@ -434,14 +422,14 @@ export function LiveDemoPhone({
   return (
     <div className={className}>
       <div className="mb-4 flex flex-wrap justify-center gap-2">
-        {MODES.map((m) => (
+        {modesUi.map((m) => (
           <button
             key={m.id}
             type="button"
             onClick={() => setMode(m.id)}
             className={cn(
               "rounded-full px-3 py-1.5 text-xs font-semibold transition",
-              mode === m.id
+              activeModeId === m.id
                 ? "bg-[var(--lp-gold,#d6a84f)] text-[#0b0f19] shadow-[0_0_20px_rgba(214,168,79,0.35)]"
                 : "border border-white/10 bg-white/5 text-slate-300 hover:border-[rgba(214,168,79,0.45)]"
             )}
@@ -450,15 +438,7 @@ export function LiveDemoPhone({
           </button>
         ))}
       </div>
-
-      {demo?.published ? (
-        <p className="mb-2 text-center text-[10px] uppercase tracking-[0.18em] text-[var(--lp-signal,#72ff8a)]">
-          Live admin demo · {businessName}
-        </p>
-      ) : null}
-
       {phone}
-
       <div className="mt-4 flex flex-wrap justify-center gap-2">{ctas}</div>
     </div>
   );

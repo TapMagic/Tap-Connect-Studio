@@ -325,14 +325,22 @@ export function MediaPicker({
           placeholder="Paste https://… image URL here"
         />
         {value && (
-          <Button type="button" variant="ghost" size="sm" onClick={() => onChange?.("")}>
-            Clear
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="shrink-0"
+            onClick={() => onChange?.("")}
+            title="Remove this image"
+          >
+            <X className="mr-1 h-3.5 w-3.5" />
+            Remove
           </Button>
         )}
       </div>
 
       {value && (
-        <div className="overflow-hidden rounded-lg border border-border/40">
+        <div className="relative overflow-hidden rounded-lg border border-border/40">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
@@ -342,6 +350,16 @@ export function MediaPicker({
               (e.target as HTMLImageElement).style.display = "none";
             }}
           />
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="absolute right-2 top-2"
+            onClick={() => onChange?.("")}
+          >
+            <X className="mr-1 h-3.5 w-3.5" />
+            Clear image
+          </Button>
         </div>
       )}
 

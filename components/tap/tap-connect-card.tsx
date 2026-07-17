@@ -23,7 +23,7 @@ import { PremiumIcon } from "@/components/design/premium-icon";
 import { finishClass, textFormatToCss } from "@/lib/design/premium-finish";
 import { socialBrandStyle } from "@/components/tap/social-icons";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
-import { cn } from "@/lib/utils";
+import { cn, firstImageUrl } from "@/lib/utils";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -73,7 +73,7 @@ export function TapConnectCard({
 
   const name = profile.displayName || profile.organization || businessName;
   const initial = (name.trim()[0] || "?").toUpperCase();
-  const mark = logoUrl || sections.find((s) => s.type === "hero")?.logoUrl;
+  const mark = firstImageUrl(logoUrl, sections.find((s) => s.type === "hero")?.logoUrl);
 
   const surfaceAlpha = Math.min(100, Math.max(35, config.surfaceOpacity ?? 100)) / 100;
 
@@ -378,7 +378,7 @@ export function TapConnectCard({
   }
 
   function renderHero(hero: TapCardSection) {
-    const logoSrc = hero.logoUrl || logoUrl || profile.photoUrl;
+    const logoSrc = firstImageUrl(hero.logoUrl, logoUrl, profile.photoUrl);
     const scale = (hero.logoScale ?? 100) / 100;
     const ox = hero.logoOffsetX ?? 0;
     const oy = hero.logoOffsetY ?? 0;
@@ -688,11 +688,18 @@ export function TapConnectCard({
       if (kind === "logo" || kind === "image") {
         const src =
           side === "left"
-            ? section.logoUrl ||
-              section.columnLeftImageUrl ||
-              section.imageUrl ||
-              logoUrl
-            : section.columnRightImageUrl || section.logoUrl || section.imageUrl || logoUrl;
+            ? firstImageUrl(
+                section.logoUrl,
+                section.columnLeftImageUrl,
+                section.imageUrl,
+                logoUrl
+              )
+            : firstImageUrl(
+                section.columnRightImageUrl,
+                section.logoUrl,
+                section.imageUrl,
+                logoUrl
+              );
         if (!src) return <span className="tcc-logo-block-empty" aria-hidden />;
         return wrap(
           // eslint-disable-next-line @next/next/no-img-element
@@ -970,20 +977,24 @@ export function TapConnectCard({
       )}
       style={style}
     >
-      {config.showHeaderLogo === true && (config.headerLogoUrl || logoUrl) ? (
-        <div className="tcc-header-logo">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={config.headerLogoUrl || logoUrl || ""}
-            alt={businessName}
-            className="tcc-header-logo-img"
-            style={{
-              maxHeight: `${Math.round(2.75 * ((config.headerLogoScale ?? 100) / 100))}rem`,
-              maxWidth: `${Math.round(4.25 * ((config.headerLogoScale ?? 100) / 100))}rem`,
-            }}
-          />
-        </div>
-      ) : null}
+      {(() => {
+        const headerSrc = firstImageUrl(config.headerLogoUrl, logoUrl);
+        if (config.showHeaderLogo !== true || !headerSrc) return null;
+        return (
+          <div className="tcc-header-logo">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={headerSrc}
+              alt={businessName}
+              className="tcc-header-logo-img"
+              style={{
+                maxHeight: `${Math.round(2.75 * ((config.headerLogoScale ?? 100) / 100))}rem`,
+                maxWidth: `${Math.round(4.25 * ((config.headerLogoScale ?? 100) / 100))}rem`,
+              }}
+            />
+          </div>
+        );
+      })()}
       {outerNodes}
       <div
         className="tcc-shell"

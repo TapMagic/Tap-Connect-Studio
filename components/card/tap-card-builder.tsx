@@ -540,10 +540,26 @@ export function TapCardBuilder({
                 <MediaPicker
                   label="Header logo"
                   value={config.headerLogoUrl ?? logoUrl ?? ""}
-                  onChange={(url) => patchConfig({ headerLogoUrl: url })}
+                  onChange={(url) =>
+                    patchConfig({
+                      headerLogoUrl: url,
+                      ...(url ? {} : { showHeaderLogo: false }),
+                    })
+                  }
                   mediaUploadReady={mediaUploadReady}
                   stockReady={stockReady}
                 />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="mt-1 h-7 px-2 text-xs"
+                  onClick={() =>
+                    patchConfig({ headerLogoUrl: "", showHeaderLogo: false })
+                  }
+                >
+                  Reset header logo
+                </Button>
               </div>
               <div className="min-w-[140px] flex-1 space-y-1">
                 <Label className="text-[10px]">
@@ -1474,10 +1490,32 @@ export function TapCardBuilder({
                         <MediaPicker
                           label="Hero logo"
                           value={selected.logoUrl ?? logoUrl ?? ""}
-                          onChange={(url) => patchSection(selected.id, { logoUrl: url })}
+                          onChange={(url) =>
+                            patchSection(selected.id, {
+                              logoUrl: url,
+                              ...(url
+                                ? {}
+                                : { showHeroLogo: false, showLogoWindow: false }),
+                            })
+                          }
                           mediaUploadReady={mediaUploadReady}
                           stockReady={stockReady}
                         />
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 px-2 text-xs"
+                          onClick={() =>
+                            patchSection(selected.id, {
+                              logoUrl: "",
+                              showHeroLogo: false,
+                              showLogoWindow: false,
+                            })
+                          }
+                        >
+                          Reset hero logo
+                        </Button>
                         <div className="space-y-1">
                           <Label className="text-xs">
                             Logo size {selected.logoScale ?? 100}%
@@ -1809,6 +1847,15 @@ export function TapCardBuilder({
                       mediaUploadReady={mediaUploadReady}
                       stockReady={stockReady}
                     />
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      className="h-7 px-2 text-xs"
+                      onClick={() => patchSection(selected.id, { logoUrl: "" })}
+                    >
+                      Clear logo (no brand fallback)
+                    </Button>
                   )}
 
                   {(selected.columnLeft === "text" || selected.columnRight === "text") && (

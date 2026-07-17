@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { AdminTabs } from "@/components/admin/admin-tabs";
 import { LandingTilesEditor } from "@/components/admin/landing-tiles-editor";
+import { LandingDemosEditor } from "@/components/admin/landing-demos-editor";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuthControls } from "@/components/auth/auth-controls";
@@ -21,6 +22,7 @@ import { prisma } from "@/lib/db";
 import { isClerkConfigured } from "@/lib/utils/app";
 import { ensurePlatformAdminUsers } from "@/lib/services/admins";
 import { listLandingUseCases } from "@/lib/services/landing-use-cases";
+import { listLandingDemoSlots } from "@/lib/services/landing-demos";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +30,16 @@ export default async function AdminDashboardPage() {
   await ensurePlatformAdminUsers();
   const { user, business } = await requirePlatformAdmin();
 
-  const [businessCount, userCount, campaignCount, deviceCount, recentBusinesses, landingTiles] =
-    await Promise.all([
+  const [
+    businessCount,
+    userCount,
+    campaignCount,
+    deviceCount,
+    recentBusinesses,
+    landingTiles,
+    demoSlots,
+    demoCampaigns,
+  ] = await Promise.all([
       prisma.business.count(),
       prisma.user.count(),
       prisma.campaign.count(),
@@ -47,6 +57,19 @@ export default async function AdminDashboardPage() {
         },
       }),
       listLandingUseCases(),
+      listLandingDemoSlots(),
+      prisma.campaign.findMany({
+        where: { status: { notIn: ["ARCHIVED", "CLOSED"] } },
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          campaignType: true,
+          business: { select: { name: true } },
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 200,
+      }),
     ]);
 
   const stats = [
@@ -194,6 +217,20 @@ export default async function AdminDashboardPage() {
           landingTiles={
             <LandingTilesEditor
               initialTiles={landingTiles}
+              mediaUploadReady={isMediaUploadReady()}
+              stockReady={isStockImagesReady()}
+            />
+          }
+          liveDemos={
+            <LandingDemosEditor
+              initialSlots={demoSlots}
+              campaigns={demoCampaigns.map((c) => ({
+                id: c.id,
+                title: c.title,
+                status: c.status,
+                campaignType: c.campaignType,
+                businessName: c.business.name,
+              }))}
               mediaUploadReady={isMediaUploadReady()}
               stockReady={isStockImagesReady()}
             />

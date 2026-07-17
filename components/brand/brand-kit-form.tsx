@@ -193,10 +193,15 @@ export function BrandKitForm({
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         ...form,
+        logoUrl: form.logoUrl?.trim() ? form.logoUrl : null,
         phone: contact.phone || null,
         website: contact.website || null,
         email: form.email,
-        contactProfile: { ...contact, socials },
+        contactProfile: {
+          ...contact,
+          photoUrl: contact.photoUrl?.trim() ? contact.photoUrl : "",
+          socials,
+        },
         otherLinks: otherLinksPayload(),
         endExperience,
       }),
@@ -316,6 +321,10 @@ export function BrandKitForm({
                 mediaUploadReady={mediaUploadReady}
                 stockReady={stockReady}
               />
+              <p className="text-[10px] text-muted-foreground">
+                Use Remove / Clear image to wipe the logo so it no longer appears on campaigns or
+                Tap Cards. Save Brand Kit after clearing.
+              </p>
 
               <div className="grid gap-3 sm:grid-cols-2">
                 {(

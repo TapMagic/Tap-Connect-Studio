@@ -620,3 +620,16 @@ model LandingUseCase {
 
   @@index([enabled, sortOrder])
 }
+
+/** Which campaign (or Tap Card workspace) powers each Live Demo mode on the landing page. */
+model LandingDemoSlot {
+  /** card | offer | product | review */
+  mode       String   @id
+  campaignId String?
+  enabled    Boolean  @default(true)
+  /** When false, logo is hidden even if a URL exists */
+  showLogo   Boolean  @default(true)
+  /** Optional logo override; empty string = explicitly no logo (do not fall back) */
+  logoUrl    String?
+  updatedAt  DateTime @updatedAt
+}

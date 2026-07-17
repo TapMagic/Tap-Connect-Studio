@@ -1,23 +1,26 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { LayoutDashboard, PanelsTopLeft } from "lucide-react";
+import { LayoutDashboard, PanelsTopLeft, Smartphone } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type TabId = "overview" | "landing-tiles";
+type TabId = "overview" | "landing-tiles" | "live-demos";
 
 const TABS: { id: TabId; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "landing-tiles", label: "Landing tiles", icon: PanelsTopLeft },
+  { id: "live-demos", label: "Live Demo", icon: Smartphone },
 ];
 
 export function AdminTabs({
   overview,
   landingTiles,
+  liveDemos,
   defaultTab = "overview",
 }: {
   overview: ReactNode;
   landingTiles: ReactNode;
+  liveDemos: ReactNode;
   defaultTab?: TabId;
 }) {
   const [tab, setTab] = useState<TabId>(defaultTab);
@@ -57,6 +60,9 @@ export function AdminTabs({
       </div>
       <div role="tabpanel" hidden={tab !== "landing-tiles"}>
         {tab === "landing-tiles" ? landingTiles : null}
+      </div>
+      <div role="tabpanel" hidden={tab !== "live-demos"}>
+        {tab === "live-demos" ? liveDemos : null}
       </div>
     </div>
   );

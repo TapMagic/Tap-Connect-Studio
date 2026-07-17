@@ -19,6 +19,7 @@ import {
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard, type TapConnectCardConfig } from "@/lib/brand/tap-card";
+import { firstImageUrl } from "@/lib/utils";
 
 interface CampaignTheme {
   primaryColor: string;
@@ -825,9 +826,13 @@ function BlockRenderer({
           <ContactCardSurface
             profile={{
               ...profile,
-              photoUrl: (data.logoUrl as string) || profile.photoUrl || logoUrl || undefined,
+              photoUrl: firstImageUrl(
+                data.logoUrl as string | undefined,
+                profile.photoUrl,
+                logoUrl
+              ),
             }}
-            logoUrl={(data.logoUrl as string) || logoUrl}
+            logoUrl={firstImageUrl(data.logoUrl as string | undefined, logoUrl)}
             businessName={businessName}
             buttonLabel={(data.buttonLabel as string) || "Download VCard"}
             showShare={false}
@@ -859,10 +864,13 @@ function BlockRenderer({
           <ContactCardSurface
             profile={{
               ...contactProfile,
-              photoUrl:
-                (data.logoUrl as string) || contactProfile.photoUrl || logoUrl || undefined,
+              photoUrl: firstImageUrl(
+                data.logoUrl as string | undefined,
+                contactProfile.photoUrl,
+                logoUrl
+              ),
             }}
-            logoUrl={(data.logoUrl as string) || logoUrl}
+            logoUrl={firstImageUrl(data.logoUrl as string | undefined, logoUrl)}
             businessName={businessName}
             headline={data.headline as string | undefined}
             buttonLabel={(data.buttonLabel as string) || "Download VCard"}
