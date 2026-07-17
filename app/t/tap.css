@@ -628,6 +628,14 @@
   outline-offset: 2px;
 }
 
+.tap-block-selected {
+  outline: 2px solid color-mix(in srgb, var(--tap-primary) 85%, #a3e635);
+  outline-offset: 3px;
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tap-primary) 25%, transparent);
+  position: relative;
+  z-index: 1;
+}
+
 .tap-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

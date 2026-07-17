@@ -78,6 +78,8 @@ export default async function GroupDetailPage({
           showUpcomingOnPages: group.showUpcomingOnPages,
           defaultCampaignId: group.defaultCampaignId,
           defaultCampaign: group.defaultCampaign,
+          endCampaignId: group.endCampaignId,
+          endCampaign: group.endCampaign,
           slots: group.slots.map((s) => ({
             ...s,
             daysOfWeek: s.daysOfWeek as number[],

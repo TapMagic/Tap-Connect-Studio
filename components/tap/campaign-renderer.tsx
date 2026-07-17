@@ -939,16 +939,49 @@ function BlockRenderer({
     }
 
     case "columns": {
-      const cols = (data.columns as { id: string; body: string }[]) ?? [];
+      const cols =
+        (data.columns as {
+          id: string;
+          body: string;
+          imageUrl?: string;
+          linkUrl?: string;
+          cellType?: "text" | "image" | "text_image";
+        }[]) ?? [];
       if (!cols.length) return null;
       return (
         <StyledBlockShell block={block} {...shell} className="px-4 pt-4">
           <div className="tap-columns">
-            {cols.map((col) => (
-              <div key={col.id} className="tap-column">
-                <p className="whitespace-pre-wrap text-sm opacity-90">{col.body}</p>
-              </div>
-            ))}
+            {cols.map((col) => {
+              const mode = col.cellType ?? (col.imageUrl ? "text_image" : "text");
+              const body = (
+                <div className="tap-column space-y-2">
+                  {(mode === "image" || mode === "text_image") && col.imageUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={col.imageUrl}
+                      alt=""
+                      className="w-full rounded-lg object-cover"
+                    />
+                  ) : null}
+                  {mode !== "image" && col.body ? (
+                    <p className="whitespace-pre-wrap text-sm opacity-90">{col.body}</p>
+                  ) : null}
+                </div>
+              );
+              return col.linkUrl ? (
+                <a
+                  key={col.id}
+                  href={col.linkUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block no-underline"
+                >
+                  {body}
+                </a>
+              ) : (
+                <div key={col.id}>{body}</div>
+              );
+            })}
           </div>
         </StyledBlockShell>
       );

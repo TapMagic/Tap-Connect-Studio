@@ -1,13 +1,14 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Calendar, Copy, Pause, Play, Plus, Trash2 } from "lucide-react";
+import { Calendar, Copy, GripVertical, Pause, Play, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { COMMON_TIMEZONES, formatScheduleWindow } from "@/lib/utils/schedule-time";
+import { scrollChildIntoNearestView } from "@/lib/utils/builder-scroll";
 import { cn } from "@/lib/utils";
 
 const DAY_OPTIONS = [
@@ -95,6 +96,9 @@ export function GroupManager({
   const [preview, setPreview] = useState(initialPreview);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [selectedSlotId, setSelectedSlotId] = useState<string | null>(null);
+  const [dragSlotId, setDragSlotId] = useState<string | null>(null);
+  const slotsListRef = useRef<HTMLDivElement>(null);
 
   const [slotForm, setSlotForm] = useState({
     label: "",
@@ -105,6 +109,16 @@ export function GroupManager({
     priority: 5,
   });
 
+  const [slotEdit, setSlotEdit] = useState({
+    label: "",
+    campaignId: "",
+    daysOfWeek: [1, 2, 3, 4, 5] as number[],
+    startTime: "09:00",
+    endTime: "17:00",
+    priority: 0,
+    enabled: true,
+  });
+
   const [attachIds, setAttachIds] = useState<string[]>([]);
   const [locationId, setLocationId] = useState(locations[0]?.id ?? "");
 
@@ -112,6 +126,33 @@ export function GroupManager({
     () => allDevices.filter((d) => d.groupId !== group.id),
     [allDevices, group.id]
   );
+
+  const selectedSlot = group.slots.find((s) => s.id === selectedSlotId) ?? null;
+
+  useEffect(() => {
+    const slot = group.slots.find((s) => s.id === selectedSlotId);
+    if (!slot) return;
+    const days = Array.isArray(slot.daysOfWeek) ? (slot.daysOfWeek as number[]) : [];
+    setSlotEdit({
+      label: slot.label,
+      campaignId: slot.campaign.id,
+      daysOfWeek: days.length ? days : [1, 2, 3, 4, 5],
+      startTime: slot.startTime ?? "09:00",
+      endTime: slot.endTime ?? "17:00",
+      priority: slot.priority,
+      enabled: slot.enabled,
+    });
+  }, [selectedSlotId, group.slots]);
+
+  useEffect(() => {
+    if (!selectedSlotId || !slotsListRef.current) return;
+    const escaped =
+      typeof CSS !== "undefined" && CSS.escape
+        ? CSS.escape(selectedSlotId)
+        : selectedSlotId;
+    const el = slotsListRef.current.querySelector(`[data-slot-id="${escaped}"]`);
+    if (el instanceof HTMLElement) scrollChildIntoNearestView(el);
+  }, [selectedSlotId]);
 
   async function refresh() {
     const res = await fetch(`/api/groups/${group.id}`);
@@ -202,6 +243,49 @@ export function GroupManager({
   async function removeSlot(slotId: string) {
     setBusy(true);
     await fetch(`/api/groups/${group.id}/slots?slotId=${slotId}`, { method: "DELETE" });
+    setBusy(false);
+    if (selectedSlotId === slotId) setSelectedSlotId(null);
+    await refresh();
+  }
+
+  async function saveSelectedSlot() {
+    if (!selectedSlotId) return;
+    setBusy(true);
+    const res = await fetch(`/api/groups/${group.id}/slots`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: selectedSlotId, ...slotEdit }),
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setMessage("Could not update timed page");
+      return;
+    }
+    setMessage("Timed page schedule saved");
+    await refresh();
+  }
+
+  async function reorderSlots(fromId: string, toId: string) {
+    if (fromId === toId) return;
+    const ordered = [...group.slots].sort((a, b) => b.priority - a.priority || a.label.localeCompare(b.label));
+    const from = ordered.findIndex((s) => s.id === fromId);
+    const to = ordered.findIndex((s) => s.id === toId);
+    if (from < 0 || to < 0) return;
+    const next = [...ordered];
+    const [item] = next.splice(from, 1);
+    next.splice(to, 0, item);
+    // Higher priority first — mirror list order
+    const updates = next.map((s, i) => ({ id: s.id, priority: next.length - i }));
+    setBusy(true);
+    await Promise.all(
+      updates.map((u) =>
+        fetch(`/api/groups/${group.id}/slots`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(u),
+        })
+      )
+    );
     setBusy(false);
     await refresh();
   }
@@ -363,99 +447,272 @@ export function GroupManager({
             ) : (
               "none"
             )}
+            {group.endCampaign ? (
+              <>
+                {" · "}
+                End:{" "}
+                <Link href={`/dashboard/campaigns/${group.endCampaign.id}`} className="text-primary">
+                  {group.endCampaign.title}
+                </Link>
+              </>
+            ) : null}
           </p>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          {group.slots.map((slot) => {
-            const days = Array.isArray(slot.daysOfWeek) ? (slot.daysOfWeek as number[]) : [];
-            const schedule = formatScheduleWindow(days, slot.startTime, slot.endTime);
-            const campaignLive = !["PAUSED", "ARCHIVED", "CLOSED"].includes(slot.campaign.status);
-            const isLiveNow = preview.live?.slotId === slot.id;
-            return (
-              <div
-                key={slot.id}
-                className={cn(
-                  "rounded-xl border p-4 transition",
-                  isLiveNow
-                    ? "border-primary bg-primary/10"
-                    : slot.enabled && campaignLive
-                      ? "border-primary/30 bg-primary/5"
-                      : "border-border/50 bg-muted/20 opacity-80"
-                )}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-semibold">
-                      {slot.label}
-                      {isLiveNow ? (
-                        <span className="ml-2 text-[10px] uppercase text-primary">Now</span>
-                      ) : null}
-                    </p>
-                    <Link
-                      href={`/dashboard/campaigns/${slot.campaign.id}`}
-                      className="text-sm text-primary hover:underline"
-                    >
-                      {slot.campaign.title}
-                    </Link>
-                  </div>
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void toggleSlot(slot)}
+        <p className="text-xs text-muted-foreground">
+          Select a slot to edit schedule settings · drag to reorder priority · Edit page opens the
+          campaign builder
+        </p>
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1.1fr)_minmax(280px,360px)]">
+          <div ref={slotsListRef} className="grid max-h-[70vh] gap-3 overflow-y-auto pr-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2">
+            {[...group.slots]
+              .sort((a, b) => b.priority - a.priority || a.label.localeCompare(b.label))
+              .map((slot) => {
+                const days = Array.isArray(slot.daysOfWeek) ? (slot.daysOfWeek as number[]) : [];
+                const schedule = formatScheduleWindow(days, slot.startTime, slot.endTime);
+                const campaignLive = !["PAUSED", "ARCHIVED", "CLOSED"].includes(slot.campaign.status);
+                const isLiveNow = preview.live?.slotId === slot.id;
+                const selected = selectedSlotId === slot.id;
+                return (
+                  <div
+                    key={slot.id}
+                    data-slot-id={slot.id}
+                    draggable
+                    onDragStart={() => setDragSlotId(slot.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={() => {
+                      if (dragSlotId) void reorderSlots(dragSlotId, slot.id);
+                      setDragSlotId(null);
+                    }}
+                    onDragEnd={() => setDragSlotId(null)}
+                    onClick={() => setSelectedSlotId(slot.id)}
                     className={cn(
-                      "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase",
-                      slot.enabled ? "bg-emerald-500/20 text-emerald-300" : "bg-muted text-muted-foreground"
+                      "cursor-pointer rounded-xl border p-4 transition",
+                      selected
+                        ? "border-primary bg-primary/15 ring-2 ring-primary/40"
+                        : isLiveNow
+                          ? "border-primary bg-primary/10"
+                          : slot.enabled && campaignLive
+                            ? "border-primary/30 bg-primary/5"
+                            : "border-border/50 bg-muted/20 opacity-80",
+                      dragSlotId === slot.id && "opacity-60"
                     )}
                   >
-                    {slot.enabled ? "Live" : "Paused"}
-                  </button>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-start gap-2">
+                        <GripVertical className="mt-0.5 h-4 w-4 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
+                        <div className="min-w-0">
+                          <p className="font-semibold">
+                            {slot.label}
+                            {isLiveNow ? (
+                              <span className="ml-2 text-[10px] uppercase text-primary">Now</span>
+                            ) : null}
+                          </p>
+                          <Link
+                            href={`/dashboard/campaigns/${slot.campaign.id}`}
+                            className="text-sm text-primary hover:underline"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            {slot.campaign.title}
+                          </Link>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        disabled={busy}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void toggleSlot(slot);
+                        }}
+                        className={cn(
+                          "rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase",
+                          slot.enabled
+                            ? "bg-emerald-500/20 text-emerald-300"
+                            : "bg-muted text-muted-foreground"
+                        )}
+                      >
+                        {slot.enabled ? "Live" : "Paused"}
+                      </button>
+                    </div>
+                    <p className="mt-3 flex items-center gap-1.5 pl-6 text-sm text-muted-foreground">
+                      <Calendar className="h-3.5 w-3.5" />
+                      {schedule}
+                    </p>
+                    <p className="mt-1 pl-6 text-[11px] text-muted-foreground">
+                      Priority {slot.priority}
+                    </p>
+                    <div className="mt-3 flex flex-wrap gap-2 pl-6">
+                      <Link
+                        href={`/dashboard/campaigns/${slot.campaign.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Button type="button" size="sm" variant="outline">
+                          Edit page
+                        </Button>
+                      </Link>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void cloneSlot(slot.id);
+                        }}
+                        title="Clone page + schedule"
+                      >
+                        <Copy className="mr-1 h-3.5 w-3.5" />
+                        Clone
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        disabled={busy}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void toggleCampaign(slot.campaign.id, slot.campaign.status);
+                        }}
+                      >
+                        {campaignLive ? "Pause page" : "Resume page"}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="text-red-400"
+                        disabled={busy}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          void removeSlot(slot.id);
+                        }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          <aside className="rounded-xl border border-border/60 bg-card/40 p-4 lg:sticky lg:top-4 lg:self-start">
+            {selectedSlot ? (
+              <div className="space-y-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                    Edit timed page
+                  </p>
+                  <h3 className="mt-1 font-semibold">{selectedSlot.label}</h3>
                 </div>
-                <p className="mt-3 flex items-center gap-1.5 text-sm text-muted-foreground">
-                  <Calendar className="h-3.5 w-3.5" />
-                  {schedule}
-                </p>
-                <p className="mt-1 text-[11px] text-muted-foreground">Priority {slot.priority}</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <Link href={`/dashboard/campaigns/${slot.campaign.id}`}>
+                <div className="space-y-1">
+                  <Label className="text-xs">Label</Label>
+                  <Input
+                    value={slotEdit.label}
+                    onChange={(e) => setSlotEdit((f) => ({ ...f, label: e.target.value }))}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Campaign page</Label>
+                  <select
+                    className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                    value={slotEdit.campaignId}
+                    onChange={(e) => setSlotEdit((f) => ({ ...f, campaignId: e.target.value }))}
+                  >
+                    {allCampaigns.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.title} ({c.status})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Days</Label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {DAY_OPTIONS.map((d) => {
+                      const on = slotEdit.daysOfWeek.includes(d.v);
+                      return (
+                        <button
+                          key={d.v}
+                          type="button"
+                          onClick={() =>
+                            setSlotEdit((f) => ({
+                              ...f,
+                              daysOfWeek: on
+                                ? f.daysOfWeek.filter((x) => x !== d.v)
+                                : [...f.daysOfWeek, d.v],
+                            }))
+                          }
+                          className={cn(
+                            "rounded-md px-2 py-1 text-xs",
+                            on ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                          )}
+                        >
+                          {d.l}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Start</Label>
+                    <Input
+                      type="time"
+                      value={slotEdit.startTime}
+                      onChange={(e) => setSlotEdit((f) => ({ ...f, startTime: e.target.value }))}
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">End</Label>
+                    <Input
+                      type="time"
+                      value={slotEdit.endTime}
+                      onChange={(e) => setSlotEdit((f) => ({ ...f, endTime: e.target.value }))}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs">Priority</Label>
+                  <Input
+                    type="number"
+                    min={0}
+                    max={100}
+                    value={slotEdit.priority}
+                    onChange={(e) =>
+                      setSlotEdit((f) => ({ ...f, priority: Number(e.target.value) || 0 }))
+                    }
+                  />
+                </div>
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={slotEdit.enabled}
+                    onChange={(e) => setSlotEdit((f) => ({ ...f, enabled: e.target.checked }))}
+                  />
+                  Slot enabled (live in schedule)
+                </label>
+                <div className="flex flex-wrap gap-2 pt-1">
+                  <Button type="button" size="sm" disabled={busy} onClick={() => void saveSelectedSlot()}>
+                    Save schedule
+                  </Button>
+                  <Link href={`/dashboard/campaigns/${selectedSlot.campaign.id}`}>
                     <Button type="button" size="sm" variant="outline">
-                      Edit page
+                      Open campaign builder
                     </Button>
                   </Link>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => void cloneSlot(slot.id)}
-                    title="Clone page + schedule"
-                  >
-                    <Copy className="mr-1 h-3.5 w-3.5" />
-                    Clone
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    disabled={busy}
-                    onClick={() => void toggleCampaign(slot.campaign.id, slot.campaign.status)}
-                  >
-                    {campaignLive ? "Pause page" : "Resume page"}
-                  </Button>
-                  <Button
-                    type="button"
-                    size="sm"
-                    variant="ghost"
-                    className="text-red-400"
-                    disabled={busy}
-                    onClick={() => void removeSlot(slot.id)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                  </Button>
                 </div>
               </div>
-            );
-          })}
+            ) : (
+              <div className="space-y-2 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Slot inspector</p>
+                <p>
+                  Select a timed page to edit its label, campaign, days, hours, and priority —
+                  without leaving this group.
+                </p>
+              </div>
+            )}
+          </aside>
         </div>
       </section>
 

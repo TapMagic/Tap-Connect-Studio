@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Copy,
@@ -30,6 +30,10 @@ import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
 import { AiAssistPanel } from "@/components/campaign/ai-assist-panel";
 import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
+import {
+  scrollChildIntoNearestView,
+  scrollChildToContainerCenter,
+} from "@/lib/utils/builder-scroll";
 import { nanoid } from "nanoid";
 import type { BlockStyle, BlockType, ButtonItem, ContentBlock } from "@/lib/types/campaign";
 import { TAP_CARD_SHAPE_OPTIONS, type TapCardButtonShape } from "@/lib/brand/tap-card";
@@ -239,6 +243,8 @@ export function CampaignEditor({
     backgroundOverlayOpacity: number;
     fontStyle: string;
     showPageLogo: boolean;
+    defaultButtonShape: TapCardButtonShape;
+    defaultButtonFinish: string;
   }>({
     primaryColor: String(campaign.themeOverrides?.primaryColor ?? brandKit.primaryColor),
     secondaryColor: String(campaign.themeOverrides?.secondaryColor ?? brandKit.secondaryColor),
@@ -252,6 +258,10 @@ export function CampaignEditor({
     showPageLogo:
       campaign.themeOverrides?.showPageLogo === true ||
       campaign.themeOverrides?.showPageLogo === "true",
+    defaultButtonShape: (String(
+      campaign.themeOverrides?.defaultButtonShape ?? "pill"
+    ) || "pill") as TapCardButtonShape,
+    defaultButtonFinish: String(campaign.themeOverrides?.defaultButtonFinish ?? "flat"),
   });
   const [selectedDevice, setSelectedDevice] = useState(devices[0]?.id ?? "");
   const [showPreview, setShowPreview] = useState(true);
@@ -261,6 +271,8 @@ export function CampaignEditor({
   const [dragId, setDragId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [selectedButtonId, setSelectedButtonId] = useState<string | null>(null);
+  const phoneScreenRef = useRef<HTMLDivElement>(null);
+  const listRailRef = useRef<HTMLDivElement>(null);
   const [scheduledStart, setScheduledStart] = useState(
     campaign.scheduledStart ? campaign.scheduledStart.slice(0, 16) : ""
   );
@@ -273,6 +285,30 @@ export function CampaignEditor({
 
   const selectedDeviceCode = devices.find((d) => d.id === selectedDevice)?.deviceCode;
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
+
+  useEffect(() => {
+    if (!selectedBlockId) return;
+    const escaped =
+      typeof CSS !== "undefined" && CSS.escape
+        ? CSS.escape(selectedBlockId)
+        : selectedBlockId;
+
+    requestAnimationFrame(() => {
+      const phone = phoneScreenRef.current;
+      if (phone) {
+        const previewEl = phone.querySelector(`[data-block-id="${escaped}"]`);
+        if (previewEl instanceof HTMLElement) {
+          scrollChildToContainerCenter(phone, previewEl);
+        }
+      }
+      const listRow = listRailRef.current?.querySelector(
+        `[data-editor-block-id="${escaped}"]`
+      );
+      if (listRow instanceof HTMLElement) {
+        scrollChildIntoNearestView(listRow);
+      }
+    });
+  }, [selectedBlockId]);
 
   function updateBlock(id: string, updates: Partial<ContentBlock>) {
     setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
@@ -316,6 +352,17 @@ export function CampaignEditor({
     const preset = ADDABLE_BLOCKS.find((b) => b.type === type) ?? ADDABLE_BLOCKS[0];
     const nextOrder = blocks.length ? Math.max(...blocks.map((b) => b.order)) + 1 : 0;
     const id = nanoid(8);
+    let data = structuredClone(preset.data);
+    if (preset.type === "button_group" && Array.isArray(data.buttons)) {
+      data = {
+        ...data,
+        buttons: (data.buttons as ButtonItem[]).map((btn) => ({
+          ...btn,
+          shape: theme.defaultButtonShape,
+          finish: theme.defaultButtonFinish,
+        })),
+      };
+    }
     setBlocks((prev) => [
       ...prev,
       {
@@ -324,7 +371,7 @@ export function CampaignEditor({
         label: preset.label,
         order: nextOrder,
         enabled: true,
-        data: structuredClone(preset.data),
+        data,
       },
     ]);
     setSelectedBlockId(id);
@@ -452,9 +499,13 @@ export function CampaignEditor({
             })}
           </div>
 
-          <div className="flex-1 overflow-y-auto p-3">
+          <div className="flex-1 overflow-y-auto p-3" ref={listRailRef}>
             {tab === "content" && (
               <div className="space-y-3">
+                <p className="text-[10px] text-muted-foreground">
+                  Blocks scroll here · preview &amp; inspector stay in their columns · select to
+                  highlight &amp; snap
+                </p>
                 <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-3">
                   <Label className="text-xs text-primary">Add block</Label>
                   <select
@@ -512,6 +563,7 @@ export function CampaignEditor({
                 {sortedBlocks.map((block) => (
                   <div
                     key={block.id}
+                    data-editor-block-id={block.id}
                     draggable
                     onDragStart={() => setDragId(block.id)}
                     onDragOver={(e) => e.preventDefault()}
@@ -527,7 +579,7 @@ export function CampaignEditor({
                     className={cn(
                       "cursor-pointer rounded-lg border px-2 py-2 text-sm transition",
                       selectedBlockId === block.id
-                        ? "border-primary bg-primary/10"
+                        ? "border-primary bg-primary/10 ring-1 ring-primary/40"
                         : "border-border/50 hover:border-primary/40",
                       block.channel === "email" &&
                         "border-orange-500/50 bg-orange-500/10 shadow-[0_0_12px_rgba(249,115,22,0.2)]",
@@ -740,7 +792,7 @@ export function CampaignEditor({
           </div>
         </aside>
 
-        {/* Center phone preview */}
+        {/* Center phone preview — independent scroll column */}
         {showPreview && tab === "content" && (
           <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden bg-black/30 p-3">
             <p className="mb-2 shrink-0 text-center text-[11px] text-muted-foreground">
@@ -748,7 +800,7 @@ export function CampaignEditor({
             </p>
             <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1">
               <div className="builder-phone-notch" />
-              <div className="builder-phone-screen">
+              <div className="builder-phone-screen" ref={phoneScreenRef}>
                 <a
                   href={`/dashboard/campaigns/${campaign.id}/email`}
                   className="mx-3 mt-3 block rounded-xl border border-orange-500/50 bg-orange-500/15 px-3 py-3 text-center shadow-[0_0_20px_rgba(249,115,22,0.25)] transition hover:bg-orange-500/25"
@@ -784,13 +836,13 @@ export function CampaignEditor({
           </div>
         )}
 
-        {/* Right inspector */}
+        {/* Right inspector — independent scroll column */}
         {tab === "content" && (
-          <aside className="w-full shrink-0 overflow-y-auto border-l border-border/60 lg:w-[340px]">
-            <div className="sticky top-0 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur">
+          <aside className="flex w-full shrink-0 flex-col border-l border-border/60 lg:w-[340px]">
+            <div className="sticky top-0 z-10 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur">
               {selectedBlock ? `Edit: ${selectedBlock.label}` : "Page & design"}
             </div>
-            <div className="space-y-4 p-4">
+            <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
               {!selectedBlock && (
                 <>
                   <h3 className="text-sm font-semibold">Theme & branding</h3>
@@ -871,6 +923,36 @@ export function CampaignEditor({
                   <p className="text-[11px] text-muted-foreground">
                     Off by default so Tap Card / hero logos aren’t doubled. Turn on for a small
                     brand mark above all blocks.
+                  </p>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Default button shape</Label>
+                    <select
+                      className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
+                      value={theme.defaultButtonShape}
+                      onChange={(e) =>
+                        setTheme((t) => ({
+                          ...t,
+                          defaultButtonShape: e.target.value as TapCardButtonShape,
+                        }))
+                      }
+                    >
+                      {TAP_CARD_SHAPE_OPTIONS.map((o) => (
+                        <option key={o.id} value={o.id}>
+                          {o.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <FinishPicker
+                    label="Default button finish"
+                    value={theme.defaultButtonFinish}
+                    onChange={(finish) =>
+                      setTheme((t) => ({ ...t, defaultButtonFinish: finish }))
+                    }
+                  />
+                  <p className="text-[11px] text-muted-foreground">
+                    Applied to new buttons you add. Existing buttons keep their own shape/finish
+                    until you change them.
                   </p>
                 </>
               )}
@@ -1675,21 +1757,72 @@ function BlockFields({
   }
 
   if (block.type === "columns") {
-    const cols = (data.columns as { id: string; body: string }[]) ?? [];
+    const cols =
+      (data.columns as {
+        id: string;
+        body: string;
+        imageUrl?: string;
+        linkUrl?: string;
+        cellType?: "text" | "image" | "text_image";
+      }[]) ?? [];
     return (
       <div className="space-y-3">
         {cols.map((col, i) => (
-          <div key={col.id} className="space-y-1">
+          <div key={col.id} className="space-y-2 rounded-lg border border-border/50 p-3">
             <Label className="text-xs">Column {i + 1}</Label>
-            <Textarea
-              value={col.body}
+            <select
+              className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+              value={col.cellType ?? (col.imageUrl ? "text_image" : "text")}
               onChange={(e) => {
+                const cellType = e.target.value as "text" | "image" | "text_image";
                 const next = cols.map((c) =>
-                  c.id === col.id ? { ...c, body: e.target.value } : c
+                  c.id === col.id ? { ...c, cellType } : c
                 );
                 onUpdate("columns", next);
               }}
-              rows={3}
+            >
+              <option value="text">Text</option>
+              <option value="image">Image</option>
+              <option value="text_image">Image + text</option>
+            </select>
+            {(col.cellType ?? (col.imageUrl ? "text_image" : "text")) !== "image" ? (
+              <Textarea
+                value={col.body}
+                onChange={(e) => {
+                  const next = cols.map((c) =>
+                    c.id === col.id ? { ...c, body: e.target.value } : c
+                  );
+                  onUpdate("columns", next);
+                }}
+                rows={3}
+              />
+            ) : null}
+            {(col.cellType === "image" ||
+              col.cellType === "text_image" ||
+              Boolean(col.imageUrl)) && (
+              <MediaPicker
+                label="Column image"
+                value={col.imageUrl ?? ""}
+                onChange={(url) => {
+                  const next = cols.map((c) =>
+                    c.id === col.id ? { ...c, imageUrl: url } : c
+                  );
+                  onUpdate("columns", next);
+                }}
+                mediaUploadReady={mediaUploadReady}
+                stockReady={stockReady}
+                campaignId={campaignId}
+              />
+            )}
+            <Input
+              placeholder="Optional link URL"
+              value={col.linkUrl ?? ""}
+              onChange={(e) => {
+                const next = cols.map((c) =>
+                  c.id === col.id ? { ...c, linkUrl: e.target.value } : c
+                );
+                onUpdate("columns", next);
+              }}
             />
           </div>
         ))}
