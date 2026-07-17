@@ -313,6 +313,13 @@
   max-width: 280px;
 }
 
+.lp-video-frame--landscape {
+  aspect-ratio: 16 / 9;
+  max-height: none;
+  max-width: none;
+  margin-inline: 0;
+}
+
 .lp-video-frame iframe {
   position: absolute;
   inset: 0;
