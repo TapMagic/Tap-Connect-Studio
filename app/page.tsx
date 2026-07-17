@@ -31,9 +31,9 @@ import { TapVideoSection } from "@/components/marketing/tap-video-section";
 import { DeviceManagerShowcase } from "@/components/marketing/device-manager-showcase";
 import { TapCardLaunchpadGraphic } from "@/components/marketing/tap-card-launchpad";
 import { UseCaseImageCards } from "@/components/marketing/use-case-image-cards";
+import { BlockLibraryShowcase } from "@/components/marketing/block-library-showcase";
 import { buttonVariants } from "@/components/ui/button";
 import {
-  BLOCK_LIBRARY_GROUPS,
   BOUTIQUE_SCHEDULE,
   BRAND_LIBRARY_FEATURES,
   CAPTURE_FEATURES,
@@ -104,6 +104,59 @@ const VALUE_BLOCKS = [
   },
 ] as const;
 
+const LANDING_JSON_LD = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "https://tapconnectstudio.com/#organization",
+      name: "TapConnect Studio",
+      url: "https://tapconnectstudio.com",
+      logo: "https://tapconnectstudio.com/tap-connect-logo.png",
+      slogan: "Every tap becomes a customer journey",
+      sameAs: ["https://tapthemagic.com"],
+    },
+    {
+      "@type": "SoftwareApplication",
+      "@id": "https://tapconnectstudio.com/#software",
+      name: "TapConnect Studio",
+      applicationCategory: "BusinessApplication",
+      operatingSystem: "Web",
+      provider: { "@id": "https://tapconnectstudio.com/#organization" },
+      description:
+        "TapConnect Studio helps businesses build Tap Card, smart sign, review station, product display, and event campaigns with lead capture, offers, booking links, branded emails, and analytics.",
+      featureList: [
+        "Tap Card Builder",
+        "Campaign Workbench",
+        "Smart display tags",
+        "Contact collector",
+        "Google review routing",
+        "Scheduled offers",
+        "Branded follow-up emails",
+        "Tap analytics",
+        "Media and brand library",
+      ],
+      audience: {
+        "@type": "Audience",
+        audienceType:
+          "local businesses, boutiques, restaurants, salons, real estate agents, event venues, trade shows, service businesses, fitness studios, and multi-location retail",
+      },
+    },
+    {
+      "@type": "FAQPage",
+      "@id": "https://tapconnectstudio.com/#faq",
+      mainEntity: FAQS.map((faq) => ({
+        "@type": "Question",
+        name: faq.q,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: faq.a,
+        },
+      })),
+    },
+  ],
+};
+
 function SectionEyebrow({ children }: { children: ReactNode }) {
   return (
     <p className="text-sm font-semibold uppercase tracking-[0.18em] text-[var(--lp-gold,#d6a84f)]">
@@ -125,6 +178,10 @@ export default async function Home() {
 
   return (
     <main className="lp relative overflow-hidden">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(LANDING_JSON_LD) }}
+      />
       <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[48rem]">
         <div className="lp-orb left-[10%] top-16 size-[28rem] bg-[rgba(214,168,79,0.14)]" />
         <div className="lp-orb right-[5%] top-32 size-[22rem] bg-[rgba(59,130,246,0.12)]" />
@@ -441,7 +498,7 @@ export default async function Home() {
 
       {/* 9 · Tap Card builder */}
       <section className="border-y border-white/8 bg-[#07111f] py-20">
-        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[1fr_1fr] lg:px-8">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 px-6 lg:grid-cols-[0.9fr_1.1fr] lg:px-8">
           <div>
             <SectionEyebrow>Tap Card Builder</SectionEyebrow>
             <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">
@@ -460,15 +517,15 @@ export default async function Home() {
                 return (
                   <div
                     key={f}
-                    className="lp-card-hover flex items-start gap-3 rounded-2xl bg-[#0f172a] p-3.5 text-sm text-slate-300"
+                    className="lp-card-hover flex items-start gap-3 rounded-2xl bg-[#0f172a] p-4 text-base leading-6 text-slate-200"
                   >
                     <span
                       className={cn(
-                        "mt-0.5 flex size-8 shrink-0 items-center justify-center rounded-lg",
+                        "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-xl",
                         tones[i % tones.length]
                       )}
                     >
-                      <Icon className="size-4" />
+                      <Icon className="size-[18px]" />
                     </span>
                     <span>{f}</span>
                   </div>
@@ -501,45 +558,7 @@ export default async function Home() {
               service businesses, product education, networking, reviews, and promotions.
             </p>
           </div>
-          <div className="mt-10 space-y-10">
-            {BLOCK_LIBRARY_GROUPS.map((group, gi) => (
-              <div key={group.title}>
-                <p className="mb-3 text-xs font-semibold uppercase tracking-[0.14em] text-[var(--lp-gold,#d6a84f)]">
-                  {group.title}
-                </p>
-                <div
-                  className={cn(
-                    "grid gap-2",
-                    gi === 0
-                      ? "grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4"
-                      : "grid-cols-2 sm:grid-cols-3 md:grid-cols-5"
-                  )}
-                >
-                  {group.items.map((b, i) => (
-                    <div
-                      key={b}
-                      className={cn(
-                        "lp-card-hover flex items-center gap-2 rounded-xl bg-white/[0.03] px-3 py-3 text-left text-xs font-medium text-slate-300",
-                        gi === 1 && i % 5 === 2 && "md:translate-y-2",
-                        gi === 1 && i % 5 === 3 && "md:translate-y-1"
-                      )}
-                    >
-                      <span
-                        className={cn(
-                          "size-1.5 shrink-0 rounded-full",
-                          i % 4 === 0 && "bg-[var(--lp-gold,#d6a84f)]",
-                          i % 4 === 1 && "bg-blue-400",
-                          i % 4 === 2 && "bg-[var(--lp-signal,#72ff8a)]",
-                          i % 4 === 3 && "bg-violet-400"
-                        )}
-                      />
-                      {b}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
+          <BlockLibraryShowcase />
         </div>
       </section>
 

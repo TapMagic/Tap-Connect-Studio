@@ -37,24 +37,24 @@ export function PlatformCollageGraphic({ className = "" }: { className?: string 
       </svg>
 
       {/* Central phone */}
-      <div className="absolute left-1/2 top-1/2 z-10 w-[148px] -translate-x-1/2 -translate-y-1/2 sm:w-[168px]">
+      <div className="absolute left-1/2 top-1/2 z-10 w-[160px] -translate-x-1/2 -translate-y-1/2 sm:w-[210px] lg:w-[240px]">
         <div className="relative mx-auto">
-          <div className="absolute left-1/2 top-1/2 size-36 -translate-x-1/2 -translate-y-1/2 sm:size-44">
+          <div className="absolute left-1/2 top-1/2 size-40 -translate-x-1/2 -translate-y-1/2 sm:size-56 lg:size-64">
             <span className="lp-signal-ring" />
             <span className="lp-signal-ring" />
           </div>
-          <div className="relative rounded-[1.35rem] border border-white/20 bg-gradient-to-b from-[#1e293b] to-[#0b0f19] p-2.5 shadow-[0_0_40px_rgba(214,168,79,0.2)]">
+          <div className="relative rounded-[1.5rem] border border-white/20 bg-gradient-to-b from-[#1e293b] to-[#0b0f19] p-3 shadow-[0_0_40px_rgba(214,168,79,0.2)] sm:p-3.5">
             <div className="mx-auto mb-2 h-1 w-10 rounded-full bg-white/20" />
-            <div className="rounded-xl bg-[#0b0f19] px-2.5 py-3 text-center">
+            <div className="rounded-2xl bg-[#0b0f19] px-3 py-4 text-center sm:px-4 sm:py-5">
               <div className="mb-1.5 flex items-center justify-center gap-1.5">
                 <span className="lp-live-dot" />
-                <span className="text-[9px] font-bold uppercase tracking-wider text-[var(--lp-signal,#72ff8a)]">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-[var(--lp-signal,#72ff8a)] sm:text-xs">
                   Live campaign
                 </span>
               </div>
-              <p className="text-[11px] font-semibold text-white">VIP Denim · 15% Off</p>
-              <p className="mt-1 text-[9px] text-slate-400">Wed–Thu · auto-rotated</p>
-              <div className="mt-3 rounded-full bg-[var(--lp-gold,#d6a84f)] py-1.5 text-[9px] font-bold text-[#0b0f19]">
+              <p className="text-sm font-semibold text-white sm:text-base">VIP Denim · 15% Off</p>
+              <p className="mt-1 text-xs text-slate-400 sm:text-sm">Wed–Thu · auto-rotated</p>
+              <div className="mt-4 rounded-full bg-[var(--lp-gold,#d6a84f)] py-2 text-xs font-bold text-[#0b0f19] sm:text-sm">
                 Unlock offer
               </div>
             </div>
@@ -111,7 +111,7 @@ export function PlatformCollageGraphic({ className = "" }: { className?: string 
         {["Tap Card", "Smart Display Tag", "Product Display", "Table Sign"].map((label) => (
           <span
             key={label}
-            className="rounded-full border border-white/10 bg-black/40 px-2.5 py-1 text-[10px] font-medium text-slate-300 backdrop-blur"
+            className="rounded-full border border-white/10 bg-black/40 px-3 py-1.5 text-[11px] font-semibold text-slate-200 backdrop-blur sm:text-xs"
           >
             {label}
           </span>

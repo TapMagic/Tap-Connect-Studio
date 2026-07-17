@@ -247,7 +247,7 @@
 /* Platform collage */
 .lp-collage {
   position: relative;
-  min-height: 420px;
+  min-height: 470px;
   border-radius: 1.75rem;
   border: 1px solid rgba(59, 130, 246, 0.25);
   background:
@@ -265,8 +265,8 @@
   border-radius: 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
   background: rgba(15, 23, 42, 0.92);
-  padding: 0.55rem 0.75rem;
-  font-size: 0.7rem;
+  padding: 0.7rem 0.9rem;
+  font-size: 0.78rem;
   font-weight: 600;
   color: #e2e8f0;
   backdrop-filter: blur(8px);
@@ -276,10 +276,66 @@
 
 .lp-collage-float span {
   display: block;
-  margin-top: 0.15rem;
-  font-size: 0.6rem;
+  margin-top: 0.2rem;
+  font-size: 0.68rem;
   font-weight: 500;
   color: #94a3b8;
+}
+
+@media (min-width: 640px) {
+  .lp-collage {
+    min-height: 520px;
+  }
+
+  .lp-collage-float {
+    font-size: 0.92rem;
+  }
+
+  .lp-collage-float span {
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 420px) {
+  .lp-collage {
+    min-height: 500px;
+  }
+
+  .lp-collage-float {
+    max-width: 9rem;
+    padding: 0.55rem 0.65rem;
+    font-size: 0.7rem;
+  }
+
+  .lp-collage-float span {
+    font-size: 0.6rem;
+  }
+}
+
+.lp-build-board {
+  border: 1px solid rgba(59, 130, 246, 0.24);
+  background:
+    radial-gradient(ellipse at 20% 10%, rgba(214, 168, 79, 0.12), transparent 38%),
+    radial-gradient(ellipse at 85% 30%, rgba(59, 130, 246, 0.12), transparent 36%),
+    linear-gradient(165deg, rgba(15, 23, 42, 0.95), rgba(5, 8, 20, 0.98));
+  box-shadow:
+    0 0 42px rgba(59, 130, 246, 0.12),
+    0 24px 70px rgba(0, 0, 0, 0.48);
+}
+
+.lp-build-chip {
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  background: rgba(255, 255, 255, 0.035);
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.lp-build-chip:hover {
+  transform: translateY(-2px);
+  border-color: rgba(214, 168, 79, 0.38);
+  background: rgba(214, 168, 79, 0.08);
 }
 
 @keyframes lp-float {

@@ -16,7 +16,7 @@ function polar(angleDeg: number, radius: number) {
 
 export function TapCardLaunchpadGraphic() {
   return (
-    <div className="lp-card-gold relative mx-auto aspect-square w-full max-w-[420px] overflow-hidden rounded-3xl bg-[#0b1020] p-4 sm:p-6">
+    <div className="lp-card-gold relative mx-auto aspect-square w-full max-w-[560px] overflow-hidden rounded-3xl bg-[#0b1020] p-5 sm:p-7 lg:max-w-[620px]">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(214,168,79,0.12),transparent_55%)]" />
 
       <svg viewBox="0 0 100 100" className="absolute inset-0 h-full w-full" aria-hidden>
@@ -60,7 +60,7 @@ export function TapCardLaunchpadGraphic() {
         return (
           <div
             key={r.label}
-            className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-xl border border-white/15 bg-[#111827]/95 px-2 py-1.5 text-center shadow-lg backdrop-blur"
+            className="absolute z-10 -translate-x-1/2 -translate-y-1/2 rounded-2xl border border-white/15 bg-[#111827]/95 px-2.5 py-2 text-center shadow-lg backdrop-blur sm:px-3 sm:py-2.5"
             style={{
               left: `${p.x}%`,
               top: `${p.y}%`,
@@ -68,7 +68,7 @@ export function TapCardLaunchpadGraphic() {
               borderColor: `${r.color}55`,
             }}
           >
-            <p className="max-w-[5.5rem] text-[9px] font-semibold leading-tight text-white sm:text-[10px]">
+            <p className="max-w-[6.5rem] text-[10px] font-semibold leading-tight text-white sm:text-xs">
               {r.label}
             </p>
           </div>
@@ -76,17 +76,17 @@ export function TapCardLaunchpadGraphic() {
       })}
 
       {/* Center card */}
-      <div className="absolute left-1/2 top-1/2 z-20 w-[42%] max-w-[140px] -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute left-1/2 top-1/2 z-20 w-[44%] max-w-[190px] -translate-x-1/2 -translate-y-1/2">
         <div className="relative">
           <div className="absolute inset-[-18%] rounded-full border border-[rgba(114,255,138,0.35)] opacity-70" />
           <div className="absolute inset-[-8%] animate-pulse rounded-full border border-[rgba(214,168,79,0.35)]" />
-          <div className="rounded-2xl border border-[rgba(214,168,79,0.5)] bg-gradient-to-b from-[#1e293b] to-[#0b0f19] p-3 shadow-[0_0_28px_rgba(214,168,79,0.25)]">
-            <div className="mx-auto mb-2 h-1 w-8 rounded-full bg-white/20" />
-            <p className="text-center text-[10px] font-bold uppercase tracking-wider text-[var(--lp-gold,#d6a84f)]">
+          <div className="rounded-3xl border border-[rgba(214,168,79,0.5)] bg-gradient-to-b from-[#1e293b] to-[#0b0f19] p-4 shadow-[0_0_28px_rgba(214,168,79,0.25)] sm:p-5">
+            <div className="mx-auto mb-3 h-1.5 w-10 rounded-full bg-white/20" />
+            <p className="text-center text-xs font-bold uppercase tracking-wider text-[var(--lp-gold,#d6a84f)] sm:text-sm">
               Tap Card
             </p>
-            <p className="mt-1 text-center text-[9px] text-slate-400">Launchpad</p>
-            <div className="mt-2 rounded-full bg-[var(--lp-gold,#d6a84f)] py-1 text-center text-[8px] font-bold text-[#0b0f19]">
+            <p className="mt-1 text-center text-[11px] text-slate-400 sm:text-xs">Launchpad</p>
+            <div className="mt-3 rounded-full bg-[var(--lp-gold,#d6a84f)] py-1.5 text-center text-[10px] font-bold text-[#0b0f19] sm:text-xs">
               One tap
             </div>
           </div>
