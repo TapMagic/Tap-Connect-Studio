@@ -25,6 +25,7 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
+import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
@@ -1338,33 +1339,51 @@ export function TapCardBuilder({
 
               {selected.type === "identity" && (
                 <>
-                  <Input
-                    value={selected.name ?? ""}
-                    onChange={(e) => patchSection(selected.id, { name: e.target.value })}
-                    placeholder="Name"
-                  />
-                  <Input
-                    value={selected.title ?? ""}
-                    onChange={(e) => patchSection(selected.id, { title: e.target.value })}
-                    placeholder="Title"
-                  />
-                  <Input
-                    value={selected.organization ?? ""}
-                    onChange={(e) =>
-                      patchSection(selected.id, { organization: e.target.value })
-                    }
-                    placeholder="Organization"
-                  />
-                  <Input
-                    value={selected.headline ?? ""}
-                    onChange={(e) => patchSection(selected.id, { headline: e.target.value })}
-                    placeholder="Headline"
-                  />
+                  {(
+                    [
+                      ["name", "Name", selected.name ?? ""],
+                      ["title", "Title", selected.title ?? ""],
+                      ["organization", "Organization", selected.organization ?? ""],
+                      ["headline", "Headline", selected.headline ?? ""],
+                    ] as const
+                  ).map(([key, placeholder, value]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <Input
+                        value={value}
+                        onChange={(e) =>
+                          patchSection(selected.id, { [key]: e.target.value })
+                        }
+                        placeholder={placeholder}
+                        className="min-w-0 flex-1"
+                      />
+                      <ColorSwatchPicker
+                        title={`${placeholder} color`}
+                        value={selected.lineColors?.[key]}
+                        defaultColor={
+                          key === "name"
+                            ? selected.format?.color || config.textColor || "#f8fafc"
+                            : config.textColor || "#f8fafc"
+                        }
+                        onChange={(color) =>
+                          patchSection(selected.id, {
+                            lineColors: {
+                              ...selected.lineColors,
+                              [key]: color,
+                            },
+                          })
+                        }
+                      />
+                    </div>
+                  ))}
                   <TextFormatControls
-                    title="Identity — font & size"
+                    title="Identity — font (all lines) & name size"
                     value={selected.format}
                     onChange={(format) => patchSection(selected.id, { format })}
                   />
+                  <p className="text-[10px] text-muted-foreground">
+                    Font family applies to every line. Size/weight mainly style the name. Use the
+                    color square beside each field for per-line color.
+                  </p>
                 </>
               )}
 
@@ -1840,22 +1859,24 @@ export function TapCardBuilder({
                   {(selected.columnLeft === "logo" ||
                     selected.columnRight === "logo" ||
                     !selected.columnLeft) && (
-                    <MediaPicker
-                      label="Logo image"
-                      value={selected.logoUrl ?? logoUrl ?? ""}
-                      onChange={(url) => patchSection(selected.id, { logoUrl: url })}
-                      mediaUploadReady={mediaUploadReady}
-                      stockReady={stockReady}
-                    />
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="ghost"
-                      className="h-7 px-2 text-xs"
-                      onClick={() => patchSection(selected.id, { logoUrl: "" })}
-                    >
-                      Clear logo (no brand fallback)
-                    </Button>
+                    <>
+                      <MediaPicker
+                        label="Logo image"
+                        value={selected.logoUrl ?? logoUrl ?? ""}
+                        onChange={(url) => patchSection(selected.id, { logoUrl: url })}
+                        mediaUploadReady={mediaUploadReady}
+                        stockReady={stockReady}
+                      />
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        className="h-7 px-2 text-xs"
+                        onClick={() => patchSection(selected.id, { logoUrl: "" })}
+                      >
+                        Clear logo (no brand fallback)
+                      </Button>
+                    </>
                   )}
 
                   {(selected.columnLeft === "text" || selected.columnRight === "text") && (

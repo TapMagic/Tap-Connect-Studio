@@ -161,6 +161,13 @@ export type TapCardSection = {
   title?: string;
   organization?: string;
   headline?: string;
+  /** Per-line colors for identity block (overrides shared format.color) */
+  lineColors?: {
+    name?: string;
+    title?: string;
+    organization?: string;
+    headline?: string;
+  };
   showCallBadge?: boolean;
   height?: "sm" | "md" | "lg";
   buttonLabel?: string;

@@ -572,37 +572,75 @@ export function TapConnectCard({
   }
 
   function renderIdentity(identity: TapCardSection) {
+    // Shared typeface / tracking / align from Identity controls — applied to every line.
+    // Size/weight stay line-appropriate (name = title scale; others = body scale).
+    const sharedType = {
+      fontFamily: identity.format?.fontFamily,
+      letterSpacing: identity.format?.letterSpacing,
+      align: identity.format?.align,
+      uppercase: identity.format?.uppercase,
+    };
+    const colors = identity.lineColors ?? {};
+
     return (
       <div
         key={identity.id}
         className={cn("tcc-identity", selectedSectionId === identity.id && "tcc-section-selected")}
-        style={textFormatToCss(config.titleFormat)}
+        style={textFormatToCss({ ...config.titleFormat, ...sharedType })}
         {...sectionDomProps(identity.id, selectedSectionId)}
       >
         <p
           className="tcc-name"
-          style={textFormatToCss({ ...config.titleFormat, ...identity.format })}
+          style={textFormatToCss({
+            ...config.titleFormat,
+            ...identity.format,
+            color: colors.name ?? identity.format?.color,
+          })}
         >
           {identity.name || name}
         </p>
         {identity.title ? (
-          <p className="tcc-role" style={textFormatToCss(config.bodyFormat)}>
+          <p
+            className="tcc-role"
+            style={{
+              ...textFormatToCss({
+                ...config.bodyFormat,
+                ...sharedType,
+                color: colors.title,
+              }),
+              ...(colors.title ? { opacity: 1 } : {}),
+            }}
+          >
             {identity.title}
           </p>
         ) : null}
         {identity.organization ? (
-          <p className="tcc-org" style={textFormatToCss(config.bodyFormat)}>
+          <p
+            className="tcc-org"
+            style={{
+              ...textFormatToCss({
+                ...config.bodyFormat,
+                ...sharedType,
+                color: colors.organization,
+              }),
+              ...(colors.organization ? { opacity: 1 } : {}),
+            }}
+          >
             {identity.organization}
           </p>
         ) : null}
         {identity.headline ? (
           <p
             className="tcc-headline"
-            style={textFormatToCss({
-              ...config.bodyFormat,
-              italic: true,
-              ...identity.format,
-            })}
+            style={{
+              ...textFormatToCss({
+                ...config.bodyFormat,
+                italic: true,
+                ...sharedType,
+                color: colors.headline,
+              }),
+              ...(colors.headline ? { opacity: 1 } : {}),
+            }}
           >
             {identity.headline}
           </p>
