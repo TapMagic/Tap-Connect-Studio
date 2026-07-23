@@ -34,14 +34,15 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run).
 | Durable outbox + worker tick + discard + Admin dead-letter console | FUNCTIONAL |
 | TapSave / MyTap (+ loyalty balance when enrolled) | FUNCTIONAL |
 | Autopilot proposals, recipes v1.2, budget/ledger API, Knowledge stub, governed accept→apply→undo | FUNCTIONAL |
-| TapFlow lifecycle + dry-run run log + analytics overlay + recovery | FUNCTIONAL (live visitor executor still open) |
+| TapFlow lifecycle + dry-run + analytics/recovery + live tap executor (queue-only effects) | FUNCTIONAL (provider side effects still open) |
 | TapLoop | FUNCTIONAL |
 | Wallet evidence + install gating / Inbox case lifecycle / Email suppression UX | FUNCTIONAL → VERIFIED BUT REQUIRES CREDENTIALS (live wallet) |
 | Insights date range + CSV escape | FUNCTIONAL |
 | Insights / Admin KPIs | FUNCTIONAL |
 | TapPoint fleet health / capacity / errors | FUNCTIONAL |
 | TapCommerce mock | FUNCTIONAL |
-| Pulse | SCAFFOLDED |
+| Pulse (fleet badges + Scan/Tap Points links) | FUNCTIONAL (offline/PWA incomplete) |
+| V1 parity inventory (code checklist) | CONTRACTED → awaiting P-16 browser |
 | Landing | EXPLICITLY DEFERRED BY CHARTER |
 
 ## Docs

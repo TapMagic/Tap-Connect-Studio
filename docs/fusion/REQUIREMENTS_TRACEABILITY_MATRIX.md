@@ -21,7 +21,7 @@ Map every requirement to source → pillar → UX → domain → module → stat
 | F-014 | Charter §41 | Credential inventory | Integrations | Settings | J | DEFINED | CREDENTIALS_FINAL_CHECKLIST |
 | F-015 | Owner-occupancy | Durable outbox | Platform | — | B | FUNCTIONAL | enqueue/drain/dead-letter retry+discard+process tick |
 | F-016 | Owner-occupancy | TapSave Keep Card E2E | TapSave | Public/MyTap | C | FUNCTIONAL | CTA + prefs + moments + loyalty balance display |
-| F-017 | Owner-occupancy | TapFlow editor + lifecycle | TapFlow | Experiences | E | FUNCTIONAL | publish/activate/pause/resume + dry-run run log + analytics overlay + recovery; live visitor executor open |
+| F-017 | Owner-occupancy | TapFlow editor + lifecycle | TapFlow | Experiences | E | FUNCTIONAL | publish/activate/pause/resume + dry-run + analytics/recovery + live tap executor (queue-only); provider effects open |
 | F-018 | Owner-occupancy | TapLoop loyalty persistence | TapLoop | Audience | H | FUNCTIONAL | Prisma + `/api/loyalty/*` + Audience UI |
 | F-019 | Owner-occupancy | TapCommerce mock | Commerce | Experiences | I | FUNCTIONAL | In-memory orders + mock checkout |
 | F-020 | Owner-occupancy | Isolated DB proof queue | Platform | — | — | DEFINED | `ISOLATED_DB_PROOF_QUEUE.md` — blocks OWNER-READY labels |

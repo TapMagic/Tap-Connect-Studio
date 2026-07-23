@@ -25,5 +25,7 @@ Workflows implemented in code but **not** classified OWNER-READY / VERIFIED unti
 | P-17 | A11y checklist pass | Doc only | Manual / axe |
 | P-18 | TapFlow analytics overlay + recovery dry-run | Yes | Journeys editor Recover + overlay panel |
 | P-19 | Admin outbox dead-letter console | Yes | `/admin/platform/outbox` |
+| P-20 | TapFlow live executor on public `/t/` tap | Yes | ACTIVE journey + feature on + outbox effects |
+| P-21 | Pulse fleet badges | Yes | `/dashboard/pulse` with `ops.pulse` |
 
 Do not mark OWNER-READY until the matching P-* row is executed and recorded in BUILD_STATUS.

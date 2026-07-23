@@ -1,10 +1,13 @@
 import Link from "next/link";
-import { Nfc, Radio, ScanLine } from "lucide-react";
+import { Nfc, Radio, ScanLine, Activity } from "lucide-react";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { requireBusiness } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
+import { listTapPointsForBusiness } from "@/lib/fusion/devices/tap-point-bridge";
+import { computeTapPointHealth, summarizeFleetHealth } from "@/lib/fusion/devices/health";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +39,44 @@ export default async function PulseShellPage() {
     );
   }
 
+  const [devices, tapPoints, waitingScans] = await Promise.all([
+    prisma.deviceSlot
+      .findMany({
+        where: { businessId: business.id },
+        take: 50,
+        select: { id: true, status: true, totalTapCount: true, deviceCode: true },
+      })
+      .catch(() => []),
+    listTapPointsForBusiness(business.id).catch(() => []),
+    prisma.scanSession
+      .count({ where: { businessId: business.id, status: "WAITING" } })
+      .catch(() => 0),
+  ]);
+
+  const deviceById = new Map(devices.map((d) => [d.id, d]));
+  const unbridged = devices.filter((d) => !tapPoints.some((tp) => tp.deviceSlotId === d.id));
+  const fleet = summarizeFleetHealth([
+    ...tapPoints.map((tp) => {
+      const device = tp.deviceSlotId ? deviceById.get(tp.deviceSlotId) : undefined;
+      return computeTapPointHealth({
+        status: tp.status,
+        hasAddress: Boolean(tp.address?.code),
+        totalTapCount: device?.totalTapCount,
+        deviceStatus: device?.status,
+        bridged: true,
+      });
+    }),
+    ...unbridged.map((d) =>
+      computeTapPointHealth({
+        status: d.status,
+        hasAddress: Boolean(d.deviceCode),
+        totalTapCount: d.totalTapCount,
+        deviceStatus: d.status,
+        bridged: false,
+      })
+    ),
+  ]);
+
   return (
     <div className="mx-auto flex min-h-[calc(100dvh-4rem)] max-w-lg flex-col px-4 py-6">
       <header className="flex items-center justify-between gap-3 border-b border-border/50 pb-4">
@@ -56,10 +97,30 @@ export default async function PulseShellPage() {
           <Radio className="mx-auto h-8 w-8 text-primary" aria-hidden />
           <h1 className="text-2xl font-semibold tracking-tight">Field shell</h1>
           <p className="text-sm text-muted-foreground">
-            Minimal PWA-ish ops surface for on-site staff. Full Pulse workflows (claim, rotation,
-            offline queue) are not shipped yet.
+            On-site ops surface. Fleet badges use the same Tap Point health model as Studio.
           </p>
         </div>
+
+        <div className="grid grid-cols-3 gap-2 text-center">
+          <div className="rounded-xl border border-border/60 bg-card/40 px-2 py-3">
+            <Activity className="mx-auto mb-1 h-4 w-4 text-primary" aria-hidden />
+            <p className="text-lg font-semibold text-primary">{fleet.healthy}</p>
+            <p className="text-[10px] text-muted-foreground">Healthy</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-card/40 px-2 py-3">
+            <p className="text-lg font-semibold text-amber-200">{fleet.warning}</p>
+            <p className="text-[10px] text-muted-foreground">Warning</p>
+          </div>
+          <div className="rounded-xl border border-border/60 bg-card/40 px-2 py-3">
+            <p className="text-lg font-semibold text-red-200">{fleet.critical}</p>
+            <p className="text-[10px] text-muted-foreground">Critical</p>
+          </div>
+        </div>
+        {waitingScans > 0 ? (
+          <p className="text-center text-sm text-primary">
+            {waitingScans} scan session{waitingScans === 1 ? "" : "s"} waiting
+          </p>
+        ) : null}
 
         <nav className="grid gap-2">
           <Link

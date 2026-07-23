@@ -97,6 +97,25 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     referrer,
   });
 
+  // Best-effort TapFlow live execution — never blocks campaign render
+  void import("@/lib/fusion/journey/live")
+    .then(({ executeActiveJourneysForVisitor }) =>
+      executeActiveJourneysForVisitor({
+        businessId: device.businessId,
+        visitor: {
+          visitorId: visitorHash,
+          consent: { email: false, sms: false, marketing: false },
+          attributes: {
+            deviceCode,
+            campaignId: campaign?.id ?? undefined,
+          },
+        },
+        deviceSlotId: device.id,
+        campaignId: campaign?.id,
+      })
+    )
+    .catch(() => undefined);
+
   if (shouldShowInactiveDevice(device.status)) {
     return (
       <TapStatusPage
