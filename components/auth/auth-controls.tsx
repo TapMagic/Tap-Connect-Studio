@@ -4,8 +4,23 @@ import { Show, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isClerkClientConfigured } from "@/lib/utils/clerk-client";
+
+function DevAuthLinks({ className, dashboardLabel }: { className?: string; dashboardLabel: string }) {
+  return (
+    <div className={cn("flex items-center gap-2", className)}>
+      <Link href="/dashboard" className={buttonVariants({ size: "sm" })}>
+        {dashboardLabel}
+      </Link>
+    </div>
+  );
+}
 
 export function AuthControls({ className }: { className?: string }) {
+  if (!isClerkClientConfigured()) {
+    return <DevAuthLinks className={className} dashboardLabel="Dashboard" />;
+  }
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Show when="signed-out">
@@ -34,6 +49,10 @@ export function AuthControls({ className }: { className?: string }) {
 
 /** Landing-page auth: shows Sign in/up OR Dashboard depending on session */
 export function AuthLinks({ className }: { className?: string }) {
+  if (!isClerkClientConfigured()) {
+    return <DevAuthLinks className={className} dashboardLabel="Go to dashboard" />;
+  }
+
   return (
     <div className={cn("flex items-center gap-2", className)}>
       <Show when="signed-out">

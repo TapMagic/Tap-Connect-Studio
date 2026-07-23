@@ -5,8 +5,11 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { isClerkClientConfigured } from "@/lib/utils/clerk-client";
 
 export function HeroCtas() {
+  const clerkConfigured = isClerkClientConfigured();
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row">
       <a href="#demo" className={cn(buttonVariants({ size: "lg" }), "px-6")}>
@@ -22,22 +25,33 @@ export function HeroCtas() {
       >
         Explore Features
       </a>
-      <Show when="signed-out">
-        <Link
-          href="/sign-up"
-          className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "px-6 text-slate-300")}
-        >
-          Get Started
-        </Link>
-      </Show>
-      <Show when="signed-in">
+      {clerkConfigured ? (
+        <>
+          <Show when="signed-out">
+            <Link
+              href="/sign-up"
+              className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "px-6 text-slate-300")}
+            >
+              Get Started
+            </Link>
+          </Show>
+          <Show when="signed-in">
+            <Link
+              href="/dashboard"
+              className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "px-6 text-slate-300")}
+            >
+              Go to dashboard
+            </Link>
+          </Show>
+        </>
+      ) : (
         <Link
           href="/dashboard"
           className={cn(buttonVariants({ variant: "ghost", size: "lg" }), "px-6 text-slate-300")}
         >
           Go to dashboard
         </Link>
-      </Show>
+      )}
     </div>
   );
 }
