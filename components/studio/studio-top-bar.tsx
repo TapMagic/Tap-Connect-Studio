@@ -15,11 +15,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuthControls } from "@/components/auth/auth-controls";
 import { isClerkConfigured } from "@/lib/utils/app";
-import {
-  CREATE_ACTIONS,
-  MATURITY_LABEL,
-  studioSearchIndex,
-} from "@/lib/fusion/studio/ia";
+import { CREATE_ACTIONS, studioSearchIndex } from "@/lib/fusion/studio/ia";
+import { safeDisplayLabel } from "@/lib/fusion/readiness/display-status";
 import { cn } from "@/lib/utils";
 
 export function StudioTopBar({
@@ -138,7 +135,7 @@ export function StudioTopBar({
                   >
                     <span className="text-sm text-white/90">{a.label}</span>
                     <span className="text-[11px] text-white/40">
-                      {a.description} · {MATURITY_LABEL[a.maturity]}
+                      {a.description} · {safeDisplayLabel(a.maturity)}
                     </span>
                   </button>
                 ))}

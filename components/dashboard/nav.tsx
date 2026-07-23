@@ -14,13 +14,15 @@ import {
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { cn } from "@/lib/utils";
 import {
-  MATURITY_LABEL,
   STUDIO_NAV,
   groupSections,
   resolveStudioDestination,
   sectionsForDestination,
-  type StudioMaturity,
 } from "@/lib/fusion/studio/ia";
+import {
+  resolveSectionReadiness,
+  type DisplayReadiness,
+} from "@/lib/fusion/readiness/display-status";
 
 const ICONS = {
   home: LayoutDashboard,
@@ -32,19 +34,19 @@ const ICONS = {
   settings: Settings,
 } as const;
 
-function maturityTone(m: StudioMaturity) {
-  switch (m) {
+function displayTone(d: DisplayReadiness) {
+  switch (d) {
     case "owner_ready":
       return "text-primary border-primary/40";
-    case "functional":
-    case "beta":
+    case "functional_final_verification_required":
       return "text-emerald-300/90 border-emerald-500/30";
-    case "alpha":
+    case "integrated_incomplete_workflow":
       return "text-amber-200 border-amber-500/40";
-    case "verified_needs_credentials":
+    case "verified_credentials_required":
       return "text-sky-200 border-sky-500/40";
-    case "scaffolded":
-    case "internal":
+    case "blocked":
+      return "text-red-200 border-red-500/40";
+    case "development":
     case "disabled":
     default:
       return "text-muted-foreground border-border/60";
@@ -113,6 +115,7 @@ export function DashboardNav({
                   {group}
                 </p>
                 {items.map((s) => {
+                  const readiness = resolveSectionReadiness(s);
                   const sectionActive =
                     pathname === s.href.split("#")[0] ||
                     (s.href.includes("#") === false &&
@@ -128,17 +131,17 @@ export function DashboardNav({
                           ? "bg-white/8 text-white"
                           : "text-white/50 hover:bg-white/5 hover:text-white/85"
                       )}
-                      title={s.description}
+                      title={`${readiness.label}: ${readiness.nextAction}`}
                     >
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate">{s.label}</span>
                         <span
                           className={cn(
                             "shrink-0 rounded border px-1 py-px text-[9px] uppercase tracking-wide",
-                            maturityTone(s.maturity)
+                            displayTone(readiness.display)
                           )}
                         >
-                          {MATURITY_LABEL[s.maturity].split(" ")[0]}
+                          {readiness.label.split("—")[0].trim().split(" ")[0]}
                         </span>
                       </span>
                     </Link>

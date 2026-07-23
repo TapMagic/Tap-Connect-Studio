@@ -1,6 +1,7 @@
 import { CampaignStatus, DeviceStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { ContentBlock } from "@/lib/types/campaign";
+import { normalizeContentBlocks } from "@/lib/services/normalize-content-blocks";
 import { resolveGroupCampaign, resolveScheduledCampaign } from "@/lib/services/schedule";
 import { ensureCampaignGroupTables } from "@/lib/db/ensure-group";
 import { ensureTapPointBridgeForDevice, resolveDeviceSlotByPublicCode } from "@/lib/fusion/devices/tap-point-bridge";
@@ -114,8 +115,7 @@ export async function logTapEvent(params: {
 }
 
 export function parseContentBlocks(raw: Prisma.JsonValue): ContentBlock[] {
-  if (!Array.isArray(raw)) return [];
-  return raw as unknown as ContentBlock[];
+  return normalizeContentBlocks(raw);
 }
 
 export function isCampaignLive(campaign: {

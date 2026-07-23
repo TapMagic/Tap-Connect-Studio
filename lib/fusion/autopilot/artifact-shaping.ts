@@ -17,7 +17,9 @@ export function shapeArtifactsForRecipe(
     const blocks =
       kinds.has("copy_block") && !kinds.has("campaign_draft")
         ? draft.blocks.filter((b) =>
-            ["heading", "text", "button", "offer", "faq"].includes(String(b.type))
+            ["headline", "rich_text", "button_group", "offer_coupon", "faq"].includes(
+              String(b.type)
+            )
           )
         : draft.blocks;
     artifacts.push({

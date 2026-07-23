@@ -14,10 +14,10 @@ const sampleDraft = {
     textColor: "#ffffff",
   },
   blocks: [
-    { id: "1", type: "heading", data: { text: "Hello" } },
-    { id: "2", type: "text", data: { text: "Body" } },
-    { id: "3", type: "image", data: { url: "/x.png" } },
-    { id: "4", type: "offer", data: { title: "20% off" } },
+    { id: "1", type: "headline", data: { headline: "Hello" } },
+    { id: "2", type: "rich_text", data: { body: "Body" } },
+    { id: "3", type: "hero_image", data: { imageUrl: "/x.png" } },
+    { id: "4", type: "offer_coupon", data: { title: "20% off" } },
   ],
 } as unknown as AiGenerateResult;
 

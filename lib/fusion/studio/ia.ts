@@ -1083,15 +1083,19 @@ export const CREATE_ACTIONS: CreateAction[] = [
   },
 ];
 
+/**
+ * @deprecated Prefer resolveSectionReadiness() — static OWNER-READY must not appear in UI.
+ * Labels below are provisional only; hub badges use derived DisplayReadiness.
+ */
 export const MATURITY_LABEL: Record<StudioMaturity, string> = {
-  owner_ready: "Owner-ready",
-  functional: "Functional",
-  beta: "Beta",
-  alpha: "Alpha",
-  internal: "Internal",
-  verified_needs_credentials: "Needs credentials",
-  scaffolded: "In development",
-  disabled: "Disabled",
+  owner_ready: "FUNCTIONAL — FINAL VERIFICATION REQUIRED",
+  functional: "FUNCTIONAL — FINAL VERIFICATION REQUIRED",
+  beta: "FUNCTIONAL — FINAL VERIFICATION REQUIRED",
+  alpha: "INTEGRATED — INCOMPLETE WORKFLOW",
+  internal: "INTERNAL",
+  verified_needs_credentials: "VERIFIED — CREDENTIALS REQUIRED",
+  scaffolded: "DEVELOPMENT",
+  disabled: "DISABLED",
 };
 
 export function resolveStudioDestination(pathname: string): StudioNavItem {

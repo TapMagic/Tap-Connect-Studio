@@ -166,7 +166,7 @@ export default async function DashboardPage() {
         <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">
           Readiness
         </h2>
-        <OnboardingChecklist steps={onboardingSteps} />
+        <OnboardingChecklist steps={onboardingSteps} businessName={business.name} />
       </section>
 
       <section id="upcoming" className="scroll-mt-24 space-y-3">

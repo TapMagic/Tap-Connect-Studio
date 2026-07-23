@@ -188,7 +188,8 @@ export function CampaignPageRenderer({
     accentColor: brandKit?.accentColor || theme.primaryColor,
   });
   const enabledBlocks = [...blocks]
-    .filter((b) => b.enabled)
+    // Treat missing `enabled` as on — legacy seed blocks omitted the field
+    .filter((b) => b.enabled !== false)
     .filter((b) => {
       // In edit mode show all; live pages hide email-only
       if (editMode) return true;

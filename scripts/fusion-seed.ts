@@ -48,6 +48,95 @@ async function main() {
     },
   });
 
+  // Brand kit so Card Builder + campaign theme have persisted colors
+  await prisma.brandKit.upsert({
+    where: { businessId: business.id },
+    create: {
+      businessId: business.id,
+      primaryColor: "#22c55e",
+      secondaryColor: "#0ea5e9",
+      accentColor: "#f59e0b",
+      backgroundColor: "#0b0f19",
+      textColor: "#f8fafc",
+      socialLinks: {
+        phone: "+15555550100",
+        email: "seed-demo@example.invalid",
+        website: "https://example.invalid/seed-demo",
+        address: "100 Seed Street",
+        organization: `${SEED_PREFIX} Demo Cafe`,
+        displayName: `${SEED_PREFIX} Demo Cafe`,
+      },
+    },
+    update: {
+      primaryColor: "#22c55e",
+      secondaryColor: "#0ea5e9",
+      backgroundColor: "#0b0f19",
+      textColor: "#f8fafc",
+    },
+  });
+
+  /** Renderer-ready ContentBlocks (not legacy heading/text/offer + props) */
+  const seedWelcomeBlocks = [
+    {
+      id: "seed_headline",
+      type: "headline",
+      label: "Headline",
+      order: 0,
+      enabled: true,
+      data: {
+        headline: `${SEED_PREFIX} Welcome — Flight Test Card`,
+        subheadline: "Keep this card, earn TapLoop points, and reopen anytime.",
+        alignment: "center",
+      },
+    },
+    {
+      id: "seed_body",
+      type: "rich_text",
+      label: "Details",
+      order: 1,
+      enabled: true,
+      data: {
+        body: "Seed demo only — not production. Unlock the coupon below after sharing your info.",
+      },
+    },
+    {
+      id: "seed_email",
+      type: "email_capture",
+      label: "Contact",
+      order: 2,
+      enabled: true,
+      data: {
+        headline: "Unlock your coupon",
+        description: "Share your contact info to reveal today’s special.",
+        fields: ["name", "email"],
+        requireName: true,
+        successMessage: "You're in — your coupon is below.",
+      },
+    },
+    {
+      id: "seed_offer",
+      type: "offer_coupon",
+      label: "Offer",
+      order: 3,
+      enabled: true,
+      data: {
+        title: "Seed Demo Discount",
+        description: "10% off — seed only",
+        code: "SEEDDEMO",
+        ctaLabel: "Claim offer",
+        lockedUntilContact: true,
+      },
+    },
+    {
+      id: "seed_disclaimer",
+      type: "disclaimer",
+      label: "Disclaimer",
+      order: 4,
+      enabled: true,
+      data: { text: "Seed data for local fusion DB only. Not a real offer." },
+    },
+  ];
+
   const campaignTitle = `${SEED_PREFIX} Welcome Offer`;
   let campaign = await prisma.campaign.findFirst({
     where: { businessId: business.id, title: campaignTitle },
@@ -59,13 +148,7 @@ async function main() {
         title: campaignTitle,
         campaignType: "COUPON_OFFER",
         status: "DRAFT",
-        contentBlocks: [
-          {
-            id: "seed_hero",
-            type: "hero",
-            props: { headline: "Seed demo — not production" },
-          },
-        ],
+        contentBlocks: seedWelcomeBlocks,
         offerSettings: { seeded: true, code: "SEEDDEMO" },
         themeOverrides: { seeded: true },
         complianceSettings: { seeded: true },
@@ -204,33 +287,44 @@ async function main() {
     update: { role: "OWNER" },
   });
 
-  const liveBlocks = [
-    {
-      id: "seed_heading",
-      type: "heading",
-      props: { text: `${SEED_PREFIX} Welcome — Flight Test Card` },
-    },
-    {
-      id: "seed_text",
-      type: "text",
-      props: { text: "Keep this card, earn TapLoop points, and reopen anytime." },
-    },
-    {
-      id: "seed_offer",
-      type: "offer",
-      props: { title: "SEEDDEMO", description: "10% off — seed only" },
-    },
-  ];
-
   campaign = await prisma.campaign.update({
     where: { id: campaign.id },
     data: {
       status: "LIVE",
-      contentBlocks: liveBlocks,
+      contentBlocks: seedWelcomeBlocks,
       scheduledStart: new Date(Date.now() - 86400000),
       scheduledEnd: new Date(Date.now() + 30 * 86400000),
     },
   });
+
+  const seedEveningBlocks = [
+    {
+      id: "eve_headline",
+      type: "headline",
+      label: "Headline",
+      order: 0,
+      enabled: true,
+      data: {
+        headline: "Evening special (time-travel slot)",
+        subheadline: "After 4pm seed slot — fusion group schedule proof",
+        alignment: "center",
+      },
+    },
+    {
+      id: "eve_offer",
+      type: "offer_coupon",
+      label: "Offer",
+      order: 1,
+      enabled: true,
+      data: {
+        title: "Evening perk",
+        description: "Happy hour seed offer",
+        code: "EVENING",
+        ctaLabel: "Claim",
+        lockedUntilContact: false,
+      },
+    },
+  ];
 
   const eveningTitle = `${SEED_PREFIX} Evening Special`;
   let evening = await prisma.campaign.findFirst({
@@ -243,19 +337,21 @@ async function main() {
         title: eveningTitle,
         campaignType: "COUPON_OFFER",
         status: "LIVE",
-        contentBlocks: [
-          {
-            id: "eve_h",
-            type: "heading",
-            props: { text: "Evening special (time-travel slot)" },
-          },
-        ],
+        contentBlocks: seedEveningBlocks,
         offerSettings: { seeded: true },
         themeOverrides: { seeded: true },
         complianceSettings: { seeded: true },
         formSettings: { seeded: true },
         primaryMedia: { seeded: true },
         endExperience: { seeded: true },
+      },
+    });
+  } else {
+    evening = await prisma.campaign.update({
+      where: { id: evening.id },
+      data: {
+        status: "LIVE",
+        contentBlocks: seedEveningBlocks,
       },
     });
   }
