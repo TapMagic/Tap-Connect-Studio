@@ -31,5 +31,8 @@ Workflows implemented in code but **not** classified OWNER-READY / VERIFIED unti
 | P-23 | Commerce cancel/refund mock | Yes | Experiences orders UI |
 | P-24 | Admin failure-recovery snapshot | Yes | Platform Admin KPIs tab |
 | P-25 | Pulse claim/rotation stubs | Yes | `/dashboard/pulse` |
+| P-26 | Wallet replace confirm + successor display | Yes | Audience wallet UI |
+| P-27 | Inbox Guardian-labeled reply composer | Yes | Audience inbox |
+| P-28 | Admin feature kill-switch UX | Yes | Feature registry panel |
 
 Do not mark OWNER-READY until the matching P-* row is executed and recorded in BUILD_STATUS.

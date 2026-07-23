@@ -36,9 +36,9 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run). Lates
 | Autopilot proposals, recipes v1.2, artifact shaping, editor revert, budget/ledger API, Knowledge Settings UI, governed accept→apply→undo | FUNCTIONAL |
 | TapFlow lifecycle + dry-run + analytics/recovery + live tap executor + Guardian effect stubs | FUNCTIONAL (live provider sends still credential-gated) |
 | TapLoop | FUNCTIONAL |
-| Wallet evidence + install gating / Inbox case lifecycle / Email suppression UX | FUNCTIONAL → VERIFIED BUT REQUIRES CREDENTIALS (live wallet) |
-| Insights date range + CSV escape | FUNCTIONAL |
-| Insights / Admin KPIs | FUNCTIONAL |
+| Wallet evidence + replace UX / Inbox Guardian labels / Email suppression UX | FUNCTIONAL → VERIFIED BUT REQUIRES CREDENTIALS (live wallet) |
+| Insights date range + CSV + unified evidence captions + failure recovery | FUNCTIONAL |
+| Insights / Admin KPIs + kill-switch copy clarity | FUNCTIONAL |
 | TapPoint fleet health / capacity / errors | FUNCTIONAL |
 | TapCommerce mock (+ cancel/refund lifecycle) | FUNCTIONAL |
 | Pulse (fleet badges + claim/rotation stubs) | FUNCTIONAL (offline/PWA incomplete) |

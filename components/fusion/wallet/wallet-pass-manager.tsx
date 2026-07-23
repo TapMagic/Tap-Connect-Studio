@@ -1,17 +1,19 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
 import {
   allowedWalletActions,
   labelWalletEvidence,
   walletInstallLinkAllowed,
   walletPassEvidenceClass,
+  walletReplaceConfirmCopy,
+  walletReplaceOutcomeMessage,
   walletStatusHint,
 } from "@/lib/fusion/wallet/evidence";
+import { formatEvidenceCaption } from "@/lib/fusion/insights/evidence-display";
 import type { WalletLifecycleAction, WalletPassStatus } from "@/lib/fusion/wallet/lifecycle";
 
 type PassRow = {
@@ -22,6 +24,7 @@ type PassRow = {
   mock: boolean;
   installUrl: string | null;
   version: number;
+  replacedById: string | null;
 };
 
 export function WalletPassManager({
@@ -37,8 +40,20 @@ export function WalletPassManager({
   const [passes, setPasses] = useState(initialPasses);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [highlightId, setHighlightId] = useState<string | null>(null);
+
+  const passById = useMemo(
+    () => new Map(passes.map((p) => [p.id, p])),
+    [passes]
+  );
 
   async function run(action: string, passId?: string) {
+    if (action === "replace" && passId) {
+      const pass = passById.get(passId);
+      if (!pass) return;
+      if (!window.confirm(walletReplaceConfirmCopy())) return;
+    }
+
     setMessage(null);
     startTransition(async () => {
       const res = await fetch("/api/wallet", {
@@ -55,11 +70,21 @@ export function WalletPassManager({
         setMessage(data.error ?? "Action failed");
         return;
       }
-      setMessage(
-        action === "issue" && data.mock
-          ? "Issued via mock adapter (credentials missing)"
-          : `${action} succeeded`
-      );
+
+      if (action === "replace" && data.oldPass && data.newPass) {
+        setMessage(
+          walletReplaceOutcomeMessage({
+            oldSerial: data.oldPass.serialNumber,
+            newSerial: data.newPass.serialNumber,
+          })
+        );
+        setHighlightId(data.newPass.id);
+      } else if (action === "issue" && data.mock) {
+        setMessage("Issued via mock adapter (credentials missing)");
+      } else {
+        setMessage(`${action} succeeded`);
+      }
+
       router.refresh();
       if (data.pass) {
         setPasses((prev) => {
@@ -132,9 +157,15 @@ export function WalletPassManager({
                 const evidence = walletPassEvidenceClass(status, p.mock);
                 const allowed = allowedWalletActions(status);
                 const installOk = walletInstallLinkAllowed(status, featureEnabled);
+                const successor = p.replacedById ? passById.get(p.replacedById) : null;
 
                 return (
-                  <tr key={p.id} className="border-t border-border/40">
+                  <tr
+                    key={p.id}
+                    className={`border-t border-border/40 ${
+                      highlightId === p.id ? "bg-primary/10" : ""
+                    }`}
+                  >
                     <td className="px-3 py-2 font-mono text-xs">{p.serialNumber.slice(0, 18)}…</td>
                     <td className="px-3 py-2 capitalize">{p.platform}</td>
                     <td className="px-3 py-2">
@@ -142,6 +173,11 @@ export function WalletPassManager({
                       <p className="mt-0.5 text-[10px] text-muted-foreground">
                         v{p.version} · {walletStatusHint(status)}
                       </p>
+                      {status === "REPLACED" && successor ? (
+                        <p className="mt-0.5 text-[10px] text-primary">
+                          Successor draft: {successor.serialNumber.slice(0, 14)}…
+                        </p>
+                      ) : null}
                     </td>
                     <td className="px-3 py-2">
                       <Badge
@@ -156,6 +192,13 @@ export function WalletPassManager({
                       >
                         {labelWalletEvidence(evidence)}
                       </Badge>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        {formatEvidenceCaption({
+                          evidenceClass: evidence,
+                          source: "WalletPass",
+                          mockPath: p.mock,
+                        })}
+                      </p>
                     </td>
                     <td className="px-3 py-2">
                       {installOk && p.installUrl ? (
@@ -178,10 +221,15 @@ export function WalletPassManager({
                             <Button
                               key={a}
                               size="sm"
-                              variant="ghost"
+                              variant={a === "replace" ? "outline" : "ghost"}
                               className="h-7 px-2 text-xs"
                               disabled={!featureEnabled || pending || !allowed.includes(a)}
                               onClick={() => run(a, p.id)}
+                              title={
+                                a === "replace"
+                                  ? "Retire this pass and create a draft successor"
+                                  : undefined
+                              }
                             >
                               {a}
                             </Button>

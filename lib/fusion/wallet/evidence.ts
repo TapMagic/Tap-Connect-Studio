@@ -2,6 +2,7 @@
  * Wallet pass evidence labels + install-link gating (pure, no I/O).
  */
 
+import { labelEvidence, type EvidenceClass } from "@/lib/fusion/insights/tapproof";
 import {
   canTransition,
   isInstallable,
@@ -10,7 +11,7 @@ import {
   type WalletPassStatus,
 } from "./lifecycle";
 
-export type WalletEvidenceClass = "confirmed" | "modeled" | "incomplete";
+export type WalletEvidenceClass = Extract<EvidenceClass, "confirmed" | "modeled" | "incomplete">;
 
 export function walletPassEvidenceClass(
   status: WalletPassStatus,
@@ -22,14 +23,18 @@ export function walletPassEvidenceClass(
 }
 
 export function labelWalletEvidence(evidenceClass: WalletEvidenceClass): string {
-  switch (evidenceClass) {
-    case "confirmed":
-      return "Confirmed";
-    case "modeled":
-      return "Mock (not live cert)";
-    case "incomplete":
-      return "Incomplete";
-  }
+  return labelEvidence(evidenceClass);
+}
+
+export function walletReplaceConfirmCopy(): string {
+  return "Replace retires this pass (REPLACED) and creates a new DRAFT successor. Continue?";
+}
+
+export function walletReplaceOutcomeMessage(input: {
+  oldSerial: string;
+  newSerial: string;
+}): string {
+  return `Pass ${input.oldSerial.slice(0, 12)}… replaced — new draft ${input.newSerial.slice(0, 12)}… created. Issue the successor to restore install links.`;
 }
 
 export function walletInstallLinkAllowed(

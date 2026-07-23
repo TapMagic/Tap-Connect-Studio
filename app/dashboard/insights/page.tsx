@@ -3,7 +3,10 @@ import { requireBusiness } from "@/lib/auth";
 import { fetchInsightsSnapshot } from "@/lib/fusion/insights/metrics";
 import { fetchBusinessFailureRecovery } from "@/lib/fusion/insights/failure-recovery";
 import { parseInsightsRangeDays } from "@/lib/fusion/insights/range";
-import { labelEvidence } from "@/lib/fusion/insights/tapproof";
+import {
+  evidenceClassTone,
+  formatEvidenceCaption,
+} from "@/lib/fusion/insights/evidence-display";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3 } from "lucide-react";
@@ -92,18 +95,19 @@ export default async function InsightsHubPage({
               <p className="mt-1 text-[10px] text-muted-foreground">
                 <span
                   className={
-                    k.evidenceClass === "derived"
+                    evidenceClassTone(k.evidenceClass) === "primary"
                       ? "text-primary"
-                      : k.evidenceClass === "incomplete"
+                      : evidenceClassTone(k.evidenceClass) === "muted"
                         ? "text-muted-foreground"
-                        : k.evidenceClass === "modeled"
-                          ? "text-primary/80"
-                          : ""
+                        : ""
                   }
                 >
-                  {labelEvidence(k.evidenceClass)}
+                  {formatEvidenceCaption({
+                    evidenceClass: k.evidenceClass,
+                    source: k.source,
+                    seeded: k.seeded,
+                  })}
                 </span>
-                {k.seeded ? " · Seeded" : " · Live source"} · {k.source}
               </p>
             </div>
           ))}
@@ -133,8 +137,11 @@ export default async function InsightsHubPage({
                   <p className="text-xs text-muted-foreground">{m.label}</p>
                   <p className="text-xl font-semibold tabular-nums">{m.value}</p>
                   <p className="mt-1 text-[10px] text-muted-foreground">
-                    {labelEvidence(m.evidenceClass)} · {m.source}
-                    {m.hint ? ` · ${m.hint}` : ""}
+                    {formatEvidenceCaption({
+                      evidenceClass: m.evidenceClass,
+                      source: m.source,
+                      hint: m.hint,
+                    })}
                   </p>
                 </div>
               ))}

@@ -1,8 +1,14 @@
 "use client";
 
 import { allowedCaseActions, type CaseAction } from "@/lib/fusion/inbox/case-lifecycle";
+import {
+  guardianReplyBlockedMessage,
+  isGuardianBlockedMessage,
+  labelGuardianCode,
+  replyComposerState,
+} from "@/lib/fusion/inbox/guardian-labels";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -52,6 +58,17 @@ export function InboxShell({
   const [newBody, setNewBody] = useState("Hello — how can we help?");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  const selectedThread = threads.find((t) => t.id === selectedId);
+  const composer = useMemo(
+    () =>
+      replyComposerState({
+        threadStatus: (selectedThread?.status ?? "OPEN") as "OPEN" | "PENDING" | "CLOSED",
+        featureEnabled,
+        body: reply,
+      }),
+    [selectedThread?.status, featureEnabled, reply]
+  );
 
   async function loadThread(id: string) {
     setSelectedId(id);
@@ -105,11 +122,21 @@ export function InboxShell({
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        setMessage(data.error ?? "Reply blocked");
+        setMessage(
+          guardianReplyBlockedMessage({
+            code: data.code ?? "blocked",
+            error: data.error,
+          })
+        );
         return;
       }
       setReply("");
-      setMessage(data.mock ? "Reply queued via mock provider" : "Reply sent");
+      const guardianLabel = labelGuardianCode(data.message?.guardianCode ?? "ok");
+      setMessage(
+        data.mock
+          ? `Reply queued via mock provider · ${guardianLabel}`
+          : `Reply sent · ${guardianLabel}`
+      );
       await loadThread(selectedId);
       router.refresh();
     });
@@ -165,7 +192,7 @@ export function InboxShell({
         setThreads((prev) =>
           prev.map((t) => (t.id === selectedId ? { ...t, status: data.thread.status } : t))
         );
-        setMessage("Thread closed");
+        setMessage("Thread closed — replies blocked until reopened");
       }
     });
   }
@@ -205,7 +232,19 @@ export function InboxShell({
         </Button>
       </div>
 
-      {message ? <p className="text-sm text-primary">{message}</p> : null}
+      {message ? (
+        <p
+          className={`text-sm ${
+            message.toLowerCase().includes("blocked") ||
+            message.toLowerCase().includes("disabled") ||
+            message.toLowerCase().includes("closed")
+              ? "text-amber-500"
+              : "text-primary"
+          }`}
+        >
+          {message}
+        </p>
+      ) : null}
 
       <div className="grid gap-4 lg:grid-cols-[280px_1fr]">
         <div className="max-h-[480px] overflow-y-auto rounded-xl border border-border/60">
@@ -240,42 +279,63 @@ export function InboxShell({
             <p className="text-sm text-muted-foreground">Select a thread</p>
           ) : (
             <>
+              {selectedThread ? (
+                <p className="text-[11px] text-muted-foreground">
+                  Thread {selectedThread.status} · {selectedThread.channel} · Guardian runs on
+                  every outbound reply
+                </p>
+              ) : null}
+
               <div className="max-h-64 space-y-2 overflow-y-auto">
                 {messages.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     Load thread to view messages (click again if empty).
                   </p>
                 ) : (
-                  messages.map((m) => (
-                    <div
-                      key={m.id}
-                      className={`rounded-lg px-3 py-2 text-sm ${
-                        m.direction === "OUTBOUND"
-                          ? "bg-primary/15 ml-6"
-                          : m.direction === "SYSTEM"
-                            ? "bg-muted/50 text-muted-foreground"
-                            : "bg-muted/30 mr-6"
-                      }`}
-                    >
-                      <p className="text-[10px] uppercase text-muted-foreground">
-                        {m.direction} · {m.provider}
-                        {m.guardianCode ? ` · ${m.guardianCode}` : ""}
-                      </p>
-                      <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
-                    </div>
-                  ))
+                  messages.map((m) => {
+                    const blocked = isGuardianBlockedMessage(m);
+                    return (
+                      <div
+                        key={m.id}
+                        className={`rounded-lg px-3 py-2 text-sm ${
+                          blocked
+                            ? "border border-amber-500/40 bg-amber-500/10 mr-6"
+                            : m.direction === "OUTBOUND"
+                              ? "bg-primary/15 ml-6"
+                              : m.direction === "SYSTEM"
+                                ? "bg-muted/50 text-muted-foreground"
+                                : "bg-muted/30 mr-6"
+                        }`}
+                      >
+                        <p className="text-[10px] uppercase text-muted-foreground">
+                          {m.direction} · {m.provider}
+                          {m.guardianCode ? ` · ${labelGuardianCode(m.guardianCode)}` : ""}
+                        </p>
+                        <p className="mt-1 whitespace-pre-wrap">{m.body}</p>
+                      </div>
+                    );
+                  })
                 )}
               </div>
 
               <Textarea
-                placeholder="Reply… (Channel Guardian enforced)"
+                placeholder={
+                  composer.allowed
+                    ? "Reply… (Channel Guardian enforced)"
+                    : composer.hint
+                }
                 value={reply}
                 onChange={(e) => setReply(e.target.value)}
-                disabled={!featureEnabled || pending}
+                disabled={!composer.allowed || pending}
                 rows={3}
               />
+              <p className="text-[10px] text-muted-foreground">{composer.hint}</p>
               <div className="flex flex-wrap gap-2">
-                <Button size="sm" disabled={!featureEnabled || pending} onClick={sendReply}>
+                <Button
+                  size="sm"
+                  disabled={!composer.allowed || pending || !reply.trim()}
+                  onClick={sendReply}
+                >
                   Send reply
                 </Button>
                 <Button

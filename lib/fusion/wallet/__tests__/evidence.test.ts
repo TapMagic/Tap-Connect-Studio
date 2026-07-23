@@ -5,6 +5,8 @@ import {
   labelWalletEvidence,
   walletInstallLinkAllowed,
   walletPassEvidenceClass,
+  walletReplaceConfirmCopy,
+  walletReplaceOutcomeMessage,
 } from "../evidence";
 import { isInstallable } from "../lifecycle";
 import { resolveInstallLinkForPass } from "../mock-adapter";
@@ -12,7 +14,7 @@ import { resolveInstallLinkForPass } from "../mock-adapter";
 describe("Wallet evidence + install gating", () => {
   it("labels mock issued passes as modeled", () => {
     assert.equal(walletPassEvidenceClass("ISSUED", true), "modeled");
-    assert.equal(labelWalletEvidence("modeled"), "Mock (not live cert)");
+    assert.equal(labelWalletEvidence("modeled"), "Modeled (not fact)");
   });
 
   it("labels draft as incomplete", () => {
@@ -65,5 +67,14 @@ describe("Wallet evidence + install gating", () => {
   it("allowedWalletActions omits illegal transitions", () => {
     assert.deepEqual(allowedWalletActions("DRAFT"), ["preview", "issue"]);
     assert.deepEqual(allowedWalletActions("REVOKED"), []);
+    assert.deepEqual(allowedWalletActions("ISSUED"), ["update", "revoke", "replace"]);
+  });
+
+  it("replace copy explains successor draft", () => {
+    assert.match(walletReplaceConfirmCopy(), /REPLACED/);
+    assert.match(
+      walletReplaceOutcomeMessage({ oldSerial: "tc_apple_old", newSerial: "tc_apple_new" }),
+      /successor/i
+    );
   });
 });
