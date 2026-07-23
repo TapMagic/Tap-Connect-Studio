@@ -3,7 +3,7 @@ import { requireBusiness } from "@/lib/auth";
 import { STUDIO_NAV } from "@/lib/fusion/studio/ia";
 import { listRegistryStatus } from "@/lib/fusion/features";
 import { getAutopilotBudgetSummary } from "@/lib/fusion/autopilot/budget";
-import { listCostLedger } from "@/lib/fusion/autopilot/knowledge";
+import { listCostLedger, listKnowledge } from "@/lib/fusion/autopilot/knowledge";
 import { AUTOPILOT_CATALOG_VERSION } from "@/lib/fusion/autopilot/recipes";
 import { integrations } from "@/lib/config/integrations";
 import { listDeadLetters } from "@/lib/fusion/publication/events";
@@ -12,6 +12,7 @@ import { listSuppressions } from "@/lib/fusion/comms/suppression";
 import { isFeatureEnabled } from "@/lib/fusion/features";
 import { OutboxDeadLetterPanel } from "@/components/fusion/outbox/dead-letter-panel";
 import { SuppressionListPanel } from "@/components/fusion/comms/suppression-list-panel";
+import { KnowledgeSnippetsPanel } from "@/components/fusion/autopilot/knowledge-snippets-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,7 @@ export default async function SettingsHubPage() {
   const emailReady = listEmailProviderReadiness();
   const autopilotBudget = await getAutopilotBudgetSummary(business.id, business.subscriptionTier);
   const autopilotLedger = listCostLedger(business.id, 8);
+  const knowledgeSnippets = listKnowledge(business.id);
   const commsEnabled =
     isFeatureEnabled("comms.email", {}) || isFeatureEnabled("comms.messaging", {});
 
@@ -111,6 +113,17 @@ export default async function SettingsHubPage() {
         ) : (
           <p className="mt-2 text-xs text-muted-foreground">No cost ledger entries yet.</p>
         )}
+      </section>
+
+      <section className="rounded-xl border border-border/60 p-4">
+        <h2 className="text-sm font-semibold">Autopilot Knowledge</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Approved snippets used to ground Automation Team prompts (in-memory until Knowledge DB
+          persistence).
+        </p>
+        <div className="mt-3">
+          <KnowledgeSnippetsPanel initialSnippets={knowledgeSnippets} />
+        </div>
       </section>
 
       <section className="rounded-xl border border-border/60 p-4">

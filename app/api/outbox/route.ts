@@ -8,6 +8,7 @@ import {
   processOutboxTick,
   retryDeadLetter,
 } from "@/lib/fusion/publication/events";
+import { defaultOutboxEffectHandler } from "@/lib/fusion/publication/effect-handler";
 
 export const dynamic = "force-dynamic";
 
@@ -46,8 +47,8 @@ export async function POST(request: Request) {
 
     if (body.action === "process") {
       const tick = await processOutboxTick(
-        async () => {
-          // No-op delivery stub — records success for local recovery drills
+        async (record) => {
+          await defaultOutboxEffectHandler(record);
         },
         { businessId: business.id, limit: 25 }
       );
