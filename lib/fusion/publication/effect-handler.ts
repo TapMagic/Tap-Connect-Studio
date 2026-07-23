@@ -1,30 +1,40 @@
 /**
- * Default outbox drain handlers — queue-only effects (no live provider sends).
+ * Default outbox drain handlers — TapFlow effects use provider stubs; others ack only.
  */
 
+import { drainTapFlowEffect } from "@/lib/fusion/journey/effect-providers";
 import type { OutboxRecord } from "./events";
 
 export type EffectDrainResult = {
   handled: boolean;
   topic: string;
   note: string;
+  ok?: boolean;
+  mock?: boolean;
+  providerRef?: string;
 };
 
 /**
- * Acknowledge TapFlow / Autopilot / TapSave effect topics without calling providers.
- * Live email/SMS/wallet still require credentials + separate adapters.
+ * Drain TapFlow / Autopilot / TapSave effect topics.
+ * tapflow.effect.* routes through Guardian-gated mock provider stubs.
  */
 export async function defaultOutboxEffectHandler(
   record: OutboxRecord
 ): Promise<EffectDrainResult> {
   const topic = record.topic;
-  if (topic.startsWith("tapflow.effect.")) {
+
+  const tapflow = await drainTapFlowEffect(record);
+  if (tapflow) {
     return {
-      handled: true,
+      handled: tapflow.handled,
       topic,
-      note: `Acknowledged ${topic} (queue-only; provider send not invoked)`,
+      note: tapflow.note,
+      ok: tapflow.ok,
+      mock: tapflow.mock,
+      providerRef: tapflow.providerRef,
     };
   }
+
   if (topic.startsWith("journey.") || topic.startsWith("autopilot.") || topic.startsWith("tapsave.")) {
     return {
       handled: true,

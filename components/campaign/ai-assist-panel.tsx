@@ -8,6 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ContentBlock } from "@/lib/types/campaign";
 import type { ComparableProposal } from "@/lib/fusion/autopilot/budget";
+import {
+  shouldRevertEditorOnUndo,
+  type EditorSnapshot,
+} from "@/lib/fusion/autopilot/editor-revert";
 
 interface AiAssistPanelProps {
   /** Legacy: OpenAI configured */
@@ -15,6 +19,8 @@ interface AiAssistPanelProps {
   /** Autopilot feature executable (ai.autopilot + credentials) */
   autopilotReady?: boolean;
   tier?: string;
+  /** Snapshot editor state before Autopilot apply (for undo revert) */
+  getEditorSnapshot?: () => EditorSnapshot;
   onApplyDraft?: (draft: {
     title?: string;
     blocks: ContentBlock[];
@@ -25,6 +31,7 @@ interface AiAssistPanelProps {
       textColor: string;
     };
   }) => void;
+  onRevertDraft?: (snapshot: EditorSnapshot) => void;
 }
 
 type ProposalState = {
@@ -51,7 +58,9 @@ export function AiAssistPanel({
   aiReady = false,
   autopilotReady = false,
   tier = "BASIC",
+  getEditorSnapshot,
   onApplyDraft,
+  onRevertDraft,
 }: AiAssistPanelProps) {
   const [prompt, setPrompt] = useState("");
   const [loading, setLoading] = useState(false);
@@ -60,6 +69,16 @@ export function AiAssistPanel({
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [proposal, setProposal] = useState<ProposalState | null>(null);
   const [previousComparable, setPreviousComparable] = useState<ComparableProposal | null>(null);
+  const [preApplySnapshot, setPreApplySnapshot] = useState<EditorSnapshot | null>(null);
+  const [editorWasApplied, setEditorWasApplied] = useState(false);
+
+  function applyDraftToEditor(draft: ProposalState["draft"]) {
+    if (!preApplySnapshot && getEditorSnapshot) {
+      setPreApplySnapshot(getEditorSnapshot());
+    }
+    onApplyDraft?.(draft);
+    setEditorWasApplied(true);
+  }
 
   async function handleGenerate() {
     setLoading(true);
@@ -124,7 +143,7 @@ export function AiAssistPanel({
       }
 
       if (autoApplied || status === "accepted") {
-        onApplyDraft?.(draft);
+        applyDraftToEditor(draft);
         setPreviewCount(blocks.length);
         setMessage(
           data.title
@@ -148,6 +167,7 @@ export function AiAssistPanel({
     if (!proposal) return;
     setDeciding(true);
     setMessage(null);
+    const previousStatus = proposal.status;
     try {
       const res = await fetch("/api/ai/proposals", {
         method: "PATCH",
@@ -180,7 +200,7 @@ export function AiAssistPanel({
           setMessage(applyData.error ?? "Accepted but apply failed");
           return;
         }
-        onApplyDraft?.(proposal.draft);
+        applyDraftToEditor(proposal.draft);
         setMessage(`Accepted and applied “${proposal.draft.title ?? "draft"}”. Review then Save.`);
       } else if (action === "partial") {
         const applyRes = await fetch("/api/ai/proposals", {
@@ -193,7 +213,7 @@ export function AiAssistPanel({
           setMessage(applyData.error ?? "Partial accept recorded but apply failed");
           return;
         }
-        onApplyDraft?.({
+        applyDraftToEditor({
           title: proposal.draft.title,
           blocks: proposal.draft.blocks,
         });
@@ -201,7 +221,17 @@ export function AiAssistPanel({
       } else if (action === "reject") {
         setMessage("Proposal rejected — editor unchanged.");
       } else if (action === "undo") {
-        setMessage("Decision undone — proposal is ready for review again.");
+        if (
+          shouldRevertEditorOnUndo({ previousStatus, editorWasApplied }) &&
+          preApplySnapshot
+        ) {
+          onRevertDraft?.(preApplySnapshot);
+          setEditorWasApplied(false);
+          setPreApplySnapshot(null);
+          setMessage("Decision undone — editor restored to pre-apply state.");
+        } else {
+          setMessage("Decision undone — proposal is ready for review again.");
+        }
       }
     } catch {
       setMessage("Could not update proposal. Try again.");
@@ -285,6 +315,7 @@ export function AiAssistPanel({
                 className="bg-primary text-primary-foreground"
                 disabled={deciding}
                 onClick={() => decide("accept")}
+                aria-label="Accept proposal and apply to editor"
               >
                 <Check className="mr-1 h-3.5 w-3.5" />
                 Accept
@@ -294,6 +325,7 @@ export function AiAssistPanel({
                 variant="outline"
                 disabled={deciding}
                 onClick={() => decide("partial")}
+                aria-label="Accept draft blocks only, skip theme"
               >
                 Draft only
               </Button>
@@ -302,6 +334,7 @@ export function AiAssistPanel({
                 variant="outline"
                 disabled={deciding}
                 onClick={() => decide("reject")}
+                aria-label="Reject proposal without changing editor"
               >
                 <X className="mr-1 h-3.5 w-3.5" />
                 Reject
@@ -309,7 +342,13 @@ export function AiAssistPanel({
             </div>
           ) : null}
           {showUndo ? (
-            <Button size="sm" variant="ghost" disabled={deciding} onClick={() => decide("undo")}>
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={deciding}
+              onClick={() => decide("undo")}
+              aria-label="Undo proposal decision and restore editor if applied"
+            >
               <RotateCcw className="mr-1 h-3.5 w-3.5" />
               Undo decision
             </Button>

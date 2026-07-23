@@ -7,5 +7,5 @@ export * from "./runs";
 export * from "./analytics";
 export * from "./recovery";
 export * from "./effect-guardian";
+export * from "./effect-providers";
 export * from "./live";
-export * from "./effect-guardian";

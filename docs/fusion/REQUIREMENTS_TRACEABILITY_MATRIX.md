@@ -23,7 +23,7 @@ Map every requirement to source → pillar → UX → domain → module → stat
 | F-016 | Owner-occupancy | TapSave Keep Card E2E | TapSave | Public/MyTap | C | FUNCTIONAL | CTA + prefs + moments + loyalty balance display |
 | F-017 | Owner-occupancy | TapFlow editor + lifecycle | TapFlow | Experiences | E | FUNCTIONAL | publish/activate/pause/resume + dry-run + analytics/recovery + live tap executor (queue-only); provider effects open |
 | F-018 | Owner-occupancy | TapLoop loyalty persistence | TapLoop | Audience | H | FUNCTIONAL | Prisma + `/api/loyalty/*` + Audience UI |
-| F-019 | Owner-occupancy | TapCommerce mock | Commerce | Experiences | I | FUNCTIONAL | In-memory orders + mock checkout |
+| F-019 | Owner-occupancy | TapCommerce mock | Commerce | Experiences | I | FUNCTIONAL | In-memory orders + mock checkout + cancel/refund |
 | F-020 | Owner-occupancy | Isolated DB proof queue | Platform | — | — | DEFINED | `ISOLATED_DB_PROOF_QUEUE.md` — blocks OWNER-READY labels |
 
 Update rows as modules land. Do not rely on chat memory.

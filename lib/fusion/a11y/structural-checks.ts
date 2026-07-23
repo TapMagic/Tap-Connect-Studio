@@ -30,9 +30,21 @@ export const A11Y_STRUCTURAL_CHECKS: A11yStructuralCheck[] = [
     codeHint: "app/dashboard/insights/page.tsx",
   },
   {
+    id: "a11y-journey-editor",
+    surface: "TapFlow journeys",
+    requirement: "Mode tabs, edge selects, and graph nodes have accessible names",
+    codeHint: "components/fusion/journey/journey-editor-shell.tsx",
+  },
+  {
+    id: "a11y-autopilot-undo",
+    surface: "Automation Team",
+    requirement: "Proposal accept/reject/undo actions have distinct aria-labels",
+    codeHint: "components/campaign/ai-assist-panel.tsx",
+  },
+  {
     id: "a11y-admin-tabs",
     surface: "Platform Admin",
-    requirement: "Tab labels not icon-only; evidence badges as text",
+    requirement: "Tab labels not icon-only on mobile; tabpanels wired with aria-controls",
     codeHint: "components/fusion/admin/platform-admin-tabs.tsx",
   },
   {

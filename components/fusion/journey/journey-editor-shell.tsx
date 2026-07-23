@@ -277,7 +277,10 @@ export function JourneyEditorShell({
   return (
     <div className="space-y-6">
       {!featureEnabled && (
-        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200/90">
+        <div
+          role="status"
+          className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200/90"
+        >
           journey.tapflow is disabled — draft edit/save only. Publish, activate, resume, and API
           simulate are blocked. Enable in{" "}
           <Link href="/admin/platform" className="underline">
@@ -289,36 +292,47 @@ export function JourneyEditorShell({
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[200px] flex-1 space-y-1">
-          <p className="text-xs font-medium text-muted-foreground">Journey name</p>
+          <label htmlFor="journey-name" className="text-xs font-medium text-muted-foreground">
+            Journey name
+          </label>
           <Input
+            id="journey-name"
             value={definition.name}
             onChange={(e) => setDefinition((d) => ({ ...d, name: e.target.value }))}
           />
         </div>
-        <Badge variant="outline" className="font-mono text-xs">
+        <Badge variant="outline" className="font-mono text-xs" aria-live="polite">
           {status}
         </Badge>
-        <div className="flex rounded-lg border border-border/60 p-0.5">
+        <div
+          role="tablist"
+          aria-label="Editor mode"
+          className="flex rounded-lg border border-border/60 p-0.5"
+        >
           <button
             type="button"
+            role="tab"
+            aria-selected={mode === "beginner"}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs font-medium",
               mode === "beginner" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             )}
             onClick={() => setMode("beginner")}
           >
-            <ListOrdered className="mr-1 inline h-3.5 w-3.5" />
+            <ListOrdered className="mr-1 inline h-3.5 w-3.5" aria-hidden />
             Beginner
           </button>
           <button
             type="button"
+            role="tab"
+            aria-selected={mode === "expert"}
             className={cn(
               "rounded-md px-3 py-1.5 text-xs font-medium",
               mode === "expert" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
             )}
             onClick={() => setMode("expert")}
           >
-            <GitBranch className="mr-1 inline h-3.5 w-3.5" />
+            <GitBranch className="mr-1 inline h-3.5 w-3.5" aria-hidden />
             Expert
           </button>
         </div>
@@ -395,8 +409,13 @@ export function JourneyEditorShell({
           </p>
 
           <div className="space-y-2 border-t border-border/40 pt-3">
-            <p className="text-xs font-medium text-muted-foreground">Connect edge</p>
+            <p id="connect-edge-label" className="text-xs font-medium text-muted-foreground">
+              Connect edge
+            </p>
             <select
+              id="edge-from"
+              aria-labelledby="connect-edge-label"
+              aria-label="Edge from node"
               className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
               value={edgeFrom}
               onChange={(e) => setEdgeFrom(e.target.value)}
@@ -409,6 +428,9 @@ export function JourneyEditorShell({
               ))}
             </select>
             <select
+              id="edge-to"
+              aria-labelledby="connect-edge-label"
+              aria-label="Edge to node"
               className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
               value={edgeTo}
               onChange={(e) => setEdgeTo(e.target.value)}
@@ -495,6 +517,8 @@ export function JourneyEditorShell({
                     key={node.id}
                     role="button"
                     tabIndex={0}
+                    aria-label={`${node.label}, ${node.type} node`}
+                    aria-pressed={selectedNodeId === node.id}
                     onClick={() => setSelectedNodeId(node.id)}
                     onKeyDown={(e) => {
                       if (e.key === "Enter" || e.key === " ") setSelectedNodeId(node.id);

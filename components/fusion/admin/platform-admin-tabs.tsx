@@ -206,7 +206,9 @@ export function PlatformAdminTabs({
               key={id}
               type="button"
               role="tab"
+              id={`admin-tab-${id}`}
               aria-selected={active}
+              aria-controls={`admin-panel-${id}`}
               onClick={() => setTab(id)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",
@@ -215,15 +217,21 @@ export function PlatformAdminTabs({
                   : "text-muted-foreground hover:bg-muted/60 hover:text-foreground"
               )}
             >
-              <Icon className="h-4 w-4 shrink-0" />
+              <Icon className="h-4 w-4 shrink-0" aria-hidden />
               <span className="hidden sm:inline">{label}</span>
+              <span className="sr-only sm:hidden">{label}</span>
             </button>
           );
         })}
       </div>
 
       {tab === "kpis" && (
-        <section className="space-y-4">
+        <section
+          role="tabpanel"
+          id="admin-panel-kpis"
+          aria-labelledby="admin-tab-kpis"
+          className="space-y-4"
+        >
           {kpis.error ? (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
               <p className="font-medium">Database unavailable</p>
@@ -326,7 +334,12 @@ export function PlatformAdminTabs({
       )}
 
       {tab === "fleet" && (
-        <section className="space-y-4">
+        <section
+          role="tabpanel"
+          id="admin-panel-fleet"
+          aria-labelledby="admin-tab-fleet"
+          className="space-y-4"
+        >
           {fleet.error ? (
             <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
               {fleet.error}
@@ -382,13 +395,23 @@ export function PlatformAdminTabs({
       )}
 
       {tab === "features" && (
-        <section className="rounded-2xl border border-border/60 bg-card/30 p-4 sm:p-6">
+        <section
+          role="tabpanel"
+          id="admin-panel-features"
+          aria-labelledby="admin-tab-features"
+          className="rounded-2xl border border-border/60 bg-card/30 p-4 sm:p-6"
+        >
           <FeatureRegistryPanel initialOverrides={initialOverrides} internalOperator />
         </section>
       )}
 
       {tab === "integrations" && (
-        <section className="space-y-4">
+        <section
+          role="tabpanel"
+          id="admin-panel-integrations"
+          aria-labelledby="admin-tab-integrations"
+          className="space-y-4"
+        >
           <Card className="border-border/60 bg-card/40">
             <CardHeader>
               <CardTitle>Productivity connectors</CardTitle>
@@ -422,7 +445,12 @@ export function PlatformAdminTabs({
       )}
 
       {tab === "billing" && (
-        <section className="space-y-4">
+        <section
+          role="tabpanel"
+          id="admin-panel-billing"
+          aria-labelledby="admin-tab-billing"
+          className="space-y-4"
+        >
           <StripeConnectionPanel
             readiness={billingReadiness}
             commerceReadiness={commerceReadiness}
@@ -431,13 +459,23 @@ export function PlatformAdminTabs({
       )}
 
       {tab === "autopilot" && (
-        <section className="space-y-4">
+        <section
+          role="tabpanel"
+          id="admin-panel-autopilot"
+          aria-labelledby="admin-tab-autopilot"
+          className="space-y-4"
+        >
           <KillSwitchPanel initialOverrides={initialOverrides} autopilotEnabled={autopilotEnabled} />
         </section>
       )}
 
       {tab === "comms" && (
-        <section className="space-y-4">
+        <section
+          role="tabpanel"
+          id="admin-panel-comms"
+          aria-labelledby="admin-tab-comms"
+          className="space-y-4"
+        >
           <Card className="border-border/60 bg-card/40">
             <CardHeader>
               <CardTitle>Email provider (Resend)</CardTitle>
@@ -494,7 +532,12 @@ export function PlatformAdminTabs({
       )}
 
       {tab === "wallet" && (
-        <section className="space-y-4">
+        <section
+          role="tabpanel"
+          id="admin-panel-wallet"
+          aria-labelledby="admin-tab-wallet"
+          className="space-y-4"
+        >
           <Card className="border-border/60 bg-card/40">
             <CardHeader>
               <CardTitle>Wallet & TapSave credential blockers</CardTitle>

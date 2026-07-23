@@ -28,6 +28,7 @@ import { QrPanel } from "@/components/campaign/qr-panel";
 import { SchedulePanel } from "@/components/campaign/schedule-panel";
 import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
 import { AiAssistPanel } from "@/components/campaign/ai-assist-panel";
+import { captureEditorSnapshot } from "@/lib/fusion/autopilot/editor-revert";
 import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
 import {
@@ -804,6 +805,20 @@ export function CampaignEditor({
                 aiReady={integrations.ai}
                 autopilotReady={autopilotReady}
                 tier={subscriptionTier}
+                getEditorSnapshot={() =>
+                  captureEditorSnapshot({
+                    title,
+                    blocks,
+                    theme: {
+                      primaryColor: theme.primaryColor,
+                      secondaryColor: theme.secondaryColor,
+                      backgroundColor: theme.backgroundColor,
+                      textColor: theme.textColor,
+                      backgroundImage: theme.backgroundImage,
+                      backgroundOverlayOpacity: theme.backgroundOverlayOpacity,
+                    },
+                  })
+                }
                 onApplyDraft={({ title: nextTitle, blocks: nextBlocks, theme: nextTheme }) => {
                   if (nextTitle) setTitle(nextTitle);
                   setBlocks(nextBlocks);
@@ -822,6 +837,22 @@ export function CampaignEditor({
                   setShowPreview(true);
                   setTab("content");
                   setMessage("AI draft applied — review blocks & colors, then Save.");
+                }}
+                onRevertDraft={(snapshot) => {
+                  setTitle(snapshot.title);
+                  setBlocks(snapshot.blocks);
+                  if (snapshot.theme) {
+                    setTheme((t) => ({
+                      ...t,
+                      ...snapshot.theme,
+                      backgroundImage: snapshot.theme?.backgroundImage ?? t.backgroundImage,
+                      backgroundOverlayOpacity:
+                        snapshot.theme?.backgroundOverlayOpacity ?? t.backgroundOverlayOpacity,
+                    }));
+                  }
+                  setShowPreview(true);
+                  setTab("content");
+                  setMessage("Autopilot apply undone — editor restored.");
                 }}
               />
             )}
