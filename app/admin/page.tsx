@@ -127,14 +127,35 @@ export default async function AdminDashboardPage() {
 
         <Card className="border-border/60 bg-card/60">
           <CardHeader>
-            <CardTitle className="text-lg">Next (not built yet)</CardTitle>
-            <CardDescription>Queued after this lean Admin foundation.</CardDescription>
+            <CardTitle className="text-lg">Fusion control plane</CardTitle>
+            <CardDescription>
+              Feature registry, dependency-aware activation, and platform ops.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Link
+              href="/admin/platform"
+              className={buttonVariants({ variant: "default", size: "sm" })}
+            >
+              <Zap className="mr-1.5 h-4 w-4" />
+              Open Platform Admin
+            </Link>
+            <p className="text-xs text-muted-foreground">
+              Build capability → validate readiness → enable without redesign.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-card/60">
+          <CardHeader>
+            <CardTitle className="text-lg">Next (queued modules)</CardTitle>
+            <CardDescription>Still on the fusion build path.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>· Team invites & business roles</p>
             <p>· Shared vs private Admin campaigns</p>
             <p>· Branding media library (tier-gated)</p>
-            <p>· Stripe billing for customers</p>
+            <p>· Stripe billing connector (keys pending)</p>
           </CardContent>
         </Card>
       </div>

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { notifyOnLeadCapture } from "@/lib/services/lead-notify";
+import { upsertAudienceFromLeadCapture } from "@/lib/fusion/audience";
 
 const schema = z.object({
   businessId: z.string(),
@@ -49,6 +50,26 @@ export async function POST(request: Request) {
       });
     }
 
+    let myTapPath: string | undefined;
+    let relationshipToken: string | undefined;
+    try {
+      const audience = await upsertAudienceFromLeadCapture({
+        businessId: body.businessId,
+        leadId: lead.id,
+        email: body.email,
+        name: body.name,
+        phone: body.phone,
+        consentGiven: body.consentGiven,
+        campaignId: body.campaignId,
+        deviceSlotId: body.deviceSlotId,
+        captureType: body.type,
+      });
+      relationshipToken = audience.publicToken;
+      myTapPath = audience.publicToken ? `/mytap/${audience.publicToken}` : undefined;
+    } catch (audienceError) {
+      console.warn("Audience upsert skipped:", audienceError);
+    }
+
     // Don't block the visitor response on email delivery
     void notifyOnLeadCapture({
       businessId: body.businessId,
@@ -62,7 +83,12 @@ export async function POST(request: Request) {
       type: body.type,
     });
 
-    return NextResponse.json({ success: true, leadId: lead.id });
+    return NextResponse.json({
+      success: true,
+      leadId: lead.id,
+      myTapPath,
+      relationshipToken,
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid form data" }, { status: 400 });

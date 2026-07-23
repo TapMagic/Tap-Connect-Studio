@@ -27,6 +27,7 @@ import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
 import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { QrPanel } from "@/components/campaign/qr-panel";
+import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   COMMON_SOCIAL_KINDS,
@@ -67,6 +68,8 @@ type Props = {
   isLandingDemo?: boolean;
   devices?: { id: string; nickname: string | null; deviceCode: string }[];
   campaigns?: CampaignLinkOption[];
+  /** Platform feature: card.builder.freeform */
+  freeformEnabled?: boolean;
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -98,6 +101,7 @@ export function TapCardBuilder({
   isLandingDemo = false,
   devices = [],
   campaigns = [],
+  freeformEnabled = false,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -105,6 +109,7 @@ export function TapCardBuilder({
   const [dragId, setDragId] = useState<string | null>(null);
   const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
   const [actionSearch, setActionSearch] = useState("");
+  const [showFreeform, setShowFreeform] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
@@ -330,6 +335,16 @@ export function TapCardBuilder({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {freeformEnabled ? (
+            <Button
+              type="button"
+              variant={showFreeform ? "default" : "outline"}
+              size="sm"
+              onClick={() => setShowFreeform((v) => !v)}
+            >
+              {showFreeform ? "Hide freeform" : "Freeform"}
+            </Button>
+          ) : null}
           {isAdmin ? (
             <Button
               type="button"
@@ -346,6 +361,28 @@ export function TapCardBuilder({
           </Button>
         </div>
       </div>
+
+      {showFreeform && freeformEnabled ? (
+        <div className="z-20 shrink-0 border-b border-border/60 bg-background px-4 py-3">
+          <FreeformCanvasPanel
+            enabled={freeformEnabled}
+            sectionLabels={sorted.map((s) => ({
+              id: s.id,
+              label: s.label || s.type,
+            }))}
+            onConvertToStructured={(orderedIds) => {
+              const byId = new Map(sorted.map((s) => [s.id, s]));
+              const next = orderedIds
+                .map((id) => byId.get(id))
+                .filter((s): s is TapCardSection => Boolean(s));
+              const leftovers = sorted.filter((s) => !orderedIds.includes(s.id));
+              setSections([...next, ...leftovers]);
+              setShowFreeform(false);
+              setMessage("Converted freeform order into structured stack");
+            }}
+          />
+        </div>
+      ) : null}
 
       {/* Design menus — fixed chrome, scrolls if tall */}
       <div className="z-20 max-h-[28vh] shrink-0 space-y-3 overflow-y-auto border-b border-border/60 bg-background px-4 py-3">

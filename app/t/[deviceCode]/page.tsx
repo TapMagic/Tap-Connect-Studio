@@ -176,6 +176,14 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
         themeOverrides.showPageLogo === true || themeOverrides.showPageLogo === "true",
     };
 
+    const { isFeatureExecutable } = await import("@/lib/fusion/features/resolve");
+    const { listFeatureOverrides, toResolveOverrides } = await import(
+      "@/lib/fusion/features/overrides"
+    );
+    const keepCardEnabled = isFeatureExecutable("tapsave.core", {
+      overrides: toResolveOverrides(await listFeatureOverrides()),
+    });
+
     return (
       <CampaignPageRenderer
         blocks={resolved.blocks}
@@ -188,6 +196,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
         logoUrl={device.business?.logoUrl ?? null}
         contactProfile={contactProfile}
         reviewUrl={device.business?.googleReviewUrl ?? null}
+        keepCardEnabled={keepCardEnabled}
       />
     );
   }
@@ -241,6 +250,14 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       themeOverrides.showPageLogo === true || themeOverrides.showPageLogo === "true",
   };
 
+  const { isFeatureExecutable } = await import("@/lib/fusion/features/resolve");
+  const { listFeatureOverrides, toResolveOverrides } = await import(
+    "@/lib/fusion/features/overrides"
+  );
+  const keepCardEnabled = isFeatureExecutable("tapsave.core", {
+    overrides: toResolveOverrides(await listFeatureOverrides()),
+  });
+
   return (
     <CampaignPageRenderer
       blocks={blocks}
@@ -255,6 +272,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       reviewUrl={device.business?.googleReviewUrl ?? null}
       upcomingItems={upcomingItems}
       showUpcomingStrip={showUpcomingStrip}
+      keepCardEnabled={keepCardEnabled}
     />
   );
 }

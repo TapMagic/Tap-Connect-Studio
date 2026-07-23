@@ -8,6 +8,7 @@ import {
   type PremiumFinish,
   type TextFormat,
 } from "@/lib/design/premium-finish";
+import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 
 export function FinishPicker({
   value,
@@ -36,6 +37,10 @@ export function FinishPicker({
   );
 }
 
+/**
+ * Apple Pages-style typography inspector — compact, complete, never covers the canvas.
+ * Preserves all prior V1 controls and expands size/weight/decoration/spacing/color depth.
+ */
 export function TextFormatControls({
   value = {},
   onChange,
@@ -44,6 +49,8 @@ export function TextFormatControls({
   value?: TextFormat;
   onChange: (next: TextFormat) => void;
   title?: string;
+  /** @deprecated retained for call-site compatibility */
+  brandColors?: string[];
 }) {
   function set<K extends keyof TextFormat>(key: K, v: TextFormat[K]) {
     onChange({ ...value, [key]: v });
@@ -70,11 +77,14 @@ export function TextFormatControls({
           </select>
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px]">Size</Label>
+          <Label className="text-[10px]">Size preset</Label>
           <select
             className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             value={value.fontSize ?? "base"}
-            onChange={(e) => set("fontSize", e.target.value as TextFormat["fontSize"])}
+            onChange={(e) => {
+              set("fontSize", e.target.value as TextFormat["fontSize"]);
+              set("fontSizePx", undefined);
+            }}
           >
             <option value="xs">XS</option>
             <option value="sm">Small</option>
@@ -84,6 +94,21 @@ export function TextFormatControls({
             <option value="2xl">2XL</option>
             <option value="3xl">Hero</option>
           </select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[10px]">Size (px)</Label>
+          <Input
+            type="number"
+            min={8}
+            max={120}
+            className="h-8 text-xs"
+            value={value.fontSizePx ?? ""}
+            placeholder="auto"
+            onChange={(e) => {
+              const n = e.target.value ? Number(e.target.value) : undefined;
+              set("fontSizePx", Number.isFinite(n) ? n : undefined);
+            }}
+          />
         </div>
         <div className="space-y-1">
           <Label className="text-[10px]">Weight</Label>
@@ -109,6 +134,7 @@ export function TextFormatControls({
             <option value="left">Left</option>
             <option value="center">Center</option>
             <option value="right">Right</option>
+            <option value="justify">Justify</option>
           </select>
         </div>
         <div className="space-y-1">
@@ -116,9 +142,7 @@ export function TextFormatControls({
           <select
             className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             value={value.letterSpacing ?? "normal"}
-            onChange={(e) =>
-              set("letterSpacing", e.target.value as TextFormat["letterSpacing"])
-            }
+            onChange={(e) => set("letterSpacing", e.target.value as TextFormat["letterSpacing"])}
           >
             <option value="tight">Tight</option>
             <option value="normal">Normal</option>
@@ -126,23 +150,84 @@ export function TextFormatControls({
           </select>
         </div>
         <div className="space-y-1">
-          <Label className="text-[10px]">Color</Label>
-          <div className="flex gap-1">
-            <input
-              type="color"
-              value={value.color ?? "#0b0f19"}
-              onChange={(e) => set("color", e.target.value)}
-              className="h-8 w-10 cursor-pointer rounded border-0"
-            />
-            <Input
-              value={value.color ?? ""}
-              onChange={(e) => set("color", e.target.value || undefined)}
-              className="h-8 font-mono text-xs"
-              placeholder="inherit"
-            />
-          </div>
+          <Label className="text-[10px]">Line height</Label>
+          <select
+            className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+            value={
+              typeof value.lineHeight === "number"
+                ? "custom"
+                : (value.lineHeight ?? "normal")
+            }
+            onChange={(e) => {
+              const v = e.target.value;
+              if (v === "custom") set("lineHeight", 1.4);
+              else set("lineHeight", v as TextFormat["lineHeight"]);
+            }}
+          >
+            <option value="tight">Tight</option>
+            <option value="normal">Normal</option>
+            <option value="relaxed">Relaxed</option>
+            <option value="custom">Custom</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label className="text-[10px]">Capitalization</Label>
+          <select
+            className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+            value={
+              value.capitalization ??
+              (value.uppercase ? "uppercase" : "none")
+            }
+            onChange={(e) => {
+              const v = e.target.value as NonNullable<TextFormat["capitalization"]>;
+              set("capitalization", v);
+              set("uppercase", v === "uppercase");
+            }}
+          >
+            <option value="none">As typed</option>
+            <option value="uppercase">UPPERCASE</option>
+            <option value="lowercase">lowercase</option>
+            <option value="capitalize">Title Case</option>
+          </select>
         </div>
       </div>
+
+      <div className="space-y-1">
+        <Label className="text-[10px]">Text color</Label>
+        <div className="flex items-center gap-2">
+          <ColorSwatchPicker
+            value={value.color ?? "#0b0f19"}
+            onChange={(c) => set("color", c)}
+            defaultColor="#0b0f19"
+            title="Text color"
+          />
+          <Input
+            value={value.color ?? ""}
+            onChange={(e) => set("color", e.target.value || undefined)}
+            className="h-8 font-mono text-xs"
+            placeholder="#hex / inherit"
+          />
+        </div>
+      </div>
+
+      <div className="space-y-1">
+        <Label className="text-[10px]">Highlight</Label>
+        <div className="flex gap-1">
+          <input
+            type="color"
+            value={value.backgroundColor ?? "#ffffff"}
+            onChange={(e) => set("backgroundColor", e.target.value)}
+            className="h-8 w-10 cursor-pointer rounded border-0"
+          />
+          <Input
+            value={value.backgroundColor ?? ""}
+            onChange={(e) => set("backgroundColor", e.target.value || undefined)}
+            className="h-8 font-mono text-xs"
+            placeholder="none"
+          />
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-3 text-xs">
         <label className="flex items-center gap-1.5">
           <input
@@ -163,10 +248,10 @@ export function TextFormatControls({
         <label className="flex items-center gap-1.5">
           <input
             type="checkbox"
-            checked={Boolean(value.uppercase)}
-            onChange={(e) => set("uppercase", e.target.checked)}
+            checked={Boolean(value.strikethrough)}
+            onChange={(e) => set("strikethrough", e.target.checked)}
           />
-          ALL CAPS
+          Strike
         </label>
       </div>
     </div>

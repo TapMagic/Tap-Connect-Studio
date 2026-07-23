@@ -10,6 +10,7 @@ import { Label } from "@/components/ui/label";
 import { COMMON_TIMEZONES, formatScheduleWindow } from "@/lib/utils/schedule-time";
 import { scrollChildIntoNearestView } from "@/lib/utils/builder-scroll";
 import { cn } from "@/lib/utils";
+import { TimeTravelPreview } from "@/components/fusion/campaign/time-travel-preview";
 
 const DAY_OPTIONS = [
   { v: 1, l: "Mon" },
@@ -715,6 +716,15 @@ export function GroupManager({
           </aside>
         </div>
       </section>
+
+      <TimeTravelPreview
+        timezone={group.timezone || preview.timezone || "America/New_York"}
+        slots={group.slots}
+        defaultCampaignId={group.defaultCampaignId}
+        defaultCampaignTitle={group.defaultCampaign?.title}
+        endCampaignId={group.endCampaignId}
+        endCampaignTitle={group.endCampaign?.title}
+      />
 
       <section className="space-y-3 rounded-xl border border-border/60 p-4">
         <h3 className="font-semibold">Add a timed page</h3>

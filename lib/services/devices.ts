@@ -3,26 +3,41 @@ import { prisma } from "@/lib/db";
 import type { ContentBlock } from "@/lib/types/campaign";
 import { resolveGroupCampaign, resolveScheduledCampaign } from "@/lib/services/schedule";
 import { ensureCampaignGroupTables } from "@/lib/db/ensure-group";
+import { ensureTapPointBridgeForDevice, resolveDeviceSlotByPublicCode } from "@/lib/fusion/devices/tap-point-bridge";
 
 export async function getDeviceWithActiveCampaign(deviceCode: string) {
   await ensureCampaignGroupTables();
 
-  const device = await prisma.deviceSlot.findUnique({
-    where: { deviceCode },
-    include: {
-      business: { include: { brandKit: true } },
-      location: true,
-      campaignGroup: true,
-      assignments: {
-        where: { status: "ACTIVE" },
-        orderBy: { startsAt: "desc" },
-        take: 1,
-        include: { campaign: true },
-      },
+  const deviceInclude = {
+    business: { include: { brandKit: true } },
+    location: true,
+    campaignGroup: true,
+    assignments: {
+      where: { status: "ACTIVE" as const },
+      orderBy: { startsAt: "desc" as const },
+      take: 1,
+      include: { campaign: true },
     },
+  };
+
+  let device = await prisma.deviceSlot.findUnique({
+    where: { deviceCode },
+    include: deviceInclude,
   });
 
+  if (!device) {
+    const bridged = await resolveDeviceSlotByPublicCode(deviceCode);
+    if (bridged) {
+      device = await prisma.deviceSlot.findUnique({
+        where: { id: bridged.id },
+        include: deviceInclude,
+      });
+    }
+  }
+
   if (!device) return null;
+
+  void ensureTapPointBridgeForDevice(device);
 
   const assignment = device.assignments[0];
 

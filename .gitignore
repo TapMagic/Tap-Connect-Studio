@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# fusion local fallbacks (feature overrides when DB unavailable)
+.fusion/
+
 # vercel
 .vercel
 

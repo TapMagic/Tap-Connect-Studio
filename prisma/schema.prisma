@@ -194,9 +194,22 @@ model Business {
   subscription Subscription?
   mediaAssets  MediaAsset[]
   savedTemplates SavedTemplate[]
+  journeyDrafts JourneyDraft[]
   scheduleRules ScheduleRule[]
   groupSlots   CampaignGroupSlot[]
   brandLinks   BrandLink[]
+  contacts     Contact[]
+  customerRelationships CustomerRelationship[]
+  consentRecords ConsentRecord[]
+  walletPasses WalletPass[]
+  messageThreads MessageThread[]
+  tapCases     TapCase[]
+  suppressions CommunicationSuppression[]
+  tapSaveMoments TapSaveMoment[]
+  autopilotProposals AutopilotProposal[]
+  loyaltyPrograms LoyaltyProgram[]
+  loyaltyEnrollments LoyaltyEnrollment[]
+  loyaltyLedgerEntries LoyaltyLedgerEntry[]
 }
 
 model BusinessUser {
@@ -500,6 +513,8 @@ model Lead {
   businessId   String
   campaignId   String?
   deviceSlotId String?
+  /** Bridge to canonical Contact when audience spine is available */
+  contactId    String?
   name         String?
   email        String
   phone        String?
@@ -511,8 +526,10 @@ model Lead {
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   campaign   Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
   deviceSlot DeviceSlot? @relation(fields: [deviceSlotId], references: [id], onDelete: SetNull)
+  contact    Contact?    @relation(fields: [contactId], references: [id], onDelete: SetNull)
 
   @@index([businessId, createdAt])
+  @@index([contactId])
 }
 
 // ─── Scan Sessions ───────────────────────────────────────────────────────────
@@ -570,6 +587,33 @@ model SavedTemplate {
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
   @@index([businessId])
+}
+
+enum JourneyLifecycleStatus {
+  DRAFT
+  PUBLISHED
+  ACTIVE
+  PAUSED
+}
+
+/** TapFlow journey drafts — JSON definition + lifecycle for publish/activate/pause */
+model JourneyDraft {
+  id            String                 @id @default(cuid())
+  businessId    String
+  name          String
+  definition    Json                   @default("{}")
+  schemaVersion Int                    @default(1)
+  status        JourneyLifecycleStatus @default(DRAFT)
+  publishedAt   DateTime?
+  activatedAt   DateTime?
+  pausedAt      DateTime?
+  createdAt     DateTime               @default(now())
+  updatedAt     DateTime               @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, updatedAt])
+  @@index([businessId, status])
 }
 
 model ScheduleRule {
@@ -632,4 +676,591 @@ model LandingDemoSlot {
   /** Optional logo override; empty string = explicitly no logo (do not fall back) */
   logoUrl    String?
   updatedAt  DateTime @updatedAt
+}
+
+// ─── Fusion spine (additive — V1 DeviceSlot remains authoritative during bridge) ─
+
+enum FusionAuditActorType {
+  USER
+  SYSTEM
+  PUBLIC
+  ADMIN
+}
+
+enum FusionOutboxStatus {
+  PENDING
+  PROCESSING
+  PUBLISHED
+  FAILED
+}
+
+enum FusionTapPointStatus {
+  UNASSIGNED
+  ACTIVE
+  PAUSED
+  LOST
+  REPLACED
+  RETIRED
+}
+
+/** Scoped feature overrides — Feature Registry IDs live in code; overrides persist here. */
+model FeatureFlagOverride {
+  id         String   @id @default(cuid())
+  featureId  String
+  /** global | plan:BASIC | business:<id> | location:<id> | user:<id> | cohort:<id> */
+  scope      String
+  enabled    Boolean
+  reason     String?
+  actorId    String?
+  actorEmail String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([featureId, scope])
+  @@index([featureId])
+}
+
+model PlatformAuditEvent {
+  id            String               @id @default(cuid())
+  businessId    String?
+  actorType     FusionAuditActorType @default(SYSTEM)
+  actorId       String?
+  action        String
+  resourceType  String
+  resourceId    String
+  correlationId String
+  metadata      Json                 @default("{}")
+  occurredAt    DateTime             @default(now())
+
+  @@index([occurredAt])
+  @@index([resourceType, resourceId])
+  @@index([businessId, occurredAt])
+}
+
+model FusionOutboxEvent {
+  id            String             @id @default(cuid())
+  businessId    String?
+  topic         String
+  schemaVersion Int                @default(1)
+  aggregateType String
+  aggregateId   String
+  correlationId String
+  payload       Json
+  status        FusionOutboxStatus @default(PENDING)
+  attempts      Int                @default(0)
+  availableAt   DateTime           @default(now())
+  publishedAt   DateTime?
+  lastError     String?
+  createdAt     DateTime           @default(now())
+
+  @@index([status, availableAt])
+  @@index([businessId, createdAt])
+}
+
+model FusionIdempotencyRecord {
+  id           String   @id @default(cuid())
+  businessId   String
+  operation    String
+  key          String
+  requestHash  String
+  resourceType String?
+  resourceId   String?
+  response     Json
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@unique([businessId, operation, key])
+  @@index([expiresAt])
+}
+
+/**
+ * Logical Tap Point — permanent public endpoint identity.
+ * During bridge, code may equal DeviceSlot.deviceCode.
+ */
+model TapPoint {
+  id               String               @id @default(cuid())
+  businessId       String?
+  name             String?
+  status           FusionTapPointStatus @default(UNASSIGNED)
+  /** Bridge to V1 device inventory while DeviceUnit is introduced */
+  deviceSlotId     String?              @unique
+  createdAt        DateTime             @default(now())
+  updatedAt        DateTime             @updatedAt
+
+  address          TapPointAddress?
+  publications     PublicationSnapshot[]
+
+  @@index([businessId, status])
+}
+
+model TapPointAddress {
+  id         String   @id @default(cuid())
+  tapPointId String   @unique
+  /** Opaque permanent public code — never rewrite for content changes */
+  code       String   @unique
+  createdAt  DateTime @default(now())
+
+  tapPoint TapPoint @relation(fields: [tapPointId], references: [id], onDelete: Cascade)
+}
+
+/** Immutable validated render snapshot for Card or Campaign Experience */
+model PublicationSnapshot {
+  id            String   @id @default(cuid())
+  businessId    String
+  /** card | campaign | experience */
+  subjectType   String
+  subjectId     String
+  version       Int
+  schemaVersion Int      @default(1)
+  manifest      Json
+  contentHash   String
+  publishedById String?
+  publishedAt   DateTime @default(now())
+  tapPointId    String?
+
+  tapPoint TapPoint? @relation(fields: [tapPointId], references: [id], onDelete: SetNull)
+
+  @@unique([subjectType, subjectId, version])
+  @@unique([subjectType, subjectId, contentHash])
+  @@index([businessId, publishedAt])
+  @@index([tapPointId])
+}
+
+// ─── Audience domain (additive — V1 Lead remains authoritative during bridge) ─
+
+enum FusionConsentChannel {
+  EMAIL
+  SMS
+  WALLET
+  MARKETING
+}
+
+enum FusionConsentStatus {
+  GRANTED
+  DENIED
+  WITHDRAWN
+}
+
+enum FusionRelationshipStatus {
+  ACTIVE
+  PAUSED
+  ARCHIVED
+}
+
+enum AutopilotProposalStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  PARTIAL
+  SUPERSEDED
+  UNDONE
+}
+
+/** Canonical person record scoped to a business workspace */
+model Contact {
+  id         String   @id @default(cuid())
+  businessId String
+  email      String?
+  phone      String?
+  name       String?
+  metadata   Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business      Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  relationships CustomerRelationship[]
+  consents      ConsentRecord[]
+  leads         Lead[]
+  loyaltyEnrollments LoyaltyEnrollment[]
+  loyaltyLedgerEntries LoyaltyLedgerEntry[]
+
+  @@index([businessId, createdAt])
+  @@index([businessId, email])
+  @@index([businessId, phone])
+}
+
+/** Business ↔ contact link — MyTap uses publicToken, never PII in URLs */
+model CustomerRelationship {
+  id               String                   @id @default(cuid())
+  businessId       String
+  contactId        String
+  /** Opaque public identifier for /mytap/[relationshipId] */
+  publicToken      String                   @unique @default(cuid())
+  status           FusionRelationshipStatus @default(ACTIVE)
+  sourceType       String?
+  sourceLeadId     String?
+  sourceTapPointId String?
+  tapSaveEnabled   Boolean                  @default(false)
+  metadata         Json                     @default("{}")
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  moments  TapSaveMoment[]
+  loyaltyEnrollments LoyaltyEnrollment[]
+  loyaltyLedgerEntries LoyaltyLedgerEntry[]
+
+  @@unique([businessId, contactId])
+  @@index([businessId, status])
+}
+
+model ConsentRecord {
+  id         String               @id @default(cuid())
+  businessId String
+  contactId  String
+  channel    FusionConsentChannel
+  status     FusionConsentStatus
+  legalBasis String?
+  sourceType String?
+  sourceId   String?
+  recordedAt DateTime             @default(now())
+  metadata   Json                 @default("{}")
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@index([contactId, channel])
+  @@index([businessId, recordedAt])
+}
+
+/** TapSave relationship moments — retention timeline for MyTap */
+model TapSaveMoment {
+  id             String   @id @default(cuid())
+  businessId     String
+  relationshipId String
+  visitorRef     String?
+  kind           String
+  campaignId     String?
+  deviceSlotId   String?
+  metadata       Json     @default("{}")
+  occurredAt     DateTime @default(now())
+
+  business     Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  relationship CustomerRelationship @relation(fields: [relationshipId], references: [id], onDelete: Cascade)
+
+  @@index([relationshipId, occurredAt])
+  @@index([businessId, occurredAt])
+  @@index([businessId, kind])
+}
+
+/** Autopilot / Automation Team proposals — durable review lifecycle */
+model AutopilotProposal {
+  id                     String                  @id @default(cuid())
+  businessId             String
+  recipeId               String
+  mode                   String
+  status                 AutopilotProposalStatus @default(PENDING)
+  prompt                 String
+  summary                String
+  artifacts              Json                    @default("[]")
+  warnings               Json                    @default("[]")
+  /** Artifact kinds accepted on PARTIAL (empty when full accept) */
+  acceptedArtifactKinds  Json                    @default("[]")
+  previousStatus         AutopilotProposalStatus?
+  actorId                String?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  decidedAt              DateTime?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([businessId, status])
+}
+
+// ─── Wallet lifecycle (mock-first; production signing behind credentials) ─────
+
+enum FusionWalletPlatform {
+  APPLE
+  GOOGLE
+}
+
+enum FusionWalletPassStatus {
+  DRAFT
+  PREVIEWED
+  ISSUED
+  UPDATED
+  REVOKED
+  REPLACED
+  EXPIRED
+}
+
+model WalletPass {
+  id               String                 @id @default(cuid())
+  businessId       String
+  contactId        String?
+  relationshipId   String?
+  platform         FusionWalletPlatform
+  status           FusionWalletPassStatus @default(DRAFT)
+  serialNumber     String
+  version          Int                    @default(1)
+  cardId           String?
+  externalId       String?
+  installUrl       String?
+  previewUrl       String?
+  replacedById     String?
+  projection       Json                   @default("{}")
+  mock             Boolean                @default(true)
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  business Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  events   WalletPassEvent[]
+
+  @@unique([businessId, serialNumber])
+  @@index([businessId, status])
+  @@index([contactId])
+  @@index([relationshipId])
+}
+
+model WalletPassEvent {
+  id          String   @id @default(cuid())
+  passId      String
+  businessId  String
+  action      String
+  fromStatus  String?
+  toStatus    String
+  actorId     String?
+  metadata    Json     @default("{}")
+  occurredAt  DateTime @default(now())
+
+  pass WalletPass @relation(fields: [passId], references: [id], onDelete: Cascade)
+
+  @@index([passId, occurredAt])
+  @@index([businessId, occurredAt])
+}
+
+// ─── TapInbox + TapCase ───────────────────────────────────────────────────────
+
+enum FusionThreadChannel {
+  EMAIL
+  MESSENGER
+  INSTAGRAM_DM
+  WHATSAPP
+  TELEGRAM
+  SMS
+  MANYCHAT
+}
+
+enum FusionThreadStatus {
+  OPEN
+  PENDING
+  CLOSED
+}
+
+enum FusionMessageDirection {
+  INBOUND
+  OUTBOUND
+  SYSTEM
+}
+
+enum FusionCaseStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING
+  RESOLVED
+  CLOSED
+}
+
+model MessageThread {
+  id             String              @id @default(cuid())
+  businessId     String
+  contactId      String?
+  relationshipId String?
+  leadId         String?
+  channel        FusionThreadChannel @default(EMAIL)
+  status         FusionThreadStatus  @default(OPEN)
+  subject        String?
+  participant    String?
+  assignedToId   String?
+  lastMessageAt  DateTime            @default(now())
+  metadata       Json                @default("{}")
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  messages InboxMessage[]
+  cases    TapCase[]
+
+  @@index([businessId, status, lastMessageAt])
+  @@index([contactId])
+  @@index([leadId])
+}
+
+model InboxMessage {
+  id           String                 @id @default(cuid())
+  threadId     String
+  businessId   String
+  direction    FusionMessageDirection
+  body         String
+  subject      String?
+  provider     String                 @default("mock")
+  providerRef  String?
+  guardianCode String?
+  suppressed   Boolean                @default(false)
+  metadata     Json                   @default("{}")
+  createdAt    DateTime               @default(now())
+
+  thread MessageThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@index([businessId, createdAt])
+}
+
+model TapCase {
+  id             String          @id @default(cuid())
+  businessId     String
+  threadId       String?
+  contactId      String?
+  relationshipId String?
+  status         FusionCaseStatus @default(OPEN)
+  subject        String
+  assigneeId     String?
+  priority       Int             @default(3)
+  openedAt       DateTime        @default(now())
+  closedAt       DateTime?
+  metadata       Json            @default("{}")
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  thread   MessageThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, status])
+  @@index([threadId])
+  @@index([assigneeId])
+}
+
+/** Preference / suppression list — respected before any outbound send */
+model CommunicationSuppression {
+  id         String   @id @default(cuid())
+  businessId String
+  channel    String
+  address    String
+  reason     String?
+  sourceType String?
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, channel, address])
+  @@index([businessId, channel])
+}
+
+// ─── TapLoop loyalty (append-only ledger) ─────────────────────────────────────
+
+enum LoyaltyEnrollmentStatus {
+  ACTIVE
+  PAUSED
+  CANCELLED
+}
+
+enum LoyaltyLedgerType {
+  AWARD
+  REDEEM
+  REVERSE
+  ADJUST
+  EXPIRE
+}
+
+model LoyaltyProgram {
+  id         String   @id @default(cuid())
+  businessId String
+  name       String
+  active     Boolean  @default(true)
+  /** [{ id, label, points, event }] */
+  earnRules  Json     @default("[]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business    Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  tiers       LoyaltyTier[]
+  rewards     LoyaltyReward[]
+  enrollments LoyaltyEnrollment[]
+  ledger      LoyaltyLedgerEntry[]
+
+  @@index([businessId, active])
+}
+
+model LoyaltyTier {
+  id              String @id @default(cuid())
+  programId       String
+  name            String
+  rank            Int    @default(0)
+  thresholdPoints Int    @default(0)
+  /** string[] */
+  perks           Json   @default("[]")
+
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId, rank])
+}
+
+model LoyaltyReward {
+  id         String  @id @default(cuid())
+  programId  String
+  name       String
+  pointsCost Int
+  active     Boolean @default(true)
+  metadata   Json    @default("{}")
+
+  program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
+
+  @@index([programId, active])
+}
+
+model LoyaltyEnrollment {
+  id             String                  @id @default(cuid())
+  programId      String
+  businessId     String
+  contactId      String
+  relationshipId String?
+  status         LoyaltyEnrollmentStatus @default(ACTIVE)
+  consentedAt    DateTime
+  createdAt      DateTime                @default(now())
+  updatedAt      DateTime                @updatedAt
+
+  program      LoyaltyProgram         @relation(fields: [programId], references: [id], onDelete: Cascade)
+  business     Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact      Contact                @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  relationship CustomerRelationship?  @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+  ledger       LoyaltyLedgerEntry[]
+
+  @@unique([programId, contactId])
+  @@index([businessId, status])
+  @@index([contactId])
+}
+
+model LoyaltyLedgerEntry {
+  id              String            @id @default(cuid())
+  programId       String
+  businessId      String
+  enrollmentId    String
+  contactId       String
+  relationshipId  String?
+  type            LoyaltyLedgerType
+  /** Always store positive magnitude; sign implied by type (see computeBalance) */
+  points          Int
+  reason          String
+  evidenceId      String?
+  campaignId      String?
+  rewardId        String?
+  /** Unique per business — prevents duplicate award/redeem/reverse */
+  idempotencyKey  String
+  reversesEntryId String?
+  createdBy       String            @default("staff")
+  createdAt       DateTime          @default(now())
+
+  program      LoyaltyProgram        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  business     Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  enrollment   LoyaltyEnrollment     @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  contact      Contact               @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  relationship CustomerRelationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+
+  @@unique([businessId, idempotencyKey])
+  @@index([enrollmentId, createdAt])
+  @@index([programId, createdAt])
+  @@index([contactId, createdAt])
+  @@index([reversesEntryId])
 }

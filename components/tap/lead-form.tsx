@@ -30,6 +30,7 @@ export function CampaignLeadForm({
   const [submitted, setSubmitted] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [myTapPath, setMyTapPath] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -68,6 +69,9 @@ export function CampaignLeadForm({
       return;
     }
 
+    const payload = (await res.json().catch(() => ({}))) as { myTapPath?: string };
+    if (payload.myTapPath) setMyTapPath(payload.myTapPath);
+
     setSubmitted(true);
     setLoading(false);
     onSuccess?.();
@@ -80,6 +84,14 @@ export function CampaignLeadForm({
           <p className="font-medium text-[var(--tap-primary)]">
             {(data.successMessage as string) ?? "Thank you!"}
           </p>
+          {myTapPath ? (
+            <a
+              href={myTapPath}
+              className="mt-3 inline-block text-sm underline opacity-90"
+            >
+              Open your private MyTap link
+            </a>
+          ) : null}
         </div>
       </div>
     );

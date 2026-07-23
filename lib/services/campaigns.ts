@@ -3,6 +3,10 @@ import type { CampaignType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { getTemplateById } from "@/lib/campaign-templates";
 import type { ContentBlock } from "@/lib/types/campaign";
+import {
+  ensureTapPointForDeviceSlot,
+  syncTapPointStatusForDevice,
+} from "@/lib/fusion/devices/tap-point-bridge";
 
 export async function createCampaignFromTemplate(params: {
   businessId: string;
@@ -130,6 +134,14 @@ export async function assignCampaignToDevice(params: {
     await tx.campaign.update({
       where: { id: campaign.id },
       data: { status: "LIVE" },
+    });
+
+    await syncTapPointStatusForDevice({
+      id: device.id,
+      deviceCode: device.deviceCode,
+      businessId: device.businessId,
+      nickname: device.nickname,
+      status: "ACTIVE",
     });
 
     return assignment;
@@ -357,6 +369,14 @@ export async function createDeviceForBusiness(
       nickname: nickname ?? `Device ${activeCount + 1}`,
       status: "UNASSIGNED",
     },
+  }).then(async (device) => {
+    await ensureTapPointForDeviceSlot({
+      deviceSlotId: device.id,
+      deviceCode: device.deviceCode,
+      businessId: device.businessId,
+      name: device.nickname,
+    });
+    return device;
   });
 }
 

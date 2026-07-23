@@ -1,0 +1,479 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
+import Link from "next/link";
+import { GitBranch, ListOrdered, Play, Plus, Save, Trash2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  JOURNEY_NODE_REGISTRY,
+  createEmptyJourney,
+  journeyToStages,
+  simulateJourney,
+  validateJourney,
+  type JourneyDefinition,
+  type JourneyNodeType,
+} from "@/lib/fusion/journey";
+import { cn } from "@/lib/utils";
+
+type DraftRow = {
+  id: string;
+  name: string;
+  status?: string;
+  updatedAt: string;
+};
+
+const PALETTE: JourneyNodeType[] = [
+  "trigger",
+  "wait",
+  "condition",
+  "message",
+  "award_loyalty",
+  "create_case",
+  "human_handoff",
+  "exit",
+];
+
+export function JourneyEditorShell({
+  businessId,
+  initialDrafts,
+  featureEnabled,
+}: {
+  businessId: string;
+  initialDrafts: DraftRow[];
+  featureEnabled: boolean;
+}) {
+  const [mode, setMode] = useState<"beginner" | "expert">("beginner");
+  const [drafts, setDrafts] = useState(initialDrafts);
+  const [definition, setDefinition] = useState<JourneyDefinition>(() => createEmptyJourney());
+  const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
+  const [status, setStatus] = useState<string>("DRAFT");
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [edgeFrom, setEdgeFrom] = useState("");
+  const [edgeTo, setEdgeTo] = useState("");
+  const [edgeLabel, setEdgeLabel] = useState("");
+  const [message, setMessage] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  const issues = useMemo(() => validateJourney(definition), [definition]);
+  const simulation = useMemo(() => simulateJourney(definition), [definition]);
+  const stages = useMemo(() => journeyToStages(definition), [definition]);
+  const errors = issues.filter((i) => i.severity === "error");
+
+  function addNode(type: JourneyNodeType) {
+    const reg = JOURNEY_NODE_REGISTRY[type];
+    const id = `${type}_${Date.now()}`;
+    setDefinition((d) => ({
+      ...d,
+      nodes: [
+        ...d.nodes,
+        {
+          id,
+          type,
+          label: reg.label,
+          config: {},
+          position: { x: 120 + (d.nodes.length % 5) * 100, y: 60 + Math.floor(d.nodes.length / 5) * 72 },
+        },
+      ],
+    }));
+    setSelectedNodeId(id);
+  }
+
+  function removeNode(nodeId: string) {
+    setDefinition((d) => ({
+      ...d,
+      nodes: d.nodes.filter((n) => n.id !== nodeId),
+      edges: d.edges.filter((e) => e.from !== nodeId && e.to !== nodeId),
+    }));
+    if (selectedNodeId === nodeId) setSelectedNodeId(null);
+  }
+
+  function connectEdge() {
+    if (!edgeFrom || !edgeTo || edgeFrom === edgeTo) {
+      setMessage("Pick distinct from/to nodes to connect");
+      return;
+    }
+    const id = `e_${Date.now()}`;
+    setDefinition((d) => ({
+      ...d,
+      edges: [
+        ...d.edges,
+        { id, from: edgeFrom, to: edgeTo, label: edgeLabel.trim() || undefined },
+      ],
+    }));
+    setEdgeLabel("");
+    setMessage(`Connected ${edgeFrom} → ${edgeTo}`);
+  }
+
+  function removeEdge(edgeId: string) {
+    setDefinition((d) => ({ ...d, edges: d.edges.filter((e) => e.id !== edgeId) }));
+  }
+
+  function saveDraft() {
+    startTransition(async () => {
+      setMessage(null);
+      const res = await fetch("/api/journeys/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: selectedDraftId,
+          name: definition.name,
+          definition,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setMessage(data.error ?? "Save failed");
+        return;
+      }
+      setSelectedDraftId(data.draft.id);
+      setStatus(data.draft.status ?? "DRAFT");
+      setDrafts((prev) => {
+        const rest = prev.filter((p) => p.id !== data.draft.id);
+        return [
+          {
+            id: data.draft.id,
+            name: data.draft.name,
+            status: data.draft.status,
+            updatedAt: data.draft.updatedAt,
+          },
+          ...rest,
+        ];
+      });
+      setMessage(`Saved draft ${data.draft.id.slice(0, 8)}…`);
+    });
+  }
+
+  function lifecycle(action: "publish" | "activate" | "pause") {
+    if (!selectedDraftId) {
+      setMessage("Save draft before publish/activate/pause");
+      return;
+    }
+    startTransition(async () => {
+      setMessage(null);
+      const res = await fetch("/api/journeys/draft", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedDraftId, action }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setMessage(data.error ?? `${action} failed`);
+        return;
+      }
+      setStatus(data.draft.status);
+      setDrafts((prev) =>
+        prev.map((d) =>
+          d.id === data.draft.id
+            ? { ...d, status: data.draft.status, updatedAt: data.draft.updatedAt }
+            : d
+        )
+      );
+      setMessage(`${action} → ${data.draft.status} (audited + outbox)`);
+    });
+  }
+
+  async function loadDraft(id: string) {
+    const res = await fetch(`/api/journeys/draft?id=${id}`);
+    const data = await res.json();
+    if (!res.ok || !data.draft) {
+      setMessage(data.error ?? "Load failed");
+      return;
+    }
+    setSelectedDraftId(id);
+    setDefinition(data.draft.definition as JourneyDefinition);
+    setStatus(data.draft.status ?? "DRAFT");
+    setMessage(`Loaded “${data.draft.name}” (${data.draft.status})`);
+  }
+
+  return (
+    <div className="space-y-6">
+      {!featureEnabled && (
+        <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200/90">
+          journey.tapflow is disabled — editor runs in draft-only mode. Enable in{" "}
+          <Link href="/admin/platform" className="underline">
+            Platform Admin
+          </Link>
+          .
+        </div>
+      )}
+
+      <div className="flex flex-wrap items-end gap-3">
+        <div className="min-w-[200px] flex-1 space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Journey name</p>
+          <Input
+            value={definition.name}
+            onChange={(e) => setDefinition((d) => ({ ...d, name: e.target.value }))}
+          />
+        </div>
+        <Badge variant="outline" className="font-mono text-xs">
+          {status}
+        </Badge>
+        <div className="flex rounded-lg border border-border/60 p-0.5">
+          <button
+            type="button"
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium",
+              mode === "beginner" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+            )}
+            onClick={() => setMode("beginner")}
+          >
+            <ListOrdered className="mr-1 inline h-3.5 w-3.5" />
+            Beginner
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "rounded-md px-3 py-1.5 text-xs font-medium",
+              mode === "expert" ? "bg-primary text-primary-foreground" : "text-muted-foreground"
+            )}
+            onClick={() => setMode("expert")}
+          >
+            <GitBranch className="mr-1 inline h-3.5 w-3.5" />
+            Expert
+          </button>
+        </div>
+        <Button onClick={saveDraft} disabled={pending || errors.length > 0} className="gap-2">
+          <Save className="h-4 w-4" />
+          {pending ? "Saving…" : "Save draft"}
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending || !selectedDraftId}
+          onClick={() => lifecycle("publish")}
+        >
+          Publish
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending || !selectedDraftId || !featureEnabled}
+          onClick={() => lifecycle("activate")}
+        >
+          Activate
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending || !selectedDraftId}
+          onClick={() => lifecycle("pause")}
+        >
+          Pause
+        </Button>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-3">
+        <div className="space-y-3 rounded-xl border border-border/60 bg-card/40 p-4 lg:col-span-1">
+          <p className="text-sm font-semibold">Node palette</p>
+          <div className="flex flex-wrap gap-2">
+            {PALETTE.map((type) => (
+              <Button key={type} type="button" variant="outline" size="sm" onClick={() => addNode(type)}>
+                <Plus className="mr-1 h-3 w-3" />
+                {JOURNEY_NODE_REGISTRY[type].label}
+              </Button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {definition.nodes.length} nodes · {definition.edges.length} edges
+          </p>
+
+          <div className="space-y-2 border-t border-border/40 pt-3">
+            <p className="text-xs font-medium text-muted-foreground">Connect edge</p>
+            <select
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              value={edgeFrom}
+              onChange={(e) => setEdgeFrom(e.target.value)}
+            >
+              <option value="">From…</option>
+              {definition.nodes.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.label} ({n.id.slice(0, 12)})
+                </option>
+              ))}
+            </select>
+            <select
+              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
+              value={edgeTo}
+              onChange={(e) => setEdgeTo(e.target.value)}
+            >
+              <option value="">To…</option>
+              {definition.nodes.map((n) => (
+                <option key={n.id} value={n.id}>
+                  {n.label} ({n.id.slice(0, 12)})
+                </option>
+              ))}
+            </select>
+            <Input
+              placeholder="Label (optional, e.g. true)"
+              value={edgeLabel}
+              onChange={(e) => setEdgeLabel(e.target.value)}
+            />
+            <Button type="button" size="sm" variant="secondary" onClick={connectEdge}>
+              Connect
+            </Button>
+          </div>
+
+          {drafts.length > 0 && (
+            <div className="space-y-2 border-t border-border/40 pt-3">
+              <p className="text-xs font-medium text-muted-foreground">Saved drafts</p>
+              {drafts.map((d) => (
+                <button
+                  key={d.id}
+                  type="button"
+                  onClick={() => loadDraft(d.id)}
+                  className="block w-full rounded-lg bg-muted/30 px-3 py-2 text-left text-sm hover:bg-muted/50"
+                >
+                  {d.name}
+                  <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                    {d.status ?? "DRAFT"} · {d.id.slice(0, 8)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="rounded-xl border border-border/60 bg-card/30 p-4 lg:col-span-2">
+          {mode === "beginner" ? (
+            <>
+              <div className="mb-3 flex items-center gap-2">
+                <ListOrdered className="h-4 w-4 text-primary" />
+                <p className="font-semibold">Stage list</p>
+                <span className="text-xs text-muted-foreground">same engine as expert graph</span>
+              </div>
+              <ol className="space-y-2">
+                {stages.map((node, idx) => (
+                  <li
+                    key={node.id}
+                    className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2"
+                  >
+                    <div>
+                      <p className="text-sm font-medium">
+                        {idx + 1}. {node.label}
+                      </p>
+                      <p className="font-mono text-[10px] text-muted-foreground">{node.type}</p>
+                    </div>
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      onClick={() => removeNode(node.id)}
+                      aria-label="Remove node"
+                    >
+                      <Trash2 className="h-4 w-4 text-muted-foreground" />
+                    </Button>
+                  </li>
+                ))}
+              </ol>
+            </>
+          ) : (
+            <>
+              <div className="mb-3 flex items-center gap-2">
+                <GitBranch className="h-4 w-4 text-primary" />
+                <p className="font-semibold">Expert graph</p>
+              </div>
+              <div className="relative min-h-[280px] overflow-auto rounded-lg border border-dashed border-border/50 bg-background/50 p-4">
+                {definition.nodes.map((node) => (
+                  <div
+                    key={node.id}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => setSelectedNodeId(node.id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") setSelectedNodeId(node.id);
+                    }}
+                    className={cn(
+                      "absolute cursor-pointer rounded-lg border bg-card px-3 py-2 text-xs shadow-sm",
+                      selectedNodeId === node.id
+                        ? "border-primary ring-1 ring-primary"
+                        : "border-primary/30"
+                    )}
+                    style={{ left: node.position.x, top: node.position.y }}
+                  >
+                    <p className="font-medium text-primary">{node.label}</p>
+                    <p className="font-mono text-[10px] text-muted-foreground">{node.type}</p>
+                  </div>
+                ))}
+              </div>
+              {selectedNodeId ? (
+                <div className="mt-3 flex items-center gap-2">
+                  <p className="font-mono text-xs text-muted-foreground">{selectedNodeId}</p>
+                  <Button type="button" size="sm" variant="destructive" onClick={() => removeNode(selectedNodeId)}>
+                    Remove node
+                  </Button>
+                </div>
+              ) : null}
+              <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                {definition.edges.map((e) => (
+                  <li key={e.id} className="flex items-center justify-between gap-2">
+                    <span className="font-mono">
+                      {e.from.slice(0, 14)} → {e.to.slice(0, 14)}
+                      {e.label ? ` (${e.label})` : ""}
+                    </span>
+                    <button type="button" className="text-red-400 hover:underline" onClick={() => removeEdge(e.id)}>
+                      remove
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+          <div className="mt-4 space-y-2">
+            <p className="text-xs font-medium text-muted-foreground">Definition JSON</p>
+            <Textarea
+              className="font-mono text-[11px]"
+              rows={6}
+              value={JSON.stringify(definition, null, 2)}
+              onChange={(e) => {
+                try {
+                  setDefinition(JSON.parse(e.target.value) as JourneyDefinition);
+                } catch {
+                  /* ignore parse while typing */
+                }
+              }}
+            />
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <div className="rounded-xl border border-border/60 p-4">
+          <p className="mb-2 text-sm font-semibold">Validation</p>
+          {issues.length === 0 ? (
+            <p className="text-sm text-primary">No issues</p>
+          ) : (
+            <ul className="space-y-1 text-sm">
+              {issues.map((i, idx) => (
+                <li key={idx} className={i.severity === "error" ? "text-red-400" : "text-muted-foreground"}>
+                  [{i.severity}] {i.message}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+        <div className="rounded-xl border border-border/60 p-4">
+          <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
+            <Play className="h-4 w-4 text-primary" />
+            Sample path simulation
+          </p>
+          <Badge variant={simulation.completed ? "default" : "outline"} className="mb-2">
+            {simulation.completed ? "Reaches exit" : "Incomplete path"}
+          </Badge>
+          <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+            {simulation.steps.map((s) => (
+              <li key={s.nodeId}>
+                {s.label}: {s.action}
+              </li>
+            ))}
+          </ol>
+        </div>
+      </div>
+
+      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      <p className="font-mono text-[10px] text-muted-foreground">business: {businessId}</p>
+    </div>
+  );
+}

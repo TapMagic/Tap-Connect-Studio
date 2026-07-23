@@ -1,0 +1,114 @@
+import Link from "next/link";
+import { requireBusiness } from "@/lib/auth";
+import { fetchInsightsSnapshot } from "@/lib/fusion/insights/metrics";
+import { labelEvidence } from "@/lib/fusion/insights/tapproof";
+import { buttonVariants } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { BarChart3 } from "lucide-react";
+
+export const dynamic = "force-dynamic";
+
+const RANGE_OPTIONS = [7, 14, 30, 90] as const;
+
+export default async function InsightsHubPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ days?: string }>;
+}) {
+  const { business } = await requireBusiness();
+  const params = await searchParams;
+  const days = Number(params.days ?? "14") || 14;
+
+  let snapshot: Awaited<ReturnType<typeof fetchInsightsSnapshot>> | null = null;
+  try {
+    snapshot = await fetchInsightsSnapshot(business.id, days);
+  } catch {
+    snapshot = null;
+  }
+
+  const kpis = snapshot?.kpis ?? [];
+  const empty = snapshot?.empty ?? true;
+
+  return (
+    <div className="space-y-6 p-4 sm:p-6">
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            What happened, why it matters, evidence class, next action.
+          </p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/dashboard/analytics" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            Full analytics
+          </Link>
+          <a
+            href={`/api/insights/export?days=${days}&format=csv`}
+            className={buttonVariants({ variant: "outline", size: "sm" })}
+          >
+            Export CSV
+          </a>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        {RANGE_OPTIONS.map((d) => (
+          <Link
+            key={d}
+            href={`/dashboard/insights?days=${d}`}
+            className={buttonVariants({
+              variant: d === days ? "default" : "outline",
+              size: "sm",
+            })}
+          >
+            {d}d
+          </Link>
+        ))}
+      </div>
+
+      {empty || !snapshot ? (
+        <Card className="border-dashed border-border/60">
+          <CardHeader>
+            <CardTitle>No confirmed activity yet</CardTitle>
+            <CardDescription>
+              Insights stay empty until TapEvents, Leads, or Contacts appear. Nothing here is
+              seeded — all KPIs are Prisma-derived when data exists.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+          {kpis.map((k) => (
+            <div key={k.key} className="rounded-xl border border-border/60 bg-card/40 p-4">
+              <p className="text-xs text-muted-foreground">{k.label}</p>
+              <p className="text-2xl font-semibold tabular-nums">
+                {k.key === "conversion" ? `${k.value}%` : k.value}
+              </p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                {labelEvidence(k.evidenceClass)}
+                {k.seeded ? " · Seeded" : " · Confirmed source"} · {k.source}
+              </p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <Card className="border-border/60">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            <CardTitle>Evidence legend</CardTitle>
+          </div>
+          <CardDescription>
+            Confirmed = stored events · Derived = computed from confirmed · Modeled = never shown as
+            fact · Incomplete = missing data
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="text-sm text-muted-foreground">
+          Range {snapshot?.from.slice(0, 10) ?? "—"} → {snapshot?.to.slice(0, 10) ?? "—"} · fetched{" "}
+          {snapshot ? new Date(snapshot.fetchedAt).toLocaleString() : "unavailable"}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

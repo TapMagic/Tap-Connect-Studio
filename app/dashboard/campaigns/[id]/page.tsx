@@ -10,6 +10,8 @@ import {
   isAiReady,
   isEmailReady,
 } from "@/lib/config/integrations";
+import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
+import { isFeatureExecutable } from "@/lib/fusion/features/resolve";
 import type { ContentBlock } from "@/lib/types/campaign";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +41,9 @@ export default async function CampaignEditPage({ params }: PageProps) {
   ]);
 
   if (!campaign) notFound();
+
+  const overrides = toResolveOverrides(await listFeatureOverrides());
+  const autopilotReady = isFeatureExecutable("ai.autopilot", { overrides });
 
   return (
     <CampaignEditor
@@ -80,6 +85,7 @@ export default async function CampaignEditPage({ params }: PageProps) {
         ai: isAiReady(),
         email: isEmailReady(),
       }}
+      autopilotReady={autopilotReady}
       subscriptionTier={business.subscriptionTier}
     />
   );

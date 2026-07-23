@@ -6,6 +6,7 @@ import type { ButtonItem, ContentBlock } from "@/lib/types/campaign";
 import { blockStyleToCss } from "@/components/workbench/block-style-controls";
 import { extractYouTubeId } from "@/lib/utils/app";
 import { CampaignLeadForm } from "@/components/tap/lead-form";
+import { KeepCardCta } from "@/components/tap/keep-card-cta";
 import { TapActionButton } from "@/components/tap/action-button";
 import { RichTapButton, resolveActionHref } from "@/components/tap/rich-button";
 import {
@@ -52,6 +53,8 @@ interface CampaignPageProps {
   editMode?: boolean;
   /** Skip lead API (homepage / marketing demos) */
   previewMode?: boolean;
+  /** TapSave Keep Card CTA — gated by tapsave.core */
+  keepCardEnabled?: boolean;
 }
 
 const PAGE_FONT: Record<string, string> = {
@@ -164,6 +167,7 @@ export function CampaignPageRenderer({
   onSelectBlock,
   editMode = false,
   previewMode = false,
+  keepCardEnabled = false,
 }: CampaignPageProps) {
   const contactProfile: BrandContactProfile = {
     ...parseBrandContactProfile(brandKit?.socialLinks),
@@ -259,6 +263,16 @@ export function CampaignPageRenderer({
         {showUpcomingStrip && !hasUpcomingBlock && upcomingItems.length > 0 && (
           <UpcomingStrip headline="Coming up" items={upcomingItems} />
         )}
+        {!editMode && keepCardEnabled ? (
+          <KeepCardCta
+            businessId={businessId}
+            businessName={businessName}
+            campaignId={campaignId}
+            deviceSlotId={deviceSlotId}
+            enabled
+            previewMode={previewMode}
+          />
+        ) : null}
         <footer className="px-4 py-10">
           <PoweredByTapTheMagic />
         </footer>

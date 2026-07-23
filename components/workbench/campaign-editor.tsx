@@ -176,6 +176,39 @@ const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unk
     label: "Banner",
     data: { text: "Limited time — tap to learn more", backgroundColor: "#a3e635", textColor: "#0b0f19" },
   },
+  {
+    type: "image_gallery",
+    label: "Image gallery",
+    data: {
+      headline: "Gallery",
+      images: [],
+      layout: "grid",
+      columns: 2,
+    },
+  },
+  {
+    type: "feedback_form",
+    label: "Feedback form",
+    data: {
+      headline: "How was your visit?",
+      description: "Tell us what we can improve.",
+      buttonLabel: "Send feedback",
+      fields: ["name", "email", "message"],
+      requireName: false,
+      successMessage: "Thanks — we read every note.",
+    },
+  },
+  {
+    type: "age_gate",
+    label: "Age gate",
+    data: {
+      headline: "Confirm your age",
+      description: "You must be of legal age to continue.",
+      minAge: 21,
+      buttonLabel: "I am of age",
+      denyMessage: "Sorry — you must meet the age requirement.",
+    },
+  },
 ];
 
 interface CampaignEditorProps {
@@ -209,6 +242,7 @@ interface CampaignEditorProps {
     ai: boolean;
     email: boolean;
   };
+  autopilotReady?: boolean;
   subscriptionTier: string;
 }
 
@@ -217,7 +251,7 @@ const TABS: { id: EditorTab; label: string; icon: React.ComponentType<{ classNam
   { id: "qr", label: "QR Code", icon: QrCode },
   { id: "schedule", label: "Schedule", icon: Calendar },
   { id: "email", label: "Email", icon: Mail },
-  { id: "ai", label: "AI Assist", icon: Sparkles },
+  { id: "ai", label: "Automation Team", icon: Sparkles },
 ];
 
 export function CampaignEditor({
@@ -227,6 +261,7 @@ export function CampaignEditor({
   devices,
   siblingCampaigns,
   integrations,
+  autopilotReady = false,
   subscriptionTier,
 }: CampaignEditorProps) {
   const router = useRouter();
@@ -767,6 +802,7 @@ export function CampaignEditor({
             {tab === "ai" && (
               <AiAssistPanel
                 aiReady={integrations.ai}
+                autopilotReady={autopilotReady}
                 tier={subscriptionTier}
                 onApplyDraft={({ title: nextTitle, blocks: nextBlocks, theme: nextTheme }) => {
                   if (nextTitle) setTitle(nextTitle);

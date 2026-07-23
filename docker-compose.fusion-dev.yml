@@ -1,0 +1,25 @@
+# Isolated Postgres for TapConnect fusion branch ONLY.
+# Never point this stack at Railway. Never reuse V1 production volumes.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tapconnect-fusion-dev-pg
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: tapconnect
+      POSTGRES_PASSWORD: tapconnect
+      POSTGRES_DB: tapconnect_fusion_dev
+    volumes:
+      - tapconnect_fusion_dev_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tapconnect -d tapconnect_fusion_dev"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  tapconnect_fusion_dev_pgdata:
+    name: tapconnect_fusion_dev_pgdata

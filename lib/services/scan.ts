@@ -1,6 +1,7 @@
 import { randomBytes } from "crypto";
 import type { ScanSessionType } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { ensureTapPointBridgeForDevice } from "@/lib/fusion/devices/tap-point-bridge";
 
 const SESSION_TTL_MS = 5 * 60 * 1000;
 
@@ -99,6 +100,8 @@ export async function claimScanSession(params: {
   if (!device?.businessId) {
     return { claimed: false as const, reason: "device_not_found" as const };
   }
+
+  void ensureTapPointBridgeForDevice(device);
 
   const now = new Date();
   let session = null;

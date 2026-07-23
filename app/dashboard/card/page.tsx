@@ -4,12 +4,19 @@ import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard } from "@/lib/brand/tap-card";
 import { isMediaUploadReady, isStockImagesReady } from "@/lib/config/integrations";
 import { prisma } from "@/lib/db";
+import { isFeatureEnabled } from "@/lib/fusion/features";
+import { listFeatureOverrides } from "@/lib/fusion/features/overrides";
 import "@/app/t/tap.css";
 
 export const dynamic = "force-dynamic";
 
 export default async function TapCardPage() {
   const { user, business } = await requireBusiness();
+  const overrides = await listFeatureOverrides();
+  const freeformEnabled = isFeatureEnabled("card.builder.freeform", {
+    overrides,
+    internalOperator: isPlatformAdmin(user),
+  });
   const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
   const profile = parseBrandContactProfile(brandKit?.socialLinks);
   const config = parseTapConnectCard(brandKit?.tapCard, {
@@ -114,6 +121,7 @@ export default async function TapCardPage() {
         isLandingDemo={Boolean(landingDemo)}
         devices={devices}
         campaigns={campaigns}
+        freeformEnabled={freeformEnabled}
       />
     </div>
   );

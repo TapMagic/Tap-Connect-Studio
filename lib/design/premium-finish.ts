@@ -73,14 +73,25 @@ export const PREMIUM_FONT_OPTIONS: { id: PremiumFontFamily; label: string; css: 
 
 export type TextFormat = {
   fontFamily?: PremiumFontFamily;
+  /** Custom / uploaded / brand font CSS stack when not using PremiumFontFamily presets */
+  customFontFamily?: string;
   fontSize?: "xs" | "sm" | "base" | "lg" | "xl" | "2xl" | "3xl";
+  /** Direct size entry in px — takes precedence over preset when set */
+  fontSizePx?: number;
   fontWeight?: "normal" | "medium" | "semibold" | "bold" | "black";
   italic?: boolean;
   underline?: boolean;
+  strikethrough?: boolean;
   uppercase?: boolean;
+  capitalization?: "none" | "uppercase" | "lowercase" | "capitalize";
   letterSpacing?: "tight" | "normal" | "wide";
-  align?: "left" | "center" | "right";
+  letterSpacingEm?: number;
+  lineHeight?: number | "tight" | "normal" | "relaxed";
+  wordSpacing?: number;
+  align?: "left" | "center" | "right" | "justify";
   color?: string;
+  backgroundColor?: string;
+  maxLines?: number;
 };
 
 export const FONT_SIZE_CSS: Record<NonNullable<TextFormat["fontSize"]>, string> = {
@@ -103,22 +114,58 @@ export const FONT_WEIGHT_CSS: Record<NonNullable<TextFormat["fontWeight"]>, numb
 
 export function textFormatToCss(format?: TextFormat): CSSProperties {
   if (!format) return {};
-  const family = PREMIUM_FONT_OPTIONS.find((f) => f.id === format.fontFamily)?.css;
+  const family =
+    format.customFontFamily ||
+    PREMIUM_FONT_OPTIONS.find((f) => f.id === format.fontFamily)?.css;
+  const decorations = [
+    format.underline ? "underline" : null,
+    format.strikethrough ? "line-through" : null,
+  ].filter(Boolean);
+  const textTransform =
+    format.capitalization && format.capitalization !== "none"
+      ? format.capitalization
+      : format.uppercase
+        ? "uppercase"
+        : undefined;
   return {
     fontFamily: family,
-    fontSize: format.fontSize ? FONT_SIZE_CSS[format.fontSize] : undefined,
+    fontSize: format.fontSizePx
+      ? `${format.fontSizePx}px`
+      : format.fontSize
+        ? FONT_SIZE_CSS[format.fontSize]
+        : undefined,
     fontWeight: format.fontWeight ? FONT_WEIGHT_CSS[format.fontWeight] : undefined,
     fontStyle: format.italic ? "italic" : undefined,
-    textDecoration: format.underline ? "underline" : undefined,
-    textTransform: format.uppercase ? "uppercase" : undefined,
+    textDecoration: decorations.length ? decorations.join(" ") : undefined,
+    textTransform,
     letterSpacing:
-      format.letterSpacing === "tight"
-        ? "-0.02em"
-        : format.letterSpacing === "wide"
-          ? "0.08em"
-          : undefined,
+      typeof format.letterSpacingEm === "number"
+        ? `${format.letterSpacingEm}em`
+        : format.letterSpacing === "tight"
+          ? "-0.02em"
+          : format.letterSpacing === "wide"
+            ? "0.08em"
+            : undefined,
+    lineHeight:
+      typeof format.lineHeight === "number"
+        ? format.lineHeight
+        : format.lineHeight === "tight"
+          ? 1.15
+          : format.lineHeight === "relaxed"
+            ? 1.65
+            : undefined,
+    wordSpacing: typeof format.wordSpacing === "number" ? `${format.wordSpacing}em` : undefined,
     textAlign: format.align,
     color: format.color,
+    backgroundColor: format.backgroundColor,
+    ...(format.maxLines
+      ? {
+          display: "-webkit-box",
+          WebkitLineClamp: format.maxLines,
+          WebkitBoxOrient: "vertical" as const,
+          overflow: "hidden",
+        }
+      : {}),
   };
 }
 

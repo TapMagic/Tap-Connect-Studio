@@ -7,12 +7,21 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts lib/fusion/**/*.test.ts",
+    "test:fusion": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts",
+    "smoke:fusion": "npx tsx scripts/fusion-smoke-routes.ts",
+    "smoke:fusion:curl": "bash scripts/fusion-smoke-curl.sh",
     "postinstall": "prisma generate || true",
     "db:generate": "prisma generate",
-    "db:migrate": "prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "db:push": "prisma db push",
-    "db:studio": "prisma studio"
+    "db:migrate": "tsx scripts/fusion-migrate.ts dev",
+    "db:migrate:deploy": "tsx scripts/fusion-migrate.ts deploy",
+    "db:migrate:status": "tsx scripts/fusion-migrate.ts status",
+    "db:push": "echo 'REFUSED: use npm run db:migrate against isolated tapconnect_fusion_dev only. See docs/fusion/LOCAL_DEV_DATABASE.md' && exit 1",
+    "db:studio": "prisma studio",
+    "fusion:dev-db": "docker compose -f docker-compose.fusion-dev.yml up -d",
+    "fusion:db-ready": "tsx scripts/fusion-db-readiness.ts",
+    "fusion:seed": "tsx scripts/fusion-seed.ts",
+    "test:fusion": "tsx --test 'lib/fusion/**/__tests__/**/*.test.ts' 'lib/fusion/__tests__/**/*.test.ts'"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1085.0",
@@ -52,6 +61,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "tailwindcss": "^4",
+    "tsx": "^4.23.1",
     "typescript": "^5"
   },
   "engines": {

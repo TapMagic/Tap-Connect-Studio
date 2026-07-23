@@ -13,6 +13,7 @@ import {
   Palette,
   PenTool,
   ScanLine,
+  Settings,
   Shield,
   Users,
   Zap,
@@ -21,7 +22,13 @@ import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { href: "/dashboard", label: "Overview", icon: LayoutDashboard },
+  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
+  { href: "/dashboard/experiences", label: "Experiences", icon: Layers3 },
+  { href: "/dashboard/tap-points", label: "Tap Points", icon: Nfc },
+  { href: "/dashboard/audience", label: "Audience", icon: Users },
+  { href: "/dashboard/insights", label: "Insights", icon: BarChart3 },
+  { href: "/dashboard/assets", label: "Assets", icon: Palette },
+  { href: "/dashboard/settings", label: "Settings", icon: Settings },
   { href: "/dashboard/workbench", label: "Workbench", icon: PenTool },
   { href: "/dashboard/campaigns", label: "Campaigns", icon: Layers3 },
   { href: "/dashboard/card", label: "Tap Card", icon: CreditCard },
