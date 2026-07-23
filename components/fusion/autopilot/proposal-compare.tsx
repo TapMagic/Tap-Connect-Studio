@@ -1,6 +1,6 @@
 "use client";
 
-import { compareProposals, type ComparableProposal } from "@/lib/fusion/autopilot/budget";
+import { compareProposals, type ComparableProposal } from "@/lib/fusion/autopilot/compare";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 

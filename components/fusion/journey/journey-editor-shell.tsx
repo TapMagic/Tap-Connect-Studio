@@ -14,7 +14,6 @@ import {
   buildJourneyAnalyticsOverlay,
   executeJourneyDryRun,
   journeyToStages,
-  listJourneyRuns,
   planJourneyRecovery,
   recoverJourneyDryRun,
   simulateJourney,
@@ -75,12 +74,8 @@ export function JourneyEditorShell({
   );
   const stages = useMemo(() => journeyToStages(definition), [definition]);
   const analytics = useMemo(
-    () =>
-      buildJourneyAnalyticsOverlay(
-        definition,
-        listJourneyRuns(businessId).filter((r) => r.journeyName === definition.name)
-      ),
-    [definition, businessId]
+    () => buildJourneyAnalyticsOverlay(definition, []),
+    [definition]
   );
   const recoveryPlan = useMemo(() => {
     const base = runtimeEvents

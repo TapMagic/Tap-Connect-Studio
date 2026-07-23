@@ -5,11 +5,11 @@ import { prisma } from "@/lib/db";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
-  recordJourneyDryRun,
+  SAMPLE_VISITOR,
   type JourneyDefinition,
   type VisitorContext,
-  SAMPLE_VISITOR,
 } from "@/lib/fusion/journey";
+import { recordJourneyDryRun } from "@/lib/fusion/journey/runs";
 
 const schema = z.object({
   definition: z.record(z.string(), z.unknown()).optional(),

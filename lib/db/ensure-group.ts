@@ -93,20 +93,39 @@ export async function ensureCampaignGroupTables(): Promise<boolean> {
       }
     }
 
-    for (const sql of [
-      `ALTER TABLE "CampaignGroup" ADD CONSTRAINT "CampaignGroup_businessId_fkey"
+    for (const [name, sql] of [
+      [
+        "CampaignGroup_businessId_fkey",
+        `ALTER TABLE "CampaignGroup" ADD CONSTRAINT "CampaignGroup_businessId_fkey"
         FOREIGN KEY ("businessId") REFERENCES "Business"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-      `ALTER TABLE "CampaignGroupSlot" ADD CONSTRAINT "CampaignGroupSlot_groupId_fkey"
+      ],
+      [
+        "CampaignGroupSlot_groupId_fkey",
+        `ALTER TABLE "CampaignGroupSlot" ADD CONSTRAINT "CampaignGroupSlot_groupId_fkey"
         FOREIGN KEY ("groupId") REFERENCES "CampaignGroup"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-      `ALTER TABLE "CampaignGroupSlot" ADD CONSTRAINT "CampaignGroupSlot_campaignId_fkey"
+      ],
+      [
+        "CampaignGroupSlot_campaignId_fkey",
+        `ALTER TABLE "CampaignGroupSlot" ADD CONSTRAINT "CampaignGroupSlot_campaignId_fkey"
         FOREIGN KEY ("campaignId") REFERENCES "Campaign"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-      `ALTER TABLE "CampaignGroupSlot" ADD CONSTRAINT "CampaignGroupSlot_businessId_fkey"
+      ],
+      [
+        "CampaignGroupSlot_businessId_fkey",
+        `ALTER TABLE "CampaignGroupSlot" ADD CONSTRAINT "CampaignGroupSlot_businessId_fkey"
         FOREIGN KEY ("businessId") REFERENCES "Business"("id") ON DELETE CASCADE ON UPDATE CASCADE`,
-    ]) {
+      ],
+    ] as const) {
+      const exists = await prisma.$queryRawUnsafe<{ exists: boolean }[]>(
+        `SELECT EXISTS (
+          SELECT 1 FROM pg_constraint WHERE conname = $1
+        ) AS "exists"`,
+        name
+      );
+      if (exists[0]?.exists) continue;
       try {
         await prisma.$executeRawUnsafe(sql);
       } catch {
-        /* exists */
+        /* race / exists */
       }
     }
 

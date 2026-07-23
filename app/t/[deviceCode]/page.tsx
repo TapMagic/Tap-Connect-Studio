@@ -19,7 +19,7 @@ export const dynamic = "force-dynamic";
 
 type TapPageProps = {
   params: Promise<{ deviceCode: string }>;
-  searchParams: Promise<{ public?: string }>;
+  searchParams: Promise<{ public?: string; at?: string }>;
 };
 
 export async function generateMetadata({ params }: TapPageProps): Promise<Metadata> {
@@ -44,7 +44,10 @@ export async function generateMetadata({ params }: TapPageProps): Promise<Metada
 
 export default async function TapPage({ params, searchParams }: TapPageProps) {
   const { deviceCode } = await params;
-  const { public: forcePublic } = await searchParams;
+  const { public: forcePublic, at: atRaw } = await searchParams;
+  const atParsed = atRaw ? new Date(atRaw) : null;
+  const at =
+    atParsed && !Number.isNaN(atParsed.getTime()) ? atParsed : undefined;
 
   // If dashboard Scan Mode is waiting, claim this tap for the owner
   // Skip when ?public=1 so a real visitor can still open the campaign
@@ -66,7 +69,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     }
   }
 
-  const result = await getDeviceWithActiveCampaign(deviceCode);
+  const result = await getDeviceWithActiveCampaign(deviceCode, { at });
 
   if (!result) {
     return (

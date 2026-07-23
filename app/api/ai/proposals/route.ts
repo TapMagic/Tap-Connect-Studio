@@ -8,7 +8,7 @@ import {
   getProposalGovernanceTrail,
   listProposals,
 } from "@/lib/fusion/autopilot/proposals";
-import { compareProposals } from "@/lib/fusion/autopilot/budget";
+import { compareProposals } from "@/lib/fusion/autopilot/compare";
 
 const decideSchema = z.object({
   proposalId: z.string().min(1),

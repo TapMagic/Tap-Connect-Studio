@@ -7,7 +7,7 @@ import { ProposalCompareSnippet } from "@/components/fusion/autopilot/proposal-c
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ContentBlock } from "@/lib/types/campaign";
-import type { ComparableProposal } from "@/lib/fusion/autopilot/budget";
+import type { ComparableProposal } from "@/lib/fusion/autopilot/compare";
 import {
   shouldRevertEditorOnUndo,
   type EditorSnapshot,

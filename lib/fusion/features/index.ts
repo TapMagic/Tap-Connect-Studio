@@ -1,6 +1,4 @@
+/** Client-safe feature exports (no Node fs / Prisma). */
 export * from "./registry";
 export * from "./resolve";
-export * from "./overrides";
-export * from "./repository";
-export * from "./prisma-repository";
-export * from "./file-repository";
+export type { FeatureOverrideRepository, SetFeatureOverrideInput, SetFeatureOverrideResult, StoredFeatureOverride } from "./repository";

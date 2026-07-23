@@ -3,8 +3,19 @@
  */
 
 import type { JourneyDefinition } from "./types";
-import type { JourneyRunRecord } from "./runs";
 import { executeJourneyDryRun, SAMPLE_VISITOR } from "./runtime";
+
+export type JourneyRunOverlayRecord = {
+  id?: string;
+  businessId?: string;
+  journeyName: string;
+  status: string;
+  path: string[];
+  issues?: unknown[];
+  visitor?: Record<string, unknown>;
+  createdAt?: string;
+  dryRun?: boolean;
+};
 
 export type JourneyAnalyticsOverlay = {
   nodeVisitEstimates: Array<{ nodeId: string; label: string; estimatedVisits: number }>;
@@ -19,7 +30,7 @@ export type JourneyAnalyticsOverlay = {
  */
 export function buildJourneyAnalyticsOverlay(
   definition: JourneyDefinition,
-  runs: JourneyRunRecord[] = []
+  runs: JourneyRunOverlayRecord[] = []
 ): JourneyAnalyticsOverlay {
   const confirmed = runs.filter((r) => r.journeyName === definition.name);
   if (confirmed.length > 0) {

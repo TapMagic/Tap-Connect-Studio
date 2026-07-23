@@ -5,8 +5,12 @@ import { resolveGroupCampaign, resolveScheduledCampaign } from "@/lib/services/s
 import { ensureCampaignGroupTables } from "@/lib/db/ensure-group";
 import { ensureTapPointBridgeForDevice, resolveDeviceSlotByPublicCode } from "@/lib/fusion/devices/tap-point-bridge";
 
-export async function getDeviceWithActiveCampaign(deviceCode: string) {
+export async function getDeviceWithActiveCampaign(
+  deviceCode: string,
+  options?: { at?: Date }
+) {
   await ensureCampaignGroupTables();
+  const at = options?.at ?? new Date();
 
   const deviceInclude = {
     business: { include: { brandKit: true } },
@@ -43,7 +47,7 @@ export async function getDeviceWithActiveCampaign(deviceCode: string) {
 
   // 1) Campaign group (shared schedule across devices) wins when device is linked
   if (device.campaignGroupId) {
-    const fromGroup = await resolveGroupCampaign(device.campaignGroupId);
+    const fromGroup = await resolveGroupCampaign(device.campaignGroupId, at);
     if (fromGroup?.campaign) {
       return {
         device,
@@ -57,7 +61,7 @@ export async function getDeviceWithActiveCampaign(deviceCode: string) {
   }
 
   // 2) Per-device schedule rules
-  const scheduled = await resolveScheduledCampaign(device.id);
+  const scheduled = await resolveScheduledCampaign(device.id, at);
   if (scheduled?.campaign) {
     return {
       device,
