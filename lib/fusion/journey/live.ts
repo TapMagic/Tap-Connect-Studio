@@ -12,6 +12,7 @@ import { createGovernedEvent, enqueueOutboxSync } from "@/lib/fusion/publication
 import type { JourneyDefinition } from "./types";
 import { executeJourneyDryRun, type VisitorContext } from "./runtime";
 import { type JourneyRunRecord, type JourneyRunStatus, listJourneyRuns } from "./runs";
+import { precheckTapFlowEffect } from "./effect-guardian";
 
 const liveRuns: JourneyRunRecord[] = [];
 
@@ -21,6 +22,11 @@ export function resetLiveJourneyRunsMemory() {
 
 export function listLiveJourneyRuns(businessId: string, limit = 30): JourneyRunRecord[] {
   return liveRuns.filter((r) => r.businessId === businessId).slice(0, limit);
+}
+
+/** All live run records in memory (Admin / failure analytics). */
+export function listAllLiveJourneyRunRecords(limit = 200): JourneyRunRecord[] {
+  return liveRuns.slice(0, limit);
 }
 
 function parseDefinition(raw: unknown): JourneyDefinition | null {
@@ -60,6 +66,7 @@ async function enqueueNodeEffects(input: {
   journeyName: string;
   runId: string;
   visitorId: string;
+  visitor: VisitorContext;
   events: Array<{
     nodeId: string;
     type: string;
@@ -80,7 +87,18 @@ async function enqueueNodeEffects(input: {
     ) {
       continue;
     }
-    const topic = `tapflow.effect.${ev.action}`;
+    const channel = ev.action === "message" ? ev.detail : undefined;
+    const precheck = precheckTapFlowEffect({
+      action: ev.action,
+      visitor: input.visitor,
+      channel,
+      requireMarketingConsent: ev.detail?.includes("marketing consent"),
+      recipientId: input.visitorId,
+    });
+    if (!precheck.queue) {
+      continue;
+    }
+    const topic = precheck.topic ?? `tapflow.effect.${ev.action}`;
     const envelope = createGovernedEvent({
       name: topic,
       businessId: input.businessId,
@@ -95,6 +113,7 @@ async function enqueueNodeEffects(input: {
         type: ev.type,
         detail: ev.detail,
         actorId: input.actorId ?? "system:tapflow",
+        guardian: precheck.guardian?.code ?? "ok",
       },
     });
     await enqueueOutboxSync(topic, envelope);
@@ -183,6 +202,7 @@ export async function executeActiveJourneysForVisitor(input: {
       journeyName: journey.name,
       runId: run.id,
       visitorId: input.visitor.visitorId ?? "anonymous",
+      visitor: input.visitor,
       events: result.events,
       actorId: input.actorId,
     }).catch(() => undefined);

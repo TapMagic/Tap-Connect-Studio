@@ -32,7 +32,7 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run). Lates
 |------|--------|
 | V1 Builder/Campaigns/Scan floor | Preserve / continuous parity |
 | Durable outbox + worker tick + discard + Admin dead-letter console + effect drain | FUNCTIONAL |
-| TapSave / MyTap (+ loyalty balance when enrolled) | FUNCTIONAL |
+| TapSave / MyTap (+ loyalty balance, tier, recent ledger, a11y skip) | FUNCTIONAL |
 | Autopilot proposals, recipes v1.2, budget/ledger API, Knowledge seed/API + Settings UI, governed accept→apply→undo | FUNCTIONAL |
 | TapFlow lifecycle + dry-run + analytics/recovery + live tap executor (queue-only effects) | FUNCTIONAL (provider side effects still open) |
 | TapLoop | FUNCTIONAL |

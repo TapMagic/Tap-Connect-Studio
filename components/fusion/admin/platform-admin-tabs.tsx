@@ -17,6 +17,7 @@ import { cn } from "@/lib/utils";
 import type { BillingReadiness } from "@/lib/fusion/billing";
 import type { CommerceStripeReadiness } from "@/lib/fusion/commerce";
 import type { ExecutiveKpis, DeviceFleetSummary } from "@/lib/fusion/admin/dashboard-metrics";
+import type { FailureRecoverySnapshot } from "@/lib/fusion/insights/failure-recovery";
 import type { FeatureOverride } from "@/lib/fusion/features";
 import { FeatureRegistryPanel } from "@/components/fusion/admin/feature-registry-panel";
 import { StripeConnectionPanel } from "@/components/fusion/billing/stripe-connection-panel";
@@ -149,6 +150,7 @@ function KillSwitchPanel({
 export function PlatformAdminTabs({
   kpis,
   fleet,
+  failureRecovery,
   initialOverrides,
   connectorRows,
   messagingRows,
@@ -161,6 +163,7 @@ export function PlatformAdminTabs({
 }: {
   kpis: ExecutiveKpis;
   fleet: DeviceFleetSummary;
+  failureRecovery?: FailureRecoverySnapshot | null;
   initialOverrides: FeatureOverride[];
   connectorRows: {
     id: string;
@@ -266,6 +269,28 @@ export function PlatformAdminTabs({
               </Card>
             ))}
           </div>
+          {failureRecovery && !failureRecovery.empty ? (
+            <Card className="border-border/60 bg-card/40">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Failure &amp; recovery</CardTitle>
+                <CardDescription>
+                  Platform-scoped dead letters and blocked journey runs (memory / outbox).
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {failureRecovery.metrics.map((m) => (
+                  <div key={m.key} className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">{m.label}</p>
+                      <EvidenceBadge evidence={m.evidenceClass} />
+                    </div>
+                    <p className="text-xl font-semibold tabular-nums">{m.value}</p>
+                    {m.hint ? <p className="mt-1 text-[10px] text-muted-foreground">{m.hint}</p> : null}
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
         </section>
       )}
 

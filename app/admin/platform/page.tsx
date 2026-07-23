@@ -7,6 +7,7 @@ import {
   fetchDeviceFleetSummary,
   fetchExecutiveKpis,
 } from "@/lib/fusion/admin/dashboard-metrics";
+import { fetchPlatformFailureRecovery } from "@/lib/fusion/insights/failure-recovery";
 import { CONNECTOR_DEFINITIONS, connectorReady } from "@/lib/fusion/connectors/registry";
 import { evaluateBillingReadiness } from "@/lib/fusion/billing";
 import { evaluateCommerceStripeReadiness } from "@/lib/fusion/commerce";
@@ -25,7 +26,7 @@ export default async function PlatformAdminPage() {
   const resolveOverrides = toResolveOverrides(overrides);
   const ctx = { overrides: resolveOverrides, internalOperator: true };
 
-  const [kpis, fleet] = await Promise.all([
+  const [kpis, fleet, failureRecovery] = await Promise.all([
     fetchExecutiveKpis().catch((err) =>
       emptyExecutiveKpis(err instanceof Error ? err.message : "KPI fetch failed")
     ),
@@ -41,6 +42,7 @@ export default async function PlatformAdminPage() {
       dbConfigured: false,
       error: err instanceof Error ? err.message : "Fleet fetch failed",
     })),
+    fetchPlatformFailureRecovery().catch(() => null),
   ]);
 
   const ga = FEATURE_DEFINITIONS.filter((f) => f.maturity === "ga").length;
@@ -104,6 +106,7 @@ export default async function PlatformAdminPage() {
       <PlatformAdminTabs
         kpis={kpis}
         fleet={fleet}
+        failureRecovery={failureRecovery}
         initialOverrides={resolveOverrides}
         connectorRows={connectorRows}
         messagingRows={messagingRows}

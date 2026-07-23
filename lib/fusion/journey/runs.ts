@@ -39,6 +39,11 @@ export function listJourneyRuns(businessId: string, limit = 30): JourneyRunRecor
   return runs.filter((r) => r.businessId === businessId).slice(0, limit);
 }
 
+/** All dry-run records in memory (Admin / failure analytics). */
+export function listAllJourneyRunRecords(limit = 200): JourneyRunRecord[] {
+  return runs.slice(0, limit);
+}
+
 export function getJourneyRun(id: string): JourneyRunRecord | undefined {
   return runs.find((r) => r.id === id);
 }

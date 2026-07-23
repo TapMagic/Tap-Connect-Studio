@@ -65,7 +65,7 @@ export function DashboardNav({
           </div>
         </Link>
       </div>
-      <nav className="min-h-0 flex-1 space-y-1 p-3">
+      <nav className="min-h-0 flex-1 space-y-1 p-3" aria-label="Studio navigation">
         {items.map((item) => {
           const active =
             pathname === item.href ||
@@ -81,6 +81,7 @@ export function DashboardNav({
                   ? "bg-primary/15 text-primary"
                   : "text-muted-foreground hover:bg-accent hover:text-foreground"
               )}
+              {...(active ? { "aria-current": "page" as const } : {})}
             >
               <Icon className="h-4 w-4" />
               {item.label}
@@ -121,9 +122,14 @@ export function MobileDashboardNav({
           </div>
         </Link>
       </div>
-      <div className="flex gap-1 overflow-x-auto px-3 pb-3">
+      <nav
+        className="flex gap-1 overflow-x-auto px-3 pb-3"
+        aria-label="Studio navigation"
+      >
         {items.slice(0, 6).map((item) => {
-          const active = pathname.startsWith(item.href);
+          const active =
+            pathname === item.href ||
+            (item.href !== "/dashboard" && pathname.startsWith(item.href));
           return (
             <Link
               key={item.href}
@@ -132,12 +138,13 @@ export function MobileDashboardNav({
                 "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
                 active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
               )}
+              {...(active ? { "aria-current": "page" as const } : {})}
             >
               {item.label}
             </Link>
           );
         })}
-      </div>
+      </nav>
     </div>
   );
 }

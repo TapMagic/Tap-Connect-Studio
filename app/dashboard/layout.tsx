@@ -40,6 +40,12 @@ export default async function DashboardLayout({
 
   return (
     <div className="flex min-h-screen flex-col bg-background lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      >
+        Skip to main content
+      </a>
       <DevModeBanner />
       <MobileDashboardNav businessName={business.name} showAdminLink={showAdminLink} />
       {isClerkConfigured() && (
@@ -49,7 +55,11 @@ export default async function DashboardLayout({
       )}
       <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
         <DashboardNav businessName={business.name} showAdminLink={showAdminLink} />
-        <main className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto">
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto focus:outline-none"
+        >
           {children}
         </main>
       </div>

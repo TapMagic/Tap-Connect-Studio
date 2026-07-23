@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { fetchInsightsSnapshot } from "@/lib/fusion/insights/metrics";
+import { fetchBusinessFailureRecovery } from "@/lib/fusion/insights/failure-recovery";
 import { parseInsightsRangeDays } from "@/lib/fusion/insights/range";
 import { labelEvidence } from "@/lib/fusion/insights/tapproof";
 import { buttonVariants } from "@/components/ui/button";
@@ -21,10 +22,13 @@ export default async function InsightsHubPage({
   const days = parseInsightsRangeDays(params.days);
 
   let snapshot: Awaited<ReturnType<typeof fetchInsightsSnapshot>> | null = null;
+  let failureRecovery: Awaited<ReturnType<typeof fetchBusinessFailureRecovery>> | null = null;
   try {
     snapshot = await fetchInsightsSnapshot(business.id, days);
+    failureRecovery = await fetchBusinessFailureRecovery(business.id);
   } catch {
     snapshot = null;
+    failureRecovery = null;
   }
 
   const kpis = snapshot?.kpis ?? [];
@@ -105,6 +109,39 @@ export default async function InsightsHubPage({
           ))}
         </div>
       )}
+
+      <Card className="border-border/60">
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4 text-primary" />
+            <CardTitle>Failure &amp; recovery</CardTitle>
+          </div>
+          <CardDescription>
+            Outbox dead letters and blocked journey runs — memory / isolated DB sources only.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {!failureRecovery || failureRecovery.empty ? (
+            <p className="text-sm text-muted-foreground">
+              No failures recorded in scope. Dead letters appear after outbox drain errors; blocked
+              runs appear after TapFlow dry-runs or live taps with Guardian gates.
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {failureRecovery.metrics.map((m) => (
+                <div key={m.key} className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                  <p className="text-xs text-muted-foreground">{m.label}</p>
+                  <p className="text-xl font-semibold tabular-nums">{m.value}</p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    {labelEvidence(m.evidenceClass)} · {m.source}
+                    {m.hint ? ` · ${m.hint}` : ""}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card className="border-border/60">
         <CardHeader>
