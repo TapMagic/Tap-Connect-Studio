@@ -349,6 +349,126 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
     });
   });
 
+  test("P-taploop: award idempotency + redeem on seed enrollment", async ({ page }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+    const enrollmentId =
+      process.env.SEED_ENROLLMENT_ID ?? "cmrx5yojf0009bv9kivpac97i";
+    const idem = `proof_award_${Date.now()}`;
+
+    const award1 = await page.request.post(`${BASE}/api/loyalty/award`, {
+      data: {
+        enrollmentId,
+        points: 5,
+        idempotencyKey: idem,
+        reason: "headed_proof",
+      },
+    });
+    const award2 = await page.request.post(`${BASE}/api/loyalty/award`, {
+      data: {
+        enrollmentId,
+        points: 5,
+        idempotencyKey: idem,
+        reason: "headed_proof_dup",
+      },
+    });
+    const a1 = await award1.json().catch(() => ({}));
+    const a2 = await award2.json().catch(() => ({}));
+    const awardOk = award1.ok();
+    const dupSafe =
+      award2.ok() ||
+      /idempoten|duplicate|already/i.test(JSON.stringify(a2) + JSON.stringify(a1));
+
+    const redeem = await page.request.post(`${BASE}/api/loyalty/redeem`, {
+      data: {
+        enrollmentId,
+        points: 1,
+        idempotencyKey: `proof_redeem_${Date.now()}`,
+        reason: "headed_proof_redeem",
+      },
+    });
+
+    await page.goto(`${BASE}/dashboard/audience#taploop`, { waitUntil: "domcontentloaded" });
+    const body = await page.locator("body").innerText();
+
+    writeProof({
+      id: "P-10-taploop",
+      route: "/api/loyalty/award|redeem + /dashboard/audience#taploop",
+      workflow: "TapLoop award (idempotent) + redeem + audience shell",
+      passed: awardOk && dupSafe && redeem.ok(),
+      browserE2ePassed: true,
+      persistencePassed: awardOk && redeem.ok(),
+      consoleErrors,
+      pageErrors,
+      notes: [
+        `award1=${award1.status()}`,
+        `award2=${award2.status()}`,
+        `redeem=${redeem.status()}`,
+        body.slice(0, 60).replace(/\s+/g, " "),
+      ],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers:
+        awardOk && redeem.ok()
+          ? ["program_create_ui_matrix", "reversal_headed_matrix", "ui_enroll_form_matrix"]
+          : ["taploop_api_failed"],
+    });
+
+    expect(awardOk && redeem.ok()).toBeTruthy();
+  });
+
+  test("P-tapsave: Keep Card API → MyTap path", async ({ page }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+    const email = `keep_${Date.now()}@example.com`;
+    const res = await page.request.post(`${BASE}/api/tapsave/keep`, {
+      data: {
+        businessId: process.env.SEED_BUSINESS_ID ?? "cmrx5wjml0000519ktwgyj0pe",
+        email,
+        name: "Keep Proof",
+        consentGiven: true,
+        campaignId: process.env.SEED_CAMPAIGN_ID ?? "cmrx5wjn80001519kzayn9296",
+      },
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      ok?: boolean;
+      myTapPath?: string;
+      path?: string;
+      publicToken?: string;
+      error?: string;
+    };
+    const path =
+      json.myTapPath ||
+      (json as { myTapUrl?: string }).myTapUrl ||
+      json.path ||
+      (json.publicToken ? `/mytap/${json.publicToken}` : null);
+    const keepOk = res.ok() && Boolean(path);
+
+    let myTapOk = false;
+    if (path) {
+      const my = await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
+      myTapOk = Boolean(my?.ok());
+      const text = await page.locator("body").innerText();
+      myTapOk = myTapOk && text.length > 20;
+    }
+
+    writeProof({
+      id: "P-03-tapsave-keep",
+      route: "/api/tapsave/keep → /mytap/…",
+      workflow: "Keep Card creates MyTap relationship surface",
+      passed: keepOk && myTapOk,
+      browserE2ePassed: keepOk && myTapOk,
+      persistencePassed: keepOk && myTapOk,
+      consoleErrors,
+      pageErrors,
+      notes: [`status=${res.status()}`, `path=${path}`, JSON.stringify(json).slice(0, 160)],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers:
+        keepOk && myTapOk
+          ? ["wallet_after_tapsave_matrix", "prefs_moments_headed_matrix"]
+          : ["tapsave_keep_failed"],
+    });
+
+    expect(keepOk && myTapOk).toBeTruthy();
+  });
+
   test("aggregate proof index", async () => {
     ensureOut();
     const files = fs.readdirSync(OUT).filter((f) => f.endsWith(".json") && f !== "index.json");

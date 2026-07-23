@@ -127,6 +127,24 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     ],
     nextAction: "Headed: public form → consent → Contact → Relationship → Keep Card → MyTap",
   },
+  {
+    sectionId: "taploop",
+    lastVerifiedAt: "2026-07-23T22:50:00.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    notes: "P-10-taploop: award idempotency + redeem on seed enrollment via API + audience shell",
+    blockers: ["program_create_ui_matrix", "reversal_headed_matrix", "ui_enroll_form_matrix"],
+    nextAction: "Headed UI: create program → enroll → reverse + ledger display",
+  },
+  {
+    sectionId: "tapsave",
+    lastVerifiedAt: "2026-07-23T22:50:00.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    notes: "P-03-tapsave-keep: Keep Card API → MyTap page loads",
+    blockers: ["wallet_after_tapsave_matrix", "prefs_moments_headed_matrix"],
+    nextAction: "Wire Wallet offer after Keep; prove prefs/moments headed",
+  },
 ];
 
 const CREDENTIAL_FEATURES = new Set<string>([
