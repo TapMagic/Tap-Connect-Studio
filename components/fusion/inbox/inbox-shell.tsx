@@ -1,5 +1,6 @@
 "use client";
 
+import { allowedCaseActions, type CaseAction } from "@/lib/fusion/inbox/case-lifecycle";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -134,16 +135,37 @@ export function InboxShell({
     });
   }
 
-  async function closeCase(caseId: string) {
+  async function transitionCaseAction(caseId: string, caseAction: CaseAction) {
     startTransition(async () => {
       const res = await fetch("/api/inbox", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "close_case", caseId }),
+        body: JSON.stringify({ action: "transition_case", caseId, caseAction }),
       });
       const data = await res.json();
       if (data.ok) {
         setCases((prev) => prev.map((c) => (c.id === caseId ? data.case : c)));
+        setMessage(`Case ${caseAction} → ${data.case.status}`);
+      } else {
+        setMessage(data.error ?? "Case transition failed");
+      }
+    });
+  }
+
+  async function closeThreadAction() {
+    if (!selectedId) return;
+    startTransition(async () => {
+      const res = await fetch("/api/inbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "close_thread", threadId: selectedId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setThreads((prev) =>
+          prev.map((t) => (t.id === selectedId ? { ...t, status: data.thread.status } : t))
+        );
+        setMessage("Thread closed");
       }
     });
   }
@@ -264,29 +286,44 @@ export function InboxShell({
                 >
                   Open case
                 </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={!featureEnabled || pending}
+                  onClick={closeThreadAction}
+                >
+                  Close thread
+                </Button>
               </div>
 
               {cases.length > 0 ? (
                 <div className="space-y-2 border-t border-border/40 pt-3">
                   <p className="text-xs font-semibold uppercase text-muted-foreground">TapCase</p>
                   {cases.map((c) => (
-                    <div key={c.id} className="flex items-center justify-between text-sm">
-                      <span>
-                        {c.subject}{" "}
-                        <Badge variant="outline" className="ml-1 text-[10px]">
-                          {c.status}
-                        </Badge>
-                      </span>
-                      {c.status !== "CLOSED" ? (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 text-xs"
-                          onClick={() => closeCase(c.id)}
-                        >
-                          Close
-                        </Button>
-                      ) : null}
+                    <div key={c.id} className="space-y-1 rounded-lg border border-border/40 p-2 text-sm">
+                      <div className="flex items-center justify-between gap-2">
+                        <span>
+                          {c.subject}{" "}
+                          <Badge variant="outline" className="ml-1 text-[10px]">
+                            {c.status}
+                          </Badge>
+                        </span>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {allowedCaseActions(c.status as Parameters<typeof allowedCaseActions>[0]).map(
+                          (a) => (
+                            <Button
+                              key={a}
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-[10px] capitalize"
+                              onClick={() => transitionCaseAction(c.id, a)}
+                            >
+                              {a.replace("_", " ")}
+                            </Button>
+                          )
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>

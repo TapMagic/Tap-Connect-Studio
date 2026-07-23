@@ -4,13 +4,19 @@
 
 import { prisma } from "@/lib/db";
 import type { MessageChannel } from "./channel-guardian";
+import {
+  formatSuppressionRow,
+  normalizeSuppressionAddress,
+  validateSuppressionInput,
+  type SuppressionRow,
+} from "./suppression-utils";
 
 export async function isAddressSuppressed(input: {
   businessId: string;
   channel: MessageChannel;
   address: string;
 }): Promise<boolean> {
-  const normalized = input.address.trim().toLowerCase();
+  const normalized = normalizeSuppressionAddress(input.address);
   if (!normalized) return false;
 
   try {
@@ -35,20 +41,25 @@ export async function addSuppression(input: {
   address: string;
   reason?: string;
   sourceType?: string;
-}): Promise<{ id: string }> {
-  const normalized = input.address.trim().toLowerCase();
+}):
+  Promise<
+    { ok: true; id: string; row: SuppressionRow } | { ok: false; error: string }
+  > {
+  const validated = validateSuppressionInput(input.channel, input.address);
+  if (!validated.ok) return validated;
+
   const row = await prisma.communicationSuppression.upsert({
     where: {
       businessId_channel_address: {
         businessId: input.businessId,
-        channel: input.channel,
-        address: normalized,
+        channel: validated.channel,
+        address: validated.address,
       },
     },
     create: {
       businessId: input.businessId,
-      channel: input.channel,
-      address: normalized,
+      channel: validated.channel,
+      address: validated.address,
       reason: input.reason,
       sourceType: input.sourceType,
     },
@@ -57,7 +68,7 @@ export async function addSuppression(input: {
       sourceType: input.sourceType,
     },
   });
-  return { id: row.id };
+  return { ok: true, id: row.id, row: formatSuppressionRow(row) };
 }
 
 export async function removeSuppression(input: {
@@ -65,14 +76,16 @@ export async function removeSuppression(input: {
   channel: MessageChannel;
   address: string;
 }): Promise<boolean> {
-  const normalized = input.address.trim().toLowerCase();
+  const validated = validateSuppressionInput(input.channel, input.address);
+  if (!validated.ok) return false;
+
   try {
     await prisma.communicationSuppression.delete({
       where: {
         businessId_channel_address: {
           businessId: input.businessId,
-          channel: input.channel,
-          address: normalized,
+          channel: validated.channel,
+          address: validated.address,
         },
       },
     });
@@ -82,10 +95,14 @@ export async function removeSuppression(input: {
   }
 }
 
-export async function listSuppressions(businessId: string, limit = 100) {
-  return prisma.communicationSuppression.findMany({
+export async function listSuppressions(
+  businessId: string,
+  limit = 100
+): Promise<SuppressionRow[]> {
+  const rows = await prisma.communicationSuppression.findMany({
     where: { businessId },
     orderBy: { createdAt: "desc" },
     take: limit,
   });
+  return rows.map(formatSuppressionRow);
 }

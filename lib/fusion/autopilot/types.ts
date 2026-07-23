@@ -35,6 +35,12 @@ export type AutopilotProposal = {
   createdAt: string;
   updatedAt?: string;
   decidedAt?: string | null;
+  /** When artifacts were applied to the editor (distinct from accept) */
+  appliedAt?: string | null;
+  /** Monotonic revision within a business+recipe lineage */
+  revision?: number;
+  /** Prior proposal this one supersedes (compare / versioning) */
+  supersedesId?: string | null;
 };
 
 export type AutopilotArtifact = {
@@ -153,3 +159,24 @@ export function transitionProposal(
 export function canApplyArtifacts(status: AutopilotProposalStatus): boolean {
   return status === "accepted" || status === "partial";
 }
+
+/** Governed accept → apply → undo audit steps (PlatformAuditEvent action names) */
+export type ProposalGovernanceAction =
+  | "autopilot.proposal.create"
+  | "autopilot.proposal.accept"
+  | "autopilot.proposal.reject"
+  | "autopilot.proposal.partial"
+  | "autopilot.proposal.undo"
+  | "autopilot.proposal.apply"
+  | "autopilot.proposal.undo_apply"
+  | "autopilot.proposal.supersede";
+
+export type ProposalAuditEntry = {
+  proposalId: string;
+  action: ProposalGovernanceAction;
+  from?: AutopilotProposalStatus;
+  to?: AutopilotProposalStatus;
+  actorId?: string | null;
+  at: string;
+  metadata?: Record<string, unknown>;
+};

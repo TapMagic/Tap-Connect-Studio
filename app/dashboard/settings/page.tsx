@@ -2,10 +2,16 @@ import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { STUDIO_NAV } from "@/lib/fusion/studio/ia";
 import { listRegistryStatus } from "@/lib/fusion/features";
+import { getAutopilotBudgetSummary } from "@/lib/fusion/autopilot/budget";
+import { listCostLedger } from "@/lib/fusion/autopilot/knowledge";
+import { AUTOPILOT_CATALOG_VERSION } from "@/lib/fusion/autopilot/recipes";
 import { integrations } from "@/lib/config/integrations";
 import { listDeadLetters } from "@/lib/fusion/publication/events";
 import { listEmailProviderReadiness } from "@/lib/fusion/comms/email-readiness";
+import { listSuppressions } from "@/lib/fusion/comms/suppression";
+import { isFeatureEnabled } from "@/lib/fusion/features";
 import { OutboxDeadLetterPanel } from "@/components/fusion/outbox/dead-letter-panel";
+import { SuppressionListPanel } from "@/components/fusion/comms/suppression-list-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -14,12 +20,19 @@ export default async function SettingsHubPage() {
   const features = listRegistryStatus();
   const configured = integrations.filter((i) => i.configured).length;
   const emailReady = listEmailProviderReadiness();
+  const autopilotBudget = await getAutopilotBudgetSummary(business.id, business.subscriptionTier);
+  const autopilotLedger = listCostLedger(business.id, 8);
+  const commsEnabled =
+    isFeatureEnabled("comms.email", {}) || isFeatureEnabled("comms.messaging", {});
 
   let deadLetters: Awaited<ReturnType<typeof listDeadLetters>> = [];
+  let suppressions: Awaited<ReturnType<typeof listSuppressions>> = [];
   try {
     deadLetters = await listDeadLetters({ businessId: business.id, limit: 30 });
+    suppressions = await listSuppressions(business.id);
   } catch {
     deadLetters = [];
+    suppressions = [];
   }
 
   return (
@@ -69,6 +82,45 @@ export default async function SettingsHubPage() {
             Missing: {emailReady.missingEnvVars.join(", ")}
           </p>
         ) : null}
+      </section>
+
+      <section className="rounded-xl border border-border/60 p-4">
+        <h2 className="text-sm font-semibold">Automation Team budget</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Catalog v{AUTOPILOT_CATALOG_VERSION} · {autopilotBudget.used}/{autopilotBudget.limit}{" "}
+          generations this month ({autopilotBudget.monthKey})
+        </p>
+        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+          Est. spend (ledger): ${autopilotBudget.estimatedUsdMonth.toFixed(4)} USD ·{" "}
+          {autopilotBudget.ledgerEntryCount} ledger entries
+        </p>
+        {!autopilotBudget.ok ? (
+          <p className="mt-2 text-xs text-amber-400/90">
+            Monthly budget exhausted — generation blocked until next month or plan upgrade.
+          </p>
+        ) : null}
+        {autopilotLedger.length > 0 ? (
+          <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+            {autopilotLedger.map((e) => (
+              <li key={e.id} className="font-mono text-[10px]">
+                {e.createdAt.slice(0, 10)} · {e.recipeId}@{String(e.recipeVersion)} · $
+                {e.estimatedUsd.toFixed(5)}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-2 text-xs text-muted-foreground">No cost ledger entries yet.</p>
+        )}
+      </section>
+
+      <section className="rounded-xl border border-border/60 p-4">
+        <h2 className="text-sm font-semibold">Email suppression list</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Channel Guardian blocks outbound sends to suppressed addresses across inbox and campaigns.
+        </p>
+        <div className="mt-3">
+          <SuppressionListPanel initialRows={suppressions} featureEnabled={commsEnabled} />
+        </div>
       </section>
 
       <section id="outbox" className="scroll-mt-20 rounded-xl border border-border/60 p-4">

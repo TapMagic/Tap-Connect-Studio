@@ -19,6 +19,13 @@ import { isFeatureEnabled } from "@/lib/fusion/features";
 import { createGovernedEvent, enqueueOutboxSync } from "@/lib/fusion/publication/events";
 import { isAddressSuppressed } from "@/lib/fusion/comms/suppression";
 import { sendEmailViaMock } from "@/lib/fusion/comms/email-mock";
+import {
+  canCaseTransition,
+  nextCaseStatus,
+  type CaseAction,
+  type CaseStatus,
+} from "./case-lifecycle";
+import { evaluateReplyEligibility } from "./reply-eligibility";
 
 export type ThreadRecord = {
   id: string;
@@ -271,16 +278,20 @@ export async function replyToThread(input: {
   const messagingOn =
     input.featureEnabled ??
     (isFeatureEnabled("comms.messaging", {}) || isFeatureEnabled("comms.email", {}));
-  if (!messagingOn) {
-    return { ok: false, code: "feature_off", error: "Messaging/email feature disabled" };
-  }
 
   const thread = await prisma.messageThread.findFirst({
     where: { id: input.threadId, businessId: input.businessId },
   });
   if (!thread) return { ok: false, code: "not_found", error: "Thread not found" };
-  if (thread.status === "CLOSED") {
-    return { ok: false, code: "thread_closed", error: "Thread is closed" };
+
+  const eligibility = evaluateReplyEligibility({
+    threadStatus: thread.status,
+    featureEnabled: messagingOn,
+    body: input.body,
+    purpose: input.purpose,
+  });
+  if (!eligibility.ok) {
+    return { ok: false, code: eligibility.code, error: eligibility.error };
   }
 
   const channel = enumToChannel(thread.channel);
@@ -433,9 +444,15 @@ export async function closeCase(input: {
   });
   if (!existing) return null;
 
+  const transition = nextCaseStatus(existing.status as CaseStatus, "close");
+  if (!transition.ok) return null;
+
   const row = await prisma.tapCase.update({
     where: { id: existing.id },
-    data: { status: "CLOSED", closedAt: new Date() },
+    data: {
+      status: transition.status as FusionCaseStatus,
+      closedAt: transition.status === "CLOSED" ? new Date() : existing.closedAt,
+    },
   });
   return {
     id: row.id,
@@ -451,35 +468,77 @@ export async function closeCase(input: {
   };
 }
 
+export async function transitionCase(input: {
+  businessId: string;
+  caseId: string;
+  action: CaseAction;
+  assigneeId?: string;
+}): Promise<
+  | { ok: true; case: TapCaseRecord }
+  | { ok: false; code: "not_found" | "invalid_transition"; error: string }
+> {
+  const existing = await prisma.tapCase.findFirst({
+    where: { id: input.caseId, businessId: input.businessId },
+  });
+  if (!existing) {
+    return { ok: false, code: "not_found", error: "Case not found" };
+  }
+
+  const status = existing.status as CaseStatus;
+  if (!canCaseTransition(status, input.action)) {
+    return {
+      ok: false,
+      code: "invalid_transition",
+      error: `Cannot ${input.action} case in status ${status}`,
+    };
+  }
+
+  const transition = nextCaseStatus(status, input.action);
+  if (!transition.ok) {
+    return { ok: false, code: "invalid_transition", error: transition.error };
+  }
+
+  const row = await prisma.tapCase.update({
+    where: { id: existing.id },
+    data: {
+      status: transition.status as FusionCaseStatus,
+      ...(input.assigneeId ? { assigneeId: input.assigneeId } : {}),
+      ...(transition.status === "CLOSED" ? { closedAt: new Date() } : {}),
+      ...(transition.status === "OPEN" || transition.status === "IN_PROGRESS"
+        ? { closedAt: null }
+        : {}),
+    },
+  });
+
+  return {
+    ok: true,
+    case: {
+      id: row.id,
+      businessId: row.businessId,
+      threadId: row.threadId,
+      contactId: row.contactId,
+      status: row.status,
+      subject: row.subject,
+      assigneeId: row.assigneeId,
+      priority: row.priority,
+      openedAt: row.openedAt.toISOString(),
+      closedAt: row.closedAt?.toISOString() ?? null,
+    },
+  };
+}
+
 export async function assignCase(input: {
   businessId: string;
   caseId: string;
   assigneeId: string;
 }): Promise<TapCaseRecord | null> {
-  const existing = await prisma.tapCase.findFirst({
-    where: { id: input.caseId, businessId: input.businessId },
+  const result = await transitionCase({
+    businessId: input.businessId,
+    caseId: input.caseId,
+    action: "assign",
+    assigneeId: input.assigneeId,
   });
-  if (!existing) return null;
-
-  const row = await prisma.tapCase.update({
-    where: { id: existing.id },
-    data: {
-      assigneeId: input.assigneeId,
-      status: existing.status === "OPEN" ? "IN_PROGRESS" : existing.status,
-    },
-  });
-  return {
-    id: row.id,
-    businessId: row.businessId,
-    threadId: row.threadId,
-    contactId: row.contactId,
-    status: row.status,
-    subject: row.subject,
-    assigneeId: row.assigneeId,
-    priority: row.priority,
-    openedAt: row.openedAt.toISOString(),
-    closedAt: row.closedAt?.toISOString() ?? null,
-  };
+  return result.ok ? result.case : null;
 }
 
 export async function closeThread(input: {

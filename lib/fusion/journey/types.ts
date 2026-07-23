@@ -24,7 +24,8 @@ export type JourneyNode = {
   type: JourneyNodeType;
   label: string;
   config: Record<string, unknown>;
-  position: { x: number; y: number };
+  /** Canvas coords — optional for API/dry-run fixtures */
+  position?: { x: number; y: number };
 };
 
 export type JourneyEdge = {

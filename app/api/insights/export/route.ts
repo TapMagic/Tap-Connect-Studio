@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireBusiness } from "@/lib/auth";
 import { fetchInsightsSnapshot, insightsToCsv } from "@/lib/fusion/insights/metrics";
+import { parseInsightsRangeDays } from "@/lib/fusion/insights/range";
 
 export const dynamic = "force-dynamic";
 
@@ -8,7 +9,7 @@ export async function GET(request: Request) {
   try {
     const { business } = await requireBusiness();
     const url = new URL(request.url);
-    const days = Number(url.searchParams.get("days") ?? "14");
+    const days = parseInsightsRangeDays(url.searchParams.get("days"));
     const format = url.searchParams.get("format");
 
     const snapshot = await fetchInsightsSnapshot(business.id, days);

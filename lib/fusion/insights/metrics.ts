@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { csvEscapeField, parseInsightsRangeDays } from "./range";
 import type { EvidenceClass } from "./tapproof";
 
 export type InsightKpi = {
@@ -34,7 +35,7 @@ export async function fetchInsightsSnapshot(
   businessId: string,
   rangeDays = 14
 ): Promise<InsightsSnapshot> {
-  const days = Math.min(90, Math.max(1, rangeDays));
+  const days = parseInsightsRangeDays(rangeDays);
   const from = daysAgo(days);
   const to = new Date();
 
@@ -166,15 +167,15 @@ export function insightsToCsv(snapshot: InsightsSnapshot): string {
   const header = "key,label,value,evidence_class,source,seeded,range_days,from,to";
   const rows = snapshot.kpis.map((k) =>
     [
-      k.key,
-      JSON.stringify(k.label),
-      k.value,
-      k.evidenceClass,
-      k.source,
-      k.seeded,
-      snapshot.rangeDays,
-      snapshot.from,
-      snapshot.to,
+      csvEscapeField(k.key),
+      csvEscapeField(k.label),
+      csvEscapeField(k.value),
+      csvEscapeField(k.evidenceClass),
+      csvEscapeField(k.source),
+      csvEscapeField(k.seeded),
+      csvEscapeField(snapshot.rangeDays),
+      csvEscapeField(snapshot.from),
+      csvEscapeField(snapshot.to),
     ].join(",")
   );
   return [header, ...rows].join("\n");

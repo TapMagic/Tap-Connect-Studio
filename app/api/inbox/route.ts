@@ -12,6 +12,7 @@ import {
   listInboxThreads,
   openCase,
   replyToThread,
+  transitionCase,
 } from "@/lib/fusion/inbox";
 
 export const dynamic = "force-dynamic";
@@ -79,6 +80,12 @@ const postSchema = z.discriminatedUnion("action", [
     action: z.literal("assign_case"),
     caseId: z.string(),
     assigneeId: z.string(),
+  }),
+  z.object({
+    action: z.literal("transition_case"),
+    caseId: z.string(),
+    caseAction: z.enum(["assign", "start", "wait", "resolve", "close", "reopen"]),
+    assigneeId: z.string().optional(),
   }),
 ]);
 
@@ -160,6 +167,18 @@ export async function POST(request: Request) {
         });
         if (!tapCase) return NextResponse.json({ error: "Not found" }, { status: 404 });
         return NextResponse.json({ ok: true, case: tapCase });
+      }
+      case "transition_case": {
+        const result = await transitionCase({
+          businessId: business.id,
+          caseId: body.caseId,
+          action: body.caseAction,
+          assigneeId: body.assigneeId ?? user.id,
+        });
+        if (!result.ok) {
+          return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
+        }
+        return NextResponse.json({ ok: true, case: result.case });
       }
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });

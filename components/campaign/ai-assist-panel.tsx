@@ -170,9 +170,29 @@ export function AiAssistPanel({
       setProposal({ ...proposal, status: nextStatus });
 
       if (action === "accept") {
+        const applyRes = await fetch("/api/ai/proposals", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proposalId: proposal.id, action: "apply" }),
+        });
+        if (!applyRes.ok) {
+          const applyData = await applyRes.json();
+          setMessage(applyData.error ?? "Accepted but apply failed");
+          return;
+        }
         onApplyDraft?.(proposal.draft);
-        setMessage(`Accepted — applied “${proposal.draft.title ?? "draft"}”. Review then Save.`);
+        setMessage(`Accepted and applied “${proposal.draft.title ?? "draft"}”. Review then Save.`);
       } else if (action === "partial") {
+        const applyRes = await fetch("/api/ai/proposals", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ proposalId: proposal.id, action: "apply" }),
+        });
+        if (!applyRes.ok) {
+          const applyData = await applyRes.json();
+          setMessage(applyData.error ?? "Partial accept recorded but apply failed");
+          return;
+        }
         onApplyDraft?.({
           title: proposal.draft.title,
           blocks: proposal.draft.blocks,

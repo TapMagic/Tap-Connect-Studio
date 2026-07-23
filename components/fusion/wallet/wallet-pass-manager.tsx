@@ -4,6 +4,15 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  allowedWalletActions,
+  labelWalletEvidence,
+  walletInstallLinkAllowed,
+  walletPassEvidenceClass,
+  walletStatusHint,
+} from "@/lib/fusion/wallet/evidence";
+import type { WalletLifecycleAction, WalletPassStatus } from "@/lib/fusion/wallet/lifecycle";
 
 type PassRow = {
   id: string;
@@ -66,6 +75,11 @@ export function WalletPassManager({
       if (data.newPass) {
         setPasses((prev) => [data.newPass, ...prev]);
       }
+      if (data.oldPass) {
+        setPasses((prev) =>
+          prev.map((p) => (p.id === data.oldPass.id ? data.oldPass : p))
+        );
+      }
     });
   }
 
@@ -107,37 +121,77 @@ export function WalletPassManager({
                 <th className="px-3 py-2">Serial</th>
                 <th className="px-3 py-2">Platform</th>
                 <th className="px-3 py-2">Status</th>
-                <th className="px-3 py-2">Mode</th>
+                <th className="px-3 py-2">Evidence</th>
+                <th className="px-3 py-2">Install</th>
                 <th className="px-3 py-2">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {passes.map((p) => (
-                <tr key={p.id} className="border-t border-border/40">
-                  <td className="px-3 py-2 font-mono text-xs">{p.serialNumber.slice(0, 18)}…</td>
-                  <td className="px-3 py-2 capitalize">{p.platform}</td>
-                  <td className="px-3 py-2">
-                    <Badge variant="outline">{p.status}</Badge>
-                  </td>
-                  <td className="px-3 py-2">{p.mock ? "Mock" : "Live"}</td>
-                  <td className="px-3 py-2">
-                    <div className="flex flex-wrap gap-1">
-                      {["preview", "issue", "update", "revoke", "replace"].map((a) => (
-                        <Button
-                          key={a}
-                          size="sm"
-                          variant="ghost"
-                          className="h-7 px-2 text-xs"
-                          disabled={!featureEnabled || pending}
-                          onClick={() => run(a, p.id)}
+              {passes.map((p) => {
+                const status = p.status as WalletPassStatus;
+                const evidence = walletPassEvidenceClass(status, p.mock);
+                const allowed = allowedWalletActions(status);
+                const installOk = walletInstallLinkAllowed(status, featureEnabled);
+
+                return (
+                  <tr key={p.id} className="border-t border-border/40">
+                    <td className="px-3 py-2 font-mono text-xs">{p.serialNumber.slice(0, 18)}…</td>
+                    <td className="px-3 py-2 capitalize">{p.platform}</td>
+                    <td className="px-3 py-2">
+                      <Badge variant="outline">{p.status}</Badge>
+                      <p className="mt-0.5 text-[10px] text-muted-foreground">
+                        v{p.version} · {walletStatusHint(status)}
+                      </p>
+                    </td>
+                    <td className="px-3 py-2">
+                      <Badge
+                        variant="outline"
+                        className={
+                          evidence === "modeled"
+                            ? "border-primary/40 text-primary"
+                            : evidence === "incomplete"
+                              ? "text-muted-foreground"
+                              : ""
+                        }
+                      >
+                        {labelWalletEvidence(evidence)}
+                      </Badge>
+                    </td>
+                    <td className="px-3 py-2">
+                      {installOk && p.installUrl ? (
+                        <a
+                          href={p.installUrl}
+                          className="text-xs text-primary hover:underline"
+                          target="_blank"
+                          rel="noreferrer"
                         >
-                          {a}
-                        </Button>
-                      ))}
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                          {p.mock ? "Mock install" : "Live install"}
+                        </a>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">Gated</span>
+                      )}
+                    </td>
+                    <td className="px-3 py-2">
+                      <div className="flex flex-wrap gap-1">
+                        {(["preview", "issue", "update", "revoke", "replace"] as WalletLifecycleAction[]).map(
+                          (a) => (
+                            <Button
+                              key={a}
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 px-2 text-xs"
+                              disabled={!featureEnabled || pending || !allowed.includes(a)}
+                              onClick={() => run(a, p.id)}
+                            >
+                              {a}
+                            </Button>
+                          )
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

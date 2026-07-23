@@ -18,10 +18,12 @@ Workflows implemented in code but **not** classified OWNER-READY / VERIFIED unti
 | P-10 | TapLoop award/redeem/idempotency | Yes | Audience TapLoop forms |
 | P-11 | Insights date range + CSV | Yes | Insights page |
 | P-12 | Platform Admin KPI drill-downs | Yes | `/admin/platform/*` |
-| P-13 | TapPoint health badges | Yes | Tap Points hub |
+| P-13 | TapPoint health / capacity / fleet badges | Yes | Tap Points hub |
 | P-14 | Commerce mock checkout | Yes | Experiences orders |
 | P-15 | Tenant isolation spot-check | Partial | Two seeded businesses |
 | P-16 | V1 Builder parity browser pass | Partial | Card builder routes |
 | P-17 | A11y checklist pass | Doc only | Manual / axe |
+| P-18 | TapFlow analytics overlay + recovery dry-run | Yes | Journeys editor Recover + overlay panel |
+| P-19 | Admin outbox dead-letter console | Yes | `/admin/platform/outbox` |
 
 Do not mark OWNER-READY until the matching P-* row is executed and recorded in BUILD_STATUS.

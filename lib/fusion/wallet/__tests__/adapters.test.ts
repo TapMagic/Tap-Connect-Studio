@@ -5,7 +5,7 @@ import {
   listWalletCredentialBlockers,
   projectCardToWalletPass,
 } from "../types";
-import { createWalletInstallLink, summarizeWalletReadiness } from "../mock-adapter";
+import { createWalletInstallLink, summarizeWalletReadiness, resolveInstallLinkForPass } from "../mock-adapter";
 
 describe("Wallet mock adapter", () => {
   it("projects card without secrets", () => {
@@ -65,6 +65,19 @@ describe("Wallet mock adapter", () => {
     });
     assert.equal(r.ok, false);
     if (!r.ok) assert.equal(r.code, "feature_off");
+  });
+
+  it("resolveInstallLinkForPass gates non-installable status", () => {
+    const r = resolveInstallLinkForPass({
+      status: "REVOKED",
+      platform: "google",
+      serialNumber: "tc_google_1",
+      businessName: "Acme",
+      cardTitle: "Card",
+      tapUrl: "https://x.test",
+      featureEnabled: true,
+    });
+    assert.equal(r.ok, false);
   });
 
   it("summarizes readiness with blockers", () => {

@@ -1,5 +1,6 @@
 export * from "./types";
 export * from "./mock-adapter";
+export * from "./evidence";
 export {
   createMockWalletAdapter,
   type WalletAdapter,

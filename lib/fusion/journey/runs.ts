@@ -3,16 +3,16 @@
  * Persists in memory; mirrors to PlatformAuditEvent when isolated DB configured.
  */
 
-import type { Prisma } from "@prisma/client";
-import { prisma } from "@/lib/db";
-import { isIsolatedFusionDatabaseConfigured } from "@/lib/fusion/db/safety";
-import { createGovernedEvent, enqueueOutboxSync } from "@/lib/fusion/publication/events";
 import {
   executeJourneyDryRun,
   type DryRunResult,
-  type JourneyDefinition,
   type VisitorContext,
-} from "@/lib/fusion/journey";
+} from "./runtime";
+import type { JourneyDefinition } from "./types";
+import { createGovernedEvent, enqueueOutboxSync } from "@/lib/fusion/publication/events";
+import type { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import { isIsolatedFusionDatabaseConfigured } from "@/lib/fusion/db/safety";
 
 export type JourneyRunStatus = "completed" | "blocked" | "failed" | "partial";
 

@@ -15,8 +15,8 @@ import {
   groundPromptWithKnowledge,
   recordCostLedgerEntry,
 } from "./knowledge";
-import { defaultRecipeId, getRecipe } from "./recipes";
-import { createProposal } from "./proposals";
+import { defaultRecipeId, getRecipe, recipeAllowedForPlan, AUTOPILOT_CATALOG_VERSION } from "./recipes";
+import { createProposal, applyProposal } from "./proposals";
 import {
   modeAllowsGeneration,
   modeAutoApplies,
@@ -33,6 +33,7 @@ export type AutopilotGenerateInput = {
   overrides?: FeatureOverride[];
   businessId?: string;
   actorId?: string;
+  supersedesProposalId?: string;
 };
 
 export type AutopilotGenerateResult =
@@ -95,7 +96,7 @@ export async function runAutopilotGenerate(
   }
 
   if (input.businessId) {
-    const budget = await checkAutopilotBudget(input.businessId);
+    const budget = await checkAutopilotBudget(input.businessId, undefined, input.planTier);
     if (!budget.ok) {
       return {
         ok: false,
@@ -104,6 +105,20 @@ export async function runAutopilotGenerate(
         budget: { used: budget.used, limit: budget.limit, monthKey: budget.monthKey },
       };
     }
+  }
+
+  const recipeId = input.recipeId ?? defaultRecipeId();
+  const recipe = getRecipe(recipeId);
+  if (!recipe) {
+    return { ok: false, code: "recipe_unknown", message: `Unknown recipe: ${recipeId}` };
+  }
+
+  if (!recipeAllowedForPlan(recipe, input.planTier)) {
+    return {
+      ok: false,
+      code: "plan_blocked",
+      message: `Recipe ${recipe.name} requires ${recipe.minPlan} plan or above.`,
+    };
   }
 
   if (!isAiReady()) {
@@ -116,12 +131,6 @@ export async function runAutopilotGenerate(
         signupUrl: "https://platform.openai.com",
       },
     };
-  }
-
-  const recipeId = input.recipeId ?? defaultRecipeId();
-  const recipe = getRecipe(recipeId);
-  if (!recipe) {
-    return { ok: false, code: "recipe_unknown", message: `Unknown recipe: ${recipeId}` };
   }
 
   const grounded = input.businessId
@@ -159,6 +168,7 @@ export async function runAutopilotGenerate(
       ...(grounded.snippets.length
         ? [`Grounded with ${grounded.snippets.length} Knowledge snippet(s)`]
         : ["No tenant Knowledge matched — generation used prompt only"]),
+      `Catalog v${AUTOPILOT_CATALOG_VERSION}`,
     ],
     createdAt: new Date().toISOString(),
   };
@@ -177,6 +187,7 @@ export async function runAutopilotGenerate(
       artifacts: draftProposal.artifacts,
       warnings: draftProposal.warnings,
       actorId: input.actorId,
+      supersedesId: input.supersedesProposalId,
     });
     recordAutopilotBudgetUse(input.businessId);
     recordCostLedgerEntry({
@@ -188,10 +199,19 @@ export async function runAutopilotGenerate(
       estimatedUsd: cost.estimatedUsd,
       model: cost.model,
     });
+
+    if (autoApplied) {
+      const applied = await applyProposal({
+        proposalId,
+        businessId: input.businessId,
+        actorId: input.actorId,
+      });
+      if (applied.ok) proposal = applied.proposal;
+    }
   }
 
   const budgetAfter = input.businessId
-    ? await checkAutopilotBudget(input.businessId)
+    ? await checkAutopilotBudget(input.businessId, undefined, input.planTier)
     : undefined;
 
   return {

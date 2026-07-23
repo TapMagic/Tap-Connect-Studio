@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it, beforeEach } from "node:test";
 import {
   AUTOPILOT_MONTHLY_BUDGET_DEFAULT,
+  autopilotBudgetLimitForPlan,
   checkAutopilotBudgetSync,
   compareProposals,
   recordAutopilotBudgetUse,
@@ -29,6 +30,11 @@ describe("autopilot budget stub", () => {
     const check = checkAutopilotBudgetSync("biz_budget");
     assert.equal(check.ok, false);
     assert.equal(check.used, AUTOPILOT_MONTHLY_BUDGET_DEFAULT);
+  });
+
+  it("uses plan-tier limits", () => {
+    assert.equal(autopilotBudgetLimitForPlan("STUDIO"), 50);
+    assert.equal(autopilotBudgetLimitForPlan("PRO"), 200);
   });
 });
 
@@ -91,6 +97,7 @@ describe("compare proposals", () => {
     );
     assert.equal(diff.sameRecipe, true);
     assert.equal(diff.sameVersion, true);
+    assert.equal(diff.sameRevision, true);
     assert.deepEqual(diff.artifactDiff.onlyLeft, ["campaign_draft"]);
     assert.deepEqual(diff.artifactDiff.both, ["theme"]);
     assert.equal(diff.summaryEqual, false);

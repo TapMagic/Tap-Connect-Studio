@@ -2,7 +2,10 @@ import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { listTapPointsForBusiness } from "@/lib/fusion/devices/tap-point-bridge";
-import { computeTapPointHealth } from "@/lib/fusion/devices/health";
+import {
+  computeTapPointHealth,
+  summarizeFleetHealth,
+} from "@/lib/fusion/devices/health";
 import { getDevicePath } from "@/lib/utils/app";
 import { buttonVariants } from "@/components/ui/button";
 
@@ -50,6 +53,31 @@ export default async function TapPointsHubPage() {
   // Unbridged devices still shown with warning badges
   const unbridged = devices.filter((d) => !tapPoints.some((tp) => tp.deviceSlotId === d.id));
 
+  const fleetBadges = [
+    ...tapPoints.map((tp) => {
+      const device = tp.deviceSlotId ? deviceById.get(tp.deviceSlotId) : undefined;
+      return computeTapPointHealth({
+        status: tp.status,
+        hasAddress: Boolean(tp.address?.code),
+        totalTapCount: device?.totalTapCount,
+        deviceStatus: device?.status,
+        bridged: true,
+      });
+    }),
+    ...unbridged.map((d) =>
+      computeTapPointHealth({
+        status: d.status,
+        hasAddress: Boolean(d.deviceCode),
+        totalTapCount: d.totalTapCount,
+        deviceStatus: d.status,
+        bridged: false,
+      })
+    ),
+  ];
+  const fleet = summarizeFleetHealth(fleetBadges);
+  const nearCapacity = fleetBadges.filter((b) => b.errors.includes("near_capacity")).length;
+  const withErrors = fleetBadges.filter((b) => b.errors.length > 0).length;
+
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
@@ -69,11 +97,15 @@ export default async function TapPointsHubPage() {
         </div>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Devices", value: devices.length },
           { label: "Active", value: activeDevices },
           { label: "Tap Points bridged", value: bridgedCount },
+          {
+            label: "Fleet health",
+            value: `${fleet.healthy}ok / ${fleet.warning}warn / ${fleet.critical}crit`,
+          },
         ].map((stat) => (
           <div
             key={stat.label}
@@ -84,6 +116,11 @@ export default async function TapPointsHubPage() {
           </div>
         ))}
       </div>
+      {(nearCapacity > 0 || withErrors > 0) && (
+        <p className="text-sm text-amber-200/90">
+          Operational badges: {withErrors} with errors · {nearCapacity} near capacity soft limit
+        </p>
+      )}
 
       {waitingScans > 0 ? (
         <div className="rounded-xl border border-primary/30 bg-primary/5 px-4 py-3 text-sm">

@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it, beforeEach } from "node:test";
-import { createProposal, decideProposal, resetProposalMemory } from "../proposals";
+import { createProposal, decideProposal, applyProposal, getProposalGovernanceTrail, resetProposalMemory } from "../proposals";
 import { canApplyArtifacts, transitionProposal } from "../types";
 
 describe("autopilot proposal lifecycle", () => {
@@ -91,5 +91,69 @@ describe("autopilot proposal lifecycle", () => {
     const result = transitionProposal("undone", { type: "accept" });
     assert.equal(result.ok, true);
     if (result.ok) assert.equal(result.status, "accepted");
+  });
+
+  it("records accept → apply → undo_apply governance trail", async () => {
+    await createProposal({
+      id: "prop_gov",
+      businessId: "biz_1",
+      recipeId: "campaign.full_draft",
+      recipeVersion: "1.2.0",
+      mode: "recommend",
+      prompt: "Promo",
+      summary: "Governance test",
+      artifacts: [{ kind: "campaign_draft", label: "Draft", payload: {} }],
+    });
+
+    const accepted = await decideProposal({
+      proposalId: "prop_gov",
+      businessId: "biz_1",
+      action: { type: "accept" },
+      actorId: "user_1",
+    });
+    assert.equal(accepted.ok, true);
+
+    const applied = await applyProposal({
+      proposalId: "prop_gov",
+      businessId: "biz_1",
+      actorId: "user_1",
+    });
+    assert.equal(applied.ok, true);
+    if (!applied.ok) return;
+    assert.ok(applied.proposal.appliedAt);
+
+    const undone = await decideProposal({
+      proposalId: "prop_gov",
+      businessId: "biz_1",
+      action: { type: "undo" },
+      actorId: "user_1",
+    });
+    assert.equal(undone.ok, true);
+
+    const trail = getProposalGovernanceTrail("prop_gov").map((e) => e.action);
+    assert.ok(trail.includes("autopilot.proposal.create"));
+    assert.ok(trail.includes("autopilot.proposal.accept"));
+    assert.ok(trail.includes("autopilot.proposal.apply"));
+    assert.ok(trail.includes("autopilot.proposal.undo"));
+    assert.ok(trail.includes("autopilot.proposal.undo_apply"));
+  });
+
+  it("blocks apply before accept", async () => {
+    await createProposal({
+      id: "prop_no_apply",
+      businessId: "biz_1",
+      recipeId: "campaign.full_draft",
+      mode: "recommend",
+      prompt: "x",
+      summary: "y",
+      artifacts: [],
+    });
+    const applied = await applyProposal({
+      proposalId: "prop_no_apply",
+      businessId: "biz_1",
+    });
+    assert.equal(applied.ok, false);
+    if (applied.ok) return;
+    assert.equal(applied.code, "not_decided");
   });
 });

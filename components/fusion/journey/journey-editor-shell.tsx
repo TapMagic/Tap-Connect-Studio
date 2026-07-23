@@ -11,8 +11,12 @@ import {
   JOURNEY_NODE_REGISTRY,
   SAMPLE_VISITOR,
   createEmptyJourney,
+  buildJourneyAnalyticsOverlay,
   executeJourneyDryRun,
   journeyToStages,
+  listJourneyRuns,
+  planJourneyRecovery,
+  recoverJourneyDryRun,
   simulateJourney,
   validateJourney,
   type JourneyDefinition,
@@ -70,6 +74,28 @@ export function JourneyEditorShell({
     [definition]
   );
   const stages = useMemo(() => journeyToStages(definition), [definition]);
+  const analytics = useMemo(
+    () =>
+      buildJourneyAnalyticsOverlay(
+        definition,
+        listJourneyRuns(businessId).filter((r) => r.journeyName === definition.name)
+      ),
+    [definition, businessId]
+  );
+  const recoveryPlan = useMemo(() => {
+    const base = runtimeEvents
+      ? {
+          ok: !runtimeEvents.some((e) => e.blocked),
+          completed: runtimeEvents.some((e) => e.action === "exit"),
+          path: runtimeEvents.map((e) => e.nodeId).filter(Boolean),
+          events: runtimeEvents,
+          issues: runtimeEvents.filter((e) => e.blocked).map((e) => e.detail ?? "blocked"),
+          visitor: SAMPLE_VISITOR,
+          blockedAt: runtimeEvents.find((e) => e.blocked)?.nodeId,
+        }
+      : localRuntime;
+    return planJourneyRecovery(base);
+  }, [runtimeEvents, localRuntime]);
   const errors = issues.filter((i) => i.severity === "error");
   const canLifecyclePublish = featureEnabled && Boolean(selectedDraftId) && errors.length === 0;
   const canPause = Boolean(selectedDraftId) && (status === "ACTIVE" || status === "PUBLISHED");
@@ -224,6 +250,16 @@ export function JourneyEditorShell({
     });
   }
 
+  function runRecovery() {
+    const recovered = recoverJourneyDryRun(definition, localRuntime);
+    setRuntimeEvents(recovered.events);
+    setMessage(
+      recovered.completed
+        ? `Recovery dry-run completed (${recovered.path.length} nodes)`
+        : `Recovery still blocked: ${recovered.issues[0] ?? "incomplete"}`
+    );
+  }
+
   async function loadDraft(id: string) {
     const res = await fetch(`/api/journeys/draft?id=${id}`);
     const data = await res.json();
@@ -331,6 +367,15 @@ export function JourneyEditorShell({
         >
           <Play className="h-4 w-4" />
           Dry-run
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending || !recoveryPlan.canAutoRecover}
+          onClick={runRecovery}
+          title={recoveryPlan.reason}
+        >
+          Recover dry-run
         </Button>
       </div>
 
@@ -460,7 +505,10 @@ export function JourneyEditorShell({
                         ? "border-primary ring-1 ring-primary"
                         : "border-primary/30"
                     )}
-                    style={{ left: node.position.x, top: node.position.y }}
+                    style={{
+                      left: node.position?.x ?? 40,
+                      top: node.position?.y ?? 40,
+                    }}
                   >
                     <p className="font-medium text-primary">{node.label}</p>
                     <p className="font-mono text-[10px] text-muted-foreground">{node.type}</p>
@@ -551,6 +599,31 @@ export function JourneyEditorShell({
             </div>
           )}
         </div>
+      </div>
+
+      <div className="rounded-xl border border-border/60 p-4">
+        <p className="mb-1 text-sm font-semibold">
+          Analytics overlay · {analytics.evidence}
+        </p>
+        <p className="mb-3 text-xs text-muted-foreground">{analytics.note}</p>
+        <ul className="grid gap-1 sm:grid-cols-2 md:grid-cols-3">
+          {analytics.nodeVisitEstimates.map((n) => (
+            <li
+              key={n.nodeId}
+              className={cn(
+                "rounded-md border border-border/40 px-2 py-1 text-xs",
+                analytics.blockedNodeIds.includes(n.nodeId) && "border-amber-500/50 text-amber-200"
+              )}
+            >
+              {n.label}: {n.estimatedVisits}
+            </li>
+          ))}
+        </ul>
+        {recoveryPlan.canAutoRecover ? (
+          <p className="mt-2 text-xs text-amber-200/90">
+            Recovery available at {recoveryPlan.blockedAt ?? "path"} — {recoveryPlan.reason}
+          </p>
+        ) : null}
       </div>
 
       {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}

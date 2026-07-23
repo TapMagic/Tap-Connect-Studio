@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { fetchInsightsSnapshot } from "@/lib/fusion/insights/metrics";
+import { parseInsightsRangeDays } from "@/lib/fusion/insights/range";
 import { labelEvidence } from "@/lib/fusion/insights/tapproof";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +18,7 @@ export default async function InsightsHubPage({
 }) {
   const { business } = await requireBusiness();
   const params = await searchParams;
-  const days = Number(params.days ?? "14") || 14;
+  const days = parseInsightsRangeDays(params.days);
 
   let snapshot: Awaited<ReturnType<typeof fetchInsightsSnapshot>> | null = null;
   try {
@@ -85,8 +86,20 @@ export default async function InsightsHubPage({
                 {k.key === "conversion" ? `${k.value}%` : k.value}
               </p>
               <p className="mt-1 text-[10px] text-muted-foreground">
-                {labelEvidence(k.evidenceClass)}
-                {k.seeded ? " · Seeded" : " · Confirmed source"} · {k.source}
+                <span
+                  className={
+                    k.evidenceClass === "derived"
+                      ? "text-primary"
+                      : k.evidenceClass === "incomplete"
+                        ? "text-muted-foreground"
+                        : k.evidenceClass === "modeled"
+                          ? "text-primary/80"
+                          : ""
+                  }
+                >
+                  {labelEvidence(k.evidenceClass)}
+                </span>
+                {k.seeded ? " · Seeded" : " · Live source"} · {k.source}
               </p>
             </div>
           ))}

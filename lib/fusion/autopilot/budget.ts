@@ -6,8 +6,21 @@
 import { prisma } from "@/lib/db";
 import { isIsolatedFusionDatabaseConfigured } from "@/lib/fusion/db/safety";
 
-/** Soft monthly cap per business (stub — replace with plan-aware limits later) */
+/** Soft monthly cap per business (overridden by plan tier when provided) */
 export const AUTOPILOT_MONTHLY_BUDGET_DEFAULT = 100;
+
+const PLAN_BUDGET_LIMITS: Record<string, number> = {
+  BASIC: 0,
+  STUDIO: 50,
+  PRO: 200,
+  GROWTH: 500,
+  ENTERPRISE: 2000,
+};
+
+export function autopilotBudgetLimitForPlan(planTier?: string): number {
+  if (!planTier) return AUTOPILOT_MONTHLY_BUDGET_DEFAULT;
+  return PLAN_BUDGET_LIMITS[planTier] ?? AUTOPILOT_MONTHLY_BUDGET_DEFAULT;
+}
 
 type MonthBucket = { monthKey: string; count: number };
 
@@ -82,10 +95,12 @@ export function recordAutopilotBudgetUse(
  */
 export async function checkAutopilotBudget(
   businessId: string,
-  limit = AUTOPILOT_MONTHLY_BUDGET_DEFAULT
+  limit = AUTOPILOT_MONTHLY_BUDGET_DEFAULT,
+  planTier?: string
 ): Promise<BudgetCheckResult> {
+  const effectiveLimit = planTier ? autopilotBudgetLimitForPlan(planTier) : limit;
   const monthKey = currentMonthKey();
-  const mem = checkAutopilotBudgetSync(businessId, limit);
+  const mem = checkAutopilotBudgetSync(businessId, effectiveLimit);
 
   if (!isIsolatedFusionDatabaseConfigured()) {
     return mem;
@@ -105,20 +120,42 @@ export async function checkAutopilotBudget(
     });
 
     const combined = Math.max(used, mem.used);
-    const ok = combined < limit;
+    const ok = combined < effectiveLimit;
     return {
       ok,
       used: combined,
-      limit,
+      limit: effectiveLimit,
       monthKey,
       source: "audit",
       message: ok
         ? undefined
-        : `Automation Team monthly budget exhausted (${combined}/${limit} for ${monthKey}).`,
+        : `Automation Team monthly budget exhausted (${combined}/${effectiveLimit} for ${monthKey}).`,
     };
   } catch {
     return mem;
   }
+}
+
+export type AutopilotBudgetSummary = BudgetCheckResult & {
+  estimatedUsdMonth: number;
+  ledgerEntryCount: number;
+};
+
+/** Budget + cost ledger rollup for settings / API surfaces */
+export async function getAutopilotBudgetSummary(
+  businessId: string,
+  planTier?: string
+): Promise<AutopilotBudgetSummary> {
+  const { sumCostUsd, listCostLedger } = await import("./knowledge");
+  const budget = await checkAutopilotBudget(businessId, AUTOPILOT_MONTHLY_BUDGET_DEFAULT, planTier);
+  const ledger = listCostLedger(businessId, 500);
+  const monthKey = budget.monthKey;
+  const monthEntries = ledger.filter((e) => e.createdAt.startsWith(monthKey));
+  return {
+    ...budget,
+    estimatedUsdMonth: sumCostUsd(businessId),
+    ledgerEntryCount: monthEntries.length,
+  };
 }
 
 /** Pure compare helper for two proposal summaries (UI + tests) */
@@ -126,6 +163,7 @@ export type ComparableProposal = {
   id: string;
   recipeId: string;
   recipeVersion?: string;
+  revision?: number;
   summary: string;
   status: string;
   artifacts: { kind: string; label: string }[];
@@ -137,6 +175,7 @@ export type ProposalCompareResult = {
   rightId: string;
   sameRecipe: boolean;
   sameVersion: boolean;
+  sameRevision: boolean;
   artifactDiff: {
     onlyLeft: string[];
     onlyRight: string[];
@@ -168,6 +207,7 @@ export function compareProposals(
     rightId: right.id,
     sameRecipe: left.recipeId === right.recipeId,
     sameVersion: (left.recipeVersion ?? "1") === (right.recipeVersion ?? "1"),
+    sameRevision: (left.revision ?? 1) === (right.revision ?? 1),
     artifactDiff: { onlyLeft, onlyRight, both },
     summaryEqual: left.summary === right.summary,
   };

@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { insightsToCsv, type InsightsSnapshot } from "../metrics";
+import { csvEscapeField, parseInsightsRangeDays } from "../range";
 import { assertNotPresentedAsFact, labelEvidence } from "../tapproof";
 
 describe("Insights evidence + CSV", () => {
@@ -11,7 +12,21 @@ describe("Insights evidence + CSV", () => {
     assert.equal(assertNotPresentedAsFact("confirmed"), true);
   });
 
-  it("exports CSV of current view", () => {
+  it("parses and clamps range days", () => {
+    assert.equal(parseInsightsRangeDays("14"), 14);
+    assert.equal(parseInsightsRangeDays(0), 14);
+    assert.equal(parseInsightsRangeDays(-5), 14);
+    assert.equal(parseInsightsRangeDays(999), 90);
+    assert.equal(parseInsightsRangeDays("bad"), 14);
+  });
+
+  it("csvEscapeField handles commas and quotes", () => {
+    assert.equal(csvEscapeField("plain"), "plain");
+    assert.equal(csvEscapeField('say "hi"'), '"say ""hi"""');
+    assert.equal(csvEscapeField("a,b"), '"a,b"');
+  });
+
+  it("exports CSV of current view with escaping", () => {
     const snapshot: InsightsSnapshot = {
       rangeDays: 14,
       from: "2026-07-01T00:00:00.000Z",
@@ -21,7 +36,7 @@ describe("Insights evidence + CSV", () => {
       kpis: [
         {
           key: "taps_range",
-          label: "Taps (14d)",
+          label: 'Taps (14d, "live")',
           value: 3,
           evidenceClass: "confirmed",
           source: "TapEvent",
@@ -33,5 +48,6 @@ describe("Insights evidence + CSV", () => {
     assert.match(csv, /key,label,value/);
     assert.match(csv, /taps_range/);
     assert.match(csv, /confirmed/);
+    assert.match(csv, /""live""/);
   });
 });

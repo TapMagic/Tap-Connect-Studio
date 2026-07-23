@@ -1,3 +1,5 @@
+import { walletInstallLinkAllowed } from "./evidence";
+import { type WalletPassStatus } from "./lifecycle";
 import {
   listWalletCredentialBlockers,
   projectCardToWalletPass,
@@ -53,4 +55,40 @@ export function summarizeWalletReadiness(featureEnabled: boolean) {
     googleReady: blockers.google.length === 0,
     blockers,
   };
+}
+
+/** Install link is gated on issued/updated status + feature flag */
+export function resolveInstallLinkForPass(input: {
+  status: WalletPassStatus;
+  platform: WalletPlatform;
+  serialNumber: string;
+  businessName: string;
+  cardTitle: string;
+  tapUrl: string;
+  featureEnabled: boolean;
+  existingInstallUrl?: string | null;
+}): WalletAdapterResult & { gated?: boolean } {
+  if (!walletInstallLinkAllowed(input.status, input.featureEnabled)) {
+    return {
+      ok: false,
+      code: "credentials_missing",
+      message: `Install link unavailable in status ${input.status}`,
+      gated: true,
+    };
+  }
+
+  if (input.existingInstallUrl?.trim()) {
+    const blockers = listWalletCredentialBlockers();
+    const mock =
+      input.platform === "apple" ? blockers.apple.length > 0 : blockers.google.length > 0;
+    return { ok: true, installUrl: input.existingInstallUrl, mock, gated: false };
+  }
+
+  return createWalletInstallLink({
+    platform: input.platform,
+    businessName: input.businessName,
+    cardTitle: input.cardTitle,
+    tapUrl: input.tapUrl,
+    featureEnabled: input.featureEnabled,
+  });
 }
