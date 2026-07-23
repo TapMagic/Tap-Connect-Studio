@@ -101,17 +101,17 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   void import("@/lib/fusion/journey/live")
     .then(({ executeActiveJourneysForVisitor }) =>
       executeActiveJourneysForVisitor({
-        businessId: device.businessId,
+        businessId: device.businessId!,
         visitor: {
           visitorId: visitorHash,
           consent: { email: false, sms: false, marketing: false },
           attributes: {
             deviceCode,
-            campaignId: campaign?.id ?? undefined,
+            ...(campaign?.id ? { campaignId: campaign.id } : {}),
           },
         },
         deviceSlotId: device.id,
-        campaignId: campaign?.id,
+        campaignId: campaign?.id ?? undefined,
       })
     )
     .catch(() => undefined);
