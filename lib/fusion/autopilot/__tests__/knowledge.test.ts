@@ -6,6 +6,7 @@ import {
   listCostLedger,
   recordCostLedgerEntry,
   resetAutopilotKnowledgeMemory,
+  seedBrandKitKnowledge,
   sumCostUsd,
   upsertKnowledgeSnippet,
 } from "../knowledge";
@@ -21,12 +22,22 @@ describe("Autopilot Knowledge + cost ledger", () => {
       body: "Weekend cigar lounge 20% off reserve boxes",
       source: "manual",
     });
-    const { groundedPrompt, snippets } = groundPromptWithKnowledge(
+    const { groundedPrompt, snippets, evidence } = groundPromptWithKnowledge(
       "b1",
       "Write a weekend cigar lounge promo with reserve boxes"
     );
     assert.equal(snippets.length, 1);
+    assert.equal(evidence, "confirmed");
     assert.match(groundedPrompt, /Grounded business Knowledge/);
+  });
+
+  it("seeds brand kit knowledge", () => {
+    const seeded = seedBrandKitKnowledge("b2", {
+      businessName: "Tap Lounge",
+      voice: "Warm and concise",
+      tagline: "Stay connected",
+    });
+    assert.ok(seeded.length >= 2);
   });
 
   it("records cost ledger entries", () => {

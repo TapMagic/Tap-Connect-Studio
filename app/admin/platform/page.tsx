@@ -79,12 +79,20 @@ export default async function PlatformAdminPage() {
             {overrides.length} persisted overrides.
           </p>
         </div>
-        <Link
-          href="/admin"
-          className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
-        >
-          ← Landing CMS admin
-        </Link>
+        <div className="flex flex-wrap gap-3 text-sm">
+          <Link
+            href="/admin/platform/outbox"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Outbox / dead letters
+          </Link>
+          <Link
+            href="/admin"
+            className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+          >
+            ← Landing CMS admin
+          </Link>
+        </div>
       </div>
 
       <PlatformAdminTabs
