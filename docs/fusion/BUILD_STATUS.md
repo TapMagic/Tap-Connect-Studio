@@ -15,7 +15,7 @@ All prior sibling agents finished. Migration order confirmed:
 5. `20260723000004_wallet_inbox_comms`  
 6. `20260723000005_fusion_taploop`  
 
-No colliding timestamps. `tsc` clean. Fusion tests green (see latest run).
+No colliding timestamps. `tsc` clean. Fusion tests green (see latest run). Latest local checkpoints on `tapconnect-v1-v2-fusion` (not pushed).
 
 ## Infrastructure
 
@@ -24,16 +24,16 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run).
 | Docker on agent host | **Unavailable** — see PO-NOW-001 |
 | Safety guard | PASS on fusion URL / REJECT Railway |
 | Scripts | `fusion:dev-db`, `fusion:db-ready`, `fusion:seed`, `db:migrate:deploy` |
-| Proof queue | `docs/fusion/ISOLATED_DB_PROOF_QUEUE.md` |
+| Proof queue | `docs/fusion/ISOLATED_DB_PROOF_QUEUE.md` (P-01…P-22+) |
 
 ## Classifications (not OWNER-READY without P-* proof)
 
 | Area | Status |
 |------|--------|
 | V1 Builder/Campaigns/Scan floor | Preserve / continuous parity |
-| Durable outbox + worker tick + discard + Admin dead-letter console | FUNCTIONAL |
+| Durable outbox + worker tick + discard + Admin dead-letter console + effect drain | FUNCTIONAL |
 | TapSave / MyTap (+ loyalty balance when enrolled) | FUNCTIONAL |
-| Autopilot proposals, recipes v1.2, budget/ledger API, Knowledge seed/API + scoring, governed accept→apply→undo | FUNCTIONAL |
+| Autopilot proposals, recipes v1.2, budget/ledger API, Knowledge seed/API + Settings UI, governed accept→apply→undo | FUNCTIONAL |
 | TapFlow lifecycle + dry-run + analytics/recovery + live tap executor (queue-only effects) | FUNCTIONAL (provider side effects still open) |
 | TapLoop | FUNCTIONAL |
 | Wallet evidence + install gating / Inbox case lifecycle / Email suppression UX | FUNCTIONAL → VERIFIED BUT REQUIRES CREDENTIALS (live wallet) |
@@ -42,6 +42,7 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run).
 | TapPoint fleet health / capacity / errors | FUNCTIONAL |
 | TapCommerce mock | FUNCTIONAL |
 | Pulse (fleet badges + Scan/Tap Points links) | FUNCTIONAL (offline/PWA incomplete) |
+| Authz permission matrix + Admin audit page | FUNCTIONAL (Clerk role wiring continuous) |
 | V1 parity inventory (code checklist) | CONTRACTED → awaiting P-16 browser |
 | Landing | EXPLICITLY DEFERRED BY CHARTER |
 

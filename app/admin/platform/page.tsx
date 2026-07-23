@@ -87,6 +87,12 @@ export default async function PlatformAdminPage() {
             Outbox / dead letters
           </Link>
           <Link
+            href="/admin/platform/audit"
+            className="text-primary underline-offset-4 hover:underline"
+          >
+            Audit / permissions
+          </Link>
+          <Link
             href="/admin"
             className="text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
           >
