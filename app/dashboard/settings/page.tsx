@@ -13,6 +13,7 @@ import { isFeatureEnabled } from "@/lib/fusion/features";
 import { OutboxDeadLetterPanel } from "@/components/fusion/outbox/dead-letter-panel";
 import { SuppressionListPanel } from "@/components/fusion/comms/suppression-list-panel";
 import { KnowledgeSnippetsPanel } from "@/components/fusion/autopilot/knowledge-snippets-panel";
+import { listPermissionMatrix } from "@/lib/fusion/authz/permission-matrix";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +25,7 @@ export default async function SettingsHubPage() {
   const autopilotBudget = await getAutopilotBudgetSummary(business.id, business.subscriptionTier);
   const autopilotLedger = listCostLedger(business.id, 8);
   const knowledgeSnippets = listKnowledge(business.id);
+  const permissionMatrix = listPermissionMatrix();
   const commsEnabled =
     isFeatureEnabled("comms.email", {}) || isFeatureEnabled("comms.messaging", {});
 
@@ -149,6 +151,35 @@ export default async function SettingsHubPage() {
               availableAt: r.availableAt,
             }))}
           />
+        </div>
+      </section>
+
+      <section className="rounded-xl border border-border/60 p-4">
+        <h2 className="text-sm font-semibold">Studio permission map</h2>
+        <p className="mt-1 text-xs text-muted-foreground">
+          Intended RBAC matrix — Clerk route guards still enforce access. Full table also on{" "}
+          <Link href="/admin/platform/audit" className="text-primary underline-offset-4 hover:underline">
+            Admin audit
+          </Link>
+          .
+        </p>
+        <div className="mt-3 overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="text-muted-foreground">
+              <tr>
+                <th className="py-1 font-medium">Action</th>
+                <th className="py-1 font-medium">Roles</th>
+              </tr>
+            </thead>
+            <tbody>
+              {permissionMatrix.slice(0, 8).map((row) => (
+                <tr key={row.action} className="border-t border-border/40">
+                  <td className="py-1.5 font-mono">{row.action}</td>
+                  <td className="py-1.5 text-muted-foreground">{row.roles.join(", ")}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </section>
 
