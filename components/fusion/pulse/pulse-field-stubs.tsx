@@ -5,6 +5,12 @@ import { CalendarClock, Radio, RotateCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import {
+  enqueuePulseAction,
+  flushPulseQueue,
+  listPulseQueue,
+  type PulseQueuedAction,
+} from "@/lib/fusion/pulse/offline-queue";
 
 type ClaimPhase = "idle" | "waiting" | "claimed" | "expired";
 
@@ -175,6 +181,75 @@ export function PulseRotationPreviewStub() {
           Next slot
         </Button>
       </div>
+    </div>
+  );
+}
+
+/** In-memory offline queue preview — not a service worker */
+export function PulseOfflineQueueStub({ businessId }: { businessId: string }) {
+  const [items, setItems] = useState<PulseQueuedAction[]>([]);
+
+  function refresh() {
+    setItems(listPulseQueue(businessId));
+  }
+
+  function queueNote() {
+    enqueuePulseAction(businessId, "note", {
+      text: `Field note ${new Date().toLocaleTimeString()}`,
+    });
+    refresh();
+  }
+
+  function queueClaim() {
+    enqueuePulseAction(businessId, "claim", { stub: true });
+    refresh();
+  }
+
+  function flush() {
+    flushPulseQueue(businessId);
+    refresh();
+  }
+
+  return (
+    <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-sm font-medium">Offline queue (stub)</p>
+          <p className="text-xs text-muted-foreground">
+            In-memory only — service worker / IndexedDB not wired.
+          </p>
+        </div>
+        <Badge variant="outline" className="text-[10px] uppercase">
+          Memory
+        </Badge>
+      </div>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <Button type="button" size="sm" variant="outline" onClick={queueClaim}>
+          Queue claim
+        </Button>
+        <Button type="button" size="sm" variant="outline" onClick={queueNote}>
+          Queue note
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          onClick={flush}
+          disabled={items.every((i) => i.status !== "queued")}
+        >
+          Flush queue
+        </Button>
+      </div>
+      <ul className="mt-3 max-h-32 space-y-1 overflow-auto text-xs text-muted-foreground">
+        {items.length === 0 ? (
+          <li>No queued actions</li>
+        ) : (
+          items.map((i) => (
+            <li key={i.id} className="font-mono">
+              {i.kind} · {i.status} · {i.createdAt.slice(11, 19)}
+            </li>
+          ))
+        )}
+      </ul>
     </div>
   );
 }

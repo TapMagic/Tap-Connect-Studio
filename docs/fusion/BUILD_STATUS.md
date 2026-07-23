@@ -41,7 +41,7 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run). Lates
 | Insights / Admin KPIs + kill-switch inline confirm | FUNCTIONAL |
 | TapPoint fleet health / capacity / errors | FUNCTIONAL |
 | TapCommerce mock (+ cancel/refund lifecycle) | FUNCTIONAL |
-| Pulse (fleet badges + claim/rotation stubs) | FUNCTIONAL (offline/PWA incomplete) |
+| Pulse (fleet badges + claim/rotation + memory offline queue stubs) | FUNCTIONAL (service worker incomplete) |
 | Authz permission matrix + Admin audit page | FUNCTIONAL (Clerk role wiring continuous) |
 | Failure recovery Insights + Admin snapshot | FUNCTIONAL |
 | A11y structural inventory | CONTRACTED → awaiting P-17 browser |

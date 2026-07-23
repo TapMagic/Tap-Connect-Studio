@@ -4,6 +4,7 @@ import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import {
   PulseClaimSessionStub,
+  PulseOfflineQueueStub,
   PulseRotationPreviewStub,
 } from "@/components/fusion/pulse/pulse-field-stubs";
 import { requireBusiness } from "@/lib/auth";
@@ -152,6 +153,7 @@ export default async function PulseShellPage() {
         <div className="space-y-3">
           <PulseClaimSessionStub />
           <PulseRotationPreviewStub />
+          <PulseOfflineQueueStub businessId={business.id} />
         </div>
 
         <p className="rounded-lg border border-dashed border-border/50 px-3 py-2 text-center text-[11px] text-muted-foreground">
