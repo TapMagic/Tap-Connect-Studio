@@ -8,6 +8,7 @@ import {
 } from "@/lib/fusion/devices/health";
 import { getDevicePath } from "@/lib/utils/app";
 import { buttonVariants } from "@/components/ui/button";
+import { StudioHubSections } from "@/components/studio/hub-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -79,12 +80,18 @@ export default async function TapPointsHubPage() {
   const withErrors = fleetBadges.filter((b) => b.errors.length > 0).length;
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
+    <div className="space-y-8 p-5 lg:p-8">
+      <StudioHubSections
+        destinationId="tap_points"
+        title="Tap Points"
+        subtitle="Devices, Scan Mode, fleet health, Pulse, and provisioning — V1 inventory remains below."
+      />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Tap Points</h1>
-          <p className="mt-1 text-muted-foreground">
-            Devices, permanent Tap Point addresses, and Scan Mode — public /t/ URLs stay stable.
+          <h2 className="text-lg font-semibold tracking-tight text-white">Live registry</h2>
+          <p className="mt-1 text-sm text-white/50">
+            Permanent addresses and health badges — public /t/ URLs stay stable.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

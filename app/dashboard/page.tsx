@@ -1,22 +1,13 @@
 import Link from "next/link";
-import {
-  ArrowRight,
-  BarChart3,
-  Layers3,
-  Nfc,
-  Palette,
-  PenTool,
-  ScanLine,
-  Users,
-} from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader } from "@/components/ui/card";
-import { OverviewLists } from "@/components/dashboard/overview-lists";
+import { ArrowRight, AlertTriangle, CheckCircle2, Radio } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
+import { StudioHubSections } from "@/components/studio/hub-sections";
 import { requireBusiness } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/services/devices";
 import { prisma } from "@/lib/db";
-import { formatRelativeDate } from "@/lib/utils/app";
+import { listDeadLetters } from "@/lib/fusion/publication/events";
+import { computeTapPointHealth, summarizeFleetHealth } from "@/lib/fusion/devices/health";
+import { listTapPointsForBusiness } from "@/lib/fusion/devices/tap-point-bridge";
 
 export const dynamic = "force-dynamic";
 
@@ -26,12 +17,11 @@ export default async function DashboardPage() {
 
   const [
     recentCampaigns,
-    recentDevices,
-    statusGroups,
     brandKit,
-    liveAssigned,
-    totalTaps,
     campaignCount,
+    deadLetters,
+    devices,
+    tapPoints,
   ] = await Promise.all([
     prisma.campaign.findMany({
       where: {
@@ -39,45 +29,47 @@ export default async function DashboardPage() {
         status: { notIn: ["ARCHIVED", "CLOSED"] },
       },
       orderBy: { updatedAt: "desc" },
-      take: 8,
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        campaignType: true,
-      },
-    }),
-    prisma.deviceSlot.findMany({
-      where: {
-        businessId: business.id,
-        status: { notIn: ["CLOSED", "RETIRED", "ARCHIVED", "REPLACED"] },
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 8,
-      include: {
-        assignments: {
-          where: { status: "ACTIVE" },
-          take: 1,
-          include: { campaign: { select: { title: true, status: true } } },
-        },
-      },
-    }),
-    prisma.campaign.groupBy({
-      by: ["status"],
-      where: { businessId: business.id },
-      _count: true,
+      take: 6,
+      select: { id: true, title: true, status: true },
     }),
     prisma.brandKit.findUnique({ where: { businessId: business.id } }),
-    prisma.deviceAssignment.count({
-      where: { businessId: business.id, status: "ACTIVE" },
-    }),
-    prisma.tapEvent.count({ where: { businessId: business.id } }),
     prisma.campaign.count({
       where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
     }),
+    listDeadLetters({ businessId: business.id, limit: 5 }).catch(() => []),
+    prisma.deviceSlot
+      .findMany({
+        where: { businessId: business.id },
+        take: 40,
+        select: { id: true, status: true, totalTapCount: true, deviceCode: true },
+      })
+      .catch(() => []),
+    listTapPointsForBusiness(business.id).catch(() => []),
   ]);
 
-  const byStatus = Object.fromEntries(statusGroups.map((g) => [g.status, g._count]));
+  const deviceById = new Map(devices.map((d) => [d.id, d]));
+  const unbridged = devices.filter((d) => !tapPoints.some((tp) => tp.deviceSlotId === d.id));
+  const fleet = summarizeFleetHealth([
+    ...tapPoints.map((tp) => {
+      const device = tp.deviceSlotId ? deviceById.get(tp.deviceSlotId) : undefined;
+      return computeTapPointHealth({
+        status: tp.status,
+        hasAddress: Boolean(tp.address?.code),
+        totalTapCount: device?.totalTapCount,
+        deviceStatus: device?.status,
+        bridged: true,
+      });
+    }),
+    ...unbridged.map((d) =>
+      computeTapPointHealth({
+        status: d.status,
+        hasAddress: Boolean(d.deviceCode),
+        totalTapCount: d.totalTapCount,
+        deviceStatus: d.status,
+        bridged: false,
+      })
+    ),
+  ]);
 
   const onboardingSteps = [
     {
@@ -96,160 +88,122 @@ export default async function DashboardPage() {
       id: "device",
       label: "Create a device slot",
       href: "/dashboard/devices",
-      done: recentDevices.length > 0,
+      done: devices.length > 0,
     },
     {
       id: "assign",
-      label: "Assign a campaign to a device",
+      label: "Assign a live campaign",
       href: "/dashboard/devices",
-      done: liveAssigned > 0,
+      done: (stats.liveCampaigns ?? 0) > 0,
     },
-    {
-      id: "test",
-      label: "Test the public tap page",
-      href: recentDevices[0]
-        ? `/t/${recentDevices[0].deviceCode}`
-        : "/dashboard/devices",
-      done: totalTaps > 0,
-    },
-  ];
-
-  const statCards = [
-    { label: "Taps this month", value: stats.tapsThisMonth, icon: Nfc },
-    { label: "Leads this month", value: stats.leadsThisMonth, icon: Users },
-    { label: "Active devices", value: stats.activeDevices, icon: Nfc },
-    { label: "Live campaigns", value: stats.liveCampaigns, icon: Layers3 },
-  ];
-
-  const quickActions = [
-    { href: "/dashboard/workbench", label: "Create Campaign", icon: PenTool },
-    { href: "/dashboard/devices", label: "Manage Devices", icon: Nfc },
-    { href: "/dashboard/scan", label: "Scan Device", icon: ScanLine },
-    { href: "/dashboard/leads", label: "View Leads", icon: Users },
-    { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-    { href: "/dashboard/brand", label: "Brand Kit", icon: Palette },
   ];
 
   return (
-    <div className="space-y-8 p-6 lg:p-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">{business.name}</h1>
-          <p className="text-muted-foreground">Your tap marketing command center</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/dashboard/workbench" className={buttonVariants()}>
-            <PenTool className="mr-2 h-4 w-4" />
-            New Campaign
-          </Link>
-          <Link href="/dashboard/campaigns" className={buttonVariants({ variant: "outline" })}>
-            All Campaigns
-          </Link>
-        </div>
-      </div>
+    <div className="space-y-10 p-5 lg:p-8">
+      <header className="relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/10 via-transparent to-transparent px-6 py-8">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-primary">
+          Home · Operations
+        </p>
+        <h1 className="mt-2 max-w-2xl text-3xl font-semibold tracking-tight text-white sm:text-4xl">
+          What needs attention in {business.name}
+        </h1>
+        <p className="mt-3 max-w-xl text-sm text-white/55">
+          Decision queue, readiness, Tap Point health, and campaign momentum — Fusion pillars live
+          under Experiences, Audience, Insights, Assets, and Settings.
+        </p>
+      </header>
 
-      <OnboardingChecklist steps={onboardingSteps} businessName={business.name} />
-
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        {statCards.map((stat) => {
-          const Icon = stat.icon;
-          return (
-            <Card key={stat.label} className="border-border/60 bg-card/60">
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardDescription>{stat.label}</CardDescription>
-                <Icon className="h-4 w-4 text-muted-foreground" />
-              </CardHeader>
-              <CardContent>
-                <p className="text-3xl font-bold">{stat.value}</p>
-              </CardContent>
-            </Card>
-          );
-        })}
-      </div>
-
-      <Card className="border-border/60 bg-card/60">
-        <CardHeader className="pb-2">
-          <CardDescription>Campaign pipeline</CardDescription>
-        </CardHeader>
-        <CardContent className="flex flex-wrap gap-3 text-sm">
-          {(
-            [
-              ["DRAFT", "Drafts"],
-              ["READY", "Ready"],
-              ["SCHEDULED", "Scheduled"],
-              ["LIVE", "Live"],
-              ["PAUSED", "Paused"],
-              ["ARCHIVED", "Archived"],
-            ] as const
-          ).map(([key, label]) => (
-            <Link
-              key={key}
-              href="/dashboard/campaigns"
-              className="rounded-lg border border-border/50 px-3 py-2 hover:border-primary/40"
-            >
-              <span className="text-muted-foreground">{label}</span>{" "}
-              <span className="font-semibold">{byStatus[key] ?? 0}</span>
-            </Link>
-          ))}
-          <span className="rounded-lg border border-border/50 px-3 py-2">
-            <span className="text-muted-foreground">Devices</span>{" "}
-            <span className="font-semibold">
-              {stats.activeDevices}/{business.activeDeviceLimit}
-            </span>
-          </span>
-        </CardContent>
-      </Card>
-
-      <div className="flex flex-wrap gap-2">
-        {quickActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <Link
-              key={action.href}
-              href={action.href}
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              <Icon className="mr-1.5 h-3.5 w-3.5" />
-              {action.label}
-            </Link>
-          );
-        })}
-      </div>
-
-      <OverviewLists
-        campaigns={recentCampaigns}
-        devices={recentDevices.map((d) => ({
-          id: d.id,
-          deviceCode: d.deviceCode,
-          nickname: d.nickname,
-          status: d.status,
-          totalTapCount: d.totalTapCount,
-          lastTappedLabel: formatRelativeDate(d.lastTappedAt),
-          campaignTitle: d.assignments[0]?.campaign?.title ?? null,
-        }))}
-        deviceLimit={business.activeDeviceLimit}
-        activeDevices={stats.activeDevices}
-      />
-
-      {stats.topDevice && (
-        <Card className="border-primary/20 bg-primary/5">
-          <CardContent className="flex items-center justify-between py-4">
-            <div>
-              <p className="text-sm text-muted-foreground">Top performing device</p>
-              <p className="font-semibold">
-                {stats.topDevice.nickname ?? stats.topDevice.deviceCode} —{" "}
-                {stats.topDevice.totalTapCount} taps
-              </p>
+      <section id="decision-queue" className="scroll-mt-24 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">
+          Decision queue
+        </h2>
+        <div className="grid gap-3 lg:grid-cols-3">
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
+            <div className="flex items-center gap-2 text-amber-200">
+              <AlertTriangle className="h-4 w-4" aria-hidden />
+              <p className="text-sm font-medium">Failures</p>
             </div>
+            <p className="mt-3 text-3xl font-semibold tabular-nums text-white">
+              {deadLetters.length}
+            </p>
+            <p className="mt-1 text-xs text-white/45">Outbox dead letters (this business)</p>
             <Link
-              href="/dashboard/analytics"
-              className={buttonVariants({ variant: "ghost", size: "sm" })}
+              href="/dashboard/settings#outbox"
+              className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline"
             >
-              View analytics <ArrowRight className="ml-1 h-4 w-4" />
+              Open recovery <ArrowRight className="h-3 w-3" />
             </Link>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
+            <div className="flex items-center gap-2 text-primary">
+              <Radio className="h-4 w-4" aria-hidden />
+              <p className="text-sm font-medium">Tap Point health</p>
+            </div>
+            <p className="mt-3 text-sm text-white/80">
+              {fleet.healthy} healthy · {fleet.warning} warn · {fleet.critical} critical
+            </p>
+            <Link
+              href="/dashboard/tap-points"
+              className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            >
+              Fleet workspace <ArrowRight className="h-3 w-3" />
+            </Link>
+          </div>
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
+            <div className="flex items-center gap-2 text-emerald-300">
+              <CheckCircle2 className="h-4 w-4" aria-hidden />
+              <p className="text-sm font-medium">Live coverage</p>
+            </div>
+            <p className="mt-3 text-3xl font-semibold tabular-nums text-white">
+              {stats.activeDevices}
+            </p>
+            <p className="mt-1 text-xs text-white/45">Active devices</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="readiness" className="scroll-mt-24 space-y-3">
+        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">
+          Readiness
+        </h2>
+        <OnboardingChecklist steps={onboardingSteps} />
+      </section>
+
+      <section id="upcoming" className="scroll-mt-24 space-y-3">
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">
+            Upcoming / recent campaigns
+          </h2>
+          <Link href="/dashboard/campaigns" className="text-xs text-primary hover:underline">
+            All campaigns
+          </Link>
+        </div>
+        <ul className="divide-y divide-white/6 overflow-hidden rounded-xl border border-white/8">
+          {recentCampaigns.length === 0 ? (
+            <li className="px-4 py-6 text-sm text-white/45">
+              No campaigns yet — create one from Experiences or + Create.
+            </li>
+          ) : (
+            recentCampaigns.map((c) => (
+              <li key={c.id}>
+                <Link
+                  href={`/dashboard/campaigns/${c.id}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-white/[0.03]"
+                >
+                  <span className="text-sm text-white/90">{c.title}</span>
+                  <span className="font-mono text-[10px] uppercase text-primary">{c.status}</span>
+                </Link>
+              </li>
+            ))
+          )}
+        </ul>
+      </section>
+
+      <StudioHubSections
+        destinationId="home"
+        title="Home destinations"
+        subtitle="Secondary Home surfaces — Autopilot remains contextual in the builder."
+      />
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { DashboardNav, MobileDashboardNav } from "@/components/dashboard/nav";
+import { StudioTopBar } from "@/components/studio/studio-top-bar";
 import { DevModeBanner } from "@/components/dev-mode-banner";
-import { AuthControls } from "@/components/auth/auth-controls";
-import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
+import { requireBusiness } from "@/lib/auth";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
-import { isClerkConfigured } from "@/lib/utils/app";
+import { prisma } from "@/lib/db";
 import "@/app/t/tap.css";
 import type { Metadata } from "next";
 
@@ -35,11 +35,19 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { user, business } = await requireBusiness();
-  const showAdminLink = isPlatformAdmin(user);
+  const { business } = await requireBusiness();
+
+  let alertCount = 0;
+  try {
+    alertCount = await prisma.fusionOutboxEvent.count({
+      where: { status: "FAILED", businessId: business.id },
+    });
+  } catch {
+    alertCount = 0;
+  }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden">
+    <div className="flex min-h-screen flex-col bg-[#050814] text-foreground lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden">
       <a
         href="#main-content"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
@@ -47,18 +55,18 @@ export default async function DashboardLayout({
         Skip to main content
       </a>
       <DevModeBanner />
-      <MobileDashboardNav businessName={business.name} showAdminLink={showAdminLink} />
-      {isClerkConfigured() && (
-        <div className="shrink-0 flex justify-end border-b border-border/40 px-4 py-2 lg:px-6">
-          <AuthControls />
-        </div>
-      )}
-      <div className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1">
-        <DashboardNav businessName={business.name} showAdminLink={showAdminLink} />
+      <MobileDashboardNav businessName={business.name} />
+      <StudioTopBar
+        businessName={business.name}
+        readinessLabel={alertCount > 0 ? "Attention needed" : "Studio ready"}
+        alertCount={alertCount}
+      />
+      <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1">
+        <DashboardNav businessName={business.name} />
         <main
           id="main-content"
           tabIndex={-1}
-          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto focus:outline-none"
+          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#050814] via-[#070b14] to-[#0a1220] focus:outline-none"
         >
           {children}
         </main>

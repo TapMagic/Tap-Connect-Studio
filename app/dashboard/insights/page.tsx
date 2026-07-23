@@ -10,6 +10,7 @@ import {
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3 } from "lucide-react";
+import { StudioHubSections } from "@/components/studio/hub-sections";
 
 export const dynamic = "force-dynamic";
 
@@ -38,11 +39,17 @@ export default async function InsightsHubPage({
   const empty = snapshot?.empty ?? true;
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="space-y-8 p-5 lg:p-8">
+      <StudioHubSections
+        destinationId="insights"
+        title="Insights"
+        subtitle="Legacy analytics, TapProof evidence, loyalty/commerce signals, and provider health — V1 Analytics remains linked."
+      />
+
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <h2 className="text-lg font-semibold tracking-tight text-white">Live snapshot</h2>
+          <p className="mt-1 text-sm text-white/50">
             What happened, why it matters, evidence class, next action.
           </p>
         </div>

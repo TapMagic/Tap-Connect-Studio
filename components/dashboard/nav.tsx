@@ -4,96 +4,156 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
-  CreditCard,
-  FolderKanban,
   LayoutDashboard,
   Layers3,
-  MapPin,
   Nfc,
   Palette,
-  PenTool,
-  ScanLine,
   Settings,
-  Shield,
   Users,
-  Zap,
 } from "lucide-react";
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { cn } from "@/lib/utils";
+import {
+  MATURITY_LABEL,
+  STUDIO_NAV,
+  groupSections,
+  resolveStudioDestination,
+  sectionsForDestination,
+  type StudioMaturity,
+} from "@/lib/fusion/studio/ia";
 
-const navItems = [
-  { href: "/dashboard", label: "Home", icon: LayoutDashboard },
-  { href: "/dashboard/experiences", label: "Experiences", icon: Layers3 },
-  { href: "/dashboard/tap-points", label: "Tap Points", icon: Nfc },
-  { href: "/dashboard/audience", label: "Audience", icon: Users },
-  { href: "/dashboard/insights", label: "Insights", icon: BarChart3 },
-  { href: "/dashboard/assets", label: "Assets", icon: Palette },
-  { href: "/dashboard/settings", label: "Settings", icon: Settings },
-  { href: "/dashboard/workbench", label: "Workbench", icon: PenTool },
-  { href: "/dashboard/campaigns", label: "Campaigns", icon: Layers3 },
-  { href: "/dashboard/card", label: "Tap Card", icon: CreditCard },
-  { href: "/dashboard/groups", label: "Groups", icon: FolderKanban },
-  { href: "/dashboard/devices", label: "Devices", icon: Nfc },
-  { href: "/dashboard/leads", label: "Leads", icon: Users },
-  { href: "/dashboard/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/dashboard/brand", label: "Brand Kit", icon: Palette },
-  { href: "/dashboard/integrations", label: "Integrations", icon: Zap },
-  { href: "/dashboard/scan", label: "Scan Mode", icon: ScanLine },
-  { href: "/dashboard/billing", label: "Billing", icon: CreditCard },
-];
+const ICONS = {
+  home: LayoutDashboard,
+  experiences: Layers3,
+  tap_points: Nfc,
+  audience: Users,
+  insights: BarChart3,
+  assets: Palette,
+  settings: Settings,
+} as const;
+
+function maturityTone(m: StudioMaturity) {
+  switch (m) {
+    case "owner_ready":
+      return "text-primary border-primary/40";
+    case "functional":
+    case "beta":
+      return "text-emerald-300/90 border-emerald-500/30";
+    case "alpha":
+      return "text-amber-200 border-amber-500/40";
+    case "verified_needs_credentials":
+      return "text-sky-200 border-sky-500/40";
+    case "scaffolded":
+    case "internal":
+    case "disabled":
+    default:
+      return "text-muted-foreground border-border/60";
+  }
+}
 
 export function DashboardNav({
   businessName,
-  showAdminLink = false,
 }: {
   businessName: string;
+  /** @deprecated Platform Admin lives under Settings — ignored */
   showAdminLink?: boolean;
 }) {
   const pathname = usePathname();
-  const items = showAdminLink
-    ? [{ href: "/admin", label: "Admin", icon: Shield }, ...navItems]
-    : navItems;
+  const destination = resolveStudioDestination(pathname);
+  const sections = sectionsForDestination(destination.id);
+  const grouped = groupSections(sections);
 
   return (
-    <aside className="hidden h-full w-64 shrink-0 flex-col self-stretch overflow-y-auto border-r border-border/60 bg-card/40 lg:flex">
-      <div className="shrink-0 border-b border-border/60 px-5 py-5">
-        <Link href="/dashboard" className="flex items-center gap-2">
+    <aside className="hidden h-full w-[17.5rem] shrink-0 flex-col self-stretch border-r border-white/8 bg-[#070b14] lg:flex">
+      <div className="shrink-0 border-b border-white/8 px-4 py-4">
+        <Link href="/dashboard" className="flex items-center gap-2.5">
           <TapConnectLogo variant="mark" priority />
-          <div>
-            <p className="text-sm font-semibold">Tap Connect</p>
-            <p className="truncate text-xs text-muted-foreground">{businessName}</p>
+          <div className="min-w-0">
+            <p className="text-[13px] font-semibold tracking-tight text-white">
+              Tap Connect Studio
+            </p>
+            <p className="truncate text-[11px] text-white/45">{businessName}</p>
           </div>
         </Link>
       </div>
-      <nav className="min-h-0 flex-1 space-y-1 p-3" aria-label="Studio navigation">
-        {items.map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
-          const Icon = item.icon;
+
+      <nav
+        className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-2 py-3"
+        aria-label="Studio primary"
+      >
+        {STUDIO_NAV.map((item) => {
+          const active = destination.id === item.id;
+          const Icon = ICONS[item.id as keyof typeof ICONS] ?? LayoutDashboard;
           return (
             <Link
-              key={item.href}
+              key={item.id}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-lg px-3 py-2 text-sm transition-colors",
+                "flex items-center gap-2.5 rounded-lg px-3 py-2 text-[13px] font-medium transition-colors",
                 active
                   ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  : "text-white/55 hover:bg-white/5 hover:text-white"
               )}
               {...(active ? { "aria-current": "page" as const } : {})}
             >
-              <Icon className="h-4 w-4" />
+              <Icon className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
               {item.label}
             </Link>
           );
         })}
+
+        {grouped.length > 0 ? (
+          <div className="mt-4 space-y-3 border-t border-white/8 pt-4">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+              {destination.label}
+            </p>
+            {grouped.map(({ group, items }) => (
+              <div key={group} className="space-y-0.5">
+                <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wide text-white/25">
+                  {group}
+                </p>
+                {items.map((s) => {
+                  const sectionActive =
+                    pathname === s.href.split("#")[0] ||
+                    (s.href.includes("#") === false &&
+                      pathname.startsWith(s.href) &&
+                      s.href !== destination.href);
+                  return (
+                    <Link
+                      key={s.id}
+                      href={s.href}
+                      className={cn(
+                        "block rounded-md px-3 py-1.5 text-[12px] transition-colors",
+                        sectionActive
+                          ? "bg-white/8 text-white"
+                          : "text-white/50 hover:bg-white/5 hover:text-white/85"
+                      )}
+                      title={s.description}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="truncate">{s.label}</span>
+                        <span
+                          className={cn(
+                            "shrink-0 rounded border px-1 py-px text-[9px] uppercase tracking-wide",
+                            maturityTone(s.maturity)
+                          )}
+                        >
+                          {MATURITY_LABEL[s.maturity].split(" ")[0]}
+                        </span>
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </nav>
-      <div className="shrink-0 border-t border-border/60 p-4 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <MapPin className="h-3.5 w-3.5" />
-          <span>Multi-location ready</span>
-        </div>
+
+      <div className="shrink-0 border-t border-white/8 px-4 py-3">
+        <p className="text-[10px] leading-snug text-white/30">
+          V1 routes remain available inside hubs. Platform Admin is under Settings.
+        </p>
       </div>
     </aside>
   );
@@ -101,42 +161,39 @@ export function DashboardNav({
 
 export function MobileDashboardNav({
   businessName,
-  showAdminLink = false,
 }: {
   businessName: string;
   showAdminLink?: boolean;
 }) {
   const pathname = usePathname();
-  const items = showAdminLink
-    ? [{ href: "/admin", label: "Admin", icon: Shield }, ...navItems]
-    : navItems;
+  const destination = resolveStudioDestination(pathname);
 
   return (
-    <div className="border-b border-border/60 bg-card/40 lg:hidden">
+    <div className="border-b border-white/8 bg-[#070b14] lg:hidden">
       <div className="flex items-center justify-between px-4 py-3">
         <Link href="/dashboard" className="flex items-center gap-2">
           <TapConnectLogo variant="mark" imgClassName="h-8 w-8 rounded-md" />
           <div>
-            <p className="text-sm font-semibold">Tap Connect</p>
-            <p className="text-xs text-muted-foreground">{businessName}</p>
+            <p className="text-sm font-semibold text-white">Tap Connect</p>
+            <p className="text-xs text-white/45">{businessName}</p>
           </div>
         </Link>
       </div>
       <nav
         className="flex gap-1 overflow-x-auto px-3 pb-3"
-        aria-label="Studio navigation"
+        aria-label="Studio primary"
       >
-        {items.slice(0, 6).map((item) => {
-          const active =
-            pathname === item.href ||
-            (item.href !== "/dashboard" && pathname.startsWith(item.href));
+        {STUDIO_NAV.map((item) => {
+          const active = destination.id === item.id;
           return (
             <Link
-              key={item.href}
+              key={item.id}
               href={item.href}
               className={cn(
                 "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
-                active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                active
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-white/5 text-white/60"
               )}
               {...(active ? { "aria-current": "page" as const } : {})}
             >
