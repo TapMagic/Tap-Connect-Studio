@@ -56,12 +56,7 @@ describe("TapCommerce", () => {
   it("totals lines and rejects raw card fields", () => {
     assert.equal(
       orderTotalCents({
-        id: "o",
-        businessId: "b",
-        status: "draft",
         lines: [{ itemId: "i", quantity: 2, unitPriceCents: 500, name: "x" }],
-        provider: "stripe",
-        createdAt: new Date().toISOString(),
       }),
       1000
     );

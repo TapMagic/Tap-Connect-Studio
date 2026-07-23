@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { BillingReadiness } from "@/lib/fusion/billing";
+import type { CommerceStripeReadiness } from "@/lib/fusion/commerce";
 import type { ExecutiveKpis, DeviceFleetSummary } from "@/lib/fusion/admin/dashboard-metrics";
 import type { FeatureOverride } from "@/lib/fusion/features";
 import { FeatureRegistryPanel } from "@/components/fusion/admin/feature-registry-panel";
@@ -152,6 +153,7 @@ export function PlatformAdminTabs({
   connectorRows,
   messagingRows,
   billingReadiness,
+  commerceReadiness,
   walletBlockers,
   emailReadiness,
   autopilotEnabled,
@@ -174,6 +176,7 @@ export function PlatformAdminTabs({
     missingEnvVars: string[];
   }[];
   billingReadiness: BillingReadiness;
+  commerceReadiness?: CommerceStripeReadiness;
   walletBlockers: { apple: string[]; google: string[] };
   emailReadiness: {
     ready: boolean;
@@ -364,7 +367,10 @@ export function PlatformAdminTabs({
 
       {tab === "billing" && (
         <section className="space-y-4">
-          <StripeConnectionPanel readiness={billingReadiness} />
+          <StripeConnectionPanel
+            readiness={billingReadiness}
+            commerceReadiness={commerceReadiness}
+          />
         </section>
       )}
 

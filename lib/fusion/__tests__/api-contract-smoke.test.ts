@@ -54,6 +54,12 @@ describe("API contract smoke: route handler exports", () => {
     assert.equal(typeof mod.POST, "function");
   });
 
+  it("commerce GET/POST are exportable", async () => {
+    const mod = await import("../../../app/api/commerce/route");
+    assert.equal(typeof mod.GET, "function");
+    assert.equal(typeof mod.POST, "function");
+  });
+
   it("inbox and audience consent handlers are exportable", async () => {
     const inbox = await import("../../../app/api/inbox/route");
     const consent = await import("../../../app/api/audience/consent/route");

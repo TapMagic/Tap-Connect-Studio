@@ -10,6 +10,11 @@ import {
   checkAutopilotBudget,
   recordAutopilotBudgetUse,
 } from "./budget";
+import {
+  estimateGenerationCost,
+  groundPromptWithKnowledge,
+  recordCostLedgerEntry,
+} from "./knowledge";
 import { defaultRecipeId, getRecipe } from "./recipes";
 import { createProposal } from "./proposals";
 import {
@@ -119,9 +124,14 @@ export async function runAutopilotGenerate(
     return { ok: false, code: "recipe_unknown", message: `Unknown recipe: ${recipeId}` };
   }
 
-  const draft = await generateCampaignDraft(input.prompt);
+  const grounded = input.businessId
+    ? groundPromptWithKnowledge(input.businessId, input.prompt)
+    : { groundedPrompt: input.prompt, snippets: [] };
+
+  const draft = await generateCampaignDraft(grounded.groundedPrompt);
   const proposalId = nanoid();
   const autoApplied = modeAutoApplies(mode);
+  const cost = estimateGenerationCost(grounded.groundedPrompt);
 
   const draftProposal: AutopilotProposal = {
     id: proposalId,
@@ -144,7 +154,12 @@ export async function runAutopilotGenerate(
         payload: draft.theme,
       },
     ],
-    warnings: mode === "recommend" ? ["Review blocks before Save — recommend mode"] : [],
+    warnings: [
+      ...(mode === "recommend" ? ["Review blocks before Save — recommend mode"] : []),
+      ...(grounded.snippets.length
+        ? [`Grounded with ${grounded.snippets.length} Knowledge snippet(s)`]
+        : ["No tenant Knowledge matched — generation used prompt only"]),
+    ],
     createdAt: new Date().toISOString(),
   };
 
@@ -164,6 +179,15 @@ export async function runAutopilotGenerate(
       actorId: input.actorId,
     });
     recordAutopilotBudgetUse(input.businessId);
+    recordCostLedgerEntry({
+      businessId: input.businessId,
+      proposalId,
+      recipeId,
+      recipeVersion: recipe.version,
+      estimatedTokens: cost.estimatedTokens,
+      estimatedUsd: cost.estimatedUsd,
+      model: cost.model,
+    });
   }
 
   const budgetAfter = input.businessId

@@ -5,18 +5,15 @@ import { prisma } from "@/lib/db";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
-  executeJourneyDryRun,
-  SAMPLE_VISITOR,
+  recordJourneyDryRun,
   type JourneyDefinition,
   type VisitorContext,
+  SAMPLE_VISITOR,
 } from "@/lib/fusion/journey";
 
 const schema = z.object({
-  /** Inline definition (editor dry-run) */
   definition: z.record(z.string(), z.unknown()).optional(),
-  /** Or load a persisted draft by id */
   draftId: z.string().optional(),
-  /** Require ACTIVE/PUBLISHED status when loading by id */
   requirePublished: z.boolean().optional(),
   visitor: z
     .object({
@@ -43,17 +40,14 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const { business } = await requireBusiness();
+    const { business, user } = await requireBusiness();
     const overrides = toResolveOverrides(await listFeatureOverrides());
-    const featureEnabled = isFeatureEnabled("journey.tapflow", { overrides });
-
-    if (!featureEnabled) {
+    if (!isFeatureEnabled("journey.tapflow", { overrides })) {
       return NextResponse.json(
         {
           placeholder: true,
           feature: "journey.tapflow",
-          message:
-            "TapFlow simulate/execute is disabled. Enable journey.tapflow in Platform Admin.",
+          message: "TapFlow simulate is disabled. Enable journey.tapflow in Platform Admin.",
         },
         { status: 503 }
       );
@@ -101,7 +95,13 @@ export async function POST(request: Request) {
       attributes: { ...SAMPLE_VISITOR.attributes, ...body.visitor?.attributes },
     };
 
-    const result = executeJourneyDryRun(definition, visitor, { requireValid: true });
+    const { run, result } = await recordJourneyDryRun({
+      businessId: business.id,
+      journeyId: draftMeta?.id,
+      definition,
+      visitor,
+      actorId: user.id,
+    });
 
     return NextResponse.json({
       ok: result.ok,
@@ -111,7 +111,9 @@ export async function POST(request: Request) {
       issues: result.issues,
       visitor: result.visitor,
       draft: draftMeta,
+      run: { id: run.id, status: run.status, dryRun: run.dryRun },
       mode: "dry_run",
+      note: "Dry-run recorded — no live messages, ledger writes, or cases.",
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

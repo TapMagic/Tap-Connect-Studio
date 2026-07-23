@@ -3,6 +3,8 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { notifyOnLeadCapture } from "@/lib/services/lead-notify";
 import { upsertAudienceFromLeadCapture } from "@/lib/fusion/audience";
+import { isFeatureEnabled } from "@/lib/fusion/features";
+import { createThreadFromLead } from "@/lib/fusion/inbox";
 
 const schema = z.object({
   businessId: z.string(),
@@ -21,6 +23,7 @@ export async function POST(request: Request) {
   try {
     const body = schema.parse(await request.json());
 
+    // V1 lead path — must succeed independently of fusion side-effects
     const lead = await prisma.lead.create({
       data: {
         businessId: body.businessId,
@@ -52,6 +55,8 @@ export async function POST(request: Request) {
 
     let myTapPath: string | undefined;
     let relationshipToken: string | undefined;
+    let contactId: string | undefined;
+    let relationshipId: string | undefined;
     try {
       const audience = await upsertAudienceFromLeadCapture({
         businessId: body.businessId,
@@ -66,8 +71,32 @@ export async function POST(request: Request) {
       });
       relationshipToken = audience.publicToken;
       myTapPath = audience.publicToken ? `/mytap/${audience.publicToken}` : undefined;
+      contactId = audience.contactId;
+      relationshipId = audience.relationshipId;
     } catch (audienceError) {
       console.warn("Audience upsert skipped:", audienceError);
+    }
+
+    // TapInbox — best-effort only when comms.inbox is on; never fail the V1 lead response
+    try {
+      if (isFeatureEnabled("comms.inbox", {})) {
+        await createThreadFromLead({
+          businessId: body.businessId,
+          leadId: lead.id,
+          email: body.email,
+          contactId,
+          relationshipId,
+          subject:
+            body.type === "feedback"
+              ? `Feedback from ${body.name ?? body.email}`
+              : `New lead · ${body.name ?? body.email}`,
+          body:
+            body.message?.trim() ||
+            `Lead captured (${body.type}) from ${body.email}${body.name ? ` (${body.name})` : ""}.`,
+        });
+      }
+    } catch (inboxError) {
+      console.warn("Inbox thread from lead skipped:", inboxError);
     }
 
     // Don't block the visitor response on email delivery

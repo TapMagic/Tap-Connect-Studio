@@ -29,8 +29,10 @@ export const STUDIO_NAV: StudioNavItem[] = [
       "/dashboard/campaigns",
       "/dashboard/card",
       "/dashboard/groups",
+      "/dashboard/experiences/journeys",
+      "/dashboard/experiences/orders",
     ],
-    description: "Cards, Campaigns, Groups, Workbench, Journeys",
+    description: "Cards, Campaigns, Groups, Workbench, Journeys, Orders",
   },
   {
     id: "tap_points",
@@ -68,6 +70,9 @@ export const STUDIO_NAV: StudioNavItem[] = [
     description: "Workspace admin, providers, plans, features",
   },
 ];
+
+/** Field PWA entry (not a Studio IA destination) */
+export const PULSE_HREF = "/dashboard/pulse" as const;
 
 /** Compatibility: keep V1 routes working while IA migrates */
 export function resolveStudioDestination(pathname: string): StudioNavItem {

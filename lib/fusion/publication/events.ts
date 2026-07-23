@@ -374,6 +374,94 @@ export async function retryDeadLetter(id: string): Promise<OutboxRecord | null> 
   return mem ?? null;
 }
 
+/**
+ * Discard a dead letter — marks PUBLISHED with lastError retained as discarded note.
+ * Removes from retry queue without re-delivery.
+ */
+export async function discardDeadLetter(
+  id: string,
+  reason = "discarded_by_operator"
+): Promise<OutboxRecord | null> {
+  const mem = memoryOutbox.find((r) => r.id === id);
+  if (mem) {
+    mem.status = "PUBLISHED";
+    mem.lastError = reason;
+  }
+
+  if (isIsolatedFusionDatabaseConfigured()) {
+    try {
+      const updated = await prisma.fusionOutboxEvent.update({
+        where: { id },
+        data: {
+          status: "PUBLISHED",
+          publishedAt: new Date(),
+          lastError: reason.slice(0, 2000),
+        },
+      });
+      return mapPrismaRow(updated);
+    } catch {
+      // fall through
+    }
+  }
+
+  return mem ?? null;
+}
+
+/**
+ * Simple outbox worker tick — drains PENDING records via handler.
+ * Intended for Admin "Process now" and future cron against isolated DB only.
+ */
+export async function processOutboxTick(
+  handler: (record: OutboxRecord) => Promise<void>,
+  opts: { limit?: number; businessId?: string } = {}
+): Promise<{ processed: number; failed: number; ids: string[] }> {
+  const pending = await listOutbox({
+    status: "PENDING",
+    businessId: opts.businessId,
+    limit: opts.limit ?? 20,
+  });
+  let processed = 0;
+  let failed = 0;
+  const ids: string[] = [];
+
+  for (const record of pending) {
+    try {
+      await handler(record);
+      // mark published via drain helper path
+      const mem = memoryOutbox.find((r) => r.id === record.id);
+      if (mem) {
+        mem.status = "PUBLISHED";
+        mem.attempts += 1;
+      }
+      if (isIsolatedFusionDatabaseConfigured()) {
+        try {
+          await prisma.fusionOutboxEvent.update({
+            where: { id: record.id },
+            data: {
+              status: "PUBLISHED",
+              attempts: { increment: 1 },
+              publishedAt: new Date(),
+              lastError: null,
+            },
+          });
+        } catch {
+          // memory already updated
+        }
+      }
+      processed += 1;
+      ids.push(record.id);
+    } catch (err) {
+      failed += 1;
+      await markOutboxFailed(
+        record.id,
+        err instanceof Error ? err.message : String(err)
+      );
+    }
+  }
+
+  return { processed, failed, ids };
+}
+
 const idempotencyMemory = new Map<
   string,
   { response: unknown; expiresAt: number; requestHash: string }

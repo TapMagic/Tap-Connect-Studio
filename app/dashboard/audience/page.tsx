@@ -85,15 +85,18 @@ export default async function AudienceHubPage() {
           </p>
         </div>
 
-        <div className="rounded-xl border border-border/60 bg-card/40 p-4 opacity-90">
+        <Link
+          href="/dashboard/audience/inbox"
+          className="rounded-xl border border-border/60 bg-card/40 p-4 hover:border-primary/50"
+        >
           <div className="flex items-center gap-2">
             <Inbox className="h-4 w-4 text-primary" />
             <p className="font-medium">TapInbox</p>
           </div>
           <p className="mt-2 text-xs text-muted-foreground">
-            Unified conversations — Channel Guardian enforced
+            Unified conversations — auto-thread on lead when comms.inbox is on
           </p>
-        </div>
+        </Link>
 
         <Link
           href="/dashboard/campaigns"

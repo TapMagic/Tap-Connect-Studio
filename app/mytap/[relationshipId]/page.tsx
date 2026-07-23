@@ -4,6 +4,8 @@ import { getMyTapProjection } from "@/lib/fusion/audience";
 import { getTapSaveStatus } from "@/lib/fusion/tapsave/service";
 import { TAPSAVE_MOMENT_LABELS } from "@/lib/fusion/tapsave/moments";
 import { MyTapPreferencesForm } from "@/components/tap/mytap-preferences-form";
+import { prisma } from "@/lib/db";
+import { computeBalance } from "@/lib/fusion/taploop/ledger-math";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +39,28 @@ export default async function MyTapPage({ params }: Props) {
   };
   const moments = status?.moments ?? [];
   const reopenHref = status?.reopenCardUrl ?? null;
+
+  let loyalty: { programName: string; balance: number } | null = null;
+  try {
+    const enrollment = await prisma.loyaltyEnrollment.findFirst({
+      where: {
+        relationship: { publicToken: relationshipId },
+        status: "ACTIVE",
+      },
+      include: {
+        program: { select: { name: true } },
+        ledger: { select: { type: true, points: true }, take: 500, orderBy: { createdAt: "asc" } },
+      },
+    });
+    if (enrollment) {
+      loyalty = {
+        programName: enrollment.program.name,
+        balance: computeBalance(enrollment.ledger),
+      };
+    }
+  } catch {
+    loyalty = null;
+  }
 
   return (
     <main className="min-h-screen bg-[#0b0f19] px-4 py-10 text-white">
@@ -83,6 +107,24 @@ export default async function MyTapPage({ params }: Props) {
             </Link>
           ) : null}
         </section>
+
+        {loyalty ? (
+          <section className="rounded-xl border border-white/10 bg-white/5 p-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
+              TapLoop
+            </h2>
+            <dl className="mt-3 space-y-2 text-sm">
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/50">Program</dt>
+                <dd>{loyalty.programName}</dd>
+              </div>
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/50">Points</dt>
+                <dd className="font-semibold tabular-nums text-primary">{loyalty.balance}</dd>
+              </div>
+            </dl>
+          </section>
+        ) : null}
 
         <MyTapPreferencesForm publicToken={relationshipId} initial={preferences} />
 

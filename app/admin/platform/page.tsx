@@ -9,6 +9,7 @@ import {
 } from "@/lib/fusion/admin/dashboard-metrics";
 import { CONNECTOR_DEFINITIONS, connectorReady } from "@/lib/fusion/connectors/registry";
 import { evaluateBillingReadiness } from "@/lib/fusion/billing";
+import { evaluateCommerceStripeReadiness } from "@/lib/fusion/commerce";
 import { listMessagingReadiness } from "@/lib/fusion/comms/providers";
 import { listEmailProviderReadiness } from "@/lib/fusion/comms/email-readiness";
 import { listWalletCredentialBlockers } from "@/lib/fusion/wallet";
@@ -45,6 +46,7 @@ export default async function PlatformAdminPage() {
   const ga = FEATURE_DEFINITIONS.filter((f) => f.maturity === "ga").length;
   const gated = FEATURE_DEFINITIONS.filter((f) => !f.defaultEnabled).length;
   const billingReadiness = evaluateBillingReadiness(ctx);
+  const commerceReadiness = evaluateCommerceStripeReadiness(ctx);
   const walletBlockers = listWalletCredentialBlockers();
   const email = listEmailProviderReadiness();
 
@@ -92,6 +94,7 @@ export default async function PlatformAdminPage() {
         connectorRows={connectorRows}
         messagingRows={messagingRows}
         billingReadiness={billingReadiness}
+        commerceReadiness={commerceReadiness}
         walletBlockers={walletBlockers}
         emailReadiness={{
           ready: email.ready,

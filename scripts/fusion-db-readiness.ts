@@ -1,14 +1,12 @@
 /**
- * Fusion DB readiness — redacted proof before migrate/seed.
- * Never prints passwords. Exits 1 if unsafe.
+ * Safe DB readiness proof — prints redacted host/port/db, never password.
+ * Exit 0 when assertSafeFusionDatabaseUrl passes; non-zero otherwise.
  *
  * Usage: npx tsx scripts/fusion-db-readiness.ts
+ * npm run fusion:db-ready
  */
 
-import {
-  assertSafeFusionDatabaseUrl,
-  isIsolatedFusionDatabaseConfigured,
-} from "../lib/fusion/db/safety";
+import { assertSafeFusionDatabaseUrl } from "../lib/fusion/db/safety";
 
 function redactUrl(url: string): {
   protocol: string;
@@ -18,82 +16,54 @@ function redactUrl(url: string): {
   user: string;
 } {
   try {
-    const u = new URL(url);
+    const parsed = new URL(url);
     return {
-      protocol: u.protocol.replace(":", ""),
-      host: u.hostname,
-      port: u.port || (u.protocol === "postgresql:" || u.protocol === "postgres:" ? "5432" : ""),
-      database: (u.pathname || "").replace(/^\//, "") || "(empty)",
-      user: u.username || "(none)",
+      protocol: parsed.protocol.replace(/:$/, ""),
+      host: parsed.hostname || "(empty)",
+      port: parsed.port || (parsed.protocol.startsWith("postgres") ? "5432" : ""),
+      database: (parsed.pathname || "").replace(/^\//, "") || "(empty)",
+      user: parsed.username || "(none)",
     };
   } catch {
     return {
-      protocol: "invalid",
-      host: "(unparseable)",
+      protocol: "(invalid)",
+      host: "(invalid)",
       port: "",
-      database: "(unparseable)",
-      user: "(none)",
+      database: "(invalid)",
+      user: "(invalid)",
     };
   }
 }
 
-function main() {
-  const raw = process.env.DATABASE_URL?.trim() ?? "";
-  console.log("=== TapConnect Fusion DB readiness (redacted) ===");
-  console.log(`Branch context: expect tapconnect-v1-v2-fusion`);
-  console.log(`DATABASE_URL set: ${raw ? "yes" : "no"}`);
+const url = process.env.DATABASE_URL?.trim();
 
-  if (!raw) {
-    console.log("Result: FAIL — DATABASE_URL is not set");
-    console.log(
-      "Expected: postgresql://tapconnect:***@127.0.0.1:5433/tapconnect_fusion_dev"
-    );
-    process.exit(1);
-  }
+console.log("=== Fusion DB readiness (redacted) ===");
 
-  const redacted = redactUrl(raw);
-  console.log("Parsed (password redacted):");
-  console.log(`  protocol: ${redacted.protocol}`);
-  console.log(`  host:     ${redacted.host}`);
-  console.log(`  port:     ${redacted.port || "(default)"}`);
-  console.log(`  database: ${redacted.database}`);
-  console.log(`  user:     ${redacted.user}`);
-  console.log(`  password: ***`);
-
-  const safety = assertSafeFusionDatabaseUrl(raw);
-  if (!safety.ok) {
-    console.log(`Safety guard: REJECTED`);
-    console.log(`  reason: ${safety.reason}`);
-    console.log("Result: FAIL — refusing migrate/seed");
-    process.exit(1);
-  }
-
-  const portOk = redacted.port === "5433" || redacted.port === "";
-  const nameOk = redacted.database === "tapconnect_fusion_dev";
-  const hostOk =
-    redacted.host === "127.0.0.1" ||
-    redacted.host === "localhost" ||
-    redacted.host === "::1";
-
-  console.log("Checklist:");
-  console.log(`  isolated fusion name: ${nameOk ? "PASS" : "WARN — preferred exact tapconnect_fusion_dev"}`);
-  console.log(`  local host:           ${hostOk ? "PASS" : "FAIL"}`);
-  console.log(`  approved port 5433:   ${redacted.port === "5433" ? "PASS" : "WARN — got " + (redacted.port || "default")}`);
-  console.log(`  safety guard:         PASS (isolated)`);
-  console.log(`  isIsolatedConfigured: ${isIsolatedFusionDatabaseConfigured()}`);
-  console.log(`  Railway/shared risk:  none (guard would reject hosted URLs)`);
-
-  if (!hostOk) {
-    console.log("Result: FAIL — host is not local");
-    process.exit(1);
-  }
-
-  if (!portOk && redacted.port !== "5433") {
-    console.log("Result: WARN — continue only if intentionally using alternate local port");
-  }
-
-  console.log("Result: READY for migrate/seed against isolated fusion DB only");
-  process.exit(0);
+if (!url) {
+  console.log("DATABASE_URL: (missing)");
+  console.log("safety: FAIL");
+  console.log("reason: DATABASE_URL is not set");
+  console.log(
+    "hint: docker compose -f docker-compose.fusion-dev.yml up -d && set DATABASE_URL to tapconnect_fusion_dev"
+  );
+  process.exit(1);
 }
 
-main();
+const redacted = redactUrl(url);
+const safety = assertSafeFusionDatabaseUrl(url);
+
+console.log(`protocol: ${redacted.protocol}`);
+console.log(`host: ${redacted.host}`);
+console.log(`port: ${redacted.port}`);
+console.log(`database: ${redacted.database}`);
+console.log(`user: ${redacted.user}`);
+console.log(`password: (redacted)`);
+console.log(`safety: ${safety.ok ? "OK" : "FAIL"}`);
+if (!safety.ok) {
+  console.log(`reason: ${safety.reason}`);
+  process.exit(1);
+}
+
+console.log("isolated: true");
+console.log("ready: yes");
+process.exit(0);

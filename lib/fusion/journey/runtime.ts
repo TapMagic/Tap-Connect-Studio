@@ -30,6 +30,9 @@ export type DryRunEvent = {
   blocked?: boolean;
 };
 
+/** Alias used by editor / tests */
+export type RuntimeEvent = DryRunEvent;
+
 export type DryRunResult = {
   ok: boolean;
   completed: boolean;
@@ -68,25 +71,38 @@ function pickBranch(
   if (node.type !== "condition" && node.type !== "branch") {
     return edges[0]?.to;
   }
-  const attr = String(node.config.attribute ?? "consent.marketing");
+  const attr = String(node.config.expression ?? node.config.attribute ?? "consent.marketing");
   const expect = node.config.equals ?? true;
   let actual: unknown = false;
   if (attr === "consent.email" || attr === "consentEmail") actual = Boolean(ctx.consent?.email);
   else if (attr === "consent.marketing" || attr === "consentMarketing")
     actual = Boolean(ctx.consent?.marketing);
-  else if (attr.startsWith("loyalty.")) {
+  else if (attr === "consent.sms") actual = Boolean(ctx.consent?.sms);
+  else if (attr === "loyalty.enrolled") actual = Boolean(ctx.loyalty?.enrolled);
+  else if (attr === "loyalty.points_gte") {
+    const threshold = Number(node.config.threshold ?? 0);
+    actual = (ctx.loyalty?.points ?? 0) >= threshold;
+    return (
+      edges.find((e) => (e.label ?? e.condition) === (actual ? "true" : "false"))?.to ??
+      edges[0]?.to
+    );
+  } else if (attr.startsWith("loyalty.")) {
     const key = attr.slice("loyalty.".length);
     actual = (ctx.loyalty as Record<string, unknown> | undefined)?.[key];
   } else actual = ctx.attributes?.[attr];
 
   const match = edges.find((e) => {
-    if (!e.condition) return false;
-    const wantTrue = e.condition === "true" || e.condition === "yes";
+    const cond = (e.condition ?? e.label ?? "").toLowerCase();
+    if (!cond) return false;
+    const wantTrue = cond === "true" || cond === "yes";
     return wantTrue === (actual === expect);
   });
   return (
     match?.to ??
-    edges.find((e) => e.condition === "false" || e.condition === "no")?.to ??
+    edges.find((e) => {
+      const cond = (e.condition ?? e.label ?? "").toLowerCase();
+      return cond === "false" || cond === "no";
+    })?.to ??
     edges[0]?.to
   );
 }
@@ -123,6 +139,19 @@ function describeAction(node: JourneyNode, ctx: VisitorContext): DryRunEvent {
         action: "message",
         detail: String(node.config.channel ?? "email"),
       };
+    case "email": {
+      const guardianOk = Boolean(ctx.consent?.email || ctx.consent?.marketing);
+      return {
+        nodeId: node.id,
+        type: node.type,
+        label: node.label,
+        action: "email",
+        blocked: !guardianOk,
+        detail: guardianOk
+          ? String(node.config.subject ?? "Journey email")
+          : "Channel Guardian: email/marketing consent required",
+      };
+    }
     case "award_loyalty":
       return {
         nodeId: node.id,
@@ -169,7 +198,16 @@ export function executeJourneyDryRun(
       ok: false,
       completed: false,
       path: [],
-      events: [],
+      events: [
+        {
+          nodeId: "",
+          type: "error",
+          label: "validation",
+          action: "error",
+          blocked: true,
+          detail: "Journey has validation errors — fix before execute",
+        },
+      ],
       issues: errorMessages,
       visitor,
     };

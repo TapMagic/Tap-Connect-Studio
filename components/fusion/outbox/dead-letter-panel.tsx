@@ -40,11 +40,54 @@ export function OutboxDeadLetterPanel({
     });
   }
 
+  async function discard(id: string) {
+    setMessage(null);
+    startTransition(async () => {
+      const res = await fetch("/api/outbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "discard", id }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setMessage(data.error ?? "Discard failed");
+        return;
+      }
+      setRecords((prev) => prev.filter((r) => r.id !== id));
+      setMessage("Discarded from retry queue");
+    });
+  }
+
+  async function processNow() {
+    setMessage(null);
+    startTransition(async () => {
+      const res = await fetch("/api/outbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "process" }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.ok) {
+        setMessage(data.error ?? "Process failed");
+        return;
+      }
+      setMessage(
+        `Processed ${data.tick?.processed ?? 0} · failed ${data.tick?.failed ?? 0}`
+      );
+    });
+  }
+
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Failed outbox events (dead letters). Retry resets status to PENDING for reprocessing.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm text-muted-foreground">
+          Failed outbox events (dead letters). Retry re-queues; Discard removes without delivery;
+          Process now drains PENDING.
+        </p>
+        <Button size="sm" variant="outline" disabled={pending} onClick={processNow}>
+          Process now
+        </Button>
+      </div>
       {message ? <p className="text-sm text-primary">{message}</p> : null}
       {records.length === 0 ? (
         <p className="rounded-xl border border-dashed border-border/60 px-4 py-6 text-center text-sm text-muted-foreground">
@@ -67,6 +110,14 @@ export function OutboxDeadLetterPanel({
                 <Badge variant="outline">{r.status}</Badge>
                 <Button size="sm" disabled={pending} onClick={() => retry(r.id)}>
                   Retry
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={pending}
+                  onClick={() => discard(r.id)}
+                >
+                  Discard
                 </Button>
               </div>
             </div>

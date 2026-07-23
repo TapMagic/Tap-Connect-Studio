@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { Bot, Check, RotateCcw, X } from "lucide-react";
 import { FeaturePlaceholder } from "@/components/integrations/feature-placeholder";
+import { ProposalCompareSnippet } from "@/components/fusion/autopilot/proposal-compare";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { ContentBlock } from "@/lib/types/campaign";
+import type { ComparableProposal } from "@/lib/fusion/autopilot/budget";
 
 interface AiAssistPanelProps {
   /** Legacy: OpenAI configured */
@@ -29,6 +31,9 @@ type ProposalState = {
   id: string;
   status: string;
   summary: string;
+  recipeId?: string;
+  recipeVersion?: string;
+  artifacts?: { kind: string; label: string }[];
   autoApplied: boolean;
   draft: {
     title?: string;
@@ -54,11 +59,13 @@ export function AiAssistPanel({
   const [message, setMessage] = useState<string | null>(null);
   const [previewCount, setPreviewCount] = useState<number | null>(null);
   const [proposal, setProposal] = useState<ProposalState | null>(null);
+  const [previousComparable, setPreviousComparable] = useState<ComparableProposal | null>(null);
 
   async function handleGenerate() {
     setLoading(true);
     setMessage(null);
     setPreviewCount(null);
+    const prior = proposal;
     setProposal(null);
 
     try {
@@ -90,11 +97,27 @@ export function AiAssistPanel({
       const status = (data.autopilot?.status as string) ?? "pending";
       const autoApplied = Boolean(data.autopilot?.autoApplied);
 
+      if (prior) {
+        setPreviousComparable({
+          id: prior.id,
+          recipeId: prior.recipeId ?? "unknown",
+          recipeVersion: prior.recipeVersion,
+          summary: prior.summary,
+          status: prior.status,
+          artifacts: prior.artifacts ?? [
+            { kind: "campaign_draft", label: prior.draft.title ?? "Draft" },
+          ],
+        });
+      }
+
       if (proposalId) {
         setProposal({
           id: proposalId,
           status,
           summary: data.autopilot?.summary ?? "",
+          recipeId: data.autopilot?.recipeId,
+          recipeVersion: data.autopilot?.recipeVersion,
+          artifacts: data.autopilot?.artifacts,
           autoApplied,
           draft,
         });
@@ -272,6 +295,22 @@ export function AiAssistPanel({
             </Button>
           ) : null}
         </div>
+      ) : null}
+
+      {proposal && previousComparable ? (
+        <ProposalCompareSnippet
+          left={previousComparable}
+          right={{
+            id: proposal.id,
+            recipeId: proposal.recipeId ?? "unknown",
+            recipeVersion: proposal.recipeVersion,
+            summary: proposal.summary,
+            status: proposal.status,
+            artifacts: proposal.artifacts ?? [
+              { kind: "campaign_draft", label: proposal.draft.title ?? "Draft" },
+            ],
+          }}
+        />
       ) : null}
 
       {previewCount != null && (

@@ -26,6 +26,16 @@ const EXPERIENCE_LINKS = [
     title: "Campaign Groups",
     description: "Shared schedules and rotations across devices.",
   },
+  {
+    href: "/dashboard/experiences/journeys",
+    title: "Journeys",
+    description: "TapFlow drafts — beginner stages and expert graph.",
+  },
+  {
+    href: "/dashboard/experiences/orders",
+    title: "Orders (TapCommerce)",
+    description: "Mock order drafts, line totals, and checkout sessions — no card data.",
+  },
 ] as const;
 
 export default async function ExperiencesHubPage() {

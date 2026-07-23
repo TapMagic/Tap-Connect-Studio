@@ -9,12 +9,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
   JOURNEY_NODE_REGISTRY,
+  SAMPLE_VISITOR,
   createEmptyJourney,
+  executeJourneyDryRun,
   journeyToStages,
   simulateJourney,
   validateJourney,
   type JourneyDefinition,
+  type JourneyLifecycleAction,
   type JourneyNodeType,
+  type RuntimeEvent,
 } from "@/lib/fusion/journey";
 import { cn } from "@/lib/utils";
 
@@ -30,6 +34,7 @@ const PALETTE: JourneyNodeType[] = [
   "wait",
   "condition",
   "message",
+  "email",
   "award_loyalty",
   "create_case",
   "human_handoff",
@@ -55,12 +60,20 @@ export function JourneyEditorShell({
   const [edgeTo, setEdgeTo] = useState("");
   const [edgeLabel, setEdgeLabel] = useState("");
   const [message, setMessage] = useState<string | null>(null);
+  const [runtimeEvents, setRuntimeEvents] = useState<RuntimeEvent[] | null>(null);
   const [pending, startTransition] = useTransition();
 
   const issues = useMemo(() => validateJourney(definition), [definition]);
   const simulation = useMemo(() => simulateJourney(definition), [definition]);
+  const localRuntime = useMemo(
+    () => executeJourneyDryRun(definition, SAMPLE_VISITOR, { requireValid: false }),
+    [definition]
+  );
   const stages = useMemo(() => journeyToStages(definition), [definition]);
   const errors = issues.filter((i) => i.severity === "error");
+  const canLifecyclePublish = featureEnabled && Boolean(selectedDraftId) && errors.length === 0;
+  const canPause = Boolean(selectedDraftId) && (status === "ACTIVE" || status === "PUBLISHED");
+  const canResume = featureEnabled && Boolean(selectedDraftId) && status === "PAUSED";
 
   function addNode(type: JourneyNodeType) {
     const reg = JOURNEY_NODE_REGISTRY[type];
@@ -73,7 +86,7 @@ export function JourneyEditorShell({
           id,
           type,
           label: reg.label,
-          config: {},
+          config: type === "email" ? { subject: "Journey update" } : {},
           position: { x: 120 + (d.nodes.length % 5) * 100, y: 60 + Math.floor(d.nodes.length / 5) * 72 },
         },
       ],
@@ -146,9 +159,13 @@ export function JourneyEditorShell({
     });
   }
 
-  function lifecycle(action: "publish" | "activate" | "pause") {
+  function lifecycle(action: JourneyLifecycleAction) {
     if (!selectedDraftId) {
-      setMessage("Save draft before publish/activate/pause");
+      setMessage("Save draft before lifecycle actions");
+      return;
+    }
+    if ((action === "publish" || action === "activate" || action === "resume") && !featureEnabled) {
+      setMessage("journey.tapflow is disabled — enable in Platform Admin to publish/activate/resume");
       return;
     }
     startTransition(async () => {
@@ -160,7 +177,7 @@ export function JourneyEditorShell({
       });
       const data = await res.json();
       if (!res.ok || !data.ok) {
-        setMessage(data.error ?? `${action} failed`);
+        setMessage(data.error ?? data.message ?? `${action} failed`);
         return;
       }
       setStatus(data.draft.status);
@@ -175,6 +192,38 @@ export function JourneyEditorShell({
     });
   }
 
+  function runDryRun() {
+    if (!featureEnabled) {
+      setMessage("journey.tapflow is disabled — simulate API blocked; showing local preview only");
+      setRuntimeEvents(localRuntime.events);
+      return;
+    }
+    startTransition(async () => {
+      setMessage(null);
+      const res = await fetch("/api/journeys/simulate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          definition,
+          draftId: selectedDraftId ?? undefined,
+          visitor: SAMPLE_VISITOR,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.error ?? data.message ?? "Simulate failed");
+        setRuntimeEvents(localRuntime.events);
+        return;
+      }
+      setRuntimeEvents(data.events as RuntimeEvent[]);
+      setMessage(
+        data.completed
+          ? `Dry-run completed (${data.path?.length ?? 0} nodes)`
+          : `Dry-run incomplete (${data.path?.length ?? 0} nodes)`
+      );
+    });
+  }
+
   async function loadDraft(id: string) {
     const res = await fetch(`/api/journeys/draft?id=${id}`);
     const data = await res.json();
@@ -185,14 +234,16 @@ export function JourneyEditorShell({
     setSelectedDraftId(id);
     setDefinition(data.draft.definition as JourneyDefinition);
     setStatus(data.draft.status ?? "DRAFT");
-    setMessage(`Loaded “${data.draft.name}” (${data.draft.status})`);
+    setRuntimeEvents(null);
+    setMessage(`Loaded "${data.draft.name}" (${data.draft.status})`);
   }
 
   return (
     <div className="space-y-6">
       {!featureEnabled && (
         <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-200/90">
-          journey.tapflow is disabled — editor runs in draft-only mode. Enable in{" "}
+          journey.tapflow is disabled — draft edit/save only. Publish, activate, resume, and API
+          simulate are blocked. Enable in{" "}
           <Link href="/admin/platform" className="underline">
             Platform Admin
           </Link>
@@ -242,7 +293,7 @@ export function JourneyEditorShell({
         <Button
           type="button"
           variant="outline"
-          disabled={pending || !selectedDraftId}
+          disabled={pending || !canLifecyclePublish}
           onClick={() => lifecycle("publish")}
         >
           Publish
@@ -250,7 +301,7 @@ export function JourneyEditorShell({
         <Button
           type="button"
           variant="outline"
-          disabled={pending || !selectedDraftId || !featureEnabled}
+          disabled={pending || !canLifecyclePublish}
           onClick={() => lifecycle("activate")}
         >
           Activate
@@ -258,10 +309,28 @@ export function JourneyEditorShell({
         <Button
           type="button"
           variant="outline"
-          disabled={pending || !selectedDraftId}
+          disabled={pending || !canPause}
           onClick={() => lifecycle("pause")}
         >
           Pause
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          disabled={pending || !canResume}
+          onClick={() => lifecycle("resume")}
+        >
+          Resume
+        </Button>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={pending}
+          onClick={runDryRun}
+          className="gap-2"
+        >
+          <Play className="h-4 w-4" />
+          Dry-run
         </Button>
       </div>
 
@@ -457,18 +526,30 @@ export function JourneyEditorShell({
         <div className="rounded-xl border border-border/60 p-4">
           <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
             <Play className="h-4 w-4 text-primary" />
-            Sample path simulation
+            Sample path + runtime dry-run
           </p>
           <Badge variant={simulation.completed ? "default" : "outline"} className="mb-2">
             {simulation.completed ? "Reaches exit" : "Incomplete path"}
           </Badge>
-          <ol className="list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
+          <ol className="mb-3 list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
             {simulation.steps.map((s) => (
               <li key={s.nodeId}>
                 {s.label}: {s.action}
               </li>
             ))}
           </ol>
+          {(runtimeEvents ?? localRuntime.events).length > 0 && (
+            <div className="border-t border-border/40 pt-2">
+              <p className="mb-1 text-xs font-medium text-muted-foreground">
+                Runtime events {runtimeEvents ? "(API/local dry-run)" : "(local preview)"}
+              </p>
+              <ul className="max-h-40 space-y-0.5 overflow-auto font-mono text-[10px] text-muted-foreground">
+                {(runtimeEvents ?? localRuntime.events).map((ev, idx) => (
+                  <li key={idx}>{JSON.stringify(ev)}</li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
 

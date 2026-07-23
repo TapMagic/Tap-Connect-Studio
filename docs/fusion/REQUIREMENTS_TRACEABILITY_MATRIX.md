@@ -14,14 +14,16 @@ Map every requirement to source → pillar → UX → domain → module → stat
 | F-007 | Charter §16 | Cody spine selective import | Platform | — | A/B/J | In progress | Schema additive |
 | F-008 | Charter §17 | Seven-part Studio IA | Platform | Nav | J | Wired | `/dashboard/experiences`, `/tap-points`, `/audience`, `/insights`, `/assets` hubs |
 | F-009 | Charter §18–25 | Relationship/comms/loyalty pillars | Multiple | Audience+ | C–H | FUNCTIONAL (TapSave + TapLoop core); WIRED (Inbox) | Audience workspace + MyTap; TapLoop Prisma/`/api/loyalty/*` gated by `loyalty.taploop` |
-| F-010 | Charter §26 | Replace V1 AI with Autopilot | AI | Home/Experiences | D | FUNCTIONAL | Proposal accept/reject/undo + Admin kill switch blocks `/api/ai/generate`; full recipe/budget still open |
-| F-011 | Charter §31–33 | Admin control plane + Stripe-ready | Admin | Settings/Admin | J | WIRED | Registry + kill switch; Prisma KPIs with evidence class + drill-down lists; Stripe readiness (live ops pending) |
+| F-010 | Charter §26 | Replace V1 AI with Autopilot | AI | Home/Experiences | D | FUNCTIONAL | Proposals + kill switch + budget + Knowledge grounding stub + cost ledger; live recipe/RAG incomplete |
+| F-011 | Charter §31–33 | Admin control plane + Stripe-ready | Admin | Settings/Admin | J | FUNCTIONAL | Prisma KPIs + drill-downs + email/Stripe readiness; live billing pending |
 | F-012 | Charter §34 | Wide safe file formats | Assets | Assets | A | CONTRACTED | Matrix |
 | F-013 | Charter §38 | Landing last | Marketing | Public | L | EXPLICITLY DEFERRED BY CHARTER | — |
-| F-014 | Charter §41 | Credential inventory | Integrations | Settings | J | DEFINED | Checklist |
-| F-015 | Owner-occupancy | Durable outbox | Platform | — | B | FUNCTIONAL | Prisma+memory; unit tests |
-| F-016 | Owner-occupancy | TapSave Keep Card E2E | TapSave | Public/MyTap | C | FUNCTIONAL | `/api/tapsave`, CTA, MyTap |
-| F-017 | Owner-occupancy | TapFlow editor + lifecycle | TapFlow | Experiences | E | FUNCTIONAL | JourneyDraft save/publish/activate/pause + validate/simulate; runtime executor not live |
-| F-018 | Owner-occupancy | TapLoop loyalty persistence | TapLoop | Audience | H | FUNCTIONAL | Prisma models + `/api/loyalty/*` + Audience forms; gate `loyalty.taploop` |
+| F-014 | Charter §41 | Credential inventory | Integrations | Settings | J | DEFINED | CREDENTIALS_FINAL_CHECKLIST |
+| F-015 | Owner-occupancy | Durable outbox | Platform | — | B | FUNCTIONAL | enqueue/drain/dead-letter retry+discard+process tick |
+| F-016 | Owner-occupancy | TapSave Keep Card E2E | TapSave | Public/MyTap | C | FUNCTIONAL | CTA + prefs + moments + loyalty balance display |
+| F-017 | Owner-occupancy | TapFlow editor + lifecycle | TapFlow | Experiences | E | FUNCTIONAL | publish/activate/pause/resume + dry-run run log; live executor open |
+| F-018 | Owner-occupancy | TapLoop loyalty persistence | TapLoop | Audience | H | FUNCTIONAL | Prisma + `/api/loyalty/*` + Audience UI |
+| F-019 | Owner-occupancy | TapCommerce mock | Commerce | Experiences | I | FUNCTIONAL | In-memory orders + mock checkout |
+| F-020 | Owner-occupancy | Isolated DB proof queue | Platform | — | — | DEFINED | `ISOLATED_DB_PROOF_QUEUE.md` — blocks OWNER-READY labels |
 
 Update rows as modules land. Do not rely on chat memory.
