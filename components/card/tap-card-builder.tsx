@@ -10,10 +10,12 @@ import {
   ImageIcon,
   Link2,
   Plus,
+  Redo2,
   Rows3,
   Save,
   Type,
   Trash2,
+  Undo2,
   Unlink,
 } from "lucide-react";
 import Link from "next/link";
@@ -28,6 +30,11 @@ import { FinishPicker, TextFormatControls } from "@/components/design/format-con
 import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
+import {
+  BuilderPreviewEmpty,
+  tapCardPreviewEmptyReason,
+} from "@/components/workbench/builder-preview-empty";
+import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   COMMON_SOCIAL_KINDS,
@@ -105,6 +112,14 @@ export function TapCardBuilder({
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
+  const {
+    state: sectionsHistory,
+    setState: setSectionsHistory,
+    undo: undoSections,
+    redo: redoSections,
+    canUndo: canUndoSections,
+    canRedo: canRedoSections,
+  } = useUndoRedo<TapCardSection[]>(initialConfig.sections);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
@@ -116,8 +131,34 @@ export function TapCardBuilder({
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
 
-  const sorted = [...config.sections].sort((a, b) => a.order - b.order);
+  const sorted = [...sectionsHistory].sort((a, b) => a.order - b.order);
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
+  const cardEmptyReason = tapCardPreviewEmptyReason(sorted);
+
+  useEffect(() => {
+    setConfig((c) =>
+      JSON.stringify(c.sections) === JSON.stringify(sectionsHistory)
+        ? c
+        : { ...c, sections: sectionsHistory }
+    );
+  }, [sectionsHistory]);
+
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoSections();
+      } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        redoSections();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undoSections, redoSections]);
 
   useEffect(() => {
     if (!selectedId || !previewScrollRef.current) return;
@@ -145,15 +186,14 @@ export function TapCardBuilder({
     setConfig((c) => ({ ...c, ...patch }));
   }
 
-  function setSections(next: TapCardSection[]) {
-    setConfig((c) => ({
-      ...c,
-      sections: next.map((s, i) => ({ ...s, order: i })),
-    }));
+  function setSections(next: TapCardSection[], record = true) {
+    const ordered = next.map((s, i) => ({ ...s, order: i }));
+    setSectionsHistory(ordered, record);
+    setConfig((c) => ({ ...c, sections: ordered }));
   }
 
   function patchSection(id: string, patch: Partial<TapCardSection>) {
-    setSections(sorted.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    setSections(sorted.map((s) => (s.id === id ? { ...s, ...patch } : s)), false);
   }
 
   function linkCampaignToSection(sectionId: string, campaignId: string) {
@@ -326,8 +366,8 @@ export function TapCardBuilder({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto">
-      <div className="z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background px-4 py-3">
+    <div className="builder-studio flex h-full min-h-0 flex-col overflow-hidden max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto">
+      <div className="builder-studio-toolbar z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div>
           <p className="text-sm font-semibold">Tap Connect Card builder</p>
           <p className="text-xs text-muted-foreground">
@@ -335,6 +375,28 @@ export function TapCardBuilder({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={undoSections}
+            disabled={!canUndoSections}
+            title="Undo segment change (⌘Z)"
+            aria-label="Undo segment change"
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={redoSections}
+            disabled={!canRedoSections}
+            title="Redo segment change (⌘⇧Z)"
+            aria-label="Redo segment change"
+          >
+            <Redo2 className="h-4 w-4" />
+          </Button>
           {freeformEnabled ? (
             <Button
               type="button"
@@ -625,7 +687,7 @@ export function TapCardBuilder({
 
       <div className="grid min-h-0 flex-1 grid-cols-1 max-lg:flex-none lg:grid-cols-[300px_minmax(0,1fr)_320px]">
         {/* Left — blocks / add (independent scroll) */}
-        <aside className="min-h-0 overflow-y-auto overscroll-contain border-r border-border/60 bg-background max-lg:max-h-[50vh] lg:h-auto">
+        <aside className="builder-studio-rail min-h-0 overflow-y-auto overscroll-contain border-r border-border/60 max-lg:max-h-[50vh] lg:h-auto">
           <div className="space-y-3 p-4">
             <TextFormatControls
               title="Title typography"
@@ -785,7 +847,7 @@ export function TapCardBuilder({
         {/* Center — always in view; scroll to review full / snap to selection */}
         <div
           ref={previewScrollRef}
-          className="min-h-0 min-w-0 overflow-y-auto overscroll-contain border-x border-border/40 bg-black/30 max-lg:min-h-[55vh] lg:h-auto"
+          className="builder-studio-canvas min-h-0 min-w-0 overflow-y-auto overscroll-contain border-x border-border/40 max-lg:min-h-[55vh] lg:h-auto"
         >
           <div className="p-4 pb-12">
             <p className="mb-2 text-center text-[11px] text-muted-foreground">
@@ -794,8 +856,11 @@ export function TapCardBuilder({
             <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
+                {cardEmptyReason ? (
+                  <BuilderPreviewEmpty reason={cardEmptyReason} variant="card" />
+                ) : null}
                 <TapConnectCard
-                  config={config}
+                  config={{ ...config, sections: sectionsHistory }}
                   profile={profile}
                   businessName={businessName}
                   logoUrl={logoUrl}
@@ -810,7 +875,7 @@ export function TapCardBuilder({
         </div>
 
         {/* Right — editor always visible */}
-        <aside className="min-h-0 overflow-y-auto overscroll-contain border-l border-border/60 bg-background max-lg:max-h-[50vh] lg:h-auto">
+        <aside className="builder-studio-inspector min-h-0 overflow-y-auto overscroll-contain border-l border-border/60 max-lg:max-h-[50vh] lg:h-auto">
           <div ref={inspectorRef} className="p-4">
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}

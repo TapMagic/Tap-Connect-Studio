@@ -4,6 +4,7 @@ import { DevModeBanner } from "@/components/dev-mode-banner";
 import { requireBusiness } from "@/lib/auth";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { prisma } from "@/lib/db";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
 import "@/app/t/tap.css";
 import type { Metadata } from "next";
 
@@ -36,6 +37,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const { business } = await requireBusiness();
+  const featureCtx = await loadFeatureContext();
 
   let alertCount = 0;
   try {
@@ -55,14 +57,14 @@ export default async function DashboardLayout({
         Skip to main content
       </a>
       <DevModeBanner />
-      <MobileDashboardNav businessName={business.name} />
+      <MobileDashboardNav businessName={business.name} featureCtx={featureCtx} />
       <StudioTopBar
         businessName={business.name}
         readinessLabel={alertCount > 0 ? "Attention needed" : "Studio ready"}
         alertCount={alertCount}
       />
       <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1">
-        <DashboardNav businessName={business.name} />
+        <DashboardNav businessName={business.name} featureCtx={featureCtx} />
         <main
           id="main-content"
           tabIndex={-1}

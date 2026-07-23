@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { isFeatureEnabled } from "@/lib/fusion/features";
+import { checkAnyFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
   assignCase,
   closeCase,
@@ -21,6 +23,12 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkAnyFeatureGate(["comms.inbox", "comms.email"], featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
+
     const url = new URL(request.url);
     const threadId = url.searchParams.get("threadId");
 
@@ -97,10 +105,14 @@ const postSchema = z.discriminatedUnion("action", [
 export async function POST(request: Request) {
   try {
     const { business, user } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
     const featureEnabled =
-      isFeatureEnabled("comms.inbox", {}) || isFeatureEnabled("comms.email", {});
+      isFeatureEnabled("comms.inbox", featureCtx) || isFeatureEnabled("comms.email", featureCtx);
     if (!featureEnabled) {
-      return NextResponse.json({ error: "Inbox feature disabled", code: "feature_off" }, { status: 403 });
+      const gate = checkAnyFeatureGate(["comms.inbox", "comms.email"], featureCtx);
+      if (!gate.ok) {
+        return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+      }
     }
 
     const body = postSchema.parse(await request.json());

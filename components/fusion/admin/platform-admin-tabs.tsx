@@ -487,12 +487,19 @@ export function PlatformAdminTabs({
               <div>
                 <Badge
                   variant={emailReadiness.ready ? "default" : "outline"}
-                  className={emailReadiness.ready ? "bg-primary" : ""}
+                  className={
+                    emailReadiness.ready
+                      ? "bg-primary"
+                      : "border-primary/40 text-primary"
+                  }
                 >
-                  {emailReadiness.mode === "live" ? "Live ready" : "Mock mode"}
+                  {emailReadiness.mode === "live"
+                    ? "Live ready"
+                    : "VERIFIED — CREDENTIALS REQUIRED"}
                 </Badge>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  Mock available: {emailReadiness.mockAvailable ? "yes" : "no"}
+                  Mock adapter: {emailReadiness.mockAvailable ? "active" : "unavailable"} · outbound
+                  enqueues to outbox + Inbox + contact timeline
                 </p>
               </div>
               {!emailReadiness.ready ? (

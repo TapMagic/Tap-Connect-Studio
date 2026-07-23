@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import type { CommerceOrder } from "@/lib/fusion/commerce";
 
 function formatMoney(cents: number, currency = "usd"): string {
@@ -16,6 +17,13 @@ function formatMoney(cents: number, currency = "usd"): string {
   }
 }
 
+type WireSummary = {
+  timelineEventId: string | null;
+  loyaltyAwardStubId: string | null;
+  evidenceId: string | null;
+  outboxTopics: string[];
+};
+
 export function CommerceOrdersPanel({
   businessId,
   featureEnabled,
@@ -27,7 +35,11 @@ export function CommerceOrdersPanel({
 }) {
   const [orders, setOrders] = useState(initialOrders);
   const [message, setMessage] = useState<string | null>(null);
+  const [wireSummary, setWireSummary] = useState<WireSummary | null>(null);
   const [pending, setPending] = useState(false);
+  const [relationshipId, setRelationshipId] = useState("");
+  const [contactId, setContactId] = useState("");
+  const [awardLoyalty, setAwardLoyalty] = useState(false);
 
   async function refresh() {
     const res = await fetch("/api/commerce?view=orders");
@@ -38,6 +50,7 @@ export function CommerceOrdersPanel({
   async function createDemoDraft() {
     setPending(true);
     setMessage(null);
+    setWireSummary(null);
     try {
       await fetch("/api/commerce", {
         method: "POST",
@@ -56,6 +69,7 @@ export function CommerceOrdersPanel({
         body: JSON.stringify({
           action: "create_draft",
           lines: [{ itemId, quantity: 1 }],
+          relationshipId: relationshipId.trim() || undefined,
         }),
       }).then((r) => r.json());
       if (!draft.ok) {
@@ -76,6 +90,7 @@ export function CommerceOrdersPanel({
   ) {
     setPending(true);
     setMessage(null);
+    setWireSummary(null);
     try {
       const res = await fetch("/api/commerce", {
         method: "POST",
@@ -99,9 +114,10 @@ export function CommerceOrdersPanel({
     }
   }
 
-  async function mockCheckout(orderId: string) {
+  async function mockCheckout(orderId: string, orderRelationshipId?: string) {
     setPending(true);
     setMessage(null);
+    setWireSummary(null);
     try {
       const session = await fetch("/api/commerce", {
         method: "POST",
@@ -118,13 +134,19 @@ export function CommerceOrdersPanel({
         body: JSON.stringify({
           action: "complete_checkout",
           sessionId: session.session.id,
+          relationshipId: relationshipId.trim() || orderRelationshipId,
+          contactId: contactId.trim() || undefined,
+          awardLoyalty,
         }),
       }).then((r) => r.json());
       if (!paid.ok) {
         setMessage(paid.error ?? "Complete failed");
         return;
       }
-      setMessage(`Paid via mock session ${session.session.id} (no card data stored)`);
+      setMessage(`Paid via mock session ${session.session.id} · payment ref stored (no card data)`);
+      if (paid.wire) {
+        setWireSummary(paid.wire as WireSummary);
+      }
       await refresh();
     } finally {
       setPending(false);
@@ -145,6 +167,37 @@ export function CommerceOrdersPanel({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-xl border border-primary/20 bg-gradient-to-br from-card/80 to-black/40 p-4">
+        <p className="text-xs font-semibold uppercase tracking-wide text-primary">Relationship wire</p>
+        <p className="mt-1 text-sm text-muted-foreground">
+          Link mock checkout to a relationship for timeline + optional TapLoop award stub. Evidence
+          surfaces on Insights with modeled provenance.
+        </p>
+        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+          <Input
+            placeholder="Relationship ID (optional)"
+            value={relationshipId}
+            onChange={(e) => setRelationshipId(e.target.value)}
+            className="border-border/60 bg-black/30 font-mono text-xs"
+          />
+          <Input
+            placeholder="Contact ID (optional)"
+            value={contactId}
+            onChange={(e) => setContactId(e.target.value)}
+            className="border-border/60 bg-black/30 font-mono text-xs"
+          />
+        </div>
+        <label className="mt-3 flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={awardLoyalty}
+            onChange={(e) => setAwardLoyalty(e.target.checked)}
+            className="accent-primary"
+          />
+          <span>Enqueue TapLoop loyalty award stub on pay</span>
+        </label>
+      </div>
+
       <div className="flex flex-wrap items-center gap-2">
         <Button type="button" size="sm" disabled={pending} onClick={() => void createDemoDraft()}>
           New mock draft
@@ -158,11 +211,34 @@ export function CommerceOrdersPanel({
         >
           Refresh
         </Button>
-        <Badge variant="outline" className="text-[10px] uppercase">
+        <Badge variant="outline" className="border-primary/40 text-[10px] uppercase text-primary">
           Mock · business {businessId.slice(0, 8)}
         </Badge>
       </div>
       {message ? <p className="text-sm text-primary">{message}</p> : null}
+
+      {wireSummary ? (
+        <div className="rounded-xl border border-primary/30 bg-primary/5 p-4 text-sm">
+          <p className="font-medium text-primary">Wired to Relationship → Insights</p>
+          <ul className="mt-2 space-y-1 font-mono text-[11px] text-muted-foreground">
+            <li>
+              Timeline: {wireSummary.timelineEventId ?? "— (needs relationship + contact)"}
+            </li>
+            <li>Loyalty stub: {wireSummary.loyaltyAwardStubId ?? "—"}</li>
+            <li>Evidence: {wireSummary.evidenceId ?? "—"}</li>
+            <li>Outbox: {wireSummary.outboxTopics.join(", ") || "—"}</li>
+          </ul>
+          {wireSummary.evidenceId ? (
+            <p className="mt-2 text-xs text-muted-foreground">
+              View commerce KPIs on{" "}
+              <a href="/dashboard/insights" className="text-primary underline-offset-4 hover:underline">
+                Insights
+              </a>
+              .
+            </p>
+          ) : null}
+        </div>
+      ) : null}
 
       {orders.length === 0 ? (
         <p className="text-sm text-muted-foreground">
@@ -177,6 +253,11 @@ export function CommerceOrdersPanel({
             >
               <div>
                 <p className="font-mono text-xs text-muted-foreground">{order.id}</p>
+                {order.relationshipId ? (
+                  <p className="font-mono text-[10px] text-primary/80">
+                    rel {order.relationshipId.slice(0, 16)}…
+                  </p>
+                ) : null}
                 <p className="text-sm">
                   {order.lines.map((l) => `${l.quantity}× ${l.name}`).join(", ") || "Empty"}
                 </p>
@@ -187,6 +268,11 @@ export function CommerceOrdersPanel({
                     : ""}{" "}
                   · total {formatMoney(order.totalCents, order.currency)}
                 </p>
+                {order.paymentRef ? (
+                  <p className="mt-0.5 font-mono text-[10px] text-primary/70">
+                    Payment ref {order.paymentRef}
+                  </p>
+                ) : null}
                 {order.refundRef ? (
                   <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
                     Refund {order.refundRef}
@@ -201,12 +287,12 @@ export function CommerceOrdersPanel({
                   variant={
                     order.status === "paid" || order.status === "fulfilled"
                       ? "default"
-                      : order.status === "refunded" || order.status === "canceled"
-                        ? "outline"
-                        : "outline"
+                      : "outline"
                   }
                   className={
-                    order.status === "paid" || order.status === "fulfilled" ? "bg-primary" : ""
+                    order.status === "paid" || order.status === "fulfilled"
+                      ? "bg-primary text-primary-foreground"
+                      : ""
                   }
                 >
                   {order.status}
@@ -218,7 +304,7 @@ export function CommerceOrdersPanel({
                       size="sm"
                       variant="outline"
                       disabled={pending || order.lines.length === 0}
-                      onClick={() => void mockCheckout(order.id)}
+                      onClick={() => void mockCheckout(order.id, order.relationshipId)}
                     >
                       Mock pay
                     </Button>

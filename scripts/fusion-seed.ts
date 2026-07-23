@@ -324,6 +324,20 @@ async function main() {
         lockedUntilContact: false,
       },
     },
+    {
+      id: "eve_email",
+      type: "email_capture",
+      label: "Contact",
+      order: 2,
+      enabled: true,
+      data: {
+        headline: "Join the evening list",
+        description: "Capture works on evening slot too — seed proof.",
+        fields: ["name", "email"],
+        requireName: false,
+        successMessage: "You're on the evening list.",
+      },
+    },
   ];
 
   const eveningTitle = `${SEED_PREFIX} Evening Special`;

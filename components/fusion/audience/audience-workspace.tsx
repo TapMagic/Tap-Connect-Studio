@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
-import { Gift, Search, User } from "lucide-react";
+import { Gift, Mail, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,13 @@ type ContactDetail = {
   consents: { id: string; channel: string; status: string; recordedAt: string }[];
   leads: { id: string; email: string | null; name: string | null; createdAt: string }[];
   enrollments: { id: string; programId: string; programName: string; status: string }[];
+  timeline: {
+    id: string;
+    kind: string;
+    label: string;
+    occurredAt: string;
+    metadata?: Record<string, unknown>;
+  }[];
 };
 
 type ProgramRow = { id: string; name: string; active: boolean };
@@ -318,6 +325,46 @@ export function AudienceWorkspace({
                   )}
                 </ul>
               </div>
+            </div>
+
+            <div className="rounded-xl border border-primary/20 bg-card/40 p-4">
+              <div className="mb-3 flex items-center gap-2">
+                <Mail className="h-4 w-4 text-primary" />
+                <p className="font-semibold">Contact timeline</p>
+              </div>
+              {detail.timeline.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Capture a lead or send email via mock adapter to populate timeline events.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {detail.timeline.map((event) => (
+                    <li
+                      key={event.id}
+                      className="flex items-start gap-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2"
+                    >
+                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.8)]" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">{event.label}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {event.occurredAt.slice(0, 19).replace("T", " ")}
+                          {typeof event.metadata?.subject === "string"
+                            ? ` · ${event.metadata.subject}`
+                            : ""}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {detail.relationships[0] ? (
+                <Link
+                  href={`/dashboard/audience/inbox`}
+                  className="mt-3 inline-flex text-xs font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Open TapInbox threads
+                </Link>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-border/60 bg-card/30 p-4">

@@ -23,6 +23,7 @@ import {
   resolveSectionReadiness,
   type DisplayReadiness,
 } from "@/lib/fusion/readiness/display-status";
+import type { ResolveContext } from "@/lib/fusion/features/resolve";
 
 const ICONS = {
   home: LayoutDashboard,
@@ -55,8 +56,10 @@ function displayTone(d: DisplayReadiness) {
 
 export function DashboardNav({
   businessName,
+  featureCtx,
 }: {
   businessName: string;
+  featureCtx?: ResolveContext;
   /** @deprecated Platform Admin lives under Settings — ignored */
   showAdminLink?: boolean;
 }) {
@@ -115,7 +118,7 @@ export function DashboardNav({
                   {group}
                 </p>
                 {items.map((s) => {
-                  const readiness = resolveSectionReadiness(s);
+                  const readiness = resolveSectionReadiness(s, featureCtx);
                   const sectionActive =
                     pathname === s.href.split("#")[0] ||
                     (s.href.includes("#") === false &&
@@ -164,8 +167,10 @@ export function DashboardNav({
 
 export function MobileDashboardNav({
   businessName,
+  featureCtx: _featureCtx,
 }: {
   businessName: string;
+  featureCtx?: ResolveContext;
   showAdminLink?: boolean;
 }) {
   const pathname = usePathname();

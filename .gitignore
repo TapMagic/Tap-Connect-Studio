@@ -24,6 +24,9 @@
 .DS_Store
 *.pem
 /tmp/
+/test-results/
+/playwright-report/
+/blob-report/
 
 # debug
 npm-debug.log*

@@ -9,6 +9,8 @@ import {
   listProposals,
 } from "@/lib/fusion/autopilot/proposals";
 import { compareProposals } from "@/lib/fusion/autopilot/compare";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
 
 const decideSchema = z.object({
   proposalId: z.string().min(1),
@@ -32,6 +34,12 @@ function resolveAction(body: z.infer<typeof decideSchema>) {
 export async function GET(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("ai.autopilot", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
+
     const url = new URL(request.url);
     const proposalId = url.searchParams.get("proposalId");
     const includeTrail = url.searchParams.get("trail") === "1";
@@ -169,6 +177,11 @@ async function handleDecision(body: z.infer<typeof decideSchema>, businessId: st
 export async function POST(request: Request) {
   try {
     const { user, business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("ai.autopilot", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     const body = decideSchema.parse(await request.json());
     return handleDecision(body, business.id, user.id);
   } catch (error) {
@@ -183,6 +196,11 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const { user, business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("ai.autopilot", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     const body = decideSchema.parse(await request.json());
     return handleDecision(body, business.id, user.id);
   } catch (error) {

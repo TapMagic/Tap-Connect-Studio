@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { listRegistryStatus } from "@/lib/fusion/features";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import { getAutopilotBudgetSummary } from "@/lib/fusion/autopilot/budget";
 import { listCostLedger, listKnowledge } from "@/lib/fusion/autopilot/knowledge";
 import { AUTOPILOT_CATALOG_VERSION } from "@/lib/fusion/autopilot/recipes";
@@ -8,7 +10,7 @@ import { integrations } from "@/lib/config/integrations";
 import { listDeadLetters } from "@/lib/fusion/publication/events";
 import { listEmailProviderReadiness } from "@/lib/fusion/comms/email-readiness";
 import { listSuppressions } from "@/lib/fusion/comms/suppression";
-import { isFeatureEnabled } from "@/lib/fusion/features";
+import { FeatureDisabledState } from "@/components/fusion/features/feature-disabled-state";
 import { OutboxDeadLetterPanel } from "@/components/fusion/outbox/dead-letter-panel";
 import { SuppressionListPanel } from "@/components/fusion/comms/suppression-list-panel";
 import { KnowledgeSnippetsPanel } from "@/components/fusion/autopilot/knowledge-snippets-panel";
@@ -19,15 +21,20 @@ export const dynamic = "force-dynamic";
 
 export default async function SettingsHubPage() {
   const { business } = await requireBusiness();
-  const features = listRegistryStatus();
+  const featureCtx = await loadFeatureContext();
+  const features = listRegistryStatus(featureCtx);
   const configured = integrations.filter((i) => i.configured).length;
   const emailReady = listEmailProviderReadiness();
-  const autopilotBudget = await getAutopilotBudgetSummary(business.id, business.subscriptionTier);
-  const autopilotLedger = listCostLedger(business.id, 8);
-  const knowledgeSnippets = listKnowledge(business.id);
+  const autopilotEnabled = isFeatureEnabled("ai.autopilot", featureCtx);
+  const autopilotBudget = autopilotEnabled
+    ? await getAutopilotBudgetSummary(business.id, business.subscriptionTier)
+    : null;
+  const autopilotLedger = autopilotEnabled ? listCostLedger(business.id, 8) : [];
+  const knowledgeSnippets = autopilotEnabled ? listKnowledge(business.id) : [];
   const permissionMatrix = listPermissionMatrix();
   const commsEnabled =
-    isFeatureEnabled("comms.email", {}) || isFeatureEnabled("comms.messaging", {});
+    isFeatureEnabled("comms.email", featureCtx) ||
+    isFeatureEnabled("comms.messaging", featureCtx);
 
   let deadLetters: Awaited<ReturnType<typeof listDeadLetters>> = [];
   let suppressions: Awaited<ReturnType<typeof listSuppressions>> = [];
@@ -89,30 +96,42 @@ export default async function SettingsHubPage() {
 
       <section className="rounded-xl border border-border/60 p-4">
         <h2 className="text-sm font-semibold">Automation Team budget</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Catalog v{AUTOPILOT_CATALOG_VERSION} · {autopilotBudget.used}/{autopilotBudget.limit}{" "}
-          generations this month ({autopilotBudget.monthKey})
-        </p>
-        <p className="mt-1 font-mono text-[10px] text-muted-foreground">
-          Est. spend (ledger): ${autopilotBudget.estimatedUsdMonth.toFixed(4)} USD ·{" "}
-          {autopilotBudget.ledgerEntryCount} ledger entries
-        </p>
-        {!autopilotBudget.ok ? (
-          <p className="mt-2 text-xs text-amber-400/90">
-            Monthly budget exhausted — generation blocked until next month or plan upgrade.
-          </p>
-        ) : null}
-        {autopilotLedger.length > 0 ? (
-          <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-            {autopilotLedger.map((e) => (
-              <li key={e.id} className="font-mono text-[10px]">
-                {e.createdAt.slice(0, 10)} · {e.recipeId}@{String(e.recipeVersion)} · $
-                {e.estimatedUsd.toFixed(5)}
-              </li>
-            ))}
-          </ul>
+        {!autopilotEnabled || !autopilotBudget ? (
+          <div className="mt-3">
+            <FeatureDisabledState
+              featureId="ai.autopilot"
+              title="Automation Team is disabled"
+              description="Budget, recipes, and knowledge APIs are gated until ai.autopilot is enabled in Platform Admin."
+            />
+          </div>
         ) : (
-          <p className="mt-2 text-xs text-muted-foreground">No cost ledger entries yet.</p>
+          <>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Catalog v{AUTOPILOT_CATALOG_VERSION} · {autopilotBudget.used}/{autopilotBudget.limit}{" "}
+              generations this month ({autopilotBudget.monthKey})
+            </p>
+            <p className="mt-1 font-mono text-[10px] text-muted-foreground">
+              Est. spend (ledger): ${autopilotBudget.estimatedUsdMonth.toFixed(4)} USD ·{" "}
+              {autopilotBudget.ledgerEntryCount} ledger entries
+            </p>
+            {!autopilotBudget.ok ? (
+              <p className="mt-2 text-xs text-amber-400/90">
+                Monthly budget exhausted — generation blocked until next month or plan upgrade.
+              </p>
+            ) : null}
+            {autopilotLedger.length > 0 ? (
+              <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
+                {autopilotLedger.map((e) => (
+                  <li key={e.id} className="font-mono text-[10px]">
+                    {e.createdAt.slice(0, 10)} · {e.recipeId}@{String(e.recipeVersion)} · $
+                    {e.estimatedUsd.toFixed(5)}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-2 text-xs text-muted-foreground">No cost ledger entries yet.</p>
+            )}
+          </>
         )}
       </section>
 
@@ -123,7 +142,15 @@ export default async function SettingsHubPage() {
           persistence).
         </p>
         <div className="mt-3">
-          <KnowledgeSnippetsPanel initialSnippets={knowledgeSnippets} />
+          {autopilotEnabled ? (
+            <KnowledgeSnippetsPanel initialSnippets={knowledgeSnippets} />
+          ) : (
+            <FeatureDisabledState
+              featureId="ai.autopilot"
+              title="Knowledge snippets are unavailable"
+              description="Enable ai.autopilot to manage grounding snippets for the Automation Team."
+            />
+          )}
         </div>
       </section>
 

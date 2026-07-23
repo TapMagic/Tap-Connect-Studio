@@ -16,6 +16,10 @@ import {
 import { SocialGlyph, socialBrandStyle } from "@/components/tap/social-icons";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import {
+  BuilderPreviewEmpty,
+  campaignPreviewEmptyReason,
+} from "@/components/workbench/builder-preview-empty";
+import {
   parseBrandContactProfile,
   type BrandContactProfile,
 } from "@/lib/brand/contact-profile";
@@ -53,6 +57,8 @@ interface CampaignPageProps {
   editMode?: boolean;
   /** Skip lead API (homepage / marketing demos) */
   previewMode?: boolean;
+  /** Editor: quick-add when preview is empty */
+  onAddFirstBlock?: () => void;
   /** TapSave Keep Card CTA — gated by tapsave.core */
   keepCardEnabled?: boolean;
 }
@@ -167,6 +173,7 @@ export function CampaignPageRenderer({
   onSelectBlock,
   editMode = false,
   previewMode = false,
+  onAddFirstBlock,
   keepCardEnabled = false,
 }: CampaignPageProps) {
   const contactProfile: BrandContactProfile = {
@@ -197,6 +204,13 @@ export function CampaignPageRenderer({
       return ch === "page" || ch === "both";
     })
     .sort((a, b) => a.order - b.order);
+
+  const emptyReason = editMode ? campaignPreviewEmptyReason(blocks) : null;
+  const pageVisibleCount = blocks.filter((b) => {
+    if (b.enabled === false) return false;
+    const ch = b.channel ?? "page";
+    return ch === "page" || ch === "both";
+  }).length;
 
   const hasUpcomingBlock = enabledBlocks.some((b) => b.type === "upcoming_schedule");
   const hasEmailCapture = enabledBlocks.some((b) => b.type === "email_capture");
@@ -237,6 +251,9 @@ export function CampaignPageRenderer({
           <div className="flex justify-center px-4 pt-6">
             <img src={mark} alt={businessName} className="h-10 w-auto object-contain" />
           </div>
+        ) : null}
+        {emptyReason && pageVisibleCount === 0 ? (
+          <BuilderPreviewEmpty reason={emptyReason} onAddBlock={onAddFirstBlock} />
         ) : null}
         {enabledBlocks.map((block) => (
           <BlockRenderer
@@ -444,7 +461,8 @@ function BlockRenderer({
     }
 
     case "headline": {
-      const alignment = (data.alignment as string) ?? "center";
+      const alignment =
+        (block.style?.align as string) ?? (data.alignment as string) ?? "center";
       const alignClass =
         alignment === "left" ? "text-left" : alignment === "right" ? "text-right" : "text-center";
       return (

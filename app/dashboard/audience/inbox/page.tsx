@@ -1,21 +1,26 @@
 import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
-import { isFeatureEnabled } from "@/lib/fusion/features";
-import { listInboxThreads } from "@/lib/fusion/inbox";
+import { FeatureDisabledState } from "@/components/fusion/features/feature-disabled-state";
 import { InboxShell } from "@/components/fusion/inbox/inbox-shell";
+import { checkAnyFeatureGate } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { listInboxThreads } from "@/lib/fusion/inbox";
 
 export const dynamic = "force-dynamic";
 
 export default async function AudienceInboxPage() {
   const { business } = await requireBusiness();
-  const featureEnabled =
-    isFeatureEnabled("comms.inbox", {}) || isFeatureEnabled("comms.email", {});
+  const featureCtx = await loadFeatureContext();
+  const gate = checkAnyFeatureGate(["comms.inbox", "comms.email"], featureCtx);
+  const featureEnabled = gate.ok;
 
   let threads: Awaited<ReturnType<typeof listInboxThreads>> = [];
-  try {
-    threads = await listInboxThreads({ businessId: business.id });
-  } catch {
-    threads = [];
+  if (featureEnabled) {
+    try {
+      threads = await listInboxThreads({ businessId: business.id });
+    } catch {
+      threads = [];
+    }
   }
 
   return (
@@ -33,7 +38,17 @@ export default async function AudienceInboxPage() {
         </p>
       </div>
 
-      <InboxShell initialThreads={threads} featureEnabled={featureEnabled} />
+      {!featureEnabled ? (
+        <FeatureDisabledState
+          featureId="comms.inbox"
+          title="TapInbox is disabled"
+          description="Enable comms.inbox or comms.email in Platform Admin to open unified threads and TapCase."
+          alternateHref="/dashboard/audience"
+          alternateLabel="Back to Audience →"
+        />
+      ) : (
+        <InboxShell initialThreads={threads} featureEnabled={featureEnabled} />
+      )}
     </div>
   );
 }

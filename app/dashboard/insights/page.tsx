@@ -86,39 +86,75 @@ export default async function InsightsHubPage({
           <CardHeader>
             <CardTitle>No confirmed activity yet</CardTitle>
             <CardDescription>
-              Insights stay empty until TapEvents, Leads, or Contacts appear. Nothing here is
-              seeded — all KPIs are Prisma-derived when data exists.
+              Insights stay empty until TapEvents, Leads, Contacts, or TapCommerce mock orders
+              appear. Commerce wiring uses modeled evidence for mock checkout — never shown as live
+              Stripe fact.
             </CardDescription>
           </CardHeader>
         </Card>
       ) : (
-        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          {kpis.map((k) => (
-            <div key={k.key} className="rounded-xl border border-border/60 bg-card/40 p-4">
-              <p className="text-xs text-muted-foreground">{k.label}</p>
-              <p className="text-2xl font-semibold tabular-nums">
-                {k.key === "conversion" ? `${k.value}%` : k.value}
-              </p>
-              <p className="mt-1 text-[10px] text-muted-foreground">
-                <span
-                  className={
-                    evidenceClassTone(k.evidenceClass) === "primary"
-                      ? "text-primary"
-                      : evidenceClassTone(k.evidenceClass) === "muted"
-                        ? "text-muted-foreground"
-                        : ""
-                  }
-                >
-                  {formatEvidenceCaption({
-                    evidenceClass: k.evidenceClass,
-                    source: k.source,
-                    seeded: k.seeded,
-                  })}
-                </span>
-              </p>
+        <>
+          {kpis.some((k) => k.key.startsWith("commerce_")) ? (
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-primary">Commerce &amp; loyalty signals</h3>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+                {kpis
+                  .filter((k) => k.key.startsWith("commerce_"))
+                  .map((k) => (
+                    <div
+                      key={k.key}
+                      className="rounded-xl border border-primary/20 bg-gradient-to-br from-card/80 to-black/30 p-4"
+                    >
+                      <p className="text-xs text-muted-foreground">{k.label}</p>
+                      <p className="text-2xl font-semibold tabular-nums text-white">
+                        {k.key === "commerce_revenue_mock" ? `$${k.value}` : k.value}
+                      </p>
+                      <p className="mt-1 text-[10px] text-muted-foreground">
+                        <span className="text-primary">
+                          {formatEvidenceCaption({
+                            evidenceClass: k.evidenceClass,
+                            source: k.source,
+                            seeded: k.seeded,
+                            mockPath: k.key.startsWith("commerce_"),
+                          })}
+                        </span>
+                      </p>
+                    </div>
+                  ))}
+              </div>
             </div>
-          ))}
-        </div>
+          ) : null}
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+            {kpis
+              .filter((k) => !k.key.startsWith("commerce_"))
+              .map((k) => (
+                <div key={k.key} className="rounded-xl border border-border/60 bg-card/40 p-4">
+                  <p className="text-xs text-muted-foreground">{k.label}</p>
+                  <p className="text-2xl font-semibold tabular-nums">
+                    {k.key === "conversion" ? `${k.value}%` : k.value}
+                  </p>
+                  <p className="mt-1 text-[10px] text-muted-foreground">
+                    <span
+                      className={
+                        evidenceClassTone(k.evidenceClass) === "primary"
+                          ? "text-primary"
+                          : evidenceClassTone(k.evidenceClass) === "muted"
+                            ? "text-muted-foreground"
+                            : ""
+                      }
+                    >
+                      {formatEvidenceCaption({
+                        evidenceClass: k.evidenceClass,
+                        source: k.source,
+                        seeded: k.seeded,
+                      })}
+                    </span>
+                  </p>
+                </div>
+              ))}
+          </div>
+        </>
       )}
 
       <Card className="border-border/60">

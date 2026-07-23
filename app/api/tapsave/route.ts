@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { keepCard, updateTapSavePreferences } from "@/lib/fusion/tapsave/service";
 import { defaultTapSavePreferences } from "@/lib/fusion/tapsave/moments";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 
 const keepSchema = z.object({
   businessId: z.string().min(1),
@@ -17,6 +19,7 @@ const keepSchema = z.object({
 export async function POST(request: Request) {
   try {
     const body = keepSchema.parse(await request.json());
+    const featureCtx = await loadFeatureContext();
     const result = await keepCard({
       businessId: body.businessId,
       email: body.email,
@@ -25,6 +28,7 @@ export async function POST(request: Request) {
       campaignId: body.campaignId,
       deviceSlotId: body.deviceSlotId,
       consentGiven: body.consentMarketing,
+      overrides: featureCtx.overrides,
     });
     if (!result.ok) {
       const status = result.code === "feature_disabled" ? 503 : 400;
@@ -65,6 +69,19 @@ const prefsSchema = z.object({
 
 export async function PATCH(request: Request) {
   try {
+    const featureCtx = await loadFeatureContext();
+    if (!isFeatureEnabled("tapsave.core", featureCtx)) {
+      return NextResponse.json(
+        {
+          ok: false,
+          error: "TapSave is not enabled for this workspace.",
+          code: "feature_disabled",
+          placeholder: true,
+          feature: "tapsave.core",
+        },
+        { status: 503 }
+      );
+    }
     const body = prefsSchema.parse(await request.json());
     const result = await updateTapSavePreferences({
       publicToken: body.publicToken,
@@ -74,6 +91,7 @@ export async function PATCH(request: Request) {
         walletOptIn: body.walletOptIn,
         frequency: body.frequency,
       },
+      overrides: featureCtx.overrides,
     });
     if (!result.ok) {
       return NextResponse.json({ error: result.message }, { status: 400 });

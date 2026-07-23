@@ -9,6 +9,7 @@ import { isAddressSuppressed } from "./suppression";
 import { isFeatureEnabled } from "@/lib/fusion/features";
 import { createGovernedEvent, enqueueOutboxSync } from "@/lib/fusion/publication/events";
 import { listEmailProviderReadiness } from "./email-readiness";
+import { wireEmailOutboundSideEffects, type EmailLinkContext } from "./email-wire";
 
 export type EmailSendResult =
   | { ok: true; providerRef: string; mock: boolean }
@@ -25,6 +26,7 @@ export async function sendEmailViaMock(input: {
   featureEnabled?: boolean;
   quietHours?: { start: string; end: string; timezone: string };
   now?: Date;
+  link?: EmailLinkContext;
 }): Promise<EmailSendResult> {
   const featureOn =
     input.featureEnabled ?? isFeatureEnabled("comms.email", {});
@@ -79,6 +81,12 @@ export async function sendEmailViaMock(input: {
     ? `resend_pending_${Date.now()}`
     : `mock_email_${Date.now().toString(36)}`;
 
+  const correlationId =
+    input.link?.correlationId ??
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `em_${Date.now().toString(36)}`);
+
   enqueueOutboxSync(
     "email.send",
     createGovernedEvent({
@@ -86,16 +94,31 @@ export async function sendEmailViaMock(input: {
       businessId: input.businessId,
       aggregateType: "email",
       aggregateId: providerRef,
-      correlationId: crypto.randomUUID(),
+      correlationId,
       payload: {
         to,
         subject: input.subject.trim(),
         bodyPreview: input.body.slice(0, 200),
         mock: !live,
         purpose: input.purpose ?? "promo",
+        threadId: input.link?.threadId,
+        contactId: input.link?.contactId,
+        relationshipId: input.link?.relationshipId,
       },
     })
   );
+
+  if (input.link) {
+    await wireEmailOutboundSideEffects({
+      businessId: input.businessId,
+      to,
+      subject: input.subject.trim(),
+      body: input.body,
+      providerRef,
+      mock: !live,
+      link: { ...input.link, correlationId },
+    });
+  }
 
   return { ok: true, providerRef, mock: !live };
 }

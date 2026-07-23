@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { isFeatureEnabled } from "@/lib/fusion/features";
+import { checkAnyFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
   addSuppression,
   listSuppressions,
@@ -13,6 +15,11 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkAnyFeatureGate(["comms.email", "comms.messaging"], featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     const rows = await listSuppressions(business.id);
     return NextResponse.json({ ok: true, rows });
   } catch {
@@ -38,10 +45,15 @@ const postSchema = z.discriminatedUnion("action", [
 export async function POST(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
     const featureEnabled =
-      isFeatureEnabled("comms.email", {}) || isFeatureEnabled("comms.messaging", {});
+      isFeatureEnabled("comms.email", featureCtx) ||
+      isFeatureEnabled("comms.messaging", featureCtx);
     if (!featureEnabled) {
-      return NextResponse.json({ error: "Comms feature disabled", code: "feature_off" }, { status: 403 });
+      const gate = checkAnyFeatureGate(["comms.email", "comms.messaging"], featureCtx);
+      if (!gate.ok) {
+        return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+      }
     }
 
     const body = postSchema.parse(await request.json());

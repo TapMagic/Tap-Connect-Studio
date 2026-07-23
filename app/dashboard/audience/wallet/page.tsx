@@ -1,21 +1,26 @@
 import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
-import { isFeatureEnabled } from "@/lib/fusion/features";
-import { listPassesForBusiness, listWalletCredentialBlockers } from "@/lib/fusion/wallet";
+import { FeatureDisabledState } from "@/components/fusion/features/feature-disabled-state";
 import { WalletPassManager } from "@/components/fusion/wallet/wallet-pass-manager";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
+import { listPassesForBusiness, listWalletCredentialBlockers } from "@/lib/fusion/wallet";
 
 export const dynamic = "force-dynamic";
 
 export default async function AudienceWalletPage() {
   const { business } = await requireBusiness();
-  const featureEnabled = isFeatureEnabled("wallet.apple_google", {});
+  const featureCtx = await loadFeatureContext();
+  const featureEnabled = isFeatureEnabled("wallet.apple_google", featureCtx);
   const blockers = listWalletCredentialBlockers();
 
   let passes: Awaited<ReturnType<typeof listPassesForBusiness>> = [];
-  try {
-    passes = await listPassesForBusiness(business.id);
-  } catch {
-    passes = [];
+  if (featureEnabled) {
+    try {
+      passes = await listPassesForBusiness(business.id);
+    } catch {
+      passes = [];
+    }
   }
 
   return (
@@ -36,11 +41,21 @@ export default async function AudienceWalletPage() {
         </div>
       </div>
 
-      <WalletPassManager
-        initialPasses={passes}
-        featureEnabled={featureEnabled}
-        credentialBlockers={blockers}
-      />
+      {!featureEnabled ? (
+        <FeatureDisabledState
+          featureId="wallet.apple_google"
+          title="Wallet passes are disabled"
+          description="Apple / Google Wallet projection is off for this environment. Enable wallet.apple_google in Platform Admin when you are ready to issue passes."
+          alternateHref="/dashboard/audience"
+          alternateLabel="Back to Audience →"
+        />
+      ) : (
+        <WalletPassManager
+          initialPasses={passes}
+          featureEnabled={featureEnabled}
+          credentialBlockers={blockers}
+        />
+      )}
     </div>
   );
 }

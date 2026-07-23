@@ -57,6 +57,11 @@ export async function POST(request: Request) {
     let relationshipToken: string | undefined;
     let contactId: string | undefined;
     let relationshipId: string | undefined;
+    let threadId: string | undefined;
+    const correlationId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `lead_${Date.now().toString(36)}`;
     try {
       const audience = await upsertAudienceFromLeadCapture({
         businessId: body.businessId,
@@ -80,7 +85,7 @@ export async function POST(request: Request) {
     // TapInbox — best-effort only when comms.inbox is on; never fail the V1 lead response
     try {
       if (isFeatureEnabled("comms.inbox", {})) {
-        await createThreadFromLead({
+        const thread = await createThreadFromLead({
           businessId: body.businessId,
           leadId: lead.id,
           email: body.email,
@@ -94,6 +99,7 @@ export async function POST(request: Request) {
             body.message?.trim() ||
             `Lead captured (${body.type}) from ${body.email}${body.name ? ` (${body.name})` : ""}.`,
         });
+        threadId = thread.id;
       }
     } catch (inboxError) {
       console.warn("Inbox thread from lead skipped:", inboxError);
@@ -110,6 +116,10 @@ export async function POST(request: Request) {
       deviceSlotId: body.deviceSlotId,
       message: body.message,
       type: body.type,
+      contactId,
+      relationshipId,
+      threadId,
+      correlationId,
     });
 
     return NextResponse.json({

@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { buildCommerceInsightKpis } from "./commerce-evidence";
 import { formatEvidenceCaption } from "./evidence-display";
 import { csvEscapeField, parseInsightsRangeDays } from "./range";
 import type { EvidenceClass } from "./tapproof";
@@ -152,13 +153,21 @@ export async function fetchInsightsSnapshot(
     },
   ];
 
-  const empty = tapsAll === 0 && leadsAll === 0 && contacts === 0;
+  const commerceKpis = buildCommerceInsightKpis({
+    businessId,
+    rangeDays: days,
+    from,
+  });
+  const hasCommerceEvidence = commerceKpis.some((k) => k.value > 0);
+
+  const empty =
+    tapsAll === 0 && leadsAll === 0 && contacts === 0 && !hasCommerceEvidence;
 
   return {
     rangeDays: days,
     from: from.toISOString(),
     to: to.toISOString(),
-    kpis,
+    kpis: [...kpis, ...commerceKpis],
     empty,
     fetchedAt: new Date().toISOString(),
   };

@@ -7,6 +7,8 @@ import {
   seedBrandKitKnowledge,
   upsertKnowledgeSnippet,
 } from "@/lib/fusion/autopilot/knowledge";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
 
 const upsertSchema = z.object({
   id: z.string().min(1).max(80).optional(),
@@ -28,6 +30,11 @@ const seedSchema = z.object({
 export async function GET() {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("ai.autopilot", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     return NextResponse.json({
       ok: true,
       snippets: listKnowledge(business.id),
@@ -41,6 +48,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("ai.autopilot", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     const body = await request.json();
     if (body?.action === "seed_brand") {
       const parsed = seedSchema.safeParse(body);
@@ -71,6 +83,11 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("ai.autopilot", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     const id = new URL(request.url).searchParams.get("id");
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
     const ok = deleteKnowledgeSnippet(business.id, id);

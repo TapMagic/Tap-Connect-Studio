@@ -662,9 +662,12 @@
   max-width: 390px;
   margin: 0 auto;
   border-radius: 2rem;
-  border: 3px solid #1f2937;
+  border: 2px solid rgba(163, 230, 53, 0.35);
   background: #000;
-  box-shadow: 0 25px 50px rgba(0,0,0,0.45);
+  box-shadow:
+    0 0 0 1px rgba(163, 230, 53, 0.08),
+    0 0 40px rgba(163, 230, 53, 0.06),
+    0 28px 60px rgba(0, 0, 0, 0.55);
   overflow: hidden;
   display: flex;
   flex-direction: column;
@@ -684,8 +687,21 @@
 
 .builder-phone-notch {
   height: 1.5rem;
-  background: #0b0f19;
+  background: linear-gradient(180deg, #0b0f19 0%, #05070a 100%);
   flex-shrink: 0;
+  position: relative;
+}
+
+.builder-phone-notch::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 4.5rem;
+  height: 0.35rem;
+  border-radius: 999px;
+  background: #1f2937;
 }
 
 .builder-phone-screen {
@@ -705,6 +721,78 @@
   max-height: none;
   min-height: 0;
   overflow: visible;
+}
+
+/* Studio builder chrome — dark canvas + lime accents (Tap Connect) */
+.builder-studio {
+  --builder-accent: #a3e635;
+  --builder-accent-dim: rgba(163, 230, 53, 0.12);
+}
+
+.builder-studio-toolbar {
+  border-bottom: 1px solid rgba(163, 230, 53, 0.15);
+  background: linear-gradient(180deg, rgba(11, 15, 25, 0.98) 0%, rgba(11, 15, 25, 0.92) 100%);
+  backdrop-filter: blur(12px);
+}
+
+.builder-studio-rail {
+  background: rgba(11, 15, 25, 0.6);
+}
+
+.builder-studio-canvas {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(163, 230, 53, 0.06) 0%, transparent 55%),
+    radial-gradient(circle at 50% 100%, rgba(0, 0, 0, 0.4) 0%, transparent 50%),
+    #05070a;
+}
+
+.builder-studio-inspector {
+  background: rgba(11, 15, 25, 0.75);
+  border-left-color: rgba(163, 230, 53, 0.12) !important;
+}
+
+.builder-preview-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem 1.25rem;
+  border-radius: 1rem;
+  border: 1px dashed rgba(163, 230, 53, 0.35);
+  background: rgba(163, 230, 53, 0.04);
+}
+
+.builder-preview-empty-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 999px;
+  background: rgba(163, 230, 53, 0.12);
+  margin-bottom: 0.75rem;
+}
+
+.builder-preview-empty-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.builder-preview-empty-body {
+  margin-top: 0.35rem;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: rgba(248, 250, 252, 0.72);
+  max-width: 18rem;
+}
+
+.builder-preview-empty-hint {
+  margin-top: 0.5rem;
+  font-size: 0.6875rem;
+  color: rgba(163, 230, 53, 0.85);
+  max-width: 20rem;
 }
 
 /* Email builder canvas — same interaction language as campaign phone */

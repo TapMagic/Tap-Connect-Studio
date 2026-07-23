@@ -7,8 +7,10 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts lib/fusion/**/*.test.ts lib/services/**/__tests__/**/*.test.ts",
+    "test": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts lib/fusion/**/*.test.ts lib/services/**/__tests__/**/*.test.ts lib/utils/**/__tests__/**/*.test.ts components/**/__tests__/**/*.test.ts",
     "test:fusion": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts",
+    "test:e2e:proofs": "playwright test e2e/fusion-proofs.spec.ts",
+    "test:e2e:proofs:headed": "PROOF_HEADED=1 playwright test e2e/fusion-proofs.spec.ts --headed",
     "smoke:fusion": "npx tsx scripts/fusion-smoke-routes.ts",
     "smoke:fusion:curl": "bash scripts/fusion-smoke-curl.sh",
     "postinstall": "prisma generate || true",
@@ -50,6 +52,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "@playwright/test": "^1.61.1",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.43",
     "@types/pg": "^8.20.0",
@@ -59,6 +62,7 @@
     "clerk": "^2.1.0",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
+    "playwright": "^1.61.1",
     "tailwindcss": "^4",
     "tsx": "^4.23.1",
     "typescript": "^5"

@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { isFeatureEnabled } from "@/lib/fusion/features";
+import {
+  checkFeatureGate,
+  featureGateJsonBody,
+} from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
   createPassDraft,
   issuePass,
@@ -18,6 +23,12 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("wallet.apple_google", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
+
     const url = new URL(request.url);
     const passId = url.searchParams.get("id");
     if (passId) {
@@ -46,7 +57,8 @@ const actionSchema = z.object({
 export async function POST(request: Request) {
   try {
     const { business, user } = await requireBusiness();
-    const featureEnabled = isFeatureEnabled("wallet.apple_google", {});
+    const featureCtx = await loadFeatureContext();
+    const featureEnabled = isFeatureEnabled("wallet.apple_google", featureCtx);
     const body = actionSchema.parse(await request.json());
 
     if (body.action === "create") {

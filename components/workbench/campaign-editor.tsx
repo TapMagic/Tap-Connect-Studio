@@ -10,10 +10,12 @@ import {
   Calendar,
   Plus,
   QrCode,
+  Redo2,
   Save,
   Send,
   Sparkles,
   Trash2,
+  Undo2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { MediaPicker } from "@/components/media/media-picker";
 import { BlockStyleControls } from "@/components/workbench/block-style-controls";
+import { TextBlockFormatToolbar } from "@/components/workbench/text-block-format-toolbar";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker } from "@/components/design/format-controls";
 import { QrPanel } from "@/components/campaign/qr-panel";
@@ -29,6 +32,8 @@ import { SchedulePanel } from "@/components/campaign/schedule-panel";
 import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
 import { AiAssistPanel } from "@/components/campaign/ai-assist-panel";
 import { captureEditorSnapshot } from "@/lib/fusion/autopilot/editor-revert";
+import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
+import { normalizeContentBlocks } from "@/lib/services/normalize-content-blocks";
 import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { cn } from "@/lib/utils";
 import {
@@ -269,8 +274,17 @@ export function CampaignEditor({
   const [tab, setTab] = useState<EditorTab>("content");
   const [title, setTitle] = useState(campaign.title);
   const [status, setStatus] = useState(campaign.status);
-  const [blocks, setBlocks] = useState<ContentBlock[]>(campaign.contentBlocks);
-  const [theme, setTheme] = useState<{
+  const {
+    state: blocks,
+    setState: setBlocks,
+    undo: undoBlocks,
+    redo: redoBlocks,
+    canUndo: canUndoBlocks,
+    canRedo: canRedoBlocks,
+    reset: resetBlocks,
+  } = useUndoRedo<ContentBlock[]>(
+    normalizeContentBlocks(campaign.contentBlocks)
+  );  const [theme, setTheme] = useState<{
     primaryColor: string;
     secondaryColor: string;
     backgroundColor: string;
@@ -346,24 +360,48 @@ export function CampaignEditor({
     });
   }, [selectedBlockId]);
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      if (!(e.metaKey || e.ctrlKey)) return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoBlocks();
+      } else if (e.key === "z" && e.shiftKey) {
+        e.preventDefault();
+        redoBlocks();
+      } else if (e.key === "y") {
+        e.preventDefault();
+        redoBlocks();
+      }
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [undoBlocks, redoBlocks]);
+
   function updateBlock(id: string, updates: Partial<ContentBlock>) {
-    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)));
+    setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)), false);
   }
 
   function updateBlockData(id: string, key: string, value: unknown) {
-    setBlocks((prev) =>
-      prev.map((b) =>
-        b.id === id ? { ...b, data: { ...b.data, [key]: value } } : b
-      )
+    setBlocks(
+      (prev) =>
+        prev.map((b) =>
+          b.id === id ? { ...b, data: { ...b.data, [key]: value } } : b
+        ),
+      false
     );
   }
 
   function removeBlock(id: string) {
-    setBlocks((prev) =>
-      prev
-        .filter((b) => b.id !== id)
-        .sort((a, b) => a.order - b.order)
-        .map((b, i) => ({ ...b, order: i }))
+    setBlocks(
+      (prev) =>
+        prev
+          .filter((b) => b.id !== id)
+          .sort((a, b) => a.order - b.order)
+          .map((b, i) => ({ ...b, order: i })),
+      true
     );
   }
 
@@ -380,7 +418,7 @@ export function CampaignEditor({
     };
     const next = [...sorted];
     next.splice(index + 1, 0, clone);
-    setBlocks(next.map((b, i) => ({ ...b, order: i })));
+    setBlocks(next.map((b, i) => ({ ...b, order: i })), true);
     setMessage("Block duplicated");
   }
 
@@ -399,17 +437,20 @@ export function CampaignEditor({
         })),
       };
     }
-    setBlocks((prev) => [
-      ...prev,
-      {
-        id,
-        type: preset.type,
-        label: preset.label,
-        order: nextOrder,
-        enabled: true,
-        data,
-      },
-    ]);
+    setBlocks(
+      (prev) => [
+        ...prev,
+        {
+          id,
+          type: preset.type,
+          label: preset.label,
+          order: nextOrder,
+          enabled: true,
+          data,
+        },
+      ],
+      true
+    );
     setSelectedBlockId(id);
     setSelectedButtonId(null);
     setTab("content");
@@ -424,7 +465,7 @@ export function CampaignEditor({
     const next = [...sorted];
     const [item] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, item);
-    setBlocks(next.map((b, i) => ({ ...b, order: i })));
+    setBlocks(next.map((b, i) => ({ ...b, order: i })), true);
   }
 
   async function saveCampaign(publish = false) {
@@ -486,14 +527,34 @@ export function CampaignEditor({
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] flex-col">
-      <div className="sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 border-b border-border/60 bg-background/95 px-4 py-2.5 backdrop-blur">
+    <div className="builder-studio flex h-[calc(100vh-4rem)] flex-col">
+      <div className="builder-studio-toolbar sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 backdrop-blur">
         <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="max-w-md font-semibold"
         />
         <div className="flex flex-wrap items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={undoBlocks}
+            disabled={!canUndoBlocks}
+            title="Undo block change (⌘Z)"
+            aria-label="Undo block change"
+          >
+            <Undo2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={redoBlocks}
+            disabled={!canRedoBlocks}
+            title="Redo block change (⌘⇧Z)"
+            aria-label="Redo block change"
+          >
+            <Redo2 className="h-4 w-4" />
+          </Button>
           <CampaignActions campaignId={campaign.id} status={campaign.status} />
           <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
             <Eye className="mr-1 h-4 w-4" />
@@ -514,7 +575,7 @@ export function CampaignEditor({
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Left rail */}
-        <aside className="flex w-full shrink-0 flex-col border-r border-border/60 lg:w-[280px]">
+        <aside className="builder-studio-rail flex w-full shrink-0 flex-col border-r border-border/60 lg:w-[280px]">
           <div className="flex gap-1 overflow-x-auto border-b border-border/50 p-2">
             {TABS.map((t) => {
               const Icon = t.icon;
@@ -821,7 +882,7 @@ export function CampaignEditor({
                 }
                 onApplyDraft={({ title: nextTitle, blocks: nextBlocks, theme: nextTheme }) => {
                   if (nextTitle) setTitle(nextTitle);
-                  setBlocks(nextBlocks);
+                  resetBlocks(normalizeContentBlocks(nextBlocks));
                   if (nextTheme) {
                     setTheme((t) => ({
                       ...t,
@@ -840,7 +901,7 @@ export function CampaignEditor({
                 }}
                 onRevertDraft={(snapshot) => {
                   setTitle(snapshot.title);
-                  setBlocks(snapshot.blocks);
+                  resetBlocks(normalizeContentBlocks(snapshot.blocks));
                   if (snapshot.theme) {
                     setTheme((t) => ({
                       ...t,
@@ -861,7 +922,7 @@ export function CampaignEditor({
 
         {/* Center phone preview — independent scroll column */}
         {showPreview && tab === "content" && (
-          <div className="flex min-h-0 flex-1 flex-col items-center overflow-hidden bg-black/30 p-3">
+          <div className="builder-studio-canvas flex min-h-0 flex-1 flex-col items-center overflow-hidden p-3">
             <p className="mb-2 shrink-0 text-center text-[11px] text-muted-foreground">
               Live preview · scroll inside phone · tap a block to edit · {status.toLowerCase()}
             </p>
@@ -897,6 +958,7 @@ export function CampaignEditor({
                     setSelectedBlockId(id || null);
                     setSelectedButtonId(null);
                   }}
+                  onAddFirstBlock={() => addBlock("headline")}
                 />
               </div>
             </div>
@@ -905,7 +967,7 @@ export function CampaignEditor({
 
         {/* Right inspector — independent scroll column */}
         {tab === "content" && (
-          <aside className="flex w-full shrink-0 flex-col border-l border-border/60 lg:w-[340px]">
+          <aside className="builder-studio-inspector flex w-full shrink-0 flex-col border-l border-border/60 lg:w-[340px]">
             <div className="sticky top-0 z-10 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur">
               {selectedBlock ? `Edit: ${selectedBlock.label}` : "Page & design"}
             </div>
@@ -1999,6 +2061,20 @@ function BlockFields({
 
   return (
     <div className="space-y-3">
+      {(block.type === "headline" || block.type === "rich_text") && (
+        <TextBlockFormatToolbar
+          style={block.style}
+          onChange={onStyleChange}
+          dataAlignment={
+            block.type === "headline" ? (data.alignment as string) : undefined
+          }
+          onDataAlignmentChange={
+            block.type === "headline"
+              ? (align) => onUpdate("alignment", align)
+              : undefined
+          }
+        />
+      )}
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.map((field) => (
           <div key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
@@ -2018,21 +2094,8 @@ function BlockFields({
             )}
           </div>
         ))}
-        {block.type === "headline" && (
-          <div className="space-y-1">
-            <Label className="text-xs">Alignment</Label>
-            <select
-              className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
-              value={(data.alignment as string) ?? "center"}
-              onChange={(e) => onUpdate("alignment", e.target.value)}
-            >
-              <option value="left">Left</option>
-              <option value="center">Center</option>
-              <option value="right">Right</option>
-            </select>
-          </div>
-        )}
-        {block.type === "email_capture" && (
+      </div>
+      {block.type === "email_capture" && (
           <div className="sm:col-span-2 space-y-3 rounded-lg border border-border/50 p-3">
             <p className="text-xs font-medium text-muted-foreground">Contact fields</p>
             <label className="flex items-center justify-between gap-3 text-sm">
@@ -2105,7 +2168,6 @@ function BlockFields({
             />
           </div>
         )}
-      </div>
       {styleControls}
     </div>
   );

@@ -19,6 +19,7 @@ import { isFeatureEnabled } from "@/lib/fusion/features";
 import { createGovernedEvent, enqueueOutboxSync } from "@/lib/fusion/publication/events";
 import { isAddressSuppressed } from "@/lib/fusion/comms/suppression";
 import { sendEmailViaMock } from "@/lib/fusion/comms/email-mock";
+import { recordContactTimelineEvent } from "@/lib/fusion/audience/timeline";
 import {
   canCaseTransition,
   nextCaseStatus,
@@ -165,6 +166,32 @@ export async function createThreadFromLead(input: {
       payload: { leadId: input.leadId, channel: "email" },
     })
   );
+
+  if (input.relationshipId && input.contactId) {
+    await recordContactTimelineEvent({
+      businessId: input.businessId,
+      contactId: input.contactId,
+      relationshipId: input.relationshipId,
+      kind: "lead_capture",
+      threadId: thread.id,
+      metadata: {
+        leadId: input.leadId,
+        email: input.email,
+        subject: input.subject ?? "Lead conversation",
+      },
+    });
+    await recordContactTimelineEvent({
+      businessId: input.businessId,
+      contactId: input.contactId,
+      relationshipId: input.relationshipId,
+      kind: "inbox_inbound",
+      threadId: thread.id,
+      metadata: {
+        leadId: input.leadId,
+        provider: "lead_capture",
+      },
+    });
+  }
 
   return mapThread(thread);
 }
@@ -344,6 +371,14 @@ export async function replyToThread(input: {
       purpose: input.purpose ?? "support",
       consentGiven: input.consentGiven ?? true,
       skipGuardian: true, // already checked
+      link: {
+        threadId: thread.id,
+        contactId: thread.contactId ?? undefined,
+        relationshipId: thread.relationshipId ?? undefined,
+        leadId: thread.leadId ?? undefined,
+        skipInboxMessage: true,
+        skipTimeline: true,
+      },
     });
     if (!sent.ok) {
       return { ok: false, code: sent.code, error: sent.error };
@@ -382,6 +417,19 @@ export async function replyToThread(input: {
     where: { id: thread.id },
     data: { lastMessageAt: new Date(), status: "PENDING" },
   });
+
+  if (thread.relationshipId && thread.contactId) {
+    await recordContactTimelineEvent({
+      businessId: input.businessId,
+      contactId: thread.contactId,
+      relationshipId: thread.relationshipId,
+      kind: "inbox_reply",
+      threadId: thread.id,
+      messageId: message.id,
+      providerRef,
+      metadata: { mock },
+    });
+  }
 
   return {
     ok: true,

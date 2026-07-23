@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { isFeatureEnabled } from "@/lib/fusion/features";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
   addLineToOrder,
   cancelOrder,
@@ -16,6 +18,7 @@ import {
   refundOrder,
   seedDemoCatalog,
   upsertCatalogItem,
+  wireCommerceOrderPaidSideEffects,
 } from "@/lib/fusion/commerce";
 
 export const dynamic = "force-dynamic";
@@ -23,6 +26,7 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
     const url = new URL(request.url);
     const orderId = url.searchParams.get("orderId");
     const view = url.searchParams.get("view") ?? "orders";
@@ -32,6 +36,11 @@ export async function GET(request: Request) {
         ok: true,
         readiness: evaluateCommerceStripeReadiness(),
       });
+    }
+
+    const gate = checkFeatureGate("commerce.tapcommerce", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
     }
 
     if (view === "catalog") {
@@ -73,6 +82,9 @@ const postSchema = z.object({
   quantity: z.number().int().positive().optional(),
   taxRateBps: z.number().int().min(0).optional(),
   relationshipId: z.string().optional(),
+  contactId: z.string().optional(),
+  awardLoyalty: z.boolean().optional(),
+  loyaltyPoints: z.number().int().positive().optional(),
   lines: z
     .array(
       z.object({
@@ -97,7 +109,8 @@ const postSchema = z.object({
 export async function POST(request: Request) {
   try {
     const { business } = await requireBusiness();
-    const featureEnabled = isFeatureEnabled("commerce.tapcommerce", {});
+    const featureCtx = await loadFeatureContext();
+    const featureEnabled = isFeatureEnabled("commerce.tapcommerce", featureCtx);
     const body = postSchema.parse(await request.json());
 
     if (body.action === "seed_catalog") {
@@ -186,7 +199,24 @@ export async function POST(request: Request) {
       if (!result.ok) {
         return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
       }
-      return NextResponse.json({ ok: true, order: result.order, session: result.session });
+      const wire = await wireCommerceOrderPaidSideEffects({
+        businessId: business.id,
+        order: result.order,
+        mock: true,
+        featureCtx,
+        link: {
+          relationshipId: body.relationshipId ?? result.order.relationshipId,
+          contactId: body.contactId,
+          awardLoyalty: body.awardLoyalty,
+          loyaltyPoints: body.loyaltyPoints,
+        },
+      });
+      return NextResponse.json({
+        ok: true,
+        order: result.order,
+        session: result.session,
+        wire,
+      });
     }
 
     if (body.action === "cancel_order") {

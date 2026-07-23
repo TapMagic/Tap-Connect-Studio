@@ -11,6 +11,42 @@ import {
   resolveEmailOfferBlocks,
 } from "@/lib/campaign-email";
 import { parseContentBlocks } from "@/lib/services/devices";
+import { sendEmailViaMock } from "@/lib/fusion/comms/email-mock";
+import type { EmailLinkContext } from "@/lib/fusion/comms/email-wire";
+
+type LeadEmailLink = EmailLinkContext & {
+  correlationId?: string;
+};
+
+async function deliverLeadEmail(input: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  businessId: string;
+  link?: LeadEmailLink;
+}) {
+  const live = isEmailReady();
+  if (live) {
+    await sendTransactionalEmail({
+      to: input.to,
+      subject: input.subject,
+      html: input.html,
+      text: input.text,
+    });
+    return;
+  }
+
+  await sendEmailViaMock({
+    businessId: input.businessId,
+    to: input.to,
+    subject: input.subject,
+    body: input.text || input.subject,
+    purpose: "transactional",
+    featureEnabled: true,
+    link: input.link,
+  });
+}
 
 /** Fire-and-forget emails after a lead is captured. Never throws to the caller. */
 export async function notifyOnLeadCapture(params: {
@@ -23,9 +59,11 @@ export async function notifyOnLeadCapture(params: {
   deviceSlotId?: string | null;
   message?: string | null;
   type: string;
+  contactId?: string;
+  relationshipId?: string;
+  threadId?: string;
+  correlationId?: string;
 }) {
-  if (!isEmailReady()) return;
-
   try {
     const business = await prisma.business.findUnique({
       where: { id: params.businessId },
@@ -37,7 +75,6 @@ export async function notifyOnLeadCapture(params: {
         brandKit: true,
         users: {
           where: { role: { in: ["OWNER", "MANAGER"] } },
-          take: 3,
           include: { user: { select: { email: true } } },
         },
       },
@@ -67,9 +104,20 @@ export async function notifyOnLeadCapture(params: {
     const uniqueOwners = [...new Set(ownerEmails.map((e) => e.trim().toLowerCase()))];
     const deviceLabel = device?.nickname ?? device?.deviceCode ?? null;
 
+    const leadLink: LeadEmailLink | undefined =
+      params.contactId && params.relationshipId
+        ? {
+            threadId: params.threadId,
+            leadId: params.leadId,
+            contactId: params.contactId,
+            relationshipId: params.relationshipId,
+            correlationId: params.correlationId,
+          }
+        : undefined;
+
     await Promise.all(
       uniqueOwners.map((to) =>
-        sendTransactionalEmail({
+        deliverLeadEmail({
           to,
           subject: `New Tap Connect lead — ${business.name}`,
           html: ownerLeadNotifyHtml({
@@ -83,6 +131,7 @@ export async function notifyOnLeadCapture(params: {
             type: params.type,
           }),
           text: `New lead: ${params.leadName ?? ""} ${params.leadEmail}`.trim(),
+          businessId: params.businessId,
         })
       )
     );
@@ -100,7 +149,7 @@ export async function notifyOnLeadCapture(params: {
           ...emailResponse,
           blocks: offerBlocks.length ? offerBlocks : emailResponse.blocks,
         };
-        await sendTransactionalEmail({
+        await deliverLeadEmail({
           to: params.leadEmail,
           subject: template.subject || `Your offer from ${business.name}`,
           html: renderEmailPromoHtml({
@@ -111,6 +160,8 @@ export async function notifyOnLeadCapture(params: {
             primaryColor: business.brandKit?.primaryColor,
           }),
           text: `Thanks for connecting with ${business.name}. Check this email for your offer.`,
+          businessId: params.businessId,
+          link: leadLink,
         });
         return;
       }
@@ -118,7 +169,7 @@ export async function notifyOnLeadCapture(params: {
 
     const promo = parseEmailPromo(business.brandKit?.emailPromo, business.name);
     if (promo.enabled) {
-      await sendTransactionalEmail({
+      await deliverLeadEmail({
         to: params.leadEmail,
         subject: promo.subject || `Thanks from ${business.name}`,
         html: renderEmailPromoHtml({
@@ -129,9 +180,11 @@ export async function notifyOnLeadCapture(params: {
           primaryColor: business.brandKit?.primaryColor,
         }),
         text: `Thanks for connecting with ${business.name}.`,
+        businessId: params.businessId,
+        link: leadLink,
       });
     } else {
-      await sendTransactionalEmail({
+      await deliverLeadEmail({
         to: params.leadEmail,
         subject: `Thanks from ${business.name}`,
         html: leadThankYouHtml({
@@ -140,6 +193,8 @@ export async function notifyOnLeadCapture(params: {
           reviewUrl: business.googleReviewUrl,
         }),
         text: `Thanks for connecting with ${business.name}.`,
+        businessId: params.businessId,
+        link: leadLink,
       });
     }
   } catch (error) {

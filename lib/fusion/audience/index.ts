@@ -11,6 +11,13 @@ export { recordConsent, getLatestConsentForContact } from "./consent";
 export { getMyTapProjection } from "./mytap-projection";
 export { computeRelationshipHealth } from "./health";
 export type { RelationshipHealth, HealthInput, HealthSignal } from "./health";
+export {
+  recordContactTimelineEvent,
+  listContactTimelineEvents,
+  CONTACT_TIMELINE_LABELS,
+  resetMemoryContactTimeline,
+} from "./timeline";
+export type { ContactTimelineEvent, ContactTimelineKind } from "./timeline";
 export type * from "./contracts";
 /**
  * Dual-write bridge: V1 Lead remains source of truth; Contact + Relationship + Consent added when possible.

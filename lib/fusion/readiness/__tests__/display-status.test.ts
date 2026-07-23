@@ -37,10 +37,26 @@ describe("display readiness derivation", () => {
       href: "/dashboard/audience/wallet",
       description: "Pass lifecycle",
       maturity: "verified_needs_credentials",
-      featureId: "wallet.passes",
+      featureId: "wallet.apple_google",
       group: "Retention",
     };
     const r = resolveSectionReadiness(section);
     assert.equal(r.display, "verified_credentials_required");
+  });
+
+  it("marks email mock path as verified credentials required without Resend", () => {
+    const section: StudioSection = {
+      id: "email",
+      label: "Email",
+      href: "/dashboard/settings",
+      description: "Mock adapter + suppression",
+      maturity: "verified_needs_credentials",
+      featureId: "comms.email",
+      group: "Comms",
+    };
+    const r = resolveSectionReadiness(section);
+    assert.equal(r.display, "verified_credentials_required");
+    assert.equal(r.label, DISPLAY_READINESS_LABEL.verified_credentials_required);
+    assert.ok(r.missingDependencies.some((d) => d.includes("resend") || d.includes("RESEND")));
   });
 });

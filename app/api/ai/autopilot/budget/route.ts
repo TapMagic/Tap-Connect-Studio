@@ -7,10 +7,17 @@ import {
 } from "@/lib/fusion/autopilot";
 import { listCostLedger } from "@/lib/fusion/autopilot/knowledge";
 import { recipesForPlan } from "@/lib/fusion/autopilot/recipes";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
 
 export async function GET() {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("ai.autopilot", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     const tier = business.subscriptionTier;
     const summary = await getAutopilotBudgetSummary(business.id, tier);
     const ledger = listCostLedger(business.id, 25);

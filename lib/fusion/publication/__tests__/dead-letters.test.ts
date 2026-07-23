@@ -12,30 +12,38 @@ import {
 
 describe("Outbox dead letters", () => {
   it("marks failed and lists dead letters", async () => {
-    resetMemoryOutbox();
-    const record = enqueueOutboxSync(
-      "test.fail",
-      createGovernedEvent({
-        name: "test.fail",
-        businessId: "b1",
-        aggregateType: "test",
-        aggregateId: "a1",
-        correlationId: "c1",
-        payload: { x: 1 },
-      })
-    );
-    assert.equal(listPendingOutbox().length, 1);
+    // Force memory path — Prisma list would miss sync memory-only enqueues when DB is up
+    const prevUrl = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
 
-    const failed = await markOutboxFailed(record.id, "boom");
-    assert.ok(failed);
-    assert.equal(failed.status, "FAILED");
+    try {
+      resetMemoryOutbox();
+      const record = enqueueOutboxSync(
+        "test.fail",
+        createGovernedEvent({
+          name: "test.fail",
+          businessId: "b1",
+          aggregateType: "test",
+          aggregateId: "a1",
+          correlationId: "c1",
+          payload: { x: 1 },
+        })
+      );
+      assert.equal(listPendingOutbox().length, 1);
 
-    const dead = await listDeadLetters({ businessId: "b1" });
-    assert.ok(dead.some((d) => d.id === record.id));
+      const failed = await markOutboxFailed(record.id, "boom");
+      assert.ok(failed);
+      assert.equal(failed.status, "FAILED");
 
-    const retried = await retryDeadLetter(record.id);
-    assert.ok(retried);
-    assert.equal(retried.status, "PENDING");
-    assert.equal(listPendingOutbox().some((r) => r.id === record.id), true);
+      const dead = await listDeadLetters({ businessId: "b1" });
+      assert.ok(dead.some((d) => d.id === record.id));
+
+      const retried = await retryDeadLetter(record.id);
+      assert.ok(retried);
+      assert.equal(retried.status, "PENDING");
+      assert.equal(listPendingOutbox().some((r) => r.id === record.id), true);
+    } finally {
+      if (prevUrl !== undefined) process.env.DATABASE_URL = prevUrl;
+    }
   });
 });

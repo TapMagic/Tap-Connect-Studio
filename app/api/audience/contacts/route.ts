@@ -22,6 +22,11 @@ export async function GET(request: Request) {
       if (!contact) {
         return NextResponse.json({ error: "Contact not found" }, { status: 404 });
       }
+      const { listContactTimelineEvents } = await import("@/lib/fusion/audience/timeline");
+      const timeline = await listContactTimelineEvents({
+        businessId: business.id,
+        contactId: contact.id,
+      });
       return NextResponse.json({
         ok: true,
         contact: {
@@ -55,6 +60,7 @@ export async function GET(request: Request) {
             programName: e.program.name,
             status: e.status,
           })),
+          timeline,
         },
       });
     }

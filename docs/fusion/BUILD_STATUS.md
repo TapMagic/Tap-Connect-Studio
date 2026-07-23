@@ -1,12 +1,12 @@
 # Fusion build status — honest incomplete inventory
 
-**Date:** 2026-07-23  
+**Date:** 2026-07-23 (post readiness audit + headed proof wave)  
 **Branch:** `tapconnect-v1-v2-fusion`  
 **Rule:** Railway untouched. Isolated DB only: `tapconnect_fusion_dev` @ `127.0.0.1:5433`.
 
-## Reconciliation (post-sibling wave)
+## Reconciliation
 
-All prior sibling agents finished. Migration order confirmed:
+Migration order confirmed (no collisions):
 
 1. `20260723000000_fusion_spine`  
 2. `20260723000001_fusion_audience`  
@@ -15,45 +15,42 @@ All prior sibling agents finished. Migration order confirmed:
 5. `20260723000004_wallet_inbox_comms`  
 6. `20260723000005_fusion_taploop`  
 
-No colliding timestamps. `tsc` clean. Fusion tests green (see latest run). Latest local checkpoints on `tapconnect-v1-v2-fusion` (not pushed).
+`tsc` clean. Unit tests ~261 pass. Headed Playwright: `npm run test:e2e:proofs:headed` (11/11). **Zero OWNER-READY** — ledger retains blockers.
 
 ## Infrastructure
 
 | Item | Status |
 |------|--------|
-| Docker on agent host | **Unavailable** — see PO-NOW-001 |
-| Safety guard | PASS on fusion URL / REJECT Railway |
-| Scripts | `fusion:dev-db`, `fusion:db-ready`, `fusion:seed`, `db:migrate:deploy` |
-| Proof queue | `docs/fusion/ISOLATED_DB_PROOF_QUEUE.md` (P-01…P-29) |
+| Docker on agent host | Unavailable — embedded PG `:5433` used; PO: `npm run fusion:dev-db` |
+| Safety guard | PASS fusion URL / REJECT Railway |
+| Scripts | `fusion:dev-db`, `fusion:db-ready`, `fusion:seed`, `db:migrate:*`, `test:e2e:proofs(:headed)` |
+| Proof artifacts | `tmp/fusion-proofs/` (gitignored via `/tmp/`) |
+| VERIFICATION_LEDGER | Partial proofs; blockers prevent OWNER-READY |
 
-## Classifications (not OWNER-READY without P-* proof)
+## Recent wiring (not OWNER-READY)
+
+- Derived readiness badges + inspectable hub detail  
+- Campaign blank preview fix + Pages-style text toolbar + undo/redo  
+- Email → Inbox → Contact timeline (mock)  
+- Feature kill-switch runtime gates (pages + APIs)  
+- Commerce → loyalty stub → Insights evidence (mock)  
+- Headed proof harness (Playwright)
+
+## Classifications
 
 | Area | Status |
 |------|--------|
-| V1 Builder/Campaigns/Scan floor | Preserve / continuous parity |
-| Durable outbox + worker tick + discard + Admin dead-letter console + effect drain | FUNCTIONAL |
-| TapSave / MyTap (+ loyalty balance, tier, recent ledger, a11y skip) | FUNCTIONAL |
-| Autopilot proposals, recipes v1.2, artifact shaping, editor revert, budget/ledger API, Knowledge Settings UI, governed accept→apply→undo | FUNCTIONAL |
-| TapFlow lifecycle + dry-run + analytics/recovery + live tap executor + Guardian effect stubs | FUNCTIONAL (live provider sends still credential-gated) |
-| TapLoop | FUNCTIONAL |
-| Wallet evidence + replace UX (confirm + scroll-to successor) / Inbox reopen + Guardian labels / Email suppression UX | FUNCTIONAL → VERIFIED BUT REQUIRES CREDENTIALS (live wallet) |
-| Insights date range + CSV evidence captions + unified captions + failure recovery | FUNCTIONAL |
-| Insights / Admin KPIs + kill-switch inline confirm | FUNCTIONAL |
-| TapPoint fleet health / capacity / errors | FUNCTIONAL |
-| TapCommerce mock (+ cancel/refund lifecycle) | FUNCTIONAL |
-| Pulse (fleet badges + claim/rotation + memory offline queue stubs) | FUNCTIONAL (service worker incomplete) |
-| Authz permission matrix + Admin audit page | FUNCTIONAL (Clerk role wiring continuous) |
-| Failure recovery Insights + Admin snapshot | FUNCTIONAL |
-| A11y structural inventory | CONTRACTED → awaiting P-17 browser |
-| V1 parity inventory (code checklist) | CONTRACTED → awaiting P-16 browser |
-| Landing | EXPLICITLY DEFERRED BY CHARTER |
+| Public seed tap + group schedule resolve | FUNCTIONAL + headed proof (blockers remain) |
+| Lead API → Leads list | FUNCTIONAL + headed proof (Keep/MyTap matrix open) |
+| Builder/Campaigns full matrix | FUNCTIONAL — FINAL VERIFICATION REQUIRED |
+| TapFlow / Inbox / Insights / Admin shells | FUNCTIONAL — deeper matrices open |
+| Wallet live | VERIFIED — CREDENTIALS REQUIRED |
+| Email live Resend | VERIFIED — CREDENTIALS REQUIRED |
+| Landing | EXPLICITLY DEFERRED |
 
 ## Docs
 
-- `PRODUCT_OWNER_INPUT_QUEUE.md`  
-- `ISOLATED_DB_PROOF_QUEUE.md`  
-- `CREDENTIALS_FINAL_CHECKLIST.md`  
-- `A11Y_RUNTIME_CHECKLIST.md`  
+`OWNER_READY_COMPLETION_MATRIX.md`, `ROUTE_AND_ACTION_RUNTIME_AUDIT.md`, `RAILWAY_EXISTING_SERVICES_INVENTORY.md`, `DEVELOPMENT_WIRING_PLAN.md`, `PRODUCT_OWNER_REQUIREMENTS.md`, `ISOLATED_DB_PROOF_QUEUE.md`
 
 ## Confirmation
 
