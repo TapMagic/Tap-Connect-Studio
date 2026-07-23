@@ -20,8 +20,7 @@
     "db:studio": "prisma studio",
     "fusion:dev-db": "docker compose -f docker-compose.fusion-dev.yml up -d",
     "fusion:db-ready": "tsx scripts/fusion-db-readiness.ts",
-    "fusion:seed": "tsx scripts/fusion-seed.ts",
-    "test:fusion": "tsx --test 'lib/fusion/**/__tests__/**/*.test.ts' 'lib/fusion/__tests__/**/*.test.ts'"
+    "fusion:seed": "tsx scripts/fusion-seed.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1085.0",
