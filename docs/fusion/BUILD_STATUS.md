@@ -24,7 +24,7 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run). Lates
 | Docker on agent host | **Unavailable** — see PO-NOW-001 |
 | Safety guard | PASS on fusion URL / REJECT Railway |
 | Scripts | `fusion:dev-db`, `fusion:db-ready`, `fusion:seed`, `db:migrate:deploy` |
-| Proof queue | `docs/fusion/ISOLATED_DB_PROOF_QUEUE.md` (P-01…P-22+) |
+| Proof queue | `docs/fusion/ISOLATED_DB_PROOF_QUEUE.md` (P-01…P-29) |
 
 ## Classifications (not OWNER-READY without P-* proof)
 

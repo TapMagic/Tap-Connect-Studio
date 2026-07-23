@@ -9,6 +9,8 @@ import { isIsolatedFusionDatabaseConfigured } from "@/lib/fusion/db/safety";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import { createGovernedEvent, enqueueOutboxSync } from "@/lib/fusion/publication/events";
+import { isAddressSuppressed } from "@/lib/fusion/comms/suppression";
+import type { MessageChannel } from "@/lib/fusion/comms/channel-guardian";
 import type { JourneyDefinition } from "./types";
 import { executeJourneyDryRun, type VisitorContext } from "./runtime";
 import { type JourneyRunRecord, type JourneyRunStatus, listJourneyRuns } from "./runs";
@@ -88,12 +90,33 @@ async function enqueueNodeEffects(input: {
       continue;
     }
     const channel = ev.action === "message" ? ev.detail : undefined;
+    let suppressed = false;
+    if (ev.action === "email" || ev.action === "message") {
+      const address =
+        typeof input.visitor.attributes?.email === "string"
+          ? input.visitor.attributes.email
+          : input.visitorId;
+      const msgChannel: MessageChannel =
+        ev.action === "email"
+          ? "email"
+          : channel === "whatsapp"
+            ? "whatsapp"
+            : channel === "messenger"
+              ? "messenger"
+              : "sms";
+      suppressed = await isAddressSuppressed({
+        businessId: input.businessId,
+        channel: msgChannel,
+        address,
+      }).catch(() => false);
+    }
     const precheck = precheckTapFlowEffect({
       action: ev.action,
       visitor: input.visitor,
       channel,
       requireMarketingConsent: ev.detail?.includes("marketing consent"),
       recipientId: input.visitorId,
+      suppressed,
     });
     if (!precheck.queue) {
       continue;

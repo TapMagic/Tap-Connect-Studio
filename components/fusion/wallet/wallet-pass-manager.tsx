@@ -41,6 +41,7 @@ export function WalletPassManager({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const [pendingReplaceId, setPendingReplaceId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
   const passById = useMemo(
@@ -60,7 +61,12 @@ export function WalletPassManager({
     if (action === "replace" && passId) {
       const pass = passById.get(passId);
       if (!pass) return;
-      if (!window.confirm(walletReplaceConfirmCopy())) return;
+      if (pendingReplaceId !== passId) {
+        setPendingReplaceId(passId);
+        setMessage(null);
+        return;
+      }
+      setPendingReplaceId(null);
     }
 
     setMessage(null);
@@ -117,8 +123,44 @@ export function WalletPassManager({
     });
   }
 
+  const pendingReplacePass = pendingReplaceId ? passById.get(pendingReplaceId) : null;
+
   return (
     <div className="space-y-4">
+      {pendingReplacePass ? (
+        <div
+          role="alertdialog"
+          aria-labelledby="wallet-replace-title"
+          aria-describedby="wallet-replace-desc"
+          className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4"
+        >
+          <p id="wallet-replace-title" className="text-sm font-semibold text-amber-100">
+            Confirm replace — {pendingReplacePass.serialNumber}
+          </p>
+          <p id="wallet-replace-desc" className="mt-2 text-sm text-muted-foreground">
+            {walletReplaceConfirmCopy()}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              disabled={pending}
+              onClick={() => run("replace", pendingReplacePass.id)}
+            >
+              Confirm replace
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => setPendingReplaceId(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
+      ) : null}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <p className="text-sm text-muted-foreground">
