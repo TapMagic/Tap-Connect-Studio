@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { evaluateReplyEligibility } from "../reply-eligibility";
+import { canReopenThread, evaluateReplyEligibility } from "../reply-eligibility";
 
 describe("Inbox reply eligibility", () => {
   it("allows open thread with body", () => {
@@ -40,5 +40,11 @@ describe("Inbox reply eligibility", () => {
     });
     assert.equal(r.ok, false);
     if (!r.ok) assert.equal(r.code, "empty_body");
+  });
+
+  it("allows reopen only when closed", () => {
+    assert.equal(canReopenThread("CLOSED"), true);
+    assert.equal(canReopenThread("OPEN"), false);
+    assert.equal(canReopenThread("PENDING"), false);
   });
 });

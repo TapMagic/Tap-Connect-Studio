@@ -6,7 +6,9 @@ import type { FeatureOverride } from "@/lib/fusion/features";
 import {
   describeActivationState,
   isKillSwitchFeature,
+  killSwitchConfirmTitle,
   overrideBadge,
+  requiresToggleConfirm,
   toggleButtonLabel,
   toggleImpactWarning,
 } from "@/lib/fusion/features/admin-copy";
@@ -30,6 +32,11 @@ export function FeatureRegistryPanel({
   const [reason, setReason] = useState("Admin activation");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [pendingToggle, setPendingToggle] = useState<{
+    row: Row;
+    nextEnabled: boolean;
+    warning: string;
+  } | null>(null);
 
   const rows = useMemo(
     () =>
@@ -52,18 +59,7 @@ export function FeatureRegistryPanel({
     return r.id.includes(q) || r.name.toLowerCase().includes(q) || r.pillar.includes(q);
   });
 
-  function toggle(row: Row) {
-    const nextEnabled = !row.enabled;
-    if (!reason.trim()) {
-      setMessage("Enter a reason before changing feature availability.");
-      return;
-    }
-
-    const warning = toggleImpactWarning(row, nextEnabled);
-    if (warning && !window.confirm(`${warning}\n\nReason: ${reason.trim()}\n\nProceed?`)) {
-      return;
-    }
-
+  function executeToggle(row: Row, nextEnabled: boolean) {
     startTransition(async () => {
       const res = await fetch("/api/admin/features", {
         method: "POST",
@@ -96,6 +92,29 @@ export function FeatureRegistryPanel({
         `${nextEnabled ? "Enabled" : "Disabled"} ${row.name} · stored in ${data.storage}${killSwitchNote}`
       );
     });
+  }
+
+  function toggle(row: Row) {
+    const nextEnabled = !row.enabled;
+    if (!reason.trim()) {
+      setMessage("Enter a reason before changing feature availability.");
+      return;
+    }
+
+    const warning = toggleImpactWarning(row, nextEnabled);
+    if (warning && requiresToggleConfirm(row, nextEnabled)) {
+      setPendingToggle({ row, nextEnabled, warning });
+      return;
+    }
+
+    executeToggle(row, nextEnabled);
+  }
+
+  function confirmPendingToggle() {
+    if (!pendingToggle) return;
+    const { row, nextEnabled } = pendingToggle;
+    setPendingToggle(null);
+    executeToggle(row, nextEnabled);
   }
 
   return (
@@ -147,6 +166,44 @@ export function FeatureRegistryPanel({
         <p className="rounded-lg border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary">
           {message}
         </p>
+      ) : null}
+
+      {pendingToggle ? (
+        <div
+          className="rounded-xl border border-amber-500/40 bg-amber-500/10 px-4 py-3"
+          role="alertdialog"
+          aria-labelledby="kill-switch-confirm-title"
+        >
+          <p id="kill-switch-confirm-title" className="text-sm font-semibold text-amber-600 dark:text-amber-400">
+            {isKillSwitchFeature(pendingToggle.row.id)
+              ? killSwitchConfirmTitle(pendingToggle.row.name)
+              : `Confirm disable — ${pendingToggle.row.name}`}
+          </p>
+          <p className="mt-2 text-sm text-muted-foreground">{pendingToggle.warning}</p>
+          <p className="mt-2 text-xs text-muted-foreground">
+            Reason: <span className="font-medium text-foreground">{reason.trim()}</span>
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={pending}
+              onClick={confirmPendingToggle}
+            >
+              {isKillSwitchFeature(pendingToggle.row.id) ? "Apply kill-switch" : "Confirm disable"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              disabled={pending}
+              onClick={() => setPendingToggle(null)}
+            >
+              Cancel
+            </Button>
+          </div>
+        </div>
       ) : null}
 
       <div className="overflow-hidden rounded-xl border border-border/60">

@@ -3,6 +3,7 @@
  */
 
 import { prisma } from "@/lib/db";
+import { formatEvidenceCaption } from "./evidence-display";
 import { csvEscapeField, parseInsightsRangeDays } from "./range";
 import type { EvidenceClass } from "./tapproof";
 
@@ -163,14 +164,24 @@ export async function fetchInsightsSnapshot(
   };
 }
 
+export function insightKpiEvidenceCaption(k: InsightKpi): string {
+  return formatEvidenceCaption({
+    evidenceClass: k.evidenceClass,
+    source: k.source,
+    seeded: k.seeded,
+  });
+}
+
 export function insightsToCsv(snapshot: InsightsSnapshot): string {
-  const header = "key,label,value,evidence_class,source,seeded,range_days,from,to";
+  const header =
+    "key,label,value,evidence_class,evidence_caption,source,seeded,range_days,from,to";
   const rows = snapshot.kpis.map((k) =>
     [
       csvEscapeField(k.key),
       csvEscapeField(k.label),
       csvEscapeField(k.value),
       csvEscapeField(k.evidenceClass),
+      csvEscapeField(insightKpiEvidenceCaption(k)),
       csvEscapeField(k.source),
       csvEscapeField(k.seeded),
       csvEscapeField(snapshot.rangeDays),

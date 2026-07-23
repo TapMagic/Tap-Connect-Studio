@@ -556,6 +556,21 @@ export async function closeThread(input: {
   return mapThread(row);
 }
 
+export async function reopenThread(input: {
+  businessId: string;
+  threadId: string;
+}): Promise<ThreadRecord | null> {
+  const existing = await prisma.messageThread.findFirst({
+    where: { id: input.threadId, businessId: input.businessId },
+  });
+  if (!existing || existing.status !== "CLOSED") return null;
+  const row = await prisma.messageThread.update({
+    where: { id: existing.id },
+    data: { status: "OPEN" },
+  });
+  return mapThread(row);
+}
+
 export async function countOpenThreads(businessId: string): Promise<number> {
   return prisma.messageThread.count({
     where: { businessId, status: { in: ["OPEN", "PENDING"] } },

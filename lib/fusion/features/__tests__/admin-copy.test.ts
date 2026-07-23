@@ -4,6 +4,8 @@ import { listRegistryStatus } from "../resolve";
 import {
   describeActivationState,
   isKillSwitchFeature,
+  killSwitchConfirmTitle,
+  requiresToggleConfirm,
   toggleButtonLabel,
   toggleImpactWarning,
 } from "../admin-copy";
@@ -31,6 +33,17 @@ describe("Feature registry admin copy", () => {
     const warning = toggleImpactWarning(messaging, false);
     assert.ok(warning);
     assert.match(warning!, /Kill-switch/);
+  });
+
+  it("requires confirm for kill-switch and GA default-on disable", () => {
+    assert.equal(requiresToggleConfirm(messaging, false), true);
+    assert.equal(requiresToggleConfirm(messaging, true), false);
+    assert.equal(requiresToggleConfirm(card, false), true);
+    assert.equal(requiresToggleConfirm(card, true), false);
+  });
+
+  it("formats kill-switch confirm title", () => {
+    assert.equal(killSwitchConfirmTitle("TapInbox"), "Confirm kill-switch — TapInbox");
   });
 
   it("describes activation when on but not executable", () => {

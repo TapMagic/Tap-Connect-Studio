@@ -12,6 +12,7 @@ import {
   listInboxThreads,
   openCase,
   replyToThread,
+  reopenThread,
   transitionCase,
 } from "@/lib/fusion/inbox";
 
@@ -63,6 +64,10 @@ const postSchema = z.discriminatedUnion("action", [
   }),
   z.object({
     action: z.literal("close_thread"),
+    threadId: z.string(),
+  }),
+  z.object({
+    action: z.literal("reopen_thread"),
     threadId: z.string(),
   }),
   z.object({
@@ -142,6 +147,11 @@ export async function POST(request: Request) {
       case "close_thread": {
         const thread = await closeThread({ businessId: business.id, threadId: body.threadId });
         if (!thread) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return NextResponse.json({ ok: true, thread });
+      }
+      case "reopen_thread": {
+        const thread = await reopenThread({ businessId: business.id, threadId: body.threadId });
+        if (!thread) return NextResponse.json({ error: "Not found or not closed" }, { status: 404 });
         return NextResponse.json({ ok: true, thread });
       }
       case "open_case": {

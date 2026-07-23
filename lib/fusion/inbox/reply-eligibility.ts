@@ -6,6 +6,10 @@ import type { GuardianPurpose } from "../comms/channel-guardian";
 
 export type ThreadStatus = "OPEN" | "PENDING" | "CLOSED";
 
+export function canReopenThread(status: ThreadStatus): boolean {
+  return status === "CLOSED";
+}
+
 export function evaluateReplyEligibility(input: {
   threadStatus: ThreadStatus;
   featureEnabled: boolean;

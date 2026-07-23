@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -41,11 +41,20 @@ export function WalletPassManager({
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [highlightId, setHighlightId] = useState<string | null>(null);
+  const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
   const passById = useMemo(
     () => new Map(passes.map((p) => [p.id, p])),
     [passes]
   );
+
+  useEffect(() => {
+    if (!highlightId) return;
+    const row = rowRefs.current.get(highlightId);
+    row?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    const timer = window.setTimeout(() => setHighlightId(null), 4000);
+    return () => window.clearTimeout(timer);
+  }, [highlightId, passes]);
 
   async function run(action: string, passId?: string) {
     if (action === "replace" && passId) {
@@ -162,8 +171,12 @@ export function WalletPassManager({
                 return (
                   <tr
                     key={p.id}
+                    ref={(el) => {
+                      if (el) rowRefs.current.set(p.id, el);
+                      else rowRefs.current.delete(p.id);
+                    }}
                     className={`border-t border-border/40 ${
-                      highlightId === p.id ? "bg-primary/10" : ""
+                      highlightId === p.id ? "bg-primary/10 ring-1 ring-primary/40" : ""
                     }`}
                   >
                     <td className="px-3 py-2 font-mono text-xs">{p.serialNumber.slice(0, 18)}…</td>

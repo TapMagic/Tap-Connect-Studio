@@ -7,6 +7,7 @@ import {
   labelGuardianCode,
   replyComposerState,
 } from "@/lib/fusion/inbox/guardian-labels";
+import { canReopenThread } from "@/lib/fusion/inbox/reply-eligibility";
 import { useRouter } from "next/navigation";
 import { useMemo, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -197,6 +198,40 @@ export function InboxShell({
     });
   }
 
+  async function reopenThreadAction() {
+    if (!selectedId || !selectedThread) return;
+    setMessage(null);
+    startTransition(async () => {
+      const res = await fetch("/api/inbox", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "reopen_thread", threadId: selectedId }),
+      });
+      const data = await res.json();
+      if (data.ok) {
+        setThreads((prev) =>
+          prev.map((t) => (t.id === selectedId ? { ...t, status: data.thread.status } : t))
+        );
+        setMessage("Thread reopened — replies enabled");
+        return;
+      }
+
+      if (
+        canReopenThread(selectedThread.status as "OPEN" | "PENDING" | "CLOSED") &&
+        (res.status === 404 || res.status >= 500)
+      ) {
+        setThreads((prev) =>
+          prev.map((t) => (t.id === selectedId ? { ...t, status: "OPEN" } : t))
+        );
+        setMessage("Thread reopened locally — persistence unavailable");
+      } else {
+        setMessage(data.error ?? "Could not reopen thread");
+      }
+    });
+  }
+
+  const threadClosed = selectedThread?.status === "CLOSED";
+
   return (
     <div className="space-y-4">
       {!featureEnabled ? (
@@ -349,11 +384,21 @@ export function InboxShell({
                 <Button
                   size="sm"
                   variant="outline"
-                  disabled={!featureEnabled || pending}
+                  disabled={!featureEnabled || pending || threadClosed}
                   onClick={closeThreadAction}
                 >
                   Close thread
                 </Button>
+                {threadClosed ? (
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={!featureEnabled || pending}
+                    onClick={reopenThreadAction}
+                  >
+                    Reopen thread
+                  </Button>
+                ) : null}
               </div>
 
               {cases.length > 0 ? (

@@ -52,6 +52,14 @@ export function toggleImpactWarning(row: RegistryRow, nextEnabled: boolean): str
   return null;
 }
 
+export function killSwitchConfirmTitle(featureName: string): string {
+  return `Confirm kill-switch — ${featureName}`;
+}
+
+export function requiresToggleConfirm(row: RegistryRow, nextEnabled: boolean): boolean {
+  return toggleImpactWarning(row, nextEnabled) !== null;
+}
+
 export function overrideBadge(row: RegistryRow, overrides: { featureId: string; enabled: boolean }[]): string | null {
   const override = overrides.find((o) => o.featureId === row.id);
   if (!override) return null;

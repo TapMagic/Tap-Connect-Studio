@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { insightsToCsv, type InsightsSnapshot } from "../metrics";
+import { insightKpiEvidenceCaption, insightsToCsv, type InsightsSnapshot } from "../metrics";
 import { csvEscapeField, parseInsightsRangeDays } from "../range";
+import { formatEvidenceCaption } from "../evidence-display";
 import { assertNotPresentedAsFact, labelEvidence } from "../tapproof";
 
 describe("Insights evidence + CSV", () => {
@@ -46,8 +47,16 @@ describe("Insights evidence + CSV", () => {
     };
     const csv = insightsToCsv(snapshot);
     assert.match(csv, /key,label,value/);
+    assert.match(csv, /evidence_caption/);
     assert.match(csv, /taps_range/);
     assert.match(csv, /confirmed/);
     assert.match(csv, /""live""/);
+    const caption = insightKpiEvidenceCaption(snapshot.kpis[0]!);
+    assert.equal(caption, formatEvidenceCaption({
+      evidenceClass: "confirmed",
+      source: "TapEvent",
+      seeded: false,
+    }));
+    assert.ok(csv.includes(csvEscapeField(caption)));
   });
 });
