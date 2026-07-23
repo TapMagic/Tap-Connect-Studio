@@ -75,6 +75,7 @@ export default async function MyTapPage({ params }: Props) {
           name: t.name,
           rank: t.rank,
           thresholdPoints: t.thresholdPoints,
+          perks: [],
         }))
       );
       loyalty = {
