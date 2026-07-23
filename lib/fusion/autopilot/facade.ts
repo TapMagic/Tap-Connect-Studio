@@ -17,6 +17,7 @@ import {
 } from "./knowledge";
 import { defaultRecipeId, getRecipe, recipeAllowedForPlan, AUTOPILOT_CATALOG_VERSION } from "./recipes";
 import { createProposal, applyProposal } from "./proposals";
+import { shapeArtifactsForRecipe } from "./artifact-shaping";
 import {
   modeAllowsGeneration,
   modeAutoApplies,
@@ -141,6 +142,7 @@ export async function runAutopilotGenerate(
   const proposalId = nanoid();
   const autoApplied = modeAutoApplies(mode);
   const cost = estimateGenerationCost(grounded.groundedPrompt);
+  const artifacts = shapeArtifactsForRecipe(recipe, draft);
 
   const draftProposal: AutopilotProposal = {
     id: proposalId,
@@ -151,24 +153,14 @@ export async function runAutopilotGenerate(
     status: autoApplied ? "accepted" : "pending",
     prompt: input.prompt,
     summary: `Generated “${draft.title}” via ${recipe.name} v${recipe.version}`,
-    artifacts: [
-      {
-        kind: "campaign_draft",
-        label: draft.title,
-        payload: { title: draft.title, blocks: draft.blocks, industry: draft.industry },
-      },
-      {
-        kind: "theme",
-        label: "Theme palette",
-        payload: draft.theme,
-      },
-    ],
+    artifacts,
     warnings: [
       ...(mode === "recommend" ? ["Review blocks before Save — recommend mode"] : []),
       ...(grounded.snippets.length
         ? [`Grounded with ${grounded.snippets.length} Knowledge snippet(s)`]
         : ["No tenant Knowledge matched — generation used prompt only"]),
       `Catalog v${AUTOPILOT_CATALOG_VERSION}`,
+      `Shaped for ${recipe.outputKinds.join(", ")}`,
     ],
     createdAt: new Date().toISOString(),
   };
