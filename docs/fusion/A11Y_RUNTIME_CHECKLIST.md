@@ -2,6 +2,8 @@
 
 Manual must-pass checks before OWNER-READY sign-off. Run against a local `npm run dev` session with keyboard + VoiceOver/NVDA spot-checks. Do not treat automated axe as a substitute for these flows.
 
+Structural inventory (code pointers, not proof): `lib/fusion/a11y/structural-checks.ts` — pairs with P-17.
+
 ## Global (all surfaces)
 
 - [ ] Skip / focus: Tab reaches primary nav and main content; visible focus ring on interactive controls

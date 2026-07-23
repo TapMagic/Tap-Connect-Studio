@@ -40,9 +40,11 @@ No colliding timestamps. `tsc` clean. Fusion tests green (see latest run). Lates
 | Insights date range + CSV escape | FUNCTIONAL |
 | Insights / Admin KPIs | FUNCTIONAL |
 | TapPoint fleet health / capacity / errors | FUNCTIONAL |
-| TapCommerce mock | FUNCTIONAL |
-| Pulse (fleet badges + Scan/Tap Points links) | FUNCTIONAL (offline/PWA incomplete) |
+| TapCommerce mock (+ cancel/refund lifecycle) | FUNCTIONAL |
+| Pulse (fleet badges + claim/rotation stubs) | FUNCTIONAL (offline/PWA incomplete) |
 | Authz permission matrix + Admin audit page | FUNCTIONAL (Clerk role wiring continuous) |
+| Failure recovery Insights + Admin snapshot | FUNCTIONAL |
+| A11y structural inventory | CONTRACTED → awaiting P-17 browser |
 | V1 parity inventory (code checklist) | CONTRACTED → awaiting P-16 browser |
 | Landing | EXPLICITLY DEFERRED BY CHARTER |
 

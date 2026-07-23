@@ -2,6 +2,10 @@ import Link from "next/link";
 import { Nfc, Radio, ScanLine, Activity } from "lucide-react";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
+import {
+  PulseClaimSessionStub,
+  PulseRotationPreviewStub,
+} from "@/components/fusion/pulse/pulse-field-stubs";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
@@ -144,6 +148,11 @@ export default async function PulseShellPage() {
             </div>
           </Link>
         </nav>
+
+        <div className="space-y-3">
+          <PulseClaimSessionStub />
+          <PulseRotationPreviewStub />
+        </div>
 
         <p className="rounded-lg border border-dashed border-border/50 px-3 py-2 text-center text-[11px] text-muted-foreground">
           Add to Home Screen on mobile for an installable feel. Service worker / offline cache not

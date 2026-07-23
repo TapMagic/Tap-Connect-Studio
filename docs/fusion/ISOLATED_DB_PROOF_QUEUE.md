@@ -28,5 +28,8 @@ Workflows implemented in code but **not** classified OWNER-READY / VERIFIED unti
 | P-20 | TapFlow live executor on public `/t/` tap | Yes | ACTIVE journey + feature on + outbox effects |
 | P-21 | Pulse fleet badges | Yes | `/dashboard/pulse` with `ops.pulse` |
 | P-22 | Autopilot Knowledge upsert/seed API | Yes | `/api/ai/knowledge` + generate grounding |
+| P-23 | Commerce cancel/refund mock | Yes | Experiences orders UI |
+| P-24 | Admin failure-recovery snapshot | Yes | Platform Admin KPIs tab |
+| P-25 | Pulse claim/rotation stubs | Yes | `/dashboard/pulse` |
 
 Do not mark OWNER-READY until the matching P-* row is executed and recorded in BUILD_STATUS.

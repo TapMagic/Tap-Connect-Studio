@@ -4,13 +4,16 @@ import { requireBusiness } from "@/lib/auth";
 import { isFeatureEnabled } from "@/lib/fusion/features";
 import {
   addLineToOrder,
+  cancelOrder,
   completeMockCheckout,
   createMockCheckoutSession,
   createOrderDraft,
   evaluateCommerceStripeReadiness,
+  fulfillOrder,
   getOrder,
   listCatalogItems,
   listOrders,
+  refundOrder,
   seedDemoCatalog,
   upsertCatalogItem,
 } from "@/lib/fusion/commerce";
@@ -59,7 +62,11 @@ const postSchema = z.object({
     "add_line",
     "checkout",
     "complete_checkout",
+    "cancel_order",
+    "fulfill_order",
+    "refund_order",
   ]),
+  reason: z.string().optional(),
   itemId: z.string().optional(),
   orderId: z.string().optional(),
   sessionId: z.string().optional(),
@@ -180,6 +187,54 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
       }
       return NextResponse.json({ ok: true, order: result.order, session: result.session });
+    }
+
+    if (body.action === "cancel_order") {
+      if (!body.orderId) {
+        return NextResponse.json({ error: "orderId required" }, { status: 400 });
+      }
+      const result = cancelOrder({
+        businessId: business.id,
+        orderId: body.orderId,
+        reason: body.reason,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, order: result.order });
+    }
+
+    if (body.action === "fulfill_order") {
+      if (!body.orderId) {
+        return NextResponse.json({ error: "orderId required" }, { status: 400 });
+      }
+      const result = fulfillOrder({
+        businessId: business.id,
+        orderId: body.orderId,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
+      }
+      return NextResponse.json({ ok: true, order: result.order });
+    }
+
+    if (body.action === "refund_order") {
+      if (!body.orderId) {
+        return NextResponse.json({ error: "orderId required" }, { status: 400 });
+      }
+      const result = refundOrder({
+        businessId: business.id,
+        orderId: body.orderId,
+        reason: body.reason,
+      });
+      if (!result.ok) {
+        return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
+      }
+      return NextResponse.json({
+        ok: true,
+        order: result.order,
+        refundRef: result.refundRef,
+      });
     }
 
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });

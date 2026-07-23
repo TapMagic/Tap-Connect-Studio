@@ -269,28 +269,59 @@ export function PlatformAdminTabs({
               </Card>
             ))}
           </div>
-          {failureRecovery && !failureRecovery.empty ? (
+          {failureRecovery ? (
             <Card className="border-border/60 bg-card/40">
               <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Failure &amp; recovery</CardTitle>
-                <CardDescription>
-                  Platform-scoped dead letters and blocked journey runs (memory / outbox).
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {failureRecovery.metrics.map((m) => (
-                  <div key={m.key} className="rounded-lg border border-border/60 bg-muted/20 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs text-muted-foreground">{m.label}</p>
-                      <EvidenceBadge evidence={m.evidenceClass} />
-                    </div>
-                    <p className="text-xl font-semibold tabular-nums">{m.value}</p>
-                    {m.hint ? <p className="mt-1 text-[10px] text-muted-foreground">{m.hint}</p> : null}
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <CardTitle className="text-lg">Failure &amp; recovery</CardTitle>
+                    <CardDescription>
+                      Platform-scoped dead letters and blocked journey runs (memory / outbox).
+                    </CardDescription>
                   </div>
-                ))}
+                  <Link
+                    href="/admin/platform/outbox"
+                    className="text-xs font-medium text-primary underline-offset-4 hover:underline"
+                  >
+                    Outbox console →
+                  </Link>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {failureRecovery.empty ? (
+                  <p className="text-sm text-muted-foreground">
+                    No dead letters or blocked runs in memory — counts below are zero with
+                    incomplete evidence until failures occur or isolated DB proof runs.
+                  </p>
+                ) : null}
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {failureRecovery.metrics.map((m) => (
+                    <div key={m.key} className="rounded-lg border border-border/60 bg-muted/20 p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-xs text-muted-foreground">{m.label}</p>
+                        <EvidenceBadge evidence={m.evidenceClass} />
+                      </div>
+                      <p className="text-xl font-semibold tabular-nums">{m.value}</p>
+                      {m.hint ? (
+                        <p className="mt-1 text-[10px] text-muted-foreground">{m.hint}</p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Snapshot · {failureRecovery.scope} ·{" "}
+                  {new Date(failureRecovery.fetchedAt).toLocaleString()}
+                </p>
               </CardContent>
             </Card>
-          ) : null}
+          ) : (
+            <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-4 text-sm text-amber-100">
+              <p className="font-medium">Failure recovery snapshot unavailable</p>
+              <p className="mt-1 text-amber-100/80">
+                Could not load outbox / journey run counts — check fusion DB or memory outbox.
+              </p>
+            </div>
+          )}
         </section>
       )}
 

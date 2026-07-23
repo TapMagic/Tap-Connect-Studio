@@ -23,6 +23,8 @@ export async function sendEmailViaMock(input: {
   consentGiven?: boolean;
   skipGuardian?: boolean;
   featureEnabled?: boolean;
+  quietHours?: { start: string; end: string; timezone: string };
+  now?: Date;
 }): Promise<EmailSendResult> {
   const featureOn =
     input.featureEnabled ?? isFeatureEnabled("comms.email", {});
@@ -30,10 +32,21 @@ export async function sendEmailViaMock(input: {
     return { ok: false, code: "feature_off", error: "comms.email feature is disabled" };
   }
 
+  const to = input.to?.trim();
+  if (!to) {
+    return { ok: false, code: "missing_recipient", error: "Recipient address is required" };
+  }
+  if (!input.subject?.trim()) {
+    return { ok: false, code: "channel_blocked", error: "Subject is required" };
+  }
+  if (!input.body?.trim()) {
+    return { ok: false, code: "channel_blocked", error: "Body is required" };
+  }
+
   const suppressed = await isAddressSuppressed({
     businessId: input.businessId,
     channel: "email",
-    address: input.to,
+    address: to,
   });
 
   if (!input.skipGuardian) {
@@ -41,10 +54,12 @@ export async function sendEmailViaMock(input: {
     const guardian = evaluateChannelGuardian({
       channel: "email",
       businessId: input.businessId,
-      recipientId: input.to,
+      recipientId: to,
       purpose: input.purpose ?? "promo",
       consentGiven: input.consentGiven,
       suppressed,
+      quietHours: input.quietHours,
+      now: input.now,
       featureEnabled: true,
       // Mock path is always "provider ready"; label mock vs live separately
       providerReady: true,
@@ -73,8 +88,8 @@ export async function sendEmailViaMock(input: {
       aggregateId: providerRef,
       correlationId: crypto.randomUUID(),
       payload: {
-        to: input.to,
-        subject: input.subject,
+        to,
+        subject: input.subject.trim(),
         bodyPreview: input.body.slice(0, 200),
         mock: !live,
         purpose: input.purpose ?? "promo",

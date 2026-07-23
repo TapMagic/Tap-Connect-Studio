@@ -69,6 +69,36 @@ export function CommerceOrdersPanel({
     }
   }
 
+  async function orderAction(
+    action: "cancel_order" | "fulfill_order" | "refund_order",
+    orderId: string,
+    reason?: string
+  ) {
+    setPending(true);
+    setMessage(null);
+    try {
+      const res = await fetch("/api/commerce", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, orderId, reason }),
+      }).then((r) => r.json());
+      if (!res.ok) {
+        setMessage(res.error ?? `${action} failed`);
+        return;
+      }
+      if (action === "refund_order") {
+        setMessage(`Refunded · mock ref ${res.refundRef}`);
+      } else if (action === "cancel_order") {
+        setMessage(`Canceled ${orderId}`);
+      } else {
+        setMessage(`Fulfilled ${orderId}`);
+      }
+      await refresh();
+    } finally {
+      setPending(false);
+    }
+  }
+
   async function mockCheckout(orderId: string) {
     setPending(true);
     setMessage(null);
@@ -157,23 +187,83 @@ export function CommerceOrdersPanel({
                     : ""}{" "}
                   · total {formatMoney(order.totalCents, order.currency)}
                 </p>
+                {order.refundRef ? (
+                  <p className="mt-0.5 font-mono text-[10px] text-muted-foreground">
+                    Refund {order.refundRef}
+                  </p>
+                ) : null}
+                {order.cancelReason && order.status === "canceled" ? (
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">{order.cancelReason}</p>
+                ) : null}
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center justify-end gap-2">
                 <Badge
-                  variant={order.status === "paid" ? "default" : "outline"}
-                  className={order.status === "paid" ? "bg-primary" : ""}
+                  variant={
+                    order.status === "paid" || order.status === "fulfilled"
+                      ? "default"
+                      : order.status === "refunded" || order.status === "canceled"
+                        ? "outline"
+                        : "outline"
+                  }
+                  className={
+                    order.status === "paid" || order.status === "fulfilled" ? "bg-primary" : ""
+                  }
                 >
                   {order.status}
                 </Badge>
                 {(order.status === "draft" || order.status === "pending") && (
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={pending || order.lines.length === 0}
+                      onClick={() => void mockCheckout(order.id)}
+                    >
+                      Mock pay
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => void orderAction("cancel_order", order.id, "Canceled in Studio")}
+                    >
+                      Cancel
+                    </Button>
+                  </>
+                )}
+                {order.status === "paid" && (
+                  <>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      disabled={pending}
+                      onClick={() => void orderAction("fulfill_order", order.id)}
+                    >
+                      Fulfill
+                    </Button>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="ghost"
+                      disabled={pending}
+                      onClick={() => void orderAction("refund_order", order.id, "Mock refund")}
+                    >
+                      Refund
+                    </Button>
+                  </>
+                )}
+                {order.status === "fulfilled" && (
                   <Button
                     type="button"
                     size="sm"
-                    variant="outline"
-                    disabled={pending || order.lines.length === 0}
-                    onClick={() => void mockCheckout(order.id)}
+                    variant="ghost"
+                    disabled={pending}
+                    onClick={() => void orderAction("refund_order", order.id, "Mock refund")}
                   >
-                    Mock pay
+                    Refund
                   </Button>
                 )}
               </div>

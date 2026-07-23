@@ -3,13 +3,16 @@ import { describe, it, beforeEach } from "node:test";
 import {
   addLineToOrder,
   assertNoRawCardData,
+  cancelOrder,
   completeMockCheckout,
   computeOrderTotals,
   createMockCheckoutSession,
   createOrderDraft,
   evaluateCommerceStripeReadiness,
+  fulfillOrder,
   listOrders,
   orderTotalCents,
+  refundOrder,
   resetCommerceStore,
   seedDemoCatalog,
   upsertCatalogItem,
@@ -131,5 +134,78 @@ describe("TapCommerce functional mock", () => {
     const readiness = evaluateCommerceStripeReadiness();
     assert.equal(readiness.mockCheckoutAvailable, true);
     assert.ok(Array.isArray(readiness.missingEnvVars));
+  });
+
+  it("cancel pending order and refund paid lifecycle", () => {
+    const [item] = seedDemoCatalog("biz_lc");
+    const draft = createOrderDraft({
+      businessId: "biz_lc",
+      lines: [{ itemId: item.id, quantity: 1 }],
+      featureEnabled: true,
+    });
+    assert.equal(draft.ok, true);
+    if (!draft.ok) return;
+
+    const pendingCancel = cancelOrder({
+      businessId: "biz_lc",
+      orderId: draft.order.id,
+      reason: "Customer changed mind",
+    });
+    assert.equal(pendingCancel.ok, true);
+    if (!pendingCancel.ok) return;
+    assert.equal(pendingCancel.order.status, "canceled");
+    assert.equal(pendingCancel.order.cancelReason, "Customer changed mind");
+
+    const draft2 = createOrderDraft({
+      businessId: "biz_lc",
+      lines: [{ itemId: item.id, quantity: 1 }],
+      featureEnabled: true,
+    });
+    assert.equal(draft2.ok, true);
+    if (!draft2.ok) return;
+
+    const session = createMockCheckoutSession({
+      businessId: "biz_lc",
+      orderId: draft2.order.id,
+      featureEnabled: true,
+    });
+    assert.equal(session.ok, true);
+    if (!session.ok) return;
+
+    const paid = completeMockCheckout({
+      businessId: "biz_lc",
+      sessionId: session.session.id,
+    });
+    assert.equal(paid.ok, true);
+    if (!paid.ok) return;
+    assert.equal(paid.order.status, "paid");
+
+    const fulfilled = fulfillOrder({
+      businessId: "biz_lc",
+      orderId: paid.order.id,
+    });
+    assert.equal(fulfilled.ok, true);
+    if (!fulfilled.ok) return;
+    assert.equal(fulfilled.order.status, "fulfilled");
+    assert.ok(fulfilled.order.fulfilledAt);
+
+    const refunded = refundOrder({
+      businessId: "biz_lc",
+      orderId: paid.order.id,
+      reason: "Mock refund requested",
+    });
+    assert.equal(refunded.ok, true);
+    if (!refunded.ok) return;
+    assert.equal(refunded.order.status, "refunded");
+    assert.match(refunded.refundRef, /^re_mock_/);
+    assert.equal(refunded.order.refundRef, refunded.refundRef);
+
+    const badCancel = cancelOrder({
+      businessId: "biz_lc",
+      orderId: paid.order.id,
+    });
+    assert.equal(badCancel.ok, false);
+    if (badCancel.ok) return;
+    assert.equal(badCancel.code, "invalid_status");
   });
 });

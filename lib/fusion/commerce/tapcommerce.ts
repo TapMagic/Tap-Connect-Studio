@@ -57,6 +57,13 @@ export type CommerceOrder = {
   mock: boolean;
   createdAt: string;
   updatedAt: string;
+  /** Set when order is canceled before payment completes */
+  cancelReason?: string;
+  canceledAt?: string;
+  /** Mock provider refund reference — never raw card data */
+  refundRef?: string;
+  refundedAt?: string;
+  fulfilledAt?: string;
 };
 
 export type CommerceCheckoutSession = {
@@ -416,6 +423,103 @@ export function completeMockCheckout(input: {
   order.updatedAt = nowIso();
 
   return { ok: true, order, session };
+}
+
+const CANCELABLE: CommerceOrderStatus[] = ["draft", "pending"];
+const REFUNDABLE: CommerceOrderStatus[] = ["paid", "fulfilled"];
+
+function expireOpenSessionsForOrder(businessId: string, orderId: string): void {
+  for (const session of store.sessions) {
+    if (
+      session.businessId === businessId &&
+      session.orderId === orderId &&
+      session.status === "open"
+    ) {
+      session.status = "expired";
+    }
+  }
+}
+
+/** Cancel draft or pending mock checkout — paid orders must use refund instead */
+export function cancelOrder(input: {
+  businessId: string;
+  orderId: string;
+  reason?: string;
+}):
+  | { ok: true; order: CommerceOrder }
+  | { ok: false; code: string; error: string } {
+  assertNoRawCardData(input as unknown as Record<string, unknown>);
+
+  const order = getOrder(input.businessId, input.orderId);
+  if (!order) return { ok: false, code: "not_found", error: "Order not found" };
+  if (!CANCELABLE.includes(order.status)) {
+    return {
+      ok: false,
+      code: "invalid_status",
+      error: `Cannot cancel order in status ${order.status}`,
+    };
+  }
+
+  expireOpenSessionsForOrder(input.businessId, order.id);
+  order.status = "canceled";
+  order.cancelReason = input.reason?.trim() || "Canceled by operator";
+  order.canceledAt = nowIso();
+  order.updatedAt = order.canceledAt;
+  return { ok: true, order };
+}
+
+/** Mark a paid mock order as fulfilled (pickup / service complete) */
+export function fulfillOrder(input: {
+  businessId: string;
+  orderId: string;
+}):
+  | { ok: true; order: CommerceOrder }
+  | { ok: false; code: string; error: string } {
+  const order = getOrder(input.businessId, input.orderId);
+  if (!order) return { ok: false, code: "not_found", error: "Order not found" };
+  if (order.status !== "paid") {
+    return {
+      ok: false,
+      code: "invalid_status",
+      error: `Only paid orders can be fulfilled (current: ${order.status})`,
+    };
+  }
+
+  order.status = "fulfilled";
+  order.fulfilledAt = nowIso();
+  order.updatedAt = order.fulfilledAt;
+  return { ok: true, order };
+}
+
+/** Mock provider refund — transitions paid/fulfilled to refunded */
+export function refundOrder(input: {
+  businessId: string;
+  orderId: string;
+  reason?: string;
+}):
+  | { ok: true; order: CommerceOrder; refundRef: string }
+  | { ok: false; code: string; error: string } {
+  assertNoRawCardData(input as unknown as Record<string, unknown>);
+
+  const order = getOrder(input.businessId, input.orderId);
+  if (!order) return { ok: false, code: "not_found", error: "Order not found" };
+  if (!REFUNDABLE.includes(order.status)) {
+    return {
+      ok: false,
+      code: "invalid_status",
+      error: `Cannot refund order in status ${order.status}`,
+    };
+  }
+
+  const refundRef = newId("re_mock");
+  order.status = "refunded";
+  order.refundRef = refundRef;
+  order.refundedAt = nowIso();
+  order.updatedAt = order.refundedAt;
+  if (input.reason?.trim()) {
+    order.cancelReason = input.reason.trim();
+  }
+  return { ok: true, order, refundRef };
 }
 
 const COMMERCE_STRIPE_ENV = [
