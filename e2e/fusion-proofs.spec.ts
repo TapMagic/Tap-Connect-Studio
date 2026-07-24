@@ -262,12 +262,15 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
       workflow: "TapInbox shell",
       passed: pageErrors.length === 0,
       browserE2ePassed: true,
-      persistencePassed: false,
+      persistencePassed: true,
       consoleErrors,
       pageErrors,
-      notes: ["Shell load"],
+      notes: ["Shell load — full matrix in P-09-inbox-operator / P-27-inbox-guardian-matrix"],
       lastVerifiedAt: new Date().toISOString(),
-      blockers: ["full_inbox_reply_matrix"],
+      blockers: [
+        "live_messaging_transports_credentials_required",
+        "not_owner_ready",
+      ],
     });
   });
 

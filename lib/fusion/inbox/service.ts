@@ -8,6 +8,7 @@ import type {
   FusionMessageDirection,
   FusionThreadChannel,
   FusionThreadStatus,
+  Prisma,
 } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
@@ -27,6 +28,15 @@ import {
   type CaseStatus,
 } from "./case-lifecycle";
 import { evaluateReplyEligibility } from "./reply-eligibility";
+import { appendInboxAudit } from "./operator-audit";
+
+export type InboxAttachment = {
+  id: string;
+  name: string;
+  url: string;
+  mimeType?: string;
+  createdAt: string;
+};
 
 export type ThreadRecord = {
   id: string;
@@ -41,6 +51,8 @@ export type ThreadRecord = {
   assignedToId: string | null;
   lastMessageAt: string;
   messageCount?: number;
+  campaignId?: string | null;
+  campaignTitle?: string | null;
 };
 
 export type InboxMessageRecord = {
@@ -53,6 +65,7 @@ export type InboxMessageRecord = {
   guardianCode: string | null;
   suppressed: boolean;
   createdAt: string;
+  attachments?: InboxAttachment[];
 };
 
 export type TapCaseRecord = {
@@ -81,6 +94,34 @@ function enumToChannel(c: FusionThreadChannel): MessageChannel {
   return map[c];
 }
 
+function readThreadMeta(metadata: unknown): {
+  campaignId?: string;
+  campaignTitle?: string;
+} {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
+  const m = metadata as Record<string, unknown>;
+  return {
+    campaignId: typeof m.campaignId === "string" ? m.campaignId : undefined,
+    campaignTitle: typeof m.campaignTitle === "string" ? m.campaignTitle : undefined,
+  };
+}
+
+function readAttachments(metadata: unknown): InboxAttachment[] {
+  if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return [];
+  const raw = (metadata as Record<string, unknown>).attachments;
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((a): a is Record<string, unknown> => Boolean(a) && typeof a === "object")
+    .map((a) => ({
+      id: String(a.id ?? ""),
+      name: String(a.name ?? "file"),
+      url: String(a.url ?? ""),
+      mimeType: typeof a.mimeType === "string" ? a.mimeType : undefined,
+      createdAt: String(a.createdAt ?? new Date().toISOString()),
+    }))
+    .filter((a) => a.id && a.url);
+}
+
 function mapThread(row: {
   id: string;
   businessId: string;
@@ -93,8 +134,10 @@ function mapThread(row: {
   participant: string | null;
   assignedToId: string | null;
   lastMessageAt: Date;
+  metadata?: unknown;
   _count?: { messages: number };
 }): ThreadRecord {
+  const meta = readThreadMeta(row.metadata);
   return {
     id: row.id,
     businessId: row.businessId,
@@ -108,6 +151,8 @@ function mapThread(row: {
     assignedToId: row.assignedToId,
     lastMessageAt: row.lastMessageAt.toISOString(),
     messageCount: row._count?.messages,
+    campaignId: meta.campaignId ?? null,
+    campaignTitle: meta.campaignTitle ?? null,
   };
 }
 
@@ -190,7 +235,14 @@ export async function createThreadFromEmail(input: {
   body: string;
   contactId?: string;
   relationshipId?: string;
+  campaignId?: string;
+  campaignTitle?: string;
 }): Promise<ThreadRecord> {
+  const metadata: Prisma.InputJsonValue = {
+    ...(input.campaignId ? { campaignId: input.campaignId } : {}),
+    ...(input.campaignTitle ? { campaignTitle: input.campaignTitle } : {}),
+  };
+
   const thread = await prisma.messageThread.create({
     data: {
       businessId: input.businessId,
@@ -200,6 +252,7 @@ export async function createThreadFromEmail(input: {
       status: "OPEN",
       subject: input.subject,
       participant: input.email,
+      metadata,
       messages: {
         create: {
           businessId: input.businessId,
@@ -211,6 +264,51 @@ export async function createThreadFromEmail(input: {
       },
     },
   });
+
+  enqueueOutboxSync(
+    "inbox.thread_created",
+    createGovernedEvent({
+      name: "inbox.thread.created",
+      businessId: input.businessId,
+      aggregateType: "message_thread",
+      aggregateId: thread.id,
+      correlationId: crypto.randomUUID(),
+      payload: {
+        channel: "email",
+        campaignId: input.campaignId ?? null,
+        participant: input.email,
+      },
+    })
+  );
+
+  appendInboxAudit({
+    businessId: input.businessId,
+    action: "thread_created",
+    threadId: thread.id,
+    detail: input.campaignId ? `campaign=${input.campaignId}` : undefined,
+  });
+
+  if (input.relationshipId && input.contactId) {
+    await recordContactTimelineEvent({
+      businessId: input.businessId,
+      contactId: input.contactId,
+      relationshipId: input.relationshipId,
+      kind: "inbox_inbound",
+      threadId: thread.id,
+      metadata: {
+        email: input.email,
+        subject: input.subject,
+        campaignId: input.campaignId,
+      },
+    });
+    appendInboxAudit({
+      businessId: input.businessId,
+      action: "timeline_recorded",
+      threadId: thread.id,
+      detail: "inbox_inbound",
+    });
+  }
+
   return mapThread(thread);
 }
 
@@ -261,6 +359,7 @@ export async function getThreadDetail(input: {
       guardianCode: m.guardianCode,
       suppressed: m.suppressed,
       createdAt: m.createdAt.toISOString(),
+      attachments: readAttachments(m.metadata),
     })),
     cases: thread.cases.map((c) => ({
       id: c.id,
@@ -343,6 +442,13 @@ export async function replyToThread(input: {
         suppressed: true,
       },
     });
+    appendInboxAudit({
+      businessId: input.businessId,
+      action: "guardian_blocked",
+      threadId: thread.id,
+      code: guardian.code,
+      detail: guardian.reason,
+    });
     return { ok: false, code: guardian.code, error: guardian.reason };
   }
 
@@ -416,7 +522,38 @@ export async function replyToThread(input: {
       providerRef,
       metadata: { mock },
     });
+    appendInboxAudit({
+      businessId: input.businessId,
+      action: "timeline_recorded",
+      threadId: thread.id,
+      detail: "inbox_reply",
+    });
   }
+
+  appendInboxAudit({
+    businessId: input.businessId,
+    action: "reply_sent",
+    threadId: thread.id,
+    code: guardian.code,
+    detail: mock ? "mock" : "provider",
+  });
+
+  enqueueOutboxSync(
+    "inbox.message_outbound",
+    createGovernedEvent({
+      name: "inbox.message.outbound",
+      businessId: input.businessId,
+      aggregateType: "message_thread",
+      aggregateId: thread.id,
+      correlationId: crypto.randomUUID(),
+      payload: {
+        messageId: message.id,
+        channel,
+        mock,
+        guardianCode: guardian.code,
+      },
+    })
+  );
 
   return {
     ok: true,
@@ -431,6 +568,7 @@ export async function replyToThread(input: {
       guardianCode: message.guardianCode,
       suppressed: message.suppressed,
       createdAt: message.createdAt.toISOString(),
+      attachments: [],
     },
   };
 }
@@ -456,6 +594,24 @@ export async function openCase(input: {
       status: "OPEN",
     },
   });
+  appendInboxAudit({
+    businessId: input.businessId,
+    action: "case_opened",
+    threadId: input.threadId,
+    caseId: row.id,
+    detail: input.subject,
+  });
+  enqueueOutboxSync(
+    "inbox.case_opened",
+    createGovernedEvent({
+      name: "inbox.case.opened",
+      businessId: input.businessId,
+      aggregateType: "tap_case",
+      aggregateId: row.id,
+      correlationId: crypto.randomUUID(),
+      payload: { threadId: input.threadId ?? null, subject: input.subject },
+    })
+  );
   return {
     id: row.id,
     businessId: row.businessId,
@@ -588,6 +744,11 @@ export async function closeThread(input: {
     where: { id: existing.id },
     data: { status: "CLOSED" },
   });
+  appendInboxAudit({
+    businessId: input.businessId,
+    action: "thread_closed",
+    threadId: row.id,
+  });
   return mapThread(row);
 }
 
@@ -603,7 +764,61 @@ export async function reopenThread(input: {
     where: { id: existing.id },
     data: { status: "OPEN" },
   });
+  appendInboxAudit({
+    businessId: input.businessId,
+    action: "thread_reopened",
+    threadId: row.id,
+    detail: "failure_recovery",
+  });
   return mapThread(row);
+}
+
+export async function addMessageAttachment(input: {
+  businessId: string;
+  messageId: string;
+  name: string;
+  url: string;
+  mimeType?: string;
+}): Promise<
+  | { ok: true; attachment: InboxAttachment; messageId: string }
+  | { ok: false; error: string }
+> {
+  const message = await prisma.inboxMessage.findFirst({
+    where: { id: input.messageId, businessId: input.businessId },
+  });
+  if (!message) return { ok: false, error: "Message not found" };
+
+  const attachment: InboxAttachment = {
+    id: `att_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`,
+    name: input.name,
+    url: input.url,
+    mimeType: input.mimeType,
+    createdAt: new Date().toISOString(),
+  };
+
+  const prev = readAttachments(message.metadata);
+  const nextMeta: Prisma.InputJsonValue = {
+    ...((message.metadata &&
+    typeof message.metadata === "object" &&
+    !Array.isArray(message.metadata)
+      ? message.metadata
+      : {}) as Record<string, unknown>),
+    attachments: [...prev, attachment],
+  };
+
+  await prisma.inboxMessage.update({
+    where: { id: message.id },
+    data: { metadata: nextMeta },
+  });
+
+  appendInboxAudit({
+    businessId: input.businessId,
+    action: "attachment_added",
+    threadId: message.threadId,
+    detail: attachment.name,
+  });
+
+  return { ok: true, attachment, messageId: message.id };
 }
 
 export async function countOpenThreads(businessId: string): Promise<number> {

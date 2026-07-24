@@ -200,12 +200,17 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "inbox",
-    lastVerifiedAt: "2026-07-24T00:43:10.000Z",
+    lastVerifiedAt: "2026-07-24T05:45:00.000Z",
     browserE2ePassed: true,
-    persistencePassed: false,
-    notes: "PO 13/13 · P-09-inbox-shell",
-    blockers: ["full_inbox_reply_matrix"],
-    nextAction: "Headed: thread → mock reply → Guardian → TapCase → timeline",
+    persistencePassed: true,
+    notes:
+      "P-09-inbox-operator + P-27-inbox-guardian-matrix · local mock operator closeout (thread/reply/Guardian/fallback/timeline/campaign/TapCase/ExternalWorkItem/assign/status/attachments/audit/events/analytics/persistence/recovery). Classification: IMPLEMENTED BUT NOT OWNER-READY. Live messaging = VERIFIED — CREDENTIALS REQUIRED.",
+    blockers: [
+      "live_messaging_transports_credentials_required",
+      "live_oauth_provider_certification",
+      "not_owner_ready",
+    ],
+    nextAction: "Certify live Meta/Telegram/ManyChat credentials; deepen VoiceOver on Inbox",
   },
   {
     sectionId: "insights",

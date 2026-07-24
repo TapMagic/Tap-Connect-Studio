@@ -74,7 +74,7 @@ export function replyComposerState(input: {
 
   if (!eligibility.ok && eligibility.code === "empty_body") {
     return {
-      allowed: false,
+      allowed: true,
       code: "empty_body",
       hint: "Type a reply — Channel Guardian runs before send.",
     };

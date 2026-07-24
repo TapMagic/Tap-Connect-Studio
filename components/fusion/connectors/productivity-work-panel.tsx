@@ -522,7 +522,13 @@ export function WorkPlatformActions({
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <Button size="sm" variant="outline" disabled={busy} onClick={() => void create()}>
+      <Button
+        size="sm"
+        variant="outline"
+        disabled={busy}
+        onClick={() => void create()}
+        data-testid="inbox-send-work-platform"
+      >
         <Briefcase className="mr-1 h-3.5 w-3.5" />
         Send to work platform
       </Button>

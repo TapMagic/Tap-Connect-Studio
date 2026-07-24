@@ -5,6 +5,7 @@ import { checkAnyFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/
 import { loadFeatureContext } from "@/lib/fusion/features/server";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
+  addMessageAttachment,
   assignCase,
   closeCase,
   closeThread,
@@ -12,13 +13,24 @@ import {
   createThreadFromLead,
   getThreadDetail,
   listInboxThreads,
+  listInboxAudit,
   openCase,
   replyToThread,
   reopenThread,
+  runInboxOperatorCloseout,
+  summarizeInboxAnalytics,
   transitionCase,
 } from "@/lib/fusion/inbox";
 
 export const dynamic = "force-dynamic";
+
+/** Seed IDs for operator closeout when not provided — local isolated DB only */
+const LOCAL_SEED = {
+  contactId: process.env.SEED_CONTACT_ID ?? "cmrx5wjn90002519khgib6nsd",
+  relationshipId: process.env.SEED_RELATIONSHIP_ID ?? "cmrx5yojd0008bv9ksy0yachh",
+  campaignId: process.env.SEED_CAMPAIGN_ID ?? "cmrx5wjn80001519kzayn9296",
+  campaignTitle: process.env.SEED_CAMPAIGN_TITLE ?? "[SEED] Welcome Offer",
+};
 
 export async function GET(request: Request) {
   try {
@@ -31,6 +43,16 @@ export async function GET(request: Request) {
 
     const url = new URL(request.url);
     const threadId = url.searchParams.get("threadId");
+    const view = url.searchParams.get("view");
+
+    if (view === "operator") {
+      return NextResponse.json({
+        ok: true,
+        analytics: summarizeInboxAnalytics(business.id),
+        audit: listInboxAudit(business.id, 40),
+        liveClassification: "VERIFIED — CREDENTIALS REQUIRED",
+      });
+    }
 
     if (threadId) {
       const detail = await getThreadDetail({ businessId: business.id, threadId });
@@ -39,7 +61,13 @@ export async function GET(request: Request) {
     }
 
     const threads = await listInboxThreads({ businessId: business.id });
-    return NextResponse.json({ ok: true, threads });
+    return NextResponse.json({
+      ok: true,
+      threads,
+      analytics: summarizeInboxAnalytics(business.id),
+      audit: listInboxAudit(business.id, 20),
+      liveClassification: "VERIFIED — CREDENTIALS REQUIRED",
+    });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -53,6 +81,8 @@ const postSchema = z.discriminatedUnion("action", [
     body: z.string().min(1),
     contactId: z.string().optional(),
     relationshipId: z.string().optional(),
+    campaignId: z.string().optional(),
+    campaignTitle: z.string().optional(),
   }),
   z.object({
     action: z.literal("create_from_lead"),
@@ -100,6 +130,20 @@ const postSchema = z.discriminatedUnion("action", [
     caseAction: z.enum(["assign", "start", "wait", "resolve", "close", "reopen"]),
     assigneeId: z.string().optional(),
   }),
+  z.object({
+    action: z.literal("add_attachment"),
+    messageId: z.string(),
+    name: z.string().min(1),
+    url: z.string().min(1),
+    mimeType: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("run_operator_closeout"),
+    contactId: z.string().optional(),
+    relationshipId: z.string().optional(),
+    campaignId: z.string().optional(),
+    campaignTitle: z.string().optional(),
+  }),
 ]);
 
 export async function POST(request: Request) {
@@ -126,6 +170,8 @@ export async function POST(request: Request) {
           body: body.body,
           contactId: body.contactId,
           relationshipId: body.relationshipId,
+          campaignId: body.campaignId,
+          campaignTitle: body.campaignTitle,
         });
         return NextResponse.json({ ok: true, thread });
       }
@@ -152,7 +198,23 @@ export async function POST(request: Request) {
           featureEnabled: true,
         });
         if (!result.ok) {
-          return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
+          return NextResponse.json(
+            {
+              error: result.error,
+              code: result.code,
+              permittedFallback:
+                result.code === "no_consent" || result.code === "suppressed"
+                  ? {
+                      hint:
+                        result.code === "suppressed"
+                          ? "Remove suppression, then retry as support reply."
+                          : "Retry as support purpose (consent not required for email support).",
+                      purpose: "support" as const,
+                    }
+                  : undefined,
+            },
+            { status: 400 }
+          );
         }
         return NextResponse.json({ ok: true, message: result.message, mock: result.mock });
       }
@@ -201,6 +263,34 @@ export async function POST(request: Request) {
           return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
         }
         return NextResponse.json({ ok: true, case: result.case });
+      }
+      case "add_attachment": {
+        const result = await addMessageAttachment({
+          businessId: business.id,
+          messageId: body.messageId,
+          name: body.name,
+          url: body.url,
+          mimeType: body.mimeType,
+        });
+        if (!result.ok) {
+          return NextResponse.json({ error: result.error }, { status: 404 });
+        }
+        return NextResponse.json({ ok: true, attachment: result.attachment });
+      }
+      case "run_operator_closeout": {
+        const result = await runInboxOperatorCloseout({
+          businessId: business.id,
+          actorId: user.id,
+          contactId: body.contactId ?? LOCAL_SEED.contactId,
+          relationshipId: body.relationshipId ?? LOCAL_SEED.relationshipId,
+          campaignId: body.campaignId ?? LOCAL_SEED.campaignId,
+          campaignTitle: body.campaignTitle ?? LOCAL_SEED.campaignTitle,
+        });
+        return NextResponse.json({
+          ...result,
+          analytics: summarizeInboxAnalytics(business.id),
+          audit: listInboxAudit(business.id, 40),
+        });
       }
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
