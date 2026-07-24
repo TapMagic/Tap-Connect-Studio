@@ -23,7 +23,7 @@ Seeded from closeout residuals (`BUILD_STATUS.md`, `OWNER_READY_COMPLETION_MATRI
 | D-012 | `/api/email/send`, `/api/tapcast*`, `/api/connectors/productivity` | APIs | Kill-switch off returns `503` `{ code: feature_off }` | Gated | Previously ungated / inconsistent (loyalty 403) | HIGH | — | admin / multi | No | Gate routes + standardize 503 | Unit + `P-admin-killswitch-matrix` | FIXED |
 | D-013 | Platform overall | — | Claim OWNER-READY | Only with zero ledger blockers + VO proof | Platform **IMPLEMENTED BUT NOT OWNER-READY** | BLOCKER | `OWNER_READY_COMPLETION_MATRIX.md` | platform | N/A | Clear all OPEN HIGH/BLOCKER with proof | Full gate suite | OPEN |
 | D-014 | Audience / Inbox / Insights | Stream UIs | Axe serious/critical clear after stream land | select-name + scrollable-region-focusable | Fixed: aria-label on selects; tabindex+label on scroll regions | HIGH | P-a11y-owner-gate | a11y | No | Re-gate a11y patches | `e2e/a11y-owner-gate.spec.ts` | FIXED |
-| D-015 | Campaign + Card builders | Format / icon placement | Full placement matrix + live preview + persist | before/after/left/right/above/below/only/none work WYSIWYG | Was missing / incomplete | HIGH | `P-builder-icon-placement` | campaign / card | Yes (V1 regression risk) | `ButtonLayoutControls` + shared renderer attrs/CSS | `e2e/builder-interaction-parity.spec.ts` | FIXED (local; not OWNER-READY) |
+| D-015 | Campaign + Card builders | Format / icon placement | Full placement matrix + live preview + persist | before/after/left/right/above/below/only/none work WYSIWYG | Was missing / incomplete | HIGH | `P-builder-icon-placement` | campaign / card | Yes (V1 regression risk) | `ButtonLayoutControls` + shared renderer attrs/CSS | `e2e/builder-interaction-parity.spec.ts` | Headed PASS on tip incl. `64e27d9` | FIXED |
 | D-016 | Campaign + Card + public | Button / pill layout polish | Alignment, wrap, long labels, icon-only, mobile, interaction states | No clip / misaligned icons; polished composition | Rough under stress | HIGH | `P-builder-exploratory-audit` | campaign / card | Yes | Layout CSS + Format fields + stress e2e | headed | FIXED |
 | D-017 | Builders | FinishPicker | Honest None when unset | No silent metallic lie | Empty coerced to metallic | HIGH | `P-builder-exits-bg-remove` | campaign / card | Yes | `allowNone` + None option | headed | FIXED |
 | D-018 | MediaPicker galleries / panels | Close / Esc / focus return | Every panel exits cleanly | Traps / missing Esc | HIGH | `P-builder-exits-bg-remove` | assets / media | Yes | Esc + focus restore on gallery + bg-remove | headed | FIXED |
@@ -45,6 +45,7 @@ See matrix in `lib/fusion/features/kill-switch-matrix.ts` and Admin Control Plan
 ## Honest residuals after builder interaction stream
 
 - **Builder PO HIGHs D-015–D-024:** **FIXED locally** (commit + headed proofs on isolated DB). Not platform OWNER-READY.
+- **Icon placement / alignment (D-015):** proved via `P-builder-icon-placement` (headed PASS on tip incl. `64e27d9`).
 - **D-001 / D-002 / D-006 / D-013** remain OPEN (VO/NVDA, OS zoom, live credentials, platform OWNER-READY claim).
 - D-009 / D-010 / D-011 remain OPEN (non-blocking polish / follow-ups).
 - **Freeform canvas:** HONEST_DISABLED until `card.builder.freeform`.
