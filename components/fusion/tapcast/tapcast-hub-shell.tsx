@@ -166,7 +166,7 @@ export function TapCastHubShell({ initial }: { initial?: HubInitial }) {
             className="text-primary underline-offset-4 hover:underline"
             data-testid="tapcast-tiktok-link"
           >
-            Open TikTok first-class →
+            Open TikTok workspace →
           </Link>
         </div>
       </header>
@@ -247,13 +247,11 @@ export function TapCastHubShell({ initial }: { initial?: HubInitial }) {
                       >
                         {ready?.connected ? `Connected (${ready.connectionMode})` : "Mock connect"}
                       </Button>
-                      {c.firstClass && (
-                        <Link href={c.href}>
-                          <Button size="sm" variant="outline">
-                            Open
-                          </Button>
-                        </Link>
-                      )}
+                      <Link href={c.href}>
+                        <Button size="sm" variant="outline">
+                          {c.firstClass ? "Open workspace" : "Open"}
+                        </Button>
+                      </Link>
                     </div>
                   </div>
                 );

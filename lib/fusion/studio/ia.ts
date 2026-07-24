@@ -1,6 +1,9 @@
 /**
  * Final Studio IA — seven permanent destinations + secondary sections + Create.
  * V1 capability is preserved via aliases; Fusion pillars are discoverable here.
+ *
+ * TapCast IA rule: TikTok (and every mainstream social channel) lives inside the
+ * TapCast workspace channel subnav — never as a permanent Experiences sibling row.
  */
 
 export type StudioMaturity =
@@ -186,6 +189,23 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       group: "Build",
     },
     {
+      id: "tapcanvas",
+      label: "TapCanvas",
+      href: "/dashboard/experiences/canvas",
+      description: "Sketch · Build · Operate · Analyze — linked object graph",
+      maturity: "alpha",
+      featureId: "canvas.tapcanvas",
+      group: "Build",
+    },
+    {
+      id: "whiteboard",
+      label: "Whiteboard (legacy)",
+      href: "/dashboard/workbench",
+      description: "Legacy freeform workbench — prefer TapCanvas",
+      maturity: "alpha",
+      group: "Build",
+    },
+    {
       id: "calendar",
       label: "Calendar",
       href: "/dashboard/groups",
@@ -199,6 +219,16 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       href: "/dashboard/devices",
       description: "Assign campaigns to Tap Points",
       maturity: "owner_ready",
+      group: "Distribution",
+    },
+    {
+      id: "tapcast",
+      label: "TapCast",
+      href: "/dashboard/experiences/tapcast",
+      description:
+        "Omnichannel social distribution — channel registry with TikTok first-class inside TapCast (not a sibling Experiences product)",
+      maturity: "verified_needs_credentials",
+      featureId: "tapcast.omnichannel",
       group: "Distribution",
     },
     {
@@ -217,41 +247,6 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       description: "Visitor path overlays in Insights",
       maturity: "scaffolded",
       group: "Automation",
-    },
-    {
-      id: "tapcanvas",
-      label: "TapCanvas",
-      href: "/dashboard/experiences/canvas",
-      description: "Sketch · Build · Operate · Analyze — linked object graph",
-      maturity: "alpha",
-      featureId: "canvas.tapcanvas",
-      group: "Build",
-    },
-    {
-      id: "whiteboard",
-      label: "Whiteboard (legacy)",
-      href: "/dashboard/workbench",
-      description: "Legacy freeform workbench — prefer TapCanvas",
-      maturity: "alpha",
-      group: "Build",
-    },
-    {
-      id: "tapcast",
-      label: "TapCast",
-      href: "/dashboard/experiences/tapcast",
-      description: "Omnichannel social distribution — TikTok first-class + channel registry",
-      maturity: "verified_needs_credentials",
-      featureId: "tapcast.omnichannel",
-      group: "Distribution",
-    },
-    {
-      id: "tapcast_tiktok",
-      label: "TikTok",
-      href: "/dashboard/experiences/tapcast/tiktok",
-      description: "TapCast TikTok — mock OK, live needs credentials",
-      maturity: "verified_needs_credentials",
-      featureId: "tapcast.tiktok",
-      group: "Distribution",
     },
     {
       id: "versions",
@@ -1000,9 +995,9 @@ export const CREATE_ACTIONS: CreateAction[] = [
   },
   {
     id: "tiktok_cast",
-    label: "TikTok TapCast",
+    label: "TikTok content",
     href: "/dashboard/experiences/tapcast/tiktok",
-    description: "Create TikTok cast with funnel stubs",
+    description: "Create TikTok cast via TapCast (first-class channel)",
     maturity: "verified_needs_credentials",
     group: "Experiences",
   },
@@ -1121,8 +1116,8 @@ export const CREATE_ACTIONS: CreateAction[] = [
   {
     id: "social",
     label: "Social distribution",
-    href: "/dashboard/experiences/tapcast/tiktok",
-    description: "TapCast · TikTok first-class",
+    href: "/dashboard/experiences/tapcast",
+    description: "TapCast omnichannel hub — TikTok and other channels inside",
     maturity: "verified_needs_credentials",
     group: "Experiences",
   },

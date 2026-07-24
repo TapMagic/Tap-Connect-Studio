@@ -274,7 +274,7 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     browserE2ePassed: true,
     missingEnvVars: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
     notes:
-      "P-tiktok-mock-persist + P-tapcast-tiktok-coexist: mock draft/direct-post/retry/funnel + coexistence with omnichannel registry. Live Direct Post = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY.",
+      "Nested under TapCast (not an Experiences sibling). P-tiktok-mock-persist + P-tapcast-tiktok-coexist: mock draft/direct-post/retry/funnel + coexistence with omnichannel registry. Live Direct Post = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY. Route: /dashboard/experiences/tapcast/tiktok.",
     blockers: [
       "tiktok_oauth_credentials",
       "direct_post_token",

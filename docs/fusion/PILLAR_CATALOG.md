@@ -16,7 +16,7 @@ Every pillar is designed and wired into the product graph. Activation is Admin/f
 | Email marketing | Audience / Experiences | Communications | In development |
 | Messaging / ManyChat / Guardian | Audience | Communications | Defined |
 | TapInbox / TapCase / TapGuide | Audience / Home | Service | Defined |
-| TapCast / social | Experiences (Distribution) | Communications | Defined |
+| TapCast / social | Experiences → TapCast (channel subnav; TikTok first-class inside) | Communications | Defined |
 | TapLoop / loyalty / referrals | Audience | Loyalty | Defined |
 | Purchase proof / TapCommerce | Experiences / Audience | Commerce | Defined |
 | TapFlow / TapTrail / whiteboard | Experiences | Journey | Defined (Cody spine) |

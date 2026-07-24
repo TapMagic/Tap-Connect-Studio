@@ -10,6 +10,17 @@ const nextConfig: NextConfig = {
         destination: "/dashboard/card",
         permanent: false,
       },
+      // Legacy Experiences sibling → TapCast first-class TikTok channel
+      {
+        source: "/dashboard/experiences/tiktok",
+        destination: "/dashboard/experiences/tapcast/tiktok",
+        permanent: false,
+      },
+      {
+        source: "/dashboard/experiences/tiktok/:path*",
+        destination: "/dashboard/experiences/tapcast/tiktok/:path*",
+        permanent: false,
+      },
     ];
   },
 };

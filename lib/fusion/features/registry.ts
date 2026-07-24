@@ -723,7 +723,7 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     id: "tapcast.tiktok",
     name: "TapCast · TikTok",
     description:
-      "First-class TikTok TapCast: 9:16 composition, draft upload mock, Direct Post gated. Live posting VERIFIED — CREDENTIALS REQUIRED.",
+      "First-class TikTok channel inside TapCast (not an Experiences sibling): 9:16 composition, draft upload mock, Direct Post gated. Live posting VERIFIED — CREDENTIALS REQUIRED.",
     pillar: "tapcast",
     domainOwner: "distribution",
     ux: "experiences",
@@ -769,7 +769,7 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     ],
     owner: "distribution",
     docs: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-    rollback: "Kill-switch; TikTok first-class route remains independently usable",
+    rollback: "Kill-switch omnichannel; TikTok first-class route under TapCast remains independently usable",
   },
 
   {

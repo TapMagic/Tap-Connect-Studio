@@ -15,6 +15,7 @@
 | 2026-07-23 | Missing API keys do not block architecture/mocks/Admin UX | Features stay disabled until certified | Locked |
 | 2026-07-23 | Restore Workbench blocks missing from ADDABLE menu | age_gate, feedback_form, image_gallery | Accepted |
 | 2026-07-23 | Studio IA seven destinations | Home, Experiences, Tap Points, Audience, Insights, Assets, Settings | Locked |
+| 2026-07-23 | TikTok nested under TapCast | TapCast = omnichannel authority; TikTok = first-class channel inside TapCast workspace (not Experiences sibling). Create → TikTok content enters via `/dashboard/experiences/tapcast/tiktok`. | Locked |
 | 2026-07-23 | Pricing tiers remain reviewable; Stripe connector boundary first | Current V1 plan numbers kept until PO pricing review | Open |
 
 ## Open for PO (non-blocking)

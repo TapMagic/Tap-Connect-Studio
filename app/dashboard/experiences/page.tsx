@@ -17,7 +17,7 @@ export default async function ExperiencesHubPage() {
       <StudioHubSections
         destinationId="experiences"
         title="Experiences"
-        subtitle="Cards, Campaigns, Groups, TapFlow, TapCanvas, TapCast (omnichannel + TikTok), and distribution — every V1 builder path remains reachable here."
+        subtitle="Cards, Campaigns, Groups, TapCanvas, TapCast (omnichannel hub — TikTok first-class inside TapCast), TapFlow, and distribution — every V1 builder path remains reachable here."
       />
       <div className="flex flex-wrap gap-4 text-sm text-white/55">
         <span>
