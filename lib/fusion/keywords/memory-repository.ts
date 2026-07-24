@@ -314,7 +314,12 @@ export function createMemoryVocabularyRepository(): VocabularyRepository {
   };
 }
 
-/** Memory-only helper for unit tests (no Prisma). */
+/** Resolve repository: Prisma when isolated DB configured, else memory. */
 export async function getVocabularyRepository(): Promise<VocabularyRepository> {
+  const { isIsolatedFusionDatabaseConfigured } = await import("@/lib/fusion/db/safety");
+  if (isIsolatedFusionDatabaseConfigured()) {
+    const { createPrismaVocabularyRepository } = await import("./prisma-repository");
+    return createPrismaVocabularyRepository();
+  }
   return createMemoryVocabularyRepository();
 }

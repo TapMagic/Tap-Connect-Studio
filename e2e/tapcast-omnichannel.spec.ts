@@ -71,7 +71,7 @@ test.describe("TapCast omnichannel", () => {
           offerText: "BOGO",
           body: "Proof run",
           cta: "Keep Card",
-          hashtags: ["#TapConnect"],
+          hashtags: ["#WeekendSpecial"],
         },
       },
     });

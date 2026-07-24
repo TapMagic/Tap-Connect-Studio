@@ -1,9 +1,11 @@
 # Route and action runtime audit
 
-**Date:** 2026-07-23  
-**Method:** Studio IA inventory + code wiring inspection + readiness derivation. Headed browser OWNER-READY proofs are **not** recorded (`VERIFICATION_LEDGER` empty).  
+**Date:** 2026-07-24 (reconciled)  
+**Method:** Studio IA inventory + code wiring + readiness derivation + headed proofs.  
+**Ledger:** `lib/fusion/readiness/display-status.ts` section rows (not empty). Platform is **not** OWNER-READY overall — live providers remain **VERIFIED — CREDENTIALS REQUIRED**.  
 **DB:** `tapconnect_fusion_dev` only.  
-**Badge rule:** Static IA `maturity: "owner_ready"` is **provisional**; UI shows `FUNCTIONAL — FINAL VERIFICATION REQUIRED` until ledger proof.
+**Badge rule:** Static IA `maturity: "owner_ready"` is **provisional**; UI shows derived readiness until ledger proof with zero blockers.  
+**Reconcile:** Accepted checkpoints TapCast `714ecff`, Keywords `49faf51`, TapCanvas/TikTok `7a29a06`. Cross-system proofs: `e2e/cross-system-integration.spec.ts` (4/4).
 
 Legend for **Actual status**: `loads` · `seed` · `mock` · `api` · `scaffold` · `broken_link` · `cred_gate`
 

@@ -274,18 +274,46 @@ export function TapCastHubShell({ initial }: { initial?: HubInitial }) {
             onClick={() => {
               const campaignId = `camp_demo_${Date.now()}`;
               setLastCampaignId(campaignId);
-              void post({
-                action: "create_variants",
-                campaignId,
-                channelIds: selectedChannels,
-                source: {
-                  title: campaignTitle,
-                  offerText: "Buy one get one · Keep this Card",
-                  body: "Weekend only at participating Tap Points.",
-                  cta: "Keep Card",
-                  hashtags: ["#TapConnect", "#WeekendSpecial"],
-                },
-              });
+              void (async () => {
+                // Prefer Brand Kit vocabulary — never invent hard-coded tags.
+                let hashtags: string[] = [];
+                try {
+                  const kw = await fetch("/api/ai/keywords", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      action: "suggest",
+                      channel: "tiktok",
+                      ground: { campaignTitle },
+                      limit: 5,
+                    }),
+                  });
+                  const json = await kw.json();
+                  if (kw.ok && Array.isArray(json.suggestions)) {
+                    hashtags = json.suggestions
+                      .filter(
+                        (s: { kind?: string; family?: string; value?: string }) =>
+                          s.kind === "hashtag" && s.family !== "avoid_exclusion" && s.value
+                      )
+                      .map((s: { value: string }) => s.value)
+                      .slice(0, 5);
+                  }
+                } catch {
+                  /* grounded empty is fine */
+                }
+                await post({
+                  action: "create_variants",
+                  campaignId,
+                  channelIds: selectedChannels,
+                  source: {
+                    title: campaignTitle,
+                    offerText: "Buy one get one · Keep this Card",
+                    body: "Weekend only at participating Tap Points.",
+                    cta: "Keep Card",
+                    hashtags,
+                  },
+                });
+              })();
             }}
           >
             Create variants

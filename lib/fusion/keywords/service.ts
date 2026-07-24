@@ -36,6 +36,11 @@ export function setVocabularyRepositoryForTests(repo: VocabularyRepository | nul
 
 async function repo(): Promise<VocabularyRepository> {
   if (repoOverride) return repoOverride;
+  const { isIsolatedFusionDatabaseConfigured } = await import("@/lib/fusion/db/safety");
+  if (isIsolatedFusionDatabaseConfigured()) {
+    const { createPrismaVocabularyRepository } = await import("./prisma-repository");
+    return createPrismaVocabularyRepository();
+  }
   return createMemoryVocabularyRepository();
 }
 

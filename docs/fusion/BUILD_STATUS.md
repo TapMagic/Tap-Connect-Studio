@@ -18,8 +18,17 @@
 
 1. `20260723000000_fusion_spine` … 6. `20260723000005_fusion_taploop`  
 7. `20260724000006_tapcanvas_tiktok`  
-8. `20260724000007_tapcast_omnichannel` — `TapCastChannelVariant` / `TapCastChannelConnection` / `TapCastAuditLog`  
-9. `20260724000008_brand_vocabulary` — `BrandVocabularyTerm` / packs / suggestion runs / analytics / trigger bindings
+8. `20260724000007_keyword_brand_pack` — `BrandKit.keywordBrandPack` JSON mirror  
+9. `202607240000075_tapcast_omnichannel` — `TapCastChannelVariant` / `TapCastChannelConnection` / `TapCastAuditLog`  
+10. `20260724000008_brand_vocabulary` — `BrandVocabularyTerm` / packs / suggestion runs / analytics / trigger bindings
+
+## Reconciliation (2026-07-24)
+
+- Linear ancestry: `714ecff` (TapCast) → `49faf51` (Keywords) → `7a29a06`/`a180c1e` (TapCanvas/TikTok)
+- Migration timestamp collision resolved (`…07` keyword vs `…075` tapcast)
+- Channel ID map: `lib/fusion/channels/canonical.ts` (`gbp`↔`google_business`, `instagram_direct`↔`instagram_dm`)
+- Omnichannel adapt + hub no longer invent `#TapConnect` / `#TapTheMagic` / `#FYP` — hashtags only from source/Brand Vocabulary
+- Vocabulary service selects Prisma when isolated DB is configured (JSON remains write-through mirror only)
 
 ## Recent wiring
 

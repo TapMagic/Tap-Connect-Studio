@@ -19,13 +19,14 @@ export type CampaignSource = {
 };
 
 const CHANNEL_HASHTAG_STYLE: Record<string, (base: string[]) => string[]> = {
-  tiktok: (b) => [...b.slice(0, 4), "#FYP", "#TapConnect"],
+  // Never invent brand tags — only shape provided vocabulary / source hashtags.
+  tiktok: (b) => b.slice(0, 5),
   youtube: (b) => b.slice(0, 3),
-  instagram: (b) => [...b.slice(0, 8), "#Reels"],
+  instagram: (b) => b.slice(0, 10),
   facebook: (b) => b.slice(0, 3),
   x: (b) => b.slice(0, 2),
   linkedin: () => [],
-  pinterest: (b) => [...b.slice(0, 5)],
+  pinterest: (b) => b.slice(0, 5),
   snapchat: () => [],
   bluesky: (b) => b.slice(0, 3),
   threads: (b) => b.slice(0, 4),
@@ -213,7 +214,8 @@ export function adaptCampaignToChannel(
     height: 1080,
   };
   const style = CHANNEL_HASHTAG_STYLE[channelId] ?? ((b: string[]) => b.slice(0, 3));
-  const baseTags = source.hashtags ?? ["#TapConnect", "#TapTheMagic"];
+  // Empty when source has no vocabulary — never invent #TapConnect / brand tags.
+  const baseTags = source.hashtags ?? [];
   const hashtags = style(baseTags);
   const copy = adaptCopy(channelId, source, dims.maxCaptionChars);
   const media = adaptMedia(channelId, source, dims);
