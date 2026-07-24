@@ -1643,6 +1643,11 @@ function BlockFields({
   if (block.type === "button_group") {
     const buttons = (data.buttons as ButtonItem[]) ?? [];
     const layout = (data.layout as string) ?? "stack";
+    // One Format mount for layout controls — selected button (fallback: first).
+    const activeButtonId =
+      selectedButtonId && buttons.some((b) => b.id === selectedButtonId)
+        ? selectedButtonId
+        : (buttons[0]?.id ?? null);
 
     function setButtons(next: ButtonItem[]) {
       onUpdate("buttons", next);
@@ -1677,7 +1682,7 @@ function BlockFields({
             key={btn.id}
             className={cn(
               "space-y-2 rounded-lg border bg-background/40 p-3",
-              selectedButtonId === btn.id
+              activeButtonId === btn.id
                 ? "border-primary ring-1 ring-primary/40"
                 : "border-border/50"
             )}
@@ -1711,7 +1716,7 @@ function BlockFields({
                 <select
                   className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
                   value={btn.appearance ?? "icon_text"}
-                  data-testid="button-look"
+                  data-testid={activeButtonId === btn.id ? "button-look" : undefined}
                   onChange={(e) => {
                     const appearance = e.target.value as ButtonItem["appearance"];
                     const patch: Partial<ButtonItem> = { appearance };
@@ -1819,37 +1824,39 @@ function BlockFields({
                   showLogoPicker
                 />
               </div>
-              <div className="sm:col-span-2">
-                <ButtonLayoutControls
-                  value={{
-                    iconPosition: btn.iconPosition,
-                    iconSize: btn.iconSize,
-                    textSize: btn.textSize,
-                    iconGap: btn.iconGap,
-                    contentAlign: btn.contentAlign,
-                    verticalAlign: btn.verticalAlign,
-                    paddingX: btn.paddingX,
-                    paddingY: btn.paddingY,
-                    minHeight: btn.minHeight,
-                    fullWidth: btn.fullWidth,
-                    wrap: btn.wrap,
-                  }}
-                  onChange={(patch) => {
-                    const next: Partial<ButtonItem> = { ...patch };
-                    if (patch.iconPosition === "only") next.appearance = "icon_only";
-                    if (patch.iconPosition === "none") next.appearance = "text";
-                    if (
-                      patch.iconPosition &&
-                      patch.iconPosition !== "only" &&
-                      patch.iconPosition !== "none" &&
-                      (btn.appearance === "icon_only" || btn.appearance === "text")
-                    ) {
-                      next.appearance = "icon_text";
-                    }
-                    patchBtn(btn.id, next);
-                  }}
-                />
-              </div>
+              {activeButtonId === btn.id ? (
+                <div className="sm:col-span-2">
+                  <ButtonLayoutControls
+                    value={{
+                      iconPosition: btn.iconPosition,
+                      iconSize: btn.iconSize,
+                      textSize: btn.textSize,
+                      iconGap: btn.iconGap,
+                      contentAlign: btn.contentAlign,
+                      verticalAlign: btn.verticalAlign,
+                      paddingX: btn.paddingX,
+                      paddingY: btn.paddingY,
+                      minHeight: btn.minHeight,
+                      fullWidth: btn.fullWidth,
+                      wrap: btn.wrap,
+                    }}
+                    onChange={(patch) => {
+                      const next: Partial<ButtonItem> = { ...patch };
+                      if (patch.iconPosition === "only") next.appearance = "icon_only";
+                      if (patch.iconPosition === "none") next.appearance = "text";
+                      if (
+                        patch.iconPosition &&
+                        patch.iconPosition !== "only" &&
+                        patch.iconPosition !== "none" &&
+                        (btn.appearance === "icon_only" || btn.appearance === "text")
+                      ) {
+                        next.appearance = "icon_text";
+                      }
+                      patchBtn(btn.id, next);
+                    }}
+                  />
+                </div>
+              ) : null}
               <div className="space-y-1">
                 <Label className="text-[10px]">Size</Label>
                 <select

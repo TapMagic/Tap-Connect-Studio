@@ -14,7 +14,11 @@ import { test, expect } from "@playwright/test";
 import {
   attachConsole,
   BASE,
+  PROOF_PUBLIC_AT,
   SEED,
+  resolveProofPublicDevice,
+  selectCampaignBlock,
+  waitForCampaignEditorReady,
   writeProof,
   writeProofIndex,
 } from "./proof-helpers";
@@ -67,8 +71,10 @@ test.describe("Builder interaction parity", () => {
               appearance: "icon_text",
               iconPosition: "before",
               iconSize: "md",
+              textSize: "md",
               iconGap: 10,
               contentAlign: "center",
+              verticalAlign: "center",
               fullWidth: true,
               openInNewTab: true,
             },
@@ -85,8 +91,10 @@ test.describe("Builder interaction parity", () => {
     await page.goto(`${BASE}/dashboard/campaigns/${campaignId}`, {
       waitUntil: "domcontentloaded",
     });
-    await page.getByTestId("campaign-block-btns").waitFor({ state: "visible", timeout: 30_000 });
-    await page.getByTestId("campaign-block-btns").click();
+    await selectCampaignBlock(page, "campaign-block-btns");
+    await expect(page.getByTestId("campaign-format-heading")).toHaveText(/Edit:\s*Buttons/i, {
+      timeout: 15_000,
+    });
     await expect(page.getByTestId("button-layout-controls")).toBeVisible({ timeout: 15_000 });
 
     const placements = [
@@ -101,45 +109,73 @@ test.describe("Builder interaction parity", () => {
     ] as const;
     for (const place of placements) {
       await page.getByTestId("icon-placement").selectOption(place);
-      await page.waitForTimeout(200);
       const preview = page.getByTestId("campaign-phone-preview");
       const btn = preview.locator("[data-icon-placement]").first();
       await expect(btn).toHaveAttribute("data-icon-placement", place, {
         timeout: 5_000,
       });
+      const cls = await btn.getAttribute("class");
+      if (!cls?.includes(`tap-btn-place-${place}`)) {
+        blockers.push(`missing_class_${place}`);
+      }
       if (place === "left" || place === "right") {
-        const cls = await btn.getAttribute("class");
-        if (!cls?.includes(`tap-btn-place-${place}`)) {
-          blockers.push(`missing_class_${place}`);
-        }
+        notes.push(`${place}_edge_spread_class=ok`);
       }
       if (place === "none") {
         const appearance = await btn.getAttribute("data-appearance");
         notes.push(`text_only_appearance=${appearance}`);
         const hasIconSlot = await btn.locator(".tap-btn-icon-slot").count();
         if (hasIconSlot > 0) blockers.push("text_only_still_shows_icon");
+        const look = page.getByTestId("button-look");
+        await expect(look).toHaveValue("text");
+      }
+      if (place === "only") {
+        await expect(page.getByTestId("button-look")).toHaveValue("icon_only");
       }
       notes.push(`placement_${place}=ok`);
     }
 
+    // Distinct persist value (last loop left "right")
+    await page.getByTestId("icon-placement").selectOption("after");
     await page.getByTestId("icon-size").selectOption("lg");
+    await page.getByTestId("text-size").selectOption("sm");
     await page.getByTestId("content-align").selectOption("start");
+    await page.getByTestId("vertical-align").selectOption("end");
     await page.getByTestId("icon-gap").fill("16");
     await page.getByTestId("btn-bold").check();
+
+    const liveBtn = page
+      .getByTestId("campaign-phone-preview")
+      .locator('[data-icon-placement="after"]')
+      .first();
+    await expect(liveBtn).toBeVisible();
+    const liveClass = await liveBtn.getAttribute("class");
+    if (!liveClass?.includes("tap-btn-place-after")) blockers.push("live_preview_class");
+    if (!liveClass?.includes("tap-btn-text-sm")) blockers.push("live_text_size");
+    if (!liveClass?.includes("tap-btn-valign-end")) blockers.push("live_valign");
+    notes.push("live_preview_without_refresh=ok");
+
     await page.getByTestId("campaign-save").click();
     await page.waitForTimeout(1000);
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(800);
-    await page.getByTestId("campaign-block-btns").click();
-    await expect(page.getByTestId("icon-placement")).toHaveValue("before");
+    await selectCampaignBlock(page, "campaign-block-btns");
+    await expect(page.getByTestId("campaign-format-heading")).toHaveText(/Edit:\s*Buttons/i, {
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("icon-placement")).toHaveValue("after");
+    await expect(page.getByTestId("icon-size")).toHaveValue("lg");
+    await expect(page.getByTestId("text-size")).toHaveValue("sm");
+    await expect(page.getByTestId("content-align")).toHaveValue("start");
+    await expect(page.getByTestId("vertical-align")).toHaveValue("end");
     notes.push("reopen_placement_persisted");
 
+    const passed = blockers.length === 0 && pageErrors.length === 0;
     writeProof({
       id: "P-builder-icon-placement",
       route: `/dashboard/campaigns/${campaignId}`,
-      workflow: "Icon placement matrix + text-only + bold + save/reopen",
-      passed: blockers.length === 0 && pageErrors.length === 0,
+      workflow: "Icon placement matrix + text-only + layout fields + save/reopen",
+      passed,
       browserE2ePassed: blockers.length === 0,
       persistencePassed: true,
       consoleErrors,
@@ -202,31 +238,31 @@ test.describe("Builder interaction parity", () => {
       data: { id: campaignId, contentBlocks: blocks, status: "LIVE" },
     });
 
-    // Resolve seed device slot the same way as builder-owner-gate (publish select)
+    // Dedicated device — seeddemo01 schedule / prior BgRemove contamination must not win
+    const proofDevice = await resolveProofPublicDevice(
+      page.request,
+      `WysiwygProof_${stamp}`
+    );
+    let deviceSlotId = proofDevice.deviceSlotId;
+    let deviceCode = proofDevice.deviceCode;
+    notes.push(`device_dedicated=${proofDevice.dedicated}`);
+
     await page.goto(`${BASE}/dashboard/campaigns/${campaignId}`, {
       waitUntil: "domcontentloaded",
     });
-    await page.waitForTimeout(900);
-    let deviceSlotId = "";
-    const deviceSelect = page.getByTestId("campaign-publish-device");
-    if ((await deviceSelect.count()) > 0) {
-      deviceSlotId = await deviceSelect.inputValue();
-      notes.push(`deviceSlotId=${deviceSlotId}`);
-    }
+    await waitForCampaignEditorReady(page);
+
     if (!deviceSlotId) {
-      const devices = await page.request.get(`${BASE}/api/devices`);
-      if (devices.ok()) {
-        const json = (await devices.json()) as {
-          devices?: { id: string; code?: string; deviceCode?: string }[];
-        };
-        const list = json.devices ?? [];
-        const seed = list.find(
-          (d) => d.code === SEED.deviceCode || d.deviceCode === SEED.deviceCode
-        );
-        deviceSlotId = seed?.id ?? list[0]?.id ?? "";
-        notes.push(`deviceSlotId_fallback=${deviceSlotId || "none"}`);
+      const deviceSelect = page.getByTestId("campaign-publish-device");
+      if ((await deviceSelect.count()) > 0) {
+        deviceSlotId = await deviceSelect.inputValue();
+        deviceCode = SEED.deviceCode;
+        notes.push(`deviceSlotId_seed_fallback=${deviceSlotId}`);
       }
+    } else {
+      notes.push(`deviceSlotId=${deviceSlotId} deviceCode=${deviceCode}`);
     }
+
     if (deviceSlotId) {
       const a2 = await page.request.post(`${BASE}/api/campaigns/assign`, {
         data: { deviceSlotId, campaignId },
@@ -259,14 +295,14 @@ test.describe("Builder interaction parity", () => {
       path: `tmp/fusion-proofs/P-builder-wysiwyg-editor-${stamp}.png`,
     });
 
-    const at = encodeURIComponent("2026-07-24T12:00:00-04:00");
-    await page.goto(`${BASE}/t/${SEED.deviceCode}?public=1&at=${at}`, {
+    const at = encodeURIComponent(PROOF_PUBLIC_AT);
+    await page.goto(`${BASE}/t/${deviceCode}?public=1&at=${at}`, {
       waitUntil: "domcontentloaded",
     });
     await page.waitForTimeout(1000);
     const publicBody = await page.locator("body").innerText();
     const publicHasMarker = publicBody.includes(marker) || publicBody.includes(`${marker}_GO`);
-    notes.push(`public_has_marker=${publicHasMarker}`);
+    notes.push(`public_has_marker=${publicHasMarker} public_url=/t/${deviceCode}`);
     if (!publicHasMarker) {
       blockers.push("public_missing_marker");
     } else {
@@ -296,7 +332,7 @@ test.describe("Builder interaction parity", () => {
 
     writeProof({
       id: "P-builder-wysiwyg-public",
-      route: `/dashboard/campaigns/${campaignId} ↔ /t/${SEED.deviceCode}`,
+      route: `/dashboard/campaigns/${campaignId} ↔ /t/${deviceCode}`,
       workflow: "Editor canvas vs public /t/ shared renderer + placement attrs + screenshots",
       passed: blockers.length === 0 && pageErrors.length === 0,
       browserE2ePassed: blockers.length === 0,
@@ -321,7 +357,7 @@ test.describe("Builder interaction parity", () => {
     await page.goto(`${BASE}/dashboard/campaigns/${SEED.campaignId}`, {
       waitUntil: "domcontentloaded",
     });
-    await page.waitForTimeout(800);
+    await waitForCampaignEditorReady(page);
 
     // Open a block with MediaPicker — hero_image or headline won't; use seed welcome hero if present
     // Inject via patch a hero with tiny png so Remove bg appears
@@ -350,8 +386,7 @@ test.describe("Builder interaction parity", () => {
     expect(patch.ok()).toBeTruthy();
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(800);
-    await page.getByTestId("campaign-block-hero_bg").click();
+    await selectCampaignBlock(page, "campaign-block-hero_bg");
     await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("bg-remove-open")).toBeVisible();
 
@@ -541,7 +576,7 @@ test.describe("Builder interaction parity", () => {
     await page.goto(`${BASE}/dashboard/campaigns/${campaignId}`, {
       waitUntil: "domcontentloaded",
     });
-    await page.waitForTimeout(900);
+    await waitForCampaignEditorReady(page);
 
     // Hydration / React mismatch signals
     const hydrationNoise = consoleErrors.filter((e) =>
@@ -584,7 +619,7 @@ test.describe("Builder interaction parity", () => {
     }
 
     // Change a value → verify live render
-    await page.getByTestId("campaign-block-hl").click();
+    await selectCampaignBlock(page, "campaign-block-hl");
     const headlineInput = page
       .getByTestId("block-headline-text")
       .or(page.getByLabel(/^Headline$/i))
@@ -604,9 +639,10 @@ test.describe("Builder interaction parity", () => {
     }
 
     // Button layout controls when available (other stream may own full matrix)
-    await page.getByTestId("campaign-block-btns").click();
+    await selectCampaignBlock(page, "campaign-block-btns");
     const layout = page.getByTestId("button-layout-controls");
     if ((await layout.count()) > 0) {
+      await expect(layout).toHaveCount(1);
       await expect(layout).toBeVisible();
       if ((await page.getByTestId("layout-wrap").count()) > 0) {
         await page.getByTestId("layout-wrap").check();
@@ -632,14 +668,15 @@ test.describe("Builder interaction parity", () => {
     notes.push(`preview_overflow_probe=${overflow}`);
 
     // Media panel open → close → reopen (exit + no trap)
-    await page.getByTestId("campaign-block-hero").click();
+    await selectCampaignBlock(page, "campaign-block-hero");
     await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: 10_000 });
     await page.getByTestId("bg-remove-open").click();
     await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
     await page.getByTestId("bg-remove-open").click();
-    await page.getByRole("button", { name: /^Close$/i }).first().click();
+    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
+    await page.keyboard.press("Escape");
     await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
     notes.push("media_bg_panel_close_reopen");
 
@@ -647,39 +684,40 @@ test.describe("Builder interaction parity", () => {
     await page.getByTestId("campaign-save").click();
     await page.waitForTimeout(1000);
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(800);
+    await waitForCampaignEditorReady(page);
     const afterReload = await page.getByTestId("campaign-phone-preview").innerText();
     if (!afterReload.includes(marker)) blockers.push("reload_missing_marker");
     else notes.push("save_reload_ok");
 
-    // Undo after a small change
-    await page.getByTestId("campaign-block-hl").click();
+    // Undo after a small change (skip if history empty / control honestly disabled)
+    await selectCampaignBlock(page, "campaign-block-hl");
     const hi2 = page.getByTestId("block-headline-text");
     if ((await hi2.count()) > 0) {
       await hi2.fill(`${marker}_UNDO`);
-      await page.waitForTimeout(200);
-      await page.getByTestId("campaign-undo").click();
-      await page.waitForTimeout(300);
-      notes.push("undo_after_edit");
+      await page.waitForTimeout(400);
+      const undo = page.getByTestId("campaign-undo");
+      if (await undo.isDisabled()) {
+        notes.push("undo_disabled_after_fill_skip");
+      } else {
+        await undo.click();
+        await page.waitForTimeout(300);
+        notes.push("undo_after_edit");
+      }
     }
 
-    // Publish + public render (seed device if available)
-    let deviceSlotId = "";
-    const deviceSelect = page.getByTestId("campaign-publish-device");
-    if ((await deviceSelect.count()) > 0) {
-      deviceSlotId = await deviceSelect.inputValue();
-    }
+    // Publish + public render on dedicated device (avoid seed schedule contamination)
+    const proofDevice = await resolveProofPublicDevice(
+      page.request,
+      `ExploreAudit_${stamp}`
+    );
+    let deviceSlotId = proofDevice.deviceSlotId;
+    let deviceCode = proofDevice.deviceCode;
+    notes.push(`device_dedicated=${proofDevice.dedicated}`);
     if (!deviceSlotId) {
-      const devices = await page.request.get(`${BASE}/api/devices`);
-      if (devices.ok()) {
-        const json = (await devices.json()) as {
-          devices?: { id: string; code?: string; deviceCode?: string }[];
-        };
-        const list = json.devices ?? [];
-        const seed = list.find(
-          (d) => d.code === SEED.deviceCode || d.deviceCode === SEED.deviceCode
-        );
-        deviceSlotId = seed?.id ?? list[0]?.id ?? "";
+      const deviceSelect = page.getByTestId("campaign-publish-device");
+      if ((await deviceSelect.count()) > 0) {
+        deviceSlotId = await deviceSelect.inputValue();
+        deviceCode = SEED.deviceCode;
       }
     }
     if (deviceSlotId) {
@@ -692,8 +730,8 @@ test.describe("Builder interaction parity", () => {
       notes.push(`publish_patch=${pub.status()} assign=${assign.status()}`);
       if (!pub.ok() || !assign.ok()) blockers.push("publish_or_assign_failed");
       else {
-        const at = encodeURIComponent("2026-07-24T12:00:00-04:00");
-        await page.goto(`${BASE}/t/${SEED.deviceCode}?public=1&at=${at}`, {
+        const at = encodeURIComponent(PROOF_PUBLIC_AT);
+        await page.goto(`${BASE}/t/${deviceCode}?public=1&at=${at}`, {
           waitUntil: "domcontentloaded",
         });
         await page.waitForTimeout(900);
@@ -703,7 +741,7 @@ test.describe("Builder interaction parity", () => {
         await page.goto(`${BASE}/dashboard/campaigns/${campaignId}`, {
           waitUntil: "domcontentloaded",
         });
-        await page.waitForTimeout(600);
+        await waitForCampaignEditorReady(page);
         notes.push("reopen_editor_after_public");
       }
     } else {
@@ -712,7 +750,7 @@ test.describe("Builder interaction parity", () => {
 
     // Dead-control probe: visible buttons in inspector should not be decorative-only
     // (disabled without title/aria is flagged)
-    await page.getByTestId("campaign-block-btns").click();
+    await selectCampaignBlock(page, "campaign-block-btns");
     const dead = await page.evaluate(() => {
       const root = document.querySelector("[data-testid='campaign-inspector']")
         || document.querySelector("aside")

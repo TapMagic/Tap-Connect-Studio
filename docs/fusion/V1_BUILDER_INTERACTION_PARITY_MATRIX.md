@@ -106,15 +106,15 @@ Live proof IDs (headed): `P-builder-icon-placement`, `P-builder-wysiwyg-public`,
 
 | ID | Theme | Status |
 |----|-------|--------|
-| D-015 | Missing / incomplete icon placement Format | FIXED (local headed) |
-| D-016 | Rough layout / misalignment / wrap stress | FIXED (local headed) |
+| D-015 | Missing / incomplete icon placement Format | FIXED (local headed; editor-ready) |
+| D-016 | Rough layout / misalignment / wrap stress | FIXED (local headed; exploratory) |
 | D-017 | Finish picker lied as metallic when empty | FIXED |
 | D-018 | Gallery / picker exits + paste focus | FIXED |
 | D-019 | Remove Background incomplete / destructive | FIXED (local-mock adapter) |
 | D-020 | Side tabs lack Esc | FIXED (Esc → Content + focus) |
-| D-021 | Dead controls / not WYSIWYG | FIXED for builder scope |
+| D-021 | Dead controls / not WYSIWYG | FIXED (single Format mount; exploratory) |
 | D-022 | Incomplete Card Builder composition | FIXED (local; freeform residual) |
-| D-023 / D-024 | WYSIWYG / public mismatch for layout attrs | FIXED (shared renderer + proof) |
+| D-023 / D-024 | WYSIWYG / public mismatch for layout attrs | FIXED (dedicated proof device + shared renderer) |
 
 **Builder OWNER-READY claim:** **NOT OWNER-READY** — builder HIGH interaction defects for this burn-down are cleared locally; platform still blocked by D-001/D-002/D-006/D-013 (VO/NVDA, OS zoom, live credentials, overall claim).
 

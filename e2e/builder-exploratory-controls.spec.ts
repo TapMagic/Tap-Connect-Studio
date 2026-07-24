@@ -12,7 +12,11 @@ import { test, expect } from "@playwright/test";
 import {
   attachConsole,
   BASE,
+  PROOF_PUBLIC_AT,
   SEED,
+  resolveProofPublicDevice,
+  selectCampaignBlock,
+  waitForCampaignEditorReady,
   writeProof,
   writeProofIndex,
 } from "./proof-helpers";
@@ -94,7 +98,7 @@ test.describe("Builder exploratory controls", () => {
     await page.goto(`${BASE}/dashboard/campaigns/${campaignId}`, {
       waitUntil: "domcontentloaded",
     });
-    await page.waitForTimeout(900);
+    await waitForCampaignEditorReady(page);
     notes.push(`campaign=${campaignId}`);
 
     const hydrationNoise = consoleErrors.filter((e) =>
@@ -143,7 +147,7 @@ test.describe("Builder exploratory controls", () => {
     }
 
     // Headline live preview sample
-    await page.getByTestId("campaign-block-hl").click();
+    await selectCampaignBlock(page, "campaign-block-hl");
     const headlineInput = page.getByTestId("block-headline-text");
     if ((await headlineInput.count()) > 0) {
       const next = `${marker}_EDIT`;
@@ -159,10 +163,11 @@ test.describe("Builder exploratory controls", () => {
       notes.push("headline_input_absent");
     }
 
-    // Button Format sample (optional — other stream may own full matrix)
-    await page.getByTestId("campaign-block-btns").click();
+    // Button Format sample — single mount for selected button
+    await selectCampaignBlock(page, "campaign-block-btns");
     const layout = page.getByTestId("button-layout-controls");
     if ((await layout.count()) > 0) {
+      await expect(layout).toHaveCount(1);
       await expect(layout).toBeVisible();
       if ((await page.getByTestId("layout-wrap").count()) > 0) {
         await page.getByTestId("layout-wrap").check();
@@ -178,14 +183,16 @@ test.describe("Builder exploratory controls", () => {
     }
 
     // Media + bg-remove panel open/close (no trap)
-    await page.getByTestId("campaign-block-hero").click();
+    await selectCampaignBlock(page, "campaign-block-hero");
     await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: 10_000 });
     await page.getByTestId("bg-remove-open").click();
     await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
     await page.getByTestId("bg-remove-open").click();
-    await page.getByRole("button", { name: /^Close$/i }).first().click();
+    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
+    // Prefer Esc — Close can sit under the checkerboard preview and intercept clicks
+    await page.keyboard.press("Escape");
     await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
     notes.push("bg_panel_exit_ok");
 
@@ -212,13 +219,13 @@ test.describe("Builder exploratory controls", () => {
     await page.getByTestId("campaign-save").click();
     await page.waitForTimeout(1000);
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.waitForTimeout(800);
+    await waitForCampaignEditorReady(page);
     const afterReload = await page.getByTestId("campaign-phone-preview").innerText();
     if (!afterReload.includes(marker)) blockers.push("reload_missing_marker");
     else notes.push("save_reload_ok");
 
     // Undo sample
-    await page.getByTestId("campaign-block-hl").click();
+    await selectCampaignBlock(page, "campaign-block-hl");
     if ((await page.getByTestId("block-headline-text").count()) > 0) {
       await page.getByTestId("block-headline-text").fill(`${marker}_UNDO`);
       await page.waitForTimeout(200);
@@ -230,23 +237,19 @@ test.describe("Builder exploratory controls", () => {
       }
     }
 
-    // Publish + public sample (seed device)
-    let deviceSlotId = "";
-    const deviceSelect = page.getByTestId("campaign-publish-device");
-    if ((await deviceSelect.count()) > 0) {
-      deviceSlotId = await deviceSelect.inputValue();
-    }
+    // Publish + public on dedicated device (avoid seed schedule / contamination)
+    const proofDevice = await resolveProofPublicDevice(
+      page.request,
+      `ExploreCtrl_${stamp}`
+    );
+    let deviceSlotId = proofDevice.deviceSlotId;
+    let deviceCode = proofDevice.deviceCode;
+    notes.push(`device_dedicated=${proofDevice.dedicated}`);
     if (!deviceSlotId) {
-      const devices = await page.request.get(`${BASE}/api/devices`);
-      if (devices.ok()) {
-        const json = (await devices.json()) as {
-          devices?: { id: string; code?: string; deviceCode?: string }[];
-        };
-        const list = json.devices ?? [];
-        const seed = list.find(
-          (d) => d.code === SEED.deviceCode || d.deviceCode === SEED.deviceCode
-        );
-        deviceSlotId = seed?.id ?? list[0]?.id ?? "";
+      const deviceSelect = page.getByTestId("campaign-publish-device");
+      if ((await deviceSelect.count()) > 0) {
+        deviceSlotId = await deviceSelect.inputValue();
+        deviceCode = SEED.deviceCode;
       }
     }
     if (deviceSlotId) {
@@ -259,8 +262,8 @@ test.describe("Builder exploratory controls", () => {
       notes.push(`publish=${pub.status()} assign=${assign.status()}`);
       if (!pub.ok() || !assign.ok()) blockers.push("publish_or_assign_failed");
       else {
-        const at = encodeURIComponent("2026-07-24T12:00:00-04:00");
-        await page.goto(`${BASE}/t/${SEED.deviceCode}?public=1&at=${at}`, {
+        const at = encodeURIComponent(PROOF_PUBLIC_AT);
+        await page.goto(`${BASE}/t/${deviceCode}?public=1&at=${at}`, {
           waitUntil: "domcontentloaded",
         });
         await page.waitForTimeout(800);

@@ -2,12 +2,15 @@
  * Shared Playwright proof helpers for Tap Connect Fusion e2e specs.
  */
 
-import { type Page, type ConsoleMessage } from "@playwright/test";
+import { expect, type APIRequestContext, type Page, type ConsoleMessage } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
 export const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3000";
 export const OUT = path.join(process.cwd(), "tmp", "fusion-proofs");
+
+/** Morning instant outside seed evening schedule windows — assignment wins on seed device. */
+export const PROOF_PUBLIC_AT = "2026-07-23T10:00:00-04:00";
 
 export const SEED = {
   businessId: process.env.SEED_BUSINESS_ID ?? "cmrx5wjml0000519ktwgyj0pe",
@@ -18,6 +21,54 @@ export const SEED = {
   journeyName: process.env.SEED_JOURNEY_NAME ?? "[SEED] Demo Journey",
   campaignTitle: process.env.SEED_CAMPAIGN_TITLE ?? "[SEED] Welcome Offer",
 } as const;
+
+/** Wait until campaign editor client handlers are attached (SSR Select is visible before onClick). */
+export async function waitForCampaignEditorReady(page: Page) {
+  await expect(page.getByTestId("campaign-editor")).toHaveAttribute(
+    "data-editor-ready",
+    "true",
+    { timeout: 30_000 }
+  );
+}
+
+/** Select a content block after editor-ready, with retry until aria-pressed. */
+export async function selectCampaignBlock(page: Page, blockTestId: string) {
+  await waitForCampaignEditorReady(page);
+  const el = page.getByTestId(blockTestId);
+  await el.waitFor({ state: "visible", timeout: 30_000 });
+  await expect(async () => {
+    await el.click({ trial: false });
+    await expect(el).toHaveAttribute("aria-pressed", "true");
+  }).toPass({ timeout: 15_000 });
+}
+
+/**
+ * Dedicated device for public parity — avoids seed schedule / prior-test contamination.
+ * Falls back to seed device + schedule-safe `at` when create is unavailable.
+ */
+export async function resolveProofPublicDevice(
+  request: APIRequestContext,
+  nickname: string
+): Promise<{ deviceSlotId: string; deviceCode: string; dedicated: boolean }> {
+  const created = await request.post(`${BASE}/api/devices`, {
+    data: { nickname },
+  });
+  if (created.ok()) {
+    const json = (await created.json()) as {
+      device: { id: string; deviceCode: string };
+    };
+    return {
+      deviceSlotId: json.device.id,
+      deviceCode: json.device.deviceCode,
+      dedicated: true,
+    };
+  }
+  return {
+    deviceSlotId: "",
+    deviceCode: SEED.deviceCode,
+    dedicated: false,
+  };
+}
 
 export type ProofRecord = {
   id: string;
