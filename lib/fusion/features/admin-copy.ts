@@ -13,6 +13,8 @@ const KILL_SWITCH_FEATURES = new Set([
   "wallet.apple_google",
   "journey.tapflow",
   "ai.autopilot",
+  "ai.keywords",
+  "brand.vocabulary",
   "commerce.tapcommerce",
 ]);
 

@@ -17,7 +17,7 @@
 | Devices | `components/devices/*`, `DeviceSlot` | Preserve; TapPoint bridge wired (`lib/fusion/devices/tap-point-bridge.ts`) |
 | Leads | `components/leads/*`, `Lead` + public capture | Preserve; dual-write to Contact/Consent on capture |
 | Analytics | `lib/services/analytics.ts`, Tap/Click events | Preserve; Insights hub + TapProof readiness panel |
-| Brand Kit | `components/brand/brand-kit-form.tsx` | Preserve; Assets hub links to Brand Kit |
+| Brand Kit | `components/brand/brand-kit-form.tsx` + `components/fusion/keywords/*` | Preserve; Assets hub links to Brand Kit; keyword Brand Pack via `/api/keywords` |
 | Integrations | `lib/config/integrations.ts` | Preserve env gates; add Feature Registry |
 | Scan Mode | `components/scan/*`, `lib/services/scan.ts` | Preserve; claim path ensures TapPoint bridge |
 | Billing UI | `app/dashboard/billing/page.tsx` | Preserve UI; Stripe-ready domain |

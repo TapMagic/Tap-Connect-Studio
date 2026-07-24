@@ -28,6 +28,7 @@ import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
 import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
 import {
@@ -877,6 +878,9 @@ export function TapCardBuilder({
         {/* Right — editor always visible */}
         <aside className="builder-studio-inspector min-h-0 overflow-y-auto overscroll-contain border-l border-border/60 max-lg:max-h-[50vh] lg:h-auto">
           <div ref={inspectorRef} className="p-4">
+          <div className="mb-3">
+            <KeywordsSuggestPanel surface="card" defaultChannel="instagram" />
+          </div>
           <p className="mb-3 text-sm font-semibold">
             {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
           </p>

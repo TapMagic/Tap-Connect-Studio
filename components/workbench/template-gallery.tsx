@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { CampaignTemplate, ContentBlock } from "@/lib/types/campaign";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 
 const TEMPLATE_PREVIEWS: Record<
   string,
@@ -314,6 +315,7 @@ export function WorkbenchStart({
 
   return (
     <div className="space-y-8">
+      <KeywordsSuggestPanel surface="templates" defaultChannel="instagram" />
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
         <h2 className="text-lg font-semibold">Quick Start</h2>
         <p className="mt-1 text-sm text-muted-foreground">

@@ -10,6 +10,7 @@ Map every requirement to source → pillar → UX → domain → module → stat
 | F-003 | Charter §9 | Block library + restore missing blocks | Card/Campaign | Experiences | A | In progress | Addable parity |
 | F-004 | Charter §10 | Structured + Freeform + visual ref | Card | Experiences | A | Scaffolded | — |
 | F-005 | Charter §11–12 | Media providers + Brand Kit | Assets | Assets | A | Preserve | Existing APIs |
+| F-005b | Brand vocabulary | Contextual Keywords & Hashtags Brand Pack | Assets (contextual) | Brand Kit + builders | D (+A store) | New | `/api/keywords`, `ai.keywords` |
 | F-006 | Charter §13–15 | Campaigns/Groups/Scan/TapPoint | Campaign/Devices | Experiences/Tap Points | B | Wired | `lib/fusion/devices/tap-point-bridge.ts`, device create/activate/claim/tap paths |
 | F-007 | Charter §16 | Cody spine selective import | Platform | — | A/B/J | In progress | Schema additive |
 | F-008 | Charter §17 | Seven-part Studio IA | Platform | Nav | J | Wired | `/dashboard/experiences`, `/tap-points`, `/audience`, `/insights`, `/assets` hubs |

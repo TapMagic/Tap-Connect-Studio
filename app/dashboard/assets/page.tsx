@@ -1,6 +1,7 @@
 import { requireBusiness } from "@/lib/auth";
 import { FILE_FORMAT_REGISTRY } from "@/lib/fusion/formats/registry";
 import { StudioHubSections } from "@/components/studio/hub-sections";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +16,8 @@ export default async function AssetsHubPage() {
         title="Assets"
         subtitle="Brand Kit, media, logos, fonts, templates, and reusable sections — Builder Brand mode inherits; never a second source of truth."
       />
+
+      <KeywordsSuggestPanel surface="assets" defaultChannel="instagram" />
 
       <p className="text-sm text-white/45">
         {imageFormats}+ image formats registered · Pexels / Unsplash / Logo.dev / R2

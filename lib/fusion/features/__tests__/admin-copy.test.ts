@@ -17,6 +17,7 @@ describe("Feature registry admin copy", () => {
 
   it("marks kill-switch features", () => {
     assert.equal(isKillSwitchFeature("comms.messaging"), true);
+    assert.equal(isKillSwitchFeature("ai.keywords"), true);
     assert.equal(isKillSwitchFeature("card.builder.v1"), false);
   });
 

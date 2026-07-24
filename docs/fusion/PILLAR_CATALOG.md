@@ -7,7 +7,7 @@ Every pillar is designed and wired into the product graph. Activation is Admin/f
 | V1 Card Builder + blocks | Experiences | Card/Experience | GA (V1) |
 | Campaigns / Groups / calendar / resolver | Experiences | Campaign | GA (V1) |
 | Devices / Tap Points / Sets / Rotations / Scan | Tap Points | Devices | GA → expand |
-| Brand Kit / media / templates | Assets | Assets | GA → expand |
+| Brand Kit / media / templates / keyword Brand Pack | Assets | Assets | GA → expand (keywords alpha) |
 | Contacts / Leads / Consent | Audience | Audience | GA → expand |
 | Insights / analytics | Insights | Insights | GA → expand |
 | TapSave / MyTap / retention | Audience + Card | Relationships | Defined → build |

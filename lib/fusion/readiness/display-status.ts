@@ -291,20 +291,21 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "keywords_brand_pack",
-    lastVerifiedAt: undefined,
-    browserE2ePassed: false,
-    persistencePassed: false,
+    lastVerifiedAt: "2026-07-24T03:30:00.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
     notes:
-      "Contextual AI Keywords & Hashtags + Brand Pack wired (ai.keywords). Live trend enrichment = VERIFIED — CREDENTIALS REQUIRED. Proof: e2e/keywords-brand-pack.spec.ts",
+      "P-keywords-brand-pack headed: Brand Kit panel suggest→accept→persist Brand Pack. BrandVocabularyTerm/Pack + keywordBrandPack JSON. Features brand.vocabulary + ai.keywords. Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
     blockers: [
-      "headed_proof_pending",
       "live_trend_provider",
+      "openai_ai_enhancement",
       "a11y_headed_pass",
       "multi_surface_apply_matrix",
+      "not_owner_ready",
     ],
-    missingProviders: ["approved_trend_provider"],
+    missingProviders: ["approved_trend_provider", "openai"],
     nextAction:
-      "Run headed Brand Kit suggest→accept→persist proof; never claim trending without approved provider",
+      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; expand multi-surface apply headed matrix",
   },
 ];
 

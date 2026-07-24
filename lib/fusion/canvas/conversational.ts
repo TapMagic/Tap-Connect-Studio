@@ -4,6 +4,11 @@
  */
 
 import { evaluateChannelGuardian, type GuardianPurpose, type MessageChannel } from "@/lib/fusion/comms/channel-guardian";
+import {
+  RESERVED_CONVERSATIONAL_KEYWORDS,
+  buildConversationalKeywordSet,
+  type KeywordBrandPack,
+} from "@/lib/fusion/keywords/client";
 import { addNode, requireCanvas } from "./graph";
 import { appendCanvasAudit } from "./store";
 import type { ConversationalActionId, ConversationalTriggerId } from "./types";
@@ -220,3 +225,47 @@ export function addConversationalAction(
 
   return { ...result, evaluation: evalResult };
 }
+
+/**
+ * Bind Brand Pack keywords to a conversational keyword trigger node.
+ * Reserved/control words are flagged; regulated send actions still require Channel Guardian.
+ */
+export function bindKeywordTriggerFromBrandPack(
+  canvasId: string,
+  pack: KeywordBrandPack,
+  extraTriggers: string[] = []
+) {
+  const set = buildConversationalKeywordSet(pack, extraTriggers);
+  const reserved = new Set<string>(RESERVED_CONVERSATIONAL_KEYWORDS);
+  const safeTriggers = set.triggers.filter((t) => !reserved.has(t));
+
+  const result = addNode(canvasId, {
+    kind: "trigger",
+    label: "Keyword (Brand Pack)",
+    sketch: false,
+    data: {
+      triggerId: "keyword" satisfies ConversationalTriggerId,
+      catalog: "conversational",
+      executes: true,
+      keywords: safeTriggers,
+      synonyms: set.synonyms,
+      misspellings: set.misspellings,
+      collisions: set.collisions,
+      reservedHits: set.reservedHits,
+      guardianNote: set.guardianNote,
+    },
+  });
+
+  appendCanvasAudit({
+    canvasId,
+    action: "conversational.keyword_brand_pack_bound",
+    detail: {
+      triggerCount: safeTriggers.length,
+      collisionCount: set.collisions.length,
+      reservedCount: set.reservedHits.length,
+    },
+  });
+
+  return { ...result, conversational: set };
+}
+

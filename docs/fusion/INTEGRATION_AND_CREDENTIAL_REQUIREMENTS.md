@@ -10,6 +10,7 @@
 | Connectors | `lib/fusion/connectors/registry.ts` | `/admin/platform` → Connectors | per connector |
 | Billing | `lib/fusion/billing/*` | `/admin/platform` → Billing + `/dashboard/billing` | `billing.stripe` |
 | Automation Team | `lib/fusion/autopilot/*` | `/admin/platform` → kill switch | `ai.autopilot` |
+| Keywords & Hashtags | `lib/fusion/keywords/*` | Brand Kit + contextual panels; Admin kill switch | `ai.keywords` |
 | Channel Guardian | `lib/fusion/comms/*` | `/admin/platform` → Channel Guardian | `comms.messaging` |
 | Wallet / TapSave | `lib/fusion/wallet/*`, `lib/fusion/tapsave/moments.ts` | `/admin/platform` → Wallet & TapSave | `wallet.apple_google`, `tapsave.core` |
 | TapFlow | `lib/fusion/journey/*` | `/dashboard/experiences/journeys` | `journey.tapflow` |
@@ -69,6 +70,12 @@ API: `GET/POST /api/connectors/productivity` — connect, create, bridge workflo
 - [ ] Confirm isolated `tapconnect_fusion_dev` migration applied locally (`npm run db:migrate`) — **never Railway prod**
 - [ ] Set `PLATFORM_ADMIN_EMAILS` for operators who may toggle Feature Registry
 - [ ] Review default-off features in `/admin/platform` → Feature registry before any customer enablement
+
+### P1b — Keywords & Hashtags (`ai.keywords`)
+- [ ] Confirm `BrandKit.keywordBrandPack` migration on tapconnect_fusion_dev
+- [ ] Brand Kit: suggest → accept → Save Brand Pack (headed proof)
+- [ ] Live trend enrichment remains **VERIFIED — CREDENTIALS REQUIRED** until an approved trend provider is connected
+- [ ] Never claim causation from keyword analytics correlation stubs
 
 ### P1 — Automation Team (`ai.autopilot`)
 - [ ] Supply `OPENAI_API_KEY` + model/spend limits in provider dashboard

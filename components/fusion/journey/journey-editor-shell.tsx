@@ -24,6 +24,7 @@ import {
   type RuntimeEvent,
 } from "@/lib/fusion/journey";
 import { cn } from "@/lib/utils";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 
 type DraftRow = {
   id: string;
@@ -284,6 +285,8 @@ export function JourneyEditorShell({
           .
         </div>
       )}
+
+      <KeywordsSuggestPanel surface="tapflow" defaultChannel="email" />
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[200px] flex-1 space-y-1">

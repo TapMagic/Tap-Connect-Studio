@@ -1,6 +1,7 @@
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BrandKitForm } from "@/components/brand/brand-kit-form";
+import { BrandKeywordsSection } from "@/components/fusion/keywords/brand-keywords-section";
 import { isMediaUploadReady, isStockImagesReady } from "@/lib/config/integrations";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 
@@ -14,13 +15,14 @@ export default async function BrandPage() {
   });
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
+    <div className="space-y-6 p-6 lg:p-8 pb-24">
       <div>
         <h1 className="text-2xl font-bold">Brand Kit</h1>
         <p className="text-muted-foreground">
           Colors, logo, contact card, socials, and compliance defaults for every tap page.
         </p>
       </div>
+      <BrandKeywordsSection initialPack={brandKit?.keywordBrandPack} />
       <BrandKitForm
         brandKit={{
           primaryColor: brandKit?.primaryColor ?? "#22c55e",

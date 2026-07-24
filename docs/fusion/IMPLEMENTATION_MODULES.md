@@ -13,7 +13,7 @@ Tenancy · Card/Experience/publication · blocks · attributes · assets/media �
 | **A** | V1 preservation, Builder, blocks, formats, media, Brand Kit | Owns builder UI + attribute contracts |
 | **B** | Campaigns, Groups, schedules, fallbacks, devices, Scan Mode | Owns schedule/resolver; coordinate Tap Point schema with C |
 | **C** | Contacts, TapSave, MyTap, Wallet, Moments | Owns audience models |
-| **D** | Knowledge, Autopilot, Automation Team | Replaces V1 AI; do not regress entry points |
+| **D** | Knowledge, Autopilot, Automation Team, **Keywords & Brand Vocabulary** (`lib/fusion/keywords`, `/api/ai/keywords`) | Replaces V1 AI; Brand Kit owns approved vocabulary (`BrandVocabularyTerm`); contextual only — no primary nav; local grounded generation without OpenAI |
 | **E** | Email, messaging, ManyChat, TapInbox, TapCase, TapGuide | Provider adapters + Guardian |
 | **F** | TapFlow, TapTrail, whiteboard | Import Cody journey spine carefully |
 | **G** | TapCast / social | Capability registry + partial failure |

@@ -16,10 +16,12 @@
 
 1. `20260723000000_fusion_spine` … 6. `20260723000005_fusion_taploop`  
 7. `20260724000006_tapcanvas_tiktok`  
-8. `20260724000007_tapcast_omnichannel` — `TapCastChannelVariant` / `TapCastChannelConnection` / `TapCastAuditLog`
+8. `20260724000007_tapcast_omnichannel` — `TapCastChannelVariant` / `TapCastChannelConnection` / `TapCastAuditLog`  
+9. `20260724000008_brand_vocabulary` — `BrandVocabularyTerm` / packs / suggestion runs / analytics / trigger bindings
 
 ## Recent wiring
 
+- **Shared AI Keywords & Hashtags (authoritative)** — `lib/fusion/keywords/**`, durable `BrandVocabularyTerm` + named Brand Packs + suggestion history + trigger collision bindings on isolated DB. API `/api/ai/keywords` (alias `/api/keywords`). Contextual panel on Brand Kit, Campaign/Card builders, TapCast/TikTok, Email, TapCanvas, TapFlow, Inbox, Assets, Templates, Autopilot. Local grounded generation without OpenAI; live AI/trend enrichment = **VERIFIED — CREDENTIALS REQUIRED**. Features `brand.vocabulary` + `ai.keywords`. TikTok no longer hard-codes `#TapConnect`/`#WeeklySpecial` defaults.
 - **Mainstream Omnichannel TapCast** — channel capability registry (publishing / conversation / community), mock adapters with publish-path ladder, campaign channel variants (native adapt, no blind cross-post), failure isolation, Admin/Settings panel, `/api/tapcast`, TapCanvas `distribution_graph` / `distribution_action`, Prisma persist on isolated DB. TikTok remains first-class at Experiences → TapCast → TikTok.
 - **Productivity & Work Management (deepened)** — shared ExternalWorkItem contract + mock discovery/comments/attachments/webhooks/poll/conflict/retry/idempotency/audit/analytics/Slack·Teams/Knowledge/Zapier; `run_closeout` API; Settings panel actions; headed proofs. Live OAuth remains **VERIFIED — CREDENTIALS REQUIRED**.
 - Keep → MyTap → mock Apple Wallet (`/api/mytap/wallet`)  

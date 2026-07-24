@@ -14,6 +14,7 @@ import {
 } from "./adapter";
 import { getCast } from "./store";
 import { createExternalWorkItem } from "@/lib/fusion/connectors/productivity/adapter";
+import { suggestKeywords, buildGroundContext, EMPTY_BRAND_PACK } from "@/lib/fusion/keywords";
 import type { TikTokAdapterResult, TikTokCast } from "./types";
 import { nanoid } from "nanoid";
 
@@ -26,6 +27,26 @@ export type TikTokFunnelWorkflowResult = {
   funnelPath: string[];
 };
 
+/** Resolve hashtags from shared vocabulary — never invent business facts or hard-code campaign tags. */
+function groundedTikTokHashtags(opts: {
+  businessId: string;
+  title: string;
+}): string[] {
+  const result = suggestKeywords({
+    ground: buildGroundContext({
+      businessId: opts.businessId,
+      campaignTitle: opts.title,
+      brandPack: EMPTY_BRAND_PACK,
+    }),
+    channel: "tiktok",
+    limit: 5,
+  });
+  const tags = result.suggestions
+    .filter((s) => s.kind === "hashtag" && s.family !== "avoid_exclusion")
+    .map((s) => s.value);
+  return tags;
+}
+
 /**
  * Mock path: build a full funnel-linked TikTok cast ready for draft upload.
  */
@@ -33,17 +54,20 @@ export function runTikTokRelationshipFunnel(opts: {
   businessId: string;
   title: string;
   script?: string;
+  hashtags?: string[];
 }): TikTokAdapterResult<TikTokFunnelWorkflowResult> {
   const cardStubId = `card_${nanoid(8)}`;
   const campaignStubId = `campaign_${nanoid(8)}`;
   const tapPointStubId = `tap_point_${nanoid(8)}`;
+  const hashtags =
+    opts.hashtags?.length ? opts.hashtags : groundedTikTokHashtags(opts);
 
   const created = createTikTokCast({
     businessId: opts.businessId,
     title: opts.title,
     script: opts.script ?? "Hook → offer → Keep Card CTA → wallet reminder",
     caption: `${opts.title} — Keep this Card. Powered by Tap The Magic.`,
-    hashtags: ["#TapConnect", "#Keep", "#WeeklySpecial"],
+    hashtags,
     campaignId: campaignStubId,
     cardId: cardStubId,
     tapPointId: tapPointStubId,

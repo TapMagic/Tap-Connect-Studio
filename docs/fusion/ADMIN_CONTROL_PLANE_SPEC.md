@@ -20,6 +20,8 @@ stable id · name · description · pillar · domain owner · UX location · imp
 
 **Do not scatter unrelated booleans.** Use typed, versioned feature + entitlement system (`lib/fusion/features`).
 
+Kill-switch-capable examples: `comms.messaging`, `comms.email`, `comms.inbox`, `wallet.apple_google`, `journey.tapflow`, `ai.autopilot`, `ai.keywords`, `commerce.tapcommerce`.
+
 ## Feature states
 
 Defined · In development · Internal only · Design Lab · QA · Alpha · Private beta · Public beta · GA · Paused · Degraded · Deprecated · Retired

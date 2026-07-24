@@ -30,9 +30,11 @@ type Template = { id: string; name: string };
 export function TapCanvasShell({
   initialLinkType,
   initialLinkId,
+  initialCanvasId,
 }: {
   initialLinkType?: string;
   initialLinkId?: string;
+  initialCanvasId?: string;
 }) {
   const [canvases, setCanvases] = useState<TapCanvas[]>([]);
   const [canvas, setCanvas] = useState<TapCanvas | null>(null);
@@ -43,6 +45,7 @@ export function TapCanvasShell({
   const [proposals, setProposals] = useState<
     Array<{ id: string; title: string; status: string; severity: string }>
   >([]);
+  const [persistence, setPersistence] = useState<"prisma" | "memory" | null>(null);
 
   const reloadList = useCallback(async () => {
     const res = await fetch("/api/canvas");
@@ -50,6 +53,9 @@ export function TapCanvasShell({
     if (res.ok) {
       setCanvases(json.canvases ?? []);
       setTemplates(json.templates ?? []);
+      if (json.persistence === "prisma" || json.persistence === "memory") {
+        setPersistence(json.persistence);
+      }
     }
   }, []);
 
@@ -65,8 +71,10 @@ export function TapCanvasShell({
   }, []);
 
   useEffect(() => {
-    void reloadList();
-  }, [reloadList]);
+    void reloadList().then(() => {
+      if (initialCanvasId) void loadCanvas(initialCanvasId);
+    });
+  }, [reloadList, loadCanvas, initialCanvasId]);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -115,12 +123,17 @@ export function TapCanvasShell({
   const modes = ["sketch", "build", "operate", "analyze"] as const;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="tapcanvas-shell">
       <header className="space-y-2 border-b border-white/8 pb-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           Experiences · TapCanvas
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight text-white">TapCanvas</h1>
+        <h1
+          data-testid="tapcanvas-heading"
+          className="text-2xl font-semibold tracking-tight text-white"
+        >
+          TapCanvas
+        </h1>
         <p className="max-w-2xl text-sm text-white/55">
           One graph for Sketch, Build, Operate, and Analyze &amp; Repair — linked projections of
           TapConnect objects (including ExternalWorkItem). Sketch connectors never execute until
@@ -131,13 +144,22 @@ export function TapCanvasShell({
             Opened from {initialLinkType}:{initialLinkId} — use Reverse viz or templates to project.
           </p>
         ) : null}
-        <p className="text-xs text-white/40">
-          Powered by Tap The Magic · Readiness: DEVELOPMENT (in-memory; not OWNER-READY)
+        <p
+          data-testid="tapcanvas-persistence-note"
+          className="text-xs text-white/40"
+        >
+          Powered by Tap The Magic ·{" "}
+          {persistence === "prisma"
+            ? "IMPLEMENTED BUT NOT OWNER-READY (Prisma on tapconnect_fusion_dev)"
+            : "Persists on tapconnect_fusion_dev when configured · Not OWNER-READY"}
         </p>
       </header>
 
       {message ? (
-        <p className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70">
+        <p
+          data-testid="tapcanvas-message"
+          className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70"
+        >
           {message}
         </p>
       ) : null}
@@ -145,6 +167,7 @@ export function TapCanvasShell({
       <div className="flex flex-wrap gap-2">
         <Button
           disabled={busy}
+          data-testid="tapcanvas-create"
           onClick={() => post({ action: "create", name: "New TapCanvas" })}
         >
           New board
@@ -152,6 +175,34 @@ export function TapCanvasShell({
         <Button
           variant="secondary"
           disabled={busy}
+          data-testid="tapcanvas-simple-campaign"
+          onClick={() =>
+            post({
+              action: "create_simple_campaign",
+              title: `Canvas Campaign ${Date.now()}`,
+            })
+          }
+        >
+          Simple campaign
+        </Button>
+        <Button
+          variant="secondary"
+          disabled={busy}
+          data-testid="tapcanvas-weekly-specials"
+          onClick={() =>
+            post({
+              action: "create_weekly_specials_persisted",
+              name: "Weekly Specials",
+            })
+          }
+        >
+          Weekly Specials (persist)
+        </Button>
+        <Button
+          variant="outline"
+          disabled={busy}
+          data-testid="tapcanvas-weekly-recipe"
+          className="border-white/15"
           onClick={() => post({ action: "weekly_specials", name: "Weekly Specials" })}
         >
           Weekly Specials recipe
@@ -172,13 +223,14 @@ export function TapCanvasShell({
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
-        <aside className="space-y-2">
+        <aside className="space-y-2" data-testid="tapcanvas-board-list">
           <p className="text-xs font-semibold uppercase tracking-wide text-white/35">Boards</p>
           <ul className="space-y-1">
             {canvases.map((c) => (
               <li key={c.id}>
                 <button
                   type="button"
+                  data-testid={`tapcanvas-board-${c.id}`}
                   className={cn(
                     "w-full rounded-lg border px-3 py-2 text-left text-sm",
                     canvas?.id === c.id
@@ -195,6 +247,7 @@ export function TapCanvasShell({
           </ul>
           <Link
             href="/dashboard/experiences/tapcast/tiktok"
+            data-testid="tapcanvas-open-tiktok"
             className="mt-4 block text-xs text-primary underline-offset-4 hover:underline"
           >
             Open TapCast · TikTok →
@@ -207,12 +260,20 @@ export function TapCanvasShell({
           ) : (
             <>
               <div className="flex flex-wrap items-center gap-2">
-                <h2 className="mr-2 text-lg font-medium text-white">{canvas.name}</h2>
-                <span className="text-xs text-white/40">v{canvas.version}</span>
+                <h2
+                  data-testid="tapcanvas-active-name"
+                  className="mr-2 text-lg font-medium text-white"
+                >
+                  {canvas.name}
+                </h2>
+                <span className="text-xs text-white/40" data-testid="tapcanvas-version">
+                  v{canvas.version}
+                </span>
                 {modes.map((m) => (
                   <Button
                     key={m}
                     size="sm"
+                    data-testid={`tapcanvas-mode-${m}`}
                     variant={canvas.mode === m ? "default" : "outline"}
                     className={canvas.mode === m ? "" : "border-white/15"}
                     disabled={busy}
@@ -230,6 +291,7 @@ export function TapCanvasShell({
                   <div className="space-y-1">
                     <label className="text-[10px] uppercase text-white/40">Sticky</label>
                     <Input
+                      data-testid="tapcanvas-sticky-input"
                       value={stickyLabel}
                       onChange={(e) => setStickyLabel(e.target.value)}
                       className="h-9 w-48 bg-black/40"
@@ -238,6 +300,7 @@ export function TapCanvasShell({
                   <Button
                     size="sm"
                     disabled={busy}
+                    data-testid="tapcanvas-add-sticky"
                     onClick={() =>
                       post({
                         action: "add_sticky",
@@ -381,11 +444,15 @@ export function TapCanvasShell({
                 </div>
               ) : null}
 
-              <div className="min-h-[320px] rounded-xl border border-white/10 bg-[radial-gradient(ellipse_at_top,_rgba(163,230,53,0.06),_transparent_55%),linear-gradient(180deg,#0a0a0a,#111)] p-4">
+              <div
+                data-testid="tapcanvas-graph"
+                className="min-h-[320px] rounded-xl border border-white/10 bg-[radial-gradient(ellipse_at_top,_rgba(163,230,53,0.06),_transparent_55%),linear-gradient(180deg,#0a0a0a,#111)] p-4"
+              >
                 <ul className="flex flex-wrap gap-3">
                   {canvas.nodes.map((n) => (
                     <li
                       key={n.id}
+                      data-testid={`tapcanvas-node-${n.id}`}
                       className={cn(
                         "min-w-[140px] max-w-[200px] rounded-lg border px-3 py-2 text-sm",
                         n.sketch

@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 
 type Thread = {
   id: string;
@@ -240,6 +241,8 @@ export function InboxShell({
           Enable <code className="font-mono">comms.inbox</code> to use TapInbox.
         </p>
       ) : null}
+
+      <KeywordsSuggestPanel surface="inbox" defaultChannel="tapcanvas" />
 
       <div className="grid gap-3 rounded-xl border border-border/60 bg-card/30 p-4 sm:grid-cols-4">
         <Input

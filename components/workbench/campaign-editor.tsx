@@ -31,6 +31,7 @@ import { QrPanel } from "@/components/campaign/qr-panel";
 import { SchedulePanel } from "@/components/campaign/schedule-panel";
 import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
 import { AiAssistPanel } from "@/components/campaign/ai-assist-panel";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { captureEditorSnapshot } from "@/lib/fusion/autopilot/editor-revert";
 import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import { normalizeContentBlocks } from "@/lib/services/normalize-content-blocks";
@@ -875,6 +876,7 @@ export function CampaignEditor({
             )}
 
             {tab === "ai" && (
+              <div className="space-y-4">
               <AiAssistPanel
                 aiReady={integrations.ai}
                 autopilotReady={autopilotReady}
@@ -929,6 +931,19 @@ export function CampaignEditor({
                   setMessage("Autopilot apply undone — editor restored.");
                 }}
               />
+              <KeywordsSuggestPanel
+                surface="campaign"
+                defaultChannel="instagram"
+                campaignTitle={title}
+                existingContentSnippets={blocks
+                  .slice(0, 6)
+                  .map((b) => {
+                    const c = b as { content?: { text?: string; title?: string } };
+                    return c.content?.text || c.content?.title || "";
+                  })
+                  .filter(Boolean)}
+              />
+              </div>
             )}
           </div>
         </aside>

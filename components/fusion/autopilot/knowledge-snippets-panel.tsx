@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 
 type Snippet = {
   id: string;
@@ -86,6 +87,7 @@ export function KnowledgeSnippetsPanel({
 
   return (
     <div className="space-y-3">
+      <KeywordsSuggestPanel surface="autopilot" defaultChannel="instagram" />
       <div className="flex flex-wrap gap-2">
         <Button type="button" size="sm" variant="outline" disabled={pending} onClick={seedBrand}>
           Seed brand kit

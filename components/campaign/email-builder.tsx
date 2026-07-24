@@ -17,6 +17,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MediaPicker } from "@/components/media/media-picker";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { nanoid } from "nanoid";
 import type { BlockType, ContentBlock } from "@/lib/types/campaign";
 import {
@@ -266,6 +267,14 @@ export function CampaignEmailBuilder({
       </div>
 
       {message && <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>}
+
+      <div className="border-b border-border/40 px-4 py-2">
+        <KeywordsSuggestPanel
+          surface="email"
+          defaultChannel="email"
+          campaignTitle={campaign.title}
+        />
+      </div>
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         <aside className="w-full shrink-0 overflow-y-auto border-r border-border/60 p-4 lg:w-[300px]">
