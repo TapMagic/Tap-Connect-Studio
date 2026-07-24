@@ -61,11 +61,16 @@
 
 | Surface | Classification |
 |---------|----------------|
-| Omnichannel TapCast (registry, variants, mock publish, canvas hooks) | **IMPLEMENTED BUT NOT OWNER-READY** |
-| Live channel publish (all TapCast providers) | **VERIFIED — CREDENTIALS REQUIRED** |
-| TikTok first-class mock path | Prisma-persisted mock funnel (P-tiktok-mock-persist); live Direct Post credential-gated |
+| Omnichannel TapCast (registry, variants, mock publish, canvas hooks) | **IMPLEMENTED BUT NOT OWNER-READY** (local matrix/a11y open) |
+| Live channel publish (all TapCast providers with a live path) | **VERIFIED — CREDENTIALS REQUIRED** — see `PROVIDER_READINESS.md` (dev app, OAuth, scopes, callback, webhook, review, business verification, prod approval) |
+| Snapchat organic | **MOCK ONLY / NO LIVE PUBLISH** — package/checklist; never live OWNER-READY organic |
+| TikTok first-class mock path | Prisma-persisted mock funnel (P-tiktok-mock-persist); live Direct Post = **VERIFIED — CREDENTIALS REQUIRED** (app review) |
+| OpenAI Keywords enhance / Autopilot | **VERIFIED — CREDENTIALS REQUIRED** |
+| Trend enrichment | **VERIFIED — CREDENTIALS REQUIRED** (approved provider TBD; no trending claims) |
 | TapCanvas (documents + guided campaigns + repair/versions/keywords/comments/tapflow lifecycle) | **IMPLEMENTED BUT NOT OWNER-READY** (P-tapcanvas-* + P-tapcanvas-weekly-matrix / conversational-funnel / tapflow-lifecycle / reverse-repair-deep / killswitch) |
 | TapFlow from TapCanvas (shared JourneyDraft engine) | **IMPLEMENTED BUT NOT OWNER-READY** — publish/activate gated by `journey.tapflow`; dry-run execute/recover/analytics proved; live visitor executor open |
+
+**Credential closeout note (Part 5):** Absent external credentials do **not** block local owner-ready of finished mock/adapter workflows. Live = credentials-required until real provider tests pass. Docs: `PROVIDER_READINESS.md`, `INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md`.
 
 ## Local TapCanvas blockers (precise)
 

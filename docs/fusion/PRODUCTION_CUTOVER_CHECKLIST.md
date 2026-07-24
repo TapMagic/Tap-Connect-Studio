@@ -65,15 +65,23 @@ Isolated staging Railway environment + **separate staging database** + sandbox/t
 
 ### C4. Provider readiness (enable features only after probe green)
 
-For each provider to enable:
+For each provider to enable (authoritative detail: `PROVIDER_READINESS.md`):
 
+- [ ] Platform developer application created (sandbox + prod plan)
+- [ ] Customer OAuth / connection path (or app-password / API key as applicable)
+- [ ] Scopes least-privilege granted
+- [ ] Callback URL matches Studio domain (`DOMAIN_AND_CALLBACK_MAP.md`)
+- [ ] Webhook URL + signature verify (where applicable)
+- [ ] Provider App Review complete (when required — e.g. TikTok Direct Post, Meta messaging/publish)
+- [ ] Business verification complete (when required — Meta / A2P / etc.)
+- [ ] Production approval / live mode / Advanced Access
 - [ ] Readiness probe: env names present
-- [ ] Callback / webhook URL matches Studio domain
-- [ ] Live or certified sandbox call succeeds
+- [ ] Live or certified sandbox call succeeds (mock success ≠ live OWNER-READY)
 - [ ] Feature Registry enable with reason
 - [ ] Kill-switch known
+- [ ] Classification remains **VERIFIED — CREDENTIALS REQUIRED** until the above pass
 
-Order suggestion: Auth → Media → Email → Billing (if live) → Messaging → Wallet → TapCast channels → Productivity → Autopilot.
+Order suggestion: Auth → Media → Email → Billing (if live) → Messaging → Wallet → TapCast channels (one at a time) → Productivity → Autopilot / Keywords AI.
 
 ### C5. Functional smoke (production)
 

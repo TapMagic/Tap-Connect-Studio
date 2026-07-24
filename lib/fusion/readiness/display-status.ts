@@ -323,8 +323,17 @@ const CREDENTIAL_FEATURES = new Set<string>([
   "comms.email",
   "comms.messaging",
   "ai.autopilot",
+  "ai.keywords",
   "tapcast.tiktok",
   "tapcast.omnichannel",
+]);
+
+/** Features whose live path is always credential-gated even when integrations[] lacks a probe id. */
+const ALWAYS_CREDENTIAL_GATED = new Set<string>([
+  "wallet.apple_google",
+  "tapcast.tiktok",
+  "tapcast.omnichannel",
+  "ai.keywords",
 ]);
 
 function featureDef(id?: string) {
@@ -336,13 +345,20 @@ function providerGapsForFeature(featureId?: string): string[] {
   if (!featureId) return [];
   const map: Record<string, string[]> = {
     "ai.autopilot": ["openai"],
+    "ai.keywords": ["openai"],
     "comms.email": ["resend"],
     "billing.stripe": ["stripe"],
     "wallet.apple_google": [],
     "tapcast.tiktok": ["tiktok"],
+    "tapcast.omnichannel": ["tiktok"],
   };
   const ids = map[featureId] ?? [];
-  return ids.filter((id) => !integrations.find((i) => i.id === id)?.configured);
+  return ids.filter((id) => {
+    const integ = integrations.find((i) => i.id === id);
+    // Unknown probe ids (e.g. tiktok not in integrations[]) count as missing.
+    if (!integ) return true;
+    return !integ.configured;
+  });
 }
 
 function ledgerFor(sectionId: string): VerificationRecord | undefined {
@@ -413,7 +429,10 @@ export function resolveSectionReadiness(
     (CREDENTIAL_FEATURES.has(section.featureId ?? "") ||
       section.maturity === "verified_needs_credentials")
   ) {
-    if (providerGaps.length > 0 || section.featureId === "wallet.apple_google") {
+    if (
+      providerGaps.length > 0 ||
+      ALWAYS_CREDENTIAL_GATED.has(section.featureId ?? "")
+    ) {
       display = "verified_credentials_required";
     }
   }
@@ -467,7 +486,7 @@ export function resolveSectionReadiness(
     nextAction:
       ledger?.nextAction ??
       (display === "verified_credentials_required"
-        ? "Add development credentials via Integrations / .env.local (never Railway prod)"
+        ? "Supply sandbox credentials via Integrations / .env.local — live remains VERIFIED — CREDENTIALS REQUIRED (see docs/fusion/PROVIDER_READINESS.md); never Railway prod"
         : display === "development"
           ? "Implement workflow before promoting readiness"
           : "Execute isolated-DB + browser proof (ISOLATED_DB_PROOF_QUEUE) then record VERIFICATION_LEDGER"),
@@ -478,4 +497,9 @@ export function resolveSectionReadiness(
 /** Downgrade helper for Create actions / IA static fields */
 export function safeDisplayLabel(m: StudioMaturity): string {
   return DISPLAY_READINESS_LABEL[maturityToProvisional(m)];
+}
+
+/** Explicit credential-gated badge — never promote mock success to OWNER-READY. */
+export function credentialsRequiredLabel(): string {
+  return DISPLAY_READINESS_LABEL.verified_credentials_required;
 }

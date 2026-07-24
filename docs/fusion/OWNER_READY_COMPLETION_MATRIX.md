@@ -27,8 +27,9 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | Controls / responsive / a11y | 40% | DEVELOPMENT | P-controls, P-responsive, P-a11y | public `<main>`, full axe |
 | Productivity & Work Mgmt | 70% | VERIFIED — CREDENTIALS (live) | P-productivity-* | live OAuth apps |
 | TapCanvas | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-* + weekly-matrix / conversational-funnel / tapflow-lifecycle / reverse-repair-deep / killswitch | full SR/axe, live TapCast publish, live visitor executor, owner-gate zero blockers |
-| TapCast · TikTok | 60% | VERIFIED — CREDENTIALS (live); mock persisted | P-tiktok-mock-persist | TIKTOK_* OAuth, Direct Post cert |
-| Brand Vocabulary / AI Keywords | 80% | FUNCTIONAL + headed owner-gate (not OWNER-READY) | P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-* + shared P-tapcanvas-killswitch | live trend/AI, a11y, dedicated analytics UI |
+| TapCast · TikTok | 60% | VERIFIED — CREDENTIALS REQUIRED (live); mock persisted | P-tiktok-mock-persist | TIKTOK_* OAuth, Direct Post app review + prod approval (`PROVIDER_READINESS.md`) |
+| TapCast · other live channels | 55% | VERIFIED — CREDENTIALS REQUIRED (live); mock ladder | P-tapcast-* | Per-channel OAuth/scopes/callback/webhook/review — not local OWNER blockers |
+| Brand Vocabulary / AI Keywords | 80% | FUNCTIONAL + headed owner-gate (not OWNER-READY); live AI/trend = VERIFIED — CREDENTIALS REQUIRED | P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-* + shared P-tapcanvas-killswitch | live trend provider TBD + OpenAI enhance, a11y, dedicated analytics UI |
 
 **Platform overall:** ~**60–65%** — not 100%. No section shows OWNER-READY until blockers clear.
 

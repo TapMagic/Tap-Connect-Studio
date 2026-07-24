@@ -89,16 +89,21 @@ Cert material stays in secure storage — not committed. Mock adapters remain fu
 
 ## P3 — Social (TapCast) — supply only when prioritized
 
+Live classification for every row below: **VERIFIED — CREDENTIALS REQUIRED** until certified. Mock publish ≠ live OWNER-READY. Full remaining requirements (scopes, callbacks, webhooks, review, business verification, prod approval, test procedure): `PROVIDER_READINESS.md`.
+
 | Provider | Env keys | Status |
 |----------|----------|--------|
-| TikTok | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET` | [ ] |
-| YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET` | [ ] |
-| X | `X_API_KEY`, `X_API_SECRET` | [ ] |
+| TikTok | `TIKTOK_CLIENT_KEY`, `TIKTOK_CLIENT_SECRET`, `TIKTOK_REDIRECT_URI`, `TIKTOK_ACCESS_TOKEN` | [ ] |
+| YouTube | `YOUTUBE_CLIENT_ID`, `YOUTUBE_CLIENT_SECRET`, `YOUTUBE_REFRESH_TOKEN` | [ ] |
+| X | `X_API_KEY`, `X_API_SECRET`, `X_ACCESS_TOKEN`, `X_ACCESS_TOKEN_SECRET` | [ ] |
 | LinkedIn | `LINKEDIN_CLIENT_ID`, `LINKEDIN_CLIENT_SECRET` | [ ] |
 | Pinterest | `PINTEREST_APP_ID`, `PINTEREST_APP_SECRET` | [ ] |
-| Snapchat | `SNAPCHAT_CLIENT_ID` | [ ] |
+| Snapchat | `SNAPCHAT_CLIENT_ID` | [ ] mock-only organic — do not treat as live publish |
 | Bluesky | `BLUESKY_HANDLE`, `BLUESKY_APP_PASSWORD` | [ ] |
-| Google Business | `GOOGLE_BUSINESS_PROFILE_ACCOUNT_ID` | [ ] |
+| Google Business | `GOOGLE_BUSINESS_PROFILE_ACCOUNT_ID`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | [ ] |
+| Meta (IG/FB/Threads/Messenger) | `META_APP_ID`, `META_APP_SECRET`, page/IG ids, webhook verify | [ ] |
+| OpenAI (Keywords / Autopilot) | `OPENAI_API_KEY`, `OPENAI_MODEL` | [ ] |
+| Trend provider | (approved vendor TBD) | [ ] |
 
 ---
 

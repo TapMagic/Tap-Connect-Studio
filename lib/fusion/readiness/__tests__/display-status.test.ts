@@ -59,4 +59,29 @@ describe("display readiness derivation", () => {
     assert.equal(r.label, DISPLAY_READINESS_LABEL.verified_credentials_required);
     assert.ok(r.missingDependencies.some((d) => d.includes("resend") || d.includes("RESEND")));
   });
+
+  it("marks TapCast omnichannel as credentials-required (never mock OWNER-READY)", () => {
+    const section: StudioSection = {
+      id: "tapcast",
+      label: "TapCast",
+      href: "/dashboard/experiences/tapcast",
+      description: "Omnichannel social distribution",
+      maturity: "verified_needs_credentials",
+      featureId: "tapcast.omnichannel",
+      group: "Distribution",
+    };
+    const r = resolveSectionReadiness(section);
+    assert.equal(r.display, "verified_credentials_required");
+    assert.equal(r.label, DISPLAY_READINESS_LABEL.verified_credentials_required);
+    assert.notEqual(r.display, "owner_ready");
+    assert.ok(
+      r.missingDependencies.some(
+        (d) =>
+          d.includes("live_provider") ||
+          d.includes("tiktok") ||
+          d.includes("not_owner_ready") ||
+          d.includes("provider:")
+      )
+    );
+  });
 });

@@ -50,6 +50,15 @@ A provider is **certified** only when all applicable boxes pass.
 | Slack | ☐ | ☐ | ☐ | Platform → Connectors | — | ☐ | OAuth + bot scopes |
 | GitHub | ☐ | ☐ | ☐ | Platform → Connectors | — | ☐ | OAuth app |
 | Asana / ClickUp / Jira / Trello / Notion / MS Graph | ☐ | ☐ | varies | Platform → Connectors | — | ☐ | Per PO priority |
+| TikTok Direct Post | ☐ | ☐ | — | TapCast → TikTok | `tapcast.tiktok` | ☐ | Dev app + OAuth + **Content Posting / Direct Post review** + prod approval |
+| YouTube Shorts | ☐ | ☐ | — | TapCast hub | `tapcast.omnichannel` | ☐ | Google OAuth upload scopes + consent verification |
+| Instagram / Facebook / Threads | ☐ | ☐ | ☐ | TapCast hub | `tapcast.omnichannel` | ☐ | Meta App Review + often business verification + webhooks |
+| X / LinkedIn / Pinterest / Bluesky / GBP / Reddit | ☐ | ☐ | — | TapCast hub | `tapcast.omnichannel` | ☐ | Per `PROVIDER_READINESS.md` scopes + callbacks |
+| Snapchat organic | ☐ | — | — | TapCast hub | `tapcast.omnichannel` | ☐ | **Never certify organic live publish** — package only |
+| OpenAI (Keywords / Autopilot) | ☐ | ☐ | — | Platform → Automation / Keywords | `ai.autopilot` / `ai.keywords` | ☐ | Key + spend cap; no trend claims from this alone |
+| Trend enrichment | ☐ | ☐ | varies | Keywords panels | `ai.keywords` | ☐ | Approved provider TBD |
+
+Live classification until certified: **VERIFIED — CREDENTIALS REQUIRED**. Detail: `PROVIDER_READINESS.md`.
 
 ## PO certification sign-off template
 
