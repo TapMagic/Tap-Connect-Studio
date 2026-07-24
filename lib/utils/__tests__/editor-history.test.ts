@@ -31,7 +31,7 @@ describe("editor-history", () => {
 
   it("skips duplicate snapshots", () => {
     const initial = [{ id: "x" }];
-    let h = createEditorHistory(initial);
+    const h = createEditorHistory(initial);
     const again = pushEditorHistory(h, [{ id: "x" }]);
     assert.equal(again.past.length, 0);
     assert.equal(again, h);

@@ -46,9 +46,6 @@ function clip(text: string, max?: number): string {
 }
 
 function adaptCopy(channelId: string, source: CampaignSource, maxChars?: number): string {
-  const base = [source.title, source.offerText, source.body, source.cta]
-    .filter(Boolean)
-    .join(" — ");
   switch (channelId) {
     case "tiktok":
       return clip(

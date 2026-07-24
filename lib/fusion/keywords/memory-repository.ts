@@ -10,10 +10,7 @@ import { detectTriggerCollisions, type ActiveTriggerBinding } from "./trigger-co
 import type {
   KeywordAnalyticsEntry,
   KeywordBrandPack,
-  KeywordChannel,
-  KeywordSuggestion,
   NamedBrandPack,
-  SuggestionFamily,
   VocabularyTermKind,
 } from "./types";
 import type { SuggestionRunRecord, VocabularyRepository, VocabularyTermRecord } from "./repository";

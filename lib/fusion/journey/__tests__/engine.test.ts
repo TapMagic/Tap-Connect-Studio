@@ -144,7 +144,7 @@ describe("journey runtime dry-run", () => {
 
 describe("journey lifecycle transitions", () => {
   it("draft → publish → activate → pause → resume", () => {
-    let status = "DRAFT" as const;
+    const status = "DRAFT" as const;
     const pub = transitionJourneyLifecycle(status, "publish");
     assert.equal(pub.ok, true);
     if (!pub.ok) return;
