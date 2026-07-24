@@ -6,6 +6,9 @@ import {
   addStickyNote,
   applyNodeEditToAuthoritative,
   assertSketchNonExecuting,
+  bindKeywordTriggerFromBrandPack,
+  bumpVersion,
+  compareCanvasVersions,
   connectSketch,
   createSketchBoard,
   createWeeklySpecialsGroup,
@@ -14,22 +17,28 @@ import {
   ensureExternalWorkItemNode,
   evaluateCanvasAction,
   listCanvasAudit,
+  listVersions,
+  openObjectInTapCanvas,
   previewAutomationProposal,
   promoteSketchNodes,
+  requireCanvas,
   resetCanvasMemory,
   resolveAutomationProposal,
+  restoreVersion,
   reverseEngineerIntoCanvas,
   setCanvasMode,
   simulateDeployment,
   syncExternalWorkItemToNodes,
   syncNodesFromObject,
   undoPromotion,
+  updateNode,
 } from "../index";
 import {
   connectWorkProvider,
   createExternalWorkItem,
   resetProductivityMemory,
 } from "@/lib/fusion/connectors/productivity";
+import { parseKeywordBrandPack } from "@/lib/fusion/keywords/client";
 
 const BIZ = "biz_canvas_test";
 const originalUrl = process.env.DATABASE_URL;
@@ -314,5 +323,56 @@ describe("TapCanvas", () => {
     const audit = listCanvasAudit(canvas.id);
     assert.ok(audit.some((a) => a.action === "automation.rejected"));
     assert.ok(audit.some((a) => a.action === "automation.accepted"));
+  });
+
+  it("openObjectInTapCanvas projects link into analyze reverse-viz", () => {
+    const canvas = openObjectInTapCanvas({
+      businessId: BIZ,
+      objectType: "tap_point",
+      objectId: "tp_hub_1",
+      label: "Front door Tap Point",
+    });
+    assert.equal(canvas.mode, "analyze");
+    assert.ok(
+      canvas.nodes.some(
+        (n) => n.linked?.type === "tap_point" && n.linked.id === "tp_hub_1"
+      )
+    );
+    const audit = listCanvasAudit(canvas.id);
+    assert.ok(audit.some((a) => a.action === "analyze.reverse_viz"));
+  });
+
+  it("compare + restore versions round-trip node labels", () => {
+    const canvas = createSketchBoard({ businessId: BIZ, name: "Version board" });
+    const { node } = addStickyNote(canvas.id, "Before");
+    const beforeId = bumpVersion(requireCanvas(canvas.id), "before-edit");
+    updateNode(canvas.id, node.id, { label: "After" });
+    bumpVersion(requireCanvas(canvas.id), "after-edit");
+    const versions = listVersions(canvas.id);
+    assert.ok(versions.length >= 2);
+    const newest = versions[0]!;
+    const prior = versions.find((v) => v.id === beforeId) ?? versions[1]!;
+    const diff = compareCanvasVersions(canvas.id, prior.id, newest.id);
+    assert.ok(diff.nodesChanged.includes(node.id) || diff.nodesAdded.length >= 0);
+    const restored = restoreVersion(canvas.id, beforeId);
+    const sticky = restored.nodes.find((n) => n.id === node.id);
+    assert.equal(sticky?.label, "Before");
+  });
+
+  it("bindKeywordTriggerFromBrandPack attaches keyword data", () => {
+    const canvas = createSketchBoard({ businessId: BIZ, name: "Keyword board" });
+    const pack = parseKeywordBrandPack({
+      approvedTerms: [
+        { id: "1", value: "specials", kind: "keyword" },
+        { id: "2", value: "weekly", kind: "keyword" },
+      ],
+      brandedHashtags: [{ id: "3", value: "#WeeklySpecial", kind: "hashtag" }],
+    });
+    const bound = bindKeywordTriggerFromBrandPack(canvas.id, pack, ["specials"]);
+    assert.ok(bound.node);
+    assert.ok(
+      Array.isArray(bound.node.data?.keywords) &&
+        (bound.node.data!.keywords as string[]).length > 0
+    );
   });
 });

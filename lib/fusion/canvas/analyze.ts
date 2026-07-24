@@ -89,6 +89,57 @@ export function reverseEngineerIntoCanvas(input: ReverseVizInput): TapCanvas {
   return requireCanvas(canvas.id);
 }
 
+const OPEN_LINK_KIND_MAP: Record<string, CanvasObjectKind> = {
+  canvas: "unknown",
+  campaign: "campaign",
+  campaign_group: "campaign_group",
+  card: "card",
+  offer: "offer",
+  tapflow: "tapflow",
+  tap_flow: "tapflow",
+  tap_point: "tap_point",
+  tappoint: "tap_point",
+  email_sequence: "email_sequence",
+  loyalty: "loyalty",
+  external_work_item: "external_work_item",
+  work_item: "external_work_item",
+  tiktok_cast: "tiktok_cast",
+  tiktok: "tiktok_cast",
+};
+
+/** Open-in-TapCanvas: project a single Studio object into Analyze reverse-viz. */
+export function openObjectInTapCanvas(opts: {
+  businessId: string;
+  objectType: string;
+  objectId: string;
+  label?: string;
+  canvasId?: string;
+  provider?: string;
+  status?: string;
+}): TapCanvas {
+  const kind =
+    OPEN_LINK_KIND_MAP[opts.objectType.toLowerCase()] ??
+    (opts.objectType as CanvasObjectKind);
+  const safeKind: CanvasObjectKind =
+    kind && kind !== "unknown" ? kind : "campaign";
+  return reverseEngineerIntoCanvas({
+    businessId: opts.businessId,
+    canvasId: opts.canvasId,
+    name: opts.label
+      ? `Reverse · ${opts.label}`
+      : `Reverse · ${opts.objectType}:${opts.objectId}`,
+    objects: [
+      {
+        type: safeKind,
+        id: opts.objectId,
+        label: opts.label ?? `${opts.objectType} ${opts.objectId}`,
+        provider: opts.provider,
+        status: opts.status ?? "linked",
+      },
+    ],
+  });
+}
+
 export function detectIssues(canvasId: string): AutomationProposal[] {
   const canvas = requireCanvas(canvasId);
   const found: AutomationProposal[] = [];

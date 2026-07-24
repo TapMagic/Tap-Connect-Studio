@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,19 @@ type TapCanvas = {
 
 type Template = { id: string; name: string };
 
+type CanvasVersionRow = {
+  id: string;
+  version: number;
+  label: string;
+};
+
+type ProposalRow = {
+  id: string;
+  title: string;
+  status: string;
+  severity: string;
+};
+
 export function TapCanvasShell({
   initialLinkType,
   initialLinkId,
@@ -39,13 +52,15 @@ export function TapCanvasShell({
   const [canvases, setCanvases] = useState<TapCanvas[]>([]);
   const [canvas, setCanvas] = useState<TapCanvas | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const [versions, setVersions] = useState<CanvasVersionRow[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [stickyLabel, setStickyLabel] = useState("Idea sticky");
-  const [proposals, setProposals] = useState<
-    Array<{ id: string; title: string; status: string; severity: string }>
-  >([]);
+  const [proposals, setProposals] = useState<ProposalRow[]>([]);
   const [persistence, setPersistence] = useState<"prisma" | "memory" | null>(null);
+  const [lastUndoVersionId, setLastUndoVersionId] = useState<string | null>(null);
+  const [compareDiff, setCompareDiff] = useState<string | null>(null);
+  const openFromLinkDone = useRef(false);
 
   const reloadList = useCallback(async () => {
     const res = await fetch("/api/canvas");
@@ -65,6 +80,15 @@ export function TapCanvasShell({
     if (res.ok) {
       setCanvas(json.canvas);
       setProposals(json.proposals ?? []);
+      setVersions(
+        (json.versions ?? []).map(
+          (v: { id: string; version: number; label: string }) => ({
+            id: v.id,
+            version: v.version,
+            label: v.label,
+          })
+        )
+      );
     } else {
       setMessage(json.error ?? "Failed to load canvas");
     }
@@ -92,6 +116,12 @@ export function TapCanvasShell({
         setMessage(json.error ?? JSON.stringify(json.warnings ?? json));
       } else {
         setMessage(json.message ?? "OK");
+        if (json.undoVersionId) setLastUndoVersionId(json.undoVersionId);
+        if (json.diff) {
+          setCompareDiff(
+            `+${json.diff.nodesAdded?.length ?? 0} / -${json.diff.nodesRemoved?.length ?? 0} nodes · ~${json.diff.nodesChanged?.length ?? 0} changed`
+          );
+        }
         if (json.canvas) {
           setCanvas(json.canvas);
           await loadCanvas(json.canvas.id);
@@ -100,6 +130,17 @@ export function TapCanvasShell({
         }
         await reloadList();
         if (json.proposals) setProposals(json.proposals);
+        if (json.versions) {
+          setVersions(
+            json.versions.map(
+              (v: { id: string; version: number; label: string }) => ({
+                id: v.id,
+                version: v.version,
+                label: v.label,
+              })
+            )
+          );
+        }
         if (json.evaluation) {
           setMessage(
             json.evaluation.allowed
@@ -122,6 +163,19 @@ export function TapCanvasShell({
     }
   }
 
+  useEffect(() => {
+    if (openFromLinkDone.current) return;
+    if (!initialLinkType || !initialLinkId || initialCanvasId) return;
+    openFromLinkDone.current = true;
+    void post({
+      action: "open_from_object",
+      objectType: initialLinkType,
+      objectId: initialLinkId,
+      label: `${initialLinkType} ${initialLinkId}`,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot open-from-link
+  }, [initialLinkType, initialLinkId, initialCanvasId]);
+
   const modes = ["sketch", "build", "operate", "analyze"] as const;
 
   return (
@@ -142,8 +196,12 @@ export function TapCanvasShell({
           promoted. Automation Team repairs never apply silently.
         </p>
         {initialLinkType && initialLinkId ? (
-          <p className="text-xs text-sky-200/90">
-            Opened from {initialLinkType}:{initialLinkId} — use Reverse viz or templates to project.
+          <p
+            data-testid="tapcanvas-open-from-link"
+            className="text-xs text-sky-200/90"
+          >
+            Opened from {initialLinkType}:{initialLinkId} — reverse visualization projects the
+            linked object into Analyze.
           </p>
         ) : null}
         <p
@@ -163,6 +221,11 @@ export function TapCanvasShell({
           className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70"
         >
           {message}
+        </p>
+      ) : null}
+      {compareDiff ? (
+        <p data-testid="tapcanvas-compare-diff" className="text-xs text-white/50">
+          Version compare: {compareDiff}
         </p>
       ) : null}
 
@@ -291,8 +354,11 @@ export function TapCanvasShell({
               {canvas.mode === "sketch" || canvas.mode === "build" ? (
                 <div className="flex flex-wrap items-end gap-2">
                   <div className="space-y-1">
-                    <label className="text-[10px] uppercase text-white/40">Sticky</label>
+                    <label className="text-[10px] uppercase text-white/40" htmlFor="tapcanvas-sticky">
+                      Sticky
+                    </label>
                     <Input
+                      id="tapcanvas-sticky"
                       data-testid="tapcanvas-sticky-input"
                       value={stickyLabel}
                       onChange={(e) => setStickyLabel(e.target.value)}
@@ -316,6 +382,7 @@ export function TapCanvasShell({
                   <Button
                     size="sm"
                     variant="secondary"
+                    data-testid="tapcanvas-promote"
                     disabled={busy || canvas.nodes.filter((n) => n.sketch).length === 0}
                     onClick={() => {
                       const ids = canvas.nodes.filter((n) => n.sketch).map((n) => n.id);
@@ -329,6 +396,41 @@ export function TapCanvasShell({
                     }}
                   >
                     Promote sketch (confirm)
+                  </Button>
+                  {lastUndoVersionId ? (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="border-white/15"
+                      data-testid="tapcanvas-undo-promote"
+                      disabled={busy}
+                      onClick={() =>
+                        post({
+                          action: "undo_promote",
+                          canvasId: canvas.id,
+                          undoVersionId: lastUndoVersionId,
+                        })
+                      }
+                    >
+                      Undo promote
+                    </Button>
+                  ) : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/15"
+                    data-testid="tapcanvas-bind-keyword"
+                    disabled={busy}
+                    onClick={() =>
+                      post({
+                        action: "bind_keyword_trigger",
+                        canvasId: canvas.id,
+                        bindVocabulary: true,
+                        extraTriggers: ["specials", "weekly"],
+                      })
+                    }
+                  >
+                    Bind keyword trigger
                   </Button>
                   <Button
                     size="sm"
@@ -352,6 +454,7 @@ export function TapCanvasShell({
               {canvas.mode === "operate" ? (
                 <Button
                   size="sm"
+                  data-testid="tapcanvas-operate-refresh"
                   disabled={busy}
                   onClick={() =>
                     post({ action: "operate_refresh", canvasId: canvas.id })
@@ -365,6 +468,7 @@ export function TapCanvasShell({
                 <div className="flex flex-wrap gap-2">
                   <Button
                     size="sm"
+                    data-testid="tapcanvas-reverse-viz"
                     disabled={busy}
                     onClick={() =>
                       post({
@@ -393,35 +497,62 @@ export function TapCanvasShell({
                   >
                     Reverse-viz sample
                   </Button>
+                  {initialLinkType && initialLinkId ? (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      data-testid="tapcanvas-open-from-object"
+                      disabled={busy}
+                      onClick={() =>
+                        post({
+                          action: "open_from_object",
+                          objectType: initialLinkType,
+                          objectId: initialLinkId,
+                          canvasId: canvas.id,
+                          label: `${initialLinkType} ${initialLinkId}`,
+                        })
+                      }
+                    >
+                      Project linked object
+                    </Button>
+                  ) : null}
                   <Button
                     size="sm"
                     variant="secondary"
+                    data-testid="tapcanvas-detect-issues"
                     disabled={busy}
                     onClick={() => post({ action: "detect_issues", canvasId: canvas.id })}
                   >
                     Detect issues
                   </Button>
                   {proposals.map((p) => (
-                    <div key={p.id} className="flex gap-1">
+                    <div key={p.id} className="flex gap-1" data-testid={`tapcanvas-proposal-${p.id}`}>
                       <Button
                         size="sm"
                         variant="outline"
                         className="border-white/15"
+                        data-testid={`tapcanvas-proposal-preview-${p.id}`}
                         disabled={busy}
                         onClick={() =>
-                          post({ action: "proposal_preview", proposalId: p.id })
+                          post({
+                            action: "proposal_preview",
+                            proposalId: p.id,
+                            canvasId: canvas.id,
+                          })
                         }
                       >
                         Preview
                       </Button>
                       <Button
                         size="sm"
+                        data-testid={`tapcanvas-proposal-accept-${p.id}`}
                         disabled={busy}
                         onClick={() =>
                           post({
                             action: "proposal_resolve",
                             proposalId: p.id,
                             decision: "accept",
+                            canvasId: canvas.id,
                           })
                         }
                       >
@@ -430,12 +561,14 @@ export function TapCanvasShell({
                       <Button
                         size="sm"
                         variant="destructive"
+                        data-testid={`tapcanvas-proposal-reject-${p.id}`}
                         disabled={busy}
                         onClick={() =>
                           post({
                             action: "proposal_resolve",
                             proposalId: p.id,
                             decision: "reject",
+                            canvasId: canvas.id,
                           })
                         }
                       >
@@ -443,6 +576,61 @@ export function TapCanvasShell({
                       </Button>
                     </div>
                   ))}
+                </div>
+              ) : null}
+
+              {versions.length > 0 ? (
+                <div
+                  data-testid="tapcanvas-versions"
+                  className="rounded-lg border border-white/10 bg-black/20 p-3"
+                >
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                    Versions
+                  </p>
+                  <ul className="flex flex-wrap gap-2">
+                    {versions.slice(0, 6).map((v, idx) => (
+                      <li key={v.id} className="flex items-center gap-1">
+                        <span className="text-[11px] text-white/55">
+                          v{v.version} · {v.label}
+                        </span>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 border-white/15 px-2 text-[10px]"
+                          data-testid={`tapcanvas-restore-${v.id}`}
+                          disabled={busy}
+                          onClick={() =>
+                            post({
+                              action: "restore_version",
+                              canvasId: canvas.id,
+                              versionId: v.id,
+                            })
+                          }
+                        >
+                          Restore
+                        </Button>
+                        {idx === 0 && versions[1] ? (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-7 px-2 text-[10px]"
+                            data-testid="tapcanvas-compare-versions"
+                            disabled={busy}
+                            onClick={() =>
+                              post({
+                                action: "compare_versions",
+                                canvasId: canvas.id,
+                                leftVersionId: versions[1]!.id,
+                                rightVersionId: v.id,
+                              })
+                            }
+                          >
+                            Compare
+                          </Button>
+                        ) : null}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               ) : null}
 
@@ -480,6 +668,14 @@ export function TapCanvasShell({
                       {n.data?.guardianBlocked ? (
                         <p className="mt-1 text-[10px] text-red-200/90">
                           Guardian: {String(n.data.guardianReason ?? "blocked")}
+                        </p>
+                      ) : null}
+                      {Array.isArray(n.data?.keywords) ? (
+                        <p
+                          data-testid="tapcanvas-keyword-node"
+                          className="mt-1 truncate text-[10px] text-primary/80"
+                        >
+                          keywords: {(n.data.keywords as string[]).slice(0, 4).join(", ")}
                         </p>
                       ) : null}
                     </li>

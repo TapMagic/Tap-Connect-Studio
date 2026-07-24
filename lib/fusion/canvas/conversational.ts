@@ -229,6 +229,7 @@ export function addConversationalAction(
 /**
  * Bind Brand Pack keywords to a conversational keyword trigger node.
  * Reserved/control words are flagged; regulated send actions still require Channel Guardian.
+ * Optionally records a VocabularyTriggerBinding on channel `tapcanvas` for collision detection.
  */
 export function bindKeywordTriggerFromBrandPack(
   canvasId: string,
@@ -267,5 +268,16 @@ export function bindKeywordTriggerFromBrandPack(
   });
 
   return { ...result, conversational: set };
+}
+
+/** Primary keyword for binding into shared VocabularyTriggerBinding (collision-aware). */
+export function primaryKeywordForBinding(
+  pack: KeywordBrandPack,
+  extraTriggers: string[] = []
+): string | null {
+  const set = buildConversationalKeywordSet(pack, extraTriggers);
+  const reserved = new Set<string>(RESERVED_CONVERSATIONAL_KEYWORDS);
+  const safe = set.triggers.filter((t) => !reserved.has(t));
+  return safe[0] ?? null;
 }
 

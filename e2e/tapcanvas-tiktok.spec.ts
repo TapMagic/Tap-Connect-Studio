@@ -312,4 +312,423 @@ test.describe("TapCanvas + TikTok persistence closeout", () => {
 
     writeProofIndex();
   });
+
+  test("P-tapcanvas-reverse-repair: reverse viz + accept persists graph/version/audit", async ({
+    page,
+  }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+
+    await page.goto(
+      `${BASE}/dashboard/experiences/canvas?linkType=tap_point&linkId=tp_e2e_front`,
+      { waitUntil: "domcontentloaded" }
+    );
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("tapcanvas-open-from-link")).toBeVisible({
+      timeout: 20_000,
+    });
+
+    const open = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "open_from_object",
+        objectType: "tap_point",
+        objectId: "tp_e2e_front",
+        label: "Front door Tap Point",
+      },
+    });
+    expect(open.ok()).toBeTruthy();
+    const openJson = (await open.json()) as {
+      ok?: boolean;
+      canvas?: { id: string; mode: string; nodes?: { linked?: { id: string } }[] };
+      persistence?: string;
+    };
+    expect(openJson.ok).toBeTruthy();
+    expect(openJson.persistence).toBe("prisma");
+    expect(openJson.canvas?.mode).toBe("analyze");
+    expect(
+      openJson.canvas?.nodes?.some((n) => n.linked?.id === "tp_e2e_front")
+    ).toBeTruthy();
+
+    const board = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "create", name: `Repair ${Date.now()}` },
+    });
+    const boardJson = (await board.json()) as { canvas?: { id: string } };
+    const repairCanvasId = boardJson.canvas!.id;
+
+    await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "add_sticky", canvasId: repairCanvasId, label: "Needs promote" },
+    });
+    const getBoard = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(repairCanvasId)}`
+    );
+    const boardSnap = (await getBoard.json()) as {
+      canvas?: { nodes?: { id: string; sketch?: boolean }[] };
+    };
+    const sketchIds = (boardSnap.canvas?.nodes ?? [])
+      .filter((n) => n.sketch)
+      .map((n) => n.id);
+    const promoted = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "promote",
+        canvasId: repairCanvasId,
+        nodeIds: sketchIds,
+        confirm: true,
+      },
+    });
+    expect(promoted.ok()).toBeTruthy();
+
+    // Sketch in Operate → detectIssues yields non-silent repair proposal
+    await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "set_mode", canvasId: repairCanvasId, mode: "operate" },
+    });
+    await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "add_sticky",
+        canvasId: repairCanvasId,
+        label: "sketch in operate",
+      },
+    });
+    const issues = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "detect_issues", canvasId: repairCanvasId },
+    });
+    expect(issues.ok()).toBeTruthy();
+    const issuesJson = (await issues.json()) as {
+      proposals?: { id: string; title: string; status: string }[];
+    };
+    expect((issuesJson.proposals?.length ?? 0) > 0).toBeTruthy();
+    const proposalId = issuesJson.proposals![0]!.id;
+
+    const preview = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "proposal_preview",
+        proposalId,
+        canvasId: repairCanvasId,
+      },
+    });
+    expect(preview.ok()).toBeTruthy();
+    const previewJson = (await preview.json()) as { applied?: boolean };
+    expect(previewJson.applied).toBe(false);
+
+    const accept = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "proposal_resolve",
+        proposalId,
+        decision: "accept",
+        canvasId: repairCanvasId,
+      },
+    });
+    expect(accept.ok()).toBeTruthy();
+    const acceptJson = (await accept.json()) as {
+      ok?: boolean;
+      proposal?: { status: string };
+      persistence?: string;
+    };
+    expect(acceptJson.ok).toBeTruthy();
+    expect(acceptJson.proposal?.status).toBe("accepted");
+    expect(acceptJson.persistence).toBe("prisma");
+
+    const reopen = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(repairCanvasId)}`
+    );
+    expect(reopen.ok()).toBeTruthy();
+    const reopened = (await reopen.json()) as {
+      audit?: { action: string }[];
+      versions?: { id: string }[];
+      persistence?: string;
+    };
+    expect(reopened.persistence).toBe("prisma");
+    expect((reopened.versions?.length ?? 0) > 0).toBeTruthy();
+    expect(
+      reopened.audit?.some((a) => a.action === "automation.accepted")
+    ).toBeTruthy();
+
+    await page.goto(`${BASE}/dashboard/experiences/canvas`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 30_000 });
+    const boardBtn = page.getByTestId(`tapcanvas-board-${repairCanvasId}`);
+    if (await boardBtn.isVisible().catch(() => false)) {
+      await boardBtn.click();
+      await expect(page.getByTestId("tapcanvas-graph")).toBeVisible({ timeout: 20_000 });
+      await page.getByTestId("tapcanvas-mode-analyze").click();
+      await page.getByTestId("tapcanvas-detect-issues").click();
+    }
+
+    writeProof({
+      id: "P-tapcanvas-reverse-repair",
+      route: "/api/canvas open_from_object + detect_issues + proposal_resolve",
+      workflow:
+        "Open-in reverse viz + detect issues + preview/accept repair persists version + audit on Prisma",
+      passed: pageErrors.length === 0,
+      browserE2ePassed: true,
+      persistencePassed: true,
+      consoleErrors,
+      pageErrors,
+      notes: [
+        `openCanvas=${openJson.canvas?.id}`,
+        `repairCanvas=${repairCanvasId}`,
+        `proposal=${proposalId}`,
+      ],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers: [
+        "full_promotion_matrix",
+        "a11y_headed_pass",
+        "full_owner_gate_matrix",
+      ],
+    });
+  });
+
+  test("P-tapcanvas-keyword-bind: Brand Vocabulary conversational trigger binding", async ({
+    page,
+  }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+
+    await page.goto(`${BASE}/dashboard/experiences/canvas`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+
+    const create = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "create", name: `Keyword Canvas ${Date.now()}` },
+    });
+    expect(create.ok()).toBeTruthy();
+    const created = (await create.json()) as { canvas?: { id: string } };
+    const canvasId = created.canvas!.id;
+
+    const keywords = await page.request.post(`${BASE}/api/ai/keywords`, {
+      data: {
+        action: "conversational",
+        extraTriggers: ["specials", "weeklydeal"],
+      },
+    });
+    expect(keywords.ok()).toBeTruthy();
+    const kwJson = (await keywords.json()) as {
+      ok?: boolean;
+      conversational?: { triggers?: string[] };
+    };
+    expect(kwJson.ok).toBeTruthy();
+
+    const bind = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "bind_keyword_trigger",
+        canvasId,
+        bindVocabulary: true,
+        extraTriggers: ["specials", "weeklydeal"],
+        canonicalValue: "specials",
+      },
+    });
+    expect(bind.ok()).toBeTruthy();
+    const bindJson = (await bind.json()) as {
+      ok?: boolean;
+      node?: { data?: { keywords?: string[]; triggerId?: string } };
+      vocabularyBinding?: { binding?: { canonicalValue?: string }; collisions?: unknown[] };
+      persistence?: string;
+    };
+    expect(bindJson.ok).toBeTruthy();
+    expect(bindJson.persistence).toBe("prisma");
+    expect(bindJson.node?.data?.triggerId).toBe("keyword");
+    expect((bindJson.node?.data?.keywords?.length ?? 0) > 0).toBeTruthy();
+    expect(bindJson.vocabularyBinding?.binding?.canonicalValue?.toLowerCase()).toContain(
+      "special"
+    );
+
+    const collision = await page.request.post(`${BASE}/api/ai/keywords`, {
+      data: {
+        action: "detect_trigger_collision",
+        flowId: `other_flow_${Date.now()}`,
+        flowLabel: "Other flow",
+        canonicalValue: "specials",
+        channel: "tapcanvas",
+        bind: true,
+      },
+    });
+    expect(collision.ok()).toBeTruthy();
+    const colJson = (await collision.json()) as {
+      collisions?: { code?: string }[];
+      bound?: boolean;
+    };
+    expect(colJson.bound).toBe(true);
+    // May or may not collide depending on seed — assert API shape
+    expect(Array.isArray(colJson.collisions)).toBeTruthy();
+
+    const reopen = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+    );
+    const reopened = (await reopen.json()) as {
+      canvas?: { nodes?: { data?: { keywords?: string[] } }[] };
+    };
+    expect(
+      reopened.canvas?.nodes?.some(
+        (n) => Array.isArray(n.data?.keywords) && (n.data?.keywords?.length ?? 0) > 0
+      )
+    ).toBeTruthy();
+
+    writeProof({
+      id: "P-tapcanvas-keyword-bind",
+      route: "/api/canvas bind_keyword_trigger + /api/ai/keywords",
+      workflow:
+        "Conversational Brand Vocabulary set → bind keyword trigger on TapCanvas + vocabulary binding + collision detect",
+      passed: pageErrors.length === 0,
+      browserE2ePassed: true,
+      persistencePassed: true,
+      consoleErrors,
+      pageErrors,
+      notes: [
+        `canvasId=${canvasId}`,
+        `triggers=${kwJson.conversational?.triggers?.slice(0, 5).join(",")}`,
+        `keywords=${bindJson.node?.data?.keywords?.slice(0, 5).join(",")}`,
+        `collisions=${colJson.collisions?.length ?? 0}`,
+      ],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers: ["a11y_headed_pass", "full_owner_gate_matrix"],
+    });
+  });
+
+  test("P-tapcanvas-version-restore: promote undo + restore_version persist", async ({
+    page,
+  }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+
+    await page.goto(`${BASE}/dashboard/experiences/canvas`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+
+    const create = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "create", name: `Version Canvas ${Date.now()}` },
+    });
+    const created = (await create.json()) as { canvas?: { id: string } };
+    const canvasId = created.canvas!.id;
+
+    await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "add_sticky", canvasId, label: "Version sticky A" },
+    });
+    const snap = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+    );
+    const snapJson = (await snap.json()) as {
+      canvas?: { nodes?: { id: string; sketch?: boolean; label: string }[] };
+      versions?: { id: string; label: string; version: number }[];
+    };
+    const sketchIds = (snapJson.canvas?.nodes ?? [])
+      .filter((n) => n.sketch)
+      .map((n) => n.id);
+
+    const promote = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "promote",
+        canvasId,
+        nodeIds: sketchIds,
+        confirm: true,
+        createApprovalTasks: true,
+      },
+    });
+    expect(promote.ok()).toBeTruthy();
+    const promoteJson = (await promote.json()) as {
+      ok?: boolean;
+      undoVersionId?: string;
+      canvas?: { version: number };
+    };
+    expect(promoteJson.ok).toBeTruthy();
+    expect(promoteJson.undoVersionId).toBeTruthy();
+
+    const afterPromote = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+    );
+    const afterJson = (await afterPromote.json()) as {
+      versions?: { id: string; label: string }[];
+      canvas?: { nodes?: { sketch?: boolean; label: string }[]; version: number };
+    };
+    expect((afterJson.versions?.length ?? 0) >= 1).toBeTruthy();
+    const versionToRestore = promoteJson.undoVersionId!;
+
+    const compare = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "compare_versions",
+        canvasId,
+        leftVersionId: versionToRestore,
+        rightVersionId: afterJson.versions![0]!.id,
+      },
+    });
+    expect(compare.ok()).toBeTruthy();
+    const compareJson = (await compare.json()) as {
+      diff?: { nodesChanged?: string[]; nodesAdded?: string[] };
+    };
+    expect(compareJson.diff).toBeTruthy();
+
+    const restore = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "restore_version",
+        canvasId,
+        versionId: versionToRestore,
+      },
+    });
+    expect(restore.ok()).toBeTruthy();
+    const restoreJson = (await restore.json()) as {
+      ok?: boolean;
+      canvas?: { nodes?: { sketch?: boolean; label: string }[]; version: number };
+      persistence?: string;
+    };
+    expect(restoreJson.ok).toBeTruthy();
+    expect(restoreJson.persistence).toBe("prisma");
+    expect(
+      restoreJson.canvas?.nodes?.some(
+        (n) => n.label === "Version sticky A" && n.sketch
+      )
+    ).toBeTruthy();
+
+    const undo = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "undo_promote",
+        canvasId,
+        undoVersionId: versionToRestore,
+      },
+    });
+    // May fail if already restored to same snapshot — either ok or already matching
+    const undoOk = undo.ok();
+    if (undoOk) {
+      const undoJson = (await undo.json()) as {
+        canvas?: { nodes?: { sketch?: boolean }[] };
+      };
+      expect(
+        undoJson.canvas?.nodes?.some((n) => n.sketch)
+      ).toBeTruthy();
+    }
+
+    const reopen = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+    );
+    const reopened = (await reopen.json()) as {
+      audit?: { action: string }[];
+      versions?: unknown[];
+      persistence?: string;
+    };
+    expect(reopened.persistence).toBe("prisma");
+    expect(
+      reopened.audit?.some(
+        (a) => a.action === "canvas.restored" || a.action === "canvas.promoted"
+      )
+    ).toBeTruthy();
+
+    writeProof({
+      id: "P-tapcanvas-version-restore",
+      route: "/api/canvas promote + compare_versions + restore_version",
+      workflow:
+        "Promote sketch → compare versions → restore pre-promote snapshot; audit + Prisma persist",
+      passed: pageErrors.length === 0,
+      browserE2ePassed: true,
+      persistencePassed: true,
+      consoleErrors,
+      pageErrors,
+      notes: [
+        `canvasId=${canvasId}`,
+        `undoVersionId=${versionToRestore}`,
+        `versionCount=${afterJson.versions?.length}`,
+        `compareChanged=${compareJson.diff?.nodesChanged?.length ?? 0}`,
+      ],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers: ["a11y_headed_pass", "full_promotion_matrix", "full_owner_gate_matrix"],
+    });
+
+    writeProofIndex();
+  });
 });

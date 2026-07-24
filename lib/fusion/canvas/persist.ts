@@ -25,6 +25,8 @@ import {
   pushVersion,
   upsertProposal,
   appendCanvasAudit,
+  getProposal,
+  getVersion,
 } from "./store";
 
 function asJson(value: unknown): Prisma.InputJsonValue {
@@ -235,15 +237,35 @@ export async function persistCanvasProposal(p: AutomationProposal): Promise<void
 
 export async function persistCanvasAudit(entry: CanvasAuditEntry): Promise<void> {
   if (!canvasPersistenceEnabled()) return;
-  await prisma.canvasAuditLog.create({
-    data: {
+  await prisma.canvasAuditLog.upsert({
+    where: { id: entry.id },
+    create: {
       id: entry.id,
       documentId: entry.canvasId,
       action: entry.action,
       detail: asJson(entry.detail),
       createdAt: new Date(entry.at),
     },
+    update: {
+      action: entry.action,
+      detail: asJson(entry.detail),
+    },
   });
+}
+
+/** Load a proposal (and its canvas session) from Prisma when memory is cold. */
+export async function hydrateProposalSession(
+  proposalId: string,
+  businessId: string
+): Promise<AutomationProposal | null> {
+  if (!canvasPersistenceEnabled()) {
+    return getProposal(proposalId) ?? null;
+  }
+  const row = await prisma.canvasProposal.findUnique({ where: { id: proposalId } });
+  if (!row) return getProposal(proposalId) ?? null;
+  const canvas = await hydrateCanvasSession(row.documentId, businessId);
+  if (!canvas) return null;
+  return getProposal(proposalId) ?? null;
 }
 
 export async function loadCanvasFromDb(
@@ -292,6 +314,7 @@ export async function hydrateCanvasSession(
       }),
     ]);
     for (const v of versions) {
+      if (getVersion(v.id)) continue;
       pushVersion({
         id: v.id,
         canvasId: v.documentId,
@@ -316,6 +339,7 @@ export async function hydrateCanvasSession(
       });
     }
     for (const a of audit) {
+      if (listCanvasAudit(canvasId, 500).some((x) => x.id === a.id)) continue;
       appendCanvasAudit({
         id: a.id,
         canvasId: a.documentId,
@@ -343,6 +367,9 @@ export async function flushCanvasState(canvasId: string): Promise<void> {
   }
   for (const p of listProposals(canvasId)) {
     await persistCanvasProposal(p);
+  }
+  for (const a of listCanvasAudit(canvasId, 200)) {
+    await persistCanvasAudit(a);
   }
 }
 

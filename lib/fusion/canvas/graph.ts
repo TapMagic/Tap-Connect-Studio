@@ -217,6 +217,64 @@ export function restoreVersion(canvasId: string, versionId: string): TapCanvas {
   return canvas;
 }
 
+export type CanvasVersionDiff = {
+  leftVersionId: string;
+  rightVersionId: string;
+  leftLabel: string;
+  rightLabel: string;
+  nodesAdded: string[];
+  nodesRemoved: string[];
+  nodesChanged: string[];
+  edgesAdded: string[];
+  edgesRemoved: string[];
+  modeChanged: boolean;
+};
+
+/** Structural compare of two version snapshots (labels/ids only — not visual diff). */
+export function compareCanvasVersions(
+  canvasId: string,
+  leftVersionId: string,
+  rightVersionId: string
+): CanvasVersionDiff {
+  const left = listVersions(canvasId).find((x) => x.id === leftVersionId);
+  const right = listVersions(canvasId).find((x) => x.id === rightVersionId);
+  if (!left || !right) throw new Error("One or both versions not found");
+
+  const leftNodeIds = new Set(left.snapshot.nodes.map((n) => n.id));
+  const rightNodeIds = new Set(right.snapshot.nodes.map((n) => n.id));
+  const leftEdgeIds = new Set(left.snapshot.edges.map((e) => e.id));
+  const rightEdgeIds = new Set(right.snapshot.edges.map((e) => e.id));
+
+  const nodesAdded = [...rightNodeIds].filter((id) => !leftNodeIds.has(id));
+  const nodesRemoved = [...leftNodeIds].filter((id) => !rightNodeIds.has(id));
+  const nodesChanged: string[] = [];
+  for (const n of right.snapshot.nodes) {
+    if (!leftNodeIds.has(n.id)) continue;
+    const prior = left.snapshot.nodes.find((x) => x.id === n.id)!;
+    if (
+      prior.label !== n.label ||
+      prior.kind !== n.kind ||
+      Boolean(prior.sketch) !== Boolean(n.sketch) ||
+      prior.liveStatus !== n.liveStatus
+    ) {
+      nodesChanged.push(n.id);
+    }
+  }
+
+  return {
+    leftVersionId,
+    rightVersionId,
+    leftLabel: left.label,
+    rightLabel: right.label,
+    nodesAdded,
+    nodesRemoved,
+    nodesChanged,
+    edgesAdded: [...rightEdgeIds].filter((id) => !leftEdgeIds.has(id)),
+    edgesRemoved: [...leftEdgeIds].filter((id) => !rightEdgeIds.has(id)),
+    modeChanged: left.snapshot.mode !== right.snapshot.mode,
+  };
+}
+
 export function requireCanvas(id: string): TapCanvas {
   const c = getCanvas(id);
   if (!c) throw new Error(`Canvas not found: ${id}`);

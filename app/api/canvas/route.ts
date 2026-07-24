@@ -9,7 +9,9 @@ import {
   applyCanvasTemplate,
   applyNodeEditToAuthoritative,
   assertSketchNonExecuting,
+  bindKeywordTriggerFromBrandPack,
   canvasPersistenceEnabled,
+  compareCanvasVersions,
   connectSketch,
   createSimpleCampaignViaCanvas,
   createSketchBoard,
@@ -23,23 +25,28 @@ import {
   getCanvas,
   getOpenInTapCanvasHref,
   hydrateCanvasSession,
+  hydrateProposalSession,
   listCanvasAudit,
   listCanvasesFromDb,
   listCanvasTemplates,
   listPendingProposals,
   listVersions,
+  openObjectInTapCanvas,
   previewAutomationProposal,
   previewPromotion,
+  primaryKeywordForBinding,
   promoteSketchNodes,
   refreshOperateOverlay,
   renameCanvasDocument,
   resolveAutomationProposal,
+  restoreVersion,
   reverseEngineerIntoCanvas,
   saveCanvasIssues,
   saveExecutionOverlay,
   setCanvasMode,
   simulateDeployment,
   undoPromotion,
+  addCanvasCommentDb,
   ACTION_CATALOG,
   TRIGGER_CATALOG,
 } from "@/lib/fusion/canvas";
@@ -48,6 +55,10 @@ import {
   DISTRIBUTION_ACTIONS,
   runDistributionAction,
 } from "@/lib/fusion/tapcast/omnichannel";
+import {
+  detectAndBindTrigger,
+  loadVocabularyPack,
+} from "@/lib/fusion/keywords";
 
 export const dynamic = "force-dynamic";
 
@@ -172,11 +183,46 @@ const bodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("proposal_preview"),
     proposalId: z.string(),
+    canvasId: z.string().optional(),
   }),
   z.object({
     action: z.literal("proposal_resolve"),
     proposalId: z.string(),
     decision: z.enum(["accept", "reject"]),
+    canvasId: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("restore_version"),
+    canvasId: z.string(),
+    versionId: z.string(),
+  }),
+  z.object({
+    action: z.literal("compare_versions"),
+    canvasId: z.string(),
+    leftVersionId: z.string(),
+    rightVersionId: z.string(),
+  }),
+  z.object({
+    action: z.literal("open_from_object"),
+    objectType: z.string().min(1).max(64),
+    objectId: z.string().min(1).max(120),
+    label: z.string().max(160).optional(),
+    canvasId: z.string().optional(),
+    provider: z.string().max(64).optional(),
+    status: z.string().max(64).optional(),
+  }),
+  z.object({
+    action: z.literal("bind_keyword_trigger"),
+    canvasId: z.string(),
+    extraTriggers: z.array(z.string().max(80)).max(24).optional(),
+    bindVocabulary: z.boolean().optional(),
+    canonicalValue: z.string().max(80).optional(),
+  }),
+  z.object({
+    action: z.literal("add_comment"),
+    canvasId: z.string(),
+    body: z.string().min(1).max(2000),
+    nodeId: z.string().optional(),
   }),
   z.object({
     action: z.literal("apply_template"),
@@ -468,16 +514,129 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, proposals });
       }
       case "proposal_preview": {
+        if (body.canvasId) {
+          await hydrateCanvasSession(body.canvasId, business.id);
+        } else {
+          await hydrateProposalSession(body.proposalId, business.id);
+        }
         const result = previewAutomationProposal(body.proposalId);
+        if (result.proposal.canvasId) {
+          await afterMutate(result.proposal.canvasId);
+        }
         return NextResponse.json({ ok: true, ...result, applied: false });
       }
       case "proposal_resolve": {
+        if (body.canvasId) {
+          await hydrateCanvasSession(body.canvasId, business.id);
+        } else {
+          await hydrateProposalSession(body.proposalId, business.id);
+        }
         const result = resolveAutomationProposal({
           proposalId: body.proposalId,
           decision: body.decision,
         });
         if (result.canvas) await afterMutate(result.canvas.id);
-        return NextResponse.json({ ok: true, ...result });
+        else if (result.proposal.canvasId) await afterMutate(result.proposal.canvasId);
+        return NextResponse.json({
+          ok: true,
+          ...result,
+          persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+          message:
+            body.decision === "accept"
+              ? "Repair accepted — authoritative graph + version/audit persisted"
+              : "Repair rejected — no graph mutation",
+        });
+      }
+      case "restore_version": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const canvas = restoreVersion(body.canvasId, body.versionId);
+        await afterMutate(body.canvasId);
+        return NextResponse.json({
+          ok: true,
+          canvas,
+          versions: listVersions(body.canvasId),
+          message: "Version restored — new snapshot recorded",
+          persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+        });
+      }
+      case "compare_versions": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const diff = compareCanvasVersions(
+          body.canvasId,
+          body.leftVersionId,
+          body.rightVersionId
+        );
+        return NextResponse.json({ ok: true, diff });
+      }
+      case "open_from_object": {
+        if (body.canvasId) {
+          await hydrateCanvasSession(body.canvasId, business.id);
+        }
+        const canvas = openObjectInTapCanvas({
+          businessId: business.id,
+          objectType: body.objectType,
+          objectId: body.objectId,
+          label: body.label,
+          canvasId: body.canvasId,
+          provider: body.provider,
+          status: body.status,
+        });
+        await afterMutate(canvas.id);
+        return NextResponse.json({
+          ok: true,
+          canvas,
+          persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+          message: "Reverse visualization projected from linked object",
+          openHref: getOpenInTapCanvasHref({
+            objectType: body.objectType,
+            objectId: body.objectId,
+            canvasId: canvas.id,
+          }),
+        });
+      }
+      case "bind_keyword_trigger": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const pack = await loadVocabularyPack(business.id);
+        const bound = bindKeywordTriggerFromBrandPack(
+          body.canvasId,
+          pack,
+          body.extraTriggers ?? []
+        );
+        let vocabularyBinding: unknown = null;
+        if (body.bindVocabulary !== false) {
+          const canonical =
+            body.canonicalValue ??
+            primaryKeywordForBinding(pack, body.extraTriggers ?? []);
+          if (canonical) {
+            vocabularyBinding = await detectAndBindTrigger({
+              businessId: business.id,
+              binding: {
+                flowId: body.canvasId,
+                flowLabel: getCanvas(body.canvasId)?.name ?? "TapCanvas",
+                canonicalValue: canonical,
+                channel: "tapcanvas",
+                matchMode: "case_insensitive",
+              },
+            });
+          }
+        }
+        await afterMutate(body.canvasId);
+        return NextResponse.json({
+          ok: true,
+          ...bound,
+          vocabularyBinding,
+          persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+          message: "Keyword trigger bound from Brand Vocabulary",
+        });
+      }
+      case "add_comment": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const comment = await addCanvasCommentDb({
+          documentId: body.canvasId,
+          body: body.body,
+          nodeId: body.nodeId,
+        });
+        return NextResponse.json({ ok: true, comment });
       }
       case "apply_template": {
         const result = applyCanvasTemplate({
