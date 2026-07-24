@@ -20,7 +20,27 @@ stable id · name · description · pillar · domain owner · UX location · imp
 
 **Do not scatter unrelated booleans.** Use typed, versioned feature + entitlement system (`lib/fusion/features`).
 
-Kill-switch-capable examples: `comms.messaging`, `comms.email`, `comms.inbox`, `wallet.apple_google`, `journey.tapflow`, `ai.autopilot`, `ai.keywords`, `brand.vocabulary`, `commerce.tapcommerce`.
+Kill-switch-capable (authoritative set in `lib/fusion/features/kill-switch-matrix.ts`):  
+`comms.messaging`, `comms.email`, `comms.inbox`, `wallet.apple_google`, `loyalty.taploop`, `commerce.tapcommerce`, `journey.tapflow`, `canvas.tapcanvas`, `ai.autopilot`, `ai.keywords`, `brand.vocabulary`, `tapcast.omnichannel`, `tapcast.tiktok`, `connectors.productivity`, `integrations.live_execution`.
+
+### Expanded kill-switch coverage (beyond Keywords / TapCanvas / TapFlow)
+
+| Feature id | Primary API probe | Off contract | Proof |
+|------------|-------------------|--------------|-------|
+| `comms.email` | `POST /api/email/send` | 503 `feature_off` | `P-admin-killswitch-matrix` |
+| `comms.inbox` | `GET /api/inbox` (also disable `comms.email`) | 503 | same |
+| `comms.messaging` | `GET /api/comms/suppression` (also disable email) | 503 | same |
+| `wallet.apple_google` | `GET`/`POST /api/wallet` | 503 | same |
+| `loyalty.taploop` | `GET /api/loyalty/programs` (+ award) | 503 | same |
+| `commerce.tapcommerce` | `GET /api/commerce` | 503 | same |
+| `tapcast.omnichannel` | `GET /api/tapcast?view=registry` | 503 | same |
+| `tapcast.tiktok` | `GET /api/tapcast/tiktok` | 503 | same |
+| `connectors.productivity` | `GET /api/connectors/productivity` | 503 | same |
+| `ai.autopilot` | `GET /api/ai/proposals` | 503 | same |
+| `integrations.live_execution` | `POST` connect `preferLive: true` (productivity + TikTok) | 503; mock remains when parent on | same |
+| `ai.keywords` / `canvas.tapcanvas` / `journey.tapflow` | Keywords + canvas promote/activate | 503 | `P-keywords-*`, `P-tapcanvas-killswitch` |
+
+Admin API: `POST /api/admin/features` with `{ featureId, enabled, scope: "global", reason }` — reason required; override audited.
 
 ### Keywords / Brand Vocabulary kill-switch hooks (for TapCanvas + TapFlow owners)
 

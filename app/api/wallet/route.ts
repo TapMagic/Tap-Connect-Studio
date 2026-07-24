@@ -58,6 +58,10 @@ export async function POST(request: Request) {
   try {
     const { business, user } = await requireBusiness();
     const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("wallet.apple_google", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
     const featureEnabled = isFeatureEnabled("wallet.apple_google", featureCtx);
     const body = actionSchema.parse(await request.json());
 
@@ -74,7 +78,17 @@ export async function POST(request: Request) {
         featureEnabled,
       });
       if (!result.ok) {
-        return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
+        const status = result.code === "feature_off" ? 503 : 400;
+        return NextResponse.json(
+          result.code === "feature_off"
+            ? featureGateJsonBody({
+                ok: false,
+                featureId: "wallet.apple_google",
+                message: result.error,
+              })
+            : { error: result.error, code: result.code },
+          { status }
+        );
       }
       return NextResponse.json({ ok: true, pass: result.pass });
     }

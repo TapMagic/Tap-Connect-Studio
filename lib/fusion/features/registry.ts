@@ -669,6 +669,28 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     rollback: "Disconnect providers / feature kill-switch",
   },
   {
+    id: "integrations.live_execution",
+    name: "External provider live execution",
+    description:
+      "Master kill-switch for preferLive / live Direct Post / live OAuth provider execution across productivity connectors and TapCast. When OFF, mock adapters remain available if the parent feature is ON. Live = VERIFIED — CREDENTIALS REQUIRED regardless.",
+    pillar: "integrations",
+    domainOwner: "integrations",
+    ux: ["settings", "platform_admin"],
+    implementation: "wired",
+    maturity: "alpha",
+    defaultEnabled: true,
+    dependencies: [],
+    requiredProviders: [],
+    requiredEnvVars: [],
+    requiredPermissions: ["integrations:manage", "admin:features"],
+    surfaces: ["studio", "platform_admin"],
+    devices: ["desktop"],
+    analyticsEvents: ["provider.live.blocked", "provider.live.allowed"],
+    owner: "platform",
+    docs: "docs/fusion/ADMIN_CONTROL_PLANE_SPEC.md",
+    rollback: "Disable integrations.live_execution — forces mock-only provider paths",
+  },
+  {
     id: "connectors.monday",
     name: "monday.com Connector",
     description:

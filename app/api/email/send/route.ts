@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
 import { sendEmailPlaceholder } from "@/lib/integrations/placeholders";
 import { sendTransactionalEmail } from "@/lib/services/email";
 import { prisma } from "@/lib/db";
@@ -17,12 +19,18 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
+    const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("comms.email", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
+
     const placeholder = await sendEmailPlaceholder();
     if (placeholder) {
       return NextResponse.json(placeholder, { status: 503 });
     }
 
-    const { business } = await requireBusiness();
     const body = schema.parse(await request.json());
 
     let subject = body.subject ?? `Thanks from ${business.name}`;

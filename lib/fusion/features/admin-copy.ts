@@ -3,24 +3,12 @@
  */
 
 import type { listRegistryStatus } from "./resolve";
+import { KILL_SWITCH_FEATURE_IDS } from "./kill-switch-matrix";
 
 type RegistryRow = ReturnType<typeof listRegistryStatus>[number];
 
-const KILL_SWITCH_FEATURES = new Set([
-  "comms.messaging",
-  "comms.email",
-  "comms.inbox",
-  "wallet.apple_google",
-  "journey.tapflow",
-  "canvas.tapcanvas",
-  "ai.autopilot",
-  "ai.keywords",
-  "brand.vocabulary",
-  "commerce.tapcommerce",
-]);
-
 export function isKillSwitchFeature(featureId: string): boolean {
-  return KILL_SWITCH_FEATURES.has(featureId);
+  return KILL_SWITCH_FEATURE_IDS.has(featureId);
 }
 
 export function describeActivationState(row: RegistryRow): string {

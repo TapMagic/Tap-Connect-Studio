@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { createProgram, defineRules, listPrograms } from "@/lib/fusion/taploop";
-import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
-import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
 
 const createSchema = z.object({
   name: z.string().trim().min(1).max(120),
@@ -44,25 +44,19 @@ const rulesSchema = z.object({
     .optional(),
 });
 
-async function requireTapLoop(businessId: string) {
-  const overrides = toResolveOverrides(await listFeatureOverrides());
-  if (!isFeatureEnabled("loyalty.taploop", { overrides })) {
-    return NextResponse.json(
-      {
-        error: "TapLoop is disabled. Enable loyalty.taploop in Platform Admin.",
-        feature: "loyalty.taploop",
-      },
-      { status: 403 }
-    );
+async function requireTapLoop() {
+  const featureCtx = await loadFeatureContext();
+  const gate = checkFeatureGate("loyalty.taploop", featureCtx);
+  if (!gate.ok) {
+    return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
   }
-  void businessId;
   return null;
 }
 
 export async function GET() {
   try {
     const { business } = await requireBusiness();
-    const blocked = await requireTapLoop(business.id);
+    const blocked = await requireTapLoop();
     if (blocked) return blocked;
 
     const programs = await listPrograms(business.id);
@@ -76,7 +70,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { business } = await requireBusiness();
-    const blocked = await requireTapLoop(business.id);
+    const blocked = await requireTapLoop();
     if (blocked) return blocked;
 
     const body = await request.json();

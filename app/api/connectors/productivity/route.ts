@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import {
+  checkFeatureGate,
+  checkLiveProviderExecution,
+  featureGateJsonBody,
+} from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import {
   connectWorkProvider,
   disconnectWorkProvider,
   createExternalWorkItem,
@@ -248,6 +254,12 @@ const postSchema = z.discriminatedUnion("action", [
 export async function GET() {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("connectors.productivity", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
+
     const snapshot = getProductivitySnapshot(business.id);
     return NextResponse.json({
       ok: true,
@@ -274,7 +286,20 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const { business } = await requireBusiness();
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("connectors.productivity", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+    }
+
     const body = postSchema.parse(await request.json());
+
+    if (body.action === "connect" && body.preferLive === true) {
+      const liveGate = checkLiveProviderExecution(featureCtx);
+      if (!liveGate.ok) {
+        return NextResponse.json(featureGateJsonBody(liveGate), { status: 503 });
+      }
+    }
 
     switch (body.action) {
       case "connect": {

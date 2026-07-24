@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import {
+  checkFeatureGate,
+  checkLiveProviderExecution,
+  featureGateJsonBody,
+} from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
+import {
   adaptTikTokToReelsShorts,
   associateTikTokCast,
   composeTikTok916,
@@ -31,6 +37,12 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const { business } = await requireBusiness();
+  const featureCtx = await loadFeatureContext();
+  const gate = checkFeatureGate("tapcast.tiktok", featureCtx);
+  if (!gate.ok) {
+    return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+  }
+
   await flushTikTokPersists();
   await hydrateTikTokConnection(business.id);
   const casts = await listTikTokCastsFromDb(business.id);
@@ -136,6 +148,12 @@ const bodySchema = z.discriminatedUnion("action", [
 
 export async function POST(req: Request) {
   const { business } = await requireBusiness();
+  const featureCtx = await loadFeatureContext();
+  const gate = checkFeatureGate("tapcast.tiktok", featureCtx);
+  if (!gate.ok) {
+    return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
+  }
+
   const json = await req.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
@@ -146,6 +164,16 @@ export async function POST(req: Request) {
   }
 
   const body = parsed.data;
+  if (
+    (body.action === "connect" && body.preferLive === true) ||
+    body.action === "direct_post"
+  ) {
+    const liveGate = checkLiveProviderExecution(featureCtx);
+    if (!liveGate.ok) {
+      return NextResponse.json(featureGateJsonBody(liveGate), { status: 503 });
+    }
+  }
+
   let response: NextResponse;
   switch (body.action) {
     case "connect":

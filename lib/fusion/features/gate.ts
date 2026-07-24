@@ -8,6 +8,8 @@ export type FeatureGateResult =
   | { ok: true }
   | { ok: false; featureId: string; message: string };
 
+export const LIVE_EXECUTION_FEATURE_ID = "integrations.live_execution" as const;
+
 export function checkFeatureGate(
   featureId: string,
   ctx: ResolveContext,
@@ -21,6 +23,19 @@ export function checkFeatureGate(
       message ??
       `${featureId} is disabled — enable it in Platform Admin → Feature Registry`,
   };
+}
+
+/** Blocks preferLive / live Direct Post when external provider execution kill-switch is OFF. */
+export function checkLiveProviderExecution(
+  ctx: ResolveContext,
+  message?: string
+): FeatureGateResult {
+  return checkFeatureGate(
+    LIVE_EXECUTION_FEATURE_ID,
+    ctx,
+    message ??
+      `${LIVE_EXECUTION_FEATURE_ID} kill-switch — live provider execution blocked (mock paths remain when parent feature is on)`
+  );
 }
 
 /** Pass when any listed feature is enabled (e.g. comms.inbox | comms.email). */

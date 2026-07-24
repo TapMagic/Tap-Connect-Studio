@@ -2,6 +2,9 @@
 
 Manual must-pass checks before OWNER-READY sign-off. Run against a local `npm run dev` session with keyboard + VoiceOver/NVDA spot-checks. Do not treat automated axe as a substitute for these flows.
 
+**Manual closeout walkthrough (exact routes/steps + PO attestation):** `docs/fusion/A11Y_MANUAL_CLOSEOUT.md`  
+**Defect log:** `docs/fusion/OWNER_WALKTHROUGH_DEFECT_LOG.md` (D-001 VO/NVDA, D-002 OS zoom).
+
 Structural inventory (code pointers, not proof): `lib/fusion/a11y/structural-checks.ts` — pairs with P-17.
 
 **Automated + headed keyboard + SR-oriented proof (2026-07-24 deepen):** `P-a11y-owner-gate` + `P-responsive-owner-gate` passed (axe serious/critical + keyboard + aria-live/role/name/focus-order + 200% CSS zoom proxy). Unchecked items below remain for **manual true VoiceOver/NVDA / OS-native zoom / product-depth** OWNER-READY certification. Playwright SR proxies are **not** a substitute for VoiceOver/NVDA.

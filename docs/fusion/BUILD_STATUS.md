@@ -61,8 +61,8 @@ Fresh re-run on tip after deepening SR-oriented a11y + 200% CSS zoom responsive 
 
 1. Builder save/publish/assign + formatting headed persistence  
 2. ~~TapFlow live visitor executor~~ — P-tapflow-live-visitor headed + persistence (mock/sandbox). Live OAuth still **VERIFIED — CREDENTIALS REQUIRED**
-3. Expand remaining Admin kill-switches beyond Keywords/TapCanvas/TapFlow triad
-4. Insights drill-down + provenance  
+3. ~~Expand remaining Admin kill-switches beyond Keywords/TapCanvas/TapFlow triad~~ — `P-admin-killswitch-matrix` + `integrations.live_execution` (local proof; platform still not OWNER-READY)
+4. ~~Insights drill-down + provenance~~ — P-insights-drilldown-provenance (filters/compare/drill/TapProof/saved views/CSV)  
 5. A11y/responsive: deepened SR-oriented + 200% CSS zoom PASS. Residual: **true VoiceOver/NVDA** + **OS-native zoom** — **IMPLEMENTED BUT NOT OWNER-READY**  
 6. Live productivity OAuth apps (one provider at a time)  
 7. Live TapCast credentials per channel — never claim OWNER-READY without them  

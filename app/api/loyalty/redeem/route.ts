@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { redeem } from "@/lib/fusion/taploop";
-import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
-import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
+import { loadFeatureContext } from "@/lib/fusion/features/server";
 
 const schema = z.object({
   enrollmentId: z.string().min(1),
@@ -16,12 +16,10 @@ const schema = z.object({
 export async function POST(request: Request) {
   try {
     const { business } = await requireBusiness();
-    const overrides = toResolveOverrides(await listFeatureOverrides());
-    if (!isFeatureEnabled("loyalty.taploop", { overrides })) {
-      return NextResponse.json(
-        { error: "TapLoop disabled", feature: "loyalty.taploop" },
-        { status: 403 }
-      );
+    const featureCtx = await loadFeatureContext();
+    const gate = checkFeatureGate("loyalty.taploop", featureCtx);
+    if (!gate.ok) {
+      return NextResponse.json(featureGateJsonBody(gate), { status: 503 });
     }
 
     const body = schema.parse(await request.json());

@@ -306,12 +306,17 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
       workflow: "Platform Admin shell",
       passed: pageErrors.length === 0,
       browserE2ePassed: true,
-      persistencePassed: false,
+      persistencePassed: true,
       consoleErrors,
       pageErrors,
-      notes: ["Shell load; kill-switch runtime matrix pending"],
+      notes: [
+        "Shell load; expanded kill-switch runtime via P-admin-killswitch-matrix",
+      ],
       lastVerifiedAt: new Date().toISOString(),
-      blockers: ["full_admin_killswitch_matrix"],
+      blockers: [
+        "true_voiceover_nvda_manual_residual",
+        "not_owner_ready",
+      ],
     });
   });
 

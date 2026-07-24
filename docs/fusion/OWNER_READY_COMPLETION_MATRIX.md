@@ -29,11 +29,11 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | Leads capture | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-03-lead-capture | consent UI, public form matrix |
 | TapSave / MyTap | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-03-tapsave-keep | prefs/moments, wallet headed |
 | Wallet (mock) | 50% | VERIFIED — CREDENTIALS REQUIRED (live) | wire + P-wallet-mock | live certs; Audience list headed |
-| TapLoop | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-10-taploop | program UI, reverse, enroll UI |
+| TapLoop | 92% | IMPLEMENTED BUT NOT OWNER-READY | P-10-taploop | Insights hub surface of loyalty KPIs (hook shipped); live provider none |
 | TapFlow | 85% | IMPLEMENTED BUT NOT OWNER-READY | P-06 + P-tapcanvas-tapflow-lifecycle + **P-tapflow-live-visitor** | live OAuth provider effects, full Journeys UI |
-| Inbox | 55% | IMPLEMENTED BUT NOT OWNER-READY | P-09 shell | reply/Guardian/TapCase |
-| Insights | 55% | IMPLEMENTED BUT NOT OWNER-READY | P-11 + export matrix | drill-down, provenance |
-| Platform Admin | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-12 + killswitch matrix; P-keywords-*; P-tapcanvas-killswitch triad | expand disable→503→re-enable to remaining kill-switches |
+| Inbox | 82% | IMPLEMENTED BUT NOT OWNER-READY; live = VERIFIED — CREDENTIALS REQUIRED | P-09-inbox-operator + P-27-inbox-guardian-matrix | live Meta/Telegram/ManyChat certs, VoiceOver spot |
+| Insights | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-11 + P-insights-export + P-insights-drilldown-provenance | VoiceOver residual |
+| Platform Admin | 78% | IMPLEMENTED BUT NOT OWNER-READY | P-12 + **P-admin-killswitch-matrix** + Keywords/TapCanvas triad | true VO on registry tables; live creds unrelated |
 | Controls / responsive / a11y | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-a11y-owner-gate + P-responsive-owner-gate (SR-oriented + 200% CSS zoom) | true VoiceOver/NVDA, OS-native Cmd+ zoom |
 | Productivity & Work Mgmt | 70% | VERIFIED — CREDENTIALS REQUIRED (live) | P-productivity-* | live OAuth apps |
 | TapCanvas | 86% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-* + P-a11y/responsive-owner-gate | VoiceOver residual, live TapCast publish, live OAuth |

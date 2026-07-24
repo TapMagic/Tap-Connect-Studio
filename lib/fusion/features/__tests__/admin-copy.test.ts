@@ -15,9 +15,14 @@ describe("Feature registry admin copy", () => {
   const messaging = rows.find((r) => r.id === "comms.messaging")!;
   const card = rows.find((r) => r.id === "card.builder.v1")!;
 
-  it("marks kill-switch features", () => {
+  it("marks kill-switch features including expanded matrix", () => {
     assert.equal(isKillSwitchFeature("comms.messaging"), true);
     assert.equal(isKillSwitchFeature("ai.keywords"), true);
+    assert.equal(isKillSwitchFeature("loyalty.taploop"), true);
+    assert.equal(isKillSwitchFeature("tapcast.tiktok"), true);
+    assert.equal(isKillSwitchFeature("tapcast.omnichannel"), true);
+    assert.equal(isKillSwitchFeature("connectors.productivity"), true);
+    assert.equal(isKillSwitchFeature("integrations.live_execution"), true);
     assert.equal(isKillSwitchFeature("card.builder.v1"), false);
   });
 

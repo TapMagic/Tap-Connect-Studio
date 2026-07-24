@@ -211,13 +211,17 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "admin",
-    lastVerifiedAt: "2026-07-24T00:43:12.000Z",
+    lastVerifiedAt: "2026-07-24T05:30:00.000Z",
     browserE2ePassed: true,
-    persistencePassed: false,
+    persistencePassed: true,
     notes:
-      "PO 13/13 · P-12-admin-shell; kill-switch API OK — panel interactivity follow-up",
-    blockers: ["full_admin_killswitch_matrix", "feature_registry_panel_not_interactive"],
-    nextAction: "Headed: disable → surface 503 → re-enable → audit row",
+      "P-12-admin-shell + P-admin-killswitch-matrix (expanded Email/Inbox/Wallet/TapLoop/TapCommerce/TapCast/TikTok/Productivity/Autopilot/live_execution). Not OWNER-READY.",
+    blockers: [
+      "feature_registry_panel_a11y_tables_residual",
+      "true_voiceover_nvda_manual_residual",
+      "not_owner_ready",
+    ],
+    nextAction: "PO VoiceOver on Feature Registry; keep kill-switch matrix green on tip",
   },
   {
     sectionId: "productivity_work",
