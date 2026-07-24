@@ -25,6 +25,10 @@ export type ProofRecord = {
   passed: boolean;
   browserE2ePassed: boolean;
   persistencePassed: boolean;
+  /** Set true only when headed a11y checks actually ran and passed */
+  a11yPassed?: boolean;
+  /** Set true only when mobile+desktop viewport layout checks passed */
+  responsivePassed?: boolean;
   consoleErrors: string[];
   pageErrors: string[];
   notes: string[];

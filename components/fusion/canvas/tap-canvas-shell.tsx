@@ -40,6 +40,21 @@ type ProposalRow = {
   severity: string;
 };
 
+type CommentRow = {
+  id: string;
+  body: string;
+  nodeId?: string | null;
+  createdAt: string;
+};
+
+type ApprovalRow = {
+  id: string;
+  subjectType: string;
+  subjectId: string;
+  status: string;
+  createdAt: string;
+};
+
 export function TapCanvasShell({
   initialLinkType,
   initialLinkId,
@@ -56,11 +71,15 @@ export function TapCanvasShell({
   const [message, setMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [stickyLabel, setStickyLabel] = useState("Idea sticky");
+  const [commentBody, setCommentBody] = useState("");
+  const [comments, setComments] = useState<CommentRow[]>([]);
+  const [approvals, setApprovals] = useState<ApprovalRow[]>([]);
   const [proposals, setProposals] = useState<ProposalRow[]>([]);
   const [persistence, setPersistence] = useState<"prisma" | "memory" | null>(null);
   const [lastUndoVersionId, setLastUndoVersionId] = useState<string | null>(null);
   const [compareDiff, setCompareDiff] = useState<string | null>(null);
   const openFromLinkDone = useRef(false);
+  const shellRef = useRef<HTMLDivElement>(null);
 
   const reloadList = useCallback(async () => {
     const res = await fetch("/api/canvas");
@@ -80,6 +99,8 @@ export function TapCanvasShell({
     if (res.ok) {
       setCanvas(json.canvas);
       setProposals(json.proposals ?? []);
+      setComments(json.comments ?? []);
+      setApprovals(json.approvals ?? []);
       setVersions(
         (json.versions ?? []).map(
           (v: { id: string; version: number; label: string }) => ({
@@ -130,6 +151,8 @@ export function TapCanvasShell({
         }
         await reloadList();
         if (json.proposals) setProposals(json.proposals);
+        if (json.comments) setComments(json.comments);
+        if (json.approvals) setApprovals(json.approvals);
         if (json.versions) {
           setVersions(
             json.versions.map(
@@ -178,9 +201,47 @@ export function TapCanvasShell({
 
   const modes = ["sketch", "build", "operate", "analyze"] as const;
 
+  useEffect(() => {
+    function onKeyDown(e: KeyboardEvent) {
+      const root = shellRef.current;
+      if (!root) return;
+      if (!root.contains(document.activeElement) && document.activeElement !== root) {
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMessage(null);
+        setCompareDiff(null);
+        return;
+      }
+      if (!canvas || busy) return;
+      const tag = (document.activeElement as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      const modeMap: Record<string, (typeof modes)[number]> = {
+        "1": "sketch",
+        "2": "build",
+        "3": "operate",
+        "4": "analyze",
+      };
+      const next = modeMap[e.key];
+      if (!next) return;
+      e.preventDefault();
+      void post({ action: "set_mode", canvasId: canvas.id, mode: next });
+    }
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- post closes over canvas/busy
+  }, [canvas, busy]);
+
   return (
-    <div className="space-y-6" data-testid="tapcanvas-shell">
-      <header className="space-y-2 border-b border-white/8 pb-5">
+    <div
+      ref={shellRef}
+      tabIndex={0}
+      role="region"
+      aria-label="TapCanvas operator shell"
+      className="space-y-6 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+      data-testid="tapcanvas-shell"
+    >      <header className="space-y-2 border-b border-white/8 pb-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           Experiences · TapCanvas
         </p>
@@ -334,7 +395,7 @@ export function TapCanvasShell({
                 <span className="text-xs text-white/40" data-testid="tapcanvas-version">
                   v{canvas.version}
                 </span>
-                {modes.map((m) => (
+                {modes.map((m, idx) => (
                   <Button
                     key={m}
                     size="sm"
@@ -342,6 +403,8 @@ export function TapCanvasShell({
                     variant={canvas.mode === m ? "default" : "outline"}
                     className={canvas.mode === m ? "" : "border-white/15"}
                     disabled={busy}
+                    aria-label={`Switch to ${m} mode (shortcut ${idx + 1})`}
+                    aria-pressed={canvas.mode === m}
                     onClick={() =>
                       post({ action: "set_mode", canvasId: canvas.id, mode: m })
                     }
@@ -349,6 +412,9 @@ export function TapCanvasShell({
                     {m === "analyze" ? "Analyze & Repair" : m}
                   </Button>
                 ))}
+                <span className="text-[10px] text-white/30" data-testid="tapcanvas-shortcuts-hint">
+                  Keys 1–4 switch modes · Esc clears message
+                </span>
               </div>
 
               {canvas.mode === "sketch" || canvas.mode === "build" ? (
@@ -431,6 +497,23 @@ export function TapCanvasShell({
                     }
                   >
                     Bind keyword trigger
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    data-testid="tapcanvas-create-tapflow"
+                    disabled={busy}
+                    aria-label="Create TapFlow JourneyDraft from canvas"
+                    onClick={() =>
+                      post({
+                        action: "create_tapflow_from_canvas",
+                        canvasId: canvas.id,
+                        name: `TapFlow ${canvas.name}`,
+                        simulate: true,
+                      })
+                    }
+                  >
+                    Create TapFlow (DRAFT)
                   </Button>
                   <Button
                     size="sm"
@@ -633,6 +716,160 @@ export function TapCanvasShell({
                   </ul>
                 </div>
               ) : null}
+
+              <div className="grid gap-3 md:grid-cols-2" data-testid="tapcanvas-operator-panels">
+                <div
+                  data-testid="tapcanvas-comments-panel"
+                  className="rounded-lg border border-white/10 bg-black/20 p-3"
+                  role="region"
+                  aria-label="Canvas comments"
+                >
+                  <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                    Comments
+                  </p>
+                  <div className="mb-2 flex flex-wrap items-end gap-2">
+                    <div className="min-w-[160px] flex-1 space-y-1">
+                      <label
+                        className="text-[10px] uppercase text-white/40"
+                        htmlFor="tapcanvas-comment-input"
+                      >
+                        Add comment
+                      </label>
+                      <Input
+                        id="tapcanvas-comment-input"
+                        data-testid="tapcanvas-comment-input"
+                        value={commentBody}
+                        onChange={(e) => setCommentBody(e.target.value)}
+                        placeholder="Operator note…"
+                        className="h-9 bg-black/40"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      data-testid="tapcanvas-comment-add"
+                      disabled={busy || !commentBody.trim()}
+                      onClick={() => {
+                        const body = commentBody.trim();
+                        if (!body) return;
+                        void post({
+                          action: "add_comment",
+                          canvasId: canvas.id,
+                          body,
+                        }).then(() => setCommentBody(""));
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
+                  <ul
+                    data-testid="tapcanvas-comments-list"
+                    className="max-h-40 space-y-2 overflow-y-auto"
+                  >
+                    {comments.length === 0 ? (
+                      <li className="text-xs text-white/35">No comments yet.</li>
+                    ) : (
+                      comments.map((c) => (
+                        <li
+                          key={c.id}
+                          data-testid={`tapcanvas-comment-${c.id}`}
+                          className="rounded border border-white/8 bg-white/[0.02] px-2 py-1.5 text-xs text-white/70"
+                        >
+                          {c.body}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+
+                <div
+                  data-testid="tapcanvas-approvals-panel"
+                  className="rounded-lg border border-white/10 bg-black/20 p-3"
+                  role="region"
+                  aria-label="Canvas approvals"
+                >
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+                      Approvals
+                    </p>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-7 border-white/15 px-2 text-[10px]"
+                      data-testid="tapcanvas-approval-create"
+                      disabled={busy}
+                      onClick={() =>
+                        post({
+                          action: "create_approval",
+                          canvasId: canvas.id,
+                          subjectType: "canvas",
+                          subjectId: canvas.id,
+                        })
+                      }
+                    >
+                      Request approval
+                    </Button>
+                  </div>
+                  <ul
+                    data-testid="tapcanvas-approvals-list"
+                    className="max-h-40 space-y-2 overflow-y-auto"
+                  >
+                    {approvals.length === 0 ? (
+                      <li className="text-xs text-white/35">No approvals yet.</li>
+                    ) : (
+                      approvals.map((a) => (
+                        <li
+                          key={a.id}
+                          data-testid={`tapcanvas-approval-${a.id}`}
+                          className="flex flex-wrap items-center gap-2 rounded border border-white/8 bg-white/[0.02] px-2 py-1.5 text-xs text-white/70"
+                        >
+                          <span className="min-w-0 flex-1 truncate">
+                            {a.subjectType}:{a.subjectId} · {a.status}
+                          </span>
+                          {a.status === "pending" ? (
+                            <>
+                              <Button
+                                size="sm"
+                                className="h-7 px-2 text-[10px]"
+                                data-testid={`tapcanvas-approval-approve-${a.id}`}
+                                disabled={busy}
+                                aria-label={`Approve ${a.id}`}
+                                onClick={() =>
+                                  post({
+                                    action: "resolve_approval",
+                                    canvasId: canvas.id,
+                                    approvalId: a.id,
+                                    decision: "approved",
+                                  })
+                                }
+                              >
+                                Approve
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="destructive"
+                                className="h-7 px-2 text-[10px]"
+                                data-testid={`tapcanvas-approval-reject-${a.id}`}
+                                disabled={busy}
+                                aria-label={`Reject ${a.id}`}
+                                onClick={() =>
+                                  post({
+                                    action: "resolve_approval",
+                                    canvasId: canvas.id,
+                                    approvalId: a.id,
+                                    decision: "rejected",
+                                  })
+                                }
+                              >
+                                Reject
+                              </Button>
+                            </>
+                          ) : null}
+                        </li>
+                      ))
+                    )}
+                  </ul>
+                </div>
+              </div>
 
               <div
                 data-testid="tapcanvas-graph"

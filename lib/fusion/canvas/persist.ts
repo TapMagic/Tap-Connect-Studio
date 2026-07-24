@@ -27,6 +27,13 @@ import {
   appendCanvasAudit,
   getProposal,
   getVersion,
+  memPushComment,
+  memListComments,
+  memPushApproval,
+  memListApprovals,
+  memResolveApproval,
+  type MemCanvasApproval,
+  type MemCanvasComment,
 } from "./store";
 
 function asJson(value: unknown): Prisma.InputJsonValue {
@@ -462,25 +469,64 @@ export async function saveCanvasIssues(
   });
 }
 
+export type CanvasCommentDto = MemCanvasComment;
+export type CanvasApprovalDto = MemCanvasApproval;
+
 export async function addCanvasCommentDb(opts: {
   documentId: string;
   body: string;
   nodeId?: string;
   authorId?: string;
-}): Promise<{ id: string }> {
+}): Promise<CanvasCommentDto> {
+  const id = `cmt_${Date.now().toString(36)}`;
+  const createdAt = new Date().toISOString();
   if (!canvasPersistenceEnabled()) {
-    return { id: `cmt_mem_${Date.now().toString(36)}` };
+    return memPushComment({
+      id: `cmt_mem_${Date.now().toString(36)}`,
+      documentId: opts.documentId,
+      body: opts.body,
+      nodeId: opts.nodeId ?? null,
+      authorId: opts.authorId ?? null,
+      createdAt,
+    });
   }
   const row = await prisma.canvasComment.create({
     data: {
-      id: `cmt_${Date.now().toString(36)}`,
+      id,
       documentId: opts.documentId,
       body: opts.body,
       nodeId: opts.nodeId,
       authorId: opts.authorId,
     },
   });
-  return { id: row.id };
+  return {
+    id: row.id,
+    documentId: row.documentId,
+    body: row.body,
+    nodeId: row.nodeId,
+    authorId: row.authorId,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export async function listCanvasCommentsDb(
+  documentId: string
+): Promise<CanvasCommentDto[]> {
+  if (!canvasPersistenceEnabled()) {
+    return memListComments(documentId);
+  }
+  const rows = await prisma.canvasComment.findMany({
+    where: { documentId },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    documentId: row.documentId,
+    body: row.body,
+    nodeId: row.nodeId,
+    authorId: row.authorId,
+    createdAt: row.createdAt.toISOString(),
+  }));
 }
 
 export async function createCanvasApprovalDb(opts: {
@@ -488,9 +534,19 @@ export async function createCanvasApprovalDb(opts: {
   subjectType: string;
   subjectId: string;
   workItemId?: string;
-}): Promise<{ id: string }> {
+}): Promise<CanvasApprovalDto> {
+  const createdAt = new Date().toISOString();
   if (!canvasPersistenceEnabled()) {
-    return { id: `apr_mem_${Date.now().toString(36)}` };
+    return memPushApproval({
+      id: `apr_mem_${Date.now().toString(36)}`,
+      documentId: opts.documentId,
+      subjectType: opts.subjectType,
+      subjectId: opts.subjectId,
+      status: "pending",
+      workItemId: opts.workItemId ?? null,
+      decidedAt: null,
+      createdAt,
+    });
   }
   const row = await prisma.canvasApproval.create({
     data: {
@@ -501,5 +557,81 @@ export async function createCanvasApprovalDb(opts: {
       workItemId: opts.workItemId,
     },
   });
-  return { id: row.id };
+  return {
+    id: row.id,
+    documentId: row.documentId,
+    subjectType: row.subjectType,
+    subjectId: row.subjectId,
+    status: row.status,
+    workItemId: row.workItemId,
+    decidedAt: row.decidedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
+}
+
+export async function listCanvasApprovalsDb(
+  documentId: string
+): Promise<CanvasApprovalDto[]> {
+  if (!canvasPersistenceEnabled()) {
+    return memListApprovals(documentId);
+  }
+  const rows = await prisma.canvasApproval.findMany({
+    where: { documentId },
+    orderBy: { createdAt: "desc" },
+  });
+  return rows.map((row) => ({
+    id: row.id,
+    documentId: row.documentId,
+    subjectType: row.subjectType,
+    subjectId: row.subjectId,
+    status: row.status,
+    workItemId: row.workItemId,
+    decidedAt: row.decidedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  }));
+}
+
+export async function resolveCanvasApprovalDb(opts: {
+  approvalId: string;
+  documentId: string;
+  decision: "approved" | "rejected";
+}): Promise<CanvasApprovalDto | null> {
+  if (!canvasPersistenceEnabled()) {
+    const row = memResolveApproval(opts.approvalId, opts.decision);
+    if (!row || row.documentId !== opts.documentId) return null;
+    return row;
+  }
+  const existing = await prisma.canvasApproval.findFirst({
+    where: { id: opts.approvalId, documentId: opts.documentId },
+  });
+  if (!existing) return null;
+  if (existing.status !== "pending") {
+    return {
+      id: existing.id,
+      documentId: existing.documentId,
+      subjectType: existing.subjectType,
+      subjectId: existing.subjectId,
+      status: existing.status,
+      workItemId: existing.workItemId,
+      decidedAt: existing.decidedAt?.toISOString() ?? null,
+      createdAt: existing.createdAt.toISOString(),
+    };
+  }
+  const row = await prisma.canvasApproval.update({
+    where: { id: opts.approvalId },
+    data: {
+      status: opts.decision,
+      decidedAt: new Date(),
+    },
+  });
+  return {
+    id: row.id,
+    documentId: row.documentId,
+    subjectType: row.subjectType,
+    subjectId: row.subjectId,
+    status: row.status,
+    workItemId: row.workItemId,
+    decidedAt: row.decidedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+  };
 }

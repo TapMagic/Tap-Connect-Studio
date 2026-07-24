@@ -11,16 +11,81 @@ import type {
   TapCanvas,
 } from "./types";
 
+export type MemCanvasComment = {
+  id: string;
+  documentId: string;
+  body: string;
+  nodeId?: string | null;
+  authorId?: string | null;
+  createdAt: string;
+};
+
+export type MemCanvasApproval = {
+  id: string;
+  documentId: string;
+  subjectType: string;
+  subjectId: string;
+  status: "pending" | "approved" | "rejected" | "invalidated";
+  workItemId?: string | null;
+  decidedAt?: string | null;
+  createdAt: string;
+};
+
 const canvases = new Map<string, TapCanvas>();
 const versions: CanvasVersion[] = [];
 const proposals: AutomationProposal[] = [];
 const audit: CanvasAuditEntry[] = [];
+const commentsByDoc = new Map<string, MemCanvasComment[]>();
+const approvalsByDoc = new Map<string, MemCanvasApproval[]>();
 
 export function resetCanvasMemory() {
   canvases.clear();
   versions.length = 0;
   proposals.length = 0;
   audit.length = 0;
+  commentsByDoc.clear();
+  approvalsByDoc.clear();
+}
+
+export function memPushComment(row: MemCanvasComment): MemCanvasComment {
+  const list = commentsByDoc.get(row.documentId) ?? [];
+  list.push(row);
+  commentsByDoc.set(row.documentId, list);
+  return row;
+}
+
+export function memListComments(documentId: string): MemCanvasComment[] {
+  return [...(commentsByDoc.get(documentId) ?? [])].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+}
+
+export function memPushApproval(row: MemCanvasApproval): MemCanvasApproval {
+  const list = approvalsByDoc.get(row.documentId) ?? [];
+  list.push(row);
+  approvalsByDoc.set(row.documentId, list);
+  return row;
+}
+
+export function memListApprovals(documentId: string): MemCanvasApproval[] {
+  return [...(approvalsByDoc.get(documentId) ?? [])].sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt)
+  );
+}
+
+export function memResolveApproval(
+  approvalId: string,
+  decision: "approved" | "rejected"
+): MemCanvasApproval | null {
+  for (const [, list] of approvalsByDoc) {
+    const row = list.find((a) => a.id === approvalId);
+    if (!row) continue;
+    if (row.status !== "pending") return row;
+    row.status = decision;
+    row.decidedAt = new Date().toISOString();
+    return row;
+  }
+  return null;
 }
 
 export function upsertCanvas(canvas: TapCanvas): TapCanvas {

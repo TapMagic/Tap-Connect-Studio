@@ -11,7 +11,7 @@
 - Extended matrix specs: `e2e/fusion-proofs-matrix.spec.ts` (builder save, TapFlow, Admin, Insights, controls, responsive, a11y, wallet mock)
 - **Productivity closeout:** `e2e/productivity-workflows.spec.ts` — 18-step mock workflows + Settings UI (live = VERIFIED — CREDENTIALS REQUIRED)
 - **Omnichannel TapCast:** unit suite green; headed proofs in `e2e/tapcast-omnichannel.spec.ts` — **IMPLEMENTED BUT NOT OWNER-READY** / live = **VERIFIED — CREDENTIALS REQUIRED**
-- **TapCanvas + TikTok persistence:** `e2e/tapcanvas-tiktok.spec.ts` — persist/campaigns/TikTok + reverse-repair / keyword-bind / version-restore. TapCanvas = **IMPLEMENTED BUT NOT OWNER-READY**; TikTok live = **VERIFIED — CREDENTIALS REQUIRED**
+- **TapCanvas + TikTok persistence:** `e2e/tapcanvas-tiktok.spec.ts` — persist/campaigns/TikTok + reverse-repair / keyword-bind / version-restore / mode-matrix / comments-approvals / tapflow-bind / a11y-responsive. TapCanvas = **IMPLEMENTED BUT NOT OWNER-READY**; TikTok live = **VERIFIED — CREDENTIALS REQUIRED**
 - **Keywords & Brand Vocabulary:** unit suite green; headed `e2e/keywords-brand-pack.spec.ts` passed — durable terms/packs; live AI/trends = **VERIFIED — CREDENTIALS REQUIRED** (not OWNER-READY)
 
 ## Migrations (isolated `tapconnect_fusion_dev` only)
@@ -32,6 +32,7 @@
 
 ## Recent wiring
 
+- **TapCanvas deepen (comments/approvals/tapflow/a11y)** — GET returns `comments` + `approvals`; `create_approval` / `resolve_approval` / `create_tapflow_from_canvas` (JourneyDraft DRAFT bind); shell comments + approvals panels + TapFlow button; keyboard 1–4 modes + Esc; headed mode/comments/tapflow/a11y-responsive proofs. Still **IMPLEMENTED BUT NOT OWNER-READY**.
 - **TapCanvas deepen (operate/repair/proofs)** — `open_from_object` reverse viz for Open-in-TapCanvas; repair `proposal_resolve` hydrates + flushes document/versions/proposals/**audit**; `restore_version` / `compare_versions`; `bind_keyword_trigger` via Brand Vocabulary + `tapcanvas` trigger binding; shell versions + keyword bind UI. Still **IMPLEMENTED BUT NOT OWNER-READY**.
 - **Shared AI Keywords & Hashtags (authoritative)** — `lib/fusion/keywords/**`, durable `BrandVocabularyTerm` + named Brand Packs + suggestion history + trigger collision bindings on isolated DB. API `/api/ai/keywords` (alias `/api/keywords`). Contextual panel on Brand Kit, Campaign/Card builders, TapCast/TikTok, Email, TapCanvas, TapFlow, Inbox, Assets, Templates, Autopilot. Local grounded generation without OpenAI; live AI/trend enrichment = **VERIFIED — CREDENTIALS REQUIRED**. Features `brand.vocabulary` + `ai.keywords`. TikTok no longer hard-codes `#TapConnect`/`#WeeklySpecial` defaults.
 - **Mainstream Omnichannel TapCast** — channel capability registry (publishing / conversation / community), mock adapters with publish-path ladder, campaign channel variants (native adapt, no blind cross-post), failure isolation, Admin/Settings panel, `/api/tapcast`, TapCanvas `distribution_graph` / `distribution_action`, Prisma persist on isolated DB. TikTok remains first-class at Experiences → TapCast → TikTok.
@@ -50,7 +51,7 @@
 5. A11y/responsive completion  
 6. Live productivity OAuth apps (one provider at a time)  
 7. Live TapCast credentials per channel (TikTok Direct Post, Meta, YouTube, …) — never claim OWNER-READY without them  
-8. TapCanvas full Sketch→Build→Operate headed matrix + keyboard a11y + comments/approvals UI matrix  
+8. TapCanvas full owner-gate (live publish/activate TapFlow, full screen-reader, promotion matrix completeness)  
 
 ## Classifications (TapCanvas / TapCast)
 
@@ -59,15 +60,14 @@
 | Omnichannel TapCast (registry, variants, mock publish, canvas hooks) | **IMPLEMENTED BUT NOT OWNER-READY** |
 | Live channel publish (all TapCast providers) | **VERIFIED — CREDENTIALS REQUIRED** |
 | TikTok first-class mock path | Prisma-persisted mock funnel (P-tiktok-mock-persist); live Direct Post credential-gated |
-| TapCanvas (documents + guided campaigns + repair/versions/keywords) | **IMPLEMENTED BUT NOT OWNER-READY** (P-tapcanvas-persist / campaigns / reverse-repair / keyword-bind / version-restore) |
+| TapCanvas (documents + guided campaigns + repair/versions/keywords/comments/tapflow) | **IMPLEMENTED BUT NOT OWNER-READY** (P-tapcanvas-persist / campaigns / reverse-repair / keyword-bind / version-restore / mode-matrix / comments-approvals / tapflow-bind / a11y-responsive) |
 
 ## Local TapCanvas blockers (precise)
 
-- Full Sketch→Build→Operate→Analyze headed owner-gate matrix (not just API slices)
-- Keyboard / screen-reader a11y headed pass (`a11yPassed: false`)
-- Responsive matrix for canvas shell
-- TapFlow lifecycle nodes + deploy checklist UI completeness
-- Comments + CanvasApproval UI (DB helpers exist; no full operator matrix)
+- Full owner-gate promotion matrix (every promote warning path + undo edge cases)
+- Full screen-reader / axe suite (`P-tapcanvas-a11y-responsive` is basic keyboard/labels/viewports only — not VoiceOver sign-off)
+- TapFlow live publish/activate from canvas (bridge creates DRAFT + simulate stub only)
+- Deploy checklist UI completeness for TapFlow-in-canvas
 - Live social/TikTok credentials (out of band — not local)
 
 ## Commands

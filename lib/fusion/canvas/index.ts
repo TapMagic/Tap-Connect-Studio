@@ -15,3 +15,4 @@ export * from "./templates";
 export * from "./conversational";
 export * from "./deployment";
 export * from "./campaigns";
+export * from "./tapflow-bridge";

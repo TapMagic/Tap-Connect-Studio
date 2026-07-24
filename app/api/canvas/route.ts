@@ -47,6 +47,11 @@ import {
   simulateDeployment,
   undoPromotion,
   addCanvasCommentDb,
+  createCanvasApprovalDb,
+  createTapflowFromCanvas,
+  listCanvasApprovalsDb,
+  listCanvasCommentsDb,
+  resolveCanvasApprovalDb,
   ACTION_CATALOG,
   TRIGGER_CATALOG,
 } from "@/lib/fusion/canvas";
@@ -72,11 +77,17 @@ export async function GET(req: Request) {
     if (!canvas || canvas.businessId !== business.id) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
+    const [comments, approvals] = await Promise.all([
+      listCanvasCommentsDb(canvasId),
+      listCanvasApprovalsDb(canvasId),
+    ]);
     return NextResponse.json({
       canvas,
       versions: listVersions(canvasId),
       proposals: listPendingProposals(canvasId),
       audit: listCanvasAudit(canvasId),
+      comments,
+      approvals,
       sketchGuard: assertSketchNonExecuting(canvas),
       persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
       openHref: getOpenInTapCanvasHref({
@@ -223,6 +234,33 @@ const bodySchema = z.discriminatedUnion("action", [
     canvasId: z.string(),
     body: z.string().min(1).max(2000),
     nodeId: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("create_approval"),
+    canvasId: z.string(),
+    subjectType: z.string().min(1).max(64),
+    subjectId: z.string().min(1).max(120),
+    workItemId: z.string().max(120).optional(),
+  }),
+  z.object({
+    action: z.literal("resolve_approval"),
+    canvasId: z.string(),
+    approvalId: z.string(),
+    decision: z.enum(["approved", "rejected"]),
+  }),
+  z.object({
+    action: z.literal("create_tapflow_from_canvas"),
+    canvasId: z.string(),
+    name: z.string().min(1).max(160).optional(),
+    nodeId: z.string().optional(),
+    simulate: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("bind_tapflow"),
+    canvasId: z.string(),
+    name: z.string().min(1).max(160).optional(),
+    nodeId: z.string().optional(),
+    simulate: z.boolean().optional(),
   }),
   z.object({
     action: z.literal("apply_template"),
@@ -636,7 +674,59 @@ export async function POST(req: Request) {
           body: body.body,
           nodeId: body.nodeId,
         });
-        return NextResponse.json({ ok: true, comment });
+        const comments = await listCanvasCommentsDb(body.canvasId);
+        return NextResponse.json({
+          ok: true,
+          comment,
+          comments,
+          message: "Comment added",
+        });
+      }
+      case "create_approval": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const approval = await createCanvasApprovalDb({
+          documentId: body.canvasId,
+          subjectType: body.subjectType,
+          subjectId: body.subjectId,
+          workItemId: body.workItemId,
+        });
+        const approvals = await listCanvasApprovalsDb(body.canvasId);
+        return NextResponse.json({
+          ok: true,
+          approval,
+          approvals,
+          message: "Approval created (pending)",
+        });
+      }
+      case "resolve_approval": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const approval = await resolveCanvasApprovalDb({
+          approvalId: body.approvalId,
+          documentId: body.canvasId,
+          decision: body.decision,
+        });
+        if (!approval) {
+          return NextResponse.json({ error: "Approval not found" }, { status: 404 });
+        }
+        const approvals = await listCanvasApprovalsDb(body.canvasId);
+        return NextResponse.json({
+          ok: true,
+          approval,
+          approvals,
+          message: `Approval ${body.decision}`,
+        });
+      }
+      case "create_tapflow_from_canvas":
+      case "bind_tapflow": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await createTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          name: body.name,
+          nodeId: body.nodeId,
+          simulate: body.simulate ?? true,
+        });
+        return NextResponse.json({ ok: true, ...result });
       }
       case "apply_template": {
         const result = applyCanvasTemplate({

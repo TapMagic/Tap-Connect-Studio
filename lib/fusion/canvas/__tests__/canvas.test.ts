@@ -32,6 +32,12 @@ import {
   syncNodesFromObject,
   undoPromotion,
   updateNode,
+  addCanvasCommentDb,
+  createCanvasApprovalDb,
+  listCanvasCommentsDb,
+  listCanvasApprovalsDb,
+  resolveCanvasApprovalDb,
+  createTapflowFromCanvas,
 } from "../index";
 import {
   connectWorkProvider,
@@ -374,5 +380,58 @@ describe("TapCanvas", () => {
       Array.isArray(bound.node.data?.keywords) &&
         (bound.node.data!.keywords as string[]).length > 0
     );
+  });
+
+  it("comments and approvals list + resolve in memory", async () => {
+    const canvas = createSketchBoard({ businessId: BIZ, name: "Collab board" });
+    const comment = await addCanvasCommentDb({
+      documentId: canvas.id,
+      body: "Needs review",
+    });
+    assert.ok(comment.id);
+    const comments = await listCanvasCommentsDb(canvas.id);
+    assert.equal(comments.length, 1);
+    assert.equal(comments[0]!.body, "Needs review");
+
+    const approval = await createCanvasApprovalDb({
+      documentId: canvas.id,
+      subjectType: "canvas",
+      subjectId: canvas.id,
+    });
+    assert.equal(approval.status, "pending");
+    const listed = await listCanvasApprovalsDb(canvas.id);
+    assert.equal(listed.length, 1);
+
+    const resolved = await resolveCanvasApprovalDb({
+      approvalId: approval.id,
+      documentId: canvas.id,
+      decision: "approved",
+    });
+    assert.ok(resolved);
+    assert.equal(resolved!.status, "approved");
+    const after = await listCanvasApprovalsDb(canvas.id);
+    assert.equal(after[0]!.status, "approved");
+  });
+
+  it("createTapflowFromCanvas binds journey_draft node (memory stub)", async () => {
+    const canvas = createSketchBoard({ businessId: BIZ, name: "TapFlow board" });
+    setCanvasMode(canvas.id, "build");
+    const result = await createTapflowFromCanvas({
+      businessId: BIZ,
+      canvasId: canvas.id,
+      name: "Canvas TapFlow",
+      simulate: true,
+    });
+    assert.equal(result.ok, true);
+    assert.equal(result.lifecycleStatus, "DRAFT");
+    assert.equal(result.persistence, "memory_stub");
+    assert.ok(result.journeyDraftId.startsWith("jd_mem_"));
+    const node = result.canvas.nodes.find((n) => n.id === result.nodeId);
+    assert.ok(node);
+    assert.equal(node!.kind, "tapflow");
+    assert.equal(node!.linked?.type, "journey_draft");
+    assert.equal(node!.linked?.id, result.journeyDraftId);
+    assert.ok(result.simulate?.stub);
+    assert.ok((result.simulate?.path.length ?? 0) >= 1);
   });
 });

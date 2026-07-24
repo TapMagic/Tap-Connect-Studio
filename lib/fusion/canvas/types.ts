@@ -37,7 +37,8 @@ export const SKETCH_ONLY_KINDS: ReadonlySet<CanvasObjectKind> = new Set([
 ]);
 
 export type LinkedObjectRef = {
-  type: CanvasObjectKind;
+  /** TapConnect object kind, or journey_draft when binding a JourneyDraft lifecycle row */
+  type: CanvasObjectKind | "journey_draft";
   id: string;
   /** Optional provider for ExternalWorkItem */
   provider?: string;

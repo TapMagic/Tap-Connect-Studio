@@ -731,4 +731,332 @@ test.describe("TapCanvas + TikTok persistence closeout", () => {
 
     writeProofIndex();
   });
+
+  test("P-tapcanvas-mode-matrix: Sketch→Build→Operate→Analyze UI + API", async ({
+    page,
+  }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+
+    await page.goto(`${BASE}/dashboard/experiences/canvas`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+
+    const create = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "create", name: `Mode Matrix ${Date.now()}` },
+    });
+    expect(create.ok()).toBeTruthy();
+    const created = (await create.json()) as { canvas?: { id: string } };
+    const canvasId = created.canvas!.id;
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 30_000 });
+    const board = page.getByTestId(`tapcanvas-board-${canvasId}`);
+    await expect(board).toBeVisible({ timeout: 20_000 });
+    await board.click();
+    await expect(page.getByTestId("tapcanvas-graph")).toBeVisible({ timeout: 20_000 });
+
+    for (const mode of ["sketch", "build", "operate", "analyze"] as const) {
+      await page.getByTestId(`tapcanvas-mode-${mode}`).click();
+      await expect(page.getByTestId(`tapcanvas-mode-${mode}`)).toBeVisible();
+      const snap = await page.request.get(
+        `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+      );
+      const json = (await snap.json()) as { canvas?: { mode: string } };
+      expect(json.canvas?.mode).toBe(mode);
+    }
+
+    await expect(page.getByTestId("tapcanvas-mode-analyze")).toBeVisible();
+    await expect(page.getByTestId("tapcanvas-detect-issues")).toBeVisible();
+
+    writeProof({
+      id: "P-tapcanvas-mode-matrix",
+      route: "/dashboard/experiences/canvas modes",
+      workflow: "Sketch→Build→Operate→Analyze mode buttons update canvas.mode via API",
+      passed: pageErrors.length === 0,
+      browserE2ePassed: true,
+      persistencePassed: true,
+      consoleErrors,
+      pageErrors,
+      notes: [`canvasId=${canvasId}`, "modes=sketch,build,operate,analyze"],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers: ["full_owner_gate_matrix", "full_promotion_matrix"],
+    });
+  });
+
+  test("P-tapcanvas-comments-approvals: add/list comments + resolve approval UI", async ({
+    page,
+  }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+    const body = `Operator comment ${Date.now()}`;
+
+    await page.goto(`${BASE}/dashboard/experiences/canvas`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+
+    const create = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "create", name: `Collab ${Date.now()}` },
+    });
+    const created = (await create.json()) as { canvas?: { id: string } };
+    const canvasId = created.canvas!.id;
+
+    const commentApi = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "add_comment", canvasId, body },
+    });
+    expect(commentApi.ok()).toBeTruthy();
+
+    const approvalApi = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "create_approval",
+        canvasId,
+        subjectType: "canvas",
+        subjectId: canvasId,
+      },
+    });
+    expect(approvalApi.ok()).toBeTruthy();
+    const approvalJson = (await approvalApi.json()) as {
+      approval?: { id: string; status: string };
+    };
+    const approvalId = approvalJson.approval!.id;
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByTestId(`tapcanvas-board-${canvasId}`).click();
+    await expect(page.getByTestId("tapcanvas-comments-panel")).toBeVisible({
+      timeout: 20_000,
+    });
+    await expect(page.getByTestId("tapcanvas-comments-list")).toContainText(body);
+
+    await page.getByTestId("tapcanvas-comment-input").fill(`${body} UI`);
+    await page.getByTestId("tapcanvas-comment-add").click();
+    await expect(page.getByTestId("tapcanvas-comments-list")).toContainText(`${body} UI`, {
+      timeout: 20_000,
+    });
+
+    await expect(page.getByTestId("tapcanvas-approvals-panel")).toBeVisible();
+    await page.getByTestId(`tapcanvas-approval-approve-${approvalId}`).click();
+    await expect(page.getByTestId(`tapcanvas-approval-${approvalId}`)).toContainText(
+      "approved",
+      { timeout: 20_000 }
+    );
+
+    const reopen = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+    );
+    const reopened = (await reopen.json()) as {
+      comments?: { body: string }[];
+      approvals?: { id: string; status: string }[];
+      persistence?: string;
+    };
+    expect(reopened.persistence).toBe("prisma");
+    expect(reopened.comments?.some((c) => c.body === body)).toBeTruthy();
+    expect(
+      reopened.approvals?.some((a) => a.id === approvalId && a.status === "approved")
+    ).toBeTruthy();
+
+    writeProof({
+      id: "P-tapcanvas-comments-approvals",
+      route: "/api/canvas comments + approvals + shell panels",
+      workflow: "Add comment (API+UI), create approval, approve via shell; GET returns both",
+      passed: pageErrors.length === 0,
+      browserE2ePassed: true,
+      persistencePassed: true,
+      consoleErrors,
+      pageErrors,
+      notes: [`canvasId=${canvasId}`, `approvalId=${approvalId}`],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers: ["full_owner_gate_matrix", "live_credentials"],
+    });
+  });
+
+  test("P-tapcanvas-tapflow-bind: create JourneyDraft from canvas", async ({ page }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+
+    await page.goto(`${BASE}/dashboard/experiences/canvas`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+
+    const create = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "create", name: `TapFlow Canvas ${Date.now()}` },
+    });
+    const created = (await create.json()) as { canvas?: { id: string } };
+    const canvasId = created.canvas!.id;
+
+    await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "set_mode", canvasId, mode: "build" },
+    });
+
+    const bind = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "create_tapflow_from_canvas",
+        canvasId,
+        name: `E2E TapFlow ${Date.now()}`,
+        simulate: true,
+      },
+    });
+    expect(bind.ok()).toBeTruthy();
+    const bindJson = (await bind.json()) as {
+      ok?: boolean;
+      journeyDraftId?: string;
+      lifecycleStatus?: string;
+      persistence?: string;
+      nodeId?: string;
+      simulate?: { path?: string[]; stub?: boolean };
+    };
+    expect(bindJson.ok).toBeTruthy();
+    expect(bindJson.persistence).toBe("prisma");
+    expect(bindJson.lifecycleStatus).toBe("DRAFT");
+    expect(bindJson.journeyDraftId).toBeTruthy();
+    expect(bindJson.simulate?.stub).toBe(true);
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByTestId(`tapcanvas-board-${canvasId}`).click();
+    await expect(page.getByTestId("tapcanvas-create-tapflow")).toBeVisible({
+      timeout: 20_000,
+    });
+    await page.getByTestId("tapcanvas-create-tapflow").click();
+    await expect(page.getByTestId("tapcanvas-message")).toContainText(/JourneyDraft|TapFlow|OK/i, {
+      timeout: 20_000,
+    });
+
+    const reopen = await page.request.get(
+      `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+    );
+    const reopened = (await reopen.json()) as {
+      canvas?: {
+        nodes?: { kind: string; linked?: { type: string; id: string } }[];
+      };
+    };
+    expect(
+      reopened.canvas?.nodes?.some(
+        (n) => n.kind === "tapflow" && n.linked?.type === "journey_draft"
+      )
+    ).toBeTruthy();
+
+    writeProof({
+      id: "P-tapcanvas-tapflow-bind",
+      route: "/api/canvas create_tapflow_from_canvas",
+      workflow:
+        "Create JourneyDraft (DRAFT) from canvas + link tapflow node; simulate stub; UI button in build",
+      passed: pageErrors.length === 0,
+      browserE2ePassed: true,
+      persistencePassed: true,
+      consoleErrors,
+      pageErrors,
+      notes: [
+        `canvasId=${canvasId}`,
+        `journeyDraftId=${bindJson.journeyDraftId}`,
+        `simulatePath=${bindJson.simulate?.path?.join(">")}`,
+      ],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers: [
+        "live_tapflow_publish_activate",
+        "full_owner_gate_matrix",
+        "full_lifecycle_ui",
+      ],
+    });
+  });
+
+  test("P-tapcanvas-a11y-responsive: keyboard modes + viewports + labels", async ({
+    page,
+  }) => {
+    const { consoleErrors, pageErrors } = attachConsole(page);
+    let a11yPassed = false;
+    let responsivePassed = false;
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.goto(`${BASE}/dashboard/experiences/canvas`, {
+      waitUntil: "domcontentloaded",
+    });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+
+    const create = await page.request.post(`${BASE}/api/canvas`, {
+      data: { action: "create", name: `A11y ${Date.now()}` },
+    });
+    const created = (await create.json()) as { canvas?: { id: string } };
+    const canvasId = created.canvas!.id;
+
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await page.getByTestId(`tapcanvas-board-${canvasId}`).click();
+    await expect(page.getByTestId("tapcanvas-shell")).toBeVisible({ timeout: 20_000 });
+
+    const headingLevel = await page.getByTestId("tapcanvas-heading").evaluate((el) =>
+      el.tagName.toLowerCase()
+    );
+    expect(headingLevel).toBe("h1");
+
+    const shell = page.getByTestId("tapcanvas-shell");
+    await shell.focus();
+    await expect(shell).toBeFocused();
+
+    for (const mode of ["sketch", "build", "operate", "analyze"] as const) {
+      const btn = page.getByTestId(`tapcanvas-mode-${mode}`);
+      await btn.focus();
+      await expect(btn).toBeFocused();
+      const label = await btn.getAttribute("aria-label");
+      expect(label).toBeTruthy();
+    }
+
+    await shell.focus();
+    await page.keyboard.press("2");
+    await expect
+      .poll(async () => {
+        const snap = await page.request.get(
+          `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+        );
+        const json = (await snap.json()) as { canvas?: { mode: string } };
+        return json.canvas?.mode;
+      })
+      .toBe("build");
+
+    await page.getByTestId("tapcanvas-create").click();
+    await expect(page.getByTestId("tapcanvas-message")).toBeVisible({ timeout: 15_000 });
+    await shell.focus();
+    await page.keyboard.press("Escape");
+    await expect(page.getByTestId("tapcanvas-message")).toHaveCount(0);
+
+    a11yPassed = true;
+
+    const desktopShell = await page.getByTestId("tapcanvas-shell").boundingBox();
+    expect(desktopShell && desktopShell.width > 600).toBeTruthy();
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible();
+    await expect(page.getByTestId("tapcanvas-shell")).toBeVisible();
+    const mobileBoardList = page.getByTestId("tapcanvas-board-list");
+    await expect(mobileBoardList).toBeVisible();
+    const mobileShell = await page.getByTestId("tapcanvas-shell").boundingBox();
+    expect(mobileShell && mobileShell.width > 0 && mobileShell.width <= 390).toBeTruthy();
+
+    responsivePassed = true;
+
+    writeProof({
+      id: "P-tapcanvas-a11y-responsive",
+      route: "/dashboard/experiences/canvas a11y + responsive",
+      workflow:
+        "Heading h1, mode buttons keyboard-focusable with aria-labels, keys 1–4 + Esc, mobile+desktop shell layout",
+      passed: pageErrors.length === 0 && a11yPassed && responsivePassed,
+      browserE2ePassed: true,
+      persistencePassed: true,
+      a11yPassed,
+      responsivePassed,
+      consoleErrors,
+      pageErrors,
+      notes: [
+        `canvasId=${canvasId}`,
+        `a11yPassed=${a11yPassed}`,
+        `responsivePassed=${responsivePassed}`,
+        "basic_a11y_only_not_full_screen_reader_pass",
+      ],
+      lastVerifiedAt: new Date().toISOString(),
+      blockers: [
+        "full_screen_reader_pass",
+        "full_owner_gate_matrix",
+        "axe_automated_suite",
+      ],
+    });
+
+    writeProofIndex();
+  });
 });
