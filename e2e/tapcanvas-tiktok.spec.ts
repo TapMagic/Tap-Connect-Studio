@@ -57,20 +57,14 @@ test.describe("TapCanvas + TikTok persistence closeout", () => {
     expect(reopened.persistence).toBe("prisma");
     expect(reopened.canvas?.nodes?.some((n) => n.label === stickyLabel)).toBeTruthy();
 
-    // UI proof: shell interactive — New board should select a graph
-    await page.getByTestId("tapcanvas-create").click();
-    const graph = page.getByTestId("tapcanvas-graph");
-    const graphVisible = await graph.isVisible().catch(() => false);
-    if (!graphVisible) {
-      // Fallback: open board from list after API create
-      await page.reload({ waitUntil: "domcontentloaded" });
-      await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 30_000 });
-      const board = page.getByTestId(`tapcanvas-board-${canvasId}`);
-      if (await board.isVisible().catch(() => false)) {
-        await board.click();
-      }
-    }
+    // UI proof: open the API-created board (list may need a refresh after POST)
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 30_000 });
+    const board = page.getByTestId(`tapcanvas-board-${canvasId}`);
+    await expect(board).toBeVisible({ timeout: 30_000 });
+    await board.click();
     await expect(page.getByTestId("tapcanvas-graph")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("tapcanvas-active-name")).toBeVisible();
     if (await page.getByTestId("tapcanvas-sticky-input").isVisible().catch(() => false)) {
       await page.getByTestId("tapcanvas-sticky-input").fill(stickyLabel);
       await page.getByTestId("tapcanvas-add-sticky").click();

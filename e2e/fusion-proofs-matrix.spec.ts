@@ -137,6 +137,77 @@ test.describe("Fusion matrix proofs (headed-safe)", () => {
         : blockers,
     });
 
+    // Restore seed headline so later public-tap responsive proofs are not polluted
+    // by an unbroken ProofHeadline_* token left in the LIVE campaign.
+    if (patchOk) {
+      await page.request.patch(`${BASE}/api/campaigns/assign`, {
+        data: {
+          id: SEED.campaignId,
+          contentBlocks: [
+            {
+              id: "seed_headline",
+              type: "headline",
+              label: "Headline",
+              order: 0,
+              enabled: true,
+              data: {
+                headline: "[SEED] Welcome — Flight Test Card",
+                subheadline: "Keep this card, earn TapLoop points, and reopen anytime.",
+                alignment: "center",
+              },
+            },
+            {
+              id: "seed_body",
+              type: "rich_text",
+              label: "Details",
+              order: 1,
+              enabled: true,
+              data: {
+                body: "Seed demo only — not production. Unlock the coupon below after sharing your info.",
+              },
+            },
+            {
+              id: "seed_email",
+              type: "email_capture",
+              label: "Contact",
+              order: 2,
+              enabled: true,
+              data: {
+                headline: "Unlock your coupon",
+                description: "Share your contact info to reveal today’s special.",
+                fields: ["name", "email"],
+                requireName: true,
+                successMessage: "You're in — your coupon is below.",
+              },
+            },
+            {
+              id: "seed_offer",
+              type: "offer_coupon",
+              label: "Offer",
+              order: 3,
+              enabled: true,
+              data: {
+                title: "Welcome perk",
+                description: "Flight-test coupon",
+                code: "SEEDDEMO",
+                ctaLabel: "Reveal offer",
+                lockedUntilContact: true,
+              },
+            },
+            {
+              id: "seed_disclaimer",
+              type: "disclaimer",
+              label: "Disclaimer",
+              order: 4,
+              enabled: true,
+              data: { text: "Seed data for local fusion DB only. Not a real offer." },
+            },
+          ],
+        },
+      });
+      notes.push("seed_headline_restored");
+    }
+
     expect(persistencePassed).toBeTruthy();
   });
 

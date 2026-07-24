@@ -7,12 +7,12 @@
 
 ## Final local quality gate (2026-07-24 closeout)
 
-Fresh re-run on reconciled HEAD (ancestry: `809c18f` → `1384a89` → `050e327` → `931b63a` → `cfcdc55` → `3b8fe61` + this closeout commit). DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`.
+Fresh re-run on reconciled HEAD after TapFlow live visitor land (`cfcdc55` → `3b8fe61` → `e92bbee`) + overflow/e2e hardening commit. DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`.
 
 | Gate | Result |
 |------|--------|
 | Prisma validate | PASS |
-| Migrate status | PASS — 11 migrations, schema up to date |
+| Migrate status | PASS — 11 migrations, schema up to date (`20260724000009_journey_live_execution` already applied; no pending) |
 | `tsc --noEmit` | PASS |
 | `npm run lint` | PASS — **0 errors**, 4 `@next/next/no-img-element` warnings |
 | `npm run build` | PASS |
@@ -42,7 +42,8 @@ Fresh re-run on reconciled HEAD (ancestry: `809c18f` → `1384a89` → `050e327`
 7. `20260724000006_tapcanvas_tiktok`  
 8. `20260724000007_keyword_brand_pack` — `BrandKit.keywordBrandPack` JSON mirror  
 9. `202607240000075_tapcast_omnichannel` — `TapCastChannelVariant` / `TapCastChannelConnection` / `TapCastAuditLog`  
-10. `20260724000008_brand_vocabulary` — `BrandVocabularyTerm` / packs / suggestion runs / analytics / trigger bindings
+10. `20260724000008_brand_vocabulary` — `BrandVocabularyTerm` / packs / suggestion runs / analytics / trigger bindings  
+11. `20260724000009_journey_live_execution` — `JourneyPublishedVersion` / `JourneyExecution` / steps / provider events
 
 ## Reconciliation (2026-07-24 closeout)
 

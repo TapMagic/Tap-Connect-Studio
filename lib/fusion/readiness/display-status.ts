@@ -179,7 +179,7 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapflow",
-    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
+    lastVerifiedAt: "2026-07-24T04:45:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
