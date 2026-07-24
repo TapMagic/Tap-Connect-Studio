@@ -6,8 +6,8 @@
  *   BASE_URL=http://127.0.0.1:3000 PROOF_HEADED=1 \
  *   npx playwright test e2e/tapcanvas-tapflow-owner-gates.spec.ts --headed
  *
- * Keywords agent owns Brand Pack keyword surface proofs + keywords kill-switch.
- * This file may call Brand Vocabulary / keywords APIs for integrated conversational proofs.
+ * Integrated with Brand Vocabulary: conversational funnel + shared kill-switch proof 6
+ * covers ai.keywords + canvas.tapcanvas + journey.tapflow.
  */
 
 import { test, expect } from "@playwright/test";
@@ -529,25 +529,31 @@ test.describe("TapCanvas + TapFlow owner gates (A+B)", () => {
     writeProofIndex();
   });
 
-  test("P-tapcanvas-killswitch: TapFlow activation disabled + TapCanvas promotion blocked", async ({
+  test("P-tapcanvas-killswitch: Keywords + TapFlow + TapCanvas blocked → audit → re-enable → retry", async ({
     page,
   }) => {
     const { consoleErrors, pageErrors } = attachConsole(page);
-    const notes: string[] = [];
+    const notes: string[] = [
+      "proof_6_features=ai.keywords,journey.tapflow,canvas.tapcanvas",
+    ];
     const blockers: string[] = [];
 
     await page.goto(`${BASE}/dashboard/experiences/canvas`, {
       waitUntil: "domcontentloaded",
     });
     await expect(page.getByTestId("tapcanvas-heading")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("tapcanvas-keywords-mount")).toBeVisible({
+      timeout: 15_000,
+    });
 
     const list = await page.request.get(ADMIN_FEATURES);
     if (!list.ok()) {
       blockers.push("admin_features_api_unavailable");
       writeProof({
         id: "P-tapcanvas-killswitch",
-        route: "/api/admin/features + /api/canvas",
-        workflow: "Kill-switch canvas.tapcanvas + journey.tapflow → 503 → re-enable",
+        route: "/api/admin/features + /api/canvas + /api/ai/keywords",
+        workflow:
+          "Kill-switch ai.keywords + journey.tapflow + canvas.tapcanvas → 503 → re-enable",
         passed: false,
         browserE2ePassed: false,
         persistencePassed: false,
@@ -571,8 +577,11 @@ test.describe("TapCanvas + TapFlow owner gates (A+B)", () => {
     });
     const stickyId = ((await sticky.json()) as { node: { id: string } }).node.id;
 
-    // Disable TapFlow publish path
+    // Ensure features on before bind/create so we can disable cleanly
+    await ensureFeature(page, "ai.keywords", true);
     await ensureFeature(page, "journey.tapflow", true);
+    await ensureFeature(page, "canvas.tapcanvas", true);
+
     const bind = await page.request.post(`${BASE}/api/canvas`, {
       data: {
         action: "create_tapflow_from_canvas",
@@ -583,6 +592,33 @@ test.describe("TapCanvas + TapFlow owner gates (A+B)", () => {
     expect(bind.ok()).toBeTruthy();
     const jd = ((await bind.json()) as { journeyDraftId: string }).journeyDraftId;
 
+    // 1) Keywords kill-switch: API + canvas bind_keyword_trigger
+    await ensureFeature(page, "ai.keywords", false);
+    const blockedKw = await page.request.get(`${BASE}/api/ai/keywords`);
+    notes.push(`keywords_get_while_off=${blockedKw.status()}`);
+    expect(blockedKw.status()).toBe(503);
+    const blockedKwBody = (await blockedKw.json()) as { code?: string; feature?: string };
+    expect(blockedKwBody.code).toBe("feature_off");
+    expect(blockedKwBody.feature).toBe("ai.keywords");
+
+    const blockedBindKw = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "bind_keyword_trigger",
+        canvasId,
+        bindVocabulary: true,
+        extraTriggers: ["specials"],
+      },
+    });
+    notes.push(`bind_keyword_while_off=${blockedBindKw.status()}`);
+    expect(blockedBindKw.status()).toBe(503);
+    const blockedBindBody = (await blockedBindKw.json()) as {
+      code?: string;
+      feature?: string;
+      featureId?: string;
+    };
+    expect(blockedBindBody.code === "feature_off" || blockedBindBody.feature === "ai.keywords" || blockedBindBody.featureId === "ai.keywords").toBeTruthy();
+
+    // 2) TapFlow activation kill-switch
     await ensureFeature(page, "journey.tapflow", false);
     const blockedActivate = await page.request.post(`${BASE}/api/canvas`, {
       data: {
@@ -595,7 +631,7 @@ test.describe("TapCanvas + TapFlow owner gates (A+B)", () => {
     notes.push(`tapflow_activate_while_off=${blockedActivate.status()}`);
     expect(blockedActivate.status()).toBe(503);
 
-    // Disable TapCanvas promotion
+    // 3) TapCanvas promotion kill-switch
     await ensureFeature(page, "canvas.tapcanvas", false);
     const blockedPromote = await page.request.post(`${BASE}/api/canvas`, {
       data: {
@@ -608,9 +644,42 @@ test.describe("TapCanvas + TapFlow owner gates (A+B)", () => {
     notes.push(`promote_while_off=${blockedPromote.status()}`);
     expect(blockedPromote.status()).toBe(503);
 
-    // Re-enable both
+    // Re-enable all three + audit overrides
+    await ensureFeature(page, "ai.keywords", true);
     await ensureFeature(page, "canvas.tapcanvas", true);
     await ensureFeature(page, "journey.tapflow", true);
+
+    const after = await page.request.get(ADMIN_FEATURES);
+    const afterJson = (await after.json()) as {
+      overrides?: { featureId?: string; enabled?: boolean; reason?: string }[];
+    };
+    for (const fid of ["ai.keywords", "canvas.tapcanvas", "journey.tapflow"] as const) {
+      const row = (afterJson.overrides ?? []).find((o) => o.featureId === fid);
+      notes.push(`audit_${fid}=${row?.enabled ?? "missing"}:${row?.reason ?? "none"}`);
+      expect(row?.enabled).toBe(true);
+    }
+
+    const kwRetry = await page.request.post(`${BASE}/api/ai/keywords`, {
+      data: {
+        action: "suggest",
+        channel: "tapcanvas",
+        ground: { knownProducts: ["Cold Brew"] },
+        limit: 4,
+      },
+    });
+    notes.push(`keywords_retry=${kwRetry.status()}`);
+    expect(kwRetry.ok()).toBeTruthy();
+
+    const bindKwAgain = await page.request.post(`${BASE}/api/canvas`, {
+      data: {
+        action: "bind_keyword_trigger",
+        canvasId,
+        bindVocabulary: true,
+        extraTriggers: ["specials"],
+      },
+    });
+    notes.push(`bind_keyword_reenabled=${bindKwAgain.status()}`);
+    expect(bindKwAgain.ok()).toBeTruthy();
 
     const promoteAgain = await page.request.post(`${BASE}/api/canvas`, {
       data: {
@@ -626,20 +695,17 @@ test.describe("TapCanvas + TapFlow owner gates (A+B)", () => {
 
     writeProof({
       id: "P-tapcanvas-killswitch",
-      route: "/api/admin/features + /api/canvas",
+      route: "/api/admin/features + /api/canvas + /api/ai/keywords",
       workflow:
-        "Admin kill-switch: journey.tapflow activation 503 + canvas.tapcanvas promotion 503 → re-enable",
+        "Admin kill-switch: ai.keywords + journey.tapflow activate + canvas.tapcanvas promote → 503 → audit → re-enable → retry",
       passed: pageErrors.length === 0,
       browserE2ePassed: true,
       persistencePassed: true,
       consoleErrors,
       pageErrors,
-      notes: [
-        ...notes,
-        "Keywords kill-switch owned by Keywords agent (ai.keywords / brand.vocabulary)",
-      ],
+      notes,
       lastVerifiedAt: new Date().toISOString(),
-      blockers: ["keywords_killswitch_reconcile", "not_owner_ready"],
+      blockers: ["full_sr_axe_signoff", "live_visitor_executor", "not_owner_ready"],
     });
     writeProofIndex();
   });

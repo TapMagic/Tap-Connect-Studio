@@ -759,11 +759,19 @@ test.describe("TapCanvas + TikTok persistence closeout", () => {
     for (const mode of ["sketch", "build", "operate", "analyze"] as const) {
       await page.getByTestId(`tapcanvas-mode-${mode}`).click();
       await expect(page.getByTestId(`tapcanvas-mode-${mode}`)).toBeVisible();
-      const snap = await page.request.get(
-        `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
-      );
-      const json = (await snap.json()) as { canvas?: { mode: string } };
-      expect(json.canvas?.mode).toBe(mode);
+      // Wait for set_mode POST to flush before API snapshot (avoids race on fast clicks)
+      await expect
+        .poll(
+          async () => {
+            const snap = await page.request.get(
+              `${BASE}/api/canvas?canvasId=${encodeURIComponent(canvasId)}`
+            );
+            const json = (await snap.json()) as { canvas?: { mode: string } };
+            return json.canvas?.mode;
+          },
+          { timeout: 10_000 }
+        )
+        .toBe(mode);
     }
 
     await expect(page.getByTestId("tapcanvas-mode-analyze")).toBeVisible();

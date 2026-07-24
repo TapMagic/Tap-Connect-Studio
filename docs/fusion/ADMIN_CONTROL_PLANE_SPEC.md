@@ -30,7 +30,7 @@ Kill-switch-capable examples: `comms.messaging`, `comms.email`, `comms.inbox`, `
 | Durable store feature | `brand.vocabulary` — dependency of `ai.keywords`; keep rows read-only when disabled |
 | Admin API | `POST /api/admin/features` with `{ featureId: "ai.keywords", enabled: false\|true, scope: "global", reason }` |
 | UI signals | Brand Kit `data-testid="keywords-feature-off-banner"`; panel `data-testid="keywords-panel-readiness"` shows `DISABLED — ai.keywords kill switch` |
-| TapCanvas / TapFlow wiring | Before `bind_keyword_trigger`, KeywordsSuggestPanel suggest/apply, or conversational trigger bind: call `checkFeatureGate("ai.keywords", ctx)` (same gate as Keywords API). Do **not** invent a parallel flag. |
+| TapCanvas / TapFlow wiring | `bind_keyword_trigger` and KeywordsSuggestPanel use `checkFeatureGate("ai.keywords")` (same gate as Keywords API). Do **not** invent a parallel flag. |
 | Proof | `P-keywords-owner-gate-killswitch` + `P-keywords-killswitch` in `e2e/keywords-*.spec.ts` |
 
 ## Feature states

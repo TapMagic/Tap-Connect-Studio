@@ -239,7 +239,7 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     browserE2ePassed: true,
     a11yPassed: false,
     notes:
-      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist/campaigns/reverse-repair/keyword-bind/version-restore/mode-matrix/comments-approvals/tapflow-bind/a11y-responsive + P-tapcanvas-weekly-matrix/conversational-funnel/tapflow-lifecycle/reverse-repair-deep/killswitch. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + full SR/axe + live visitor executor open).",
+      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist/campaigns/reverse-repair/keyword-bind/version-restore/mode-matrix/comments-approvals/tapflow-bind/a11y-responsive + P-tapcanvas-weekly-matrix/conversational-funnel/tapflow-lifecycle/reverse-repair-deep/killswitch (ai.keywords + canvas.tapcanvas + journey.tapflow). Shell mounts KeywordsSuggestPanel + TapFlow lifecycle controls. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + full SR/axe + live visitor executor open).",
     blockers: [
       "a11y_headed_pass",
       "responsive_matrix",
@@ -303,18 +303,17 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-pipeline + P-keywords-owner-gate-killswitch: suggest/accept/reject/edit/lock/archive/restore, locale, named Brand Pack create+reuse, exclusion/competitor, duplicate warnings, trigger collision + campaign/location scope, conversational synonyms/misspellings, channel-specific TT/IG/FB/YT suggest+apply, TapCast variants when API available, persist after refresh, Admin ai.keywords disable→UI banner+API 503→audit→re-enable→retry, analytics audit view, readiness badge. Surfaces: Brand Kit, Campaign, Card, TapCast, TikTok, Email, TapCanvas, TapFlow, Inbox, Assets, Templates, Autopilot via shared KeywordsSuggestPanel + /api/ai/keywords only. Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
+      "P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-pipeline + P-keywords-owner-gate-killswitch + shared P-tapcanvas-killswitch (ai.keywords): suggest/accept/reject/edit/lock/archive/restore, locale, named Brand Pack create+reuse, exclusion/competitor, duplicate warnings, trigger collision + campaign/location scope, conversational synonyms/misspellings, channel-specific TT/IG/FB/YT suggest+apply, TapCast variants when API available, persist after refresh, Admin ai.keywords disable→UI banner+API 503+canvas bind_keyword_trigger 503→audit→re-enable→retry, analytics audit view, readiness badge. Surfaces: Brand Kit, Campaign, Card, TapCast, TikTok, Email, TapCanvas, TapFlow, Inbox, Assets, Templates, Autopilot via shared KeywordsSuggestPanel + /api/ai/keywords only. Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
     blockers: [
       "live_trend_provider",
       "openai_ai_enhancement",
       "a11y_headed_pass",
-      "tapcanvas_tapflow_killswitch_wiring_owned_by_ab_agent",
       "dedicated_analytics_ui_panel",
       "not_owner_ready",
     ],
     missingProviders: ["approved_trend_provider", "openai"],
     nextAction:
-      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; A+B agent wires TapCanvas/TapFlow to shared ai.keywords gate; a11y headed pass before OWNER-READY",
+      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; a11y headed pass before OWNER-READY",
   },
 ];
 

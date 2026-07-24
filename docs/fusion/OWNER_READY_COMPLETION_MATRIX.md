@@ -23,12 +23,12 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | TapFlow | 70% | FUNCTIONAL + canvas lifecycle | P-06 + P-tapcanvas-tapflow-lifecycle | live visitor executor, provider effects, full Journeys UI |
 | Inbox | 55% | FUNCTIONAL | P-09 shell | reply/Guardian/TapCase |
 | Insights | 55% | FUNCTIONAL | P-11 + export matrix | drill-down, provenance |
-| Platform Admin | 65% | FUNCTIONAL | P-12 + killswitch matrix; P-keywords-killswitch + P-keywords-owner-gate-killswitch; P-tapcanvas-killswitch | expand disable→503→re-enable to remaining kill-switches; TapCanvas/TapFlow consume shared `ai.keywords` gate |
+| Platform Admin | 70% | FUNCTIONAL | P-12 + killswitch matrix; P-keywords-killswitch + P-keywords-owner-gate-killswitch; P-tapcanvas-killswitch (ai.keywords + canvas.tapcanvas + journey.tapflow) | expand disable→503→re-enable to remaining kill-switches |
 | Controls / responsive / a11y | 40% | DEVELOPMENT | P-controls, P-responsive, P-a11y | public `<main>`, full axe |
 | Productivity & Work Mgmt | 70% | VERIFIED — CREDENTIALS (live) | P-productivity-* | live OAuth apps |
-| TapCanvas | 80% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-* + weekly-matrix / conversational-funnel / tapflow-lifecycle / reverse-repair-deep / killswitch | full SR/axe, live TapCast publish, live visitor executor, owner-gate zero blockers |
+| TapCanvas | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-* + weekly-matrix / conversational-funnel / tapflow-lifecycle / reverse-repair-deep / killswitch | full SR/axe, live TapCast publish, live visitor executor, owner-gate zero blockers |
 | TapCast · TikTok | 60% | VERIFIED — CREDENTIALS (live); mock persisted | P-tiktok-mock-persist | TIKTOK_* OAuth, Direct Post cert |
-| Brand Vocabulary / AI Keywords | 78% | FUNCTIONAL + headed owner-gate (not OWNER-READY) | P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-pipeline + P-keywords-owner-gate-killswitch | live trend/AI, a11y, TapCanvas/TapFlow kill-switch wiring (A+B), dedicated analytics UI |
+| Brand Vocabulary / AI Keywords | 80% | FUNCTIONAL + headed owner-gate (not OWNER-READY) | P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-* + shared P-tapcanvas-killswitch | live trend/AI, a11y, dedicated analytics UI |
 
 **Platform overall:** ~**60–65%** — not 100%. No section shows OWNER-READY until blockers clear.
 

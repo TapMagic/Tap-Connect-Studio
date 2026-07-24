@@ -524,7 +524,6 @@ test.describe("Keywords owner-gate matrix", () => {
       notes,
       lastVerifiedAt: new Date().toISOString(),
       blockers: [
-        "tapcanvas_tapflow_killswitch_wiring_owned_by_ab_agent",
         "a11y_headed_pass",
         "not_owner_ready",
       ],

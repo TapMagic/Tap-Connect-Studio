@@ -76,7 +76,9 @@ import {
   loadVocabularyPack,
 } from "@/lib/fusion/keywords";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
+import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
+import { KEYWORD_FEATURE_ID } from "@/lib/fusion/keywords/types";
 import type { JourneyDefinition } from "@/lib/fusion/journey/types";
 
 export const dynamic = "force-dynamic";
@@ -780,6 +782,10 @@ export async function POST(req: Request) {
         });
       }
       case "bind_keyword_trigger": {
+        const keywordsGate = checkFeatureGate(KEYWORD_FEATURE_ID, { overrides });
+        if (!keywordsGate.ok) {
+          return NextResponse.json(featureGateJsonBody(keywordsGate), { status: 503 });
+        }
         await hydrateCanvasSession(body.canvasId, business.id);
         const pack = await loadVocabularyPack(business.id);
         const bound = bindKeywordTriggerFromBrandPack(

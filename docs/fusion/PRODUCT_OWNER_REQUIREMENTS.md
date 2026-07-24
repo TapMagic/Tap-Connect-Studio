@@ -114,6 +114,6 @@ Ordinary IA, badge derivation, and builder fixes do **not** need owner decisions
 | Local grounded suggest/accept/reject/edit/lock/archive/restore | Implemented on isolated DB — no PO credential required |
 | Named Brand Pack create/reuse + locale | Implemented |
 | Channel-specific TT/IG/FB/YT + campaign/location trigger scope | Implemented + headed owner-gate proofs |
-| Admin kill switch `ai.keywords` | Implemented (UI + API 503 + audit); TapCanvas/TapFlow wiring owned by A+B agent using shared feature id |
+| Admin kill switch `ai.keywords` | Implemented (UI + API 503 + audit + canvas `bind_keyword_trigger` 503); shared proof with `canvas.tapcanvas` / `journey.tapflow` |
 | Live OpenAI enhance / live trends | **VERIFIED — CREDENTIALS REQUIRED** — see PO-LIVE-001 / PO-LIVE-001b |
 | OWNER-READY | **Not yet** — retain a11y + live provider blockers |

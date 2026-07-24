@@ -43,6 +43,9 @@ export function resolveSourceHashtags(
   if (!(KEYWORD_CHANNELS as string[]).includes(kwId)) {
     return [];
   }
+  if (!source.businessId) {
+    return [];
+  }
   const result = suggestKeywords({
     ground: buildGroundContext({
       businessId: source.businessId,
