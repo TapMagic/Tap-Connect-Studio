@@ -9,47 +9,14 @@
  * Populates proof JSON under tmp/fusion-proofs/ — VERIFICATION_LEDGER updated only after review.
  */
 
-import { test, expect, type Page, type ConsoleMessage } from "@playwright/test";
-import fs from "node:fs";
-import path from "node:path";
-
-const BASE = process.env.BASE_URL ?? "http://127.0.0.1:3000";
-const OUT = path.join(process.cwd(), "tmp", "fusion-proofs");
-
-type ProofRecord = {
-  id: string;
-  route: string;
-  workflow: string;
-  passed: boolean;
-  browserE2ePassed: boolean;
-  persistencePassed: boolean;
-  consoleErrors: string[];
-  pageErrors: string[];
-  notes: string[];
-  lastVerifiedAt: string;
-  blockers: string[];
-};
-
-function ensureOut() {
-  fs.mkdirSync(OUT, { recursive: true });
-}
-
-function attachConsole(page: Page) {
-  const consoleErrors: string[] = [];
-  const pageErrors: string[] = [];
-  page.on("console", (msg: ConsoleMessage) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
-  });
-  page.on("pageerror", (err) => pageErrors.push(String(err)));
-  return { consoleErrors, pageErrors };
-}
-
-function writeProof(rec: ProofRecord) {
-  ensureOut();
-  const file = path.join(OUT, `${rec.id}.json`);
-  fs.writeFileSync(file, JSON.stringify(rec, null, 2));
-  return file;
-}
+import { test, expect } from "@playwright/test";
+import {
+  attachConsole,
+  BASE,
+  SEED,
+  writeProof,
+  writeProofIndex,
+} from "./proof-helpers";
 
 test.describe("Fusion owner proofs (isolated DB)", () => {
   test.describe.configure({ timeout: 90_000 });
@@ -173,8 +140,7 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
     });
 
     // Stable seed editor URL (Welcome Offer) — avoids flaky list link clicks
-    const seedCampaignId =
-      process.env.SEED_CAMPAIGN_ID ?? "cmrx5wjn80001519kzayn9296";
+    const seedCampaignId = SEED.campaignId;
     await page.goto(`${BASE}/dashboard/campaigns/${seedCampaignId}`, {
       waitUntil: "domcontentloaded",
     });
@@ -215,8 +181,8 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
 
     const createRes = await page.request.post(`${BASE}/api/leads`, {
       data: {
-        businessId: process.env.SEED_BUSINESS_ID ?? "cmrx5wjml0000519ktwgyj0pe",
-        campaignId: process.env.SEED_CAMPAIGN_ID ?? "cmrx5wjn80001519kzayn9296",
+        businessId: SEED.businessId,
+        campaignId: SEED.campaignId,
         email,
         name: "Proof Visitor",
         type: "email_capture",
@@ -351,8 +317,7 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
 
   test("P-taploop: award idempotency + redeem on seed enrollment", async ({ page }) => {
     const { consoleErrors, pageErrors } = attachConsole(page);
-    const enrollmentId =
-      process.env.SEED_ENROLLMENT_ID ?? "cmrx5yojf0009bv9kivpac97i";
+    const enrollmentId = SEED.enrollmentId;
     const idem = `proof_award_${Date.now()}`;
 
     const award1 = await page.request.post(`${BASE}/api/loyalty/award`, {
@@ -470,20 +435,7 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
   });
 
   test("aggregate proof index", async () => {
-    ensureOut();
-    const files = fs.readdirSync(OUT).filter((f) => f.endsWith(".json") && f !== "index.json");
-    const records = files.map((f) => JSON.parse(fs.readFileSync(path.join(OUT, f), "utf8")));
-    const index = {
-      generatedAt: new Date().toISOString(),
-      baseUrl: BASE,
-      count: records.length,
-      fullyOwnerReadyEligible: records.filter(
-        (r: ProofRecord) =>
-          r.browserE2ePassed && r.persistencePassed && (!r.blockers || r.blockers.length === 0)
-      ).length,
-      records,
-    };
-    fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify(index, null, 2));
-    expect(records.length).toBeGreaterThan(0);
+    const index = writeProofIndex();
+    expect(index.count).toBeGreaterThan(0);
   });
 });

@@ -284,7 +284,12 @@ export function CampaignEditor({
     reset: resetBlocks,
   } = useUndoRedo<ContentBlock[]>(
     normalizeContentBlocks(campaign.contentBlocks)
-  );  const [theme, setTheme] = useState<{
+  );
+  /** Always-current blocks for save/publish (avoids stale closure after rapid edits) */
+  const blocksRef = useRef(blocks);
+  blocksRef.current = blocks;
+
+  const [theme, setTheme] = useState<{
     primaryColor: string;
     secondaryColor: string;
     backgroundColor: string;
@@ -478,13 +483,15 @@ export function CampaignEditor({
         ? status
         : "DRAFT";
 
+    const contentBlocks = blocksRef.current;
+
     const res = await fetch("/api/campaigns/assign", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         id: campaign.id,
         title,
-        contentBlocks: blocks,
+        contentBlocks,
         themeOverrides: theme,
         status: nextStatus,
         scheduledStart: scheduledStart ? new Date(scheduledStart).toISOString() : null,
@@ -560,7 +567,13 @@ export function CampaignEditor({
             <Eye className="mr-1 h-4 w-4" />
             Preview
           </Button>
-          <Button variant="outline" size="sm" onClick={() => saveCampaign(false)} disabled={saving}>
+          <Button
+            variant="outline"
+            size="sm"
+            data-testid="campaign-save"
+            onClick={() => saveCampaign(false)}
+            disabled={saving}
+          >
             <Save className="mr-1 h-4 w-4" />
             Save
           </Button>
@@ -2078,7 +2091,16 @@ function BlockFields({
       <div className="grid gap-3 sm:grid-cols-2">
         {fields.map((field) => (
           <div key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
-            <Label className="text-xs">{field.label}</Label>
+            <Label
+              className="text-xs"
+              htmlFor={
+                block.type === "headline" && field.key === "headline"
+                  ? "block-headline-text"
+                  : undefined
+              }
+            >
+              {field.label}
+            </Label>
             {field.multiline ? (
               <Textarea
                 value={(data[field.key] as string) ?? ""}
@@ -2090,6 +2112,9 @@ function BlockFields({
                 value={(data[field.key] as string) ?? ""}
                 onChange={(e) => onUpdate(field.key, e.target.value)}
                 className="mt-1"
+                {...(block.type === "headline" && field.key === "headline"
+                  ? { "data-testid": "block-headline-text", id: "block-headline-text" }
+                  : {})}
               />
             )}
           </div>

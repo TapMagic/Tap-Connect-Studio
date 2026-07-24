@@ -8,3 +8,4 @@ export {
 } from "./adapters";
 export * from "./lifecycle";
 export * from "./service";
+export * from "./tapsave-wire";

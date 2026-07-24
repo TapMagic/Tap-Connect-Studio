@@ -207,6 +207,7 @@ export function PlatformAdminTabs({
               type="button"
               role="tab"
               id={`admin-tab-${id}`}
+              data-testid={`admin-tab-${id}`}
               aria-selected={active}
               aria-controls={`admin-panel-${id}`}
               onClick={() => setTab(id)}

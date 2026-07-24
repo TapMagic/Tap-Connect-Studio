@@ -39,7 +39,7 @@ export async function findRelationshipByPublicToken(publicToken: string) {
     where: { publicToken },
     include: {
       contact: { select: { id: true } },
-      business: { select: { name: true, logoUrl: true } },
+      business: { select: { name: true, logoUrl: true, slug: true } },
     },
   });
 }

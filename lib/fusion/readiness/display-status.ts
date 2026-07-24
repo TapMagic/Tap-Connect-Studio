@@ -46,18 +46,19 @@ export type VerificationRecord = {
  * Authoritative verification ledger — only entries with browserE2ePassed + persistence
  * AND zero blockers may surface as OWNER-READY.
  *
- * Populated from headed Playwright runs (tmp/fusion-proofs/*.json) on isolated DB.
- * Do not clear blockers until the full owner-ready gate matrix for that section passes.
+ * PO headed suite attestation (isolated tapconnect_fusion_dev, Railway untouched):
+ * 2026-07-24 — 13/13 Playwright Chromium headed proofs passed (http://localhost:3000).
+ * These rows validate only suite-covered workflows — never the whole platform as OWNER-READY.
  */
 export const VERIFICATION_LEDGER: VerificationRecord[] = [
   {
     sectionId: "distribution",
-    lastVerifiedAt: "2026-07-23T22:38:00.000Z",
+    lastVerifiedAt: "2026-07-24T00:43:01.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     a11yPassed: false,
     notes:
-      "P-public-seed-tap: /t/seeddemo01 headed Chromium — evening/day schedule content + Keep Card visible; HMR console noise ignored",
+      "PO 13/13 · P-public-seed-tap: /t/seeddemo01 headed Chromium — schedule content + Keep Card visible",
     blockers: [
       "a11y_headed_pass",
       "responsive_matrix",
@@ -68,82 +69,147 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "calendar",
-    lastVerifiedAt: "2026-07-23T22:38:00.000Z",
+    lastVerifiedAt: "2026-07-24T00:43:02.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     a11yPassed: false,
-    notes:
-      "P-campaign-group-schedule: group schedule resolved evening slot on public tap with upcoming strip",
+    notes: "PO 13/13 · P-campaign-group-schedule: evening slot + upcoming strip on public tap",
     blockers: [
       "studio_time_travel_ui_matrix",
       "fallback_path_browser_proof",
       "a11y_headed_pass",
     ],
-    nextAction: "Prove Studio time-travel preview UI + explicit fallback path in browser",
+    nextAction: "Prove Studio time-travel preview UI + explicit fallback path",
   },
   {
     sectionId: "resolver",
-    lastVerifiedAt: "2026-07-23T22:38:00.000Z",
+    lastVerifiedAt: "2026-07-24T00:43:01.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    notes: "Public resolver path via getDeviceWithActiveCampaign + ?at= supported",
+    notes: "PO 13/13 · Public resolver via seed device + ?at= supported",
     blockers: ["studio_resolver_preview_surface", "full_owner_gate_matrix"],
     nextAction: "Prove in-Studio resolver preview workspace end-to-end",
   },
   {
-    sectionId: "campaigns",
-    lastVerifiedAt: "2026-07-23T22:38:20.000Z",
+    sectionId: "upcoming",
+    lastVerifiedAt: "2026-07-24T00:43:03.000Z",
     browserE2ePassed: true,
-    persistencePassed: false,
+    persistencePassed: true,
     notes:
-      "P-16-campaign-editor: editor loads Welcome Offer with preview after useUndoRedo fix; save/publish/assign matrix not yet headed",
+      "PO 13/13 · P-studio-home: Home hub loads; readiness badges derived (not static OWNER-READY)",
+    blockers: ["decision_queue_full_matrix", "a11y_headed_pass", "full_owner_gate_matrix"],
+    nextAction: "Complete Home decision-queue + a11y headed matrix",
+  },
+  {
+    sectionId: "campaigns",
+    lastVerifiedAt: "2026-07-24T00:55:22.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    notes:
+      "PO 13/13 editor shell; P-builder-save: PATCH save → reload shows marker (Save control present)",
     blockers: [
-      "full_campaign_builder_matrix",
-      "save_publish_assign_public_reload",
+      "publish_assign_public_matrix",
+      "ui_headline_edit_selector",
       "format_media_stock_proof",
     ],
-    nextAction: "Headed: format → media → save → publish → assign → public → reload",
+    nextAction: "Headed UI format edit + publish → assign → public reload",
   },
   {
     sectionId: "cards",
-    lastVerifiedAt: "2026-07-23T22:38:20.000Z",
+    lastVerifiedAt: "2026-07-24T00:43:04.000Z",
     browserE2ePassed: true,
     persistencePassed: false,
-    notes: "P-16-card-builder: Card Builder shell loads; full Pages-quality matrix pending",
+    notes: "PO 13/13 · P-16-card-builder shell loads",
     blockers: ["full_card_builder_matrix", "save_publish_assign_public_reload"],
     nextAction: "Headed Card Builder full matrix with persistence reload",
   },
   {
     sectionId: "leads",
-    lastVerifiedAt: "2026-07-23T22:42:00.000Z",
+    lastVerifiedAt: "2026-07-24T00:43:08.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    notes:
-      "P-03-lead-capture: POST /api/leads + Leads list headed proof on isolated DB; UI form matrix + Keep/MyTap still open",
-    blockers: [
-      "consent_relationship_matrix",
-      "keep_card_mytap_matrix",
-      "ui_form_headed_matrix",
-    ],
-    nextAction: "Headed: public form → consent → Contact → Relationship → Keep Card → MyTap",
-  },
-  {
-    sectionId: "taploop",
-    lastVerifiedAt: "2026-07-23T22:50:00.000Z",
-    browserE2ePassed: true,
-    persistencePassed: true,
-    notes: "P-10-taploop: award idempotency + redeem on seed enrollment via API + audience shell",
-    blockers: ["program_create_ui_matrix", "reversal_headed_matrix", "ui_enroll_form_matrix"],
-    nextAction: "Headed UI: create program → enroll → reverse + ledger display",
+    notes: "PO 13/13 · P-03-lead-capture: POST /api/leads → Leads list",
+    blockers: ["consent_relationship_matrix", "ui_form_headed_matrix"],
+    nextAction: "Headed public form → consent → Contact → Relationship",
   },
   {
     sectionId: "tapsave",
-    lastVerifiedAt: "2026-07-23T22:50:00.000Z",
+    lastVerifiedAt: "2026-07-24T00:43:13.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    notes: "P-03-tapsave-keep: Keep Card API → MyTap page loads",
-    blockers: ["wallet_after_tapsave_matrix", "prefs_moments_headed_matrix"],
-    nextAction: "Wire Wallet offer after Keep; prove prefs/moments headed",
+    notes:
+      "PO 13/13 · P-03-tapsave-keep; P-wallet-mock-tapsave: Keep → /api/mytap/wallet 200 → MyTap wallet UI",
+    blockers: ["prefs_moments_headed_matrix", "audience_wallet_list_headed", "live_apple_google_credentials"],
+    nextAction: "Headed Audience wallet list; live wallet remains credentials-gated",
+  },
+  {
+    sectionId: "mytap",
+    lastVerifiedAt: "2026-07-24T00:53:31.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    notes: "PO 13/13 Keep→MyTap; P-wallet-mock MyTap shows wallet UI after mock issue",
+    blockers: ["prefs_moments_headed_matrix"],
+    nextAction: "Headed prefs/moments on MyTap",
+  },
+  {
+    sectionId: "wallet",
+    lastVerifiedAt: "2026-07-24T00:53:31.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    notes: "P-wallet-mock-tapsave: mock Apple issue via /api/mytap/wallet — live certs still required",
+    blockers: [
+      "audience_wallet_list_headed",
+      "provider:apple_wallet_certs",
+      "provider:google_wallet",
+    ],
+    missingProviders: ["apple_wallet", "google_wallet"],
+    nextAction: "Audience wallet list headed; live = VERIFIED — CREDENTIALS REQUIRED",
+  },
+  {
+    sectionId: "taploop",
+    lastVerifiedAt: "2026-07-24T00:43:12.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    notes: "PO 13/13 · P-10-taploop: award idempotency + redeem on seed enrollment",
+    blockers: ["program_create_ui_matrix", "reversal_headed_matrix", "ui_enroll_form_matrix"],
+    nextAction: "Headed UI: create program → enroll → reverse + ledger",
+  },
+  {
+    sectionId: "tapflow",
+    lastVerifiedAt: "2026-07-24T00:43:09.000Z",
+    browserE2ePassed: true,
+    persistencePassed: false,
+    notes: "PO 13/13 · P-06-tapflow-shell; extend with P-tapflow-lifecycle matrix",
+    blockers: ["full_tapflow_lifecycle_matrix"],
+    nextAction: "Headed: create → publish → activate → execute → pause/resume → failure/retry",
+  },
+  {
+    sectionId: "inbox",
+    lastVerifiedAt: "2026-07-24T00:43:10.000Z",
+    browserE2ePassed: true,
+    persistencePassed: false,
+    notes: "PO 13/13 · P-09-inbox-shell",
+    blockers: ["full_inbox_reply_matrix"],
+    nextAction: "Headed: thread → mock reply → Guardian → TapCase → timeline",
+  },
+  {
+    sectionId: "insights",
+    lastVerifiedAt: "2026-07-24T00:43:11.000Z",
+    browserE2ePassed: true,
+    persistencePassed: false,
+    notes: "PO 13/13 · P-11-insights-shell; extend with P-insights-export",
+    blockers: ["full_insights_export_matrix", "drilldown_provenance_matrix"],
+    nextAction: "Headed: filters → drill-down → provenance → export",
+  },
+  {
+    sectionId: "admin",
+    lastVerifiedAt: "2026-07-24T00:43:12.000Z",
+    browserE2ePassed: true,
+    persistencePassed: false,
+    notes:
+      "PO 13/13 · P-12-admin-shell; kill-switch API OK — panel interactivity follow-up",
+    blockers: ["full_admin_killswitch_matrix", "feature_registry_panel_not_interactive"],
+    nextAction: "Headed: disable → surface 503 → re-enable → audit row",
   },
 ];
 

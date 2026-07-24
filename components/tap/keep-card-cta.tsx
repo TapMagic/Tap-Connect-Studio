@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { BookmarkPlus } from "lucide-react";
+import { AddToWalletMock } from "@/components/tap/add-to-wallet-mock";
 
 type KeepCardCtaProps = {
   businessId: string;
@@ -37,6 +38,7 @@ export function KeepCardCta({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [myTapPath, setMyTapPath] = useState<string | null>(null);
+  const [publicToken, setPublicToken] = useState<string | null>(null);
 
   if (!enabled) return null;
 
@@ -48,6 +50,7 @@ export function KeepCardCta({
     if (previewMode) {
       await new Promise((r) => setTimeout(r, 300));
       setMyTapPath("/mytap/preview");
+      setPublicToken("preview");
       setOpen(false);
       setLoading(false);
       return;
@@ -72,6 +75,7 @@ export function KeepCardCta({
         return;
       }
       setMyTapPath(data.myTapUrl ?? data.myTapPath);
+      setPublicToken(data.publicToken ?? null);
       setOpen(false);
     } catch {
       setError("Network error. Try again.");
@@ -96,6 +100,14 @@ export function KeepCardCta({
           >
             Open MyTap
           </Link>
+          {publicToken && !previewMode ? (
+            <div className="mt-4 text-left">
+              <AddToWalletMock
+                publicToken={publicToken}
+                businessName={businessName ?? "Tap Connect"}
+              />
+            </div>
+          ) : null}
           <p className="mt-3 text-[10px] opacity-50">Powered by Tap The Magic</p>
         </div>
       </div>

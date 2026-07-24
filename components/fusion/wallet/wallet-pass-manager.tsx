@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
@@ -25,16 +26,21 @@ type PassRow = {
   installUrl: string | null;
   version: number;
   replacedById: string | null;
+  relationshipId: string | null;
+  contactId: string | null;
+  myTapPublicToken: string | null;
 };
 
 export function WalletPassManager({
   initialPasses,
   featureEnabled,
   credentialBlockers,
+  highlightSerial,
 }: {
   initialPasses: PassRow[];
   featureEnabled: boolean;
   credentialBlockers: { apple: string[]; google: string[] };
+  highlightSerial?: string | null;
 }) {
   const router = useRouter();
   const [passes, setPasses] = useState(initialPasses);
@@ -48,6 +54,13 @@ export function WalletPassManager({
     () => new Map(passes.map((p) => [p.id, p])),
     [passes]
   );
+
+  useEffect(() => {
+    if (highlightSerial) {
+      const match = passes.find((p) => p.serialNumber === highlightSerial);
+      if (match) setHighlightId(match.id);
+    }
+  }, [highlightSerial, passes]);
 
   useEffect(() => {
     if (!highlightId) return;
@@ -194,6 +207,7 @@ export function WalletPassManager({
           <table className="w-full text-sm">
             <thead className="bg-muted/30 text-left text-xs text-muted-foreground">
               <tr>
+                <th className="px-3 py-2">Relationship</th>
                 <th className="px-3 py-2">Serial</th>
                 <th className="px-3 py-2">Platform</th>
                 <th className="px-3 py-2">Status</th>
@@ -221,6 +235,23 @@ export function WalletPassManager({
                       highlightId === p.id ? "bg-primary/10 ring-1 ring-primary/40" : ""
                     }`}
                   >
+                    <td className="px-3 py-2">
+                      {p.myTapPublicToken ? (
+                        <Link
+                          href={`/mytap/${p.myTapPublicToken}`}
+                          className="font-mono text-xs text-primary hover:underline"
+                          title="Open linked MyTap"
+                        >
+                          {p.myTapPublicToken.slice(0, 10)}…
+                        </Link>
+                      ) : p.relationshipId ? (
+                        <span className="text-xs text-muted-foreground" title={p.relationshipId}>
+                          linked
+                        </span>
+                      ) : (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      )}
+                    </td>
                     <td className="px-3 py-2 font-mono text-xs">{p.serialNumber.slice(0, 18)}…</td>
                     <td className="px-3 py-2 capitalize">{p.platform}</td>
                     <td className="px-3 py-2">

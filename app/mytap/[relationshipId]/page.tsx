@@ -3,16 +3,22 @@ import Link from "next/link";
 import { getMyTapProjection } from "@/lib/fusion/audience";
 import { getTapSaveStatus } from "@/lib/fusion/tapsave/service";
 import { TAPSAVE_MOMENT_LABELS } from "@/lib/fusion/tapsave/moments";
+import { getWalletPassForMyTap } from "@/lib/fusion/wallet/tapsave-wire";
+import { AddToWalletMock } from "@/components/tap/add-to-wallet-mock";
 import { MyTapPreferencesForm } from "@/components/tap/mytap-preferences-form";
 import { prisma } from "@/lib/db";
 import { computeBalance, resolveTier } from "@/lib/fusion/taploop/ledger-math";
 
 export const dynamic = "force-dynamic";
 
-type Props = { params: Promise<{ relationshipId: string }> };
+type Props = {
+  params: Promise<{ relationshipId: string }>;
+  searchParams: Promise<{ wallet?: string }>;
+};
 
-export default async function MyTapPage({ params }: Props) {
+export default async function MyTapPage({ params, searchParams }: Props) {
   const { relationshipId } = await params;
+  const { wallet: walletSerial } = await searchParams;
   const projection = await getMyTapProjection(relationshipId);
 
   if (!projection) {
@@ -31,6 +37,7 @@ export default async function MyTapPage({ params }: Props) {
   }
 
   const status = await getTapSaveStatus(relationshipId);
+  const walletSummary = await getWalletPassForMyTap(relationshipId);
   const preferences = status?.preferences ?? {
     emailOptIn: projection.channels.email,
     smsOptIn: false,
@@ -97,7 +104,14 @@ export default async function MyTapPage({ params }: Props) {
   }
 
   return (
-    <main id="main" className="min-h-screen bg-[#0b0f19] px-4 py-10 text-white">
+    <main
+      id="main"
+      className="min-h-screen bg-[#0b0f19] px-4 py-10 text-white"
+      style={{
+        backgroundImage:
+          "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(190,255,0,0.08), transparent)",
+      }}
+    >
       <a
         href="#preferences"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:text-black"
@@ -123,9 +137,20 @@ export default async function MyTapPage({ params }: Props) {
               {projection.businessName.charAt(0)}
             </div>
           )}
-          <h1 className="mt-4 text-2xl font-bold">{projection.businessName}</h1>
-          <p className="mt-1 text-sm text-white/60">MyTap — saved relationship</p>
+          <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">
+            {projection.businessName}
+          </h1>
+          <p className="mt-1 text-sm text-primary/70">MyTap — saved relationship</p>
         </header>
+
+        {projection.status === "active" && projection.tapSaveEnabled ? (
+          <AddToWalletMock
+            publicToken={relationshipId}
+            businessName={projection.businessName}
+            initialWallet={walletSummary}
+            className={walletSerial ? "scroll-mt-8" : undefined}
+          />
+        ) : null}
 
         <section
           className="rounded-xl border border-white/10 bg-white/5 p-4"

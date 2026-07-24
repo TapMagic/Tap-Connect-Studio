@@ -42,6 +42,12 @@ describe("API contract smoke: route handler exports", () => {
     assert.equal(typeof mod.POST, "function");
   });
 
+  it("mytap wallet GET/POST are exportable", async () => {
+    const mod = await import("../../../app/api/mytap/wallet/route");
+    assert.equal(typeof mod.GET, "function");
+    assert.equal(typeof mod.POST, "function");
+  });
+
   it("journeys draft handlers are exportable", async () => {
     const mod = await import("../../../app/api/journeys/draft/route");
     assert.equal(typeof mod.GET, "function");
