@@ -1,6 +1,16 @@
 /**
- * Provider-neutral connector contracts + ExternalWorkItem projection.
+ * Provider-neutral connector contracts.
+ * Productivity & Work Management lives in ./productivity (ExternalWorkItem + adapters).
+ * TapCast TikTok is a media connector (mock OK / live credentials required).
  */
+
+import {
+  PRODUCTIVITY_PROVIDERS,
+  type WorkCapability,
+  type ExternalWorkItem as ProductivityWorkItem,
+} from "./productivity/types";
+import { productivityProviderLiveReady } from "./productivity/types";
+import { evaluateTikTokReadiness } from "@/lib/fusion/tapcast/tiktok/readiness";
 
 export type ConnectorCapability =
   | "oauth"
@@ -11,134 +21,65 @@ export type ConnectorCapability =
   | "create_task"
   | "update_task"
   | "comments"
-  | "files";
+  | "files"
+  | WorkCapability
+  | "direct_post"
+  | "draft_upload"
+  | "schedule_post";
 
-export type ExternalWorkItem = {
-  id: string;
-  provider: string;
-  externalId: string;
-  title: string;
-  status?: string;
-  assigneeExternalIds?: string[];
-  dueAt?: string;
-  url?: string;
-  parentExternalId?: string;
-  raw?: Record<string, unknown>;
-};
+/** @deprecated Prefer Productivity ExternalWorkItem — kept for Admin compatibility */
+export type ExternalWorkItem = ProductivityWorkItem;
 
 export type ConnectorDefinition = {
   id: string;
   name: string;
   category: "productivity" | "crm" | "comms" | "payments" | "media" | "other";
+  categoryLabel?: string;
   capabilities: ConnectorCapability[];
   requiredEnvVars: string[];
   oauth?: boolean;
   documentation: string;
+  kind?: string;
+  supportsMock?: boolean;
 };
 
+/** Full Productivity & Work Management catalog projected into Admin Connectors */
 export const CONNECTOR_DEFINITIONS: ConnectorDefinition[] = [
+  ...PRODUCTIVITY_PROVIDERS.map(
+    (p) => ({
+      id: p.id,
+      name: p.name,
+      category: p.kind === "collab_chat" ? ("comms" as const) : ("productivity" as const),
+      categoryLabel: p.categoryLabel,
+      capabilities: p.capabilities as ConnectorCapability[],
+      requiredEnvVars: p.requiredEnvVars,
+      oauth: p.oauth,
+      documentation: p.documentation,
+      kind: p.kind,
+      supportsMock: p.supportsMock,
+    })
+  ),
   {
-    id: "monday",
-    name: "monday.com",
-    category: "productivity",
-    capabilities: ["oauth", "import", "export", "sync", "webhooks", "create_task", "update_task", "comments", "files"],
-    requiredEnvVars: ["MONDAY_CLIENT_ID", "MONDAY_CLIENT_SECRET"],
+    id: "tiktok",
+    name: "TikTok (TapCast)",
+    category: "media",
+    categoryLabel: "TapCast · Social",
+    capabilities: ["oauth", "draft_upload", "direct_post", "schedule_post"],
+    requiredEnvVars: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
     oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "asana",
-    name: "Asana",
-    category: "productivity",
-    capabilities: ["oauth", "import", "sync", "webhooks", "create_task", "update_task", "comments"],
-    requiredEnvVars: ["ASANA_CLIENT_ID", "ASANA_CLIENT_SECRET"],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "clickup",
-    name: "ClickUp",
-    category: "productivity",
-    capabilities: ["oauth", "import", "sync", "webhooks", "create_task", "update_task", "comments"],
-    requiredEnvVars: ["CLICKUP_CLIENT_ID", "CLICKUP_CLIENT_SECRET"],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "microsoft_planner",
-    name: "Microsoft Planner",
-    category: "productivity",
-    capabilities: ["oauth", "import", "sync", "create_task", "update_task"],
-    requiredEnvVars: [
-      "MICROSOFT_GRAPH_CLIENT_ID",
-      "MICROSOFT_GRAPH_CLIENT_SECRET",
-      "MICROSOFT_GRAPH_TENANT_ID",
-    ],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "jira",
-    name: "Jira",
-    category: "productivity",
-    capabilities: ["oauth", "import", "sync", "webhooks", "create_task", "update_task", "comments"],
-    requiredEnvVars: ["JIRA_CLIENT_ID", "JIRA_CLIENT_SECRET"],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "trello",
-    name: "Trello",
-    category: "productivity",
-    capabilities: ["oauth", "import", "sync", "webhooks", "create_task", "update_task", "comments"],
-    requiredEnvVars: ["TRELLO_API_KEY", "TRELLO_API_SECRET"],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "notion",
-    name: "Notion",
-    category: "productivity",
-    capabilities: ["oauth", "import", "export", "sync"],
-    requiredEnvVars: ["NOTION_CLIENT_ID", "NOTION_CLIENT_SECRET"],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "slack",
-    name: "Slack",
-    category: "comms",
-    capabilities: ["oauth", "webhooks", "comments"],
-    requiredEnvVars: ["SLACK_CLIENT_ID", "SLACK_CLIENT_SECRET"],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "microsoft_teams",
-    name: "Microsoft Teams",
-    category: "comms",
-    capabilities: ["oauth", "webhooks", "comments"],
-    requiredEnvVars: [
-      "MICROSOFT_GRAPH_CLIENT_ID",
-      "MICROSOFT_GRAPH_CLIENT_SECRET",
-      "MICROSOFT_GRAPH_TENANT_ID",
-    ],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
-  },
-  {
-    id: "github",
-    name: "GitHub",
-    category: "productivity",
-    capabilities: ["oauth", "webhooks", "create_task", "update_task", "comments"],
-    requiredEnvVars: ["GITHUB_CLIENT_ID", "GITHUB_CLIENT_SECRET"],
-    oauth: true,
-    documentation: "docs/fusion/INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md",
+    documentation: "Experiences → TapCast → TikTok",
+    kind: "tapcast",
+    supportsMock: true,
   },
 ];
 
 export function connectorReady(id: string): boolean {
-  const def = CONNECTOR_DEFINITIONS.find((c) => c.id === id);
-  if (!def) return false;
-  return def.requiredEnvVars.every((k) => Boolean(process.env[k]?.trim()));
+  if (id === "tiktok") {
+    return evaluateTikTokReadiness().liveConfigured;
+  }
+  return productivityProviderLiveReady(id);
+}
+
+export function listProductivityConnectorDefinitions(): ConnectorDefinition[] {
+  return CONNECTOR_DEFINITIONS.filter((c) => c.category === "productivity" || c.category === "comms");
 }

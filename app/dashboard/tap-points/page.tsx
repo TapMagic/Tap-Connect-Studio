@@ -9,6 +9,7 @@ import {
 import { getDevicePath } from "@/lib/utils/app";
 import { buttonVariants } from "@/components/ui/button";
 import { StudioHubSections } from "@/components/studio/hub-sections";
+import { OpenInTapCanvasLink } from "@/components/fusion/canvas/open-in-tap-canvas";
 
 export const dynamic = "force-dynamic";
 
@@ -91,7 +92,8 @@ export default async function TapPointsHubPage() {
         <div>
           <h2 className="text-lg font-semibold tracking-tight text-white">Live registry</h2>
           <p className="mt-1 text-sm text-white/50">
-            Permanent addresses and health badges — public /t/ URLs stay stable.
+            Permanent addresses and health badges — public /t/ URLs stay stable.{" "}
+            <OpenInTapCanvasLink objectType="tap_point" objectId="hub" />
           </p>
         </div>
         <div className="flex flex-wrap gap-2">

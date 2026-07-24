@@ -36,7 +36,32 @@
 | ManyChat | `MANYCHAT_API_KEY` | Missing | Channel Guardian |
 | Apple Wallet | `APPLE_PASS_TYPE_ID`, `APPLE_TEAM_ID`, `APPLE_PASS_CERT` | Missing | Wallet blockers panel |
 | Google Wallet | `GOOGLE_WALLET_ISSUER_ID`, `GOOGLE_WALLET_SERVICE_ACCOUNT_JSON` | Missing | Wallet blockers panel |
-| monday.com | `MONDAY_CLIENT_ID`, `MONDAY_CLIENT_SECRET` | Missing | Connectors tab |
+| monday.com (+ Productivity family) | See Productivity & Work Management section | Missing for live | Settings → Integrations |
+
+## Productivity & Work Management
+
+Customer-facing category under **Settings → Integrations → Productivity & Work Management**.
+
+One canonical `ExternalWorkItem` model (`lib/fusion/connectors/productivity/`). Mock adapters + Admin Connectors catalog ship without OAuth apps. Live execution remains **VERIFIED — CREDENTIALS REQUIRED** until each provider app is supplied.
+
+| Provider | Env vars (live) |
+| --- | --- |
+| monday.com | `MONDAY_CLIENT_ID`, `MONDAY_CLIENT_SECRET` |
+| Asana | `ASANA_CLIENT_ID`, `ASANA_CLIENT_SECRET` |
+| ClickUp | `CLICKUP_CLIENT_ID`, `CLICKUP_CLIENT_SECRET` |
+| Microsoft Planner / Teams / Outlook / OneDrive | `MICROSOFT_GRAPH_CLIENT_ID`, `MICROSOFT_GRAPH_CLIENT_SECRET`, `MICROSOFT_GRAPH_TENANT_ID` |
+| Slack | `SLACK_CLIENT_ID`, `SLACK_CLIENT_SECRET` |
+| Notion | `NOTION_CLIENT_ID`, `NOTION_CLIENT_SECRET` |
+| Jira | `JIRA_CLIENT_ID`, `JIRA_CLIENT_SECRET` |
+| Trello | `TRELLO_API_KEY`, `TRELLO_API_SECRET` |
+| GitHub | `GITHUB_CLIENT_ID`, `GITHUB_CLIENT_SECRET` |
+| Google Calendar | `GOOGLE_CALENDAR_CLIENT_ID`, `GOOGLE_CALENDAR_CLIENT_SECRET` |
+| Google Drive | `GOOGLE_DRIVE_CLIENT_ID`, `GOOGLE_DRIVE_CLIENT_SECRET` |
+| Airtable | `AIRTABLE_CLIENT_ID`, `AIRTABLE_CLIENT_SECRET` |
+| Zapier / Make / n8n | `ZAPIER_WEBHOOK_SIGNING_SECRET` / `MAKE_WEBHOOK_SIGNING_SECRET` / `N8N_WEBHOOK_SIGNING_SECRET` |
+
+API: `GET/POST /api/connectors/productivity` — connect, create, bridge workflows, knowledge ingest, collab alerts.
+
 
 ## PO checklist — remaining before production activation
 
@@ -75,9 +100,15 @@
 - [ ] Enable `journey.tapflow` for pilot workspace
 - [ ] Save/load draft at `/dashboard/experiences/journeys`; validate simulation stub output
 
-### P3 — Productivity connectors
+### P3 — Productivity & Work Management
 - [ ] monday.com OAuth app (redirect URIs, scopes)
-- [ ] Asana, ClickUp, Microsoft Graph, Jira, Trello, Notion, Slack, GitHub — one at a time per PO priority
+- [ ] Asana, ClickUp, Microsoft Graph (Planner/Teams/Outlook/OneDrive), Jira, Trello, Notion, Slack, GitHub — one at a time per PO priority
+- [ ] Google Calendar / Drive OAuth apps
+- [ ] Airtable OAuth
+- [ ] Zapier / Make / n8n signed webhook secrets + public API credentials
+- [ ] Certify Slack/Teams alerts, approvals, interactive actions on staging
+- [ ] Certify Notion/Drive/OneDrive knowledge ingest → TapGuide / Autopilot
+- [x] Mock adapters, ExternalWorkItem, Settings UI, Admin catalog, workflow bridges, unit tests (local)
 
 ### P3 — Other
 - [ ] Maps/geocoding, booking/POS/CRM, accounting, monitoring — as approved in charter

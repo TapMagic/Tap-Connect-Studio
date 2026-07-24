@@ -17,7 +17,7 @@ export default async function ExperiencesHubPage() {
       <StudioHubSections
         destinationId="experiences"
         title="Experiences"
-        subtitle="Cards, Campaigns, Groups, TapFlow, Whiteboard, and distribution — every V1 builder path remains reachable here."
+        subtitle="Cards, Campaigns, Groups, TapFlow, TapCanvas, TapCast (TikTok), and distribution — every V1 builder path remains reachable here."
       />
       <div className="flex flex-wrap gap-4 text-sm text-white/55">
         <span>

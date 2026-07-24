@@ -2,6 +2,7 @@ import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { FeatureDisabledState } from "@/components/fusion/features/feature-disabled-state";
+import { OpenInTapCanvasLink } from "@/components/fusion/canvas/open-in-tap-canvas";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import { JourneyEditorShell } from "@/components/fusion/journey/journey-editor-shell";
@@ -42,6 +43,8 @@ export default async function JourneysPage() {
           <Link href="/dashboard/settings" className="text-primary underline-offset-4 hover:underline">
             Settings
           </Link>
+          {" · "}
+          <OpenInTapCanvasLink objectType="tapflow" objectId="hub" />
         </p>
       </div>
 

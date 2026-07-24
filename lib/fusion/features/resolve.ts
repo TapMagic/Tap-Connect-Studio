@@ -59,7 +59,18 @@ export function evaluateReadiness(
     } else if (provider === "openai" && !envHas(ctx.env, "OPENAI_API_KEY")) {
       blockers.push("Credentials missing: openai");
     } else if (
-      ["apple_wallet", "google_wallet", "meta", "telegram", "monday"].includes(provider)
+      [
+        "apple_wallet",
+        "google_wallet",
+        "meta",
+        "telegram",
+        "monday",
+        "asana",
+        "clickup",
+        "jira",
+        "slack",
+        "notion",
+      ].includes(provider)
     ) {
       const ready = feature.requiredEnvVars.some((k) => envHas(ctx.env, k));
       if (!ready) blockers.push(`Certification pending: ${provider}`);

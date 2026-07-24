@@ -415,8 +415,17 @@ export function PlatformAdminTabs({
         >
           <Card className="border-border/60 bg-card/40">
             <CardHeader>
-              <CardTitle>Productivity connectors</CardTitle>
-              <CardDescription>From lib/fusion/connectors/registry.ts</CardDescription>
+              <CardTitle>Productivity & Work Management</CardTitle>
+              <CardDescription>
+                Canonical ExternalWorkItem catalog — mock adapters work without OAuth. Live = VERIFIED
+                — CREDENTIALS REQUIRED until each app is supplied.{" "}
+                <a
+                  href="/dashboard/integrations#productivity-work"
+                  className="text-primary underline-offset-2 hover:underline"
+                >
+                  Open Settings → Integrations
+                </a>
+              </CardDescription>
             </CardHeader>
             <CardContent className="divide-y divide-border/40">
               {connectorRows.map((c) => (
@@ -426,15 +435,26 @@ export function PlatformAdminTabs({
                 >
                   <div>
                     <p className="font-medium">{c.name}</p>
-                    <p className="text-xs text-muted-foreground">{c.category}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {c.category}
+                      {" · "}
+                      mock adapter
+                    </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge variant={c.ready ? "default" : "outline"} className={c.ready ? "bg-primary" : ""}>
-                      {c.ready ? "Ready" : "Credentials missing"}
+                    <Badge variant="outline" className="border-emerald-500/40 text-emerald-300">
+                      Mock ready
+                    </Badge>
+                    <Badge
+                      variant={c.ready ? "default" : "outline"}
+                      className={c.ready ? "bg-primary" : "border-sky-500/40 text-sky-200"}
+                    >
+                      {c.ready ? "Live env present" : "VERIFIED — CREDENTIALS REQUIRED"}
                     </Badge>
                     {!c.ready && c.missing.length > 0 ? (
                       <span className="font-mono text-[10px] text-muted-foreground">
-                        {c.missing.join(", ")}
+                        {c.missing.slice(0, 3).join(", ")}
+                        {c.missing.length > 3 ? "…" : ""}
                       </span>
                     ) : null}
                   </div>
@@ -442,6 +462,7 @@ export function PlatformAdminTabs({
               ))}
             </CardContent>
           </Card>
+
         </section>
       )}
 

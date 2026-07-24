@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { CampaignsList } from "@/components/campaign/campaigns-list";
+import { OpenInTapCanvasLink } from "@/components/fusion/canvas/open-in-tap-canvas";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { formatRelativeDate } from "@/lib/utils/app";
@@ -55,6 +56,9 @@ export default async function CampaignsPage() {
           <h1 className="text-2xl font-bold">Campaigns</h1>
           <p className="text-muted-foreground">
             Manage drafts, live pages, archives, and device assignments
+          </p>
+          <p className="mt-1">
+            <OpenInTapCanvasLink objectType="campaigns" objectId="hub" />
           </p>
         </div>
         <Link href="/dashboard/workbench" className={buttonVariants()}>

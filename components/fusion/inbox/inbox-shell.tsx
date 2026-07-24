@@ -1,5 +1,6 @@
 "use client";
 
+import { WorkPlatformActions } from "@/components/fusion/connectors/productivity-work-panel";
 import { allowedCaseActions, type CaseAction } from "@/lib/fusion/inbox/case-lifecycle";
 import {
   guardianReplyBlockedMessage,
@@ -399,6 +400,11 @@ export function InboxShell({
                     Reopen thread
                   </Button>
                 ) : null}
+                <WorkPlatformActions
+                  defaultTitle={`Inbox follow-up: ${selectedThread?.subject ?? "thread"}`}
+                  sourceType="inbox_followup"
+                  sourceId={selectedId ?? undefined}
+                />
               </div>
 
               {cases.length > 0 ? (
@@ -428,6 +434,11 @@ export function InboxShell({
                             </Button>
                           )
                         )}
+                        <WorkPlatformActions
+                          defaultTitle={`TapCase → ${c.subject}`}
+                          sourceType="tapcase"
+                          sourceId={c.id}
+                        />
                       </div>
                     </div>
                   ))}

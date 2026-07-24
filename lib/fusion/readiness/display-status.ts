@@ -211,6 +211,64 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     blockers: ["full_admin_killswitch_matrix", "feature_registry_panel_not_interactive"],
     nextAction: "Headed: disable → surface 503 → re-enable → audit row",
   },
+  {
+    sectionId: "productivity_work",
+    lastVerifiedAt: "2026-07-24T01:42:00.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    missingEnvVars: [
+      "MONDAY_CLIENT_ID",
+      "MONDAY_CLIENT_SECRET",
+      "ASANA_CLIENT_ID",
+      "SLACK_CLIENT_ID",
+    ],
+    notes:
+      "P-productivity-ui + P-productivity-closeout-18 headed Chromium: Settings badge + API run_closeout 18/18 mock steps. Live = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY.",
+    blockers: [
+      "live_oauth_apps_not_supplied",
+      "live_webhook_signature_certification",
+      "live_provider_push_certification",
+      "full_owner_gate_matrix",
+    ],
+    nextAction: "Supply OAuth apps one provider at a time; certify live push + webhooks",
+  },
+  {
+    sectionId: "tapcanvas",
+    persistencePassed: false,
+    browserE2ePassed: false,
+    notes:
+      "TapCanvas wired locally (in-memory graph). Sketch/promote/operate/analyze + ExternalWorkItem nodes. Not OWNER-READY.",
+    blockers: [
+      "prisma_persistence",
+      "browser_e2e_headed",
+      "full_promotion_matrix",
+      "a11y_headed_pass",
+    ],
+    nextAction: "Persist canvas versions via Prisma; headed Sketch→Build→Operate proof",
+  },
+  {
+    sectionId: "tapcast",
+    persistencePassed: false,
+    browserE2ePassed: false,
+    notes: "TapCast hub points at TikTok first-class route",
+    blockers: ["browser_e2e_headed"],
+    nextAction: "Headed TapCast hub navigation",
+  },
+  {
+    sectionId: "tapcast_tiktok",
+    persistencePassed: false,
+    browserE2ePassed: false,
+    missingEnvVars: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
+    notes:
+      "TikTok TapCast mock workflow wired. Live Direct Post = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY.",
+    blockers: [
+      "tiktok_oauth_credentials",
+      "direct_post_token",
+      "browser_e2e_headed",
+      "prisma_persistence",
+    ],
+    nextAction: "Supply TIKTOK_* credentials; prove mock funnel then gated live post",
+  },
 ];
 
 const CREDENTIAL_FEATURES = new Set<string>([
@@ -219,6 +277,7 @@ const CREDENTIAL_FEATURES = new Set<string>([
   "comms.email",
   "comms.messaging",
   "ai.autopilot",
+  "tapcast.tiktok",
 ]);
 
 function featureDef(id?: string) {
@@ -233,6 +292,7 @@ function providerGapsForFeature(featureId?: string): string[] {
     "comms.email": ["resend"],
     "billing.stripe": ["stripe"],
     "wallet.apple_google": [],
+    "tapcast.tiktok": ["tiktok"],
   };
   const ids = map[featureId] ?? [];
   return ids.filter((id) => !integrations.find((i) => i.id === id)?.configured);
