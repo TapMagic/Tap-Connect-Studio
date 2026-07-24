@@ -58,9 +58,9 @@ export function TikTokTapCastShell() {
   }, [selected, statusLabel]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount fetch
     void reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [reload]);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);

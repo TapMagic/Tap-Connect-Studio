@@ -71,6 +71,8 @@ export function TapCanvasShell({
   }, []);
 
   useEffect(() => {
+    // Mount hydrate from API (Studio shell pattern).
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount fetch
     void reloadList().then(() => {
       if (initialCanvasId) void loadCanvas(initialCanvasId);
     });
