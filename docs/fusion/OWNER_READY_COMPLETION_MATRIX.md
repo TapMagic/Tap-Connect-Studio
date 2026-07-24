@@ -24,8 +24,8 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | Public tap / distribution | 78% | IMPLEMENTED BUT NOT OWNER-READY | P-public-seed-tap + P-a11y/responsive-owner-gate | analytics, full gate, true VO/NVDA residual |
 | Campaign group schedule | 75% | IMPLEMENTED BUT NOT OWNER-READY | P-campaign-group-schedule | Studio time-travel UI, fallback |
 | Home / readiness honesty | 72% | IMPLEMENTED BUT NOT OWNER-READY | P-studio-home + a11y gate | decision queue |
-| Campaign builder | 60% | IMPLEMENTED BUT NOT OWNER-READY | P-16-editor; P-builder-save open | save/publish/assign/format matrix |
-| Card builder | 55% | IMPLEMENTED BUT NOT OWNER-READY | P-16-card shell | full Pages matrix |
+| Campaign builder | 88% | IMPLEMENTED BUT NOT OWNER-READY | P-builder-save-publish-assign-public + P-builder-campaign-matrix + format/media + version-rollback | true VO/NVDA, live stock keys, session undo |
+| Card builder | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-builder-card-matrix (save/reload/rollback) | freeform scaffold, landing-demo admin-only, VO/NVDA |
 | Leads capture | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-03-lead-capture | consent UI, public form matrix |
 | TapSave / MyTap | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-03-tapsave-keep | prefs/moments, wallet headed |
 | Wallet (mock) | 50% | VERIFIED — CREDENTIALS REQUIRED (live) | wire + P-wallet-mock | live certs; Audience list headed |

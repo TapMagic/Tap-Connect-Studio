@@ -3,7 +3,14 @@ import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { assignCampaignToDevice, endDeviceAssignment } from "@/lib/services/campaigns";
+import {
+  recordPublicationSnapshot,
+  snapshotCampaignBeforeUpdate,
+  type CampaignPublishManifest,
+} from "@/lib/fusion/publication/snapshots";
 import type { Prisma } from "@prisma/client";
+
+/** Builder owner-gate: PATCH records PublicationSnapshot on save/publish. */
 
 const assignSchema = z.object({
   deviceSlotId: z.string(),
@@ -81,7 +88,7 @@ export async function DELETE(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const { business } = await requireBusiness();
+    const { user, business } = await requireBusiness();
     const body = updateSchema.parse(await request.json());
     const { id, ...updates } = body;
 
@@ -90,6 +97,22 @@ export async function PATCH(request: Request) {
     });
     if (!existing) {
       return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
+    }
+
+    const contentChanging =
+      updates.contentBlocks !== undefined ||
+      updates.themeOverrides !== undefined ||
+      updates.title !== undefined ||
+      updates.endExperience !== undefined ||
+      updates.formSettings !== undefined;
+
+    if (contentChanging) {
+      await snapshotCampaignBeforeUpdate({
+        businessId: business.id,
+        campaign: existing,
+        label: "pre-save",
+        publishedById: user.id,
+      });
     }
 
     const data: Prisma.CampaignUpdateInput = {
@@ -113,6 +136,7 @@ export async function PATCH(request: Request) {
       ...(updates.formSettings !== undefined
         ? { formSettings: updates.formSettings as Prisma.InputJsonValue }
         : {}),
+      updatedById: user.id,
     };
 
     const campaign = await prisma.campaign.update({
@@ -120,7 +144,38 @@ export async function PATCH(request: Request) {
       data,
     });
 
-    return NextResponse.json({ campaign });
+    let snapshot = null;
+    if (contentChanging || updates.status === "LIVE") {
+      const label =
+        updates.status === "LIVE" ? "publish" : contentChanging ? "save" : "status";
+      const manifest: CampaignPublishManifest = {
+        kind: "campaign",
+        title: campaign.title,
+        status: campaign.status,
+        contentBlocks: campaign.contentBlocks,
+        themeOverrides: campaign.themeOverrides,
+        scheduledStart: campaign.scheduledStart?.toISOString() ?? null,
+        scheduledEnd: campaign.scheduledEnd?.toISOString() ?? null,
+        endExperience: campaign.endExperience,
+        formSettings: campaign.formSettings,
+        label,
+      };
+      const recorded = await recordPublicationSnapshot({
+        businessId: business.id,
+        subjectType: "campaign",
+        subjectId: campaign.id,
+        manifest,
+        publishedById: user.id,
+      });
+      snapshot = {
+        id: recorded.snapshot.id,
+        version: recorded.snapshot.version,
+        label: recorded.snapshot.label,
+        created: recorded.created,
+      };
+    }
+
+    return NextResponse.json({ campaign, snapshot });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid campaign data" }, { status: 400 });

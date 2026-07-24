@@ -105,26 +105,32 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "campaigns",
-    lastVerifiedAt: "2026-07-24T00:55:22.000Z",
+    lastVerifiedAt: "2026-07-24T05:38:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "PO 13/13 editor shell; P-builder-save: PATCH save → reload shows marker (Save control present)",
+      "P-builder-save-publish-assign-public + P-builder-campaign-matrix + format/media + version-rollback headed PASS. PublicationSnapshot wired on save/publish.",
     blockers: [
-      "publish_assign_public_matrix",
-      "ui_headline_edit_selector",
-      "format_media_stock_proof",
+      "true_voiceover_nvda_manual",
+      "os_native_zoom_residual",
+      "pexels_unsplash_credentials_required",
+      "session_undo_lost_on_full_refresh",
     ],
-    nextAction: "Headed UI format edit + publish → assign → public reload",
+    nextAction: "Clear residual a11y/zoom + live stock credentials for OWNER-READY",
   },
   {
     sectionId: "cards",
-    lastVerifiedAt: "2026-07-24T00:43:04.000Z",
+    lastVerifiedAt: "2026-07-24T05:38:00.000Z",
     browserE2ePassed: true,
-    persistencePassed: false,
-    notes: "PO 13/13 · P-16-card-builder shell loads",
-    blockers: ["full_card_builder_matrix", "save_publish_assign_public_reload"],
-    nextAction: "Headed Card Builder full matrix with persistence reload",
+    persistencePassed: true,
+    notes:
+      "P-builder-card-matrix: save → reload → PublicationSnapshot rollback PASS. Freeform remains scaffold behind feature flag.",
+    blockers: [
+      "card_landing_demo_admin_only",
+      "freeform_scaffold_not_full_canvas",
+      "true_voiceover_nvda_manual",
+    ],
+    nextAction: "Deepen freeform canvas; VoiceOver spot-check for OWNER-READY",
   },
   {
     sectionId: "leads",

@@ -78,6 +78,8 @@ type Props = {
   campaigns?: CampaignLinkOption[];
   /** Platform feature: card.builder.freeform */
   freeformEnabled?: boolean;
+  /** BrandKit id for publication snapshots / rollback */
+  brandKitId?: string | null;
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -110,6 +112,7 @@ export function TapCardBuilder({
   devices = [],
   campaigns = [],
   freeformEnabled = false,
+  brandKitId = null,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -120,6 +123,7 @@ export function TapCardBuilder({
     redo: redoSections,
     canUndo: canUndoSections,
     canRedo: canRedoSections,
+    reset: resetSections,
   } = useUndoRedo<TapCardSection[]>(initialConfig.sections);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
@@ -128,7 +132,11 @@ export function TapCardBuilder({
   const [showFreeform, setShowFreeform] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
+  const [versions, setVersions] = useState<
+    { id: string; version: number; label: string; publishedAt: string }[]
+  >([]);
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
 
@@ -345,9 +353,70 @@ export function TapCardBuilder({
     setSelectedId(id);
   }
 
+  async function refreshVersions() {
+    if (!brandKitId) return;
+    try {
+      const res = await fetch(
+        `/api/publication?subjectType=card&subjectId=${encodeURIComponent(brandKitId)}`
+      );
+      if (res.ok) {
+        const data = (await res.json()) as {
+          snapshots?: { id: string; version: number; label: string; publishedAt: string }[];
+        };
+        setVersions(data.snapshots ?? []);
+      }
+    } catch {
+      // non-blocking
+    }
+  }
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void refreshVersions();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per brand kit
+  }, [brandKitId]);
+
+  async function rollbackToVersion(snapshotId: string) {
+    if (!brandKitId) return;
+    setSaving(true);
+    setMessage(null);
+    setSaveFailed(false);
+    const res = await fetch("/api/publication", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "restore",
+        subjectType: "card",
+        subjectId: brandKitId,
+        snapshotId,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setMessage(data.error ?? "Rollback failed");
+      setSaveFailed(true);
+      return;
+    }
+    const data = (await res.json()) as {
+      brandKit?: { tapCard?: TapConnectCardConfig };
+      restoredFrom?: { version: number };
+    };
+    const tapCard = data.brandKit?.tapCard;
+    if (tapCard && typeof tapCard === "object" && Array.isArray(tapCard.sections)) {
+      setConfig(tapCard);
+      resetSections(tapCard.sections);
+    }
+    setMessage(`Rolled back to v${data.restoredFrom?.version ?? "?"}`);
+    await refreshVersions();
+    router.refresh();
+  }
+
   async function save() {
     setSaving(true);
     setMessage(null);
+    setSaveFailed(false);
     const res = await fetch("/api/brand", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -356,9 +425,11 @@ export function TapCardBuilder({
     setSaving(false);
     if (!res.ok) {
       setMessage("Save failed");
+      setSaveFailed(true);
       return;
     }
     setMessage("Tap Connect Card saved");
+    await refreshVersions();
     router.refresh();
   }
 
@@ -397,6 +468,7 @@ export function TapCardBuilder({
             disabled={!canUndoSections}
             title="Undo segment change (⌘Z)"
             aria-label="Undo segment change"
+            data-testid="card-undo"
           >
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -408,6 +480,7 @@ export function TapCardBuilder({
             disabled={!canRedoSections}
             title="Redo segment change (⌘⇧Z)"
             aria-label="Redo segment change"
+            data-testid="card-redo"
           >
             <Redo2 className="h-4 w-4" />
           </Button>
@@ -416,6 +489,7 @@ export function TapCardBuilder({
               type="button"
               variant={showFreeform ? "default" : "outline"}
               size="sm"
+              data-testid="card-freeform-toggle"
               onClick={() => setShowFreeform((v) => !v)}
             >
               {showFreeform ? "Hide freeform" : "Freeform"}
@@ -431,10 +505,22 @@ export function TapCardBuilder({
               {demoPublished ? "Unpublish landing demo" : "Publish landing demo"}
             </Button>
           ) : null}
-          <Button size="sm" onClick={() => void save()} disabled={saving}>
+          <Button size="sm" onClick={() => void save()} disabled={saving} data-testid="card-save">
             <Save className="mr-1 h-4 w-4" />
             {saving ? "Saving…" : "Save card"}
           </Button>
+          {saveFailed ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="card-save-retry"
+              onClick={() => void save()}
+              disabled={saving}
+            >
+              Retry
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -791,6 +877,45 @@ export function TapCardBuilder({
                 Add action
               </Button>
             </div>
+
+            {brandKitId ? (
+              <div
+                className="rounded-lg border border-border/50 bg-muted/20 p-3"
+                data-testid="card-versions"
+              >
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                  Versions
+                </p>
+                {versions.length === 0 ? (
+                  <p className="text-[11px] text-muted-foreground">Save to create a version.</p>
+                ) : (
+                  <ul className="max-h-28 space-y-1.5 overflow-y-auto">
+                    {versions.slice(0, 6).map((v) => (
+                      <li
+                        key={v.id}
+                        className="flex items-center justify-between gap-2 text-[11px]"
+                        data-testid={`card-version-${v.version}`}
+                      >
+                        <span className="truncate text-muted-foreground">
+                          v{v.version} · {v.label}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 shrink-0 px-2 text-[10px]"
+                          data-testid={`card-rollback-${v.version}`}
+                          disabled={saving}
+                          onClick={() => void rollbackToVersion(v.id)}
+                        >
+                          Rollback
+                        </Button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+            ) : null}
 
             <p className="text-[11px] font-semibold uppercase text-muted-foreground">Segments</p>
             {sorted.map((section, index) => (

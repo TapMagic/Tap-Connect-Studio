@@ -422,13 +422,18 @@ export function MediaPicker({
       </div>
 
       {stockReady ? (
-        <div className="space-y-2 rounded-lg border border-border/50 p-3">
+        <div
+          className="space-y-2 rounded-lg border border-border/50 p-3"
+          data-testid="media-stock-panel"
+        >
           <Label className="text-xs">Stock photos (Pexels / Unsplash)</Label>
           <div className="flex gap-2">
             <Input
               value={stockQuery}
               onChange={(e) => setStockQuery(e.target.value)}
               placeholder="e.g. salon, wedding, landscaping"
+              data-testid="media-stock-query"
+              aria-label="Stock photo search"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -436,19 +441,28 @@ export function MediaPicker({
                 }
               }}
             />
-            <Button type="button" variant="outline" onClick={() => void searchStock()} disabled={!!loading}>
+            <Button
+              type="button"
+              variant="outline"
+              data-testid="media-stock-search"
+              onClick={() => void searchStock()}
+              disabled={!!loading}
+            >
               {loading === "stock" ? "…" : "Search"}
             </Button>
           </div>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-muted-foreground" data-testid="media-stock-credentials-hint">
           Stock search needs <code className="text-primary">PEXELS_API_KEY</code> or{" "}
           <code className="text-primary">UNSPLASH_ACCESS_KEY</code>
         </p>
       )}
 
-      <div className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3">
+      <div
+        className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3"
+        data-testid="media-logo-panel"
+      >
         <Label className="text-xs">Web logo / icon search</Label>
         <p className="text-[10px] text-muted-foreground">
           Brand name or domain — powered by Logo.dev when configured. Tap a result to save it to
@@ -581,10 +595,11 @@ export function MediaPicker({
         </div>
       )}
 
-      <div className="rounded-lg border border-border/40">
+      <div className="rounded-lg border border-border/40" data-testid="media-library-panel">
         <button
           type="button"
           className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium"
+          data-testid="media-library-toggle"
           onClick={() => setLibraryOpen((o) => !o)}
         >
           <span>

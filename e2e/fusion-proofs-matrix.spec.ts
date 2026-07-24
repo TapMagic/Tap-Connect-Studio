@@ -133,7 +133,7 @@ test.describe("Fusion matrix proofs (headed-safe)", () => {
       notes,
       lastVerifiedAt: new Date().toISOString(),
       blockers: persistencePassed
-        ? ["publish_assign_public_matrix", "ui_headline_edit_selector", "format_media_stock_proof"]
+        ? ["superseded_by_P-builder-save-publish-assign-public"]
         : blockers,
     });
 

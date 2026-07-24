@@ -6,6 +6,7 @@ import {
   Copy,
   Eye,
   GripVertical,
+  History,
   Mail,
   Calendar,
   Plus,
@@ -325,6 +326,12 @@ export function CampaignEditor({
   const [showPreview, setShowPreview] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [saveFailed, setSaveFailed] = useState(false);
+  const [lastPublishIntent, setLastPublishIntent] = useState(false);
+  const [versions, setVersions] = useState<
+    { id: string; version: number; label: string; publishedAt: string }[]
+  >([]);
+  const [versionsLoading, setVersionsLoading] = useState(false);
   const [addType, setAddType] = useState<BlockType>("offer_coupon");
   const [dragId, setDragId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
@@ -489,9 +496,72 @@ export function CampaignEditor({
     setBlocks(next.map((b, i) => ({ ...b, order: i })), true);
   }
 
+  async function refreshVersions() {
+    setVersionsLoading(true);
+    try {
+      const res = await fetch(
+        `/api/publication?subjectType=campaign&subjectId=${encodeURIComponent(campaign.id)}`
+      );
+      if (res.ok) {
+        const data = (await res.json()) as {
+          snapshots?: { id: string; version: number; label: string; publishedAt: string }[];
+        };
+        setVersions(data.snapshots ?? []);
+      }
+    } catch {
+      // non-blocking
+    } finally {
+      setVersionsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      void refreshVersions();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per campaign id
+  }, [campaign.id]);
+
+  async function rollbackToVersion(snapshotId: string) {
+    setSaving(true);
+    setMessage(null);
+    setSaveFailed(false);
+    const res = await fetch("/api/publication", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "restore",
+        subjectType: "campaign",
+        subjectId: campaign.id,
+        snapshotId,
+      }),
+    });
+    setSaving(false);
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      setMessage(data.error ?? "Rollback failed");
+      setSaveFailed(true);
+      return;
+    }
+    const data = (await res.json()) as {
+      campaign?: { contentBlocks?: ContentBlock[]; title?: string; status?: string };
+      restoredFrom?: { version: number };
+    };
+    if (data.campaign?.contentBlocks) {
+      resetBlocks(normalizeContentBlocks(data.campaign.contentBlocks));
+    }
+    if (data.campaign?.title) setTitle(data.campaign.title);
+    if (data.campaign?.status) setStatus(data.campaign.status);
+    setMessage(`Rolled back to v${data.restoredFrom?.version ?? "?"}`);
+    await refreshVersions();
+    router.refresh();
+  }
+
   async function saveCampaign(publish = false) {
     setSaving(true);
     setMessage(null);
+    setSaveFailed(false);
+    setLastPublishIntent(publish);
 
     const nextStatus = publish
       ? "LIVE"
@@ -519,6 +589,7 @@ export function CampaignEditor({
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setMessage(data.error ?? "Failed to save");
+      setSaveFailed(true);
       setSaving(false);
       return;
     }
@@ -536,7 +607,9 @@ export function CampaignEditor({
       });
       if (!assignRes.ok) {
         setMessage("Saved but failed to assign to device");
+        setSaveFailed(true);
         setSaving(false);
+        await refreshVersions();
         return;
       }
       setStatus("LIVE");
@@ -544,6 +617,7 @@ export function CampaignEditor({
 
     setMessage(publish ? "Published to device!" : "Saved — live pages keep their status.");
     setSaving(false);
+    await refreshVersions();
     router.refresh();
   }
 
@@ -567,6 +641,7 @@ export function CampaignEditor({
             disabled={!canUndoBlocks}
             title="Undo block change (⌘Z)"
             aria-label="Undo block change"
+            data-testid="campaign-undo"
           >
             <Undo2 className="h-4 w-4" />
           </Button>
@@ -577,6 +652,7 @@ export function CampaignEditor({
             disabled={!canRedoBlocks}
             title="Redo block change (⌘⇧Z)"
             aria-label="Redo block change"
+            data-testid="campaign-redo"
           >
             <Redo2 className="h-4 w-4" />
           </Button>
@@ -595,10 +671,26 @@ export function CampaignEditor({
             <Save className="mr-1 h-4 w-4" />
             Save
           </Button>
-          <Button size="sm" onClick={() => saveCampaign(true)} disabled={saving || !selectedDevice}>
+          <Button
+            size="sm"
+            data-testid="campaign-publish"
+            onClick={() => saveCampaign(true)}
+            disabled={saving || !selectedDevice}
+          >
             <Send className="mr-1 h-4 w-4" />
             Publish
           </Button>
+          {saveFailed ? (
+            <Button
+              variant="outline"
+              size="sm"
+              data-testid="campaign-save-retry"
+              onClick={() => void saveCampaign(lastPublishIntent)}
+              disabled={saving}
+            >
+              Retry
+            </Button>
+          ) : null}
         </div>
       </div>
 
@@ -649,6 +741,8 @@ export function CampaignEditor({
                     value={addType}
                     onChange={(e) => setAddType(e.target.value as BlockType)}
                     className="mt-1 flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                    data-testid="campaign-add-block-type"
+                    aria-label="Block type to add"
                   >
                     {ADDABLE_BLOCKS.map((b) => (
                       <option key={b.type} value={b.type}>
@@ -656,7 +750,13 @@ export function CampaignEditor({
                       </option>
                     ))}
                   </select>
-                  <Button type="button" size="sm" className="mt-2 w-full" onClick={() => addBlock()}>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="mt-2 w-full"
+                    data-testid="campaign-add-block"
+                    onClick={() => addBlock()}
+                  >
                     <Plus className="mr-1 h-4 w-4" />
                     Add
                   </Button>
@@ -669,6 +769,8 @@ export function CampaignEditor({
                       value={selectedDevice}
                       onChange={(e) => setSelectedDevice(e.target.value)}
                       className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
+                      data-testid="campaign-publish-device"
+                      aria-label="Publish device"
                     >
                       {devices.map((d) => (
                         <option key={d.id} value={d.id}>
@@ -678,6 +780,59 @@ export function CampaignEditor({
                     </select>
                   </div>
                 )}
+
+                <div
+                  className="rounded-lg border border-border/50 bg-muted/20 p-3"
+                  data-testid="campaign-versions"
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <p className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                      <History className="h-3.5 w-3.5" aria-hidden />
+                      Versions
+                    </p>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-[10px]"
+                      data-testid="campaign-versions-refresh"
+                      onClick={() => void refreshVersions()}
+                      disabled={versionsLoading}
+                    >
+                      Refresh
+                    </Button>
+                  </div>
+                  {versions.length === 0 ? (
+                    <p className="text-[11px] text-muted-foreground">
+                      {versionsLoading ? "Loading…" : "Save or publish to create a version."}
+                    </p>
+                  ) : (
+                    <ul className="max-h-36 space-y-1.5 overflow-y-auto">
+                      {versions.slice(0, 8).map((v) => (
+                        <li
+                          key={v.id}
+                          className="flex items-center justify-between gap-2 text-[11px]"
+                          data-testid={`campaign-version-${v.version}`}
+                        >
+                          <span className="truncate text-muted-foreground">
+                            v{v.version} · {v.label}
+                          </span>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            className="h-7 shrink-0 px-2 text-[10px]"
+                            data-testid={`campaign-rollback-${v.version}`}
+                            disabled={saving}
+                            onClick={() => void rollbackToVersion(v.id)}
+                          >
+                            Rollback
+                          </Button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
 
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Blocks
@@ -710,6 +865,10 @@ export function CampaignEditor({
                       setDragId(null);
                     }}
                     onDragEnd={() => setDragId(null)}
+                    onClick={() => {
+                      setSelectedBlockId(block.id);
+                      setSelectedButtonId(null);
+                    }}
                     className={cn(
                       "rounded-lg border px-2 py-2 text-sm transition",
                       selectedBlockId === block.id
@@ -778,6 +937,7 @@ export function CampaignEditor({
                         type="button"
                         className="min-h-8 min-w-8 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         aria-label={`Duplicate ${block.label}`}
+                        data-testid={`campaign-block-duplicate-${block.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           duplicateBlock(block.id);
@@ -789,6 +949,7 @@ export function CampaignEditor({
                         type="button"
                         className="min-h-8 min-w-8 text-red-400 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         aria-label={`Delete ${block.label}`}
+                        data-testid={`campaign-block-delete-${block.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           removeBlock(block.id);
@@ -1029,7 +1190,7 @@ export function CampaignEditor({
             <p className="mb-2 shrink-0 text-center text-[11px] text-muted-foreground">
               Live preview · scroll inside phone · tap a block to edit · {status.toLowerCase()}
             </p>
-            <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1">
+            <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1" data-testid="campaign-phone-preview">
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen" ref={phoneScreenRef}>
                 <a

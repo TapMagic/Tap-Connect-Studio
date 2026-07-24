@@ -59,7 +59,7 @@ Fresh re-run on tip after deepening SR-oriented a11y + 200% CSS zoom responsive 
 
 ## Still open (priority)
 
-1. Builder save/publish/assign + formatting headed persistence  
+1. ~~Builder save/publish/assign + formatting headed persistence~~ — **PROVEN** `e2e/builder-owner-gate.spec.ts` (7/7). Residuals (VO/NVDA, OS zoom, live stock keys, freeform scaffold) → still **IMPLEMENTED BUT NOT OWNER-READY**  
 2. ~~TapFlow live visitor executor~~ — P-tapflow-live-visitor headed + persistence (mock/sandbox). Live OAuth still **VERIFIED — CREDENTIALS REQUIRED**
 3. ~~Expand remaining Admin kill-switches beyond Keywords/TapCanvas/TapFlow triad~~ — `P-admin-killswitch-matrix` + `integrations.live_execution` (local proof; platform still not OWNER-READY)
 4. ~~Insights drill-down + provenance~~ — P-insights-drilldown-provenance (filters/compare/drill/TapProof/saved views/CSV)  
@@ -68,6 +68,15 @@ Fresh re-run on tip after deepening SR-oriented a11y + 200% CSS zoom responsive 
 7. Live TapCast credentials per channel — never claim OWNER-READY without them  
 8. TapCanvas OWNER-READY gate (true VO/NVDA + live credentials + zero ledger blockers)  
 9. Keywords live AI/trend providers + dedicated analytics UI panel
+
+## Builder owner gate (2026-07-24)
+
+- Spec: `e2e/builder-owner-gate.spec.ts` — **7/7 headed PASS**
+- Proof IDs: `P-builder-campaign-matrix`, `P-builder-format-media`, `P-builder-save-publish-assign-public`, `P-builder-version-rollback`, `P-builder-card-matrix`, `P-builder-failure-recovery`
+- Deepened existing builders: `PublicationSnapshot` on campaign/card save; versions + rollback UI; Pages format + media probes; block-row select
+- Intentional `@next/next/no-img-element` warnings retained (media picker / campaign renderer / tap-connect-card — dynamic stock/logo URLs)
+- Classification: **IMPLEMENTED BUT NOT OWNER-READY** (save→publish→assign→public-render proven; residual blockers remain)
+- Command: `PROOF_HEADED=1 npx playwright test e2e/builder-owner-gate.spec.ts --headed`
 
 ## Classifications (TapCanvas / TapCast)
 
@@ -113,6 +122,7 @@ export DATABASE_URL='postgresql://tapconnect:tapconnect@127.0.0.1:5433/tapconnec
 npm run fusion:db-ready && npm run fusion:seed
 npm run dev
 npm run test:e2e:proofs:headed
+PROOF_HEADED=1 npx playwright test e2e/builder-owner-gate.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/productivity-workflows.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/tapcanvas-tiktok.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/tapcanvas-tapflow-owner-gates.spec.ts --headed
@@ -121,6 +131,7 @@ PROOF_HEADED=1 npx playwright test e2e/tapcast-omnichannel.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/tapflow-live-visitor.spec.ts --headed
 node --import tsx --test lib/fusion/canvas/**/__tests__/**/*.test.ts
 node --import tsx --test lib/fusion/keywords/**/__tests__/**/*.test.ts
+node --import tsx --test lib/fusion/publication/**/__tests__/**/*.test.ts
 ```
 
 ## Confirmation

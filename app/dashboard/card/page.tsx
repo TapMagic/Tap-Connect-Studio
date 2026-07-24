@@ -122,6 +122,7 @@ export default async function TapCardPage() {
         devices={devices}
         campaigns={campaigns}
         freeformEnabled={freeformEnabled}
+        brandKitId={brandKit?.id ?? null}
       />
     </div>
   );

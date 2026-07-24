@@ -21,13 +21,15 @@ export function BlockStyleControls({
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Block design
       </p>
-      <div className="grid gap-2 sm:grid-cols-2">
+      <div className="grid gap-2 sm:grid-cols-2" data-testid="block-style-controls">
         <div className="space-y-1">
           <Label className="text-[10px]">Font</Label>
           <select
             className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             value={style.fontFamily ?? "sans"}
             onChange={(e) => set("fontFamily", e.target.value as BlockStyle["fontFamily"])}
+            data-testid="block-style-font"
+            aria-label="Block font"
           >
             <option value="sans">Modern sans</option>
             <option value="serif">Classic serif</option>
@@ -43,6 +45,8 @@ export function BlockStyleControls({
             className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             value={style.fontSize ?? "base"}
             onChange={(e) => set("fontSize", e.target.value as BlockStyle["fontSize"])}
+            data-testid="block-style-size"
+            aria-label="Block font size"
           >
             <option value="sm">Small</option>
             <option value="base">Medium</option>
@@ -71,6 +75,8 @@ export function BlockStyleControls({
             className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             value={style.align ?? "left"}
             onChange={(e) => set("align", e.target.value as BlockStyle["align"])}
+            data-testid="block-style-align"
+            aria-label="Block alignment"
           >
             <option value="left">Left</option>
             <option value="center">Center</option>
@@ -83,6 +89,8 @@ export function BlockStyleControls({
             className="flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
             value={style.spacing ?? "normal"}
             onChange={(e) => set("spacing", e.target.value as BlockStyle["spacing"])}
+            data-testid="block-style-spacing"
+            aria-label="Block spacing"
           >
             <option value="compact">Compact</option>
             <option value="normal">Normal</option>
@@ -160,6 +168,8 @@ export function BlockStyleControls({
               value={style.textColor ?? "#f8fafc"}
               onChange={(e) => set("textColor", e.target.value)}
               className="h-8 w-10 cursor-pointer rounded border-0"
+              data-testid="block-style-text-color"
+              aria-label="Block text color"
             />
             <Input
               value={style.textColor ?? ""}

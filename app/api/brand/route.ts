@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import {
+  recordPublicationSnapshot,
+  snapshotCardBeforeUpdate,
+  type CardPublishManifest,
+} from "@/lib/fusion/publication/snapshots";
 import type { Prisma } from "@prisma/client";
 
 const schema = z.object({
@@ -84,7 +89,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   try {
-    const { business } = await requireBusiness();
+    const { user, business } = await requireBusiness();
     const body = schema.parse(await request.json());
     const {
       logoUrl,
@@ -99,6 +104,20 @@ export async function PATCH(request: Request) {
       tapCard,
       ...brandFields
     } = body;
+
+    const existingKit = await prisma.brandKit.findUnique({
+      where: { businessId: business.id },
+    });
+
+    if (tapCard !== undefined && existingKit) {
+      await snapshotCardBeforeUpdate({
+        businessId: business.id,
+        brandKitId: existingKit.id,
+        tapCard: existingKit.tapCard,
+        label: "pre-save",
+        publishedById: user.id,
+      });
+    }
 
     const jsonExtras: Prisma.BrandKitUpdateInput = {
       ...(endExperience !== undefined
@@ -148,10 +167,33 @@ export async function PATCH(request: Request) {
       });
     }
 
+    let snapshot = null;
+    if (tapCard !== undefined) {
+      const manifest: CardPublishManifest = {
+        kind: "card",
+        tapCard: brandKit.tapCard,
+        label: "save",
+      };
+      const recorded = await recordPublicationSnapshot({
+        businessId: business.id,
+        subjectType: "card",
+        subjectId: brandKit.id,
+        manifest,
+        publishedById: user.id,
+      });
+      snapshot = {
+        id: recorded.snapshot.id,
+        version: recorded.snapshot.version,
+        label: recorded.snapshot.label,
+        created: recorded.created,
+      };
+    }
+
     return NextResponse.json({
       brandKit,
       logoUrl: logoUrl ?? business.logoUrl,
       email: email ?? business.email,
+      snapshot,
     });
   } catch (error) {
     console.error("Brand kit update error:", error);
