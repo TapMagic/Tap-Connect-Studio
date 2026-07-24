@@ -195,6 +195,9 @@ model Business {
   mediaAssets  MediaAsset[]
   savedTemplates SavedTemplate[]
   journeyDrafts JourneyDraft[]
+  journeyPublishedVersions JourneyPublishedVersion[]
+  journeyExecutions JourneyExecution[]
+  journeyProviderEvents JourneyProviderEvent[]
   scheduleRules ScheduleRule[]
   groupSlots   CampaignGroupSlot[]
   brandLinks   BrandLink[]
@@ -626,10 +629,137 @@ model JourneyDraft {
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business           Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  publishedVersions  JourneyPublishedVersion[]
+  executions         JourneyExecution[]
 
   @@index([businessId, updatedAt])
   @@index([businessId, status])
+}
+
+enum JourneyExecutionStatus {
+  RUNNING
+  WAITING
+  PAUSED
+  COMPLETED
+  FAILED
+  CANCELLED
+  BLOCKED
+  HANDOFF
+}
+
+enum JourneyExecutionStepStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  SKIPPED
+  RETRYING
+  WAITING
+  BLOCKED
+}
+
+/** Immutable definition snapshot — ACTIVE visitor runs bind here, not mutable drafts. */
+model JourneyPublishedVersion {
+  id          String   @id @default(cuid())
+  businessId  String
+  journeyId   String
+  version     Int
+  name        String
+  definition  Json
+  publishedAt DateTime @default(now())
+  activatedAt DateTime?
+  createdAt   DateTime @default(now())
+
+  business   Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  journey    JourneyDraft       @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  executions JourneyExecution[]
+
+  @@unique([journeyId, version])
+  @@index([businessId, journeyId])
+}
+
+/** Persisted live visitor execution instance (one engine with dry-run / simulate). */
+model JourneyExecution {
+  id                 String                 @id @default(cuid())
+  businessId         String
+  journeyId          String
+  publishedVersionId String
+  idempotencyKey     String
+  status             JourneyExecutionStatus @default(RUNNING)
+  currentNodeId      String?
+  visitorHash        String
+  sessionId          String?
+  contactId          String?
+  relationshipId     String?
+  campaignId         String?
+  deviceSlotId       String?
+  tapPointId         String?
+  definitionSnapshot Json
+  path               Json                   @default("[]")
+  visitorContext     Json                   @default("{}")
+  waitUntil          DateTime?
+  retryCount         Int                    @default(0)
+  maxRetries         Int                    @default(3)
+  lastError          String?
+  startedAt          DateTime               @default(now())
+  completedAt        DateTime?
+  pausedAt           DateTime?
+  cancelledAt        DateTime?
+  metadata           Json                   @default("{}")
+  createdAt          DateTime               @default(now())
+  updatedAt          DateTime               @updatedAt
+
+  business         Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  journey          JourneyDraft            @relation(fields: [journeyId], references: [id], onDelete: Cascade)
+  publishedVersion JourneyPublishedVersion @relation(fields: [publishedVersionId], references: [id], onDelete: Restrict)
+  steps            JourneyExecutionStep[]
+  providerEvents   JourneyProviderEvent[]
+
+  @@unique([businessId, idempotencyKey])
+  @@index([businessId, status, updatedAt])
+  @@index([businessId, visitorHash])
+  @@index([journeyId, status])
+  @@index([publishedVersionId])
+  @@index([sessionId])
+}
+
+model JourneyExecutionStep {
+  id          String                     @id @default(cuid())
+  executionId String
+  businessId  String
+  nodeId      String
+  nodeType    String
+  action      String
+  status      JourneyExecutionStepStatus @default(SUCCEEDED)
+  detail      String?
+  attempt     Int                        @default(1)
+  effectRef   String?
+  occurredAt  DateTime                   @default(now())
+  metadata    Json                       @default("{}")
+
+  execution JourneyExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+
+  @@index([executionId, occurredAt])
+  @@index([businessId, occurredAt])
+}
+
+/** Provider / webhook intake — unique event keys prevent duplicate side effects. */
+model JourneyProviderEvent {
+  id          String   @id @default(cuid())
+  businessId  String
+  provider    String
+  eventKey    String
+  executionId String?
+  payload     Json     @default("{}")
+  processedAt DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  business  Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  execution JourneyExecution? @relation(fields: [executionId], references: [id], onDelete: SetNull)
+
+  @@unique([businessId, provider, eventKey])
+  @@index([businessId, processedAt])
 }
 
 model ScheduleRule {

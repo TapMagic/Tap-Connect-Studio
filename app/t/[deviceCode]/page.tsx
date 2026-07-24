@@ -3,6 +3,7 @@ import { createHash } from "crypto";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
+import { TapFlowLiveBootstrap } from "@/components/tap/tapflow-live-bootstrap";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import {
@@ -100,24 +101,8 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     referrer,
   });
 
-  // Best-effort TapFlow live execution — never blocks campaign render
-  void import("@/lib/fusion/journey/live")
-    .then(({ executeActiveJourneysForVisitor }) =>
-      executeActiveJourneysForVisitor({
-        businessId: device.businessId!,
-        visitor: {
-          visitorId: visitorHash,
-          consent: { email: false, sms: false, marketing: false },
-          attributes: {
-            deviceCode,
-            ...(campaign?.id ? { campaignId: campaign.id } : {}),
-          },
-        },
-        deviceSlotId: device.id,
-        campaignId: campaign?.id ?? undefined,
-      })
-    )
-    .catch(() => undefined);
+  // TapFlow live visitor path boots via TapFlowLiveBootstrap (client) so the
+  // tc_flow_session cookie is set and refresh remains idempotent.
 
   if (shouldShowInactiveDevice(device.status)) {
     return (
@@ -207,19 +192,25 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     });
 
     return (
-      <CampaignPageRenderer
-        blocks={resolved.blocks}
-        theme={theme}
-        campaignId={resolved.campaign?.id ?? campaign?.id ?? "end"}
-        deviceSlotId={device.id}
-        businessId={device.businessId!}
-        businessName={device.business?.name ?? "Business"}
-        brandKit={brandKit}
-        logoUrl={device.business?.logoUrl ?? null}
-        contactProfile={contactProfile}
-        reviewUrl={device.business?.googleReviewUrl ?? null}
-        keepCardEnabled={keepCardEnabled}
-      />
+      <>
+        <TapFlowLiveBootstrap
+          deviceCode={deviceCode}
+          campaignId={resolved.campaign?.id ?? campaign?.id}
+        />
+        <CampaignPageRenderer
+          blocks={resolved.blocks}
+          theme={theme}
+          campaignId={resolved.campaign?.id ?? campaign?.id ?? "end"}
+          deviceSlotId={device.id}
+          businessId={device.businessId!}
+          businessName={device.business?.name ?? "Business"}
+          brandKit={brandKit}
+          logoUrl={device.business?.logoUrl ?? null}
+          contactProfile={contactProfile}
+          reviewUrl={device.business?.googleReviewUrl ?? null}
+          keepCardEnabled={keepCardEnabled}
+        />
+      </>
     );
   }
 
@@ -281,21 +272,24 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   });
 
   return (
-    <CampaignPageRenderer
-      blocks={blocks}
-      theme={theme}
-      campaignId={campaign.id}
-      deviceSlotId={device.id}
-      businessId={device.businessId!}
-      businessName={device.business?.name ?? "Business"}
-      brandKit={brandKit}
-      logoUrl={device.business?.logoUrl ?? null}
-      contactProfile={contactProfile}
-      reviewUrl={device.business?.googleReviewUrl ?? null}
-      upcomingItems={upcomingItems}
-      showUpcomingStrip={showUpcomingStrip}
-      keepCardEnabled={keepCardEnabled}
-    />
+    <>
+      <TapFlowLiveBootstrap deviceCode={deviceCode} campaignId={campaign.id} />
+      <CampaignPageRenderer
+        blocks={blocks}
+        theme={theme}
+        campaignId={campaign.id}
+        deviceSlotId={device.id}
+        businessId={device.businessId!}
+        businessName={device.business?.name ?? "Business"}
+        brandKit={brandKit}
+        logoUrl={device.business?.logoUrl ?? null}
+        contactProfile={contactProfile}
+        reviewUrl={device.business?.googleReviewUrl ?? null}
+        upcomingItems={upcomingItems}
+        showUpcomingStrip={showUpcomingStrip}
+        keepCardEnabled={keepCardEnabled}
+      />
+    </>
   );
 }
 

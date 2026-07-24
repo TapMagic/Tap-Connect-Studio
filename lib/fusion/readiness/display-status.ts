@@ -176,12 +176,16 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapflow",
-    lastVerifiedAt: "2026-07-24T00:43:09.000Z",
+    lastVerifiedAt: "2026-07-24T03:54:19.527Z",
     browserE2ePassed: true,
-    persistencePassed: false,
-    notes: "PO 13/13 · P-06-tapflow-shell; extend with P-tapflow-lifecycle matrix",
-    blockers: ["full_tapflow_lifecycle_matrix"],
-    nextAction: "Headed: create → publish → activate → execute → pause/resume → failure/retry",
+    persistencePassed: true,
+    notes:
+      "P-06 + P-tapflow-lifecycle + P-tapflow-live-visitor: public /t entry → persisted JourneyExecution against immutable JourneyPublishedVersion; refresh/provider idempotency; pause/resume/cancel/wait/retry; Contact/Relationship + Campaign attribution; Guardian → outbox → mock email/loyalty/TapCase/EWI; TapProof attribution events. Live OAuth providers = VERIFIED — CREDENTIALS REQUIRED. Not platform OWNER-READY.",
+    blockers: [
+      "live_oauth_providers_credentials_required",
+      "full_journeys_studio_ui_matrix",
+    ],
+    nextAction: "Certify live email/SMS/provider credentials; deepen Journeys studio UI matrix",
   },
   {
     sectionId: "inbox",
@@ -239,13 +243,12 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     browserE2ePassed: true,
     a11yPassed: false,
     notes:
-      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist/campaigns/reverse-repair/keyword-bind/version-restore/mode-matrix/comments-approvals/tapflow-bind/a11y-responsive + P-tapcanvas-weekly-matrix/conversational-funnel/tapflow-lifecycle/reverse-repair-deep/killswitch (ai.keywords + canvas.tapcanvas + journey.tapflow). Shell mounts KeywordsSuggestPanel + TapFlow lifecycle controls. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + full SR/axe + live visitor executor open).",
+      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist/campaigns/reverse-repair/keyword-bind/version-restore/mode-matrix/comments-approvals/tapflow-bind/a11y-responsive + P-tapcanvas-weekly-matrix/conversational-funnel/tapflow-lifecycle/reverse-repair-deep/killswitch (ai.keywords + canvas.tapcanvas + journey.tapflow). Shell mounts KeywordsSuggestPanel + TapFlow lifecycle controls. Live visitor executor proved via P-tapflow-live-visitor (mock providers). Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + full SR/axe open).",
     blockers: [
       "a11y_headed_pass",
       "responsive_matrix",
-      "live_visitor_executor",
       "live_tapcast_credentials",
-      "provider_effects",
+      "live_oauth_providers_credentials_required",
       "not_owner_ready",
     ],
     nextAction:

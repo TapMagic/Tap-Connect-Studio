@@ -13,6 +13,7 @@ import {
   type JourneyDefinition,
   type JourneyLifecycleAction,
 } from "@/lib/fusion/journey";
+import { snapshotJourneyPublishedVersion } from "@/lib/fusion/journey/published-version";
 import { createGovernedEvent, enqueueOutbox } from "@/lib/fusion/publication/events";
 
 const saveSchema = z.object({
@@ -129,6 +130,21 @@ export async function POST(request: Request) {
         where: { id: draft.id },
         data,
       });
+
+      // Immutable published version on publish/activate — visitor runs bind to snapshot, not draft.
+      if (action === "publish" || action === "activate") {
+        try {
+          await snapshotJourneyPublishedVersion({
+            businessId: business.id,
+            journeyId: draft.id,
+            name: draft.name,
+            definition,
+            activate: action === "activate" || transition.status === "ACTIVE",
+          });
+        } catch (err) {
+          console.error("Journey published version snapshot failed", err);
+        }
+      }
 
       const correlationId =
         typeof crypto !== "undefined" && "randomUUID" in crypto

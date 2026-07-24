@@ -230,8 +230,15 @@ async function main() {
         id: "msg_1",
         type: "message",
         label: "Welcome",
-        config: { channel: "in_app", body: "Seed hello", seeded: true },
+        config: { channel: "email", body: "Seed hello", seeded: true },
         position: { x: 240, y: 120 },
+      },
+      {
+        id: "loyalty_1",
+        type: "award_loyalty",
+        label: "Award points",
+        config: { points: 10, seeded: true },
+        position: { x: 320, y: 120 },
       },
       {
         id: "exit_1",
@@ -243,7 +250,8 @@ async function main() {
     ],
     edges: [
       { id: "e1", from: "trigger_1", to: "msg_1" },
-      { id: "e2", from: "msg_1", to: "exit_1" },
+      { id: "e2", from: "msg_1", to: "loyalty_1" },
+      { id: "e3", from: "loyalty_1", to: "exit_1" },
     ],
   };
   if (!journey) {
@@ -503,6 +511,27 @@ async function main() {
       activatedAt: new Date(),
     },
   });
+
+  // Immutable published version for live visitor executions
+  const latestVersion = await prisma.journeyPublishedVersion.findFirst({
+    where: { journeyId: journey.id },
+    orderBy: { version: "desc" },
+  });
+  const defJson = JSON.stringify(definition);
+  const latestDefJson = latestVersion ? JSON.stringify(latestVersion.definition) : null;
+  if (!latestVersion || latestDefJson !== defJson) {
+    await prisma.journeyPublishedVersion.create({
+      data: {
+        businessId: business.id,
+        journeyId: journey.id,
+        version: (latestVersion?.version ?? 0) + 1,
+        name: journey.name,
+        definition,
+        publishedAt: new Date(),
+        activatedAt: new Date(),
+      },
+    });
+  }
 
   for (const featureId of [
     "journey.tapflow",

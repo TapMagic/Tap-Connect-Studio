@@ -49,8 +49,8 @@
 ## Still open (priority)
 
 1. Builder save/publish/assign + formatting headed persistence  
-2. TapFlow live visitor executor + provider effects (canvas lifecycle dry-run proved)  
-3. Expand remaining Admin kill-switches beyond Keywords/TapCanvas/TapFlow triad  
+2. ~~TapFlow live visitor executor~~ — P-tapflow-live-visitor headed + persistence (mock/sandbox effects). Live OAuth providers still **VERIFIED — CREDENTIALS REQUIRED**
+3. Expand remaining Admin kill-switches beyond Keywords/TapCanvas/TapFlow triad
 4. Insights drill-down + provenance  
 5. A11y/responsive completion (full SR/axe)  
 6. Live productivity OAuth apps (one provider at a time)  
@@ -68,7 +68,7 @@
 | OpenAI Keywords enhance / Autopilot | **VERIFIED — CREDENTIALS REQUIRED** |
 | Trend enrichment | **VERIFIED — CREDENTIALS REQUIRED** (approved provider TBD; no trending claims) |
 | TapCanvas (documents + guided campaigns + repair/versions/keywords/comments/tapflow lifecycle) | **IMPLEMENTED BUT NOT OWNER-READY** (P-tapcanvas-* + P-tapcanvas-weekly-matrix / conversational-funnel / tapflow-lifecycle / reverse-repair-deep / killswitch) |
-| TapFlow from TapCanvas (shared JourneyDraft engine) | **IMPLEMENTED BUT NOT OWNER-READY** — publish/activate gated by `journey.tapflow`; dry-run execute/recover/analytics proved; live visitor executor open |
+| TapFlow from TapCanvas (shared JourneyDraft engine) | **IMPLEMENTED BUT NOT OWNER-READY** — publish/activate gated by `journey.tapflow`; dry-run + **live visitor executor** (P-tapflow-live-visitor) with persisted JourneyExecution; live OAuth = VERIFIED — CREDENTIALS REQUIRED |
 
 **Credential closeout note (Part 5):** Absent external credentials do **not** block local owner-ready of finished mock/adapter workflows. Live = credentials-required until real provider tests pass. Docs: `PROVIDER_READINESS.md`, `INTEGRATION_AND_CREDENTIAL_REQUIREMENTS.md`.
 

@@ -20,7 +20,7 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | TapSave / MyTap | 70% | FUNCTIONAL + headed | P-03-tapsave-keep | prefs/moments, wallet headed |
 | Wallet (mock) | 50% | VERIFIED — CREDENTIALS (live) | wire + P-wallet-mock | live certs; Audience list headed |
 | TapLoop | 70% | FUNCTIONAL + headed | P-10-taploop | program UI, reverse, enroll UI |
-| TapFlow | 70% | FUNCTIONAL + canvas lifecycle | P-06 + P-tapcanvas-tapflow-lifecycle | live visitor executor, provider effects, full Journeys UI |
+| TapFlow | 85% | FUNCTIONAL + live visitor runtime | P-06 + P-tapcanvas-tapflow-lifecycle + **P-tapflow-live-visitor** | live OAuth provider effects, full Journeys UI |
 | Inbox | 55% | FUNCTIONAL | P-09 shell | reply/Guardian/TapCase |
 | Insights | 55% | FUNCTIONAL | P-11 + export matrix | drill-down, provenance |
 | Platform Admin | 70% | FUNCTIONAL | P-12 + killswitch matrix; P-keywords-killswitch + P-keywords-owner-gate-killswitch; P-tapcanvas-killswitch (ai.keywords + canvas.tapcanvas + journey.tapflow) | expand disable→503→re-enable to remaining kill-switches |

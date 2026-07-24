@@ -1,6 +1,6 @@
 /**
  * TapFlow failure recovery — resume a blocked dry-run with patched visitor context.
- * Live visitor executor still deferred; this recovers dry-run / sample paths.
+ * Live visitor executor uses pause/resume/retry on JourneyExecution (see live.ts).
  */
 
 import type { JourneyDefinition } from "./types";
