@@ -1,8 +1,9 @@
 # Product owner requirements
 
-**Date:** 2026-07-23  
+**Date:** 2026-07-24  
 **Rule:** Only list what the product owner must supply. Implementation choices stay with engineering.  
-**Local persistence:** `tapconnect_fusion_dev` only — never Railway production `DATABASE_URL`.
+**Local persistence:** `tapconnect_fusion_dev` only — never Railway production `DATABASE_URL`.  
+**Platform status:** Local quality gates complete — platform remains **NOT OWNER-READY**. Live paths = **VERIFIED — CREDENTIALS REQUIRED**. Production = **BLOCKED** until staging + authorization.
 
 ---
 
@@ -69,15 +70,20 @@ Do **not** reuse production-only secrets. Prefer development/test applications.
 
 ## NEEDED BEFORE STAGING
 
+Exact next staging prerequisites (local closeout is done; do **not** treat as production-ready):
+
 | Item | Detail |
 |------|--------|
-| Staging hostname / DNS | Dedicated URL ≠ prod Railway |
-| Staging Clerk application | Separate from prod users |
-| Staging database | New Postgres — **not** Railway prod |
-| Sender domain verification | Resend/DNS |
+| Staging hostname / DNS | Dedicated URL ≠ prod Railway / ≠ `studio.tapthemagic.com` |
+| Staging Clerk application | Separate from prod users; redirect URLs for staging host |
+| Staging database | New Postgres — **not** Railway prod; apply same Prisma migration set |
+| Staging `NEXT_PUBLIC_APP_URL` | Staging host only |
+| Sender domain verification | Resend/DNS for staging from-address |
 | Legal pages URLs | Privacy / terms for consent |
-| Stripe test products mapped to plans | Price IDs |
-| Webhook endpoints on staging domain | Stripe/Meta/etc. |
+| Stripe **test** products mapped to plans | Price IDs (`sk_test_` only) |
+| Webhook endpoints on staging domain | Stripe/Meta/etc. registered to staging URLs |
+| Optional: first live provider sandbox | One TapCast or productivity OAuth app — still **VERIFIED — CREDENTIALS REQUIRED** until probe green |
+| Manual a11y residuals (can start on staging or local) | VoiceOver/NVDA spot-check + 200% zoom |
 
 ---
 
@@ -116,4 +122,4 @@ Ordinary IA, badge derivation, and builder fixes do **not** need owner decisions
 | Channel-specific TT/IG/FB/YT + campaign/location trigger scope | Implemented + headed owner-gate proofs |
 | Admin kill switch `ai.keywords` | Implemented (UI + API 503 + audit + canvas `bind_keyword_trigger` 503); shared proof with `canvas.tapcanvas` / `journey.tapflow` |
 | Live OpenAI enhance / live trends | **VERIFIED — CREDENTIALS REQUIRED** — see PO-LIVE-001 / PO-LIVE-001b |
-| OWNER-READY | **Not yet** — retain a11y + live provider blockers |
+| OWNER-READY | **Not yet** — classification **IMPLEMENTED BUT NOT OWNER-READY**; retain VoiceOver/NVDA + live provider blockers |

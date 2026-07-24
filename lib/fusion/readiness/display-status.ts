@@ -47,8 +47,13 @@ export type VerificationRecord = {
  * AND zero blockers may surface as OWNER-READY.
  *
  * PO headed suite attestation (isolated tapconnect_fusion_dev, Railway untouched):
- * 2026-07-24 — 13/13 Playwright Chromium headed proofs passed (http://localhost:3000).
- * These rows validate only suite-covered workflows — never the whole platform as OWNER-READY.
+ * 2026-07-24 closeout — unit 365/365; headed Playwright 63/63 (all e2e/*.spec.ts);
+ * lint 0 errors; tsc + production build + Prisma validate/migrate status PASS.
+ * Allowed labels: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED |
+ * IMPLEMENTED BUT NOT OWNER-READY | BLOCKED.
+ * Locally OWNER-READY subsystems: none (blockers retained on every section).
+ * Platform overall: NOT OWNER-READY. Live providers: VERIFIED — CREDENTIALS REQUIRED.
+ * No invented live credential success. Railway untouched.
  */
 export const VERIFICATION_LEDGER: VerificationRecord[] = [
   {
@@ -174,14 +179,15 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapflow",
-    lastVerifiedAt: "2026-07-24T03:54:19.527Z",
+    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-06 + P-tapflow-lifecycle + P-tapflow-live-visitor: public /t entry → persisted JourneyExecution against immutable JourneyPublishedVersion; refresh/provider idempotency; pause/resume/cancel/wait/retry; Contact/Relationship + Campaign attribution; Guardian → outbox → mock email/loyalty/TapCase/EWI; TapProof attribution events. Live OAuth providers = VERIFIED — CREDENTIALS REQUIRED. Not platform OWNER-READY.",
+      "Closeout re-proof: P-06 + P-tapflow-lifecycle + P-tapflow-live-visitor headed PASS. Public /t entry → persisted JourneyExecution against immutable JourneyPublishedVersion; refresh/provider idempotency; pause/resume/cancel/wait/retry; Contact/Relationship + Campaign attribution; Guardian → outbox → mock email/loyalty/TapCase/EWI. Classification: IMPLEMENTED BUT NOT OWNER-READY. Live OAuth = VERIFIED — CREDENTIALS REQUIRED. Not platform OWNER-READY.",
     blockers: [
       "live_oauth_providers_credentials_required",
       "full_journeys_studio_ui_matrix",
+      "not_owner_ready",
     ],
     nextAction: "Certify live email/SMS/provider credentials; deepen Journeys studio UI matrix",
   },
@@ -236,12 +242,12 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcanvas",
-    lastVerifiedAt: "2026-07-24T03:00:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
     a11yPassed: true,
     notes:
-      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-* + P-a11y-owner-gate (axe serious/critical + keyboard modes/selection/comments/approvals) + P-responsive-owner-gate. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + VoiceOver spot-check residual).",
+      "Closeout re-proof: P-tapcanvas-* headed PASS on tapconnect_fusion_dev. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + VoiceOver spot-check residual).",
     blockers: [
       "voiceover_nvda_manual_spot_check_recommended",
       "live_tapcast_credentials",
@@ -253,11 +259,11 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcast",
-    lastVerifiedAt: "2026-07-24T04:00:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
     notes:
-      "P-tapcast-registry/multi-variant/admin + P-tapcast-ladder-*: Omnichannel hub + 18-channel capability registry + publish-path ladder (unit + headed samples) + failure isolation + Snapchat honesty. IMPLEMENTED BUT NOT OWNER-READY (a11y/full ladder headed matrix incomplete). Live = VERIFIED — CREDENTIALS REQUIRED. Prisma when isolated DB.",
+      "Closeout re-proof: P-tapcast-registry/multi-variant/admin + P-tapcast-ladder-* headed PASS. Classification: IMPLEMENTED BUT NOT OWNER-READY. Live = VERIFIED — CREDENTIALS REQUIRED.",
     blockers: [
       "live_provider_credentials",
       "a11y_full_ladder_headed_matrix",
@@ -269,12 +275,12 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcast_tiktok",
-    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
     missingEnvVars: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
     notes:
-      "Nested under TapCast (not an Experiences sibling). P-tiktok-mock-persist + P-tapcast-tiktok-coexist: mock draft/direct-post/retry/funnel + coexistence with omnichannel registry. Live Direct Post = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY. Route: /dashboard/experiences/tapcast/tiktok.",
+      "Closeout re-proof: P-tiktok-mock-persist + P-tapcast-tiktok-coexist headed PASS. Nested under TapCast. Live Direct Post = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY.",
     blockers: [
       "tiktok_oauth_credentials",
       "direct_post_token",
@@ -284,11 +290,11 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcast_omnichannel",
-    lastVerifiedAt: "2026-07-24T04:00:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
     notes:
-      "P-tapcast-* + P-tapcast-ladder-*: Channel registry (18), mock publish ladder, campaign variants, failure isolation, Snapchat package-only (no live claim), Brand Vocabulary hashtags on create_variants/adapt, TapCanvas distribution hooks, Admin panel. Local mock IMPLEMENTED BUT NOT OWNER-READY until a11y/full ladder headed matrix complete. Live = VERIFIED — CREDENTIALS REQUIRED.",
+      "Closeout re-proof: P-tapcast-* + P-tapcast-ladder-* headed PASS. Local mock IMPLEMENTED BUT NOT OWNER-READY. Live = VERIFIED — CREDENTIALS REQUIRED.",
     blockers: [
       "live_oauth_per_channel",
       "a11y_full_ladder_headed_matrix",
@@ -299,11 +305,11 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "keywords_brand_pack",
-    lastVerifiedAt: "2026-07-24T03:30:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-pipeline + P-keywords-owner-gate-killswitch + shared P-tapcanvas-killswitch (ai.keywords): suggest/accept/reject/edit/lock/archive/restore, locale, named Brand Pack create+reuse, exclusion/competitor, duplicate warnings, trigger collision + campaign/location scope, conversational synonyms/misspellings, channel-specific TT/IG/FB/YT suggest+apply, TapCast variants when API available, persist after refresh, Admin ai.keywords disable→UI banner+API 503+canvas bind_keyword_trigger 503→audit→re-enable→retry, analytics audit view, readiness badge. Surfaces: Brand Kit, Campaign, Card, TapCast, TikTok, Email, TapCanvas, TapFlow, Inbox, Assets, Templates, Autopilot via shared KeywordsSuggestPanel + /api/ai/keywords only. Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
+      "Closeout re-proof: P-keywords-* headed PASS (brand pack, surfaces, owner-gate pipeline + killswitch). Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: IMPLEMENTED BUT NOT OWNER-READY.",
     blockers: [
       "live_trend_provider",
       "openai_ai_enhancement",
@@ -317,12 +323,12 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "controls_a11y_responsive",
-    lastVerifiedAt: "2026-07-24T04:10:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     a11yPassed: true,
     notes:
-      "P-a11y-owner-gate + P-responsive-owner-gate headed: axe serious/critical cleared on Home/Experiences/Builders/TapCanvas/TapFlow/TapCast/TikTok/Tap Points/Audience/Inbox/Insights/Assets/Brand/Settings/Admin; keyboard proofs (skip, Create focus return, block reorder, canvas selection, admin arrows); viewports large desktop→mobile review. IMPLEMENTED BUT NOT OWNER-READY — residual VoiceOver/NVDA + 200% zoom manual.",
+      "Closeout re-proof: P-a11y-owner-gate + P-responsive-owner-gate headed PASS. Axe serious/critical cleared on Home/Experiences/Builders/TapCanvas/TapFlow/TapCast/TikTok/Tap Points/Audience/Inbox/Insights/Assets/Brand/Settings/Admin; keyboard proofs; viewports large desktop→mobile review. Classification: IMPLEMENTED BUT NOT OWNER-READY — residual VoiceOver/NVDA + 200% zoom manual.",
     blockers: [
       "voiceover_nvda_manual_spot_check_recommended",
       "full_200pct_zoom_manual_spot_check",

@@ -1,7 +1,8 @@
 # Production cutover checklist
 
 **Production Studio:** `https://studio.tapthemagic.com`  
-**Authorization gate:** Explicit product-owner authorization required before any Railway change, DNS change, production migration, or deploy.
+**Authorization gate:** Explicit product-owner authorization required before any Railway change, DNS change, production migration, or deploy.  
+**Local closeout (2026-07-24):** Quality gates green on `tapconnect_fusion_dev` — platform still **NOT OWNER-READY**. Production cutover remains **BLOCKED** until §B staging rehearsal + PO authorization. Railway **untouched** this session.
 
 **Hard rules**
 
@@ -9,6 +10,17 @@
 - Never print secret values in logs, docs, browser output, or chat.
 - Never point local Fusion or staging at the Railway **production** database for experiments.
 - Prefer inheriting existing valid Railway credentials — do not recreate provider apps unnecessarily.
+
+## Local → staging handoff (exact next)
+
+Local owner-ready quality gates are complete for mock/runtime proofs. Before any staging deploy:
+
+1. Provision staging host + Clerk + **separate** Postgres (not prod)
+2. Apply Prisma migrations to staging only; smoke `/api/health`
+3. Set staging `NEXT_PUBLIC_APP_URL` + webhook/OAuth callback URLs
+4. Optionally supply **one** sandbox provider credential set — classify live as **VERIFIED — CREDENTIALS REQUIRED** until probe green
+5. Manual VoiceOver/NVDA + 200% zoom residuals (local or staging)
+6. Only then consider production §C after written PO authorization
 
 ## A. Pre-flight (read-only)
 

@@ -1,8 +1,9 @@
 # Provider readiness — VERIFIED — CREDENTIALS REQUIRED
 
+**Updated:** 2026-07-24 (final local quality-gate closeout)  
 **Rule:** Do not request secrets in chat. Complete OAuth/app registration externally, then wire env vars via Admin / `.env.local` on isolated `tapconnect_fusion_dev` only. Never Railway until PO directs.
 
-**Local owner-ready rule:** Finished local mock / adapter / readiness / failure paths do **not** block local Studio OWNER work. Live publish, live messaging, live AI enhancement, and live trend claims remain:
+**Local closeout attestation:** Mock / adapter / readiness / failure paths proved on isolated DB (headed + unit). **No live credential success claimed.** Platform overall remains **NOT OWNER-READY**. Live publish, live messaging, live AI enhancement, and live trend claims remain:
 
 **VERIFIED — CREDENTIALS REQUIRED**
 
