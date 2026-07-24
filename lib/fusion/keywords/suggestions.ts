@@ -488,7 +488,11 @@ export function suggestKeywords(opts: {
     }));
   }
 
-  suggestions = suggestions.slice(0, limit);
+  // Always retain exclusion markers even when the list is truncated to channel limits
+  const exclusions = suggestions.filter((s) => s.family === "avoid_exclusion");
+  const primary = suggestions.filter((s) => s.family !== "avoid_exclusion");
+  const primaryBudget = Math.max(0, limit - Math.min(exclusions.length, 6));
+  suggestions = [...primary.slice(0, primaryBudget), ...exclusions.slice(0, 6)].slice(0, limit);
   const warnings = detectWarnings(suggestions, ctx);
 
   return {

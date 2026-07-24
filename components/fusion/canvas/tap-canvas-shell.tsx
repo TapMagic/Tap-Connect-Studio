@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 
 type CanvasNode = {
   id: string;
@@ -241,7 +242,8 @@ export function TapCanvasShell({
       aria-label="TapCanvas operator shell"
       className="space-y-6 outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
       data-testid="tapcanvas-shell"
-    >      <header className="space-y-2 border-b border-white/8 pb-5">
+    >
+      <header className="space-y-2 border-b border-white/8 pb-5">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           Experiences · TapCanvas
         </p>
@@ -275,6 +277,10 @@ export function TapCanvasShell({
             : "Persists on tapconnect_fusion_dev when configured · Not OWNER-READY"}
         </p>
       </header>
+
+      <div data-testid="tapcanvas-keywords-mount" className="max-w-xl">
+        <KeywordsSuggestPanel surface="tapcanvas" defaultChannel="tapcanvas" compact />
+      </div>
 
       {message ? (
         <p

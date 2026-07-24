@@ -141,6 +141,22 @@ export function createMemoryVocabularyRepository(): VocabularyRepository {
       return row;
     },
 
+    async editTerm(businessId, termId, patch) {
+      const row = state(businessId).terms.find((t) => t.id === termId);
+      if (!row) return null;
+      if (row.locked && patch.value !== undefined && patch.value !== row.value) {
+        return null;
+      }
+      if (patch.value !== undefined) {
+        row.value = patch.value.trim();
+        row.normalizedValue = termKey(patch.value);
+      }
+      if (patch.locale !== undefined) row.locale = patch.locale;
+      if (patch.campaignId !== undefined) row.campaignId = patch.campaignId;
+      row.updatedAt = new Date().toISOString();
+      return row;
+    },
+
     async loadBrandPackView(businessId) {
       return state(businessId).jsonPack;
     },

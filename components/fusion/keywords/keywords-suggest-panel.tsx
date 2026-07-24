@@ -42,6 +42,7 @@ type KeywordsPanelProps = {
   defaultOpen?: boolean;
   compact?: boolean;
   campaignTitle?: string;
+  campaignId?: string;
   existingContentSnippets?: string[];
   locationLabels?: string[];
   knownProducts?: string[];
@@ -72,6 +73,7 @@ export function KeywordsSuggestPanel({
   defaultOpen = false,
   compact = true,
   campaignTitle,
+  campaignId,
   existingContentSnippets,
   locationLabels,
   knownProducts,
@@ -91,10 +93,12 @@ export function KeywordsSuggestPanel({
   const [pack, setPack] = useState<KeywordBrandPack | null>(null);
   const [runId, setRunId] = useState<string | undefined>();
   const [trendLabel, setTrendLabel] = useState("VERIFIED — CREDENTIALS REQUIRED");
+  const [featureOff, setFeatureOff] = useState(false);
 
   const groundPayload = useMemo(
     () => ({
       campaignTitle,
+      campaignId,
       existingContentSnippets,
       locationLabels,
       knownProducts,
@@ -104,6 +108,7 @@ export function KeywordsSuggestPanel({
     }),
     [
       campaignTitle,
+      campaignId,
       existingContentSnippets,
       locationLabels,
       knownProducts,
@@ -116,6 +121,12 @@ export function KeywordsSuggestPanel({
   const loadPack = useCallback(async () => {
     const res = await fetch(API);
     const json = await res.json();
+    if (res.status === 503 || json.code === "feature_off") {
+      setFeatureOff(true);
+      setMessage(json.error ?? "Keywords feature is off");
+      return;
+    }
+    setFeatureOff(false);
     if (res.ok && json.pack) {
       setPack(json.pack);
       if (json.trendEnrichment?.label) setTrendLabel(json.trendEnrichment.label);
@@ -137,11 +148,14 @@ export function KeywordsSuggestPanel({
           action: mode ? "regenerate" : "suggest",
           channel,
           mode,
+          surface,
+          campaignId,
           ground: groundPayload,
         }),
       });
       const json = await res.json();
-      if (json.placeholder || json.code === "feature_off") {
+      if (json.placeholder || json.code === "feature_off" || res.status === 503) {
+        setFeatureOff(true);
         setMessage(json.error ?? "Keywords feature is off");
         return;
       }
@@ -342,6 +356,14 @@ export function KeywordsSuggestPanel({
               <p className="text-[10px] text-amber-500/90 mt-0.5" data-testid="keywords-trend-status">
                 Trends: {trendLabel}
               </p>
+              <p
+                className="text-[10px] text-muted-foreground mt-0.5"
+                data-testid="keywords-panel-readiness"
+              >
+                {featureOff
+                  ? "DISABLED — ai.keywords kill switch"
+                  : "FUNCTIONAL — FINAL VERIFICATION REQUIRED"}
+              </p>
             </div>
             <Button
               type="button"
@@ -373,8 +395,8 @@ export function KeywordsSuggestPanel({
               type="button"
               size="sm"
               data-testid="keywords-run-suggest"
-              data-ready="1"
-              disabled={loading}
+              data-ready={featureOff ? "0" : "1"}
+              disabled={loading || featureOff}
               onClick={() => void runSuggest()}
             >
               {loading ? "Working…" : "Suggest"}

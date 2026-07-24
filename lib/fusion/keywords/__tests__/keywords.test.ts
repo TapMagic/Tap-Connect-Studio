@@ -264,6 +264,85 @@ describe("Durable vocabulary service (memory)", () => {
     });
     assert.ok(second.collisions.some((c) => c.code === "collision"));
   });
+
+  it("edits, locks, archives, and restores terms", async () => {
+    const { editVocabularyTerm, archiveVocabularyTerm, restoreVocabularyTerm, lockVocabularyTerm } =
+      await import("../index");
+    const accepted = await acceptVocabularyTerms({
+      businessId: "biz_mem",
+      terms: [{ id: "e1", value: "EditableTerm", kind: "keyword", family: "primary" }],
+    });
+    const termId = accepted.terms[0]?.id ?? accepted.pack.approvedTerms[0]?.id;
+    assert.ok(termId);
+
+    const edited = await editVocabularyTerm("biz_mem", termId!, { value: "EditedTerm" });
+    assert.equal(edited?.value, "EditedTerm");
+
+    const locked = await lockVocabularyTerm("biz_mem", termId!, true);
+    assert.equal(locked?.locked, true);
+    const blocked = await editVocabularyTerm("biz_mem", termId!, { value: "ShouldFail" });
+    assert.equal(blocked, null);
+
+    await lockVocabularyTerm("biz_mem", termId!, false);
+    const archived = await archiveVocabularyTerm("biz_mem", termId!);
+    assert.ok(archived);
+    const restored = await restoreVocabularyTerm("biz_mem", termId!);
+    assert.equal(restored?.approvalStatus, "APPROVED");
+  });
+
+  it("scopes trigger collision by campaign and location", async () => {
+    const a = await detectAndBindTrigger({
+      businessId: "biz_scope",
+      binding: {
+        flowId: "flow_camp_a",
+        canonicalValue: "SPECIALS",
+        channel: "tapcanvas",
+        campaignId: "camp_1",
+      },
+    });
+    assert.equal(a.collisions.length, 0);
+    const b = await detectAndBindTrigger({
+      businessId: "biz_scope",
+      binding: {
+        flowId: "flow_camp_b",
+        canonicalValue: "specials",
+        channel: "tapcanvas",
+        campaignId: "camp_2",
+      },
+    });
+    // Different campaign scopes — no collision when both scoped distinctly
+    assert.equal(b.collisions.filter((c) => c.code === "collision").length, 0);
+
+    const c = await detectAndBindTrigger({
+      businessId: "biz_scope",
+      binding: {
+        flowId: "flow_camp_c",
+        canonicalValue: "SPECIALS",
+        channel: "tapcanvas",
+        campaignId: "camp_1",
+      },
+    });
+    assert.ok(c.collisions.some((x) => x.code === "collision"));
+  });
+
+  it("adapts channel-specific suggestions without inventing trends", async () => {
+    const tiktok = await suggestVocabulary({
+      businessId: "biz_ch",
+      businessName: "Demo Cafe",
+      channel: "tiktok",
+      ground: { knownProducts: ["Cold Brew"], locationLabels: ["River North"] },
+    });
+    const email = await suggestVocabulary({
+      businessId: "biz_ch",
+      businessName: "Demo Cafe",
+      channel: "email",
+      ground: { knownProducts: ["Cold Brew"], locationLabels: ["River North"] },
+    });
+    assert.ok(tiktok.suggestions.some((s) => s.kind === "hashtag"));
+    assert.ok(email.suggestions.every((s) => !/trending/i.test(s.rationale)));
+    assert.equal(tiktok.trendEnrichment.status, "verified_credentials_required");
+    assert.ok(tiktok.suggestions.some((s) => s.channels.includes("tiktok")));
+  });
 });
 
 describe("Keywords analytics", () => {

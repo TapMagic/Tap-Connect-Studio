@@ -239,17 +239,17 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     browserE2ePassed: true,
     a11yPassed: false,
     notes:
-      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist, P-tapcanvas-campaigns, P-tapcanvas-reverse-repair, P-tapcanvas-keyword-bind, P-tapcanvas-version-restore. Classification: IMPLEMENTED BUT NOT OWNER-READY (promotion/a11y/TapFlow-in-canvas incomplete).",
+      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist/campaigns/reverse-repair/keyword-bind/version-restore/mode-matrix/comments-approvals/tapflow-bind/a11y-responsive + P-tapcanvas-weekly-matrix/conversational-funnel/tapflow-lifecycle/reverse-repair-deep/killswitch. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + full SR/axe + live visitor executor open).",
     blockers: [
-      "full_promotion_matrix",
       "a11y_headed_pass",
       "responsive_matrix",
-      "full_tapflow_in_canvas",
-      "comments_approvals_ui_matrix",
+      "live_visitor_executor",
+      "live_tapcast_credentials",
+      "provider_effects",
       "not_owner_ready",
     ],
     nextAction:
-      "Complete Sketch→Build→Operate headed matrix + keyboard/a11y pass; do not claim OWNER-READY",
+      "Clear live executor + a11y/SR sign-off; do not claim OWNER-READY without zero blockers",
   },
   {
     sectionId: "tapcast",
@@ -299,23 +299,22 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "keywords_brand_pack",
-    lastVerifiedAt: "2026-07-24T02:35:41.898Z",
+    lastVerifiedAt: "2026-07-24T03:30:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-keywords-brand-pack + P-keywords-surfaces-* headed: suggest/accept/reject, named Brand Pack create+apply reuse, exclusion/competitor detection, trigger collision + conversational synonyms/misspellings, persist after refresh, Admin ai.keywords disable→503→re-enable, analytics audit view. Shared BrandVocabularyTerm via /api/ai/keywords only (no competing stores). Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
+      "P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-pipeline + P-keywords-owner-gate-killswitch: suggest/accept/reject/edit/lock/archive/restore, locale, named Brand Pack create+reuse, exclusion/competitor, duplicate warnings, trigger collision + campaign/location scope, conversational synonyms/misspellings, channel-specific TT/IG/FB/YT suggest+apply, TapCast variants when API available, persist after refresh, Admin ai.keywords disable→UI banner+API 503→audit→re-enable→retry, analytics audit view, readiness badge. Surfaces: Brand Kit, Campaign, Card, TapCast, TikTok, Email, TapCanvas, TapFlow, Inbox, Assets, Templates, Autopilot via shared KeywordsSuggestPanel + /api/ai/keywords only. Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
     blockers: [
       "live_trend_provider",
       "openai_ai_enhancement",
       "a11y_headed_pass",
-      "multi_surface_apply_matrix",
+      "tapcanvas_tapflow_killswitch_wiring_owned_by_ab_agent",
       "dedicated_analytics_ui_panel",
-      "full_conversational_ui_matrix",
       "not_owner_ready",
     ],
     missingProviders: ["approved_trend_provider", "openai"],
     nextAction:
-      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; expand per-surface Apply merge headed matrix; add dedicated analytics UI if product requires",
+      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; A+B agent wires TapCanvas/TapFlow to shared ai.keywords gate; a11y headed pass before OWNER-READY",
   },
 ];
 

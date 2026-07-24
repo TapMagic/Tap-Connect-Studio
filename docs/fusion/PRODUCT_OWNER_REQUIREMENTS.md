@@ -45,7 +45,8 @@ Do **not** reuse production-only secrets. Prefer development/test applications.
 
 | ID | Provider | Create | Env vars | Where | Secret? | Unlocks | Without it |
 |----|----------|--------|----------|-------|---------|---------|------------|
-| PO-LIVE-001 | OpenAI | Dev project + budget | `OPENAI_API_KEY`, `OPENAI_MODEL` | `.env.local` | Yes | Live Autopilot | Mock/kill-switch |
+| PO-LIVE-001 | OpenAI | Dev project + budget | `OPENAI_API_KEY`, `OPENAI_MODEL` | `.env.local` | Yes | Live Autopilot + Keywords AI enhance | Mock/kill-switch; Keywords local grounded works without OpenAI |
+| PO-LIVE-001b | Approved trend provider | Dev app + ToS-approved source | TBD (never scrape illegally) | `.env.local` | Yes | Live Keywords trend enrichment | Keywords trends stay **VERIFIED — CREDENTIALS REQUIRED**; local grounded hashtags still work |
 | PO-LIVE-002 | Resend | API key + from domain | `RESEND_API_KEY`, `RESEND_FROM_EMAIL` | `.env.local` | Yes | Live email | Email mock |
 | PO-LIVE-003 | Stripe | **Test** mode keys + webhook | `STRIPE_SECRET_KEY` (`sk_test_`), `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` | `.env.local` + Stripe CLI | Yes | Billing/checkout | Readiness UI |
 | PO-LIVE-004 | Pexels | API key | `PEXELS_API_KEY` | `.env.local` | Soft | Stock search | Upload/local |
@@ -103,3 +104,16 @@ Cross-check `PRODUCT_OWNER_DECISIONS.md` / input queue. At audit time, no new bl
 3. Stripe product ↔ plan mapping when billing verification starts.
 
 Ordinary IA, badge derivation, and builder fixes do **not** need owner decisions.
+
+---
+
+## Keywords / Brand Vocabulary (Workstream C — status)
+
+| Item | Status |
+|------|--------|
+| Local grounded suggest/accept/reject/edit/lock/archive/restore | Implemented on isolated DB — no PO credential required |
+| Named Brand Pack create/reuse + locale | Implemented |
+| Channel-specific TT/IG/FB/YT + campaign/location trigger scope | Implemented + headed owner-gate proofs |
+| Admin kill switch `ai.keywords` | Implemented (UI + API 503 + audit); TapCanvas/TapFlow wiring owned by A+B agent using shared feature id |
+| Live OpenAI enhance / live trends | **VERIFIED — CREDENTIALS REQUIRED** — see PO-LIVE-001 / PO-LIVE-001b |
+| OWNER-READY | **Not yet** — retain a11y + live provider blockers |

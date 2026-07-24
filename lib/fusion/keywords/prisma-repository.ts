@@ -86,12 +86,13 @@ async function ensureBrandKit(businessId: string) {
 
 async function mirrorFromTerms(businessId: string) {
   const kit = await ensureBrandKit(businessId);
+  const legacy = parseKeywordBrandPack(kit.keywordBrandPack);
   const rows = await prisma.brandVocabularyTerm.findMany({
     where: { businessId, active: true, archivedAt: null },
     orderBy: { updatedAt: "desc" },
   });
   const pack = termsToBrandPackView({
-    locale: kit.defaultLanguage || "en",
+    locale: kit.defaultLanguage || legacy.locale || "en",
     terms: rows.map((r) => ({
       id: r.id,
       value: r.value,
@@ -104,7 +105,6 @@ async function mirrorFromTerms(businessId: string) {
     })),
   });
   // Merge with legacy JSON buckets that may hold product vocab not yet kind-mapped
-  const legacy = parseKeywordBrandPack(kit.keywordBrandPack);
   if (pack.productVocabulary.length === 0 && legacy.productVocabulary.length > 0) {
     pack.productVocabulary = legacy.productVocabulary;
   }
@@ -263,6 +263,30 @@ export function createPrismaVocabularyRepository(): VocabularyRepository {
       return mapTerm(row);
     },
 
+    async editTerm(businessId, termId, patch) {
+      const existing = await prisma.brandVocabularyTerm.findFirst({
+        where: { id: termId, businessId },
+      });
+      if (!existing) return null;
+      if (existing.locked && patch.value !== undefined && patch.value !== existing.value) {
+        return null;
+      }
+      const data: Prisma.BrandVocabularyTermUpdateInput = {};
+      if (patch.value !== undefined) {
+        data.value = patch.value.trim();
+        data.normalizedValue = termKey(patch.value);
+      }
+      if (patch.locale !== undefined) data.locale = patch.locale;
+      if (patch.campaignId !== undefined) data.campaignId = patch.campaignId;
+      if (patch.locationId !== undefined) data.locationId = patch.locationId;
+      const row = await prisma.brandVocabularyTerm.update({
+        where: { id: termId },
+        data,
+      });
+      await mirrorFromTerms(businessId);
+      return mapTerm(row);
+    },
+
     async loadBrandPackView(businessId) {
       if (!(await prisma.brandVocabularyTerm.count({ where: { businessId } }))) {
         const kit = await ensureBrandKit(businessId);
@@ -275,7 +299,10 @@ export function createPrismaVocabularyRepository(): VocabularyRepository {
       await ensureBrandKit(businessId);
       await prisma.brandKit.update({
         where: { businessId },
-        data: { keywordBrandPack: pack as unknown as Prisma.InputJsonValue },
+        data: {
+          keywordBrandPack: pack as unknown as Prisma.InputJsonValue,
+          ...(pack.locale ? { defaultLanguage: pack.locale } : {}),
+        },
       });
       // Hydrate normalized terms from pack buckets
       const buckets: Array<{

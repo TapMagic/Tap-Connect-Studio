@@ -20,7 +20,18 @@ stable id · name · description · pillar · domain owner · UX location · imp
 
 **Do not scatter unrelated booleans.** Use typed, versioned feature + entitlement system (`lib/fusion/features`).
 
-Kill-switch-capable examples: `comms.messaging`, `comms.email`, `comms.inbox`, `wallet.apple_google`, `journey.tapflow`, `ai.autopilot`, `ai.keywords`, `commerce.tapcommerce`.
+Kill-switch-capable examples: `comms.messaging`, `comms.email`, `comms.inbox`, `wallet.apple_google`, `journey.tapflow`, `ai.autopilot`, `ai.keywords`, `brand.vocabulary`, `commerce.tapcommerce`.
+
+### Keywords / Brand Vocabulary kill-switch hooks (for TapCanvas + TapFlow owners)
+
+| Item | Value |
+|------|--------|
+| Primary runtime gate | `ai.keywords` — `/api/ai/keywords` returns **503** `{ code: "feature_off", feature: "ai.keywords" }` when disabled |
+| Durable store feature | `brand.vocabulary` — dependency of `ai.keywords`; keep rows read-only when disabled |
+| Admin API | `POST /api/admin/features` with `{ featureId: "ai.keywords", enabled: false\|true, scope: "global", reason }` |
+| UI signals | Brand Kit `data-testid="keywords-feature-off-banner"`; panel `data-testid="keywords-panel-readiness"` shows `DISABLED — ai.keywords kill switch` |
+| TapCanvas / TapFlow wiring | Before `bind_keyword_trigger`, KeywordsSuggestPanel suggest/apply, or conversational trigger bind: call `checkFeatureGate("ai.keywords", ctx)` (same gate as Keywords API). Do **not** invent a parallel flag. |
+| Proof | `P-keywords-owner-gate-killswitch` + `P-keywords-killswitch` in `e2e/keywords-*.spec.ts` |
 
 ## Feature states
 

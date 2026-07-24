@@ -100,6 +100,7 @@ export {
   archiveVocabularyTerm,
   restoreVocabularyTerm,
   lockVocabularyTerm,
+  editVocabularyTerm,
   detectAndBindTrigger,
   getConversationalSet,
   getVocabularyAnalytics,

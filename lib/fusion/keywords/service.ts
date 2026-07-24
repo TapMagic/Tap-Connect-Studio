@@ -298,8 +298,37 @@ export async function archiveVocabularyTerm(businessId: string, termId: string, 
   return row;
 }
 
-export async function restoreVocabularyTerm(businessId: string, termId: string) {
-  return (await repo()).restoreTerm(businessId, termId);
+export async function restoreVocabularyTerm(businessId: string, termId: string, actorId?: string) {
+  const r = await repo();
+  const row = await r.restoreTerm(businessId, termId);
+  await r.recordAnalytics({
+    businessId,
+    event: "keywords.restore",
+    count: 1,
+    actorId,
+  });
+  return row;
+}
+
+export async function editVocabularyTerm(
+  businessId: string,
+  termId: string,
+  patch: { value?: string; locale?: string; campaignId?: string | null; locationId?: string | null },
+  actorId?: string
+) {
+  const r = await repo();
+  const row = await r.editTerm(businessId, termId, patch);
+  if (row) {
+    await r.recordAnalytics({
+      businessId,
+      event: "keywords.edit",
+      count: 1,
+      campaignId: patch.campaignId ?? undefined,
+      actorId,
+      detail: { termId, patch },
+    });
+  }
+  return row;
 }
 
 export async function lockVocabularyTerm(

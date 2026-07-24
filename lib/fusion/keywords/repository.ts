@@ -84,6 +84,11 @@ export type VocabularyRepository = {
   setLocked(businessId: string, termId: string, locked: boolean): Promise<VocabularyTermRecord | null>;
   archiveTerm(businessId: string, termId: string): Promise<VocabularyTermRecord | null>;
   restoreTerm(businessId: string, termId: string): Promise<VocabularyTermRecord | null>;
+  editTerm(
+    businessId: string,
+    termId: string,
+    patch: { value?: string; locale?: string; campaignId?: string | null; locationId?: string | null }
+  ): Promise<VocabularyTermRecord | null>;
   loadBrandPackView(businessId: string): Promise<KeywordBrandPack>;
   mirrorBrandPackJson(businessId: string, pack: KeywordBrandPack): Promise<void>;
   listPacks(businessId: string): Promise<NamedBrandPack[]>;

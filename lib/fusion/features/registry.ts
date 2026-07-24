@@ -563,6 +563,8 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
       "keywords.apply",
       "keywords.save_brand",
       "keywords.archive",
+      "keywords.restore",
+      "keywords.edit",
       "keywords.brand_pack.create",
       "keywords.trigger_collision",
       "keywords.performance.observe",

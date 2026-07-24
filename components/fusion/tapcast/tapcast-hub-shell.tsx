@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 
 type ChannelRow = {
   id: string;
@@ -169,6 +170,15 @@ export function TapCastHubShell({ initial }: { initial?: HubInitial }) {
           </Link>
         </div>
       </header>
+
+      <div data-testid="tapcast-keywords-mount" className="max-w-xl">
+        <KeywordsSuggestPanel
+          surface="tapcast"
+          defaultChannel="instagram"
+          campaignTitle={campaignTitle}
+          compact
+        />
+      </div>
 
       {message && (
         <p className="text-sm text-primary" data-testid="tapcast-message">

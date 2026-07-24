@@ -13,6 +13,7 @@ import {
   createNamedBrandPack,
   deleteNamedBrandPack,
   detectAndBindTrigger,
+  editVocabularyTerm,
   getConversationalSet,
   getVocabularyAnalytics,
   listNamedBrandPacks,
@@ -150,6 +151,7 @@ const bodySchema = z.discriminatedUnion("action", [
       .optional(),
     limit: z.number().int().min(1).max(48).optional(),
     surface: z.string().max(40).optional(),
+    campaignId: z.string().max(80).optional(),
     ground: groundExtrasSchema.optional(),
   }),
   z.object({
@@ -167,6 +169,7 @@ const bodySchema = z.discriminatedUnion("action", [
     ]),
     limit: z.number().int().min(1).max(48).optional(),
     surface: z.string().max(40).optional(),
+    campaignId: z.string().max(80).optional(),
     ground: groundExtrasSchema.optional(),
   }),
   z.object({
@@ -202,6 +205,14 @@ const bodySchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("restore"),
     termId: z.string().min(1).max(80),
+  }),
+  z.object({
+    action: z.literal("edit"),
+    termId: z.string().min(1).max(80),
+    value: z.string().min(1).max(120).optional(),
+    locale: z.string().max(16).optional(),
+    campaignId: z.string().max(80).nullable().optional(),
+    locationId: z.string().max(80).nullable().optional(),
   }),
   z.object({
     action: z.literal("apply"),
@@ -362,7 +373,7 @@ export async function POST(request: Request) {
         mode: body.mode,
         limit: body.limit,
         surface: body.surface,
-        campaignId: body.ground?.campaignId,
+        campaignId: body.campaignId ?? body.ground?.campaignId,
         ground: body.ground,
         actorId,
       });
@@ -389,7 +400,7 @@ export async function POST(request: Request) {
         mode: body.mode ?? "channel_specific",
         limit: body.limit,
         surface: body.surface,
-        campaignId: body.ground?.campaignId,
+        campaignId: body.campaignId ?? body.ground?.campaignId,
         ground: body.ground,
         actorId,
       });
@@ -439,8 +450,30 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "restore") {
-      const row = await restoreVocabularyTerm(business.id, body.termId);
+      const row = await restoreVocabularyTerm(business.id, body.termId, actorId);
       return NextResponse.json({ ok: true, term: row });
+    }
+
+    if (body.action === "edit") {
+      const row = await editVocabularyTerm(
+        business.id,
+        body.termId,
+        {
+          value: body.value,
+          locale: body.locale,
+          campaignId: body.campaignId,
+          locationId: body.locationId,
+        },
+        actorId
+      );
+      if (!row) {
+        return NextResponse.json(
+          { ok: false, error: "Term not found or locked — unlock before editing value" },
+          { status: 409 }
+        );
+      }
+      const pack = await loadVocabularyPack(business.id);
+      return NextResponse.json({ ok: true, term: row, pack });
     }
 
     if (body.action === "apply") {
