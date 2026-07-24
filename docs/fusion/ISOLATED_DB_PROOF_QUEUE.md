@@ -14,7 +14,8 @@ Workflows implemented in code but **not** classified OWNER-READY / VERIFIED unti
 | P-06 | TapFlow publish/activate/pause/resume + dry-run record | Yes | Journeys UI + API |
 | P-07 | Outbox dead-letter retry/discard/process | Yes | Settings + Admin |
 | P-08 | Wallet mock issue/revoke | Yes | Audience wallet UI |
-| P-09 | Inbox reply + lead auto-thread | Yes | Audience inbox |
+| P-09 | Inbox reply + lead auto-thread | Yes | Proven: P-09-inbox-operator (local mock) |
+| P-10 | TapLoop award/redeem/idempotency | Yes | Audience TapLoop forms |
 | P-10 | TapLoop award/redeem/idempotency | Yes | Audience TapLoop forms |
 | P-11 | Insights date range + CSV | Yes | Insights page |
 | P-12 | Platform Admin KPI drill-downs | Yes | `/admin/platform/*` |
@@ -32,9 +33,10 @@ Workflows implemented in code but **not** classified OWNER-READY / VERIFIED unti
 | P-24 | Admin failure-recovery snapshot | Yes | Platform Admin KPIs tab |
 | P-25 | Pulse claim/rotation stubs | Yes | `/dashboard/pulse` |
 | P-26 | Wallet replace confirm + successor display | Yes | Audience wallet UI |
-| P-27 | Inbox Guardian-labeled reply composer + reopen | Yes | Audience inbox |
+| P-27 | Inbox Guardian-labeled reply composer + reopen | Yes | Proven: P-27-inbox-guardian-matrix (local mock) |
 | P-28 | Admin feature kill-switch UX (inline confirm) | Yes | Feature registry panel |
 | P-29 | Insights CSV evidence_caption column | Yes | Export CSV |
+| P-insights-drilldown-provenance | Filters → compare → drill → TapProof → saved view → CSV | Yes | Insights hub |
 | P-30 | Pulse offline memory queue stub | Yes | `/dashboard/pulse` |
 
 Do not mark OWNER-READY until the matching P-* row is executed and recorded in BUILD_STATUS.

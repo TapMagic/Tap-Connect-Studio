@@ -4,7 +4,7 @@
  */
 
 import type { EvidenceClass } from "./tapproof";
-import type { InsightKpi } from "./metrics";
+import type { InsightKpi } from "./types";
 
 export type CommerceEvidenceRecord = {
   id: string;

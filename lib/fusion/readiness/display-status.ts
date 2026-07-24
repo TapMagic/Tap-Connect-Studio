@@ -203,12 +203,13 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "insights",
-    lastVerifiedAt: "2026-07-24T00:43:11.000Z",
+    lastVerifiedAt: "2026-07-24T05:35:00.000Z",
     browserE2ePassed: true,
-    persistencePassed: false,
-    notes: "PO 13/13 · P-11-insights-shell; extend with P-insights-export",
-    blockers: ["full_insights_export_matrix", "drilldown_provenance_matrix"],
-    nextAction: "Headed: filters → drill-down → provenance → export",
+    persistencePassed: true,
+    notes:
+      "P-11-insights-shell + P-insights-export + P-insights-drilldown-provenance · filters/compare/drill/TapProof/saved views/CSV; Classification: IMPLEMENTED BUT NOT OWNER-READY (VoiceOver residual).",
+    blockers: ["not_owner_ready", "true_voiceover_residual"],
+    nextAction: "Certify VoiceOver spot on Insights tables; keep ledger honest",
   },
   {
     sectionId: "admin",

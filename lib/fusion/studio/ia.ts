@@ -568,15 +568,15 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "campaign",
       label: "Campaign analytics",
-      href: "/dashboard/analytics",
-      description: "Campaign performance",
-      maturity: "owner_ready",
+      href: "/dashboard/insights?view=campaign&compare=1",
+      description: "Campaign performance + compare",
+      maturity: "functional",
       group: "Performance",
     },
     {
       id: "card",
       label: "Card analytics",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=card",
       description: "Card engagement KPIs",
       maturity: "functional",
       group: "Performance",
@@ -584,7 +584,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "tappoint",
       label: "Tap Point analytics",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=tappoint",
       description: "Tap counts and fleet signals",
       maturity: "functional",
       group: "Performance",
@@ -592,7 +592,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "comms",
       label: "Communication analytics",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=comms",
       description: "Inbox and email signals",
       maturity: "functional",
       group: "Channels",
@@ -600,7 +600,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "email",
       label: "Email",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=comms&evidence=confirmed",
       description: "Email readiness and volume",
       maturity: "functional",
       group: "Channels",
@@ -608,7 +608,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "messaging",
       label: "Messaging",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=comms",
       description: "Channel Guardian messaging",
       maturity: "scaffolded",
       group: "Channels",
@@ -616,7 +616,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "social",
       label: "Social",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=provider",
       description: "Social distribution metrics",
       maturity: "scaffolded",
       group: "Channels",
@@ -624,7 +624,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "loyalty",
       label: "Loyalty",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=loyalty",
       description: "TapLoop ledger activity",
       maturity: "functional",
       group: "Growth",
@@ -632,15 +632,15 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "commerce",
       label: "Commerce",
-      href: "/dashboard/experiences/orders",
-      description: "Order outcomes",
+      href: "/dashboard/insights?view=commerce",
+      description: "Order outcomes + modeled evidence",
       maturity: "beta",
       group: "Growth",
     },
     {
       id: "providers",
       label: "Provider health",
-      href: "/dashboard/integrations",
+      href: "/dashboard/insights?view=provider",
       description: "Integration readiness",
       maturity: "functional",
       group: "Operations",
@@ -648,7 +648,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     {
       id: "tapproof",
       label: "TapProof",
-      href: "/dashboard/insights",
+      href: "/dashboard/insights?view=tapproof",
       description: "Evidence class on every metric",
       maturity: "functional",
       group: "Intelligence",

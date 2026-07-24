@@ -2,87 +2,119 @@ import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { fetchInsightsSnapshot } from "@/lib/fusion/insights/metrics";
 import { fetchBusinessFailureRecovery } from "@/lib/fusion/insights/failure-recovery";
-import { parseInsightsRangeDays } from "@/lib/fusion/insights/range";
 import {
   evidenceClassTone,
   formatEvidenceCaption,
 } from "@/lib/fusion/insights/evidence-display";
+import { INSIGHTS_VIEW_LABELS } from "@/lib/fusion/insights/views";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3 } from "lucide-react";
 import { StudioHubSections } from "@/components/studio/hub-sections";
+import { InsightsControls } from "@/components/fusion/insights/insights-controls";
+import { InsightsKpiGrid } from "@/components/fusion/insights/insights-kpi-grid";
+import {
+  InsightsDrillTable,
+  InsightsProvenancePanel,
+} from "@/components/fusion/insights/insights-drill-table";
 
 export const dynamic = "force-dynamic";
-
-const RANGE_OPTIONS = [7, 14, 30, 90] as const;
 
 export default async function InsightsHubPage({
   searchParams,
 }: {
-  searchParams: Promise<{ days?: string }>;
+  searchParams: Promise<{
+    days?: string;
+    view?: string;
+    compare?: string;
+    evidence?: string;
+    drill?: string;
+    campaignId?: string;
+  }>;
 }) {
   const { business } = await requireBusiness();
   const params = await searchParams;
-  const days = parseInsightsRangeDays(params.days);
 
-  let snapshot: Awaited<ReturnType<typeof fetchInsightsSnapshot>> | null = null;
-  let failureRecovery: Awaited<ReturnType<typeof fetchBusinessFailureRecovery>> | null = null;
+  const snapshot = await fetchInsightsSnapshot(business.id, {
+    rangeDays: params.days,
+    view: params.view,
+    compare: params.compare,
+    evidence: params.evidence,
+    drill: params.drill,
+    campaignId: params.campaignId,
+  });
+
+  let failureRecovery: Awaited<ReturnType<typeof fetchBusinessFailureRecovery>> | null =
+    null;
   try {
-    snapshot = await fetchInsightsSnapshot(business.id, days);
     failureRecovery = await fetchBusinessFailureRecovery(business.id);
   } catch {
-    snapshot = null;
     failureRecovery = null;
   }
 
-  const kpis = snapshot?.kpis ?? [];
-  const empty = snapshot?.empty ?? true;
+  const kpis = snapshot.kpis;
+  const empty = snapshot.empty && !snapshot.error;
+  const showError = Boolean(snapshot.error);
 
   return (
-    <div className="space-y-8 p-5 lg:p-8">
+    <div className="space-y-8 p-5 lg:p-8" data-testid="insights-hub">
       <StudioHubSections
         destinationId="insights"
         title="Insights"
-        subtitle="Legacy analytics, TapProof evidence, loyalty/commerce signals, and provider health — V1 Analytics remains linked."
+        subtitle="Authoritative KPIs, date ranges, filters, comparisons, drill-down / drill-through, TapProof provenance, saved views, and CSV export — no KPI theater."
       />
 
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-white">Live snapshot</h2>
-          <p className="mt-1 text-sm text-white/50">
-            What happened, why it matters, evidence class, next action.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          <Link href="/dashboard/analytics" className={buttonVariants({ variant: "outline", size: "sm" })}>
-            Full analytics
-          </Link>
-          <a
-            href={`/api/insights/export?days=${days}&format=csv`}
-            className={buttonVariants({ variant: "outline", size: "sm" })}
-          >
-            Export CSV
-          </a>
-        </div>
+      <InsightsControls
+        days={snapshot.rangeDays}
+        view={snapshot.view}
+        compare={snapshot.compare}
+        evidence={snapshot.evidenceFilter}
+        drill={snapshot.drillKey}
+        campaignId={snapshot.campaignId}
+      />
+
+      <div
+        className="flex flex-wrap gap-3 text-xs text-muted-foreground"
+        data-testid="insights-freshness"
+      >
+        <span>
+          View: <span className="text-white/80">{INSIGHTS_VIEW_LABELS[snapshot.view]}</span>
+        </span>
+        <span>
+          Range {snapshot.from.slice(0, 10)} → {snapshot.to.slice(0, 10)}
+        </span>
+        {snapshot.compare && snapshot.previousFrom ? (
+          <span>
+            Prior {snapshot.previousFrom.slice(0, 10)} →{" "}
+            {snapshot.previousTo?.slice(0, 10) ?? "—"}
+          </span>
+        ) : null}
+        <span>
+          Freshness:{" "}
+          <span className="text-primary">{snapshot.freshness.label}</span> (fetched{" "}
+          {new Date(snapshot.fetchedAt).toLocaleString()})
+        </span>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {RANGE_OPTIONS.map((d) => (
-          <Link
-            key={d}
-            href={`/dashboard/insights?days=${d}`}
-            className={buttonVariants({
-              variant: d === days ? "default" : "outline",
-              size: "sm",
-            })}
-          >
-            {d}d
-          </Link>
-        ))}
-      </div>
+      {showError ? (
+        <Card
+          className="border-red-500/40 bg-red-950/20"
+          data-testid="insights-error"
+          role="alert"
+        >
+          <CardHeader>
+            <CardTitle>Insights error</CardTitle>
+            <CardDescription>
+              Aggregation failed against the isolated database. Retry or check local DB health —
+              Railway/prod is never used from this path.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm text-red-200/90">{snapshot.error}</CardContent>
+        </Card>
+      ) : null}
 
-      {empty || !snapshot ? (
-        <Card className="border-dashed border-border/60">
+      {empty && !showError ? (
+        <Card className="border-dashed border-border/60" data-testid="insights-empty">
           <CardHeader>
             <CardTitle>No confirmed activity yet</CardTitle>
             <CardDescription>
@@ -91,71 +123,48 @@ export default async function InsightsHubPage({
               Stripe fact.
             </CardDescription>
           </CardHeader>
+          <CardContent>
+            <Link
+              href="/dashboard/tap-points"
+              className={buttonVariants({ variant: "outline", size: "sm" })}
+            >
+              Go to Tap Points
+            </Link>
+          </CardContent>
         </Card>
-      ) : (
-        <>
-          {kpis.some((k) => k.key.startsWith("commerce_")) ? (
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-primary">Commerce &amp; loyalty signals</h3>
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {kpis
-                  .filter((k) => k.key.startsWith("commerce_"))
-                  .map((k) => (
-                    <div
-                      key={k.key}
-                      className="rounded-xl border border-primary/20 bg-gradient-to-br from-card/80 to-black/30 p-4"
-                    >
-                      <p className="text-xs text-muted-foreground">{k.label}</p>
-                      <p className="text-2xl font-semibold tabular-nums text-white">
-                        {k.key === "commerce_revenue_mock" ? `$${k.value}` : k.value}
-                      </p>
-                      <p className="mt-1 text-[10px] text-muted-foreground">
-                        <span className="text-primary">
-                          {formatEvidenceCaption({
-                            evidenceClass: k.evidenceClass,
-                            source: k.source,
-                            seeded: k.seeded,
-                            mockPath: k.key.startsWith("commerce_"),
-                          })}
-                        </span>
-                      </p>
-                    </div>
-                  ))}
-              </div>
-            </div>
-          ) : null}
+      ) : null}
 
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-            {kpis
-              .filter((k) => !k.key.startsWith("commerce_"))
-              .map((k) => (
-                <div key={k.key} className="rounded-xl border border-border/60 bg-card/40 p-4">
-                  <p className="text-xs text-muted-foreground">{k.label}</p>
-                  <p className="text-2xl font-semibold tabular-nums">
-                    {k.key === "conversion" ? `${k.value}%` : k.value}
-                  </p>
-                  <p className="mt-1 text-[10px] text-muted-foreground">
-                    <span
-                      className={
-                        evidenceClassTone(k.evidenceClass) === "primary"
-                          ? "text-primary"
-                          : evidenceClassTone(k.evidenceClass) === "muted"
-                            ? "text-muted-foreground"
-                            : ""
-                      }
-                    >
-                      {formatEvidenceCaption({
-                        evidenceClass: k.evidenceClass,
-                        source: k.source,
-                        seeded: k.seeded,
-                      })}
-                    </span>
-                  </p>
-                </div>
-              ))}
-          </div>
-        </>
-      )}
+      {!empty && !showError && kpis.length === 0 ? (
+        <Card className="border-dashed border-border/60" data-testid="insights-filter-empty">
+          <CardHeader>
+            <CardTitle>No KPIs match filters</CardTitle>
+            <CardDescription>
+              Try another view or evidence class. Data may exist outside this filter.
+            </CardDescription>
+          </CardHeader>
+        </Card>
+      ) : null}
+
+      {!showError && kpis.length > 0 ? (
+        <InsightsKpiGrid
+          kpis={kpis}
+          deltas={snapshot.deltas}
+          days={snapshot.rangeDays}
+          view={snapshot.view}
+          compare={snapshot.compare}
+          evidence={snapshot.evidenceFilter}
+          drillKey={snapshot.drillKey}
+          campaignId={snapshot.campaignId}
+        />
+      ) : null}
+
+      {snapshot.drillKey ? (
+        <InsightsDrillTable rows={snapshot.drillRows} kpiKey={snapshot.drillKey} />
+      ) : null}
+
+      {(snapshot.view === "tapproof" || snapshot.provenance.length > 0) && !showError ? (
+        <InsightsProvenancePanel records={snapshot.provenance} />
+      ) : null}
 
       <Card className="border-border/60">
         <CardHeader>
@@ -169,7 +178,7 @@ export default async function InsightsHubPage({
         </CardHeader>
         <CardContent>
           {!failureRecovery || failureRecovery.empty ? (
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground" data-testid="insights-recovery-empty">
               No failures recorded in scope. Dead letters appear after outbox drain errors; blocked
               runs appear after TapFlow dry-runs or live taps with Guardian gates.
             </p>
@@ -180,11 +189,17 @@ export default async function InsightsHubPage({
                   <p className="text-xs text-muted-foreground">{m.label}</p>
                   <p className="text-xl font-semibold tabular-nums">{m.value}</p>
                   <p className="mt-1 text-[10px] text-muted-foreground">
-                    {formatEvidenceCaption({
-                      evidenceClass: m.evidenceClass,
-                      source: m.source,
-                      hint: m.hint,
-                    })}
+                    <span
+                      className={
+                        evidenceClassTone(m.evidenceClass) === "primary" ? "text-primary" : ""
+                      }
+                    >
+                      {formatEvidenceCaption({
+                        evidenceClass: m.evidenceClass,
+                        source: m.source,
+                        hint: m.hint,
+                      })}
+                    </span>
                   </p>
                 </div>
               ))}
@@ -205,8 +220,7 @@ export default async function InsightsHubPage({
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          Range {snapshot?.from.slice(0, 10) ?? "—"} → {snapshot?.to.slice(0, 10) ?? "—"} · fetched{" "}
-          {snapshot ? new Date(snapshot.fetchedAt).toLocaleString() : "unavailable"}
+          Export includes KPI rows, optional drill-down sheet, and TapProof provenance columns.
         </CardContent>
       </Card>
     </div>

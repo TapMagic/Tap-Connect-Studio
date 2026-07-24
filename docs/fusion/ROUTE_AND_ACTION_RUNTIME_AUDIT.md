@@ -82,7 +82,7 @@ Legend for **Actual status**: `loads` · `seed` · `mock` · `api` · `scaffold`
 |---|---|---|
 | `/dashboard/insights` | metrics + TapProof + recovery | FUNCTIONAL |
 | `/dashboard/analytics` | V1 analytics | was mislabeled OR |
-| KPI/chart/drill-down/filter/export | partial | export API exists; browser proof pending |
+| KPI/chart/drill-down/filter/export | functional | P-insights-export + P-insights-drilldown-provenance; multi-view + TapProof |
 | Evidence sources | TapProof display | confidence wiring partial |
 | Commerce insights | beta | depends on orders |
 

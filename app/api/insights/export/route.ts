@@ -12,14 +12,28 @@ export async function GET(request: Request) {
     const days = parseInsightsRangeDays(url.searchParams.get("days"));
     const format = url.searchParams.get("format");
 
-    const snapshot = await fetchInsightsSnapshot(business.id, days);
+    const snapshot = await fetchInsightsSnapshot(business.id, {
+      rangeDays: days,
+      view: url.searchParams.get("view"),
+      compare: url.searchParams.get("compare"),
+      evidence: url.searchParams.get("evidence"),
+      drill: url.searchParams.get("drill"),
+      campaignId: url.searchParams.get("campaignId"),
+    });
+
+    if (snapshot.error) {
+      return NextResponse.json(
+        { error: snapshot.error, ok: false },
+        { status: 500 }
+      );
+    }
 
     if (format === "csv") {
       const csv = insightsToCsv(snapshot);
       return new NextResponse(csv, {
         headers: {
           "Content-Type": "text/csv; charset=utf-8",
-          "Content-Disposition": `attachment; filename="insights-${snapshot.rangeDays}d.csv"`,
+          "Content-Disposition": `attachment; filename="insights-${snapshot.view}-${snapshot.rangeDays}d.csv"`,
         },
       });
     }
