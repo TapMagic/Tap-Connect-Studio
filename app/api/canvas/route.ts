@@ -6,26 +6,32 @@ import {
   addConversationalTrigger,
   addSketchNote,
   addStickyNote,
+  analyticsTapflowFromCanvas,
   applyCanvasTemplate,
   applyNodeEditToAuthoritative,
   assertSketchNonExecuting,
   bindKeywordTriggerFromBrandPack,
   canvasPersistenceEnabled,
   compareCanvasVersions,
+  configureTapflowFromCanvas,
   connectSketch,
   createSimpleCampaignViaCanvas,
   createSketchBoard,
   createWeeklySpecialsGroup,
   createWeeklySpecialsViaCanvas,
+  createTapflowFromCanvas,
   detectIssues,
   detectScheduleConflicts,
   duplicateCanvasDocument,
   evaluateCanvasAction,
+  executeTapflowFromCanvas,
   flushCanvasState,
   getCanvas,
   getOpenInTapCanvasHref,
   hydrateCanvasSession,
   hydrateProposalSession,
+  hydrateTapflowOperateState,
+  lifecycleTapflowFromCanvas,
   listCanvasAudit,
   listCanvasesFromDb,
   listCanvasTemplates,
@@ -36,22 +42,27 @@ import {
   previewPromotion,
   primaryKeywordForBinding,
   promoteSketchNodes,
+  promoteSketchNodesPersisted,
+  promoteWeeklySpecialMatrix,
+  recoverTapflowFromCanvas,
   refreshOperateOverlay,
   renameCanvasDocument,
   resolveAutomationProposal,
   restoreVersion,
   reverseEngineerIntoCanvas,
+  rollbackTapflowFromCanvas,
   saveCanvasIssues,
   saveExecutionOverlay,
   setCanvasMode,
   simulateDeployment,
+  simulateTapflowFromCanvas,
   undoPromotion,
   addCanvasCommentDb,
   createCanvasApprovalDb,
-  createTapflowFromCanvas,
   listCanvasApprovalsDb,
   listCanvasCommentsDb,
   resolveCanvasApprovalDb,
+  validateTapflowFromCanvas,
   ACTION_CATALOG,
   TRIGGER_CATALOG,
 } from "@/lib/fusion/canvas";
@@ -64,6 +75,9 @@ import {
   detectAndBindTrigger,
   loadVocabularyPack,
 } from "@/lib/fusion/keywords";
+import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
+import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
+import type { JourneyDefinition } from "@/lib/fusion/journey/types";
 
 export const dynamic = "force-dynamic";
 
@@ -155,6 +169,19 @@ const bodySchema = z.discriminatedUnion("action", [
     nodeIds: z.array(z.string()).min(1),
     confirm: z.boolean(),
     createApprovalTasks: z.boolean().optional(),
+    persist: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("promote_persisted"),
+    canvasId: z.string(),
+    nodeIds: z.array(z.string()).min(1),
+    confirm: z.boolean(),
+    createApprovalTasks: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("promote_weekly_matrix"),
+    canvasId: z.string(),
+    name: z.string().min(1).max(160).optional(),
   }),
   z.object({
     action: z.literal("undo_promote"),
@@ -261,6 +288,60 @@ const bodySchema = z.discriminatedUnion("action", [
     name: z.string().min(1).max(160).optional(),
     nodeId: z.string().optional(),
     simulate: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_validate"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    nodeId: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_configure"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    definition: z.record(z.string(), z.unknown()),
+    name: z.string().min(1).max(160).optional(),
+    nodeId: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_simulate"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    nodeId: z.string().optional(),
+    forceFail: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_lifecycle"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    lifecycleAction: z.enum(["publish", "activate", "pause", "resume"]),
+    nodeId: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_execute"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    nodeId: z.string().optional(),
+    retry: z.boolean().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_recover"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    nodeId: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_analytics"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    nodeId: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("tapflow_rollback"),
+    canvasId: z.string(),
+    journeyDraftId: z.string(),
+    nodeId: z.string().optional(),
+    undoVersionId: z.string().optional(),
   }),
   z.object({
     action: z.literal("apply_template"),
@@ -440,7 +521,7 @@ async function afterMutate(canvasId: string) {
 }
 
 export async function POST(req: Request) {
-  const { business } = await requireBusiness();
+  const { business, user } = await requireBusiness();
   const json = await req.json().catch(() => null);
   const parsed = bodySchema.safeParse(json);
   if (!parsed.success) {
@@ -451,6 +532,29 @@ export async function POST(req: Request) {
   }
 
   const body = parsed.data;
+  const overrides = toResolveOverrides(await listFeatureOverrides());
+  const canvasFeatureOn = isFeatureEnabled("canvas.tapcanvas", { overrides });
+
+  const blockedPromoteActions = new Set([
+    "promote",
+    "promote_persisted",
+    "promote_weekly_matrix",
+    "create_tapflow_from_canvas",
+    "bind_tapflow",
+    "tapflow_lifecycle",
+    "tapflow_execute",
+  ]);
+  if (!canvasFeatureOn && blockedPromoteActions.has(body.action)) {
+    return NextResponse.json(
+      {
+        placeholder: true,
+        feature: "canvas.tapcanvas",
+        error: "canvas.tapcanvas kill-switch — TapCanvas promotion / TapFlow activation blocked",
+      },
+      { status: 503 }
+    );
+  }
+
   try {
     switch (body.action) {
       case "create": {
@@ -502,6 +606,16 @@ export async function POST(req: Request) {
         });
       case "promote": {
         await hydrateCanvasSession(body.canvasId, business.id);
+        if (body.persist !== false && canvasPersistenceEnabled()) {
+          const result = await promoteSketchNodesPersisted({
+            canvasId: body.canvasId,
+            nodeIds: body.nodeIds,
+            confirm: body.confirm,
+            createApprovalTasks: body.createApprovalTasks,
+            businessId: business.id,
+          });
+          return NextResponse.json(result);
+        }
         const result = promoteSketchNodes({
           canvasId: body.canvasId,
           nodeIds: body.nodeIds,
@@ -510,6 +624,31 @@ export async function POST(req: Request) {
           businessId: business.id,
         });
         await afterMutate(body.canvasId);
+        return NextResponse.json({
+          ...result,
+          persistence: "memory_stub" as const,
+          persistedKinds: [],
+          message: "Graph promote without Prisma writers",
+        });
+      }
+      case "promote_persisted": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await promoteSketchNodesPersisted({
+          canvasId: body.canvasId,
+          nodeIds: body.nodeIds,
+          confirm: body.confirm,
+          createApprovalTasks: body.createApprovalTasks,
+          businessId: business.id,
+        });
+        return NextResponse.json(result);
+      }
+      case "promote_weekly_matrix": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await promoteWeeklySpecialMatrix({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          name: body.name,
+        });
         return NextResponse.json(result);
       }
       case "undo_promote": {
@@ -520,9 +659,17 @@ export async function POST(req: Request) {
       }
       case "operate_refresh": {
         await hydrateCanvasSession(body.canvasId, business.id);
+        await hydrateTapflowOperateState({
+          businessId: business.id,
+          canvasId: body.canvasId,
+        });
         const overlay = refreshOperateOverlay(body.canvasId, business.id);
         await saveExecutionOverlay(body.canvasId, overlay as never);
-        return NextResponse.json({ ok: true, overlay });
+        return NextResponse.json({
+          ok: true,
+          overlay,
+          canvas: getCanvas(body.canvasId),
+        });
       }
       case "reverse_viz": {
         const canvas = reverseEngineerIntoCanvas({
@@ -726,7 +873,100 @@ export async function POST(req: Request) {
           nodeId: body.nodeId,
           simulate: body.simulate ?? true,
         });
-        return NextResponse.json({ ok: true, ...result });
+        return NextResponse.json(result);
+      }
+      case "tapflow_validate": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await validateTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          nodeId: body.nodeId,
+        });
+        return NextResponse.json(result);
+      }
+      case "tapflow_configure": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await configureTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          definition: body.definition as unknown as JourneyDefinition,
+          name: body.name,
+          nodeId: body.nodeId,
+        });
+        return NextResponse.json(result);
+      }
+      case "tapflow_simulate": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await simulateTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          nodeId: body.nodeId,
+          forceFail: body.forceFail,
+        });
+        return NextResponse.json(result);
+      }
+      case "tapflow_lifecycle": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await lifecycleTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          action: body.lifecycleAction,
+          nodeId: body.nodeId,
+          actorId: user.id,
+        });
+        const httpStatus =
+          typeof (result as { status?: number }).status === "number"
+            ? (result as { status: number }).status
+            : (result as { ok?: boolean }).ok
+              ? 200
+              : 400;
+        return NextResponse.json(result, { status: httpStatus });
+      }
+      case "tapflow_execute": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await executeTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          nodeId: body.nodeId,
+          retry: body.retry,
+        });
+        return NextResponse.json(result);
+      }
+      case "tapflow_recover": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await recoverTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          nodeId: body.nodeId,
+        });
+        return NextResponse.json(result);
+      }
+      case "tapflow_analytics": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await analyticsTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          nodeId: body.nodeId,
+        });
+        return NextResponse.json(result);
+      }
+      case "tapflow_rollback": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = await rollbackTapflowFromCanvas({
+          businessId: business.id,
+          canvasId: body.canvasId,
+          journeyDraftId: body.journeyDraftId,
+          nodeId: body.nodeId,
+          undoVersionId: body.undoVersionId,
+        });
+        return NextResponse.json(result);
       }
       case "apply_template": {
         const result = applyCanvasTemplate({

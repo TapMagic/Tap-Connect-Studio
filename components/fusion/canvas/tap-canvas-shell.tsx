@@ -525,6 +525,107 @@ export function TapCanvasShell({
                     size="sm"
                     variant="outline"
                     className="border-white/15"
+                    data-testid="tapcanvas-tapflow-validate"
+                    disabled={busy}
+                    onClick={() => {
+                      const tf = canvas.nodes.find((n) => n.kind === "tapflow");
+                      const jd =
+                        (tf?.data?.journeyDraftId as string | undefined) ??
+                        (tf?.linked?.type === "journey_draft" ? tf.linked.id : undefined);
+                      if (!jd) {
+                        setMessage("Create a TapFlow first");
+                        return;
+                      }
+                      void post({
+                        action: "tapflow_validate",
+                        canvasId: canvas.id,
+                        journeyDraftId: jd,
+                        nodeId: tf?.id,
+                      });
+                    }}
+                  >
+                    Validate TapFlow
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/15"
+                    data-testid="tapcanvas-tapflow-publish"
+                    disabled={busy}
+                    onClick={() => {
+                      const tf = canvas.nodes.find((n) => n.kind === "tapflow");
+                      const jd =
+                        (tf?.data?.journeyDraftId as string | undefined) ??
+                        (tf?.linked?.type === "journey_draft" ? tf.linked.id : undefined);
+                      if (!jd) {
+                        setMessage("Create a TapFlow first");
+                        return;
+                      }
+                      void post({
+                        action: "tapflow_lifecycle",
+                        canvasId: canvas.id,
+                        journeyDraftId: jd,
+                        lifecycleAction: "publish",
+                        nodeId: tf?.id,
+                      });
+                    }}
+                  >
+                    Publish TapFlow
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    data-testid="tapcanvas-tapflow-activate"
+                    disabled={busy}
+                    onClick={() => {
+                      const tf = canvas.nodes.find((n) => n.kind === "tapflow");
+                      const jd =
+                        (tf?.data?.journeyDraftId as string | undefined) ??
+                        (tf?.linked?.type === "journey_draft" ? tf.linked.id : undefined);
+                      if (!jd) {
+                        setMessage("Create a TapFlow first");
+                        return;
+                      }
+                      void post({
+                        action: "tapflow_lifecycle",
+                        canvasId: canvas.id,
+                        journeyDraftId: jd,
+                        lifecycleAction: "activate",
+                        nodeId: tf?.id,
+                      });
+                    }}
+                  >
+                    Activate TapFlow
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/15"
+                    data-testid="tapcanvas-tapflow-execute"
+                    disabled={busy}
+                    onClick={() => {
+                      const tf = canvas.nodes.find((n) => n.kind === "tapflow");
+                      const jd =
+                        (tf?.data?.journeyDraftId as string | undefined) ??
+                        (tf?.linked?.type === "journey_draft" ? tf.linked.id : undefined);
+                      if (!jd) {
+                        setMessage("Create a TapFlow first");
+                        return;
+                      }
+                      void post({
+                        action: "tapflow_execute",
+                        canvasId: canvas.id,
+                        journeyDraftId: jd,
+                        nodeId: tf?.id,
+                      });
+                    }}
+                  >
+                    Execute TapFlow
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/15"
                     disabled={busy}
                     onClick={() =>
                       post({
@@ -541,16 +642,95 @@ export function TapCanvasShell({
               ) : null}
 
               {canvas.mode === "operate" ? (
-                <Button
-                  size="sm"
-                  data-testid="tapcanvas-operate-refresh"
-                  disabled={busy}
-                  onClick={() =>
-                    post({ action: "operate_refresh", canvasId: canvas.id })
-                  }
-                >
-                  Refresh operate overlay
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    size="sm"
+                    data-testid="tapcanvas-operate-refresh"
+                    disabled={busy}
+                    onClick={() =>
+                      post({ action: "operate_refresh", canvasId: canvas.id })
+                    }
+                  >
+                    Refresh operate overlay
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/15"
+                    data-testid="tapcanvas-tapflow-pause"
+                    disabled={busy}
+                    onClick={() => {
+                      const tf = canvas.nodes.find((n) => n.kind === "tapflow");
+                      const jd =
+                        (tf?.data?.journeyDraftId as string | undefined) ??
+                        (tf?.linked?.type === "journey_draft" ? tf.linked.id : undefined);
+                      if (!jd) {
+                        setMessage("No TapFlow on board");
+                        return;
+                      }
+                      void post({
+                        action: "tapflow_lifecycle",
+                        canvasId: canvas.id,
+                        journeyDraftId: jd,
+                        lifecycleAction: "pause",
+                        nodeId: tf?.id,
+                      });
+                    }}
+                  >
+                    Pause TapFlow
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/15"
+                    data-testid="tapcanvas-tapflow-resume"
+                    disabled={busy}
+                    onClick={() => {
+                      const tf = canvas.nodes.find((n) => n.kind === "tapflow");
+                      const jd =
+                        (tf?.data?.journeyDraftId as string | undefined) ??
+                        (tf?.linked?.type === "journey_draft" ? tf.linked.id : undefined);
+                      if (!jd) {
+                        setMessage("No TapFlow on board");
+                        return;
+                      }
+                      void post({
+                        action: "tapflow_lifecycle",
+                        canvasId: canvas.id,
+                        journeyDraftId: jd,
+                        lifecycleAction: "resume",
+                        nodeId: tf?.id,
+                      });
+                    }}
+                  >
+                    Resume TapFlow
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="border-white/15"
+                    data-testid="tapcanvas-tapflow-analytics"
+                    disabled={busy}
+                    onClick={() => {
+                      const tf = canvas.nodes.find((n) => n.kind === "tapflow");
+                      const jd =
+                        (tf?.data?.journeyDraftId as string | undefined) ??
+                        (tf?.linked?.type === "journey_draft" ? tf.linked.id : undefined);
+                      if (!jd) {
+                        setMessage("No TapFlow on board");
+                        return;
+                      }
+                      void post({
+                        action: "tapflow_analytics",
+                        canvasId: canvas.id,
+                        journeyDraftId: jd,
+                        nodeId: tf?.id,
+                      });
+                    }}
+                  >
+                    TapFlow Insights
+                  </Button>
+                </div>
               ) : null}
 
               {canvas.mode === "analyze" ? (

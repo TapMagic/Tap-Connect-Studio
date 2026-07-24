@@ -431,7 +431,8 @@ describe("TapCanvas", () => {
     assert.equal(node!.kind, "tapflow");
     assert.equal(node!.linked?.type, "journey_draft");
     assert.equal(node!.linked?.id, result.journeyDraftId);
-    assert.ok(result.simulate?.stub);
+    assert.equal(result.simulate?.stub, false);
+    assert.ok(result.simulate?.dryRun);
     assert.ok((result.simulate?.path.length ?? 0) >= 1);
   });
 });

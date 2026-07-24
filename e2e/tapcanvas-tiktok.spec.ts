@@ -902,13 +902,14 @@ test.describe("TapCanvas + TikTok persistence closeout", () => {
       lifecycleStatus?: string;
       persistence?: string;
       nodeId?: string;
-      simulate?: { path?: string[]; stub?: boolean };
+      simulate?: { path?: string[]; stub?: boolean; dryRun?: { completed?: boolean } };
     };
     expect(bindJson.ok).toBeTruthy();
     expect(bindJson.persistence).toBe("prisma");
     expect(bindJson.lifecycleStatus).toBe("DRAFT");
     expect(bindJson.journeyDraftId).toBeTruthy();
-    expect(bindJson.simulate?.stub).toBe(true);
+    expect(bindJson.simulate?.stub).toBe(false);
+    expect(bindJson.simulate?.dryRun || bindJson.simulate?.path).toBeTruthy();
 
     await page.reload({ waitUntil: "domcontentloaded" });
     await page.getByTestId(`tapcanvas-board-${canvasId}`).click();
@@ -951,9 +952,9 @@ test.describe("TapCanvas + TikTok persistence closeout", () => {
       ],
       lastVerifiedAt: new Date().toISOString(),
       blockers: [
-        "live_tapflow_publish_activate",
         "full_owner_gate_matrix",
         "full_lifecycle_ui",
+        "live_visitor_executor",
       ],
     });
   });

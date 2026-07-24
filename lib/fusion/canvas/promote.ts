@@ -20,6 +20,18 @@ const PROMOTE_KIND_MAP: Partial<Record<CanvasObjectKind, CanvasObjectKind>> = {
   sticky: "campaign",
   note: "card",
   frame: "campaign_group",
+  offer: "offer",
+  loyalty: "loyalty",
+  tapflow: "tapflow",
+  tap_point: "tap_point",
+  deployment_slot: "deployment_slot",
+  channel_variant: "channel_variant",
+  tiktok_cast: "tiktok_cast",
+  external_work_item: "external_work_item",
+  trigger: "trigger",
+  action: "action",
+  funnel_step: "funnel_step",
+  email_sequence: "email_sequence",
 };
 
 function synthesizeObjectId(kind: CanvasObjectKind): string {
@@ -147,7 +159,10 @@ export function promoteSketchNodes(opts: {
       linked,
       data: {
         ...node.data,
-        executes: true,
+        // Planning promote never auto-executes — publish/activate is a separate step
+        executes: false,
+        planningOnly: true,
+        publishReady: false,
         promotedAt: new Date().toISOString(),
         authority: "tapconnect",
       },

@@ -28,7 +28,7 @@ export function linkNodeToObject(
   const node = canvas.nodes.find((n) => n.id === nodeId);
   if (node) {
     node.sketch = false;
-    node.kind = ref.type;
+    node.kind = ref.type === "journey_draft" ? "tapflow" : ref.type;
   }
   appendCanvasAudit({
     canvasId,

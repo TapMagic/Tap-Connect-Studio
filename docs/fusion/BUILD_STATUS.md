@@ -46,13 +46,13 @@
 ## Still open (priority)
 
 1. Builder save/publish/assign + formatting headed persistence  
-2. TapFlow full lifecycle UI  
-3. Admin disable → runtime 503 → re-enable headed  
+2. TapFlow live visitor executor + provider effects (canvas lifecycle dry-run proved)  
+3. Admin disable → runtime 503 → re-enable headed (TapCanvas/TapFlow kill-switch proved; expand remaining)  
 4. Insights drill-down + provenance  
 5. A11y/responsive completion  
 6. Live productivity OAuth apps (one provider at a time)  
 7. Live TapCast credentials per channel (TikTok Direct Post, Meta, YouTube, …) — never claim OWNER-READY without them  
-8. TapCanvas full owner-gate (live publish/activate TapFlow, full screen-reader, promotion matrix completeness)  
+8. TapCanvas OWNER-READY gate (SR/axe + live executor + zero ledger blockers)  
 
 ## Classifications (TapCanvas / TapCast)
 

@@ -12,6 +12,7 @@ const KILL_SWITCH_FEATURES = new Set([
   "comms.inbox",
   "wallet.apple_google",
   "journey.tapflow",
+  "canvas.tapcanvas",
   "ai.autopilot",
   "ai.keywords",
   "brand.vocabulary",

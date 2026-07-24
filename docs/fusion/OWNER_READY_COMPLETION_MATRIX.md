@@ -20,17 +20,17 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | TapSave / MyTap | 70% | FUNCTIONAL + headed | P-03-tapsave-keep | prefs/moments, wallet headed |
 | Wallet (mock) | 50% | VERIFIED — CREDENTIALS (live) | wire + P-wallet-mock | live certs; Audience list headed |
 | TapLoop | 70% | FUNCTIONAL + headed | P-10-taploop | program UI, reverse, enroll UI |
-| TapFlow | 55% | FUNCTIONAL | P-06 shell + lifecycle matrix | full lifecycle UI |
+| TapFlow | 70% | FUNCTIONAL + canvas lifecycle | P-06 + P-tapcanvas-tapflow-lifecycle | live visitor executor, provider effects, full Journeys UI |
 | Inbox | 55% | FUNCTIONAL | P-09 shell | reply/Guardian/TapCase |
 | Insights | 55% | FUNCTIONAL | P-11 + export matrix | drill-down, provenance |
-| Platform Admin | 65% | FUNCTIONAL | P-12 + killswitch matrix; P-keywords-killswitch + P-keywords-owner-gate-killswitch | expand disable→503→re-enable to remaining kill-switches; TapCanvas/TapFlow consume shared `ai.keywords` gate |
+| Platform Admin | 65% | FUNCTIONAL | P-12 + killswitch matrix; P-keywords-killswitch + P-keywords-owner-gate-killswitch; P-tapcanvas-killswitch | expand disable→503→re-enable to remaining kill-switches; TapCanvas/TapFlow consume shared `ai.keywords` gate |
 | Controls / responsive / a11y | 40% | DEVELOPMENT | P-controls, P-responsive, P-a11y | public `<main>`, full axe |
 | Productivity & Work Mgmt | 70% | VERIFIED — CREDENTIALS (live) | P-productivity-* | live OAuth apps |
-| TapCanvas | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-persist/campaigns/reverse-repair/keyword-bind/version-restore/mode-matrix/comments-approvals/tapflow-bind/a11y-responsive | full promotion matrix, full SR/axe, live TapFlow publish/activate, owner-gate |
+| TapCanvas | 80% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-* + weekly-matrix / conversational-funnel / tapflow-lifecycle / reverse-repair-deep / killswitch | full SR/axe, live TapCast publish, live visitor executor, owner-gate zero blockers |
 | TapCast · TikTok | 60% | VERIFIED — CREDENTIALS (live); mock persisted | P-tiktok-mock-persist | TIKTOK_* OAuth, Direct Post cert |
 | Brand Vocabulary / AI Keywords | 78% | FUNCTIONAL + headed owner-gate (not OWNER-READY) | P-keywords-brand-pack + P-keywords-surfaces-* + P-keywords-owner-gate-pipeline + P-keywords-owner-gate-killswitch | live trend/AI, a11y, TapCanvas/TapFlow kill-switch wiring (A+B), dedicated analytics UI |
 
-**Platform overall:** ~**58–62%** — not 100%. No section shows OWNER-READY until blockers clear.
+**Platform overall:** ~**60–65%** — not 100%. No section shows OWNER-READY until blockers clear.
 
 ## Exact sequence (unchanged)
 
