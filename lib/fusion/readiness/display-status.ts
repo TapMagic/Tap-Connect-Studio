@@ -105,32 +105,35 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "campaigns",
-    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
+    lastVerifiedAt: "2026-07-24T20:02:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "Owner walkthrough re-gate: P-builder-save-publish-assign-public + P-builder-campaign-matrix + format/media + version-rollback headed PASS (75/75 suite). PublicationSnapshot wired on save/publish. Classification: IMPLEMENTED BUT NOT OWNER-READY.",
+      "Builder V1 parity @ 5bd84c7: owner-gate + P-builder-icon-placement / wysiwyg-public / exits-bg-remove / remove-background / exploratory-* headed PASS (D-015–D-024 FIXED). Interaction parity + remove-bg local-mock + exploratory proven locally. Classification: IMPLEMENTED BUT NOT OWNER-READY — residuals remain.",
     blockers: [
       "true_voiceover_nvda_manual",
       "os_native_zoom_residual",
       "pexels_unsplash_credentials_required",
       "session_undo_lost_on_full_refresh",
+      "bg_remove_live_vendor_credentials",
     ],
-    nextAction: "Clear residual a11y/zoom + live stock credentials for OWNER-READY",
+    nextAction:
+      "Do not claim OWNER-READY; clear VO/NVDA + live stock credentials + session undo persistence + live bg-remove vendor",
   },
   {
     sectionId: "cards",
-    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
+    lastVerifiedAt: "2026-07-24T20:02:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "Owner walkthrough re-gate: P-builder-card-matrix save → reload → PublicationSnapshot rollback PASS. Freeform remains scaffold behind feature flag.",
+      "Builder V1 parity @ 5bd84c7: P-builder-card-matrix + shared layout/renderer/WYSIWYG proofs PASS. Freeform remains HONEST_DISABLED scaffold behind card.builder.freeform. Classification: IMPLEMENTED BUT NOT OWNER-READY.",
     blockers: [
       "card_landing_demo_admin_only",
       "freeform_scaffold_not_full_canvas",
       "true_voiceover_nvda_manual",
     ],
-    nextAction: "Deepen freeform canvas; VoiceOver spot-check for OWNER-READY",
+    nextAction:
+      "Deepen freeform canvas beyond scaffold; VoiceOver spot-check — never OWNER-READY with residuals",
   },
   {
     sectionId: "leads",

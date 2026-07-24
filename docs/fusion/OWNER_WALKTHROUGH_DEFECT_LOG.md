@@ -1,6 +1,6 @@
 # Owner walkthrough — defect log
 
-**Branch tip (at authorship):** audit against HEAD `0714367`; parallel builder WIP uncommitted  
+**Branch tip (at authorship):** builder parity checkpoint HEAD `5bd84c7` (D-015–D-024 FIXED locally)  
 **Rule:** Isolated DB only. Never push / Railway / prod.  
 **Classification vocabulary:** BLOCKER | HIGH | MEDIUM | POLISH  
 **Status vocabulary:** OPEN | IN_PROGRESS | FIXED | WONTFIX | DEFERRED_TO_PO  

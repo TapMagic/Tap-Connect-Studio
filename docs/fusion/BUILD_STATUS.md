@@ -2,21 +2,36 @@
 
 **Date:** 2026-07-24  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (owner walkthrough checkpoint):** see git tip after `fusion: complete owner walkthrough workflows and local product closeout`  
+**HEAD (builder parity checkpoint):** `5bd84c7` — `fusion: fix builder exploratory and interaction-parity headed proofs`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
+## Builder V1 parity checkpoint (2026-07-24 · tip `5bd84c7`)
+
+**Classification:** Campaign + Card builders = **IMPLEMENTED BUT NOT OWNER-READY** (do **not** claim OWNER-READY).
+
+| Proven locally (headed, isolated DB) | Status |
+|--------------------------------------|--------|
+| Interaction parity (icon placement, layout, Finish None, Esc/focus exits, WYSIWYG↔public) | PASS — D-015–D-024 **FIXED** in defect log |
+| Remove Background (local-mock adapter + panel + provenance/restore) | PASS — `P-builder-remove-background` / `P-builder-exits-bg-remove` |
+| Exploratory / dead-controls sweep | PASS — `P-builder-exploratory-controls` + `P-builder-exploratory-audit` |
+
+**OPEN residuals (keep IMPLEMENTED BUT NOT OWNER-READY):** freeform canvas scaffold (`card.builder.freeform`), live stock/logo credentials (Pexels/Unsplash), session undo lost on full refresh, true VoiceOver/NVDA (platform D-001). Live bg-remove vendor = credentials residual (local-mock only).
+
+**Quick gate at checkpoint:** `npm run lint` → **0 errors** (4 img warnings); `tsc --noEmit` PASS; unit button-layout + bg-remove PASS inside `npm test` (**399/399**). Full 75 e2e suite not re-run here — tip headed builder proofs verified at `5bd84c7`.
+
 ## Owner walkthrough final local re-gate (2026-07-24)
 
-Linear tip contains all five walkthrough streams (baseline `3872bda`):
+Linear tip ancestry retains walkthrough streams (baseline `3872bda`) plus builder parity burn-down through `5bd84c7`:
 
 | Stream | Commit |
 |--------|--------|
 | Admin kill-switches + defect log | `ce8b26e` |
 | TapLoop | `73bbd39` |
 | Insights | `f0426b8` |
-| Builder | `2e04988` |
+| Builder (owner-gate) | `2e04988` |
 | Inbox + Guardian | `9dfa949` |
+| Builder interaction / remove-bg / exploratory | → tip `5bd84c7` |
 
 DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`. `PROOF_HEADED=1` · `BASE_URL=http://127.0.0.1:3000`.
 
@@ -24,12 +39,12 @@ DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`. `PROOF_HEADED=1` · `BASE_URL=htt
 |------|--------|
 | Prisma validate | PASS |
 | Migrate status | PASS — 11 migrations, schema up to date |
-| `tsc --noEmit` | PASS |
+| `tsc --noEmit` | PASS (re-confirmed at builder parity checkpoint) |
 | `npm run lint` | PASS — **0 errors**, 4 `@next/next/no-img-element` warnings |
-| `npm run build` | PASS |
-| Unit suite (`npm test`) | **381/381** pass |
-| Integration (unit: `owner-ready-integration.test.ts` **24/24** + headed `e2e/cross-system-integration.spec.ts`) | PASS |
-| Headed Playwright (`e2e/*.spec.ts`, 19 files) | **75/75** pass |
+| `npm run build` | PASS (prior re-gate) |
+| Unit suite (`npm test`) | **399/399** pass (includes button-layout + bg-remove) |
+| Integration (unit: `owner-ready-integration.test.ts` **24/24** + headed `e2e/cross-system-integration.spec.ts`) | PASS (prior re-gate) |
+| Headed Playwright (`e2e/*.spec.ts`, 19 files) | **75/75** pass verified at prior re-gate; builder tipped proofs re-verified at `5bd84c7` |
 | A11y + responsive owner gates | **PASS** (P-a11y-owner-gate + P-responsive-owner-gate) |
 
 **Console / server notes (non-blocking):** Clerk `createRouteMatcher` / middleware→proxy deprecation on Next 16; npm `devdir` env config warning; Playwright `NO_COLOR`/`FORCE_COLOR` warning. No hydration failures, Prisma errors, or DB connection failures observed on the final gate.
@@ -42,10 +57,11 @@ DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`. `PROOF_HEADED=1` · `BASE_URL=htt
 - A11y residuals from stream UIs: TapLoop/Audience `<select>` names; Inbox + Insights scroll regions `tabIndex` + `aria-label`
 - Builder headed selector hardened (select-by-role + scrollIntoView)
 - Readiness unit assertion updated for cards ledger with proofs + residual blockers
+- Builder Format single-mount + icon placement / layout / remove-bg / WYSIWYG public path (D-015–D-024)
 
 ## PO headed attestation (streams)
 
-- **Builder:** `e2e/builder-owner-gate.spec.ts` — 7/7 · **IMPLEMENTED BUT NOT OWNER-READY**
+- **Builder:** owner-gate + interaction/remove-bg/exploratory tipped proofs at `5bd84c7` · **IMPLEMENTED BUT NOT OWNER-READY**
 - **Insights:** `e2e/insights-drilldown.spec.ts` · **IMPLEMENTED BUT NOT OWNER-READY**
 - **TapLoop:** `e2e/taploop-operator.spec.ts` · **IMPLEMENTED BUT NOT OWNER-READY**
 - **Inbox + Guardian:** `e2e/inbox-guardian-owner-gate.spec.ts` · mock = **IMPLEMENTED BUT NOT OWNER-READY**; live = **VERIFIED — CREDENTIALS REQUIRED**
@@ -64,10 +80,11 @@ DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`. `PROOF_HEADED=1` · `BASE_URL=htt
 ## Still open (priority)
 
 1. A11y/responsive residuals: **true VoiceOver/NVDA** + **OS-native Cmd+/Ctrl+ zoom** — **IMPLEMENTED BUT NOT OWNER-READY**
-2. Live productivity OAuth apps (one provider at a time) — **VERIFIED — CREDENTIALS REQUIRED**
-3. Live TapCast / messaging / AI credentials — never claim OWNER-READY without them
-4. Keywords dedicated analytics UI panel
-5. Platform overall remains **IMPLEMENTED BUT NOT OWNER-READY** (D-013)
+2. Builder residuals (not OWNER-READY): freeform scaffold, live stock credentials, session undo on full refresh, platform VO/NVDA
+3. Live productivity OAuth apps (one provider at a time) — **VERIFIED — CREDENTIALS REQUIRED**
+4. Live TapCast / messaging / AI credentials — never claim OWNER-READY without them
+5. Keywords dedicated analytics UI panel
+6. Platform overall remains **IMPLEMENTED BUT NOT OWNER-READY** (D-013)
 
 ## Classifications
 
