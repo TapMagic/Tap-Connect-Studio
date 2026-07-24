@@ -291,21 +291,23 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "keywords_brand_pack",
-    lastVerifiedAt: "2026-07-24T03:30:00.000Z",
+    lastVerifiedAt: "2026-07-24T02:35:41.898Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-keywords-brand-pack headed: Brand Kit panel suggest→accept→persist Brand Pack. BrandVocabularyTerm/Pack + keywordBrandPack JSON. Features brand.vocabulary + ai.keywords. Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
+      "P-keywords-brand-pack + P-keywords-surfaces-* headed: suggest/accept/reject, named Brand Pack create+apply reuse, exclusion/competitor detection, trigger collision + conversational synonyms/misspellings, persist after refresh, Admin ai.keywords disable→503→re-enable, analytics audit view. Shared BrandVocabularyTerm via /api/ai/keywords only (no competing stores). Live AI/trend = VERIFIED — CREDENTIALS REQUIRED. Classification: FUNCTIONAL — FINAL VERIFICATION REQUIRED (not OWNER-READY).",
     blockers: [
       "live_trend_provider",
       "openai_ai_enhancement",
       "a11y_headed_pass",
       "multi_surface_apply_matrix",
+      "dedicated_analytics_ui_panel",
+      "full_conversational_ui_matrix",
       "not_owner_ready",
     ],
     missingProviders: ["approved_trend_provider", "openai"],
     nextAction:
-      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; expand multi-surface apply headed matrix",
+      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; expand per-surface Apply merge headed matrix; add dedicated analytics UI if product requires",
   },
 ];
 

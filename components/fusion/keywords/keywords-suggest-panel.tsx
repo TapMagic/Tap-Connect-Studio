@@ -89,6 +89,7 @@ export function KeywordsSuggestPanel({
   const [warnings, setWarnings] = useState<ConflictWarning[]>([]);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pack, setPack] = useState<KeywordBrandPack | null>(null);
+  const [runId, setRunId] = useState<string | undefined>();
   const [trendLabel, setTrendLabel] = useState("VERIFIED — CREDENTIALS REQUIRED");
 
   const groundPayload = useMemo(
@@ -150,6 +151,7 @@ export function KeywordsSuggestPanel({
       }
       setSuggestions(json.suggestions ?? []);
       setWarnings(json.warnings ?? []);
+      if (json.runId) setRunId(json.runId);
       if (json.trendEnrichment?.label) setTrendLabel(json.trendEnrichment.label);
       setSelected(new Set());
       setMessage(
@@ -193,6 +195,7 @@ export function KeywordsSuggestPanel({
           target:
             selectedTerms[0]?.kind === "hashtag" ? "brandedHashtags" : "approvedTerms",
           persist,
+          runId,
         }),
       });
       const json = await res.json();
@@ -201,6 +204,38 @@ export function KeywordsSuggestPanel({
         setMessage(`Accepted ${selectedTerms.length} term(s) into Brand Pack`);
       } else {
         setMessage(json.error ?? "Accept failed");
+      }
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function rejectSelected() {
+    if (!selectedTerms.length) return;
+    setLoading(true);
+    try {
+      const res = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "reject",
+          suggestions: selectedTerms.map((s) => ({
+            id: s.id,
+            value: s.value,
+            kind: s.kind,
+            family: s.family,
+          })),
+          runId,
+        }),
+      });
+      const json = await res.json();
+      if (res.ok) {
+        const rejectedIds = new Set(selectedTerms.map((s) => s.id));
+        setSuggestions((prev) => prev.filter((s) => !rejectedIds.has(s.id)));
+        setSelected(new Set());
+        setMessage(`Rejected ${json.rejected ?? selectedTerms.length} suggestion(s)`);
+      } else {
+        setMessage(json.error ?? "Reject failed");
       }
     } finally {
       setLoading(false);
@@ -428,6 +463,16 @@ export function KeywordsSuggestPanel({
             >
               <Check className="mr-1 size-3.5" />
               Accept
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              data-testid="keywords-reject"
+              disabled={!selectedTerms.length || loading}
+              onClick={() => void rejectSelected()}
+            >
+              Reject
             </Button>
             <Button
               type="button"

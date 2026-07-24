@@ -12,7 +12,7 @@
 - **Productivity closeout:** `e2e/productivity-workflows.spec.ts` — 18-step mock workflows + Settings UI (live = VERIFIED — CREDENTIALS REQUIRED)
 - **Omnichannel TapCast:** unit suite green; headed proofs in `e2e/tapcast-omnichannel.spec.ts` — **IMPLEMENTED BUT NOT OWNER-READY** / live = **VERIFIED — CREDENTIALS REQUIRED**
 - **TapCanvas + TikTok persistence:** `e2e/tapcanvas-tiktok.spec.ts` 3/3 headed — Prisma documents/campaigns + TikTok mock funnel. TapCanvas = **IMPLEMENTED BUT NOT OWNER-READY**; TikTok live = **VERIFIED — CREDENTIALS REQUIRED**
-- **Keywords & Brand Vocabulary:** unit suite green; headed `e2e/keywords-brand-pack.spec.ts` passed — durable terms/packs; live AI/trends = **VERIFIED — CREDENTIALS REQUIRED** (not OWNER-READY)
+- **Keywords & Brand Vocabulary:** unit suite green; headed `e2e/keywords-brand-pack.spec.ts` + `e2e/keywords-surfaces.spec.ts` (suggest/approve/reject, named Brand Pack create+reuse/apply, exclusion+competitor, trigger collision + conversational, persist refresh, Admin `ai.keywords` kill-switch 503, analytics audit). Shared store only (`lib/fusion/keywords` / `BrandVocabularyTerm`). Live AI/trends = **VERIFIED — CREDENTIALS REQUIRED** (not OWNER-READY)
 
 ## Migrations (isolated `tapconnect_fusion_dev` only)
 
@@ -44,7 +44,7 @@
 
 1. Builder save/publish/assign + formatting headed persistence  
 2. TapFlow full lifecycle UI  
-3. Admin disable → runtime 503 → re-enable headed  
+3. Admin disable → runtime 503 → re-enable headed (keywords kill-switch proven via `/api/admin/features`; expand matrix to other kill-switches)  
 4. Insights drill-down + provenance  
 5. A11y/responsive completion  
 6. Live productivity OAuth apps (one provider at a time)  
@@ -69,7 +69,7 @@ npm run dev
 npm run test:e2e:proofs:headed
 PROOF_HEADED=1 npx playwright test e2e/productivity-workflows.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/tapcanvas-tiktok.spec.ts --headed
-PROOF_HEADED=1 npx playwright test e2e/tapcast-omnichannel.spec.ts --headed
+PROOF_HEADED=1 npx playwright test e2e/keywords-brand-pack.spec.ts e2e/keywords-surfaces.spec.ts --headed
 node --import tsx --test lib/fusion/tapcast/**/__tests__/**/*.test.ts
 ```
 

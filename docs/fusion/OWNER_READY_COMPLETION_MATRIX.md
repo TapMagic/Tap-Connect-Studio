@@ -23,11 +23,12 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | TapFlow | 55% | FUNCTIONAL | P-06 shell + lifecycle matrix | full lifecycle UI |
 | Inbox | 55% | FUNCTIONAL | P-09 shell | reply/Guardian/TapCase |
 | Insights | 55% | FUNCTIONAL | P-11 + export matrix | drill-down, provenance |
-| Platform Admin | 60% | FUNCTIONAL | P-12 + killswitch matrix | disable→503→re-enable headed |
+| Platform Admin | 60% | FUNCTIONAL | P-12 + killswitch matrix; P-keywords-killswitch | expand disable→503→re-enable to remaining kill-switches |
 | Controls / responsive / a11y | 40% | DEVELOPMENT | P-controls, P-responsive, P-a11y | public `<main>`, full axe |
 | Productivity & Work Mgmt | 70% | VERIFIED — CREDENTIALS (live) | P-productivity-* | live OAuth apps |
 | TapCanvas | 55% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-persist, P-tapcanvas-campaigns | promotion matrix, a11y, TapFlow-in-canvas |
 | TapCast · TikTok | 60% | VERIFIED — CREDENTIALS (live); mock persisted | P-tiktok-mock-persist | TIKTOK_* OAuth, Direct Post cert |
+| Brand Vocabulary / AI Keywords | 65% | FUNCTIONAL + headed (not OWNER-READY) | P-keywords-brand-pack + P-keywords-surfaces-* | live trend/AI, a11y, multi-surface Apply merge UI, dedicated analytics UI |
 
 **Platform overall:** ~**58–62%** — not 100%. No section shows OWNER-READY until blockers clear.
 

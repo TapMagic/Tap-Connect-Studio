@@ -422,6 +422,17 @@ export async function POST(request: Request) {
       return NextResponse.json(result);
     }
 
+    if (body.action === "reject") {
+      const result = await rejectVocabularyTerms({
+        businessId: business.id,
+        termIds: body.termIds,
+        suggestions: body.suggestions as Parameters<typeof rejectVocabularyTerms>[0]["suggestions"],
+        runId: body.runId,
+        actorId,
+      });
+      return NextResponse.json(result);
+    }
+
     if (body.action === "archive") {
       const row = await archiveVocabularyTerm(business.id, body.termId, actorId);
       return NextResponse.json({ ok: true, term: row });
