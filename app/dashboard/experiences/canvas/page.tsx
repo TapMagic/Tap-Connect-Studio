@@ -13,7 +13,11 @@ export default async function TapCanvasPage({
 
   return (
     <div className="p-5 lg:p-8">
-      <TapCanvasShell initialLinkType={sp.linkType} initialLinkId={sp.linkId} />
+      <TapCanvasShell
+        initialLinkType={sp.linkType}
+        initialLinkId={sp.linkId}
+        initialCanvasId={sp.canvasId}
+      />
     </div>
   );
 }

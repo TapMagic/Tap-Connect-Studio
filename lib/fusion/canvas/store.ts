@@ -1,6 +1,7 @@
 /**
- * In-memory TapCanvas store — matches Productivity connector mock pattern.
- * Status: DEVELOPMENT / wired locally. Persistence via Prisma is a follow-up.
+ * In-memory TapCanvas working set.
+ * Isolated DB (tapconnect_fusion_dev) is authoritative via persist.ts — hydrate/flush at API boundary.
+ * Unit tests without DATABASE_URL use memory only.
  */
 
 import type {

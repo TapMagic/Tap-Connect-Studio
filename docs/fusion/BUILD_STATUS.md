@@ -11,6 +11,8 @@
 - Extended matrix specs: `e2e/fusion-proofs-matrix.spec.ts` (builder save, TapFlow, Admin, Insights, controls, responsive, a11y, wallet mock)
 - **Productivity closeout:** `e2e/productivity-workflows.spec.ts` — 18-step mock workflows + Settings UI (live = VERIFIED — CREDENTIALS REQUIRED)
 - **Omnichannel TapCast:** unit suite green; headed proofs in `e2e/tapcast-omnichannel.spec.ts` — **IMPLEMENTED BUT NOT OWNER-READY** / live = **VERIFIED — CREDENTIALS REQUIRED**
+- **TapCanvas + TikTok persistence:** `e2e/tapcanvas-tiktok.spec.ts` 3/3 headed — Prisma documents/campaigns + TikTok mock funnel. TapCanvas = **IMPLEMENTED BUT NOT OWNER-READY**; TikTok live = **VERIFIED — CREDENTIALS REQUIRED**
+- **Keywords & Brand Vocabulary:** unit suite green; headed `e2e/keywords-brand-pack.spec.ts` passed — durable terms/packs; live AI/trends = **VERIFIED — CREDENTIALS REQUIRED** (not OWNER-READY)
 
 ## Migrations (isolated `tapconnect_fusion_dev` only)
 
@@ -46,7 +48,8 @@
 |---------|----------------|
 | Omnichannel TapCast (registry, variants, mock publish, canvas hooks) | **IMPLEMENTED BUT NOT OWNER-READY** |
 | Live channel publish (all TapCast providers) | **VERIFIED — CREDENTIALS REQUIRED** |
-| TikTok first-class mock path | Functional mock; live Direct Post credential-gated |
+| TikTok first-class mock path | Prisma-persisted mock funnel (P-tiktok-mock-persist); live Direct Post credential-gated |
+| TapCanvas (documents + guided campaigns) | **IMPLEMENTED BUT NOT OWNER-READY** (P-tapcanvas-persist / P-tapcanvas-campaigns) |
 
 ## Commands
 
@@ -56,6 +59,7 @@ npm run fusion:db-ready && npm run fusion:seed
 npm run dev
 npm run test:e2e:proofs:headed
 PROOF_HEADED=1 npx playwright test e2e/productivity-workflows.spec.ts --headed
+PROOF_HEADED=1 npx playwright test e2e/tapcanvas-tiktok.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/tapcast-omnichannel.spec.ts --headed
 node --import tsx --test lib/fusion/tapcast/**/__tests__/**/*.test.ts
 ```

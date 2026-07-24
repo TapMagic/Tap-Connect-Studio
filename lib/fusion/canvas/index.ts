@@ -4,6 +4,7 @@
 
 export * from "./types";
 export * from "./store";
+export * from "./persist";
 export * from "./graph";
 export * from "./sketch";
 export * from "./promote";
@@ -13,3 +14,4 @@ export * from "./link-sync";
 export * from "./templates";
 export * from "./conversational";
 export * from "./deployment";
+export * from "./campaigns";

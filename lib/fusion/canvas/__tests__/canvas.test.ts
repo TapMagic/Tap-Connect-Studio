@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import {
   addConversationalAction,
   addNode,
@@ -32,11 +32,19 @@ import {
 } from "@/lib/fusion/connectors/productivity";
 
 const BIZ = "biz_canvas_test";
+const originalUrl = process.env.DATABASE_URL;
 
 describe("TapCanvas", () => {
   beforeEach(() => {
     resetCanvasMemory();
     resetProductivityMemory();
+    delete process.env.DATABASE_URL;
+  });
+
+  afterEach(() => {
+    resetCanvasMemory();
+    if (originalUrl !== undefined) process.env.DATABASE_URL = originalUrl;
+    else delete process.env.DATABASE_URL;
   });
 
   it("sketch create — stickies and connectors do not execute", () => {

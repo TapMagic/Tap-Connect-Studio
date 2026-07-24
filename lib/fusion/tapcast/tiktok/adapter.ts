@@ -130,7 +130,7 @@ export function createTikTokCast(opts: {
     title: opts.title,
     script: opts.script ?? "",
     caption: opts.caption ?? "",
-    hashtags: opts.hashtags ?? ["#TapConnect", "#TapTheMagic"],
+    hashtags: opts.hashtags ?? [],
     storyboard: [],
     composition: { ...DEFAULT_COMPOSITION },
     status: "draft",
