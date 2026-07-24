@@ -889,7 +889,6 @@ export function CampaignEditor({
                   <div
                     key={block.id}
                     data-editor-block-id={block.id}
-                    data-testid={`campaign-block-${block.id}`}
                     draggable
                     onDragStart={() => setDragId(block.id)}
                     onDragOver={(e) => e.preventDefault()}
@@ -918,12 +917,15 @@ export function CampaignEditor({
                         className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
                         aria-hidden
                       />
+                      {/* testid on Select — row-center clicks often hit Move ↑/↓ (stopPropagation). */}
                       <button
                         type="button"
+                        data-testid={`campaign-block-${block.id}`}
                         className="min-w-0 flex-1 truncate text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         aria-pressed={selectedBlockId === block.id}
                         aria-label={`Select block ${block.label}`}
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setSelectedBlockId(block.id);
                           setSelectedButtonId(null);
                         }}
