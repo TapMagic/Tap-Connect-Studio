@@ -74,10 +74,21 @@ test.describe("Builder icon placement", () => {
     await page.goto(`${BASE}/dashboard/campaigns/${campaignId}`, {
       waitUntil: "domcontentloaded",
     });
-    // Select control (not row center) — Move ↑/↓ steal center clicks and skip Format.
-    await page.getByTestId("campaign-block-btns").waitFor({ state: "visible", timeout: 30_000 });
-    await page.getByTestId("campaign-block-btns").click();
-    await expect(page.getByText(/Edit:\s*Buttons/i)).toBeVisible({ timeout: 15_000 });
+    // Wait for client handlers — SSR Select is visible before onClick is attached.
+    await expect(page.getByTestId("campaign-editor")).toHaveAttribute(
+      "data-editor-ready",
+      "true",
+      { timeout: 30_000 }
+    );
+    const selectBtns = page.getByTestId("campaign-block-btns");
+    await selectBtns.waitFor({ state: "visible", timeout: 30_000 });
+    await expect(async () => {
+      await selectBtns.click({ trial: false });
+      await expect(selectBtns).toHaveAttribute("aria-pressed", "true");
+    }).toPass({ timeout: 15_000 });
+    await expect(page.getByTestId("campaign-format-heading")).toHaveText(/Edit:\s*Buttons/i, {
+      timeout: 15_000,
+    });
     await expect(page.getByTestId("button-layout-controls")).toBeVisible({ timeout: 15_000 });
 
     const placements = [
@@ -142,9 +153,20 @@ test.describe("Builder icon placement", () => {
     await page.waitForTimeout(1000);
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.getByTestId("campaign-block-btns").waitFor({ state: "visible", timeout: 30_000 });
-    await page.getByTestId("campaign-block-btns").click();
-    await expect(page.getByText(/Edit:\s*Buttons/i)).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByTestId("campaign-editor")).toHaveAttribute(
+      "data-editor-ready",
+      "true",
+      { timeout: 30_000 }
+    );
+    const selectBtnsAgain = page.getByTestId("campaign-block-btns");
+    await selectBtnsAgain.waitFor({ state: "visible", timeout: 30_000 });
+    await expect(async () => {
+      await selectBtnsAgain.click();
+      await expect(selectBtnsAgain).toHaveAttribute("aria-pressed", "true");
+    }).toPass({ timeout: 15_000 });
+    await expect(page.getByTestId("campaign-format-heading")).toHaveText(/Edit:\s*Buttons/i, {
+      timeout: 15_000,
+    });
     await expect(page.getByTestId("icon-placement")).toHaveValue("after");
     await expect(page.getByTestId("icon-size")).toHaveValue("lg");
     await expect(page.getByTestId("text-size")).toHaveValue("sm");

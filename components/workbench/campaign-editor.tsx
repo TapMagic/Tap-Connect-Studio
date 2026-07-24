@@ -337,6 +337,7 @@ export function CampaignEditor({
   const [dragId, setDragId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [selectedButtonId, setSelectedButtonId] = useState<string | null>(null);
+  const editorRootRef = useRef<HTMLDivElement>(null);
   const phoneScreenRef = useRef<HTMLDivElement>(null);
   const listRailRef = useRef<HTMLDivElement>(null);
   const tabBtnRefs = useRef<Partial<Record<EditorTab, HTMLButtonElement | null>>>({});
@@ -353,6 +354,26 @@ export function CampaignEditor({
 
   const selectedDeviceCode = devices.find((d) => d.id === selectedDevice)?.deviceCode;
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
+
+  useEffect(() => {
+    // Mark client mount for e2e (SSR Select is visible before handlers attach).
+    editorRootRef.current?.setAttribute("data-editor-ready", "true");
+  }, []);
+
+  function selectBlock(blockId: string | null) {
+    setSelectedBlockId(blockId);
+    if (!blockId) {
+      setSelectedButtonId(null);
+      return;
+    }
+    const block = blocks.find((b) => b.id === blockId);
+    if (block?.type === "button_group") {
+      const buttons = (block.data.buttons as ButtonItem[] | undefined) ?? [];
+      setSelectedButtonId(buttons[0]?.id ?? null);
+      return;
+    }
+    setSelectedButtonId(null);
+  }
 
   useEffect(() => {
     if (!selectedBlockId) return;
@@ -652,7 +673,12 @@ export function CampaignEditor({
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
   return (
-    <div className="builder-studio flex h-[calc(100vh-4rem)] flex-col">
+    <div
+      ref={editorRootRef}
+      className="builder-studio flex h-[calc(100vh-4rem)] flex-col"
+      data-testid="campaign-editor"
+      data-editor-ready="false"
+    >
       <div className="builder-studio-toolbar sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 backdrop-blur">
         <Input
           value={title}
@@ -872,10 +898,7 @@ export function CampaignEditor({
                 </p>
                 <button
                   type="button"
-                  onClick={() => {
-                    setSelectedBlockId(null);
-                    setSelectedButtonId(null);
-                  }}
+                  onClick={() => selectBlock(null)}
                   className={cn(
                     "w-full rounded-lg border px-2 py-1.5 text-left text-xs",
                     !selectedBlockId
@@ -889,18 +912,12 @@ export function CampaignEditor({
                   <div
                     key={block.id}
                     data-editor-block-id={block.id}
-                    draggable
-                    onDragStart={() => setDragId(block.id)}
                     onDragOver={(e) => e.preventDefault()}
                     onDrop={() => {
                       if (dragId) reorderBlocks(dragId, block.id);
                       setDragId(null);
                     }}
-                    onDragEnd={() => setDragId(null)}
-                    onClick={() => {
-                      setSelectedBlockId(block.id);
-                      setSelectedButtonId(null);
-                    }}
+                    onClick={() => selectBlock(block.id)}
                     className={cn(
                       "rounded-lg border px-2 py-2 text-sm transition",
                       selectedBlockId === block.id
@@ -913,21 +930,34 @@ export function CampaignEditor({
                     )}
                   >
                     <div className="flex items-center gap-1.5">
-                      <GripVertical
-                        className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                      {/* Drag only on grip — row-level draggable swallows Playwright/OS clicks on Select. */}
+                      <span
+                        draggable
                         aria-hidden
-                      />
-                      {/* testid on Select — row-center clicks often hit Move ↑/↓ (stopPropagation). */}
+                        data-testid={`campaign-block-drag-${block.id}`}
+                        className="inline-flex shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                        onDragStart={() => setDragId(block.id)}
+                        onDragEnd={() => setDragId(null)}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <GripVertical className="h-3.5 w-3.5" aria-hidden />
+                      </span>
+                      {/* testid on Select — Move ↑/↓ must not steal center clicks. */}
                       <button
                         type="button"
                         data-testid={`campaign-block-${block.id}`}
                         className="min-w-0 flex-1 truncate text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                         aria-pressed={selectedBlockId === block.id}
                         aria-label={`Select block ${block.label}`}
+                        onPointerDown={(e) => {
+                          // pointerdown survives better than click when nested scroll/drag compete
+                          if (e.button !== 0) return;
+                          e.stopPropagation();
+                          selectBlock(block.id);
+                        }}
                         onClick={(e) => {
                           e.stopPropagation();
-                          setSelectedBlockId(block.id);
-                          setSelectedButtonId(null);
+                          selectBlock(block.id);
                         }}
                         onKeyDown={(e) => {
                           if (e.key === "ArrowUp" && (e.altKey || e.metaKey)) {
@@ -988,7 +1018,7 @@ export function CampaignEditor({
                         onClick={(e) => {
                           e.stopPropagation();
                           removeBlock(block.id);
-                          if (selectedBlockId === block.id) setSelectedBlockId(null);
+                          if (selectedBlockId === block.id) selectBlock(null);
                         }}
                       >
                         <Trash2 className="h-3.5 w-3.5" aria-hidden />
@@ -1254,8 +1284,7 @@ export function CampaignEditor({
                   selectedBlockId={selectedBlockId}
                   editMode
                   onSelectBlock={(id) => {
-                    setSelectedBlockId(id || null);
-                    setSelectedButtonId(null);
+                    selectBlock(id || null);
                   }}
                   onAddFirstBlock={() => addBlock("headline")}
                 />
@@ -1267,7 +1296,10 @@ export function CampaignEditor({
         {/* Right inspector — independent scroll column */}
         {tab === "content" && (
           <aside className="builder-studio-inspector flex w-full shrink-0 flex-col border-l border-border/60 lg:w-[340px]">
-            <div className="sticky top-0 z-10 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur">
+            <div
+              className="sticky top-0 z-10 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur"
+              data-testid="campaign-format-heading"
+            >
               {selectedBlock ? `Edit: ${selectedBlock.label}` : "Page & design"}
             </div>
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
