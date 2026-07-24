@@ -170,12 +170,13 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "taploop",
-    lastVerifiedAt: "2026-07-24T00:43:12.000Z",
+    lastVerifiedAt: "2026-07-24T05:34:52.646Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    notes: "PO 13/13 · P-10-taploop: award idempotency + redeem on seed enrollment",
-    blockers: ["program_create_ui_matrix", "reversal_headed_matrix", "ui_enroll_form_matrix"],
-    nextAction: "Headed UI: create program → enroll → reverse + ledger",
+    notes:
+      "P-10-taploop: full program manager UI — create/rules/tiers/rewards/enroll/award/idempotency/redeem/adjust/reverse/member/audit/Insights hooks/Admin link",
+    blockers: ["insights_hub_loyalty_kpi_surface", "not_owner_ready_platform"],
+    nextAction: "Insights agent to render fetchLoyaltyInsightKpis on hub; keep TapLoop local-ready",
   },
   {
     sectionId: "tapflow",

@@ -13,6 +13,7 @@ export const SEED = {
   businessId: process.env.SEED_BUSINESS_ID ?? "cmrx5wjml0000519ktwgyj0pe",
   campaignId: process.env.SEED_CAMPAIGN_ID ?? "cmrx5wjn80001519kzayn9296",
   enrollmentId: process.env.SEED_ENROLLMENT_ID ?? "cmrx5yojf0009bv9kivpac97i",
+  contactId: process.env.SEED_CONTACT_ID ?? "cmrx5wjn90002519khgib6nsd",
   deviceCode: process.env.SEED_DEVICE_CODE ?? "seeddemo01",
   journeyName: process.env.SEED_JOURNEY_NAME ?? "[SEED] Demo Journey",
   campaignTitle: process.env.SEED_CAMPAIGN_TITLE ?? "[SEED] Welcome Offer",

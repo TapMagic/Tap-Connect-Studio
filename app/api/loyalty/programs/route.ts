@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { createProgram, defineRules, listPrograms } from "@/lib/fusion/taploop";
+import {
+  createProgram,
+  defineRules,
+  listPrograms,
+  setProgramActive,
+} from "@/lib/fusion/taploop";
 import { checkFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
 import { loadFeatureContext } from "@/lib/fusion/features/server";
 
@@ -82,6 +87,21 @@ export async function POST(request: Request) {
         earnRules: parsed.earnRules,
         tiers: parsed.tiers,
         rewards: parsed.rewards,
+      });
+      return NextResponse.json({ ok: true, program });
+    }
+
+    if (body?.action === "setActive") {
+      const parsed = z
+        .object({
+          programId: z.string().min(1),
+          active: z.boolean(),
+        })
+        .parse(body);
+      const program = await setProgramActive({
+        businessId: business.id,
+        programId: parsed.programId,
+        active: parsed.active,
       });
       return NextResponse.json({ ok: true, program });
     }

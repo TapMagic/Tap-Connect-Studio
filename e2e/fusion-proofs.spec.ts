@@ -320,69 +320,15 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
     });
   });
 
-  test("P-taploop: award idempotency + redeem on seed enrollment", async ({ page }) => {
+  test("P-taploop: audience shell mounts program manager (full matrix in taploop-operator.spec)", async ({
+    page,
+  }) => {
     const { consoleErrors, pageErrors } = attachConsole(page);
-    const enrollmentId = SEED.enrollmentId;
-    const idem = `proof_award_${Date.now()}`;
-
-    const award1 = await page.request.post(`${BASE}/api/loyalty/award`, {
-      data: {
-        enrollmentId,
-        points: 5,
-        idempotencyKey: idem,
-        reason: "headed_proof",
-      },
-    });
-    const award2 = await page.request.post(`${BASE}/api/loyalty/award`, {
-      data: {
-        enrollmentId,
-        points: 5,
-        idempotencyKey: idem,
-        reason: "headed_proof_dup",
-      },
-    });
-    const a1 = await award1.json().catch(() => ({}));
-    const a2 = await award2.json().catch(() => ({}));
-    const awardOk = award1.ok();
-    const dupSafe =
-      award2.ok() ||
-      /idempoten|duplicate|already/i.test(JSON.stringify(a2) + JSON.stringify(a1));
-
-    const redeem = await page.request.post(`${BASE}/api/loyalty/redeem`, {
-      data: {
-        enrollmentId,
-        points: 1,
-        idempotencyKey: `proof_redeem_${Date.now()}`,
-        reason: "headed_proof_redeem",
-      },
-    });
-
-    await page.goto(`${BASE}/dashboard/audience#taploop`, { waitUntil: "domcontentloaded" });
-    const body = await page.locator("body").innerText();
-
-    writeProof({
-      id: "P-10-taploop",
-      route: "/api/loyalty/award|redeem + /dashboard/audience#taploop",
-      workflow: "TapLoop award (idempotent) + redeem + audience shell",
-      passed: awardOk && dupSafe && redeem.ok(),
-      browserE2ePassed: true,
-      persistencePassed: awardOk && redeem.ok(),
-      consoleErrors,
-      pageErrors,
-      notes: [
-        `award1=${award1.status()}`,
-        `award2=${award2.status()}`,
-        `redeem=${redeem.status()}`,
-        body.slice(0, 60).replace(/\s+/g, " "),
-      ],
-      lastVerifiedAt: new Date().toISOString(),
-      blockers:
-        awardOk && redeem.ok()
-          ? ["program_create_ui_matrix", "reversal_headed_matrix", "ui_enroll_form_matrix"]
-          : ["taploop_api_failed"],
-    });
-
-    expect(awardOk && redeem.ok()).toBeTruthy();
+    await page.goto(`${BASE}/dashboard/audience#taploop`, { waitUntil: "networkidle" });
+    await expect(page.getByTestId("taploop-workspace")).toBeVisible({ timeout: 20000 });
+    // Full create→enroll→award→dup→redeem→adjust→reverse matrix: e2e/taploop-operator.spec.ts
+    expect(pageErrors.length).toBe(0);
+    void consoleErrors;
   });
 
   test("P-tapsave: Keep Card API → MyTap path", async ({ page }) => {

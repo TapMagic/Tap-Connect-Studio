@@ -1,5 +1,6 @@
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { AudienceWorkspace } from "@/components/fusion/audience/audience-workspace";
+import { TapLoopWorkspace } from "@/components/fusion/audience/taploop-workspace";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -48,7 +49,8 @@ export default async function AudienceHubPage() {
         ))}
       </div>
 
-      <div id="taploop">
+      <div id="taploop" className="space-y-6">
+        <TapLoopWorkspace enabled={tapLoopReady} />
         <AudienceWorkspace initialContactCount={contactCount} tapLoopEnabled={tapLoopReady} />
       </div>
     </div>

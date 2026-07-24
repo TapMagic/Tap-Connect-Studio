@@ -70,4 +70,16 @@ describe("TapLoop reverse math", () => {
     ];
     assert.equal(computeBalance(entries), 50);
   });
+
+  it("adjust credit adds and debit (expire) subtracts", () => {
+    const afterCredit = [
+      { type: "AWARD" as const, points: 20 },
+      { type: "ADJUST" as const, points: 5 },
+    ];
+    assert.equal(computeBalance(afterCredit), 25);
+    const afterDebit = [...afterCredit, { type: "EXPIRE" as const, points: 10 }];
+    assert.equal(computeBalance(afterDebit), 15);
+    const overdraft = validateLedgerAppend(afterCredit, { type: "EXPIRE", points: 100 });
+    assert.equal(overdraft.ok, false);
+  });
 });

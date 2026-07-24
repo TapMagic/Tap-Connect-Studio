@@ -698,4 +698,331 @@ export async function getEnrollmentBalance(
   };
 }
 
+/**
+ * Manual ledger adjustment. Credit → ADJUST (adds). Debit → EXPIRE (subtracts) with audit reason.
+ */
+export async function adjust(params: {
+  businessId: string;
+  enrollmentId: string;
+  points: number;
+  direction: "credit" | "debit";
+  reason: string;
+  idempotencyKey: string;
+  createdBy?: string;
+}): Promise<{ entry: LedgerEntryDto; balance: number; duplicate: boolean; tier: LoyaltyTierDef | null }> {
+  const dup = await findIdempotent(params.businessId, params.idempotencyKey);
+  if (dup) {
+    const balance = await balanceForEnrollment(dup.enrollmentId);
+    const program = await loadProgramOrThrow(dup.programId, params.businessId);
+    return {
+      entry: dup,
+      balance,
+      duplicate: true,
+      tier: resolveTier(balance, program.tiers.map(mapTier)),
+    };
+  }
+
+  const enrollment = await prisma.loyaltyEnrollment.findFirst({
+    where: { id: params.enrollmentId, businessId: params.businessId, status: "ACTIVE" },
+  });
+  if (!enrollment) throw new Error("Enrollment not found or inactive");
+
+  const ledgerType: LoyaltyLedgerType = params.direction === "credit" ? "ADJUST" : "EXPIRE";
+  const previous = await prisma.loyaltyLedgerEntry.findMany({
+    where: { enrollmentId: enrollment.id },
+    orderBy: { createdAt: "asc" },
+    select: { type: true, points: true },
+  });
+  const check = validateLedgerAppend(previous, { type: ledgerType, points: params.points });
+  if (!check.ok) throw new Error(check.error);
+
+  try {
+    const entry = await prisma.loyaltyLedgerEntry.create({
+      data: {
+        programId: enrollment.programId,
+        businessId: params.businessId,
+        enrollmentId: enrollment.id,
+        contactId: enrollment.contactId,
+        relationshipId: enrollment.relationshipId,
+        type: ledgerType,
+        points: params.points,
+        reason: params.reason,
+        idempotencyKey: params.idempotencyKey,
+        createdBy: params.createdBy ?? "staff",
+      },
+    });
+
+    const balance = computeBalance([...previous, { type: ledgerType, points: params.points }]);
+    const program = await loadProgramOrThrow(enrollment.programId, params.businessId);
+
+    enqueueOutboxSync(
+      "loyalty.adjust",
+      createGovernedEvent({
+        name: "loyalty.points.adjusted",
+        businessId: params.businessId,
+        aggregateType: "loyalty_enrollment",
+        aggregateId: enrollment.id,
+        correlationId: correlationId("adjust"),
+        payload: {
+          points: params.points,
+          direction: params.direction,
+          entryId: entry.id,
+          balance,
+        },
+      })
+    );
+
+    return {
+      entry: mapLedger(entry),
+      balance,
+      duplicate: false,
+      tier: resolveTier(balance, program.tiers.map(mapTier)),
+    };
+  } catch (err) {
+    const again = await findIdempotent(params.businessId, params.idempotencyKey);
+    if (again) {
+      const balance = await balanceForEnrollment(again.enrollmentId);
+      const program = await loadProgramOrThrow(again.programId, params.businessId);
+      return {
+        entry: again,
+        balance,
+        duplicate: true,
+        tier: resolveTier(balance, program.tiers.map(mapTier)),
+      };
+    }
+    throw err;
+  }
+}
+
+export async function setProgramActive(params: {
+  businessId: string;
+  programId: string;
+  active: boolean;
+}): Promise<ProgramDto> {
+  await loadProgramOrThrow(params.programId, params.businessId);
+  const program = await prisma.loyaltyProgram.update({
+    where: { id: params.programId },
+    data: { active: params.active },
+    include: { tiers: { orderBy: { rank: "asc" } }, rewards: true },
+  });
+
+  enqueueOutboxSync(
+    "loyalty.program.updated",
+    createGovernedEvent({
+      name: "loyalty.program.updated",
+      businessId: params.businessId,
+      aggregateType: "loyalty_program",
+      aggregateId: program.id,
+      correlationId: correlationId("program"),
+      payload: { active: program.active },
+    })
+  );
+
+  return {
+    id: program.id,
+    businessId: program.businessId,
+    name: program.name,
+    active: program.active,
+    earnRules: parseEarnRules(program.earnRules),
+    tiers: program.tiers.map(mapTier),
+    rewards: program.rewards.map((r) => ({
+      id: r.id,
+      name: r.name,
+      pointsCost: r.pointsCost,
+      active: r.active,
+    })),
+    createdAt: program.createdAt.toISOString(),
+  };
+}
+
+export async function setEnrollmentStatus(params: {
+  businessId: string;
+  enrollmentId: string;
+  status: "ACTIVE" | "PAUSED" | "CANCELLED";
+}): Promise<EnrollmentDto> {
+  const enrollment = await prisma.loyaltyEnrollment.findFirst({
+    where: { id: params.enrollmentId, businessId: params.businessId },
+  });
+  if (!enrollment) throw new Error("Enrollment not found");
+
+  const updated = await prisma.loyaltyEnrollment.update({
+    where: { id: enrollment.id },
+    data: { status: params.status },
+  });
+  const balance = await balanceForEnrollment(updated.id);
+
+  enqueueOutboxSync(
+    "loyalty.enrollment.updated",
+    createGovernedEvent({
+      name: "loyalty.enrollment.updated",
+      businessId: params.businessId,
+      aggregateType: "loyalty_enrollment",
+      aggregateId: updated.id,
+      correlationId: correlationId("enroll"),
+      payload: { status: updated.status },
+    })
+  );
+
+  return {
+    id: updated.id,
+    programId: updated.programId,
+    contactId: updated.contactId,
+    relationshipId: updated.relationshipId,
+    status: updated.status,
+    consentedAt: updated.consentedAt.toISOString(),
+    balance,
+  };
+}
+
+export type MemberSummaryDto = {
+  enrollmentId: string;
+  programId: string;
+  programName: string;
+  contactId: string;
+  contactName: string | null;
+  contactEmail: string | null;
+  status: string;
+  consentedAt: string;
+  balance: number;
+  tierName: string | null;
+  entryCount: number;
+};
+
+export type MemberDetailDto = MemberSummaryDto & {
+  relationshipId: string | null;
+  tier: LoyaltyTierDef | null;
+  ledger: LedgerEntryDto[];
+  rewardsAvailable: { id: string; name: string; pointsCost: number; active: boolean }[];
+};
+
+export async function listMembers(params: {
+  businessId: string;
+  programId?: string;
+  limit?: number;
+}): Promise<MemberSummaryDto[]> {
+  const enrollments = await prisma.loyaltyEnrollment.findMany({
+    where: {
+      businessId: params.businessId,
+      ...(params.programId ? { programId: params.programId } : {}),
+    },
+    include: {
+      program: { include: { tiers: { orderBy: { rank: "asc" } } } },
+      contact: { select: { id: true, name: true, email: true } },
+      _count: { select: { ledger: true } },
+    },
+    orderBy: { updatedAt: "desc" },
+    take: params.limit ?? 50,
+  });
+
+  const out: MemberSummaryDto[] = [];
+  for (const e of enrollments) {
+    const balance = await balanceForEnrollment(e.id);
+    const tier = resolveTier(balance, e.program.tiers.map(mapTier));
+    out.push({
+      enrollmentId: e.id,
+      programId: e.programId,
+      programName: e.program.name,
+      contactId: e.contactId,
+      contactName: e.contact.name,
+      contactEmail: e.contact.email,
+      status: e.status,
+      consentedAt: e.consentedAt.toISOString(),
+      balance,
+      tierName: tier?.name ?? null,
+      entryCount: e._count.ledger,
+    });
+  }
+  return out;
+}
+
+export async function getMemberDetail(
+  businessId: string,
+  enrollmentId: string
+): Promise<MemberDetailDto | null> {
+  const enrollment = await prisma.loyaltyEnrollment.findFirst({
+    where: { id: enrollmentId, businessId },
+    include: {
+      program: { include: { tiers: { orderBy: { rank: "asc" } }, rewards: true } },
+      contact: { select: { id: true, name: true, email: true } },
+    },
+  });
+  if (!enrollment) return null;
+
+  const balance = await balanceForEnrollment(enrollment.id);
+  const tiers = enrollment.program.tiers.map(mapTier);
+  const tier = resolveTier(balance, tiers);
+  const { entries } = await listLedger({
+    businessId,
+    enrollmentId: enrollment.id,
+    limit: 100,
+  });
+
+  return {
+    enrollmentId: enrollment.id,
+    programId: enrollment.programId,
+    programName: enrollment.program.name,
+    contactId: enrollment.contactId,
+    contactName: enrollment.contact.name,
+    contactEmail: enrollment.contact.email,
+    status: enrollment.status,
+    consentedAt: enrollment.consentedAt.toISOString(),
+    relationshipId: enrollment.relationshipId,
+    balance,
+    tierName: tier?.name ?? null,
+    tier,
+    entryCount: entries.length,
+    ledger: entries,
+    rewardsAvailable: enrollment.program.rewards.map((r) => ({
+      id: r.id,
+      name: r.name,
+      pointsCost: r.pointsCost,
+      active: r.active,
+    })),
+  };
+}
+
+export type LoyaltyAuditRow = {
+  id: string;
+  at: string;
+  action: string;
+  actor: string;
+  detail: string;
+  entryId: string | null;
+  enrollmentId: string | null;
+};
+
+/** Append-only ledger doubles as operator audit trail. */
+export async function listLoyaltyAudit(params: {
+  businessId: string;
+  programId?: string;
+  limit?: number;
+}): Promise<LoyaltyAuditRow[]> {
+  const entries = await prisma.loyaltyLedgerEntry.findMany({
+    where: {
+      businessId: params.businessId,
+      ...(params.programId ? { programId: params.programId } : {}),
+    },
+    orderBy: { createdAt: "desc" },
+    take: params.limit ?? 40,
+  });
+
+  return entries.map((e) => ({
+    id: e.id,
+    at: e.createdAt.toISOString(),
+    action: e.type,
+    actor: e.createdBy,
+    detail: [
+      `${e.points} pts`,
+      e.reason,
+      e.evidenceId ? `evidence:${e.evidenceId}` : null,
+      e.reversesEntryId ? `reverses:${e.reversesEntryId}` : null,
+      `key:${e.idempotencyKey}`,
+    ]
+      .filter(Boolean)
+      .join(" · "),
+    entryId: e.id,
+    enrollmentId: e.enrollmentId,
+  }));
+}
+
 export { computeBalance, validateLedgerAppend, resolveTier } from "./ledger-math";
