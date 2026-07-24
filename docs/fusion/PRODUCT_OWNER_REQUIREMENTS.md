@@ -3,7 +3,7 @@
 **Date:** 2026-07-24  
 **Rule:** Only list what the product owner must supply. Implementation choices stay with engineering.  
 **Local persistence:** `tapconnect_fusion_dev` only — never Railway production `DATABASE_URL`.  
-**Platform status:** Local quality gates complete — platform remains **NOT OWNER-READY**. Live paths = **VERIFIED — CREDENTIALS REQUIRED**. Production = **BLOCKED** until staging + authorization.
+**Platform status:** Owner walkthrough local re-gate complete (unit 381 / headed 75) — platform remains **NOT OWNER-READY**. Live paths = **VERIFIED — CREDENTIALS REQUIRED**. Production = **BLOCKED** until staging + authorization. Honest residuals: true VoiceOver/NVDA (D-001), OS-native zoom (D-002), live credentials (D-006), platform OWNER-READY claim (D-013).
 
 ---
 

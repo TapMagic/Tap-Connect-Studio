@@ -109,7 +109,11 @@ export function InsightsProvenancePanel({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-3 max-h-80 overflow-y-auto">
+        <ul
+          className="space-y-3 max-h-80 overflow-y-auto"
+          tabIndex={0}
+          aria-label="TapProof provenance records"
+        >
           {records.map((p) => (
             <li
               key={p.id}

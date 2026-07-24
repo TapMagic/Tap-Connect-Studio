@@ -1,8 +1,8 @@
 # Owner-ready completion matrix
 
 **Branch:** `tapconnect-v1-v2-fusion`  
-**Updated:** 2026-07-24 (final local quality-gate closeout)  
-**PO attestation:** Fresh headed Playwright **63/63** + unit **365/365** + lint 0 errors + production build + Prisma up-to-date on isolated `tapconnect_fusion_dev` (`http://127.0.0.1:3000`). Railway untouched.  
+**Updated:** 2026-07-24 (owner walkthrough full local re-gate)  
+**PO attestation:** Fresh headed Playwright **75/75** (19 specs) + unit **381/381** + integration **24/24** + lint 0 errors + production build + Prisma up-to-date on isolated `tapconnect_fusion_dev` (`http://127.0.0.1:3000`). Railway untouched.  
 **Rule:** Suite proofs validate **covered workflows only**. Platform is **not** OWNER-READY overall. `a11yPassed` / `responsivePassed` require keyboard + viewport proofs — never axe alone.  
 **Allowed labels only:** OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED
 
@@ -29,10 +29,10 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | Leads capture | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-03-lead-capture | consent UI, public form matrix |
 | TapSave / MyTap | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-03-tapsave-keep | prefs/moments, wallet headed |
 | Wallet (mock) | 50% | VERIFIED — CREDENTIALS REQUIRED (live) | wire + P-wallet-mock | live certs; Audience list headed |
-| TapLoop | 92% | IMPLEMENTED BUT NOT OWNER-READY | P-10-taploop | Insights hub surface of loyalty KPIs (hook shipped); live provider none |
+| TapLoop | 94% | IMPLEMENTED BUT NOT OWNER-READY | P-10-taploop (program UI + ledger + Insights KPI hooks) | true VO/NVDA; platform not OWNER-READY |
 | TapFlow | 85% | IMPLEMENTED BUT NOT OWNER-READY | P-06 + P-tapcanvas-tapflow-lifecycle + **P-tapflow-live-visitor** | live OAuth provider effects, full Journeys UI |
-| Inbox | 82% | IMPLEMENTED BUT NOT OWNER-READY; live = VERIFIED — CREDENTIALS REQUIRED | P-09-inbox-operator + P-27-inbox-guardian-matrix | live Meta/Telegram/ManyChat certs, VoiceOver spot |
-| Insights | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-11 + P-insights-export + P-insights-drilldown-provenance | VoiceOver residual |
+| Inbox | 88% | IMPLEMENTED BUT NOT OWNER-READY; live = VERIFIED — CREDENTIALS REQUIRED | P-09-inbox-operator + P-27-inbox-guardian-matrix | live Meta/Telegram/ManyChat certs, VoiceOver spot |
+| Insights | 88% | IMPLEMENTED BUT NOT OWNER-READY | P-11 + P-insights-export + P-insights-drilldown-provenance | VoiceOver residual |
 | Platform Admin | 78% | IMPLEMENTED BUT NOT OWNER-READY | P-12 + **P-admin-killswitch-matrix** + Keywords/TapCanvas triad | true VO on registry tables; live creds unrelated |
 | Controls / responsive / a11y | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-a11y-owner-gate + P-responsive-owner-gate (SR-oriented + 200% CSS zoom) | true VoiceOver/NVDA, OS-native Cmd+ zoom |
 | Productivity & Work Mgmt | 70% | VERIFIED — CREDENTIALS REQUIRED (live) | P-productivity-* | live OAuth apps |
@@ -43,17 +43,19 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 
 **Platform overall:** ~**60–65%** — not 100%. **Zero** sections classified OWNER-READY.
 
-## Closeout quality-gate evidence (2026-07-24)
+## Closeout quality-gate evidence (2026-07-24 owner walkthrough)
 
 - Prisma validate + migrate status: PASS (11 migrations)
 - TypeScript / lint (0 errors) / production build: PASS
-- Unit: 365 pass / 0 fail
-- Headed e2e: 63 pass / 0 fail (a11y, responsive, tapflow live visitor, tapcanvas*, keywords*, tapcast*, fusion proofs, productivity, cross-system)
+- Unit: 381 pass / 0 fail
+- Integration unit: 24 pass / 0 fail
+- Headed e2e: 75 pass / 0 fail (19 files — a11y, responsive, builder, inbox, insights, taploop, admin kill-switch, tapflow live visitor, tapcanvas*, keywords*, tapcast*, fusion proofs, productivity, cross-system)
+- Streams ancestry retained: `ce8b26e` → `73bbd39` → `f0426b8` → `2e04988` → `9dfa949` (baseline `3872bda`)
 
 ## Exact sequence (next — staging, not local OWNER-READY)
 
 1. Isolated DB healthy + seed — **done locally**
-2. Broader headed matrices — **done locally (63/63)**
+2. Broader headed matrices — **done locally (75/75)**
 3. Clear ledger blockers only with proof (true VoiceOver/NVDA, OS-native zoom, remaining UI matrices)
 4. Dev credentials selectively (one provider at a time)
 5. Staging only when authorized — see `PRODUCTION_CUTOVER_CHECKLIST.md` §B

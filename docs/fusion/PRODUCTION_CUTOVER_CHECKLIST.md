@@ -2,7 +2,7 @@
 
 **Production Studio:** `https://studio.tapthemagic.com`  
 **Authorization gate:** Explicit product-owner authorization required before any Railway change, DNS change, production migration, or deploy.  
-**Local closeout (2026-07-24):** Quality gates green on `tapconnect_fusion_dev` — platform still **NOT OWNER-READY**. Production cutover remains **BLOCKED** until §B staging rehearsal + PO authorization. Railway **untouched** this session.
+**Local closeout (2026-07-24 owner walkthrough):** Quality gates green on `tapconnect_fusion_dev` (unit 381, headed 75/75) — platform still **NOT OWNER-READY**. Production cutover remains **BLOCKED** until §B staging rehearsal + PO authorization. Railway **untouched** this session.
 
 **Hard rules**
 

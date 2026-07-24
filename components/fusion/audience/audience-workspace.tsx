@@ -400,6 +400,7 @@ export function AudienceWorkspace({
                       className="rounded-md border border-border bg-background px-2 py-1.5 text-sm"
                       value={enrollProgramId}
                       onChange={(e) => setEnrollProgramId(e.target.value)}
+                      aria-label="TapLoop program for enrollment"
                     >
                       <option value="">Program…</option>
                       {programs.map((p) => (

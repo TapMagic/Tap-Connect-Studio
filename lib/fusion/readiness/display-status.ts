@@ -105,11 +105,11 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "campaigns",
-    lastVerifiedAt: "2026-07-24T05:38:00.000Z",
+    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-builder-save-publish-assign-public + P-builder-campaign-matrix + format/media + version-rollback headed PASS. PublicationSnapshot wired on save/publish.",
+      "Owner walkthrough re-gate: P-builder-save-publish-assign-public + P-builder-campaign-matrix + format/media + version-rollback headed PASS (75/75 suite). PublicationSnapshot wired on save/publish. Classification: IMPLEMENTED BUT NOT OWNER-READY.",
     blockers: [
       "true_voiceover_nvda_manual",
       "os_native_zoom_residual",
@@ -120,11 +120,11 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "cards",
-    lastVerifiedAt: "2026-07-24T05:38:00.000Z",
+    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-builder-card-matrix: save → reload → PublicationSnapshot rollback PASS. Freeform remains scaffold behind feature flag.",
+      "Owner walkthrough re-gate: P-builder-card-matrix save → reload → PublicationSnapshot rollback PASS. Freeform remains scaffold behind feature flag.",
     blockers: [
       "card_landing_demo_admin_only",
       "freeform_scaffold_not_full_canvas",
@@ -176,17 +176,20 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "taploop",
-    lastVerifiedAt: "2026-07-24T05:34:52.646Z",
+    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-10-taploop: full program manager UI — create/rules/tiers/rewards/enroll/award/idempotency/redeem/adjust/reverse/member/audit/Insights hooks/Admin link",
-    blockers: ["insights_hub_loyalty_kpi_surface", "not_owner_ready_platform"],
-    nextAction: "Insights agent to render fetchLoyaltyInsightKpis on hub; keep TapLoop local-ready",
+      "Owner walkthrough re-gate: P-10-taploop full program manager UI — create/rules/tiers/rewards/enroll/award/idempotency/redeem/adjust/reverse/member/audit/Insights KPI hooks/Admin link. Classification: IMPLEMENTED BUT NOT OWNER-READY.",
+    blockers: [
+      "true_voiceover_nvda_manual_residual",
+      "not_owner_ready_platform",
+    ],
+    nextAction: "PO VoiceOver spot on TapLoop; keep ledger honest — never claim OWNER-READY",
   },
   {
     sectionId: "tapflow",
-    lastVerifiedAt: "2026-07-24T04:56:12.000Z",
+    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
@@ -200,31 +203,32 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "inbox",
-    lastVerifiedAt: "2026-07-24T05:45:00.000Z",
+    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-09-inbox-operator + P-27-inbox-guardian-matrix · local mock operator closeout (thread/reply/Guardian/fallback/timeline/campaign/TapCase/ExternalWorkItem/assign/status/attachments/audit/events/analytics/persistence/recovery). Classification: IMPLEMENTED BUT NOT OWNER-READY. Live messaging = VERIFIED — CREDENTIALS REQUIRED.",
+      "Owner walkthrough re-gate: P-09-inbox-operator + P-27-inbox-guardian-matrix · local mock operator closeout (thread/reply/Guardian/fallback/timeline/campaign/TapCase/ExternalWorkItem/assign/status/attachments/audit/events/analytics/persistence/recovery). Scroll regions + select a11y cleared. Classification: IMPLEMENTED BUT NOT OWNER-READY. Live messaging = VERIFIED — CREDENTIALS REQUIRED.",
     blockers: [
       "live_messaging_transports_credentials_required",
       "live_oauth_provider_certification",
+      "true_voiceover_nvda_manual_residual",
       "not_owner_ready",
     ],
     nextAction: "Certify live Meta/Telegram/ManyChat credentials; deepen VoiceOver on Inbox",
   },
   {
     sectionId: "insights",
-    lastVerifiedAt: "2026-07-24T05:35:00.000Z",
+    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "P-11-insights-shell + P-insights-export + P-insights-drilldown-provenance · filters/compare/drill/TapProof/saved views/CSV; Classification: IMPLEMENTED BUT NOT OWNER-READY (VoiceOver residual).",
+      "Owner walkthrough re-gate: P-11-insights-shell + P-insights-export + P-insights-drilldown-provenance · filters/compare/drill/TapProof/saved views/CSV; provenance scroll region a11y cleared. Classification: IMPLEMENTED BUT NOT OWNER-READY (VoiceOver residual).",
     blockers: ["not_owner_ready", "true_voiceover_residual"],
     nextAction: "Certify VoiceOver spot on Insights tables; keep ledger honest",
   },
   {
     sectionId: "admin",
-    lastVerifiedAt: "2026-07-24T05:30:00.000Z",
+    lastVerifiedAt: "2026-07-24T06:01:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:

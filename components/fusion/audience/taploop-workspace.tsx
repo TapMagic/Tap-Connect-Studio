@@ -782,6 +782,7 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
             value={adjustDirection}
             onChange={(e) => setAdjustDirection(e.target.value as "credit" | "debit")}
             data-testid="taploop-adjust-direction"
+            aria-label="Adjust ledger direction"
           >
             <option value="credit">Adjust credit</option>
             <option value="debit">Adjust debit</option>

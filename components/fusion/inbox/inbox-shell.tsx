@@ -521,6 +521,8 @@ export function InboxShell({
         <div
           className="max-h-[480px] overflow-y-auto rounded-xl border border-border/60"
           data-testid="inbox-thread-list"
+          tabIndex={0}
+          aria-label="Inbox threads"
         >
           {threads.length === 0 ? (
             <p className="p-4 text-sm text-muted-foreground">No threads yet.</p>
@@ -565,7 +567,12 @@ export function InboxShell({
                 </p>
               ) : null}
 
-              <div className="max-h-64 space-y-2 overflow-y-auto" data-testid="inbox-messages">
+              <div
+                className="max-h-64 space-y-2 overflow-y-auto"
+                data-testid="inbox-messages"
+                tabIndex={0}
+                aria-label="Thread messages"
+              >
                 {messages.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
                     Load thread to view messages (click again if empty).
@@ -764,7 +771,11 @@ export function InboxShell({
           data-testid="inbox-audit-log"
         >
           <p className="text-xs font-semibold uppercase text-muted-foreground">Audit</p>
-          <ul className="mt-2 max-h-40 space-y-1 overflow-y-auto text-[11px] text-muted-foreground">
+          <ul
+            className="mt-2 max-h-40 space-y-1 overflow-y-auto text-[11px] text-muted-foreground"
+            tabIndex={0}
+            aria-label="Inbox operator audit log"
+          >
             {audit.slice(0, 12).map((e) => (
               <li key={e.id}>
                 {e.at.slice(11, 19)} · {e.action}

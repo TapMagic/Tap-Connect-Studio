@@ -27,7 +27,21 @@ describe("display readiness derivation", () => {
     const r = resolveSectionReadiness(section);
     assert.notEqual(r.display, "owner_ready");
     assert.equal(r.label, DISPLAY_READINESS_LABEL.functional_final_verification_required);
-    assert.ok(r.missingDependencies.some((d) => d.startsWith("proof:")));
+    // Cards ledger may already record headed proofs; residuals (blockers / missing proofs) must remain.
+    assert.ok(
+      r.missingDependencies.length > 0,
+      "cards must retain residual blockers until OWNER-READY"
+    );
+    assert.ok(
+      r.missingDependencies.some(
+        (d) =>
+          d.startsWith("proof:") ||
+          d.includes("voiceover") ||
+          d.includes("freeform") ||
+          d.includes("not_owner")
+      ),
+      `expected residual gate deps, got: ${r.missingDependencies.join(", ")}`
+    );
   });
 
   it("marks wallet credential path", () => {

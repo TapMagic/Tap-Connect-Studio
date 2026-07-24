@@ -136,7 +136,7 @@ export async function PATCH(request: Request) {
       ...(updates.formSettings !== undefined
         ? { formSettings: updates.formSettings as Prisma.InputJsonValue }
         : {}),
-      updatedById: user.id,
+      updatedBy: { connect: { id: user.id } },
     };
 
     const campaign = await prisma.campaign.update({

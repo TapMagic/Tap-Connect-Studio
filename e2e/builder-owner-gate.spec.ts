@@ -373,22 +373,13 @@ test.describe("Builder owner gate (Card + Campaign)", () => {
     // UI edit + format controls — select headline block to open inspector
     const headlineRow = page.getByTestId("campaign-block-proof_headline_0");
     await expect(headlineRow).toBeVisible({ timeout: 15_000 });
-    await headlineRow.click();
-    await page.waitForTimeout(500);
-    const selectHeadline = page.getByRole("button", { name: /Select block headline/i });
-    if ((await selectHeadline.count()) > 0) {
-      await selectHeadline.click();
-      await page.waitForTimeout(300);
-    }
-    // Also try preview phone block click
-    const previewHeadline = page.locator('[data-block-id="proof_headline_0"]').first();
-    if ((await previewHeadline.count()) > 0) {
-      await previewHeadline.click();
-      await page.waitForTimeout(300);
-    }
-
-    await expect(page.getByTestId("block-headline-text")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("block-headline-text").fill(`${marker}_UI`);
+    await headlineRow.scrollIntoViewIfNeeded();
+    await page.getByRole("button", { name: /^Select block headline$/i }).click();
+    await expect(page.getByText(/^Edit:\s*headline$/i)).toBeVisible({ timeout: 10_000 });
+    const headlineInput = page.getByTestId("block-headline-text");
+    await headlineInput.scrollIntoViewIfNeeded();
+    await expect(headlineInput).toBeVisible({ timeout: 15_000 });
+    await headlineInput.fill(`${marker}_UI`);
     notes.push("ui_headline_edit");
 
     if ((await page.getByTestId("block-style-controls").count()) > 0) {
