@@ -58,18 +58,18 @@ export type VerificationRecord = {
 export const VERIFICATION_LEDGER: VerificationRecord[] = [
   {
     sectionId: "distribution",
-    lastVerifiedAt: "2026-07-24T04:10:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:56:12.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     a11yPassed: true,
     notes:
-      "P-public-seed-tap + P-a11y-owner-gate + P-responsive-owner-gate: public tap has <main>; axe serious/critical clear; responsive viewports pass. Not OWNER-READY (analytics + full gate).",
+      "P-public-seed-tap + P-a11y-owner-gate + P-responsive-owner-gate: public tap <main>; axe clear; SR-oriented public CTA role/name; 200% CSS zoom proxy. Not OWNER-READY (analytics + full gate + true VO/NVDA).",
     blockers: [
       "analytics_event_assert",
       "full_owner_gate_matrix",
-      "voiceover_nvda_manual_spot_check_recommended",
+      "true_voiceover_nvda_manual_spot_check_ci_unavailable",
     ],
-    nextAction: "Analytics assert + VoiceOver spot-check before OWNER-READY",
+    nextAction: "Analytics assert + true VoiceOver/NVDA spot-check before OWNER-READY",
   },
   {
     sectionId: "calendar",
@@ -179,11 +179,11 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapflow",
-    lastVerifiedAt: "2026-07-24T04:45:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:56:12.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "Closeout re-proof: P-06 + P-tapflow-lifecycle + P-tapflow-live-visitor headed PASS. Public /t entry → persisted JourneyExecution against immutable JourneyPublishedVersion; refresh/provider idempotency; pause/resume/cancel/wait/retry; Contact/Relationship + Campaign attribution; Guardian → outbox → mock email/loyalty/TapCase/EWI. Classification: IMPLEMENTED BUT NOT OWNER-READY. Live OAuth = VERIFIED — CREDENTIALS REQUIRED. Not platform OWNER-READY.",
+      "P-06 + P-tapflow-lifecycle + P-tapflow-live-visitor + P-a11y journey-editor-status live region. Public /t entry → persisted JourneyExecution; refresh/provider idempotency; Contact/Campaign attribution; mock provider effects. Classification: IMPLEMENTED BUT NOT OWNER-READY. Live OAuth = VERIFIED — CREDENTIALS REQUIRED.",
     blockers: [
       "live_oauth_providers_credentials_required",
       "full_journeys_studio_ui_matrix",
@@ -242,20 +242,20 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcanvas",
-    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
+    lastVerifiedAt: "2026-07-24T04:56:12.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
     a11yPassed: true,
     notes:
-      "Closeout re-proof: P-tapcanvas-* headed PASS on tapconnect_fusion_dev. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + VoiceOver spot-check residual).",
+      "P-tapcanvas-* + P-a11y-owner-gate SR-oriented: sticky node aria-label, selection live region (role=status aria-live=polite), message live region. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + true VO/NVDA residual).",
     blockers: [
-      "voiceover_nvda_manual_spot_check_recommended",
+      "true_voiceover_nvda_manual_spot_check_ci_unavailable",
       "live_tapcast_credentials",
       "live_oauth_providers_credentials_required",
       "not_owner_ready",
     ],
     nextAction:
-      "Clear live credentials + VoiceOver spot-check; do not claim OWNER-READY without zero blockers",
+      "Clear live credentials + true VoiceOver/NVDA spot-check; do not claim OWNER-READY without zero blockers",
   },
   {
     sectionId: "tapcast",
@@ -314,27 +314,28 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
       "live_trend_provider",
       "openai_ai_enhancement",
       "dedicated_analytics_ui_panel",
-      "voiceover_nvda_manual_spot_check_recommended",
+      "true_voiceover_nvda_manual_spot_check_ci_unavailable",
       "not_owner_ready",
     ],
     missingProviders: ["approved_trend_provider", "openai"],
     nextAction:
-      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; VoiceOver spot-check before OWNER-READY",
+      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; true VoiceOver/NVDA spot-check before OWNER-READY",
   },
   {
     sectionId: "controls_a11y_responsive",
-    lastVerifiedAt: "2026-07-24T04:16:28.000Z",
+    lastVerifiedAt: "2026-07-24T04:56:12.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     a11yPassed: true,
     notes:
-      "Closeout re-proof: P-a11y-owner-gate + P-responsive-owner-gate headed PASS. Axe serious/critical cleared on Home/Experiences/Builders/TapCanvas/TapFlow/TapCast/TikTok/Tap Points/Audience/Inbox/Insights/Assets/Brand/Settings/Admin; keyboard proofs; viewports large desktop→mobile review. Classification: IMPLEMENTED BUT NOT OWNER-READY — residual VoiceOver/NVDA + 200% zoom manual.",
+      "P-a11y-owner-gate + P-responsive-owner-gate deepened: axe serious/critical clear; keyboard; SR-oriented (landmarks, documented focus order, aria-live status on TapCanvas/campaign/TapFlow, role/name); viewports large desktop→mobile; 200% CSS zoom proxy PASS. Classification: IMPLEMENTED BUT NOT OWNER-READY — residual true VoiceOver/NVDA (CI unavailable) + OS-native Cmd+/Ctrl+ zoom.",
     blockers: [
-      "voiceover_nvda_manual_spot_check_recommended",
-      "full_200pct_zoom_manual_spot_check",
+      "true_voiceover_nvda_manual_spot_check_ci_unavailable",
+      "os_native_browser_zoom_cmd_plus_manual_residual",
       "not_owner_ready",
     ],
-    nextAction: "Manual VoiceOver/NVDA + 200% zoom spot-check; never OWNER-READY on axe alone",
+    nextAction:
+      "True VoiceOver/NVDA + OS-native zoom spot-check; never OWNER-READY on axe/Playwright SR proxies alone",
   },
 ];
 

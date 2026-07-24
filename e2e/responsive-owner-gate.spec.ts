@@ -190,24 +190,89 @@ test.describe("Owner gate — responsive", () => {
     notes.push(`mobile_nav_target=${pb ? `${Math.round(pb.width)}x${Math.round(pb.height)}` : "n/a"}`);
     if (pb && pb.height < 32) blockers.push("mobile_nav_touch_target_small");
 
+    // --- 200% zoom proxy (CSS zoom) — strongest locally automatable stand-in for OS Cmd+/Ctrl+ ---
+    // True browser/OS zoom can differ slightly; residual documented when CSS proxy passes.
+    const zoomRoutes = [
+      { id: "home", route: "/dashboard" },
+      { id: "campaign", route: `/dashboard/campaigns/${SEED.campaignId}` },
+      { id: "tapcanvas", route: "/dashboard/experiences/canvas" },
+      { id: "public_tap", route: `/t/${SEED.deviceCode}` },
+    ] as const;
+    await page.setViewportSize({ width: 1280, height: 800 });
+    notes.push("--- zoom 200pct css proxy ---");
+    let zoomPassed = true;
+    for (const zr of zoomRoutes) {
+      await page.goto(`${BASE}${zr.route}`, { waitUntil: "domcontentloaded" });
+      await page.waitForTimeout(500);
+      await page.evaluate(() => {
+        document.documentElement.style.zoom = "2";
+      });
+      await page.waitForTimeout(300);
+      const overflow = await assertNoHorizontalOverflow(page);
+      const readable = await assertPrimaryReadable(page);
+      notes.push(
+        `zoom200@${zr.id}:overflow=${overflow.overflow},text=${readable.textLen},h1=${readable.h1Visible},clipped=${readable.h1Clipped}`
+      );
+      if (overflow.overflow) {
+        blockers.push(`zoom200_h_overflow_${zr.id}`);
+        zoomPassed = false;
+      }
+      if (readable.textLen < 20) {
+        blockers.push(`zoom200_empty_${zr.id}`);
+        zoomPassed = false;
+      }
+      if (readable.h1Clipped) {
+        blockers.push(`zoom200_clipped_h1_${zr.id}`);
+        zoomPassed = false;
+      }
+      if (zr.id === "home") {
+        const create = page.getByTestId("studio-create-button");
+        if ((await create.count()) > 0) {
+          await expect(create).toBeVisible();
+          const cb = await create.boundingBox();
+          // At 200% CSS zoom, bounding boxes are in CSS pixels after zoom layout —
+          // require the control remains on-screen and clickable-sized.
+          if (!cb || cb.width < 16 || cb.height < 16) {
+            blockers.push("zoom200_create_unusable");
+            zoomPassed = false;
+          } else {
+            notes.push(
+              `zoom200@create=${Math.round(cb.width)}x${Math.round(cb.height)}`
+            );
+          }
+        }
+      }
+      await page.evaluate(() => {
+        document.documentElement.style.zoom = "";
+      });
+    }
+    notes.push(`zoom200_css_proxy_passed=${zoomPassed}`);
+
     const responsivePassed = blockers.length === 0 && pageErrors.length === 0;
+
+    const residual = zoomPassed
+      ? ["os_native_browser_zoom_cmd_plus_manual_residual"]
+      : [];
 
     writeProof({
       id: "P-responsive-owner-gate",
       route: "studio + public tap viewports",
       workflow:
-        "large desktop / laptop / tablet L+P / mobile review — overflow, headings, builder canvas, TapCanvas, Create, orientation",
+        "large desktop / laptop / tablet L+P / mobile review + 200% CSS zoom proxy — overflow, headings, builder canvas, TapCanvas, Create, orientation",
       passed: responsivePassed,
       browserE2ePassed: responsivePassed,
       persistencePassed: true,
       responsivePassed,
       consoleErrors: consoleErrors.filter((e) => !e.includes("favicon")),
       pageErrors,
-      notes: [...notes, `responsivePassed=${responsivePassed}`, `blockers=${blockers.length}`],
+      notes: [
+        ...notes,
+        `responsivePassed=${responsivePassed}`,
+        `blockers=${blockers.length}`,
+        "zoom_note:CSS zoom=2 is strongest automatable local proxy; OS Cmd+/Ctrl+ zoom remains manual residual",
+      ],
       lastVerifiedAt: new Date().toISOString(),
-      blockers: responsivePassed
-        ? ["full_200pct_zoom_manual_spot_check"]
-        : blockers,
+      blockers: responsivePassed ? residual : blockers,
     });
 
     writeProofIndex();

@@ -617,33 +617,73 @@ export async function promoteWeeklySpecialMatrix(opts: {
     businessId: opts.businessId,
   });
 
-  // Ensure a frame→group with weekly schedule intent exists
+  // Ensure a Prisma-backed campaign_group with weekly schedule intent.
+  // Prefer direct Prisma create — updateNode cannot patch `sketch`, so re-promote
+  // of a stale non-sketch group without prismaId is unreliable under suite load.
   let groupNode = requireCanvas(opts.canvasId).nodes.find((n) => n.kind === "campaign_group");
-  if (!groupNode) {
-    const added = addNode(opts.canvasId, {
-      kind: "campaign_group",
-      label: name,
-      sketch: true,
-      data: { promoteTo: "campaign_group", withWeeklySchedule: true },
+  let groupId: string | undefined =
+    typeof groupNode?.data?.prismaId === "string"
+      ? groupNode.data.prismaId
+      : typeof groupNode?.linked?.id === "string" &&
+          !String(groupNode.linked.id).startsWith("campaign_group_")
+        ? groupNode.linked.id
+        : undefined;
+
+  if (!groupId) {
+    const group = await prisma.campaignGroup.create({
+      data: {
+        businessId: opts.businessId,
+        title: name,
+        timezone: "America/New_York",
+      },
     });
-    groupNode = added.node;
-    const promo = await promoteSketchNodesPersisted({
-      canvasId: opts.canvasId,
-      nodeIds: [groupNode.id],
-      confirm: true,
-      businessId: opts.businessId,
-    });
-    groupNode = promo.canvas.nodes.find((n) => n.id === groupNode!.id)!;
-  } else if (!groupNode.data?.weeklyScheduleAttached && groupNode.data?.prismaId) {
+    groupId = group.id;
+    if (!groupNode) {
+      const added = addNode(opts.canvasId, {
+        kind: "campaign_group",
+        label: name,
+        sketch: false,
+        linked: { type: "campaign_group", id: group.id },
+        data: {
+          executes: false,
+          planningOnly: true,
+          prismaId: group.id,
+          withWeeklySchedule: true,
+        },
+      });
+      groupNode = added.node;
+    } else {
+      updateNode(opts.canvasId, groupNode.id, {
+        linked: { type: "campaign_group", id: group.id },
+        data: {
+          ...(groupNode.data ?? {}),
+          executes: false,
+          planningOnly: true,
+          prismaId: group.id,
+          withWeeklySchedule: true,
+        },
+      });
+      const fresh = requireCanvas(opts.canvasId);
+      const n = fresh.nodes.find((x) => x.id === groupNode!.id);
+      if (n) {
+        n.sketch = false;
+        n.kind = "campaign_group";
+      }
+      groupNode = requireCanvas(opts.canvasId).nodes.find((x) => x.id === groupNode!.id)!;
+    }
+  }
+
+  if (groupNode && groupId && !groupNode.data?.weeklyScheduleAttached) {
     updateNode(opts.canvasId, groupNode.id, {
-      data: { ...groupNode.data, withWeeklySchedule: true },
+      data: { ...(groupNode.data ?? {}), withWeeklySchedule: true, prismaId: groupId },
     });
     await attachWeeklyScheduleAndFallback({
       businessId: opts.businessId,
-      groupId: String(groupNode.data.prismaId),
+      groupId,
       canvasId: opts.canvasId,
       groupNodeId: groupNode.id,
     });
+    groupNode = requireCanvas(opts.canvasId).nodes.find((n) => n.id === groupNode!.id)!;
   }
 
   // Tap Point + Spotlight (campaign) + TapCast variant stubs
@@ -729,20 +769,26 @@ export async function promoteWeeklySpecialMatrix(opts: {
   await persistCanvasDocument(sealed);
   await flushCanvasState(sealed.id);
 
-  const groupId =
-    typeof groupNode?.data?.prismaId === "string"
-      ? groupNode.data.prismaId
-      : groupNode?.linked?.id;
+  const resolvedGroup = sealed.nodes.find((n) => n.kind === "campaign_group");
+  const resolvedGroupId =
+    typeof resolvedGroup?.data?.prismaId === "string"
+      ? resolvedGroup.data.prismaId
+      : resolvedGroup?.linked?.id ?? groupId;
+  if (!resolvedGroupId) {
+    throw new Error(
+      "promote_weekly_matrix: campaign_group missing prisma id after promote — refusing silent ok"
+    );
+  }
 
   return {
     ok: true,
     canvas: sealed,
-    groupId,
+    groupId: resolvedGroupId,
     campaignIds: [
       spotlight.id,
-      ...((groupNode?.data?.scheduleCampaignIds as string[]) ?? []),
-      ...(typeof groupNode?.data?.fallbackCampaignId === "string"
-        ? [groupNode.data.fallbackCampaignId]
+      ...((resolvedGroup?.data?.scheduleCampaignIds as string[]) ?? []),
+      ...(typeof resolvedGroup?.data?.fallbackCampaignId === "string"
+        ? [resolvedGroup.data.fallbackCampaignId]
         : []),
     ],
     tapPointId: tapPoint.id,

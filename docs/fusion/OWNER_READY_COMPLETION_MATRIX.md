@@ -21,7 +21,7 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 
 | Pillar | % | Stage | Suite proof | Remaining blockers |
 |--------|---|-------|-------------|-------------------|
-| Public tap / distribution | 78% | IMPLEMENTED BUT NOT OWNER-READY | P-public-seed-tap + P-a11y/responsive-owner-gate | analytics, full gate, VoiceOver residual |
+| Public tap / distribution | 78% | IMPLEMENTED BUT NOT OWNER-READY | P-public-seed-tap + P-a11y/responsive-owner-gate | analytics, full gate, true VO/NVDA residual |
 | Campaign group schedule | 75% | IMPLEMENTED BUT NOT OWNER-READY | P-campaign-group-schedule | Studio time-travel UI, fallback |
 | Home / readiness honesty | 72% | IMPLEMENTED BUT NOT OWNER-READY | P-studio-home + a11y gate | decision queue |
 | Campaign builder | 60% | IMPLEMENTED BUT NOT OWNER-READY | P-16-editor; P-builder-save open | save/publish/assign/format matrix |
@@ -34,7 +34,7 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 | Inbox | 55% | IMPLEMENTED BUT NOT OWNER-READY | P-09 shell | reply/Guardian/TapCase |
 | Insights | 55% | IMPLEMENTED BUT NOT OWNER-READY | P-11 + export matrix | drill-down, provenance |
 | Platform Admin | 70% | IMPLEMENTED BUT NOT OWNER-READY | P-12 + killswitch matrix; P-keywords-*; P-tapcanvas-killswitch triad | expand disable→503→re-enable to remaining kill-switches |
-| Controls / responsive / a11y | 78% | IMPLEMENTED BUT NOT OWNER-READY | P-a11y-owner-gate + P-responsive-owner-gate | VoiceOver/NVDA spot-check, 200% zoom manual |
+| Controls / responsive / a11y | 82% | IMPLEMENTED BUT NOT OWNER-READY | P-a11y-owner-gate + P-responsive-owner-gate (SR-oriented + 200% CSS zoom) | true VoiceOver/NVDA, OS-native Cmd+ zoom |
 | Productivity & Work Mgmt | 70% | VERIFIED — CREDENTIALS REQUIRED (live) | P-productivity-* | live OAuth apps |
 | TapCanvas | 86% | IMPLEMENTED BUT NOT OWNER-READY | P-tapcanvas-* + P-a11y/responsive-owner-gate | VoiceOver residual, live TapCast publish, live OAuth |
 | TapCast · TikTok | 60% | VERIFIED — CREDENTIALS REQUIRED (live); mock persisted | P-tiktok-mock-persist | TIKTOK_* OAuth, Direct Post app review + prod approval (`PROVIDER_READINESS.md`) |
@@ -54,7 +54,7 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 
 1. Isolated DB healthy + seed — **done locally**
 2. Broader headed matrices — **done locally (63/63)**
-3. Clear ledger blockers only with proof (VoiceOver/NVDA, 200% zoom, remaining UI matrices)
+3. Clear ledger blockers only with proof (true VoiceOver/NVDA, OS-native zoom, remaining UI matrices)
 4. Dev credentials selectively (one provider at a time)
 5. Staging only when authorized — see `PRODUCTION_CUTOVER_CHECKLIST.md` §B
 

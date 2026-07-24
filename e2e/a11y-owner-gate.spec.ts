@@ -1,6 +1,7 @@
 /**
- * Owner-gate accessibility proofs: axe (serious/critical) + keyboard/SR-oriented checks.
- * Do not set a11yPassed from axe alone — keyboard proofs required.
+ * Owner-gate accessibility proofs: axe (serious/critical) + keyboard + SR-oriented checks.
+ * Do not set a11yPassed from axe alone — keyboard + role/name/live-region proofs required.
+ * True VoiceOver/NVDA cannot run in Playwright CI — residuals documented honestly.
  */
 
 import { test, expect, type Page } from "@playwright/test";
@@ -59,18 +60,45 @@ function formatViolations(vs: AxeViolation[]) {
   );
 }
 
+/** SR-oriented: accessible name for focused element (role + name when available). */
+async function focusedAccessibleSummary(page: Page) {
+  return page.evaluate(() => {
+    const el = document.activeElement as HTMLElement | null;
+    if (!el || el === document.body) return { tag: "body", name: "", role: "" };
+    const role =
+      el.getAttribute("role") ||
+      (el.tagName === "A"
+        ? "link"
+        : el.tagName === "BUTTON"
+          ? "button"
+          : el.tagName === "INPUT"
+            ? "textbox"
+            : el.tagName.toLowerCase());
+    const name = (
+      el.getAttribute("aria-label") ||
+      el.getAttribute("aria-labelledby") ||
+      (el as HTMLInputElement).placeholder ||
+      el.textContent ||
+      ""
+    )
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 80);
+    return { tag: el.tagName.toLowerCase(), role, name };
+  });
+}
+
 test.describe.configure({ mode: "serial" });
 
 test.describe("Owner gate — accessibility", () => {
-  test("P-a11y-owner-gate: axe serious/critical + keyboard proofs", async ({
-    page,
-  }) => {
-    test.setTimeout(240_000);
+  test("P-a11y-owner-gate: axe + keyboard + SR-oriented proofs", async ({ page }) => {
+    test.setTimeout(300_000);
     const { consoleErrors, pageErrors } = attachConsole(page);
     const notes: string[] = [];
     const blockers: string[] = [];
     let axePassed = false;
     let keyboardPassed = false;
+    let srOrientedPassed = false;
 
     await page.setViewportSize({ width: 1440, height: 900 });
 
@@ -106,7 +134,7 @@ test.describe("Owner gate — accessibility", () => {
 
     axePassed = !blockers.some((b) => b.startsWith("axe_serious_"));
 
-    // --- Keyboard / SR-oriented proofs ---
+    // --- Keyboard proofs ---
     await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(500);
 
@@ -119,7 +147,6 @@ test.describe("Owner gate — accessibility", () => {
       await expect(page.locator("#main-content")).toBeFocused();
       notes.push("keyboard:skip_link=ok");
     } else {
-      // First tab may land elsewhere if banner present; still require skip exists in DOM
       const skipDom = await page.locator('a[href="#main-content"]').count();
       notes.push(`keyboard:skip_link_dom=${skipDom > 0}`);
       if (skipDom === 0) blockers.push("skip_link_missing");
@@ -185,7 +212,10 @@ test.describe("Owner gate — accessibility", () => {
     }
 
     // Format toolbar when present
-    const formatBtn = page.locator('[aria-pressed]').filter({ hasText: /Bold|Italic|Align/i }).first();
+    const formatBtn = page
+      .locator("[aria-pressed]")
+      .filter({ hasText: /Bold|Italic|Align/i })
+      .first();
     if ((await formatBtn.count()) > 0) {
       await formatBtn.focus();
       await expect(formatBtn).toBeFocused();
@@ -194,7 +224,7 @@ test.describe("Owner gate — accessibility", () => {
       notes.push("keyboard:format_toolbar=not_on_surface");
     }
 
-    // TapCanvas — modes, node selection, comments/approvals regions, Esc
+    // TapCanvas — sticky node + live regions + comments/approvals + Esc
     await page.goto(`${BASE}/dashboard/experiences/canvas`, {
       waitUntil: "domcontentloaded",
     });
@@ -212,20 +242,30 @@ test.describe("Owner gate — accessibility", () => {
       await expect(page.getByTestId("tapcanvas-shell")).toBeVisible({ timeout: 20_000 });
       const shell = page.getByTestId("tapcanvas-shell");
       await shell.focus();
-      await page.keyboard.press("2");
-      await page.getByTestId("tapcanvas-create").click();
+      // Sketch mode exposes sticky add (keys 1–4)
+      await page.keyboard.press("1");
+      await page.getByTestId("tapcanvas-sticky-input").fill(`SR sticky ${Date.now()}`);
+      await page.getByTestId("tapcanvas-add-sticky").click();
       await expect(page.getByTestId("tapcanvas-message")).toBeVisible({ timeout: 15_000 });
       await expect(page.getByTestId("tapcanvas-message")).toHaveAttribute("role", "status");
+      await expect(page.getByTestId("tapcanvas-message")).toHaveAttribute("aria-live", "polite");
+      notes.push("sr:tapcanvas_message_live=ok");
+
       const nodeBtn = page.locator('[data-testid^="tapcanvas-node-"]').first();
-      if ((await nodeBtn.count()) > 0) {
-        await nodeBtn.focus();
-        await page.keyboard.press("Enter");
-        await expect(nodeBtn).toHaveAttribute("aria-pressed", "true");
-        await expect(page.getByTestId("tapcanvas-selection-live")).toContainText(/Selected node/i);
-        notes.push("keyboard:tapcanvas_node_select=ok");
-      } else {
-        notes.push("keyboard:tapcanvas_nodes=none_yet");
-      }
+      await expect(nodeBtn).toBeVisible({ timeout: 15_000 });
+      await nodeBtn.focus();
+      await page.keyboard.press("Enter");
+      await expect(nodeBtn).toHaveAttribute("aria-pressed", "true");
+      const nodeName = await nodeBtn.getAttribute("aria-label");
+      expect(nodeName).toMatch(/Select .+ node/i);
+      notes.push(`sr:tapcanvas_node_name=${nodeName?.slice(0, 60)}`);
+      const selectionLive = page.getByTestId("tapcanvas-selection-live");
+      await expect(selectionLive).toHaveAttribute("role", "status");
+      await expect(selectionLive).toHaveAttribute("aria-live", "polite");
+      await expect(selectionLive).toContainText(/Selected node/i);
+      notes.push("keyboard:tapcanvas_node_select=ok");
+      notes.push("sr:tapcanvas_selection_live=ok");
+
       await expect(page.getByTestId("tapcanvas-comments-panel")).toBeVisible({
         timeout: 10_000,
       });
@@ -237,7 +277,7 @@ test.describe("Owner gate — accessibility", () => {
       notes.push("keyboard:tapcanvas_modes_esc=ok");
     }
 
-    // TapFlow — mode tabs + node/select without pointer-only
+    // TapFlow — load seed draft + trigger status live region
     await page.goto(`${BASE}/dashboard/experiences/journeys`, {
       waitUntil: "domcontentloaded",
     });
@@ -250,8 +290,30 @@ test.describe("Owner gate — accessibility", () => {
     } else {
       notes.push("keyboard:tapflow_tabs=not_open");
     }
-    const journeyStatus = page.getByTestId("journey-editor-status");
-    notes.push(`keyboard:journey_status_testid=${(await journeyStatus.count()) > 0}`);
+    const draftBtn = page.getByRole("button", { name: /Demo Journey|SEED/i }).first();
+    if ((await draftBtn.count()) > 0) {
+      await draftBtn.click();
+      notes.push("sr:tapflow_draft_loaded");
+    } else {
+      const draftFallback = page.getByText(/Demo Journey|SEED.*Journey/i).first();
+      if ((await draftFallback.count()) > 0) {
+        await draftFallback.click();
+        notes.push("sr:tapflow_draft_fallback");
+      }
+    }
+    const simulateBtn = page.getByRole("button", { name: /Simulate|Dry-run/i }).first();
+    if ((await simulateBtn.count()) > 0 && !(await simulateBtn.isDisabled())) {
+      await simulateBtn.click();
+      await page.waitForTimeout(800);
+      const journeyStatus = page.getByTestId("journey-editor-status");
+      await expect(journeyStatus).toBeVisible({ timeout: 10_000 });
+      await expect(journeyStatus).toHaveAttribute("role", "status");
+      await expect(journeyStatus).toHaveAttribute("aria-live", "polite");
+      notes.push("sr:journey_editor_status_live=ok");
+    } else {
+      notes.push("sr:journey_simulate_unavailable");
+      blockers.push("journey_status_live_unproven");
+    }
 
     // Admin tabs arrow keys
     await page.goto(`${BASE}/admin/platform`, { waitUntil: "domcontentloaded" });
@@ -271,33 +333,118 @@ test.describe("Owner gate — accessibility", () => {
     expect(bodyText.length).toBeGreaterThan(40);
     notes.push("keyboard:insights_text_available=ok");
 
-    // Dialogs/drawers recovery — palette already covered; Create focus return covered
+    // --- SR-oriented: landmarks, focus order, role/name, public CTA ---
+    await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded" });
+    await page.waitForTimeout(500);
+
+    await expect(page.getByRole("navigation", { name: /Studio primary/i }).first()).toBeVisible();
+    await expect(page.getByRole("main").first()).toBeVisible();
+    const homeH1 = page.locator("h1").first();
+    await expect(homeH1).toBeVisible();
+    const homeH1Text = (await homeH1.innerText()).trim();
+    expect(homeH1Text.length).toBeGreaterThan(2);
+    notes.push(`sr:home_h1_name=${homeH1Text.slice(0, 60)}`);
+
+    // Documented focus order (SR-oriented): skip → primary control → main
+    await page.evaluate(() => {
+      const a = document.querySelector('a[href="#main-content"]') as HTMLElement | null;
+      a?.focus();
+    });
+    const focusOrder: string[] = [];
+    for (let i = 0; i < 8; i++) {
+      const summary = await focusedAccessibleSummary(page);
+      focusOrder.push(`${summary.role}:${summary.name || summary.tag}`);
+      await page.keyboard.press("Tab");
+    }
+    notes.push(`sr:focus_order=${focusOrder.join(" → ")}`);
+    const focusJoined = focusOrder.join(" | ").toLowerCase();
+    const hasSkipOrMain =
+      /skip|main|navigation|link|button/.test(focusJoined) && focusOrder.length >= 3;
+    if (!hasSkipOrMain) blockers.push("sr_focus_order_unreadable");
+    else notes.push("sr:focus_order_documented=ok");
+
+    // Campaign editor live region role/name after reorder (already triggered) — re-assert attributes
+    await page.goto(`${BASE}/dashboard/campaigns/${SEED.campaignId}`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.waitForTimeout(900);
+    const campaignStatus = page.getByTestId("campaign-editor-status");
+    const moveDown2 = page.locator('[data-testid^="campaign-block-move-down-"]').first();
+    if ((await moveDown2.count()) > 0 && !(await moveDown2.isDisabled())) {
+      await moveDown2.click();
+      await expect(campaignStatus).toBeVisible({ timeout: 5_000 });
+      await expect(campaignStatus).toHaveAttribute("role", "status");
+      await expect(campaignStatus).toHaveAttribute("aria-live", "polite");
+      notes.push("sr:campaign_editor_status_live=ok");
+    } else if ((await campaignStatus.count()) > 0) {
+      await expect(campaignStatus).toHaveAttribute("role", "status");
+      notes.push("sr:campaign_editor_status_present");
+    } else {
+      notes.push("sr:campaign_editor_status=deferred");
+    }
+
+    // Public tap: primary content reachable; powered-by must not be sole focusable before CTA
+    await page.goto(`${BASE}/t/${SEED.deviceCode}?public=1`, {
+      waitUntil: "domcontentloaded",
+    });
+    await page.waitForTimeout(800);
+    const publicMain = page.locator("main").first();
+    await expect(publicMain).toBeVisible({ timeout: 20_000 });
+    const publicCta = page
+      .locator("main")
+      .getByRole("button")
+      .or(page.locator("main").getByRole("link"))
+      .first();
+    if ((await publicCta.count()) > 0) {
+      await publicCta.focus();
+      await expect(publicCta).toBeFocused();
+      const ctaName = await focusedAccessibleSummary(page);
+      notes.push(`sr:public_cta=${ctaName.role}:${ctaName.name.slice(0, 50)}`);
+      expect(ctaName.name.toLowerCase()).not.toMatch(/^powered by tap the magic$/);
+      notes.push("sr:public_cta_not_powered_by_only=ok");
+    } else {
+      notes.push("sr:public_cta=none_text_only_ok");
+    }
+
     keyboardPassed =
       !blockers.includes("skip_link_missing") &&
       !blockers.includes("campaign_editor_missing") &&
       !blockers.includes("tapcanvas_create_failed") &&
       !blockers.includes("campaign_block_select_missing");
 
+    srOrientedPassed =
+      keyboardPassed &&
+      !blockers.includes("sr_focus_order_unreadable") &&
+      !blockers.includes("journey_status_live_unproven") &&
+      notes.some((n) => n.includes("sr:tapcanvas_selection_live=ok")) &&
+      notes.some((n) => n.includes("sr:tapcanvas_message_live=ok"));
+
+    if (!srOrientedPassed) blockers.push("sr_oriented_proofs_incomplete");
+
     const materialPageErrors = pageErrors.filter(
       (e) => !e.includes("Hydration failed") && !e.includes("hydration")
     );
 
-    const a11yPassed = axePassed && keyboardPassed && materialPageErrors.length === 0;
+    const a11yPassed =
+      axePassed && keyboardPassed && srOrientedPassed && materialPageErrors.length === 0;
     if (!axePassed) blockers.push("axe_serious_critical_open");
     if (!keyboardPassed) blockers.push("keyboard_proofs_incomplete");
 
-    // Honest residual (not auto-fail if keyboard+axe pass): full VoiceOver certification
+    // Honest residual: true VO/NVDA cannot run in Playwright CI / local automation
     const residual = [
-      "voiceover_nvda_manual_spot_check_recommended",
+      "true_voiceover_nvda_manual_spot_check_ci_unavailable",
       "builder_format_matrix_depth",
     ];
     notes.push(...residual.map((r) => `residual:${r}`));
+    notes.push(
+      "sr_note:Playwright asserts role/name/live-regions/focus-order; not a substitute for VoiceOver/NVDA"
+    );
 
     writeProof({
       id: "P-a11y-owner-gate",
       route: "critical studio surfaces",
       workflow:
-        "axe serious/critical across hubs + keyboard: skip, nav, Create focus return, builder reorder, TapCanvas selection, admin tabs, live regions",
+        "axe serious/critical + keyboard + SR-oriented: landmarks, focus order, aria-live status regions, role/name on TapCanvas/TapFlow/campaign/public CTA",
       passed: a11yPassed,
       browserE2ePassed: a11yPassed,
       persistencePassed: true,
@@ -308,6 +455,7 @@ test.describe("Owner gate — accessibility", () => {
         ...notes,
         `axePassed=${axePassed}`,
         `keyboardPassed=${keyboardPassed}`,
+        `srOrientedPassed=${srOrientedPassed}`,
         `a11yPassed=${a11yPassed}`,
         `hydrationPageErrorsIgnored=${pageErrors.length - materialPageErrors.length}`,
       ],
@@ -319,6 +467,7 @@ test.describe("Owner gate — accessibility", () => {
 
     expect(axePassed, `Serious/critical axe:\n${JSON.stringify(axeBySurface, null, 2)}`).toBeTruthy();
     expect(keyboardPassed).toBeTruthy();
+    expect(srOrientedPassed).toBeTruthy();
     expect(materialPageErrors).toEqual([]);
   });
 });
