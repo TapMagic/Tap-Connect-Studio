@@ -25,6 +25,7 @@ export type CanvasObjectKind =
   | "funnel_step"
   | "deployment_slot"
   | "tiktok_cast"
+  | "channel_variant"
   | "unknown";
 
 /** Sketch-only kinds never execute until promoted */
@@ -118,6 +119,7 @@ export type TapCanvas = {
   version: number;
   createdAt: string;
   updatedAt: string;
+  archivedAt?: string | null;
 };
 
 export type PromotionWarning = {

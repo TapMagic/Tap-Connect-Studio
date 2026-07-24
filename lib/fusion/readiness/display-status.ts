@@ -234,40 +234,77 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcanvas",
-    persistencePassed: false,
-    browserE2ePassed: false,
+    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    persistencePassed: true,
+    browserE2ePassed: true,
     notes:
-      "TapCanvas wired locally (in-memory graph). Sketch/promote/operate/analyze + ExternalWorkItem nodes. Not OWNER-READY.",
+      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. P-tapcanvas-persist + P-tapcanvas-campaigns (e2e/tapcanvas-tiktok.spec.ts). Guided Simple Campaign + Weekly Specials. Classification: IMPLEMENTED BUT NOT OWNER-READY (promotion matrix / a11y incomplete).",
     blockers: [
-      "prisma_persistence",
-      "browser_e2e_headed",
       "full_promotion_matrix",
       "a11y_headed_pass",
+      "full_tapflow_in_canvas",
+      "not_owner_ready",
     ],
-    nextAction: "Persist canvas versions via Prisma; headed Sketch→Build→Operate proof",
+    nextAction: "Complete Sketch→Build→Operate headed matrix; clear remaining UX blockers",
   },
   {
     sectionId: "tapcast",
-    persistencePassed: false,
-    browserE2ePassed: false,
-    notes: "TapCast hub points at TikTok first-class route",
-    blockers: ["browser_e2e_headed"],
-    nextAction: "Headed TapCast hub navigation",
+    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    persistencePassed: true,
+    browserE2ePassed: true,
+    notes:
+      "P-tapcast-registry/multi-variant/admin: Omnichannel hub + capability registry + campaign variants + failure isolation. IMPLEMENTED BUT NOT OWNER-READY. Live = VERIFIED — CREDENTIALS REQUIRED. Prisma when isolated DB.",
+    blockers: [
+      "live_provider_credentials",
+      "owner_certification_matrix",
+      "not_owner_ready",
+    ],
+    nextAction: "Supply live credentials per channel; owner certify publish paths",
   },
   {
     sectionId: "tapcast_tiktok",
-    persistencePassed: false,
-    browserE2ePassed: false,
+    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    persistencePassed: true,
+    browserE2ePassed: true,
     missingEnvVars: ["TIKTOK_CLIENT_KEY", "TIKTOK_CLIENT_SECRET"],
     notes:
-      "TikTok TapCast mock workflow wired. Live Direct Post = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY.",
+      "P-tiktok-mock-persist + P-tapcast-tiktok-coexist: mock draft/direct-post/retry/funnel + coexistence with omnichannel registry. Live Direct Post = VERIFIED — CREDENTIALS REQUIRED. Not OWNER-READY.",
     blockers: [
       "tiktok_oauth_credentials",
       "direct_post_token",
-      "browser_e2e_headed",
-      "prisma_persistence",
+      "not_owner_ready",
     ],
-    nextAction: "Supply TIKTOK_* credentials; prove mock funnel then gated live post",
+    nextAction: "Supply TIKTOK_* credentials; certify live Direct Post after mock path",
+  },
+  {
+    sectionId: "tapcast_omnichannel",
+    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    persistencePassed: true,
+    browserE2ePassed: true,
+    notes:
+      "P-tapcast-*: Channel registry (18), mock adapters, campaign variants, failure isolation, TapCanvas distribution hooks, Admin panel. IMPLEMENTED BUT NOT OWNER-READY / VERIFIED — CREDENTIALS REQUIRED.",
+    blockers: [
+      "live_oauth_per_channel",
+      "owner_ready_gate",
+    ],
+    nextAction: "Live OAuth apps one channel at a time; never OWNER-READY without credentials",
+  },
+  {
+    sectionId: "keywords_brand_pack",
+    lastVerifiedAt: undefined,
+    browserE2ePassed: false,
+    persistencePassed: false,
+    notes:
+      "Contextual AI Keywords & Hashtags + Brand Pack wired (ai.keywords). Live trend enrichment = VERIFIED — CREDENTIALS REQUIRED. Proof: e2e/keywords-brand-pack.spec.ts",
+    blockers: [
+      "headed_proof_pending",
+      "live_trend_provider",
+      "a11y_headed_pass",
+      "multi_surface_apply_matrix",
+    ],
+    missingProviders: ["approved_trend_provider"],
+    nextAction:
+      "Run headed Brand Kit suggest→accept→persist proof; never claim trending without approved provider",
   },
 ];
 
@@ -278,6 +315,7 @@ const CREDENTIAL_FEATURES = new Set<string>([
   "comms.messaging",
   "ai.autopilot",
   "tapcast.tiktok",
+  "tapcast.omnichannel",
 ]);
 
 function featureDef(id?: string) {

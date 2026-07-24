@@ -5,6 +5,7 @@ import { Check, Circle, ExternalLink } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ProductivityWorkPanel } from "@/components/fusion/connectors/productivity-work-panel";
+import { TapCastChannelsPanelServer } from "@/components/fusion/tapcast/tapcast-channels-panel-server";
 
 export default function IntegrationsPage() {
   const configured = getConfiguredCount();
@@ -33,6 +34,10 @@ export default function IntegrationsPage() {
           VERIFIED — CREDENTIALS REQUIRED (live)
         </p>
         <ProductivityWorkPanel />
+      </section>
+
+      <section id="tapcast-channels" className="scroll-mt-24 space-y-3">
+        <TapCastChannelsPanelServer />
       </section>
 
       <Card className="border-primary/20 bg-primary/5">

@@ -210,6 +210,18 @@ model Business {
   loyaltyPrograms LoyaltyProgram[]
   loyaltyEnrollments LoyaltyEnrollment[]
   loyaltyLedgerEntries LoyaltyLedgerEntry[]
+  tapCanvasDocuments TapCanvasDocument[]
+  tikTokCasts TikTokCast[]
+  tikTokConnection TikTokConnection?
+  tikTokAuditLogs TikTokAuditLog[]
+  tapCastChannelVariants TapCastChannelVariant[]
+  tapCastChannelConnections TapCastChannelConnection[]
+  tapCastAuditLogs TapCastAuditLog[]
+  brandVocabularyTerms BrandVocabularyTerm[]
+  brandVocabularyPacks BrandVocabularyPack[]
+  vocabularySuggestionRuns VocabularySuggestionRun[]
+  vocabularyAnalyticsEvents VocabularyAnalyticsEvent[]
+  vocabularyTriggerBindings VocabularyTriggerBinding[]
 }
 
 model BusinessUser {
@@ -270,6 +282,8 @@ model BrandKit {
   otherLinks       Json        @default("[]")
   /** Tap Connect Card layout — flexible digital business card */
   tapCard          Json        @default("{}")
+  /** Legacy keyword Brand Pack JSON — mirrored from BrandVocabularyTerm for compatibility */
+  keywordBrandPack Json        @default("{}")
   /** Last / default library icon selected in the Brand Kit IconPicker */
   iconName         String?
   /** Hex color for the Brand Kit default icon */
@@ -279,6 +293,8 @@ model BrandKit {
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   links    BrandLink[]
+  vocabularyTerms BrandVocabularyTerm[]
+  vocabularyPacks BrandVocabularyPack[]
 }
 
 /** Normalized brand / social / custom links with persisted icon + color */
@@ -1263,4 +1279,568 @@ model LoyaltyLedgerEntry {
   @@index([programId, createdAt])
   @@index([contactId, createdAt])
   @@index([reversesEntryId])
+}
+
+// ─── TapCanvas (persisted visual operating environment) ───────────────────────
+
+enum TapCanvasMode {
+  sketch
+  build
+  operate
+  analyze
+}
+
+enum CanvasProposalStatus {
+  pending
+  accepted
+  rejected
+  previewed
+}
+
+enum CanvasApprovalStatus {
+  pending
+  approved
+  rejected
+  invalidated
+}
+
+model TapCanvasDocument {
+  id          String        @id @default(cuid())
+  businessId  String
+  name        String
+  mode        TapCanvasMode @default(sketch)
+  version     Int           @default(1)
+  /** Authoritative graph: { nodes, edges } */
+  graph       Json          @default("{\"nodes\":[],\"edges\":[]}")
+  /** comments, overlays, issues cache, permissions, collaboration */
+  metadata    Json          @default("{}")
+  archivedAt  DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  business     Business                          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  versions     CanvasVersionRecord[]
+  items        CanvasItem[]
+  connectors   CanvasConnector[]
+  frames       CanvasFrame[]
+  comments     CanvasComment[]
+  bindings     CanvasObjectBinding[]
+  proposals    CanvasProposal[]
+  approvals    CanvasApproval[]
+  overlays     CanvasExecutionOverlay[]
+  issues       CanvasIssue[]
+  ewiProjections CanvasExternalWorkItemProjection[]
+  auditLogs    CanvasAuditLog[]
+
+  @@index([businessId, updatedAt])
+  @@index([businessId, archivedAt])
+}
+
+model CanvasVersionRecord {
+  id         String   @id @default(cuid())
+  documentId String
+  version    Int
+  label      String
+  snapshot   Json
+  createdBy  String?
+  createdAt  DateTime @default(now())
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+  @@index([documentId, createdAt])
+}
+
+model CanvasItem {
+  id         String   @id @default(cuid())
+  documentId String
+  nodeId     String
+  kind       String
+  label      String
+  x          Float    @default(0)
+  y          Float    @default(0)
+  width      Float?
+  height     Float?
+  sketch     Boolean  @default(false)
+  data       Json     @default("{}")
+  liveStatus String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, nodeId])
+  @@index([documentId, kind])
+}
+
+model CanvasConnector {
+  id         String   @id @default(cuid())
+  documentId String
+  edgeId     String
+  source     String
+  target     String
+  label      String?
+  kind       String   @default("flow")
+  sketch     Boolean  @default(false)
+  data       Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, edgeId])
+  @@index([documentId])
+}
+
+model CanvasFrame {
+  id         String   @id @default(cuid())
+  documentId String
+  nodeId     String
+  label      String
+  x          Float    @default(0)
+  y          Float    @default(0)
+  width      Float    @default(320)
+  height     Float    @default(200)
+  data       Json     @default("{}")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, nodeId])
+}
+
+model CanvasComment {
+  id         String   @id @default(cuid())
+  documentId String
+  nodeId     String?
+  body       String
+  authorId   String?
+  mentionIds Json     @default("[]")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
+}
+
+model CanvasObjectBinding {
+  id         String   @id @default(cuid())
+  documentId String
+  nodeId     String
+  objectType String
+  objectId   String
+  provider   String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, nodeId])
+  @@index([objectType, objectId])
+  @@index([documentId])
+}
+
+model CanvasProposal {
+  id            String               @id @default(cuid())
+  documentId    String
+  title         String
+  description   String
+  severity      String               @default("info")
+  status        CanvasProposalStatus @default(pending)
+  proposedPatch Json                 @default("{}")
+  evidence      Json                 @default("[]")
+  confidence    Float                @default(0.5)
+  resolvedAt    DateTime?
+  createdAt     DateTime             @default(now())
+  updatedAt     DateTime             @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, status])
+}
+
+model CanvasApproval {
+  id           String               @id @default(cuid())
+  documentId   String
+  subjectType  String
+  subjectId    String
+  status       CanvasApprovalStatus @default(pending)
+  workItemId   String?
+  decidedAt    DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, status])
+}
+
+model CanvasExecutionOverlay {
+  id         String   @id @default(cuid())
+  documentId String
+  snapshot   Json     @default("{}")
+  capturedAt DateTime @default(now())
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, capturedAt])
+}
+
+model CanvasIssue {
+  id          String   @id @default(cuid())
+  documentId  String
+  code        String
+  severity    String   @default("warn")
+  message     String
+  nodeId      String?
+  evidence    Json     @default("{}")
+  resolved    Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, resolved])
+}
+
+model CanvasExternalWorkItemProjection {
+  id               String   @id @default(cuid())
+  documentId       String
+  nodeId           String
+  workItemId       String
+  provider         String
+  externalId       String?
+  title            String
+  status           String?
+  syncStatus       String?
+  lastSyncedAt     DateTime?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, nodeId])
+  @@index([workItemId])
+}
+
+model CanvasAuditLog {
+  id         String   @id @default(cuid())
+  documentId String
+  action     String
+  detail     Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId, createdAt])
+}
+
+// ─── TikTok TapCast (persisted; live post = CREDENTIALS REQUIRED) ─────────────
+
+model TikTokCast {
+  id               String   @id @default(cuid())
+  businessId       String
+  title            String
+  status           String   @default("draft")
+  payload          Json     @default("{}")
+  campaignId       String?
+  cardId           String?
+  tapPointId       String?
+  scheduledAt      DateTime?
+  publishedAt      DateTime?
+  externalDraftId  String?
+  externalPostId   String?
+  lastError        String?
+  retryCount       Int      @default(0)
+  mode             String   @default("mock")
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, updatedAt])
+  @@index([businessId, status])
+}
+
+model TikTokConnection {
+  businessId  String   @id
+  mode        String   @default("mock")
+  capabilities Json    @default("[]")
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+}
+
+model TikTokAuditLog {
+  id         String   @id @default(cuid())
+  businessId String
+  castId     String?
+  action     String
+  detail     Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+}
+
+// ─── Omnichannel TapCast (campaign channel variants; live = CREDENTIALS REQUIRED) ─
+
+model TapCastChannelVariant {
+  id               String    @id @default(cuid())
+  businessId       String
+  campaignId       String
+  channelId        String
+  title            String
+  status           String    @default("draft")
+  payload          Json      @default("{}")
+  scheduledAt      DateTime?
+  publishedAt      DateTime?
+  externalDraftId  String?
+  externalPostId   String?
+  lastError        String?
+  retryCount       Int       @default(0)
+  mode             String    @default("mock")
+  tikTokCastId     String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, campaignId])
+  @@index([businessId, channelId, updatedAt])
+  @@index([businessId, status])
+}
+
+model TapCastChannelConnection {
+  businessId  String
+  channelId   String
+  mode        String   @default("mock")
+  health      String   @default("healthy")
+  connectedAt DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@id([businessId, channelId])
+  @@index([businessId, updatedAt])
+}
+
+model TapCastAuditLog {
+  id         String   @id @default(cuid())
+  businessId String
+  channelId  String?
+  variantId  String?
+  action     String
+  detail     Json     @default("{}")
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+}
+
+// ─── Brand vocabulary / AI Keywords (canonical shared system) ────────────────
+
+enum VocabularyTermKind {
+  KEYWORD
+  HASHTAG
+  BRANDED_HASHTAG
+  LOCAL_TERM
+  AUDIENCE_TERM
+  INTENT_TERM
+  SEO_PHRASE
+  TITLE_PHRASE
+  CAPTION_PHRASE
+  COMMENT_TRIGGER
+  DM_TRIGGER
+  SYNONYM
+  MISSPELLING
+  INTERNAL_TAG
+  REQUIRED_TERM
+  EXCLUDED_TERM
+  COMPETITOR_EXCLUSION
+}
+
+enum VocabularyApprovalStatus {
+  SUGGESTED
+  PENDING
+  APPROVED
+  REJECTED
+  ARCHIVED
+}
+
+enum VocabularyScope {
+  WORKSPACE
+  BUSINESS
+  LOCATION
+  CAMPAIGN
+  BRAND_PACK
+  CHANNEL
+}
+
+enum VocabularySourceType {
+  BRAND_KIT
+  MANUAL
+  GROUNDED_SUGGEST
+  AUTOPILOT
+  IMPORT
+  PERFORMANCE_STUB
+  LEGACY_JSON
+}
+
+model BrandVocabularyTerm {
+  id              String                   @id @default(cuid())
+  businessId      String
+  brandKitId      String?
+  kind            VocabularyTermKind
+  value           String
+  normalizedValue String
+  locale          String                   @default("en")
+  scope           VocabularyScope          @default(BUSINESS)
+  approvalStatus  VocabularyApprovalStatus @default(SUGGESTED)
+  sourceType      VocabularySourceType     @default(MANUAL)
+  sourceReference String?
+  rationale       String?
+  confidence      Float?
+  locked          Boolean                  @default(false)
+  active          Boolean                  @default(true)
+  channels        Json                     @default("[]")
+  locationId      String?
+  campaignId      String?
+  capitalization  String?
+  reviewAt        DateTime?
+  expiresAt       DateTime?
+  createdBy       String?
+  approvedBy      String?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+  archivedAt      DateTime?
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  brandKit BrandKit? @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
+  packMembers BrandVocabularyPackMember[]
+  triggerBindings VocabularyTriggerBinding[]
+
+  @@unique([businessId, kind, normalizedValue, scope])
+  @@index([businessId, approvalStatus, active])
+  @@index([businessId, kind])
+  @@index([brandKitId])
+  @@index([campaignId])
+}
+
+model BrandVocabularyPack {
+  id             String    @id @default(cuid())
+  businessId     String
+  brandKitId     String?
+  slug           String
+  name           String
+  description    String?
+  locale         String    @default("en")
+  channels       Json      @default("[]")
+  version        Int       @default(1)
+  approved       Boolean   @default(false)
+  archivedAt     DateTime?
+  createdBy      String?
+  updatedBy      String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  brandKit BrandKit? @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
+  members  BrandVocabularyPackMember[]
+
+  @@unique([businessId, slug])
+  @@index([businessId, archivedAt])
+}
+
+model BrandVocabularyPackMember {
+  id        String   @id @default(cuid())
+  packId    String
+  termId    String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  pack BrandVocabularyPack @relation(fields: [packId], references: [id], onDelete: Cascade)
+  term BrandVocabularyTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
+
+  @@unique([packId, termId])
+  @@index([termId])
+}
+
+model VocabularySuggestionRun {
+  id                  String   @id @default(cuid())
+  businessId          String
+  channel             String?
+  campaignId          String?
+  surface             String?
+  requestContext      Json     @default("{}")
+  generated           Json     @default("[]")
+  selected            Json     @default("[]")
+  rejected            Json     @default("[]")
+  appliedDestination  String?
+  modelProvider       String   @default("local_grounded")
+  recipeVersion       String   @default("keywords.v1")
+  costCents           Int      @default(0)
+  evidenceClass       String   @default("modeled")
+  actorId             String?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, createdAt])
+  @@index([businessId, channel])
+  @@index([campaignId])
+}
+
+model VocabularyAnalyticsEvent {
+  id         String   @id @default(cuid())
+  businessId String
+  event      String
+  count      Int      @default(1)
+  channel    String?
+  campaignId String?
+  families   Json     @default("[]")
+  detail     Json     @default("{}")
+  /** Always counts_only_no_causal_claim — never interpret as lift */
+  disclaimer String   @default("counts_only_no_causal_claim")
+  actorId    String?
+  createdAt  DateTime @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, event, createdAt])
+  @@index([businessId, channel])
+}
+
+/** Active conversational trigger bindings — collisions detected within scope */
+model VocabularyTriggerBinding {
+  id              String    @id @default(cuid())
+  businessId      String
+  termId          String?
+  flowId          String
+  flowLabel       String?
+  matchMode       String    @default("contains")
+  canonicalValue  String
+  normalizedValue String
+  channel         String    @default("tapcanvas")
+  locationId      String?
+  campaignId      String?
+  active          Boolean   @default(true)
+  activeFrom      DateTime?
+  activeTo        DateTime?
+  fallbackNote    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  business Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  term     BrandVocabularyTerm? @relation(fields: [termId], references: [id], onDelete: SetNull)
+
+  @@unique([businessId, normalizedValue, channel, flowId])
+  @@index([businessId, normalizedValue, channel, active])
+  @@index([flowId])
 }

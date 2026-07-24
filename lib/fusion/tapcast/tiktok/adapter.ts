@@ -6,13 +6,13 @@
 import { nanoid } from "nanoid";
 import { evaluateTikTokReadiness } from "./readiness";
 import {
-  appendTikTokAudit,
   getCast,
   getTikTokConnection,
   listCasts,
   setTikTokConnection,
   upsertCast,
 } from "./store";
+import { persistTikTokAudit, persistTikTokCast, persistTikTokConnection } from "./persist";
 import type {
   TikTokAdaptation,
   TikTokAdapterResult,
@@ -33,6 +33,35 @@ const DEFAULT_COMPOSITION: TikTokComposition = {
 
 function now() {
   return new Date().toISOString();
+}
+
+let pendingPersists: Promise<unknown>[] = [];
+
+function trackPersist(p: Promise<unknown>) {
+  const guarded = p.catch(() => undefined);
+  pendingPersists.push(guarded);
+}
+
+function saveCast(cast: TikTokCast): TikTokCast {
+  upsertCast(cast);
+  trackPersist(persistTikTokCast(cast));
+  return cast;
+}
+
+function audit(entry: {
+  businessId: string;
+  castId?: string;
+  action: string;
+  detail?: Record<string, unknown>;
+}) {
+  trackPersist(persistTikTokAudit(entry));
+}
+
+/** Await durable writes so API reopen/hydrate sees Prisma rows. */
+export async function flushTikTokPersists(): Promise<void> {
+  const batch = pendingPersists;
+  pendingPersists = [];
+  await Promise.all(batch);
 }
 
 function defaultFunnel(opts?: {
@@ -64,7 +93,15 @@ export function connectTikTok(opts: {
   const mode =
     opts.preferLive && readiness.liveConfigured ? "live" : "mock";
   setTikTokConnection(opts.businessId, mode);
-  appendTikTokAudit({
+  trackPersist(
+    persistTikTokConnection(opts.businessId, mode, [
+      "draft_upload",
+      "direct_post_gated",
+      "9:16",
+      "carousel",
+    ])
+  );
+  audit({
     businessId: opts.businessId,
     action: "tiktok.connected",
     detail: { mode, liveConfigured: readiness.liveConfigured },
@@ -116,8 +153,8 @@ export function createTikTokCast(opts: {
     createdAt: now(),
     updatedAt: now(),
   };
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: opts.businessId,
     castId: cast.id,
     action: "tiktok.cast_created",
@@ -150,8 +187,8 @@ export function updateTikTokStoryboard(
   }));
   cast.status = "storyboard";
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.storyboard_updated",
@@ -176,8 +213,8 @@ export function composeTikTok916(
   cast.coverNote = opts.coverNote ?? cast.coverNote;
   cast.status = "composed";
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.composed_9_16",
@@ -196,7 +233,7 @@ export function setTikTokCaption(
   cast.caption = caption;
   if (hashtags) cast.hashtags = hashtags;
   cast.updatedAt = now();
-  upsertCast(cast);
+  saveCast(cast);
   return { ok: true, data: cast, mode: cast.mode };
 }
 
@@ -210,8 +247,8 @@ export function uploadTikTokDraft(castId: string): TikTokAdapterResult<TikTokCas
   cast.externalDraftId = `mock_draft_${nanoid(8)}`;
   cast.status = "uploaded_draft";
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.draft_uploaded",
@@ -225,8 +262,8 @@ export function requestTikTokApproval(castId: string): TikTokAdapterResult<TikTo
   if (!cast) return { ok: false, error: "Cast not found", code: "not_found" };
   cast.status = "pending_approval";
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.approval_requested",
@@ -243,8 +280,8 @@ export function resolveTikTokApproval(
   if (decision === "reject") {
     cast.status = "draft";
     cast.updatedAt = now();
-    upsertCast(cast);
-    appendTikTokAudit({
+    saveCast(cast);
+    audit({
       businessId: cast.businessId,
       castId,
       action: "tiktok.approval_rejected",
@@ -253,8 +290,8 @@ export function resolveTikTokApproval(
   }
   cast.status = cast.scheduledAt ? "scheduled" : "uploaded_draft";
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.approval_approved",
@@ -271,8 +308,8 @@ export function scheduleTikTokCast(
   cast.scheduledAt = scheduledAt;
   cast.status = "scheduled";
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.scheduled",
@@ -292,7 +329,7 @@ export function directPostTikTok(castId: string): TikTokAdapterResult<TikTokCast
 
   if (cast.mode === "live") {
     if (readiness.directPostGated) {
-      appendTikTokAudit({
+      audit({
         businessId: cast.businessId,
         castId,
         action: "tiktok.direct_post_blocked",
@@ -310,7 +347,7 @@ export function directPostTikTok(castId: string): TikTokAdapterResult<TikTokCast
   // Mock (or live with token) publish path
   cast.status = "publishing";
   cast.updatedAt = now();
-  upsertCast(cast);
+  saveCast(cast);
 
   cast.externalPostId = `${cast.mode}_post_${nanoid(8)}`;
   cast.status = "published";
@@ -321,8 +358,8 @@ export function directPostTikTok(castId: string): TikTokAdapterResult<TikTokCast
       s.id === "content" ? { ...s, status: "active" as const } : s
     );
   }
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.direct_posted",
@@ -348,8 +385,8 @@ export function failAndRetryTikTok(castId: string): TikTokAdapterResult<TikTokCa
   cast.status = "failed";
   cast.lastError = "Simulated publish failure";
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.publish_failed",
@@ -359,7 +396,7 @@ export function failAndRetryTikTok(castId: string): TikTokAdapterResult<TikTokCa
   cast.status = "retrying";
   cast.retryCount += 1;
   cast.updatedAt = now();
-  upsertCast(cast);
+  saveCast(cast);
 
   // Mock retry succeeds
   cast.status = "published";
@@ -367,8 +404,8 @@ export function failAndRetryTikTok(castId: string): TikTokAdapterResult<TikTokCa
   cast.publishedAt = now();
   cast.lastError = undefined;
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.retry_succeeded",
@@ -388,8 +425,8 @@ export function associateTikTokCast(
   if (links.tapPointId) cast.tapPointId = links.tapPointId;
   cast.funnel = defaultFunnel({ cardId: cast.cardId, campaignId: cast.campaignId });
   cast.updatedAt = now();
-  upsertCast(cast);
-  appendTikTokAudit({
+  saveCast(cast);
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.associated",
@@ -425,7 +462,7 @@ export function refreshTikTokAnalytics(castId: string): TikTokAdapterResult<TikT
     });
   }
   cast.updatedAt = now();
-  upsertCast(cast);
+  saveCast(cast);
   return { ok: true, data: cast, mode: cast.mode };
 }
 
@@ -449,7 +486,7 @@ export function adaptTikTokToReelsShorts(castId: string): TikTokAdapterResult<{
       notes: "Stub — Shorts title ≤100 chars; map hashtags to YouTube tags",
     },
   ];
-  appendTikTokAudit({
+  audit({
     businessId: cast.businessId,
     castId,
     action: "tiktok.adapted_reels_shorts",

@@ -9,16 +9,22 @@ import {
   applyCanvasTemplate,
   applyNodeEditToAuthoritative,
   assertSketchNonExecuting,
+  canvasPersistenceEnabled,
   connectSketch,
+  createSimpleCampaignViaCanvas,
   createSketchBoard,
   createWeeklySpecialsGroup,
+  createWeeklySpecialsViaCanvas,
   detectIssues,
   detectScheduleConflicts,
+  duplicateCanvasDocument,
   evaluateCanvasAction,
+  flushCanvasState,
   getCanvas,
   getOpenInTapCanvasHref,
+  hydrateCanvasSession,
   listCanvasAudit,
-  listCanvases,
+  listCanvasesFromDb,
   listCanvasTemplates,
   listPendingProposals,
   listVersions,
@@ -26,14 +32,22 @@ import {
   previewPromotion,
   promoteSketchNodes,
   refreshOperateOverlay,
+  renameCanvasDocument,
   resolveAutomationProposal,
   reverseEngineerIntoCanvas,
+  saveCanvasIssues,
+  saveExecutionOverlay,
   setCanvasMode,
   simulateDeployment,
   undoPromotion,
   ACTION_CATALOG,
   TRIGGER_CATALOG,
 } from "@/lib/fusion/canvas";
+import {
+  buildCampaignDistributionGraph,
+  DISTRIBUTION_ACTIONS,
+  runDistributionAction,
+} from "@/lib/fusion/tapcast/omnichannel";
 
 export const dynamic = "force-dynamic";
 
@@ -43,7 +57,7 @@ export async function GET(req: Request) {
   const canvasId = url.searchParams.get("canvasId");
 
   if (canvasId) {
-    const canvas = getCanvas(canvasId);
+    const canvas = await hydrateCanvasSession(canvasId, business.id);
     if (!canvas || canvas.businessId !== business.id) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -53,22 +67,31 @@ export async function GET(req: Request) {
       proposals: listPendingProposals(canvasId),
       audit: listCanvasAudit(canvasId),
       sketchGuard: assertSketchNonExecuting(canvas),
+      persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
       openHref: getOpenInTapCanvasHref({
         objectType: "canvas",
         objectId: canvasId,
         canvasId,
       }),
       catalogs: { triggers: TRIGGER_CATALOG, actions: ACTION_CATALOG },
+      distributionActions: DISTRIBUTION_ACTIONS,
       templates: listCanvasTemplates(),
     });
   }
 
+  const canvases = await listCanvasesFromDb(business.id);
   return NextResponse.json({
-    canvases: listCanvases(business.id),
+    canvases,
     templates: listCanvasTemplates(),
     catalogs: { triggers: TRIGGER_CATALOG, actions: ACTION_CATALOG },
-    displayStatus: "development",
-    note: "TapCanvas — linked projections of TapConnect objects. In-memory store (Prisma follow-up).",
+    distributionActions: DISTRIBUTION_ACTIONS,
+    persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+    displayStatus: canvasPersistenceEnabled()
+      ? "implemented_not_owner_ready"
+      : "functional_prototype_memory_only",
+    note: canvasPersistenceEnabled()
+      ? "TapCanvas documents persist on tapconnect_fusion_dev. Live TikTok/social remain credential-gated."
+      : "DATABASE_URL not isolated — memory fallback for unit tests only.",
   });
 }
 
@@ -257,7 +280,80 @@ const bodySchema = z.discriminatedUnion("action", [
     }),
     confirm: z.boolean(),
   }),
+  z.object({
+    action: z.literal("create_simple_campaign"),
+    title: z.string().min(1).max(160),
+  }),
+  z.object({
+    action: z.literal("create_weekly_specials_persisted"),
+    name: z.string().optional(),
+    timezone: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("rename"),
+    canvasId: z.string(),
+    name: z.string().min(1).max(120),
+  }),
+  z.object({
+    action: z.literal("duplicate"),
+    canvasId: z.string(),
+    name: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("flush"),
+    canvasId: z.string(),
+  }),
+  z.object({
+    action: z.literal("distribution_graph"),
+    campaignId: z.string(),
+    campaignTitle: z.string(),
+    channelIds: z.array(z.string()).min(1),
+    source: z.object({
+      title: z.string().min(1),
+      body: z.string().optional(),
+      offerText: z.string().optional(),
+      cta: z.string().optional(),
+      hashtags: z.array(z.string()).optional(),
+      mediaUrl: z.string().optional(),
+      tapPointId: z.string().optional(),
+      cardId: z.string().optional(),
+    }),
+    canvasId: z.string().optional(),
+    canvasName: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("distribution_action"),
+    canvasId: z.string(),
+    distributionAction: z.enum([
+      "create_variant",
+      "adapt",
+      "approve",
+      "schedule",
+      "publish",
+      "retry",
+      "open_provider",
+      "performance",
+    ]),
+    variantId: z.string().optional(),
+    channelId: z.string().optional(),
+    campaignId: z.string().optional(),
+    scheduledAt: z.string().optional(),
+    decision: z.enum(["approve", "reject"]).optional(),
+    source: z
+      .object({
+        title: z.string().min(1),
+        body: z.string().optional(),
+        offerText: z.string().optional(),
+        cta: z.string().optional(),
+        hashtags: z.array(z.string()).optional(),
+      })
+      .optional(),
+  }),
 ]);
+
+async function afterMutate(canvasId: string) {
+  await flushCanvasState(canvasId);
+}
 
 export async function POST(req: Request) {
   const { business } = await requireBusiness();
@@ -278,35 +374,50 @@ export async function POST(req: Request) {
           businessId: business.id,
           name: body.name,
         });
-        return NextResponse.json({ ok: true, canvas });
+        await afterMutate(canvas.id);
+        return NextResponse.json({
+          ok: true,
+          canvas,
+          persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+        });
       }
       case "set_mode": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const canvas = setCanvasMode(body.canvasId, body.mode);
+        await afterMutate(canvas.id);
         return NextResponse.json({ ok: true, canvas });
       }
       case "add_sticky": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = addStickyNote(body.canvasId, body.label);
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, ...result });
       }
       case "add_note": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = addSketchNote(body.canvasId, body.label);
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, ...result });
       }
       case "connect_sketch": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = connectSketch(
           body.canvasId,
           body.source,
           body.target,
           body.label
         );
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, ...result });
       }
       case "preview_promote":
+        await hydrateCanvasSession(body.canvasId, business.id);
         return NextResponse.json({
           ok: true,
           ...previewPromotion(body.canvasId, body.nodeIds),
         });
       case "promote": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = promoteSketchNodes({
           canvasId: body.canvasId,
           nodeIds: body.nodeIds,
@@ -314,14 +425,19 @@ export async function POST(req: Request) {
           createApprovalTasks: body.createApprovalTasks,
           businessId: business.id,
         });
+        await afterMutate(body.canvasId);
         return NextResponse.json(result);
       }
       case "undo_promote": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const canvas = undoPromotion(body.canvasId, body.undoVersionId);
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, canvas });
       }
       case "operate_refresh": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const overlay = refreshOperateOverlay(body.canvasId, business.id);
+        await saveExecutionOverlay(body.canvasId, overlay as never);
         return NextResponse.json({ ok: true, overlay });
       }
       case "reverse_viz": {
@@ -334,10 +450,21 @@ export async function POST(req: Request) {
           })),
           associations: body.associations,
         });
+        await afterMutate(canvas.id);
         return NextResponse.json({ ok: true, canvas });
       }
       case "detect_issues": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const proposals = detectIssues(body.canvasId);
+        await saveCanvasIssues(
+          body.canvasId,
+          proposals.map((p) => ({
+            code: p.title,
+            severity: p.severity,
+            message: p.description,
+          }))
+        );
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, proposals });
       }
       case "proposal_preview": {
@@ -349,6 +476,7 @@ export async function POST(req: Request) {
           proposalId: body.proposalId,
           decision: body.decision,
         });
+        if (result.canvas) await afterMutate(result.canvas.id);
         return NextResponse.json({ ok: true, ...result });
       }
       case "apply_template": {
@@ -357,6 +485,7 @@ export async function POST(req: Request) {
           templateId: body.templateId,
           name: body.name,
         });
+        await afterMutate(result.canvas.id);
         return NextResponse.json({ ok: true, ...result });
       }
       case "weekly_specials": {
@@ -365,18 +494,99 @@ export async function POST(req: Request) {
           name: body.name,
           recipe: body.recipe,
         });
+        await afterMutate(result.canvas.id);
         return NextResponse.json({ ok: true, ...result });
       }
+      case "create_simple_campaign": {
+        const result = await createSimpleCampaignViaCanvas({
+          businessId: business.id,
+          title: body.title,
+        });
+        return NextResponse.json(result);
+      }
+      case "create_weekly_specials_persisted": {
+        const result = await createWeeklySpecialsViaCanvas({
+          businessId: business.id,
+          name: body.name,
+          timezone: body.timezone,
+        });
+        return NextResponse.json(result);
+      }
+      case "rename": {
+        const canvas = await renameCanvasDocument(
+          body.canvasId,
+          business.id,
+          body.name
+        );
+        if (!canvas) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return NextResponse.json({ ok: true, canvas });
+      }
+      case "duplicate": {
+        const canvas = await duplicateCanvasDocument(
+          body.canvasId,
+          business.id,
+          body.name
+        );
+        if (!canvas) return NextResponse.json({ error: "Not found" }, { status: 404 });
+        return NextResponse.json({ ok: true, canvas });
+      }
+      case "flush": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        await afterMutate(body.canvasId);
+        return NextResponse.json({
+          ok: true,
+          persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+        });
+      }
+      case "distribution_graph": {
+        const graph = buildCampaignDistributionGraph({
+          businessId: business.id,
+          campaignId: body.campaignId,
+          campaignTitle: body.campaignTitle,
+          channelIds: body.channelIds,
+          source: { ...body.source, id: body.campaignId },
+          canvasId: body.canvasId,
+          canvasName: body.canvasName,
+        });
+        await afterMutate(graph.canvas.id);
+        return NextResponse.json({
+          ok: true,
+          ...graph,
+          persistence: canvasPersistenceEnabled() ? "prisma" : "memory",
+        });
+      }
+      case "distribution_action": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const result = runDistributionAction({
+          canvasId: body.canvasId,
+          action: body.distributionAction,
+          variantId: body.variantId,
+          channelId: body.channelId,
+          campaignId: body.campaignId,
+          businessId: business.id,
+          source: body.source
+            ? { ...body.source, id: body.campaignId ?? "campaign" }
+            : undefined,
+          scheduledAt: body.scheduledAt,
+          decision: body.decision,
+        });
+        await afterMutate(body.canvasId);
+        return NextResponse.json(result);
+      }
       case "add_trigger": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = addConversationalTrigger(body.canvasId, body.triggerId);
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, ...result });
       }
       case "add_action": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = addConversationalAction(body.canvasId, body.actionId, {
           businessId: business.id,
           consentGiven: body.consentGiven,
           providerReady: body.providerReady,
         });
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, ...result });
       }
       case "evaluate_action": {
@@ -389,11 +599,13 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, evaluation });
       }
       case "deploy_simulate": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = simulateDeployment({
           canvasId: body.canvasId,
           placements: body.placements,
           createChecklistTask: body.createChecklistTask,
         });
+        await afterMutate(body.canvasId);
         return NextResponse.json({ ok: true, ...result });
       }
       case "schedule_conflicts": {
@@ -401,12 +613,14 @@ export async function POST(req: Request) {
         return NextResponse.json({ ok: true, conflicts });
       }
       case "node_edit_authoritative": {
+        await hydrateCanvasSession(body.canvasId, business.id);
         const result = applyNodeEditToAuthoritative({
           canvasId: body.canvasId,
           nodeId: body.nodeId,
           patch: body.patch,
           confirm: body.confirm,
         });
+        await afterMutate(body.canvasId);
         return NextResponse.json(result);
       }
       default:

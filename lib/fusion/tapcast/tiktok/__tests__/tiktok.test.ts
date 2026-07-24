@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it, beforeEach } from "node:test";
+import { describe, it, beforeEach, afterEach } from "node:test";
 import {
   connectTikTok,
   createTikTokCast,
@@ -15,11 +15,20 @@ import {
 import { resetProductivityMemory } from "@/lib/fusion/connectors/productivity";
 
 const BIZ = "biz_tiktok_test";
+const originalUrl = process.env.DATABASE_URL;
 
 describe("TapCast · TikTok", () => {
   beforeEach(() => {
     resetTikTokMemory();
     resetProductivityMemory();
+    // Force memory path — fake business ids must not hit Prisma FKs
+    delete process.env.DATABASE_URL;
+  });
+
+  afterEach(() => {
+    resetTikTokMemory();
+    if (originalUrl !== undefined) process.env.DATABASE_URL = originalUrl;
+    else delete process.env.DATABASE_URL;
   });
 
   it("readiness is VERIFIED — CREDENTIALS REQUIRED when env unset", () => {

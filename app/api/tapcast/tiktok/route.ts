@@ -9,9 +9,12 @@ import {
   createTikTokCast,
   directPostTikTok,
   failAndRetryTikTok,
+  flushTikTokPersists,
   getCast,
   getTikTokSnapshot,
-  listTikTokAudit,
+  hydrateTikTokConnection,
+  listTikTokAuditFromDb,
+  listTikTokCastsFromDb,
   refreshTikTokAnalytics,
   requestTikTokApproval,
   resolveTikTokApproval,
@@ -19,6 +22,7 @@ import {
   scheduleTikTokCast,
   setTikTokCaption,
   tikTokEnvSnapshot,
+  tikTokPersistenceEnabled,
   updateTikTokStoryboard,
   uploadTikTokDraft,
 } from "@/lib/fusion/tapcast/tiktok";
@@ -27,10 +31,15 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   const { business } = await requireBusiness();
+  await flushTikTokPersists();
+  await hydrateTikTokConnection(business.id);
+  const casts = await listTikTokCastsFromDb(business.id);
   return NextResponse.json({
     ...getTikTokSnapshot(business.id),
+    casts,
     env: tikTokEnvSnapshot(),
-    audit: listTikTokAudit(business.id),
+    audit: await listTikTokAuditFromDb(business.id),
+    persistence: tikTokPersistenceEnabled() ? "prisma" : "memory",
   });
 }
 
@@ -137,70 +146,94 @@ export async function POST(req: Request) {
   }
 
   const body = parsed.data;
+  let response: NextResponse;
   switch (body.action) {
     case "connect":
-      return NextResponse.json(connectTikTok({ businessId: business.id, preferLive: body.preferLive }));
+      response = NextResponse.json(
+        connectTikTok({ businessId: business.id, preferLive: body.preferLive })
+      );
+      break;
     case "create":
-      return NextResponse.json(
+      response = NextResponse.json(
         createTikTokCast({ businessId: business.id, ...body })
       );
+      break;
     case "storyboard":
-      return NextResponse.json(updateTikTokStoryboard(body.castId, body.beats));
+      response = NextResponse.json(updateTikTokStoryboard(body.castId, body.beats));
+      break;
     case "compose":
-      return NextResponse.json(
+      response = NextResponse.json(
         composeTikTok916(body.castId, {
           durationSec: body.durationSec,
           coverNote: body.coverNote,
         })
       );
+      break;
     case "caption":
-      return NextResponse.json(
+      response = NextResponse.json(
         setTikTokCaption(body.castId, body.caption, body.hashtags)
       );
+      break;
     case "upload_draft":
-      return NextResponse.json(uploadTikTokDraft(body.castId));
+      response = NextResponse.json(uploadTikTokDraft(body.castId));
+      break;
     case "request_approval":
-      return NextResponse.json(requestTikTokApproval(body.castId));
+      response = NextResponse.json(requestTikTokApproval(body.castId));
+      break;
     case "resolve_approval":
-      return NextResponse.json(
+      response = NextResponse.json(
         resolveTikTokApproval(body.castId, body.decision)
       );
+      break;
     case "schedule":
-      return NextResponse.json(
+      response = NextResponse.json(
         scheduleTikTokCast(body.castId, body.scheduledAt)
       );
+      break;
     case "direct_post":
-      return NextResponse.json(directPostTikTok(body.castId));
+      response = NextResponse.json(directPostTikTok(body.castId));
+      break;
     case "retry":
-      return NextResponse.json(failAndRetryTikTok(body.castId));
+      response = NextResponse.json(failAndRetryTikTok(body.castId));
+      break;
     case "associate":
-      return NextResponse.json(
+      response = NextResponse.json(
         associateTikTokCast(body.castId, {
           campaignId: body.campaignId,
           cardId: body.cardId,
           tapPointId: body.tapPointId,
         })
       );
+      break;
     case "analytics":
-      return NextResponse.json(refreshTikTokAnalytics(body.castId));
+      response = NextResponse.json(refreshTikTokAnalytics(body.castId));
+      break;
     case "adapt":
-      return NextResponse.json(adaptTikTokToReelsShorts(body.castId));
+      response = NextResponse.json(adaptTikTokToReelsShorts(body.castId));
+      break;
     case "funnel_workflow":
-      return NextResponse.json(
+      response = NextResponse.json(
         runTikTokRelationshipFunnel({
           businessId: business.id,
           title: body.title,
           script: body.script,
         })
       );
+      break;
     case "get": {
       const cast = getCast(body.castId);
       if (!cast || cast.businessId !== business.id) {
-        return NextResponse.json({ ok: false, error: "Not found", code: "not_found" }, { status: 404 });
+        return NextResponse.json(
+          { ok: false, error: "Not found", code: "not_found" },
+          { status: 404 }
+        );
       }
-      return NextResponse.json({ ok: true, data: cast, mode: cast.mode });
+      response = NextResponse.json({ ok: true, data: cast, mode: cast.mode });
+      break;
     }
     default:
       return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
+  await flushTikTokPersists();
+  return response;
 }

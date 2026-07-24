@@ -10,15 +10,18 @@
 - Ledger updated with suite evidence + **blockers retained** (no platform-wide OWNER-READY)  
 - Extended matrix specs: `e2e/fusion-proofs-matrix.spec.ts` (builder save, TapFlow, Admin, Insights, controls, responsive, a11y, wallet mock)
 - **Productivity closeout:** `e2e/productivity-workflows.spec.ts` — 18-step mock workflows + Settings UI (live = VERIFIED — CREDENTIALS REQUIRED)
+- **Omnichannel TapCast:** unit suite green; headed proofs in `e2e/tapcast-omnichannel.spec.ts` — **IMPLEMENTED BUT NOT OWNER-READY** / live = **VERIFIED — CREDENTIALS REQUIRED**
 
-## Migrations (unchanged, valid)
+## Migrations (isolated `tapconnect_fusion_dev` only)
 
-1. `20260723000000_fusion_spine` … 6. `20260723000005_fusion_taploop`
+1. `20260723000000_fusion_spine` … 6. `20260723000005_fusion_taploop`  
+7. `20260724000006_tapcanvas_tiktok`  
+8. `20260724000007_tapcast_omnichannel` — `TapCastChannelVariant` / `TapCastChannelConnection` / `TapCastAuditLog`
 
 ## Recent wiring
 
+- **Mainstream Omnichannel TapCast** — channel capability registry (publishing / conversation / community), mock adapters with publish-path ladder, campaign channel variants (native adapt, no blind cross-post), failure isolation, Admin/Settings panel, `/api/tapcast`, TapCanvas `distribution_graph` / `distribution_action`, Prisma persist on isolated DB. TikTok remains first-class at Experiences → TapCast → TikTok.
 - **Productivity & Work Management (deepened)** — shared ExternalWorkItem contract + mock discovery/comments/attachments/webhooks/poll/conflict/retry/idempotency/audit/analytics/Slack·Teams/Knowledge/Zapier; `run_closeout` API; Settings panel actions; headed proofs. Live OAuth remains **VERIFIED — CREDENTIALS REQUIRED**.
-- TapCanvas / TikTok TapCast scaffolding may exist in-tree — not part of this productivity closeout OWNER-READY claim.
 - Keep → MyTap → mock Apple Wallet (`/api/mytap/wallet`)  
 - Campaign save uses `blocksRef` (stale-closure fix) + `data-testid` for proofs  
 - Feature kill-switch / Email→Inbox / Commerce→Insights (prior)  
@@ -32,7 +35,16 @@
 4. Insights drill-down + provenance  
 5. A11y/responsive completion  
 6. Live productivity OAuth apps (one provider at a time)  
-7. TapCanvas / TikTok headed matrices  
+7. Live TapCast credentials per channel (TikTok Direct Post, Meta, YouTube, …) — never claim OWNER-READY without them  
+8. TapCanvas full Sketch→Build→Operate headed matrix  
+
+## Classifications (TapCast)
+
+| Surface | Classification |
+|---------|----------------|
+| Omnichannel TapCast (registry, variants, mock publish, canvas hooks) | **IMPLEMENTED BUT NOT OWNER-READY** |
+| Live channel publish (all TapCast providers) | **VERIFIED — CREDENTIALS REQUIRED** |
+| TikTok first-class mock path | Functional mock; live Direct Post credential-gated |
 
 ## Commands
 
@@ -42,6 +54,8 @@ npm run fusion:db-ready && npm run fusion:seed
 npm run dev
 npm run test:e2e:proofs:headed
 PROOF_HEADED=1 npx playwright test e2e/productivity-workflows.spec.ts --headed
+PROOF_HEADED=1 npx playwright test e2e/tapcast-omnichannel.spec.ts --headed
+node --import tsx --test lib/fusion/tapcast/**/__tests__/**/*.test.ts
 ```
 
 ## Confirmation

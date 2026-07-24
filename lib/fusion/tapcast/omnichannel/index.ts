@@ -1,10 +1,10 @@
 /**
- * TapCast · TikTok — public module surface.
+ * Omnichannel TapCast — public module surface.
  */
 
 export * from "./types";
 export * from "./store";
 export * from "./persist";
-export * from "./readiness";
+export * from "./adapt";
 export * from "./adapter";
-export * from "./workflow";
+export * from "./canvas-hooks";
