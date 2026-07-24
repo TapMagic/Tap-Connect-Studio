@@ -68,7 +68,13 @@ export default async function PlatformAdminPage() {
   }));
 
   return (
-    <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
+    <main id="main-content" className="mx-auto max-w-6xl space-y-6 px-4 py-8">
+      <a
+        href="#admin-tablist"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
+      >
+        Skip to platform admin tabs
+      </a>
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-primary">
@@ -121,6 +127,6 @@ export default async function PlatformAdminPage() {
         }}
         autopilotEnabled={isFeatureEnabled("ai.autopilot", ctx)}
       />
-    </div>
+    </main>
   );
 }

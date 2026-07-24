@@ -339,8 +339,11 @@ export function BrandKitForm({
                   ] as const
                 ).map(([key, label]) => (
                   <div key={key} className="space-y-1">
-                    <Label className="text-xs">{label}</Label>
+                    <Label htmlFor={`brand-contact-${key}`} className="text-xs">
+                      {label}
+                    </Label>
                     <Input
+                      id={`brand-contact-${key}`}
                       value={contact[key] ?? ""}
                       onChange={(e) =>
                         setContact((c) => ({ ...c, [key]: e.target.value }))
@@ -349,8 +352,11 @@ export function BrandKitForm({
                   </div>
                 ))}
                 <div className="space-y-1 sm:col-span-2">
-                  <Label className="text-xs">Note on contact card</Label>
+                  <Label htmlFor="brand-contact-note" className="text-xs">
+                    Note on contact card
+                  </Label>
                   <Input
+                    id="brand-contact-note"
                     value={contact.note ?? ""}
                     onChange={(e) =>
                       setContact((c) => ({ ...c, note: e.target.value }))
@@ -479,6 +485,7 @@ export function BrandKitForm({
                         <button
                           type="button"
                           title="Edit"
+                          aria-label={`Edit ${link.title || "link"}`}
                           className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                           onClick={() =>
                             setEditingId(selected ? null : link.id)
@@ -492,14 +499,16 @@ export function BrandKitForm({
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Open"
+                            aria-label={`Open ${link.title || "link"} in new tab`}
                             className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
                           >
-                            <ExternalLink className="size-3.5" />
+                            <ExternalLink className="size-3.5" aria-hidden />
                           </a>
                         ) : null}
                         <button
                           type="button"
                           title="Delete"
+                          aria-label={`Delete ${link.title || "link"}`}
                           className="rounded p-1 text-muted-foreground hover:bg-red-500/15 hover:text-red-400"
                           onClick={() => deleteLink(link.id)}
                         >
@@ -526,6 +535,8 @@ export function BrandKitForm({
                     </Button>
                   </div>
                   <Input
+                    id="brand-link-title"
+                    aria-label="Link title"
                     value={editing.title}
                     onChange={(e) =>
                       patchLink(editing.id, { title: e.target.value })
@@ -533,6 +544,8 @@ export function BrandKitForm({
                     placeholder="Title"
                   />
                   <Input
+                    id="brand-link-href"
+                    aria-label="Link URL"
                     value={editing.href}
                     onChange={(e) =>
                       patchLink(editing.id, { href: e.target.value })
@@ -541,6 +554,8 @@ export function BrandKitForm({
                     className="font-mono text-xs"
                   />
                   <Input
+                    id="brand-link-description"
+                    aria-label="Link description"
                     value={editing.description ?? ""}
                     onChange={(e) =>
                       patchLink(editing.id, { description: e.target.value })
@@ -578,8 +593,12 @@ export function BrandKitForm({
                     }
                   />
                   <div className="space-y-1">
-                    <Label className="text-[10px]">Platform (optional)</Label>
+                    <Label htmlFor={`brand-link-platform-${editing.id}`} className="text-[10px]">
+                      Platform (optional)
+                    </Label>
                     <select
+                      id={`brand-link-platform-${editing.id}`}
+                      aria-label="Link platform"
                       className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                       value={editing.platform ?? ""}
                       onChange={(e) =>
@@ -648,12 +667,14 @@ export function BrandKitForm({
                   ] as const
                 ).map((key) => (
                   <div key={key} className="space-y-1">
-                    <Label className="text-xs capitalize">
+                    <Label htmlFor={`brand-color-${key}`} className="text-xs capitalize">
                       {key.replace("Color", "")}
                     </Label>
                     <div className="flex gap-2">
                       <input
+                        id={`brand-color-${key}`}
                         type="color"
+                        aria-label={`${key.replace("Color", "")} color`}
                         value={form[key]}
                         onChange={(e) =>
                           setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -661,6 +682,7 @@ export function BrandKitForm({
                         className="h-9 w-10 cursor-pointer rounded border-0"
                       />
                       <Input
+                        aria-label={`${key.replace("Color", "")} hex value`}
                         value={form[key]}
                         onChange={(e) =>
                           setForm((f) => ({ ...f, [key]: e.target.value }))
@@ -673,8 +695,12 @@ export function BrandKitForm({
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="space-y-1">
-                  <Label className="text-xs">Font</Label>
+                  <Label htmlFor="brand-font-style" className="text-xs">
+                    Font
+                  </Label>
                   <Select
+                    id="brand-font-style"
+                    aria-label="Font style"
                     value={form.fontStyle}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, fontStyle: e.target.value }))
@@ -688,8 +714,12 @@ export function BrandKitForm({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Button shape</Label>
+                  <Label htmlFor="brand-button-style" className="text-xs">
+                    Button shape
+                  </Label>
                   <Select
+                    id="brand-button-style"
+                    aria-label="Button shape"
                     value={form.buttonStyle}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, buttonStyle: e.target.value }))
@@ -702,8 +732,12 @@ export function BrandKitForm({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Language</Label>
+                  <Label htmlFor="brand-default-language" className="text-xs">
+                    Language
+                  </Label>
                   <Select
+                    id="brand-default-language"
+                    aria-label="Default language"
                     value={form.defaultLanguage}
                     onChange={(e) =>
                       setForm((f) => ({
@@ -720,8 +754,12 @@ export function BrandKitForm({
                   </Select>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs">Tone</Label>
+                  <Label htmlFor="brand-tone" className="text-xs">
+                    Tone
+                  </Label>
                   <Select
+                    id="brand-tone"
+                    aria-label="Brand tone"
                     value={form.tone}
                     onChange={(e) =>
                       setForm((f) => ({ ...f, tone: e.target.value }))
@@ -759,7 +797,9 @@ export function BrandKitForm({
                 </label>
                 {form.ageGateEnabled ? (
                   <Input
+                    id="brand-age-gate-min"
                     type="number"
+                    aria-label="Minimum age for age gate"
                     value={form.ageGateMinAge}
                     onChange={(e) =>
                       setForm((f) => ({
@@ -771,8 +811,13 @@ export function BrandKitForm({
                   />
                 ) : null}
               </div>
-              <Input
-                value={form.defaultDisclaimer ?? ""}
+              <div className="space-y-1">
+                <Label htmlFor="brand-default-disclaimer" className="text-xs">
+                  Default disclaimer
+                </Label>
+                <Input
+                  id="brand-default-disclaimer"
+                  value={form.defaultDisclaimer ?? ""}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
@@ -781,9 +826,15 @@ export function BrandKitForm({
                 }
                 placeholder="Default disclaimer"
               />
-              <Input
-                type="email"
-                value={form.email ?? ""}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="brand-lead-email" className="text-xs">
+                  Lead notification email
+                </Label>
+                <Input
+                  id="brand-lead-email"
+                  type="email"
+                  value={form.email ?? ""}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
@@ -792,8 +843,14 @@ export function BrandKitForm({
                 }
                 placeholder="Lead notification email"
               />
-              <Input
-                value={form.googleReviewUrl ?? ""}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="brand-google-review-url" className="text-xs">
+                  Google Review URL
+                </Label>
+                <Input
+                  id="brand-google-review-url"
+                  value={form.googleReviewUrl ?? ""}
                 onChange={(e) =>
                   setForm((f) => ({
                     ...f,
@@ -802,6 +859,7 @@ export function BrandKitForm({
                 }
                 placeholder="Google Review URL"
               />
+              </div>
               <label className="flex items-center gap-2 text-sm">
                 <input
                   type="checkbox"

@@ -281,8 +281,11 @@ export function TapCastHubShell({ initial }: { initial?: HubInitial }) {
         </p>
         <div className="flex flex-wrap gap-3 items-end">
           <div>
-            <label className="text-xs text-white/50">Campaign title</label>
+            <label htmlFor="tapcast-campaign-title" className="text-xs text-white/50">
+              Campaign title
+            </label>
             <Input
+              id="tapcast-campaign-title"
               value={campaignTitle}
               onChange={(e) => setCampaignTitle(e.target.value)}
               className="w-64"

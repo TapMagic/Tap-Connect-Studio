@@ -59,25 +59,32 @@ export function QrPanel({
   const [copied, setCopied] = useState<"url" | "image" | null>(null);
 
   const resolveUrl = useCallback(() => {
-    if (typeof window === "undefined") return "";
     if (useCustom && customUrl.trim()) {
       const raw = customUrl.trim();
       if (/^https?:\/\//i.test(raw)) return raw;
-      if (raw.startsWith("/")) return `${window.location.origin}${raw}`;
+      if (raw.startsWith("/")) return raw;
       return `https://${raw}`;
     }
     if (!deviceCode) return "";
-    return `${window.location.origin}${getDevicePath(deviceCode)}`;
+    return getDevicePath(deviceCode);
   }, [useCustom, customUrl, deviceCode]);
 
   const tapUrl = resolveUrl();
 
+  const absoluteTapUrl = useCallback(() => {
+    if (!tapUrl) return "";
+    if (/^https?:\/\//i.test(tapUrl)) return tapUrl;
+    if (typeof window === "undefined") return tapUrl;
+    return `${window.location.origin}${tapUrl.startsWith("/") ? tapUrl : `/${tapUrl}`}`;
+  }, [tapUrl]);
+
   useEffect(() => {
-    if (!tapUrl) {
+    const abs = absoluteTapUrl();
+    if (!abs || typeof window === "undefined") {
       return;
     }
     const params = new URLSearchParams({
-      url: tapUrl,
+      url: abs,
       size: String(size),
       dark,
       transparent: transparentBg ? "1" : "0",
@@ -94,7 +101,7 @@ export function QrPanel({
     return () => {
       cancelled = true;
     };
-  }, [tapUrl, size, dark, light, transparentBg]);
+  }, [absoluteTapUrl, size, dark, light, transparentBg]);
 
   // Clear QR preview when URL becomes empty (derived; avoid sync setState in effect)
   const [prevTapUrl, setPrevTapUrl] = useState(tapUrl);
@@ -119,9 +126,10 @@ export function QrPanel({
   }
 
   async function copyUrl() {
-    if (!tapUrl) return;
+    const url = absoluteTapUrl() || tapUrl;
+    if (!url) return;
     try {
-      await navigator.clipboard.writeText(tapUrl);
+      await navigator.clipboard.writeText(url);
       setCopied("url");
       flash("URL copied");
       window.setTimeout(() => setCopied(null), 1600);
@@ -187,6 +195,7 @@ export function QrPanel({
         <div className="space-y-1">
           <Label className="text-xs">Device / NFC-QR slot</Label>
           <select
+            aria-label="Device / NFC-QR slot"
             className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
             value={deviceCode}
             disabled={useCustom}
@@ -231,17 +240,26 @@ export function QrPanel({
           <div>
             <Label className="text-xs">Public tap URL</Label>
             <div className="flex gap-2">
-              <Input value={tapUrl} readOnly className="font-mono text-xs" />
-              <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={() => void copyUrl()}>
-                {copied === "url" ? <Check className="h-3.5 w-3.5" /> : <ClipboardCopy className="h-3.5 w-3.5" />}
+              <Input value={tapUrl} readOnly className="font-mono text-xs" aria-label="Public tap URL" />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="shrink-0"
+                aria-label={copied === "url" ? "Tap URL copied" : "Copy tap URL"}
+                onClick={() => void copyUrl()}
+              >
+                {copied === "url" ? <Check className="h-3.5 w-3.5" aria-hidden /> : <ClipboardCopy className="h-3.5 w-3.5" aria-hidden />}
               </Button>
               <a
                 href={tapUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                aria-label="Open public tap URL in new tab"
                 className="inline-flex h-9 items-center gap-1 rounded-lg border border-border px-3 text-sm hover:bg-accent"
               >
-                <ExternalLink className="h-3.5 w-3.5" />
+                <ExternalLink className="h-3.5 w-3.5" aria-hidden />
+                <span className="sr-only">Open tap URL</span>
               </a>
             </div>
           </div>
@@ -254,6 +272,7 @@ export function QrPanel({
                 value={dark}
                 onChange={(e) => setDark(e.target.value)}
                 className="h-9 w-full cursor-pointer p-1"
+                aria-label="QR module color"
               />
             </div>
             <div className="space-y-1">
@@ -264,6 +283,7 @@ export function QrPanel({
                 disabled={transparentBg}
                 onChange={(e) => setLight(e.target.value)}
                 className="h-9 w-full cursor-pointer p-1 disabled:opacity-40"
+                aria-label="QR background color"
               />
             </div>
             <div className="space-y-1 sm:col-span-2">
@@ -276,6 +296,7 @@ export function QrPanel({
                 value={size}
                 onChange={(e) => setSize(Number(e.target.value))}
                 className="w-full"
+                aria-label="QR export size"
               />
             </div>
             <div className="space-y-1 sm:col-span-2">
@@ -288,6 +309,7 @@ export function QrPanel({
                 value={previewPx}
                 onChange={(e) => setPreviewPx(Number(e.target.value))}
                 className="w-full"
+                aria-label="QR preview scale"
               />
             </div>
             <label className="flex items-center gap-2 text-sm sm:col-span-2">

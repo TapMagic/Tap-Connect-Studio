@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, type KeyboardEvent, type ReactNode } from "react";
 import Link from "next/link";
 import {
   Bot,
@@ -192,12 +192,39 @@ export function PlatformAdminTabs({
 }) {
   const [tab, setTab] = useState<TabId>("kpis");
 
+  function onTabKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    const idx = TABS.findIndex((t) => t.id === tab);
+    if (idx < 0) return;
+    let next = idx;
+    if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+      e.preventDefault();
+      next = (idx + 1) % TABS.length;
+    } else if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+      e.preventDefault();
+      next = (idx - 1 + TABS.length) % TABS.length;
+    } else if (e.key === "Home") {
+      e.preventDefault();
+      next = 0;
+    } else if (e.key === "End") {
+      e.preventDefault();
+      next = TABS.length - 1;
+    } else {
+      return;
+    }
+    setTab(TABS[next].id);
+    requestAnimationFrame(() => {
+      document.getElementById(`admin-tab-${TABS[next].id}`)?.focus();
+    });
+  }
+
   return (
     <div className="space-y-6">
       <div
+        id="admin-tablist"
         role="tablist"
         aria-label="Platform admin sections"
         className="flex flex-wrap gap-1 rounded-xl border border-border/60 bg-card/40 p-1"
+        onKeyDown={onTabKeyDown}
       >
         {TABS.map(({ id, label, icon: Icon }) => {
           const active = tab === id;
@@ -210,6 +237,7 @@ export function PlatformAdminTabs({
               data-testid={`admin-tab-${id}`}
               aria-selected={active}
               aria-controls={`admin-panel-${id}`}
+              tabIndex={active ? 0 : -1}
               onClick={() => setTab(id)}
               className={cn(
                 "inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium transition",

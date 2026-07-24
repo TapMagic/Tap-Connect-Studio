@@ -69,7 +69,10 @@ export function DashboardNav({
   const grouped = groupSections(sections);
 
   return (
-    <aside className="hidden h-full w-[17.5rem] shrink-0 flex-col self-stretch border-r border-white/8 bg-[#070b14] lg:flex">
+    <aside
+      aria-label="Studio navigation"
+      className="hidden h-full w-[17.5rem] shrink-0 flex-col self-stretch border-r border-white/8 bg-[#070b14] lg:flex"
+    >
       <div className="shrink-0 border-b border-white/8 px-4 py-4">
         <Link href="/dashboard" className="flex items-center gap-2.5">
           <TapConnectLogo variant="mark" priority />
@@ -109,12 +112,12 @@ export function DashboardNav({
 
         {grouped.length > 0 ? (
           <div className="mt-4 space-y-3 border-t border-white/8 pt-4">
-            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/35">
+            <p className="px-3 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
               {destination.label}
             </p>
             {grouped.map(({ group, items }) => (
               <div key={group} className="space-y-0.5">
-                <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wide text-white/25">
+                <p className="px-3 pb-1 text-[10px] font-medium uppercase tracking-wide text-white/55">
                   {group}
                 </p>
                 {items.map((s) => {
@@ -135,6 +138,7 @@ export function DashboardNav({
                           : "text-white/50 hover:bg-white/5 hover:text-white/85"
                       )}
                       title={`${readiness.label}: ${readiness.nextAction}`}
+                      {...(sectionActive ? { "aria-current": "page" as const } : {})}
                     >
                       <span className="flex items-center justify-between gap-2">
                         <span className="truncate">{s.label}</span>
@@ -157,7 +161,7 @@ export function DashboardNav({
       </nav>
 
       <div className="shrink-0 border-t border-white/8 px-4 py-3">
-        <p className="text-[10px] leading-snug text-white/30">
+        <p className="text-[10px] leading-snug text-white/55">
           V1 routes remain available inside hubs. Platform Admin is under Settings.
         </p>
       </div>
@@ -197,7 +201,7 @@ export function MobileDashboardNav({
               key={item.id}
               href={item.href}
               className={cn(
-                "whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-medium",
+                "inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-3 py-2.5 text-xs font-medium",
                 active
                   ? "bg-primary text-primary-foreground"
                   : "bg-white/5 text-white/60"

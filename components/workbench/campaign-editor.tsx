@@ -430,6 +430,19 @@ export function CampaignEditor({
     setMessage("Block duplicated");
   }
 
+  function moveBlockBy(id: string, delta: number) {
+    const sorted = [...blocks].sort((a, b) => a.order - b.order);
+    const fromIndex = sorted.findIndex((b) => b.id === id);
+    if (fromIndex < 0) return;
+    const toIndex = fromIndex + delta;
+    if (toIndex < 0 || toIndex >= sorted.length) return;
+    const next = [...sorted];
+    const [item] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, item);
+    setBlocks(next.map((b, i) => ({ ...b, order: i })), true);
+    setMessage(delta < 0 ? "Block moved up" : "Block moved down");
+  }
+
   function addBlock(type: BlockType = addType) {
     const preset = ADDABLE_BLOCKS.find((b) => b.type === type) ?? ADDABLE_BLOCKS[0];
     const nextOrder = blocks.length ? Math.max(...blocks.map((b) => b.order)) + 1 : 0;
@@ -543,6 +556,8 @@ export function CampaignEditor({
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           className="max-w-md font-semibold"
+          aria-label="Campaign title"
+          data-testid="campaign-title-input"
         />
         <div className="flex flex-wrap items-center gap-2">
           <Button
@@ -587,7 +602,16 @@ export function CampaignEditor({
         </div>
       </div>
 
-      {message && <p className="border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>}
+      {message ? (
+        <p
+          role="status"
+          aria-live="polite"
+          data-testid="campaign-editor-status"
+          className="border-b border-border/40 px-4 py-2 text-sm text-primary"
+        >
+          {message}
+        </p>
+      ) : null}
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Left rail */}
@@ -673,10 +697,11 @@ export function CampaignEditor({
                 >
                   Page theme
                 </button>
-                {sortedBlocks.map((block) => (
+                {sortedBlocks.map((block, blockIndex) => (
                   <div
                     key={block.id}
                     data-editor-block-id={block.id}
+                    data-testid={`campaign-block-${block.id}`}
                     draggable
                     onDragStart={() => setDragId(block.id)}
                     onDragOver={(e) => e.preventDefault()}
@@ -685,12 +710,8 @@ export function CampaignEditor({
                       setDragId(null);
                     }}
                     onDragEnd={() => setDragId(null)}
-                    onClick={() => {
-                      setSelectedBlockId(block.id);
-                      setSelectedButtonId(null);
-                    }}
                     className={cn(
-                      "cursor-pointer rounded-lg border px-2 py-2 text-sm transition",
+                      "rounded-lg border px-2 py-2 text-sm transition",
                       selectedBlockId === block.id
                         ? "border-primary bg-primary/10 ring-1 ring-primary/40"
                         : "border-border/50 hover:border-primary/40",
@@ -701,28 +722,80 @@ export function CampaignEditor({
                     )}
                   >
                     <div className="flex items-center gap-1.5">
-                      <GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing" />
-                      <span className="min-w-0 flex-1 truncate font-medium">{block.label}</span>
+                      <GripVertical
+                        className="h-3.5 w-3.5 shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
+                        aria-hidden
+                      />
                       <button
                         type="button"
-                        className="text-muted-foreground hover:text-foreground"
+                        className="min-w-0 flex-1 truncate text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-pressed={selectedBlockId === block.id}
+                        aria-label={`Select block ${block.label}`}
+                        onClick={() => {
+                          setSelectedBlockId(block.id);
+                          setSelectedButtonId(null);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "ArrowUp" && (e.altKey || e.metaKey)) {
+                            e.preventDefault();
+                            moveBlockBy(block.id, -1);
+                          }
+                          if (e.key === "ArrowDown" && (e.altKey || e.metaKey)) {
+                            e.preventDefault();
+                            moveBlockBy(block.id, 1);
+                          }
+                        }}
+                      >
+                        {block.label}
+                      </button>
+                      <button
+                        type="button"
+                        className="min-h-8 min-w-8 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label={`Move ${block.label} up`}
+                        data-testid={`campaign-block-move-up-${block.id}`}
+                        disabled={blockIndex === 0}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveBlockBy(block.id, -1);
+                        }}
+                      >
+                        ↑
+                      </button>
+                      <button
+                        type="button"
+                        className="min-h-8 min-w-8 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label={`Move ${block.label} down`}
+                        data-testid={`campaign-block-move-down-${block.id}`}
+                        disabled={blockIndex === sortedBlocks.length - 1}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          moveBlockBy(block.id, 1);
+                        }}
+                      >
+                        ↓
+                      </button>
+                      <button
+                        type="button"
+                        className="min-h-8 min-w-8 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label={`Duplicate ${block.label}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           duplicateBlock(block.id);
                         }}
                       >
-                        <Copy className="h-3.5 w-3.5" />
+                        <Copy className="h-3.5 w-3.5" aria-hidden />
                       </button>
                       <button
                         type="button"
-                        className="text-red-400 hover:text-red-300"
+                        className="min-h-8 min-w-8 text-red-400 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                        aria-label={`Delete ${block.label}`}
                         onClick={(e) => {
                           e.stopPropagation();
                           removeBlock(block.id);
                           if (selectedBlockId === block.id) setSelectedBlockId(null);
                         }}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
                       </button>
                     </div>
                     <p className="mt-0.5 pl-5 text-[10px] text-muted-foreground">

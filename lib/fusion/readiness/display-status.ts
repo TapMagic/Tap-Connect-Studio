@@ -53,31 +53,29 @@ export type VerificationRecord = {
 export const VERIFICATION_LEDGER: VerificationRecord[] = [
   {
     sectionId: "distribution",
-    lastVerifiedAt: "2026-07-24T00:43:01.000Z",
+    lastVerifiedAt: "2026-07-24T04:10:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    a11yPassed: false,
+    a11yPassed: true,
     notes:
-      "PO 13/13 · P-public-seed-tap: /t/seeddemo01 headed Chromium — schedule content + Keep Card visible",
+      "P-public-seed-tap + P-a11y-owner-gate + P-responsive-owner-gate: public tap has <main>; axe serious/critical clear; responsive viewports pass. Not OWNER-READY (analytics + full gate).",
     blockers: [
-      "a11y_headed_pass",
-      "responsive_matrix",
       "analytics_event_assert",
       "full_owner_gate_matrix",
+      "voiceover_nvda_manual_spot_check_recommended",
     ],
-    nextAction: "Complete a11y + responsive + analytics asserts for public render",
+    nextAction: "Analytics assert + VoiceOver spot-check before OWNER-READY",
   },
   {
     sectionId: "calendar",
     lastVerifiedAt: "2026-07-24T00:43:02.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    a11yPassed: false,
-    notes: "PO 13/13 · P-campaign-group-schedule: evening slot + upcoming strip on public tap",
+    a11yPassed: true,
+    notes: "PO 13/13 · P-campaign-group-schedule; a11y/responsive owner gates cover public strip",
     blockers: [
       "studio_time_travel_ui_matrix",
       "fallback_path_browser_proof",
-      "a11y_headed_pass",
     ],
     nextAction: "Prove Studio time-travel preview UI + explicit fallback path",
   },
@@ -97,8 +95,8 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     persistencePassed: true,
     notes:
       "PO 13/13 · P-studio-home: Home hub loads; readiness badges derived (not static OWNER-READY)",
-    blockers: ["decision_queue_full_matrix", "a11y_headed_pass", "full_owner_gate_matrix"],
-    nextAction: "Complete Home decision-queue + a11y headed matrix",
+    blockers: ["decision_queue_full_matrix", "full_owner_gate_matrix"],
+    nextAction: "Complete Home decision-queue matrix",
   },
   {
     sectionId: "campaigns",
@@ -241,18 +239,17 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     lastVerifiedAt: "2026-07-24T03:00:00.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
-    a11yPassed: false,
+    a11yPassed: true,
     notes:
-      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist/campaigns/reverse-repair/keyword-bind/version-restore/mode-matrix/comments-approvals/tapflow-bind/a11y-responsive + P-tapcanvas-weekly-matrix/conversational-funnel/tapflow-lifecycle/reverse-repair-deep/killswitch (ai.keywords + canvas.tapcanvas + journey.tapflow). Shell mounts KeywordsSuggestPanel + TapFlow lifecycle controls. Live visitor executor proved via P-tapflow-live-visitor (mock providers). Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + full SR/axe open).",
+      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-* + P-a11y-owner-gate (axe serious/critical + keyboard modes/selection/comments/approvals) + P-responsive-owner-gate. Classification: IMPLEMENTED BUT NOT OWNER-READY (live credentials + VoiceOver spot-check residual).",
     blockers: [
-      "a11y_headed_pass",
-      "responsive_matrix",
+      "voiceover_nvda_manual_spot_check_recommended",
       "live_tapcast_credentials",
       "live_oauth_providers_credentials_required",
       "not_owner_ready",
     ],
     nextAction:
-      "Clear live executor + a11y/SR sign-off; do not claim OWNER-READY without zero blockers",
+      "Clear live credentials + VoiceOver spot-check; do not claim OWNER-READY without zero blockers",
   },
   {
     sectionId: "tapcast",
@@ -310,13 +307,28 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     blockers: [
       "live_trend_provider",
       "openai_ai_enhancement",
-      "a11y_headed_pass",
       "dedicated_analytics_ui_panel",
+      "voiceover_nvda_manual_spot_check_recommended",
       "not_owner_ready",
     ],
     missingProviders: ["approved_trend_provider", "openai"],
     nextAction:
-      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; a11y headed pass before OWNER-READY",
+      "Keep trends/AI enhancement VERIFIED — CREDENTIALS REQUIRED; VoiceOver spot-check before OWNER-READY",
+  },
+  {
+    sectionId: "controls_a11y_responsive",
+    lastVerifiedAt: "2026-07-24T04:10:00.000Z",
+    browserE2ePassed: true,
+    persistencePassed: true,
+    a11yPassed: true,
+    notes:
+      "P-a11y-owner-gate + P-responsive-owner-gate headed: axe serious/critical cleared on Home/Experiences/Builders/TapCanvas/TapFlow/TapCast/TikTok/Tap Points/Audience/Inbox/Insights/Assets/Brand/Settings/Admin; keyboard proofs (skip, Create focus return, block reorder, canvas selection, admin arrows); viewports large desktop→mobile review. IMPLEMENTED BUT NOT OWNER-READY — residual VoiceOver/NVDA + 200% zoom manual.",
+    blockers: [
+      "voiceover_nvda_manual_spot_check_recommended",
+      "full_200pct_zoom_manual_spot_check",
+      "not_owner_ready",
+    ],
+    nextAction: "Manual VoiceOver/NVDA + 200% zoom spot-check; never OWNER-READY on axe alone",
   },
 ];
 

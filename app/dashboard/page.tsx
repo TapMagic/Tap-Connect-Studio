@@ -203,6 +203,7 @@ export default async function DashboardPage() {
         destinationId="home"
         title="Home destinations"
         subtitle="Secondary Home surfaces — Autopilot remains contextual in the builder."
+        headingLevel={2}
       />
     </div>
   );

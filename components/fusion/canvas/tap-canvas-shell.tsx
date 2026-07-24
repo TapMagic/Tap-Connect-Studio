@@ -79,6 +79,7 @@ export function TapCanvasShell({
   const [persistence, setPersistence] = useState<"prisma" | "memory" | null>(null);
   const [lastUndoVersionId, setLastUndoVersionId] = useState<string | null>(null);
   const [compareDiff, setCompareDiff] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const openFromLinkDone = useRef(false);
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -338,12 +339,19 @@ export function TapCanvasShell({
 
       {message ? (
         <p
+          role="status"
+          aria-live="polite"
           data-testid="tapcanvas-message"
           className="rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-sm text-white/70"
         >
           {message}
         </p>
       ) : null}
+      <p className="sr-only" role="status" aria-live="polite" data-testid="tapcanvas-selection-live">
+        {selectedNodeId
+          ? `Selected node ${canvas?.nodes.find((n) => n.id === selectedNodeId)?.label ?? selectedNodeId}`
+          : "No canvas node selected"}
+      </p>
       {compareDiff ? (
         <p data-testid="tapcanvas-compare-diff" className="text-xs text-white/50">
           Version compare: {compareDiff}
@@ -1117,18 +1125,29 @@ export function TapCanvasShell({
               >
                 <ul className="flex flex-wrap gap-3">
                   {canvas.nodes.map((n) => (
-                    <li
-                      key={n.id}
-                      data-testid={`tapcanvas-node-${n.id}`}
-                      className={cn(
-                        "min-w-[140px] max-w-[200px] rounded-lg border px-3 py-2 text-sm",
-                        n.sketch
-                          ? "border-dashed border-white/25 bg-black/30 text-white/70"
-                          : n.data?.guardianBlocked
-                            ? "border-red-500/40 bg-red-500/10 text-red-100"
-                            : "border-primary/30 bg-primary/5 text-white"
-                      )}
-                    >
+                    <li key={n.id} className="list-none">
+                      <button
+                        type="button"
+                        data-testid={`tapcanvas-node-${n.id}`}
+                        aria-pressed={selectedNodeId === n.id}
+                        aria-label={`Select ${n.kind} node ${n.label}`}
+                        onClick={() => setSelectedNodeId(n.id)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedNodeId(n.id);
+                          }
+                        }}
+                        className={cn(
+                          "min-w-[140px] max-w-[200px] rounded-lg border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                          selectedNodeId === n.id && "ring-2 ring-primary/60",
+                          n.sketch
+                            ? "border-dashed border-white/25 bg-black/30 text-white/70"
+                            : n.data?.guardianBlocked
+                              ? "border-red-500/40 bg-red-500/10 text-red-100"
+                              : "border-primary/30 bg-primary/5 text-white"
+                        )}
+                      >
                       <p className="text-[10px] uppercase tracking-wide text-white/40">
                         {n.kind}
                         {n.sketch ? " · sketch" : ""}
@@ -1155,6 +1174,7 @@ export function TapCanvasShell({
                           keywords: {(n.data.keywords as string[]).slice(0, 4).join(", ")}
                         </p>
                       ) : null}
+                      </button>
                     </li>
                   ))}
                 </ul>

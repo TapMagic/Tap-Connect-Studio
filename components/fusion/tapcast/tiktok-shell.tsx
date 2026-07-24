@@ -196,7 +196,11 @@ export function TikTokTapCastShell() {
           Create cast
         </Button>
         <div className="flex items-center gap-2">
+          <label htmlFor="tiktok-title-input" className="sr-only">
+            Cast title
+          </label>
           <Input
+            id="tiktok-title-input"
             data-testid="tiktok-title-input"
             value={title}
             onChange={(e) => setTitle(e.target.value)}

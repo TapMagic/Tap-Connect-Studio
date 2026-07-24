@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import type { MessageChannel } from "@/lib/fusion/comms/channel-guardian";
 import type { SuppressionRow } from "@/lib/fusion/comms/suppression-utils";
 
@@ -78,8 +79,14 @@ export function SuppressionListPanel({
       ) : null}
 
       <div className="grid gap-2 sm:grid-cols-[120px_1fr_1fr_auto]">
-        <select
-          className="h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
+        <div className="space-y-1">
+          <Label htmlFor="suppression-channel" className="text-xs">
+            Channel
+          </Label>
+          <select
+            id="suppression-channel"
+            aria-label="Suppression channel"
+            className="h-9 rounded-md border border-border/60 bg-background px-2 text-sm"
           value={channel}
           disabled={!featureEnabled || pending}
           onChange={(e) => setChannel(e.target.value as MessageChannel)}
@@ -90,18 +97,31 @@ export function SuppressionListPanel({
             </option>
           ))}
         </select>
-        <Input
-          placeholder="address@example.com"
-          value={address}
-          disabled={!featureEnabled || pending}
-          onChange={(e) => setAddress(e.target.value)}
-        />
-        <Input
-          placeholder="Reason"
-          value={reason}
-          disabled={!featureEnabled || pending}
-          onChange={(e) => setReason(e.target.value)}
-        />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="suppression-address" className="text-xs">
+            Address
+          </Label>
+          <Input
+            id="suppression-address"
+            placeholder="address@example.com"
+            value={address}
+            disabled={!featureEnabled || pending}
+            onChange={(e) => setAddress(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="suppression-reason" className="text-xs">
+            Reason
+          </Label>
+          <Input
+            id="suppression-reason"
+            placeholder="Reason"
+            value={reason}
+            disabled={!featureEnabled || pending}
+            onChange={(e) => setReason(e.target.value)}
+          />
+        </div>
         <Button
           size="sm"
           disabled={!featureEnabled || pending || !address.trim()}

@@ -25,7 +25,7 @@ function displayClass(d: DisplayReadiness) {
     case "blocked":
       return "border-red-500/40 text-red-200";
     case "disabled":
-      return "border-white/10 text-white/35";
+      return "border-white/10 text-white/55";
     default:
       return "border-white/15 text-white/45";
   }
@@ -35,14 +35,18 @@ export function StudioHubSections({
   destinationId,
   title,
   subtitle,
+  headingLevel = 1,
 }: {
   destinationId: string;
   title: string;
   subtitle: string;
+  /** Use 2 when the page already has a primary h1 (e.g. Home). */
+  headingLevel?: 1 | 2;
 }) {
   const sections = sectionsForDestination(destinationId);
   const grouped = groupSections(sections);
   const [openId, setOpenId] = useState<string | null>(null);
+  const HeadingTag = headingLevel === 1 ? "h1" : "h2";
 
   return (
     <div className="space-y-8">
@@ -50,7 +54,9 @@ export function StudioHubSections({
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           Tap Connect Studio
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">{title}</h1>
+        <HeadingTag className="text-3xl font-semibold tracking-tight text-white">
+          {title}
+        </HeadingTag>
         <p className="max-w-2xl text-sm text-white/55">{subtitle}</p>
         <p className="max-w-2xl text-xs text-amber-200/80">
           Readiness badges are derived from verification + dependencies — never static OWNER-READY
@@ -60,7 +66,7 @@ export function StudioHubSections({
 
       {grouped.map(({ group, items }) => (
         <section key={group} className="space-y-3">
-          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/55">
             {group}
           </h2>
           <ul className="divide-y divide-white/6 overflow-hidden rounded-xl border border-white/8 bg-white/[0.02]">
@@ -81,6 +87,7 @@ export function StudioHubSections({
                         displayClass(r.display)
                       )}
                       aria-expanded={open}
+                      aria-controls={`readiness-detail-${s.id}`}
                       onClick={() => setOpenId(open ? null : s.id)}
                       title="Inspect readiness"
                     >
@@ -88,7 +95,12 @@ export function StudioHubSections({
                     </button>
                   </div>
                   {open ? (
-                    <div className="mt-3 space-y-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/70">
+                    <div
+                      id={`readiness-detail-${s.id}`}
+                      role="region"
+                      aria-label={`${s.label} readiness detail`}
+                      className="mt-3 space-y-1 rounded-lg border border-white/10 bg-black/30 px-3 py-2 text-xs text-white/70"
+                    >
                       <p>
                         <span className="text-white/40">Works: </span>
                         {r.whatWorks}

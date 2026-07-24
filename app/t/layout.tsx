@@ -1,5 +1,5 @@
 import "./tap.css";
 
 export default function TapLayout({ children }: { children: React.ReactNode }) {
-  return children;
+  return <main id="main-content">{children}</main>;
 }

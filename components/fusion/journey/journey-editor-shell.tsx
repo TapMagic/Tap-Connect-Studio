@@ -6,6 +6,7 @@ import { GitBranch, ListOrdered, Play, Plus, Save, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
   JOURNEY_NODE_REGISTRY,
@@ -561,8 +562,11 @@ export function JourneyEditorShell({
             </>
           )}
           <div className="mt-4 space-y-2">
-            <p className="text-xs font-medium text-muted-foreground">Definition JSON</p>
+            <Label htmlFor="journey-definition-json" className="text-xs font-medium text-muted-foreground">
+              Definition JSON
+            </Label>
             <Textarea
+              id="journey-definition-json"
               className="font-mono text-[11px]"
               rows={6}
               value={JSON.stringify(definition, null, 2)}
@@ -648,7 +652,16 @@ export function JourneyEditorShell({
         ) : null}
       </div>
 
-      {message ? <p className="text-sm text-muted-foreground">{message}</p> : null}
+      {message ? (
+        <p
+          role="status"
+          aria-live="polite"
+          data-testid="journey-editor-status"
+          className="text-sm text-muted-foreground"
+        >
+          {message}
+        </p>
+      ) : null}
       <p className="font-mono text-[10px] text-muted-foreground">business: {businessId}</p>
     </div>
   );

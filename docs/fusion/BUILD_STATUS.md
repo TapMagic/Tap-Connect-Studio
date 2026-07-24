@@ -52,10 +52,10 @@
 2. ~~TapFlow live visitor executor~~ — P-tapflow-live-visitor headed + persistence (mock/sandbox effects). Live OAuth providers still **VERIFIED — CREDENTIALS REQUIRED**
 3. Expand remaining Admin kill-switches beyond Keywords/TapCanvas/TapFlow triad
 4. Insights drill-down + provenance  
-5. A11y/responsive completion (full SR/axe)  
+5. A11y/responsive: **P-a11y-owner-gate** + **P-responsive-owner-gate** headed (axe serious/critical + keyboard + viewport matrix). Residual: VoiceOver/NVDA + 200% zoom manual — **IMPLEMENTED BUT NOT OWNER-READY**  
 6. Live productivity OAuth apps (one provider at a time)  
 7. Live TapCast credentials per channel (TikTok Direct Post, Meta, YouTube, …) — never claim OWNER-READY without them  
-8. TapCanvas OWNER-READY gate (SR/axe + live executor + zero ledger blockers)  
+8. TapCanvas OWNER-READY gate (VoiceOver spot + live credentials + zero ledger blockers)  
 9. Keywords live AI/trend providers + dedicated analytics UI panel
 ## Classifications (TapCanvas / TapCast)
 
@@ -74,11 +74,22 @@
 
 ## Local TapCanvas blockers (precise)
 
-- Full screen-reader / VoiceOver sign-off (`P-tapcanvas-a11y-responsive` is basic keyboard/labels/viewports only)
-- Live visitor TapFlow executor + provider effects (email/SMS/loyalty live) from canvas
+- VoiceOver/NVDA manual spot-check (automated axe + keyboard owner gates passed via P-a11y-owner-gate)
 - Live TapCast/TikTok credentials for variant publish
-- Keywords surface a11y headed pass + dedicated analytics UI
+- Keywords dedicated analytics UI
 - Commerce live path (`commerce.tapcommerce` + Stripe) for promoted commerce actions
+
+## Accessibility + responsive owner gates (2026-07-24)
+
+- Specs: `e2e/a11y-owner-gate.spec.ts`, `e2e/responsive-owner-gate.spec.ts` (`@axe-core/playwright`)
+- Axe: serious/critical cleared across Home, Experiences, Campaigns, Card, TapCanvas, TapFlow, TapCast, TikTok, Tap Points, Audience, Inbox, Insights, Assets, Brand, Settings, Platform Admin
+- Keyboard: skip→main, Create menu focus return, campaign block reorder (non-drag), TapCanvas node selection + live regions, admin tab arrows
+- Responsive: large desktop / laptop / tablet L+P / mobile review — no overflow, Create reachable, TapCanvas review mode
+- Classification: **IMPLEMENTED BUT NOT OWNER-READY** (residual VoiceOver + 200% zoom manual)
+- Commands:
+  ```bash
+  PROOF_HEADED=1 npx playwright test e2e/a11y-owner-gate.spec.ts e2e/responsive-owner-gate.spec.ts --headed
+  ```
 
 ## Commands
 

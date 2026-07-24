@@ -241,6 +241,17 @@ export function TapCardBuilder({
     setSections(next);
   }
 
+  function moveSectionBy(id: string, delta: number) {
+    const fromIndex = sorted.findIndex((s) => s.id === id);
+    if (fromIndex < 0) return;
+    const toIndex = fromIndex + delta;
+    if (toIndex < 0 || toIndex >= sorted.length) return;
+    const next = [...sorted];
+    const [item] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, item);
+    setSections(next);
+  }
+
   function addSection(type: Exclude<TapCardSectionType, "action_row">) {
     const id = nanoid(8);
     const base: TapCardSection = {
@@ -372,7 +383,7 @@ export function TapCardBuilder({
     <div className="builder-studio flex h-full min-h-0 flex-col overflow-hidden max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto">
       <div className="builder-studio-toolbar z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-3">
         <div>
-          <p className="text-sm font-semibold">Tap Connect Card builder</p>
+          <h1 className="text-sm font-semibold">Tap Connect Card builder</h1>
           <p className="text-xs text-muted-foreground">
             Blocks scroll left · card &amp; editor stay fixed · select a block to snap the preview
           </p>
@@ -487,6 +498,7 @@ export function TapCardBuilder({
               Button shape
             </Label>
             <select
+              aria-label="Button shape"
               className="flex h-9 min-w-[11rem] rounded-lg border border-input bg-background px-2 text-xs"
               value={config.defaultShape}
               onChange={(e) =>
@@ -537,6 +549,7 @@ export function TapCardBuilder({
               <Label className="text-[10px]">{label}</Label>
               <Input
                 type="color"
+                aria-label={`${label} color`}
                 className="h-9 w-14 cursor-pointer p-1"
                 value={
                   (config[key] as string | undefined) ||
@@ -553,6 +566,7 @@ export function TapCardBuilder({
           <div className="space-y-1">
             <Label className="text-[10px]">Card background</Label>
             <select
+              aria-label="Card background fill"
               className="flex h-9 min-w-[8rem] rounded-lg border border-input bg-background px-2 text-xs"
               value={config.surfaceFill || "solid"}
               onChange={(e) =>
@@ -569,6 +583,7 @@ export function TapCardBuilder({
                 <Label className="text-[10px]">Gradient start</Label>
                 <Input
                   type="color"
+                  aria-label="Gradient start color"
                   className="h-9 w-14 cursor-pointer p-1"
                   value={config.surfaceGradientStart || config.surfaceColor}
                   onChange={(e) => patchConfig({ surfaceGradientStart: e.target.value })}
@@ -578,6 +593,7 @@ export function TapCardBuilder({
                 <Label className="text-[10px]">Gradient end</Label>
                 <Input
                   type="color"
+                  aria-label="Gradient end color"
                   className="h-9 w-14 cursor-pointer p-1"
                   value={config.surfaceGradientEnd || config.accentColor}
                   onChange={(e) => patchConfig({ surfaceGradientEnd: e.target.value })}
@@ -591,6 +607,7 @@ export function TapCardBuilder({
                   type="range"
                   min={0}
                   max={360}
+                  aria-label="Surface gradient direction"
                   value={config.surfaceGradientAngle ?? 160}
                   onChange={(e) =>
                     patchConfig({ surfaceGradientAngle: Number(e.target.value) })
@@ -608,6 +625,7 @@ export function TapCardBuilder({
               type="range"
               min={35}
               max={100}
+              aria-label="Card surface transparency"
               value={config.surfaceOpacity ?? 100}
               onChange={(e) => patchConfig({ surfaceOpacity: Number(e.target.value) })}
               className="w-full"
@@ -672,6 +690,7 @@ export function TapCardBuilder({
                   type="range"
                   min={40}
                   max={180}
+                  aria-label="Header logo size"
                   value={config.headerLogoScale ?? 100}
                   onChange={(e) =>
                     patchConfig({ headerLogoScale: Number(e.target.value) })
@@ -749,8 +768,10 @@ export function TapCardBuilder({
                 onChange={(e) => setActionSearch(e.target.value)}
                 placeholder="Search icons / actions…"
                 className="h-8 text-xs"
+                aria-label="Search icons and actions"
               />
               <select
+                aria-label="Action kind to add"
                 className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                 value={addKind}
                 onChange={(e) => setAddKind(e.target.value as TapCardActionKind)}
@@ -775,6 +796,7 @@ export function TapCardBuilder({
             {sorted.map((section, index) => (
               <div
                 key={section.id}
+                data-testid={`card-segment-${section.id}`}
                 draggable
                 onDragStart={() => setDragId(section.id)}
                 onDragOver={(e) => e.preventDefault()}
@@ -783,9 +805,8 @@ export function TapCardBuilder({
                   setDragId(null);
                 }}
                 onDragEnd={() => setDragId(null)}
-                onClick={() => setSelectedId(section.id)}
                 className={cn(
-                  "cursor-pointer rounded-lg border px-2 py-2 text-sm",
+                  "rounded-lg border px-2 py-2 text-sm",
                   selectedId === section.id
                     ? "border-primary bg-primary/10"
                     : "border-border/50 hover:border-primary/40",
@@ -794,10 +815,19 @@ export function TapCardBuilder({
                 )}
               >
                 <div className="flex items-center gap-1.5">
-                  <GripVertical className="h-3.5 w-3.5 cursor-grab text-muted-foreground active:cursor-grabbing" />
-                  <span className="min-w-0 flex-1 truncate font-medium">
+                  <GripVertical
+                    className="h-3.5 w-3.5 cursor-grab text-muted-foreground active:cursor-grabbing"
+                    aria-hidden
+                  />
+                  <button
+                    type="button"
+                    className="min-w-0 flex-1 truncate text-left font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-pressed={selectedId === section.id}
+                    aria-label={`Select segment ${section.label || section.type}`}
+                    onClick={() => setSelectedId(section.id)}
+                  >
                     {section.label || section.type}
-                  </span>
+                  </button>
                   {section.linkedCampaignId ? (
                     <span
                       className="inline-flex items-center text-primary"
@@ -808,6 +838,34 @@ export function TapCardBuilder({
                   ) : null}
                   <button
                     type="button"
+                    className="min-h-8 min-w-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-label={`Move ${section.label || section.type} up`}
+                    data-testid={`card-segment-move-up-${section.id}`}
+                    disabled={index === 0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveSectionBy(section.id, -1);
+                    }}
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-8 min-w-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-label={`Move ${section.label || section.type} down`}
+                    data-testid={`card-segment-move-down-${section.id}`}
+                    disabled={index === sorted.length - 1}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveSectionBy(section.id, 1);
+                    }}
+                  >
+                    ↓
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-8 min-w-8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-label={`Duplicate ${section.label || section.type}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       const clone = {
@@ -821,18 +879,19 @@ export function TapCardBuilder({
                       setSelectedId(clone.id);
                     }}
                   >
-                    <Copy className="h-3.5 w-3.5" />
+                    <Copy className="h-3.5 w-3.5" aria-hidden />
                   </button>
                   <button
                     type="button"
-                    className="text-red-400"
+                    className="min-h-8 min-w-8 text-red-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    aria-label={`Delete ${section.label || section.type}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       setSections(sorted.filter((s) => s.id !== section.id));
                       if (selectedId === section.id) setSelectedId(null);
                     }}
                   >
-                    <Trash2 className="h-3.5 w-3.5" />
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   </button>
                 </div>
                 <p className="pl-5 text-[10px] text-muted-foreground">
@@ -907,11 +966,13 @@ export function TapCardBuilder({
                 value={selected.label ?? ""}
                 onChange={(e) => patchSection(selected.id, { label: e.target.value })}
                 placeholder="Label"
+                aria-label="Segment label"
               />
 
               {selected.type === "action" && (
                 <>
                   <select
+                    aria-label="Action type"
                     className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                     value={selected.actionKind ?? "custom"}
                     onChange={(e) => {
@@ -944,6 +1005,7 @@ export function TapCardBuilder({
                   <div className="space-y-1">
                     <Label className="text-xs">Shape</Label>
                     <select
+                      aria-label="Action button shape"
                       className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                       value={selected.shape || config.defaultShape}
                       onChange={(e) =>
@@ -984,6 +1046,7 @@ export function TapCardBuilder({
                       <Label className="text-xs">Pill fill</Label>
                       <Input
                         type="color"
+                        aria-label="Pill fill color"
                         value={
                           selected.backgroundColor || config.pillColor || "#0c0a07"
                         }
@@ -996,6 +1059,7 @@ export function TapCardBuilder({
                       <Label className="text-xs">Pill text</Label>
                       <Input
                         type="color"
+                        aria-label="Pill text color"
                         value={selected.textColor || config.pillTextColor || "#f5e6a8"}
                         onChange={(e) =>
                           patchSection(selected.id, { textColor: e.target.value })
@@ -1280,6 +1344,7 @@ export function TapCardBuilder({
                               <div className="space-y-1">
                                 <Label className="text-xs">Tap page that opens this campaign</Label>
                                 <select
+                                  aria-label="Tap page that opens this campaign"
                                   className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                                   value={selected.linkedDeviceCode || ""}
                                   onChange={(e) => {
@@ -1304,6 +1369,7 @@ export function TapCardBuilder({
                       ) : (
                         <div className="space-y-2">
                           <select
+                            aria-label="Choose a campaign to link"
                             className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                             value=""
                             onChange={(e) => {
@@ -1519,6 +1585,7 @@ export function TapCardBuilder({
                   <div className="space-y-1">
                     <Label className="text-xs">Hero background</Label>
                     <select
+                      aria-label="Hero fill mode"
                       className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
                       value={selected.heroFill || "photo"}
                       onChange={(e) =>
@@ -1539,6 +1606,7 @@ export function TapCardBuilder({
                           <Label className="text-xs">Gradient start</Label>
                           <Input
                             type="color"
+                            aria-label="Hero gradient start color"
                             className="h-9 w-full cursor-pointer p-1"
                             value={selected.gradientStart || config.accentColor}
                             onChange={(e) =>
@@ -1550,6 +1618,7 @@ export function TapCardBuilder({
                           <Label className="text-xs">Gradient end</Label>
                           <Input
                             type="color"
+                            aria-label="Hero gradient end color"
                             className="h-9 w-full cursor-pointer p-1"
                             value={selected.gradientEnd || "#0b0f19"}
                             onChange={(e) =>
@@ -1566,6 +1635,7 @@ export function TapCardBuilder({
                           type="range"
                           min={0}
                           max={360}
+                          aria-label="Hero gradient direction"
                           value={selected.gradientAngle ?? 160}
                           onChange={(e) =>
                             patchSection(selected.id, {

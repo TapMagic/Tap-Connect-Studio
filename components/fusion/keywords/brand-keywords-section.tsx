@@ -351,6 +351,7 @@ export function BrandKeywordsSection({ initialPack }: BrandKeywordsSectionProps)
           </p>
           <div className="flex flex-wrap gap-2">
             <select
+              aria-label="Select vocabulary term"
               className="h-9 min-w-[12rem] rounded-md border border-input bg-background px-2 text-xs"
               data-testid="brand-keywords-term-select"
               value={selectedTermId ?? ""}
@@ -369,7 +370,11 @@ export function BrandKeywordsSection({ initialPack }: BrandKeywordsSectionProps)
                 </option>
               ))}
             </select>
+            <Label htmlFor="brand-keywords-edit-value" className="sr-only">
+              Edited term value
+            </Label>
             <Input
+              id="brand-keywords-edit-value"
               data-testid="brand-keywords-edit-value"
               value={editValue}
               onChange={(e) => setEditValue(e.target.value)}

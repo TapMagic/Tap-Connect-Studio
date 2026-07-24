@@ -91,6 +91,7 @@ export function ColorSwatchPicker({
           <div className="flex items-center gap-2">
             <input
               type="color"
+              aria-label={`${title} picker`}
               value={/^#[0-9a-fA-F]{6}$/.test(current) ? current : defaultColor}
               onChange={(e) => onChange(e.target.value)}
               className="h-9 w-10 cursor-pointer rounded border-0 bg-transparent p-0"

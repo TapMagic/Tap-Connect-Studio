@@ -382,8 +382,11 @@ export function KeywordsSuggestPanel({
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <label className="text-[11px] text-muted-foreground">Channel</label>
+            <label htmlFor="keywords-channel" className="text-[11px] text-muted-foreground">
+              Channel
+            </label>
             <select
+              id="keywords-channel"
               className="h-8 rounded-md border border-border bg-background px-2 text-xs"
               value={channel}
               data-testid="keywords-channel"

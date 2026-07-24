@@ -262,7 +262,7 @@ export function CampaignsList({
             )}
           >
             {t.label}
-            <span className="ml-1 opacity-70">{counts[t.id] ?? 0}</span>
+            <span className="ml-1 opacity-90">{counts[t.id] ?? 0}</span>
           </button>
         ))}
       </div>
@@ -411,9 +411,11 @@ export function CampaignsList({
                     <Button
                       variant="ghost"
                       size="sm"
+                      aria-label={`More actions for ${c.title}`}
+                      aria-expanded={openMenu === c.id}
                       onClick={() => setOpenMenu(openMenu === c.id ? null : c.id)}
                     >
-                      <MoreHorizontal className="h-4 w-4" />
+                      <MoreHorizontal className="h-4 w-4" aria-hidden />
                     </Button>
                     {openMenu === c.id && (
                       <div className="absolute right-0 z-20 mt-1 w-44 rounded-lg border border-border bg-card p-1 shadow-lg">
