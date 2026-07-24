@@ -15,12 +15,16 @@ export function FinishPicker({
   value,
   onChange,
   label = "Finish",
+  allowNone = true,
 }: {
   value?: PremiumFinish | string;
-  onChange: (finish: PremiumFinish) => void;
+  onChange: (finish: PremiumFinish | undefined) => void;
   label?: string;
+  /** When true, show an honest "None (legacy style)" option instead of lying as metallic. */
+  allowNone?: boolean;
 }) {
   const selectId = useId();
+  const selectValue = value || (allowNone ? "" : "metallic");
   return (
     <div className="space-y-1">
       <Label htmlFor={selectId} className="text-xs">
@@ -29,9 +33,16 @@ export function FinishPicker({
       <select
         id={selectId}
         className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
-        value={value || "metallic"}
-        onChange={(e) => onChange(e.target.value as PremiumFinish)}
+        value={selectValue}
+        onChange={(e) => {
+          const v = e.target.value;
+          onChange(v ? (v as PremiumFinish) : undefined);
+        }}
+        data-testid="finish-picker"
       >
+        {allowNone ? (
+          <option value="">None — use legacy style</option>
+        ) : null}
         {PREMIUM_FINISH_OPTIONS.map((f) => (
           <option key={f.id} value={f.id}>
             {f.label} — {f.hint}

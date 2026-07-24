@@ -6,6 +6,10 @@ describe("V1 parity inventory", () => {
   it("includes builder campaigns scan and public tap", () => {
     const result = assertV1ParityInventoryComplete();
     assert.equal(result.ok, true);
-    assert.ok(V1_PARITY_SURFACES.some((s) => s.route.includes("builder")));
+    assert.ok(
+      V1_PARITY_SURFACES.some(
+        (s) => s.route.includes("/dashboard/card") || s.id === "v1-builder"
+      )
+    );
   });
 });

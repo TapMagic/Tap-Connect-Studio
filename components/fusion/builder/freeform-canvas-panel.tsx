@@ -45,9 +45,14 @@ export function FreeformCanvasPanel({
 
   if (!enabled) {
     return (
-      <div className="rounded-xl border border-dashed border-border/60 p-4 text-xs text-muted-foreground">
-        Freeform canvas is registered but not activated. Enable{" "}
-        <code className="font-mono">card.builder.freeform</code> in Platform Admin when ready.
+      <div
+        className="rounded-xl border border-dashed border-border/60 p-4 text-xs text-muted-foreground"
+        data-testid="freeform-honest-disabled"
+        role="status"
+      >
+        Freeform canvas is honestly disabled until{" "}
+        <code className="font-mono">card.builder.freeform</code> is enabled in Platform Admin.
+        Structured Card Builder remains the live WYSIWYG path.
       </div>
     );
   }

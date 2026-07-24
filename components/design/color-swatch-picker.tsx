@@ -31,28 +31,44 @@ export function ColorSwatchPicker({
 }) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const openerRef = useRef<Element | null>(null);
   const panelId = useId();
   const current = value?.trim() || defaultColor;
 
   useEffect(() => {
     if (!open) return;
+    openerRef.current = document.activeElement;
+    const triggerEl = triggerRef.current;
+    const t = window.setTimeout(() => closeRef.current?.focus(), 0);
     function onDoc(e: MouseEvent) {
       if (!rootRef.current?.contains(e.target as Node)) setOpen(false);
     }
     function onKey(e: KeyboardEvent) {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setOpen(false);
+      }
     }
     document.addEventListener("mousedown", onDoc);
     document.addEventListener("keydown", onKey);
     return () => {
+      window.clearTimeout(t);
       document.removeEventListener("mousedown", onDoc);
       document.removeEventListener("keydown", onKey);
+      const restore =
+        openerRef.current instanceof HTMLElement
+          ? openerRef.current
+          : triggerEl;
+      restore?.focus();
     };
   }, [open]);
 
   return (
     <div ref={rootRef} className={cn("relative shrink-0", className)}>
       <button
+        ref={triggerRef}
         type="button"
         title={title}
         aria-label={title}
@@ -79,12 +95,17 @@ export function ColorSwatchPicker({
               {title}
             </p>
             <button
+              ref={closeRef}
               type="button"
-              className="rounded p-0.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+              className="rounded px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground hover:bg-muted hover:text-foreground"
               onClick={() => setOpen(false)}
-              aria-label="Close"
+              aria-label="Close color picker"
+              data-testid="color-swatch-close"
             >
-              <X className="h-3.5 w-3.5" />
+              <span className="inline-flex items-center gap-0.5">
+                <X className="h-3.5 w-3.5" />
+                Done
+              </span>
             </button>
           </div>
 

@@ -14,6 +14,8 @@ interface TapActionButtonProps {
   blockId?: string;
   openInNewTab?: boolean;
   "aria-label"?: string;
+  "data-icon-placement"?: string;
+  "data-appearance"?: string;
 }
 
 function isHttpUrl(href: string) {
@@ -36,6 +38,8 @@ export function TapActionButton({
   blockId,
   openInNewTab,
   "aria-label": ariaLabel,
+  "data-icon-placement": dataIconPlacement,
+  "data-appearance": dataAppearance,
 }: TapActionButtonProps) {
   async function logClick() {
     try {
@@ -48,6 +52,11 @@ export function TapActionButton({
       // Non-blocking analytics
     }
   }
+
+  const dataAttrs = {
+    ...(dataIconPlacement ? { "data-icon-placement": dataIconPlacement } : {}),
+    ...(dataAppearance ? { "data-appearance": dataAppearance } : {}),
+  };
 
   if (href) {
     // Never force a new tab for phone/email — breaks dialers on mobile
@@ -65,6 +74,7 @@ export function TapActionButton({
         target={targetBlank ? "_blank" : undefined}
         rel={targetBlank ? "noopener noreferrer" : undefined}
         aria-label={ariaLabel}
+        {...dataAttrs}
       >
         {children}
       </a>
@@ -78,6 +88,7 @@ export function TapActionButton({
       style={style}
       onClick={() => void logClick()}
       aria-label={ariaLabel}
+      {...dataAttrs}
     >
       {children}
     </button>

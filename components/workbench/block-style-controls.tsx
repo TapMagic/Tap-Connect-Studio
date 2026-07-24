@@ -4,6 +4,7 @@ import type { CSSProperties } from "react";
 import type { BlockStyle } from "@/lib/types/campaign";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 
 export function BlockStyleControls({
   style = {},
@@ -160,39 +161,39 @@ export function BlockStyleControls({
             />
           </div>
         ) : null}
-        <div className="space-y-1">
+        <div className="space-y-1" data-testid="block-style-text-color">
           <Label className="text-[10px]">Text color</Label>
-          <div className="flex gap-1">
-            <input
-              type="color"
-              value={style.textColor ?? "#f8fafc"}
-              onChange={(e) => set("textColor", e.target.value)}
-              className="h-8 w-10 cursor-pointer rounded border-0"
-              data-testid="block-style-text-color"
-              aria-label="Block text color"
+          <div className="flex items-center gap-2">
+            <ColorSwatchPicker
+              value={style.textColor}
+              onChange={(c) => set("textColor", c)}
+              defaultColor="#f8fafc"
+              title="Block text color"
             />
             <Input
               value={style.textColor ?? ""}
               onChange={(e) => set("textColor", e.target.value || undefined)}
               placeholder="default"
               className="h-8 font-mono text-xs"
+              aria-label="Block text color hex"
             />
           </div>
         </div>
         <div className="space-y-1">
           <Label className="text-[10px]">Block background</Label>
-          <div className="flex gap-1">
-            <input
-              type="color"
-              value={style.backgroundColor ?? "#0b0f19"}
-              onChange={(e) => set("backgroundColor", e.target.value)}
-              className="h-8 w-10 cursor-pointer rounded border-0"
+          <div className="flex items-center gap-2">
+            <ColorSwatchPicker
+              value={style.backgroundColor}
+              onChange={(c) => set("backgroundColor", c)}
+              defaultColor="#0b0f19"
+              title="Block background"
             />
             <Input
               value={style.backgroundColor ?? ""}
               onChange={(e) => set("backgroundColor", e.target.value || undefined)}
               placeholder="transparent"
               className="h-8 font-mono text-xs"
+              aria-label="Block background hex"
             />
           </div>
         </div>

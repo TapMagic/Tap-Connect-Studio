@@ -28,6 +28,7 @@ import { BlockStyleControls } from "@/components/workbench/block-style-controls"
 import { TextBlockFormatToolbar } from "@/components/workbench/text-block-format-toolbar";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker } from "@/components/design/format-controls";
+import { ButtonLayoutControls } from "@/components/design/button-layout-controls";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { SchedulePanel } from "@/components/campaign/schedule-panel";
 import { EmailTemplatePanel } from "@/components/campaign/email-template-panel";
@@ -338,6 +339,8 @@ export function CampaignEditor({
   const [selectedButtonId, setSelectedButtonId] = useState<string | null>(null);
   const phoneScreenRef = useRef<HTMLDivElement>(null);
   const listRailRef = useRef<HTMLDivElement>(null);
+  const tabBtnRefs = useRef<Partial<Record<EditorTab, HTMLButtonElement | null>>>({});
+  const sideTabOpenerRef = useRef<Element | null>(null);
   const [scheduledStart, setScheduledStart] = useState(
     campaign.scheduledStart ? campaign.scheduledStart.slice(0, 16) : ""
   );
@@ -394,6 +397,31 @@ export function CampaignEditor({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [undoBlocks, redoBlocks]);
+
+  // Esc returns from QR / schedule / email / AI side tabs to Content + focus return
+  useEffect(() => {
+    if (tab === "content") return;
+    const openerEl =
+      tabBtnRefs.current[tab] ??
+      (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+    sideTabOpenerRef.current = openerEl;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      const tag = (e.target as HTMLElement | null)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      e.preventDefault();
+      setTab("content");
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      const restore =
+        sideTabOpenerRef.current instanceof HTMLElement
+          ? sideTabOpenerRef.current
+          : openerEl;
+      window.setTimeout(() => restore?.focus(), 0);
+    };
+  }, [tab]);
 
   function updateBlock(id: string, updates: Partial<ContentBlock>) {
     setBlocks((prev) => prev.map((b) => (b.id === id ? { ...b, ...updates } : b)), false);
@@ -714,7 +742,12 @@ export function CampaignEditor({
               return (
                 <button
                   key={t.id}
+                  ref={(el) => {
+                    tabBtnRefs.current[t.id] = el;
+                  }}
                   type="button"
+                  data-testid={`campaign-tab-${t.id}`}
+                  aria-pressed={tab === t.id}
                   onClick={() => setTab(t.id)}
                   className={cn(
                     "flex items-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs transition-colors",
@@ -1340,7 +1373,10 @@ export function CampaignEditor({
                     label="Default button finish"
                     value={theme.defaultButtonFinish}
                     onChange={(finish) =>
-                      setTheme((t) => ({ ...t, defaultButtonFinish: finish }))
+                      setTheme((t) => ({
+                        ...t,
+                        defaultButtonFinish: finish ?? "",
+                      }))
                     }
                   />
                   <p className="text-[11px] text-muted-foreground">
@@ -1641,11 +1677,20 @@ function BlockFields({
                 <select
                   className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
                   value={btn.appearance ?? "icon_text"}
-                  onChange={(e) =>
-                    patchBtn(btn.id, {
-                      appearance: e.target.value as ButtonItem["appearance"],
-                    })
-                  }
+                  data-testid="button-look"
+                  onChange={(e) => {
+                    const appearance = e.target.value as ButtonItem["appearance"];
+                    const patch: Partial<ButtonItem> = { appearance };
+                    if (appearance === "text") patch.iconPosition = "none";
+                    if (appearance === "icon_only") patch.iconPosition = "only";
+                    if (appearance === "icon_text") {
+                      patch.iconPosition =
+                        btn.iconPosition === "none" || btn.iconPosition === "only"
+                          ? "before"
+                          : btn.iconPosition;
+                    }
+                    patchBtn(btn.id, patch);
+                  }}
                 >
                   <option value="icon_text">Icon + text</option>
                   <option value="text">Text only</option>
@@ -1718,7 +1763,11 @@ function BlockFields({
               <div className="sm:col-span-2">
                 <IconPicker
                   icon={(btn.icon as string) || "FiLink"}
-                  customUrl={btn.imageUrl && (btn.appearance === "icon_text" || btn.appearance === "icon_only") ? "" : undefined}
+                  customUrl={
+                    btn.appearance === "image" || btn.appearance === "image_label"
+                      ? btn.imageUrl
+                      : undefined
+                  }
                   color={btn.iconColor || "#f8fafc"}
                   onChange={({ icon, customUrl, color }) =>
                     patchBtn(btn.id, {
@@ -1726,12 +1775,45 @@ function BlockFields({
                       iconColor: color,
                       ...(customUrl
                         ? { imageUrl: customUrl, appearance: btn.appearance ?? "icon_text" }
-                        : {}),
+                        : customUrl === ""
+                          ? { imageUrl: undefined }
+                          : {}),
                     })
                   }
                   mediaUploadReady={mediaUploadReady}
                   stockReady={stockReady}
                   showLogoPicker
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <ButtonLayoutControls
+                  value={{
+                    iconPosition: btn.iconPosition,
+                    iconSize: btn.iconSize,
+                    textSize: btn.textSize,
+                    iconGap: btn.iconGap,
+                    contentAlign: btn.contentAlign,
+                    verticalAlign: btn.verticalAlign,
+                    paddingX: btn.paddingX,
+                    paddingY: btn.paddingY,
+                    minHeight: btn.minHeight,
+                    fullWidth: btn.fullWidth,
+                    wrap: btn.wrap,
+                  }}
+                  onChange={(patch) => {
+                    const next: Partial<ButtonItem> = { ...patch };
+                    if (patch.iconPosition === "only") next.appearance = "icon_only";
+                    if (patch.iconPosition === "none") next.appearance = "text";
+                    if (
+                      patch.iconPosition &&
+                      patch.iconPosition !== "only" &&
+                      patch.iconPosition !== "none" &&
+                      (btn.appearance === "icon_only" || btn.appearance === "text")
+                    ) {
+                      next.appearance = "icon_text";
+                    }
+                    patchBtn(btn.id, next);
+                  }}
                 />
               </div>
               <div className="space-y-1">
@@ -1780,6 +1862,26 @@ function BlockFields({
                 />
               </div>
             </div>
+            <div className="flex flex-wrap gap-3 text-xs">
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  data-testid="btn-bold"
+                  checked={Boolean(btn.bold)}
+                  onChange={(e) => patchBtn(btn.id, { bold: e.target.checked })}
+                />
+                Bold label
+              </label>
+              <label className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  data-testid="btn-italic"
+                  checked={Boolean(btn.italic)}
+                  onChange={(e) => patchBtn(btn.id, { italic: e.target.checked })}
+                />
+                Italic label
+              </label>
+            </div>
             <MediaPicker
               label="Custom button art (optional — beer stein, photo, logo…)"
               value={btn.imageUrl ?? ""}
@@ -1789,14 +1891,6 @@ function BlockFields({
               campaignId={campaignId}
             />
             <div className="flex flex-wrap gap-3 text-xs">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={btn.fullWidth !== false}
-                  onChange={(e) => patchBtn(btn.id, { fullWidth: e.target.checked })}
-                />
-                Full width
-              </label>
               <label className="flex items-center gap-2">
                 <input
                   type="checkbox"

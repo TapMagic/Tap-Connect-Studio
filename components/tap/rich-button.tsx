@@ -6,6 +6,14 @@ import { socialBrandStyle, SOCIAL_BRAND } from "@/components/tap/social-icons";
 import { PremiumIcon } from "@/components/design/premium-icon";
 import { finishClass } from "@/lib/design/premium-finish";
 import { shapeRadius } from "@/lib/brand/tap-card";
+import {
+  buttonLayoutClassNames,
+  buttonLayoutInlineStyle,
+  iconSizePx,
+  isIconAfterPlacement,
+  normalizeIconPlacement,
+  resolveAppearance,
+} from "@/lib/design/button-layout";
 import type { ButtonItem } from "@/lib/types/campaign";
 import { cn } from "@/lib/utils";
 
@@ -92,6 +100,19 @@ export function resolveActionHref(
   return normalizeButtonHref(asBtn, contact);
 }
 
+function renderIcon(btn: ButtonItem, sizePx: number) {
+  if (btn.imageUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img src={btn.imageUrl} alt="" className="tap-btn-custom-icon" />
+    );
+  }
+  if (btn.icon && btn.icon !== "none") {
+    return <PremiumIcon icon={btn.icon} color={btn.iconColor} sizePx={sizePx} />;
+  }
+  return null;
+}
+
 export function RichTapButton({
   btn,
   campaignId,
@@ -107,7 +128,12 @@ export function RichTapButton({
   blockId: string;
   contact?: ContactHrefFallback;
 }) {
-  const appearance = btn.appearance ?? (btn.imageUrl ? "image_label" : "icon_text");
+  const appearance = resolveAppearance({
+    appearance: btn.appearance,
+    iconPosition: btn.iconPosition,
+    hasImage: Boolean(btn.imageUrl),
+  });
+  const place = normalizeIconPlacement(btn.iconPosition);
   const href = normalizeButtonHref(btn, contact);
   const brand = socialBrandStyle(btn.icon);
   const useBrand =
@@ -133,7 +159,23 @@ export function RichTapButton({
     btn.size === "sm" ? "tap-btn-sm" : btn.size === "lg" ? "tap-btn-lg" : "";
   const widthClass = btn.fullWidth === false ? "" : "w-full";
   const cardClass = btn.card ? "tap-btn-card" : "";
+  const layoutClasses = buttonLayoutClassNames({
+    iconPosition: btn.iconPosition,
+    iconSize: btn.iconSize,
+    textSize: btn.textSize,
+    contentAlign: btn.contentAlign,
+    verticalAlign: btn.verticalAlign,
+    wrap: btn.wrap,
+    fullWidth: btn.fullWidth,
+  });
+  const layoutStyle = buttonLayoutInlineStyle({
+    iconGap: btn.iconGap,
+    paddingX: btn.paddingX,
+    paddingY: btn.paddingY,
+    minHeight: btn.minHeight,
+  });
   const customStyle: CSSProperties | undefined = {
+    ...layoutStyle,
     ...(btn.backgroundColor ? { background: btn.backgroundColor } : {}),
     ...(btn.textColor ? { color: btn.textColor } : {}),
     ...(btn.neonColor ? ({ ["--tcc-neon"]: btn.neonColor } as CSSProperties) : {}),
@@ -147,6 +189,8 @@ export function RichTapButton({
     : Object.keys(customStyle).length
       ? customStyle
       : undefined;
+
+  const sizePx = iconSizePx(btn.iconSize);
 
   // Phone / maps / mailto never open in a new tab
   const openInNewTab =
@@ -166,19 +210,21 @@ export function RichTapButton({
           "tap-image-btn",
           appearance === "image" && "tap-image-btn-bare",
           cardClass,
-          widthClass
+          widthClass,
+          ...layoutClasses
         )}
+        data-icon-placement={place}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={btn.imageUrl} alt={btn.label || "Link"} className="tap-image-btn-img" />
         {appearance === "image_label" && btn.label ? (
-          <span className="tap-image-btn-label">{btn.label}</span>
+          <span className="tap-btn-label">{btn.label}</span>
         ) : null}
       </TapActionButton>
     );
   }
 
-  if (appearance === "icon_only") {
+  if (appearance === "icon_only" || place === "only") {
     return (
       <TapActionButton
         eventType="button_click"
@@ -188,23 +234,36 @@ export function RichTapButton({
         blockId={blockId}
         href={href}
         openInNewTab={openInNewTab}
-        className={cn("tap-btn tap-btn-icon-only tap-btn-pressable", styleClass, sizeClass, cardClass)}
+        className={cn(
+          "tap-btn tap-btn-icon-only tap-btn-pressable",
+          styleClass,
+          sizeClass,
+          cardClass,
+          ...layoutClasses
+        )}
         aria-label={btn.label}
         style={combinedStyle}
+        data-icon-placement="only"
       >
-        {btn.imageUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={btn.imageUrl} alt="" className="tap-btn-custom-icon" />
-        ) : (
-          <PremiumIcon
-            icon={btn.icon && btn.icon !== "none" ? btn.icon : "link"}
-            color={btn.iconColor}
-            sizePx={18}
-          />
+        {renderIcon(btn, sizePx) || (
+          <PremiumIcon icon="link" color={btn.iconColor} sizePx={sizePx} />
         )}
       </TapActionButton>
     );
   }
+
+  // Text-only: never render icon art (Look=text / iconPosition=none)
+  const showIcon =
+    appearance !== "text" &&
+    place !== "none" &&
+    Boolean(btn.imageUrl || (btn.icon && btn.icon !== "none"));
+  const iconEl = showIcon ? (
+    <span className="tap-btn-icon-slot" aria-hidden>
+      {renderIcon(btn, sizePx)}
+    </span>
+  ) : null;
+  const labelEl = <span className="tap-btn-label">{btn.label}</span>;
+  const after = isIconAfterPlacement(place);
 
   return (
     <TapActionButton
@@ -215,16 +274,29 @@ export function RichTapButton({
       blockId={blockId}
       href={href}
       openInNewTab={openInNewTab}
-      className={cn("tap-btn tap-btn-pressable", styleClass, sizeClass, widthClass, cardClass)}
+      className={cn(
+        "tap-btn tap-btn-pressable",
+        styleClass,
+        sizeClass,
+        widthClass,
+        cardClass,
+        ...layoutClasses
+      )}
       style={combinedStyle}
+      data-icon-placement={place}
+      data-appearance={appearance}
     >
-      {btn.imageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={btn.imageUrl} alt="" className="tap-btn-custom-icon" />
-      ) : btn.icon && btn.icon !== "none" ? (
-        <PremiumIcon icon={btn.icon} color={btn.iconColor} sizePx={18} />
-      ) : null}
-      <span className="tap-btn-label">{btn.label}</span>
+      {after ? (
+        <>
+          {labelEl}
+          {iconEl}
+        </>
+      ) : (
+        <>
+          {iconEl}
+          {labelEl}
+        </>
+      )}
     </TapActionButton>
   );
 }

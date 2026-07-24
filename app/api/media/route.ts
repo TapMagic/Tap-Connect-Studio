@@ -64,7 +64,7 @@ const createSchema = z.object({
   url: z.string().min(1),
   filename: z.string().optional(),
   mimeType: z.string().default("image/jpeg"),
-  source: z.enum(["upload", "stock", "url"]).default("url"),
+  source: z.enum(["upload", "stock", "url", "bg-remove"]).default("url"),
   campaignId: z.string().optional(),
 });
 

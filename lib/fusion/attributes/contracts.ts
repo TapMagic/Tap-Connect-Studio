@@ -136,11 +136,28 @@ export type ActionAttributeContract = {
   label: TextAttributeContract;
   iconId?: string;
   iconUrl?: string;
-  iconPosition?: "left" | "right" | "only" | "none";
+  iconPosition?:
+    | "before"
+    | "after"
+    | "left"
+    | "right"
+    | "above"
+    | "below"
+    | "only"
+    | "none";
+  iconSize?: "sm" | "md" | "lg";
+  textSize?: "sm" | "md" | "lg";
+  iconGap?: number;
+  contentAlign?: "start" | "center" | "end";
+  verticalAlign?: "start" | "center" | "end";
   destination?: string;
   actionKind?: string;
   size?: "sm" | "md" | "lg";
   width?: "auto" | "full";
+  paddingX?: number;
+  paddingY?: number;
+  minHeight?: number;
+  wrap?: boolean;
   fill?: ColorAttributeContract;
   textColor?: string;
   border?: string;

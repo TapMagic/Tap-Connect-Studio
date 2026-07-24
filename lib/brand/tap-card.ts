@@ -153,6 +153,27 @@ export type TapCardSection = {
   iconUrl?: string;
   /** Custom icon tint — omit to keep brand schemes (Google Reviews, socials) */
   iconColor?: string;
+  /** Icon placement — before/after/left/right/above/below/only/none */
+  iconPosition?:
+    | "before"
+    | "after"
+    | "left"
+    | "right"
+    | "above"
+    | "below"
+    | "only"
+    | "none";
+  iconSize?: "sm" | "md" | "lg";
+  textSize?: "sm" | "md" | "lg";
+  iconGap?: number;
+  contentAlign?: "start" | "center" | "end";
+  verticalAlign?: "start" | "center" | "end";
+  appearance?: "icon_text" | "icon_only" | "text";
+  paddingX?: number;
+  paddingY?: number;
+  minHeight?: number;
+  wrap?: boolean;
+  fullWidth?: boolean;
   finish?: PremiumFinish;
   style?: TapCardActionStyle;
   shape?: TapCardButtonShape;

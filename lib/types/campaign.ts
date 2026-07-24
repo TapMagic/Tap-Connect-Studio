@@ -149,6 +149,28 @@ export interface ButtonItem {
   /** Custom art (beer stein, logo mark, photo) — works with any appearance */
   imageUrl?: string;
   appearance?: "icon_text" | "icon_only" | "text" | "image" | "image_label";
+  /** Icon placement matrix — before/after/left/right/above/below/only/none */
+  iconPosition?:
+    | "before"
+    | "after"
+    | "left"
+    | "right"
+    | "above"
+    | "below"
+    | "only"
+    | "none";
+  iconSize?: "sm" | "md" | "lg";
+  /** Label text size token (independent of overall button chrome size). */
+  textSize?: "sm" | "md" | "lg";
+  /** Gap between icon and label (px) */
+  iconGap?: number;
+  contentAlign?: "start" | "center" | "end";
+  verticalAlign?: "start" | "center" | "end";
+  paddingX?: number;
+  paddingY?: number;
+  minHeight?: number;
+  /** Allow label wrap on narrow viewports */
+  wrap?: boolean;
   size?: "sm" | "md" | "lg";
   fullWidth?: boolean;
   openInNewTab?: boolean;

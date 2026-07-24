@@ -27,6 +27,7 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
+import { ButtonLayoutControls } from "@/components/design/button-layout-controls";
 import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { QrPanel } from "@/components/campaign/qr-panel";
@@ -52,7 +53,6 @@ import {
   type TapCardSurfaceFill,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
-import type { PremiumFinish } from "@/lib/design/premium-finish";
 import { cn } from "@/lib/utils";
 
 type CampaignLinkOption = {
@@ -602,12 +602,18 @@ export function TapCardBuilder({
           <FinishPicker
             label="Tile / finish"
             value={config.defaultFinish}
-            onChange={(defaultFinish) => patchConfig({ defaultFinish })}
+            allowNone={false}
+            onChange={(defaultFinish) => {
+              if (defaultFinish) patchConfig({ defaultFinish });
+            }}
           />
           <FinishPicker
             label="Card shell"
             value={config.cardFinish}
-            onChange={(cardFinish) => patchConfig({ cardFinish })}
+            allowNone={false}
+            onChange={(cardFinish) => {
+              if (cardFinish) patchConfig({ cardFinish });
+            }}
           />
 
           <label className="flex items-center gap-2 pb-1 text-xs font-medium">
@@ -1122,10 +1128,15 @@ export function TapCardBuilder({
                     placeholder="https://… (URL format)"
                   />
                   <FinishPicker
+                    allowNone={false}
                     value={selected.finish || selected.style || config.defaultFinish}
-                    onChange={(finish: PremiumFinish) =>
-                      patchSection(selected.id, { finish, style: finish })
-                    }
+                    onChange={(finish) => {
+                      if (!finish) return;
+                      patchSection(selected.id, {
+                        finish,
+                        style: finish,
+                      });
+                    }}
                   />
                   <div className="space-y-1">
                     <Label className="text-xs">Shape</Label>
@@ -1160,6 +1171,34 @@ export function TapCardBuilder({
                     mediaUploadReady={mediaUploadReady}
                     stockReady={stockReady}
                     showLogoPicker
+                  />
+                  <ButtonLayoutControls
+                    value={{
+                      iconPosition: selected.iconPosition,
+                      iconSize: selected.iconSize,
+                      textSize: selected.textSize,
+                      iconGap: selected.iconGap,
+                      contentAlign: selected.contentAlign,
+                      verticalAlign: selected.verticalAlign,
+                      paddingX: selected.paddingX,
+                      paddingY: selected.paddingY,
+                      minHeight: selected.minHeight,
+                      fullWidth: selected.fullWidth,
+                      wrap: selected.wrap,
+                    }}
+                    onChange={(patch) => {
+                      const next: Partial<typeof selected> = { ...patch };
+                      if (patch.iconPosition === "only") next.appearance = "icon_only";
+                      if (patch.iconPosition === "none") next.appearance = "text";
+                      if (
+                        patch.iconPosition &&
+                        patch.iconPosition !== "only" &&
+                        patch.iconPosition !== "none"
+                      ) {
+                        next.appearance = "icon_text";
+                      }
+                      patchSection(selected.id, next);
+                    }}
                   />
                   <TextFormatControls
                     title="Button label — font & size"
@@ -1321,8 +1360,12 @@ export function TapCardBuilder({
                   />
                   <FinishPicker
                     label="Finish"
+                    allowNone={false}
                     value={selected.finish || config.defaultFinish}
-                    onChange={(finish) => patchSection(selected.id, { finish })}
+                    onChange={(finish) => {
+                      if (!finish) return;
+                      patchSection(selected.id, { finish });
+                    }}
                   />
                   <div className="grid grid-cols-2 gap-2">
                     <div>

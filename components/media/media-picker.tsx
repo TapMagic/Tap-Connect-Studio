@@ -1,10 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ChevronDown, ImageIcon, Link2, Upload, X } from "lucide-react";
+import { ChevronDown, Eraser, ImageIcon, Upload, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { BgRemovePanel } from "@/components/media/bg-remove-panel";
+import type { BgRemoveProvenance } from "@/lib/media/bg-remove";
 
 interface MediaPickerProps {
   value?: string;
@@ -55,17 +57,22 @@ async function saveToLibrary(params: {
   url: string;
   filename?: string;
   mimeType?: string;
-  source: "upload" | "stock" | "url";
+  source: "upload" | "stock" | "url" | "bg-remove";
   campaignId?: string;
-}) {
+}): Promise<{ ok: boolean; error?: string }> {
   try {
-    await fetch("/api/media", {
+    const res = await fetch("/api/media", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(params),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return { ok: false, error: data.error ?? "Library save failed" };
+    }
+    return { ok: true };
   } catch {
-    // non-blocking
+    return { ok: false, error: "Library save failed (network)" };
   }
 }
 
@@ -78,6 +85,9 @@ export function MediaPicker({
   campaignId,
 }: MediaPickerProps) {
   const fileRef = useRef<HTMLInputElement>(null);
+  const dropRef = useRef<HTMLDivElement>(null);
+  const galleryCloseRef = useRef<HTMLButtonElement>(null);
+  const galleryOpenerRef = useRef<Element | null>(null);
   const fileId = `media-file-${label.replace(/\s+/g, "-")}`;
   const [stockQuery, setStockQuery] = useState("");
   const [stockResults, setStockResults] = useState<StockHit[]>([]);
@@ -93,6 +103,8 @@ export function MediaPicker({
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [bgRemoveOpen, setBgRemoveOpen] = useState(false);
+  const [originalBeforeCutout, setOriginalBeforeCutout] = useState<string | null>(null);
 
   const refreshLibrary = useCallback(() => {
     fetch("/api/media")
@@ -104,6 +116,28 @@ export function MediaPicker({
   useEffect(() => {
     refreshLibrary();
   }, [value, refreshLibrary]);
+
+  useEffect(() => {
+    if (!galleryOpen) return;
+    galleryOpenerRef.current = document.activeElement;
+    const t = window.setTimeout(() => galleryCloseRef.current?.focus(), 0);
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setGalleryOpen(false);
+        setStockResults([]);
+        setLogoResults([]);
+      }
+    }
+    document.addEventListener("keydown", onKey);
+    return () => {
+      window.clearTimeout(t);
+      document.removeEventListener("keydown", onKey);
+      if (galleryOpenerRef.current instanceof HTMLElement) {
+        galleryOpenerRef.current.focus();
+      }
+    };
+  }, [galleryOpen]);
 
   const visibleLibrary = (() => {
     const byUrl = new Map<string, LibraryAsset>();
@@ -128,15 +162,18 @@ export function MediaPicker({
     try {
       const res = await fetch(`/api/stock/search?q=${encodeURIComponent(stockQuery.trim())}`);
       const data = await res.json();
+      setStockResults(data.results ?? []);
+      setGalleryMode("stock");
+      setGalleryOpen(true);
       if (!res.ok) {
         setMessage(data.message ?? data.error ?? "Stock search failed");
         return;
       }
-      setStockResults(data.results ?? []);
-      setGalleryMode("stock");
-      setGalleryOpen(true);
       if (!(data.results ?? []).length) setMessage("No results — try another search.");
     } catch {
+      setStockResults([]);
+      setGalleryMode("stock");
+      setGalleryOpen(true);
       setMessage("Stock search failed");
     } finally {
       setLoading(null);
@@ -161,19 +198,22 @@ export function MediaPicker({
       });
       const res = await fetch(`/api/logos/search?${params}`);
       const data = await res.json();
+      setLogoResults(data.results ?? []);
+      setGalleryMode("logo");
+      setGalleryOpen(true);
       if (!res.ok) {
         setMessage(data.message ?? data.error ?? "Logo search failed");
         return;
       }
-      setLogoResults(data.results ?? []);
-      setGalleryMode("logo");
-      setGalleryOpen(true);
       if (!(data.results ?? []).length) {
         setMessage("No logos found — try a brand name or domain (e.g. Nike, starbucks.com).");
       } else if (data.logoDev) {
         setMessage(null);
       }
     } catch {
+      setLogoResults([]);
+      setGalleryMode("logo");
+      setGalleryOpen(true);
       setMessage("Logo search failed");
     } finally {
       setLoading(null);
@@ -181,11 +221,20 @@ export function MediaPicker({
   }
 
   const applyUrl = useCallback(
-    (url: string, note?: string, meta?: { filename?: string; source?: "upload" | "stock" | "url" }) => {
+    (
+      url: string,
+      note?: string,
+      meta?: { filename?: string; source?: "upload" | "stock" | "url" | "bg-remove" }
+    ) => {
       onChange?.(url);
       if (note) setMessage(note);
       setSessionAdds((prev) => [
-        { id: url, url, filename: meta?.filename ?? "Added image", source: meta?.source ?? "upload" },
+        {
+          id: url,
+          url,
+          filename: meta?.filename ?? "Added image",
+          source: meta?.source ?? "upload",
+        },
         ...prev.filter((p) => p.url !== url),
       ]);
       setLibraryOpen(true);
@@ -195,7 +244,14 @@ export function MediaPicker({
         mimeType: url.startsWith("data:") ? "image/png" : "image/jpeg",
         source: meta?.source ?? "upload",
         campaignId,
-      }).then(() => refreshLibrary());
+      }).then((result) => {
+        if (!result.ok) {
+          setMessage((prev) =>
+            prev ? `${prev} · Library: ${result.error}` : result.error ?? "Library save failed"
+          );
+        }
+        refreshLibrary();
+      });
     },
     [onChange, campaignId, refreshLibrary]
   );
@@ -280,88 +336,70 @@ export function MediaPicker({
         if (file) {
           e.preventDefault();
           void uploadFile(file);
-          return true;
+          return;
         }
       }
     }
-    const text = e.clipboardData?.getData("text")?.trim() ?? "";
+    const text = e.clipboardData?.getData("text")?.trim();
     if (text && /^https?:\/\//i.test(text)) {
       e.preventDefault();
-      applyUrl(text, "URL pasted into library", { source: "url" });
-      return true;
+      applyUrl(text, "URL pasted", { source: "url" });
     }
-    return false;
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     setDragOver(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) {
-      void uploadFile(file);
-      return;
-    }
-    const uri = e.dataTransfer.getData("text/uri-list") || e.dataTransfer.getData("text");
-    if (uri && /^https?:\/\//i.test(uri.trim())) {
-      applyUrl(uri.trim(), "URL dropped into library", { source: "url" });
-    }
+    if (file) void uploadFile(file);
+  }
+
+  function applyBgRemove(derivedUrl: string, provenance: BgRemoveProvenance) {
+    setOriginalBeforeCutout(provenance.originalUrl);
+    applyUrl(derivedUrl, "Background removed — original preserved for restore", {
+      filename: `cutout-${Date.now()}.png`,
+      source: "bg-remove",
+    });
+  }
+
+  function restoreOriginal(originalUrl: string) {
+    setOriginalBeforeCutout(null);
+    applyUrl(originalUrl, "Original image restored", { source: "upload" });
   }
 
   return (
-    <div className="space-y-3">
-      <Label>{label}</Label>
+    <div className="space-y-3" data-testid="media-picker">
+      <Label className="text-xs">{label}</Label>
 
-      <div className="flex gap-2">
-        <Link2 className="mt-2.5 h-4 w-4 shrink-0 text-muted-foreground" />
-        <Input
-          value={value.startsWith("data:") ? "[embedded image]" : value}
-          onChange={(e) => {
-            if (e.target.value === "[embedded image]") return;
-            onChange?.(e.target.value);
-          }}
-          onPaste={(e) => {
-            handleClipboard(e);
-          }}
-          placeholder="Paste https://… image URL here"
-        />
-        {value && (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="shrink-0"
-            onClick={() => onChange?.("")}
-            title="Remove this image"
-          >
-            <X className="mr-1 h-3.5 w-3.5" />
-            Remove
-          </Button>
-        )}
-      </div>
-
-      {value && (
-        <div className="relative overflow-hidden rounded-lg border border-border/40">
+      {value ? (
+        <div className="relative overflow-hidden rounded-lg border border-border/50">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
-            alt="Preview"
-            className="max-h-32 w-full object-cover"
+            alt=""
+            className="max-h-40 w-full object-contain bg-[length:12px_12px] bg-[linear-gradient(45deg,#222_25%,transparent_25%),linear-gradient(-45deg,#222_25%,transparent_25%),linear-gradient(45deg,transparent_75%,#222_75%),linear-gradient(-45deg,transparent_75%,#222_75%)] bg-[position:0_0,0_6px,6px_-6px,-6px_0]"
             onError={(e) => {
               (e.target as HTMLImageElement).style.display = "none";
             }}
           />
-          <Button
-            type="button"
-            size="sm"
-            variant="secondary"
-            className="absolute right-2 top-2"
-            onClick={() => onChange?.("")}
-          >
-            <X className="mr-1 h-3.5 w-3.5" />
-            Clear image
-          </Button>
+          <div className="absolute right-2 top-2 flex flex-wrap gap-1">
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              data-testid="bg-remove-open"
+              onClick={() => setBgRemoveOpen(true)}
+            >
+              <Eraser className="mr-1 h-3.5 w-3.5" />
+              Remove bg
+            </Button>
+            <Button type="button" size="sm" variant="secondary" onClick={() => onChange?.("")}>
+              <X className="mr-1 h-3.5 w-3.5" />
+              Clear image
+            </Button>
+          </div>
         </div>
-      )}
+      ) : null}
 
       <input
         ref={fileRef}
@@ -377,6 +415,7 @@ export function MediaPicker({
       />
 
       <div
+        ref={dropRef}
         className={`rounded-lg border border-dashed p-3 transition ${
           dragOver ? "border-primary bg-primary/10" : "border-primary/30 bg-primary/5"
         }`}
@@ -392,6 +431,7 @@ export function MediaPicker({
         tabIndex={0}
         role="group"
         aria-label="Upload or paste image"
+        data-testid="media-drop-zone"
       >
         <div className="flex flex-col gap-2 sm:flex-row">
           <label
@@ -405,9 +445,10 @@ export function MediaPicker({
             type="button"
             className="flex flex-1 items-center justify-center gap-2 rounded-lg border border-border/60 bg-background/80 py-3 text-sm text-muted-foreground hover:border-primary/40 hover:text-foreground"
             onClick={() => {
-              setMessage("Paste an image or URL now (⌘V / Ctrl+V)");
+              dropRef.current?.focus();
+              setMessage("Paste an image or URL now (⌘V / Ctrl+V) — drop zone focused");
             }}
-            onPaste={(e) => handleClipboard(e)}
+            data-testid="media-paste-focus"
           >
             <ImageIcon className="h-4 w-4" />
             Paste image or URL
@@ -431,9 +472,7 @@ export function MediaPicker({
             <Input
               value={stockQuery}
               onChange={(e) => setStockQuery(e.target.value)}
-              placeholder="e.g. salon, wedding, landscaping"
-              data-testid="media-stock-query"
-              aria-label="Stock photo search"
+              placeholder="Search stock…"
               onKeyDown={(e) => {
                 if (e.key === "Enter") {
                   e.preventDefault();
@@ -444,7 +483,6 @@ export function MediaPicker({
             <Button
               type="button"
               variant="outline"
-              data-testid="media-stock-search"
               onClick={() => void searchStock()}
               disabled={!!loading}
             >
@@ -453,33 +491,25 @@ export function MediaPicker({
           </div>
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground" data-testid="media-stock-credentials-hint">
-          Stock search needs <code className="text-primary">PEXELS_API_KEY</code> or{" "}
-          <code className="text-primary">UNSPLASH_ACCESS_KEY</code>
+        <p className="text-[11px] text-muted-foreground" data-testid="media-stock-credentials-hint">
+          Stock search disabled — set PEXELS_API_KEY / UNSPLASH_ACCESS_KEY for live stock.
         </p>
       )}
 
-      <div
-        className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3"
-        data-testid="media-logo-panel"
-      >
-        <Label className="text-xs">Web logo / icon search</Label>
-        <p className="text-[10px] text-muted-foreground">
-          Brand name or domain — powered by Logo.dev when configured. Tap a result to save it to
-          your library.
-        </p>
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="space-y-2 rounded-lg border border-border/50 p-3">
+        <Label className="text-xs">Brand logos</Label>
+        <div className="flex flex-wrap gap-2">
           <select
-            className="flex h-9 rounded-lg border border-input bg-background px-2 text-xs"
+            className="h-9 rounded-lg border border-input bg-background px-2 text-xs"
             value={logoTheme}
             onChange={(e) => setLogoTheme(e.target.value as "auto" | "light" | "dark")}
             aria-label="Logo theme"
           >
-            <option value="auto">Theme: auto</option>
-            <option value="dark">Theme: dark bg</option>
-            <option value="light">Theme: light bg</option>
+            <option value="auto">Theme auto</option>
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
           </select>
-          <label className="flex items-center gap-1.5 text-xs text-muted-foreground">
+          <label className="flex items-center gap-1 text-xs">
             <input
               type="checkbox"
               checked={logoGreyscale}
@@ -492,7 +522,7 @@ export function MediaPicker({
           <Input
             value={logoQuery}
             onChange={(e) => setLogoQuery(e.target.value)}
-            placeholder="e.g. Nike, starbucks.com"
+            placeholder="Brand or domain…"
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
@@ -511,17 +541,79 @@ export function MediaPicker({
         </div>
       </div>
 
+      <div className="space-y-1">
+        <Label className="text-xs">Image URL</Label>
+        <Input
+          value={value.startsWith("data:") ? "" : value}
+          placeholder="https://…"
+          aria-label="Image URL"
+          data-testid="media-url-input"
+          onChange={(e) => onChange?.(e.target.value)}
+        />
+        <p className="text-[10px] text-muted-foreground">Applies live as you type — no separate Apply step.</p>
+      </div>
+
+      <button
+        type="button"
+        className="flex w-full items-center justify-between rounded-lg border border-border/50 px-3 py-2 text-left text-xs"
+        onClick={() => {
+          setLibraryOpen((o) => !o);
+          refreshLibrary();
+        }}
+        data-testid="media-library-toggle"
+      >
+        <span>Library ({visibleLibrary.length})</span>
+        <ChevronDown className={`h-4 w-4 transition ${libraryOpen ? "rotate-180" : ""}`} />
+      </button>
+      {libraryOpen ? (
+        <div className="grid max-h-48 grid-cols-3 gap-2 overflow-y-auto rounded-lg border border-border/40 p-2">
+          {visibleLibrary.length === 0 ? (
+            <p className="col-span-3 py-4 text-center text-xs text-muted-foreground">No assets yet</p>
+          ) : (
+            visibleLibrary.map((a) => (
+              <button
+                key={a.id}
+                type="button"
+                className={`overflow-hidden rounded border ${
+                  a.url === value ? "border-primary" : "border-border/40"
+                }`}
+                onClick={() => onChange?.(a.url)}
+                title={a.filename ?? a.url}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={a.url} alt="" className="aspect-square w-full object-cover" />
+              </button>
+            ))
+          )}
+        </div>
+      ) : null}
+
+      {message ? (
+        <p className="text-xs text-muted-foreground" role="status" data-testid="media-picker-message">
+          {message}
+        </p>
+      ) : null}
+
+      {originalBeforeCutout ? (
+        <p className="text-[10px] text-muted-foreground">
+          Cutout active — use Remove bg → Restore original to undo non-destructively.
+        </p>
+      ) : null}
+
       {galleryOpen && (
         <div
           className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-4 sm:items-center"
           onClick={closeGallery}
           role="presentation"
+          data-testid="media-gallery-overlay"
         >
           <div
             className="flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl"
             onClick={(e) => e.stopPropagation()}
             role="dialog"
+            aria-modal="true"
             aria-label={galleryMode === "logo" ? "Logo gallery" : "Stock gallery"}
+            data-testid="media-gallery-dialog"
           >
             <div className="flex items-center justify-between border-b border-border/60 px-4 py-3">
               <div>
@@ -534,7 +626,14 @@ export function MediaPicker({
                     : `${stockResults.length} results — tap a photo to use it`}
                 </p>
               </div>
-              <Button type="button" variant="outline" size="sm" onClick={closeGallery}>
+              <Button
+                ref={galleryCloseRef}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={closeGallery}
+                data-testid="media-gallery-close"
+              >
                 <X className="mr-1 h-4 w-4" />
                 Close
               </Button>
@@ -577,14 +676,14 @@ export function MediaPicker({
                     <button
                       key={hit.id}
                       type="button"
-                      className="overflow-hidden rounded-xl border border-border/40 text-left transition hover:border-primary/60"
+                      className="overflow-hidden rounded-xl border border-border/40 bg-muted/20 text-left transition hover:border-primary/60"
                       onClick={() => void chooseStock(hit)}
-                      title={`${hit.alt} — ${hit.photographer}`}
+                      title={hit.alt}
                     >
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={hit.thumb} alt={hit.alt} className="aspect-square w-full object-cover" />
+                      <img src={hit.thumb} alt={hit.alt} className="aspect-[4/3] w-full object-cover" />
                       <p className="truncate px-2 py-1 text-[10px] text-muted-foreground">
-                        {hit.photographer}
+                        {hit.photographer} · {hit.source}
                       </p>
                     </button>
                   ))}
@@ -595,61 +694,20 @@ export function MediaPicker({
         </div>
       )}
 
-      <div className="rounded-lg border border-border/40" data-testid="media-library-panel">
-        <button
-          type="button"
-          className="flex w-full items-center justify-between px-3 py-2 text-left text-xs font-medium"
-          data-testid="media-library-toggle"
-          onClick={() => setLibraryOpen((o) => !o)}
-        >
-          <span>
-            Media library
-            <span className="ml-1.5 font-normal text-muted-foreground">
-              ({visibleLibrary.length} saved)
-            </span>
-          </span>
-          <ChevronDown
-            className={`h-4 w-4 text-muted-foreground transition ${libraryOpen ? "rotate-180" : ""}`}
-          />
-        </button>
-        {libraryOpen && (
-          <div className="border-t border-border/40 px-3 pb-3 pt-2">
-            {visibleLibrary.length === 0 ? (
-              <p className="text-[11px] text-muted-foreground">
-                No saved images yet. Upload, paste, stock search, or web logo search above.
-              </p>
-            ) : (
-              <div className="grid grid-cols-4 gap-2">
-                {visibleLibrary.slice(0, 16).map((asset) => (
-                  <button
-                    key={asset.id}
-                    type="button"
-                    className={`overflow-hidden rounded border transition hover:border-primary/50 ${
-                      asset.url === value ? "border-primary ring-1 ring-primary/40" : "border-border/40"
-                    }`}
-                    onClick={() => {
-                      applyUrl(asset.url, "Selected from library", {
-                        filename: asset.filename ?? undefined,
-                        source: (asset.source as "upload" | "stock" | "url") || "url",
-                      });
-                    }}
-                    title={asset.filename ?? "asset"}
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={asset.url}
-                      alt={asset.filename ?? "asset"}
-                      className="aspect-square w-full object-cover"
-                    />
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {message && <p className="text-xs text-primary">{message}</p>}
+      {value ? (
+        <BgRemovePanel
+          open={bgRemoveOpen}
+          imageUrl={originalBeforeCutout || value}
+          onClose={() => setBgRemoveOpen(false)}
+          onApply={applyBgRemove}
+          onRestore={restoreOriginal}
+          whereUsedBlobs={[
+            { value, originalBeforeCutout },
+            ...visibleLibrary.map((a) => ({ url: a.url, source: a.source, filename: a.filename })),
+            ...sessionAdds.map((a) => ({ url: a.url, source: a.source })),
+          ]}
+        />
+      ) : null}
     </div>
   );
 }

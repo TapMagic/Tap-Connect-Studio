@@ -21,6 +21,12 @@ import {
 } from "@/lib/brand/tap-card";
 import { PremiumIcon } from "@/components/design/premium-icon";
 import { finishClass, textFormatToCss } from "@/lib/design/premium-finish";
+import {
+  buttonLayoutInlineStyle,
+  iconSizePx,
+  isIconAfterPlacement,
+  normalizeIconPlacement,
+} from "@/lib/design/button-layout";
 import { socialBrandStyle } from "@/components/tap/social-icons";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { cn, firstImageUrl } from "@/lib/utils";
@@ -1082,7 +1088,54 @@ function ActionPill({
   const radius = shapeRadius(shape);
   const neon = section.neonColor || defaultNeon;
   const opacity = (section.opacity ?? 100) / 100;
-  const iconOnly = actionsLayout === "icon_row";
+  const place = normalizeIconPlacement(section.iconPosition);
+  const appearance =
+    section.appearance ||
+    (place === "only" || actionsLayout === "icon_row"
+      ? "icon_only"
+      : place === "none"
+        ? "text"
+        : "icon_text");
+  const iconOnly = appearance === "icon_only" || place === "only" || actionsLayout === "icon_row";
+  const textOnly = appearance === "text" || place === "none";
+  const showIcon = !textOnly;
+  const showLabel = !iconOnly;
+  const showChevron = showLabel && place !== "above" && place !== "below";
+  const sizePx = iconSizePx(section.iconSize);
+  const layoutStyle = buttonLayoutInlineStyle({
+    iconGap: section.iconGap,
+    paddingX: section.paddingX,
+    paddingY: section.paddingY,
+    minHeight: section.minHeight,
+  });
+  const after = isIconAfterPlacement(place);
+
+  const iconNode = showIcon ? (
+    <span className="tcc-pill-icon" style={finish === "brand" ? brand : undefined}>
+      {kind === "vcard" && avatarUrl && !section.iconUrl ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={avatarUrl} alt="" className="tcc-pill-avatar" />
+      ) : (
+        <PremiumIcon
+          icon={icon}
+          customUrl={section.iconUrl}
+          color={section.iconColor}
+          sizePx={sizePx}
+        />
+      )}
+    </span>
+  ) : null;
+
+  const labelNode = showLabel ? (
+    <span
+      className={cn("tcc-pill-label", iconOnly && "sr-only")}
+      style={textFormatToCss(section.format)}
+    >
+      {section.label || kind}
+    </span>
+  ) : (
+    <span className="sr-only">{section.label || kind}</span>
+  );
 
   return (
     <button
@@ -1092,9 +1145,18 @@ function ActionPill({
         finishClass(finish, "tcc-pill"),
         shape === "circle" && "tcc-pill-circle",
         iconOnly && "tcc-pill-icon-only",
+        textOnly && "tcc-pill-text-only",
+        `tcc-pill-place-${place}`,
+        section.contentAlign && `tcc-pill-align-${section.contentAlign}`,
+        section.verticalAlign && `tcc-pill-valign-${section.verticalAlign}`,
+        section.textSize && `tcc-pill-text-${section.textSize}`,
+        section.wrap && "tcc-pill-wrap",
+        section.fullWidth === false && "tcc-pill-fit",
         selected && "tcc-section-selected"
       )}
       {...sectionDomProps(section.id, selected ? section.id : null)}
+      data-icon-placement={place}
+      data-appearance={appearance}
       style={
         {
           "--tcc-accent": section.accentColor || undefined,
@@ -1103,31 +1165,25 @@ function ActionPill({
           backgroundColor: section.backgroundColor || defaultPill,
           color: section.textColor || defaultPillText,
           opacity,
+          ...layoutStyle,
           ...(finish === "brand" && brand ? brand : {}),
         } as CSSProperties
       }
       onClick={onActivate}
     >
-      <span className="tcc-pill-icon" style={finish === "brand" ? brand : undefined}>
-        {kind === "vcard" && avatarUrl && !section.iconUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={avatarUrl} alt="" className="tcc-pill-avatar" />
-        ) : (
-          <PremiumIcon
-            icon={icon}
-            customUrl={section.iconUrl}
-            color={section.iconColor}
-            sizePx={18}
-          />
-        )}
-      </span>
-      <span
-        className={cn("tcc-pill-label", iconOnly && "sr-only")}
-        style={textFormatToCss(section.format)}
-      >
-        {section.label || kind}
-      </span>
-      {!iconOnly ? <ChevronRight className="tcc-pill-chevron" /> : null}
+      {after ? (
+        <>
+          {labelNode}
+          {iconNode}
+          {showChevron ? <ChevronRight className="tcc-pill-chevron" /> : null}
+        </>
+      ) : (
+        <>
+          {iconNode}
+          {labelNode}
+          {showChevron ? <ChevronRight className="tcc-pill-chevron" /> : null}
+        </>
+      )}
     </button>
   );
 }

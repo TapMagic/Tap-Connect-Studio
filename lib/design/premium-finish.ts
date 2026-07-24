@@ -169,7 +169,9 @@ export function textFormatToCss(format?: TextFormat): CSSProperties {
   };
 }
 
+/** CSS class for a premium finish. Empty/undefined → no class (honest None — never lie as metallic). */
 export function finishClass(finish?: PremiumFinish | string | null, prefix = "tap-finish") {
-  const f = (finish || "metallic") as string;
+  const f = typeof finish === "string" ? finish.trim() : "";
+  if (!f) return "";
   return `${prefix}-${f}`;
 }
