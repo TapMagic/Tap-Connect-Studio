@@ -1,8 +1,14 @@
 # Railway existing services inventory (read-only)
 
-**Date:** 2026-07-23  
-**Access:** Railway CLI **not available** in this agent environment (`railway: command not found`). No Railway MCP. Inventory is therefore derived from **repo metadata only** — not a live Railway dashboard dump.  
-**Hard rules:** Do not print secret values. Do not connect local Fusion to Railway DB. Do not migrate, alter, or deploy Railway. Product owner should paste a redacted Railway Variables export (names only) to upgrade UNKNOWN rows.
+**Superseded for cutover planning by:**
+
+- `docs/fusion/RAILWAY_PRODUCTION_INHERITANCE_MAP.md`
+- `docs/fusion/DOMAIN_AND_CALLBACK_MAP.md`
+- `docs/fusion/PRODUCTION_CUTOVER_CHECKLIST.md`
+
+**Date:** 2026-07-23 (base inventory) · **Updated:** 2026-07-24  
+**Access:** Railway CLI was **not logged in** in the agent environment (`Unauthorized`). No live variable dump. Inventory remains **repo-derived + production domain assumption**.  
+**Hard rules:** Do not print secret values. Do not connect local Fusion to Railway DB. Do not migrate, alter, or deploy Railway without explicit PO authorization. **Do not ask PO to recreate credentials that already exist and remain valid** — inherit from Railway production.
 
 ## Repo-visible Railway metadata
 

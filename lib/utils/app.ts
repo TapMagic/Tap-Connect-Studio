@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import { resolveEnv } from "@/lib/config/env-aliases";
 
 export function generateDeviceCode(length = 20): string {
   return randomBytes(Math.ceil(length / 2))
@@ -23,9 +24,13 @@ function normalizeBaseUrl(raw: string): string {
   return `https://${trimmed}`;
 }
 
-/** Public site origin for tap/QR links. Never treat empty env as set. */
+/**
+ * Public site origin for tap/QR links.
+ * Production Studio domain: https://studio.tapthemagic.com
+ * Prefer NEXT_PUBLIC_APP_URL (or V1 aliases via resolveEnv). Never treat empty env as set.
+ */
 export function getAppUrl(): string {
-  const explicit = normalizeBaseUrl(process.env.NEXT_PUBLIC_APP_URL ?? "");
+  const explicit = normalizeBaseUrl(resolveEnv("NEXT_PUBLIC_APP_URL") ?? "");
   if (explicit && !explicit.includes("localhost")) return explicit;
 
   const railway = normalizeBaseUrl(
@@ -56,8 +61,7 @@ export function getDevicePath(deviceCode: string): string {
 
 export function isClerkConfigured(): boolean {
   return Boolean(
-    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim() &&
-      process.env.CLERK_SECRET_KEY?.trim()
+    resolveEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY") && resolveEnv("CLERK_SECRET_KEY")
   );
 }
 
