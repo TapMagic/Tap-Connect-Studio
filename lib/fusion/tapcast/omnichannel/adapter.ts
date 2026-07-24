@@ -136,6 +136,7 @@ export function createChannelVariant(opts: {
   const adapted = adaptCampaignToChannel(opts.channelId, {
     ...opts.source,
     id: opts.campaignId,
+    businessId: opts.businessId,
   });
 
   let tikTokCastId: string | undefined;
@@ -248,6 +249,7 @@ export function reAdaptVariant(
   const adapted = adaptCampaignToChannel(existing.channelId, {
     ...source,
     id: existing.campaignId,
+    businessId: existing.businessId,
   });
   const updated: CampaignChannelVariant = {
     ...existing,
@@ -338,6 +340,11 @@ export function scheduleVariant(
 /**
  * Publish one variant via its mock publish path.
  * Simulates failure when `forceFail` is set (for isolation tests).
+ *
+ * Ladder honesty:
+ * - open_composer / manual_checklist → checklist only (no live post claim)
+ * - prepared_package + livePublishPath null (e.g. Snapchat) → package draft id only
+ * - otherwise mock publish mints externalDraftId + externalPostId
  */
 export function publishVariantMock(
   variantId: string,
@@ -369,6 +376,7 @@ export function publishVariantMock(
     };
   }
 
+  const def = getTapCastChannel(v.channelId);
   const path = v.readiness.publishPath;
 
   if (v.tikTokCastId) {
@@ -388,6 +396,62 @@ export function publishVariantMock(
         return { ok: false, error: posted.error, code: posted.code };
       }
     }
+  }
+
+  // Weakest ladder rungs — never claim automated live publish
+  if (path === "open_composer" || path === "manual_checklist") {
+    const externalDraftId =
+      v.externalDraftId ?? `checklist_${v.channelId}_${nanoid(8)}`;
+    const updated: CampaignChannelVariant = {
+      ...v,
+      status: "adapted",
+      externalDraftId,
+      externalPostId: undefined,
+      publishedAt: undefined,
+      lastError: undefined,
+      updatedAt: now(),
+    };
+    saveVariant(updated);
+    audit({
+      businessId: v.businessId,
+      channelId: v.channelId,
+      variantId,
+      action: "tapcast.variant.manual_required",
+      detail: { publishPath: path, externalDraftId, livePublishClaimed: false },
+    });
+    return {
+      ok: false,
+      error: `${def?.name ?? v.channelId} uses ${path} — no automated live publish claimed`,
+      code: "manual_publish_required",
+    };
+  }
+
+  // Snapchat (and any channel with no live publish API): package only
+  if (path === "prepared_package" && def?.capabilities.livePublishPath === null) {
+    const externalDraftId =
+      v.externalDraftId ?? `pkg_${v.channelId}_${nanoid(8)}`;
+    const updated: CampaignChannelVariant = {
+      ...v,
+      status: "approved",
+      externalDraftId,
+      externalPostId: undefined,
+      publishedAt: undefined,
+      lastError: undefined,
+      updatedAt: now(),
+    };
+    saveVariant(updated);
+    audit({
+      businessId: v.businessId,
+      channelId: v.channelId,
+      variantId,
+      action: "tapcast.variant.packaged",
+      detail: {
+        publishPath: path,
+        externalDraftId,
+        livePublishClaimed: false,
+      },
+    });
+    return { ok: true, data: updated, mode: "mock" };
   }
 
   const externalDraftId =

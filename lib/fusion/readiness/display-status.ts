@@ -234,32 +234,38 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcanvas",
-    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    lastVerifiedAt: "2026-07-24T03:00:00.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
+    a11yPassed: false,
     notes:
-      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. P-tapcanvas-persist + P-tapcanvas-campaigns (e2e/tapcanvas-tiktok.spec.ts). Guided Simple Campaign + Weekly Specials. Classification: IMPLEMENTED BUT NOT OWNER-READY (promotion matrix / a11y incomplete).",
+      "TapCanvas Prisma-persisted on tapconnect_fusion_dev. Proofs: P-tapcanvas-persist, P-tapcanvas-campaigns, P-tapcanvas-reverse-repair, P-tapcanvas-keyword-bind, P-tapcanvas-version-restore. Classification: IMPLEMENTED BUT NOT OWNER-READY (promotion/a11y/TapFlow-in-canvas incomplete).",
     blockers: [
       "full_promotion_matrix",
       "a11y_headed_pass",
+      "responsive_matrix",
       "full_tapflow_in_canvas",
+      "comments_approvals_ui_matrix",
       "not_owner_ready",
     ],
-    nextAction: "Complete Sketch→Build→Operate headed matrix; clear remaining UX blockers",
+    nextAction:
+      "Complete Sketch→Build→Operate headed matrix + keyboard/a11y pass; do not claim OWNER-READY",
   },
   {
     sectionId: "tapcast",
-    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:00:00.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
     notes:
-      "P-tapcast-registry/multi-variant/admin: Omnichannel hub + capability registry + campaign variants + failure isolation. IMPLEMENTED BUT NOT OWNER-READY. Live = VERIFIED — CREDENTIALS REQUIRED. Prisma when isolated DB.",
+      "P-tapcast-registry/multi-variant/admin + P-tapcast-ladder-*: Omnichannel hub + 18-channel capability registry + publish-path ladder (unit + headed samples) + failure isolation + Snapchat honesty. IMPLEMENTED BUT NOT OWNER-READY (a11y/full ladder headed matrix incomplete). Live = VERIFIED — CREDENTIALS REQUIRED. Prisma when isolated DB.",
     blockers: [
       "live_provider_credentials",
+      "a11y_full_ladder_headed_matrix",
       "owner_certification_matrix",
       "not_owner_ready",
     ],
-    nextAction: "Supply live credentials per channel; owner certify publish paths",
+    nextAction:
+      "Complete a11y + full 18×ladder headed matrix; supply live credentials per channel; never OWNER-READY without them",
   },
   {
     sectionId: "tapcast_tiktok",
@@ -278,16 +284,18 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "tapcast_omnichannel",
-    lastVerifiedAt: "2026-07-24T02:15:00.000Z",
+    lastVerifiedAt: "2026-07-24T04:00:00.000Z",
     persistencePassed: true,
     browserE2ePassed: true,
     notes:
-      "P-tapcast-*: Channel registry (18), mock adapters, campaign variants, failure isolation, TapCanvas distribution hooks, Admin panel. IMPLEMENTED BUT NOT OWNER-READY / VERIFIED — CREDENTIALS REQUIRED.",
+      "P-tapcast-* + P-tapcast-ladder-*: Channel registry (18), mock publish ladder, campaign variants, failure isolation, Snapchat package-only (no live claim), Brand Vocabulary hashtags on create_variants/adapt, TapCanvas distribution hooks, Admin panel. Local mock IMPLEMENTED BUT NOT OWNER-READY until a11y/full ladder headed matrix complete. Live = VERIFIED — CREDENTIALS REQUIRED.",
     blockers: [
       "live_oauth_per_channel",
+      "a11y_full_ladder_headed_matrix",
       "owner_ready_gate",
     ],
-    nextAction: "Live OAuth apps one channel at a time; never OWNER-READY without credentials",
+    nextAction:
+      "Finish full headed ladder matrix + a11y; live OAuth apps one channel at a time; never OWNER-READY without credentials",
   },
   {
     sectionId: "keywords_brand_pack",

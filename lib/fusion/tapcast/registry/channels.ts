@@ -453,9 +453,9 @@ export const TAPCAST_CHANNELS: TapCastChannelDefinition[] = [
     optionalEnvVars: ["META_ACCESS_TOKEN", "META_WEBHOOK_VERIFY_TOKEN"],
     documentation: "Meta Messenger Platform",
     notes:
-      "Conversation channel — not a broadcast feed. Mock: prepared message + open composer. No organic Page post claim.",
+      "Conversation channel — not a broadcast feed. Mock: prepared message + open composer. Live send = Meta credentials (direct path declared). No organic Page post claim.",
     capabilities: {
-      publishPaths: ["prepared_package", "open_composer", "manual_checklist"],
+      publishPaths: ["direct", "prepared_package", "open_composer", "manual_checklist"],
       mockPublishPath: "prepared_package",
       livePublishPath: "direct",
       media: ["text", "image", "link"],
@@ -537,9 +537,9 @@ export const TAPCAST_CHANNELS: TapCastChannelDefinition[] = [
     ],
     optionalEnvVars: ["META_ACCESS_TOKEN"],
     documentation: "Instagram Messaging API",
-    notes: "DM only — not Reels publish. Mock: prepared DM package.",
+    notes: "DM only — not Reels publish. Mock: prepared DM package. Live send = Meta credentials (direct path declared).",
     capabilities: {
-      publishPaths: ["prepared_package", "open_composer", "manual_checklist"],
+      publishPaths: ["direct", "prepared_package", "open_composer", "manual_checklist"],
       mockPublishPath: "prepared_package",
       livePublishPath: "direct",
       media: ["text", "image", "link"],

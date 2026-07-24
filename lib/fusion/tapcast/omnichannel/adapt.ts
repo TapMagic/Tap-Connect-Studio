@@ -1,7 +1,16 @@
 /**
  * Channel-native adaptation — never blind identical cross-post.
+ * Hashtags only from source / Brand Vocabulary — never invent #TapConnect / #FYP.
  */
 
+import {
+  EMPTY_BRAND_PACK,
+  KEYWORD_CHANNELS,
+  buildGroundContext,
+  suggestKeywords,
+  type KeywordChannel,
+} from "@/lib/fusion/keywords";
+import { toKeywordChannelId } from "@/lib/fusion/channels/canonical";
 import type { PublishPath } from "../registry/types";
 import { getTapCastChannel } from "../registry/channels";
 import type { CampaignChannelVariant, ChannelMediaAsset, ChannelPreview } from "./types";
@@ -16,7 +25,43 @@ export type CampaignSource = {
   mediaUrl?: string;
   tapPointId?: string;
   cardId?: string;
+  businessId?: string;
 };
+
+/**
+ * Prefer explicit source hashtags; otherwise ground from Brand Vocabulary suggestions.
+ * Empty ground / empty pack → empty tags (never invent brand defaults).
+ */
+export function resolveSourceHashtags(
+  channelId: string,
+  source: CampaignSource
+): string[] {
+  if (source.hashtags && source.hashtags.length > 0) {
+    return source.hashtags;
+  }
+  const kwId = toKeywordChannelId(channelId);
+  if (!(KEYWORD_CHANNELS as string[]).includes(kwId)) {
+    return [];
+  }
+  const result = suggestKeywords({
+    ground: buildGroundContext({
+      businessId: source.businessId,
+      campaignTitle: source.title,
+      brandPack: EMPTY_BRAND_PACK,
+    }),
+    channel: kwId as KeywordChannel,
+    limit: 5,
+  });
+  return result.suggestions
+    .filter(
+      (s) =>
+        s.kind === "hashtag" &&
+        s.family !== "avoid_exclusion" &&
+        Boolean(s.value)
+    )
+    .map((s) => s.value)
+    .slice(0, 5);
+}
 
 const CHANNEL_HASHTAG_STYLE: Record<string, (base: string[]) => string[]> = {
   // Never invent brand tags — only shape provided vocabulary / source hashtags.
@@ -211,8 +256,8 @@ export function adaptCampaignToChannel(
     height: 1080,
   };
   const style = CHANNEL_HASHTAG_STYLE[channelId] ?? ((b: string[]) => b.slice(0, 3));
-  // Empty when source has no vocabulary — never invent #TapConnect / brand tags.
-  const baseTags = source.hashtags ?? [];
+  // Empty when source/vocabulary yields nothing — never invent #TapConnect / #FYP.
+  const baseTags = resolveSourceHashtags(channelId, source);
   const hashtags = style(baseTags);
   const copy = adaptCopy(channelId, source, dims.maxCaptionChars);
   const media = adaptMedia(channelId, source, dims);

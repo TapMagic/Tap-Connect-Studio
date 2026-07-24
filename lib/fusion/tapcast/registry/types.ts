@@ -19,6 +19,26 @@ export type PublishPath =
   | "open_composer"
   | "manual_checklist";
 
+/** Ordered ladder — use when proving mock path fallbacks. */
+export const PUBLISH_PATH_LADDER: readonly PublishPath[] = [
+  "direct",
+  "scheduled",
+  "draft_upload",
+  "provider_draft",
+  "prepared_package",
+  "open_composer",
+  "manual_checklist",
+] as const;
+
+/** Paths that may mint a mock externalPostId (never for livePublishPath: null). */
+export const MOCK_POST_CLAIMING_PATHS: ReadonlySet<PublishPath> = new Set([
+  "direct",
+  "scheduled",
+  "draft_upload",
+  "provider_draft",
+  "prepared_package",
+]);
+
 export type MediaCapability =
   | "video"
   | "short_video"

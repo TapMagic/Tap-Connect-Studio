@@ -10,7 +10,7 @@
 - Ledger updated with suite evidence + **blockers retained** (no platform-wide OWNER-READY)  
 - Extended matrix specs: `e2e/fusion-proofs-matrix.spec.ts` (builder save, TapFlow, Admin, Insights, controls, responsive, a11y, wallet mock)
 - **Productivity closeout:** `e2e/productivity-workflows.spec.ts` — 18-step mock workflows + Settings UI (live = VERIFIED — CREDENTIALS REQUIRED)
-- **Omnichannel TapCast:** unit suite green; headed proofs in `e2e/tapcast-omnichannel.spec.ts` — **IMPLEMENTED BUT NOT OWNER-READY** / live = **VERIFIED — CREDENTIALS REQUIRED**
+- **Omnichannel TapCast:** unit suite green (18-channel registry, publish-path ladder, Snapchat honesty, vocabulary hashtags, failure isolation); headed proofs in `e2e/tapcast-omnichannel.spec.ts` + `e2e/tapcast-channel-ladder.spec.ts` — **IMPLEMENTED BUT NOT OWNER-READY** until a11y/full ladder headed matrix complete; live = **VERIFIED — CREDENTIALS REQUIRED**
 - **TapCanvas + TikTok persistence:** `e2e/tapcanvas-tiktok.spec.ts` 3/3 headed — Prisma documents/campaigns + TikTok mock funnel. TapCanvas = **IMPLEMENTED BUT NOT OWNER-READY**; TikTok live = **VERIFIED — CREDENTIALS REQUIRED**
 - **Keywords & Brand Vocabulary:** unit suite green; headed `e2e/keywords-brand-pack.spec.ts` + `e2e/keywords-surfaces.spec.ts` (suggest/approve/reject, named Brand Pack create+reuse/apply, exclusion+competitor, trigger collision + conversational, persist refresh, Admin `ai.keywords` kill-switch 503, analytics audit). Shared store only (`lib/fusion/keywords` / `BrandVocabularyTerm`). Live AI/trends = **VERIFIED — CREDENTIALS REQUIRED** (not OWNER-READY)
 
@@ -55,7 +55,7 @@
 
 | Surface | Classification |
 |---------|----------------|
-| Omnichannel TapCast (registry, variants, mock publish, canvas hooks) | **IMPLEMENTED BUT NOT OWNER-READY** |
+| Omnichannel TapCast (registry, variants, mock publish ladder, canvas hooks) | **IMPLEMENTED BUT NOT OWNER-READY** (local mock proofs deepen; a11y/full ladder headed matrix incomplete) |
 | Live channel publish (all TapCast providers) | **VERIFIED — CREDENTIALS REQUIRED** |
 | TikTok first-class mock path | Prisma-persisted mock funnel (P-tiktok-mock-persist); live Direct Post credential-gated |
 | TapCanvas (documents + guided campaigns) | **IMPLEMENTED BUT NOT OWNER-READY** (P-tapcanvas-persist / P-tapcanvas-campaigns) |
@@ -70,9 +70,18 @@ npm run test:e2e:proofs:headed
 PROOF_HEADED=1 npx playwright test e2e/productivity-workflows.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/tapcanvas-tiktok.spec.ts --headed
 PROOF_HEADED=1 npx playwright test e2e/keywords-brand-pack.spec.ts e2e/keywords-surfaces.spec.ts --headed
+PROOF_HEADED=1 npx playwright test e2e/tapcast-omnichannel.spec.ts e2e/tapcast-channel-ladder.spec.ts --headed
 node --import tsx --test lib/fusion/tapcast/**/__tests__/**/*.test.ts
 ```
 
 ## Confirmation
 
 No push / merge / deploy. Railway untouched. Master directive **not** complete.
+
+### TapCast ladder notes (2026-07-24)
+
+- Registry: **18** channels (publishing / conversation / community)
+- Mock ladder rungs proven in unit + headed samples: direct → scheduled → draft_upload → provider_draft → prepared_package → open_composer → manual_checklist
+- Snapchat (`livePublishPath: null`): package/checklist only — no `externalPostId` / no `published` claim
+- Brand Vocabulary hashtags wired via hub + `resolveSourceHashtags` on adapt; adapter never invents `#TapConnect` / `#FYP`
+- Blockers retained: live credentials per channel; a11y + full 18×ladder headed matrix before OWNER-READY
