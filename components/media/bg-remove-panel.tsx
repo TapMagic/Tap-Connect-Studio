@@ -138,7 +138,14 @@ function BgRemovePanelInner({
               {adapter.unavailableReason ? ` — ${adapter.unavailableReason}` : " · non-destructive"}
             </p>
           </div>
-          <Button ref={closeRef} type="button" variant="outline" size="sm" onClick={onClose}>
+          <Button
+            ref={closeRef}
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onClose}
+            data-testid="bg-remove-cancel"
+          >
             <X className="mr-1 h-4 w-4" />
             Close
           </Button>

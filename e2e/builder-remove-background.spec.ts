@@ -71,7 +71,12 @@ test.describe("Builder remove background", () => {
     });
     await page.waitForTimeout(900);
 
-    await page.getByTestId("campaign-block-hero_bg").click();
+    // Click the select control — row center can hit Move ↑/↓ and leave Theme media-picker empty.
+    await page
+      .getByTestId("campaign-block-hero_bg")
+      .getByRole("button", { name: /Select block/i })
+      .click();
+    await expect(page.getByText(/Edit:\s*Hero/i)).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("bg-remove-open")).toBeVisible();
     await expect(page.getByRole("button", { name: /Clear image/i })).toBeVisible();
