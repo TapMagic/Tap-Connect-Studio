@@ -58,9 +58,20 @@ export function TikTokTapCastShell() {
   }, [selected, statusLabel]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount fetch
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/tapcast/tiktok");
+      const json = await res.json();
+      if (cancelled || !res.ok) return;
+      setCasts(json.casts ?? []);
+      setStatusLabel(json.statusLabel ?? "VERIFIED — CREDENTIALS REQUIRED");
+      setNote(json.note ?? "");
+      setMissing(json.readiness?.missingEnvVars ?? []);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);

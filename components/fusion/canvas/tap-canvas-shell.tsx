@@ -117,12 +117,45 @@ export function TapCanvasShell({
   }, []);
 
   useEffect(() => {
-    // Mount hydrate from API (Studio shell pattern).
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- intentional mount fetch
-    void reloadList().then(() => {
-      if (initialCanvasId) void loadCanvas(initialCanvasId);
-    });
-  }, [reloadList, loadCanvas, initialCanvasId]);
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/canvas");
+      const json = await res.json();
+      if (cancelled || !res.ok) return;
+      setCanvases(json.canvases ?? []);
+      setTemplates(json.templates ?? []);
+      if (json.persistence === "prisma" || json.persistence === "memory") {
+        setPersistence(json.persistence);
+      }
+      if (initialCanvasId) {
+        const detail = await fetch(
+          `/api/canvas?canvasId=${encodeURIComponent(initialCanvasId)}`
+        );
+        const detailJson = await detail.json();
+        if (cancelled) return;
+        if (detail.ok) {
+          setCanvas(detailJson.canvas);
+          setProposals(detailJson.proposals ?? []);
+          setComments(detailJson.comments ?? []);
+          setApprovals(detailJson.approvals ?? []);
+          setVersions(
+            (detailJson.versions ?? []).map(
+              (v: { id: string; version: number; label: string }) => ({
+                id: v.id,
+                version: v.version,
+                label: v.label,
+              })
+            )
+          );
+        } else {
+          setMessage(detailJson.error ?? "Failed to load canvas");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialCanvasId]);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -191,14 +224,35 @@ export function TapCanvasShell({
     if (openFromLinkDone.current) return;
     if (!initialLinkType || !initialLinkId || initialCanvasId) return;
     openFromLinkDone.current = true;
-    void post({
-      action: "open_from_object",
-      objectType: initialLinkType,
-      objectId: initialLinkId,
-      label: `${initialLinkType} ${initialLinkId}`,
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot open-from-link
-  }, [initialLinkType, initialLinkId, initialCanvasId]);
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/canvas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "open_from_object",
+          objectType: initialLinkType,
+          objectId: initialLinkId,
+          label: `${initialLinkType} ${initialLinkId}`,
+        }),
+      });
+      const json = await res.json();
+      if (cancelled) return;
+      if (!res.ok || json.ok === false) {
+        setMessage(json.error ?? JSON.stringify(json.warnings ?? json));
+        return;
+      }
+      setMessage(json.message ?? "OK");
+      if (json.canvas) {
+        setCanvas(json.canvas);
+        await loadCanvas(json.canvas.id);
+      }
+      await reloadList();
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initialLinkType, initialLinkId, initialCanvasId, loadCanvas, reloadList]);
 
   const modes = ["sketch", "build", "operate", "analyze"] as const;
 

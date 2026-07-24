@@ -39,8 +39,20 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
   }
 
   useEffect(() => {
-    if (enabled) void refresh();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (!enabled) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/loyalty/programs");
+      const data = await res.json();
+      if (cancelled || !res.ok) return;
+      setPrograms(data.programs ?? []);
+      if (data.programs?.[0]?.id) {
+        setProgramId((current) => current || data.programs[0].id);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [enabled]);
 
   if (!enabled) {

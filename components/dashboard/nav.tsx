@@ -167,7 +167,6 @@ export function DashboardNav({
 
 export function MobileDashboardNav({
   businessName,
-  featureCtx: _featureCtx,
 }: {
   businessName: string;
   featureCtx?: ResolveContext;

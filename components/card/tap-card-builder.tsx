@@ -136,13 +136,15 @@ export function TapCardBuilder({
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
   const cardEmptyReason = tapCardPreviewEmptyReason(sorted);
 
-  useEffect(() => {
+  const [prevSectionsHistory, setPrevSectionsHistory] = useState(sectionsHistory);
+  if (sectionsHistory !== prevSectionsHistory) {
+    setPrevSectionsHistory(sectionsHistory);
     setConfig((c) =>
       JSON.stringify(c.sections) === JSON.stringify(sectionsHistory)
         ? c
         : { ...c, sections: sectionsHistory }
     );
-  }, [sectionsHistory]);
+  }
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {

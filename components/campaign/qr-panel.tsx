@@ -42,10 +42,14 @@ export function QrPanel({
   filenamePrefix,
 }: QrPanelProps) {
   const [deviceCode, setDeviceCode] = useState(initialDeviceCode || devices[0]?.deviceCode || "");
+  const [prevDeviceCode, setPrevDeviceCode] = useState(initialDeviceCode);
+  if (initialDeviceCode && initialDeviceCode !== prevDeviceCode) {
+    setPrevDeviceCode(initialDeviceCode);
+    setDeviceCode(initialDeviceCode);
+  }
   const [customUrl, setCustomUrl] = useState("");
   const [useCustom, setUseCustom] = useState(false);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
-  const [tapUrl, setTapUrl] = useState("");
   const [size, setSize] = useState(400);
   const [previewPx, setPreviewPx] = useState(192);
   const [dark, setDark] = useState("#0b0f19");
@@ -53,10 +57,6 @@ export function QrPanel({
   const [transparentBg, setTransparentBg] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState<"url" | "image" | null>(null);
-
-  useEffect(() => {
-    if (initialDeviceCode) setDeviceCode(initialDeviceCode);
-  }, [initialDeviceCode]);
 
   const resolveUrl = useCallback(() => {
     if (typeof window === "undefined") return "";
@@ -70,15 +70,14 @@ export function QrPanel({
     return `${window.location.origin}${getDevicePath(deviceCode)}`;
   }, [useCustom, customUrl, deviceCode]);
 
+  const tapUrl = resolveUrl();
+
   useEffect(() => {
-    const absolute = resolveUrl();
-    setTapUrl(absolute);
-    if (!absolute) {
-      setQrDataUrl(null);
+    if (!tapUrl) {
       return;
     }
     const params = new URLSearchParams({
-      url: absolute,
+      url: tapUrl,
       size: String(size),
       dark,
       transparent: transparentBg ? "1" : "0",
@@ -95,7 +94,14 @@ export function QrPanel({
     return () => {
       cancelled = true;
     };
-  }, [resolveUrl, size, dark, light, transparentBg]);
+  }, [tapUrl, size, dark, light, transparentBg]);
+
+  // Clear QR preview when URL becomes empty (derived; avoid sync setState in effect)
+  const [prevTapUrl, setPrevTapUrl] = useState(tapUrl);
+  if (tapUrl !== prevTapUrl) {
+    setPrevTapUrl(tapUrl);
+    if (!tapUrl) setQrDataUrl(null);
+  }
 
   function flash(msg: string) {
     setMessage(msg);

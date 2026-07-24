@@ -6,7 +6,6 @@
 import {
   connectWorkProvider,
   disconnectWorkProvider,
-  createExternalWorkItem,
   updateExternalWorkItem,
   evaluateWorkProviderHealth,
   getProductivitySnapshot,

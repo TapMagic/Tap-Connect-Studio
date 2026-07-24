@@ -21,7 +21,6 @@ import {
 } from "../tiktok";
 import { adaptCampaignToChannel, type CampaignSource } from "./adapt";
 import {
-  appendOmnichannelAudit,
   getChannelConnection,
   getVariant,
   listChannelConnections,
@@ -567,7 +566,6 @@ export function retryVariant(variantId: string): TapCastAdapterResult<CampaignCh
 
   const published = publishVariantMock(variantId);
   if (!published.ok) {
-    const failed = getVariant(variantId)!;
     return {
       ok: false,
       error: published.error,

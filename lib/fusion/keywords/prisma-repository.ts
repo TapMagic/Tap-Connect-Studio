@@ -13,9 +13,7 @@ import { parseKeywordBrandPack } from "./brand-pack";
 import { familyToVocabularyKind, termKey } from "./normalization";
 import { detectTriggerCollisions, type ActiveTriggerBinding } from "./trigger-collisions";
 import type {
-  KeywordAnalyticsEntry,
   KeywordAnalyticsEvent,
-  KeywordBrandPack,
   KeywordChannel,
   KeywordSuggestion,
   NamedBrandPack,

@@ -68,19 +68,6 @@ export type TapCaseRecord = {
   closedAt: string | null;
 };
 
-function channelToEnum(c: MessageChannel): FusionThreadChannel {
-  const map: Record<MessageChannel, FusionThreadChannel> = {
-    email: "EMAIL",
-    messenger: "MESSENGER",
-    instagram_dm: "INSTAGRAM_DM",
-    whatsapp: "WHATSAPP",
-    telegram: "TELEGRAM",
-    sms: "SMS",
-    manychat: "MANYCHAT",
-  };
-  return map[c];
-}
-
 function enumToChannel(c: FusionThreadChannel): MessageChannel {
   const map: Record<FusionThreadChannel, MessageChannel> = {
     EMAIL: "email",

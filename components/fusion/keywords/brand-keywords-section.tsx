@@ -51,8 +51,29 @@ export function BrandKeywordsSection({ initialPack }: BrandKeywordsSectionProps)
   }, []);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/ai/keywords");
+      const json = await res.json();
+      if (cancelled) return;
+      if (res.status === 503 || json.code === "feature_off") {
+        setFeatureOff(true);
+        setReadiness("DISABLED — Admin kill switch (ai.keywords)");
+        setHydrated(true);
+        return;
+      }
+      setFeatureOff(false);
+      if (res.ok && json.pack) {
+        setPack(json.pack);
+        setLocale(json.pack.locale || "en");
+      }
+      setReadiness("FUNCTIONAL — FINAL VERIFICATION REQUIRED");
+      setHydrated(true);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function persist(next: KeywordBrandPack) {
     setSaving(true);

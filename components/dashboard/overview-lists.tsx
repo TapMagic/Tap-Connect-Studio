@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Archive, ExternalLink, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -56,15 +56,24 @@ export function OverviewLists({
   const [campaigns, setCampaigns] = useState(initialCampaigns);
   const [devices, setDevices] = useState(initialDevices);
   const [activeDevices, setActiveDevices] = useState(initialActiveDevices);
-  const [busy, setBusy] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-
-  useEffect(() => {
+  const [prevSnapshot, setPrevSnapshot] = useState({
+    initialCampaigns,
+    initialDevices,
+    initialActiveDevices,
+  });
+  if (
+    initialCampaigns !== prevSnapshot.initialCampaigns ||
+    initialDevices !== prevSnapshot.initialDevices ||
+    initialActiveDevices !== prevSnapshot.initialActiveDevices
+  ) {
+    setPrevSnapshot({ initialCampaigns, initialDevices, initialActiveDevices });
     setCampaigns(initialCampaigns);
     setDevices(initialDevices);
     setActiveDevices(initialActiveDevices);
-  }, [initialCampaigns, initialDevices, initialActiveDevices]);
+  }
+  const [busy, setBusy] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
 
   async function archiveCampaign(id: string) {
     setBusy(`archive-${id}`);

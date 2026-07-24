@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Bookmark, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -257,19 +257,20 @@ export function WorkbenchStart({
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const initial = searchParams.get("template") ?? templates[0]?.id ?? "";
+  const fromUrl = searchParams.get("template");
+  const urlTemplate =
+    fromUrl && templates.some((t) => t.id === fromUrl) ? fromUrl : null;
+  const initial = urlTemplate ?? templates[0]?.id ?? "";
   const [selected, setSelected] = useState(initial);
+  const [prevUrlTemplate, setPrevUrlTemplate] = useState(urlTemplate);
+  if (urlTemplate !== prevUrlTemplate) {
+    setPrevUrlTemplate(urlTemplate);
+    if (urlTemplate) setSelected(urlTemplate);
+  }
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fromUrl = searchParams.get("template");
-    if (fromUrl && templates.some((t) => t.id === fromUrl)) {
-      setSelected(fromUrl);
-    }
-  }, [searchParams, templates]);
 
   const previewTemplate = useMemo(
     () => templates.find((t) => t.id === (previewId ?? selected)) ?? templates[0],

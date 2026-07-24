@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Copy, ExternalLink, Plus, Trash2 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,11 @@ export function DevicesManager({
 }) {
   const router = useRouter();
   const [devices, setDevices] = useState(initial);
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setDevices(initial);
+  }
   const [nickname, setNickname] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -47,10 +52,6 @@ export function DevicesManager({
   const [busy, setBusy] = useState<string | null>(null);
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-
-  useEffect(() => {
-    setDevices(initial);
-  }, [initial]);
 
   const quotaUsed = devices.filter((d) =>
     ["ACTIVE", "UNASSIGNED"].includes(d.status)

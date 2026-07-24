@@ -84,8 +84,22 @@ export function ProductivityWorkPanel({ className }: { className?: string }) {
   }, []);
 
   useEffect(() => {
-    void reload();
-  }, [reload]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch("/api/connectors/productivity");
+        const json = await res.json();
+        if (cancelled) return;
+        if (res.ok) setData(json);
+        else setMessage(json.error ?? "Failed to load");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   async function post(body: Record<string, unknown>, key: string) {
     setBusy(key);

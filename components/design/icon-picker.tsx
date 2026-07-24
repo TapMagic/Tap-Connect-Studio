@@ -76,19 +76,21 @@ export function IconPicker({
   const [category, setCategory] = useState<"all" | ReactIconCategory>("all");
   const [selectedColor, setSelectedColor] = useState(color || DEFAULT_COLOR);
   const [pasteUrl, setPasteUrl] = useState(customUrl || "");
+  const [prevColor, setPrevColor] = useState(color);
+  if (color && color !== prevColor) {
+    setPrevColor(color);
+    setSelectedColor(color);
+  }
+  const [prevCustomUrl, setPrevCustomUrl] = useState(customUrl);
+  if ((customUrl || "") !== (prevCustomUrl || "")) {
+    setPrevCustomUrl(customUrl);
+    setPasteUrl(customUrl || "");
+  }
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (color) setSelectedColor(color);
-  }, [color]);
-
-  useEffect(() => {
-    setPasteUrl(customUrl || "");
-  }, [customUrl]);
 
   useEffect(() => {
     return () => {

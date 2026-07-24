@@ -99,9 +99,22 @@ export function TapCastHubShell({ initial }: { initial?: HubInitial }) {
   }, [statusLabel]);
 
   useEffect(() => {
-    if (!initial?.channels?.length) void reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (initial?.channels?.length) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/tapcast");
+      const json = await res.json();
+      if (cancelled || !res.ok) return;
+      setChannels(json.registry?.channels ?? json.channels ?? []);
+      setReadiness(json.readiness ?? []);
+      setVariants(json.variants ?? []);
+      setStatusLabel(json.statusLabel ?? "VERIFIED — CREDENTIALS REQUIRED");
+      setPersistence(json.persistence ?? "memory");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initial?.channels?.length]);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);

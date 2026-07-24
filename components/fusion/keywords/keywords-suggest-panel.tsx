@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Check,
   Copy,
@@ -118,24 +118,28 @@ export function KeywordsSuggestPanel({
     ]
   );
 
-  const loadPack = useCallback(async () => {
-    const res = await fetch(API);
-    const json = await res.json();
-    if (res.status === 503 || json.code === "feature_off") {
-      setFeatureOff(true);
-      setMessage(json.error ?? "Keywords feature is off");
-      return;
-    }
-    setFeatureOff(false);
-    if (res.ok && json.pack) {
-      setPack(json.pack);
-      if (json.trendEnrichment?.label) setTrendLabel(json.trendEnrichment.label);
-    }
-  }, []);
-
   useEffect(() => {
-    if (open) void loadPack();
-  }, [open, loadPack]);
+    if (!open) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(API);
+      const json = await res.json();
+      if (cancelled) return;
+      if (res.status === 503 || json.code === "feature_off") {
+        setFeatureOff(true);
+        setMessage(json.error ?? "Keywords feature is off");
+        return;
+      }
+      setFeatureOff(false);
+      if (res.ok && json.pack) {
+        setPack(json.pack);
+        if (json.trendEnrichment?.label) setTrendLabel(json.trendEnrichment.label);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   async function runSuggest(mode?: RegenerateMode) {
     setLoading(true);

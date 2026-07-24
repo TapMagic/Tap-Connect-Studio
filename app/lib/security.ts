@@ -2,6 +2,8 @@
 export async function verifyTagAuthenticity(uid: string, cmac: string) {
     // Logic to validate the CMAC (Cipher-based Message Authentication Code)
     // This ensures the tag hasn't been cloned
+    void uid;
+    void cmac;
     const isValid = true; // Placeholder for future crypto-validation logic
     return isValid;
   }

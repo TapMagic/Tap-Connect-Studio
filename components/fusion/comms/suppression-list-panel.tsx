@@ -3,7 +3,6 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import type { MessageChannel } from "@/lib/fusion/comms/channel-guardian";
 import type { SuppressionRow } from "@/lib/fusion/comms/suppression-utils";

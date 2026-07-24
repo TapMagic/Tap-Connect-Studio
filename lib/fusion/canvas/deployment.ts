@@ -8,7 +8,6 @@ import { nanoid } from "nanoid";
 import { addNode, requireCanvas } from "./graph";
 import { appendCanvasAudit } from "./store";
 import { createExternalWorkItem } from "@/lib/fusion/connectors/productivity/adapter";
-import type { TapCanvas } from "./types";
 
 export type DeploymentPlacement = {
   slotId: string;

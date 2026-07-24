@@ -46,7 +46,6 @@ export function WalletPassManager({
   const [passes, setPasses] = useState(initialPasses);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [highlightId, setHighlightId] = useState<string | null>(null);
   const [pendingReplaceId, setPendingReplaceId] = useState<string | null>(null);
   const rowRefs = useRef<Map<string, HTMLTableRowElement>>(new Map());
 
@@ -55,12 +54,16 @@ export function WalletPassManager({
     [passes]
   );
 
-  useEffect(() => {
-    if (highlightSerial) {
-      const match = passes.find((p) => p.serialNumber === highlightSerial);
-      if (match) setHighlightId(match.id);
-    }
+  const matchedHighlightId = useMemo(() => {
+    if (!highlightSerial) return null;
+    return passes.find((p) => p.serialNumber === highlightSerial)?.id ?? null;
   }, [highlightSerial, passes]);
+  const [highlightId, setHighlightId] = useState<string | null>(matchedHighlightId);
+  const [prevMatchedId, setPrevMatchedId] = useState(matchedHighlightId);
+  if (matchedHighlightId !== prevMatchedId) {
+    setPrevMatchedId(matchedHighlightId);
+    if (matchedHighlightId) setHighlightId(matchedHighlightId);
+  }
 
   useEffect(() => {
     if (!highlightId) return;

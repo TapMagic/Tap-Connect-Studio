@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Archive,
@@ -71,6 +71,11 @@ export function CampaignsList({
 }) {
   const router = useRouter();
   const [campaigns, setCampaigns] = useState(initial);
+  const [prevInitial, setPrevInitial] = useState(initial);
+  if (initial !== prevInitial) {
+    setPrevInitial(initial);
+    setCampaigns(initial);
+  }
   const [tab, setTab] = useState<(typeof TABS)[number]["id"]>("ALL");
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
@@ -79,10 +84,6 @@ export function CampaignsList({
   const [openMenu, setOpenMenu] = useState<string | null>(null);
 
   const [confirmWipe, setConfirmWipe] = useState(false);
-
-  useEffect(() => {
-    setCampaigns(initial);
-  }, [initial]);
 
   async function wipeAll() {
     if (!confirmWipe) {

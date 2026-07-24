@@ -130,20 +130,27 @@ export function GroupManager({
 
   const selectedSlot = group.slots.find((s) => s.id === selectedSlotId) ?? null;
 
-  useEffect(() => {
-    const slot = group.slots.find((s) => s.id === selectedSlotId);
-    if (!slot) return;
-    const days = Array.isArray(slot.daysOfWeek) ? (slot.daysOfWeek as number[]) : [];
-    setSlotEdit({
-      label: slot.label,
-      campaignId: slot.campaign.id,
-      daysOfWeek: days.length ? days : [1, 2, 3, 4, 5],
-      startTime: slot.startTime ?? "09:00",
-      endTime: slot.endTime ?? "17:00",
-      priority: slot.priority,
-      enabled: slot.enabled,
-    });
-  }, [selectedSlotId, group.slots]);
+  const [slotEditKey, setSlotEditKey] = useState<string | null>(null);
+  const slotSyncKey = selectedSlot
+    ? `${selectedSlot.id}:${selectedSlot.label}:${selectedSlot.campaign.id}:${selectedSlot.startTime}:${selectedSlot.endTime}:${selectedSlot.priority}:${selectedSlot.enabled}:${JSON.stringify(selectedSlot.daysOfWeek)}`
+    : null;
+  if (slotSyncKey !== slotEditKey) {
+    setSlotEditKey(slotSyncKey);
+    if (selectedSlot) {
+      const days = Array.isArray(selectedSlot.daysOfWeek)
+        ? (selectedSlot.daysOfWeek as number[])
+        : [];
+      setSlotEdit({
+        label: selectedSlot.label,
+        campaignId: selectedSlot.campaign.id,
+        daysOfWeek: days.length ? days : [1, 2, 3, 4, 5],
+        startTime: selectedSlot.startTime ?? "09:00",
+        endTime: selectedSlot.endTime ?? "17:00",
+        priority: selectedSlot.priority,
+        enabled: selectedSlot.enabled,
+      });
+    }
+  }
 
   useEffect(() => {
     if (!selectedSlotId || !slotsListRef.current) return;

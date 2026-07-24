@@ -50,9 +50,20 @@ export function TapCastChannelsPanel({ initial }: { initial?: PanelInitial }) {
   }, [statusLabel]);
 
   useEffect(() => {
-    if (!initial?.channels?.length) void reload();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (initial?.channels?.length) return;
+    let cancelled = false;
+    (async () => {
+      const res = await fetch("/api/tapcast?view=registry");
+      const json = await res.json();
+      if (cancelled || !res.ok) return;
+      setChannels(json.channels ?? []);
+      setReadiness(json.readiness ?? []);
+      setStatusLabel(json.statusLabel ?? "VERIFIED — CREDENTIALS REQUIRED");
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [initial?.channels?.length]);
 
   async function connect(channelId: string) {
     setBusy(true);

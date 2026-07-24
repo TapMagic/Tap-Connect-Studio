@@ -333,7 +333,6 @@ function BlockRenderer({
   deviceSlotId,
   businessId,
   businessName,
-  brandKit,
   contactUnlocked,
   hasEmailCapture,
   onContactCaptured,

@@ -99,7 +99,7 @@ export function JourneyEditorShell({
 
   function addNode(type: JourneyNodeType) {
     const reg = JOURNEY_NODE_REGISTRY[type];
-    const id = `${type}_${Date.now()}`;
+    const id = `${type}_${crypto.randomUUID()}`;
     setDefinition((d) => ({
       ...d,
       nodes: [
@@ -130,7 +130,7 @@ export function JourneyEditorShell({
       setMessage("Pick distinct from/to nodes to connect");
       return;
     }
-    const id = `e_${Date.now()}`;
+    const id = `e_${crypto.randomUUID()}`;
     setDefinition((d) => ({
       ...d,
       edges: [

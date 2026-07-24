@@ -288,7 +288,9 @@ export function CampaignEditor({
   );
   /** Always-current blocks for save/publish (avoids stale closure after rapid edits) */
   const blocksRef = useRef(blocks);
-  blocksRef.current = blocks;
+  useEffect(() => {
+    blocksRef.current = blocks;
+  }, [blocks]);
 
   const [theme, setTheme] = useState<{
     primaryColor: string;

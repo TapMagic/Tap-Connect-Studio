@@ -44,6 +44,11 @@ export function DeviceScheduleGroup({
 }) {
   const [rules, setRules] = useState<RuleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchKey, setFetchKey] = useState(deviceId);
+  if (fetchKey !== deviceId) {
+    setFetchKey(deviceId);
+    setLoading(true);
+  }
   const [message, setMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     label: "Happy hour",
@@ -63,15 +68,27 @@ export function DeviceScheduleGroup({
   }
 
   useEffect(() => {
-    void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/schedule?deviceSlotId=${deviceId}`);
+      const data = await res.json();
+      if (cancelled) return;
+      setRules(data.rules ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [deviceId]);
 
-  useEffect(() => {
-    if (!draft.campaignId && campaigns[0]?.id) {
-      setDraft((d) => ({ ...d, campaignId: campaigns[0].id }));
+  const firstCampaignId = campaigns[0]?.id ?? "";
+  const [prevFirstCampaignId, setPrevFirstCampaignId] = useState(firstCampaignId);
+  if (firstCampaignId !== prevFirstCampaignId) {
+    setPrevFirstCampaignId(firstCampaignId);
+    if (!draft.campaignId && firstCampaignId) {
+      setDraft((d) => ({ ...d, campaignId: firstCampaignId }));
     }
-  }, [campaigns, draft.campaignId]);
+  }
 
   function toggleDay(day: number) {
     setDraft((prev) => {

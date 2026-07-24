@@ -39,6 +39,11 @@ interface SchedulePanelProps {
 export function SchedulePanel({ campaignId, devices, campaigns }: SchedulePanelProps) {
   const [rules, setRules] = useState<RuleRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchKey, setFetchKey] = useState(campaignId);
+  if (fetchKey !== campaignId) {
+    setFetchKey(campaignId);
+    setLoading(true);
+  }
   const [message, setMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState({
     label: "Happy hour special",
@@ -59,8 +64,17 @@ export function SchedulePanel({ campaignId, devices, campaigns }: SchedulePanelP
   }
 
   useEffect(() => {
-    load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    (async () => {
+      const res = await fetch(`/api/schedule?campaignId=${campaignId}`);
+      const data = await res.json();
+      if (cancelled) return;
+      setRules(data.rules ?? []);
+      setLoading(false);
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [campaignId]);
 
   function toggleDay(day: number) {
