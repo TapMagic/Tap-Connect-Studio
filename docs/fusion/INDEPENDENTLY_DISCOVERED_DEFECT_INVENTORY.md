@@ -1,12 +1,12 @@
 # Independently Discovered Defect Inventory
 
 **Inspector:** Independent product inspector (read-only)  
-**Tip:** `9965c8a`  
+**Tip (discovery):** `9965c8a` · **Implementer tip:** `cc58c06` · **Independent verify checkpoint:** see BUILD_STATUS UX spine section  
 **Discovery window:** 2026-07-24  
 **Rule:** Items below were found by this inspection. They are **not** copied from the owner walkthrough as primary findings. Overlaps with `OWNER_WALKTHROUGH_DEFECT_LOG.md` are marked with cross-refs and **Discovery source = Independent (overlap)**.
 
 **Severity:** BLOCKER | HIGH | MEDIUM | POLISH  
-**Status:** All rows OPEN unless noted — this inspector does **not** fix or self-certify.
+**Status:** OPEN unless noted. Implementer may mark FIXED pending verify; only Independent Verifier closes to **FIXED (independently verified)**.
 
 Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 
@@ -17,14 +17,14 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 | ID | Severity | Route / screen | One-line | Status |
 |----|----------|----------------|----------|--------|
 | ID-001 | BLOCKER | Global top bar | “Studio ready” ≠ workspace readiness | OPEN |
-| ID-002 | HIGH | Top bar Notifications | Bell is dead; badge can still light | FIXED pending independent verify |
-| ID-003 | HIGH | Mobile nav | Secondary IA unavailable on `<lg` | FIXED pending independent verify |
-| ID-004 | HIGH | Studio IA sections | Many distinct labels alias to same routes | FIXED pending independent verify |
+| ID-002 | HIGH | Top bar Notifications | Bell is dead; badge can still light | FIXED (independently verified) |
+| ID-003 | HIGH | Mobile nav | Secondary IA unavailable on `<lg` | FIXED (independently verified) |
+| ID-004 | HIGH | Studio IA sections | Many distinct labels alias to same routes | FIXED (independently verified) |
 | ID-005 | HIGH | Create menu | Several “Create” items only navigate to lists/hubs | OPEN |
-| ID-006 | HIGH | `/dashboard/pulse` | Enabled Pulse still stub-only field UX | FIXED pending independent verify |
-| ID-007 | HIGH | Top bar | “All locations” with no location model/UI | FIXED pending independent verify |
+| ID-006 | HIGH | `/dashboard/pulse` | Enabled Pulse still stub-only field UX | FIXED (independently verified) |
+| ID-007 | HIGH | Top bar | “All locations” with no location model/UI | FIXED (independently verified) |
 | ID-008 | MEDIUM | Help control | Help icon → Settings, not help | OPEN |
-| ID-009 | MEDIUM | Experiences IA | Secondary “Experiences” vs primary Experiences collision | FIXED pending independent verify (via ID-004 rename) |
+| ID-009 | MEDIUM | Experiences IA | Secondary “Experiences” vs primary Experiences collision | FIXED (independently verified) |
 | ID-010 | MEDIUM | `/dashboard/assets` | Keywords/Instagram panel as Assets first scent | OPEN |
 | ID-011 | MEDIUM | Template gallery | “Save as user template (coming soon)” | OPEN |
 | ID-012 | MEDIUM | Home onboarding | No provider / team / billing setup steps | OPEN |
@@ -60,9 +60,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Studio top bar — Bell button |
 | **Expected** | Opens activity/notifications feed or navigates to recovery (e.g. Settings outbox); or is honestly disabled with explanation |
-| **Actual** | ~~`<button>` with `aria-label="Notifications"` and title “Activity feed — Functional” but **no `onClick` / `href`**. When `alertCount > 0`, a dot still appears~~ **FIXED (pending independent verify):** Bell opens a notifications dialog with empty/alert copy and CTA to `/dashboard/settings#outbox`. Badge still reflects failed outbox count only. |
+| **Actual** | ~~`<button>` with `aria-label="Notifications"` and title “Activity feed — Functional” but **no `onClick` / `href`**. When `alertCount > 0`, a dot still appears~~ **FIXED:** Bell opens a notifications dialog with empty/alert copy and CTA to `/dashboard/settings#outbox`. Badge still reflects failed outbox count only. |
 | **Severity** | **HIGH** |
-| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-notifications` |
+| **Status** | **FIXED (independently verified)** — `P-ux-spine-notifications` re-run headed PASS @ tip `cc58c06` |
 | **Discovery method** | Code review + UX review (dead control) |
 | **Evidence** | `components/studio/studio-top-bar.tsx` (notifications panel + recover CTA) |
 | **Related pillar** | Controls / Settings (outbox) |
@@ -76,9 +76,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | `<lg` viewport — `MobileDashboardNav` |
 | **Expected** | Operators can reach secondary destinations (Devices, Inbox, Brand, Scan, etc.) without memorizing URLs — via drawer, overflow, or hub-equivalent |
-| **Actual** | ~~Mobile shows only seven primary destination chips. `featureCtx` is accepted on the component type but unused; no secondary list. Secondary IA only in desktop `DashboardNav`~~ **FIXED (pending independent verify):** “More in {destination}” disclosure lists secondary sections with readiness chips; Escape closes; links navigate. |
+| **Actual** | ~~Mobile shows only seven primary destination chips. `featureCtx` is accepted on the component type but unused; no secondary list. Secondary IA only in desktop `DashboardNav`~~ **FIXED:** “More in {destination}” disclosure lists secondary sections with readiness chips; Escape closes; links navigate. |
 | **Severity** | **HIGH** |
-| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-mobile-secondary` |
+| **Status** | **FIXED (independently verified)** — `P-ux-spine-mobile-secondary` re-run headed PASS @ tip `cc58c06` |
 | **Discovery method** | Responsive review + code review |
 | **Evidence** | `components/dashboard/nav.tsx` (`MobileDashboardNav` secondary panel) |
 | **Related pillar** | Studio IA / cross-cutting |
@@ -92,9 +92,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Hub sidebars + `StudioHubSections` across Experiences / Tap Points / Audience / Insights / Assets |
 | **Expected** | Each nav label opens a distinct surface or an anchored panel that matches the label; scaffolded items gated or Labs-grouped |
-| **Actual** | ~~Distinct labels share destinations without naming the surface~~ **FIXED (pending independent verify):** Collapsed pure fan-in; shared-route rows declare `opensSurface` and honest labels (e.g. “TapTrail — not shipped · Insights”, “Campaign workbench”); Labs group for not-shipped aliases; unit guard `findDishonestAliasFanIn`. |
+| **Actual** | ~~Distinct labels share destinations without naming the surface~~ **FIXED:** Collapsed pure fan-in; shared-route rows declare `opensSurface` and honest labels (e.g. “TapTrail — not shipped · Insights”, “Campaign workbench”); Labs group for not-shipped aliases; unit guard `findDishonestAliasFanIn`. |
 | **Severity** | **HIGH** |
-| **Status** | **FIXED pending independent verification** — proofs: `lib/fusion/studio/__tests__/ia-honesty.test.ts` |
+| **Status** | **FIXED (independently verified)** — `ia-honesty.test.ts` 5/5 PASS @ tip `cc58c06` |
 | **Discovery method** | UX review + code review of `STUDIO_SECTIONS` |
 | **Evidence** | `lib/fusion/studio/ia.ts` (`opensSurface`, honest labels, Labs); `findDishonestAliasFanIn` |
 | **Related pillar** | Studio IA / multiple pillars |
@@ -123,9 +123,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | `/dashboard/pulse` when `ops.pulse` enabled |
 | **Expected** | Field PWA workflows (claim, offline queue, rotation) are real or honestly disabled |
-| **Actual** | ~~Page mounts claim/rotation/offline stubs~~ **FIXED (pending independent verify):** Enabled path shows fleet health + `PulseFieldHonestyPanel` with exact “not shipped” explanation and exits to Scan Mode / Campaign Groups; stub interactive UIs removed from the page. |
+| **Actual** | ~~Page mounts claim/rotation/offline stubs~~ **FIXED:** Enabled path shows fleet health + `PulseFieldHonestyPanel` with exact “not shipped” explanation and exits to Scan Mode / Campaign Groups; stub interactive UIs removed from the page. |
 | **Severity** | **HIGH** |
-| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-pulse-honesty` |
+| **Status** | **FIXED (independently verified)** — `P-ux-spine-pulse-honesty` headed PASS (ops.pulse enabled path) @ tip `cc58c06` |
 | **Discovery method** | Code review + scaffold spot-check |
 | **Evidence** | `app/dashboard/pulse/page.tsx`; `components/fusion/pulse/pulse-field-honesty.tsx` |
 | **Related pillar** | Pulse / Tap Points |
@@ -139,9 +139,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Studio top bar business chip |
 | **Expected** | Location switcher if multi-location is claimed; omit copy if single-location only |
-| **Actual** | ~~Static text `All locations` with no control~~ **FIXED (pending independent verify):** Chrome reads **Workspace · This workspace** (no multi-location claim). Settings Locations row labeled “multi-facility not shipped”. |
+| **Actual** | ~~Static text `All locations` with no control~~ **FIXED:** Chrome reads **Workspace · This workspace** (no multi-location claim). Settings Locations row labeled “multi-facility not shipped”. |
 | **Severity** | **HIGH** (trust / IA honesty) |
-| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-location-chrome` |
+| **Status** | **FIXED (independently verified)** — `P-ux-spine-location-chrome` headed PASS @ tip `cc58c06` |
 | **Discovery method** | UX review + code review |
 | **Evidence** | `components/studio/studio-top-bar.tsx` (`studio-workspace-chip`) |
 | **Related pillar** | Workspace / Settings |
@@ -170,9 +170,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Experiences destination secondary nav |
 | **Expected** | Distinct names for hub vs workbench (e.g. “Campaign workbench”) |
-| **Actual** | ~~Section id `workbench` labeled **“Experiences”** → `/dashboard/workbench` while primary nav **Experiences** → `/dashboard/experiences`~~ **FIXED (pending independent verify):** Secondary label is now **Campaign workbench** (ID-004 honesty pass). |
+| **Actual** | ~~Section id `workbench` labeled **“Experiences”** → `/dashboard/workbench` while primary nav **Experiences** → `/dashboard/experiences`~~ **FIXED:** Secondary label is now **Campaign workbench** (ID-004 honesty pass). |
 | **Severity** | **MEDIUM** |
-| **Status** | **FIXED pending independent verification** — covered by `ia-honesty.test.ts` |
+| **Status** | **FIXED (independently verified)** — `ia-honesty.test.ts` Campaign workbench naming assertion PASS |
 | **Discovery method** | UX review / naming |
 | **Evidence** | `lib/fusion/studio/ia.ts` `STUDIO_SECTIONS.experiences` workbench entry |
 | **Related pillar** | Campaign / Experiences |
@@ -359,31 +359,42 @@ These remain **owner-ledger** items; inspected docs/code confirm they still matt
 
 ## Top BLOCKER / HIGH (independent) — short list
 
-1. **ID-001 BLOCKER** — “Studio ready” false readiness signal  
-2. **ID-002 HIGH** — Dead notifications control with live badge — **FIXED pending independent verify** (`P-ux-spine-notifications`)  
-3. **ID-003 HIGH** — Mobile loses secondary IA — **FIXED pending independent verify** (`P-ux-spine-mobile-secondary`)  
-4. **ID-004 HIGH** — Alias fan-in / fake destinations — **FIXED pending independent verify** (`ia-honesty.test.ts`)  
-5. **ID-005 HIGH** — Create does not create  
-6. **ID-006 HIGH** — Pulse stubs when enabled — **FIXED pending independent verify** (`P-ux-spine-pulse-honesty`)  
-7. **ID-007 HIGH** — “All locations” chrome lie — **FIXED pending independent verify** (`P-ux-spine-location-chrome`)  
-8. **ID-018 HIGH** — Platform claim still invalid (overlap D-013)
+1. **ID-001 BLOCKER** — “Studio ready” false readiness signal — **OPEN** (J1 blocker)  
+2. **ID-002 HIGH** — Dead notifications control with live badge — **FIXED (independently verified)** (`P-ux-spine-notifications`)  
+3. **ID-003 HIGH** — Mobile loses secondary IA — **FIXED (independently verified)** (`P-ux-spine-mobile-secondary`)  
+4. **ID-004 HIGH** — Alias fan-in / fake destinations — **FIXED (independently verified)** (`ia-honesty.test.ts`)  
+5. **ID-005 HIGH** — Create does not create — **OPEN** (J1 blocker)  
+6. **ID-006 HIGH** — Pulse stubs when enabled — **FIXED (independently verified)** (`P-ux-spine-pulse-honesty`)  
+7. **ID-007 HIGH** — “All locations” chrome lie — **FIXED (independently verified)** (`P-ux-spine-location-chrome`)  
+8. **ID-018 HIGH** — Platform claim still invalid (overlap D-013) — **OPEN**
 
 ---
 
 ### Implementer notes (UX spine slice)
 
-**Engineering state:** IMPLEMENTATION COMPLETE for ID-002 / ID-003 / ID-004 / ID-006 / ID-007 (not OWNER-READY / not independently verified).
-
-**New defects discovered during implementation:** none.
+**Engineering state:** IMPLEMENTATION COMPLETE for ID-002 / ID-003 / ID-004 / ID-006 / ID-007.
 
 **Side-fix:** ID-009 naming collision resolved by Campaign workbench rename (same IA honesty pass).
 
-**Verifier should run:**
-- `node --import tsx --test lib/fusion/studio/__tests__/ia-honesty.test.ts`
-- `npx playwright test e2e/ux-spine-discoverability.spec.ts --headed` (with local DB + `BASE_URL`)
-- Spot-check desktop secondary nav labels under Experiences / Audience / Settings
-- Confirm Pulse stubs are absent when `ops.pulse` is enabled
-- Confirm no “All locations” string in Studio chrome
+---
+
+### Independent verifier notes (UX spine · tip `cc58c06`)
+
+**Verifier state:** **INDEPENDENT VERIFICATION PASSED** for ID-002 / ID-003 / ID-004 / ID-006 / ID-007 / ID-009.  
+**Not OWNER ACCEPTED.** J1 not started. Railway untouched.
+
+**Re-run evidence (isolated DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`, `BASE_URL=http://127.0.0.1:3000`):**
+- `node --import tsx --test lib/fusion/studio/__tests__/ia-honesty.test.ts` → **5/5 PASS**
+- `PROOF_HEADED=1 … npx playwright test e2e/ux-spine-discoverability.spec.ts --headed --workers=1` → **4/4 PASS**
+- Integrated gate: lint **0 errors** (4 img warnings); `tsc --noEmit` PASS; `npm test` **404/404**
+
+**Spot-checks:** notifications dialog → Settings outbox CTA; mobile “More in Tap Points” secondary; no “All locations” in chrome; Pulse honesty panel when `ops.pulse` enabled (no Claim/Offline stub titles on page); Campaign workbench label distinct.
+
+**Additional findings (did not reopen spine IDs):**
+- Orphan file `components/fusion/pulse/pulse-field-stubs.tsx` remains unimported (dead residual) — page mounts honesty panel only.
+- `findDishonestAliasFanIn` label check is soft (accepts any `·` / “not shipped”); current IA data still honest under stronger unit assertions.
+
+**Still OPEN for J1 / later:** ID-001, ID-005, ID-008, ID-010–ID-018.
 
 ---
 
@@ -392,5 +403,6 @@ These remain **owner-ledger** items; inspected docs/code confirm they still matt
 - `UX_AND_ROLLOUT_ASSESSMENT.md` — UX / rollout framing for these findings  
 - `COST_CONSCIOUS_IMPLEMENTATION_SEQUENCE.md` — J1 vs UX-spine classification for ID-001–ID-007 (“find the door”)  
 - `PRODUCT_TRUTH_MAP.md` — engineering truth map (not OWNER ACCEPTED)
+- `BUILD_STATUS.md` — UX spine independent verify checkpoint
 
-*End of independent inventory update for UX spine.*
+*End of independent inventory update for UX spine (verifier close).*

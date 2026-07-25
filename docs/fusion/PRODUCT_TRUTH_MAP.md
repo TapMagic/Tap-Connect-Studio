@@ -9,7 +9,7 @@
 **Primary evidence reused (not re-audited):**  
 `BUILD_STATUS.md`, `OWNER_READY_COMPLETION_MATRIX.md`, `OWNER_WALKTHROUGH_DEFECT_LOG.md`, `V1_BUILDER_INTERACTION_PARITY_MATRIX.md`, `PROVIDER_READINESS.md`, `A11Y_MANUAL_CLOSEOUT.md`, `ROUTE_AND_ACTION_RUNTIME_AUDIT.md`, `lib/fusion/readiness/display-status.ts` (`VERIFICATION_LEDGER`), `lib/fusion/studio/ia.ts`, `tmp/fusion-proofs/*`, headed e2e suite ancestry.
 
-**Platform overall:** **AUTOMATED ACCEPTANCE PASSED** on many local workflows · **OWNER ACCEPTANCE PENDING** · **zero** surfaces Independently Verified · live providers **VERIFIED — CREDENTIALS REQUIRED**.
+**Platform overall:** **AUTOMATED ACCEPTANCE PASSED** on many local workflows · UX spine discoverability **INDEPENDENT VERIFICATION PASSED** (ID-002/003/004/006/007/009) · **OWNER ACCEPTANCE PENDING** · live providers **VERIFIED — CREDENTIALS REQUIRED**.
 
 ---
 
@@ -27,7 +27,7 @@
 | inaccessible/undiscoverable | Exists but weak IA scent / wrong nav / Admin-hidden without path |
 | V1 regression | Fusion broke or lacks expected V1 interaction |
 | verified local workflow | Headed + persistence proof on isolated DB (implementer evidence) |
-| independently verified | Independent Verifier closed findings (none yet) |
+| independently verified | Independent Verifier closed findings (UX spine ID-002/003/004/006/007/009 @ `cc58c06`) |
 
 **Engineering states (directive §16):** NOT STARTED · MAPPED · IMPLEMENTATION IN PROGRESS · IMPLEMENTATION COMPLETE · AUTOMATED ACCEPTANCE PASSED · INDEPENDENT VERIFICATION PASSED · VERIFIED — CREDENTIALS REQUIRED · BLOCKED · OWNER ACCEPTANCE PENDING · OWNER ACCEPTED.
 
@@ -50,28 +50,28 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 
 | Field | Record |
 |-------|--------|
-| **Classification** | partially functioning · verified local workflow (Home shell) · **not** independently verified |
-| **Engineering state** | AUTOMATED ACCEPTANCE PASSED (P-studio-home) · OWNER ACCEPTANCE PENDING |
+| **Classification** | partially functioning · verified local workflow (Home shell) · UX spine discoverability **independently verified** (ID-002/003/004/006/007/009 @ `cc58c06`) |
+| **Engineering state** | AUTOMATED ACCEPTANCE PASSED (P-studio-home) · UX spine **INDEPENDENT VERIFICATION PASSED** · OWNER ACCEPTANCE PENDING · **J1 pending** |
 | **Real user outcome** | Operator opens Studio Home, sees readiness signals, jumps to hubs |
-| **Current** | Seven-nav IA wired (`ia.ts`); readiness badges derived from ledger (not static OWNER-READY); decision queue partial; Create + ⌘K from IA |
-| **Intended** | Decision queue, first-run, notifications, facility context switch, guided first Tap |
+| **Current** | Seven-nav IA wired (`ia.ts`); honest alias labels + Labs; mobile “More in …” secondary; notifications → outbox recovery; workspace chrome (no “All locations”); Pulse honesty panel when enabled |
+| **Intended** | Decision queue, first-run, rich activity feed, facility context switch, guided first Tap |
 | **V1** | Overview dashboard preserved |
 | **Shared deps** | Feature registry, Clerk/session, integrations probes, seed |
 | **Downstream** | All hubs |
 | **Lifecycle** | N/A (shell) — decision items lack full create→resolve lifecycle |
-| **Team/facility** | Context switch incomplete; Location model exists, dedicated UX scaffold |
+| **Team/facility** | Multi-location not shipped (honest chrome); dedicated UX still Band 6 |
 | **Admin / audit / analytics** | Readiness panel; limited Home analytics |
 | **Responsive / a11y** | Owner-gate proxies PASS; true VO/NVDA + OS zoom OPEN (D-001/D-002) |
-| **Failure/recovery** | Partial decision-queue |
+| **Failure/recovery** | Partial decision-queue; outbox recovery scent via notifications |
 | **Public-output** | Indirect (readiness honesty) |
-| **Evidence** | `P-studio-home`, ledger `upcoming`/`controls_a11y_responsive` |
-| **Remaining** | Decision-queue matrix; onboarding; facility switcher; VO/OS zoom |
+| **Evidence** | `P-studio-home`, `P-ux-spine-*`, `ia-honesty.test.ts`, ledger `upcoming`/`controls_a11y_responsive` |
+| **Remaining** | ID-001 Studio ready; ID-005 Create; decision-queue matrix; onboarding; facility switcher; VO/OS zoom |
 
 | Subcomponent | Class |
 |--------------|-------|
-| Global Create / search | partially functioning |
-| Notifications | architecture/scaffold only |
-| Pulse field shell | architecture/scaffold only (`ops.pulse`) |
+| Global Create / search | partially functioning (Create oversell = ID-005 OPEN) |
+| Notifications | functioning (outbox recovery panel) · independently verified |
+| Pulse field shell | partially functioning (fleet + honesty; claim/offline not shipped) · independently verified |
 | First-run / help | UI present but workflow incomplete |
 
 ---

@@ -63,6 +63,8 @@ J1 (or a thin immediate prerequisite slice) must clear HIGH/BLOCKER discoverabil
 
 **PO note:** Prefer a short **UX-spine-first** slice (ID-002/003/004/006/007 + shared chrome honesty) immediately before Band 1 if walkthroughs fail “find the door”; keep ID-001/ID-005 inside J1 completion. Do not absorb Pulse, full multi-location, or full IA destination builds into J1.
 
+**UX spine status (2026-07-24):** tip `cc58c06` — **INDEPENDENT VERIFICATION PASSED** for ID-002/003/004/006/007/009 (see `BUILD_STATUS.md`). ID-001 + ID-005 remain **OPEN** J1 blockers. **J1 not started.** Not OWNER ACCEPTED.
+
 **Proven locally already:** builder interaction/WYSIWYG, group schedule, public seed tap, lead API+list, Home readiness.  
 **Not independently verified:** entire J1.  
 **Expensive full gate:** after J1 slice + J3/J4 band — one full headed suite + unit/tsc/lint checkpoint (not every PR).

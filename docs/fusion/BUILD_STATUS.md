@@ -2,9 +2,25 @@
 
 **Date:** 2026-07-24  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (builder parity checkpoint):** `5bd84c7` — `fusion: fix builder exploratory and interaction-parity headed proofs`  
+**HEAD (UX spine verify checkpoint):** see UX spine section below · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
+
+## UX spine discoverability checkpoint (independent verify · tip `cc58c06`)
+
+**Classification:** Studio chrome honesty (notifications / mobile secondary / IA aliases / Pulse / workspace) = **IMPLEMENTED BUT NOT OWNER-READY** · **INDEPENDENT VERIFICATION PASSED** for ID-002 / ID-003 / ID-004 / ID-006 / ID-007 / ID-009.  
+**Not OWNER ACCEPTED.** **J1 still pending.** Railway untouched.
+
+| Gate | Result |
+|------|--------|
+| Tip under verify | `cc58c069145afaf57c64c21668fd2dab9ca8a13f` |
+| `ia-honesty.test.ts` | **5/5 PASS** (ID-004 / ID-009) |
+| Headed `e2e/ux-spine-discoverability.spec.ts` | **4/4 PASS** (ID-002 / ID-003 / ID-006 / ID-007) |
+| lint | **0 errors** (4 img warnings) |
+| `tsc --noEmit` | PASS |
+| `npm test` | **404/404** |
+
+**Still OPEN (not this slice):** ID-001 (“Studio ready”), ID-005 (Create oversell) — J1 blockers per `COST_CONSCIOUS_IMPLEMENTATION_SEQUENCE.md`.
 
 ## Builder V1 parity checkpoint (2026-07-24 · tip `5bd84c7`)
 
