@@ -30,10 +30,14 @@ export function StudioTopBar({
 }) {
   const router = useRouter();
   const createMenuId = useId();
+  const notificationsMenuId = useId();
   const createBtnRef = useRef<HTMLButtonElement>(null);
   const searchBtnRef = useRef<HTMLButtonElement>(null);
+  const notificationsBtnRef = useRef<HTMLButtonElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
+  const notificationsMenuRef = useRef<HTMLDivElement>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -56,6 +60,11 @@ export function StudioTopBar({
     if (restoreFocus) createBtnRef.current?.focus();
   }, []);
 
+  const closeNotifications = useCallback((restoreFocus = false) => {
+    setNotificationsOpen(false);
+    if (restoreFocus) notificationsBtnRef.current?.focus();
+  }, []);
+
   const closePalette = useCallback((restoreFocus = false) => {
     setPaletteOpen(false);
     setQuery("");
@@ -66,6 +75,7 @@ export function StudioTopBar({
     (href: string) => {
       setPaletteOpen(false);
       setCreateOpen(false);
+      setNotificationsOpen(false);
       setQuery("");
       router.push(href);
     },
@@ -85,12 +95,22 @@ export function StudioTopBar({
         } else if (createOpen) {
           e.preventDefault();
           closeCreate(true);
+        } else if (notificationsOpen) {
+          e.preventDefault();
+          closeNotifications(true);
         }
       }
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [paletteOpen, createOpen, closePalette, closeCreate]);
+  }, [
+    paletteOpen,
+    createOpen,
+    notificationsOpen,
+    closePalette,
+    closeCreate,
+    closeNotifications,
+  ]);
 
   useEffect(() => {
     if (!createOpen) return;
@@ -107,6 +127,22 @@ export function StudioTopBar({
     document.addEventListener("mousedown", onPointer);
     return () => document.removeEventListener("mousedown", onPointer);
   }, [createOpen, closeCreate]);
+
+  useEffect(() => {
+    if (!notificationsOpen) return;
+    function onPointer(e: MouseEvent) {
+      const t = e.target as Node;
+      if (
+        notificationsMenuRef.current?.contains(t) ||
+        notificationsBtnRef.current?.contains(t)
+      ) {
+        return;
+      }
+      closeNotifications(false);
+    }
+    document.addEventListener("mousedown", onPointer);
+    return () => document.removeEventListener("mousedown", onPointer);
+  }, [notificationsOpen, closeNotifications]);
 
   useEffect(() => {
     if (!createOpen) return;
@@ -129,13 +165,17 @@ export function StudioTopBar({
       role="banner"
       className="relative z-30 flex shrink-0 items-center gap-3 border-b border-white/8 bg-[#0a0f1a]/95 px-3 py-2.5 backdrop-blur lg:px-5"
     >
-      <div className="hidden min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 sm:flex">
-        <span className="text-[10px] uppercase tracking-wide text-white/60">Business</span>
+      <div
+        className="hidden min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 sm:flex"
+        data-testid="studio-workspace-chip"
+        title="Single-workspace context — multi-location switching is not shipped"
+      >
+        <span className="text-[10px] uppercase tracking-wide text-white/60">Workspace</span>
         <span className="max-w-[10rem] truncate text-xs font-medium text-white/90 lg:max-w-[14rem]">
           {businessName}
         </span>
         <span className="hidden text-white/55 lg:inline">·</span>
-        <span className="hidden text-[11px] text-white/55 lg:inline">All locations</span>
+        <span className="hidden text-[11px] text-white/55 lg:inline">This workspace</span>
       </div>
 
       <button
@@ -217,17 +257,88 @@ export function StudioTopBar({
         {alertCount > 0 ? ` · ${alertCount}` : ""}
       </div>
 
-      <button
-        type="button"
-        className="relative rounded-lg border border-white/10 p-2 text-white/50 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-        aria-label="Notifications"
-        title="Activity feed — Functional"
-      >
-        <Bell className="h-4 w-4" />
-        {alertCount > 0 ? (
-          <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-400" />
+      <div className="relative">
+        <button
+          ref={notificationsBtnRef}
+          type="button"
+          className="relative rounded-lg border border-white/10 p-2 text-white/50 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-label={
+            alertCount > 0
+              ? `Notifications, ${alertCount} failed delivery job${alertCount === 1 ? "" : "s"}`
+              : "Notifications"
+          }
+          aria-expanded={notificationsOpen}
+          aria-haspopup="dialog"
+          aria-controls={notificationsMenuId}
+          title={
+            alertCount > 0
+              ? `${alertCount} failed outbox job${alertCount === 1 ? "" : "s"} — open recovery`
+              : "Delivery alerts — empty when no failed outbox jobs"
+          }
+          data-testid="studio-notifications-button"
+          onClick={() => setNotificationsOpen((v) => !v)}
+        >
+          <Bell className="h-4 w-4" aria-hidden />
+          {alertCount > 0 ? (
+            <span
+              className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-400"
+              aria-hidden
+            />
+          ) : null}
+        </button>
+        {notificationsOpen ? (
+          <div
+            ref={notificationsMenuRef}
+            id={notificationsMenuId}
+            role="dialog"
+            aria-label="Notifications"
+            data-testid="studio-notifications-panel"
+            className="absolute right-0 top-full z-50 mt-2 w-72 rounded-xl border border-white/10 bg-[#0d1320] p-3 shadow-2xl shadow-black/50"
+          >
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-white/40">
+              Delivery alerts
+            </p>
+            {alertCount > 0 ? (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-amber-100">
+                  {alertCount} failed outbox job{alertCount === 1 ? "" : "s"} need recovery.
+                </p>
+                <p className="text-[11px] text-white/45">
+                  Studio badges only track failed delivery jobs for this workspace — not a full
+                  activity feed.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  className="w-full"
+                  data-testid="studio-notifications-recover"
+                  onClick={() => go("/dashboard/settings#outbox")}
+                >
+                  Open outbox recovery
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">
+                <p className="text-sm text-white/80">No failed delivery jobs</p>
+                <p className="text-[11px] text-white/45">
+                  Notifications here are limited to outbox dead letters. There is no separate
+                  activity inbox yet.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full border-white/15 bg-transparent text-white/80 hover:bg-white/5"
+                  data-testid="studio-notifications-outbox"
+                  onClick={() => go("/dashboard/settings#outbox")}
+                >
+                  View outbox on Settings
+                </Button>
+              </div>
+            )}
+          </div>
         ) : null}
-      </button>
+      </div>
 
       <Link
         href="/dashboard/settings"

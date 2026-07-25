@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useId, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  ChevronDown,
   LayoutDashboard,
   Layers3,
   Nfc,
@@ -171,6 +173,7 @@ export function DashboardNav({
 
 export function MobileDashboardNav({
   businessName,
+  featureCtx,
 }: {
   businessName: string;
   featureCtx?: ResolveContext;
@@ -178,6 +181,24 @@ export function MobileDashboardNav({
 }) {
   const pathname = usePathname();
   const destination = resolveStudioDestination(pathname);
+  const sections = sectionsForDestination(destination.id);
+  const grouped = groupSections(sections);
+  const panelId = useId();
+  const moreBtnRef = useRef<HTMLButtonElement>(null);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  useEffect(() => {
+    if (!moreOpen) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setMoreOpen(false);
+        moreBtnRef.current?.focus();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [moreOpen]);
 
   return (
     <div className="border-b border-white/8 bg-[#070b14] lg:hidden">
@@ -191,7 +212,7 @@ export function MobileDashboardNav({
         </Link>
       </div>
       <nav
-        className="flex gap-1 overflow-x-auto px-3 pb-3"
+        className="flex gap-1 overflow-x-auto px-3 pb-2"
         aria-label="Studio primary"
       >
         {STUDIO_NAV.map((item) => {
@@ -213,6 +234,79 @@ export function MobileDashboardNav({
           );
         })}
       </nav>
+
+      {grouped.length > 0 ? (
+        <div className="border-t border-white/6 px-3 py-2">
+          <button
+            ref={moreBtnRef}
+            type="button"
+            className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-left text-xs font-medium text-white/80 hover:border-primary/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-expanded={moreOpen}
+            aria-controls={panelId}
+            data-testid="mobile-secondary-nav-toggle"
+            onClick={() => setMoreOpen((v) => !v)}
+          >
+            <span>
+              More in {destination.label}
+              <span className="ml-1.5 font-normal text-white/45">
+                ({sections.length})
+              </span>
+            </span>
+            <ChevronDown
+              className={cn(
+                "h-4 w-4 shrink-0 text-white/50 transition-transform",
+                moreOpen ? "rotate-180" : null
+              )}
+              aria-hidden
+            />
+          </button>
+          {moreOpen ? (
+            <nav
+              id={panelId}
+              aria-label={`${destination.label} sections`}
+              data-testid="mobile-secondary-nav"
+              className="mt-2 max-h-[50vh] space-y-3 overflow-y-auto rounded-xl border border-white/8 bg-black/30 p-2"
+            >
+              {grouped.map(({ group, items }) => (
+                <div key={group} className="space-y-0.5">
+                  <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-white/45">
+                    {group}
+                  </p>
+                  {items.map((s) => {
+                    const readiness = resolveSectionReadiness(s, featureCtx);
+                    return (
+                      <Link
+                        key={s.id}
+                        href={s.href}
+                        className="block rounded-md px-2 py-2.5 text-[12px] text-white/75 hover:bg-white/5 hover:text-white"
+                        title={`${readiness.label}: ${readiness.nextAction}`}
+                        onClick={() => setMoreOpen(false)}
+                      >
+                        <span className="flex items-start justify-between gap-2">
+                          <span>
+                            <span className="block font-medium text-white/90">{s.label}</span>
+                            <span className="mt-0.5 block text-[11px] text-white/40">
+                              {s.description}
+                            </span>
+                          </span>
+                          <span
+                            className={cn(
+                              "mt-0.5 shrink-0 rounded border px-1 py-px text-[9px] uppercase tracking-wide",
+                              displayTone(readiness.display)
+                            )}
+                          >
+                            {readiness.label.split("—")[0].trim().split(" ")[0]}
+                          </span>
+                        </span>
+                      </Link>
+                    );
+                  })}
+                </div>
+              ))}
+            </nav>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

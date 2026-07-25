@@ -49,9 +49,12 @@ export default async function AudienceHubPage() {
         ))}
       </div>
 
-      <div id="taploop" className="space-y-6">
-        <TapLoopWorkspace enabled={tapLoopReady} />
+      <div id="workspace" className="scroll-mt-20 space-y-6">
         <AudienceWorkspace initialContactCount={contactCount} tapLoopEnabled={tapLoopReady} />
+      </div>
+
+      <div id="taploop" className="scroll-mt-20 space-y-6">
+        <TapLoopWorkspace enabled={tapLoopReady} />
       </div>
     </div>
   );

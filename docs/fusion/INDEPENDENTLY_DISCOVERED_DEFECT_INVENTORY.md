@@ -14,26 +14,26 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 
 ## Summary table
 
-| ID | Severity | Route / screen | One-line |
-|----|----------|----------------|----------|
-| ID-001 | BLOCKER | Global top bar | “Studio ready” ≠ workspace readiness |
-| ID-002 | HIGH | Top bar Notifications | Bell is dead; badge can still light |
-| ID-003 | HIGH | Mobile nav | Secondary IA unavailable on `<lg` |
-| ID-004 | HIGH | Studio IA sections | Many distinct labels alias to same routes |
-| ID-005 | HIGH | Create menu | Several “Create” items only navigate to lists/hubs |
-| ID-006 | HIGH | `/dashboard/pulse` | Enabled Pulse still stub-only field UX |
-| ID-007 | HIGH | Top bar | “All locations” with no location model/UI |
-| ID-008 | MEDIUM | Help control | Help icon → Settings, not help |
-| ID-009 | MEDIUM | Experiences IA | Secondary “Experiences” vs primary Experiences collision |
-| ID-010 | MEDIUM | `/dashboard/assets` | Keywords/Instagram panel as Assets first scent |
-| ID-011 | MEDIUM | Template gallery | “Save as user template (coming soon)” |
-| ID-012 | MEDIUM | Home onboarding | No provider / team / billing setup steps |
-| ID-013 | MEDIUM | Home → Automation Team | Links to workbench; Autopilot scent split |
-| ID-014 | MEDIUM | Freeform canvas | Scaffold / HONEST_DISABLED residual in builder |
-| ID-015 | MEDIUM | Create → Booking / Orders | Scaffolded commerce invited from Create |
-| ID-016 | POLISH | Sidebar readiness chips | Truncated one-word badges |
-| ID-017 | POLISH | Nav footer | Engineer-facing V1/Admin footnote |
-| ID-018 | HIGH | Platform claim surface | Overlaps owner D-013 — independent confirmation |
+| ID | Severity | Route / screen | One-line | Status |
+|----|----------|----------------|----------|--------|
+| ID-001 | BLOCKER | Global top bar | “Studio ready” ≠ workspace readiness | OPEN |
+| ID-002 | HIGH | Top bar Notifications | Bell is dead; badge can still light | FIXED pending independent verify |
+| ID-003 | HIGH | Mobile nav | Secondary IA unavailable on `<lg` | FIXED pending independent verify |
+| ID-004 | HIGH | Studio IA sections | Many distinct labels alias to same routes | FIXED pending independent verify |
+| ID-005 | HIGH | Create menu | Several “Create” items only navigate to lists/hubs | OPEN |
+| ID-006 | HIGH | `/dashboard/pulse` | Enabled Pulse still stub-only field UX | FIXED pending independent verify |
+| ID-007 | HIGH | Top bar | “All locations” with no location model/UI | FIXED pending independent verify |
+| ID-008 | MEDIUM | Help control | Help icon → Settings, not help | OPEN |
+| ID-009 | MEDIUM | Experiences IA | Secondary “Experiences” vs primary Experiences collision | FIXED pending independent verify (via ID-004 rename) |
+| ID-010 | MEDIUM | `/dashboard/assets` | Keywords/Instagram panel as Assets first scent | OPEN |
+| ID-011 | MEDIUM | Template gallery | “Save as user template (coming soon)” | OPEN |
+| ID-012 | MEDIUM | Home onboarding | No provider / team / billing setup steps | OPEN |
+| ID-013 | MEDIUM | Home → Automation Team | Links to workbench; Autopilot scent split | OPEN |
+| ID-014 | MEDIUM | Freeform canvas | Scaffold / HONEST_DISABLED residual in builder | OPEN |
+| ID-015 | MEDIUM | Create → Booking / Orders | Scaffolded commerce invited from Create | OPEN |
+| ID-016 | POLISH | Sidebar readiness chips | Truncated one-word badges | OPEN |
+| ID-017 | POLISH | Nav footer | Engineer-facing V1/Admin footnote | OPEN |
+| ID-018 | HIGH | Platform claim surface | Overlaps owner D-013 — independent confirmation | OPEN |
 
 ---
 
@@ -60,10 +60,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Studio top bar — Bell button |
 | **Expected** | Opens activity/notifications feed or navigates to recovery (e.g. Settings outbox); or is honestly disabled with explanation |
-| **Actual** | `<button>` with `aria-label="Notifications"` and title “Activity feed — Functional” but **no `onClick` / `href`**. When `alertCount > 0`, a dot still appears |
+| **Actual** | ~~`<button>` with `aria-label="Notifications"` and title “Activity feed — Functional” but **no `onClick` / `href`**. When `alertCount > 0`, a dot still appears~~ **FIXED (pending independent verify):** Bell opens a notifications dialog with empty/alert copy and CTA to `/dashboard/settings#outbox`. Badge still reflects failed outbox count only. |
 | **Severity** | **HIGH** |
+| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-notifications` |
 | **Discovery method** | Code review + UX review (dead control) |
-| **Evidence** | `components/studio/studio-top-bar.tsx` ~lines 220–230 |
+| **Evidence** | `components/studio/studio-top-bar.tsx` (notifications panel + recover CTA) |
 | **Related pillar** | Controls / Settings (outbox) |
 | **Owner overlap** | None direct. Discovery source: **Independent** |
 
@@ -75,10 +76,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | `<lg` viewport — `MobileDashboardNav` |
 | **Expected** | Operators can reach secondary destinations (Devices, Inbox, Brand, Scan, etc.) without memorizing URLs — via drawer, overflow, or hub-equivalent |
-| **Actual** | Mobile shows only seven primary destination chips. `featureCtx` is accepted on the component type but unused; no secondary list. Secondary IA only in desktop `DashboardNav` |
+| **Actual** | ~~Mobile shows only seven primary destination chips. `featureCtx` is accepted on the component type but unused; no secondary list. Secondary IA only in desktop `DashboardNav`~~ **FIXED (pending independent verify):** “More in {destination}” disclosure lists secondary sections with readiness chips; Escape closes; links navigate. |
 | **Severity** | **HIGH** |
+| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-mobile-secondary` |
 | **Discovery method** | Responsive review + code review |
-| **Evidence** | `components/dashboard/nav.tsx` (`MobileDashboardNav` vs `DashboardNav` secondary `grouped` block) |
+| **Evidence** | `components/dashboard/nav.tsx` (`MobileDashboardNav` secondary panel) |
 | **Related pillar** | Studio IA / cross-cutting |
 | **Owner overlap** | Adjacent to **D-002** (responsive residual) but distinct (IA omission vs zoom). Discovery source: **Independent** |
 
@@ -90,10 +92,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Hub sidebars + `StudioHubSections` across Experiences / Tap Points / Audience / Insights / Assets |
 | **Expected** | Each nav label opens a distinct surface or an anchored panel that matches the label; scaffolded items gated or Labs-grouped |
-| **Actual** | Distinct labels share destinations, e.g. Contacts / Relationships / Consent / TapSave / MyTap / TapGuide → `/dashboard/audience`; Calendar / Sets / Rotations / Resolver → `/dashboard/groups`; Bookings / Invoices / Purchases / Orders → `/dashboard/experiences/orders`; TapTrail → `/dashboard/insights`; Whiteboard → `/dashboard/workbench` |
+| **Actual** | ~~Distinct labels share destinations without naming the surface~~ **FIXED (pending independent verify):** Collapsed pure fan-in; shared-route rows declare `opensSurface` and honest labels (e.g. “TapTrail — not shipped · Insights”, “Campaign workbench”); Labs group for not-shipped aliases; unit guard `findDishonestAliasFanIn`. |
 | **Severity** | **HIGH** |
+| **Status** | **FIXED pending independent verification** — proofs: `lib/fusion/studio/__tests__/ia-honesty.test.ts` |
 | **Discovery method** | UX review + code review of `STUDIO_SECTIONS` |
-| **Evidence** | `lib/fusion/studio/ia.ts` (multiple section `href` collisions); hubs render full lists via `components/studio/hub-sections.tsx` |
+| **Evidence** | `lib/fusion/studio/ia.ts` (`opensSurface`, honest labels, Labs); `findDishonestAliasFanIn` |
 | **Related pillar** | Studio IA / multiple pillars |
 | **Owner overlap** | Complements route audit narrative in `ROUTE_AND_ACTION_RUNTIME_AUDIT.md` — not an owner D-ID. Discovery source: **Independent** |
 
@@ -120,10 +123,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | `/dashboard/pulse` when `ops.pulse` enabled |
 | **Expected** | Field PWA workflows (claim, offline queue, rotation) are real or honestly disabled |
-| **Actual** | Page imports `PulseClaimSessionStub`, `PulseOfflineQueueStub`, `PulseRotationPreviewStub` — local stubs, no service worker / API claim path per component comments |
+| **Actual** | ~~Page mounts claim/rotation/offline stubs~~ **FIXED (pending independent verify):** Enabled path shows fleet health + `PulseFieldHonestyPanel` with exact “not shipped” explanation and exits to Scan Mode / Campaign Groups; stub interactive UIs removed from the page. |
 | **Severity** | **HIGH** |
+| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-pulse-honesty` |
 | **Discovery method** | Code review + scaffold spot-check |
-| **Evidence** | `app/dashboard/pulse/page.tsx`; `components/fusion/pulse/pulse-field-stubs.tsx` |
+| **Evidence** | `app/dashboard/pulse/page.tsx`; `components/fusion/pulse/pulse-field-honesty.tsx` |
 | **Related pillar** | Pulse / Tap Points |
 | **Owner overlap** | None as D-ID; route audit notes Pulse alpha. Discovery source: **Independent** |
 
@@ -135,10 +139,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Studio top bar business chip |
 | **Expected** | Location switcher if multi-location is claimed; omit copy if single-location only |
-| **Actual** | Static text `All locations` with no control |
+| **Actual** | ~~Static text `All locations` with no control~~ **FIXED (pending independent verify):** Chrome reads **Workspace · This workspace** (no multi-location claim). Settings Locations row labeled “multi-facility not shipped”. |
 | **Severity** | **HIGH** (trust / IA honesty) |
+| **Status** | **FIXED pending independent verification** — proofs: `P-ux-spine-location-chrome` |
 | **Discovery method** | UX review + code review |
-| **Evidence** | `components/studio/studio-top-bar.tsx` (~line 138) |
+| **Evidence** | `components/studio/studio-top-bar.tsx` (`studio-workspace-chip`) |
 | **Related pillar** | Workspace / Settings |
 | **Owner overlap** | None. Discovery source: **Independent** |
 
@@ -165,10 +170,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Experiences destination secondary nav |
 | **Expected** | Distinct names for hub vs workbench (e.g. “Campaign workbench”) |
-| **Actual** | Section id `workbench` labeled **“Experiences”** → `/dashboard/workbench` while primary nav **Experiences** → `/dashboard/experiences` |
+| **Actual** | ~~Section id `workbench` labeled **“Experiences”** → `/dashboard/workbench` while primary nav **Experiences** → `/dashboard/experiences`~~ **FIXED (pending independent verify):** Secondary label is now **Campaign workbench** (ID-004 honesty pass). |
 | **Severity** | **MEDIUM** |
+| **Status** | **FIXED pending independent verification** — covered by `ia-honesty.test.ts` |
 | **Discovery method** | UX review / naming |
-| **Evidence** | `lib/fusion/studio/ia.ts` `STUDIO_NAV` + `STUDIO_SECTIONS.experiences` workbench entry |
+| **Evidence** | `lib/fusion/studio/ia.ts` `STUDIO_SECTIONS.experiences` workbench entry |
 | **Related pillar** | Campaign / Experiences |
 | **Owner overlap** | None. Discovery source: **Independent** |
 
@@ -354,15 +360,30 @@ These remain **owner-ledger** items; inspected docs/code confirm they still matt
 ## Top BLOCKER / HIGH (independent) — short list
 
 1. **ID-001 BLOCKER** — “Studio ready” false readiness signal  
-2. **ID-002 HIGH** — Dead notifications control with live badge  
-3. **ID-003 HIGH** — Mobile loses secondary IA  
-4. **ID-004 HIGH** — Alias fan-in / fake destinations  
+2. **ID-002 HIGH** — Dead notifications control with live badge — **FIXED pending independent verify** (`P-ux-spine-notifications`)  
+3. **ID-003 HIGH** — Mobile loses secondary IA — **FIXED pending independent verify** (`P-ux-spine-mobile-secondary`)  
+4. **ID-004 HIGH** — Alias fan-in / fake destinations — **FIXED pending independent verify** (`ia-honesty.test.ts`)  
 5. **ID-005 HIGH** — Create does not create  
-6. **ID-006 HIGH** — Pulse stubs when enabled  
-7. **ID-007 HIGH** — “All locations” chrome lie  
+6. **ID-006 HIGH** — Pulse stubs when enabled — **FIXED pending independent verify** (`P-ux-spine-pulse-honesty`)  
+7. **ID-007 HIGH** — “All locations” chrome lie — **FIXED pending independent verify** (`P-ux-spine-location-chrome`)  
 8. **ID-018 HIGH** — Platform claim still invalid (overlap D-013)
 
 ---
+
+### Implementer notes (UX spine slice)
+
+**Engineering state:** IMPLEMENTATION COMPLETE for ID-002 / ID-003 / ID-004 / ID-006 / ID-007 (not OWNER-READY / not independently verified).
+
+**New defects discovered during implementation:** none.
+
+**Side-fix:** ID-009 naming collision resolved by Campaign workbench rename (same IA honesty pass).
+
+**Verifier should run:**
+- `node --import tsx --test lib/fusion/studio/__tests__/ia-honesty.test.ts`
+- `npx playwright test e2e/ux-spine-discoverability.spec.ts --headed` (with local DB + `BASE_URL`)
+- Spot-check desktop secondary nav labels under Experiences / Audience / Settings
+- Confirm Pulse stubs are absent when `ops.pulse` is enabled
+- Confirm no “All locations” string in Studio chrome
 
 ---
 
@@ -372,4 +393,4 @@ These remain **owner-ledger** items; inspected docs/code confirm they still matt
 - `COST_CONSCIOUS_IMPLEMENTATION_SEQUENCE.md` — J1 vs UX-spine classification for ID-001–ID-007 (“find the door”)  
 - `PRODUCT_TRUTH_MAP.md` — engineering truth map (not OWNER ACCEPTED)
 
-*End of independent inventory. No product code changed.*
+*End of independent inventory update for UX spine.*
