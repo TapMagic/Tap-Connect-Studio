@@ -208,6 +208,34 @@ export type TapCardSection = {
   altText?: string;
 };
 
+/** Page-level utilities that survive Campaign / Experience resolution. */
+export type CardUtilityKind =
+  | "keep"
+  | "support"
+  | "vcard"
+  | "map"
+  | "book"
+  | "shop";
+
+export type CardUtilityPresentation =
+  | "sticky_bar"
+  | "bottom_sheet"
+  | "compact_row"
+  | "action_deck";
+
+export type CardUtilityToggle = {
+  kind: CardUtilityKind;
+  enabled: boolean;
+  label?: string;
+};
+
+export type CardUtilityLayerSettings = {
+  /** When false, suppress the page-level utility layer (in-Card section actions remain). */
+  enabled?: boolean;
+  presentation?: CardUtilityPresentation;
+  utilities?: CardUtilityToggle[];
+};
+
 export type TapConnectCardConfig = {
   version: 1 | 2 | 3;
   accentColor: string;
@@ -241,6 +269,11 @@ export type TapConnectCardConfig = {
   /** Soft-retire without deleting Brand Kit card content (J1 lifecycle). */
   lifecycleStatus?: "active" | "retired";
   retiredAt?: string;
+  /**
+   * Persistent Card utility layer — visible on public Tap Points even when a
+   * Campaign is active (Keep, Ask a Question, Save Contact, etc.).
+   */
+  utilityLayer?: CardUtilityLayerSettings;
 };
 
 export const TAP_CARD_ACTION_CATALOG: {
@@ -487,6 +520,18 @@ export function defaultTapConnectCard(params: {
     bodyFormat: { fontFamily: "sans", fontSize: "sm", align: "center" },
     compactActionsOnly: false,
     sections,
+    utilityLayer: {
+      enabled: true,
+      presentation: "compact_row",
+      utilities: [
+        { kind: "keep", enabled: true, label: "Keep this Card" },
+        { kind: "support", enabled: true, label: "Ask a Question" },
+        { kind: "vcard", enabled: true, label: "Save Contact" },
+        { kind: "map", enabled: true },
+        { kind: "book", enabled: true },
+        { kind: "shop", enabled: true },
+      ],
+    },
   };
 }
 
@@ -557,7 +602,42 @@ export function parseTapConnectCard(
     compactActionsOnly: o.compactActionsOnly === true,
     lifecycleStatus: o.lifecycleStatus === "retired" ? "retired" : "active",
     retiredAt: typeof o.retiredAt === "string" ? o.retiredAt : undefined,
+    utilityLayer: parseUtilityLayer(o.utilityLayer, base.utilityLayer),
     sections,
+  };
+}
+
+function parseUtilityLayer(
+  raw: unknown,
+  fallback?: CardUtilityLayerSettings
+): CardUtilityLayerSettings | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return fallback;
+  const o = raw as Record<string, unknown>;
+  const presentation =
+    o.presentation === "sticky_bar" ||
+    o.presentation === "bottom_sheet" ||
+    o.presentation === "compact_row" ||
+    o.presentation === "action_deck"
+      ? o.presentation
+      : fallback?.presentation ?? "compact_row";
+  const utilities = Array.isArray(o.utilities)
+    ? (o.utilities as CardUtilityToggle[])
+        .filter(
+          (u) =>
+            u &&
+            typeof u === "object" &&
+            ["keep", "support", "vcard", "map", "book", "shop"].includes(u.kind)
+        )
+        .map((u) => ({
+          kind: u.kind,
+          enabled: u.enabled !== false,
+          label: typeof u.label === "string" ? u.label : undefined,
+        }))
+    : fallback?.utilities;
+  return {
+    enabled: o.enabled !== false,
+    presentation,
+    utilities,
   };
 }
 

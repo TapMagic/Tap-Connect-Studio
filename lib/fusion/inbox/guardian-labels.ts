@@ -1,5 +1,6 @@
 /**
- * Human labels for Channel Guardian codes — Inbox reply UX.
+ * Human labels for Channel Guardian — operator language first.
+ * Technical codes stay behind View details.
  */
 
 import type { GuardianDecision } from "../comms/channel-guardian";
@@ -9,18 +10,18 @@ import { evaluateReplyEligibility } from "./reply-eligibility";
 type GuardianCode = GuardianDecision["code"];
 
 const GUARDIAN_LABELS: Record<GuardianCode, string> = {
-  ok: "Guardian cleared",
-  feature_off: "Messaging disabled",
-  provider_missing: "Provider not ready",
-  no_consent: "Consent required",
-  quiet_hours: "Quiet hours",
-  channel_blocked: "Channel blocked",
-  missing_recipient: "Missing recipient",
-  suppressed: "Suppressed address",
-  plan_blocked: "Plan blocked",
-  frequency: "Frequency cap",
-  window_closed: "Provider window closed",
-  template_required: "Template required",
+  ok: "Ready to send",
+  feature_off: "Messaging is turned off for this workspace",
+  provider_missing: "Email or messaging isn’t connected yet",
+  no_consent: "Customer hasn’t agreed to receive this type of message",
+  quiet_hours: "Outside the customer’s preferred hours",
+  channel_blocked: "This channel isn’t available for this customer",
+  missing_recipient: "No email or phone on file",
+  suppressed: "This address asked not to be contacted",
+  plan_blocked: "Your plan doesn’t include this send",
+  frequency: "Too many recent messages — wait before sending again",
+  window_closed: "The provider conversation window has closed",
+  template_required: "A approved template is required for this send",
 };
 
 export function labelGuardianCode(code: string | null | undefined): string {
@@ -41,6 +42,24 @@ export function guardianReplyBlockedMessage(input: {
   return label;
 }
 
+export const PURPOSE_OPTIONS = [
+  {
+    id: "support" as const,
+    label: "Support reply",
+    help: "Answer a question or help with an issue the customer raised.",
+  },
+  {
+    id: "service" as const,
+    label: "Service update",
+    help: "Transactional update about an order, booking, or account.",
+  },
+  {
+    id: "promo" as const,
+    label: "Marketing / promo",
+    help: "Offers or news — only when the customer opted in for marketing.",
+  },
+];
+
 export function replyComposerState(input: {
   threadStatus: ThreadStatus;
   featureEnabled: boolean;
@@ -60,7 +79,7 @@ export function replyComposerState(input: {
     return {
       allowed: false,
       code: "thread_closed",
-      hint: "Thread is closed — reopen or start a new thread to reply.",
+      hint: "This conversation is closed. Reopen it or start a new one to reply.",
     };
   }
 
@@ -68,7 +87,7 @@ export function replyComposerState(input: {
     return {
       allowed: false,
       code: "feature_off",
-      hint: "Enable comms.inbox (and comms.email or comms.messaging) to send replies.",
+      hint: "Inbox messaging isn’t enabled for this workspace yet.",
     };
   }
 
@@ -76,13 +95,13 @@ export function replyComposerState(input: {
     return {
       allowed: true,
       code: "empty_body",
-      hint: "Type a reply — Channel Guardian runs before send.",
+      hint: "Write your reply. We’ll check communication preferences before sending.",
     };
   }
 
   return {
     allowed: true,
-    hint: "Support reply · consent assumed · Guardian enforced before provider send.",
+    hint: "We’ll check this reply against the customer’s communication preferences before sending.",
   };
 }
 

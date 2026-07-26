@@ -32,10 +32,15 @@ export default async function AudienceInboxPage() {
           </Link>{" "}
           / Inbox
         </p>
-        <h1 className="text-2xl font-semibold tracking-tight">TapInbox</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Inbox</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Threads, mock replies, and TapCase — Channel Guardian runs before every send.
+          Customer conversations and cases. We’ll check preferences before any reply is sent.
         </p>
+        <div className="mt-2 flex flex-wrap gap-3 text-xs">
+          <Link href="/dashboard/audience/cases" className="text-primary hover:underline">
+            Open Cases workspace
+          </Link>
+        </div>
       </div>
 
       {!featureEnabled ? (

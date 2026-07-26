@@ -201,6 +201,13 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       : appleLive
         ? ("live" as const)
         : ("preview" as const);
+    const featureFlags = {
+      "tapsave.core": keepCardEnabled,
+      "wallet.apple_google": walletFeatureOn,
+      "card.builder.v1": isFeatureExecutable("card.builder.v1", { overrides: featureOverrides }),
+      "card.fuse.support": isFeatureExecutable("card.fuse.support", { overrides: featureOverrides }),
+      "comms.inbox": isFeatureExecutable("comms.inbox", { overrides: featureOverrides }),
+    };
 
     return (
       <>
@@ -222,6 +229,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
           keepCardEnabled={keepCardEnabled}
           walletMode={walletMode}
           walletFeatureOn={walletFeatureOn}
+          featureFlags={featureFlags}
         />
       </>
     );
@@ -294,6 +302,13 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     : appleLive
       ? ("live" as const)
       : ("preview" as const);
+  const featureFlags = {
+    "tapsave.core": keepCardEnabled,
+    "wallet.apple_google": walletFeatureOn,
+    "card.builder.v1": isFeatureExecutable("card.builder.v1", { overrides: featureOverrides }),
+    "card.fuse.support": isFeatureExecutable("card.fuse.support", { overrides: featureOverrides }),
+    "comms.inbox": isFeatureExecutable("comms.inbox", { overrides: featureOverrides }),
+  };
 
   return (
     <>
@@ -314,6 +329,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
         keepCardEnabled={keepCardEnabled}
         walletMode={walletMode}
         walletFeatureOn={walletFeatureOn}
+        featureFlags={featureFlags}
       />
     </>
   );

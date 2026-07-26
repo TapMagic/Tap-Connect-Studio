@@ -67,9 +67,13 @@ export function AuthoringWorkspaceShell({
       <div
         className={cn(
           "grid min-h-0 flex-1",
-          focusMode
+          focusMode || (!outline && !format)
             ? "grid-cols-1"
-            : "grid-cols-1 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(16rem,22rem)]"
+            : outline && format
+              ? "grid-cols-1 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(16rem,22rem)]"
+              : outline
+                ? "grid-cols-1 lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"
+                : "grid-cols-1 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,22rem)]"
         )}
       >
         {!focusMode && outline ? (
@@ -80,7 +84,7 @@ export function AuthoringWorkspaceShell({
             {outline}
           </aside>
         ) : null}
-        <main className="min-h-0 overflow-y-auto p-3" data-testid="authoring-canvas">
+        <main className="min-h-0 overflow-hidden p-0" data-testid="authoring-canvas">
           {canvas}
         </main>
         {!focusMode && format ? (

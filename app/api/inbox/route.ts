@@ -6,6 +6,7 @@ import { loadFeatureContext } from "@/lib/fusion/features/server";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import {
   addMessageAttachment,
+  addCaseInternalNote,
   assignCase,
   closeCase,
   closeThread,
@@ -127,8 +128,24 @@ const postSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("transition_case"),
     caseId: z.string(),
-    caseAction: z.enum(["assign", "start", "wait", "resolve", "close", "reopen"]),
+    caseAction: z.enum([
+      "assign",
+      "start",
+      "wait",
+      "wait_customer",
+      "wait_internal",
+      "resolve",
+      "ready_to_close",
+      "close",
+      "reopen",
+    ]),
     assigneeId: z.string().optional(),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal("add_case_note"),
+    caseId: z.string(),
+    body: z.string().min(1).max(4000),
   }),
   z.object({
     action: z.literal("add_attachment"),
@@ -258,11 +275,24 @@ export async function POST(request: Request) {
           caseId: body.caseId,
           action: body.caseAction,
           assigneeId: body.assigneeId ?? user.id,
+          reason: body.reason,
         });
         if (!result.ok) {
           return NextResponse.json({ error: result.error, code: result.code }, { status: 400 });
         }
         return NextResponse.json({ ok: true, case: result.case });
+      }
+      case "add_case_note": {
+        const result = await addCaseInternalNote({
+          businessId: business.id,
+          caseId: body.caseId,
+          body: body.body,
+          authorId: user.id,
+        });
+        if (!result.ok) {
+          return NextResponse.json({ error: result.error }, { status: 404 });
+        }
+        return NextResponse.json({ ok: true, case: result.case, note: result.note });
       }
       case "add_attachment": {
         const result = await addMessageAttachment({

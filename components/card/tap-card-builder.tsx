@@ -100,6 +100,12 @@ type Props = {
     secondaryColor?: string | null;
     accentColor?: string | null;
   } | null;
+  /** Dedicated /dashboard/card/edit full-screen workspace */
+  workspaceMode?: boolean;
+  /** True authoring escape — no competing page scroll; pane collapses; dirty guard */
+  escapeMode?: boolean;
+  /** After Done editing */
+  doneHref?: string;
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -168,6 +174,9 @@ export function TapCardBuilder({
   freeformEnabled = false,
   brandKitId = null,
   brandColors = null,
+  workspaceMode = false,
+  escapeMode = false,
+  doneHref = "/dashboard/card",
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -186,6 +195,17 @@ export function TapCardBuilder({
   const [actionSearch, setActionSearch] = useState("");
   const [showFreeform, setShowFreeform] = useState(false);
   const [formatOpen, setFormatOpen] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [previewZoom, setPreviewZoom] = useState<"fit" | number>(workspaceMode ? "fit" : 1);
+  const [designChromeCollapsed, setDesignChromeCollapsed] = useState(true);
+  const [outlineCollapsed, setOutlineCollapsed] = useState(false);
+  const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
+  const [preFocusPanes, setPreFocusPanes] = useState<{
+    outline: boolean;
+    inspector: boolean;
+    design: boolean;
+  } | null>(null);
+  const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -253,6 +273,42 @@ export function TapCardBuilder({
     });
   }, [selectedId]);
 
+  useEffect(() => {
+    if (!escapeMode || !dirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent) {
+      e.preventDefault();
+      e.returnValue = "";
+    }
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [escapeMode, dirty]);
+
+  function toggleFocusMode() {
+    setFocusMode((wasFocused) => {
+      if (!wasFocused) {
+        setPreFocusPanes({
+          outline: outlineCollapsed,
+          inspector: inspectorCollapsed,
+          design: designChromeCollapsed,
+        });
+        setOutlineCollapsed(true);
+        setInspectorCollapsed(true);
+        setDesignChromeCollapsed(true);
+        return true;
+      }
+      if (preFocusPanes) {
+        setOutlineCollapsed(preFocusPanes.outline);
+        setInspectorCollapsed(preFocusPanes.inspector);
+        setDesignChromeCollapsed(preFocusPanes.design);
+        setPreFocusPanes(null);
+      } else {
+        setOutlineCollapsed(false);
+        setInspectorCollapsed(false);
+      }
+      return false;
+    });
+  }
+
   const catalogFiltered = TAP_CARD_ACTION_CATALOG.filter((c) => {
     if (!actionSearch.trim()) return COMMON_ACTION_KINDS.includes(c.kind);
     const q = actionSearch.toLowerCase();
@@ -260,6 +316,7 @@ export function TapCardBuilder({
   });
 
   function patchConfig(patch: Partial<TapConnectCardConfig>) {
+    setDirty(true);
     setConfig((c) => ({ ...c, ...patch }));
   }
 
@@ -389,6 +446,7 @@ export function TapCardBuilder({
 
   function setSections(next: TapCardSection[], record = true) {
     const ordered = next.map((s, i) => ({ ...s, order: i }));
+    setDirty(true);
     setSectionsHistory(ordered, record);
     setConfig((c) => ({ ...c, sections: ordered }));
   }
@@ -618,6 +676,7 @@ export function TapCardBuilder({
       setSaveFailed(true);
       return;
     }
+    setDirty(false);
     setMessage("Tap Connect Card saved");
     await refreshVersions();
     router.refresh();
@@ -641,15 +700,44 @@ export function TapCardBuilder({
   }
 
   return (
-    <div className="builder-studio flex h-full min-h-0 flex-col overflow-hidden max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto">
-      <div className="builder-studio-toolbar z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-3">
+    <div
+      className={cn(
+        "builder-studio flex h-full min-h-0 flex-col overflow-hidden",
+        escapeMode
+          ? "h-full max-h-full"
+          : workspaceMode
+            ? "max-lg:min-h-[calc(100dvh-4rem)]"
+            : "max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto"
+      )}
+      data-testid="tap-card-builder"
+      data-workspace-mode={workspaceMode ? "true" : "false"}
+      data-escape-mode={escapeMode ? "true" : "false"}
+      data-focus-mode={focusMode ? "true" : "false"}
+      data-dirty={dirty ? "true" : "false"}
+    >
+      <div className="builder-studio-toolbar z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-2.5">
         <div>
-          <h1 className="text-sm font-semibold">Tap Connect Card builder</h1>
+          <h1 className="text-sm font-semibold">
+            {workspaceMode ? "Card editor" : "Tap Connect Card builder"}
+          </h1>
           <p className="text-xs text-muted-foreground">
-            Blocks scroll left · card &amp; editor stay fixed · select a block to snap the preview
+            {workspaceMode
+              ? "Large live preview · zoom Fit / 100% · Format for design · Done returns to assembly"
+              : "Blocks scroll left · card & editor stay fixed · select a block to snap the preview"}
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
+          {workspaceMode ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              data-testid="card-done-editing"
+              onClick={() => router.push(doneHref)}
+            >
+              Done editing
+            </Button>
+          ) : null}
           <Button
             type="button"
             variant="outline"
@@ -674,6 +762,46 @@ export function TapCardBuilder({
           >
             <Redo2 className="h-4 w-4" />
           </Button>
+          {workspaceMode ? (
+            <Button
+              type="button"
+              variant={focusMode ? "default" : "outline"}
+              size="sm"
+              data-testid="card-focus-mode"
+              onClick={toggleFocusMode}
+            >
+              {focusMode ? "Exit focus" : "Focus"}
+            </Button>
+          ) : null}
+          {escapeMode || workspaceMode ? (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="card-toggle-outline"
+                aria-pressed={!outlineCollapsed}
+                onClick={() => setOutlineCollapsed((v) => !v)}
+              >
+                {outlineCollapsed ? "Show outline" : "Hide outline"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                data-testid="card-toggle-inspector"
+                aria-pressed={!inspectorCollapsed}
+                onClick={() => setInspectorCollapsed((v) => !v)}
+              >
+                {inspectorCollapsed ? "Show inspector" : "Hide inspector"}
+              </Button>
+            </>
+          ) : null}
+          {dirty ? (
+            <span className="text-[10px] text-amber-200/90" data-testid="card-dirty-indicator">
+              Unsaved changes
+            </span>
+          ) : null}
           {freeformEnabled ? (
             <Button
               type="button"
@@ -769,14 +897,29 @@ export function TapCardBuilder({
         </div>
       ) : null}
 
-      {/* Design menus — fixed chrome, scrolls if tall */}
-      <div className="z-20 max-h-[28vh] shrink-0 space-y-3 overflow-y-auto border-b border-border/60 bg-background px-4 py-3">
-        <BrandInheritanceBar
-          state={brandState}
-          onChange={handleBrandStateChange}
-          compact
-          className="border-primary/20"
-        />
+      {/* Design menus — collapsible to free preview height */}
+      <div className="z-20 shrink-0 border-b border-border/60 bg-background">
+        <div className="flex items-center justify-between gap-2 px-4 py-2">
+          <BrandInheritanceBar
+            state={brandState}
+            onChange={handleBrandStateChange}
+            compact
+            className="min-w-0 flex-1 border-primary/20"
+          />
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="shrink-0 text-xs"
+            data-testid="card-design-chrome-toggle"
+            aria-expanded={!designChromeCollapsed}
+            onClick={() => setDesignChromeCollapsed((v) => !v)}
+          >
+            {designChromeCollapsed ? "Show design" : "Hide design"}
+          </Button>
+        </div>
+        {!designChromeCollapsed ? (
+        <div className="max-h-[22vh] space-y-3 overflow-y-auto px-4 pb-3">
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
             <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
@@ -1043,6 +1186,8 @@ export function TapCardBuilder({
           ) : null}
         </div>
       </div>
+        ) : null}
+      </div>
 
       {message ? (
         <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
@@ -1051,13 +1196,32 @@ export function TapCardBuilder({
       <div
         className={cn(
           "grid min-h-0 flex-1 grid-cols-1 max-lg:flex-none",
-          formatOpen
-            ? "lg:grid-cols-[260px_minmax(0,1fr)_280px_26rem]"
-            : "lg:grid-cols-[300px_minmax(0,1fr)_320px]"
+          focusMode || (outlineCollapsed && inspectorCollapsed)
+            ? "lg:grid-cols-1"
+            : outlineCollapsed
+              ? formatOpen
+                ? "lg:grid-cols-[minmax(0,1fr)_minmax(14rem,18rem)_minmax(16rem,22rem)]"
+                : "lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]"
+              : inspectorCollapsed
+                ? formatOpen
+                  ? "lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(16rem,22rem)]"
+                  : "lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)]"
+                : formatOpen
+                  ? "lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(14rem,18rem)_minmax(16rem,22rem)]"
+                  : escapeMode || workspaceMode
+                    ? "lg:grid-cols-[minmax(12rem,16rem)_minmax(0,1fr)_minmax(16rem,20rem)]"
+                    : "lg:grid-cols-[300px_minmax(0,1fr)_320px]"
         )}
+        data-testid="card-builder-panes"
       >
         {/* Left — blocks / add (independent scroll) */}
-        <aside className="builder-studio-rail min-h-0 overflow-y-auto overscroll-contain border-r border-border/60 max-lg:max-h-[50vh] lg:h-auto">
+        <aside
+          className={cn(
+            "builder-studio-rail min-h-0 overflow-y-auto overscroll-contain border-r border-border/60 max-lg:max-h-[40vh] lg:h-auto",
+            (focusMode || outlineCollapsed) && "hidden"
+          )}
+          data-testid="card-outline-rail"
+        >
           <div className="space-y-3 p-4">
             <TextFormatControls
               title="Title typography"
@@ -1069,6 +1233,96 @@ export function TapCardBuilder({
               value={config.bodyFormat}
               onChange={(bodyFormat) => patchConfig({ bodyFormat })}
             />
+
+            <div className="rounded-lg border border-border/50 bg-muted/10 p-3" data-testid="card-utility-layer-editor">
+              <p className="text-xs font-semibold">Persistent utilities</p>
+              <p className="mt-1 text-[10px] text-muted-foreground">
+                Stay visible on public Tap Points even when a Campaign is active.
+              </p>
+              <label className="mt-2 flex items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={config.utilityLayer?.enabled !== false}
+                  onChange={(e) =>
+                    patchConfig({
+                      utilityLayer: {
+                        ...(config.utilityLayer ?? {
+                          presentation: "compact_row",
+                          utilities: [],
+                        }),
+                        enabled: e.target.checked,
+                      },
+                    })
+                  }
+                />
+                Enable utility layer
+              </label>
+              <div className="mt-2 space-y-1">
+                {(
+                  [
+                    ["keep", "Keep this Card"],
+                    ["support", "Ask a Question"],
+                    ["vcard", "Save Contact"],
+                    ["map", "Directions"],
+                    ["book", "Book"],
+                    ["shop", "Pay"],
+                  ] as const
+                ).map(([kind, label]) => {
+                  const toggles = config.utilityLayer?.utilities ?? [];
+                  const current = toggles.find((t) => t.kind === kind);
+                  const on = current ? current.enabled !== false : true;
+                  return (
+                    <label key={kind} className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        data-testid={`utility-toggle-${kind}`}
+                        onChange={(e) => {
+                          const next = [
+                            ...toggles.filter((t) => t.kind !== kind),
+                            { kind, enabled: e.target.checked, label },
+                          ];
+                          patchConfig({
+                            utilityLayer: {
+                              enabled: config.utilityLayer?.enabled !== false,
+                              presentation:
+                                config.utilityLayer?.presentation ?? "compact_row",
+                              utilities: next,
+                            },
+                          });
+                        }}
+                      />
+                      {label}
+                    </label>
+                  );
+                })}
+              </div>
+              <Label className="mt-2 text-[10px]">Presentation</Label>
+              <select
+                className="mt-1 flex h-8 w-full rounded-md border border-input bg-background px-2 text-xs"
+                aria-label="Utility layer presentation"
+                data-testid="utility-presentation"
+                value={config.utilityLayer?.presentation ?? "compact_row"}
+                onChange={(e) =>
+                  patchConfig({
+                    utilityLayer: {
+                      enabled: config.utilityLayer?.enabled !== false,
+                      presentation: e.target.value as
+                        | "sticky_bar"
+                        | "bottom_sheet"
+                        | "compact_row"
+                        | "action_deck",
+                      utilities: config.utilityLayer?.utilities,
+                    },
+                  })
+                }
+              >
+                <option value="compact_row">Compact action row</option>
+                <option value="sticky_bar">Sticky action bar</option>
+                <option value="bottom_sheet">Bottom utility sheet</option>
+                <option value="action_deck">Contextual action deck</option>
+              </select>
+            </div>
 
             <div className="rounded-lg border border-border/50 bg-muted/10 p-3">
               <QrPanel
@@ -1293,16 +1547,91 @@ export function TapCardBuilder({
           </div>
         </aside>
 
-        {/* Center — always in view; scroll to review full / snap to selection */}
+        {/* Center — phone preview scrolls independently; never collapses to zero */}
         <div
           ref={previewScrollRef}
-          className="builder-studio-canvas min-h-0 min-w-0 overflow-y-auto overscroll-contain border-x border-border/40 max-lg:min-h-[55vh] lg:h-auto"
+          className="builder-studio-canvas min-h-[min(55vh,420px)] min-w-0 overflow-y-auto overscroll-contain border-x border-border/40 lg:min-h-0 lg:h-auto"
+          data-testid="card-preview-canvas"
         >
-          <div className="p-4 pb-12">
-            <p className="mb-2 text-center text-[11px] text-muted-foreground">
-              Scroll to review · selecting a block snaps the preview
-            </p>
-            <div className="builder-phone builder-phone-natural mx-auto w-full max-w-[390px]">
+          <div className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur">
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Preview zoom
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              variant={previewZoom === "fit" ? "default" : "outline"}
+              className="h-7 text-xs"
+              data-testid="card-zoom-fit"
+              onClick={() => setPreviewZoom("fit")}
+            >
+              Fit Card
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={previewZoom === 1 ? "default" : "outline"}
+              className="h-7 text-xs"
+              data-testid="card-zoom-100"
+              onClick={() => setPreviewZoom(1)}
+            >
+              100%
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              data-testid="card-zoom-out"
+              aria-label="Zoom out"
+              onClick={() =>
+                setPreviewZoom((z) =>
+                  z === "fit" ? 0.85 : Math.max(0.6, Math.round((Number(z) - 0.15) * 100) / 100)
+                )
+              }
+            >
+              −
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              data-testid="card-zoom-in"
+              aria-label="Zoom in"
+              onClick={() =>
+                setPreviewZoom((z) =>
+                  z === "fit" ? 1.15 : Math.min(1.6, Math.round((Number(z) + 0.15) * 100) / 100)
+                )
+              }
+            >
+              +
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant={focusMode ? "default" : "outline"}
+              className="h-7 text-xs"
+              data-testid="card-preview-focus"
+              onClick={() => toggleFocusMode()}
+            >
+              {focusMode ? "Full overview" : "Focus preview"}
+            </Button>
+          </div>
+          <div className="flex justify-center p-4 pb-12">
+            <div
+              className={cn(
+                "builder-phone builder-phone-natural origin-top",
+                previewZoom === "fit" ? "w-full max-w-[min(390px,100%)]" : "w-[390px]"
+              )}
+              style={
+                previewZoom === "fit"
+                  ? undefined
+                  : { transform: `scale(${previewZoom})`, marginBottom: `${(Number(previewZoom) - 1) * 40}%` }
+              }
+              data-testid="card-preview-phone"
+              data-zoom={previewZoom === "fit" ? "fit" : String(previewZoom)}
+            >
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
                 {cardEmptyReason ? (
@@ -1324,7 +1653,13 @@ export function TapCardBuilder({
         </div>
 
         {/* Right — editor always visible */}
-        <aside className="builder-studio-inspector min-h-0 overflow-y-auto overscroll-contain border-l border-border/60 max-lg:max-h-[50vh] lg:h-auto">
+        <aside
+          className={cn(
+            "builder-studio-inspector min-h-0 overflow-y-auto overscroll-contain border-l border-border/60 max-lg:max-h-[40vh] lg:h-auto",
+            (focusMode || inspectorCollapsed) && "hidden"
+          )}
+          data-testid="card-inspector-rail"
+        >
           <div ref={inspectorRef} className="p-4">
           <div className="mb-3">
             <KeywordsSuggestPanel surface="card" defaultChannel="instagram" />

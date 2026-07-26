@@ -6,6 +6,41 @@
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
+## Authoring Escape · Preview · Case Ops correction (2026-07-26) — local uncommitted
+
+**Scope:** True authoring escape mode · view-only `/dashboard/card/preview` · Inbox operator language · Cases workspace · external-work sync contract · decision-queue grouping. **J1 remains VERIFIED**. No commit/push/merge/deploy/Railway.
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint | **0 errors** |
+| `npm run test:fusion` | **450/450 PASS** |
+| `npm run build` | **PASS** (`/card/edit`, `/card/preview`, `/audience/cases`) |
+| Prisma validate | **PASS** |
+| Headed escape + preview + inbox + cases | **4/4 PASS** |
+| Headed J1 ID-001 / ID-005 | **PASS** (prior run in same session) |
+
+---
+
+**Starting HEAD:** `8c8515fad425dd455a86b6b7e9c69a096e4f1cfd` (Card Fuse-Box retention tip)  
+**Scope:** `/dashboard/card` assembly · `/dashboard/card/edit` full-screen authoring · preview zoom/scroll · persistent Card utility layer (Keep / Ask a Question / Save Contact) surviving Campaign resolution · seed updates. **J1 remains VERIFIED**. No push/merge/deploy/Railway. Not committed until PO asks.  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY** (mock channel).  
+**Ledger:** `docs/fusion/CARD_AUTHORING_WORKSPACE_WAVE.md`
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint | **0 errors** (4 pre-existing img warnings) |
+| `npm run test:fusion` | **443/443 PASS** (incl. utility-layer unit tests) |
+| `npm run build` | **PASS** (`/dashboard/card/edit` routed) |
+| Prisma validate | **PASS** |
+| Isolated seed (`fusion:seed`) | **PASS** — tapCard + utility layer on seeddemo01 |
+| Headed `e2e/card-authoring-workspace.spec.ts` | **3/3 PASS** |
+| Headed `e2e/card-builder-recovery.spec.ts` | **2/2 PASS** |
+| Headed `e2e/card-fuse-box-support.spec.ts` | **2/2 PASS** |
+
+---
+
 ## Card Fuse-Box Integration wave (2026-07-26) — local
 
 **Starting HEAD:** `ae30d3a072576953fa3e025e64aa4b033e5ade44`  

@@ -35,12 +35,11 @@ export function CardFuseBoxPanel({
     >
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
-          Advanced · connections
+          Fuse-box connections
         </p>
         <h2 className="text-sm font-semibold text-white">How this Card wires into the platform</h2>
         <p className="mt-1 text-xs text-white/55">
-          Status overview for operators — not the Card editor. Connected means a real Card wire
-          exists (a route or mock alone is not enough).
+          Honest connection states for operators — Connected means a real Card wire exists.
         </p>
       </div>
 
@@ -55,7 +54,7 @@ export function CardFuseBoxPanel({
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <p className="truncate text-sm font-medium text-white">{c.label}</p>
-                <p className="text-[10px] uppercase tracking-wide text-white/40">{c.pillar}</p>
+                <p className="text-[10px] uppercase tracking-wide text-white/55">{c.pillar}</p>
               </div>
               <span
                 className={cn(
@@ -68,13 +67,13 @@ export function CardFuseBoxPanel({
             </div>
             <p className="mt-2 text-xs leading-relaxed text-white/65">{c.summary}</p>
             {c.readiness ? (
-              <p className="mt-1 text-[11px] text-white/40">{c.readiness}</p>
+              <p className="mt-1 text-[11px] text-white/55">{c.readiness}</p>
             ) : null}
             {c.whereUsed ? (
-              <p className="mt-1 text-[11px] text-white/40">Where used: {c.whereUsed}</p>
+              <p className="mt-1 text-[11px] text-white/55">Where used: {c.whereUsed}</p>
             ) : null}
             {c.lastUpdate ? (
-              <p className="mt-1 text-[11px] text-white/35">
+              <p className="mt-1 text-[11px] text-white/50">
                 Updated {new Date(c.lastUpdate).toLocaleString()}
               </p>
             ) : null}
@@ -98,7 +97,7 @@ export function CardFuseBoxPanel({
                 </Link>
               ) : null}
               {c.canTest ? (
-                <span className="text-[11px] text-white/35">Test via public Card</span>
+                <span className="text-[11px] text-white/50">Test via public Card</span>
               ) : null}
             </div>
           </li>

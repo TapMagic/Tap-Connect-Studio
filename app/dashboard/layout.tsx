@@ -1,4 +1,5 @@
 import { DashboardNav, MobileDashboardNav } from "@/components/dashboard/nav";
+import { DashboardChrome } from "@/components/dashboard/dashboard-chrome";
 import { StudioTopBar } from "@/components/studio/studio-top-bar";
 import { DevModeBanner } from "@/components/dev-mode-banner";
 import { requireBusiness } from "@/lib/auth";
@@ -87,33 +88,23 @@ export default async function DashboardLayout({
   });
 
   return (
-    <div className="flex min-h-screen flex-col bg-[#050814] text-foreground lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden">
-      <a
-        href="#main-content"
-        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-4 focus:py-2 focus:text-primary-foreground"
-      >
-        Skip to main content
-      </a>
-      <DevModeBanner />
-      <MobileDashboardNav businessName={business.name} featureCtx={featureCtx} />
-      <StudioTopBar
-        businessName={business.name}
-        readinessLabel={workspaceStatus.label}
-        readinessTone={workspaceStatus.tone}
-        readinessReasons={workspaceStatus.reasons}
-        readinessHref={workspaceStatus.href}
-        alertCount={workspaceStatus.alertCount}
-      />
-      <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1">
-        <DashboardNav businessName={business.name} featureCtx={featureCtx} />
-        <main
-          id="main-content"
-          tabIndex={-1}
-          className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto bg-gradient-to-br from-[#050814] via-[#070b14] to-[#0a1220] focus:outline-none"
-        >
-          {children}
-        </main>
-      </div>
-    </div>
+    <DashboardChrome
+      businessName={business.name}
+      banner={<DevModeBanner />}
+      mobileNav={<MobileDashboardNav businessName={business.name} featureCtx={featureCtx} />}
+      topBar={
+        <StudioTopBar
+          businessName={business.name}
+          readinessLabel={workspaceStatus.label}
+          readinessTone={workspaceStatus.tone}
+          readinessReasons={workspaceStatus.reasons}
+          readinessHref={workspaceStatus.href}
+          alertCount={workspaceStatus.alertCount}
+        />
+      }
+      nav={<DashboardNav businessName={business.name} featureCtx={featureCtx} />}
+    >
+      {children}
+    </DashboardChrome>
   );
 }

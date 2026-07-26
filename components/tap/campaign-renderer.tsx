@@ -7,6 +7,7 @@ import { blockStyleToCss } from "@/components/workbench/block-style-controls";
 import { extractYouTubeId } from "@/lib/utils/app";
 import { CampaignLeadForm } from "@/components/tap/lead-form";
 import { KeepCardCta } from "@/components/tap/keep-card-cta";
+import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { TapActionButton } from "@/components/tap/action-button";
 import { RichTapButton, resolveActionHref } from "@/components/tap/rich-button";
 import {
@@ -25,6 +26,8 @@ import {
 } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard, type TapConnectCardConfig } from "@/lib/brand/tap-card";
 import { firstImageUrl } from "@/lib/utils";
+import type { ResolvedUtilityLayer } from "@/lib/fusion/card/utility-layer";
+import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 
 interface CampaignTheme {
   primaryColor: string;
@@ -64,6 +67,10 @@ interface CampaignPageProps {
   /** Apple Wallet: live | preview (demo) | unavailable */
   walletMode?: "live" | "preview" | "unavailable";
   walletFeatureOn?: boolean;
+  /** Serializable feature map for Card Action Registry / utility layer */
+  featureFlags?: Record<string, boolean>;
+  /** When false, suppress page-level utility layer */
+  utilityLayerEnabled?: boolean;
 }
 
 const PAGE_FONT: Record<string, string> = {
@@ -180,6 +187,8 @@ export function CampaignPageRenderer({
   keepCardEnabled = false,
   walletMode = "preview",
   walletFeatureOn = true,
+  featureFlags,
+  utilityLayerEnabled = true,
 }: CampaignPageProps) {
   const contactProfile: BrandContactProfile = {
     ...parseBrandContactProfile(brandKit?.socialLinks),
@@ -199,6 +208,27 @@ export function CampaignPageRenderer({
     logoUrl,
     accentColor: brandKit?.accentColor || theme.primaryColor,
   });
+  const featureGate = (id: string) => {
+    if (featureFlags && Object.prototype.hasOwnProperty.call(featureFlags, id)) {
+      return Boolean(featureFlags[id]);
+    }
+    return id === "tapsave.core" || id === "card.builder.v1" || id === "card.fuse.support" || id === "comms.inbox";
+  };
+  const utilityLayer: ResolvedUtilityLayer | null =
+    !editMode && utilityLayerEnabled
+      ? resolveCardUtilityLayer({
+          card: tapCardConfig,
+          profile: contactProfile,
+          reviewUrl,
+          featureEnabled: featureGate,
+          keepCardEnabled,
+        })
+      : null;
+  /** Keep CTA is owned by the utility layer when visible — avoid duplicate Keep. */
+  const showStandaloneKeep =
+    !editMode &&
+    keepCardEnabled &&
+    !(utilityLayer?.visible && utilityLayer.utilities.some((u) => u.kind === "keep" && u.eligible));
   const enabledBlocks = [...blocks]
     // Treat missing `enabled` as on — legacy seed blocks omitted the field
     .filter((b) => b.enabled !== false)
@@ -286,7 +316,23 @@ export function CampaignPageRenderer({
         {showUpcomingStrip && !hasUpcomingBlock && upcomingItems.length > 0 && (
           <UpcomingStrip headline="Coming up" items={upcomingItems} />
         )}
-        {!editMode && keepCardEnabled ? (
+        {!editMode && utilityLayer?.visible ? (
+          <CardUtilityLayer
+            layer={utilityLayer}
+            businessId={businessId}
+            businessName={businessName}
+            campaignId={campaignId}
+            deviceSlotId={deviceSlotId}
+            profile={contactProfile}
+            previewMode={previewMode}
+            walletMode={walletMode}
+            walletFeatureOn={walletFeatureOn}
+            accentColor={tapCardConfig.accentColor || theme.primaryColor}
+            surfaceColor={tapCardConfig.surfaceColor || theme.backgroundColor}
+            textColor={tapCardConfig.textColor || theme.textColor}
+          />
+        ) : null}
+        {showStandaloneKeep ? (
           <KeepCardCta
             businessId={businessId}
             businessName={businessName}

@@ -50,6 +50,12 @@ export type DecisionQueueItem = {
   aggregateType: string;
   aggregateId: string;
   lastError?: string;
+  /** Grouping */
+  occurrenceCount?: number;
+  groupKey?: string;
+  /** Lifecycle for operator hygiene */
+  bucket?: "active" | "resolved" | "stale" | "dismissed" | "test";
+  nextActionLabel?: string;
 };
 
 function newCorrelation() {
@@ -113,6 +119,22 @@ export function decisionItemFromOutbox(row: OutboxRecord): DecisionQueueItem {
         ? "/dashboard/settings#outbox"
         : "/dashboard#decision-queue";
 
+  const testGenerated =
+    /seed|proof|e2e|test.?generated/i.test(title) ||
+    /seed|proof|e2e|test.?generated/i.test(detail) ||
+    row.envelope.aggregateId.startsWith("seed_");
+
+  const nextActionLabel =
+    kind === "assign_failed"
+      ? "Open Tap Points"
+      : kind === "publish_failed"
+        ? "Open Experiences"
+        : kind === "save_failed"
+          ? "Retry save"
+          : href.includes("settings")
+            ? "Open recovery"
+            : "Open related work";
+
   return {
     id: row.id,
     topic: row.topic,
@@ -124,18 +146,60 @@ export function decisionItemFromOutbox(row: OutboxRecord): DecisionQueueItem {
     aggregateType: row.envelope.aggregateType,
     aggregateId: row.envelope.aggregateId,
     lastError: row.lastError,
+    groupKey: `${row.envelope.aggregateType}:${row.envelope.aggregateId}:${kind}`,
+    occurrenceCount: 1,
+    bucket: testGenerated ? "test" : "active",
+    nextActionLabel,
   };
 }
 
 export async function listDecisionQueueItems(opts: {
   businessId: string;
   limit?: number;
+  /** Include test-generated artifacts (default false for PO walkthroughs) */
+  includeTest?: boolean;
 }): Promise<DecisionQueueItem[]> {
   const dead = await listDeadLetters({
     businessId: opts.businessId,
+    limit: (opts.limit ?? 20) * 3,
+  });
+  const items = dead.map(decisionItemFromOutbox);
+  return groupDecisionQueueItems(items, {
+    includeTest: opts.includeTest === true,
     limit: opts.limit ?? 20,
   });
-  return dead.map(decisionItemFromOutbox);
+}
+
+export function groupDecisionQueueItems(
+  items: DecisionQueueItem[],
+  opts?: { includeTest?: boolean; limit?: number }
+): DecisionQueueItem[] {
+  const includeTest = opts?.includeTest === true;
+  const limit = opts?.limit ?? 20;
+  const filtered = items.filter((i) => includeTest || i.bucket !== "test");
+  const byKey = new Map<string, DecisionQueueItem>();
+  for (const item of filtered) {
+    const key = item.groupKey ?? item.id;
+    const existing = byKey.get(key);
+    if (!existing) {
+      byKey.set(key, { ...item, occurrenceCount: item.occurrenceCount ?? 1 });
+      continue;
+    }
+    const newer =
+      new Date(item.occurredAt).getTime() > new Date(existing.occurredAt).getTime()
+        ? item
+        : existing;
+    byKey.set(key, {
+      ...newer,
+      occurrenceCount: (existing.occurrenceCount ?? 1) + (item.occurrenceCount ?? 1),
+      id: newer.id,
+    });
+  }
+  return Array.from(byKey.values())
+    .sort(
+      (a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime()
+    )
+    .slice(0, limit);
 }
 
 export function countOperatorFailures(items: DecisionQueueItem[]): number {

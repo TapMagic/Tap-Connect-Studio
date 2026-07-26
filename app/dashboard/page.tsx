@@ -263,9 +263,17 @@ export default async function DashboardPage() {
                     className="flex flex-col gap-1 px-4 py-3 hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
                     data-testid={`decision-item-${item.kind}`}
                     data-decision-id={item.id}
+                    data-occurrence-count={item.occurrenceCount ?? 1}
                   >
                     <div className="min-w-0">
-                      <p className="text-sm text-white/90">{item.title}</p>
+                      <p className="text-sm text-white/90">
+                        {item.title}
+                        {(item.occurrenceCount ?? 1) > 1 ? (
+                          <span className="ml-2 rounded-full border border-amber-500/40 px-1.5 py-0.5 text-[10px] text-amber-100">
+                            ×{item.occurrenceCount}
+                          </span>
+                        ) : null}
+                      </p>
                       <p className="mt-0.5 text-xs text-white/45 line-clamp-3">
                         {human.title}
                       </p>
@@ -292,7 +300,8 @@ export default async function DashboardPage() {
                       </details>
                     </div>
                     <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
-                      Remediate <ArrowRight className="h-3 w-3" />
+                      {item.nextActionLabel ?? "Open related work"}{" "}
+                      <ArrowRight className="h-3 w-3" />
                     </span>
                   </Link>
                 </li>

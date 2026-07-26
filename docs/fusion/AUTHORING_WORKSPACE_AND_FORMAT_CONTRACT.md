@@ -25,7 +25,7 @@ Panels collapse independently; focus mode and remembered safe preferences are re
 
 | Object | Workspace |
 |--------|-----------|
-| Card | `/dashboard/card` (evolving toward fuse-box assembly + editor) |
+| Card | `/dashboard/card` assembly · `/dashboard/card/edit` full-screen authoring |
 | Email | Campaign email editor |
 | Offer | Campaign / Card special_offer |
 | Wallet | Audience wallet (mock) |
@@ -33,7 +33,7 @@ Panels collapse independently; focus mode and remembered safe preferences are re
 | Form | Campaign capture blocks |
 | Loyalty | Audience TapLoop |
 
-**Done editing** returns to the Card fuse-box assembly view with context preserved. No competing builder architecture.
+**Done editing** returns to the Card fuse-box assembly view (`/dashboard/card`) with context preserved. No competing builder architecture.
 
 ## Format + effects (by medium)
 

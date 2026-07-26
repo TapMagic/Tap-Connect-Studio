@@ -1,7 +1,7 @@
 "use client";
 
 import { WorkPlatformActions } from "@/components/fusion/connectors/productivity-work-panel";
-import { allowedCaseActions, type CaseAction } from "@/lib/fusion/inbox/case-lifecycle";
+import { allowedCaseActionsForUi, CASE_ACTION_COPY, CASE_STATUS_LABEL, type CaseAction } from "@/lib/fusion/inbox/case-lifecycle";
 import {
   guardianReplyBlockedMessage,
   isGuardianBlockedMessage,
@@ -596,7 +596,11 @@ export function InboxShell({
                       ? "Deterministic template — live AI unavailable / not used. Human approval required."
                       : "Human approval required before send."}
                   </p>
-                  <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-black/30 p-2 text-xs">
+                  <pre
+                    tabIndex={0}
+                    aria-label="Suggested reply body"
+                    className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-black/30 p-2 text-xs focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
+                  >
                     {selectedThread.suggestedReply.body}
                   </pre>
                   {selectedThread.suggestedReply.grounding?.length ? (
@@ -686,9 +690,9 @@ export function InboxShell({
                 )}
               </div>
 
-              <div className="flex flex-wrap gap-2 text-[11px]">
-                <label className="flex items-center gap-1">
-                  Purpose
+              <div className="flex flex-wrap gap-3 text-[11px]">
+                <label className="flex flex-col gap-0.5">
+                  <span className="font-medium text-white/80">Message type</span>
                   <select
                     className="rounded border border-border/60 bg-background px-2 py-1"
                     value={purpose}
@@ -696,27 +700,40 @@ export function InboxShell({
                       setPurpose(e.target.value as "support" | "promo" | "service")
                     }
                     data-testid="inbox-purpose"
+                    aria-describedby="inbox-purpose-help"
                   >
-                    <option value="support">support</option>
-                    <option value="service">service</option>
-                    <option value="promo">promo</option>
+                    <option value="support">Support reply</option>
+                    <option value="service">Service update</option>
+                    <option value="promo">Marketing / promo</option>
                   </select>
+                  <span id="inbox-purpose-help" className="text-[10px] text-muted-foreground">
+                    Choose what kind of message this is — preferences differ by type.
+                  </span>
                 </label>
-                <label className="flex items-center gap-1">
+                <label
+                  className="flex items-start gap-2"
+                  title="Confirm the customer can receive this reply for the selected message type"
+                >
                   <input
                     type="checkbox"
+                    className="mt-0.5"
                     checked={consentGiven}
                     onChange={(e) => setConsentGiven(e.target.checked)}
                     data-testid="inbox-consent"
                   />
-                  Consent given
+                  <span>
+                    <span className="font-medium text-white/80">Customer can receive this reply</span>
+                    <span className="mt-0.5 block text-[10px] text-muted-foreground">
+                      Required before send. Technical consent codes are under View details.
+                    </span>
+                  </span>
                 </label>
               </div>
 
               <Textarea
                 placeholder={
                   composer.allowed
-                    ? "Reply… (Channel Guardian enforced)"
+                    ? "Write a reply…"
                     : composer.hint
                 }
                 value={reply}
@@ -728,6 +745,13 @@ export function InboxShell({
               <p className="text-[10px] text-muted-foreground" data-testid="inbox-composer-hint">
                 {composer.hint}
               </p>
+              <details className="text-[10px] text-muted-foreground">
+                <summary className="cursor-pointer hover:text-foreground">View details</summary>
+                <p className="mt-1">
+                  Preference check (Channel Guardian) runs before provider send. Blocked attempts are
+                  logged on the thread as system messages.
+                </p>
+              </details>
               <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
@@ -787,7 +811,15 @@ export function InboxShell({
                   className="space-y-2 border-t border-border/40 pt-3"
                   data-testid="inbox-tapcase-list"
                 >
-                  <p className="text-xs font-semibold uppercase text-muted-foreground">TapCase</p>
+                  <p className="text-xs font-semibold uppercase text-muted-foreground">
+                    Cases
+                  </p>
+                  <p className="text-[10px] text-muted-foreground">
+                    Internal notes stay on the case — they are never sent to the customer.{" "}
+                    <a href="/dashboard/audience/cases" className="text-primary hover:underline">
+                      Open Cases workspace
+                    </a>
+                  </p>
                   {cases.map((c) => (
                     <div
                       key={c.id}
@@ -798,32 +830,34 @@ export function InboxShell({
                         <span>
                           {c.subject}{" "}
                           <Badge variant="outline" className="ml-1 text-[10px]">
-                            {c.status}
+                            {CASE_STATUS_LABEL[c.status as keyof typeof CASE_STATUS_LABEL] ??
+                              c.status}
                           </Badge>
                           {c.assigneeId ? (
                             <span className="ml-2 text-[10px] text-muted-foreground">
-                              assignee {c.assigneeId.slice(0, 8)}…
+                              owner {c.assigneeId.slice(0, 8)}…
                             </span>
                           ) : null}
                         </span>
                       </div>
                       <div className="flex flex-wrap gap-1">
-                        {allowedCaseActions(
-                          c.status as Parameters<typeof allowedCaseActions>[0]
+                        {allowedCaseActionsForUi(
+                          c.status as Parameters<typeof allowedCaseActionsForUi>[0]
                         ).map((a) => (
                           <Button
                             key={a}
                             size="sm"
                             variant="ghost"
-                            className="h-7 px-2 text-[10px] capitalize"
+                            className="h-7 px-2 text-[10px]"
+                            title={CASE_ACTION_COPY[a].explanation}
                             onClick={() => transitionCaseAction(c.id, a)}
                             data-testid={`inbox-case-action-${a}`}
                           >
-                            {a.replace("_", " ")}
+                            {CASE_ACTION_COPY[a].label}
                           </Button>
                         ))}
                         <WorkPlatformActions
-                          defaultTitle={`TapCase → ${c.subject}`}
+                          defaultTitle={`Case → ${c.subject}`}
                           sourceType="tapcase"
                           sourceId={c.id}
                         />

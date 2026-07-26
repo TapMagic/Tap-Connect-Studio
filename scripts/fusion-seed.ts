@@ -48,7 +48,86 @@ async function main() {
     },
   });
 
-  // Brand kit so Card Builder + campaign theme have persisted colors
+  // Brand kit so Card Builder + campaign theme have persisted colors + utility layer
+  const seedTapCard = {
+    version: 3,
+    accentColor: "#f59e0b",
+    surfaceColor: "#121826",
+    textColor: "#f8fafc",
+    headerEnergy: 72,
+    collapsible: true,
+    defaultCollapsed: false,
+    actionsLayout: "stack",
+    defaultFinish: "metallic",
+    cardFinish: "soft",
+    defaultShape: "pill",
+    showHeaderLogo: false,
+    surfaceOpacity: 100,
+    surfaceFill: "solid",
+    compactActionsOnly: false,
+    lifecycleStatus: "active",
+    utilityLayer: {
+      enabled: true,
+      presentation: "compact_row",
+      utilities: [
+        { kind: "keep", enabled: true, label: "Keep this Card" },
+        { kind: "support", enabled: true, label: "Ask a Question" },
+        { kind: "vcard", enabled: true, label: "Save Contact" },
+        { kind: "map", enabled: true, label: "Directions" },
+      ],
+    },
+    sections: [
+      {
+        id: "seed_hero",
+        type: "hero",
+        enabled: true,
+        order: 0,
+        label: "Hero",
+        showHeroLogo: false,
+      },
+      {
+        id: "seed_identity",
+        type: "identity",
+        enabled: true,
+        order: 1,
+        name: `${SEED_PREFIX} Demo Cafe`,
+        organization: `${SEED_PREFIX} Demo Cafe`,
+        headline: "Every conversation → a customer",
+        label: "Identity",
+      },
+      {
+        id: "seed_vcard",
+        type: "action",
+        enabled: true,
+        order: 2,
+        actionKind: "vcard",
+        label: "Save to contacts",
+        finish: "metallic",
+        icon: "vcard",
+      },
+      {
+        id: "seed_support",
+        type: "action",
+        enabled: true,
+        order: 3,
+        actionKind: "support",
+        label: "Ask a Question",
+        finish: "soft",
+        icon: "mail",
+      },
+      {
+        id: "seed_map",
+        type: "action",
+        enabled: true,
+        order: 4,
+        actionKind: "map",
+        label: "Directions",
+        finish: "outline",
+        icon: "map",
+      },
+    ],
+  };
+
   await prisma.brandKit.upsert({
     where: { businessId: business.id },
     create: {
@@ -66,12 +145,23 @@ async function main() {
         organization: `${SEED_PREFIX} Demo Cafe`,
         displayName: `${SEED_PREFIX} Demo Cafe`,
       },
+      tapCard: seedTapCard,
     },
     update: {
       primaryColor: "#22c55e",
       secondaryColor: "#0ea5e9",
       backgroundColor: "#0b0f19",
       textColor: "#f8fafc",
+      accentColor: "#f59e0b",
+      tapCard: seedTapCard,
+      socialLinks: {
+        phone: "+15555550100",
+        email: "seed-demo@example.invalid",
+        website: "https://example.invalid/seed-demo",
+        address: "100 Seed Street",
+        organization: `${SEED_PREFIX} Demo Cafe`,
+        displayName: `${SEED_PREFIX} Demo Cafe`,
+      },
     },
   });
 
@@ -85,7 +175,7 @@ async function main() {
       enabled: true,
       data: {
         headline: `${SEED_PREFIX} Welcome — Flight Test Card`,
-        subheadline: "Keep this card, earn TapLoop points, and reopen anytime.",
+        subheadline: "Keep this card, Ask a Question, earn TapLoop points, and reopen anytime.",
         alignment: "center",
       },
     },

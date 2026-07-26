@@ -491,13 +491,21 @@ export function WorkPlatformActions({
   defaultTitle,
   sourceType = "manual",
   sourceId,
+  providerLabel,
+  mode = "mock",
 }: {
   defaultTitle: string;
   sourceType?: string;
   sourceId?: string;
+  /** Connected provider display name when known */
+  providerLabel?: string;
+  mode?: "mock" | "live";
 }) {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
+  const label = providerLabel
+    ? `Send to ${providerLabel}`
+    : "Send to work platform";
 
   async function create() {
     setBusy(true);
@@ -514,7 +522,17 @@ export function WorkPlatformActions({
         }),
       });
       const json = await res.json();
-      setMsg(res.ok ? `Sent → ${json.item?.provider ?? "work platform"}` : json.error);
+      if (!res.ok) {
+        setMsg(json.error ?? "Could not create work item");
+        return;
+      }
+      const provider = json.item?.provider ?? providerLabel ?? "work platform";
+      const itemMode = json.item?.mode ?? mode;
+      setMsg(
+        itemMode === "live"
+          ? `Created on ${provider}`
+          : `Created mock item on ${provider} (not live sync)`
+      );
     } finally {
       setBusy(false);
     }
@@ -528,9 +546,14 @@ export function WorkPlatformActions({
         disabled={busy}
         onClick={() => void create()}
         data-testid="inbox-send-work-platform"
+        title={
+          mode === "live"
+            ? `Create or update an item in ${providerLabel ?? "the connected work system"}`
+            : "Creates a mock external work item until a live provider is connected"
+        }
       >
         <Briefcase className="mr-1 h-3.5 w-3.5" />
-        Send to work platform
+        {label}
       </Button>
       {msg ? <span className="text-[11px] text-white/50">{msg}</span> : null}
     </div>

@@ -27,8 +27,38 @@ import {
   type CaseAction,
   type CaseStatus,
 } from "./case-lifecycle";
+import { parseCaseMetadata, type TapCaseMetadata } from "./case-metadata";
 import { evaluateReplyEligibility } from "./reply-eligibility";
 import { appendInboxAudit } from "./operator-audit";
+
+function mergeCaseTransitionMetadata(
+  raw: unknown,
+  action: CaseAction,
+  reason?: string
+): Prisma.InputJsonValue {
+  const meta = parseCaseMetadata(raw);
+  const next: TapCaseMetadata = {
+    ...meta,
+    audit: [
+      ...(meta.audit ?? []),
+      {
+        at: new Date().toISOString(),
+        action,
+        reason,
+      },
+    ],
+  };
+  if (action === "wait" || action === "wait_customer") {
+    next.waitKind = "customer";
+  } else if (action === "wait_internal") {
+    next.waitKind = "internal";
+  } else if (action === "ready_to_close") {
+    next.readyToClose = true;
+  } else if (action === "reopen" || action === "start") {
+    next.readyToClose = false;
+  }
+  return next as Prisma.InputJsonValue;
+}
 
 export type InboxAttachment = {
   id: string;
@@ -698,6 +728,7 @@ export async function transitionCase(input: {
   caseId: string;
   action: CaseAction;
   assigneeId?: string;
+  reason?: string;
 }): Promise<
   | { ok: true; case: TapCaseRecord }
   | { ok: false; code: "not_found" | "invalid_transition"; error: string }
@@ -732,6 +763,11 @@ export async function transitionCase(input: {
       ...(transition.status === "OPEN" || transition.status === "IN_PROGRESS"
         ? { closedAt: null }
         : {}),
+      metadata: mergeCaseTransitionMetadata(
+        existing.metadata,
+        input.action,
+        input.reason
+      ),
     },
   });
 
@@ -764,6 +800,58 @@ export async function assignCase(input: {
     assigneeId: input.assigneeId,
   });
   return result.ok ? result.case : null;
+}
+
+export async function addCaseInternalNote(input: {
+  businessId: string;
+  caseId: string;
+  body: string;
+  authorId?: string;
+  authorLabel?: string;
+}): Promise<
+  | { ok: true; case: TapCaseRecord; note: { id: string; body: string; createdAt: string } }
+  | { ok: false; error: string }
+> {
+  const existing = await prisma.tapCase.findFirst({
+    where: { id: input.caseId, businessId: input.businessId },
+  });
+  if (!existing) return { ok: false, error: "Case not found" };
+
+  const { appendInternalNote, parseCaseMetadata } = await import("./case-metadata");
+  const noteId =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `note_${Date.now().toString(36)}`;
+  const createdAt = new Date().toISOString();
+  const meta = appendInternalNote(parseCaseMetadata(existing.metadata), {
+    id: noteId,
+    body: input.body.trim(),
+    authorId: input.authorId,
+    authorLabel: input.authorLabel,
+    createdAt,
+  });
+
+  const row = await prisma.tapCase.update({
+    where: { id: existing.id },
+    data: { metadata: meta as Prisma.InputJsonValue },
+  });
+
+  return {
+    ok: true,
+    note: { id: noteId, body: input.body.trim(), createdAt },
+    case: {
+      id: row.id,
+      businessId: row.businessId,
+      threadId: row.threadId,
+      contactId: row.contactId,
+      status: row.status,
+      subject: row.subject,
+      assigneeId: row.assigneeId,
+      priority: row.priority,
+      openedAt: row.openedAt.toISOString(),
+      closedAt: row.closedAt?.toISOString() ?? null,
+    },
+  };
 }
 
 export async function closeThread(input: {

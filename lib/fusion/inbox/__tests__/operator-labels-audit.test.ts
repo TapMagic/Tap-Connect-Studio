@@ -13,11 +13,22 @@ describe("Inbox operator labels + audit", () => {
   });
 
   it("labels guardian codes for blocked-send UX", () => {
-    assert.equal(labelGuardianCode("suppressed"), "Suppressed address");
+    assert.equal(labelGuardianCode("suppressed"), "This address asked not to be contacted");
     assert.match(
       guardianReplyBlockedMessage({ code: "suppressed", error: "Address is on suppression list" }),
-      /Suppressed address/
+      /asked not to be contacted/
     );
+  });
+
+  it("composer hint uses operator language", () => {
+    const state = replyComposerState({
+      threadStatus: "OPEN",
+      featureEnabled: true,
+      body: "",
+    });
+    assert.equal(state.allowed, true);
+    assert.match(state.hint, /communication preferences/i);
+    assert.doesNotMatch(state.hint, /Channel Guardian/i);
   });
 
   it("composer blocks closed threads", () => {

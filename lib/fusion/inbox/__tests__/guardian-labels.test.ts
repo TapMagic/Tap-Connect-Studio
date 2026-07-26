@@ -8,9 +8,9 @@ import {
 } from "../guardian-labels";
 
 describe("Inbox guardian labels", () => {
-  it("labels guardian codes for operators", () => {
-    assert.equal(labelGuardianCode("ok"), "Guardian cleared");
-    assert.equal(labelGuardianCode("suppressed"), "Suppressed address");
+  it("labels guardian codes for operators in plain language", () => {
+    assert.equal(labelGuardianCode("ok"), "Ready to send");
+    assert.equal(labelGuardianCode("suppressed"), "This address asked not to be contacted");
     assert.equal(labelGuardianCode("unknown_code"), "unknown_code");
   });
 
@@ -20,7 +20,7 @@ describe("Inbox guardian labels", () => {
         code: "suppressed",
         error: "Address is on suppression list",
       }),
-      "Suppressed address: Address is on suppression list"
+      "This address asked not to be contacted: Address is on suppression list"
     );
   });
 
@@ -40,7 +40,8 @@ describe("Inbox guardian labels", () => {
       body: "Thanks",
     });
     assert.equal(state.allowed, true);
-    assert.match(state.hint, /Guardian/);
+    assert.match(state.hint, /communication preferences/i);
+    assert.doesNotMatch(state.hint, /Channel Guardian/i);
   });
 
   it("detects guardian-blocked system messages", () => {

@@ -78,8 +78,8 @@ export function buildCardFuseBoxConnections(
           : "Create or restore a Tap Card.",
       lastUpdate: input.lastCardUpdate,
       whereUsed: "Brand Kit · public /t",
-      primaryHref: "/dashboard/card",
-      primaryAction: "Edit",
+      primaryHref: "/dashboard/card/edit",
+      primaryAction: "Edit Card",
       canEdit: true,
       canPreview: true,
     },
@@ -142,12 +142,12 @@ export function buildCardFuseBoxConnections(
         supportStatus === "connected"
           ? `${input.openSupportThreads} open Card-origin or inbox thread(s).`
           : supportStatus === "partially_connected"
-            ? "Ask a Question action available — wire it on the Card and test."
+            ? "Ask a Question available via persistent utility layer — test on a public Tap Point."
             : supportStatus === "available_to_configure"
               ? "Enable TapInbox to connect Support."
               : "Support fuse not enabled.",
       readiness: "Mock channel functional · live messaging credentials required",
-      whereUsed: "Card action · Audience Inbox",
+      whereUsed: "Card utility layer · Audience Inbox",
       primaryHref: "/dashboard/audience/inbox",
       primaryAction: "Open Inbox",
       canEdit: true,
@@ -203,7 +203,7 @@ export function buildCardFuseBoxConnections(
       status: "partially_connected",
       summary: "special_offer section can link/expand/campaign — not full fuse.",
       canEdit: true,
-      primaryHref: "/dashboard/card",
+      primaryHref: "/dashboard/card/edit",
     },
     {
       id: "booking_payment",
