@@ -69,7 +69,7 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 
 | Subcomponent | Class |
 |--------------|-------|
-| Global Create / search | partially functioning (Create oversell = ID-005 OPEN) |
+| Global Create / search | partially functioning (Create oversell = ID-005 **FIXED / VERIFIED** via `P-j1-create-honesty`) |
 | Notifications | functioning (outbox recovery panel) · independently verified |
 | Pulse field shell | partially functioning (fleet + honesty; claim/offline not shipped) · independently verified |
 | First-run / help | UI present but workflow incomplete |

@@ -43,6 +43,15 @@
 | Decision queue shows aggregate + timestamp | Cause / object / time / remediate visible |
 | `discardDeadLetter` succeeds only when Prisma updates (isolated DB) | No false memory-only recovery |
 | Insights KPI `data-kpi-value` | Proofs no longer parse `14` from “Taps (14d)” label |
-| Time-travel wall-clock-in-zone + proof presets | Studio explanation matches resolver across host TZ |
+| Time-travel wall-clock-in-zone + schedule Check samples | Studio explanation matches resolver across host TZ |
 | Public lead submit fallback label + a11y names | Critical axe clean on J1 public/workbench/groups |
+
+## J1 independent re-verify notes (2026-07-26)
+
+| Change | Why |
+|--------|-----|
+| Renamed time-travel “Proof:” buttons → operator “Check:” schedule diagnostics | Legitimate operator tooling, not test-only chrome in production UI |
+| Analytics proof records Insights lag as explicit blocker note when KPI stalls | Honest aggregation-delay caveat (this run: KPI moved 55→56 with TapEvent 52→53) |
+| `fusion-proofs` TapSave uses shared `SEED` ids | Closed false-fail from stale hardcoded business/campaign IDs |
+| Powered-by contrast (no dimming opacity wrapper) | Public tap axe color-contrast residual closed on J1 routes |
 

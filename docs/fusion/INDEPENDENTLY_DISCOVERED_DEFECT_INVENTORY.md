@@ -383,7 +383,7 @@ These remain **owner-ledger** items; inspected docs/code confirm they still matt
 ### Independent verifier notes (UX spine · tip `cc58c06`)
 
 **Verifier state:** **INDEPENDENT VERIFICATION PASSED** for ID-002 / ID-003 / ID-004 / ID-006 / ID-007 / ID-009.  
-**Not OWNER ACCEPTED.** J1 not started. Railway untouched.
+**Not OWNER ACCEPTED.** J1 wave **VERIFIED** locally (independent re-verify 2026-07-26). Railway untouched.
 
 **Re-run evidence (isolated DB `tapconnect_fusion_dev` @ `127.0.0.1:5433`, `BASE_URL=http://127.0.0.1:3000`):**
 - `node --import tsx --test lib/fusion/studio/__tests__/ia-honesty.test.ts` → **5/5 PASS**

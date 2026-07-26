@@ -339,11 +339,11 @@ test.describe("Fusion owner proofs (isolated DB)", () => {
     const email = `keep_${Date.now()}@example.com`;
     const res = await page.request.post(`${BASE}/api/tapsave/keep`, {
       data: {
-        businessId: process.env.SEED_BUSINESS_ID ?? "cmrx5wjml0000519ktwgyj0pe",
+        businessId: SEED.businessId,
         email,
         name: "Keep Proof",
         consentGiven: true,
-        campaignId: process.env.SEED_CAMPAIGN_ID ?? "cmrx5wjn80001519kzayn9296",
+        campaignId: SEED.campaignId,
       },
     });
     const json = (await res.json().catch(() => ({}))) as {

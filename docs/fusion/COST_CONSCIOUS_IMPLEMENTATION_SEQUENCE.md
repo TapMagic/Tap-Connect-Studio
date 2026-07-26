@@ -65,7 +65,7 @@ J1 (or a thin immediate prerequisite slice) must clear HIGH/BLOCKER discoverabil
 
 **UX spine status (2026-07-24):** tip `cc58c06` — **INDEPENDENT VERIFICATION PASSED** for ID-002/003/004/006/007/009 (see `BUILD_STATUS.md`).
 
-**J1 status (2026-07-26 hardening verify):** **VERIFIED** locally — ID-001 + ID-005 closed; analytics causation, decision-queue failure path, time-travel slot/default/end, V1 parity, J1 a11y/responsive proved. **Not OWNER ACCEPTED.** See `BUILD_STATUS.md`.
+**J1 status (2026-07-26 independent re-verify on baseline `8b67bee`):** **VERIFIED** locally — prior agent VERIFIED claim reconfirmed with fresh headed evidence; ID-001 + ID-005 closed; analytics TapEvent+Insights deltas recorded; decision-queue failure path; time-travel slot/default/end; V1 parity; J1 a11y/responsive. Schedule UI uses operator “Check:” diagnostics (not “Proof:” hooks). **Not OWNER ACCEPTED.** See `BUILD_STATUS.md` · artifacts `tmp/j1-independent-verify-20260726/`.
 
 **Proven locally already:** builder interaction/WYSIWYG, group schedule, public seed tap, lead API+list, Home readiness, J1 residuals above.  
 **Not OWNER ACCEPTED:** J1 and platform.  

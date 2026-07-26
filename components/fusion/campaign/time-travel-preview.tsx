@@ -157,87 +157,101 @@ export function TimeTravelPreview({
         </p>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="time-travel-now"
-          onClick={() => {
-            const n = new Date();
-            setWhen(
-              new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-            );
-          }}
-        >
-          Jump to now
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="time-travel-proof-slot"
-          onClick={() => {
-            setTimezone("America/New_York");
-            setWhen("2026-07-27T17:30");
-          }}
-        >
-          Proof: Mon evening slot
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="time-travel-proof-default"
-          onClick={() => {
-            setTimezone("America/New_York");
-            setWhen("2026-07-27T11:00");
-          }}
-        >
-          Proof: Mon morning default
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="time-travel-proof-boundary-before"
-          onClick={() => {
-            setTimezone("America/New_York");
-            setWhen("2026-07-27T15:59");
-          }}
-        >
-          Proof: 15:59 boundary
-        </Button>
-        <Button
-          type="button"
-          size="sm"
-          variant="outline"
-          data-testid="time-travel-proof-boundary-on"
-          onClick={() => {
-            setTimezone("America/New_York");
-            setWhen("2026-07-27T16:00");
-          }}
-        >
-          Proof: 16:00 boundary
-        </Button>
-        {result.atIso ? (
+      <div className="space-y-2">
+        <p className="text-[11px] text-muted-foreground">
+          Quick schedule checks — jump to known times so you can confirm slot vs default
+          vs end fallback before going live.
+        </p>
+        <div className="flex flex-wrap gap-2">
           <Button
             type="button"
             size="sm"
-            variant="secondary"
-            data-testid="time-travel-public-preview"
+            variant="outline"
+            data-testid="time-travel-now"
             onClick={() => {
-              // Public preview uses ?at= — group detail supplies device via data attribute when present
-              const root = document.querySelector<HTMLElement>("[data-preview-device-code]");
-              const code = root?.dataset.previewDeviceCode;
-              if (!code) return;
-              const url = `/t/${code}?public=1&at=${encodeURIComponent(result.atIso)}`;
-              window.open(url, "_blank", "noopener,noreferrer");
+              const n = new Date();
+              setWhen(
+                new Date(n.getTime() - n.getTimezoneOffset() * 60000)
+                  .toISOString()
+                  .slice(0, 16)
+              );
             }}
           >
-            Open public at this time
+            Jump to now
           </Button>
-        ) : null}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="time-travel-proof-slot"
+            aria-label="Check Monday evening slot resolution"
+            onClick={() => {
+              setTimezone("America/New_York");
+              setWhen("2026-07-27T17:30");
+            }}
+          >
+            Check: Mon evening
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="time-travel-proof-default"
+            aria-label="Check Monday morning default resolution"
+            onClick={() => {
+              setTimezone("America/New_York");
+              setWhen("2026-07-27T11:00");
+            }}
+          >
+            Check: Mon morning
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="time-travel-proof-boundary-before"
+            aria-label="Check one minute before 4pm slot boundary"
+            onClick={() => {
+              setTimezone("America/New_York");
+              setWhen("2026-07-27T15:59");
+            }}
+          >
+            Check: 3:59pm boundary
+          </Button>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            data-testid="time-travel-proof-boundary-on"
+            aria-label="Check 4pm slot start boundary"
+            onClick={() => {
+              setTimezone("America/New_York");
+              setWhen("2026-07-27T16:00");
+            }}
+          >
+            Check: 4:00pm start
+          </Button>
+          {result.atIso ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              data-testid="time-travel-public-preview"
+              onClick={() => {
+                // Public preview uses ?at= — group detail supplies device via data attribute when present
+                const root = document.querySelector<HTMLElement>(
+                  "[data-preview-device-code]"
+                );
+                const code = root?.dataset.previewDeviceCode;
+                if (!code) return;
+                const url = `/t/${code}?public=1&at=${encodeURIComponent(result.atIso)}`;
+                window.open(url, "_blank", "noopener,noreferrer");
+              }}
+            >
+              Open public at this time
+            </Button>
+          ) : null}
+        </div>
       </div>
     </section>
   );

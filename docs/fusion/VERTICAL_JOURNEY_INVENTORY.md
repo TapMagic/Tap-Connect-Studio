@@ -12,7 +12,7 @@
 
 | ID | Journey family | Current engineering state | Primary shared systems | Local proof anchors | Credential-blocked? | Priority band |
 |----|----------------|---------------------------|------------------------|---------------------|---------------------|---------------|
-| **J1** | Organization setup → first successful public Tap | **VERIFIED** (local headed hardening) · OWNER ACCEPTANCE PENDING | Tenancy, Brand, Card/Campaign, Groups, TapPoint, Public, Leads, Insights | `P-j1-*`, `P-studio-home`, `P-builder-*`, `P-campaign-group-schedule`, `P-public-seed-tap`, `P-03-lead-capture` | Soft (stock/Clerk optional) | **FIRST — engineering VERIFIED; not OWNER ACCEPTED** |
+| **J1** | Organization setup → first successful public Tap | **VERIFIED** (independent re-verify 2026-07-26) · OWNER ACCEPTANCE PENDING | Tenancy, Brand, Card/Campaign, Groups, TapPoint, Public, Leads, Insights | `P-j1-*`, `P-studio-home`, `P-builder-*`, `P-campaign-group-schedule`, `P-public-seed-tap`, `P-03-lead-capture` | Soft (stock/Clerk optional) | **FIRST — engineering VERIFIED; not OWNER ACCEPTED** |
 | **J2** | Brand & asset setup → reusable professional output | IMPLEMENTATION COMPLETE (core) · AUTOMATED ACCEPTANCE PASSED (media/keywords pack) | Brand Kit, Media, Keywords, where-used | `P-keywords-brand-pack*`, MediaPicker/bg-remove proofs | Live stock/bg-remove vendor | Early |
 | **J3** | Card creation → publication → assignment → public use → retention → measurement | AUTOMATED ACCEPTANCE PASSED · OWNER ACCEPTANCE PENDING | Card, Pub, TapPoint, Public, TapSave, MyTap, Insights | `P-builder-card-matrix`, `P-builder-wysiwyg-public`, `P-03-tapsave-keep` | Wallet live | Early (overlaps J1) |
 | **J4** | Campaign creation → scheduling → resolution → distribution → reporting | AUTOMATED ACCEPTANCE PASSED · residuals (time-travel UI, fallback, analytics assert) | Campaign, Groups, Resolver, Devices, Insights | `P-campaign-group-schedule`, `P-builder-campaign-matrix` | No | Early |
@@ -79,7 +79,7 @@ See `COST_CONSCIOUS_IMPLEMENTATION_SEQUENCE.md` for rationale.
 9. J28 PO a11y before any OWNER ACCEPTED  
 10. J26–J27 last  
 
-**Independent verification:** J1 = **VERIFIED** (local hardening pass 2026-07-26). Remaining journeys J2–J28 do not yet have INDEPENDENT VERIFICATION PASSED / VERIFIED for the full journey.
+**Independent verification:** J1 = **VERIFIED** (independent re-verify on baseline `8b67bee`, 2026-07-26). Remaining journeys J2–J28 do not yet have INDEPENDENT VERIFICATION PASSED / VERIFIED for the full journey.
 
 ---
 

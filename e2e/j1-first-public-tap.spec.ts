@@ -164,9 +164,10 @@ test.describe("J1 first public tap residuals", () => {
 
     notes.push(
       `insights_after_taps_range=${insightsAfter}`,
+      `insights_delta=${insightsAfter - beforeKpiCount}`,
       insightsReflected
-        ? "insights_taps_range_increased"
-        : "insights_aggregation_delay — TapEvent persistence proven via DB; taps_range did not increase within 30s"
+        ? "insights_reflection=confirmed taps_range increased after new TapEvent"
+        : "insights_reflection=aggregation_delay — authoritative TapEvent persisted; taps_range UI did not increase within 30s"
     );
 
     const drillVisible = await page
@@ -176,26 +177,35 @@ test.describe("J1 first public tap residuals", () => {
       .catch(() => false);
     notes.push(drillVisible ? "drill_surface_present" : "drill_surface_absent");
 
-    // Authoritative DB causation is required. Insights lag is recorded honestly, not accepted as pass-alone.
-    const passed = after.count > before.count && pageErrors.length === 0;
+    // Authoritative DB causation is required for pass.
+    // Insights reflection is recorded separately — lag is a documented caveat, not a silent pass.
+    const persistenceOk = after.count > before.count && Boolean(after.latestId);
+    const passed = persistenceOk && pageErrors.length === 0;
+    const blockers: string[] = [];
     if (!insightsReflected) {
-      notes.push("caveat:insights_kpi_lag_documented");
+      blockers.push("insights_kpi_aggregation_delay");
+      notes.push(
+        "qualification: TapEvent causation VERIFIED; Insights KPI reflection DELAYED (not claimed as simultaneous VERIFIED)"
+      );
+    } else {
+      notes.push("insights_kpi_reflection=VERIFIED");
     }
     writeProof({
       id: "P-j1-analytics-event-assert",
       route: `/t/${SEED.deviceCode}?public=1 → TapEvent → Insights`,
-      workflow: "Public tap causation: authoritative TapEvent + Insights",
+      workflow: "Public tap causation: authoritative TapEvent + Insights reflection status",
       passed,
       browserE2ePassed: passed,
-      persistencePassed: after.count > before.count,
+      persistencePassed: persistenceOk,
       consoleErrors,
       pageErrors,
       notes,
       lastVerifiedAt: new Date().toISOString(),
-      blockers: [],
+      blockers,
     });
     expect(passed).toBeTruthy();
     expect(after.count).toBeGreaterThan(before.count);
+    expect(after.latestId).not.toEqual(before.latestId);
     writeProofIndex();
   });
 

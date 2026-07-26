@@ -2,43 +2,48 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (J1 hardening verify):** tip includes docs pointer · code checkpoint `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
+**HEAD (J1 independent re-verify):** see tip after local checkpoint · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
-## J1 First Successful Public Tap — independent hardening verify (2026-07-26)
+## J1 First Successful Public Tap — independent re-verify (2026-07-26)
 
+**Baseline treated as unconfirmed prior claim:** `8b67bee` (docs VERIFIED from earlier agent pass).  
+**This pass:** independent re-execution against production `next start` + isolated DB. Prior VERIFIED claims **confirmed** with fresh evidence (see below).  
 **Classification:** J1 wave = **VERIFIED** (local isolated DB · headed proofs). **Not OWNER-READY / not OWNER ACCEPTED.** Platform overall remains **NOT OWNER-READY**.  
-Railway untouched. No push / merge / deploy during this pass.
+Railway untouched. No push / merge / deploy during this pass.  
+**Durable artifacts:** `tmp/j1-independent-verify-20260726/` (RUN_MANIFEST.json, logs/, proofs/).
 
 | Residual | Classification | Proof |
 |----------|----------------|-------|
-| ID-001 Studio ready chrome | **VERIFIED** | `P-j1-studio-ready-honesty` |
-| ID-005 Create oversell | **VERIFIED** | `P-j1-create-honesty` |
-| Public analytics causation | **VERIFIED** (TapEvent before/after + Insights KPI increase) | `P-j1-analytics-event-assert` |
-| Consent → Contact → Relationship | **VERIFIED** | `P-j1-consent-contact-relationship` |
-| Time-travel slot / default / end + boundaries | **VERIFIED** | `P-j1-time-travel-studio` + unit |
+| ID-001 Studio ready chrome | **VERIFIED** (reconfirmed) | `P-j1-studio-ready-honesty` |
+| ID-005 Create oversell | **VERIFIED** (reconfirmed) | `P-j1-create-honesty` |
+| Public analytics causation | **VERIFIED** (TapEvent 52→53 new id + Insights taps_range 55→56) | `P-j1-analytics-event-assert` |
+| Insights aggregation delay | **Not observed this run** — proof still records lag honestly if KPI does not move | same proof `blockers` / notes |
+| Consent → Contact → Relationship | **VERIFIED** (reconfirmed) | `P-j1-consent-contact-relationship` |
+| Time-travel slot / default / end + boundaries | **VERIFIED** (resolver ↔ Studio text agree) | `P-j1-time-travel-studio` + unit |
+| Schedule diagnostics UI | **WIRED** as operator “Check:” samples (not “Proof:” test hooks) | Studio group time-travel |
 | Card archive + where-used | **VERIFIED** (FUNCTIONAL depth retained) | `P-j1-where-used-archive` |
-| Decision queue forced failure + discard | **VERIFIED** | `P-j1-decision-queue` |
+| Decision queue forced failure + discard | **VERIFIED** (production assign path → queue → discard) | `P-j1-decision-queue` |
 | J1 responsive desktop/tablet/mobile | **VERIFIED** | `P-j1-responsive` |
-| J1 a11y axe + keyboard (VO/NVDA not run) | **VERIFIED** | `P-j1-a11y` |
-| V1 builder / public parity retained | **VERIFIED** | builder headed suites 14/14 |
+| J1 a11y axe + keyboard (VO/NVDA not run) | **VERIFIED** (axe serious/critical 0 on J1 routes) | `P-j1-a11y` |
+| V1 builder / public parity retained | **VERIFIED** (builder 14/14; TapSave fixed stale seed IDs) | builder + `P-03-tapsave-keep` |
 
 | Gate | Result |
 |------|--------|
 | `tsc --noEmit` | PASS |
 | lint | **0 errors** (4 img warnings) |
-| `npm test` | **419/419** PASS |
+| `npm test` | **420/420** PASS |
 | `npm run build` | PASS |
 | Prisma validate | PASS |
 | Migrate status (isolated) | PASS — 11 migrations up to date |
 | Headed `e2e/j1-first-public-tap.spec.ts` | **7/7 PASS** |
 | Headed `e2e/j1-responsive-a11y.spec.ts` | **2/2 PASS** |
-| Headed V1 builder parity suites | **14/14 PASS** |
+| Headed V1 builder + public parity | **builder 14/14 PASS**; TapSave retry **PASS** after SEED fix |
 
-**Prior caveats closed this pass:** analytics non-decreasing KPI false-pass (14→14); decision-queue empty-only; time-travel default-only.
+**Prior caveats closed / reconfirmed:** analytics non-decreasing KPI false-pass; decision-queue empty-only; time-travel default-only; TapSave false-fail from stale hardcoded business IDs in `fusion-proofs.spec.ts`.
 
-**Still open (not J1 engineering VERIFIED blockers):** true VO/NVDA, live credentials, freeform canvas depth, session undo on refresh, platform OWNER-READY.
+**Still open (not J1 engineering VERIFIED blockers):** true VO/NVDA, live credentials, freeform canvas depth, session undo on refresh, TapSave wallet/prefs headed matrices, platform OWNER-READY.
 
 
 ## UX spine discoverability checkpoint (independent verify · tip `cc58c06`)
