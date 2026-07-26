@@ -25,7 +25,9 @@ export type TapCardActionKind =
   | "linkedin"
   | "whatsapp"
   | "yelp"
-  | "custom";
+  | "custom"
+  /** Fuse-box: opens in-Card support form → TapInbox (not mailto) */
+  | "support";
 
 export type TapCardSectionType =
   | "promo_header"
@@ -269,6 +271,12 @@ export const TAP_CARD_ACTION_CATALOG: {
   { kind: "whatsapp", label: "WhatsApp", icon: "whatsapp" },
   { kind: "yelp", label: "Yelp", icon: "yelp" },
   { kind: "custom", label: "Any custom link", icon: "link", placeholder: "https://" },
+  {
+    kind: "support",
+    label: "Ask a Question",
+    icon: "mail",
+    placeholder: "Opens in-Card support (TapInbox)",
+  },
 ];
 
 function sid() {
@@ -563,6 +571,8 @@ export function resolveActionHref(
   reviewUrl?: string | null
 ): string | undefined {
   const kind = section.actionKind;
+  /** Platform-bound actions never resolve to a URL — handled by Card runtime. */
+  if (kind === "support") return undefined;
   if (section.href?.trim()) return section.href.trim();
   switch (kind) {
     case "call":

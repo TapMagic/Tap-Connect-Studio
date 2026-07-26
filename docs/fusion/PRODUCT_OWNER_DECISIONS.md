@@ -20,6 +20,7 @@
 | 2026-07-26 | CONTINUOUS PRODUCT IMPROVEMENT AND REDESIGN DUTY | Agents expected (not merely authorized) to continuously strengthen design/UX/workflow/architecture/performance/a11y/reliability within charter limits; challenge weak PO/assistant ideas; no protected status for accidental UI authorship. Full text: §4A `GLOBAL_QUALITY_STANDARDS.md` | Locked |
 | 2026-07-26 | GLOBAL COMPETITIVE QUALITY REQUIREMENT | Every meaningful surface must be evaluated against the strongest relevant platforms; rival/exceed on capability and workflow maturity — not visual cloning. Completeness ≠ existence or narrow tests. Exceed where unified architecture allows. Full text: §1A `GLOBAL_QUALITY_STANDARDS.md` | Locked |
 | 2026-07-26 | COMPETITIVE FEATURE ADAPTATION | Agents may adapt specific useful features/patterns from benchmarks even if not previously listed in TapConnect specs, when mission-aligned, domain-owned, non-duplicative, TapConnect-native, and documented (purpose/benefit/workflows/risks/validation). Function · Presentation · UX lenses. No proprietary cloning. Full text: §1A subsection `GLOBAL_QUALITY_STANDARDS.md` | Locked |
+| 2026-07-26 | Card Fuse-Box first slice = Action Registry + Support / Ask a Question | Card is the living hub; Support proves multi-system wire (Contact/Consent/Inbox/Case/Guide/Proof) without live providers; preserves 22 V1 actions; Journey/TapLoop Card wires deferred | Locked |
 
 ## CONTINUOUS PRODUCT IMPROVEMENT AND REDESIGN DUTY
 
@@ -91,6 +92,18 @@ Study benchmarks through three lenses: **Function**, **Presentation**, and **Use
 | humanizeError + View details | No Prisma/stack as primary host copy | Stripe (§2.8) | Technical detail recoverable |
 
 **Rejected:** changing destination count; removing readiness honesty; top-nav-only; cloning Pages/Canva chrome; J2 expansion.
+
+## Card Fuse-Box wave (2026-07-26)
+
+| Change | Why superior | Benchmark | Preserved |
+|--------|--------------|-----------|-----------|
+| Durable Card Action Registry + `support` kind | Pillars wire via adapters — not hardcoding into Card chrome | Intercom / Zendesk entry + V1 action floor | All 22 V1 action kinds |
+| Ask a Question → Contact/Consent → Inbox (+ Case) | Card becomes living hub, not static profile | ManyChat / Front / Help Scout (§3.7) | J1 lead path; mock Guardian; human send |
+| Deterministic suggested reply (approval required) | Assist without silent AI send | Intercom Fin honesty | No live OpenAI required |
+| Fuse-box honesty panel on Card page | Never claim Connected without a real wire | Stripe readiness honesty | Separate modules stay labeled N/A |
+| Authoring + Format contracts | Shared workspace without second builder | Pages / Canva medium classes | Existing Format workspace + copy/restore Brand |
+
+**Rejected:** second Card system; live Meta as Support requirement; Booking/Payments native; TapCast publish-from-Card; claiming Pages/Canva full parity; durable Brand sync this slice.
 
 ## J1 hardening verify notes (2026-07-26)
 

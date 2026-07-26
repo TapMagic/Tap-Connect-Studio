@@ -187,9 +187,20 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     const { listFeatureOverrides, toResolveOverrides } = await import(
       "@/lib/fusion/features/overrides"
     );
+    const { listWalletCredentialBlockers } = await import("@/lib/fusion/wallet/types");
+    const featureOverrides = toResolveOverrides(await listFeatureOverrides());
     const keepCardEnabled = isFeatureExecutable("tapsave.core", {
-      overrides: toResolveOverrides(await listFeatureOverrides()),
+      overrides: featureOverrides,
     });
+    const walletFeatureOn = isFeatureExecutable("wallet.apple_google", {
+      overrides: featureOverrides,
+    });
+    const appleLive = listWalletCredentialBlockers().apple.length === 0;
+    const walletMode = !walletFeatureOn
+      ? ("unavailable" as const)
+      : appleLive
+        ? ("live" as const)
+        : ("preview" as const);
 
     return (
       <>
@@ -209,6 +220,8 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
           contactProfile={contactProfile}
           reviewUrl={device.business?.googleReviewUrl ?? null}
           keepCardEnabled={keepCardEnabled}
+          walletMode={walletMode}
+          walletFeatureOn={walletFeatureOn}
         />
       </>
     );
@@ -267,9 +280,20 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   const { listFeatureOverrides, toResolveOverrides } = await import(
     "@/lib/fusion/features/overrides"
   );
+  const { listWalletCredentialBlockers } = await import("@/lib/fusion/wallet/types");
+  const featureOverrides = toResolveOverrides(await listFeatureOverrides());
   const keepCardEnabled = isFeatureExecutable("tapsave.core", {
-    overrides: toResolveOverrides(await listFeatureOverrides()),
+    overrides: featureOverrides,
   });
+  const walletFeatureOn = isFeatureExecutable("wallet.apple_google", {
+    overrides: featureOverrides,
+  });
+  const appleLive = listWalletCredentialBlockers().apple.length === 0;
+  const walletMode = !walletFeatureOn
+    ? ("unavailable" as const)
+    : appleLive
+      ? ("live" as const)
+      : ("preview" as const);
 
   return (
     <>
@@ -288,6 +312,8 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
         upcomingItems={upcomingItems}
         showUpcomingStrip={showUpcomingStrip}
         keepCardEnabled={keepCardEnabled}
+        walletMode={walletMode}
+        walletFeatureOn={walletFeatureOn}
       />
     </>
   );

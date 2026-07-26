@@ -437,6 +437,18 @@ export async function getTapSaveStatus(publicToken: string): Promise<TapSaveStat
       // optional
     }
   }
+  if (!reopenCardUrl) {
+    try {
+      const fallback = await prisma.deviceSlot.findFirst({
+        where: { businessId: relationship.businessId },
+        orderBy: { updatedAt: "desc" },
+        select: { deviceCode: true },
+      });
+      if (fallback?.deviceCode) reopenCardUrl = `/t/${fallback.deviceCode}?public=1`;
+    } catch {
+      // optional
+    }
+  }
 
   return {
     publicToken: relationship.publicToken,

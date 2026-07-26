@@ -394,6 +394,28 @@ export const FEATURE_DEFINITIONS: FeatureDefinition[] = [
     rollback: "Hide Inbox hub; retain stored threads",
   },
   {
+    id: "card.fuse.support",
+    name: "Card Support Fuse",
+    description:
+      "Ask a Question Card action → Contact/Consent → TapInbox (+ optional TapCase) with human-reviewed suggested reply.",
+    pillar: "card",
+    domainOwner: "communications",
+    ux: ["experiences", "audience"],
+    implementation: "wired",
+    maturity: "private_beta",
+    defaultEnabled: true,
+    dependencies: ["card.builder.v1", "comms.inbox"],
+    requiredProviders: [],
+    requiredEnvVars: [],
+    requiredPermissions: ["messaging:send"],
+    surfaces: ["public", "studio", "inbox", "mytap"],
+    devices: ["all"],
+    analyticsEvents: ["card.support.submitted", "inbox.thread.created", "inbox.case.opened"],
+    owner: "product",
+    docs: "docs/fusion/CARD_FUSE_BOX_CONTRACT_MATRIX.md",
+    rollback: "Disable card.fuse.support; retain V1 actions and existing threads",
+  },
+  {
     id: "loyalty.taploop",
     name: "TapLoop Loyalty",
     description:

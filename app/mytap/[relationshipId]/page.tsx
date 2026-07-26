@@ -5,9 +5,16 @@ import { getTapSaveStatus } from "@/lib/fusion/tapsave/service";
 import { TAPSAVE_MOMENT_LABELS } from "@/lib/fusion/tapsave/moments";
 import { getWalletPassForMyTap } from "@/lib/fusion/wallet/tapsave-wire";
 import { AddToWalletMock } from "@/components/tap/add-to-wallet-mock";
+import { ManageCardControl } from "@/components/tap/manage-card-sheet";
 import { MyTapPreferencesForm } from "@/components/tap/mytap-preferences-form";
 import { prisma } from "@/lib/db";
 import { computeBalance, resolveTier } from "@/lib/fusion/taploop/ledger-math";
+import {
+  detectRetentionDevice,
+  WALLET_CUSTOMER_STATE_LABEL,
+  walletCustomerState,
+} from "@/lib/fusion/card/retention";
+import { headers } from "next/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -25,10 +32,9 @@ export default async function MyTapPage({ params, searchParams }: Props) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-[#0b0f19] px-4 text-white">
         <div className="max-w-md text-center">
-          <h1 className="text-xl font-semibold">Saved relationship not found</h1>
+          <h1 className="text-xl font-semibold">Saved Card not found</h1>
           <p className="mt-2 text-sm text-white/60">
-            This link may have expired or is invalid. No personal information is exposed in Tap
-            Connect URLs.
+            This link may have expired or is invalid.
           </p>
           <p className="mt-6 text-xs text-white/40">Powered by Tap The Magic</p>
         </div>
@@ -45,7 +51,17 @@ export default async function MyTapPage({ params, searchParams }: Props) {
     frequency: "weekly" as const,
   };
   const moments = status?.moments ?? [];
-  const reopenHref = status?.reopenCardUrl ?? null;
+  const openCardHref = status?.reopenCardUrl ?? null;
+  const hdrs = await headers();
+  const device = detectRetentionDevice(hdrs.get("user-agent") ?? "");
+  const walletState = walletCustomerState({
+    providerStatus: walletSummary?.pass.status ?? null,
+    mock: walletSummary?.mock ?? true,
+    liveReady: false,
+    device,
+    hasPass: Boolean(walletSummary?.pass),
+  });
+  const hasWalletPass = Boolean(walletSummary?.pass);
 
   let loyalty: {
     programName: string;
@@ -53,6 +69,7 @@ export default async function MyTapPage({ params, searchParams }: Props) {
     tierName: string | null;
     recent: Array<{ type: string; points: number; createdAt: string }>;
   } | null = null;
+  let openCaseCount = 0;
   try {
     const enrollment = await prisma.loyaltyEnrollment.findFirst({
       where: {
@@ -103,6 +120,20 @@ export default async function MyTapPage({ params, searchParams }: Props) {
     loyalty = null;
   }
 
+  try {
+    const rel = await prisma.customerRelationship.findUnique({
+      where: { publicToken: relationshipId },
+      select: { id: true },
+    });
+    if (rel) {
+      openCaseCount = await prisma.tapCase.count({
+        where: { relationshipId: rel.id, status: "OPEN" },
+      });
+    }
+  } catch {
+    openCaseCount = 0;
+  }
+
   return (
     <main
       id="main"
@@ -111,6 +142,7 @@ export default async function MyTapPage({ params, searchParams }: Props) {
         backgroundImage:
           "radial-gradient(ellipse 80% 50% at 50% -20%, rgba(190,255,0,0.08), transparent)",
       }}
+      data-testid="mytap-home"
     >
       <a
         href="#preferences"
@@ -140,24 +172,15 @@ export default async function MyTapPage({ params, searchParams }: Props) {
           <h1 className="mt-4 text-2xl font-bold tracking-tight text-white">
             {projection.businessName}
           </h1>
-          <p className="mt-1 text-sm text-primary/70">MyTap — saved relationship</p>
+          <p className="mt-1 text-sm text-primary/70">Your saved Card</p>
         </header>
-
-        {projection.status === "active" && projection.tapSaveEnabled ? (
-          <AddToWalletMock
-            publicToken={relationshipId}
-            businessName={projection.businessName}
-            initialWallet={walletSummary}
-            className={walletSerial ? "scroll-mt-8" : undefined}
-          />
-        ) : null}
 
         <section
           className="rounded-xl border border-white/10 bg-white/5 p-4"
           aria-labelledby="rel-heading"
         >
           <h2 id="rel-heading" className="sr-only">
-            Relationship details
+            Saved Card
           </h2>
           <p className="text-sm leading-relaxed text-white/80">{projection.message}</p>
           <dl className="mt-4 space-y-2 text-sm">
@@ -171,27 +194,37 @@ export default async function MyTapPage({ params, searchParams }: Props) {
                 <dd>{new Date(projection.savedAt).toLocaleDateString()}</dd>
               </div>
             ) : null}
-            <div className="flex justify-between gap-3">
-              <dt className="text-white/50">Channels</dt>
-              <dd className="text-right text-white/80">
-                {[
-                  projection.channels.email ? "Email" : null,
-                  projection.channels.wallet ? "Wallet" : null,
-                ]
-                  .filter(Boolean)
-                  .join(" · ") || "None yet"}
-              </dd>
-            </div>
+            {hasWalletPass ? (
+              <div className="flex justify-between gap-3">
+                <dt className="text-white/50">Wallet</dt>
+                <dd className="text-right text-white/80">
+                  {WALLET_CUSTOMER_STATE_LABEL[walletState]}
+                </dd>
+              </div>
+            ) : null}
           </dl>
-          {reopenHref ? (
+
+          {/* Single primary Open Card — no duplicate Reopen */}
+          {openCardHref ? (
             <Link
-              href={reopenHref}
+              href={openCardHref}
               className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 py-2.5 text-sm font-semibold text-black"
+              data-testid="mytap-open-card"
             >
-              Reopen Card
+              Open Card
             </Link>
           ) : null}
         </section>
+
+        {projection.status === "active" && projection.tapSaveEnabled ? (
+          <AddToWalletMock
+            publicToken={relationshipId}
+            businessName={projection.businessName}
+            initialWallet={walletSummary}
+            presentation="mytap"
+            className={walletSerial ? "scroll-mt-8" : undefined}
+          />
+        ) : null}
 
         {loyalty ? (
           <section
@@ -202,7 +235,7 @@ export default async function MyTapPage({ params, searchParams }: Props) {
               id="taploop-heading"
               className="text-sm font-semibold uppercase tracking-wide text-white/50"
             >
-              TapLoop
+              Rewards
             </h2>
             <dl className="mt-3 space-y-2 text-sm">
               <div className="flex justify-between gap-3">
@@ -241,7 +274,7 @@ export default async function MyTapPage({ params, searchParams }: Props) {
         {moments.length > 0 ? (
           <section className="rounded-xl border border-white/10 bg-white/5 p-4">
             <h2 className="text-sm font-semibold uppercase tracking-wide text-white/50">
-              Moments
+              Activity
             </h2>
             <ul className="mt-3 space-y-2 text-sm">
               {moments.slice(0, 12).map((m) => (
@@ -255,6 +288,25 @@ export default async function MyTapPage({ params, searchParams }: Props) {
             </ul>
           </section>
         ) : null}
+
+        <ManageCardControl
+          publicToken={relationshipId}
+          businessName={projection.businessName}
+          openCardHref={openCardHref}
+          cardUrl={openCardHref ?? ""}
+          walletSummary={walletSummary}
+          preferences={preferences}
+          loyalty={
+            loyalty
+              ? {
+                  programName: loyalty.programName,
+                  balance: loyalty.balance,
+                  tierName: loyalty.tierName,
+                }
+              : null
+          }
+          openCaseCount={openCaseCount}
+        />
 
         <footer className="text-center text-xs text-white/40">Powered by Tap The Magic</footer>
       </div>

@@ -61,6 +61,9 @@ interface CampaignPageProps {
   onAddFirstBlock?: () => void;
   /** TapSave Keep Card CTA — gated by tapsave.core */
   keepCardEnabled?: boolean;
+  /** Apple Wallet: live | preview (demo) | unavailable */
+  walletMode?: "live" | "preview" | "unavailable";
+  walletFeatureOn?: boolean;
 }
 
 const PAGE_FONT: Record<string, string> = {
@@ -175,6 +178,8 @@ export function CampaignPageRenderer({
   previewMode = false,
   onAddFirstBlock,
   keepCardEnabled = false,
+  walletMode = "preview",
+  walletFeatureOn = true,
 }: CampaignPageProps) {
   const contactProfile: BrandContactProfile = {
     ...parseBrandContactProfile(brandKit?.socialLinks),
@@ -289,6 +294,9 @@ export function CampaignPageRenderer({
             deviceSlotId={deviceSlotId}
             enabled
             previewMode={previewMode}
+            walletMode={walletMode}
+            walletFeatureOn={walletFeatureOn}
+            profile={contactProfile}
           />
         ) : null}
         <footer className="px-4 py-10">
@@ -873,6 +881,11 @@ function BlockRenderer({
             cardConfig={tapCardConfig}
             reviewUrl={reviewUrl}
             forceExpanded={editMode}
+            supportContext={
+              editMode
+                ? null
+                : { businessId, campaignId, deviceSlotId: deviceSlotId ?? undefined }
+            }
             onSaved={() => {
               void fetch("/api/tap/click", {
                 method: "POST",
@@ -913,6 +926,11 @@ function BlockRenderer({
             cardConfig={tapCardConfig}
             reviewUrl={reviewUrl}
             forceExpanded={editMode}
+            supportContext={
+              editMode
+                ? null
+                : { businessId, campaignId, deviceSlotId: deviceSlotId ?? undefined }
+            }
             onSaved={() => {
               void fetch("/api/tap/click", {
                 method: "POST",

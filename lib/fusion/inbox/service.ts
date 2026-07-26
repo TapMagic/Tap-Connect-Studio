@@ -53,6 +53,16 @@ export type ThreadRecord = {
   messageCount?: number;
   campaignId?: string | null;
   campaignTitle?: string | null;
+  source?: string | null;
+  suggestedReply?: {
+    body: string;
+    confidence: number;
+    mode: string;
+    status?: string;
+    grounding?: Array<{ source: string; detail: string }>;
+    aiUnavailable?: boolean;
+    requiresHumanApproval?: boolean;
+  } | null;
 };
 
 export type InboxMessageRecord = {
@@ -97,12 +107,34 @@ function enumToChannel(c: FusionThreadChannel): MessageChannel {
 function readThreadMeta(metadata: unknown): {
   campaignId?: string;
   campaignTitle?: string;
+  source?: string;
+  suggestedReply?: ThreadRecord["suggestedReply"];
 } {
   if (!metadata || typeof metadata !== "object" || Array.isArray(metadata)) return {};
   const m = metadata as Record<string, unknown>;
+  const raw = m.suggestedReply;
+  let suggestedReply: ThreadRecord["suggestedReply"] = null;
+  if (raw && typeof raw === "object" && !Array.isArray(raw)) {
+    const s = raw as Record<string, unknown>;
+    if (typeof s.body === "string") {
+      suggestedReply = {
+        body: s.body,
+        confidence: typeof s.confidence === "number" ? s.confidence : 0.5,
+        mode: typeof s.mode === "string" ? s.mode : "deterministic",
+        status: typeof s.status === "string" ? s.status : undefined,
+        grounding: Array.isArray(s.grounding)
+          ? (s.grounding as Array<{ source: string; detail: string }>)
+          : undefined,
+        aiUnavailable: s.aiUnavailable !== false,
+        requiresHumanApproval: true,
+      };
+    }
+  }
   return {
     campaignId: typeof m.campaignId === "string" ? m.campaignId : undefined,
     campaignTitle: typeof m.campaignTitle === "string" ? m.campaignTitle : undefined,
+    source: typeof m.source === "string" ? m.source : undefined,
+    suggestedReply,
   };
 }
 
@@ -153,6 +185,8 @@ function mapThread(row: {
     messageCount: row._count?.messages,
     campaignId: meta.campaignId ?? null,
     campaignTitle: meta.campaignTitle ?? null,
+    source: meta.source ?? null,
+    suggestedReply: meta.suggestedReply ?? null,
   };
 }
 

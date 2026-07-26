@@ -70,6 +70,8 @@ export function buildVCard(params: {
   website?: string;
   address?: string;
   note?: string;
+  /** Permanent living Card URL — labeled Living Card in Contacts */
+  livingCardUrl?: string;
   /** Base64 photo without data: prefix, jpeg preferred */
   photoBase64?: string;
   photoType?: "JPEG" | "PNG";
@@ -84,7 +86,16 @@ export function buildVCard(params: {
   if (params.title) lines.push(`TITLE:${escapeVCard(params.title)}`);
   if (params.phone) lines.push(`TEL;TYPE=CELL,VOICE:${escapeVCard(params.phone)}`);
   if (params.email) lines.push(`EMAIL;TYPE=INTERNET:${escapeVCard(params.email)}`);
-  if (params.website) lines.push(`URL:${escapeVCard(params.website)}`);
+  if (params.livingCardUrl) {
+    // Apple Contacts respects itemN.URL + X-ABLabel for a friendly field name
+    lines.push(`item1.URL:${escapeVCard(params.livingCardUrl)}`);
+    lines.push("item1.X-ABLabel:Living Card");
+  }
+  if (params.website && params.website !== params.livingCardUrl) {
+    lines.push(`URL:${escapeVCard(params.website)}`);
+  } else if (params.website && !params.livingCardUrl) {
+    lines.push(`URL:${escapeVCard(params.website)}`);
+  }
   if (params.address) lines.push(`ADR;TYPE=WORK:;;${escapeVCard(params.address)};;;;`);
   if (params.note) lines.push(`NOTE:${escapeVCard(params.note)}`);
   if (params.photoBase64) {

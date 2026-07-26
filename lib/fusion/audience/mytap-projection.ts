@@ -37,7 +37,7 @@ export async function getMyTapProjection(publicToken: string): Promise<MyTapProj
     },
     message:
       status === "active"
-        ? "Your saved Tap Connect relationship is active. Prefer email, wallet, and update frequency below."
-        : "This saved relationship is not currently available.",
+        ? "This Card is saved. Open it anytime, manage Wallet, or update how you hear from this business."
+        : "This saved Card is not currently available.",
   };
 }

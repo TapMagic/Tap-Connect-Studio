@@ -27,6 +27,16 @@ type Thread = {
   messageCount?: number;
   campaignId?: string | null;
   campaignTitle?: string | null;
+  source?: string | null;
+  suggestedReply?: {
+    body: string;
+    confidence: number;
+    mode: string;
+    status?: string;
+    grounding?: Array<{ source: string; detail: string }>;
+    aiUnavailable?: boolean;
+    requiresHumanApproval?: boolean;
+  } | null;
 };
 
 type Attachment = {
@@ -560,11 +570,73 @@ export function InboxShell({
               {selectedThread ? (
                 <p className="text-[11px] text-muted-foreground" data-testid="inbox-thread-meta">
                   Thread {selectedThread.status} · {selectedThread.channel}
+                  {selectedThread.source === "card_support" ? " · Card support" : ""}
                   {selectedThread.campaignTitle
                     ? ` · Campaign: ${selectedThread.campaignTitle}`
                     : ""}{" "}
                   · Guardian runs on every outbound reply
                 </p>
+              ) : null}
+
+              {selectedThread?.suggestedReply?.body ? (
+                <div
+                  className="rounded-lg border border-primary/30 bg-primary/5 p-3"
+                  data-testid="inbox-suggested-reply"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-xs font-semibold text-primary">
+                      Suggested reply · {selectedThread.suggestedReply.mode}
+                    </p>
+                    <Badge variant="outline" className="text-[10px]">
+                      confidence {Math.round(selectedThread.suggestedReply.confidence * 100)}%
+                    </Badge>
+                  </div>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    {selectedThread.suggestedReply.aiUnavailable
+                      ? "Deterministic template — live AI unavailable / not used. Human approval required."
+                      : "Human approval required before send."}
+                  </p>
+                  <pre className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap rounded-md bg-black/30 p-2 text-xs">
+                    {selectedThread.suggestedReply.body}
+                  </pre>
+                  {selectedThread.suggestedReply.grounding?.length ? (
+                    <ul className="mt-2 space-y-0.5 text-[10px] text-muted-foreground">
+                      {selectedThread.suggestedReply.grounding.map((g, i) => (
+                        <li key={`${g.source}-${i}`}>
+                          Grounding · {g.source}: {g.detail}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      data-testid="inbox-suggest-accept"
+                      onClick={() => setReply(selectedThread.suggestedReply!.body)}
+                    >
+                      Accept into composer
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      data-testid="inbox-suggest-reject"
+                      onClick={() =>
+                        setMessage("Suggestion rejected — compose your own reply.")
+                      }
+                    >
+                      Reject
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      data-testid="inbox-suggest-edit"
+                      onClick={() => setReply(selectedThread.suggestedReply!.body)}
+                    >
+                      Edit
+                    </Button>
+                  </div>
+                </div>
               ) : null}
 
               <div

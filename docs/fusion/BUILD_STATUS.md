@@ -2,15 +2,38 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (J1 independent re-verify):** tip `e187dc8` (Visual Authoring wave local) · prior tip `e6b9ccd` (docs) · prior tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
+**HEAD (J1 independent re-verify):** tip `ae30d3a` (Card Fuse-Box wave start) · prior `ae30d3a` Visual Authoring committed · prior tip `e187dc8` (UX Simplification) · prior tip `e6b9ccd` (docs) · prior tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
-## Visual Authoring & Guided Intelligence wave (2026-07-26) — local, uncommitted
+## Card Fuse-Box Integration wave (2026-07-26) — local
+
+**Starting HEAD:** `ae30d3a072576953fa3e025e64aa4b033e5ade44`  
+**Scope:** Card Fuse-Box Contract Matrix · durable Card Action Registry (22 V1 + `support`) · Ask a Question → Contact/Consent/Relationship → TapInbox (+ optional TapCase) · deterministic suggested reply (human approval) · fuse-box honesty panel · authoring/format contracts. **J1 remains VERIFIED**. No push/merge/deploy/Railway.  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY** (mock channel; live messaging/AI = VERIFIED — CREDENTIALS REQUIRED).  
+**Ledger:** `docs/fusion/CARD_FUSE_BOX_WAVE.md` · `docs/fusion/CARD_FUSE_BOX_CONTRACT_MATRIX.md` · `docs/fusion/AUTHORING_WORKSPACE_AND_FORMAT_CONTRACT.md`  
+**Not claimed:** Full pillar fuse; live OpenAI; durable Brand sync; Booking/Payments native; TapCast publish-from-Card.
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint | **0 errors** (4 pre-existing img warnings) |
+| `npm test` | **453/453** PASS |
+| `npm run build` | **PASS** |
+| Prisma validate | **PASS** |
+| Migrate status (isolated) | **PASS** — 11 migrations up to date |
+| Support entry (isolated DB) | **PASS** — question thread + complaint case + consent EMAIL GRANTED |
+| Headed `e2e/card-fuse-box-support.spec.ts` | **2/2 PASS** |
+| Headed `e2e/card-retention-ux.spec.ts` | **2/2 PASS** |
+| Headed J1 ID-001 / ID-005 | **PASS** |
+
+**Retention UX (same wave):** Public Keep this Card → chooser (Wallet preview first when demo) → confirmation; MyTap single Open Card; Wallet customer states never imply live install for mock. Live Apple signing **not** in this pass.
+
+## Visual Authoring & Guided Intelligence wave (2026-07-26) — committed at `ae30d3a`
 
 **Starting HEAD:** `e187dc892a68ed569a09beb8cb4f8e1359aa6775`  
 **Scope:** TapFlow visual journey, TapCanvas connected board, Workbench template differentiation, Brand Kit **copy/restore** (not durable sync), expanded text (Card + Campaign), **deterministic Journey Review** + simulation, Advanced JSON relocation, **drag history** (one entry per completed drag). **J1 remains VERIFIED**. No J2. No push/merge/deploy/Railway.  
-**Not claimed:** Card fuse-box integration; live AI review; durable Brand linking (both Phase 2).  
+**Not claimed (at wave close):** Card fuse-box integration (started in subsequent Card Fuse-Box wave); live AI review; durable Brand linking (Phase 2).  
 **Ledger:** `docs/fusion/VISUAL_AUTHORING_WAVE.md`
 
 | Gate | Result |

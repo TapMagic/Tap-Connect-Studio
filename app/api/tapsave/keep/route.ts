@@ -11,7 +11,8 @@ const keepSchema = z.object({
   campaignId: z.string().optional(),
   deviceSlotId: z.string().optional(),
   visitorRef: z.string().optional(),
-  consentGiven: z.boolean().optional().default(true),
+  /** Opt-in only — never preselect marketing consent */
+  consentGiven: z.boolean().optional().default(false),
 });
 
 export async function POST(request: Request) {

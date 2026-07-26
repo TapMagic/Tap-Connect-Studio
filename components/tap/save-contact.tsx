@@ -20,12 +20,15 @@ export function SaveContactButton({
   buttonLabel = "Save to contacts",
   className = "tap-btn tap-btn-primary w-full",
   onSaved,
+  livingCardUrl,
 }: {
   profile: BrandContactProfile & { fullName?: string };
   logoUrl?: string | null;
   buttonLabel?: string;
   className?: string;
   onSaved?: () => void;
+  /** Permanent living Card URL labeled Living Card in Contacts */
+  livingCardUrl?: string;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -57,6 +60,9 @@ export function SaveContactButton({
       }
     }
 
+    const living =
+      livingCardUrl ||
+      (typeof window !== "undefined" ? window.location.href.split("#")[0] : undefined);
     const vcf = buildVCard({
       fullName,
       organization: profile.organization,
@@ -65,7 +71,12 @@ export function SaveContactButton({
       email: profile.email,
       website: profile.website,
       address: profile.address,
-      note: profile.note,
+      note: profile.note
+        ? profile.note
+        : living
+          ? `Living Card: ${living}`
+          : undefined,
+      livingCardUrl: living,
       photoBase64,
       photoType,
     });
@@ -171,6 +182,7 @@ export function ContactCardSurface({
   cardConfig,
   forceExpanded,
   onSaved,
+  supportContext,
 }: {
   profile: BrandContactProfile;
   logoUrl?: string | null;
@@ -184,6 +196,11 @@ export function ContactCardSurface({
   cardConfig?: TapConnectCardConfig | null;
   forceExpanded?: boolean;
   onSaved?: () => void;
+  supportContext?: {
+    businessId: string;
+    campaignId?: string;
+    deviceSlotId?: string;
+  } | null;
 }) {
   const config = useMemo(() => {
     const base =
@@ -255,6 +272,7 @@ export function ContactCardSurface({
       logoUrl={logoUrl}
       reviewUrl={reviewUrl}
       forceExpanded={forceExpanded}
+      supportContext={supportContext}
       onAction={(kind) => {
         if (kind === "vcard") onSaved?.();
       }}

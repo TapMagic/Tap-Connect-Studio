@@ -107,6 +107,7 @@ const COMMON_ACTION_KINDS: TapCardActionKind[] = [
   "call",
   "email",
   "sms",
+  "support",
   "website",
   "map",
   "review",

@@ -85,7 +85,7 @@ describe("API contract smoke: request schemas behind routes", () => {
   const keepSchema = z.object({
     businessId: z.string().min(1),
     email: z.string().email(),
-    consentGiven: z.boolean().optional().default(true),
+    consentGiven: z.boolean().optional().default(false),
   });
 
   const outboxRetrySchema = z.object({

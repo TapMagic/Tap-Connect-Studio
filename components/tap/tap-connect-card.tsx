@@ -1,5 +1,6 @@
 "use client";
 
+import { CardSupportForm, type CardSupportContext } from "@/components/fusion/card/card-support-form";
 import { useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Link2 } from "lucide-react";
@@ -42,6 +43,8 @@ type TapConnectCardProps = {
   selectedSectionId?: string | null;
   /** Builder-only chrome (e.g. Linked badge) — hidden on live taps */
   builderChrome?: boolean;
+  /** Public/runtime context for platform-bound actions (e.g. Ask a Question) */
+  supportContext?: Omit<CardSupportContext, "sectionId" | "businessName"> | null;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
 };
@@ -63,6 +66,7 @@ export function TapConnectCard({
   forceExpanded = false,
   selectedSectionId = null,
   builderChrome = false,
+  supportContext = null,
   className = "",
   onAction,
 }: TapConnectCardProps) {
@@ -71,6 +75,7 @@ export function TapConnectCard({
   );
   const [toast, setToast] = useState<string | null>(null);
   const [openOffers, setOpenOffers] = useState<Record<string, boolean>>({});
+  const [supportSectionId, setSupportSectionId] = useState<string | null>(null);
 
   const sections = useMemo(
     () => sortTapCardSections(config.sections).filter((s) => s.enabled),
@@ -138,6 +143,8 @@ export function TapConnectCard({
       website: profile.website,
       address: profile.address,
       note: profile.note,
+      livingCardUrl:
+        typeof window !== "undefined" ? window.location.href.split("#")[0] : undefined,
       photoBase64,
       photoType,
     });
@@ -167,6 +174,19 @@ export function TapConnectCard({
 
     if (kind === "vcard") {
       await downloadVcf();
+      return;
+    }
+    if (kind === "support") {
+      if (!supportContext?.businessId) {
+        setToast(
+          builderChrome
+            ? "Ask a Question is available on the public Card after publish"
+            : "Support is temporarily unavailable"
+        );
+        window.setTimeout(() => setToast(null), 3600);
+        return;
+      }
+      setSupportSectionId(section.id);
       return;
     }
     if (kind === "bookmark") {
@@ -1052,6 +1072,20 @@ export function TapConnectCard({
       >
         {bodyNodes}
       </div>
+      {supportSectionId && supportContext?.businessId ? (
+        <div className="mt-3 px-1">
+          <CardSupportForm
+            context={{
+              businessId: supportContext.businessId,
+              campaignId: supportContext.campaignId,
+              deviceSlotId: supportContext.deviceSlotId,
+              sectionId: supportSectionId,
+              businessName,
+            }}
+            onClose={() => setSupportSectionId(null)}
+          />
+        </div>
+      ) : null}
       {toast ? <p className="tcc-toast">{toast}</p> : null}
     </div>
   );

@@ -9,6 +9,21 @@ Relative effort: **S** · **M** · **L** · **XL** (no dollar estimates).
 
 ---
 
+## Card-centered fuse-box sequence (authorized after J1 VERIFIED)
+
+See authoritative matrix: `docs/fusion/CARD_FUSE_BOX_CONTRACT_MATRIX.md`.
+
+| Order | Slice | Notes |
+|------:|-------|-------|
+| 1 | Action Registry + Support / Ask a Question | **Active wave** — Card → Inbox/Case → human review |
+| 2 | Fuse-box assembly honesty | Host Card page connections |
+| 3 | Authoring workspace + Format contracts | Shared shell; no false Pages/Canva parity |
+| 5+ | Offer depth · TapLoop enroll · TapFlow binding | Later; do not destabilize J1 |
+
+J1 remains **VERIFIED** and must not regress.
+
+---
+
 ## Exact proposed FIRST vertical journey
 
 ### **J1 — First Successful Public Tap**
