@@ -125,6 +125,24 @@ async function main() {
         finish: "outline",
         icon: "map",
       },
+      {
+        id: "seed_spotlight",
+        type: "special_offer",
+        enabled: true,
+        order: 1.5,
+        label: "Special offer",
+        specialStyle: "banner",
+        offerMode: "campaign",
+        text: "Offer",
+        headline: "Seed Demo Discount",
+        description: "10% off — seed only",
+        offerTitle: "Seed Demo Discount",
+        offerDescription: "10% off — seed only",
+        offerCode: "SEEDDEMO",
+        offerCta: "Claim offer",
+        offerDefaultOpen: true,
+        // linkedCampaignId filled after campaign create
+      },
     ],
   };
 
@@ -393,6 +411,35 @@ async function main() {
       scheduledStart: new Date(Date.now() - 86400000),
       scheduledEnd: new Date(Date.now() + 30 * 86400000),
     },
+  });
+
+  // Bind Card Spotlight → Campaign-owned offer (Offer Fuse seed)
+  const { fingerprintOfferFacts } = await import("../lib/fusion/card/offer");
+  const seedOfferFingerprint = fingerprintOfferFacts({
+    title: "Seed Demo Discount",
+    description: "10% off — seed only",
+    code: "SEEDDEMO",
+    ctaLabel: "Claim offer",
+  });
+  const boundTapCard = {
+    ...seedTapCard,
+    sections: seedTapCard.sections.map((s: { id: string; type: string }) =>
+      s.id === "seed_spotlight"
+        ? {
+            ...s,
+            linkedCampaignId: campaign.id,
+            linkedCampaignTitle: campaign.title,
+            linkedDeviceCode: "seeddemo01",
+            offerBlockId: "seed_offer",
+            offerFactsFingerprint: seedOfferFingerprint,
+            href: "/t/seeddemo01?public=1",
+          }
+        : s
+    ),
+  };
+  await prisma.brandKit.update({
+    where: { businessId: business.id },
+    data: { tapCard: boundTapCard },
   });
 
   const seedEveningBlocks = [

@@ -21,6 +21,7 @@
 | 2026-07-26 | GLOBAL COMPETITIVE QUALITY REQUIREMENT | Every meaningful surface must be evaluated against the strongest relevant platforms; rival/exceed on capability and workflow maturity — not visual cloning. Completeness ≠ existence or narrow tests. Exceed where unified architecture allows. Full text: §1A `GLOBAL_QUALITY_STANDARDS.md` | Locked |
 | 2026-07-26 | COMPETITIVE FEATURE ADAPTATION | Agents may adapt specific useful features/patterns from benchmarks even if not previously listed in TapConnect specs, when mission-aligned, domain-owned, non-duplicative, TapConnect-native, and documented (purpose/benefit/workflows/risks/validation). Function · Presentation · UX lenses. No proprietary cloning. Full text: §1A subsection `GLOBAL_QUALITY_STANDARDS.md` | Locked |
 | 2026-07-26 | Card Fuse-Box first slice = Action Registry + Support / Ask a Question | Card is the living hub; Support proves multi-system wire (Contact/Consent/Inbox/Case/Guide/Proof) without live providers; preserves 22 V1 actions; Journey/TapLoop Card wires deferred | Locked |
+| 2026-07-26 | Next major commercial slice = Card-to-Campaign Conversion Engine (Offer Fuse) | Card Spotlight projects Campaign-owned offer; claim/keep/lead + mock follow-up + Distribution + Insights; no live Resend/Meta/Wallet; Comms CC / Autopilot / Wallet / Loyalty / TapFlow not next. Resolver: live Campaign takeover + inject Spotlight when bound; else Card-first. Ledger: `CARD_OFFER_FUSE_CONTRACT.md` | Locked |
 
 ## CONTINUOUS PRODUCT IMPROVEMENT AND REDESIGN DUTY
 

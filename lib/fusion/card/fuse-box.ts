@@ -52,6 +52,12 @@ export type FuseBoxSnapshotInput = {
   journeyCount: number;
   emailFollowUpConfigured?: boolean;
   lastCardUpdate?: string | null;
+  /** Offer fuse */
+  offerFeatureOn?: boolean;
+  offerBound?: boolean;
+  offerHasAuthoritative?: boolean;
+  offerProjectionState?: "current" | "stale" | "unbound" | "campaign_missing";
+  offerConversionEvidenceCount?: number;
 };
 
 export function buildCardFuseBoxConnections(
@@ -62,6 +68,18 @@ export function buildCardFuseBoxConnections(
     : !input.inboxFeatureOn
       ? "available_to_configure"
       : input.openSupportThreads > 0
+        ? "connected"
+        : "partially_connected";
+
+  const offerFeatureOn = input.offerFeatureOn ?? false;
+  const offerBound = Boolean(input.offerBound);
+  const offerHasAuth = Boolean(input.offerHasAuthoritative);
+  const offerEvidence = input.offerConversionEvidenceCount ?? 0;
+  const offerStatus: FuseBoxStatus = !offerFeatureOn
+    ? "not_yet_available"
+    : !offerBound || !offerHasAuth || input.offerProjectionState === "campaign_missing"
+      ? "available_to_configure"
+      : offerEvidence > 0
         ? "connected"
         : "partially_connected";
 
@@ -200,10 +218,24 @@ export function buildCardFuseBoxConnections(
       id: "offer",
       label: "Offer / Spotlight",
       pillar: "campaign",
-      status: "partially_connected",
-      summary: "special_offer section can link/expand/campaign — not full fuse.",
+      status: offerStatus,
+      summary:
+        offerStatus === "connected"
+          ? "Card Spotlight bound to Campaign offer — conversion evidence recorded."
+          : offerStatus === "partially_connected"
+            ? input.offerProjectionState === "stale"
+              ? "Bound offer projection is stale — refresh facts from Campaign."
+              : "Spotlight bound — tap a public Tap Point to claim and prove the wire."
+            : offerStatus === "available_to_configure"
+              ? "Bind a Campaign offer_coupon to Card Spotlight (Put an offer on my Card)."
+              : "Offer fuse not enabled.",
+      readiness: "Mock follow-up + Distribution · live Resend/Meta = credentials required",
+      whereUsed: "Card Spotlight · Campaign offer · Insights",
+      primaryHref: "/dashboard/card/edit?wire=offer",
+      primaryAction: "Configure Offer",
       canEdit: true,
-      primaryHref: "/dashboard/card/edit",
+      canPreview: true,
+      canTest: true,
     },
     {
       id: "booking_payment",

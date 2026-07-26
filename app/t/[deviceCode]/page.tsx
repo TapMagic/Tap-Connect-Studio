@@ -118,6 +118,96 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
 
   if (!campaign || !isCampaignLive(campaign)) {
     const brandKit = device.business?.brandKit;
+    const { parseBrandContactProfile } = await import("@/lib/brand/contact-profile");
+    const { parseTapConnectCard } = await import("@/lib/brand/tap-card");
+    const { resolvePublicTapSurface } = await import("@/lib/fusion/card/offer-resolver");
+    const { isFeatureExecutable } = await import("@/lib/fusion/features/resolve");
+    const { listFeatureOverrides, toResolveOverrides } = await import(
+      "@/lib/fusion/features/overrides"
+    );
+    const { listWalletCredentialBlockers } = await import("@/lib/fusion/wallet/types");
+    const featureOverrides = toResolveOverrides(await listFeatureOverrides());
+    const keepCardEnabled = isFeatureExecutable("tapsave.core", {
+      overrides: featureOverrides,
+    });
+    const walletFeatureOn = isFeatureExecutable("wallet.apple_google", {
+      overrides: featureOverrides,
+    });
+    const appleLive = listWalletCredentialBlockers().apple.length === 0;
+    const walletMode = !walletFeatureOn
+      ? ("unavailable" as const)
+      : appleLive
+        ? ("live" as const)
+        : ("preview" as const);
+    const featureFlags = {
+      "tapsave.core": keepCardEnabled,
+      "wallet.apple_google": walletFeatureOn,
+      "card.builder.v1": isFeatureExecutable("card.builder.v1", { overrides: featureOverrides }),
+      "card.fuse.support": isFeatureExecutable("card.fuse.support", { overrides: featureOverrides }),
+      "card.fuse.offer": isFeatureExecutable("card.fuse.offer", { overrides: featureOverrides }),
+      "comms.inbox": isFeatureExecutable("comms.inbox", { overrides: featureOverrides }),
+    };
+
+    const contactProfile = {
+      ...parseBrandContactProfile(brandKit?.socialLinks),
+      organization:
+        parseBrandContactProfile(brandKit?.socialLinks).organization ||
+        device.business?.name ||
+        undefined,
+      phone:
+        parseBrandContactProfile(brandKit?.socialLinks).phone ||
+        device.business?.phone ||
+        undefined,
+      email:
+        parseBrandContactProfile(brandKit?.socialLinks).email ||
+        device.business?.email ||
+        undefined,
+      website:
+        parseBrandContactProfile(brandKit?.socialLinks).website ||
+        device.business?.website ||
+        undefined,
+    };
+
+    const tapCard = parseTapConnectCard(brandKit?.tapCard, {
+      businessName: device.business?.name || "Business",
+      profile: contactProfile,
+      logoUrl: device.business?.logoUrl,
+      accentColor: brandKit?.accentColor || "#a3e635",
+      reviewUrl: device.business?.googleReviewUrl,
+    });
+
+    const surface = resolvePublicTapSurface({
+      hasLiveCampaign: false,
+      card: tapCard,
+      cardRetired: tapCard.lifecycleStatus === "retired",
+      offerFeatureOn: featureFlags["card.fuse.offer"],
+      hasEndExperience: false,
+    });
+
+    if (surface.mode === "card_first") {
+      const { TapConnectCardPublic } = await import("@/components/tap/tap-connect-card-public");
+      return (
+        <>
+          <TapFlowLiveBootstrap deviceCode={deviceCode} campaignId={undefined} />
+          <TapConnectCardPublic
+            config={tapCard}
+            profile={contactProfile}
+            businessName={device.business?.name ?? "Business"}
+            businessId={device.businessId!}
+            deviceSlotId={device.id}
+            logoUrl={device.business?.logoUrl ?? null}
+            reviewUrl={device.business?.googleReviewUrl ?? null}
+            brandKit={brandKit}
+            keepCardEnabled={keepCardEnabled}
+            walletMode={walletMode}
+            walletFeatureOn={walletFeatureOn}
+            featureFlags={featureFlags}
+            backgroundColor={brandKit?.backgroundColor ?? "#0b0f19"}
+          />
+        </>
+      );
+    }
+
     const resolved = await resolveTapContent({
       campaign,
       campaignGroupId: device.campaignGroupId,
@@ -144,27 +234,6 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       redirect(resolved.redirectUrl);
     }
 
-    const { parseBrandContactProfile } = await import("@/lib/brand/contact-profile");
-    const contactProfile = {
-      ...parseBrandContactProfile(brandKit?.socialLinks),
-      organization:
-        parseBrandContactProfile(brandKit?.socialLinks).organization ||
-        device.business?.name ||
-        undefined,
-      phone:
-        parseBrandContactProfile(brandKit?.socialLinks).phone ||
-        device.business?.phone ||
-        undefined,
-      email:
-        parseBrandContactProfile(brandKit?.socialLinks).email ||
-        device.business?.email ||
-        undefined,
-      website:
-        parseBrandContactProfile(brandKit?.socialLinks).website ||
-        device.business?.website ||
-        undefined,
-    };
-
     const themeOverrides = resolved.themeOverrides as Record<string, unknown>;
     const theme = {
       primaryColor: (themeOverrides.primaryColor as string) ?? brandKit?.primaryColor ?? "#a3e635",
@@ -181,32 +250,6 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       fontFamily: themeOverrides.fontFamily as string | undefined,
       showPageLogo:
         themeOverrides.showPageLogo === true || themeOverrides.showPageLogo === "true",
-    };
-
-    const { isFeatureExecutable } = await import("@/lib/fusion/features/resolve");
-    const { listFeatureOverrides, toResolveOverrides } = await import(
-      "@/lib/fusion/features/overrides"
-    );
-    const { listWalletCredentialBlockers } = await import("@/lib/fusion/wallet/types");
-    const featureOverrides = toResolveOverrides(await listFeatureOverrides());
-    const keepCardEnabled = isFeatureExecutable("tapsave.core", {
-      overrides: featureOverrides,
-    });
-    const walletFeatureOn = isFeatureExecutable("wallet.apple_google", {
-      overrides: featureOverrides,
-    });
-    const appleLive = listWalletCredentialBlockers().apple.length === 0;
-    const walletMode = !walletFeatureOn
-      ? ("unavailable" as const)
-      : appleLive
-        ? ("live" as const)
-        : ("preview" as const);
-    const featureFlags = {
-      "tapsave.core": keepCardEnabled,
-      "wallet.apple_google": walletFeatureOn,
-      "card.builder.v1": isFeatureExecutable("card.builder.v1", { overrides: featureOverrides }),
-      "card.fuse.support": isFeatureExecutable("card.fuse.support", { overrides: featureOverrides }),
-      "comms.inbox": isFeatureExecutable("comms.inbox", { overrides: featureOverrides }),
     };
 
     return (
@@ -307,6 +350,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     "wallet.apple_google": walletFeatureOn,
     "card.builder.v1": isFeatureExecutable("card.builder.v1", { overrides: featureOverrides }),
     "card.fuse.support": isFeatureExecutable("card.fuse.support", { overrides: featureOverrides }),
+    "card.fuse.offer": isFeatureExecutable("card.fuse.offer", { overrides: featureOverrides }),
     "comms.inbox": isFeatureExecutable("comms.inbox", { overrides: featureOverrides }),
   };
 

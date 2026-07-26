@@ -97,6 +97,10 @@ async function aggregateKpis(
     loyaltyEnrollments,
     loyaltyAwards,
     loyaltyRedeems,
+    offerViewsRange,
+    offerClaimsRange,
+    offerLeadsRange,
+    offerFollowupsRange,
   ] = await Promise.all([
     prisma.tapEvent.count({
       where: { businessId, createdAt: { gte: from }, ...campaignWhere },
@@ -147,6 +151,46 @@ async function aggregateKpis(
     prisma.loyaltyLedgerEntry
       .count({
         where: { businessId, type: "REDEEM", createdAt: { gte: from } },
+      })
+      .catch(() => 0),
+    prisma.clickEvent
+      .count({
+        where: {
+          businessId,
+          createdAt: { gte: from },
+          eventType: "card_offer_viewed",
+          ...campaignWhere,
+        },
+      })
+      .catch(() => 0),
+    prisma.clickEvent
+      .count({
+        where: {
+          businessId,
+          createdAt: { gte: from },
+          eventType: { in: ["card_offer_claimed", "card_offer_kept"] },
+          ...campaignWhere,
+        },
+      })
+      .catch(() => 0),
+    prisma.clickEvent
+      .count({
+        where: {
+          businessId,
+          createdAt: { gte: from },
+          eventType: "card_offer_lead",
+          ...campaignWhere,
+        },
+      })
+      .catch(() => 0),
+    prisma.clickEvent
+      .count({
+        where: {
+          businessId,
+          createdAt: { gte: from },
+          eventType: "card_offer_followup_queued",
+          ...campaignWhere,
+        },
       })
       .catch(() => 0),
   ]);
@@ -217,6 +261,42 @@ async function aggregateKpis(
       source: "ClickEvent",
       seeded: false,
       drillThroughHref: "/dashboard/analytics",
+    },
+    {
+      key: "offer_views_range",
+      label: `Offer views (${days}d)`,
+      value: offerViewsRange,
+      evidenceClass: offerViewsRange > 0 ? "confirmed" : "incomplete",
+      source: "ClickEvent.card_offer_viewed",
+      seeded: false,
+      drillThroughHref: "/dashboard/insights?view=card&drill=offer_views_range",
+    },
+    {
+      key: "offer_claims_range",
+      label: `Offer claims (${days}d)`,
+      value: offerClaimsRange,
+      evidenceClass: offerClaimsRange > 0 ? "confirmed" : "incomplete",
+      source: "ClickEvent.card_offer_claimed",
+      seeded: false,
+      drillThroughHref: "/dashboard/insights?view=card&drill=offer_claims_range",
+    },
+    {
+      key: "offer_leads_range",
+      label: `Offer leads (${days}d)`,
+      value: offerLeadsRange,
+      evidenceClass: offerLeadsRange > 0 ? "confirmed" : "incomplete",
+      source: "ClickEvent.card_offer_lead",
+      seeded: false,
+      drillThroughHref: "/dashboard/insights?view=card&drill=offer_leads_range",
+    },
+    {
+      key: "offer_followups_range",
+      label: `Offer follow-ups (${days}d)`,
+      value: offerFollowupsRange,
+      evidenceClass: offerFollowupsRange > 0 ? "confirmed" : "incomplete",
+      source: "ClickEvent.card_offer_followup_queued",
+      seeded: false,
+      drillThroughHref: "/dashboard/insights?view=card&drill=offer_followups_range",
     },
     {
       key: "contacts",

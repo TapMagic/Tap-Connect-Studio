@@ -461,20 +461,82 @@ export function TapCardBuilder({
     const current = sorted.find((s) => s.id === sectionId);
     const deviceCode = campaign.devices[0]?.code || devices[0]?.deviceCode || "";
     const href = deviceCode ? `/t/${deviceCode}?public=1` : "";
-    patchSection(sectionId, {
-      offerMode: "campaign",
-      linkedCampaignId: campaign.id,
-      linkedCampaignTitle: campaign.title,
-      linkedDeviceCode: deviceCode || undefined,
-      href,
-      offerCta: current?.offerCta || "Open campaign",
-      headline: current?.headline?.trim() ? current.headline : campaign.title,
-      description: current?.description?.trim()
-        ? current.description
-        : campaign.features.length
-          ? `Includes: ${campaign.features.slice(0, 3).join(" · ")}`
-          : "Opens this campaign page",
-    });
+    // Prefer durable bind API so Campaign offer_coupon becomes authoritative SoT
+    void fetch("/api/card/offer/bind", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        campaignId: campaign.id,
+        sectionId,
+        preservePresentation: Boolean(current?.headline?.trim() || current?.description?.trim()),
+        deviceCode: deviceCode || undefined,
+      }),
+    })
+      .then(async (res) => {
+        const data = (await res.json()) as {
+          ok?: boolean;
+          offer?: {
+            title?: string;
+            description?: string;
+            code?: string;
+            expiresAt?: string;
+            ctaLabel?: string;
+          };
+          offerBlockId?: string;
+          factsFingerprint?: string;
+        };
+        if (!res.ok || !data.ok) {
+          // Fallback: metadata link without authoritative sync
+          patchSection(sectionId, {
+            offerMode: "campaign",
+            linkedCampaignId: campaign.id,
+            linkedCampaignTitle: campaign.title,
+            linkedDeviceCode: deviceCode || undefined,
+            href,
+            offerCta: current?.offerCta || "Claim offer",
+            headline: current?.headline?.trim() ? current.headline : campaign.title,
+            description: current?.description?.trim()
+              ? current.description
+              : campaign.features.length
+                ? `Includes: ${campaign.features.slice(0, 3).join(" · ")}`
+                : "Opens this campaign page",
+          });
+          return;
+        }
+        patchSection(sectionId, {
+          offerMode: "campaign",
+          linkedCampaignId: campaign.id,
+          linkedCampaignTitle: campaign.title,
+          linkedDeviceCode: deviceCode || undefined,
+          href,
+          offerBlockId: data.offerBlockId,
+          offerFactsFingerprint: data.factsFingerprint,
+          offerTitle: data.offer?.title,
+          offerDescription: data.offer?.description,
+          offerCode: data.offer?.code,
+          offerExpires: data.offer?.expiresAt,
+          offerCta: data.offer?.ctaLabel || current?.offerCta || "Claim offer",
+          headline: current?.headline?.trim() ? current.headline : data.offer?.title || campaign.title,
+          description: current?.description?.trim()
+            ? current.description
+            : data.offer?.description ||
+              (campaign.features.length
+                ? `Includes: ${campaign.features.slice(0, 3).join(" · ")}`
+                : "Special offer"),
+          offerDefaultOpen: current?.offerDefaultOpen ?? true,
+        });
+      })
+      .catch(() => {
+        patchSection(sectionId, {
+          offerMode: "campaign",
+          linkedCampaignId: campaign.id,
+          linkedCampaignTitle: campaign.title,
+          linkedDeviceCode: deviceCode || undefined,
+          href,
+          offerCta: current?.offerCta || "Claim offer",
+          headline: current?.headline?.trim() ? current.headline : campaign.title,
+        });
+      });
   }
 
   function unlinkCampaignFromSection(sectionId: string) {
@@ -2011,7 +2073,7 @@ export function TapCardBuilder({
                     >
                       <option value="link">Open a page / URL</option>
                       <option value="expand">Expand offer on this card</option>
-                      <option value="campaign">Open linked campaign</option>
+                      <option value="campaign">Bind Campaign offer (Spotlight fuse)</option>
                     </select>
                   </div>
 
@@ -2033,8 +2095,8 @@ export function TapCardBuilder({
                         ) : null}
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Send people to contact capture, coupons, banners, or anything you built in
-                        Campaign builder.
+                        Campaign owns the offer. Spotlight projects title, code, and terms — change
+                        once on the Campaign, then refresh projection here.
                       </p>
 
                       {selected.linkedCampaignId ? (

@@ -143,6 +143,10 @@ export type TapCardSection = {
   linkedCampaignId?: string;
   linkedCampaignTitle?: string;
   linkedDeviceCode?: string;
+  /** Campaign-owned offer_coupon block id (authoritative offer bind) */
+  offerBlockId?: string;
+  /** Fingerprint of authoritative offer facts at last projection sync */
+  offerFactsFingerprint?: string;
   heroFill?: TapCardHeroFill;
   gradientStart?: string;
   gradientEnd?: string;

@@ -30,9 +30,23 @@ export const CREATE_RECIPES: CreateRecipe[] = [
     group: "Start",
   },
   {
+    id: "recipe_card_offer",
+    label: "Put an offer on my Card",
+    description:
+      "Bind one Campaign offer to Card Spotlight — claim, follow-up, and Insights without rebuilding the offer.",
+    href: "/dashboard/card?wire=offer",
+    nextSteps: [
+      "Bind or create a Campaign offer from the Offer fuse wire",
+      "Preview Card, email mock, and TapCast package together",
+      "Publish, assign a Tap Point, then claim on the public page",
+    ],
+    group: "Start",
+  },
+  {
     id: "recipe_campaign",
-    label: "Launch an offer",
-    description: "Start a campaign from a template — blocks, schedule, and publish.",
+    label: "Launch a campaign takeover",
+    description:
+      "Full campaign page for a Tap Point — use when you need a takeover, not only a Card Spotlight.",
     href: "/dashboard/workbench",
     nextSteps: [
       "Pick a template or blank canvas",

@@ -12,11 +12,13 @@ import {
 } from "lucide-react";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { CardFuseBoxPanel } from "@/components/fusion/card/card-fuse-box-panel";
+import { CardOfferWirePanel } from "@/components/fusion/card/card-offer-wire-panel";
 import { WhereUsedPanel } from "@/components/fusion/studio/where-used-panel";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { FuseBoxConnection } from "@/lib/fusion/card/fuse-box";
 import type { CampaignWhereUsedHit } from "@/lib/fusion/studio/where-used";
+import type { OfferCampaignCandidate } from "@/components/fusion/card/card-offer-wire-panel";
 import { cn } from "@/lib/utils";
 
 export type CardAssemblyWorkspaceProps = {
@@ -34,6 +36,10 @@ export type CardAssemblyWorkspaceProps = {
   supportConnected: boolean;
   readinessNotes: string[];
   nextActions: { label: string; href: string; primary?: boolean }[];
+  showOfferWire?: boolean;
+  offerCampaigns?: OfferCampaignCandidate[];
+  offerSectionId?: string;
+  boundOfferCampaignId?: string | null;
 };
 
 /**
@@ -55,6 +61,10 @@ export function CardAssemblyWorkspace({
   supportConnected,
   readinessNotes,
   nextActions,
+  showOfferWire = false,
+  offerCampaigns = [],
+  offerSectionId,
+  boundOfferCampaignId,
 }: CardAssemblyWorkspaceProps) {
   const retired = config.lifecycleStatus === "retired";
 
@@ -124,6 +134,14 @@ export function CardAssemblyWorkspace({
         >
           This Tap Card is retired — open Edit Card and restore it to publish again.
         </p>
+      ) : null}
+
+      {showOfferWire ? (
+        <CardOfferWirePanel
+          campaigns={offerCampaigns}
+          sectionId={offerSectionId}
+          boundCampaignId={boundOfferCampaignId}
+        />
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">

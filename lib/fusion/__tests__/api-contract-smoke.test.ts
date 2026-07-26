@@ -42,6 +42,22 @@ describe("API contract smoke: route handler exports", () => {
     assert.equal(typeof mod.POST, "function");
   });
 
+  it("public card offer POST is exportable", async () => {
+    const mod = await import("../../../app/api/public/card/offer/route");
+    assert.equal(typeof mod.POST, "function");
+  });
+
+  it("card offer bind GET/POST are exportable", async () => {
+    const mod = await import("../../../app/api/card/offer/bind/route");
+    assert.equal(typeof mod.GET, "function");
+    assert.equal(typeof mod.POST, "function");
+  });
+
+  it("card offer distribution POST is exportable", async () => {
+    const mod = await import("../../../app/api/card/offer/distribution/route");
+    assert.equal(typeof mod.POST, "function");
+  });
+
   it("mytap wallet GET/POST are exportable", async () => {
     const mod = await import("../../../app/api/mytap/wallet/route");
     assert.equal(typeof mod.GET, "function");

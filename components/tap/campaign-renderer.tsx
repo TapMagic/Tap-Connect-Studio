@@ -8,6 +8,7 @@ import { extractYouTubeId } from "@/lib/utils/app";
 import { CampaignLeadForm } from "@/components/tap/lead-form";
 import { KeepCardCta } from "@/components/tap/keep-card-cta";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
+import { CardOfferSpotlightStrip } from "@/components/fusion/card/card-offer-claim-form";
 import { TapActionButton } from "@/components/tap/action-button";
 import { RichTapButton, resolveActionHref } from "@/components/tap/rich-button";
 import {
@@ -28,6 +29,8 @@ import { parseTapConnectCard, type TapConnectCardConfig } from "@/lib/brand/tap-
 import { firstImageUrl } from "@/lib/utils";
 import type { ResolvedUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
+import { findPrimarySpotlightSection } from "@/lib/fusion/card/offer";
+import { CARD_OFFER_FUSE_FEATURE } from "@/lib/fusion/card/offer";
 
 interface CampaignTheme {
   primaryColor: string;
@@ -212,7 +215,13 @@ export function CampaignPageRenderer({
     if (featureFlags && Object.prototype.hasOwnProperty.call(featureFlags, id)) {
       return Boolean(featureFlags[id]);
     }
-    return id === "tapsave.core" || id === "card.builder.v1" || id === "card.fuse.support" || id === "comms.inbox";
+    return (
+      id === "tapsave.core" ||
+      id === "card.builder.v1" ||
+      id === "card.fuse.support" ||
+      id === "card.fuse.offer" ||
+      id === "comms.inbox"
+    );
   };
   const utilityLayer: ResolvedUtilityLayer | null =
     !editMode && utilityLayerEnabled
@@ -229,6 +238,14 @@ export function CampaignPageRenderer({
     !editMode &&
     keepCardEnabled &&
     !(utilityLayer?.visible && utilityLayer.utilities.some((u) => u.kind === "keep" && u.eligible));
+
+  const offerFuseOn = featureGate(CARD_OFFER_FUSE_FEATURE);
+  const spotlight = findPrimarySpotlightSection(tapCardConfig);
+  const injectSpotlight =
+    !editMode &&
+    offerFuseOn &&
+    spotlight?.offerMode === "campaign" &&
+    spotlight.linkedCampaignId === campaignId;
   const enabledBlocks = [...blocks]
     // Treat missing `enabled` as on — legacy seed blocks omitted the field
     .filter((b) => b.enabled !== false)
@@ -289,6 +306,26 @@ export function CampaignPageRenderer({
         ) : null}
         {emptyReason && pageVisibleCount === 0 ? (
           <BuilderPreviewEmpty reason={emptyReason} onAddBlock={onAddFirstBlock} />
+        ) : null}
+        {injectSpotlight && spotlight?.linkedCampaignId ? (
+          <CardOfferSpotlightStrip
+            context={{
+              businessId,
+              campaignId: spotlight.linkedCampaignId,
+              deviceSlotId,
+              sectionId: spotlight.id,
+              offerBlockId: spotlight.offerBlockId,
+              businessName,
+              offerTitle: spotlight.offerTitle || spotlight.headline,
+              offerDescription: spotlight.offerDescription || spotlight.description,
+              offerCode: spotlight.offerCode,
+              offerExpires: spotlight.offerExpires,
+              offerCta: spotlight.offerCta,
+              lockedUntilContact: true,
+            }}
+            kicker={spotlight.text}
+            headline={spotlight.headline}
+          />
         ) : null}
         {enabledBlocks.map((block) => (
           <BlockRenderer

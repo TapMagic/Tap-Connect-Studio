@@ -1,6 +1,10 @@
 "use client";
 
 import { CardSupportForm, type CardSupportContext } from "@/components/fusion/card/card-support-form";
+import {
+  CardOfferClaimForm,
+  type CardOfferContext,
+} from "@/components/fusion/card/card-offer-claim-form";
 import { useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Link2 } from "lucide-react";
@@ -45,6 +49,10 @@ type TapConnectCardProps = {
   builderChrome?: boolean;
   /** Public/runtime context for platform-bound actions (e.g. Ask a Question) */
   supportContext?: Omit<CardSupportContext, "sectionId" | "businessName"> | null;
+  /** Public/runtime context for Offer fuse claim path */
+  offerContext?: Omit<CardOfferContext, "sectionId" | "businessName" | "offerTitle" | "offerDescription" | "offerCode" | "offerExpires" | "offerCta" | "offerBlockId"> | null;
+  /** When true, campaign-bound Spotlight uses claim form instead of bare link */
+  offerFuseEnabled?: boolean;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
 };
@@ -67,6 +75,8 @@ export function TapConnectCard({
   selectedSectionId = null,
   builderChrome = false,
   supportContext = null,
+  offerContext = null,
+  offerFuseEnabled = false,
   className = "",
   onAction,
 }: TapConnectCardProps) {
@@ -76,6 +86,7 @@ export function TapConnectCard({
   const [toast, setToast] = useState<string | null>(null);
   const [openOffers, setOpenOffers] = useState<Record<string, boolean>>({});
   const [supportSectionId, setSupportSectionId] = useState<string | null>(null);
+  const [claimSectionId, setClaimSectionId] = useState<string | null>(null);
 
   const sections = useMemo(
     () => sortTapCardSections(config.sections).filter((s) => s.enabled),
@@ -258,16 +269,27 @@ export function TapConnectCard({
   function renderSpecialOffer(section: TapCardSection) {
     const styleKind = section.specialStyle || "banner";
     const rawMode = section.offerMode || "link";
-    const mode = rawMode === "campaign" ? "link" : rawMode;
+    const fuseCampaign =
+      offerFuseEnabled &&
+      rawMode === "campaign" &&
+      Boolean(section.linkedCampaignId) &&
+      Boolean(offerContext?.businessId);
+    const mode = fuseCampaign ? "fuse" : rawMode === "campaign" ? "link" : rawMode;
     const href = section.href?.trim();
     const campaignLinked = Boolean(section.linkedCampaignId);
     const open =
       openOffers[section.id] !== undefined
         ? openOffers[section.id]
         : Boolean(section.offerDefaultOpen);
+    const claiming = claimSectionId === section.id;
 
     function activate(e: MouseEvent) {
       onAction?.("special_offer", section.id);
+      if (mode === "fuse") {
+        e.preventDefault();
+        setClaimSectionId((prev) => (prev === section.id ? null : section.id));
+        return;
+      }
       if (mode === "expand") {
         e.preventDefault();
         setOpenOffers((prev) => ({
@@ -314,12 +336,16 @@ export function TapConnectCard({
           ) : null}
         </div>
         <span className="tcc-special-cta">
-          {mode === "expand"
-            ? open
+          {mode === "fuse"
+            ? claiming
               ? "Hide offer"
-              : section.offerCta || "View offer"
-            : section.offerCta || (campaignLinked ? "Open campaign" : "Open")}
-          <ChevronRight className={cn("size-4", open && mode === "expand" && "rotate-90")} />
+              : section.offerCta || "Claim offer"
+            : mode === "expand"
+              ? open
+                ? "Hide offer"
+                : section.offerCta || "View offer"
+              : section.offerCta || (campaignLinked ? "Open campaign" : "Open")}
+          <ChevronRight className={cn("size-4", (open || claiming) && (mode === "expand" || mode === "fuse") && "rotate-90")} />
         </span>
       </>
     );
@@ -350,6 +376,29 @@ export function TapConnectCard({
               {section.offerCta || "Claim offer"}
             </a>
           ) : null}
+        </div>
+      ) : null;
+
+    const fusePanel =
+      mode === "fuse" && claiming && offerContext?.businessId && section.linkedCampaignId ? (
+        <div className="mt-2 px-1">
+          <CardOfferClaimForm
+            context={{
+              businessId: offerContext.businessId,
+              campaignId: section.linkedCampaignId,
+              deviceSlotId: offerContext.deviceSlotId,
+              sectionId: section.id,
+              offerBlockId: section.offerBlockId,
+              businessName,
+              offerTitle: section.offerTitle || section.headline,
+              offerDescription: section.offerDescription || section.description,
+              offerCode: section.offerCode,
+              offerExpires: section.offerExpires,
+              offerCta: section.offerCta,
+              lockedUntilContact: true,
+            }}
+            onClose={() => setClaimSectionId(null)}
+          />
         </div>
       ) : null;
 
@@ -399,6 +448,7 @@ export function TapConnectCard({
           {teaser}
         </button>
         {offerPanel}
+        {fusePanel}
       </div>
     );
   }

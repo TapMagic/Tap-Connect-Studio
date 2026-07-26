@@ -2,9 +2,32 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (J1 independent re-verify):** tip `ae30d3a` (Card Fuse-Box wave start) · prior `ae30d3a` Visual Authoring committed · prior tip `e187dc8` (UX Simplification) · prior tip `e6b9ccd` (docs) · prior tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
+**HEAD (wave start):** `6f1e1e494e5795bb223c4924e0a5eb1b69e8dedb`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
+
+## Card-to-Campaign Conversion Engine (Offer Fuse) — local uncommitted
+
+**Starting HEAD:** `6f1e1e494e5795bb223c4924e0a5eb1b69e8dedb`  
+**Scope:** Campaign-owned authoritative offer → Card Spotlight projection → claim/keep/lead + consent → mock follow-up → mock Distribution package → Insights/TapProof. Resolver precedence documented. Feature `card.fuse.offer`. Recipe “Put an offer on my Card.” **J1 remains VERIFIED.** No commit/push/merge/deploy/Railway.  
+**Pre-commit correction:** Explicit Campaign selection (no silent newest default); confirmation required before bind.  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY** (mock Distribution / follow-up; live Resend/Meta = credentials).  
+**Ledger:** `docs/fusion/CARD_OFFER_FUSE_CONTRACT.md` · `docs/fusion/CARD_OFFER_FUSE_WAVE.md`
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint (touched files) | **PASS** |
+| `npm run test:fusion` | **462/462 PASS** |
+| Headed `e2e/card-offer-fuse.spec.ts` | **3/3 PASS** |
+| Headed Support + Keep + J1 ID-001/005 | **5/5 PASS** |
+| Headed vertical bind→preview→Distribution→Spotlight claim | **PASS** (code `EVENING`; Ask a Question remains) |
+| Axe (card?wire=offer + public /t) | **0 serious/critical** |
+| Isolated `fusion:seed` Spotlight bind | Script updated; re-run seed when PO authorizes DB refresh |
+
+**Not claimed:** Live email/social; Wallet; TapLoop enroll; TapFlow Card bind; Comms Command Center; Owner-ready.
+
+---
 
 ## Authoring Escape · Preview · Case Ops correction (2026-07-26) — local uncommitted
 

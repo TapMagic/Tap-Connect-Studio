@@ -32,7 +32,7 @@
 | **2** | Fuse-box assembly view (honesty) | Host sees Connected / Partial / Configure / Provider / Consent / N/A per wire | Low | **THIS WAVE (begin)** |
 | **3** | Full-screen authoring shell contract | Shared workspace for Card/Email/Offer/Wallet/Journey/Form/Loyalty | Low | **THIS WAVE (contract + begin)** |
 | **4** | Format + effects contract by medium | Pages/Canva-grade controls with Native / Safe / Unsupported / Preview-only | Low | **THIS WAVE (contract)** |
-| **5** | Offer / Spotlight depth | Card special_offer ↔ Campaign attribution ↔ Insights (beyond URL) | Low–Med | Phase 2 candidate |
+| **5** | Offer / Spotlight depth | Card special_offer ↔ Campaign attribution ↔ Insights (beyond URL) | Low–Med | **THIS WAVE (Offer Fuse)** |
 | **6** | TapLoop enroll from Card | Loyalty enroll + consent + ledger + MyTap | Med | After Band 4 residuals |
 | **7** | TapFlow start from Card | Journey trigger from action binding | Med | After J10 harden |
 | **8** | Wallet open / update | Projection + certification-gated pass | High (certs) | Credentials band |

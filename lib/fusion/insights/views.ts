@@ -31,8 +31,8 @@ export const INSIGHTS_VIEW_LABELS: Record<InsightsView, string> = {
 /** KPI keys that belong primarily to a view (overview shows all). */
 export const VIEW_KPI_KEYS: Record<InsightsView, string[] | "all"> = {
   overview: "all",
-  campaign: ["taps_range", "leads_range", "conversion", "clicks", "campaigns_live", "campaigns_total"],
-  card: ["card_publications", "card_versions", "clicks"],
+  campaign: ["taps_range", "leads_range", "conversion", "clicks", "campaigns_live", "campaigns_total", "offer_views_range", "offer_claims_range", "offer_leads_range"],
+  card: ["card_publications", "card_versions", "clicks", "offer_views_range", "offer_claims_range", "offer_leads_range", "offer_followups_range"],
   tappoint: ["taps_range", "tap_points_total", "devices_active", "devices_unassigned"],
   comms: ["open_threads", "inbox_messages_range", "email_ready", "comms_outbox_pending"],
   loyalty: ["loyalty_enrollments", "loyalty_awards_range", "loyalty_redeems_range", "commerce_loyalty_stubs"],
