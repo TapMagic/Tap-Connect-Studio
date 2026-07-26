@@ -31,9 +31,11 @@ import {
   FormatWorkspace,
   FormatWorkspaceTrigger,
 } from "@/components/design/format-workspace";
+import { ExpandedTextField } from "@/components/design/expanded-text-field";
 import { ButtonLayoutControls } from "@/components/design/button-layout-controls";
 import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
+import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
 import {
@@ -42,6 +44,14 @@ import {
 } from "@/components/workbench/builder-preview-empty";
 import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import {
+  createInheritanceState,
+  overrideField,
+  resolveInheritedValue,
+  type BrandFieldKey,
+  type BrandInheritanceState,
+  type BrandKitSnapshot,
+} from "@/lib/fusion/authoring/brand-inheritance";
 import { cn } from "@/lib/utils";
 import {
   COMMON_SOCIAL_KINDS,
@@ -84,6 +94,12 @@ type Props = {
   freeformEnabled?: boolean;
   /** BrandKit id for publication snapshots / rollback */
   brandKitId?: string | null;
+  /** Brand Kit colors (existing SoT) for inheritance — optional when already on config */
+  brandColors?: {
+    primaryColor?: string | null;
+    secondaryColor?: string | null;
+    accentColor?: string | null;
+  } | null;
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -103,6 +119,39 @@ const COMMON_ACTION_KINDS: TapCardActionKind[] = [
   "custom",
 ];
 
+function buildBrandKitSnapshot(params: {
+  logoUrl?: string | null;
+  businessName: string;
+  profile: BrandContactProfile;
+  reviewUrl?: string | null;
+  brandColors?: Props["brandColors"];
+  config: TapConnectCardConfig;
+}): BrandKitSnapshot {
+  return {
+    logoUrl: params.logoUrl || params.config.headerLogoUrl || undefined,
+    businessName: params.businessName || params.profile.displayName || undefined,
+    phone: params.profile.phone || undefined,
+    email: params.profile.email || undefined,
+    website: params.profile.website || undefined,
+    address: params.profile.address || undefined,
+    reviewUrl: params.reviewUrl || undefined,
+    primaryColor: params.brandColors?.primaryColor || undefined,
+    secondaryColor: params.brandColors?.secondaryColor || undefined,
+    accentColor:
+      params.brandColors?.accentColor || params.config.accentColor || undefined,
+    backgroundColor: params.config.surfaceColor || undefined,
+    textColor: params.config.textColor || undefined,
+  };
+}
+
+function strInherited(
+  state: BrandInheritanceState,
+  key: BrandFieldKey
+): string | undefined {
+  const v = resolveInheritedValue(state, key);
+  return typeof v === "string" && v.trim() ? v : undefined;
+}
+
 export function TapCardBuilder({
   initialConfig,
   profile,
@@ -117,6 +166,7 @@ export function TapCardBuilder({
   campaigns = [],
   freeformEnabled = false,
   brandKitId = null,
+  brandColors = null,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -142,6 +192,16 @@ export function TapCardBuilder({
   const [versions, setVersions] = useState<
     { id: string; version: number; label: string; publishedAt: string }[]
   >([]);
+  const [brandState, setBrandState] = useState<BrandInheritanceState>(() =>
+    createInheritanceState(buildBrandKitSnapshot({
+      logoUrl,
+      businessName,
+      profile,
+      reviewUrl,
+      brandColors,
+      config: initialConfig,
+    }))
+  );
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
 
@@ -200,6 +260,130 @@ export function TapCardBuilder({
 
   function patchConfig(patch: Partial<TapConnectCardConfig>) {
     setConfig((c) => ({ ...c, ...patch }));
+  }
+
+  function applyInheritedColors(state: BrandInheritanceState) {
+    if (!state.useBrandKit) return;
+    const accent =
+      strInherited(state, "accentColor") || strInherited(state, "primaryColor");
+    const surface = strInherited(state, "backgroundColor");
+    const text = strInherited(state, "textColor");
+    const logo = strInherited(state, "logoUrl");
+    setConfig((c) => {
+      const next = { ...c };
+      if (accent && !c.accentColor?.trim()) next.accentColor = accent;
+      if (accent && !c.neonColor?.trim()) next.neonColor = accent;
+      if (surface && !c.surfaceColor?.trim()) next.surfaceColor = surface;
+      if (text && !c.textColor?.trim()) next.textColor = text;
+      if (logo && !c.headerLogoUrl?.trim()) {
+        next.headerLogoUrl = logo;
+        next.showHeaderLogo = true;
+      }
+      return next;
+    });
+  }
+
+  function handleBrandStateChange(next: BrandInheritanceState) {
+    const prev = brandState;
+    setBrandState(next);
+
+    // Restore overridden colors into the card config
+    const colorKeys: BrandFieldKey[] = [
+      "accentColor",
+      "primaryColor",
+      "backgroundColor",
+      "textColor",
+      "logoUrl",
+    ];
+    const patch: Partial<TapConnectCardConfig> = {};
+    for (const key of colorKeys) {
+      const wasOverridden = prev.fields[key]?.mode === "overridden";
+      const nowRestored =
+        next.fields[key]?.mode === "linked" || next.fields[key]?.mode === "copied";
+      if (!(wasOverridden && nowRestored)) continue;
+      const value = strInherited(next, key);
+      if (!value) continue;
+      if (key === "accentColor" || key === "primaryColor") {
+        patch.accentColor = value;
+        patch.neonColor = value;
+      } else if (key === "backgroundColor") {
+        patch.surfaceColor = value;
+      } else if (key === "textColor") {
+        patch.textColor = value;
+      } else if (key === "logoUrl") {
+        patch.headerLogoUrl = value;
+        patch.showHeaderLogo = true;
+      }
+    }
+    if (Object.keys(patch).length) patchConfig(patch);
+    if (next.useBrandKit && !prev.useBrandKit) {
+      applyInheritedColors(next);
+      const identityPrefill = sectionsHistory.map((s) => {
+        if (s.type !== "identity") return s;
+        const idPatch: Partial<TapCardSection> = {};
+        if (!s.name?.trim()) {
+          const name =
+            strInherited(next, "businessName") ||
+            profile.displayName ||
+            businessName;
+          if (name) idPatch.name = name;
+        }
+        if (!s.organization?.trim()) {
+          const org =
+            profile.organization ||
+            strInherited(next, "businessName") ||
+            businessName;
+          if (org) idPatch.organization = org;
+        }
+        if (!s.title?.trim() && profile.jobTitle) idPatch.title = profile.jobTitle;
+        return Object.keys(idPatch).length ? { ...s, ...idPatch } : s;
+      });
+      if (identityPrefill.some((s, i) => s !== sectionsHistory[i])) {
+        setSections(identityPrefill, false);
+      }
+    }
+  }
+
+  function patchConfigColor(
+    key: "accentColor" | "surfaceColor" | "textColor" | "pillColor" | "pillTextColor" | "neonColor",
+    value: string
+  ) {
+    patchConfig({ [key]: value });
+    const brandKey: BrandFieldKey | null =
+      key === "accentColor" || key === "neonColor"
+        ? "accentColor"
+        : key === "surfaceColor"
+          ? "backgroundColor"
+          : key === "textColor"
+            ? "textColor"
+            : null;
+    if (brandKey) setBrandState((s) => overrideField(s, brandKey, value));
+  }
+
+  function identityValue(
+    key: "name" | "title" | "organization" | "headline",
+    local: string | undefined
+  ): string {
+    if (local?.trim()) return local;
+    if (!brandState.useBrandKit) return local ?? "";
+    if (key === "name") {
+      return (
+        strInherited(brandState, "businessName") ||
+        profile.displayName ||
+        businessName ||
+        ""
+      );
+    }
+    if (key === "title") return profile.jobTitle || "";
+    if (key === "organization") {
+      return (
+        profile.organization ||
+        strInherited(brandState, "businessName") ||
+        businessName ||
+        ""
+      );
+    }
+    return local ?? "";
   }
 
   function setSections(next: TapCardSection[], record = true) {
@@ -586,6 +770,12 @@ export function TapCardBuilder({
 
       {/* Design menus — fixed chrome, scrolls if tall */}
       <div className="z-20 max-h-[28vh] shrink-0 space-y-3 overflow-y-auto border-b border-border/60 bg-background px-4 py-3">
+        <BrandInheritanceBar
+          state={brandState}
+          onChange={handleBrandStateChange}
+          compact
+          className="border-primary/20"
+        />
         <div className="flex flex-wrap items-end gap-4">
           <div className="space-y-1">
             <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
@@ -687,9 +877,21 @@ export function TapCardBuilder({
                     ? "#0c0a07"
                     : key === "pillTextColor"
                       ? "#f5e6a8"
-                      : config.accentColor)
+                      : key === "accentColor" || key === "neonColor"
+                        ? strInherited(brandState, "accentColor") ||
+                          strInherited(brandState, "primaryColor") ||
+                          config.accentColor
+                        : key === "surfaceColor"
+                          ? strInherited(brandState, "backgroundColor") ||
+                            config.surfaceColor ||
+                            config.accentColor
+                          : key === "textColor"
+                            ? strInherited(brandState, "textColor") ||
+                              config.textColor ||
+                              config.accentColor
+                            : config.accentColor)
                 }
-                onChange={(e) => patchConfig({ [key]: e.target.value })}
+                onChange={(e) => patchConfigColor(key, e.target.value)}
               />
             </div>
           ))}
@@ -790,13 +992,21 @@ export function TapCardBuilder({
               <div className="min-w-[200px] flex-1">
                 <MediaPicker
                   label="Header logo"
-                  value={config.headerLogoUrl ?? logoUrl ?? ""}
-                  onChange={(url) =>
+                  value={
+                    config.headerLogoUrl ||
+                    (brandState.useBrandKit
+                      ? strInherited(brandState, "logoUrl")
+                      : undefined) ||
+                    logoUrl ||
+                    ""
+                  }
+                  onChange={(url) => {
                     patchConfig({
                       headerLogoUrl: url,
                       ...(url ? {} : { showHeaderLogo: false }),
-                    })
-                  }
+                    });
+                    setBrandState((s) => overrideField(s, "logoUrl", url || null));
+                  }}
                   mediaUploadReady={mediaUploadReady}
                   stockReady={stockReady}
                 />
@@ -1385,18 +1595,23 @@ export function TapCardBuilder({
                     onChange={(e) => patchSection(selected.id, { text: e.target.value })}
                     placeholder="Kicker (e.g. Limited time)"
                   />
-                  <Input
+                  <ExpandedTextField
+                    label="Headline"
                     value={selected.headline ?? ""}
-                    onChange={(e) => patchSection(selected.id, { headline: e.target.value })}
+                    onChange={(headline) => patchSection(selected.id, { headline })}
                     placeholder="Headline"
+                    recommendedMax={80}
+                    data-testid="special-headline"
                   />
-                  <textarea
-                    className="min-h-[72px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  <ExpandedTextField
+                    label="Description"
                     value={selected.description ?? ""}
-                    onChange={(e) =>
-                      patchSection(selected.id, { description: e.target.value })
+                    onChange={(description) =>
+                      patchSection(selected.id, { description })
                     }
                     placeholder="Supporting line"
+                    recommendedMax={200}
+                    data-testid="special-description"
                   />
                   <TextFormatControls
                     title="Special — typography"
@@ -1673,13 +1888,15 @@ export function TapCardBuilder({
                         }
                         placeholder="Offer title"
                       />
-                      <textarea
-                        className="min-h-[72px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                      <ExpandedTextField
+                        label="Offer details"
                         value={selected.offerDescription ?? ""}
-                        onChange={(e) =>
-                          patchSection(selected.id, { offerDescription: e.target.value })
+                        onChange={(offerDescription) =>
+                          patchSection(selected.id, { offerDescription })
                         }
                         placeholder="Offer details"
+                        recommendedMax={280}
+                        data-testid="special-offer-description"
                       />
                       <Input
                         value={selected.offerCode ?? ""}
@@ -1728,10 +1945,13 @@ export function TapCardBuilder({
                 <>
                   {(
                     [
-                      ["name", "Name", selected.name ?? ""],
-                      ["title", "Title", selected.title ?? ""],
-                      ["organization", "Organization", selected.organization ?? ""],
-                      ["headline", "Headline", selected.headline ?? ""],
+                      ["name", "Name", identityValue("name", selected.name)],
+                      ["title", "Title", identityValue("title", selected.title)],
+                      [
+                        "organization",
+                        "Organization",
+                        identityValue("organization", selected.organization),
+                      ],
                     ] as const
                   ).map(([key, placeholder, value]) => (
                     <div key={key} className="flex items-center gap-2">
@@ -1748,8 +1968,13 @@ export function TapCardBuilder({
                         value={selected.lineColors?.[key]}
                         defaultColor={
                           key === "name"
-                            ? selected.format?.color || config.textColor || "#f8fafc"
-                            : config.textColor || "#f8fafc"
+                            ? selected.format?.color ||
+                              strInherited(brandState, "textColor") ||
+                              config.textColor ||
+                              "#f8fafc"
+                            : strInherited(brandState, "textColor") ||
+                              config.textColor ||
+                              "#f8fafc"
                         }
                         onChange={(color) =>
                           patchSection(selected.id, {
@@ -1762,6 +1987,36 @@ export function TapCardBuilder({
                       />
                     </div>
                   ))}
+                  <div className="flex items-start gap-2">
+                    <ExpandedTextField
+                      className="min-w-0 flex-1"
+                      label="Headline"
+                      value={selected.headline ?? ""}
+                      onChange={(headline) =>
+                        patchSection(selected.id, { headline })
+                      }
+                      placeholder="Headline"
+                      recommendedMax={120}
+                      data-testid="identity-headline"
+                    />
+                    <ColorSwatchPicker
+                      title="Headline color"
+                      value={selected.lineColors?.headline}
+                      defaultColor={
+                        strInherited(brandState, "textColor") ||
+                        config.textColor ||
+                        "#f8fafc"
+                      }
+                      onChange={(color) =>
+                        patchSection(selected.id, {
+                          lineColors: {
+                            ...selected.lineColors,
+                            headline: color,
+                          },
+                        })
+                      }
+                    />
+                  </div>
                   <TextFormatControls
                     title="Identity — font (all lines) & name size"
                     value={selected.format}
@@ -1769,7 +2024,9 @@ export function TapCardBuilder({
                   />
                   <p className="text-[10px] text-muted-foreground">
                     Font family applies to every line. Size/weight mainly style the name. Use the
-                    color square beside each field for per-line color.
+                    color square beside each field for per-line color. Empty name/org pull from
+                    Empty name/org pull from Brand Kit when Use current Brand Kit values is on
+                    (copied into this Card — not a durable sync).
                   </p>
                 </>
               )}
@@ -2338,11 +2595,13 @@ export function TapCardBuilder({
 
               {selected.type === "text" && (
                 <>
-                  <textarea
-                    className="min-h-[100px] w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  <ExpandedTextField
+                    label="Text content"
                     value={selected.text ?? ""}
-                    onChange={(e) => patchSection(selected.id, { text: e.target.value })}
+                    onChange={(text) => patchSection(selected.id, { text })}
                     placeholder="Text content"
+                    recommendedMax={400}
+                    data-testid="section-text-body"
                   />
                   <TextFormatControls
                     title="Full font & size"
@@ -2558,8 +2817,9 @@ export function TapCardBuilder({
                     so the canvas stays visible while you tune atmosphere.
                   </p>
                   <p>
-                    Brand Kit colors inherit automatically — edit Brand Kit under Assets to
-                    change the semantic palette for this workspace.
+                    Brand Kit colors can be copied into this Card from the Brand Kit bar. Future
+                    Brand Kit changes do not automatically update this Card yet — durable linked
+                    inheritance is Phase 2. Edit Brand Kit under Assets for the workspace palette.
                   </p>
                 </div>
               );

@@ -6,6 +6,7 @@ import { OpenInTapCanvasLink } from "@/components/fusion/canvas/open-in-tap-canv
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features/resolve";
 import { JourneyEditorShell } from "@/components/fusion/journey/journey-editor-shell";
+import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,11 @@ export default async function JourneysPage() {
   const { business } = await requireBusiness();
   const overrides = toResolveOverrides(await listFeatureOverrides());
   const featureEnabled = isFeatureEnabled("journey.tapflow", { overrides });
+
+  const brandKitRow = await prisma.brandKit
+    .findUnique({ where: { businessId: business.id } })
+    .catch(() => null);
+  const contact = parseBrandContactProfile(brandKitRow?.socialLinks);
 
   let drafts: { id: string; name: string; status?: string; updatedAt: string }[] = [];
   try {
@@ -38,8 +44,8 @@ export default async function JourneysPage() {
         <p className="text-xs font-semibold uppercase tracking-wide text-primary">TapFlow</p>
         <h1 className="text-2xl font-semibold tracking-tight">Journeys</h1>
         <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-          Beginner stage list and expert graph share one engine. Drafts persist; publish/activate/pause
-          write audit + outbox.{" "}
+          Visual journey builder — Beginner and Expert share one engine. Drag steps, review with AI,
+          simulate customer paths. Developer JSON stays under Advanced.{" "}
           <Link href="/dashboard/settings" className="text-primary underline-offset-4 hover:underline">
             Settings
           </Link>
@@ -62,6 +68,19 @@ export default async function JourneysPage() {
         businessId={business.id}
         initialDrafts={drafts}
         featureEnabled={featureEnabled}
+        brandKit={{
+          logoUrl: business.logoUrl,
+          primaryColor: brandKitRow?.primaryColor ?? "#22c55e",
+          secondaryColor: brandKitRow?.secondaryColor ?? undefined,
+          tone: brandKitRow?.tone ?? undefined,
+          businessName: business.name,
+          phone: contact.phone ?? business.phone,
+          email: contact.email ?? business.email,
+          website: contact.website ?? business.website,
+          address: contact.address ?? undefined,
+          reviewUrl: business.googleReviewUrl,
+          disclaimer: brandKitRow?.defaultDisclaimer ?? undefined,
+        }}
       />
     </div>
   );

@@ -1,31 +1,63 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { GitBranch, ListOrdered, Play, Plus, Save, Trash2 } from "lucide-react";
+import {
+  Copy,
+  Focus,
+  GitBranch,
+  LayoutTemplate,
+  ListOrdered,
+  PanelRightClose,
+  PanelRightOpen,
+  Play,
+  Plus,
+  Redo2,
+  Save,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import {
   JOURNEY_NODE_REGISTRY,
   SAMPLE_VISITOR,
   createEmptyJourney,
   buildJourneyAnalyticsOverlay,
   executeJourneyDryRun,
+  isEntryNodeType,
   journeyToStages,
   planJourneyRecovery,
   recoverJourneyDryRun,
-  simulateJourney,
   validateJourney,
   type JourneyDefinition,
   type JourneyLifecycleAction,
   type JourneyNodeType,
   type RuntimeEvent,
 } from "@/lib/fusion/journey";
+import { AuthoringHistory } from "@/lib/fusion/graph/history";
+import { canConnectNodes, type JourneyFinding } from "@/lib/fusion/journey/review";
 import { cn } from "@/lib/utils";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
+import {
+  VisualBoard,
+  applyAutoLayoutToPositions,
+  type VisualBoardEdge,
+  type VisualBoardNode,
+} from "@/components/fusion/graph/visual-board";
+import { DeveloperDefinitionPanel } from "@/components/fusion/journey/developer-definition-panel";
+import { JourneySimulationPanel } from "@/components/fusion/journey/journey-simulation-panel";
+import { JourneyReviewPanel } from "@/components/fusion/journey/journey-ai-review-panel";
+import { ExpandedTextField } from "@/components/design/expanded-text-field";
+import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
+import {
+  createInheritanceState,
+  resolveInheritedValue,
+  type BrandInheritanceState,
+  type BrandKitSnapshot,
+} from "@/lib/fusion/authoring/brand-inheritance";
 
 type DraftRow = {
   id: string;
@@ -34,42 +66,106 @@ type DraftRow = {
   updatedAt: string;
 };
 
-const PALETTE: JourneyNodeType[] = [
+const BEGINNER_PALETTE: JourneyNodeType[] = [
   "trigger",
-  "wait",
-  "condition",
   "message",
   "email",
+  "wait",
+  "condition",
   "award_loyalty",
-  "create_case",
   "human_handoff",
   "exit",
 ];
+
+const EXPERT_PALETTE: JourneyNodeType[] = [
+  ...BEGINNER_PALETTE,
+  "create_case",
+  "entry_tap",
+  "branch",
+  "page_view",
+  "form_submit",
+  "offer_redeem",
+];
+
+function toneForNode(
+  type: JourneyNodeType,
+  finding?: boolean
+): VisualBoardNode["tone"] {
+  if (finding) return "warning";
+  if (isEntryNodeType(type)) return "entry";
+  if (type === "exit") return "exit";
+  return "executable";
+}
 
 export function JourneyEditorShell({
   businessId,
   initialDrafts,
   featureEnabled,
+  brandKit,
 }: {
   businessId: string;
   initialDrafts: DraftRow[];
   featureEnabled: boolean;
+  brandKit?: BrandKitSnapshot | null;
 }) {
   const [mode, setMode] = useState<"beginner" | "expert">("beginner");
+  const [focusMode, setFocusMode] = useState(false);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
   const [drafts, setDrafts] = useState(initialDrafts);
-  const [definition, setDefinition] = useState<JourneyDefinition>(() => createEmptyJourney());
+  const [history] = useState(() => new AuthoringHistory(createEmptyJourney()));
+  const [definition, setDefinition] = useState<JourneyDefinition>(() => history.value);
+  const [historyTick, setHistoryTick] = useState(0);
   const [selectedDraftId, setSelectedDraftId] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("DRAFT");
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [edgeFrom, setEdgeFrom] = useState("");
-  const [edgeTo, setEdgeTo] = useState("");
-  const [edgeLabel, setEdgeLabel] = useState("");
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [connectFrom, setConnectFrom] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [runtimeEvents, setRuntimeEvents] = useState<RuntimeEvent[] | null>(null);
+  const [highlightNodes, setHighlightNodes] = useState<string[]>([]);
+  const [highlightEdges, setHighlightEdges] = useState<string[]>([]);
+  const [findingNodeIds, setFindingNodeIds] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
+  const [brandState, setBrandState] = useState<BrandInheritanceState>(() =>
+    createInheritanceState(brandKit ?? {})
+  );
+
+  const commit = useCallback(
+    (next: JourneyDefinition, _label?: string) => {
+      history.push(next, _label);
+      setDefinition(next);
+      setHistoryTick((t) => t + 1);
+    },
+    [history]
+  );
+
+  const undo = useCallback(() => {
+    const next = history.undo();
+    setDefinition(next);
+    setHistoryTick((t) => t + 1);
+  }, [history]);
+
+  const redo = useCallback(() => {
+    const next = history.redo();
+    setDefinition(next);
+    setHistoryTick((t) => t + 1);
+  }, [history]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+      } else if (meta && (e.key.toLowerCase() === "y" || (e.key.toLowerCase() === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undo, redo]);
 
   const issues = useMemo(() => validateJourney(definition), [definition]);
-  const simulation = useMemo(() => simulateJourney(definition), [definition]);
   const localRuntime = useMemo(
     () => executeJourneyDryRun(definition, SAMPLE_VISITOR, { requireValid: false }),
     [definition]
@@ -98,53 +194,225 @@ export function JourneyEditorShell({
   const canPause = Boolean(selectedDraftId) && (status === "ACTIVE" || status === "PUBLISHED");
   const canResume = featureEnabled && Boolean(selectedDraftId) && status === "PAUSED";
 
+  const selectedNode = definition.nodes.find((n) => n.id === selectedIds[0]);
+  const palette = mode === "beginner" ? BEGINNER_PALETTE : EXPERT_PALETTE;
+
+  const boardNodes: VisualBoardNode[] = useMemo(
+    () =>
+      definition.nodes.map((n) => ({
+        id: n.id,
+        label: n.label,
+        subtitle: nodeSummary(n.type, n.config),
+        x: n.position?.x ?? 40,
+        y: n.position?.y ?? 40,
+        tone: toneForNode(n.type, findingNodeIds.has(n.id)),
+        badge: JOURNEY_NODE_REGISTRY[n.type]?.label ?? n.type,
+        finding: findingNodeIds.has(n.id),
+      })),
+    [definition.nodes, findingNodeIds]
+  );
+
+  const boardEdges: VisualBoardEdge[] = useMemo(
+    () =>
+      definition.edges.map((e) => ({
+        id: e.id,
+        from: e.from,
+        to: e.to,
+        label: e.label,
+        blocked: Boolean(e.label && /block|fail|deny/i.test(e.label)),
+        highlight: highlightEdges.includes(e.id),
+      })),
+    [definition.edges, highlightEdges]
+  );
+
   function addNode(type: JourneyNodeType) {
     const reg = JOURNEY_NODE_REGISTRY[type];
-    const id = `${type}_${crypto.randomUUID()}`;
-    setDefinition((d) => ({
-      ...d,
+    const id = `${type}_${crypto.randomUUID().slice(0, 8)}`;
+    const tone = resolveInheritedValue(brandState, "tone");
+    const config: Record<string, unknown> =
+      type === "email"
+        ? {
+            subject: "Journey update",
+            body:
+              typeof tone === "string"
+                ? `A quick update from us (${tone} tone).`
+                : "A quick update from us.",
+            requireConsent: true,
+            consentAware: true,
+          }
+        : type === "message"
+          ? {
+              body:
+                typeof tone === "string"
+                  ? `Thanks for tapping — more soon.`
+                  : "Thanks for tapping — more soon.",
+              requireConsent: true,
+              consentAware: true,
+            }
+          : {};
+    const next: JourneyDefinition = {
+      ...definition,
       nodes: [
-        ...d.nodes,
+        ...definition.nodes,
         {
           id,
           type,
           label: reg.label,
-          config: type === "email" ? { subject: "Journey update" } : {},
-          position: { x: 120 + (d.nodes.length % 5) * 100, y: 60 + Math.floor(d.nodes.length / 5) * 72 },
+          config,
+          position: {
+            x: 120 + (definition.nodes.length % 4) * 200,
+            y: 60 + Math.floor(definition.nodes.length / 4) * 100,
+          },
         },
       ],
-    }));
-    setSelectedNodeId(id);
+    };
+    commit(next, `Add ${type}`);
+    setSelectedIds([id]);
+    setMessage(`Added ${reg.label}`);
   }
 
-  function removeNode(nodeId: string) {
+  function removeSelected() {
+    if (selectedIds.length === 0) return;
+    const remove = new Set(selectedIds);
+    commit(
+      {
+        ...definition,
+        nodes: definition.nodes.filter((n) => !remove.has(n.id)),
+        edges: definition.edges.filter((e) => !remove.has(e.from) && !remove.has(e.to)),
+      },
+      "Delete nodes"
+    );
+    setSelectedIds([]);
+  }
+
+  function duplicateSelected() {
+    const node = selectedNode;
+    if (!node) return;
+    const id = `${node.type}_${crypto.randomUUID().slice(0, 8)}`;
+    commit(
+      {
+        ...definition,
+        nodes: [
+          ...definition.nodes,
+          {
+            ...node,
+            id,
+            label: `${node.label} copy`,
+            position: {
+              x: (node.position?.x ?? 40) + 24,
+              y: (node.position?.y ?? 40) + 24,
+            },
+          },
+        ],
+      },
+      "Duplicate"
+    );
+    setSelectedIds([id]);
+  }
+
+  function onMoveNodes(positions: Record<string, { x: number; y: number }>) {
     setDefinition((d) => ({
       ...d,
-      nodes: d.nodes.filter((n) => n.id !== nodeId),
-      edges: d.edges.filter((e) => e.from !== nodeId && e.to !== nodeId),
+      nodes: d.nodes.map((n) =>
+        positions[n.id] ? { ...n, position: positions[n.id] } : n
+      ),
     }));
-    if (selectedNodeId === nodeId) setSelectedNodeId(null);
   }
 
-  function connectEdge() {
-    if (!edgeFrom || !edgeTo || edgeFrom === edgeTo) {
-      setMessage("Pick distinct from/to nodes to connect");
+  function onMoveEnd(positions: Record<string, { x: number; y: number }>) {
+    // history.value is still pre-drag (live moves never pushed). One entry per completed drag.
+    const base = history.value;
+    const next: JourneyDefinition = {
+      ...base,
+      nodes: base.nodes.map((n) =>
+        positions[n.id] ? { ...n, position: positions[n.id] } : n
+      ),
+    };
+    const changed = next.nodes.some((n, i) => {
+      const prev = base.nodes[i];
+      return (
+        prev &&
+        (prev.position?.x !== n.position?.x || prev.position?.y !== n.position?.y)
+      );
+    });
+    if (!changed) return;
+    commit(next, "Move nodes");
+  }
+
+  function connect(fromId: string, toId: string) {
+    const check = canConnectNodes(definition, fromId, toId);
+    if (!check.ok) {
+      setMessage(check.reason ?? "Cannot connect");
+      setConnectFrom(null);
       return;
     }
-    const id = `e_${crypto.randomUUID()}`;
-    setDefinition((d) => ({
-      ...d,
-      edges: [
-        ...d.edges,
-        { id, from: edgeFrom, to: edgeTo, label: edgeLabel.trim() || undefined },
-      ],
-    }));
-    setEdgeLabel("");
-    setMessage(`Connected ${edgeFrom} → ${edgeTo}`);
+    const id = `e_${crypto.randomUUID().slice(0, 8)}`;
+    commit(
+      {
+        ...definition,
+        edges: [...definition.edges, { id, from: fromId, to: toId }],
+      },
+      "Connect"
+    );
+    setConnectFrom(null);
+    setMessage(`Connected →`);
   }
 
-  function removeEdge(edgeId: string) {
-    setDefinition((d) => ({ ...d, edges: d.edges.filter((e) => e.id !== edgeId) }));
+  function autoLayout() {
+    const entry = definition.nodes.find((n) => isEntryNodeType(n.type));
+    const positions = applyAutoLayoutToPositions(
+      definition.nodes.map((n) => ({ id: n.id })),
+      definition.edges,
+      entry?.id
+    );
+    commit(
+      {
+        ...definition,
+        nodes: definition.nodes.map((n) => ({
+          ...n,
+          position: positions[n.id] ?? n.position,
+        })),
+      },
+      "Auto-layout"
+    );
+  }
+
+  function insertBeginnerStage(type: JourneyNodeType) {
+    const reg = JOURNEY_NODE_REGISTRY[type];
+    const id = `${type}_${crypto.randomUUID().slice(0, 8)}`;
+    const exit = definition.nodes.find((n) => n.type === "exit");
+    const stagesNow = journeyToStages(definition);
+    const lastBeforeExit =
+      [...stagesNow].reverse().find((n) => n.type !== "exit") ?? stagesNow[0];
+    const nodes = [
+      ...definition.nodes,
+      {
+        id,
+        type,
+        label: reg.label,
+        config:
+          type === "email"
+            ? { subject: "Journey update", requireConsent: true, consentAware: true }
+            : type === "message"
+              ? { requireConsent: true, consentAware: true }
+              : {},
+        position: {
+          x: (lastBeforeExit?.position?.x ?? 80) + 200,
+          y: lastBeforeExit?.position?.y ?? 120,
+        },
+      },
+    ];
+    let edges = definition.edges.filter(
+      (e) => !(lastBeforeExit && exit && e.from === lastBeforeExit.id && e.to === exit.id)
+    );
+    if (lastBeforeExit) {
+      edges = [...edges, { id: `e_${crypto.randomUUID().slice(0, 8)}`, from: lastBeforeExit.id, to: id }];
+    }
+    if (exit) {
+      edges = [...edges, { id: `e_${crypto.randomUUID().slice(0, 8)}`, from: id, to: exit.id }];
+    }
+    commit({ ...definition, nodes, edges }, `Beginner add ${type}`);
+    setSelectedIds([id]);
   }
 
   function saveDraft() {
@@ -265,14 +533,21 @@ export function JourneyEditorShell({
       return;
     }
     setSelectedDraftId(id);
+    history.replace(data.draft.definition as JourneyDefinition);
     setDefinition(data.draft.definition as JourneyDefinition);
+    setHistoryTick((t) => t + 1);
     setStatus(data.draft.status ?? "DRAFT");
     setRuntimeEvents(null);
     setMessage(`Loaded "${data.draft.name}" (${data.draft.status})`);
   }
 
+  void historyTick;
+
   return (
-    <div className="space-y-6">
+    <div
+      className={cn("space-y-4", focusMode && "fixed inset-0 z-40 overflow-auto bg-[#070b12] p-4 lg:p-6")}
+      data-testid="journey-editor-shell"
+    >
       {!featureEnabled && (
         <div
           role="status"
@@ -287,7 +562,11 @@ export function JourneyEditorShell({
         </div>
       )}
 
-      <KeywordsSuggestPanel surface="tapflow" defaultChannel="email" />
+      {!focusMode ? <KeywordsSuggestPanel surface="tapflow" defaultChannel="email" /> : null}
+
+      {brandKit ? (
+        <BrandInheritanceBar state={brandState} onChange={setBrandState} />
+      ) : null}
 
       <div className="flex flex-wrap items-end gap-3">
         <div className="min-w-[200px] flex-1 space-y-1">
@@ -298,6 +577,7 @@ export function JourneyEditorShell({
             id="journey-name"
             value={definition.name}
             onChange={(e) => setDefinition((d) => ({ ...d, name: e.target.value }))}
+            onBlur={() => commit(definition, "Rename")}
           />
         </div>
         <Badge variant="outline" className="font-mono text-xs" aria-live="polite">
@@ -335,49 +615,44 @@ export function JourneyEditorShell({
             Expert
           </button>
         </div>
+        <Button type="button" variant="outline" size="sm" onClick={undo} disabled={!history.canUndo} aria-label="Undo">
+          <Undo2 className="h-4 w-4" />
+        </Button>
+        <Button type="button" variant="outline" size="sm" onClick={redo} disabled={!history.canRedo} aria-label="Redo">
+          <Redo2 className="h-4 w-4" />
+        </Button>
+        <Button type="button" variant="outline" size="sm" className="gap-1" onClick={autoLayout}>
+          <LayoutTemplate className="h-3.5 w-3.5" />
+          Auto-layout
+        </Button>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          onClick={() => setFocusMode((v) => !v)}
+          data-testid="journey-focus-mode"
+        >
+          <Focus className="h-3.5 w-3.5" />
+          {focusMode ? "Exit focus" : "Focus"}
+        </Button>
         <Button onClick={saveDraft} disabled={pending || errors.length > 0} className="gap-2">
           <Save className="h-4 w-4" />
           {pending ? "Saving…" : "Save draft"}
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending || !canLifecyclePublish}
-          onClick={() => lifecycle("publish")}
-        >
+        <Button type="button" variant="outline" disabled={pending || !canLifecyclePublish} onClick={() => lifecycle("publish")}>
           Publish
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending || !canLifecyclePublish}
-          onClick={() => lifecycle("activate")}
-        >
+        <Button type="button" variant="outline" disabled={pending || !canLifecyclePublish} onClick={() => lifecycle("activate")}>
           Activate
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending || !canPause}
-          onClick={() => lifecycle("pause")}
-        >
+        <Button type="button" variant="outline" disabled={pending || !canPause} onClick={() => lifecycle("pause")}>
           Pause
         </Button>
-        <Button
-          type="button"
-          variant="outline"
-          disabled={pending || !canResume}
-          onClick={() => lifecycle("resume")}
-        >
+        <Button type="button" variant="outline" disabled={pending || !canResume} onClick={() => lifecycle("resume")}>
           Resume
         </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={pending}
-          onClick={runDryRun}
-          className="gap-2"
-        >
+        <Button type="button" variant="secondary" disabled={pending} onClick={runDryRun} className="gap-2">
           <Play className="h-4 w-4" />
           Dry-run
         </Button>
@@ -392,245 +667,302 @@ export function JourneyEditorShell({
         </Button>
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-3">
-        <div className="space-y-3 rounded-xl border border-border/60 bg-card/40 p-4 lg:col-span-1">
-          <p className="text-sm font-semibold">Node palette</p>
-          <div className="flex flex-wrap gap-2">
-            {PALETTE.map((type) => (
-              <Button key={type} type="button" variant="outline" size="sm" onClick={() => addNode(type)}>
-                <Plus className="mr-1 h-3 w-3" />
-                {JOURNEY_NODE_REGISTRY[type].label}
-              </Button>
-            ))}
-          </div>
-          <p className="text-xs text-muted-foreground">
-            {definition.nodes.length} nodes · {definition.edges.length} edges
-          </p>
-
-          <div className="space-y-2 border-t border-border/40 pt-3">
-            <p id="connect-edge-label" className="text-xs font-medium text-muted-foreground">
-              Connect edge
+      <div
+        className={cn(
+          "grid gap-4",
+          focusMode || !inspectorOpen ? "lg:grid-cols-1" : "lg:grid-cols-[1fr_320px]"
+        )}
+      >
+        <div className="space-y-3 min-w-0">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card/30 p-3">
+            <p className="text-xs font-semibold text-muted-foreground">
+              {mode === "beginner" ? "Recommended steps" : "Node palette"}
             </p>
-            <select
-              id="edge-from"
-              aria-labelledby="connect-edge-label"
-              aria-label="Edge from node"
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-              value={edgeFrom}
-              onChange={(e) => setEdgeFrom(e.target.value)}
-            >
-              <option value="">From…</option>
-              {definition.nodes.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {n.label} ({n.id.slice(0, 12)})
-                </option>
-              ))}
-            </select>
-            <select
-              id="edge-to"
-              aria-labelledby="connect-edge-label"
-              aria-label="Edge to node"
-              className="w-full rounded-md border border-border bg-background px-2 py-1.5 text-sm"
-              value={edgeTo}
-              onChange={(e) => setEdgeTo(e.target.value)}
-            >
-              <option value="">To…</option>
-              {definition.nodes.map((n) => (
-                <option key={n.id} value={n.id}>
-                  {n.label} ({n.id.slice(0, 12)})
-                </option>
-              ))}
-            </select>
-            <Input
-              placeholder="Label (optional, e.g. true)"
-              value={edgeLabel}
-              onChange={(e) => setEdgeLabel(e.target.value)}
-            />
-            <Button type="button" size="sm" variant="secondary" onClick={connectEdge}>
-              Connect
-            </Button>
-          </div>
-
-          {drafts.length > 0 && (
-            <div className="space-y-2 border-t border-border/40 pt-3">
-              <p className="text-xs font-medium text-muted-foreground">Saved drafts</p>
-              {drafts.map((d) => (
-                <button
-                  key={d.id}
+            <div className="flex flex-wrap gap-2">
+              {palette.map((type) => (
+                <Button
+                  key={type}
                   type="button"
-                  onClick={() => loadDraft(d.id)}
-                  className="block w-full rounded-lg bg-muted/30 px-3 py-2 text-left text-sm hover:bg-muted/50"
+                  variant="outline"
+                  size="sm"
+                  onClick={() =>
+                    mode === "beginner" ? insertBeginnerStage(type) : addNode(type)
+                  }
                 >
-                  {d.name}
-                  <span className="ml-2 font-mono text-[10px] text-muted-foreground">
-                    {d.status ?? "DRAFT"} · {d.id.slice(0, 8)}
-                  </span>
-                </button>
+                  <Plus className="mr-1 h-3 w-3" />
+                  {JOURNEY_NODE_REGISTRY[type].label}
+                </Button>
               ))}
             </div>
-          )}
-        </div>
+            <div className="ml-auto flex flex-wrap gap-2">
+              <Button
+                type="button"
+                size="sm"
+                variant={connectFrom ? "default" : "outline"}
+                onClick={() =>
+                  setConnectFrom((c) => (c ? null : selectedIds[0] ?? null))
+                }
+                disabled={!selectedIds[0] && !connectFrom}
+              >
+                {connectFrom ? "Click target node…" : "Connect"}
+              </Button>
+              <Button type="button" size="sm" variant="outline" className="gap-1" onClick={duplicateSelected} disabled={!selectedNode}>
+                <Copy className="h-3 w-3" />
+                Duplicate
+              </Button>
+              <Button type="button" size="sm" variant="destructive" className="gap-1" onClick={removeSelected} disabled={selectedIds.length === 0}>
+                <Trash2 className="h-3 w-3" />
+                Delete
+              </Button>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                aria-label={inspectorOpen ? "Collapse inspector" : "Expand inspector"}
+                onClick={() => setInspectorOpen((v) => !v)}
+              >
+                {inspectorOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+              </Button>
+            </div>
+          </div>
 
-        <div className="rounded-xl border border-border/60 bg-card/30 p-4 lg:col-span-2">
           {mode === "beginner" ? (
-            <>
-              <div className="mb-3 flex items-center gap-2">
-                <ListOrdered className="h-4 w-4 text-primary" />
-                <p className="font-semibold">Stage list</p>
-                <span className="text-xs text-muted-foreground">same engine as expert graph</span>
-              </div>
-              <ol className="space-y-2">
+            <div className="rounded-xl border border-border/50 bg-card/20 p-3">
+              <p className="mb-2 text-xs font-medium text-muted-foreground">
+                Guided stages (same engine as the graph below)
+              </p>
+              <ol className="flex flex-wrap gap-2">
                 {stages.map((node, idx) => (
-                  <li
-                    key={node.id}
-                    className="flex items-center justify-between gap-2 rounded-lg border border-border/50 bg-background/40 px-3 py-2"
-                  >
-                    <div>
-                      <p className="text-sm font-medium">
-                        {idx + 1}. {node.label}
-                      </p>
-                      <p className="font-mono text-[10px] text-muted-foreground">{node.type}</p>
-                    </div>
-                    <Button
+                  <li key={node.id}>
+                    <button
                       type="button"
-                      size="icon"
-                      variant="ghost"
-                      onClick={() => removeNode(node.id)}
-                      aria-label="Remove node"
+                      onClick={() => setSelectedIds([node.id])}
+                      className={cn(
+                        "rounded-full border px-3 py-1 text-xs",
+                        selectedIds.includes(node.id)
+                          ? "border-primary bg-primary/15 text-primary"
+                          : "border-border/60 text-muted-foreground"
+                      )}
                     >
-                      <Trash2 className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                  </li>
-                ))}
-              </ol>
-            </>
-          ) : (
-            <>
-              <div className="mb-3 flex items-center gap-2">
-                <GitBranch className="h-4 w-4 text-primary" />
-                <p className="font-semibold">Expert graph</p>
-              </div>
-              <div className="relative min-h-[280px] overflow-auto rounded-lg border border-dashed border-border/50 bg-background/50 p-4">
-                {definition.nodes.map((node) => (
-                  <div
-                    key={node.id}
-                    role="button"
-                    tabIndex={0}
-                    aria-label={`${node.label}, ${node.type} node`}
-                    aria-pressed={selectedNodeId === node.id}
-                    onClick={() => setSelectedNodeId(node.id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") setSelectedNodeId(node.id);
-                    }}
-                    className={cn(
-                      "absolute cursor-pointer rounded-lg border bg-card px-3 py-2 text-xs shadow-sm",
-                      selectedNodeId === node.id
-                        ? "border-primary ring-1 ring-primary"
-                        : "border-primary/30"
-                    )}
-                    style={{
-                      left: node.position?.x ?? 40,
-                      top: node.position?.y ?? 40,
-                    }}
-                  >
-                    <p className="font-medium text-primary">{node.label}</p>
-                    <p className="font-mono text-[10px] text-muted-foreground">{node.type}</p>
-                  </div>
-                ))}
-              </div>
-              {selectedNodeId ? (
-                <div className="mt-3 flex items-center gap-2">
-                  <p className="font-mono text-xs text-muted-foreground">{selectedNodeId}</p>
-                  <Button type="button" size="sm" variant="destructive" onClick={() => removeNode(selectedNodeId)}>
-                    Remove node
-                  </Button>
-                </div>
-              ) : null}
-              <ul className="mt-3 space-y-1 text-xs text-muted-foreground">
-                {definition.edges.map((e) => (
-                  <li key={e.id} className="flex items-center justify-between gap-2">
-                    <span className="font-mono">
-                      {e.from.slice(0, 14)} → {e.to.slice(0, 14)}
-                      {e.label ? ` (${e.label})` : ""}
-                    </span>
-                    <button type="button" className="text-red-400 hover:underline" onClick={() => removeEdge(e.id)}>
-                      remove
+                      {idx + 1}. {node.label}
                     </button>
                   </li>
                 ))}
-              </ul>
-            </>
-          )}
-          <div className="mt-4 space-y-2">
-            <Label htmlFor="journey-definition-json" className="text-xs font-medium text-muted-foreground">
-              Definition JSON
-            </Label>
-            <Textarea
-              id="journey-definition-json"
-              className="font-mono text-[11px]"
-              rows={6}
-              value={JSON.stringify(definition, null, 2)}
-              onChange={(e) => {
-                try {
-                  setDefinition(JSON.parse(e.target.value) as JourneyDefinition);
-                } catch {
-                  /* ignore parse while typing */
-                }
-              }}
-            />
-          </div>
-        </div>
-      </div>
+              </ol>
+            </div>
+          ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <div className="rounded-xl border border-border/60 p-4">
-          <p className="mb-2 text-sm font-semibold">Validation</p>
-          {issues.length === 0 ? (
-            <p className="text-sm text-primary">No issues</p>
-          ) : (
-            <ul className="space-y-1 text-sm">
-              {issues.map((i, idx) => (
-                <li key={idx} className={i.severity === "error" ? "text-red-400" : "text-muted-foreground"}>
-                  [{i.severity}] {i.message}
+          <VisualBoard
+            testId="journey-visual-board"
+            nodes={boardNodes.map((n) =>
+              highlightNodes.includes(n.id) ? { ...n, tone: "highlight" } : n
+            )}
+            edges={boardEdges}
+            selectedIds={selectedIds}
+            highlightedNodeIds={highlightNodes}
+            highlightedEdgeIds={highlightEdges}
+            connectFromId={connectFrom}
+            onSelect={(ids) => setSelectedIds(ids)}
+            onMoveNodes={onMoveNodes}
+            onMoveEnd={onMoveEnd}
+            onConnect={connect}
+            emptyLabel="Add a step from the palette to build the customer journey"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Release drag to commit positions · keyboard arrows nudge selected node · non-drag: use Connect + lists
+          </p>
+
+          {/* Accessible non-drag edge list */}
+          <details className="rounded-lg border border-border/40 p-3 text-xs">
+            <summary className="cursor-pointer font-medium text-muted-foreground">
+              Connections list ({definition.edges.length}) — keyboard alternative
+            </summary>
+            <ul className="mt-2 space-y-1">
+              {definition.edges.map((e) => (
+                <li key={e.id} className="flex items-center justify-between gap-2 font-mono">
+                  <span>
+                    {e.from.slice(0, 16)} → {e.to.slice(0, 16)}
+                    {e.label ? ` (${e.label})` : ""}
+                  </span>
+                  <button
+                    type="button"
+                    className="text-red-400 hover:underline"
+                    onClick={() =>
+                      commit(
+                        { ...definition, edges: definition.edges.filter((x) => x.id !== e.id) },
+                        "Remove edge"
+                      )
+                    }
+                  >
+                    remove
+                  </button>
                 </li>
               ))}
             </ul>
-          )}
+          </details>
         </div>
-        <div className="rounded-xl border border-border/60 p-4">
-          <p className="mb-2 flex items-center gap-2 text-sm font-semibold">
-            <Play className="h-4 w-4 text-primary" />
-            Sample path + runtime dry-run
-          </p>
-          <Badge variant={simulation.completed ? "default" : "outline"} className="mb-2">
-            {simulation.completed ? "Reaches exit" : "Incomplete path"}
-          </Badge>
-          <ol className="mb-3 list-decimal space-y-1 pl-4 text-sm text-muted-foreground">
-            {simulation.steps.map((s) => (
-              <li key={s.nodeId}>
-                {s.label}: {s.action}
-              </li>
-            ))}
-          </ol>
-          {(runtimeEvents ?? localRuntime.events).length > 0 && (
-            <div className="border-t border-border/40 pt-2">
-              <p className="mb-1 text-xs font-medium text-muted-foreground">
-                Runtime events {runtimeEvents ? "(API/local dry-run)" : "(local preview)"}
+
+        {inspectorOpen && !focusMode ? (
+          <aside className="space-y-3 min-w-0">
+            <div className="rounded-xl border border-border/60 bg-card/40 p-4">
+              <p className="mb-2 text-sm font-semibold">
+                {mode === "beginner" ? "Simple inspector" : "Inspector"}
               </p>
-              <ul className="max-h-40 space-y-0.5 overflow-auto font-mono text-[10px] text-muted-foreground">
-                {(runtimeEvents ?? localRuntime.events).map((ev, idx) => (
-                  <li key={idx}>{JSON.stringify(ev)}</li>
-                ))}
-              </ul>
+              {selectedNode ? (
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <Label htmlFor="node-label" className="text-xs">
+                      Label
+                    </Label>
+                    <Input
+                      id="node-label"
+                      value={selectedNode.label}
+                      onChange={(e) => {
+                        const label = e.target.value;
+                        setDefinition((d) => ({
+                          ...d,
+                          nodes: d.nodes.map((n) =>
+                            n.id === selectedNode.id ? { ...n, label } : n
+                          ),
+                        }));
+                      }}
+                      onBlur={() => commit(definition, "Label")}
+                    />
+                  </div>
+                  {(selectedNode.type === "message" || selectedNode.type === "email") && (
+                    <ExpandedTextField
+                      label={selectedNode.type === "email" ? "Email body" : "Message"}
+                      value={String(selectedNode.config?.body ?? "")}
+                      recommendedMax={selectedNode.type === "email" ? 600 : 280}
+                      onChange={(body) => {
+                        setDefinition((d) => ({
+                          ...d,
+                          nodes: d.nodes.map((n) =>
+                            n.id === selectedNode.id
+                              ? { ...n, config: { ...n.config, body } }
+                              : n
+                          ),
+                        }));
+                      }}
+                      onBlur={() => commit(definition, "Message body")}
+                      preview={String(selectedNode.config?.body ?? "")}
+                      data-testid="journey-message-body"
+                    />
+                  )}
+                  {selectedNode.type === "email" && (
+                    <div className="space-y-1">
+                      <Label htmlFor="email-subject" className="text-xs">
+                        Subject
+                      </Label>
+                      <Input
+                        id="email-subject"
+                        value={String(selectedNode.config?.subject ?? "")}
+                        onChange={(e) => {
+                          const subject = e.target.value;
+                          setDefinition((d) => ({
+                            ...d,
+                            nodes: d.nodes.map((n) =>
+                              n.id === selectedNode.id
+                                ? { ...n, config: { ...n.config, subject } }
+                                : n
+                            ),
+                          }));
+                        }}
+                        onBlur={() => commit(definition, "Subject")}
+                      />
+                    </div>
+                  )}
+                  {mode === "expert" && (selectedNode.type === "wait" || selectedNode.type === "delay") && (
+                    <div className="space-y-1">
+                      <Label htmlFor="wait-ms" className="text-xs">
+                        Wait (minutes)
+                      </Label>
+                      <Input
+                        id="wait-ms"
+                        type="number"
+                        min={1}
+                        value={Number(selectedNode.config?.minutes ?? 15)}
+                        onChange={(e) => {
+                          const minutes = Number(e.target.value);
+                          setDefinition((d) => ({
+                            ...d,
+                            nodes: d.nodes.map((n) =>
+                              n.id === selectedNode.id
+                                ? { ...n, config: { ...n.config, minutes } }
+                                : n
+                            ),
+                          }));
+                        }}
+                        onBlur={() => commit(definition, "Wait")}
+                      />
+                    </div>
+                  )}
+                  {mode === "expert" ? (
+                    <p className="font-mono text-[10px] text-muted-foreground">{selectedNode.id}</p>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Select a step on the journey board.</p>
+              )}
             </div>
-          )}
-        </div>
+
+            {drafts.length > 0 && (
+              <div className="space-y-2 rounded-xl border border-border/60 p-3">
+                <p className="text-xs font-medium text-muted-foreground">Saved drafts</p>
+                {drafts.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => loadDraft(d.id)}
+                    className="block w-full rounded-lg bg-muted/30 px-3 py-2 text-left text-sm hover:bg-muted/50"
+                  >
+                    {d.name}
+                    <span className="ml-2 font-mono text-[10px] text-muted-foreground">
+                      {d.status ?? "DRAFT"} · {d.id.slice(0, 8)}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            )}
+
+            <div className="rounded-xl border border-border/60 p-3">
+              <p className="mb-2 text-sm font-semibold">Validation</p>
+              {issues.length === 0 ? (
+                <p className="text-sm text-primary">No issues</p>
+              ) : (
+                <ul className="space-y-1 text-sm">
+                  {issues.map((i, idx) => (
+                    <li key={idx} className={i.severity === "error" ? "text-red-400" : "text-muted-foreground"}>
+                      [{i.severity}] {i.message}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </aside>
+        ) : null}
+      </div>
+
+      <div className={cn("grid gap-4", focusMode ? "lg:grid-cols-1" : "lg:grid-cols-2")}>
+        <JourneySimulationPanel
+          definition={definition}
+          runtimeEvents={runtimeEvents}
+          onHighlight={(nodes, edges) => {
+            setHighlightNodes(nodes);
+            setHighlightEdges(edges);
+          }}
+        />
+        <JourneyReviewPanel
+          definition={definition}
+          onApplyDefinition={(next, label) => commit(next, label)}
+          onMarkFindings={(findings: JourneyFinding[]) => {
+            setFindingNodeIds(new Set(findings.flatMap((f) => f.nodeIds)));
+          }}
+        />
       </div>
 
       <div className="rounded-xl border border-border/60 p-4">
-        <p className="mb-1 text-sm font-semibold">
-          Analytics overlay · {analytics.evidence}
-        </p>
+        <p className="mb-1 text-sm font-semibold">Analytics overlay · {analytics.evidence}</p>
         <p className="mb-3 text-xs text-muted-foreground">{analytics.note}</p>
         <ul className="grid gap-1 sm:grid-cols-2 md:grid-cols-3">
           {analytics.nodeVisitEstimates.map((n) => (
@@ -652,6 +984,16 @@ export function JourneyEditorShell({
         ) : null}
       </div>
 
+      <DeveloperDefinitionPanel
+        definition={definition}
+        onApply={(next) => {
+          history.replace(next);
+          setDefinition(next);
+          setHistoryTick((t) => t + 1);
+          setMessage("Developer definition applied");
+        }}
+      />
+
       {message ? (
         <p
           role="status"
@@ -665,4 +1007,15 @@ export function JourneyEditorShell({
       <p className="font-mono text-[10px] text-muted-foreground">business: {businessId}</p>
     </div>
   );
+}
+
+function nodeSummary(type: JourneyNodeType, config: Record<string, unknown>): string {
+  if (type === "email") return String(config.subject ?? "Email");
+  if (type === "message") {
+    const body = String(config.body ?? "");
+    return body ? (body.length > 42 ? `${body.slice(0, 42)}…` : body) : "Message";
+  }
+  if (type === "wait" || type === "delay") return `${config.minutes ?? 15} min`;
+  if (type === "condition" || type === "branch") return "Branch";
+  return JOURNEY_NODE_REGISTRY[type]?.description ?? type;
 }

@@ -2,14 +2,32 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (J1 independent re-verify):** tip `e6b9ccd` (docs) · prior tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
+**HEAD (J1 independent re-verify):** tip `e187dc8` (Visual Authoring wave local) · prior tip `e6b9ccd` (docs) · prior tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
-## UX Simplification wave (2026-07-26) — local, uncommitted
+## Visual Authoring & Guided Intelligence wave (2026-07-26) — local, uncommitted
+
+**Starting HEAD:** `e187dc892a68ed569a09beb8cb4f8e1359aa6775`  
+**Scope:** TapFlow visual journey, TapCanvas connected board, Workbench template differentiation, Brand Kit **copy/restore** (not durable sync), expanded text (Card + Campaign), **deterministic Journey Review** + simulation, Advanced JSON relocation, **drag history** (one entry per completed drag). **J1 remains VERIFIED**. No J2. No push/merge/deploy/Railway.  
+**Not claimed:** Card fuse-box integration; live AI review; durable Brand linking (both Phase 2).  
+**Ledger:** `docs/fusion/VISUAL_AUTHORING_WAVE.md`
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint | **0 errors** (6 warnings: 2 canvas hook deps previously fixed to 0 errors; 4 pre-existing img) |
+| `npm test` | **446/446** PASS |
+| `npm run build` | **PASS** |
+| Prisma validate | **PASS** |
+| Headed `e2e/visual-authoring-wave.spec.ts` | **4/4 PASS** |
+| Headed J1 reconfirm (ID-001 / ID-005) | **2/2 PASS** |
+| Axe (journeys / canvas / workbench / card) | **serious/critical 0** |
+
+## UX Simplification wave (2026-07-26) — committed at `e187dc8`
 
 **Starting HEAD:** `e6b9ccd829f445048f6b710c05b3dfcb83e9f457`  
-**Scope:** Host Studio UX (nav, Home, hubs→workspaces, Create recipes, Format workspace, human errors, TapLoop guided editors). **J1 remains VERIFIED** (reconfirmed headed: ID-001, ID-005, UX spine ID-002/003/006/007). No J2. No push/merge/deploy/Railway.  
+**Scope:** Host Studio UX (nav, Home, hubs→workspaces, Create recipes, Format workspace, human errors, TapLoop guided editors). **J1 remains VERIFIED**. No J2. No push/merge/deploy/Railway.  
 **Ledger:** `docs/fusion/UX_SIMPLIFICATION_WAVE.md` · PO decisions table updated.
 
 ## J1 First Successful Public Tap — independent re-verify (2026-07-26)

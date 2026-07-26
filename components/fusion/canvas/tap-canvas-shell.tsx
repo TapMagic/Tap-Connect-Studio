@@ -6,11 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
-
+import {
+  VisualBoard,
+} from "@/components/fusion/graph/visual-board";
+import { AuthoringHistory } from "@/lib/fusion/graph/history";
 type CanvasNode = {
   id: string;
   kind: string;
   label: string;
+  x?: number;
+  y?: number;
   sketch?: boolean;
   liveStatus?: string;
   linked?: { type: string; id: string } | null;
@@ -23,7 +28,13 @@ type TapCanvas = {
   mode: string;
   version: number;
   nodes: CanvasNode[];
-  edges: { id: string; source: string; target: string; sketch?: boolean }[];
+  edges: {
+    id: string;
+    source: string;
+    target: string;
+    label?: string;
+    sketch?: boolean;
+  }[];
 };
 
 type Template = { id: string; name: string };
@@ -80,8 +91,38 @@ export function TapCanvasShell({
   const [lastUndoVersionId, setLastUndoVersionId] = useState<string | null>(null);
   const [compareDiff, setCompareDiff] = useState<string | null>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [boardsOpen, setBoardsOpen] = useState(true);
   const openFromLinkDone = useRef(false);
   const shellRef = useRef<HTMLDivElement>(null);
+  const positionPersistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingPositions = useRef<Record<string, { x: number; y: number }>>({});
+  const canvasIdRef = useRef<string | null>(null);
+  const positionHistory = useRef(
+    new AuthoringHistory<Record<string, { x: number; y: number }>>({})
+  );
+  const [canUndoMove, setCanUndoMove] = useState(false);
+  const [canRedoMove, setCanRedoMove] = useState(false);
+
+  const syncMoveHistoryFlags = useCallback(() => {
+    setCanUndoMove(positionHistory.current.canUndo);
+    setCanRedoMove(positionHistory.current.canRedo);
+  }, []);
+
+  const resetMoveHistory = useCallback(
+    (nodes: CanvasNode[]) => {
+      const positions: Record<string, { x: number; y: number }> = {};
+      nodes.forEach((n, idx) => {
+        positions[n.id] = { x: n.x ?? 40 + idx * 24, y: n.y ?? 40 + idx * 16 };
+      });
+      positionHistory.current.replace(positions);
+      syncMoveHistoryFlags();
+    },
+    [syncMoveHistoryFlags]
+  );
+
+  useEffect(() => {
+    canvasIdRef.current = canvas?.id ?? null;
+  }, [canvas?.id]);
 
   const reloadList = useCallback(async () => {
     const res = await fetch("/api/canvas");
@@ -100,6 +141,7 @@ export function TapCanvasShell({
     const json = await res.json();
     if (res.ok) {
       setCanvas(json.canvas);
+      if (json.canvas?.nodes) resetMoveHistory(json.canvas.nodes as CanvasNode[]);
       setProposals(json.proposals ?? []);
       setComments(json.comments ?? []);
       setApprovals(json.approvals ?? []);
@@ -115,7 +157,7 @@ export function TapCanvasShell({
     } else {
       setMessage(json.error ?? "Failed to load canvas");
     }
-  }, []);
+  }, [resetMoveHistory]);
 
   useEffect(() => {
     let cancelled = false;
@@ -136,6 +178,9 @@ export function TapCanvasShell({
         if (cancelled) return;
         if (detail.ok) {
           setCanvas(detailJson.canvas);
+          if (detailJson.canvas?.nodes) {
+            resetMoveHistory(detailJson.canvas.nodes as CanvasNode[]);
+          }
           setProposals(detailJson.proposals ?? []);
           setComments(detailJson.comments ?? []);
           setApprovals(detailJson.approvals ?? []);
@@ -156,7 +201,7 @@ export function TapCanvasShell({
     return () => {
       cancelled = true;
     };
-  }, [initialCanvasId]);
+  }, [initialCanvasId, resetMoveHistory]);
 
   async function post(body: Record<string, unknown>) {
     setBusy(true);
@@ -220,6 +265,159 @@ export function TapCanvasShell({
       setBusy(false);
     }
   }
+
+  const flushNodePositions = useCallback(async () => {
+    const canvasId = canvasIdRef.current;
+    const positions = pendingPositions.current;
+    const entries = Object.entries(positions);
+    if (!canvasId || entries.length === 0) return;
+    pendingPositions.current = {};
+    try {
+      await fetch("/api/canvas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_node_position",
+          canvasId,
+          positions: entries.map(([nodeId, p]) => ({
+            nodeId,
+            x: p.x,
+            y: p.y,
+          })),
+        }),
+      });
+    } catch {
+      // Keep optimistic local positions; next drag/reload can reconcile.
+    }
+  }, []);
+
+  function onMoveNodes(positions: Record<string, { x: number; y: number }>) {
+    setCanvas((c) => {
+      if (!c) return c;
+      return {
+        ...c,
+        nodes: c.nodes.map((n) =>
+          positions[n.id] ? { ...n, x: positions[n.id]!.x, y: positions[n.id]!.y } : n
+        ),
+      };
+    });
+    Object.assign(pendingPositions.current, positions);
+    if (positionPersistTimer.current) clearTimeout(positionPersistTimer.current);
+    positionPersistTimer.current = setTimeout(() => {
+      void flushNodePositions();
+    }, 280);
+  }
+
+  function onMoveEnd(positions: Record<string, { x: number; y: number }>) {
+    const base = positionHistory.current.value;
+    const next = { ...base, ...positions };
+    const changed = Object.entries(positions).some(([id, p]) => {
+      const prev = base[id];
+      return !prev || prev.x !== p.x || prev.y !== p.y;
+    });
+    if (!changed) return;
+    positionHistory.current.push(next, "Move nodes");
+    syncMoveHistoryFlags();
+    Object.assign(pendingPositions.current, positions);
+    if (positionPersistTimer.current) clearTimeout(positionPersistTimer.current);
+    positionPersistTimer.current = setTimeout(() => {
+      void flushNodePositions();
+    }, 120);
+  }
+
+  const undoNodeMove = useCallback(() => {
+    if (!positionHistory.current.canUndo) return;
+    const prev = positionHistory.current.undo();
+    syncMoveHistoryFlags();
+    setCanvas((c) => {
+      if (!c) return c;
+      return {
+        ...c,
+        nodes: c.nodes.map((n) =>
+          prev[n.id] ? { ...n, x: prev[n.id]!.x, y: prev[n.id]!.y } : n
+        ),
+      };
+    });
+    Object.assign(pendingPositions.current, prev);
+    if (positionPersistTimer.current) clearTimeout(positionPersistTimer.current);
+    positionPersistTimer.current = setTimeout(() => {
+      void flushNodePositions();
+    }, 120);
+  }, [flushNodePositions, syncMoveHistoryFlags]);
+
+  const redoNodeMove = useCallback(() => {
+    if (!positionHistory.current.canRedo) return;
+    const next = positionHistory.current.redo();
+    syncMoveHistoryFlags();
+    setCanvas((c) => {
+      if (!c) return c;
+      return {
+        ...c,
+        nodes: c.nodes.map((n) =>
+          next[n.id] ? { ...n, x: next[n.id]!.x, y: next[n.id]!.y } : n
+        ),
+      };
+    });
+    Object.assign(pendingPositions.current, next);
+    if (positionPersistTimer.current) clearTimeout(positionPersistTimer.current);
+    positionPersistTimer.current = setTimeout(() => {
+      void flushNodePositions();
+    }, 120);
+  }, [flushNodePositions, syncMoveHistoryFlags]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      const meta = e.metaKey || e.ctrlKey;
+      if (!meta) return;
+      const target = e.target as HTMLElement | null;
+      if (
+        target &&
+        (target.tagName === "INPUT" ||
+          target.tagName === "TEXTAREA" ||
+          target.isContentEditable)
+      ) {
+        return;
+      }
+      if (e.key.toLowerCase() === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undoNodeMove();
+      } else if (
+        e.key.toLowerCase() === "y" ||
+        (e.key.toLowerCase() === "z" && e.shiftKey)
+      ) {
+        e.preventDefault();
+        redoNodeMove();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [undoNodeMove, redoNodeMove]);
+
+  useEffect(() => {
+    return () => {
+      if (positionPersistTimer.current) {
+        clearTimeout(positionPersistTimer.current);
+        positionPersistTimer.current = null;
+      }
+      const canvasId = canvasIdRef.current;
+      const entries = Object.entries(pendingPositions.current);
+      if (!canvasId || entries.length === 0) return;
+      pendingPositions.current = {};
+      void fetch("/api/canvas", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "update_node_position",
+          canvasId,
+          positions: entries.map(([nodeId, p]) => ({
+            nodeId,
+            x: p.x,
+            y: p.y,
+          })),
+        }),
+      });
+    };
+  }, []);
 
   useEffect(() => {
     if (openFromLinkDone.current) return;
@@ -418,8 +616,25 @@ export function TapCanvasShell({
 
       <div className="grid gap-6 lg:grid-cols-[220px_1fr]">
         <aside className="space-y-2" data-testid="tapcanvas-board-list">
-          <p className="text-xs font-semibold uppercase tracking-wide text-white/35">Boards</p>
-          <ul className="space-y-1">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-white/35">
+              Boards
+            </p>
+            <button
+              type="button"
+              className="rounded border border-white/10 px-2 py-0.5 text-[10px] uppercase tracking-wide text-white/45 hover:border-white/25 hover:text-white/70 lg:hidden"
+              aria-expanded={boardsOpen}
+              aria-controls="tapcanvas-board-list-items"
+              data-testid="tapcanvas-board-list-toggle"
+              onClick={() => setBoardsOpen((o) => !o)}
+            >
+              {boardsOpen ? "Collapse" : "Expand"}
+            </button>
+          </div>
+          <ul
+            id="tapcanvas-board-list-items"
+            className={cn("space-y-1", !boardsOpen && "hidden lg:block")}
+          >
             {canvases.map((c) => (
               <li key={c.id}>
                 <button
@@ -442,7 +657,10 @@ export function TapCanvasShell({
           <Link
             href="/dashboard/experiences/tapcast/tiktok"
             data-testid="tapcanvas-open-tiktok"
-            className="mt-4 block text-xs text-primary underline-offset-4 hover:underline"
+            className={cn(
+              "mt-4 block text-xs text-primary underline-offset-4 hover:underline",
+              !boardsOpen && "hidden lg:block"
+            )}
           >
             Open TapCast · TikTok →
           </Link>
@@ -486,33 +704,51 @@ export function TapCanvasShell({
               </div>
 
               {canvas.mode === "sketch" || canvas.mode === "build" ? (
-                <div className="flex flex-wrap items-end gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[10px] uppercase text-white/40" htmlFor="tapcanvas-sticky">
-                      Sticky
-                    </label>
-                    <Input
-                      id="tapcanvas-sticky"
-                      data-testid="tapcanvas-sticky-input"
-                      value={stickyLabel}
-                      onChange={(e) => setStickyLabel(e.target.value)}
-                      className="h-9 w-48 bg-black/40"
-                    />
-                  </div>
-                  <Button
-                    size="sm"
-                    disabled={busy}
-                    data-testid="tapcanvas-add-sticky"
-                    onClick={() =>
-                      post({
-                        action: "add_sticky",
-                        canvasId: canvas.id,
-                        label: stickyLabel,
-                      })
-                    }
+                <div className="space-y-2">
+                  <div
+                    className="flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] uppercase tracking-wide text-white/40"
+                    data-testid="tapcanvas-object-palette"
                   >
-                    Add sticky
-                  </Button>
+                    <span>
+                      <span className="text-white/55">Ideas</span>
+                      {" · "}
+                      sticky / note / frame
+                      <span className="text-white/25"> (sketch, non-executing)</span>
+                    </span>
+                    <span>
+                      <span className="text-primary/80">Executable</span>
+                      {" · "}
+                      campaign / card / offer / tapflow
+                      <span className="text-white/25"> (after promote)</span>
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-end gap-2">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase text-white/40" htmlFor="tapcanvas-sticky">
+                        Sticky
+                      </label>
+                      <Input
+                        id="tapcanvas-sticky"
+                        data-testid="tapcanvas-sticky-input"
+                        value={stickyLabel}
+                        onChange={(e) => setStickyLabel(e.target.value)}
+                        className="h-9 w-48 bg-black/40"
+                      />
+                    </div>
+                    <Button
+                      size="sm"
+                      disabled={busy}
+                      data-testid="tapcanvas-add-sticky"
+                      onClick={() =>
+                        post({
+                          action: "add_sticky",
+                          canvasId: canvas.id,
+                          label: stickyLabel,
+                        })
+                      }
+                    >
+                      Add sticky
+                    </Button>
                   <Button
                     size="sm"
                     variant="secondary"
@@ -700,6 +936,7 @@ export function TapCanvasShell({
                   >
                     Add email action (no consent)
                   </Button>
+                  </div>
                 </div>
               ) : null}
 
@@ -1121,68 +1358,85 @@ export function TapCanvasShell({
 
               <div
                 data-testid="tapcanvas-graph"
-                className="min-h-[320px] rounded-xl border border-white/10 bg-[radial-gradient(ellipse_at_top,_rgba(163,230,53,0.06),_transparent_55%),linear-gradient(180deg,#0a0a0a,#111)] p-4"
+                className="min-h-[320px] overflow-hidden rounded-xl border border-white/10"
               >
-                <ul className="flex flex-wrap gap-3">
-                  {canvas.nodes.map((n) => (
-                    <li key={n.id} className="list-none">
-                      <button
-                        type="button"
-                        data-testid={`tapcanvas-node-${n.id}`}
-                        aria-pressed={selectedNodeId === n.id}
-                        aria-label={`Select ${n.kind} node ${n.label}`}
-                        onClick={() => setSelectedNodeId(n.id)}
-                        onKeyDown={(e) => {
-                          if (e.key === "Enter" || e.key === " ") {
-                            e.preventDefault();
-                            setSelectedNodeId(n.id);
-                          }
-                        }}
-                        className={cn(
-                          "min-w-[140px] max-w-[200px] rounded-lg border px-3 py-2 text-left text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
-                          selectedNodeId === n.id && "ring-2 ring-primary/60",
-                          n.sketch
-                            ? "border-dashed border-white/25 bg-black/30 text-white/70"
-                            : n.data?.guardianBlocked
-                              ? "border-red-500/40 bg-red-500/10 text-red-100"
-                              : "border-primary/30 bg-primary/5 text-white"
-                        )}
-                      >
-                      <p className="text-[10px] uppercase tracking-wide text-white/40">
-                        {n.kind}
-                        {n.sketch ? " · sketch" : ""}
-                      </p>
-                      <p className="font-medium">{n.label}</p>
-                      {n.liveStatus ? (
-                        <p className="mt-1 text-[10px] text-sky-200/80">{n.liveStatus}</p>
-                      ) : null}
-                      {n.linked ? (
-                        <p className="mt-1 truncate text-[10px] text-white/35">
-                          → {n.linked.type}:{n.linked.id}
-                        </p>
-                      ) : null}
-                      {n.data?.guardianBlocked ? (
-                        <p className="mt-1 text-[10px] text-red-200/90">
-                          Guardian: {String(n.data.guardianReason ?? "blocked")}
-                        </p>
-                      ) : null}
-                      {Array.isArray(n.data?.keywords) ? (
-                        <p
-                          data-testid="tapcanvas-keyword-node"
-                          className="mt-1 truncate text-[10px] text-primary/80"
-                        >
-                          keywords: {(n.data.keywords as string[]).slice(0, 4).join(", ")}
-                        </p>
-                      ) : null}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-                {canvas.edges.length > 0 ? (
-                  <p className="mt-4 text-xs text-white/35">
-                    {canvas.edges.length} edge(s) ·{" "}
-                    {canvas.edges.filter((e) => e.sketch).length} sketch (non-executing)
-                  </p>
+                <div className="flex flex-wrap items-center gap-2 border-b border-white/10 px-3 py-2">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    disabled={!canUndoMove}
+                    onClick={undoNodeMove}
+                    data-testid="tapcanvas-move-undo"
+                  >
+                    Undo move
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-7 text-[11px]"
+                    disabled={!canRedoMove}
+                    onClick={redoNodeMove}
+                    data-testid="tapcanvas-move-redo"
+                  >
+                    Redo move
+                  </Button>
+                  <span className="text-[10px] text-muted-foreground" data-testid="tapcanvas-move-history-hint">
+                    One history entry per completed drag · ⌘Z / ⌘⇧Z
+                  </span>
+                </div>
+                <VisualBoard
+                  testId="tapcanvas-visual-board"
+                  testIdPrefix="tapcanvas-node"
+                  className="min-h-[360px] border-0"
+                  nodes={canvas.nodes.map((n, idx) => {
+                    const subtitleParts: string[] = [];
+                    if (n.sketch) subtitleParts.push("sketch · does not execute");
+                    if (n.liveStatus) subtitleParts.push(n.liveStatus);
+                    if (n.linked) subtitleParts.push(`→ ${n.linked.type}:${n.linked.id}`);
+                    if (n.data?.guardianBlocked) {
+                      subtitleParts.push(
+                        `Guardian: ${String(n.data.guardianReason ?? "blocked")}`
+                      );
+                    }
+                    if (Array.isArray(n.data?.keywords)) {
+                      subtitleParts.push(
+                        `keywords: ${(n.data.keywords as string[]).slice(0, 4).join(", ")}`
+                      );
+                    }
+                    return {
+                      id: n.id,
+                      label: n.label,
+                      badge: n.sketch ? `${n.kind} · sketch` : n.kind,
+                      subtitle: subtitleParts.length ? subtitleParts.join(" · ") : undefined,
+                      x: n.x ?? 40 + idx * 24,
+                      y: n.y ?? 40 + idx * 16,
+                      tone: n.sketch
+                        ? ("sketch" as const)
+                        : n.data?.guardianBlocked
+                          ? ("error" as const)
+                          : ("executable" as const),
+                    };
+                  })}
+                  edges={canvas.edges.map((e) => ({
+                    id: e.id,
+                    from: e.source,
+                    to: e.target,
+                    label: e.label,
+                    sketch: Boolean(e.sketch),
+                  }))}
+                  selectedIds={selectedNodeId ? [selectedNodeId] : []}
+                  onSelect={(ids) => setSelectedNodeId(ids[0] ?? null)}
+                  onMoveNodes={onMoveNodes}
+                  onMoveEnd={onMoveEnd}
+                  emptyLabel="Add stickies or promote sketch objects onto the board"
+                />
+                {canvas.nodes.some((n) => Array.isArray(n.data?.keywords)) ? (
+                  <span data-testid="tapcanvas-keyword-node" className="sr-only">
+                    keyword node present
+                  </span>
                 ) : null}
               </div>
             </>

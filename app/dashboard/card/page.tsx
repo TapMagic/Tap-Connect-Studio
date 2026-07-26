@@ -130,6 +130,15 @@ export default async function TapCardPage() {
           campaigns={campaigns}
           freeformEnabled={freeformEnabled}
           brandKitId={brandKit?.id ?? null}
+          brandColors={
+            brandKit
+              ? {
+                  primaryColor: brandKit.primaryColor,
+                  secondaryColor: brandKit.secondaryColor,
+                  accentColor: brandKit.accentColor,
+                }
+              : null
+          }
         />
       </div>
       <div className="shrink-0 border-t border-white/8 bg-[#050814] px-4 py-4 lg:px-6">

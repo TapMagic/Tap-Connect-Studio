@@ -57,6 +57,7 @@ import {
   simulateDeployment,
   simulateTapflowFromCanvas,
   undoPromotion,
+  updateNode,
   addCanvasCommentDb,
   createCanvasApprovalDb,
   listCanvasApprovalsDb,
@@ -446,6 +447,23 @@ const bodySchema = z.discriminatedUnion("action", [
       description: z.string().optional(),
     }),
     confirm: z.boolean(),
+  }),
+  z.object({
+    action: z.literal("update_node_position"),
+    canvasId: z.string(),
+    nodeId: z.string().optional(),
+    x: z.number().optional(),
+    y: z.number().optional(),
+    positions: z
+      .array(
+        z.object({
+          nodeId: z.string(),
+          x: z.number(),
+          y: z.number(),
+        })
+      )
+      .min(1)
+      .optional(),
   }),
   z.object({
     action: z.literal("create_simple_campaign"),
@@ -1117,6 +1135,26 @@ export async function POST(req: Request) {
         });
         await afterMutate(body.canvasId);
         return NextResponse.json(result);
+      }
+      case "update_node_position": {
+        await hydrateCanvasSession(body.canvasId, business.id);
+        const updates =
+          body.positions ??
+          (body.nodeId != null && body.x != null && body.y != null
+            ? [{ nodeId: body.nodeId, x: body.x, y: body.y }]
+            : []);
+        if (updates.length === 0) {
+          return NextResponse.json(
+            { error: "Provide nodeId+x+y or positions[]" },
+            { status: 400 }
+          );
+        }
+        let canvas = null as ReturnType<typeof updateNode>["canvas"] | null;
+        for (const u of updates) {
+          canvas = updateNode(body.canvasId, u.nodeId, { x: u.x, y: u.y }).canvas;
+        }
+        await afterMutate(body.canvasId);
+        return NextResponse.json({ ok: true, canvas });
       }
       default:
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });

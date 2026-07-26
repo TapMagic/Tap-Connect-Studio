@@ -38,6 +38,7 @@ import { captureEditorSnapshot } from "@/lib/fusion/autopilot/editor-revert";
 import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import { normalizeContentBlocks } from "@/lib/services/normalize-content-blocks";
 import { CampaignActions } from "@/components/campaign/campaign-actions";
+import { ExpandedTextField } from "@/components/design/expanded-text-field";
 import { cn } from "@/lib/utils";
 import {
   scrollChildIntoNearestView,
@@ -2314,15 +2315,18 @@ function BlockFields({
               <option value="text_image">Image + text</option>
             </select>
             {(col.cellType ?? (col.imageUrl ? "text_image" : "text")) !== "image" ? (
-              <Textarea
+              <ExpandedTextField
+                label={`Column ${i + 1} body`}
                 value={col.body}
-                onChange={(e) => {
+                onChange={(body) => {
                   const next = cols.map((c) =>
-                    c.id === col.id ? { ...c, body: e.target.value } : c
+                    c.id === col.id ? { ...c, body } : c
                   );
                   onUpdate("columns", next);
                 }}
-                rows={3}
+                preview={
+                  <p className="whitespace-pre-wrap text-sm">{col.body || "—"}</p>
+                }
               />
             ) : null}
             {(col.cellType === "image" ||
@@ -2397,41 +2401,48 @@ function BlockFields({
     );
   }
 
-  const textFields: Record<string, { key: string; label: string; multiline?: boolean }[]> = {
+  const textFields: Record<
+    string,
+    { key: string; label: string; multiline?: boolean; expand?: boolean }[]
+  > = {
     headline: [
-      { key: "headline", label: "Headline" },
-      { key: "subheadline", label: "Subheadline" },
+      { key: "headline", label: "Headline", expand: true },
+      { key: "subheadline", label: "Subheadline", expand: true },
     ],
-    rich_text: [{ key: "body", label: "Body text", multiline: true }],
+    rich_text: [{ key: "body", label: "Body text", multiline: true, expand: true }],
     product_details: [
       { key: "name", label: "Product name" },
-      { key: "description", label: "Description", multiline: true },
+      { key: "description", label: "Description", multiline: true, expand: true },
       { key: "price", label: "Price" },
     ],
     offer_coupon: [
-      { key: "title", label: "Offer title" },
-      { key: "description", label: "Description", multiline: true },
+      { key: "title", label: "Offer title", expand: true },
+      { key: "description", label: "Description", multiline: true, expand: true },
       { key: "code", label: "Coupon code" },
       { key: "ctaLabel", label: "Button label" },
     ],
     email_capture: [
-      { key: "headline", label: "Headline" },
-      { key: "description", label: "Description" },
+      { key: "headline", label: "Headline", expand: true },
+      { key: "description", label: "Description", expand: true },
       { key: "buttonLabel", label: "Button label" },
-      { key: "successMessage", label: "Success message (after contact submitted)" },
+      {
+        key: "successMessage",
+        label: "Success message (after contact submitted)",
+        expand: true,
+      },
     ],
     feedback_form: [
-      { key: "headline", label: "Headline" },
-      { key: "description", label: "Description" },
+      { key: "headline", label: "Headline", expand: true },
+      { key: "description", label: "Description", expand: true },
       { key: "buttonLabel", label: "Button label" },
-      { key: "successMessage", label: "Success message" },
+      { key: "successMessage", label: "Success message", expand: true },
     ],
     map_location: [
-      { key: "headline", label: "Headline" },
+      { key: "headline", label: "Headline", expand: true },
       { key: "address", label: "Address" },
       { key: "buttonLabel", label: "Button label" },
     ],
-    disclaimer: [{ key: "text", label: "Disclaimer text", multiline: true }],
+    disclaimer: [{ key: "text", label: "Disclaimer text", multiline: true, expand: true }],
   };
 
   const fields = textFields[block.type];
@@ -2475,36 +2486,56 @@ function BlockFields({
         />
       )}
       <div className="grid gap-3 sm:grid-cols-2">
-        {fields.map((field) => (
-          <div key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
-            <Label
-              className="text-xs"
-              htmlFor={
-                block.type === "headline" && field.key === "headline"
-                  ? "block-headline-text"
-                  : undefined
-              }
-            >
-              {field.label}
-            </Label>
-            {field.multiline ? (
-              <Textarea
-                value={(data[field.key] as string) ?? ""}
-                onChange={(e) => onUpdate(field.key, e.target.value)}
-                className="mt-1"
-              />
-            ) : (
-              <Input
-                value={(data[field.key] as string) ?? ""}
-                onChange={(e) => onUpdate(field.key, e.target.value)}
-                className="mt-1"
-                {...(block.type === "headline" && field.key === "headline"
-                  ? { "data-testid": "block-headline-text", id: "block-headline-text" }
-                  : {})}
-              />
-            )}
-          </div>
-        ))}
+        {fields.map((field) => {
+          const value = (data[field.key] as string) ?? "";
+          const headlineTestProps =
+            block.type === "headline" && field.key === "headline"
+              ? { "data-testid": "block-headline-text", id: "block-headline-text" }
+              : {};
+          if (field.expand) {
+            return (
+              <div key={field.key} className="sm:col-span-2">
+                <ExpandedTextField
+                  label={field.label}
+                  value={value}
+                  onChange={(next) => onUpdate(field.key, next)}
+                  preview={
+                    <p className="whitespace-pre-wrap text-sm text-foreground/90">{value || "—"}</p>
+                  }
+                  {...headlineTestProps}
+                />
+              </div>
+            );
+          }
+          return (
+            <div key={field.key} className={field.multiline ? "sm:col-span-2" : ""}>
+              <Label
+                className="text-xs"
+                htmlFor={
+                  block.type === "headline" && field.key === "headline"
+                    ? "block-headline-text"
+                    : undefined
+                }
+              >
+                {field.label}
+              </Label>
+              {field.multiline ? (
+                <Textarea
+                  value={value}
+                  onChange={(e) => onUpdate(field.key, e.target.value)}
+                  className="mt-1"
+                />
+              ) : (
+                <Input
+                  value={value}
+                  onChange={(e) => onUpdate(field.key, e.target.value)}
+                  className="mt-1"
+                  {...headlineTestProps}
+                />
+              )}
+            </div>
+          );
+        })}
       </div>
       {block.type === "email_capture" && (
           <div className="sm:col-span-2 space-y-3 rounded-lg border border-border/50 p-3">
@@ -2571,11 +2602,24 @@ function BlockFields({
         )}
         {block.type === "product_details" && (
           <div className="sm:col-span-2">
-            <Label className="text-xs">Features (one per line)</Label>
-            <Textarea
+            <ExpandedTextField
+              label="Features (one per line)"
               value={((data.features as string[]) ?? []).join("\n")}
-              onChange={(e) => onUpdate("features", e.target.value.split("\n").filter(Boolean))}
-              className="mt-1"
+              onChange={(next) =>
+                onUpdate(
+                  "features",
+                  next.split("\n").filter(Boolean)
+                )
+              }
+              preview={
+                <ul className="list-disc space-y-1 pl-4 text-sm">
+                  {((data.features as string[]) ?? []).length ? (
+                    ((data.features as string[]) ?? []).map((f) => <li key={f}>{f}</li>)
+                  ) : (
+                    <li className="list-none text-muted-foreground">—</li>
+                  )}
+                </ul>
+              }
             />
           </div>
         )}

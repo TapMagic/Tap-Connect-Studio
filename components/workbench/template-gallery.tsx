@@ -2,7 +2,17 @@
 
 import { useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ArrowRight, Bookmark, X } from "lucide-react";
+import {
+  ArrowRight,
+  Bookmark,
+  CheckCircle2,
+  ClipboardList,
+  Footprints,
+  Sparkles,
+  Target,
+  Users,
+  X,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,83 +21,158 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import type { CampaignTemplate, ContentBlock } from "@/lib/types/campaign";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
+import {
+  TEMPLATE_OUTCOMES,
+  type TemplateOutcomeMeta,
+} from "@/lib/fusion/studio/template-outcomes";
 
-const TEMPLATE_PREVIEWS: Record<
+/** Sample preview seeds — enriched from TEMPLATE_OUTCOMES for gallery cards */
+export const TEMPLATE_PREVIEWS: Record<
   string,
-  { product: string; price?: string; offer?: string; tone: string; accent: string }
-> = {
-  "product-story": {
-    product: "Midnight Reserve Cigar",
-    price: "$28",
-    offer: "VIP 10% off",
-    tone: "Product showcase + unlockable offer",
-    accent: "from-emerald-500/40 via-green-700/20",
-  },
-  "video-demo": {
-    product: "Smart Humidor Demo",
-    tone: "Video-led explanation + CTA",
-    accent: "from-sky-500/40 via-cyan-700/20",
-  },
-  "coupon-offer": {
-    product: "Weekend Bundle",
-    price: "Save $15",
-    offer: "CODE: WEEKEND15",
-    tone: "Contact first → then unlock coupon",
-    accent: "from-amber-500/40 via-orange-700/20",
-  },
-  "review-request": {
-    product: "Thank-you + Google review",
-    tone: "Ask for reviews after a visit",
-    accent: "from-violet-500/40 via-purple-700/20",
-  },
-  "contact-vcard": {
-    product: "Alex Rivera · Sales Lead",
-    tone: "Digital business card + save contact",
-    accent: "from-slate-400/40 via-zinc-700/20",
-  },
-  "event-announcement": {
-    product: "Friday Tasting Night",
-    offer: "RSVP required",
-    tone: "Event details + signup",
-    accent: "from-rose-500/40 via-pink-700/20",
-  },
-  "lead-capture": {
-    product: "VIP list signup",
-    tone: "Collect name, email, phone",
-    accent: "from-teal-500/40 via-emerald-700/20",
-  },
-  "link-hub": {
-    product: "All your important links",
-    tone: "Link-in-bio style hub",
-    accent: "from-indigo-500/40 via-blue-700/20",
-  },
-};
+  {
+    product: string;
+    price?: string;
+    offer?: string;
+    tone: string;
+    accent: string;
+    mediaKind: TemplateOutcomeMeta["media"]["kind"];
+    mediaLabel: string;
+  }
+> = Object.fromEntries(
+  Object.values(TEMPLATE_OUTCOMES).map((o) => [
+    o.id,
+    {
+      product: o.sampleTitle,
+      price: o.price,
+      offer: o.offer,
+      tone: o.scenario,
+      accent: o.media.gradient,
+      mediaKind: o.media.kind,
+      mediaLabel: o.media.mediaLabel,
+    },
+  ])
+);
+
+function MediaPlaceholder({
+  kind,
+  label,
+  large,
+}: {
+  kind: TemplateOutcomeMeta["media"]["kind"];
+  label: string;
+  large?: boolean;
+}) {
+  const shapes: Record<TemplateOutcomeMeta["media"]["kind"], string> = {
+    product: "rounded-xl",
+    video: "rounded-lg aspect-video",
+    coupon: "rounded-2xl border-2 border-dashed border-white/40",
+    review: "rounded-full aspect-square max-w-[4.5rem] mx-auto",
+    vcard: "rounded-2xl",
+    event: "rounded-md skew-y-[-1deg]",
+    lead: "rounded-lg",
+    hub: "rounded-3xl",
+  };
+
+  return (
+    <div
+      className={cn(
+        "relative flex items-center justify-center overflow-hidden bg-black/25",
+        shapes[kind],
+        large ? "min-h-[7.5rem] w-full" : "h-16 w-full"
+      )}
+      data-testid={`template-media-${kind}`}
+    >
+      {kind === "video" ? (
+        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/20 text-white backdrop-blur-sm">
+          <span className="ml-0.5 text-[10px] font-bold tracking-wide">PLAY</span>
+        </div>
+      ) : kind === "coupon" ? (
+        <div className="px-3 text-center font-mono text-[11px] font-semibold tracking-wide text-white/90">
+          {label}
+        </div>
+      ) : kind === "review" ? (
+        <span className="text-lg font-semibold tracking-wide text-amber-200/90">
+          Review
+        </span>
+      ) : kind === "hub" ? (
+        <div className="flex w-full flex-col gap-1 px-3 py-2">
+          <div className="h-2 rounded-full bg-white/35" />
+          <div className="h-2 rounded-full bg-white/25" />
+          <div className="h-2 rounded-full bg-white/20" />
+        </div>
+      ) : kind === "lead" ? (
+        <div className="w-[70%] space-y-1.5 px-2">
+          <div className="h-2 rounded bg-white/30" />
+          <div className="h-2 rounded bg-white/20" />
+          <div className="mx-auto mt-1 h-5 w-16 rounded-md bg-primary/70" />
+        </div>
+      ) : kind === "event" ? (
+        <div className="text-center">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/70">Fri</p>
+          <p className={cn("font-bold text-white", large ? "text-2xl" : "text-lg")}>26</p>
+        </div>
+      ) : kind === "vcard" ? (
+        <div className="flex items-center gap-2 px-3">
+          <div className={cn("rounded-full bg-white/30", large ? "h-12 w-12" : "h-8 w-8")} />
+          <div className="space-y-1">
+            <div className="h-2 w-16 rounded bg-white/40" />
+            <div className="h-1.5 w-10 rounded bg-white/25" />
+          </div>
+        </div>
+      ) : (
+        <div className="flex h-full w-full items-end justify-center pb-2">
+          <div
+            className={cn(
+              "rounded-t-md bg-gradient-to-t from-black/50 to-white/20",
+              large ? "h-16 w-12" : "h-10 w-8"
+            )}
+          />
+        </div>
+      )}
+      {kind !== "coupon" && kind !== "hub" && kind !== "lead" ? (
+        <span className="absolute bottom-1 left-2 text-[9px] font-medium text-white/70">
+          {label}
+        </span>
+      ) : null}
+    </div>
+  );
+}
 
 function PhonePreview({
   template,
   brandColors,
   large = false,
+  outcome,
 }: {
   template: CampaignTemplate;
   brandColors?: TemplateGalleryProps["brandColors"];
   large?: boolean;
+  outcome?: TemplateOutcomeMeta;
 }) {
   const preview = TEMPLATE_PREVIEWS[template.id];
+  const meta = outcome ?? TEMPLATE_OUTCOMES[template.id];
   const primary = brandColors?.primaryColor ?? "#22c55e";
   const bg = brandColors?.backgroundColor ?? "#0b0f19";
   const text = brandColors?.textColor ?? "#f8fafc";
   const sampleBlocks = template.defaultBlocks.filter((b) => b.enabled).slice(0, large ? 5 : 3);
+  const gradient = preview?.accent ?? meta?.media.gradient ?? "from-primary/40 via-emerald-900/20";
 
   return (
     <div
       className={cn(
-        "relative mx-auto overflow-hidden rounded-[1.5rem] border border-white/10 shadow-xl",
-        large ? "w-full max-w-sm" : "h-40 w-full"
+        "relative mx-auto overflow-hidden rounded-[1.65rem] border border-white/10 shadow-xl",
+        large ? "w-full max-w-sm" : "h-52 w-full"
       )}
       style={{ backgroundColor: bg, color: text }}
+      data-testid={`template-phone-${template.id}`}
     >
-      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-80", preview?.accent)} />
-      <div className={cn("relative z-10 flex flex-col", large ? "gap-3 p-5" : "h-full justify-between p-3")}>
+      <div className={cn("absolute inset-0 bg-gradient-to-br opacity-90", gradient)} />
+      <div
+        className={cn(
+          "relative z-10 flex flex-col",
+          large ? "gap-3 p-5" : "h-full justify-between gap-2 p-3"
+        )}
+      >
         <div className="flex items-center gap-2">
           {brandColors?.logoUrl ? (
             <img src={brandColors.logoUrl} alt="" className="h-7 w-7 rounded object-cover" />
@@ -98,15 +183,19 @@ function PhonePreview({
             <p className={cn("truncate font-semibold", large ? "text-sm" : "text-[11px]")}>
               {preview?.product ?? template.name}
             </p>
-            {preview?.price && (
-              <p className="text-[10px] opacity-70">{preview.price}</p>
-            )}
+            {preview?.price ? <p className="text-[10px] opacity-70">{preview.price}</p> : null}
           </div>
         </div>
 
-        {large && (
-          <p className="text-xs opacity-75">{preview?.tone ?? template.description}</p>
-        )}
+        <MediaPlaceholder
+          kind={preview?.mediaKind ?? meta?.media.kind ?? "product"}
+          label={preview?.mediaLabel ?? meta?.media.mediaLabel ?? "Preview"}
+          large={large}
+        />
+
+        {large && meta ? (
+          <p className="text-xs leading-snug opacity-80">{meta.firstScreen}</p>
+        ) : null}
 
         <div className="space-y-1.5">
           {sampleBlocks.map((block) => (
@@ -114,15 +203,15 @@ function PhonePreview({
           ))}
         </div>
 
-        {preview?.offer && (
+        {(preview?.offer || meta?.primaryAction) && (
           <div
             className={cn(
-              "rounded-lg border border-dashed px-2 py-1 text-center font-mono",
+              "rounded-lg border border-dashed px-2 py-1.5 text-center font-medium",
               large ? "text-sm" : "text-[10px]"
             )}
             style={{ borderColor: primary, color: primary }}
           >
-            {preview.offer}
+            {preview?.offer ?? meta?.primaryAction}
           </div>
         )}
       </div>
@@ -157,16 +246,46 @@ function SampleBlock({
   if (block.type === "offer_coupon") {
     return (
       <div
-        className={cn("rounded-md border border-dashed px-2 py-1 text-center", compact ? "text-[9px]" : "text-xs")}
+        className={cn(
+          "rounded-md border border-dashed px-2 py-1 text-center",
+          compact ? "text-[9px]" : "text-xs"
+        )}
         style={{ borderColor: primary }}
       >
         {(data.code as string) || "OFFER"} locked until contact
       </div>
     );
   }
+  if (block.type === "hero_video") {
+    return (
+      <div className={cn("rounded-md bg-sky-500/20 px-2 py-1", compact ? "text-[9px]" : "text-xs")}>
+        Video block
+      </div>
+    );
+  }
+  if (block.type === "google_review") {
+    return (
+      <div
+        className={cn("rounded-md bg-violet-500/20 px-2 py-1", compact ? "text-[9px]" : "text-xs")}
+      >
+        Review CTA
+      </div>
+    );
+  }
   return (
-    <div className={cn("rounded-md bg-white/5 px-2 py-1 opacity-80", compact ? "text-[9px]" : "text-xs")}>
+    <div
+      className={cn("rounded-md bg-white/5 px-2 py-1 opacity-80", compact ? "text-[9px]" : "text-xs")}
+    >
       {block.label}
+    </div>
+  );
+}
+
+function MetaRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex gap-2 text-[11px] leading-snug">
+      <span className="w-[5.5rem] shrink-0 font-medium text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-foreground/90">{value}</span>
     </div>
   );
 }
@@ -196,6 +315,7 @@ export function TemplateGallery({
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {templates.map((template) => {
         const preview = TEMPLATE_PREVIEWS[template.id];
+        const outcome = TEMPLATE_OUTCOMES[template.id];
         const selected = selectedId === template.id;
         return (
           <Card
@@ -204,9 +324,14 @@ export function TemplateGallery({
               "group overflow-hidden border-border/60 transition-colors hover:border-primary/30",
               selected && "border-primary/50 ring-1 ring-primary/30"
             )}
+            data-testid={`template-card-${template.id}`}
           >
             <button type="button" className="w-full text-left" onClick={() => onSelect(template.id)}>
-              <PhonePreview template={template} brandColors={brandColors} />
+              <PhonePreview
+                template={template}
+                brandColors={brandColors}
+                outcome={outcome}
+              />
             </button>
 
             <CardHeader className="pb-2">
@@ -218,16 +343,42 @@ export function TemplateGallery({
                   </Badge>
                 )}
               </div>
-              <CardDescription className="text-sm">
-                {preview?.tone ?? template.description}
+              <CardDescription className="text-sm" data-testid="template-scenario">
+                {outcome?.scenario ?? preview?.tone ?? template.description}
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="flex items-center justify-between gap-2">
-              <span className="text-xs text-muted-foreground">
-                Example: {preview?.product ?? `${template.suggestedBlocks.length} blocks`}
-              </span>
-              <div className="flex gap-2">
+            <CardContent className="space-y-3">
+              {outcome ? (
+                <div className="space-y-1.5 rounded-lg border border-border/40 bg-muted/15 p-2.5">
+                  <MetaRow label="First screen" value={outcome.firstScreen} />
+                  <MetaRow label="Primary action" value={outcome.primaryAction} />
+                  <MetaRow label="Data captured" value={outcome.dataCaptured} />
+                  <MetaRow label="Follow-up" value={outcome.followUp} />
+                  <MetaRow label="Outcome" value={outcome.finalOutcome} />
+                  <MetaRow
+                    label="Setup"
+                    value={outcome.setupRequirements.slice(0, 2).join(" · ")}
+                  />
+                  <MetaRow
+                    label="Est. steps"
+                    value={`${outcome.estimatedSteps} guided steps`}
+                  />
+                  <div className="flex flex-wrap gap-1 pt-1">
+                    {outcome.pillars.map((p) => (
+                      <Badge key={p} variant="secondary" className="text-[9px]">
+                        {p}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Example: {preview?.product ?? `${template.suggestedBlocks.length} blocks`}
+                </span>
+              )}
+
+              <div className="flex items-center justify-between gap-2">
                 <button
                   type="button"
                   title="Save as user template (coming soon)"
@@ -236,7 +387,12 @@ export function TemplateGallery({
                 >
                   <Bookmark className="h-4 w-4" />
                 </button>
-                <Button size="sm" className="h-7" onClick={() => onUse(template.id)}>
+                <Button
+                  size="sm"
+                  className="h-7"
+                  data-testid={`template-use-${template.id}`}
+                  onClick={() => onUse(template.id)}
+                >
                   Use <ArrowRight className="ml-1 h-3 w-3" />
                 </Button>
               </div>
@@ -244,6 +400,33 @@ export function TemplateGallery({
           </Card>
         );
       })}
+    </div>
+  );
+}
+
+function ModalSection({
+  icon: Icon,
+  title,
+  items,
+}: {
+  icon: typeof Sparkles;
+  title: string;
+  items: string[];
+}) {
+  return (
+    <div className="rounded-xl border border-border/50 bg-muted/10 p-3">
+      <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
+        <Icon className="h-4 w-4 text-primary" aria-hidden />
+        {title}
+      </div>
+      <ul className="space-y-1.5">
+        {items.map((item) => (
+          <li key={item} className="flex gap-2 text-sm text-muted-foreground">
+            <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary/80" aria-hidden />
+            <span>{item}</span>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }
@@ -276,6 +459,9 @@ export function WorkbenchStart({
     () => templates.find((t) => t.id === (previewId ?? selected)) ?? templates[0],
     [templates, previewId, selected]
   );
+  const previewOutcome = previewTemplate
+    ? TEMPLATE_OUTCOMES[previewTemplate.id]
+    : undefined;
 
   function selectTemplate(id: string) {
     setSelected(id);
@@ -285,7 +471,7 @@ export function WorkbenchStart({
   function openUse(id: string) {
     selectTemplate(id);
     setPreviewId(id);
-    const sample = TEMPLATE_PREVIEWS[id]?.product;
+    const sample = TEMPLATE_PREVIEWS[id]?.product ?? TEMPLATE_OUTCOMES[id]?.sampleTitle;
     if (sample && !title.trim()) setTitle(sample);
   }
 
@@ -320,7 +506,8 @@ export function WorkbenchStart({
       <div className="rounded-xl border border-primary/20 bg-primary/5 p-6">
         <h2 className="text-lg font-semibold">Quick Start</h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Choose a template (or tap Use on a card). Preview opens large so you can confirm before creating.
+          Choose a template (or tap Use on a card). Preview opens large so you can confirm before
+          creating.
         </p>
         <div className="mt-5 grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -371,17 +558,87 @@ export function WorkbenchStart({
 
       {previewId && previewTemplate && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
-          <div className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-2xl border border-border bg-background p-5 shadow-2xl">
+          <div
+            className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-border bg-background p-5 shadow-2xl"
+            data-testid="template-preview-modal"
+          >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div>
                 <h3 className="text-xl font-semibold">{previewTemplate.name}</h3>
-                <p className="text-sm text-muted-foreground">{previewTemplate.description}</p>
+                <p className="text-sm text-muted-foreground">
+                  {previewOutcome?.scenario ?? previewTemplate.description}
+                </p>
+                {previewOutcome ? (
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {previewOutcome.pillars.map((p) => (
+                      <Badge key={p} variant="outline" className="text-[10px]">
+                        {p}
+                      </Badge>
+                    ))}
+                    <Badge variant="secondary" className="text-[10px]">
+                      ~{previewOutcome.estimatedSteps} steps
+                    </Badge>
+                  </div>
+                ) : null}
               </div>
-              <button type="button" onClick={() => setPreviewId(null)} className="rounded p-1 text-muted-foreground hover:text-foreground">
+              <button
+                type="button"
+                onClick={() => setPreviewId(null)}
+                className="rounded p-1 text-muted-foreground hover:text-foreground"
+                aria-label="Close preview"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <PhonePreview template={previewTemplate} brandColors={brandColors} large />
+
+            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_14rem]">
+              <div className="space-y-3">
+                {previewOutcome ? (
+                  <>
+                    <ModalSection
+                      icon={Sparkles}
+                      title="What this creates"
+                      items={previewOutcome.whatThisCreates}
+                    />
+                    <ModalSection
+                      icon={Users}
+                      title="What the customer experiences"
+                      items={previewOutcome.customerExperience}
+                    />
+                    <ModalSection
+                      icon={ClipboardList}
+                      title="What you need"
+                      items={previewOutcome.whatYouNeed}
+                    />
+                    <div className="grid gap-2 rounded-xl border border-border/50 bg-muted/10 p-3 text-[11px] sm:grid-cols-2">
+                      <MetaRow label="First screen" value={previewOutcome.firstScreen} />
+                      <MetaRow label="Primary action" value={previewOutcome.primaryAction} />
+                      <MetaRow label="Data captured" value={previewOutcome.dataCaptured} />
+                      <MetaRow label="Follow-up" value={previewOutcome.followUp} />
+                      <MetaRow label="Final outcome" value={previewOutcome.finalOutcome} />
+                      <div className="flex gap-2 sm:col-span-2">
+                        <Footprints className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                        <span>
+                          Setup: {previewOutcome.setupRequirements.join(" · ")}
+                        </span>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="rounded-xl border border-border/50 p-3 text-sm text-muted-foreground">
+                    <Target className="mb-2 h-4 w-4 text-primary" />
+                    {previewTemplate.description}
+                  </div>
+                )}
+              </div>
+              <PhonePreview
+                template={previewTemplate}
+                brandColors={brandColors}
+                large
+                outcome={previewOutcome}
+              />
+            </div>
+
             <div className="mt-4 space-y-2">
               <Label>Campaign title</Label>
               <Input
