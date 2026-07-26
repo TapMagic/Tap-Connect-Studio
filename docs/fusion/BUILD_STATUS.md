@@ -2,7 +2,7 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (J1 independent re-verify):** see tip after local checkpoint · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
+**HEAD (J1 independent re-verify):** tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
