@@ -383,10 +383,6 @@ export async function discardDeadLetter(
   reason = "discarded_by_operator"
 ): Promise<OutboxRecord | null> {
   const mem = memoryOutbox.find((r) => r.id === id);
-  if (mem) {
-    mem.status = "PUBLISHED";
-    mem.lastError = reason;
-  }
 
   if (isIsolatedFusionDatabaseConfigured()) {
     try {
@@ -398,12 +394,21 @@ export async function discardDeadLetter(
           lastError: reason.slice(0, 2000),
         },
       });
+      if (mem) {
+        mem.status = "PUBLISHED";
+        mem.lastError = reason;
+      }
       return mapPrismaRow(updated);
-    } catch {
-      // fall through
+    } catch (err) {
+      console.warn("[outbox] discard Prisma update failed", err);
+      return null;
     }
   }
 
+  if (mem) {
+    mem.status = "PUBLISHED";
+    mem.lastError = reason;
+  }
   return mem ?? null;
 }
 

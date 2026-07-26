@@ -60,7 +60,7 @@ export async function POST(request: Request) {
     if (businessId && campaignId) {
       const detail =
         error instanceof Error ? error.message : "Failed to assign campaign";
-      void recordOperatorAlert({
+      await recordOperatorAlert({
         businessId,
         kind: "assign_failed",
         title: "Campaign assign failed",
@@ -206,7 +206,7 @@ export async function PATCH(request: Request) {
     if (businessId && campaignId) {
       const detail =
         error instanceof Error ? error.message : "Failed to update campaign";
-      void recordOperatorAlert({
+      await recordOperatorAlert({
         businessId,
         kind: publishIntent ? "publish_failed" : "save_failed",
         title: publishIntent ? "Campaign publish failed" : "Campaign save failed",

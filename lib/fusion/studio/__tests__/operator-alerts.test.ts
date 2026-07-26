@@ -56,6 +56,8 @@ describe("operator alerts → decision queue", () => {
       });
       assert.equal(item.href, "/dashboard/campaigns/c1");
       assert.equal(item.kind, "assign_failed");
+      assert.equal(item.aggregateType, "campaign");
+      assert.equal(item.aggregateId, "c1");
       assert.equal(countOperatorFailures([item]), 1);
 
       const queued = await listDecisionQueueItems({ businessId: "b1" });

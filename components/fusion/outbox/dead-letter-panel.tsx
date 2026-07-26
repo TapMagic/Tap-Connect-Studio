@@ -99,6 +99,8 @@ export function OutboxDeadLetterPanel({
             <div
               key={r.id}
               className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-border/60 px-3 py-2 text-sm"
+              data-testid="outbox-dead-letter"
+              data-outbox-id={r.id}
             >
               <div>
                 <p className="font-medium">{r.topic}</p>
@@ -108,7 +110,12 @@ export function OutboxDeadLetterPanel({
               </div>
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{r.status}</Badge>
-                <Button size="sm" disabled={pending} onClick={() => retry(r.id)}>
+                <Button
+                  size="sm"
+                  disabled={pending}
+                  onClick={() => retry(r.id)}
+                  data-testid="outbox-retry"
+                >
                   Retry
                 </Button>
                 <Button
@@ -116,6 +123,7 @@ export function OutboxDeadLetterPanel({
                   variant="outline"
                   disabled={pending}
                   onClick={() => discard(r.id)}
+                  data-testid="outbox-discard"
                 >
                   Discard
                 </Button>

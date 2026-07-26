@@ -2,45 +2,49 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (J1 wave checkpoint):** see J1 section below · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
+**HEAD (J1 hardening verify):** see J1 section below · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
-## J1 First Successful Public Tap wave (2026-07-26)
+## J1 First Successful Public Tap — independent hardening verify (2026-07-26)
 
-**Classification:** J1 spine residuals = **IMPLEMENTED BUT NOT OWNER-READY** · headed `e2e/j1-first-public-tap.spec.ts` **7/7 PASS**.  
-**Not OWNER ACCEPTED.** Railway untouched. No push / merge / deploy.
+**Classification:** J1 wave = **VERIFIED** (local isolated DB · headed proofs). **Not OWNER-READY / not OWNER ACCEPTED.** Platform overall remains **NOT OWNER-READY**.  
+Railway untouched. No push / merge / deploy during this pass.
 
-| Residual | Before → After | Proof |
+| Residual | Classification | Proof |
 |----------|----------------|-------|
-| ID-001 Studio ready chrome | WIRED (outbox proxy) → **INTEGRATED** (setup + outbox + operator alerts) | `P-j1-studio-ready-honesty` |
-| ID-005 Create oversell | WIRED (dishonest) → **INTEGRATED** (intent create/open/unavailable) | `P-j1-create-honesty` |
-| Public analytics → Insights | FUNCTIONAL → **VERIFIED** (local headed) | `P-j1-analytics-event-assert` |
-| Consent → Contact → Relationship | FUNCTIONAL → **VERIFIED** (headed form) | `P-j1-consent-contact-relationship` |
-| Time-travel + fallback | FUNCTIONAL → **VERIFIED** (Studio UI + unit end/default) | `P-j1-time-travel-studio` + unit |
-| Card archive + where-used | SCAFFOLDED/partial → **FUNCTIONAL** | `P-j1-where-used-archive` |
-| Decision queue publish/assign | WIRED (outbox count) → **INTEGRATED** | `P-j1-decision-queue` + assign route alerts |
-| Builder/public parity | VERIFIED (prior) → **VERIFIED** retained; freeform honest-off chrome | freeform-honest-disabled |
+| ID-001 Studio ready chrome | **VERIFIED** | `P-j1-studio-ready-honesty` |
+| ID-005 Create oversell | **VERIFIED** | `P-j1-create-honesty` |
+| Public analytics causation | **VERIFIED** (TapEvent before/after + Insights KPI increase) | `P-j1-analytics-event-assert` |
+| Consent → Contact → Relationship | **VERIFIED** | `P-j1-consent-contact-relationship` |
+| Time-travel slot / default / end + boundaries | **VERIFIED** | `P-j1-time-travel-studio` + unit |
+| Card archive + where-used | **VERIFIED** (FUNCTIONAL depth retained) | `P-j1-where-used-archive` |
+| Decision queue forced failure + discard | **VERIFIED** | `P-j1-decision-queue` |
+| J1 responsive desktop/tablet/mobile | **VERIFIED** | `P-j1-responsive` |
+| J1 a11y axe + keyboard (VO/NVDA not run) | **VERIFIED** | `P-j1-a11y` |
+| V1 builder / public parity retained | **VERIFIED** | builder headed suites 14/14 |
 
 | Gate | Result |
 |------|--------|
 | `tsc --noEmit` | PASS |
 | lint | **0 errors** (4 img warnings) |
-| `npm test` | **417/417** PASS |
+| `npm test` | **419/419** PASS |
 | `npm run build` | PASS |
 | Prisma validate | PASS |
 | Migrate status (isolated) | PASS — 11 migrations up to date |
 | Headed `e2e/j1-first-public-tap.spec.ts` | **7/7 PASS** |
+| Headed `e2e/j1-responsive-a11y.spec.ts` | **2/2 PASS** |
+| Headed V1 builder parity suites | **14/14 PASS** |
 
-**Consequential improvements (PO-authorized):** Create menu intents; workspace readiness from first-tap setup (not outbox vanity); operator alerts reuse FusionOutbox FAILED (no competing SoT); Card `lifecycleStatus` in tapCard JSON (no migration); seed writes `tmp/fusion-seed-ids.json`.
+**Prior caveats closed this pass:** analytics non-decreasing KPI false-pass (14→14); decision-queue empty-only; time-travel default-only.
 
-**Still open (not J1):** true VO/NVDA, live credentials, freeform canvas depth, session undo on refresh, platform OWNER-READY.
+**Still open (not J1 engineering VERIFIED blockers):** true VO/NVDA, live credentials, freeform canvas depth, session undo on refresh, platform OWNER-READY.
 
 
 ## UX spine discoverability checkpoint (independent verify · tip `cc58c06`)
 
 **Classification:** Studio chrome honesty (notifications / mobile secondary / IA aliases / Pulse / workspace) = **IMPLEMENTED BUT NOT OWNER-READY** · **INDEPENDENT VERIFICATION PASSED** for ID-002 / ID-003 / ID-004 / ID-006 / ID-007 / ID-009.  
-**Not OWNER ACCEPTED.** **J1 still pending.** Railway untouched.
+**Not OWNER ACCEPTED.** ID-001 + ID-005 closed in J1 verify above. Railway untouched.
 
 | Gate | Result |
 |------|--------|
@@ -49,9 +53,9 @@
 | Headed `e2e/ux-spine-discoverability.spec.ts` | **4/4 PASS** (ID-002 / ID-003 / ID-006 / ID-007) |
 | lint | **0 errors** (4 img warnings) |
 | `tsc --noEmit` | PASS |
-| `npm test` | **404/404** |
+| `npm test` | **404/404** (at UX spine tip) |
 
-**Still OPEN (not this slice):** ID-001 (“Studio ready”), ID-005 (Create oversell) — J1 blockers per `COST_CONSCIOUS_IMPLEMENTATION_SEQUENCE.md`.
+**Closed in J1:** ID-001 (“Studio ready”), ID-005 (Create oversell).
 
 ## Builder V1 parity checkpoint (2026-07-24 · tip `5bd84c7`)
 

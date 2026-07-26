@@ -47,6 +47,8 @@ export type DecisionQueueItem = {
   detail: string;
   href: string;
   occurredAt: string;
+  aggregateType: string;
+  aggregateId: string;
   lastError?: string;
 };
 
@@ -119,6 +121,8 @@ export function decisionItemFromOutbox(row: OutboxRecord): DecisionQueueItem {
     detail,
     href,
     occurredAt: row.envelope.occurredAt,
+    aggregateType: row.envelope.aggregateType,
+    aggregateId: row.envelope.aggregateId,
     lastError: row.lastError,
   };
 }

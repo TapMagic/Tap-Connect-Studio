@@ -144,8 +144,19 @@ export function CampaignLeadForm({
             I agree to receive communications from this business.
           </label>
           {error && <p className="text-sm text-red-400">{error}</p>}
-          <button type="submit" disabled={loading} className="tap-btn tap-btn-primary w-full">
-            {loading ? "Sending..." : (data.buttonLabel as string)}
+          <button
+            type="submit"
+            disabled={loading}
+            className="tap-btn tap-btn-primary w-full"
+            aria-label={
+              loading
+                ? "Sending"
+                : String((data.buttonLabel as string) || "Submit").trim() || "Submit"
+            }
+          >
+            {loading
+              ? "Sending..."
+              : String((data.buttonLabel as string) || "Submit").trim() || "Submit"}
           </button>
         </form>
       </div>

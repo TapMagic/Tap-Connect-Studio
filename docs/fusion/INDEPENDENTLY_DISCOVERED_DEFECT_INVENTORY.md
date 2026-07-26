@@ -16,11 +16,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 
 | ID | Severity | Route / screen | One-line | Status |
 |----|----------|----------------|----------|--------|
-| ID-001 | BLOCKER | Global top bar | “Studio ready” ≠ workspace readiness | **FIXED (J1)** |
+| ID-001 | BLOCKER | Global top bar | “Studio ready” ≠ workspace readiness | **FIXED (independently verified)** — J1 `P-j1-studio-ready-honesty` |
 | ID-002 | HIGH | Top bar Notifications | Bell is dead; badge can still light | FIXED (independently verified) |
 | ID-003 | HIGH | Mobile nav | Secondary IA unavailable on `<lg` | FIXED (independently verified) |
 | ID-004 | HIGH | Studio IA sections | Many distinct labels alias to same routes | FIXED (independently verified) |
-| ID-005 | HIGH | Create menu | Several “Create” items only navigate to lists/hubs | **FIXED (J1)** |
+| ID-005 | HIGH | Create menu | Several “Create” items only navigate to lists/hubs | **FIXED (independently verified)** — J1 `P-j1-create-honesty` |
 | ID-006 | HIGH | `/dashboard/pulse` | Enabled Pulse still stub-only field UX | FIXED (independently verified) |
 | ID-007 | HIGH | Top bar | “All locations” with no location model/UI | FIXED (independently verified) |
 | ID-008 | MEDIUM | Help control | Help icon → Settings, not help | OPEN |
@@ -45,8 +45,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | All `/dashboard/*` — `StudioTopBar` readiness pill |
 | **Expected** | Status reflects real setup/readiness (onboarding, providers, failures) or uses neutral language (“Local demo”, “Alerts”) |
-| **Actual** | Layout sets `readinessLabel={alertCount > 0 ? "Attention needed" : "Studio ready"}` where `alertCount` is only `fusionOutboxEvent` FAILED count for the business |
+| **Actual** | Layout previously set `readinessLabel={alertCount > 0 ? "Attention needed" : "Studio ready"}` from outbox-only count. **FIXED (J1):** workspace status from first-tap setup + operator failures — labels are Setup incomplete / Attention needed / Workspace healthy (never “Studio ready”). |
 | **Severity** | **BLOCKER** (rollout trust — green-lights incomplete studios) |
+| **Status** | **FIXED (independently verified)** — `P-j1-studio-ready-honesty` headed PASS (hardening verify 2026-07-26) |
 | **Discovery method** | Code review + UX review |
 | **Evidence** | `app/dashboard/layout.tsx` (alertCount query + `readinessLabel`); `components/studio/studio-top-bar.tsx` (Sparkles + status display) |
 | **Related pillar** | Platform / controls |
@@ -108,8 +109,9 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 |-------|--------|
 | **Route / screen** | Top bar **Create** menu |
 | **Expected** | Create actions start a create flow (new entity editor, modal, or wizard) or are labeled “Open …” |
-| **Actual** | Examples: Email → `/dashboard/campaigns`; Form / Offer / section / Whiteboard → `/dashboard/workbench`; Template → `/dashboard/campaigns`; Moment → `/dashboard/audience` — navigation only |
+| **Actual** | Create menu now declares `data-create-intent` create/open/unavailable — Campaign create opens workbench; Booking unavailable/disabled. |
 | **Severity** | **HIGH** |
+| **Status** | **FIXED (independently verified)** — `P-j1-create-honesty` headed PASS (hardening verify 2026-07-26) |
 | **Discovery method** | UX review + code review |
 | **Evidence** | `CREATE_ACTIONS` in `lib/fusion/studio/ia.ts`; menu render in `components/studio/studio-top-bar.tsx` |
 | **Related pillar** | Experiences / Audience / Assets |
@@ -359,11 +361,11 @@ These remain **owner-ledger** items; inspected docs/code confirm they still matt
 
 ## Top BLOCKER / HIGH (independent) — short list
 
-1. **ID-001 BLOCKER** — “Studio ready” false readiness signal — **OPEN** (J1 blocker)  
+1. **ID-001 BLOCKER** — “Studio ready” false readiness signal — **FIXED (independently verified)** (`P-j1-studio-ready-honesty`)  
 2. **ID-002 HIGH** — Dead notifications control with live badge — **FIXED (independently verified)** (`P-ux-spine-notifications`)  
 3. **ID-003 HIGH** — Mobile loses secondary IA — **FIXED (independently verified)** (`P-ux-spine-mobile-secondary`)  
 4. **ID-004 HIGH** — Alias fan-in / fake destinations — **FIXED (independently verified)** (`ia-honesty.test.ts`)  
-5. **ID-005 HIGH** — Create does not create — **OPEN** (J1 blocker)  
+5. **ID-005 HIGH** — Create does not create — **FIXED (independently verified)** (`P-j1-create-honesty`)  
 6. **ID-006 HIGH** — Pulse stubs when enabled — **FIXED (independently verified)** (`P-ux-spine-pulse-honesty`)  
 7. **ID-007 HIGH** — “All locations” chrome lie — **FIXED (independently verified)** (`P-ux-spine-location-chrome`)  
 8. **ID-018 HIGH** — Platform claim still invalid (overlap D-013) — **OPEN**

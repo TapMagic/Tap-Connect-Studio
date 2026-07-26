@@ -35,3 +35,14 @@
 | Card `lifecycleStatus` in tapCard JSON + where-used panels | Archive/retire minimum without migration race | Object lifecycle | Campaign archive unchanged |
 | Seed writes `tmp/fusion-seed-ids.json` | Headed proofs track reseeds | Test architecture | Env overrides still win |
 
+## J1 hardening verify notes (2026-07-26)
+
+| Change | Why |
+|--------|-----|
+| Await `recordOperatorAlert` on assign/publish fail | Durable decision-queue persistence before HTTP response |
+| Decision queue shows aggregate + timestamp | Cause / object / time / remediate visible |
+| `discardDeadLetter` succeeds only when Prisma updates (isolated DB) | No false memory-only recovery |
+| Insights KPI `data-kpi-value` | Proofs no longer parse `14` from “Taps (14d)” label |
+| Time-travel wall-clock-in-zone + proof presets | Studio explanation matches resolver across host TZ |
+| Public lead submit fallback label + a11y names | Critical axe clean on J1 public/workbench/groups |
+

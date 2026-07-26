@@ -157,10 +157,18 @@ export default async function DashboardPage() {
                   href={item.href}
                   className="flex flex-col gap-1 px-4 py-3 hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
                   data-testid={`decision-item-${item.kind}`}
+                  data-decision-id={item.id}
                 >
                   <div className="min-w-0">
                     <p className="text-sm text-white/90">{item.title}</p>
-                    <p className="mt-0.5 truncate text-xs text-white/45">{item.detail}</p>
+                    <p className="mt-0.5 text-xs text-white/45 line-clamp-3">{item.detail}</p>
+                    <p className="mt-1 text-[11px] text-white/35" data-testid="decision-item-meta">
+                      {item.aggregateType}:{item.aggregateId}
+                      {" · "}
+                      <time dateTime={item.occurredAt}>
+                        {new Date(item.occurredAt).toLocaleString()}
+                      </time>
+                    </p>
                   </div>
                   <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
                     Remediate <ArrowRight className="h-3 w-3" />

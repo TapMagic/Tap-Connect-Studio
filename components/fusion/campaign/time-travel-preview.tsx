@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { COMMON_TIMEZONES } from "@/lib/utils/schedule-time";
 import {
   resolveTimeTravel,
+  wallClockInTimeZone,
   type TimeTravelSlot,
 } from "@/lib/fusion/publication/time-travel";
 
@@ -66,7 +67,7 @@ export function TimeTravelPreview({
   );
 
   const result = useMemo(() => {
-    const at = when ? new Date(when) : new Date();
+    const at = when ? wallClockInTimeZone(when, timezone) : new Date();
     return resolveTimeTravel({
       at,
       timezone,
@@ -170,6 +171,54 @@ export function TimeTravelPreview({
           }}
         >
           Jump to now
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="time-travel-proof-slot"
+          onClick={() => {
+            setTimezone("America/New_York");
+            setWhen("2026-07-27T17:30");
+          }}
+        >
+          Proof: Mon evening slot
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="time-travel-proof-default"
+          onClick={() => {
+            setTimezone("America/New_York");
+            setWhen("2026-07-27T11:00");
+          }}
+        >
+          Proof: Mon morning default
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="time-travel-proof-boundary-before"
+          onClick={() => {
+            setTimezone("America/New_York");
+            setWhen("2026-07-27T15:59");
+          }}
+        >
+          Proof: 15:59 boundary
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="time-travel-proof-boundary-on"
+          onClick={() => {
+            setTimezone("America/New_York");
+            setWhen("2026-07-27T16:00");
+          }}
+        >
+          Proof: 16:00 boundary
         </Button>
         {result.atIso ? (
           <Button

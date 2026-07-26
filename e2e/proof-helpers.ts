@@ -15,6 +15,8 @@ export const PROOF_PUBLIC_AT = "2026-07-23T10:00:00-04:00";
 function loadSeedIdsFromDisk(): Partial<{
   businessId: string;
   campaignId: string;
+  eveningCampaignId: string;
+  groupId: string;
   contactId: string;
   deviceCode: string;
 }> {
@@ -38,6 +40,11 @@ export const SEED = {
     process.env.SEED_CAMPAIGN_ID ??
     diskSeed.campaignId ??
     "cms1cazaz0002gh9k33zrzlow",
+  eveningCampaignId:
+    process.env.SEED_EVENING_CAMPAIGN_ID ??
+    diskSeed.eveningCampaignId ??
+    "",
+  groupId: process.env.SEED_GROUP_ID ?? diskSeed.groupId ?? "",
   enrollmentId: process.env.SEED_ENROLLMENT_ID ?? "cmrx5yojf0009bv9kivpac97i",
   contactId:
     process.env.SEED_CONTACT_ID ?? diskSeed.contactId ?? "cms1cazb20003gh9kaf22yry8",
@@ -149,4 +156,100 @@ export function writeProofIndex() {
   };
   fs.writeFileSync(path.join(OUT, "index.json"), JSON.stringify(index, null, 2));
   return index;
+}
+
+/** Authoritative TapEvent snapshot for causation proofs (isolated fusion DB). */
+export type TapEventSnapshot = {
+  count: number;
+  latestId: string | null;
+  latestCreatedAt: string | null;
+};
+
+export async function snapshotTapEvents(opts: {
+  businessId: string;
+  deviceCode?: string;
+}): Promise<TapEventSnapshot> {
+  const { Pool } = await import("pg");
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("DATABASE_URL required for TapEvent snapshot");
+  }
+  const pool = new Pool({ connectionString: url });
+  try {
+    if (opts.deviceCode) {
+      const countRes = await pool.query<{ c: number }>(
+        `SELECT COUNT(*)::int AS c
+         FROM "TapEvent" te
+         INNER JOIN "DeviceSlot" ds ON ds.id = te."deviceSlotId"
+         WHERE te."businessId" = $1 AND ds."deviceCode" = $2`,
+        [opts.businessId, opts.deviceCode]
+      );
+      const latestRes = await pool.query<{ id: string; createdAt: Date }>(
+        `SELECT te.id, te."createdAt"
+         FROM "TapEvent" te
+         INNER JOIN "DeviceSlot" ds ON ds.id = te."deviceSlotId"
+         WHERE te."businessId" = $1 AND ds."deviceCode" = $2
+         ORDER BY te."createdAt" DESC
+         LIMIT 1`,
+        [opts.businessId, opts.deviceCode]
+      );
+      const latest = latestRes.rows[0];
+      return {
+        count: countRes.rows[0]?.c ?? 0,
+        latestId: latest?.id ?? null,
+        latestCreatedAt: latest?.createdAt
+          ? new Date(latest.createdAt).toISOString()
+          : null,
+      };
+    }
+
+    const countRes = await pool.query<{ c: number }>(
+      `SELECT COUNT(*)::int AS c FROM "TapEvent" WHERE "businessId" = $1`,
+      [opts.businessId]
+    );
+    const latestRes = await pool.query<{ id: string; createdAt: Date }>(
+      `SELECT id, "createdAt" FROM "TapEvent"
+       WHERE "businessId" = $1
+       ORDER BY "createdAt" DESC
+       LIMIT 1`,
+      [opts.businessId]
+    );
+    const latest = latestRes.rows[0];
+    return {
+      count: countRes.rows[0]?.c ?? 0,
+      latestId: latest?.id ?? null,
+      latestCreatedAt: latest?.createdAt
+        ? new Date(latest.createdAt).toISOString()
+        : null,
+    };
+  } finally {
+    await pool.end();
+  }
+}
+
+/** Poll until TapEvent count/id advances past a pre-tap snapshot. */
+export async function waitForNewTapEvent(opts: {
+  businessId: string;
+  deviceCode?: string;
+  before: TapEventSnapshot;
+  timeoutMs?: number;
+}): Promise<TapEventSnapshot> {
+  const timeoutMs = opts.timeoutMs ?? 20_000;
+  const started = Date.now();
+  let last = opts.before;
+  while (Date.now() - started < timeoutMs) {
+    last = await snapshotTapEvents({
+      businessId: opts.businessId,
+      deviceCode: opts.deviceCode,
+    });
+    if (last.count > opts.before.count) {
+      if (!opts.before.latestId || last.latestId !== opts.before.latestId) {
+        return last;
+      }
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(
+    `TapEvent did not advance: before=${JSON.stringify(opts.before)} after=${JSON.stringify(last)}`
+  );
 }

@@ -53,6 +53,42 @@ function formatHmInTz(date: Date, timeZone: string): string {
   return `${hour}:${minute}`;
 }
 
+/**
+ * Interpret a datetime-local wall clock (`YYYY-MM-DDTHH:mm`) as that clock
+ * in `timeZone`, independent of the browser's local timezone.
+ */
+export function wallClockInTimeZone(wall: string, timeZone: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})/.exec(wall.trim());
+  if (!match) return new Date();
+  const y = Number(match[1]);
+  const m = Number(match[2]);
+  const d = Number(match[3]);
+  const hh = Number(match[4]);
+  const mm = Number(match[5]);
+  let utcMs = Date.UTC(y, m - 1, d, hh, mm, 0);
+
+  for (let i = 0; i < 4; i++) {
+    const parts = new Intl.DateTimeFormat("en-US", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hourCycle: "h23",
+    }).formatToParts(new Date(utcMs));
+    const get = (type: string) =>
+      Number(parts.find((p) => p.type === type)?.value ?? "0");
+    const got = Date.UTC(get("year"), get("month") - 1, get("day"), get("hour"), get("minute"));
+    const want = Date.UTC(y, m - 1, d, hh, mm);
+    const delta = want - got;
+    if (delta === 0) break;
+    utcMs += delta;
+  }
+
+  return new Date(utcMs);
+}
+
 export function resolveTimeTravel(input: TimeTravelInput): TimeTravelResult {
   const timeHm = formatHmInTz(input.at, input.timezone);
   // Approximate weekday in timezone via locale string

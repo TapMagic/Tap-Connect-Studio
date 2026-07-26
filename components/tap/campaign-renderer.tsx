@@ -519,9 +519,10 @@ function BlockRenderer({
               <p className="mt-2 text-sm opacity-80">
                 Enter your contact info above to unlock this coupon.
               </p>
-              <p className="mt-4 font-mono text-2xl font-bold tracking-widest text-white/20 blur-sm select-none">
-                {(data.code as string) || "••••••"}
-              </p>
+              <div
+                className="mt-4 h-9 w-full rounded-md bg-white/10 blur-sm"
+                aria-hidden="true"
+              />
               <button type="button" disabled className="tap-btn tap-btn-secondary mt-4 w-full opacity-50">
                 Locked until contact info
               </button>

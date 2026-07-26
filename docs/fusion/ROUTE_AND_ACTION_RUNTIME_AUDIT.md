@@ -16,7 +16,7 @@ Legend for **Actual status**: `loads` · `seed` · `mock` · `api` · `scaffold`
 | Route / item | Visible (IA) | Actual | Primary action | Persistence | Blocker |
 |---|---|---|---|---|---|
 | Dashboard | FUNCTIONAL* | loads + seed metrics | Open hubs | N/A | Browser proof |
-| `#decision-queue` | functional | partial UI | Review decisions | partial | Full queue wiring |
+| `#decision-queue` | functional | failure list + empty honesty | Review decisions / Remediate | **VERIFIED** (forced assign fail + discard) | — |
 | `#readiness` | functional | integrations probe | Open Integrations | env-driven | Credentials optional |
 | `#upcoming` | was owner_ready | schedule snippet | Jump to Groups | seed | Proof |
 | Fleet health link | functional | Tap Points hub | Navigate | — | — |

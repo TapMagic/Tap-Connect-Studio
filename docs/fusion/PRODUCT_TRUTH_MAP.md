@@ -51,7 +51,7 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 | Field | Record |
 |-------|--------|
 | **Classification** | partially functioning · verified local workflow (Home shell) · UX spine discoverability **independently verified** (ID-002/003/004/006/007/009 @ `cc58c06`) |
-| **Engineering state** | AUTOMATED ACCEPTANCE PASSED (P-studio-home) · UX spine **INDEPENDENT VERIFICATION PASSED** · OWNER ACCEPTANCE PENDING · **J1 pending** |
+| **Engineering state** | AUTOMATED ACCEPTANCE PASSED (P-studio-home) · UX spine **INDEPENDENT VERIFICATION PASSED** · J1 **VERIFIED** (local) · OWNER ACCEPTANCE PENDING |
 | **Real user outcome** | Operator opens Studio Home, sees readiness signals, jumps to hubs |
 | **Current** | Seven-nav IA wired (`ia.ts`); honest alias labels + Labs; mobile “More in …” secondary; notifications → outbox recovery; workspace chrome (no “All locations”); Pulse honesty panel when enabled |
 | **Intended** | Decision queue, first-run, rich activity feed, facility context switch, guided first Tap |
@@ -65,7 +65,7 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 | **Failure/recovery** | Partial decision-queue; outbox recovery scent via notifications |
 | **Public-output** | Indirect (readiness honesty) |
 | **Evidence** | `P-studio-home`, `P-ux-spine-*`, `ia-honesty.test.ts`, ledger `upcoming`/`controls_a11y_responsive` |
-| **Remaining** | ID-001 Studio ready; ID-005 Create; decision-queue matrix; onboarding; facility switcher; VO/OS zoom |
+| **Remaining** | Onboarding depth; facility switcher; VO/OS zoom; platform OWNER ACCEPTED |
 
 | Subcomponent | Class |
 |--------------|-------|
@@ -91,7 +91,7 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 | **Lifecycle** | Create/edit/preview/publish/version/rollback proved; archive/where-used incomplete |
 | **Team/facility** | Workspace-scoped; facility-scoped authoring incomplete |
 | **Admin** | Feature flags; freeform behind `card.builder.freeform` HONEST_DISABLED |
-| **Audit / analytics** | Save/publish events partial; public analytics assert residual |
+| **Audit / analytics** | Save/publish events partial; public TapEvent → Insights **VERIFIED** (`P-j1-analytics-event-assert`) |
 | **Responsive / a11y** | Headed stress + a11y proxy PASS; VO residual |
 | **Failure/recovery** | `P-builder-failure-recovery` |
 | **Public-output** | **Verified local** editor↔public (`P-builder-wysiwyg-public`) |
@@ -263,10 +263,10 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 
 | Field | Record |
 |-------|--------|
-| **Classification** | functioning · verified local (export + drill + provenance) · messaging/social views scaffold · public analytics_event_assert residual · not independently verified |
+| **Classification** | functioning · verified local (export + drill + provenance) · messaging/social views scaffold · public analytics_event_assert **VERIFIED** (J1) · Insights OWNER ACCEPTED still pending |
 | **Engineering state** | AUTOMATED ACCEPTANCE PASSED · OWNER ACCEPTANCE PENDING |
 | **Evidence** | `P-11-insights-shell`, `P-insights-export`, `P-insights-drilldown-provenance` |
-| **Remaining** | VO; analytics assert on public tap; TapTrust/Sense/Graph/Reach foundations (Admin-hidden) |
+| **Remaining** | VO; TapTrust/Sense/Graph/Reach foundations (Admin-hidden) |
 
 ---
 

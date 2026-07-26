@@ -90,6 +90,7 @@ export function GroupsList({
               className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
+              aria-label="Group timezone"
             >
               {COMMON_TIMEZONES.map((tz) => (
                 <option key={tz} value={tz}>

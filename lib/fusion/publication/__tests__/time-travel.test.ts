@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { resolveTimeTravel } from "../time-travel";
+import { resolveTimeTravel, wallClockInTimeZone } from "../time-travel";
 
 describe("time-travel resolver (J1)", () => {
   const slots = [
@@ -59,5 +59,44 @@ describe("time-travel resolver (J1)", () => {
     });
     assert.equal(r.campaignId, "end");
     assert.match(r.reason, /end \/ fallback/i);
+  });
+
+  it("boundary: slot starts at 17:00 inclusive", () => {
+    const at = new Date("2026-07-27T21:00:00.000Z"); // 17:00 EDT
+    const r = resolveTimeTravel({
+      at,
+      timezone: "America/New_York",
+      slots,
+      defaultCampaignId: "def",
+      endCampaignId: "end",
+    });
+    assert.equal(r.campaignId, "slot-camp");
+    assert.match(r.reason, /Matched slot/i);
+  });
+
+  it("boundary: one minute before slot uses default", () => {
+    const at = new Date("2026-07-27T20:59:00.000Z"); // 16:59 EDT
+    const r = resolveTimeTravel({
+      at,
+      timezone: "America/New_York",
+      slots,
+      defaultCampaignId: "def",
+      endCampaignId: "end",
+    });
+    assert.equal(r.campaignId, "def");
+    assert.match(r.reason, /default campaign/i);
+  });
+
+  it("wallClockInTimeZone interprets selected zone independent of host TZ", () => {
+    const at = wallClockInTimeZone("2026-07-27T17:30", "America/New_York");
+    const r = resolveTimeTravel({
+      at,
+      timezone: "America/New_York",
+      slots,
+      defaultCampaignId: "def",
+      endCampaignId: "end",
+    });
+    assert.equal(r.timeHm, "17:30");
+    assert.equal(r.campaignId, "slot-camp");
   });
 });

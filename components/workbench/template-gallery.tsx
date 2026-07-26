@@ -329,6 +329,7 @@ export function WorkbenchStart({
               value={selected}
               onChange={(e) => selectTemplate(e.target.value)}
               className="flex h-10 w-full rounded-lg border border-input bg-background/50 px-3 text-sm"
+              aria-label="Campaign type"
             >
               {templates.map((t) => (
                 <option key={t.id} value={t.id}>

@@ -64,7 +64,13 @@ export function InsightsKpiGrid({
         data-testid={`insights-kpi-${k.key}`}
       >
         <p className="text-xs text-muted-foreground">{k.label}</p>
-        <p className="text-2xl font-semibold tabular-nums text-white">{formatValue(k)}</p>
+        <p
+          className="text-2xl font-semibold tabular-nums text-white"
+          data-testid={`insights-kpi-value-${k.key}`}
+          data-kpi-value={String(k.value)}
+        >
+          {formatValue(k)}
+        </p>
         {d ? (
           <p className="mt-1 text-[10px] text-primary/90" data-testid={`insights-delta-${k.key}`}>
             {formatDeltaCaption(d)} · derived
