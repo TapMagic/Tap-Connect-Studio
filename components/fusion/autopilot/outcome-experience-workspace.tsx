@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useId, useMemo, useRef, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useMemo, useRef, useState, useSyncExternalStore, type ReactNode, type RefObject } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   assembleCardOfferMeasurableOutcome,
   OUTCOME_CHOICES,
@@ -11,6 +12,18 @@ import {
   type OutcomeExperienceResult,
 } from "@/lib/fusion/autopilot/outcome-assembler";
 import type { KnowledgeFact } from "@/lib/fusion/autopilot/knowledge-fact";
+import type { AutopilotPlan } from "@/lib/fusion/autopilot/plan";
+import type { PreparedExecution } from "@/lib/fusion/autopilot/prepared-execution";
+import {
+  markPreparedExecutionStaleIfNeeded,
+  prepareCardOfferMeasurableOutcome,
+  rollbackPreparedOutcome,
+  takeManualControl,
+  applyPreparedSpotlightDraft,
+  type OrchestratorCampaignInput,
+} from "@/lib/fusion/autopilot/prepared-orchestrator";
+import type { TapCardSection } from "@/lib/brand/tap-card";
+import { PreparedOutcomeWorkspace } from "@/components/fusion/autopilot/prepared-outcome-workspace";
 import { cn } from "@/lib/utils";
 
 export type OutcomeExperienceWorkspaceProps = {
@@ -23,6 +36,9 @@ export type OutcomeExperienceWorkspaceProps = {
   hasSpotlight?: boolean;
   boundCampaignId?: string | null;
   campaigns: AssemblerCampaignInput[];
+  /** Richer campaign rows for F2 draft preparation (status required) */
+  prepareCampaigns?: OrchestratorCampaignInput[];
+  cardSections?: TapCardSection[];
   facts?: KnowledgeFact[];
   emailConnected?: boolean;
   consentPathAvailable?: boolean;
@@ -31,14 +47,16 @@ export type OutcomeExperienceWorkspaceProps = {
   keepCardAvailable?: boolean;
   featureOfferEnabled?: boolean;
   featureAutopilotEnabled?: boolean;
+  deviceCode?: string;
   className?: string;
 };
 
-type Phase = "intake" | "experience";
+type Phase = "intake" | "experience" | "prepared";
 
 /**
- * Autopilot F1 outcome experience — plain-language plan for card.offer.measurable.
- * Local preparation only: no publish, send, spend, or model calls.
+ * Autopilot F1+F2 outcome experience —
+ * plan (local) → prepare drafts (local, reversible) → focused prepared workspace.
+ * No publish, send, spend, or model calls.
  */
 export function OutcomeExperienceWorkspace({
   businessName,
@@ -50,6 +68,8 @@ export function OutcomeExperienceWorkspace({
   hasSpotlight,
   boundCampaignId,
   campaigns,
+  prepareCampaigns,
+  cardSections = [],
   facts = [],
   emailConnected = false,
   consentPathAvailable = false,
@@ -58,10 +78,16 @@ export function OutcomeExperienceWorkspace({
   keepCardAvailable = true,
   featureOfferEnabled = true,
   featureAutopilotEnabled = true,
+  deviceCode,
   className,
 }: OutcomeExperienceWorkspaceProps) {
   const formId = useId();
-  const [hydrated, setHydrated] = useState(false);
+  const router = useRouter();
+  const hydrated = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [phase, setPhase] = useState<Phase>("intake");
   const [choiceId, setChoiceId] = useState<OutcomeChoiceId>("measurable_card_offer");
   const [brief, setBrief] = useState(
@@ -72,19 +98,19 @@ export function OutcomeExperienceWorkspace({
   const [rejected, setRejected] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [editingGoal, setEditingGoal] = useState(false);
+  const [preparedExecution, setPreparedExecution] = useState<PreparedExecution | null>(null);
+  const [preparedPlan, setPreparedPlan] = useState<AutopilotPlan | null>(null);
+  const [draftSections, setDraftSections] = useState<TapCardSection[] | null>(null);
+  const [focusedEscape, setFocusedEscape] = useState(false);
+  const [isPreparing, setIsPreparing] = useState(false);
   const reviewHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
-  useEffect(() => {
-    setHydrated(true);
-  }, []);
+  const workingSections = draftSections ?? cardSections;
 
   useEffect(() => {
     if (phase === "experience" && !editingGoal) {
-      // Move focus into the review once, when the plan appears.
       reviewHeadingRef.current?.focus();
     }
-    // Intentionally only when phase/editing flips — not on every answer keystroke.
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- focus on plan reveal only
   }, [phase, editingGoal]);
 
   const suggestions = useMemo(
@@ -98,7 +124,7 @@ export function OutcomeExperienceWorkspace({
   );
 
   const result: OutcomeExperienceResult | null = useMemo(() => {
-    if (phase !== "experience" && !localApproved) return null;
+    if (phase === "intake" && !localApproved) return null;
     return assembleCardOfferMeasurableOutcome({
       brief,
       outcomeChoiceId: choiceId,
@@ -153,11 +179,64 @@ export function OutcomeExperienceWorkspace({
     localApproved,
   ]);
 
+  // Stale only when the prepared plan snapshot or live facts change — not on every
+  // assembler re-render (which allocates a new plan id/updatedAt each time).
+  const displayExecution = useMemo(() => {
+    if (phase !== "prepared" || !preparedExecution || !preparedPlan) {
+      return preparedExecution;
+    }
+    return markPreparedExecutionStaleIfNeeded({
+      execution: preparedExecution,
+      plan: preparedPlan,
+      facts,
+    });
+  }, [phase, preparedExecution, preparedPlan, facts]);
+
+  function resolvePrepareCampaign(
+    plan: AutopilotPlan
+  ): OrchestratorCampaignInput | null {
+    const fromPlan = plan.objectMutations.find(
+      (m) => m.id === "mutate.campaign.offer_coupon"
+    )?.payload?.campaignId as string | undefined;
+    const rich = prepareCampaigns?.length ? prepareCampaigns : null;
+    if (rich) {
+      const hit =
+        rich.find((c) => c.id === fromPlan) ||
+        rich.find((c) => c.id === boundCampaignId) ||
+        rich.find((c) => c.id === campaigns.find((x) => x.boundToThisCard)?.id) ||
+        rich.filter((c) => c.offerTitle || c.offerDescription).find((c) =>
+          campaigns.some((a) => a.id === c.id && a.hasOffer)
+        ) ||
+        rich[0];
+      return hit ?? null;
+    }
+    const assembler =
+      campaigns.find((c) => c.id === fromPlan) ||
+      campaigns.find((c) => c.id === boundCampaignId) ||
+      campaigns.find((c) => c.boundToThisCard && c.hasOffer) ||
+      campaigns.find((c) => c.hasOffer);
+    if (!assembler) return null;
+    return {
+      id: assembler.id,
+      title: assembler.title,
+      status: "DRAFT",
+      offerTitle: assembler.offerTitle,
+      offerDescription: assembler.offerDescription,
+      offerCode: assembler.offerCode,
+      offerBlockId: assembler.offerBlockId,
+      scheduledStart: assembler.scheduledStart,
+      scheduledEnd: assembler.scheduledEnd,
+    };
+  }
+
   function preparePlan() {
     setRejected(false);
     setLocalApproved(false);
     setEditingGoal(false);
+    // Keep prior prepared execution so goal edits can surface stale → re-prepare
     setPhase("experience");
+    setFocusedEscape(false);
+    setIsPreparing(false);
   }
 
   function startOver() {
@@ -167,6 +246,11 @@ export function OutcomeExperienceWorkspace({
     setRejected(false);
     setAdvancedOpen(false);
     setEditingGoal(false);
+    setPreparedExecution(null);
+    setPreparedPlan(null);
+    setFocusedEscape(false);
+    setDraftSections(null);
+    setIsPreparing(false);
   }
 
   function selectChoice(id: OutcomeChoiceId) {
@@ -175,6 +259,244 @@ export function OutcomeExperienceWorkspace({
     if (preset && id !== "custom_brief") {
       setBrief(preset.defaultBrief);
     }
+  }
+
+  function runPrepareOutcome() {
+    if (!result || result.plan.status !== "approved") return;
+    const campaign = resolvePrepareCampaign(result.plan);
+    const planSnapshot = result.plan;
+    const sectionsSnapshot = workingSections;
+    setIsPreparing(true);
+    setFocusedEscape(true);
+    setPhase("prepared");
+    // Paint Preparing before synchronous prepare completes
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        const prepared = prepareCardOfferMeasurableOutcome({
+          plan: planSnapshot,
+          campaign,
+          card: {
+            id: cardId,
+            sections: sectionsSnapshot,
+            retired: cardRetired,
+          },
+          businessName,
+          facts,
+          readiness: {
+            featureOfferEnabled,
+            featureAutopilotEnabled,
+            emailConnected,
+            consentPathAvailable,
+            askQuestionAvailable,
+            keepCardAvailable,
+          },
+          prepareApproved: true,
+          deviceCode,
+          preservePresentation: true,
+        });
+        setPreparedExecution(prepared.execution);
+        setPreparedPlan(prepared.plan);
+        if (prepared.ok) {
+          setDraftSections(
+            applyPreparedSpotlightDraft(sectionsSnapshot, prepared.execution)
+          );
+        }
+        setIsPreparing(false);
+      });
+    });
+  }
+
+  function undoPreparation() {
+    if (!preparedExecution || !preparedPlan) return;
+    const rolled = rollbackPreparedOutcome({
+      execution: preparedExecution,
+      plan: preparedPlan,
+      cardSections: workingSections,
+    });
+    setPreparedExecution(rolled.execution);
+    setPreparedPlan(rolled.plan);
+    setDraftSections(rolled.cardSections);
+  }
+
+  function reprepare() {
+    setDraftSections(null);
+    setIsPreparing(true);
+    setFocusedEscape(true);
+    setPhase("prepared");
+    if (result?.plan.status === "approved" || localApproved) {
+      const assembled = assembleCardOfferMeasurableOutcome({
+        brief,
+        outcomeChoiceId: choiceId,
+        facts,
+        brand: {
+          businessName,
+          accentColor: brandAccent,
+          voice: brandVoice,
+          logoUrl: logoUrl ?? undefined,
+        },
+        card: {
+          id: cardId,
+          hasSpotlight,
+          boundCampaignId,
+          retired: cardRetired,
+        },
+        campaigns,
+        readiness: {
+          featureOfferEnabled,
+          featureAutopilotEnabled,
+          emailConnected,
+          consentPathAvailable,
+          tapPointAssigned,
+          askQuestionAvailable,
+          keepCardAvailable,
+        },
+        answers,
+        localApprovalStatus: "approved",
+      });
+      const campaign = resolvePrepareCampaign(assembled.plan);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          const prepared = prepareCardOfferMeasurableOutcome({
+            plan: assembled.plan,
+            campaign,
+            card: {
+              id: cardId,
+              sections: cardSections,
+              retired: cardRetired,
+            },
+            businessName,
+            facts,
+            readiness: {
+              featureOfferEnabled,
+              featureAutopilotEnabled,
+              emailConnected,
+              consentPathAvailable,
+              askQuestionAvailable,
+              keepCardAvailable,
+            },
+            prepareApproved: true,
+            deviceCode,
+            preservePresentation: true,
+          });
+          setPreparedExecution(prepared.execution);
+          setPreparedPlan(prepared.plan);
+          if (prepared.ok) {
+            setDraftSections(
+              applyPreparedSpotlightDraft(cardSections, prepared.execution)
+            );
+          }
+          setIsPreparing(false);
+        });
+      });
+    } else {
+      setIsPreparing(false);
+      setPhase("experience");
+    }
+  }
+
+  function handleManualControl() {
+    if (preparedExecution) {
+      setPreparedExecution(
+        takeManualControl({
+          execution: preparedExecution,
+          editorHref: "/dashboard/card/edit",
+        })
+      );
+    }
+    router.push("/dashboard/card/edit");
+  }
+
+  function returnToStudio() {
+    setFocusedEscape(false);
+    router.push("/dashboard");
+  }
+
+  function beginEditGoal() {
+    if (preparedExecution && preparedPlan) {
+      const bumped = {
+        ...preparedPlan,
+        objective: `${brief.trim() || preparedPlan.objective} · revised`,
+        updatedAt: new Date().toISOString(),
+      };
+      setPreparedExecution(
+        markPreparedExecutionStaleIfNeeded({
+          execution: preparedExecution,
+          plan: bumped,
+          facts,
+        })
+      );
+      setPreparedPlan(bumped);
+    }
+    setEditingGoal(true);
+    setPhase("experience");
+    setFocusedEscape(false);
+  }
+
+  function cancelEditGoal() {
+    setEditingGoal(false);
+    if (preparedExecution) {
+      setPhase("prepared");
+      setFocusedEscape(true);
+    }
+  }
+
+  if (isPreparing) {
+    return (
+      <section
+        className={cn(
+          "min-h-[70vh] rounded-xl border border-primary/30 bg-gradient-to-b from-primary/[0.09] to-[#080d18] p-4 sm:p-5",
+          className
+        )}
+        data-testid="autopilot-prepared-outcome"
+        data-status="preparing"
+        aria-busy="true"
+        aria-labelledby={`${formId}-preparing-heading`}
+      >
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
+          Autopilot · prepared outcome
+        </p>
+        <h2
+          id={`${formId}-preparing-heading`}
+          className="mt-1 text-lg font-semibold text-white sm:text-xl"
+          data-testid="autopilot-prepared-heading"
+        >
+          Autopilot is preparing your Card offer.
+        </h2>
+        <div
+          className="mt-2 inline-flex items-center rounded-full border border-white/15 bg-white/5 px-3 py-1 text-xs text-white/70"
+          data-testid="autopilot-prepared-state"
+          data-state="preparing"
+          data-readiness="preparing"
+          role="status"
+          aria-live="polite"
+        >
+          Preparing
+        </div>
+        <p className="mt-3 text-sm text-white/55" data-testid="autopilot-honesty">
+          Prepared locally — not published, not sent, and no customers were contacted.
+        </p>
+      </section>
+    );
+  }
+
+  if (phase === "prepared" && displayExecution && preparedPlan && focusedEscape) {
+    return (
+      <div
+        className={cn("space-y-3", className)}
+        data-testid="autopilot-prepared-escape"
+      >
+        <PreparedOutcomeWorkspace
+          execution={displayExecution}
+          plan={preparedPlan}
+          focused
+          onUndo={undoPreparation}
+          onReprepare={reprepare}
+          onEditGoal={beginEditGoal}
+          onManualControl={handleManualControl}
+          onReturnToStudio={returnToStudio}
+        />
+      </div>
+    );
   }
 
   return (
@@ -196,7 +518,7 @@ export function OutcomeExperienceWorkspace({
         </h2>
         <p className="max-w-2xl text-sm text-white/60">
           Describe the outcome. Autopilot prepares a safe plan from your approved facts and Brand
-          Kit — then asks only what it still needs. Nothing is published or sent in this step.
+          Kit — then prepares reversible drafts when you approve. Nothing is published or sent.
         </p>
       </header>
 
@@ -210,7 +532,7 @@ export function OutcomeExperienceWorkspace({
           onSelectChoice={selectChoice}
           onBriefChange={setBrief}
           onPrepare={preparePlan}
-          onCancelEdit={editingGoal ? () => setEditingGoal(false) : undefined}
+          onCancelEdit={editingGoal ? cancelEditGoal : undefined}
         />
       ) : null}
 
@@ -231,9 +553,23 @@ export function OutcomeExperienceWorkspace({
             setRejected(true);
             setLocalApproved(false);
           }}
+          onPrepareOutcome={runPrepareOutcome}
           onEditGoal={() => setEditingGoal(true)}
           onStartOver={startOver}
           onToggleAdvanced={() => setAdvancedOpen((v) => !v)}
+        />
+      ) : null}
+
+      {phase === "prepared" && displayExecution && preparedPlan && !focusedEscape ? (
+        <PreparedOutcomeWorkspace
+          execution={displayExecution}
+          plan={preparedPlan}
+          focused={false}
+          onUndo={undoPreparation}
+          onReprepare={reprepare}
+          onEditGoal={beginEditGoal}
+          onManualControl={handleManualControl}
+          onReturnToStudio={returnToStudio}
         />
       ) : null}
     </section>
@@ -355,6 +691,7 @@ function ExperiencePanel({
   onAnswer,
   onApprove,
   onReject,
+  onPrepareOutcome,
   onEditGoal,
   onStartOver,
   onToggleAdvanced,
@@ -368,6 +705,7 @@ function ExperiencePanel({
   onAnswer: (id: string, value: string) => void;
   onApprove: () => void;
   onReject: () => void;
+  onPrepareOutcome: () => void;
   onEditGoal: () => void;
   onStartOver: () => void;
   onToggleAdvanced: () => void;
@@ -375,6 +713,7 @@ function ExperiencePanel({
   const canApprove =
     result.state === "ready_to_review" || result.state === "approved_locally";
   const needsDetail = result.state === "needs_detail";
+  const approved = result.state === "approved_locally" || result.plan.status === "approved";
 
   return (
     <div className="mt-5 space-y-5" data-testid="autopilot-outcome-review">
@@ -551,15 +890,27 @@ function ExperiencePanel({
       <Section title="Ready when you are" testId="autopilot-section-ready">
         <p className="text-sm text-white/70">{result.nextSafeAction}</p>
         <div className="mt-3 flex flex-col gap-2">
-          <button
-            type="button"
-            onClick={onApprove}
-            disabled={!canApprove || needsDetail || rejected}
-            className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-            data-testid="autopilot-approve-plan"
-          >
-            {result.state === "approved_locally" ? "Approved locally" : "Approve plan"}
-          </button>
+          {!approved ? (
+            <button
+              type="button"
+              onClick={onApprove}
+              disabled={!canApprove || needsDetail || rejected}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              data-testid="autopilot-approve-plan"
+            >
+              Approve plan
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onPrepareOutcome}
+              disabled={rejected}
+              className="inline-flex min-h-11 w-full items-center justify-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground disabled:opacity-40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              data-testid="autopilot-prepare-outcome"
+            >
+              Prepare this outcome
+            </button>
+          )}
           <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
             <button
               type="button"
@@ -595,7 +946,9 @@ function ExperiencePanel({
           </div>
         </div>
         <p className="mt-2 text-[11px] text-white/35">
-          Local approval only — does not publish, send, or change live Card or Campaign objects.
+          {approved
+            ? "Prepare this outcome builds reversible drafts only — not published, not sent."
+            : "Local approval only — does not publish, send, or change live Card or Campaign objects yet."}
         </p>
       </Section>
 

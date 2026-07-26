@@ -6,6 +6,33 @@
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
+## Autopilot F2 — Prepared Outcome Execution (local uncommitted)
+
+**Starting HEAD:** `56676cf859df323db9c95edf5b6515c4293c6a76` (F1 committed)  
+**Scope:** Versioned `PreparedExecution` contract + deterministic orchestrator for `card.offer.measurable@1.0.0` → reversible draft objects (Campaign facts snapshot, Spotlight projection, mock Distribution, Insights goals) + focused prepared workspace. **No live publish/send/spend/provider/customer contact. No F3–F5. No Owner-ready claim.**  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY** (local draft preparation only; go-live deferred).
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint | **0 errors** (pre-existing `<img>` warnings only) |
+| `npm run test:fusion` | **536/536 PASS** |
+| Targeted F0/F1/F2 + Offer Fuse | **79/79 PASS** |
+| `npm run build` | **PASS** |
+| Prisma / schema | **No schema change** |
+| Headed `e2e/autopilot-f2-prepared.spec.ts` | **7/7 PASS** (axe 0 serious/critical; desktop/tablet/phone) |
+| Headed Offer Fuse + Support | **5/5 PASS** |
+| Headed Keep/TapSave retention | **6/6 PASS** |
+| J1 ID-001 / ID-005 | **PASS** |
+| J1 residual decision-queue / where-used | **2 FAIL** (pre-existing / env; not F2-caused) |
+| J16 proposal lifecycle (unit) | **PASS** |
+
+**Verification corrections (pre-commit):** preparing paint + `aria-live` status; stale fingerprint no longer trips on plan `updatedAt` transitions; duplicate host approval labels deduped; focused e2e proof matrix expanded.
+
+**Not claimed:** Go live; live email/social; F3 observation; Owner-ready / Owner-accepted.
+
+---
+
 ## Card-to-Campaign Conversion Engine (Offer Fuse) — local uncommitted
 
 **Starting HEAD:** `6f1e1e494e5795bb223c4924e0a5eb1b69e8dedb`  

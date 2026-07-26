@@ -180,6 +180,17 @@ export function CardAssemblyWorkspace({
             scheduledStart: c.scheduledStart,
             scheduledEnd: c.scheduledEnd,
           }))}
+          prepareCampaigns={offerCampaigns.map((c) => ({
+            id: c.id,
+            title: c.title,
+            status: c.status,
+            offerTitle: c.offerTitle,
+            offerDescription: c.offerValueSummary,
+            offerCode: c.offerCode,
+            scheduledStart: c.scheduledStart,
+            scheduledEnd: c.scheduledEnd,
+          }))}
+          cardSections={config.sections ?? []}
           facts={autopilotFacts}
           emailConnected={emailConnected}
           consentPathAvailable={consentPathAvailable}
@@ -196,7 +207,8 @@ export function CardAssemblyWorkspace({
         >
           <p className="text-sm font-medium text-white">Create a measurable offer on your Card</p>
           <p className="mt-1 text-xs text-white/55">
-            Autopilot prepares a local plan from your Campaign and Brand Kit — no publish or send.
+            Autopilot prepares a local plan and reversible drafts from your Campaign and Brand Kit —
+            no publish or send.
           </p>
           <Link
             href="/dashboard/card?wire=offer"

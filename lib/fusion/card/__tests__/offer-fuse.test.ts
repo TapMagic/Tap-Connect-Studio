@@ -8,6 +8,7 @@ import {
   extractAuthoritativeOffer,
   fingerprintOfferFacts,
   projectOfferOntoSpotlight,
+  unprojectSpotlightOffer,
   buildOfferDistributionPackage,
 } from "@/lib/fusion/card/offer";
 import { resolvePublicTapSurface } from "@/lib/fusion/card/offer-resolver";
@@ -102,6 +103,32 @@ describe("card offer authoritative SoT", () => {
     assert.equal(projected.headline, "Host teaser");
     assert.equal(projected.offerFactsFingerprint, offer.factsFingerprint);
     assert.equal(detectOfferProjectionState({ section: projected, offer }), "current");
+  });
+
+  it("unprojects Spotlight bind while preserving presentation", () => {
+    const offer = extractAuthoritativeOffer({
+      campaignId: "camp_1",
+      campaignTitle: "Summer",
+      campaignStatus: "LIVE",
+      blocks: [couponBlock("blk_1")],
+    })!;
+    const projected = projectOfferOntoSpotlight({
+      section: {
+        id: "sec_1",
+        type: "special_offer",
+        enabled: true,
+        order: 0,
+        headline: "Host teaser",
+        text: "Offer",
+      },
+      offer,
+      preservePresentation: true,
+    });
+    const cleared = unprojectSpotlightOffer(projected);
+    assert.equal(cleared.linkedCampaignId, undefined);
+    assert.equal(cleared.offerFactsFingerprint, undefined);
+    assert.equal(cleared.headline, "Host teaser");
+    assert.notEqual(cleared.offerMode, "campaign");
   });
 
   it("detects stale projection when Campaign facts change", () => {

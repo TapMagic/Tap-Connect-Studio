@@ -164,6 +164,28 @@ export function detectOfferProjectionState(input: {
   return stored === input.offer.factsFingerprint ? "current" : "stale";
 }
 
+/**
+ * Clear Campaign offer projection bind metadata while preserving the section shell
+ * and host presentation overrides (text / headline / description).
+ * Does not touch Campaign offer_coupon.
+ */
+export function unprojectSpotlightOffer(section: TapCardSection): TapCardSection {
+  return {
+    ...section,
+    offerMode: section.offerMode === "campaign" ? "expand" : section.offerMode,
+    linkedCampaignId: undefined,
+    linkedCampaignTitle: undefined,
+    linkedDeviceCode: undefined,
+    offerBlockId: undefined,
+    offerFactsFingerprint: undefined,
+    offerTitle: undefined,
+    offerDescription: undefined,
+    offerCode: undefined,
+    offerExpires: undefined,
+    offerCta: undefined,
+  };
+}
+
 export function findPrimarySpotlightSection(
   card: TapConnectCardConfig | null | undefined
 ): TapCardSection | null {
