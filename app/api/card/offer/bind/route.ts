@@ -1,14 +1,9 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
-import { parseTapConnectCard } from "@/lib/brand/tap-card";
-import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
+import { persistSpotlightOfferBind } from "@/lib/fusion/card/spotlight-persist";
+import { extractAuthoritativeOffer } from "@/lib/fusion/card/offer";
 import { prisma } from "@/lib/db";
-import {
-  detectOfferProjectionState,
-  extractAuthoritativeOffer,
-  projectOfferOntoSpotlight,
-} from "@/lib/fusion/card/offer";
 import { parseContentBlocks } from "@/lib/services/devices";
 
 export const dynamic = "force-dynamic";
@@ -31,124 +26,47 @@ export async function POST(request: Request) {
     const { business } = await requireBusiness();
     const body = schema.parse(await request.json());
 
-    const campaign = await prisma.campaign.findFirst({
-      where: { id: body.campaignId, businessId: business.id },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        contentBlocks: true,
-        assignments: {
-          where: { status: "ACTIVE" },
-          take: 1,
-          include: { deviceSlot: { select: { deviceCode: true } } },
-        },
-      },
-    });
-    if (!campaign) {
-      return NextResponse.json(
-        { ok: false, error: "Campaign not found", code: "campaign_not_found" },
-        { status: 404 }
-      );
-    }
-
-    const blocks = parseContentBlocks(campaign.contentBlocks);
-    const offer = extractAuthoritativeOffer({
-      campaignId: campaign.id,
-      campaignTitle: campaign.title,
-      campaignStatus: campaign.status,
-      blocks,
-      preferBlockId: body.offerBlockId,
-    });
-    if (!offer) {
-      return NextResponse.json(
-        {
-          ok: false,
-          error: "Add an offer_coupon block to the Campaign before binding.",
-          code: "offer_not_found",
-        },
-        { status: 400 }
-      );
-    }
-
-    const brandKit = await prisma.brandKit.findUnique({
-      where: { businessId: business.id },
-    });
-    const profile = parseBrandContactProfile(brandKit?.socialLinks);
-    const config = parseTapConnectCard(brandKit?.tapCard, {
+    const result = await persistSpotlightOfferBind({
+      businessId: business.id,
       businessName: business.name,
-      profile,
       logoUrl: business.logoUrl,
-      accentColor: brandKit?.accentColor || "#a3e635",
+      campaignId: body.campaignId,
+      sectionId: body.sectionId,
+      offerBlockId: body.offerBlockId,
+      preservePresentation: body.preservePresentation,
+      deviceCode: body.deviceCode,
     });
 
-    const deviceCode =
-      body.deviceCode ||
-      campaign.assignments[0]?.deviceSlot.deviceCode ||
-      undefined;
-
-    let section = body.sectionId
-      ? config.sections.find((s) => s.id === body.sectionId)
-      : config.sections
-          .filter((s) => s.type === "special_offer")
-          .sort((a, b) => a.order - b.order)[0];
-
-    const creating = !section;
-    if (!section) {
-      section = {
-        id: `offer_${Date.now().toString(36)}`,
-        type: "special_offer",
-        enabled: true,
-        order: config.sections.length,
-        label: "Special offer",
-        specialStyle: "banner",
-        offerMode: "campaign",
-      };
+    if (!result.ok) {
+      const status =
+        result.code === "campaign_not_found"
+          ? 404
+          : result.code === "offer_not_found"
+            ? 400
+            : result.code === "campaign_unavailable"
+              ? 409
+              : 500;
+      return NextResponse.json(
+        { ok: false, error: result.message, code: result.code },
+        { status }
+      );
     }
-
-    const projected = projectOfferOntoSpotlight({
-      section,
-      offer,
-      preservePresentation: creating ? false : body.preservePresentation,
-      deviceCode,
-    });
-
-    const nextSections = creating
-      ? [...config.sections, projected]
-      : config.sections.map((s) => (s.id === projected.id ? projected : s));
-
-    const nextConfig = { ...config, sections: nextSections };
-    await prisma.brandKit.upsert({
-      where: { businessId: business.id },
-      create: {
-        businessId: business.id,
-        tapCard: nextConfig as object,
-      },
-      update: {
-        tapCard: nextConfig as object,
-      },
-    });
-
-    const projectionState = detectOfferProjectionState({
-      section: projected,
-      offer,
-    });
 
     return NextResponse.json({
       ok: true,
-      sectionId: projected.id,
-      campaignId: offer.campaignId,
-      offerBlockId: offer.offerBlockId,
-      factsFingerprint: offer.factsFingerprint,
-      projectionState,
+      sectionId: result.section.id,
+      campaignId: result.offer.campaignId,
+      offerBlockId: result.offer.offerBlockId,
+      factsFingerprint: result.offer.factsFingerprint,
+      projectionState: result.projectionState,
       offer: {
-        title: offer.title,
-        description: offer.description,
-        code: offer.code,
-        expiresAt: offer.expiresAt,
-        ctaLabel: offer.ctaLabel,
+        title: result.offer.title,
+        description: result.offer.description,
+        code: result.offer.code,
+        expiresAt: result.offer.expiresAt,
+        ctaLabel: result.offer.ctaLabel,
       },
-      createdSection: creating,
+      createdSection: result.createdSection,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {

@@ -1565,7 +1565,10 @@ export function takeManualControl(input: ManualControlInput): PreparedExecution 
   };
 }
 
-/** Assert F2 never performed live side effects */
+/**
+ * Assert F2 draft preparation never performed live side effects.
+ * goLiveAvailable may be opened later by F3 final-approval evaluation.
+ */
 export function assertNoLiveSideEffects(execution: PreparedExecution): {
   ok: boolean;
   errors: string[];
@@ -1579,9 +1582,6 @@ export function assertNoLiveSideEffects(execution: PreparedExecution): {
   }
   if (execution.providerLiveAction !== false) {
     errors.push("providerLiveAction must be false");
-  }
-  if (execution.readiness.goLiveAvailable !== false) {
-    errors.push("goLiveAvailable must be false in F2");
   }
   for (const obj of execution.preparedObjects) {
     const draft = obj.draftState;

@@ -11,6 +11,9 @@
  * - outcome-recipe.ts — certified outcome recipe stubs (card.offer.measurable)
  * - prepared-execution.ts — versioned prepared-outcome execution contract (F2)
  * - prepared-orchestrator.ts — deterministic draft preparation + rollback (F2)
+ * - live-activation.ts — versioned live-activation orchestration evidence (F3)
+ * - live-orchestrator.ts — one-tap go-live + stop/pause/undo (F3)
+ * - live-observation.ts — calm Insights observation summary (F3)
  *
  * Compatible (existing):
  * - proposals.ts, budget.ts, knowledge.ts (snippets), facade.ts, etc.
@@ -39,3 +42,8 @@ export * from "./outcome-assembler";
 export * from "./prepared-execution";
 export * from "./prepared-host";
 export * from "./prepared-orchestrator";
+export * from "./live-activation";
+export * from "./live-host";
+export * from "./live-observation";
+export * from "./live-orchestrator";
+export * from "./live-persist";

@@ -253,3 +253,94 @@ export async function waitForNewTapEvent(opts: {
     `TapEvent did not advance: before=${JSON.stringify(opts.before)} after=${JSON.stringify(last)}`
   );
 }
+
+export type ClickEventSnapshot = {
+  count: number;
+  latestId: string | null;
+  latestCreatedAt: string | null;
+  campaignId: string | null;
+  deviceSlotId: string | null;
+  metadata: unknown;
+};
+
+/** Snapshot ClickEvent rows for offer Fuse claim/view evidence. */
+export async function snapshotClickEvents(opts: {
+  businessId: string;
+  eventType: string;
+  campaignId?: string;
+}): Promise<ClickEventSnapshot> {
+  const { Pool } = await import("pg");
+  const url = process.env.DATABASE_URL;
+  if (!url) {
+    throw new Error("DATABASE_URL required for ClickEvent snapshot");
+  }
+  const pool = new Pool({ connectionString: url });
+  try {
+    const params: string[] = [opts.businessId, opts.eventType];
+    let campaignClause = "";
+    if (opts.campaignId) {
+      campaignClause = ` AND "campaignId" = $3`;
+      params.push(opts.campaignId);
+    }
+    const countRes = await pool.query<{ c: number }>(
+      `SELECT COUNT(*)::int AS c FROM "ClickEvent"
+       WHERE "businessId" = $1 AND "eventType" = $2${campaignClause}`,
+      params
+    );
+    const latestRes = await pool.query<{
+      id: string;
+      createdAt: Date;
+      campaignId: string | null;
+      deviceSlotId: string | null;
+      metadata: unknown;
+    }>(
+      `SELECT id, "createdAt", "campaignId", "deviceSlotId", metadata
+       FROM "ClickEvent"
+       WHERE "businessId" = $1 AND "eventType" = $2${campaignClause}
+       ORDER BY "createdAt" DESC
+       LIMIT 1`,
+      params
+    );
+    const latest = latestRes.rows[0];
+    return {
+      count: countRes.rows[0]?.c ?? 0,
+      latestId: latest?.id ?? null,
+      latestCreatedAt: latest?.createdAt
+        ? new Date(latest.createdAt).toISOString()
+        : null,
+      campaignId: latest?.campaignId ?? null,
+      deviceSlotId: latest?.deviceSlotId ?? null,
+      metadata: latest?.metadata ?? null,
+    };
+  } finally {
+    await pool.end();
+  }
+}
+
+export async function waitForNewClickEvent(opts: {
+  businessId: string;
+  eventType: string;
+  campaignId?: string;
+  before: ClickEventSnapshot;
+  timeoutMs?: number;
+}): Promise<ClickEventSnapshot> {
+  const timeoutMs = opts.timeoutMs ?? 25_000;
+  const started = Date.now();
+  let last = opts.before;
+  while (Date.now() - started < timeoutMs) {
+    last = await snapshotClickEvents({
+      businessId: opts.businessId,
+      eventType: opts.eventType,
+      campaignId: opts.campaignId,
+    });
+    if (last.count > opts.before.count) {
+      if (!opts.before.latestId || last.latestId !== opts.before.latestId) {
+        return last;
+      }
+    }
+    await new Promise((r) => setTimeout(r, 250));
+  }
+  throw new Error(
+    `ClickEvent ${opts.eventType} did not advance: before=${JSON.stringify(opts.before)} after=${JSON.stringify(last)}`
+  );
+}

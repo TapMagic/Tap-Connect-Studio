@@ -87,7 +87,11 @@ export type PreparedReadiness = {
     | "undone";
   components: ComponentReadiness[];
   stale: boolean;
-  goLiveAvailable: false;
+  /**
+   * F2 prepare leaves this false until F3 opens final approval.
+   * F3 may set true when the prepared outcome may receive Make it live.
+   */
+  goLiveAvailable: boolean;
 };
 
 export type ReversibleAction = {
@@ -219,7 +223,8 @@ export type PreparedExecution = {
   hostStateLabel: string;
   hostStateDetail: string;
   honestyStatement: string;
-  livePublish: false;
+  /** Local Campaign/Card publish only — never email/social send */
+  livePublish: boolean;
   liveSend: false;
   liveSpend: false;
   customerContactOccurred: false;
@@ -321,7 +326,9 @@ export function validatePreparedExecution(
     errors.push("reversibleActions must be an array");
   }
   if (!Array.isArray(execution.auditRefs)) errors.push("auditRefs must be an array");
-  if (execution.livePublish !== false) errors.push("livePublish must be false");
+  if (typeof execution.livePublish !== "boolean") {
+    errors.push("livePublish must be a boolean");
+  }
   if (execution.liveSend !== false) errors.push("liveSend must be false");
   if (execution.liveSpend !== false) errors.push("liveSpend must be false");
   if (execution.customerContactOccurred !== false) {
@@ -330,8 +337,8 @@ export function validatePreparedExecution(
   if (execution.providerLiveAction !== false) {
     errors.push("providerLiveAction must be false");
   }
-  if (execution.readiness?.goLiveAvailable !== false) {
-    errors.push("readiness.goLiveAvailable must be false in F2");
+  if (typeof execution.readiness?.goLiveAvailable !== "boolean") {
+    errors.push("readiness.goLiveAvailable must be a boolean");
   }
   for (const intervention of execution.interventions ?? []) {
     const v = validateHumanIntervention(intervention);

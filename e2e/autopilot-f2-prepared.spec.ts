@@ -136,10 +136,8 @@ test.describe("autopilot F2 prepared outcome", () => {
     await expect(page.getByTestId("autopilot-unified-preview-prepared")).toContainText(
       /Card Spotlight|Email draft|TapCast|Insights/i
     );
-    await expect(page.getByTestId("autopilot-go-live-disabled")).toBeDisabled();
-    await expect(page.getByTestId("autopilot-go-live-disabled")).toContainText(
-      /coming after final approval/i
-    );
+    await expect(page.getByTestId("autopilot-make-live")).toBeDisabled();
+    await expect(page.getByTestId("autopilot-final-approval")).toBeVisible();
     await expect(page.getByTestId("autopilot-honesty")).toContainText(/Prepared locally/i);
     await expect(page.getByTestId("autopilot-prepared-state")).toHaveAttribute(
       "role",

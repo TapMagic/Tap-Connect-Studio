@@ -311,6 +311,7 @@ export default async function TapCardAssemblyPage({
           : null
       }
       tapPointCount={assignmentCount}
+      deviceCode={publicCode}
       utilitySummary={utilityLayerWhereUsedSummary(utilityLayer)}
       supportConnected={utilityLayer.utilities.some(
         (u) => u.kind === "support" && u.eligible

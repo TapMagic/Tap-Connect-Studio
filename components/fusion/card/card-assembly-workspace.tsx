@@ -34,6 +34,8 @@ export type CardAssemblyWorkspaceProps = {
   publicPreviewHref: string | null;
   activeCampaign?: { id: string; title: string; status: string } | null;
   tapPointCount: number;
+  /** Preferred public device code for customer preview / entry path */
+  deviceCode?: string | null;
   utilitySummary: string;
   supportConnected: boolean;
   readinessNotes: string[];
@@ -69,6 +71,7 @@ export function CardAssemblyWorkspace({
   publicPreviewHref,
   activeCampaign,
   tapPointCount,
+  deviceCode = null,
   utilitySummary,
   supportConnected,
   readinessNotes,
@@ -199,6 +202,7 @@ export function CardAssemblyWorkspace({
           keepCardAvailable={keepCardAvailable}
           featureOfferEnabled={featureOfferEnabled}
           featureAutopilotEnabled={featureAutopilotEnabled}
+          deviceCode={deviceCode || undefined}
         />
       ) : featureOfferEnabled ? (
         <div

@@ -22,6 +22,10 @@ import {
   applyPreparedSpotlightDraft,
   type OrchestratorCampaignInput,
 } from "@/lib/fusion/autopilot/prepared-orchestrator";
+import { evaluateFinalApprovalGate } from "@/lib/fusion/autopilot/live-orchestrator";
+import type { LiveActivation } from "@/lib/fusion/autopilot/live-activation";
+import type { LiveObservationSummary } from "@/lib/fusion/autopilot/live-observation";
+import type { DomainLiveSnapshot } from "@/lib/fusion/autopilot/live-orchestrator";
 import type { TapCardSection } from "@/lib/brand/tap-card";
 import { PreparedOutcomeWorkspace } from "@/components/fusion/autopilot/prepared-outcome-workspace";
 import { cn } from "@/lib/utils";
@@ -103,6 +107,11 @@ export function OutcomeExperienceWorkspace({
   const [draftSections, setDraftSections] = useState<TapCardSection[] | null>(null);
   const [focusedEscape, setFocusedEscape] = useState(false);
   const [isPreparing, setIsPreparing] = useState(false);
+  const [liveActivation, setLiveActivation] = useState<LiveActivation | null>(null);
+  const [, setLiveDomain] = useState<DomainLiveSnapshot | null>(null);
+  const [liveObservation, setLiveObservation] = useState<LiveObservationSummary | null>(null);
+  const [finalApprovalChecked, setFinalApprovalChecked] = useState(false);
+  const [isActivating, setIsActivating] = useState(false);
   const reviewHeadingRef = useRef<HTMLHeadingElement | null>(null);
 
   const workingSections = draftSections ?? cardSections;
@@ -251,6 +260,11 @@ export function OutcomeExperienceWorkspace({
     setFocusedEscape(false);
     setDraftSections(null);
     setIsPreparing(false);
+    setLiveActivation(null);
+    setLiveDomain(null);
+    setLiveObservation(null);
+    setFinalApprovalChecked(false);
+    setIsActivating(false);
   }
 
   function selectChoice(id: OutcomeChoiceId) {
@@ -296,6 +310,10 @@ export function OutcomeExperienceWorkspace({
         });
         setPreparedExecution(prepared.execution);
         setPreparedPlan(prepared.plan);
+        setLiveActivation(null);
+        setLiveDomain(null);
+        setLiveObservation(null);
+        setFinalApprovalChecked(false);
         if (prepared.ok) {
           setDraftSections(
             applyPreparedSpotlightDraft(sectionsSnapshot, prepared.execution)
@@ -395,15 +413,263 @@ export function OutcomeExperienceWorkspace({
   }
 
   function handleManualControl() {
-    if (preparedExecution) {
-      setPreparedExecution(
-        takeManualControl({
-          execution: preparedExecution,
-          editorHref: "/dashboard/card/edit",
-        })
-      );
+    void (async () => {
+      if (liveActivation && preparedPlan && preparedExecution) {
+        await postInterrupt("manual");
+      } else if (preparedExecution) {
+        setPreparedExecution(
+          takeManualControl({
+            execution: preparedExecution,
+            editorHref: "/dashboard/card/edit",
+          })
+        );
+      }
+      router.push("/dashboard/card/edit");
+    })();
+  }
+
+  function buildActivationReadiness() {
+    const approvedTapPoints =
+      tapPointAssigned && deviceCode
+        ? [{ code: deviceCode, label: `Tap Point ${deviceCode}` }]
+        : [];
+    return {
+      featureOfferEnabled,
+      featureAutopilotEnabled,
+      emailConnected,
+      consentPathAvailable,
+      approvedTapPoints,
+      // Card-first only when no concrete Tap Point code is available
+      cardFirstApproved: approvedTapPoints.length === 0,
+      askQuestionAvailable,
+      keepCardAvailable,
+    };
+  }
+
+  async function reloadAuthoritativeLive(campaignId: string) {
+    try {
+      const qs = new URLSearchParams({ campaignId });
+      if (deviceCode) qs.set("deviceCode", deviceCode);
+      const res = await fetch(`/api/autopilot/live?${qs.toString()}`, {
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        ok?: boolean;
+        activation?: LiveActivation | null;
+        plan?: AutopilotPlan | null;
+        execution?: PreparedExecution | null;
+        observation?: LiveObservationSummary | null;
+        campaignStatus?: string | null;
+        maySayYourOfferIsLive?: boolean;
+        hostLabel?: string;
+        reason?: string;
+      };
+      if (!json.ok) return;
+      if (json.plan) setPreparedPlan(json.plan);
+      if (json.execution) {
+        setPreparedExecution(json.execution);
+        setDraftSections(
+          applyPreparedSpotlightDraft(cardSections, json.execution)
+        );
+      }
+      if (json.activation) {
+        const restored =
+          json.maySayYourOfferIsLive === false && json.reason
+            ? {
+                ...json.activation,
+                hostStateLabel: json.hostLabel || json.activation.hostStateLabel,
+                hostStateDetail: json.reason,
+              }
+            : json.activation;
+        const canFocusLive =
+          Boolean(json.plan && json.execution) &&
+          (restored.status === "live" ||
+            restored.status === "scheduled" ||
+            restored.status === "paused");
+        if (canFocusLive) {
+          setLiveActivation(restored);
+          setPhase("prepared");
+          setFocusedEscape(true);
+        } else if (
+          restored.status === "stopped" ||
+          restored.status === "rolled_back" ||
+          restored.status === "manual_control" ||
+          restored.status === "failed"
+        ) {
+          // Do not overlay terminal live evidence onto a newly prepared outcome —
+          // that replaces Make it live with a stale Stopped shell.
+          setLiveActivation((prev) => {
+            if (preparedExecution?.status === "prepared") return prev;
+            return restored;
+          });
+        }
+      }
+      if (json.observation) setLiveObservation(json.observation);
+      if (json.campaignStatus) {
+        setLiveDomain((prev) => ({
+          campaignStatus: json.campaignStatus || prev?.campaignStatus || "DRAFT",
+          cardSections: prev?.cardSections ?? workingSections,
+          insightsObservationActive: Boolean(json.activation?.observationActive),
+          preservedEvidence: {
+            claimsPreserved: true,
+            consentPreserved: true,
+            relationshipsPreserved: true,
+            auditPreserved: true,
+          },
+        }));
+      }
+    } catch {
+      // ignore reload errors — host can retry
     }
-    router.push("/dashboard/card/edit");
+  }
+
+  useEffect(() => {
+    const campaign = preparedPlan ? resolvePrepareCampaign(preparedPlan) : null;
+    const campaignId =
+      campaign?.id ||
+      boundCampaignId ||
+      liveActivation?.campaignId ||
+      null;
+    if (!campaignId) return;
+    let cancelled = false;
+    const handle = window.setTimeout(() => {
+      if (cancelled) return;
+      void reloadAuthoritativeLive(campaignId);
+    }, 0);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+    // Reload durable live state after mount / navigation — not client memory.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- campaign identity + device
+  }, [boundCampaignId, preparedPlan?.id, deviceCode]);
+
+  async function runMakeLive() {
+    if (!preparedExecution || !preparedPlan || !finalApprovalChecked) return;
+    const campaign = resolvePrepareCampaign(preparedPlan);
+    if (!campaign) return;
+    setIsActivating(true);
+    try {
+      const res = await fetch("/api/autopilot/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          plan: preparedPlan,
+          execution: preparedExecution,
+          campaignId: campaign.id,
+          cardId,
+          finalApprovalGranted: true,
+          deviceCode,
+          facts,
+          readiness: buildActivationReadiness(),
+          existingActivationId: liveActivation?.activationId,
+        }),
+      });
+      const json = (await res.json()) as {
+        ok?: boolean;
+        error?: string;
+        activation?: LiveActivation;
+        execution?: PreparedExecution;
+        plan?: AutopilotPlan;
+        observation?: LiveObservationSummary | null;
+        domain?: { campaignStatus?: string };
+        verifiedPublic?: boolean;
+      };
+      if (json.activation) setLiveActivation(json.activation);
+      if (json.execution) setPreparedExecution(json.execution);
+      if (json.plan) setPreparedPlan(json.plan);
+      if (json.observation) setLiveObservation(json.observation);
+      if (json.domain?.campaignStatus) {
+        setLiveDomain({
+          campaignStatus: json.domain.campaignStatus,
+          cardSections: workingSections,
+          insightsObservationActive: Boolean(json.activation?.observationActive),
+          preservedEvidence: {
+            claimsPreserved: true,
+            consentPreserved: true,
+            relationshipsPreserved: true,
+            auditPreserved: true,
+          },
+        });
+      }
+      if (json.ok) {
+        setFinalApprovalChecked(false);
+        await reloadAuthoritativeLive(campaign.id);
+      }
+    } catch {
+      setLiveActivation((prev) =>
+        prev
+          ? {
+              ...prev,
+              status: "failed",
+              hostStateLabel: "Could not go live",
+              hostStateDetail:
+                "Autopilot could not safely make the offer live. Nothing was left half-finished.",
+            }
+          : prev
+      );
+    } finally {
+      setIsActivating(false);
+    }
+  }
+
+  async function postInterrupt(mode: "stop" | "pause" | "undo" | "manual" | "resume") {
+    if (!liveActivation || !preparedPlan || !preparedExecution) return;
+    const res = await fetch("/api/autopilot/live/interrupt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        activationId: liveActivation.activationId,
+        mode,
+        plan: preparedPlan,
+        execution: preparedExecution,
+        editorHref: mode === "manual" ? "/dashboard/card/edit" : undefined,
+      }),
+    });
+    const json = (await res.json()) as {
+      ok?: boolean;
+      activation?: LiveActivation;
+      execution?: PreparedExecution;
+      plan?: AutopilotPlan;
+      domain?: { campaignStatus?: string };
+    };
+    if (json.activation) setLiveActivation(json.activation);
+    if (json.execution) setPreparedExecution(json.execution);
+    if (json.plan) setPreparedPlan(json.plan);
+    if (json.domain?.campaignStatus) {
+      setLiveDomain({
+        campaignStatus: json.domain.campaignStatus,
+        cardSections: workingSections,
+        insightsObservationActive: Boolean(json.activation?.observationActive),
+        preservedEvidence: {
+          claimsPreserved: true,
+          consentPreserved: true,
+          relationshipsPreserved: true,
+          auditPreserved: true,
+        },
+      });
+    }
+    if (mode === "stop" || mode === "undo") setLiveObservation(null);
+    if (json.activation?.campaignId) {
+      await reloadAuthoritativeLive(json.activation.campaignId);
+    }
+  }
+
+  function runStopLive() {
+    void postInterrupt("stop");
+  }
+
+  function runPauseLive() {
+    void postInterrupt("pause");
+  }
+
+  function runResumeLive() {
+    void postInterrupt("resume");
+  }
+
+  function runUndoGoLive() {
+    void postInterrupt("undo");
   }
 
   function returnToStudio() {
@@ -480,6 +746,24 @@ export function OutcomeExperienceWorkspace({
   }
 
   if (phase === "prepared" && displayExecution && preparedPlan && focusedEscape) {
+    const campaign = resolvePrepareCampaign(preparedPlan);
+    const gate =
+      campaign && displayExecution.status === "prepared"
+        ? evaluateFinalApprovalGate({
+            plan: preparedPlan,
+            execution: displayExecution,
+            campaign,
+            card: {
+              id: cardId,
+              sections: workingSections,
+              retired: cardRetired,
+            },
+            facts,
+            readiness: buildActivationReadiness(),
+          })
+        : null;
+    const publicPreviewHref = deviceCode ? `/t/${deviceCode}?public=1` : null;
+
     return (
       <div
         className={cn("space-y-3", className)}
@@ -489,6 +773,20 @@ export function OutcomeExperienceWorkspace({
           execution={displayExecution}
           plan={preparedPlan}
           focused
+          activation={liveActivation}
+          observation={liveObservation}
+          finalApprovalChecked={finalApprovalChecked}
+          onFinalApprovalChange={setFinalApprovalChecked}
+          goLiveAvailable={Boolean(gate?.goLiveAvailable)}
+          goLiveBlockedReason={gate && !gate.ok ? gate.blockers[0]?.message ?? null : null}
+          approvalCopy={gate?.approvalCopy ?? null}
+          publicPreviewHref={publicPreviewHref}
+          activating={isActivating}
+          onMakeLive={runMakeLive}
+          onStop={runStopLive}
+          onPause={runPauseLive}
+          onResume={runResumeLive}
+          onUndoGoLive={runUndoGoLive}
           onUndo={undoPreparation}
           onReprepare={reprepare}
           onEditGoal={beginEditGoal}

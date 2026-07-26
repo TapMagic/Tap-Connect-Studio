@@ -2,9 +2,39 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (wave start):** `6f1e1e494e5795bb223c4924e0a5eb1b69e8dedb`  
+**HEAD (wave start):** `c44a3de19156a469e6b4178a61f28ce3f6de2c41`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
+
+## Autopilot F3 — One-Tap Go-Live + Observation (local uncommitted)
+
+**Starting HEAD:** `c44a3de19156a469e6b4178a61f28ce3f6de2c41` (F2 committed)  
+**Scope:** Outcome-level final approval + deterministic LiveActivation orchestrator for `card.offer.measurable@1.0.0` → **authoritative** Campaign activation, Brand Kit Spotlight persistence, approved customer entry, Insights observation, durable orchestration evidence (`FusionIdempotencyRecord` + audit), Stop/Pause/Resume/Undo/manual control + calm observation summary. **No live email/social/SMS/Wallet/Stripe/provider. No F4. No Owner-ready claim.**  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY** (local isolated DB go-live only; external Distribution remains prepared/unsent).
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint (F3 surfaces) | **0 errors** |
+| `npm run test:fusion` | **570/570 PASS** |
+| Targeted F0/F1/F2/F3 | **103/103 PASS** |
+| `npm run build` | **PASS** |
+| Prisma / schema | **No schema change** (durable evidence via existing `FusionIdempotencyRecord` + `PlatformAuditEvent`) |
+| Headed `e2e/autopilot-f3-golive.spec.ts` | **5/5 PASS** (axe 0 serious/critical; desktop/tablet/phone; keyboard; Undo) |
+| Headed `e2e/autopilot-f3-authoritative.spec.ts` | **3/3 PASS** (DB-backed `/t` round-trip, refresh reconnect, Pause/Resume, mobile Stop) |
+| Headed `e2e/autopilot-f3-claim-insights-dark.spec.ts` | **2/2 PASS** (deterministic Claim + ClickEvent + Insights before/after + forced-dark matrix) |
+| Headed Offer Fuse + Support + Keep | **11/11 PASS** |
+| J16 proposal lifecycle (unit) | **PASS** |
+
+**Authoritative correction (bounded F3 completion):** Host “Your offer is live.” only after Campaign + Spotlight + customer-entry verification + durable evidence. Refresh/reconnect rehydrates plan/execution snapshots from durable record. Stop/Pause/Resume/Undo write Campaign/Spotlight through domain paths. Compensation on failed activation. No parallel Autopilot live SoT.
+
+**Final pre-commit proof (verification pass):** Deterministic public Claim on `/t/<deviceCode>` → `ClickEvent.card_offer_claimed` persisted with Campaign/Tap Point attribution → Insights `offer_claims_range` / `offer_views_range` before/after + provenance. Studio forced-dark verified under `prefers-color-scheme: light` (desktop/tablet/phone/new-tab). Spec: `e2e/autopilot-f3-claim-insights-dark.spec.ts`. Artifacts: `tmp/f3-final-proofs/`.
+
+**Proof artifacts:** `tmp/f3-golive-proofs/`, `tmp/f3-authoritative-proofs/`, `tmp/f3-final-proofs/` (claim success, Insights before/after/provenance, dark matrix).
+
+**Not claimed:** Live email/social; F4 optimization; Owner-ready / Owner-accepted; production/Railway deploy.
+
+---
 
 ## Autopilot F2 — Prepared Outcome Execution (local uncommitted)
 

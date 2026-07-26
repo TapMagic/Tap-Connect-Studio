@@ -223,6 +223,7 @@ export function CardOfferClaimForm({
             onChange={(e) => setEmail(e.target.value)}
             className="mt-1 bg-black/40"
             autoComplete="email"
+            data-testid="card-offer-email"
           />
         </div>
         <label className="flex items-start gap-2 text-xs text-white/75">
@@ -231,6 +232,7 @@ export function CardOfferClaimForm({
             className="mt-0.5"
             checked={consentGiven}
             onChange={(e) => setConsentGiven(e.target.checked)}
+            data-testid="card-offer-consent"
           />
           <span>
             I agree to be contacted about this offer from{" "}
@@ -283,6 +285,9 @@ export function CardOfferClaimForm({
 /**
  * Compact Spotlight strip injected onto Campaign takeover pages.
  */
+/** Survive parent remounts after offer view POST so Claim form stays open. */
+const openedSpotlightCampaigns = new Set<string>();
+
 export function CardOfferSpotlightStrip({
   context,
   kicker,
@@ -294,7 +299,8 @@ export function CardOfferSpotlightStrip({
   headline?: string;
   className?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  const openKey = `${context.campaignId}:${context.sectionId || "spotlight"}`;
+  const [open, setOpen] = useState(() => openedSpotlightCampaigns.has(openKey));
 
   return (
     <div className={cn("px-4 pt-5", className)} data-testid="card-offer-spotlight-strip">
@@ -302,7 +308,10 @@ export function CardOfferSpotlightStrip({
         <button
           type="button"
           className="tap-special-spotlight w-full rounded-xl border border-primary/40 bg-gradient-to-br from-primary/20 to-black/40 px-4 py-4 text-left"
-          onClick={() => setOpen(true)}
+          onClick={() => {
+            openedSpotlightCampaigns.add(openKey);
+            setOpen(true);
+          }}
           data-testid="card-offer-spotlight-open"
         >
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-primary">
