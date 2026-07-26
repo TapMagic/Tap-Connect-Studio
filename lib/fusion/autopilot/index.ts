@@ -31,3 +31,6 @@ export * from "./knowledge-fact";
 export * from "./plan";
 export * from "./approval-policy";
 export * from "./outcome-recipe";
+export * from "./plain-language";
+export * from "./host-questions";
+export * from "./outcome-assembler";

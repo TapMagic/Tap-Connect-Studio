@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 
 const RECIPE_ICONS: Record<string, LucideIcon> = {
   recipe_card: CreditCard,
+  recipe_card_offer: Target,
   recipe_campaign: Target,
   recipe_tap_point: Nfc,
   recipe_contacts: Users,

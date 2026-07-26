@@ -171,13 +171,14 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "autopilot",
-      label: "Automation Team · Campaign workbench",
-      href: "/dashboard/workbench",
-      description: "Contextual Autopilot lives in the campaign workbench (not a separate surface)",
+      label: "Autopilot · measurable Card offer",
+      href: "/dashboard/card?wire=offer",
+      description:
+        "Outcome Autopilot for Card offers — local plan review (campaign workbench keeps draft generation)",
       maturity: "functional",
       featureId: "ai.autopilot",
       group: "Intelligence",
-      opensSurface: "Campaign workbench",
+      opensSurface: "Card assembly",
     },
   ],
   experiences: [

@@ -9,15 +9,24 @@ const headed = process.env.PROOF_HEADED === "1";
 test.describe("card offer fuse conversion slice", () => {
   test.skip(!headed, "Set PROOF_HEADED=1 for headed Card offer fuse proofs");
 
-  test("Create recipe Put an offer on my Card opens assembly wire", async ({ page }) => {
+  test("Create recipe measurable Card offer opens assembly Autopilot + wire", async ({ page }) => {
     await page.goto("/dashboard");
-    const recipe = page.getByRole("link", { name: /Put an offer on my Card/i });
+    const recipe = page.getByRole("link", {
+      name: /Create a measurable offer on my Card|Put an offer on my Card/i,
+    });
     if (await recipe.count()) {
       await recipe.first().click();
+      await expect(page.getByTestId("autopilot-outcome-experience")).toBeVisible({
+        timeout: 60_000,
+      });
+      await expect(page.getByTestId("card-offer-manual-wire")).toBeVisible();
+      await page.getByTestId("card-offer-manual-wire").locator("summary").click();
       await expect(page.getByTestId("card-offer-wire-panel")).toBeVisible({ timeout: 60_000 });
     } else {
       await page.goto("/dashboard/card?wire=offer");
-      await expect(page.getByTestId("card-offer-wire-panel")).toBeVisible({ timeout: 60_000 });
+      await expect(page.getByTestId("card-offer-manual-wire")).toBeVisible({ timeout: 60_000 });
+      await page.getByTestId("card-offer-manual-wire").locator("summary").click();
+      await expect(page.getByTestId("card-offer-wire-panel")).toBeVisible();
     }
   });
 
@@ -38,6 +47,8 @@ test.describe("card offer fuse conversion slice", () => {
     page,
   }) => {
     await page.goto("/dashboard/card?wire=offer");
+    await expect(page.getByTestId("card-offer-manual-wire")).toBeVisible({ timeout: 60_000 });
+    await page.getByTestId("card-offer-manual-wire").locator("summary").click();
     await expect(page.getByTestId("card-offer-wire-panel")).toBeVisible({ timeout: 60_000 });
 
     const empty = page.getByTestId("card-offer-empty-state");

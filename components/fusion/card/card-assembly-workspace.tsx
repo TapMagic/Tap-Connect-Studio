@@ -13,12 +13,14 @@ import {
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { CardFuseBoxPanel } from "@/components/fusion/card/card-fuse-box-panel";
 import { CardOfferWirePanel } from "@/components/fusion/card/card-offer-wire-panel";
+import { OutcomeExperienceWorkspace } from "@/components/fusion/autopilot/outcome-experience-workspace";
 import { WhereUsedPanel } from "@/components/fusion/studio/where-used-panel";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { FuseBoxConnection } from "@/lib/fusion/card/fuse-box";
 import type { CampaignWhereUsedHit } from "@/lib/fusion/studio/where-used";
 import type { OfferCampaignCandidate } from "@/components/fusion/card/card-offer-wire-panel";
+import type { KnowledgeFact } from "@/lib/fusion/autopilot/knowledge-fact";
 import { cn } from "@/lib/utils";
 
 export type CardAssemblyWorkspaceProps = {
@@ -40,6 +42,16 @@ export type CardAssemblyWorkspaceProps = {
   offerCampaigns?: OfferCampaignCandidate[];
   offerSectionId?: string;
   boundOfferCampaignId?: string | null;
+  /** F1 Autopilot outcome experience (local plan only) */
+  showAutopilotOutcome?: boolean;
+  brandAccent?: string;
+  brandVoice?: string;
+  emailConnected?: boolean;
+  consentPathAvailable?: boolean;
+  featureOfferEnabled?: boolean;
+  featureAutopilotEnabled?: boolean;
+  keepCardAvailable?: boolean;
+  autopilotFacts?: KnowledgeFact[];
 };
 
 /**
@@ -65,6 +77,15 @@ export function CardAssemblyWorkspace({
   offerCampaigns = [],
   offerSectionId,
   boundOfferCampaignId,
+  showAutopilotOutcome = false,
+  brandAccent,
+  brandVoice,
+  emailConnected = false,
+  consentPathAvailable = false,
+  featureOfferEnabled = true,
+  featureAutopilotEnabled = true,
+  keepCardAvailable = true,
+  autopilotFacts = [],
 }: CardAssemblyWorkspaceProps) {
   const retired = config.lifecycleStatus === "retired";
 
@@ -136,12 +157,74 @@ export function CardAssemblyWorkspace({
         </p>
       ) : null}
 
-      {showOfferWire ? (
-        <CardOfferWirePanel
-          campaigns={offerCampaigns}
-          sectionId={offerSectionId}
+      {showAutopilotOutcome ? (
+        <OutcomeExperienceWorkspace
+          businessName={businessName}
+          brandAccent={brandAccent}
+          brandVoice={brandVoice}
+          logoUrl={logoUrl}
+          cardId="brand_kit_card"
+          cardRetired={retired}
+          hasSpotlight={Boolean(
+            config.sections?.some((s) => s.type === "special_offer")
+          )}
           boundCampaignId={boundOfferCampaignId}
+          campaigns={offerCampaigns.map((c) => ({
+            id: c.id,
+            title: c.title,
+            hasOffer: c.hasOffer,
+            offerTitle: c.offerTitle,
+            offerDescription: c.offerValueSummary,
+            offerCode: c.offerCode,
+            boundToThisCard: c.boundToThisCard,
+            scheduledStart: c.scheduledStart,
+            scheduledEnd: c.scheduledEnd,
+          }))}
+          facts={autopilotFacts}
+          emailConnected={emailConnected}
+          consentPathAvailable={consentPathAvailable}
+          tapPointAssigned={tapPointCount > 0}
+          askQuestionAvailable={supportConnected}
+          keepCardAvailable={keepCardAvailable}
+          featureOfferEnabled={featureOfferEnabled}
+          featureAutopilotEnabled={featureAutopilotEnabled}
         />
+      ) : featureOfferEnabled ? (
+        <div
+          className="rounded-xl border border-primary/20 bg-primary/[0.05] px-4 py-3"
+          data-testid="autopilot-outcome-entry"
+        >
+          <p className="text-sm font-medium text-white">Create a measurable offer on your Card</p>
+          <p className="mt-1 text-xs text-white/55">
+            Autopilot prepares a local plan from your Campaign and Brand Kit — no publish or send.
+          </p>
+          <Link
+            href="/dashboard/card?wire=offer"
+            className="mt-3 inline-flex min-h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            data-testid="autopilot-outcome-entry-cta"
+          >
+            Prepare my plan
+          </Link>
+        </div>
+      ) : null}
+
+      {showOfferWire ? (
+        <details
+          className="rounded-xl border border-white/10 bg-white/[0.02] p-3"
+          data-testid="card-offer-manual-wire"
+          open={showAutopilotOutcome ? undefined : true}
+        >
+          <summary className="cursor-pointer text-sm font-medium text-white/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
+            Manual Offer wire (bind, preview, distribution)
+          </summary>
+          <div className="mt-3">
+            <CardOfferWirePanel
+              campaigns={offerCampaigns}
+              sectionId={offerSectionId}
+              boundCampaignId={boundOfferCampaignId}
+            />
+          </div>
+        </details>
       ) : null}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(16rem,20rem)]">

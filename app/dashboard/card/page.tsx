@@ -264,7 +264,7 @@ export default async function TapCardAssemblyPage({
   const nextActions = [
     { label: "Edit Card", href: "/dashboard/card/edit", primary: true },
     {
-      label: "Put an offer on my Card",
+      label: "Create a measurable offer on my Card",
       href: "/dashboard/card?wire=offer",
     },
     ...(devices[0]
@@ -284,6 +284,12 @@ export default async function TapCardAssemblyPage({
     devices.find((d) => d.deviceCode === "seeddemo01")?.deviceCode ||
     devices[0]?.deviceCode ||
     null;
+
+  const emailConnected = Boolean(
+    brandKit?.emailPromo &&
+      typeof brandKit.emailPromo === "object" &&
+      Object.keys(brandKit.emailPromo as object).length > 0
+  );
 
   return (
     <CardAssemblyWorkspace
@@ -312,9 +318,17 @@ export default async function TapCardAssemblyPage({
       readinessNotes={readinessNotes}
       nextActions={nextActions}
       showOfferWire={wire === "offer" || featureEnabled("card.fuse.offer")}
+      showAutopilotOutcome={wire === "offer"}
       offerCampaigns={offerCampaigns}
       offerSectionId={spotlight?.id}
       boundOfferCampaignId={boundCampaignId}
+      brandAccent={brandKit?.accentColor || "#d4af37"}
+      brandVoice={brandKit?.tone || undefined}
+      emailConnected={emailConnected}
+      consentPathAvailable={false}
+      featureOfferEnabled={featureEnabled("card.fuse.offer")}
+      featureAutopilotEnabled={featureEnabled("ai.autopilot")}
+      keepCardAvailable={featureEnabled("tapsave.core")}
     />
   );
 }

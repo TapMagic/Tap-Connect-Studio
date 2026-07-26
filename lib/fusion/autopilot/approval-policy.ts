@@ -120,9 +120,16 @@ function inventsPriceOrDiscount(mutation: ObjectMutation): boolean {
 }
 
 function isCustomerContactSend(mutation: ObjectMutation): boolean {
-  if (mutation.target === "distribution.email") return true;
-  if (mutation.payload?.customerContact === true) return true;
-  if (mutation.payload?.send === true && mutation.target !== "distribution.tapcast") {
+  const payload = mutation.payload ?? {};
+  // Prepared/mock distribution packages are not customer-contact sends until explicitly marked.
+  if (payload.deferred === true || payload.liveSend === false) {
+    return payload.customerContact === true || payload.send === true;
+  }
+  if (mutation.target === "distribution.email") {
+    return payload.customerContact !== false;
+  }
+  if (payload.customerContact === true) return true;
+  if (payload.send === true && mutation.target !== "distribution.tapcast") {
     return true;
   }
   return false;
@@ -319,6 +326,17 @@ export function decideApprovals(
     }
     if (isCustomerContactSend(mutation) && level !== "prohibited") {
       level = "review_before_send";
+    }
+    // Mock/deferred distribution preparation is not a customer contact yet
+    if (
+      level !== "prohibited" &&
+      (mutation.payload?.deferred === true ||
+        (mutation.payload?.mock === true &&
+          mutation.payload?.liveSend === false &&
+          mutation.payload?.customerContact !== true &&
+          mutation.payload?.livePublish !== true))
+    ) {
+      level = "automatic_within_limits";
     }
 
     const reason = `Policy ${policy.id} → ${level} for ${mutation.target}`;

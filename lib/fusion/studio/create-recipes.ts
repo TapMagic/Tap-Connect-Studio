@@ -31,14 +31,14 @@ export const CREATE_RECIPES: CreateRecipe[] = [
   },
   {
     id: "recipe_card_offer",
-    label: "Put an offer on my Card",
+    label: "Create a measurable offer on my Card",
     description:
-      "Bind one Campaign offer to Card Spotlight — claim, follow-up, and Insights without rebuilding the offer.",
+      "Autopilot prepares a Card Spotlight offer plan from your Campaign and Brand Kit — review locally before anything goes live.",
     href: "/dashboard/card?wire=offer",
     nextSteps: [
-      "Bind or create a Campaign offer from the Offer fuse wire",
-      "Preview Card, email mock, and TapCast package together",
-      "Publish, assign a Tap Point, then claim on the public page",
+      "Prepare your plan with Autopilot (local only)",
+      "Answer any missing detail, preview the customer experience, approve locally",
+      "Take manual control when you are ready to bind or publish",
     ],
     group: "Start",
   },
