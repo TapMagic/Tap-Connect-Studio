@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
   Bell,
-  CircleHelp,
   Command,
   Plus,
   Search,
@@ -20,7 +19,9 @@ import {
   createActionMenuLabel,
   studioSearchIndex,
 } from "@/lib/fusion/studio/ia";
+import { recipesByGroup } from "@/lib/fusion/studio/create-recipes";
 import { safeDisplayLabel } from "@/lib/fusion/readiness/display-status";
+import { StudioHelpDrawer } from "@/components/studio/studio-help-drawer";
 import { cn } from "@/lib/utils";
 
 export function StudioTopBar({
@@ -224,11 +225,39 @@ export function StudioTopBar({
             role="menu"
             aria-label="Create actions"
             data-testid="studio-create-menu"
-            className="absolute right-0 top-full z-50 mt-2 max-h-[70vh] w-72 overflow-y-auto rounded-xl border border-white/10 bg-[#0d1320] p-2 shadow-2xl shadow-black/50"
+            className="absolute right-0 top-full z-50 mt-2 max-h-[70vh] w-80 overflow-y-auto rounded-xl border border-white/10 bg-[#0d1320] p-2 shadow-2xl shadow-black/50"
           >
+            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+              What do you want to do?
+            </p>
+            {recipesByGroup().map(({ group, items }) => (
+              <div key={`recipe-${group}`} className="mb-2">
+                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/30">
+                  {group}
+                </p>
+                {items.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    role="menuitem"
+                    data-testid={`studio-create-recipe-${r.id}`}
+                    title={r.description}
+                    className="flex w-full flex-col rounded-lg px-2 py-1.5 text-left hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                    onClick={() => go(r.href)}
+                  >
+                    <span className="text-sm text-white/90">{r.label}</span>
+                    <span className="text-[11px] text-white/40">{r.description}</span>
+                  </button>
+                ))}
+              </div>
+            ))}
+            <div className="my-2 border-t border-white/8" />
+            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/30">
+              More actions
+            </p>
             {createGroups.map(([group, actions]) => (
               <div key={group} className="mb-2">
-                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/30">
+                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/25">
                   {group}
                 </p>
                 {actions.map((a) => {
@@ -385,14 +414,7 @@ export function StudioTopBar({
         ) : null}
       </div>
 
-      <Link
-        href="/dashboard/settings"
-        className="rounded-lg border border-white/10 p-2 text-white/50 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-        aria-label="Help and settings"
-        title="Help · Settings"
-      >
-        <CircleHelp className="h-4 w-4" />
-      </Link>
+      <StudioHelpDrawer />
 
       {isClerkConfigured() ? (
         <AuthControls />

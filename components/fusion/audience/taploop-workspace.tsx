@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
 import { Gift, RefreshCw, ShieldAlert } from "lucide-react";
+import { TapLoopRulesEditor } from "@/components/fusion/audience/taploop-rules-editor";
+import { ErrorMessage } from "@/components/ui/error-message";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -602,26 +604,12 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
             Create program
           </Button>
         </div>
-        <div className="grid gap-2 lg:grid-cols-2">
-          <label className="space-y-1 text-xs">
-            <span className="text-muted-foreground">Earning rules (JSON)</span>
-            <textarea
-              className="min-h-[88px] w-full rounded-md border border-border bg-background px-2 py-1.5 font-mono text-[11px]"
-              value={earnRulesJson}
-              onChange={(e) => setEarnRulesJson(e.target.value)}
-              data-testid="taploop-earn-rules"
-            />
-          </label>
-          <label className="space-y-1 text-xs">
-            <span className="text-muted-foreground">Tiers (JSON)</span>
-            <textarea
-              className="min-h-[88px] w-full rounded-md border border-border bg-background px-2 py-1.5 font-mono text-[11px]"
-              value={tiersJson}
-              onChange={(e) => setTiersJson(e.target.value)}
-              data-testid="taploop-tiers"
-            />
-          </label>
-        </div>
+        <TapLoopRulesEditor
+          earnRulesJson={earnRulesJson}
+          tiersJson={tiersJson}
+          onEarnRulesChange={setEarnRulesJson}
+          onTiersChange={setTiersJson}
+        />
         <div className="flex flex-wrap gap-2">
           <Input
             value={rewardName}
@@ -916,12 +904,8 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
         </p>
       ) : null}
       {error ? (
-        <div
-          className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2"
-          data-testid="taploop-error"
-          role="alert"
-        >
-          <p className="text-sm text-destructive">{error}</p>
+        <div className="space-y-2" data-testid="taploop-error-wrap">
+          <ErrorMessage error={error} testId="taploop-error" />
           {lastFailedAction ? (
             <Button
               type="button"

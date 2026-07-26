@@ -2,9 +2,15 @@
 
 **Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (J1 independent re-verify):** tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
+**HEAD (J1 independent re-verify):** tip `e6b9ccd` (docs) · prior tip `eb0059f` · verification baseline `8b67bee` · prior code hardening `a9c642f` · prior J1 wave `83d3a28` · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
+
+## UX Simplification wave (2026-07-26) — local, uncommitted
+
+**Starting HEAD:** `e6b9ccd829f445048f6b710c05b3dfcb83e9f457`  
+**Scope:** Host Studio UX (nav, Home, hubs→workspaces, Create recipes, Format workspace, human errors, TapLoop guided editors). **J1 remains VERIFIED** (reconfirmed headed: ID-001, ID-005, UX spine ID-002/003/006/007). No J2. No push/merge/deploy/Railway.  
+**Ledger:** `docs/fusion/UX_SIMPLIFICATION_WAVE.md` · PO decisions table updated.
 
 ## J1 First Successful Public Tap — independent re-verify (2026-07-26)
 

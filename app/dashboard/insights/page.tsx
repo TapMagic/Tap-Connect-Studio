@@ -17,6 +17,7 @@ import {
   InsightsDrillTable,
   InsightsProvenancePanel,
 } from "@/components/fusion/insights/insights-drill-table";
+import { humanizeError } from "@/lib/fusion/errors/humanize";
 
 export const dynamic = "force-dynamic";
 
@@ -55,14 +56,19 @@ export default async function InsightsHubPage({
   const kpis = snapshot.kpis;
   const empty = snapshot.empty && !snapshot.error;
   const showError = Boolean(snapshot.error);
+  const insightsHuman = snapshot.error ? humanizeError(snapshot.error) : null;
 
   return (
     <div className="space-y-8 p-5 lg:p-8" data-testid="insights-hub">
-      <StudioHubSections
-        destinationId="insights"
-        title="Insights"
-        subtitle="Authoritative KPIs, date ranges, filters, comparisons, drill-down / drill-through, TapProof provenance, saved views, and CSV export — no KPI theater."
-      />
+      <header className="space-y-2 border-b border-white/8 pb-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          Insights
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight text-white">What happened</h1>
+        <p className="max-w-2xl text-sm text-white/55">
+          Authoritative KPIs with provenance — what changed, why it matters, and what to do next.
+        </p>
+      </header>
 
       <InsightsControls
         days={snapshot.rangeDays}
@@ -96,20 +102,27 @@ export default async function InsightsHubPage({
         </span>
       </div>
 
-      {showError ? (
+      {showError && insightsHuman ? (
         <Card
-          className="border-red-500/40 bg-red-950/20"
+          className="border-amber-500/40 bg-amber-950/20"
           data-testid="insights-error"
           role="alert"
         >
           <CardHeader>
-            <CardTitle>Insights error</CardTitle>
-            <CardDescription>
-              Aggregation failed against the isolated database. Retry or check local DB health —
-              Railway/prod is never used from this path.
+            <CardTitle className="text-amber-100">{insightsHuman.title}</CardTitle>
+            <CardDescription className="text-amber-100/70">
+              {insightsHuman.action ??
+                "Retry or check local database health — production is never used from this path."}
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-sm text-red-200/90">{snapshot.error}</CardContent>
+          <CardContent>
+            <details>
+              <summary className="cursor-pointer text-xs text-amber-100/70">View details</summary>
+              <pre className="mt-2 max-h-40 overflow-auto rounded-md border border-white/10 bg-black/40 p-2 font-mono text-[10px] text-white/55">
+                {insightsHuman.details ?? snapshot.error}
+              </pre>
+            </details>
+          </CardContent>
         </Card>
       ) : null}
 
@@ -223,6 +236,14 @@ export default async function InsightsHubPage({
           Export includes KPI rows, optional drill-down sheet, and TapProof provenance columns.
         </CardContent>
       </Card>
+
+      <StudioHubSections
+        destinationId="insights"
+        title="Insights"
+        subtitle="Analytics tool catalog"
+        collapsible
+        defaultOpen={false}
+      />
     </div>
   );
 }

@@ -81,12 +81,16 @@ export default async function TapPointsHubPage() {
   const withErrors = fleetBadges.filter((b) => b.errors.length > 0).length;
 
   return (
-    <div className="space-y-8 p-5 lg:p-8">
-      <StudioHubSections
-        destinationId="tap_points"
-        title="Tap Points"
-        subtitle="Devices, Scan Mode, fleet health, Pulse, and provisioning — V1 inventory remains below."
-      />
+    <div className="space-y-8 p-5 lg:p-8" data-testid="tap-points-workspace">
+      <header className="space-y-2 border-b border-white/8 pb-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          Tap Points
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight text-white">Devices & fleet</h1>
+        <p className="max-w-2xl text-sm text-white/55">
+          Register devices, assign experiences, scan in the field — health and recovery stay visible.
+        </p>
+      </header>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -244,6 +248,14 @@ export default async function TapPointsHubPage() {
           </div>
         )}
       </section>
+
+      <StudioHubSections
+        destinationId="tap_points"
+        title="Tap Points"
+        subtitle="Devices, Scan Mode, Pulse, and provisioning"
+        collapsible
+        defaultOpen={false}
+      />
     </div>
   );
 }

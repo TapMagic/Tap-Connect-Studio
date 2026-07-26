@@ -9,6 +9,7 @@ import {
 } from "@/lib/fusion/audience";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -26,16 +27,42 @@ export default async function AudienceHubPage() {
   const tapLoopReady = isFeatureEnabled("loyalty.taploop", featureCtx);
 
   return (
-    <div className="space-y-8 p-5 lg:p-8">
-      <StudioHubSections
-        destinationId="audience"
-        title="Audience"
-        subtitle="Leads, relationships, Inbox, Wallet, TapLoop, and commerce — V1 Leads remain the capture floor."
-      />
+    <div className="space-y-8 p-5 lg:p-8" data-testid="audience-workspace">
+      <header className="space-y-3 border-b border-white/8 pb-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          Audience
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight text-white">
+          People & relationships
+        </h1>
+        <p className="max-w-2xl text-sm text-white/55">
+          Find contacts, manage consent, run loyalty, and open Inbox — without hunting modules.
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <Link
+            href="/dashboard/leads"
+            className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            Open leads
+          </Link>
+          <Link
+            href="/dashboard/audience/inbox"
+            className="inline-flex min-h-11 items-center rounded-lg border border-white/15 px-4 text-sm text-white/85 hover:border-primary/40"
+          >
+            Inbox
+          </Link>
+          <Link
+            href="#taploop"
+            className="inline-flex min-h-11 items-center rounded-lg border border-white/10 px-4 text-sm text-white/70 hover:bg-white/5"
+          >
+            Loyalty
+          </Link>
+        </div>
+      </header>
 
       <div className="grid gap-3 sm:grid-cols-3">
         {[
-          { label: "Leads (V1)", value: leadCount },
+          { label: "Leads", value: leadCount },
           { label: "Contacts", value: contactCount },
           { label: "Relationships", value: relationshipCount },
         ].map((stat) => (
@@ -56,6 +83,14 @@ export default async function AudienceHubPage() {
       <div id="taploop" className="scroll-mt-20 space-y-6">
         <TapLoopWorkspace enabled={tapLoopReady} />
       </div>
+
+      <StudioHubSections
+        destinationId="audience"
+        title="Audience"
+        subtitle="Full audience tool catalog"
+        collapsible
+        defaultOpen={false}
+      />
     </div>
   );
 }

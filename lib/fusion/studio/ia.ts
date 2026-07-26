@@ -6,6 +6,8 @@
  * TapCast workspace channel subnav — never as a permanent Experiences sibling row.
  */
 
+import { CREATE_RECIPES } from "@/lib/fusion/studio/create-recipes";
+
 export type StudioMaturity =
   | "owner_ready"
   | "functional"
@@ -1067,6 +1069,15 @@ export function studioSearchIndex(): Array<{
         hint: `${nav.label} · ${MATURITY_LABEL[s.maturity]}`,
       });
     }
+  }
+  // Outcome recipes first in search scent
+  for (const r of CREATE_RECIPES) {
+    out.push({
+      id: `recipe-${r.id}`,
+      label: r.label,
+      href: r.href,
+      hint: `Outcome · ${r.group}`,
+    });
   }
   for (const a of CREATE_ACTIONS) {
     out.push({

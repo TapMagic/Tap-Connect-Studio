@@ -47,12 +47,17 @@ export default async function SettingsHubPage() {
   }
 
   return (
-    <div className="space-y-8 p-5 lg:p-8">
-      <StudioHubSections
-        destinationId="settings"
-        title="Settings"
-        subtitle="Integrations, billing, team/roles, API/webhooks, Feature Registry, Automation Team, and Platform Admin — not in the primary host rail."
-      />
+    <div className="space-y-8 p-5 lg:p-8" data-testid="settings-workspace">
+      <header className="space-y-2 border-b border-white/8 pb-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+          Settings
+        </p>
+        <h1 className="text-3xl font-semibold tracking-tight text-white">Workspace controls</h1>
+        <p className="max-w-2xl text-sm text-white/55">
+          Integrations, billing, recovery, team roles, and Automation Team — Platform Admin stays
+          here, not on the primary rail.
+        </p>
+      </header>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <Link
@@ -208,6 +213,14 @@ export default async function SettingsHubPage() {
           </table>
         </div>
       </section>
+
+      <StudioHubSections
+        destinationId="settings"
+        title="Settings"
+        subtitle="Full settings catalog"
+        collapsible
+        defaultOpen={false}
+      />
     </div>
   );
 }

@@ -27,6 +27,10 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
+import {
+  FormatWorkspace,
+  FormatWorkspaceTrigger,
+} from "@/components/design/format-workspace";
 import { ButtonLayoutControls } from "@/components/design/button-layout-controls";
 import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
@@ -38,6 +42,7 @@ import {
 } from "@/components/workbench/builder-preview-empty";
 import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import { cn } from "@/lib/utils";
 import {
   COMMON_SOCIAL_KINDS,
   TAP_CARD_ACTION_CATALOG,
@@ -53,7 +58,6 @@ import {
   type TapCardSurfaceFill,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
-import { cn } from "@/lib/utils";
 
 type CampaignLinkOption = {
   id: string;
@@ -130,6 +134,7 @@ export function TapCardBuilder({
   const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
   const [actionSearch, setActionSearch] = useState("");
   const [showFreeform, setShowFreeform] = useState(false);
+  const [formatOpen, setFormatOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -503,6 +508,10 @@ export function TapCardBuilder({
               Freeform off
             </span>
           )}
+          <FormatWorkspaceTrigger
+            active={formatOpen}
+            onClick={() => setFormatOpen((v) => !v)}
+          />
           {isAdmin ? (
             <Button
               type="button"
@@ -828,7 +837,14 @@ export function TapCardBuilder({
         <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
       ) : null}
 
-      <div className="grid min-h-0 flex-1 grid-cols-1 max-lg:flex-none lg:grid-cols-[300px_minmax(0,1fr)_320px]">
+      <div
+        className={cn(
+          "grid min-h-0 flex-1 grid-cols-1 max-lg:flex-none",
+          formatOpen
+            ? "lg:grid-cols-[260px_minmax(0,1fr)_280px_26rem]"
+            : "lg:grid-cols-[300px_minmax(0,1fr)_320px]"
+        )}
+      >
         {/* Left — blocks / add (independent scroll) */}
         <aside className="builder-studio-rail min-h-0 overflow-y-auto overscroll-contain border-r border-border/60 max-lg:max-h-[50vh] lg:h-auto">
           <div className="space-y-3 p-4">
@@ -2409,6 +2425,160 @@ export function TapCardBuilder({
           )}
           </div>
         </aside>
+        <FormatWorkspace
+          open={formatOpen}
+          onClose={() => setFormatOpen(false)}
+          title={selected ? `Format · ${selected.label || selected.type}` : "Format · Card"}
+          subtitle="Expanded Format workspace — typography, style, layout, and appearance. Quick controls remain in the inspector."
+        >
+          {(tab) => {
+            if (tab === "typography") {
+              return (
+                <div className="space-y-4">
+                  <TextFormatControls
+                    title="Card title"
+                    value={config.titleFormat}
+                    onChange={(titleFormat) => patchConfig({ titleFormat })}
+                  />
+                  <TextFormatControls
+                    title="Card body"
+                    value={config.bodyFormat}
+                    onChange={(bodyFormat) => patchConfig({ bodyFormat })}
+                  />
+                  {selected ? (
+                    <TextFormatControls
+                      title="Selected block"
+                      value={selected.format ?? {}}
+                      onChange={(format) => patchSection(selected.id, { format })}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Select a block for block-level typography.
+                    </p>
+                  )}
+                </div>
+              );
+            }
+            if (tab === "style") {
+              return (
+                <div className="space-y-4">
+                  {selected ? (
+                    <>
+                      <FinishPicker
+                        value={selected.finish || selected.style || config.defaultFinish}
+                        onChange={(finish) => patchSection(selected.id, { finish })}
+                        label="Block finish"
+                      />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs">Fill</Label>
+                          <Input
+                            type="color"
+                            aria-label="Block fill color"
+                            value={
+                              selected.backgroundColor || config.pillColor || "#0c0a07"
+                            }
+                            onChange={(e) =>
+                              patchSection(selected.id, {
+                                backgroundColor: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs">Text</Label>
+                          <Input
+                            type="color"
+                            aria-label="Block text color"
+                            value={selected.textColor || config.pillTextColor || "#f5e6a8"}
+                            onChange={(e) =>
+                              patchSection(selected.id, { textColor: e.target.value })
+                            }
+                          />
+                        </div>
+                      </div>
+                    </>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Select a block to apply finish and color styles.
+                    </p>
+                  )}
+                </div>
+              );
+            }
+            if (tab === "layout") {
+              return (
+                <div className="space-y-4">
+                  {selected?.type === "action" ? (
+                    <ButtonLayoutControls
+                      value={{
+                        iconPosition: selected.iconPosition,
+                        iconSize: selected.iconSize,
+                        textSize: selected.textSize,
+                        iconGap: selected.iconGap,
+                        contentAlign: selected.contentAlign,
+                        verticalAlign: selected.verticalAlign,
+                        paddingX: selected.paddingX,
+                        paddingY: selected.paddingY,
+                        minHeight: selected.minHeight,
+                        fullWidth: selected.fullWidth,
+                        wrap: selected.wrap,
+                      }}
+                      onChange={(patch) => {
+                        const next: Partial<typeof selected> = { ...patch };
+                        if (patch.iconPosition === "only") next.appearance = "icon_only";
+                        if (patch.iconPosition === "none") next.appearance = "text";
+                        if (
+                          patch.iconPosition &&
+                          patch.iconPosition !== "only" &&
+                          patch.iconPosition !== "none"
+                        ) {
+                          next.appearance = "icon_text";
+                        }
+                        patchSection(selected.id, next);
+                      }}
+                    />
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Select an action button for layout, shape, and arrangement controls.
+                    </p>
+                  )}
+                  <p className="text-[11px] text-muted-foreground">
+                    Two-column and freeform arrangement remain on the Design bar and Freeform
+                    panel when enabled.
+                  </p>
+                </div>
+              );
+            }
+            if (tab === "appearance") {
+              return (
+                <div className="space-y-3 text-xs text-muted-foreground">
+                  <p>
+                    Neon glow, 3-D depth, transparency, and pill colors live on the Design bar
+                    so the canvas stays visible while you tune atmosphere.
+                  </p>
+                  <p>
+                    Brand Kit colors inherit automatically — edit Brand Kit under Assets to
+                    change the semantic palette for this workspace.
+                  </p>
+                </div>
+              );
+            }
+            return (
+              <div className="space-y-3 text-xs text-muted-foreground">
+                <p>
+                  Advanced: responsive visibility rules, conditions, animation, and design-token
+                  overrides expand here as those models ship — capability is not removed to look
+                  simple.
+                </p>
+                <p>
+                  Layers and grouping for freeform objects are available when Freeform is enabled
+                  for this workspace.
+                </p>
+              </div>
+            );
+          }}
+        </FormatWorkspace>
       </div>
     </div>
   );

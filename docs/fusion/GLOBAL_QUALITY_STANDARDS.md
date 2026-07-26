@@ -42,6 +42,94 @@ Familiarity must come from mature interaction patterns users already trust — n
 
 ---
 
+## 1A. GLOBAL COMPETITIVE QUALITY REQUIREMENT
+
+**Status:** Standing platform obligation (Product Owner locked)  
+**Also recorded in:** `PRODUCT_OWNER_DECISIONS.md`
+
+Every meaningful TapConnect surface, workflow, editor, builder, dashboard, automation, communication system, integration, mobile experience, administrative control, and customer-facing interaction **must** be evaluated against the strongest relevant platforms in existence.
+
+### Objective
+
+The objective is **not** visual imitation or superficial similarity.
+
+The objective is to **rival or exceed** the best applicable products in:
+
+- useful capability
+- workflow completeness
+- intuitive operation
+- learnability
+- interaction smoothness
+- responsiveness
+- visual polish
+- accessibility
+- speed
+- reliability
+- explainability
+- recovery
+- extensibility
+- professional depth
+- commercial usefulness
+
+When a comparable platform has already established a mature interaction pattern, TapConnect should adopt the **underlying principle** and translate it into a superior **TapConnect-native** experience.
+
+### Benchmark examples (where applicable)
+
+| Category | Benchmark products |
+|----------|-------------------|
+| Formatting and document controls | Apple Pages · Microsoft Word |
+| Composition and object manipulation | Apple Keynote · Microsoft PowerPoint |
+| Approachable creative building | Canva · Adobe Express |
+| Professional design systems and responsive authoring | Figma · Framer · Webflow · Wix Studio |
+| Analytics and actionable intelligence | Power BI · Tableau · Looker · Mixpanel · Amplitude |
+| Email marketing | Klaviyo · Mailchimp · HubSpot · ActiveCampaign · Brevo |
+| Conversations, support, and guided automation | ManyChat · Intercom · Front · Zendesk · Help Scout |
+| Workflow and productivity | monday.com · Asana · ClickUp · Linear · Jira · Trello · Notion |
+| Automation and journeys | Zapier · Make · n8n · HubSpot Workflows |
+| Relationship management | HubSpot · Salesforce · Pipedrive |
+| Commerce, payments, booking, and operations | Shopify · Stripe · Square · Calendly · Toast |
+| Social publishing and engagement | Sprout Social · Buffer · Hootsuite · Later · Metricool |
+| Administration and operational trust | Stripe Dashboard · GitHub · Vercel · Cloudflare |
+| Observability and recovery | Sentry · Datadog · Grafana |
+| Mobile and responsive experiences | Apple Human Interface Guidelines · Material Design |
+
+Detailed TapConnect-native translations of these categories continue in §3.
+
+### Standing rules
+
+1. **These are quality and capability benchmarks, not cloning instructions.** Do not copy proprietary appearance, trademarks, marketing copy, icons, layouts, or protected assets.
+2. A feature **must not** be classified as complete merely because it exists or passes a narrow technical test.
+3. It must provide the maturity, depth, clarity, reliability, and usability reasonably expected from the best comparable product category.
+4. Where TapConnect’s unified architecture enables a more coherent experience, TapConnect should **exceed** the comparison product rather than reproduce its limitations.
+5. Irrelevant features from comparison products should **not** be copied merely for parity.
+6. Competitive benchmarking must improve the approved TapConnect workflow — not create feature cosplay or architectural sprawl.
+
+### COMPETITIVE FEATURE ADAPTATION
+
+Implementation agents must evaluate benchmark products not only for broad quality standards, but also for **specific features**, interaction patterns, workflow mechanisms, presentation methods, and usability improvements that could materially strengthen TapConnect.
+
+A useful idea may be adapted even when it was **not previously listed** in the TapConnect specification, provided that it:
+
+- clearly supports TapConnect’s mission
+- strengthens an approved product outcome
+- improves function, presentation, UX, performance, reliability, accessibility, or commercial value
+- integrates with the existing domain owner and source of truth
+- avoids duplicated systems and architectural sprawl
+- is translated into a coherent TapConnect-native experience
+- is documented with its purpose, expected benefit, affected workflows, risks, and validation plan
+
+Agents should study benchmark products through **three separate lenses**:
+
+1. **Function** — what the product enables and how complete the capability is.
+2. **Presentation** — how complexity is organized, communicated, and visually expressed.
+3. **User experience** — how users discover, learn, complete, understand, and recover from the workflow.
+
+The team must **not** copy proprietary visual assets, protected expression, branding, or product-specific limitations. It should adopt the underlying principle and improve it where TapConnect’s unified platform allows a stronger result.
+
+Consequential adaptations remain subject to §4 / §4A documentation, charter limits, and the standing rules above (no cloning, no sprawl, no invented readiness, no unauthorized production action).
+
+---
+
 ## 2. Cross-cutting quality expectations
 
 These apply to every pillar and journey unless an explicit, documented exception exists.
@@ -464,6 +552,92 @@ This authority **must never** permit:
 - endless polishing without measurable product benefit
 
 When in doubt: preserve capability, improve honesty, document the decision in `PRODUCT_OWNER_DECISIONS.md` or the relevant fusion ledger, and seek PO review for consequential UX changes.
+
+---
+
+## 4A. CONTINUOUS PRODUCT IMPROVEMENT AND REDESIGN DUTY
+
+**Status:** Standing platform obligation (Product Owner locked)  
+**Relationship:** Strengthens §4 Product-Owner Authority to Improve — agents are not merely *authorized* to improve; they are **expected** to continuously strengthen the product within approved scope. Also recorded in `PRODUCT_OWNER_DECISIONS.md`. Wave ledgers (e.g. `UX_SIMPLIFICATION_WAVE.md`) may cross-reference this duty; they do not redefine its limits.
+
+**Governing sentence:** Do not merely build the requested product. Continuously make it the strongest coherent version of the product that the approved architecture, current scope, and available evidence support.
+
+### Expectation
+
+Implementation agents must continuously evaluate whether current product design, UX, workflow, architecture, performance, responsiveness, accessibility, reliability, and feature behavior represent the **strongest reasonable solution**. Existing authorship, prior layout decisions, and earlier implementation choices have **no protected status**.
+
+Preserve product intent, approved capability, domain ownership, authoritative data, permissions, security, privacy, auditability, and provider neutrality — **not** accidental interface structure or weak implementation.
+
+When a superior solution is clearly aligned with the Fusion Master Charter and these standards, the agent is expected to redesign, reorganize, expand, consolidate, optimize, or replace the weaker implementation rather than preserve it merely because it already exists.
+
+### Proactively identify and correct
+
+- weak workflow logic
+- disconnected functionality
+- unnecessary steps
+- confusing terminology
+- excessive training requirements
+- poor information hierarchy
+- inefficient navigation
+- incomplete feature behavior
+- weak defaults
+- missing previews or guidance
+- missing recovery or undo
+- repeated configuration
+- accessibility problems
+- mobile usability problems
+- performance bottlenecks
+- avoidable latency
+- unnecessary rendering or data work
+- brittle implementation
+- technical debt that materially harms the product
+- foreseeable user expectations not adequately supported
+- opportunities to improve useful capability and commercial value
+
+### Critical evaluation of suggestions
+
+Agents must critically evaluate Product Owner and prior assistant suggestions. They must:
+
+- challenge weak ideas
+- explain why they are weak
+- recommend the stronger alternative
+- reject ideas that increase confusion, duplication, fragility, cost, or technical debt
+- distinguish meaningful improvement from speculative feature creep
+- document consequential redesign decisions and reasoning
+
+### This duty does not authorize
+
+- removal or reduction of approved functionality
+- silent changes to product intent
+- competing systems or duplicate sources of truth
+- provider-specific core architecture
+- speculative complexity
+- destructive or production-impacting action
+- invented readiness
+- hidden limitations
+- visual novelty without usability value
+- endless polishing without measurable benefit
+- expansion into unrelated pillars outside the current authorized wave
+
+### Measurable outcomes for consequential improvements
+
+Where applicable, evaluate consequential improvements against:
+
+- fewer steps
+- lower cognitive load
+- better completion rate
+- faster response or rendering
+- clearer next actions
+- fewer errors
+- stronger recovery
+- better accessibility
+- better responsive behavior
+- reduced training need
+- increased useful capability
+- improved maintainability
+- improved commercial quality
+
+Document consequential redesigns per §4 (what changed, why superior, charter/benchmark, preserved, verified).
 
 ---
 
