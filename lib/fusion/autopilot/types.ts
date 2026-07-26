@@ -1,5 +1,7 @@
 /**
- * Autopilot / Automation Team — modes and proposal contracts + state machine.
+ * Autopilot — authoritative modes + proposal lifecycle contracts (J16).
+ * AutopilotPlan / KnowledgeFact / Approval Policy live in sibling modules;
+ * do not duplicate those worlds here. Legacy worker-role types: ./team.ts (deprecated).
  */
 
 export type AutopilotMode =

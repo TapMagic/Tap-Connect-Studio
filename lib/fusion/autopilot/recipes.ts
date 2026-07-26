@@ -1,3 +1,7 @@
+/**
+ * Campaign generation recipe catalog (authoritative for J16 /api/ai/generate).
+ * Certified outcome recipes (e.g. card.offer.measurable) live in ./outcome-recipe.ts.
+ */
 import type { AutopilotMode } from "./types";
 
 export type AutopilotRecipe = {
