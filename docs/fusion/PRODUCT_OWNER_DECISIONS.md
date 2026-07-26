@@ -23,4 +23,15 @@
 1. Final host-facing name for Automation Team vs Automation Workers  
 2. Pricing tier names/prices/inclusion chart (review pass)  
 3. Which productivity connectors ship first beyond monday.com (recommended: Slack + monday + GitHub)  
-4. Wallet priority: Apple Pass vs Google Wallet order for beta  
+4. Wallet priority: Apple Pass vs Google Wallet order for beta
+
+## J1 wave consequential improvements (2026-07-26)
+
+| Change | Why superior | Benchmark | Preserved |
+|--------|--------------|-----------|-----------|
+| Workspace readiness from first-tap setup + failures (never “Studio ready” from empty outbox) | Trustworthy ops chrome | Stripe / Vercel / Cloudflare (§3.14) | Notifications still surface outbox recovery |
+| Create menu `intent` create/open/unavailable | Honest destinations; Campaign starts workbench | Canva / Pages discoverability (§2.6) | All prior hrefs remain reachable as Open when not true create |
+| Publish/assign failures → FusionOutbox FAILED operator topics | Decision queue remediation without new SoT | Observability (§3.15) | Existing outbox retry/discard |
+| Card `lifecycleStatus` in tapCard JSON + where-used panels | Archive/retire minimum without migration race | Object lifecycle | Campaign archive unchanged |
+| Seed writes `tmp/fusion-seed-ids.json` | Headed proofs track reseeds | Test architecture | Env overrides still win |
+

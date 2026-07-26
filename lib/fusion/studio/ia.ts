@@ -41,6 +41,14 @@ export type StudioSection = {
   opensSurface?: string;
 };
 
+/**
+ * Create menu intent — visible honesty for ID-005.
+ * - create: starts (or lands on) a real authoring/create surface
+ * - open: navigates to an existing hub/list — label must not say “Create X” alone
+ * - unavailable: scaffolded / not shipped — must be disabled with reason
+ */
+export type CreateIntent = "create" | "open" | "unavailable";
+
 export type CreateAction = {
   id: string;
   label: string;
@@ -48,6 +56,10 @@ export type CreateAction = {
   description: string;
   maturity: StudioMaturity;
   group: string;
+  /** How the menu presents this destination (defaults to create for back-compat). */
+  intent?: CreateIntent;
+  /** When intent is unavailable — exact missing dependency. */
+  unavailableReason?: string;
 };
 
 export const STUDIO_NAV: StudioNavItem[] = [
@@ -687,126 +699,142 @@ export const CREATE_ACTIONS: CreateAction[] = [
     description: "Open Tap Card builder",
     maturity: "owner_ready",
     group: "Experiences",
+    intent: "create",
   },
   {
     id: "experience",
     label: "Experience",
     href: "/dashboard/workbench",
-    description: "New workbench experience",
+    description: "Start from workbench templates",
     maturity: "owner_ready",
     group: "Experiences",
+    intent: "create",
   },
   {
     id: "campaign",
     label: "Campaign",
-    href: "/dashboard/campaigns",
-    description: "Create from template",
+    href: "/dashboard/workbench",
+    description: "Start a new campaign in the workbench",
     maturity: "owner_ready",
     group: "Experiences",
+    intent: "create",
   },
   {
     id: "group",
     label: "Campaign Group",
-    href: "/dashboard/groups",
-    description: "Schedule and rotate",
+    href: "/dashboard/groups#create",
+    description: "Create a shared day/time schedule",
     maturity: "owner_ready",
     group: "Experiences",
+    intent: "create",
   },
   {
     id: "tapflow",
-    label: "TapFlow",
+    label: "Open TapFlow",
     href: "/dashboard/experiences/journeys",
-    description: "Journey editor",
+    description: "Journey editor hub — pick or start a draft there",
     maturity: "functional",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "tapcanvas",
-    label: "TapCanvas",
+    label: "Open TapCanvas",
     href: "/dashboard/experiences/canvas",
     description: "Linked object graph — Sketch/Build/Operate/Analyze",
     maturity: "alpha",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "whiteboard",
-    label: "Whiteboard (legacy)",
+    label: "Open workbench (legacy whiteboard)",
     href: "/dashboard/workbench",
     description: "Opens campaign workbench — prefer TapCanvas",
     maturity: "alpha",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "tiktok_cast",
-    label: "TikTok content",
+    label: "Open TikTok in TapCast",
     href: "/dashboard/experiences/tapcast/tiktok",
-    description: "Create TikTok cast via TapCast (first-class channel)",
+    description: "TapCast channel — live publish needs credentials",
     maturity: "verified_needs_credentials",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "tapcast_distribution",
-    label: "TapCast distribution",
+    label: "Open TapCast",
     href: "/dashboard/experiences/tapcast",
-    description: "Omnichannel campaign variants + channel registry",
+    description: "Omnichannel hub — live channels need credentials",
     maturity: "verified_needs_credentials",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "email",
-    label: "Email",
+    label: "Open campaigns (email follow-up)",
     href: "/dashboard/campaigns",
-    description: "Campaign email follow-up",
+    description: "No standalone email create — use campaign email blocks",
     maturity: "functional",
     group: "Audience",
+    intent: "open",
   },
   {
     id: "case",
-    label: "TapCase",
+    label: "Open Inbox (TapCase)",
     href: "/dashboard/audience/inbox",
-    description: "Support case from Inbox",
+    description: "Cases are created from conversations — not a blank wizard",
     maturity: "functional",
     group: "Audience",
+    intent: "open",
   },
   {
     id: "loyalty",
-    label: "Loyalty program",
+    label: "Open TapLoop",
     href: "/dashboard/audience#taploop",
-    description: "TapLoop program forms",
+    description: "Loyalty program forms on Audience",
     maturity: "functional",
     group: "Audience",
+    intent: "open",
   },
   {
     id: "reward",
-    label: "Reward",
+    label: "Open TapLoop rewards",
     href: "/dashboard/audience#taploop",
-    description: "Award or redeem points",
+    description: "Award or redeem on the TapLoop panel",
     maturity: "functional",
     group: "Audience",
+    intent: "open",
   },
   {
     id: "offer",
-    label: "Offer",
+    label: "Open workbench (offer block)",
     href: "/dashboard/workbench",
-    description: "Offer block in builder",
+    description: "Add an offer block inside a campaign — not a separate create",
     maturity: "owner_ready",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "order",
-    label: "Order",
+    label: "Order (mock)",
     href: "/dashboard/experiences/orders",
-    description: "Mock TapCommerce order",
+    description: "Create a mock TapCommerce draft on the orders panel",
     maturity: "beta",
     group: "Audience",
+    intent: "create",
   },
   {
     id: "device",
     label: "Device / Tap Point",
-    href: "/dashboard/devices",
+    href: "/dashboard/devices#create",
     description: "Create device slot",
     maturity: "owner_ready",
     group: "Tap Points",
+    intent: "create",
   },
   {
     id: "scan",
@@ -815,64 +843,112 @@ export const CREATE_ACTIONS: CreateAction[] = [
     description: "Start Scan Mode",
     maturity: "owner_ready",
     group: "Tap Points",
+    intent: "create",
   },
   {
     id: "form",
-    label: "Form",
+    label: "Open workbench (lead form)",
     href: "/dashboard/workbench",
-    description: "Lead capture block",
+    description: "Lead capture is a campaign block — not a separate form create",
     maturity: "owner_ready",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "template",
-    label: "Template",
-    href: "/dashboard/campaigns",
-    description: "Start from campaign template",
+    label: "Open workbench templates",
+    href: "/dashboard/workbench",
+    description: "Template gallery starts a campaign — not the campaigns list",
     maturity: "functional",
     group: "Assets",
+    intent: "open",
   },
   {
     id: "section",
-    label: "Reusable section",
+    label: "Open workbench (sections)",
     href: "/dashboard/workbench",
-    description: "Block pack in builder",
+    description: "Reusable section packs are alpha — author inside builder",
     maturity: "alpha",
     group: "Assets",
+    intent: "open",
   },
   {
     id: "moment",
-    label: "TapSave Moment",
-    href: "/dashboard/audience",
-    description: "Relationship moments",
+    label: "Open Audience (moments)",
+    href: "/dashboard/audience#workspace",
+    description: "Moments appear on relationships — no standalone moment wizard",
     maturity: "functional",
     group: "Audience",
+    intent: "open",
   },
   {
     id: "message",
-    label: "Message flow",
+    label: "Open TapFlow (messages)",
     href: "/dashboard/experiences/journeys",
-    description: "TapFlow message node",
+    description: "Message nodes live inside journeys",
     maturity: "functional",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "social",
-    label: "Social distribution",
+    label: "Open TapCast",
     href: "/dashboard/experiences/tapcast",
-    description: "TapCast omnichannel hub — TikTok and other channels inside",
+    description: "Same TapCast hub — channels nested inside",
     maturity: "verified_needs_credentials",
     group: "Experiences",
+    intent: "open",
   },
   {
     id: "booking",
     label: "Booking",
     href: "/dashboard/experiences/orders",
-    description: "Booking-style order",
+    description: "Booking create is not shipped",
     maturity: "scaffolded",
     group: "Audience",
+    intent: "unavailable",
+    unavailableReason: "Booking wizard not shipped — orders panel is mock commerce only",
   },
 ];
+
+/** Menu label with honest verb for non-create intents. */
+export function createActionMenuLabel(action: CreateAction): string {
+  const intent = action.intent ?? "create";
+  if (intent === "unavailable") return `${action.label} — not available`;
+  if (intent === "open") {
+    return action.label.startsWith("Open ") ? action.label : `Open ${action.label}`;
+  }
+  return action.label;
+}
+
+/** Guard: create-intent items must not land on pure list hubs that oversell. */
+export function findDishonestCreateActions(
+  actions: CreateAction[] = CREATE_ACTIONS
+): string[] {
+  const listOnlyHubs = new Set([
+    "/dashboard/campaigns",
+    "/dashboard/audience",
+  ]);
+  const problems: string[] = [];
+  for (const a of actions) {
+    const intent = a.intent ?? "create";
+    if (intent === "create" && listOnlyHubs.has(a.href.split("#")[0]!)) {
+      problems.push(
+        `${a.id}: intent=create but href is list hub ${a.href} — use workbench or #create`
+      );
+    }
+    if (intent === "create" && /^(Open |open )/i.test(a.label)) {
+      problems.push(`${a.id}: intent=create but label looks like Open`);
+    }
+    if (intent === "unavailable" && a.maturity !== "scaffolded" && a.maturity !== "disabled") {
+      problems.push(`${a.id}: unavailable should be scaffolded/disabled maturity`);
+    }
+    if (intent === "unavailable" && !a.unavailableReason) {
+      problems.push(`${a.id}: unavailable missing reason`);
+    }
+  }
+  return problems;
+}
 
 /**
  * @deprecated Prefer resolveSectionReadiness() — static OWNER-READY must not appear in UI.

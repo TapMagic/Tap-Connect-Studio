@@ -1,10 +1,41 @@
 # Fusion build status — honest incomplete inventory
 
-**Date:** 2026-07-24  
+**Date:** 2026-07-26  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (UX spine verify checkpoint):** see UX spine section below · prior builder parity `5bd84c7`  
+**HEAD (J1 wave checkpoint):** see J1 section below · prior UX spine `cc58c06` · prior builder parity `5bd84c7`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
+
+## J1 First Successful Public Tap wave (2026-07-26)
+
+**Classification:** J1 spine residuals = **IMPLEMENTED BUT NOT OWNER-READY** · headed `e2e/j1-first-public-tap.spec.ts` **7/7 PASS**.  
+**Not OWNER ACCEPTED.** Railway untouched. No push / merge / deploy.
+
+| Residual | Before → After | Proof |
+|----------|----------------|-------|
+| ID-001 Studio ready chrome | WIRED (outbox proxy) → **INTEGRATED** (setup + outbox + operator alerts) | `P-j1-studio-ready-honesty` |
+| ID-005 Create oversell | WIRED (dishonest) → **INTEGRATED** (intent create/open/unavailable) | `P-j1-create-honesty` |
+| Public analytics → Insights | FUNCTIONAL → **VERIFIED** (local headed) | `P-j1-analytics-event-assert` |
+| Consent → Contact → Relationship | FUNCTIONAL → **VERIFIED** (headed form) | `P-j1-consent-contact-relationship` |
+| Time-travel + fallback | FUNCTIONAL → **VERIFIED** (Studio UI + unit end/default) | `P-j1-time-travel-studio` + unit |
+| Card archive + where-used | SCAFFOLDED/partial → **FUNCTIONAL** | `P-j1-where-used-archive` |
+| Decision queue publish/assign | WIRED (outbox count) → **INTEGRATED** | `P-j1-decision-queue` + assign route alerts |
+| Builder/public parity | VERIFIED (prior) → **VERIFIED** retained; freeform honest-off chrome | freeform-honest-disabled |
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | PASS |
+| lint | **0 errors** (4 img warnings) |
+| `npm test` | **417/417** PASS |
+| `npm run build` | PASS |
+| Prisma validate | PASS |
+| Migrate status (isolated) | PASS — 11 migrations up to date |
+| Headed `e2e/j1-first-public-tap.spec.ts` | **7/7 PASS** |
+
+**Consequential improvements (PO-authorized):** Create menu intents; workspace readiness from first-tap setup (not outbox vanity); operator alerts reuse FusionOutbox FAILED (no competing SoT); Card `lifecycleStatus` in tapCard JSON (no migration); seed writes `tmp/fusion-seed-ids.json`.
+
+**Still open (not J1):** true VO/NVDA, live credentials, freeform canvas depth, session undo on refresh, platform OWNER-READY.
+
 
 ## UX spine discoverability checkpoint (independent verify · tip `cc58c06`)
 

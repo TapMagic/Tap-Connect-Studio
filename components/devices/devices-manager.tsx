@@ -116,7 +116,7 @@ export function DevicesManager({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="create" data-testid="devices-create">
       <Card className="border-primary/20 bg-primary/5">
         <CardHeader>
           <CardTitle className="text-lg">Add Device</CardTitle>

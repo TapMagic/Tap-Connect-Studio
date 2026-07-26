@@ -5,6 +5,16 @@ import { requireBusiness } from "@/lib/auth";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { prisma } from "@/lib/db";
 import { loadFeatureContext } from "@/lib/fusion/features/server";
+import {
+  computeWorkspaceStatus,
+  firstTapSetupProgress,
+} from "@/lib/fusion/readiness/workspace-status";
+import {
+  countOperatorFailures,
+  countOutboxOnlyFailures,
+  listDecisionQueueItems,
+} from "@/lib/fusion/studio/operator-alerts";
+import { getDashboardStats } from "@/lib/services/devices";
 import "@/app/t/tap.css";
 import type { Metadata } from "next";
 
@@ -39,14 +49,42 @@ export default async function DashboardLayout({
   const { business } = await requireBusiness();
   const featureCtx = await loadFeatureContext();
 
-  let alertCount = 0;
-  try {
-    alertCount = await prisma.fusionOutboxEvent.count({
-      where: { status: "FAILED", businessId: business.id },
-    });
-  } catch {
-    alertCount = 0;
-  }
+  const [brandKit, campaignCount, devices, stats, decisionItems] = await Promise.all([
+    prisma.brandKit.findUnique({ where: { businessId: business.id } }).catch(() => null),
+    prisma.campaign
+      .count({
+        where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+      })
+      .catch(() => 0),
+    prisma.deviceSlot
+      .findMany({
+        where: { businessId: business.id },
+        take: 1,
+        select: { id: true },
+      })
+      .catch(() => [] as { id: string }[]),
+    getDashboardStats(business.id).catch(() => ({
+      liveCampaigns: 0,
+      activeDevices: 0,
+      totalTaps: 0,
+      totalLeads: 0,
+    })),
+    listDecisionQueueItems({ businessId: business.id, limit: 50 }).catch(() => []),
+  ]);
+
+  const setup = firstTapSetupProgress({
+    hasBrand: Boolean(business.logoUrl || brandKit),
+    hasCampaign: campaignCount > 0,
+    hasDevice: devices.length > 0,
+    hasLiveAssignment: (stats.liveCampaigns ?? 0) > 0,
+  });
+
+  const workspaceStatus = computeWorkspaceStatus({
+    setupIncomplete: setup.incomplete,
+    setupTotal: setup.total,
+    outboxFailed: countOutboxOnlyFailures(decisionItems),
+    operatorFailures: countOperatorFailures(decisionItems),
+  });
 
   return (
     <div className="flex min-h-screen flex-col bg-[#050814] text-foreground lg:h-[100dvh] lg:max-h-[100dvh] lg:overflow-hidden">
@@ -60,8 +98,11 @@ export default async function DashboardLayout({
       <MobileDashboardNav businessName={business.name} featureCtx={featureCtx} />
       <StudioTopBar
         businessName={business.name}
-        readinessLabel={alertCount > 0 ? "Attention needed" : "Studio ready"}
-        alertCount={alertCount}
+        readinessLabel={workspaceStatus.label}
+        readinessTone={workspaceStatus.tone}
+        readinessReasons={workspaceStatus.reasons}
+        readinessHref={workspaceStatus.href}
+        alertCount={workspaceStatus.alertCount}
       />
       <div className="mx-auto flex min-h-0 w-full max-w-[1680px] flex-1">
         <DashboardNav businessName={business.name} featureCtx={featureCtx} />

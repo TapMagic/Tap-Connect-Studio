@@ -494,7 +494,15 @@ export function TapCardBuilder({
             >
               {showFreeform ? "Hide freeform" : "Freeform"}
             </Button>
-          ) : null}
+          ) : (
+            <span
+              className="hidden text-[10px] text-white/35 sm:inline"
+              data-testid="freeform-honest-disabled"
+              title="Freeform canvas is not enabled for this workspace"
+            >
+              Freeform off
+            </span>
+          )}
           {isAdmin ? (
             <Button
               type="button"
@@ -508,6 +516,27 @@ export function TapCardBuilder({
           <Button size="sm" onClick={() => void save()} disabled={saving} data-testid="card-save">
             <Save className="mr-1 h-4 w-4" />
             {saving ? "Saving…" : "Save card"}
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={saving}
+            data-testid="card-retire-toggle"
+            onClick={() => {
+              const retired = config.lifecycleStatus === "retired";
+              setConfig((c) => ({
+                ...c,
+                lifecycleStatus: retired ? "active" : "retired",
+                retiredAt: retired ? undefined : new Date().toISOString(),
+              }));
+              setMessage(
+                retired
+                  ? "Marked active — Save to restore the Tap Card"
+                  : "Marked retired — Save to retire (where-used still lists assignments)"
+              );
+            }}
+          >
+            {config.lifecycleStatus === "retired" ? "Restore card" : "Retire card"}
           </Button>
           {saveFailed ? (
             <Button

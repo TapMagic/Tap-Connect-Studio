@@ -68,7 +68,7 @@ export function GroupsList({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" id="create" data-testid="groups-create">
       <div className="rounded-xl border border-border/60 bg-card/30 p-5">
         <h2 className="font-semibold">New campaign group</h2>
         <p className="mt-1 text-sm text-muted-foreground">

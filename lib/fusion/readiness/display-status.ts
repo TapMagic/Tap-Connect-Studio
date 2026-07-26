@@ -65,43 +65,40 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
     notes:
       "P-public-seed-tap + P-a11y-owner-gate + P-responsive-owner-gate: public tap <main>; axe clear; SR-oriented public CTA role/name; 200% CSS zoom proxy. Not OWNER-READY (analytics + full gate + true VO/NVDA).",
     blockers: [
-      "analytics_event_assert",
       "full_owner_gate_matrix",
       "true_voiceover_nvda_manual_spot_check_ci_unavailable",
     ],
-    nextAction: "Analytics assert + true VoiceOver/NVDA spot-check before OWNER-READY",
+    nextAction: "True VoiceOver/NVDA spot-check before OWNER-READY (analytics assert closed in J1)",
   },
   {
     sectionId: "calendar",
-    lastVerifiedAt: "2026-07-24T00:43:02.000Z",
+    lastVerifiedAt: "2026-07-26T05:00:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     a11yPassed: true,
-    notes: "PO 13/13 · P-campaign-group-schedule; a11y/responsive owner gates cover public strip",
-    blockers: [
-      "studio_time_travel_ui_matrix",
-      "fallback_path_browser_proof",
-    ],
-    nextAction: "Prove Studio time-travel preview UI + explicit fallback path",
+    notes:
+      "P-campaign-group-schedule + P-j1-time-travel-studio; unit time-travel default/end fallback",
+    blockers: ["full_owner_gate_matrix"],
+    nextAction: "Full owner gate matrix; end-campaign seed optional polish",
   },
   {
     sectionId: "resolver",
-    lastVerifiedAt: "2026-07-24T00:43:01.000Z",
+    lastVerifiedAt: "2026-07-26T05:00:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    notes: "PO 13/13 · Public resolver via seed device + ?at= supported",
-    blockers: ["studio_resolver_preview_surface", "full_owner_gate_matrix"],
-    nextAction: "Prove in-Studio resolver preview workspace end-to-end",
+    notes: "Studio TimeTravelPreview + public ?at=; P-j1-time-travel-studio",
+    blockers: ["full_owner_gate_matrix"],
+    nextAction: "Full owner gate matrix",
   },
   {
     sectionId: "upcoming",
-    lastVerifiedAt: "2026-07-24T00:43:03.000Z",
+    lastVerifiedAt: "2026-07-26T05:00:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "PO 13/13 · P-studio-home: Home hub loads; readiness badges derived (not static OWNER-READY)",
-    blockers: ["decision_queue_full_matrix", "full_owner_gate_matrix"],
-    nextAction: "Complete Home decision-queue matrix",
+      "P-studio-home + P-j1-decision-queue: Home decision queue lists dead letters + publish/assign alerts with remediation",
+    blockers: ["full_owner_gate_matrix"],
+    nextAction: "Full owner gate matrix",
   },
   {
     sectionId: "campaigns",
@@ -122,27 +119,29 @@ export const VERIFICATION_LEDGER: VerificationRecord[] = [
   },
   {
     sectionId: "cards",
-    lastVerifiedAt: "2026-07-24T20:02:00.000Z",
+    lastVerifiedAt: "2026-07-26T05:00:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
     notes:
-      "Builder V1 parity @ 5bd84c7: P-builder-card-matrix + shared layout/renderer/WYSIWYG proofs PASS. Freeform remains HONEST_DISABLED scaffold behind card.builder.freeform. Classification: IMPLEMENTED BUT NOT OWNER-READY.",
+      "J1: Card retire/restore + where-used panel; freeform honest-disabled chrome when flag off. Builder V1 parity retained. Classification: IMPLEMENTED BUT NOT OWNER-READY.",
     blockers: [
       "card_landing_demo_admin_only",
       "freeform_scaffold_not_full_canvas",
       "true_voiceover_nvda_manual",
+      "session_undo_lost_on_full_refresh",
     ],
     nextAction:
       "Deepen freeform canvas beyond scaffold; VoiceOver spot-check — never OWNER-READY with residuals",
   },
   {
     sectionId: "leads",
-    lastVerifiedAt: "2026-07-24T00:43:08.000Z",
+    lastVerifiedAt: "2026-07-26T05:00:00.000Z",
     browserE2ePassed: true,
     persistencePassed: true,
-    notes: "PO 13/13 · P-03-lead-capture: POST /api/leads → Leads list",
-    blockers: ["consent_relationship_matrix", "ui_form_headed_matrix"],
-    nextAction: "Headed public form → consent → Contact → Relationship",
+    notes:
+      "P-03-lead-capture + P-j1-consent-contact-relationship: dual-write Contact/Relationship/Consent; headed when public form present, API fallback when seed lacks form",
+    blockers: ["true_voiceover_nvda_manual"],
+    nextAction: "VoiceOver spot-check; ensure seed public form always present for headed-only path",
   },
   {
     sectionId: "tapsave",

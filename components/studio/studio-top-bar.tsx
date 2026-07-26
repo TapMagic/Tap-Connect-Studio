@@ -15,17 +15,27 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AuthControls } from "@/components/auth/auth-controls";
 import { isClerkConfigured } from "@/lib/utils/app";
-import { CREATE_ACTIONS, studioSearchIndex } from "@/lib/fusion/studio/ia";
+import {
+  CREATE_ACTIONS,
+  createActionMenuLabel,
+  studioSearchIndex,
+} from "@/lib/fusion/studio/ia";
 import { safeDisplayLabel } from "@/lib/fusion/readiness/display-status";
 import { cn } from "@/lib/utils";
 
 export function StudioTopBar({
   businessName,
   readinessLabel = "Local demo",
+  readinessTone = "healthy",
+  readinessReasons = [],
+  readinessHref = "/dashboard",
   alertCount = 0,
 }: {
   businessName: string;
   readinessLabel?: string;
+  readinessTone?: "setup" | "attention" | "healthy";
+  readinessReasons?: string[];
+  readinessHref?: string;
   alertCount?: number;
 }) {
   const router = useRouter();
@@ -221,41 +231,76 @@ export function StudioTopBar({
                 <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/30">
                   {group}
                 </p>
-                {actions.map((a) => (
-                  <button
-                    key={a.id}
-                    type="button"
-                    role="menuitem"
-                    className="flex w-full flex-col rounded-lg px-2 py-1.5 text-left hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    onClick={() => go(a.href)}
-                  >
-                    <span className="text-sm text-white/90">{a.label}</span>
-                    <span className="text-[11px] text-white/40">
-                      {a.description} · {safeDisplayLabel(a.maturity)}
-                    </span>
-                  </button>
-                ))}
+                {actions.map((a) => {
+                  const intent = a.intent ?? "create";
+                  const unavailable = intent === "unavailable";
+                  return (
+                    <button
+                      key={a.id}
+                      type="button"
+                      role="menuitem"
+                      data-testid={`studio-create-${a.id}`}
+                      data-create-intent={intent}
+                      disabled={unavailable}
+                      aria-disabled={unavailable}
+                      title={
+                        unavailable
+                          ? a.unavailableReason ?? a.description
+                          : a.description
+                      }
+                      className={cn(
+                        "flex w-full flex-col rounded-lg px-2 py-1.5 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        unavailable
+                          ? "cursor-not-allowed opacity-45"
+                          : "hover:bg-white/5 focus-visible:bg-white/5"
+                      )}
+                      onClick={() => {
+                        if (unavailable) return;
+                        go(a.href);
+                      }}
+                    >
+                      <span className="text-sm text-white/90">
+                        {createActionMenuLabel(a)}
+                      </span>
+                      <span className="text-[11px] text-white/40">
+                        {unavailable
+                          ? a.unavailableReason
+                          : `${a.description} · ${safeDisplayLabel(a.maturity)}`}
+                        {!unavailable && intent === "open" ? " · opens hub" : ""}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             ))}
           </div>
         ) : null}
       </div>
 
-      <div
+      <Link
+        href={readinessHref}
+        data-testid="studio-readiness-pill"
+        data-readiness-tone={readinessTone}
         className={cn(
           "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] sm:flex",
-          alertCount > 0
+          readinessTone === "attention"
             ? "border-amber-500/40 bg-amber-500/10 text-amber-100"
-            : "border-primary/30 bg-primary/10 text-primary"
+            : readinessTone === "setup"
+              ? "border-sky-500/35 bg-sky-500/10 text-sky-100"
+              : "border-primary/30 bg-primary/10 text-primary"
         )}
         role="status"
         aria-live="polite"
-        title="Workspace readiness"
+        title={
+          readinessReasons.length
+            ? readinessReasons.join(" · ")
+            : "Workspace readiness"
+        }
       >
         <Sparkles className="h-3 w-3" aria-hidden />
         {readinessLabel}
         {alertCount > 0 ? ` · ${alertCount}` : ""}
-      </div>
+      </Link>
 
       <div className="relative">
         <button

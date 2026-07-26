@@ -8,6 +8,7 @@ import {
   snapshotCampaignBeforeUpdate,
   type CampaignPublishManifest,
 } from "@/lib/fusion/publication/snapshots";
+import { recordOperatorAlert } from "@/lib/fusion/studio/operator-alerts";
 import type { Prisma } from "@prisma/client";
 
 /** Builder owner-gate: PATCH records PublicationSnapshot on save/publish. */
@@ -37,9 +38,15 @@ const updateSchema = z.object({
 });
 
 export async function POST(request: Request) {
+  let businessId: string | undefined;
+  let campaignId: string | undefined;
+  let deviceSlotId: string | undefined;
   try {
     const { user, business } = await requireBusiness();
+    businessId = business.id;
     const body = assignSchema.parse(await request.json());
+    campaignId = body.campaignId;
+    deviceSlotId = body.deviceSlotId;
 
     const assignment = await assignCampaignToDevice({
       businessId: business.id,
@@ -50,6 +57,19 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ assignment });
   } catch (error) {
+    if (businessId && campaignId) {
+      const detail =
+        error instanceof Error ? error.message : "Failed to assign campaign";
+      void recordOperatorAlert({
+        businessId,
+        kind: "assign_failed",
+        title: "Campaign assign failed",
+        detail: deviceSlotId ? `${detail} · device ${deviceSlotId}` : detail,
+        href: `/dashboard/campaigns/${campaignId}`,
+        aggregateType: "campaign",
+        aggregateId: campaignId,
+      });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });
     }
@@ -87,10 +107,16 @@ export async function DELETE(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  let businessId: string | undefined;
+  let campaignId: string | undefined;
+  let publishIntent = false;
   try {
     const { user, business } = await requireBusiness();
+    businessId = business.id;
     const body = updateSchema.parse(await request.json());
     const { id, ...updates } = body;
+    campaignId = id;
+    publishIntent = updates.status === "LIVE";
 
     const existing = await prisma.campaign.findFirst({
       where: { id, businessId: business.id },
@@ -177,6 +203,19 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({ campaign, snapshot });
   } catch (error) {
+    if (businessId && campaignId) {
+      const detail =
+        error instanceof Error ? error.message : "Failed to update campaign";
+      void recordOperatorAlert({
+        businessId,
+        kind: publishIntent ? "publish_failed" : "save_failed",
+        title: publishIntent ? "Campaign publish failed" : "Campaign save failed",
+        detail,
+        href: `/dashboard/campaigns/${campaignId}`,
+        aggregateType: "campaign",
+        aggregateId: campaignId,
+      });
+    }
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid campaign data" }, { status: 400 });
     }

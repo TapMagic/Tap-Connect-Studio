@@ -87,7 +87,10 @@ export function TimeTravelPreview({
   ]);
 
   return (
-    <section className="space-y-3 rounded-xl border border-border/60 bg-card/30 p-4">
+    <section
+      className="space-y-3 rounded-xl border border-border/60 bg-card/30 p-4"
+      data-testid="time-travel-preview"
+    >
       <div className="flex items-center gap-2">
         <Clock className="h-4 w-4 text-primary" />
         <h3 className="font-semibold">Time-travel preview</h3>
@@ -97,19 +100,27 @@ export function TimeTravelPreview({
       </p>
       <div className="grid gap-3 sm:grid-cols-2">
         <div className="space-y-1">
-          <Label className="text-xs">Date & time</Label>
+          <Label className="text-xs" htmlFor="time-travel-when">
+            Date & time
+          </Label>
           <Input
+            id="time-travel-when"
             type="datetime-local"
             value={when}
             onChange={(e) => setWhen(e.target.value)}
+            data-testid="time-travel-when"
           />
         </div>
         <div className="space-y-1">
-          <Label className="text-xs">Timezone</Label>
+          <Label className="text-xs" htmlFor="time-travel-tz">
+            Timezone
+          </Label>
           <select
+            id="time-travel-tz"
             className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-sm"
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
+            data-testid="time-travel-timezone"
           >
             {COMMON_TIMEZONES.map((tz) => (
               <option key={tz} value={tz}>
@@ -120,7 +131,19 @@ export function TimeTravelPreview({
         </div>
       </div>
 
-      <div className="rounded-lg border border-primary/25 bg-primary/5 p-3 text-sm">
+      <div
+        className="rounded-lg border border-primary/25 bg-primary/5 p-3 text-sm"
+        data-testid="time-travel-result"
+        data-resolve-reason={
+          result.matchedSlotId
+            ? "slot"
+            : result.campaignId && result.campaignId === defaultCampaignId
+              ? "default"
+              : result.campaignId && result.campaignId === endCampaignId
+                ? "end"
+                : "none"
+        }
+      >
         <p className="font-medium text-foreground">
           {result.campaignTitle
             ? `Resolves to “${result.campaignTitle}”`
@@ -133,19 +156,40 @@ export function TimeTravelPreview({
         </p>
       </div>
 
-      <Button
-        type="button"
-        size="sm"
-        variant="outline"
-        onClick={() => {
-          const n = new Date();
-          setWhen(
-            new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
-          );
-        }}
-      >
-        Jump to now
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          data-testid="time-travel-now"
+          onClick={() => {
+            const n = new Date();
+            setWhen(
+              new Date(n.getTime() - n.getTimezoneOffset() * 60000).toISOString().slice(0, 16)
+            );
+          }}
+        >
+          Jump to now
+        </Button>
+        {result.atIso ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            data-testid="time-travel-public-preview"
+            onClick={() => {
+              // Public preview uses ?at= — group detail supplies device via data attribute when present
+              const root = document.querySelector<HTMLElement>("[data-preview-device-code]");
+              const code = root?.dataset.previewDeviceCode;
+              if (!code) return;
+              const url = `/t/${code}?public=1&at=${encodeURIComponent(result.atIso)}`;
+              window.open(url, "_blank", "noopener,noreferrer");
+            }}
+          >
+            Open public at this time
+          </Button>
+        ) : null}
+      </div>
     </section>
   );
 }

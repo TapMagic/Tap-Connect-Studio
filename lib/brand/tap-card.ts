@@ -236,6 +236,9 @@ export type TapConnectCardConfig = {
   bodyFormat?: TextFormat;
   compactActionsOnly?: boolean;
   sections: TapCardSection[];
+  /** Soft-retire without deleting Brand Kit card content (J1 lifecycle). */
+  lifecycleStatus?: "active" | "retired";
+  retiredAt?: string;
 };
 
 export const TAP_CARD_ACTION_CATALOG: {
@@ -544,6 +547,8 @@ export function parseTapConnectCard(
     titleFormat: (o.titleFormat as TextFormat) || base.titleFormat,
     bodyFormat: (o.bodyFormat as TextFormat) || base.bodyFormat,
     compactActionsOnly: o.compactActionsOnly === true,
+    lifecycleStatus: o.lifecycleStatus === "retired" ? "retired" : "active",
+    retiredAt: typeof o.retiredAt === "string" ? o.retiredAt : undefined,
     sections,
   };
 }

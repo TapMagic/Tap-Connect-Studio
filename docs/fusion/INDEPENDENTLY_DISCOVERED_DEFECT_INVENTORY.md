@@ -16,11 +16,11 @@ Owner log IDs use `D-###`. Independent IDs use `ID-###`.
 
 | ID | Severity | Route / screen | One-line | Status |
 |----|----------|----------------|----------|--------|
-| ID-001 | BLOCKER | Global top bar | “Studio ready” ≠ workspace readiness | OPEN |
+| ID-001 | BLOCKER | Global top bar | “Studio ready” ≠ workspace readiness | **FIXED (J1)** |
 | ID-002 | HIGH | Top bar Notifications | Bell is dead; badge can still light | FIXED (independently verified) |
 | ID-003 | HIGH | Mobile nav | Secondary IA unavailable on `<lg` | FIXED (independently verified) |
 | ID-004 | HIGH | Studio IA sections | Many distinct labels alias to same routes | FIXED (independently verified) |
-| ID-005 | HIGH | Create menu | Several “Create” items only navigate to lists/hubs | OPEN |
+| ID-005 | HIGH | Create menu | Several “Create” items only navigate to lists/hubs | **FIXED (J1)** |
 | ID-006 | HIGH | `/dashboard/pulse` | Enabled Pulse still stub-only field UX | FIXED (independently verified) |
 | ID-007 | HIGH | Top bar | “All locations” with no location model/UI | FIXED (independently verified) |
 | ID-008 | MEDIUM | Help control | Help icon → Settings, not help | OPEN |
@@ -394,7 +394,7 @@ These remain **owner-ledger** items; inspected docs/code confirm they still matt
 - Orphan file `components/fusion/pulse/pulse-field-stubs.tsx` remains unimported (dead residual) — page mounts honesty panel only.
 - `findDishonestAliasFanIn` label check is soft (accepts any `·` / “not shipped”); current IA data still honest under stronger unit assertions.
 
-**Still OPEN for J1 / later:** ID-001, ID-005, ID-008, ID-010–ID-018.
+**Still OPEN for later:** ID-008, ID-010–ID-018. **ID-001 + ID-005 FIXED in J1 wave (2026-07-26).**
 
 ---
 

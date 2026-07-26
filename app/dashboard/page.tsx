@@ -5,9 +5,10 @@ import { StudioHubSections } from "@/components/studio/hub-sections";
 import { requireBusiness } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/services/devices";
 import { prisma } from "@/lib/db";
-import { listDeadLetters } from "@/lib/fusion/publication/events";
 import { computeTapPointHealth, summarizeFleetHealth } from "@/lib/fusion/devices/health";
 import { listTapPointsForBusiness } from "@/lib/fusion/devices/tap-point-bridge";
+import { firstTapSetupProgress } from "@/lib/fusion/readiness/workspace-status";
+import { listDecisionQueueItems } from "@/lib/fusion/studio/operator-alerts";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ export default async function DashboardPage() {
     recentCampaigns,
     brandKit,
     campaignCount,
-    deadLetters,
+    decisionItems,
     devices,
     tapPoints,
   ] = await Promise.all([
@@ -36,7 +37,7 @@ export default async function DashboardPage() {
     prisma.campaign.count({
       where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
     }),
-    listDeadLetters({ businessId: business.id, limit: 5 }).catch(() => []),
+    listDecisionQueueItems({ businessId: business.id, limit: 8 }).catch(() => []),
     prisma.deviceSlot
       .findMany({
         where: { businessId: business.id },
@@ -71,32 +72,13 @@ export default async function DashboardPage() {
     ),
   ]);
 
-  const onboardingSteps = [
-    {
-      id: "brand",
-      label: "Add logo & brand colors",
-      href: "/dashboard/brand",
-      done: Boolean(business.logoUrl || brandKit),
-    },
-    {
-      id: "campaign",
-      label: "Create your first campaign",
-      href: "/dashboard/workbench",
-      done: campaignCount > 0,
-    },
-    {
-      id: "device",
-      label: "Create a device slot",
-      href: "/dashboard/devices",
-      done: devices.length > 0,
-    },
-    {
-      id: "assign",
-      label: "Assign a live campaign",
-      href: "/dashboard/devices",
-      done: (stats.liveCampaigns ?? 0) > 0,
-    },
-  ];
+  const setup = firstTapSetupProgress({
+    hasBrand: Boolean(business.logoUrl || brandKit),
+    hasCampaign: campaignCount > 0,
+    hasDevice: devices.length > 0,
+    hasLiveAssignment: (stats.liveCampaigns ?? 0) > 0,
+  });
+  const onboardingSteps = setup.steps;
 
   return (
     <div className="space-y-10 p-5 lg:p-8">
@@ -113,7 +95,7 @@ export default async function DashboardPage() {
         </p>
       </header>
 
-      <section id="decision-queue" className="scroll-mt-24 space-y-3">
+      <section id="decision-queue" className="scroll-mt-24 space-y-3" data-testid="decision-queue">
         <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">
           Decision queue
         </h2>
@@ -124,9 +106,11 @@ export default async function DashboardPage() {
               <p className="text-sm font-medium">Failures</p>
             </div>
             <p className="mt-3 text-3xl font-semibold tabular-nums text-white">
-              {deadLetters.length}
+              {decisionItems.length}
             </p>
-            <p className="mt-1 text-xs text-white/45">Outbox dead letters (this business)</p>
+            <p className="mt-1 text-xs text-white/45">
+              Outbox dead letters + publish/assign alerts
+            </p>
             <Link
               href="/dashboard/settings#outbox"
               className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline"
@@ -160,6 +144,37 @@ export default async function DashboardPage() {
             <p className="mt-1 text-xs text-white/45">Active devices</p>
           </div>
         </div>
+
+        {decisionItems.length > 0 ? (
+          <ul
+            className="divide-y divide-white/6 overflow-hidden rounded-xl border border-amber-500/25 bg-amber-500/[0.04]"
+            data-testid="decision-queue-items"
+            aria-label="Failure remediation list"
+          >
+            {decisionItems.map((item) => (
+              <li key={item.id}>
+                <Link
+                  href={item.href}
+                  className="flex flex-col gap-1 px-4 py-3 hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
+                  data-testid={`decision-item-${item.kind}`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-white/90">{item.title}</p>
+                    <p className="mt-0.5 truncate text-xs text-white/45">{item.detail}</p>
+                  </div>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
+                    Remediate <ArrowRight className="h-3 w-3" />
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-xs text-white/40" data-testid="decision-queue-empty">
+            No failed delivery jobs or publish/assign alerts — failures appear here with a
+            recovery path.
+          </p>
+        )}
       </section>
 
       <section id="readiness" className="scroll-mt-24 space-y-3">

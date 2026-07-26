@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  CREATE_ACTIONS,
   STUDIO_NAV,
   STUDIO_SECTIONS,
   findDishonestAliasFanIn,
+  findDishonestCreateActions,
   sectionsForDestination,
 } from "../ia";
 
@@ -52,5 +54,26 @@ describe("Studio IA · UX spine honesty (ID-004)", () => {
         `missing sections for ${nav.id}`
       );
     }
+  });
+});
+
+describe("Studio IA · Create honesty (ID-005)", () => {
+  it("has no dishonest create intents landing on list hubs", () => {
+    const problems = findDishonestCreateActions();
+    assert.deepEqual(problems, [], problems.join("\n"));
+  });
+
+  it("routes Campaign create to workbench, not campaigns list", () => {
+    const campaign = CREATE_ACTIONS.find((a) => a.id === "campaign");
+    assert.ok(campaign);
+    assert.equal(campaign.intent, "create");
+    assert.equal(campaign.href, "/dashboard/workbench");
+  });
+
+  it("marks Booking unavailable with reason", () => {
+    const booking = CREATE_ACTIONS.find((a) => a.id === "booking");
+    assert.ok(booking);
+    assert.equal(booking.intent, "unavailable");
+    assert.ok(booking.unavailableReason);
   });
 });

@@ -568,6 +568,31 @@ async function main() {
   console.log(`  journey:  ${journey.id} (ACTIVE)`);
   console.log(`  owner:    ${DEV_EMAIL} (no Clerk — local session)`);
   console.log("All rows labeled seeded:true / [SEED] prefix.");
+
+  const { mkdirSync, writeFileSync } = await import("node:fs");
+  const { join } = await import("node:path");
+  const outDir = join(process.cwd(), "tmp");
+  mkdirSync(outDir, { recursive: true });
+  writeFileSync(
+    join(outDir, "fusion-seed-ids.json"),
+    JSON.stringify(
+      {
+        businessId: business.id,
+        campaignId: campaign.id,
+        eveningCampaignId: evening.id,
+        groupId: group.id,
+        contactId: contact.id,
+        deviceCode: DEVICE_CODE,
+        relationshipToken: relationship.publicToken,
+        programId: program.id,
+        journeyId: journey.id,
+        writtenAt: new Date().toISOString(),
+      },
+      null,
+      2
+    )
+  );
+  console.log("  ids:      tmp/fusion-seed-ids.json");
 }
 
 main()

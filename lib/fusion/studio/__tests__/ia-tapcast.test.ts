@@ -32,8 +32,9 @@ describe("Studio IA · TapCast / TikTok hierarchy", () => {
   it("Create → TikTok content enters through TapCast TikTok path", () => {
     const create = CREATE_ACTIONS.find((a) => a.id === "tiktok_cast");
     assert.ok(create);
-    assert.equal(create.label, "TikTok content");
     assert.equal(create.href, "/dashboard/experiences/tapcast/tiktok");
+    assert.match(create.label, /TikTok/i);
+    assert.equal(create.intent, "open");
   });
 
   it("Create → Social distribution opens TapCast hub", () => {

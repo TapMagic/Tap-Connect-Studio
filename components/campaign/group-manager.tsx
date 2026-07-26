@@ -345,7 +345,7 @@ export function GroupManager({
   const previewHref = previewDeviceCode ? `/t/${previewDeviceCode}?public=1` : null;
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8" data-preview-device-code={previewDeviceCode || undefined}>
       {message && <p className="text-sm text-primary">{message}</p>}
 
       <div className="rounded-xl border border-primary/30 bg-primary/5 p-4">

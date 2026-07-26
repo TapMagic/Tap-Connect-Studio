@@ -12,12 +12,36 @@ export const OUT = path.join(process.cwd(), "tmp", "fusion-proofs");
 /** Morning instant outside seed evening schedule windows — assignment wins on seed device. */
 export const PROOF_PUBLIC_AT = "2026-07-23T10:00:00-04:00";
 
+function loadSeedIdsFromDisk(): Partial<{
+  businessId: string;
+  campaignId: string;
+  contactId: string;
+  deviceCode: string;
+}> {
+  try {
+    const p = path.join(process.cwd(), "tmp", "fusion-seed-ids.json");
+    if (!fs.existsSync(p)) return {};
+    return JSON.parse(fs.readFileSync(p, "utf8")) as Record<string, string>;
+  } catch {
+    return {};
+  }
+}
+
+const diskSeed = loadSeedIdsFromDisk();
+
 export const SEED = {
-  businessId: process.env.SEED_BUSINESS_ID ?? "cmrx5wjml0000519ktwgyj0pe",
-  campaignId: process.env.SEED_CAMPAIGN_ID ?? "cmrx5wjn80001519kzayn9296",
+  businessId:
+    process.env.SEED_BUSINESS_ID ??
+    diskSeed.businessId ??
+    "cms1caza70000gh9kt7ev6nm0",
+  campaignId:
+    process.env.SEED_CAMPAIGN_ID ??
+    diskSeed.campaignId ??
+    "cms1cazaz0002gh9k33zrzlow",
   enrollmentId: process.env.SEED_ENROLLMENT_ID ?? "cmrx5yojf0009bv9kivpac97i",
-  contactId: process.env.SEED_CONTACT_ID ?? "cmrx5wjn90002519khgib6nsd",
-  deviceCode: process.env.SEED_DEVICE_CODE ?? "seeddemo01",
+  contactId:
+    process.env.SEED_CONTACT_ID ?? diskSeed.contactId ?? "cms1cazb20003gh9kaf22yry8",
+  deviceCode: process.env.SEED_DEVICE_CODE ?? diskSeed.deviceCode ?? "seeddemo01",
   journeyName: process.env.SEED_JOURNEY_NAME ?? "[SEED] Demo Journey",
   campaignTitle: process.env.SEED_CAMPAIGN_TITLE ?? "[SEED] Welcome Offer",
 } as const;
