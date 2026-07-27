@@ -120,6 +120,15 @@ function GoogleMark({ variant }: { variant: string }) {
   );
 }
 
+function isCustomerInteractiveTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof Element)) return false;
+  return Boolean(
+    target.closest(
+      'a[href], button, input, textarea, select, label, summary, [role="button"], [contenteditable="true"]'
+    )
+  );
+}
+
 function StyledBlockShell({
   block,
   children,
@@ -143,6 +152,7 @@ function StyledBlockShell({
   return (
     <div
       data-block-id={block.id}
+      data-block-selected={selected ? "true" : "false"}
       className={`tap-block ${card ? "tap-block-card" : ""} ${selected ? "tap-block-selected" : ""} ${editMode ? "tap-block-editable" : ""} ${emailOnly ? "tap-block-email-only" : ""} ${finish} ${className}`.trim()}
       style={
         {
@@ -153,14 +163,31 @@ function StyledBlockShell({
       onClick={
         editMode
           ? (e) => {
+              // Non-interactive selectable container: mouse selects the block without
+              // nesting role=button around customer controls (nested-interactive).
+              if (isCustomerInteractiveTarget(e.target)) {
+                onSelect?.();
+                return;
+              }
               e.stopPropagation();
               onSelect?.();
             }
           : undefined
       }
-      role={editMode ? "button" : undefined}
-      tabIndex={editMode ? 0 : undefined}
     >
+      {editMode ? (
+        <button
+          type="button"
+          className="tap-block-select-handle"
+          aria-label={`Select block ${block.type}`}
+          aria-pressed={selected}
+          data-testid={`block-select-${block.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onSelect?.();
+          }}
+        />
+      ) : null}
       {emailOnly ? (
         <div className="tap-email-only-banner">Email only — will not display on tap page</div>
       ) : null}

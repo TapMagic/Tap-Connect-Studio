@@ -128,6 +128,7 @@ test.describe("campaign format migration", () => {
     const axe = await new AxeBuilder({ page })
       .include('[data-testid="command-shade"]')
       .include('[data-testid="campaign-tool-rail"]')
+      .include('[data-testid="campaign-phone-preview"]')
       .disableRules(["color-contrast"])
       .analyze();
     const serious = axe.violations.filter(

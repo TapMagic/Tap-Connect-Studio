@@ -257,52 +257,53 @@ export default async function DashboardPage() {
             {decisionItems.map((item) => {
               const human = humanizeError(item.detail, item.title);
               return (
-                <li key={item.id}>
-                  <Link
-                    href={item.href}
-                    className="flex flex-col gap-1 px-4 py-3 hover:bg-white/[0.03] sm:flex-row sm:items-center sm:justify-between"
-                    data-testid={`decision-item-${item.kind}`}
-                    data-decision-id={item.id}
-                    data-occurrence-count={item.occurrenceCount ?? 1}
-                  >
-                    <div className="min-w-0">
-                      <p className="text-sm text-white/90">
-                        {item.title}
-                        {(item.occurrenceCount ?? 1) > 1 ? (
-                          <span className="ml-2 rounded-full border border-amber-500/40 px-1.5 py-0.5 text-[10px] text-amber-100">
-                            ×{item.occurrenceCount}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="mt-0.5 text-xs text-white/45 line-clamp-3">
-                        {human.title}
-                      </p>
+                <li
+                  key={item.id}
+                  className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+                  data-testid={`decision-item-${item.kind}`}
+                  data-decision-id={item.id}
+                  data-occurrence-count={item.occurrenceCount ?? 1}
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm text-white/90">
+                      {item.title}
+                      {(item.occurrenceCount ?? 1) > 1 ? (
+                        <span className="ml-2 rounded-full border border-amber-500/40 px-1.5 py-0.5 text-[10px] text-amber-100">
+                          ×{item.occurrenceCount}
+                        </span>
+                      ) : null}
+                    </p>
+                    <p className="mt-0.5 text-xs text-white/45 line-clamp-3">
+                      {human.title}
+                      {human.action ? ` ${human.action}` : ""}
+                    </p>
+                    <p
+                      className="mt-1 font-mono text-[10px] text-white/35"
+                      data-testid="decision-item-meta"
+                    >
+                      {item.aggregateType}:{item.aggregateId}
+                      {" · "}
+                      <time dateTime={item.occurredAt}>
+                        {new Date(item.occurredAt).toLocaleString()}
+                      </time>
+                    </p>
+                    {item.detail && item.detail !== human.title ? (
                       <details className="mt-1">
                         <summary className="cursor-pointer text-[11px] text-white/40 hover:text-white/60">
                           View details
                         </summary>
-                        <p
-                          className="mt-1 font-mono text-[10px] text-white/35"
-                          data-testid="decision-item-meta"
-                        >
-                          {item.aggregateType}:{item.aggregateId}
-                          {" · "}
-                          <time dateTime={item.occurredAt}>
-                            {new Date(item.occurredAt).toLocaleString()}
-                          </time>
-                          {item.detail !== human.title ? (
-                            <>
-                              <br />
-                              {item.detail}
-                            </>
-                          ) : null}
+                        <p className="mt-1 font-mono text-[10px] text-white/35">
+                          {item.detail}
                         </p>
                       </details>
-                    </div>
-                    <span className="inline-flex shrink-0 items-center gap-1 text-xs text-primary">
-                      {item.nextActionLabel ?? "Open related work"}{" "}
-                      <ArrowRight className="h-3 w-3" />
-                    </span>
+                    ) : null}
+                  </div>
+                  <Link
+                    href={item.href}
+                    className="inline-flex shrink-0 items-center gap-1 text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                  >
+                    {item.nextActionLabel ?? "Open related work"}{" "}
+                    <ArrowRight className="h-3 w-3" />
                   </Link>
                 </li>
               );

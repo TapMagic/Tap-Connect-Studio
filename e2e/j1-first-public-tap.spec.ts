@@ -143,6 +143,8 @@ test.describe("J1 first public tap residuals", () => {
 
     let insightsAfter = beforeKpiCount;
     let insightsReflected = false;
+    let evidenceClass = "";
+    let kpiSource = "";
     const insightsDeadline = Date.now() + 30_000;
     while (Date.now() < insightsDeadline) {
       await page.goto(
@@ -155,6 +157,8 @@ test.describe("J1 first public tap residuals", () => {
       insightsAfter = Number(
         (await afterKpi.getAttribute("data-kpi-value")) ?? (await afterKpi.innerText())
       );
+      evidenceClass = (await afterKpi.getAttribute("data-evidence-class")) ?? "";
+      kpiSource = (await afterKpi.getAttribute("data-kpi-source")) ?? "";
       if (insightsAfter > beforeKpiCount) {
         insightsReflected = true;
         break;
@@ -165,9 +169,11 @@ test.describe("J1 first public tap residuals", () => {
     notes.push(
       `insights_after_taps_range=${insightsAfter}`,
       `insights_delta=${insightsAfter - beforeKpiCount}`,
+      `evidence_class=${evidenceClass || "missing"}`,
+      `kpi_source=${kpiSource || "missing"}`,
       insightsReflected
         ? "insights_reflection=confirmed taps_range increased after new TapEvent"
-        : "insights_reflection=aggregation_delay — authoritative TapEvent persisted; taps_range UI did not increase within 30s"
+        : "insights_reflection=FAILED — TapEvent persisted but Insights taps_range did not increase"
     );
 
     const drillVisible = await page
@@ -177,23 +183,22 @@ test.describe("J1 first public tap residuals", () => {
       .catch(() => false);
     notes.push(drillVisible ? "drill_surface_present" : "drill_surface_absent");
 
-    // Authoritative DB causation is required for pass.
-    // Insights reflection is recorded separately — lag is a documented caveat, not a silent pass.
+    // Authoritative: customer action → TapEvent → host Insights surface → honest evidence.
     const persistenceOk = after.count > before.count && Boolean(after.latestId);
-    const passed = persistenceOk && pageErrors.length === 0;
+    const evidenceOk =
+      evidenceClass === "confirmed" && /TapEvent/i.test(kpiSource);
+    const passed =
+      persistenceOk && insightsReflected && evidenceOk && pageErrors.length === 0;
     const blockers: string[] = [];
-    if (!insightsReflected) {
-      blockers.push("insights_kpi_aggregation_delay");
-      notes.push(
-        "qualification: TapEvent causation VERIFIED; Insights KPI reflection DELAYED (not claimed as simultaneous VERIFIED)"
-      );
-    } else {
+    if (!insightsReflected) blockers.push("insights_kpi_not_reflected");
+    if (!evidenceOk) blockers.push("insights_evidence_classification");
+    if (insightsReflected && evidenceOk) {
       notes.push("insights_kpi_reflection=VERIFIED");
     }
     writeProof({
       id: "P-j1-analytics-event-assert",
       route: `/t/${SEED.deviceCode}?public=1 → TapEvent → Insights`,
-      workflow: "Public tap causation: authoritative TapEvent + Insights reflection status",
+      workflow: "Public tap causation: authoritative TapEvent + Insights reflection",
       passed,
       browserE2ePassed: passed,
       persistencePassed: persistenceOk,
@@ -206,6 +211,8 @@ test.describe("J1 first public tap residuals", () => {
     expect(passed).toBeTruthy();
     expect(after.count).toBeGreaterThan(before.count);
     expect(after.latestId).not.toEqual(before.latestId);
+    expect(insightsAfter).toBeGreaterThan(beforeKpiCount);
+    expect(evidenceClass).toBe("confirmed");
     writeProofIndex();
   });
 
@@ -392,7 +399,9 @@ test.describe("J1 first public tap residuals", () => {
     test.setTimeout(90_000);
     const { consoleErrors, pageErrors } = attachConsole(page);
     const notes: string[] = [];
-    const fakeDevice = `j1_proof_missing_device_${Date.now()}`;
+    // Realistic missing-slot id — must not carry seed/e2e/j1_proof markers or the
+    // decision queue correctly filters it as test debris.
+    const fakeDevice = `missing_slot_${Date.now()}`;
 
     const failRes = await page.request.post(`${BASE}/api/campaigns/assign`, {
       data: {
@@ -422,19 +431,24 @@ test.describe("J1 first public tap residuals", () => {
     await expect(page.getByTestId("decision-queue-items")).toBeVisible({ timeout: 15000 });
     const item = page.locator(`[data-decision-id="${match!.id}"]`);
     await expect(item).toBeVisible();
-    const itemText = (await item.innerText()).replace(/\s+/g, " ");
-    notes.push(`queue_item=${itemText.slice(0, 280)}`);
-    expect(/Campaign assign failed/i.test(itemText)).toBeTruthy();
-    // Cause is in detail (Prisma not-found) and/or outbox lastError; affected object in meta
-    expect(
-      itemText.includes(fakeDevice) ||
-        /No record was found|not found|findFirstOrThrow/i.test(itemText)
-    ).toBeTruthy();
     await expect(item.getByTestId("decision-item-meta")).toBeVisible();
     const meta = await item.getByTestId("decision-item-meta").innerText();
     notes.push(`meta=${meta}`);
     expect(meta).toContain(`campaign:${SEED.campaignId}`);
-    expect(/Remediate/i.test(itemText)).toBeTruthy();
+    // Expand technical detail when present — device id lives in the durable detail string
+    const details = item.locator("details");
+    if ((await details.count()) > 0) {
+      await details.locator("summary").click();
+    }
+    const itemText = (await item.innerText()).replace(/\s+/g, " ");
+    notes.push(`queue_item=${itemText.slice(0, 280)}`);
+    expect(/Campaign assign failed/i.test(itemText)).toBeTruthy();
+    expect(
+      itemText.includes(fakeDevice) ||
+        /No record was found|not found|findFirstOrThrow/i.test(itemText)
+    ).toBeTruthy();
+    // Concrete recovery action — not vague "Remediate"
+    expect(/Open Tap Points/i.test(itemText)).toBeTruthy();
     // Authoritative: outbox lastError carries the device id even if UI truncates detail
     expect((match!.lastError ?? "").includes(fakeDevice) || itemText.includes(fakeDevice)).toBeTruthy();
     notes.push(`lastError_has_device=${(match!.lastError ?? "").includes(fakeDevice)}`);
@@ -498,7 +512,11 @@ test.describe("J1 first public tap residuals", () => {
     const { consoleErrors, pageErrors } = attachConsole(page);
     await page.goto(`${BASE}/dashboard/card`, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("card-where-used")).toBeVisible({ timeout: 25000 });
-    await expect(page.getByTestId("card-retire-toggle")).toBeVisible();
+    await expect(page.getByTestId("card-retire-entry")).toBeVisible();
+    // Authoritative retire control lives in the editor — assembly only links there.
+    await page.getByTestId("card-retire-entry").click();
+    await expect(page).toHaveURL(/\/dashboard\/card\/edit/);
+    await expect(page.getByTestId("card-retire-toggle")).toBeVisible({ timeout: 25000 });
     await expect(page.getByTestId("freeform-honest-disabled")).toBeVisible();
 
     await page.goto(`${BASE}/dashboard/campaigns`, { waitUntil: "domcontentloaded" });
@@ -510,14 +528,19 @@ test.describe("J1 first public tap residuals", () => {
 
     writeProof({
       id: "P-j1-where-used-archive",
-      route: "/dashboard/card + campaign editor",
-      workflow: "Card retire + where-used visibility",
+      route: "/dashboard/card → /dashboard/card/edit + campaign editor",
+      workflow: "Card where-used + lifecycle entry → authoritative retire control",
       passed: pageErrors.length === 0,
       browserE2ePassed: true,
       persistencePassed: true,
       consoleErrors,
       pageErrors,
-      notes: ["card_where_used", "retire_toggle", "freeform_honest_off"],
+      notes: [
+        "card_where_used_on_assembly",
+        "retire_entry_opens_editor",
+        "retire_toggle_on_builder",
+        "freeform_honest_off",
+      ],
       lastVerifiedAt: new Date().toISOString(),
       blockers: [],
     });

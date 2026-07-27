@@ -65,7 +65,7 @@ export async function POST(request: Request) {
         kind: "assign_failed",
         title: "Campaign assign failed",
         detail: deviceSlotId ? `${detail} · device ${deviceSlotId}` : detail,
-        href: `/dashboard/campaigns/${campaignId}`,
+        href: "/dashboard/tap-points",
         aggregateType: "campaign",
         aggregateId: campaignId,
       });

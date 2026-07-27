@@ -158,8 +158,8 @@ test.describe("campaign format pre-commit proof", () => {
     expect(serious).toEqual([]);
     const railSerious = await axeSerious(page, '[data-testid="campaign-tool-rail"]');
     expect(railSerious).toEqual([]);
-    // Live preview editMode nests inputs in selectable blocks (pre-existing renderer) —
-    // shell chrome is the a11y surface for this wave's Command Shade / drawer contract.
+    const liveSerious = await axeSerious(page, '[data-testid="campaign-phone-preview"]');
+    expect(liveSerious).toEqual([]);
     if ((await page.getByTestId("campaign-contextual-drawer").count()) > 0) {
       const drawerSerious = await axeSerious(
         page,
@@ -265,6 +265,22 @@ test.describe("campaign format pre-commit proof", () => {
       await page.getByTestId("campaign-cta-reset-bg").click();
       await page.getByTestId("campaign-undo").click();
       await expect(page.getByTestId("campaign-phone-preview")).toBeVisible();
+    }
+
+    // Restore seed-safe surface so later public-tap a11y is not poisoned by this proof.
+    await page.getByTestId("campaign-tool-colors").click();
+    const bgHex = page.getByTestId("campaign-color-background-hex");
+    if ((await bgHex.count()) > 0) {
+      const current = await bgHex.inputValue();
+      if (/334155/i.test(current)) {
+        await bgHex.fill("#0b0f19");
+        await bgHex.blur();
+        await page.getByTestId("campaign-save").click();
+        await expect(page.getByTestId("campaign-editor-status")).toContainText(
+          /Saved|Published/i,
+          { timeout: 30_000 }
+        );
+      }
     }
   });
 

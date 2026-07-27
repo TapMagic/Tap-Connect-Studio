@@ -110,13 +110,18 @@ describe("external work sync", () => {
 
 describe("decision queue grouping", () => {
   it("groups duplicates and filters test artifacts", () => {
-    const mk = (id: string, aggregateId: string, title: string): DecisionQueueItem =>
+    const mk = (
+      id: string,
+      aggregateId: string,
+      title: string,
+      detail = "x"
+    ): DecisionQueueItem =>
       decisionItemFromOutbox({
         id,
         topic: "studio.operator.assign_failed",
         status: "FAILED",
         attempts: 1,
-        lastError: "fail",
+        lastError: detail,
         availableAt: new Date().toISOString(),
         source: "memory",
         envelope: {
@@ -125,16 +130,41 @@ describe("decision queue grouping", () => {
           aggregateType: "device",
           aggregateId,
           occurredAt: new Date().toISOString(),
-          payload: { title, detail: "x", href: "/dashboard/tap-points", kind: "assign_failed" },
+          payload: { title, detail, href: "/dashboard/tap-points", kind: "assign_failed" },
         },
       } as unknown as OutboxRecord);
 
     const a = mk("1", "dev_a", "Assign failed");
     const b = mk("2", "dev_a", "Assign failed");
     const test = mk("3", "seed_x", "seed proof failure");
-    const grouped = groupDecisionQueueItems([a, b, test], { includeTest: false });
-    assert.equal(grouped.length, 1);
-    assert.equal(grouped[0].occurrenceCount, 2);
-    assert.equal(grouped[0].nextActionLabel, "Open Tap Points");
+    const realLooking = mk(
+      "4",
+      "dev_b",
+      "Campaign assign failed",
+      "No record was found · device missing_slot_123"
+    );
+    const explicitProof = mk(
+      "5",
+      "dev_c",
+      "Campaign assign failed",
+      "forced j1_proof failure · device j1_proof_missing"
+    );
+    const grouped = groupDecisionQueueItems(
+      [a, b, test, realLooking, explicitProof],
+      { includeTest: false }
+    );
+    assert.equal(grouped.length, 2);
+    assert.equal(
+      grouped.find((g) => g.aggregateId === "dev_a")?.occurrenceCount,
+      2
+    );
+    assert.equal(
+      grouped.find((g) => g.aggregateId === "dev_b")?.nextActionLabel,
+      "Open Tap Points"
+    );
+    assert.equal(
+      grouped.some((g) => g.id === "5" || g.aggregateId === "dev_c"),
+      false
+    );
   });
 });

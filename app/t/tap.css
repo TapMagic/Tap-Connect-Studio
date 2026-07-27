@@ -818,6 +818,43 @@
   z-index: 1;
 }
 
+/* Dedicated keyboard/AT selection control — keeps block shell non-interactive. */
+.tap-block-select-handle {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  z-index: 2;
+  width: 1.5rem;
+  height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklch, var(--tap-primary) 55%, transparent);
+  background: color-mix(in oklch, var(--tap-bg) 88%, var(--tap-primary));
+  color: var(--tap-primary);
+  cursor: pointer;
+  padding: 0;
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--tap-text) 12%, transparent);
+}
+
+.tap-block-select-handle::after {
+  content: "";
+  display: block;
+  width: 0.45rem;
+  height: 0.45rem;
+  margin: 0 auto;
+  border-radius: 999px;
+  background: currentColor;
+}
+
+.tap-block-select-handle:focus-visible {
+  outline: 2px solid var(--tap-primary);
+  outline-offset: 2px;
+}
+
+.tap-block-selected > .tap-block-select-handle {
+  border-color: var(--tap-primary);
+  background: color-mix(in oklch, var(--tap-primary) 35%, var(--tap-bg));
+}
+
 .tap-columns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));

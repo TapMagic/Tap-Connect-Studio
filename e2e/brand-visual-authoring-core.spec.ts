@@ -117,6 +117,20 @@ test.describe("brand visual authoring core v0", () => {
 
     await page.getByTestId("brand-undo").first().click();
     await page.getByTestId("brand-redo").first().click();
+
+    // Restore seed Brand primary — do not leave #003366 (fails public CTA contrast).
+    await page.getByTestId("brand-topic-colors").click();
+    await page.locator('[data-testid="brand-color-primary"]').evaluate((el, v) => {
+      const input = el as HTMLInputElement;
+      const setter = Object.getOwnPropertyDescriptor(
+        HTMLInputElement.prototype,
+        "value"
+      )?.set;
+      setter?.call(input, v);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true }));
+    }, "#22c55e");
+    await expect(page.getByTestId("brand-color-primary")).toHaveValue(/#22c55e/i);
   });
 
   test("logo plates + mobile toolbar / bottom sheet", async ({ page }) => {

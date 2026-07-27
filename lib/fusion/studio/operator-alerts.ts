@@ -119,9 +119,11 @@ export function decisionItemFromOutbox(row: OutboxRecord): DecisionQueueItem {
         ? "/dashboard/settings#outbox"
         : "/dashboard#decision-queue";
 
+  // Explicit test markers only — bare "proof" matched device ids inside real
+  // assign-failure detail and hid actionable items from the host queue.
   const testGenerated =
-    /seed|proof|e2e|test.?generated/i.test(title) ||
-    /seed|proof|e2e|test.?generated/i.test(detail) ||
+    /\b(seed|e2e|test.?generated|j1_proof)\b/i.test(title) ||
+    /\b(seed|e2e|test.?generated|j1_proof)\b/i.test(detail) ||
     row.envelope.aggregateId.startsWith("seed_");
 
   const nextActionLabel =

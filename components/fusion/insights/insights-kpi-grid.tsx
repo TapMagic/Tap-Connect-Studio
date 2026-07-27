@@ -68,6 +68,8 @@ export function InsightsKpiGrid({
           className="text-2xl font-semibold tabular-nums text-white"
           data-testid={`insights-kpi-value-${k.key}`}
           data-kpi-value={String(k.value)}
+          data-evidence-class={k.evidenceClass}
+          data-kpi-source={k.source}
         >
           {formatValue(k)}
         </p>

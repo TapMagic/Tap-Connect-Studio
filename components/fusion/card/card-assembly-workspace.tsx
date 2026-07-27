@@ -359,12 +359,35 @@ export function CardAssemblyWorkspace({
 
       <CardFuseBoxPanel connections={connections} className="!mt-0" />
 
-      <WhereUsedPanel
-        title="Where this Tap Card appears"
-        emptyLabel="No CONTACT_VCARD / digital_card campaigns currently reference this card."
-        hits={whereUsedHits}
-        testId="card-where-used"
-      />
+      <section
+        className="space-y-3 rounded-xl border border-white/10 bg-[#080d18] p-4"
+        data-testid="card-lifecycle-panel"
+        aria-label="Card lifecycle"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h2 className="text-sm font-semibold text-white">Lifecycle</h2>
+            <p className="mt-1 text-xs text-white/50">
+              {retired
+                ? "This Card is retired. Restore it in the editor before publishing again."
+                : "Retire or restore this Card in the editor. Where-used stays visible so Tap Points and Campaigns are not left silent."}
+            </p>
+          </div>
+          <Link
+            href="/dashboard/card/edit#card-retire"
+            className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-white/15 px-4 py-2 text-sm text-white/85 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            data-testid="card-retire-entry"
+          >
+            {retired ? "Open editor to restore" : "Open editor to retire"}
+          </Link>
+        </div>
+        <WhereUsedPanel
+          title="Where this Tap Card appears"
+          emptyLabel="No CONTACT_VCARD / digital_card campaigns currently reference this card."
+          hits={whereUsedHits}
+          testId="card-where-used"
+        />
+      </section>
     </div>
   );
 }
