@@ -1,6 +1,11 @@
 /**
  * Thin shared full-screen authoring shell contract.
  * Hosts Outline · Canvas · Format regions without inventing a second builder.
+ *
+ * Adaptive Workspace Shell V1 (`AdaptiveWorkspaceShell`) extends this contract with
+ * Command Shade + Adaptive Task Drawer. Prefer AdaptiveWorkspaceShell for complex
+ * workspaces (Brand Kit); keep this layout shell when the host owns its own chrome
+ * (Card builder panes).
  */
 
 import type { ReactNode } from "react";

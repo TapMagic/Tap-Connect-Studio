@@ -6,6 +6,13 @@
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
+## Adaptive Workspace Shell V1 (local uncommitted)
+
+**Starting HEAD:** `2046d53a2261d0eb6d4318972985ba425a1a94f4`  
+**Scope:** Shared Command Shade + Adaptive Task Drawer + Live Work Surface contract; Brand Kit full adoption; Card authoring second-consumer (Command Shade only). Session restore for shell chrome. **No Campaign Format migration. No Wallet/email/social. No Owner-ready claim.**  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY**  
+**Doc:** `docs/fusion/ADAPTIVE_WORKSPACE_SHELL_V1.md`
+
 ## Shared Visual Authoring Core V0 + Brand Kit focused workspace (local uncommitted)
 
 **Starting HEAD:** `f2402d18c5685dbed9a6eedd6e6b044a499ef67d`  

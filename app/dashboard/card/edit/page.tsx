@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { TapCardBuilder } from "@/components/card/tap-card-builder";
 import { AuthoringWorkspaceShell } from "@/components/fusion/authoring/authoring-workspace-shell";
+import { CardAuthoringShellChrome } from "@/components/fusion/card/card-authoring-shell-chrome";
 import { requireBusiness, isPlatformAdmin } from "@/lib/auth";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard } from "@/lib/brand/tap-card";
@@ -14,8 +14,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * True focused Card authoring escape — Studio nav hidden by DashboardChrome.
- * One compact builder toolbar · outline · large preview · inspector.
- * Done / Esc → /dashboard/card.
+ * Adaptive Workspace Shell V1: Command Shade owns global chrome; builder owns
+ * Outline · Canvas · Format. Done / Esc → /dashboard/card.
  */
 export default async function TapCardEditPage() {
   const { user, business } = await requireBusiness();
@@ -113,104 +113,46 @@ export default async function TapCardEditPage() {
     devices.find((d) => d.deviceCode === "seeddemo01")?.deviceCode ?? devices[0]?.deviceCode;
 
   return (
-    <div
-      className="flex h-full min-h-0 flex-col overflow-hidden"
-      data-testid="card-edit-workspace-host"
-      data-escape-authoring="true"
-    >
-      <div
-        className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5"
-        data-testid="card-edit-compact-toolbar"
-      >
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
-            Card editor
-          </p>
-          <p className="truncate text-xs text-white/55">
-            Outline · live preview · Format — Esc or Done returns to assembly
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/dashboard/card/preview"
-            className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/75 hover:bg-white/5"
-            data-testid="card-edit-open-preview"
-          >
-            View-only preview
-          </Link>
-          {publicCode ? (
-            <a
-              href={`/dashboard/card/edit`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md border border-primary/35 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary"
-              data-testid="card-edit-open-full"
-              title="Open this editor in a detached tab"
-            >
-              Detached tab ↗
-            </a>
-          ) : null}
-          {publicCode ? (
-            <a
-              href={`/t/${publicCode}?public=1`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/70 hover:bg-white/5"
-              data-testid="card-edit-preview-public"
-            >
-              Open public URL
-            </a>
-          ) : null}
-          <Link
-            href="/dashboard/card"
-            className="rounded-md border border-white/20 px-2.5 py-1 text-xs text-white/85 hover:bg-white/5"
-            data-testid="card-edit-done-link"
-          >
-            Done editing
-          </Link>
-        </div>
-      </div>
-      <div className="min-h-0 flex-1 overflow-hidden" data-testid="card-builder-host">
-        <AuthoringWorkspaceShell
-          title="Card"
-          subtitle="Shared authoring shell · builder owns Outline · Canvas · Format"
-          className="h-full !bg-transparent [&_header]:hidden"
-          canvas={
-            <TapCardBuilder
-              initialConfig={config}
-              profile={{
-                ...profile,
-                phone: profile.phone || business.phone || undefined,
-                email: profile.email || business.email || undefined,
-                website: profile.website || business.website || undefined,
-              }}
-              businessName={business.name}
-              logoUrl={business.logoUrl}
-              reviewUrl={business.googleReviewUrl}
-              mediaUploadReady={isMediaUploadReady()}
-              stockReady={isStockImagesReady()}
-              isAdmin={isPlatformAdmin(user)}
-              isLandingDemo={Boolean(landingDemo)}
-              devices={devices}
-              campaigns={campaigns}
-              freeformEnabled={freeformEnabled}
-              brandKitId={brandKit?.id ?? null}
-              brandColors={
-                brandKit
-                  ? {
-                      primaryColor: brandKit.primaryColor,
-                      secondaryColor: brandKit.secondaryColor,
-                      accentColor: brandKit.accentColor,
-                    }
-                  : null
-              }
-              workspaceMode
-              escapeMode
-              doneHref="/dashboard/card"
-            />
-          }
-        />
-      </div>
-    </div>
+    <CardAuthoringShellChrome publicCode={publicCode}>
+      <AuthoringWorkspaceShell
+        title="Card"
+        subtitle="Shared authoring shell · builder owns Outline · Canvas · Format"
+        className="h-full !bg-transparent [&_header]:hidden"
+        canvas={
+          <TapCardBuilder
+            initialConfig={config}
+            profile={{
+              ...profile,
+              phone: profile.phone || business.phone || undefined,
+              email: profile.email || business.email || undefined,
+              website: profile.website || business.website || undefined,
+            }}
+            businessName={business.name}
+            logoUrl={business.logoUrl}
+            reviewUrl={business.googleReviewUrl}
+            mediaUploadReady={isMediaUploadReady()}
+            stockReady={isStockImagesReady()}
+            isAdmin={isPlatformAdmin(user)}
+            isLandingDemo={Boolean(landingDemo)}
+            devices={devices}
+            campaigns={campaigns}
+            freeformEnabled={freeformEnabled}
+            brandKitId={brandKit?.id ?? null}
+            brandColors={
+              brandKit
+                ? {
+                    primaryColor: brandKit.primaryColor,
+                    secondaryColor: brandKit.secondaryColor,
+                    accentColor: brandKit.accentColor,
+                  }
+                : null
+            }
+            workspaceMode
+            escapeMode
+            doneHref="/dashboard/card"
+          />
+        }
+      />
+    </CardAuthoringShellChrome>
   );
 }

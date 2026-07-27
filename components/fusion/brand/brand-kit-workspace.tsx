@@ -11,20 +11,18 @@ import {
   useEffect,
   useMemo,
   useState,
-  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  ChevronLeft,
-  ChevronRight,
-  Expand,
   Redo2,
   Undo2,
-  X,
 } from "lucide-react";
-import { AuthoringWorkspaceShell } from "@/components/fusion/authoring/authoring-workspace-shell";
+import {
+  AdaptiveWorkspaceShell,
+  openAdaptiveTool,
+} from "@/components/fusion/authoring/adaptive-workspace-shell";
 import { SharedCardPreview } from "@/components/fusion/brand/shared-card-preview";
 import { LogoLibrary, type LogoLibraryItem } from "@/components/fusion/brand/logo-library";
 import { MediaPicker } from "@/components/media/media-picker";
@@ -78,9 +76,24 @@ import {
   type BrandPreviewSurface,
   type BrandWorkspaceTopic,
 } from "@/lib/fusion/authoring/workspace-state";
+import {
+  createShellSnapshot,
+  rememberToolDrawer,
+  type ToolDrawerMemory,
+  type WorkspaceShellSnapshot,
+} from "@/lib/fusion/authoring/workspace-shell";
+import {
+  SESSION_RESTORE_LABEL,
+} from "@/lib/fusion/authoring/workspace-shell-persist";
+import {
+  ensureDefaultToolRegistries,
+  getWorkspaceTool,
+} from "@/lib/fusion/authoring/workspace-tools";
 import type { BrandColorRole } from "@/lib/fusion/authoring/visual-property";
 import { PREMIUM_FONT_OPTIONS, type PremiumFontFamily } from "@/lib/design/premium-finish";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
+
+ensureDefaultToolRegistries();
 
 export type BrandKitWorkspaceProps = {
   businessName: string;
@@ -111,19 +124,6 @@ type WorkspaceDraft = {
 
 const TOPICS = Object.keys(BRAND_TOPIC_LABELS) as BrandWorkspaceTopic[];
 
-function useIsPhoneLayout() {
-  return useSyncExternalStore(
-    (onStoreChange) => {
-      if (typeof window === "undefined") return () => undefined;
-      const mq = window.matchMedia("(max-width: 1023px)");
-      mq.addEventListener("change", onStoreChange);
-      return () => mq.removeEventListener("change", onStoreChange);
-    },
-    () => window.matchMedia("(max-width: 1023px)").matches,
-    () => false
-  );
-}
-
 const FONT_STYLE_FROM_PREMIUM: Record<PremiumFontFamily, string> = {
   sans: "MODERN",
   serif: "CLASSIC",
@@ -142,18 +142,39 @@ export function BrandKitWorkspace({
   logoOptions = [],
 }: BrandKitWorkspaceProps) {
   const router = useRouter();
-  const isPhone = useIsPhoneLayout();
   const restoredRef = useMemo(() => loadBrandWorkspaceState(), []);
-  const [topic, setTopic] = useState<BrandWorkspaceTopic | null>(restoredRef.topic);
-  const [drawerOpen, setDrawerOpen] = useState(restoredRef.drawerOpen);
-  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(
-    restoredRef.selectedAssetId
+  const [toolMemory, setToolMemory] = useState<Record<string, ToolDrawerMemory>>(
+    () => restoredRef.toolMemory ?? {}
   );
-  const [zoom, setZoom] = useState(restoredRef.zoom);
-  const [previewSurface, setPreviewSurface] = useState<BrandPreviewSurface>(
-    restoredRef.previewSurface
+  const [shell, setShell] = useState<WorkspaceShellSnapshot>(() =>
+    createShellSnapshot("brand-kit", {
+      workspaceMode: restoredRef.focusMode ? "focus" : "browse",
+      shadePreference: restoredRef.shadePreference ?? "auto",
+      priorShadeDisplay: "open",
+      drawerOpen: restoredRef.drawerOpen,
+      selectedToolId: restoredRef.topic,
+      drawerSizeMode:
+        restoredRef.drawerSizeMode ??
+        getWorkspaceTool("brand-kit", restoredRef.topic ?? "overview")
+          ?.recommendedDrawerMode ??
+        "balanced",
+      customDrawerWidthPct: restoredRef.customDrawerWidthPct ?? null,
+      selectedObjectId: restoredRef.selectedAssetId,
+      previewSurface: restoredRef.previewSurface,
+      previewZoom: restoredRef.zoom,
+      focusMode: restoredRef.focusMode,
+      dirty: false,
+      saved: true,
+      blockingWarning: null,
+      modalOpen: false,
+    })
   );
-  const [focusMode, setFocusMode] = useState(restoredRef.focusMode);
+  const topic = (shell.selectedToolId as BrandWorkspaceTopic | null) ?? null;
+  const drawerOpen = shell.drawerOpen;
+  const selectedAssetId = shell.selectedObjectId;
+  const zoom = typeof shell.previewZoom === "number" ? shell.previewZoom : 1;
+  const previewSurface = (shell.previewSurface as BrandPreviewSurface) || "brand";
+  const focusMode = shell.focusMode;
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState<string | null>(null);
@@ -163,6 +184,31 @@ export function BrandKitWorkspace({
   const [hexInput, setHexInput] = useState("");
   const [urlInput, setUrlInput] = useState("");
   const [textInput, setTextInput] = useState("");
+  const [sessionRestoreNotice] = useState(
+    () => Boolean(restoredRef.sessionDraftRestored)
+  );
+
+  const setSelectedAssetId = useCallback((id: string | null) => {
+    setShell((s) => {
+      const next = { ...s, selectedObjectId: id };
+      if (s.selectedToolId) {
+        setToolMemory((m) =>
+          rememberToolDrawer(m, s.selectedToolId!, { selectedItemId: id })
+        );
+      }
+      return next;
+    });
+  }, []);
+  const setZoom = useCallback((z: number | ((prev: number) => number)) => {
+    setShell((s) => {
+      const cur = typeof s.previewZoom === "number" ? s.previewZoom : 1;
+      const next = typeof z === "function" ? z(cur) : z;
+      return { ...s, previewZoom: next };
+    });
+  }, []);
+  const setPreviewSurface = useCallback((surface: BrandPreviewSurface) => {
+    setShell((s) => ({ ...s, previewSurface: surface }));
+  }, []);
 
   const initialDraft = useMemo(() => createInitialDraft(initialBrand, cardConfig, logoOptions, businessName), [
     initialBrand,
@@ -184,8 +230,25 @@ export function BrandKitWorkspace({
       zoom,
       previewSurface,
       focusMode,
+      shadePreference: shell.shadePreference,
+      drawerSizeMode: shell.drawerSizeMode,
+      customDrawerWidthPct: shell.customDrawerWidthPct,
+      toolMemory,
+      sessionDraftRestored: sessionRestoreNotice,
     });
-  }, [topic, drawerOpen, selectedAssetId, zoom, previewSurface, focusMode]);
+  }, [
+    topic,
+    drawerOpen,
+    selectedAssetId,
+    zoom,
+    previewSurface,
+    focusMode,
+    shell.shadePreference,
+    shell.drawerSizeMode,
+    shell.customDrawerWidthPct,
+    toolMemory,
+    sessionRestoreNotice,
+  ]);
 
   useEffect(() => {
     if (!dirty) return;
@@ -196,6 +259,29 @@ export function BrandKitWorkspace({
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [dirty]);
+
+  const shellForUi = useMemo(
+    () => ({ ...shell, dirty, saved: !dirty }),
+    [shell, dirty]
+  );
+
+  const onShellChange = useCallback(
+    (next: WorkspaceShellSnapshot) => {
+      if (!next.modalOpen && promoteOpen) setPromoteOpen(false);
+      setShell(next);
+    },
+    [promoteOpen]
+  );
+
+  const openPromote = useCallback(() => {
+    setPromoteOpen(true);
+    setShell((s) => ({ ...s, modalOpen: true }));
+  }, []);
+
+  const closePromote = useCallback(() => {
+    setPromoteOpen(false);
+    setShell((s) => ({ ...s, modalOpen: false }));
+  }, []);
 
   const commit = useCallback((next: WorkspaceDraft, label: string) => {
     setHistory((h) => pushLabeledHistory(h, next, label));
@@ -250,36 +336,19 @@ export function BrandKitWorkspace({
   const openTopic = useCallback(
     (t: BrandWorkspaceTopic) => {
       if (topic === t && drawerOpen) {
-        setDrawerOpen(false);
+        setShell((s) => ({ ...s, drawerOpen: false }));
         return;
       }
-      setTopic(t);
-      setDrawerOpen(true);
+      setShell((s) => {
+        const { snapshot, memory } = openAdaptiveTool(s, "brand-kit", t, toolMemory);
+        setToolMemory(memory);
+        return snapshot;
+      });
     },
-    [topic, drawerOpen]
+    [topic, drawerOpen, toolMemory]
   );
 
-  const closeDrawer = useCallback(() => setDrawerOpen(false), []);
-
-  useEffect(() => {
-    function onKey(e: KeyboardEvent) {
-      if (e.key !== "Escape") return;
-      if (promoteOpen) {
-        e.preventDefault();
-        e.stopPropagation();
-        setPromoteOpen(false);
-        return;
-      }
-      if (drawerOpen) {
-        e.preventDefault();
-        e.stopPropagation();
-        setDrawerOpen(false);
-      }
-    }
-    window.addEventListener("keydown", onKey, true);
-    return () => window.removeEventListener("keydown", onKey, true);
-  }, [drawerOpen, promoteOpen]);
-
+  // Promote modal Esc is handled via shell.modalOpen + AdaptiveWorkspaceShell priority.
   const colors = brandColorsFromKit(draft.brand);
   const contrast = checkBrandContrast({
     background: colors.background,
@@ -438,7 +507,7 @@ export function BrandKitWorkspace({
     );
     if (!result.ok || !nextBrand || !nextModel) {
       setSaveMsg(result.ok ? null : result.reason);
-      setPromoteOpen(false);
+      closePromote();
       return;
     }
     commit(
@@ -446,7 +515,7 @@ export function BrandKitWorkspace({
       "Promote button background → Brand CTA"
     );
     void saveBrand({ primaryColor: result.value });
-    setPromoteOpen(false);
+    closePromote();
     setSaveMsg(result.impact);
   }
 
@@ -479,30 +548,9 @@ export function BrandKitWorkspace({
 
   const drawerBody = topic ? renderDrawer() : null;
 
-  const format =
-    drawerOpen && !isPhone ? (
-    <div
-      className="relative flex h-full min-h-0 flex-col"
-      data-testid="brand-contextual-drawer"
-      data-topic={topic ?? ""}
-    >
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
-        <h2 className="text-sm font-semibold text-white">
-          {topic ? BRAND_TOPIC_LABELS[topic] : "Panel"}
-        </h2>
-        <button
-          type="button"
-          aria-label="Collapse drawer"
-          data-testid="brand-drawer-collapse"
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5"
-          onClick={closeDrawer}
-        >
-          <ChevronRight className="h-4 w-4" aria-hidden />
-        </button>
-      </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">{drawerBody}</div>
-    </div>
-  ) : null;
+  const recommendedDrawerMode =
+    getWorkspaceTool("brand-kit", topic ?? "overview")?.recommendedDrawerMode ??
+    "balanced";
 
   const canvas = (
     <div
@@ -587,7 +635,7 @@ export function BrandKitWorkspace({
     </div>
   );
 
-  const toolbar = (
+  const shadeExtras = (
     <div className="flex flex-wrap items-center gap-2" data-testid="brand-workspace-toolbar">
       <button
         type="button"
@@ -607,29 +655,41 @@ export function BrandKitWorkspace({
       >
         <Redo2 className="h-3.5 w-3.5" aria-hidden /> Redo
       </button>
-      <button
-        type="button"
-        data-testid="brand-focus-mode"
-        onClick={() => setFocusMode((f) => !f)}
-        className="inline-flex min-h-11 items-center gap-1 rounded-md border border-white/15 px-2.5 text-xs"
-      >
-        <Expand className="h-3.5 w-3.5" aria-hidden />
-        {focusMode ? "Exit focus" : "Expand"}
-      </button>
-      <a
-        href="/dashboard/brand/edit"
-        target="_blank"
-        rel="noopener noreferrer"
-        data-testid="brand-open-detached"
-        className="inline-flex min-h-11 items-center rounded-md border border-primary/35 bg-primary/10 px-2.5 text-xs font-medium text-primary"
-      >
-        Open in new tab ↗
-      </a>
       {dirty ? (
-        <span className="text-[10px] uppercase tracking-wider text-amber-200/80" data-testid="brand-dirty-indicator" data-dirty="true">
+        <span
+          className="text-[10px] uppercase tracking-wider text-amber-200/80"
+          data-testid="brand-dirty-indicator"
+          data-dirty="true"
+        >
           Unsaved session
         </span>
       ) : null}
+    </div>
+  );
+
+  const mobileToolRail = (
+    <div
+      className="relative z-50 flex shrink-0 gap-1 overflow-x-auto border-t border-white/10 bg-[#050814] p-2 lg:hidden"
+      data-testid="brand-mobile-toolbar"
+      role="toolbar"
+      aria-label="Brand topics"
+    >
+      {TOPICS.map((t) => (
+        <button
+          key={t}
+          type="button"
+          data-testid={`brand-mobile-topic-${t}`}
+          onClick={() => openTopic(t)}
+          className={cn(
+            "min-h-11 shrink-0 rounded-md px-3 text-xs",
+            topic === t && drawerOpen
+              ? "bg-primary/20 text-primary"
+              : "border border-white/10 text-white/70"
+          )}
+        >
+          {BRAND_TOPIC_LABELS[t]}
+        </button>
+      ))}
     </div>
   );
 
@@ -639,103 +699,78 @@ export function BrandKitWorkspace({
       data-testid="brand-kit-workspace"
       data-dirty={dirty ? "true" : "false"}
       data-maturity="implemented-not-owner-ready"
+      data-adaptive-shell="v1"
     >
-      <div
-        className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-1.5"
-        data-testid="brand-edit-compact-toolbar"
-      >
-        <div className="min-w-0">
-          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
-            Brand Kit workspace
-          </p>
-          <p className="truncate text-xs text-white/55">
-            Shared visual core · Esc closes drawer, then returns to Brand
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/dashboard/brand"
-            className="inline-flex min-h-11 items-center gap-1 rounded-md border border-white/15 px-2.5 text-xs text-white/75"
-            data-testid="brand-return-studio"
-          >
-            <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
-            Return to Studio
-          </Link>
-          <button
-            type="button"
-            data-testid="brand-done-editing"
-            className="inline-flex min-h-11 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
-            onClick={() => {
-              if (dirty && !window.confirm("Leave with unsaved session changes?")) return;
-              router.push("/dashboard/brand");
-            }}
-          >
-            Done
-          </button>
-        </div>
-      </div>
+      {sessionRestoreNotice ? (
+        <p className="sr-only" role="status" data-testid="brand-session-restore-notice">
+          {SESSION_RESTORE_LABEL}
+        </p>
+      ) : null}
 
       <div className="min-h-0 flex-1">
-        <AuthoringWorkspaceShell
-          title="Brand Kit"
-          subtitle="Visual & verbal source of truth"
-          outline={!focusMode ? outline : undefined}
+        <AdaptiveWorkspaceShell
+          identity={{
+            id: "brand-kit",
+            label: "Brand Kit",
+            objectLabel: businessName,
+            zone: "brand",
+          }}
+          outline={outline}
           canvas={canvas}
-          format={!focusMode && drawerOpen ? format : undefined}
-          toolbar={toolbar}
-          focusMode={focusMode}
-          className="brand-kit-shell h-full [&_header_.text-primary]:sr-only [&_header_h1]:sr-only [&_header_p.truncate]:sr-only"
+          drawerContent={drawerOpen && topic ? drawerBody : undefined}
+          drawerTitle={topic ? BRAND_TOPIC_LABELS[topic] : undefined}
+          toolMemory={toolMemory}
+          onToolMemoryChange={setToolMemory}
+          snapshot={shellForUi}
+          onSnapshotChange={onShellChange}
+          recommendedDrawerMode={recommendedDrawerMode}
+          shadeExtras={shadeExtras}
+          mobileToolRail={mobileToolRail}
+          desktopDrawerCloseTestId="brand-drawer-collapse"
+          mobileDrawerCloseTestId="brand-mobile-sheet-close"
+          mobileSheetTestId="brand-mobile-sheet"
+          drawerRootTestId="brand-contextual-drawer"
+          returnAction={
+            <Link
+              href="/dashboard/brand"
+              className="inline-flex min-h-11 items-center rounded-md border border-white/15 px-2.5 text-xs text-white/75"
+              data-testid="brand-return-studio"
+            >
+              Return to Studio
+            </Link>
+          }
+          openInNewTab={
+            <a
+              href="/dashboard/brand/edit"
+              target="_blank"
+              rel="noopener noreferrer"
+              data-testid="brand-open-detached"
+              className="inline-flex min-h-11 items-center rounded-md border border-primary/35 bg-primary/10 px-2.5 text-xs font-medium text-primary"
+            >
+              Open in new tab ↗
+            </a>
+          }
+          primaryAction={
+            <button
+              type="button"
+              data-testid="brand-done-editing"
+              className="inline-flex min-h-11 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
+              onClick={() => {
+                if (dirty && !window.confirm("Leave with unsaved session changes?")) return;
+                router.push("/dashboard/brand");
+              }}
+            >
+              Done
+            </button>
+          }
+          className="brand-kit-shell h-full"
         />
       </div>
 
-      {/* Mobile topic toolbar + bottom sheet */}
-      <div
-        className="relative z-50 flex shrink-0 gap-1 overflow-x-auto border-t border-white/10 bg-[#050814] p-2 lg:hidden"
-        data-testid="brand-mobile-toolbar"
-        role="toolbar"
-        aria-label="Brand topics"
-      >
-        {TOPICS.map((t) => (
-          <button
-            key={t}
-            type="button"
-            data-testid={`brand-mobile-topic-${t}`}
-            onClick={() => openTopic(t)}
-            className={cn(
-              "min-h-11 shrink-0 rounded-md px-3 text-xs",
-              topic === t && drawerOpen
-                ? "bg-primary/20 text-primary"
-                : "border border-white/10 text-white/70"
-            )}
-          >
-            {BRAND_TOPIC_LABELS[t]}
-          </button>
-        ))}
+      {/* Legacy compact toolbar testid — shade owns controls; keep host marker for proofs */}
+      <div className="sr-only" data-testid="brand-edit-compact-toolbar" aria-hidden>
+        Command Shade owns Brand Kit chrome
       </div>
-
-      {drawerOpen && topic && isPhone ? (
-        <div
-          className="fixed inset-x-0 bottom-0 z-40 max-h-[70vh] overflow-hidden rounded-t-2xl border border-white/10 bg-[#0a0f1c] shadow-2xl"
-          data-testid="brand-mobile-sheet"
-          role="dialog"
-          aria-modal="true"
-          aria-label={BRAND_TOPIC_LABELS[topic]}
-        >
-          <div className="flex items-center justify-between border-b border-white/10 px-3 py-2">
-            <h2 className="text-sm font-semibold">{BRAND_TOPIC_LABELS[topic]}</h2>
-            <button
-              type="button"
-              aria-label="Close"
-              data-testid="brand-mobile-sheet-close"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center"
-              onClick={closeDrawer}
-            >
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="max-h-[calc(70vh-3.5rem)] overflow-y-auto p-3">{drawerBody}</div>
-        </div>
-      ) : null}
 
       {promoteOpen ? (
         <div
@@ -775,7 +810,7 @@ export function BrandKitWorkspace({
                 type="button"
                 data-testid="brand-promote-cancel"
                 className="min-h-11 rounded-md border border-white/15 px-4 text-xs"
-                onClick={() => setPromoteOpen(false)}
+                onClick={closePromote}
               >
                 Cancel
               </button>
@@ -1261,7 +1296,7 @@ export function BrandKitWorkspace({
                 data-testid="card-promote-background"
                 className="min-h-11 rounded-md bg-primary text-xs font-medium text-primary-foreground disabled:opacity-40"
                 disabled={selectedBg?.source !== "custom"}
-                onClick={() => setPromoteOpen(true)}
+                onClick={openPromote}
               >
                 Promote to Brand CTA
               </button>
