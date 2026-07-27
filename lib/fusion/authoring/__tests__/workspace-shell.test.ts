@@ -310,13 +310,16 @@ describe("Tool registry", () => {
     ensureDefaultToolRegistries();
   });
 
-  it("registers Brand Kit and Card tools through the same contract", () => {
+  it("registers Brand Kit, Card, and Campaign tools through the same contract", () => {
     assert.ok(getWorkspaceTools("brand-kit").length >= BRAND_KIT_TOOLS.length);
     assert.ok(getWorkspaceTools("card-authoring").length >= CARD_AUTHORING_TOOLS.length);
+    assert.ok(getWorkspaceTools("campaign-authoring").length >= 10);
     assert.equal(getWorkspaceTool("brand-kit", "logos")?.recommendedDrawerMode, "library");
     assert.equal(getWorkspaceTool("brand-kit", "colors")?.recommendedDrawerMode, "compact");
     assert.equal(getWorkspaceTool("brand-kit", "history")?.recommendedDrawerMode, "expanded");
     assert.equal(getWorkspaceTool("card-authoring", "format")?.id, "format");
+    assert.equal(getWorkspaceTool("campaign-authoring", "colors")?.recommendedDrawerMode, "compact");
+    assert.equal(getWorkspaceTool("campaign-authoring", "media")?.recommendedDrawerMode, "library");
   });
 
   it("allows host registration without giant conditionals", () => {

@@ -6,14 +6,22 @@
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
-## Adaptive Workspace Shell V1 (local uncommitted)
+## Campaign Format Migration (local uncommitted — pre-commit verified)
 
-**Starting HEAD:** `2046d53a2261d0eb6d4318972985ba425a1a94f4`  
-**Scope:** Shared Command Shade + Adaptive Task Drawer + Live Work Surface contract; Brand Kit full adoption; Card authoring second-consumer (Command Shade only). Session restore for shell chrome. **No Campaign Format migration. No Wallet/email/social. No Owner-ready claim.**  
+**Starting HEAD:** `b2ca2f09a1e428d96851feb49cddf97aee82a487`  
+**Scope:** Campaign Workbench adopts Shared Visual Authoring Core + Adaptive Workspace Shell (third consumer). Campaign visual adapter, Brand→Campaign→Preset→Custom resolution, surface + CTA overrides, typography/color/media/effects migration at renderer-honest depth, session visual history, restrained Campaign zone glow. **No Wallet/email/social. No durable Brand sync. No new builder. No Owner-ready claim.**  
+**Pre-commit proof (2026-07-26):** headed `campaign-format-precommit-proof` **3/3** + `campaign-format-migration` **3/3**; coexistence fix (no duplicate primary theme pickers); touch targets ≥44px on Save/Publish; screenshots under `tmp/campaign-format-precommit-shots/`.  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY**  
+**Doc:** `docs/fusion/CAMPAIGN_FORMAT_MIGRATION.md`
+
+## Adaptive Workspace Shell V1 (committed)
+
+**Starting HEAD:** `2046d53a2261d0eb6d4318972985ba425a1a94f4` → tip includes `b2ca2f09…`  
+**Scope:** Shared Command Shade + Adaptive Task Drawer + Live Work Surface contract; Brand Kit full adoption; Card authoring second-consumer (Command Shade only). Session restore for shell chrome.  
 **Classification:** **IMPLEMENTED BUT NOT OWNER-READY**  
 **Doc:** `docs/fusion/ADAPTIVE_WORKSPACE_SHELL_V1.md`
 
-## Shared Visual Authoring Core V0 + Brand Kit focused workspace (local uncommitted)
+## Shared Visual Authoring Core V0 + Brand Kit focused workspace (committed)
 
 **Starting HEAD:** `f2402d18c5685dbed9a6eedd6e6b044a499ef67d`  
 **Scope:** Shared property/provenance/inheritance core; focused Brand Kit workspace under Assets (`/dashboard/brand/edit`); deterministic Autopilot Brand Starter Kit fixture; logo/image/type libraries V0; Card button background property-level override proof; real promote → Brand CTA via `/api/brand`; session undo/redo; shared Card preview resolver. **No live crawl/search/AI. No durable Brand sync. No Owner-ready claim.**  

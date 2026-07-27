@@ -323,6 +323,7 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       ? Number(themeOverrides.backgroundOverlayOpacity)
       : undefined,
     fontStyle: themeOverrides.fontStyle as string | undefined,
+    fontFamily: themeOverrides.fontFamily as string | undefined,
     showPageLogo:
       themeOverrides.showPageLogo === true || themeOverrides.showPageLogo === "true",
   };

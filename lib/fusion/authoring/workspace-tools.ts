@@ -211,12 +211,158 @@ export const CARD_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
   },
 ];
 
+/** Campaign Workbench — third consumer of Adaptive Workspace Shell + Visual Core. */
+export const CAMPAIGN_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
+  {
+    id: "outline",
+    label: "Outline",
+    icon: "ListTree",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "brand",
+    label: "Brand",
+    icon: "BadgeCheck",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    triggersConstructMode: true,
+    supportsSelectionMemory: false,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "colors",
+    label: "Colors",
+    icon: "Palette",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "typography",
+    label: "Typography",
+    icon: "Type",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "layout",
+    label: "Layout",
+    icon: "LayoutTemplate",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "buttons",
+    label: "Buttons",
+    icon: "MousePointerClick",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "media",
+    label: "Media",
+    icon: "Image",
+    recommendedDrawerMode: "library",
+    mobileSheetMode: "library",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "effects",
+    label: "Effects",
+    icon: "Sparkles",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "templates",
+    label: "Templates",
+    icon: "GalleryHorizontal",
+    recommendedDrawerMode: "library",
+    mobileSheetMode: "library",
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "readiness",
+    label: "Readiness",
+    icon: "ShieldCheck",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    supportsSelectionMemory: false,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "history",
+    label: "History",
+    icon: "History",
+    recommendedDrawerMode: "expanded",
+    mobileSheetMode: "expanded",
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["campaign-authoring"],
+  },
+  {
+    id: "advanced",
+    label: "Advanced",
+    icon: "Code2",
+    recommendedDrawerMode: "expanded",
+    mobileSheetMode: "expanded",
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["campaign-authoring"],
+  },
+];
+
 export function ensureDefaultToolRegistries(): void {
   if (!registries.has("brand-kit")) {
     registerWorkspaceTools("brand-kit", BRAND_KIT_TOOLS);
   }
   if (!registries.has("card-authoring")) {
     registerWorkspaceTools("card-authoring", CARD_AUTHORING_TOOLS);
+  }
+  if (!registries.has("campaign-authoring")) {
+    registerWorkspaceTools("campaign-authoring", CAMPAIGN_AUTHORING_TOOLS);
   }
 }
 

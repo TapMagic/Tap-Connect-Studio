@@ -54,6 +54,7 @@ Brand Kit is the primary proving ground. Card authoring is a second consumer of 
 |-----------|----------|
 | Brand Kit `/dashboard/brand/edit` | Full AdaptiveWorkspaceShell |
 | Card `/dashboard/card/edit` | Command Shade chrome + existing builder panes |
+| Campaign `/dashboard/campaigns/[id]` | Full AdaptiveWorkspaceShell + shared visual adapter (Format Migration) |
 
 ## Honest maturity
 

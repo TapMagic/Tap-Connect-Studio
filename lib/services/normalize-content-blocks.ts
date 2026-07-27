@@ -80,6 +80,13 @@ function normalizeData(
       code,
       ctaLabel: String(data.ctaLabel ?? "Claim offer"),
       lockedUntilContact: data.lockedUntilContact !== false,
+      // Shared visual adapter may persist CTA color overrides (Campaign Format Migration)
+      ...(typeof data.backgroundColor === "string" && data.backgroundColor.trim()
+        ? { backgroundColor: data.backgroundColor }
+        : {}),
+      ...(typeof data.textColor === "string" && data.textColor.trim()
+        ? { textColor: data.textColor }
+        : {}),
     };
   }
   if (type === "hero_image") {

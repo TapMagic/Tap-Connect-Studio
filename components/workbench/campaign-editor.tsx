@@ -1,7 +1,54 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  AdaptiveWorkspaceShell,
+  openAdaptiveTool,
+} from "@/components/fusion/authoring/adaptive-workspace-shell";
+import { CampaignVisualDrawer } from "@/components/fusion/campaign/campaign-visual-drawer";
+import {
+  applyCtaOverridesToBlocks,
+  applyResolvedToCampaignTheme,
+  buildCampaignVisualModel,
+  overrideCampaignItemProperty,
+  overrideCampaignSurfaceProperty,
+  resetCampaignItem,
+  resetCampaignItemProperty,
+  resetCampaignSurfaceProperty,
+  resetCampaignThemeToBrand,
+  applyBackgroundToSimilarCampaignCtas,
+  type CampaignThemeState,
+  type CampaignVisualModel,
+} from "@/lib/fusion/authoring/campaign-visual-resolve";
+import {
+  createLabeledHistory,
+  pushLabeledHistory,
+  redoLabeledHistory,
+  undoLabeledHistory,
+  type LabeledEditorHistory,
+} from "@/lib/fusion/authoring/session-history";
+import {
+  createShellSnapshot,
+  type ToolDrawerMemory,
+  type WorkspaceShellSnapshot,
+} from "@/lib/fusion/authoring/workspace-shell";
+import {
+  loadWorkspaceShellState,
+  saveWorkspaceShellState,
+  snapshotToPersisted,
+  SESSION_RESTORE_LABEL,
+} from "@/lib/fusion/authoring/workspace-shell-persist";
+import {
+  CAMPAIGN_AUTHORING_TOOLS,
+  ensureDefaultToolRegistries,
+  getWorkspaceTool,
+} from "@/lib/fusion/authoring/workspace-tools";
+
+ensureDefaultToolRegistries();
+
+const CAMPAIGN_WORKSPACE_ID = "campaign-authoring";
 import {
   Copy,
   Eye,
@@ -356,6 +403,168 @@ export function CampaignEditor({
   const selectedDeviceCode = devices.find((d) => d.id === selectedDevice)?.deviceCode;
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
 
+  const restoredShell = useMemo(() => loadWorkspaceShellState(CAMPAIGN_WORKSPACE_ID), []);
+  const [shell, setShell] = useState<WorkspaceShellSnapshot>(() =>
+    createShellSnapshot(CAMPAIGN_WORKSPACE_ID, {
+      workspaceMode: restoredShell.focusMode ? "focus" : "browse",
+      shadePreference: restoredShell.shadePreference,
+      priorShadeDisplay: restoredShell.priorShadeDisplay || "open",
+      focusMode: restoredShell.focusMode,
+      dirty: false,
+      saved: true,
+      selectedToolId: restoredShell.selectedToolId,
+      drawerOpen: restoredShell.drawerOpen,
+      drawerSizeMode: restoredShell.drawerSizeMode,
+      customDrawerWidthPct: restoredShell.customDrawerWidthPct,
+      selectedObjectId: restoredShell.selectedObjectId,
+    })
+  );
+  const [toolMemory, setToolMemory] = useState<Record<string, ToolDrawerMemory>>(
+    () => restoredShell.toolMemory ?? {}
+  );
+  const [sessionRestored] = useState(() => Boolean(restoredShell.sessionDraftRestored));
+  const [visualDirty, setVisualDirty] = useState(false);
+
+  type VisualDraft = { theme: CampaignThemeState; blocks: ContentBlock[]; selectedItemId: string | null };
+  const initialVisualModel = useMemo(
+    () =>
+      buildCampaignVisualModel(
+        brandKit,
+        {
+          primaryColor: String(campaign.themeOverrides?.primaryColor ?? brandKit.primaryColor),
+          secondaryColor: String(campaign.themeOverrides?.secondaryColor ?? brandKit.secondaryColor),
+          backgroundColor: String(campaign.themeOverrides?.backgroundColor ?? brandKit.backgroundColor),
+          textColor: String(campaign.themeOverrides?.textColor ?? brandKit.textColor),
+          backgroundImage: String(campaign.themeOverrides?.backgroundImage ?? ""),
+          backgroundOverlayOpacity: Number(campaign.themeOverrides?.backgroundOverlayOpacity ?? 55),
+          fontStyle: String(campaign.themeOverrides?.fontStyle ?? "sans"),
+          showPageLogo:
+            campaign.themeOverrides?.showPageLogo === true ||
+            campaign.themeOverrides?.showPageLogo === "true",
+          defaultButtonShape: String(campaign.themeOverrides?.defaultButtonShape ?? "pill"),
+          defaultButtonFinish: String(campaign.themeOverrides?.defaultButtonFinish ?? "flat"),
+        },
+        normalizeContentBlocks(campaign.contentBlocks)
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- seed once from server props
+    []
+  );
+  const [visualHistory, setVisualHistory] = useState<LabeledEditorHistory<VisualDraft>>(() =>
+    createLabeledHistory({
+      theme: applyResolvedToCampaignTheme(initialVisualModel),
+      blocks: normalizeContentBlocks(campaign.contentBlocks),
+      selectedItemId: initialVisualModel.selectedItemId,
+    })
+  );
+
+  const visualModel: CampaignVisualModel = useMemo(() => {
+    const model = buildCampaignVisualModel(brandKit, theme, blocks, visualHistory.present.selectedItemId);
+    return model;
+  }, [brandKit, theme, blocks, visualHistory.present.selectedItemId]);
+
+  const shellForUi = useMemo(
+    () => ({
+      ...shell,
+      dirty: visualDirty || shell.dirty,
+      saved: !(visualDirty || shell.dirty),
+      selectedObjectId: selectedBlockId ?? shell.selectedObjectId,
+    }),
+    [shell, visualDirty, selectedBlockId]
+  );
+
+  useEffect(() => {
+    saveWorkspaceShellState(
+      snapshotToPersisted(shellForUi, toolMemory, {
+        sessionDraftRestored: sessionRestored,
+      })
+    );
+  }, [shellForUi, toolMemory, sessionRestored]);
+
+  const commitVisual = useCallback(
+    (nextModel: CampaignVisualModel, label: string) => {
+      const nextTheme = applyResolvedToCampaignTheme(nextModel);
+      const nextBlocks = applyCtaOverridesToBlocks(nextModel, blocksRef.current);
+      setTheme((t) => ({
+        ...t,
+        ...nextTheme,
+        defaultButtonShape: nextTheme.defaultButtonShape as TapCardButtonShape,
+      }));
+      setBlocks(normalizeContentBlocks(nextBlocks));
+      setVisualHistory((h) =>
+        pushLabeledHistory(h, {
+          theme: nextTheme,
+          blocks: normalizeContentBlocks(nextBlocks),
+          selectedItemId: nextModel.selectedItemId,
+        }, label)
+      );
+      setVisualDirty(true);
+      setShell((s) => ({ ...s, dirty: true, saved: false, workspaceMode: "edit" }));
+    },
+    [setBlocks]
+  );
+
+  const undoVisual = useCallback(() => {
+    setVisualHistory((h) => {
+      const next = undoLabeledHistory(h);
+      if (!next) return h;
+      const draft = next.present;
+      queueMicrotask(() => {
+        setTheme((t) => ({
+          ...t,
+          ...draft.theme,
+          defaultButtonShape: draft.theme.defaultButtonShape as TapCardButtonShape,
+        }));
+        setBlocks(normalizeContentBlocks(draft.blocks));
+        setVisualDirty(true);
+      });
+      return next;
+    });
+  }, [setBlocks]);
+
+  const redoVisual = useCallback(() => {
+    setVisualHistory((h) => {
+      const next = redoLabeledHistory(h);
+      if (!next) return h;
+      const draft = next.present;
+      queueMicrotask(() => {
+        setTheme((t) => ({
+          ...t,
+          ...draft.theme,
+          defaultButtonShape: draft.theme.defaultButtonShape as TapCardButtonShape,
+        }));
+        setBlocks(normalizeContentBlocks(draft.blocks));
+        setVisualDirty(true);
+      });
+      return next;
+    });
+  }, [setBlocks]);
+
+  const openCampaignTool = useCallback(
+    (toolId: string) => {
+      setShell((s) => {
+        if (s.selectedToolId === toolId && s.drawerOpen) {
+          return { ...s, drawerOpen: false };
+        }
+        const { snapshot, memory } = openAdaptiveTool(
+          s,
+          CAMPAIGN_WORKSPACE_ID,
+          toolId,
+          toolMemory
+        );
+        setToolMemory(memory);
+        return snapshot;
+      });
+      setTab("content");
+    },
+    [toolMemory]
+  );
+
+  const activeToolId = shellForUi.drawerOpen ? shellForUi.selectedToolId : null;
+  const recommendedDrawerMode =
+    getWorkspaceTool(CAMPAIGN_WORKSPACE_ID, activeToolId ?? "outline")
+      ?.recommendedDrawerMode ?? "balanced";
+
+
   useEffect(() => {
     // Mark client mount for e2e (SSR Select is visible before handlers attach).
     editorRootRef.current?.setAttribute("data-editor-ready", "true");
@@ -363,6 +572,10 @@ export function CampaignEditor({
 
   function selectBlock(blockId: string | null) {
     setSelectedBlockId(blockId);
+    setShell((s) => ({
+      ...s,
+      selectedObjectId: blockId,
+    }));
     if (!blockId) {
       setSelectedButtonId(null);
       return;
@@ -371,6 +584,7 @@ export function CampaignEditor({
     if (block?.type === "button_group") {
       const buttons = (block.data.buttons as ButtonItem[] | undefined) ?? [];
       setSelectedButtonId(buttons[0]?.id ?? null);
+      // Keep live canvas selection; open Buttons tool for CTA proof when practical
       return;
     }
     setSelectedButtonId(null);
@@ -407,18 +621,21 @@ export function CampaignEditor({
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        undoBlocks();
+        if (visualHistory.past.length > 0) undoVisual();
+        else undoBlocks();
       } else if (e.key === "z" && e.shiftKey) {
         e.preventDefault();
-        redoBlocks();
+        if (visualHistory.future.length > 0) redoVisual();
+        else redoBlocks();
       } else if (e.key === "y") {
         e.preventDefault();
-        redoBlocks();
+        if (visualHistory.future.length > 0) redoVisual();
+        else redoBlocks();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undoBlocks, redoBlocks]);
+  }, [undoBlocks, redoBlocks, undoVisual, redoVisual, visualHistory.past.length, visualHistory.future.length]);
 
   // Esc returns from QR / schedule / email / AI side tabs to Content + focus return
   useEffect(() => {
@@ -666,6 +883,8 @@ export function CampaignEditor({
     }
 
     setMessage(publish ? "Published to device!" : "Saved — live pages keep their status.");
+    setVisualDirty(false);
+    setShell((s) => ({ ...s, dirty: false, saved: true }));
     setSaving(false);
     await refreshVersions();
     router.refresh();
@@ -673,52 +892,71 @@ export function CampaignEditor({
 
   const sortedBlocks = [...blocks].sort((a, b) => a.order - b.order);
 
+  const activeToolLabel =
+    (activeToolId && getWorkspaceTool(CAMPAIGN_WORKSPACE_ID, activeToolId)?.label) ||
+    "Tools";
+
   return (
     <div
       ref={editorRootRef}
-      className="builder-studio flex h-[calc(100vh-4rem)] flex-col"
+      className="builder-studio campaign-authoring-shell campaign-zone-glow flex h-[calc(100vh-4rem)] flex-col"
       data-testid="campaign-editor"
       data-editor-ready="false"
+      data-adaptive-shell="v1"
+      data-shell-consumer="campaign-authoring"
+      data-resolver="shared-visual-core-v0"
     >
-      <div className="builder-studio-toolbar sticky top-0 z-20 flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 backdrop-blur">
-        <Input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className="max-w-md font-semibold"
-          aria-label="Campaign title"
-          data-testid="campaign-title-input"
-        />
-        <div className="flex flex-wrap items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={undoBlocks}
-            disabled={!canUndoBlocks}
-            title="Undo block change (⌘Z)"
-            aria-label="Undo block change"
-            data-testid="campaign-undo"
+      {sessionRestored ? (
+        <p className="sr-only" role="status" data-testid="campaign-session-restore-notice">
+          {SESSION_RESTORE_LABEL}
+        </p>
+      ) : null}
+      <AdaptiveWorkspaceShell
+        identity={{
+          id: CAMPAIGN_WORKSPACE_ID,
+          label: title || "Campaign",
+          objectLabel: `${status} · shared visual core`,
+          zone: "campaign",
+        }}
+        snapshot={shellForUi}
+        onSnapshotChange={setShell}
+        toolMemory={toolMemory}
+        onToolMemoryChange={setToolMemory}
+        recommendedDrawerMode={recommendedDrawerMode}
+        zoneClassName="campaign-zone-glow"
+        drawerTitle={activeToolLabel}
+        drawerRootTestId="campaign-contextual-drawer"
+        desktopDrawerCloseTestId="campaign-drawer-collapse"
+        mobileDrawerCloseTestId="campaign-drawer-collapse"
+        mobileSheetTestId="campaign-mobile-sheet"
+        mobileToolRail={
+          <div
+            className="relative z-50 flex shrink-0 gap-1 overflow-x-auto border-t border-white/10 bg-[#050814] p-2 lg:hidden"
+            data-testid="campaign-mobile-toolbar"
+            role="toolbar"
+            aria-label="Campaign format tools"
           >
-            <Undo2 className="h-4 w-4" />
-          </Button>
+            {CAMPAIGN_AUTHORING_TOOLS.map((tool) => (
+              <button
+                key={tool.id}
+                type="button"
+                data-testid={`campaign-mobile-tool-${tool.id}`}
+                onClick={() => openCampaignTool(tool.id)}
+                className={cn(
+                  "min-h-11 shrink-0 rounded-md px-3 text-xs",
+                  activeToolId === tool.id
+                    ? "bg-primary/20 text-primary"
+                    : "border border-white/10 text-white/70"
+                )}
+              >
+                {tool.label}
+              </button>
+            ))}
+          </div>
+        }
+        primaryAction={
           <Button
-            variant="outline"
-            size="sm"
-            onClick={redoBlocks}
-            disabled={!canRedoBlocks}
-            title="Redo block change (⌘⇧Z)"
-            aria-label="Redo block change"
-            data-testid="campaign-redo"
-          >
-            <Redo2 className="h-4 w-4" />
-          </Button>
-          <CampaignActions campaignId={campaign.id} status={campaign.status} />
-          <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
-            <Eye className="mr-1 h-4 w-4" />
-            Preview
-          </Button>
-          <Button
-            variant="outline"
-            size="sm"
+            className="inline-flex min-h-11 items-center bg-primary px-3 text-primary-foreground"
             data-testid="campaign-save"
             onClick={() => saveCampaign(false)}
             disabled={saving}
@@ -726,28 +964,189 @@ export function CampaignEditor({
             <Save className="mr-1 h-4 w-4" />
             Save
           </Button>
-          <Button
-            size="sm"
-            data-testid="campaign-publish"
-            onClick={() => saveCampaign(true)}
-            disabled={saving || !selectedDevice}
+        }
+        returnAction={
+          <Link
+            href="/dashboard/campaigns"
+            className="inline-flex min-h-11 items-center rounded-md border border-white/20 px-2.5 text-xs text-white/85 hover:bg-white/5"
+            data-testid="campaign-return-studio"
           >
-            <Send className="mr-1 h-4 w-4" />
-            Publish
-          </Button>
-          {saveFailed ? (
+            Return to Studio
+          </Link>
+        }
+        openInNewTab={
+          <a
+            href={`/dashboard/campaigns/${campaign.id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex min-h-11 items-center rounded-md border border-primary/35 bg-primary/10 px-2.5 text-xs font-medium text-primary"
+            data-testid="campaign-open-detached"
+          >
+            Detached tab ↗
+          </a>
+        }
+        shadeExtras={
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              size="sm"
-              data-testid="campaign-save-retry"
-              onClick={() => void saveCampaign(lastPublishIntent)}
-              disabled={saving}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center"
+              onClick={() => {
+                if (visualHistory.past.length > 0) undoVisual();
+                else undoBlocks();
+              }}
+              disabled={!canUndoBlocks && visualHistory.past.length === 0}
+              title="Undo (⌘Z)"
+              aria-label="Undo"
+              data-testid="campaign-undo"
             >
-              Retry
+              <Undo2 className="h-4 w-4" />
             </Button>
-          ) : null}
-        </div>
-      </div>
+            <Button
+              variant="outline"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center"
+              onClick={() => {
+                if (visualHistory.future.length > 0) redoVisual();
+                else redoBlocks();
+              }}
+              disabled={!canRedoBlocks && visualHistory.future.length === 0}
+              title="Redo (⌘⇧Z)"
+              aria-label="Redo"
+              data-testid="campaign-redo"
+            >
+              <Redo2 className="h-4 w-4" />
+            </Button>
+            <Button
+              className="inline-flex min-h-11 items-center bg-primary px-3 text-primary-foreground"
+              data-testid="campaign-publish"
+              onClick={() => saveCampaign(true)}
+              disabled={saving || !selectedDevice}
+            >
+              <Send className="mr-1 h-4 w-4" />
+              Publish
+            </Button>
+            <CampaignActions campaignId={campaign.id} status={campaign.status} />
+            <Button variant="outline" size="sm" onClick={() => setShowPreview(!showPreview)}>
+              <Eye className="mr-1 h-4 w-4" />
+              Preview
+            </Button>
+            {saveFailed ? (
+              <Button
+                variant="outline"
+                size="sm"
+                data-testid="campaign-save-retry"
+                onClick={() => void saveCampaign(lastPublishIntent)}
+                disabled={saving}
+              >
+                Retry
+              </Button>
+            ) : null}
+          </div>
+        }
+        outline={
+          <div className="space-y-2 p-2" data-testid="campaign-tool-rail">
+            <Input
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setVisualDirty(true);
+              }}
+              className="font-semibold text-sm"
+              aria-label="Campaign title"
+              data-testid="campaign-title-input"
+            />
+            <p className="px-1 text-[10px] text-white/45">{status}</p>
+            <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-white/45">
+              Format tools
+            </p>
+            <div className="flex flex-col gap-1">
+              {CAMPAIGN_AUTHORING_TOOLS.map((tool) => (
+                <button
+                  key={tool.id}
+                  type="button"
+                  data-testid={`campaign-tool-${tool.id}`}
+                  data-active={activeToolId === tool.id ? "true" : "false"}
+                  onClick={() => openCampaignTool(tool.id)}
+                  className={cn(
+                    "rounded-md px-2.5 py-2 text-left text-xs transition-colors",
+                    activeToolId === tool.id
+                      ? "bg-primary/20 text-primary"
+                      : "text-white/70 hover:bg-white/5"
+                  )}
+                >
+                  {tool.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        }
+        drawerContent={
+          <CampaignVisualDrawer
+            toolId={activeToolId}
+            model={visualModel}
+            historyLabels={visualHistory.past.map((p) => p.label)}
+            mediaUploadReady={integrations.mediaUpload}
+            stockReady={integrations.stockImages}
+            campaignId={campaign.id}
+            onOverrideSurface={(key, value) => {
+              commitVisual(
+                overrideCampaignSurfaceProperty(visualModel, key, value),
+                `Campaign ${key}`
+              );
+            }}
+            onResetSurface={(key) => {
+              commitVisual(
+                resetCampaignSurfaceProperty(visualModel, key),
+                `Reset ${key} to Brand`
+              );
+            }}
+            onResetThemeToBrand={() => {
+              commitVisual(resetCampaignThemeToBrand(visualModel), "Reset Campaign theme to Brand");
+            }}
+            onOverrideCta={(itemId, key, value) => {
+              commitVisual(
+                {
+                  ...overrideCampaignItemProperty(visualModel, itemId, key, value),
+                  selectedItemId: itemId,
+                },
+                `CTA ${key}`
+              );
+            }}
+            onResetCtaProperty={(itemId, key) => {
+              commitVisual(
+                resetCampaignItemProperty(visualModel, itemId, key),
+                `Reset CTA ${key}`
+              );
+            }}
+            onResetCtaItem={(itemId) => {
+              commitVisual(resetCampaignItem(visualModel, itemId), "Reset CTA button");
+            }}
+            onSelectCta={(itemId) => {
+              setVisualHistory((h) => ({
+                ...h,
+                present: { ...h.present, selectedItemId: itemId },
+              }));
+              selectBlock(itemId.split("::")[0]);
+            }}
+            onApplySimilarCtaBackground={(itemId, value) => {
+              commitVisual(
+                applyBackgroundToSimilarCampaignCtas(visualModel, itemId, value),
+                "Apply CTA background to similar"
+              );
+            }}
+            onThemeExtraChange={(patch) => {
+              commitVisual(
+                {
+                  ...visualModel,
+                  themeExtras: { ...visualModel.themeExtras, ...patch },
+                },
+                "Campaign media / layout"
+              );
+            }}
+          />
+        }
+        canvas={
+          <div className="flex h-full min-h-0 flex-col" data-testid="campaign-live-canvas" data-live-surface="true">
+            {/* legacy compact title row removed — shade + outline own chrome */}
 
       {message ? (
         <p
@@ -1256,7 +1655,7 @@ export function CampaignEditor({
             <p className="mb-2 shrink-0 text-center text-[11px] text-muted-foreground">
               Live preview · scroll inside phone · tap a block to edit · {status.toLowerCase()}
             </p>
-            <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1" data-testid="campaign-phone-preview">
+            <div className="builder-phone min-h-0 w-full max-w-[390px] flex-1" data-testid="campaign-phone-preview" data-resolver="shared-visual-core-v0" data-live-surface="true">
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen" ref={phoneScreenRef}>
                 <a
@@ -1294,8 +1693,8 @@ export function CampaignEditor({
           </div>
         )}
 
-        {/* Right inspector — independent scroll column */}
-        {tab === "content" && (
+        {/* Right inspector — independent scroll column (hidden while Task Drawer owns the tool) */}
+        {tab === "content" && !shellForUi.drawerOpen && (
           <aside className="builder-studio-inspector flex w-full shrink-0 flex-col border-l border-border/60 lg:w-[340px]">
             <div
               className="sticky top-0 z-10 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur"
@@ -1306,71 +1705,61 @@ export function CampaignEditor({
             <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
               {!selectedBlock && (
                 <>
-                  <h3 className="text-sm font-semibold">Theme & branding</h3>
-                  <div className="grid grid-cols-2 gap-3">
-                    {(["primaryColor", "secondaryColor", "backgroundColor", "textColor"] as const).map(
-                      (key) => (
-                        <div key={key} className="space-y-1">
-                          <Label className="text-xs capitalize">{key.replace("Color", "")}</Label>
-                          <div className="flex gap-2">
-                            <input
-                              type="color"
-                              value={theme[key]}
-                              onChange={(e) => setTheme((t) => ({ ...t, [key]: e.target.value }))}
-                              className="h-9 w-10 cursor-pointer rounded border-0"
-                            />
-                            <Input
-                              value={theme[key]}
-                              onChange={(e) => setTheme((t) => ({ ...t, [key]: e.target.value }))}
-                              className="font-mono text-xs"
-                            />
-                          </div>
-                        </div>
-                      )
-                    )}
-                  </div>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Page font</Label>
-                    <select
-                      className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
-                      value={theme.fontStyle ?? "sans"}
-                      onChange={(e) => setTheme((t) => ({ ...t, fontStyle: e.target.value }))}
+                  <h3 className="text-sm font-semibold">Page &amp; design</h3>
+                  <p
+                    className="text-[11px] text-muted-foreground"
+                    data-testid="campaign-theme-compat-note"
+                  >
+                    Colors, typography, and page media edit in the shared Task Drawer — not a
+                    second primary editor here.
+                  </p>
+                  <div className="flex flex-col gap-2" data-testid="campaign-shared-tool-pointers">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid="campaign-open-colors-tool"
+                      onClick={() => openCampaignTool("colors")}
                     >
-                      <option value="sans">Modern sans</option>
-                      <option value="serif">Classic serif</option>
-                      <option value="display">Display / bold</option>
-                      <option value="rounded">Friendly rounded</option>
-                      <option value="mono">Mono</option>
-                    </select>
+                      Open Colors
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid="campaign-open-typography-tool"
+                      onClick={() => openCampaignTool("typography")}
+                    >
+                      Open Typography
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid="campaign-open-media-tool"
+                      onClick={() => openCampaignTool("media")}
+                    >
+                      Open Media
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      data-testid="campaign-open-buttons-tool"
+                      onClick={() => openCampaignTool("buttons")}
+                    >
+                      Open Buttons / CTA
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      data-testid="campaign-open-advanced-tool"
+                      onClick={() => openCampaignTool("advanced")}
+                    >
+                      Advanced · compatibility
+                    </Button>
                   </div>
-                  <MediaPicker
-                    label="Page background image"
-                    value={theme.backgroundImage}
-                    onChange={(url) => setTheme((t) => ({ ...t, backgroundImage: url }))}
-                    mediaUploadReady={integrations.mediaUpload}
-                    stockReady={integrations.stockImages}
-                    campaignId={campaign.id}
-                  />
-                  {theme.backgroundImage ? (
-                    <div className="space-y-1">
-                      <Label className="text-xs">
-                        Overlay ({theme.backgroundOverlayOpacity}%)
-                      </Label>
-                      <input
-                        type="range"
-                        min={0}
-                        max={90}
-                        value={theme.backgroundOverlayOpacity}
-                        onChange={(e) =>
-                          setTheme((t) => ({
-                            ...t,
-                            backgroundOverlayOpacity: Number(e.target.value),
-                          }))
-                        }
-                        className="w-full"
-                      />
-                    </div>
-                  ) : null}
                   <label className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
@@ -1385,39 +1774,18 @@ export function CampaignEditor({
                     Off by default so Tap Card / hero logos aren’t doubled. Turn on for a small
                     brand mark above all blocks.
                   </p>
-                  <div className="space-y-1">
-                    <Label className="text-xs">Default button shape</Label>
-                    <select
-                      className="flex h-9 w-full rounded-lg border border-input bg-background/50 px-2 text-sm"
-                      value={theme.defaultButtonShape}
-                      onChange={(e) =>
-                        setTheme((t) => ({
-                          ...t,
-                          defaultButtonShape: e.target.value as TapCardButtonShape,
-                        }))
-                      }
-                    >
-                      {TAP_CARD_SHAPE_OPTIONS.map((o) => (
-                        <option key={o.id} value={o.id}>
-                          {o.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <FinishPicker
-                    label="Default button finish"
-                    value={theme.defaultButtonFinish}
-                    onChange={(finish) =>
-                      setTheme((t) => ({
-                        ...t,
-                        defaultButtonFinish: finish ?? "",
-                      }))
-                    }
-                  />
-                  <p className="text-[11px] text-muted-foreground">
-                    Applied to new buttons you add. Existing buttons keep their own shape/finish
-                    until you change them.
+                  <p className="text-[11px] text-muted-foreground" data-testid="campaign-layout-compat-note">
+                    Default button shape / finish for newly added buttons: use the Layout tool.
                   </p>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    data-testid="campaign-open-layout-tool"
+                    onClick={() => openCampaignTool("layout")}
+                  >
+                    Open Layout
+                  </Button>
                 </>
               )}
 
@@ -1485,6 +1853,9 @@ export function CampaignEditor({
           <div className="flex-1 overflow-y-auto p-6 text-sm text-muted-foreground lg:hidden" />
         )}
       </div>
+          </div>
+        }
+      />
     </div>
   );
 }
