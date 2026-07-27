@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BrandKitForm } from "@/components/brand/brand-kit-form";
@@ -15,12 +16,21 @@ export default async function BrandPage() {
   });
 
   return (
-    <div className="space-y-6 p-6 lg:p-8 pb-24">
-      <div>
-        <h1 className="text-2xl font-bold">Brand Kit</h1>
-        <p className="text-muted-foreground">
-          Colors, logo, contact card, socials, and compliance defaults for every tap page.
-        </p>
+    <div className="space-y-6 p-6 lg:p-8 pb-24" data-testid="brand-kit-classic">
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold">Brand Kit</h1>
+          <p className="text-muted-foreground">
+            Colors, logo, contact card, socials, and compliance defaults for every tap page.
+          </p>
+        </div>
+        <Link
+          href="/dashboard/brand/edit"
+          data-testid="brand-open-focused-workspace"
+          className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Open focused workspace
+        </Link>
       </div>
       <BrandKeywordsSection initialPack={brandKit?.keywordBrandPack} />
       <BrandKitForm

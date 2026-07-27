@@ -35,6 +35,11 @@ import {
 import { socialBrandStyle } from "@/components/tap/social-icons";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { cn, firstImageUrl } from "@/lib/utils";
+import {
+  applyResolvedToSectionStyle,
+  buildActionPropertyMap,
+} from "@/lib/fusion/authoring/card-visual-resolve";
+import { resolveItemProperties } from "@/lib/fusion/authoring/visual-property";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -1194,6 +1199,26 @@ function ActionPill({
   });
   const after = isIconAfterPlacement(place);
 
+  /** Shared Visual Authoring Core — same resolver as Brand Kit Card preview. */
+  const visualResolved = resolveItemProperties(
+    buildActionPropertyMap(
+      {
+        primaryColor: defaultPill,
+        textColor: defaultPillText,
+        buttonStyle: shape === "pill" ? "PILL" : shape === "square" ? "SHARP" : "ROUNDED",
+      },
+      {
+        ...section,
+        // When section has no explicit bg, inherit Brand/default pill via brand layer
+        backgroundColor: section.backgroundColor,
+        textColor: section.textColor,
+        shape,
+        icon: section.icon || kind,
+      }
+    )
+  );
+  const visualStyle = applyResolvedToSectionStyle(visualResolved);
+
   const iconNode = showIcon ? (
     <span className="tcc-pill-icon" style={finish === "brand" ? brand : undefined}>
       {kind === "vcard" && avatarUrl && !section.iconUrl ? (
@@ -1241,13 +1266,18 @@ function ActionPill({
       {...sectionDomProps(section.id, selected ? section.id : null)}
       data-icon-placement={place}
       data-appearance={appearance}
+      data-resolver="shared-visual-core-v0"
+      data-source-background={visualStyle.dataSources.background}
+      data-source-foreground={visualStyle.dataSources.foreground}
+      data-source-radius={visualStyle.dataSources.radius}
+      data-source-icon={visualStyle.dataSources.icon}
       style={
         {
           "--tcc-accent": section.accentColor || undefined,
           "--tcc-neon": neon || undefined,
           borderRadius: radius,
-          backgroundColor: section.backgroundColor || defaultPill,
-          color: section.textColor || defaultPillText,
+          backgroundColor: visualStyle.backgroundColor || section.backgroundColor || defaultPill,
+          color: visualStyle.color || section.textColor || defaultPillText,
           opacity,
           ...layoutStyle,
           ...(finish === "brand" && brand ? brand : {}),

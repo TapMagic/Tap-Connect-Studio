@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TapCardBuilder } from "@/components/card/tap-card-builder";
+import { AuthoringWorkspaceShell } from "@/components/fusion/authoring/authoring-workspace-shell";
 import { requireBusiness, isPlatformAdmin } from "@/lib/auth";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard } from "@/lib/brand/tap-card";
@@ -170,37 +171,44 @@ export default async function TapCardEditPage() {
         </div>
       </div>
       <div className="min-h-0 flex-1 overflow-hidden" data-testid="card-builder-host">
-        <TapCardBuilder
-          initialConfig={config}
-          profile={{
-            ...profile,
-            phone: profile.phone || business.phone || undefined,
-            email: profile.email || business.email || undefined,
-            website: profile.website || business.website || undefined,
-          }}
-          businessName={business.name}
-          logoUrl={business.logoUrl}
-          reviewUrl={business.googleReviewUrl}
-          mediaUploadReady={isMediaUploadReady()}
-          stockReady={isStockImagesReady()}
-          isAdmin={isPlatformAdmin(user)}
-          isLandingDemo={Boolean(landingDemo)}
-          devices={devices}
-          campaigns={campaigns}
-          freeformEnabled={freeformEnabled}
-          brandKitId={brandKit?.id ?? null}
-          brandColors={
-            brandKit
-              ? {
-                  primaryColor: brandKit.primaryColor,
-                  secondaryColor: brandKit.secondaryColor,
-                  accentColor: brandKit.accentColor,
-                }
-              : null
+        <AuthoringWorkspaceShell
+          title="Card"
+          subtitle="Shared authoring shell · builder owns Outline · Canvas · Format"
+          className="h-full !bg-transparent [&_header]:hidden"
+          canvas={
+            <TapCardBuilder
+              initialConfig={config}
+              profile={{
+                ...profile,
+                phone: profile.phone || business.phone || undefined,
+                email: profile.email || business.email || undefined,
+                website: profile.website || business.website || undefined,
+              }}
+              businessName={business.name}
+              logoUrl={business.logoUrl}
+              reviewUrl={business.googleReviewUrl}
+              mediaUploadReady={isMediaUploadReady()}
+              stockReady={isStockImagesReady()}
+              isAdmin={isPlatformAdmin(user)}
+              isLandingDemo={Boolean(landingDemo)}
+              devices={devices}
+              campaigns={campaigns}
+              freeformEnabled={freeformEnabled}
+              brandKitId={brandKit?.id ?? null}
+              brandColors={
+                brandKit
+                  ? {
+                      primaryColor: brandKit.primaryColor,
+                      secondaryColor: brandKit.secondaryColor,
+                      accentColor: brandKit.accentColor,
+                    }
+                  : null
+              }
+              workspaceMode
+              escapeMode
+              doneHref="/dashboard/card"
+            />
           }
-          workspaceMode
-          escapeMode
-          doneHref="/dashboard/card"
         />
       </div>
     </div>

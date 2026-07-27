@@ -10,7 +10,11 @@ import { usePathname, useRouter } from "next/navigation";
 import { PanelLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-const ESCAPE_PREFIXES = ["/dashboard/card/edit", "/dashboard/card/preview"];
+const ESCAPE_PREFIXES = [
+  "/dashboard/card/edit",
+  "/dashboard/card/preview",
+  "/dashboard/brand/edit",
+];
 
 export function isAuthoringEscapePath(pathname: string | null): boolean {
   if (!pathname) return false;
@@ -49,6 +53,10 @@ export function DashboardChrome({
     }
     if (pathname?.startsWith("/dashboard/card/preview")) {
       router.push("/dashboard/card");
+      return;
+    }
+    if (pathname?.startsWith("/dashboard/brand/edit")) {
+      router.push("/dashboard/brand");
       return;
     }
     if (pathname) setRestoredForPath(pathname);

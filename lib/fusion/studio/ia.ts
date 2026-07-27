@@ -116,7 +116,7 @@ export const STUDIO_NAV: StudioNavItem[] = [
     id: "assets",
     label: "Assets",
     href: "/dashboard/assets",
-    aliases: ["/dashboard/brand"],
+    aliases: ["/dashboard/brand", "/dashboard/brand/edit"],
     description: "Brand Kit, media, templates",
   },
   {

@@ -29,7 +29,7 @@ export default async function AssetsHubPage() {
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
           <Link
-            href="/dashboard/brand"
+            href="/dashboard/brand/edit"
             data-testid="assets-cta-brand"
             className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
           >
@@ -59,11 +59,18 @@ export default async function AssetsHubPage() {
               : "Not set yet — start here so Cards and campaigns look like you."}
           </p>
           <Link
-            href="/dashboard/brand"
+            href="/dashboard/brand/edit"
             className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline"
+            data-testid="assets-edit-brand"
           >
             {hasBrand ? "Edit Brand Kit" : "Create Brand Kit"}{" "}
             <ArrowRight className="h-3 w-3" />
+          </Link>
+          <Link
+            href="/dashboard/brand"
+            className="mt-2 block text-[11px] text-white/40 hover:text-white/60"
+          >
+            Classic Brand Kit form
           </Link>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4">

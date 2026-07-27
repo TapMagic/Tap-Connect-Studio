@@ -6,6 +6,13 @@
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
 
+## Shared Visual Authoring Core V0 + Brand Kit focused workspace (local uncommitted)
+
+**Starting HEAD:** `f2402d18c5685dbed9a6eedd6e6b044a499ef67d`  
+**Scope:** Shared property/provenance/inheritance core; focused Brand Kit workspace under Assets (`/dashboard/brand/edit`); deterministic Autopilot Brand Starter Kit fixture; logo/image/type libraries V0; Card button background property-level override proof; real promote → Brand CTA via `/api/brand`; session undo/redo; shared Card preview resolver. **No live crawl/search/AI. No durable Brand sync. No Owner-ready claim.**  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY**  
+**Doc:** `docs/fusion/SHARED_VISUAL_AUTHORING_CORE_V0.md`
+
 ## Autopilot F3 — One-Tap Go-Live + Observation (local uncommitted)
 
 **Starting HEAD:** `c44a3de19156a469e6b4178a61f28ce3f6de2c41` (F2 committed)  
