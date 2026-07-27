@@ -225,6 +225,12 @@ model Business {
   vocabularySuggestionRuns VocabularySuggestionRun[]
   vocabularyAnalyticsEvents VocabularyAnalyticsEvent[]
   vocabularyTriggerBindings VocabularyTriggerBinding[]
+  replyDestinations ReplyDestination[]
+  replyPolicies ReplyPolicy[]
+  replyAliases ReplyAlias[]
+  replyProviderEvents ReplyProviderEvent[]
+  replyRoutingAttempts ReplyRoutingAttempt[]
+  replyInitialMessages ReplyInitialMessage[]
 }
 
 model BusinessUser {
@@ -1973,4 +1979,252 @@ model VocabularyTriggerBinding {
   @@unique([businessId, normalizedValue, channel, flowId])
   @@index([businessId, normalizedValue, channel, active])
   @@index([flowId])
+}
+
+// ─── Email & Replies / Reply Routing (provider-neutral) ───────────────────────
+
+enum ReplyHandlingMode {
+  TAP_ROUTE_EXTERNAL
+  TAP_INBOX
+  DIRECT_EXTERNAL
+  CONNECTED_DESTINATION
+}
+
+enum ReplyDestinationType {
+  EMAIL_ADDRESS
+  TAP_INBOX
+  INTEGRATION
+  WEBHOOK
+  DIRECT_REPLY_TO
+}
+
+enum ReplyVerificationStatus {
+  UNVERIFIED
+  PENDING
+  VERIFIED
+  FAILED
+  REVOKED
+}
+
+enum ReplyDestinationRole {
+  PRIMARY
+  FALLBACK
+}
+
+enum ReplyRoutingState {
+  RECEIVED
+  CONTEXT_MATCHED
+  CLASSIFIED
+  ROUTE_PENDING
+  ROUTED
+  ROUTE_FAILED
+  RETAINED_IN_TAP
+  PAUSED
+  SKIPPED_DIRECT
+}
+
+/** Verified reply destination — no provider secrets in this row */
+model ReplyDestination {
+  id                      String                   @id @default(cuid())
+  businessId              String
+  locationId              String?
+  name                    String
+  destinationType         ReplyDestinationType
+  /** Opaque reference (integration id, webhook id) — never a secret */
+  destinationReference    String?
+  /** Normalized email or endpoint reference (not a credential) */
+  normalizedAddress       String?
+  verificationStatus      ReplyVerificationStatus  @default(UNVERIFIED)
+  enabled                 Boolean                  @default(true)
+  role                    ReplyDestinationRole     @default(PRIMARY)
+  /** Message categories this destination accepts */
+  selectedCategories      Json                     @default("[\"all\"]")
+  keepCopyInTap           Boolean                  @default(false)
+  failureNotificationAddress String?
+  /** Capability flags as string[] — host UI never shows raw keys as primary copy */
+  capabilities            Json                     @default("[]")
+  /** Credential reference key (env/vault pointer) — never the secret value */
+  credentialRef           String?
+  lastTestedAt            DateTime?
+  lastTestResult          String?
+  lastSuccessfulRouteAt   DateTime?
+  lastFailureAt           DateTime?
+  consecutiveFailureCount Int                      @default(0)
+  paused                  Boolean                  @default(false)
+  pausedReason            String?
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  verificationTokens ReplyVerificationToken[]
+  routingAttempts    ReplyRoutingAttempt[]
+  primaryPolicies    ReplyPolicy[] @relation("ReplyPolicyPrimary")
+  fallbackPolicies   ReplyPolicy[] @relation("ReplyPolicyFallback")
+
+  @@index([businessId, enabled])
+  @@index([businessId, normalizedAddress])
+  @@index([businessId, verificationStatus])
+}
+
+/** Single-use destination verification tokens (hashed) */
+model ReplyVerificationToken {
+  id            String   @id @default(cuid())
+  destinationId String
+  businessId    String
+  tokenHash     String
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime @default(now())
+
+  destination ReplyDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@unique([tokenHash])
+  @@index([destinationId, createdAt])
+  @@index([businessId, createdAt])
+}
+
+/**
+ * Business default / Location override reply policy.
+ * Campaign overrides live in Campaign.formSettings.emailResponse.replyHandling (JSON).
+ */
+model ReplyPolicy {
+  id                         String            @id @default(cuid())
+  businessId                 String
+  locationId                 String?
+  mode                       ReplyHandlingMode @default(TAP_ROUTE_EXTERNAL)
+  primaryDestinationId       String?
+  fallbackDestinationId      String?
+  keepCopyInTap              Boolean           @default(false)
+  notifyOnFailure            Boolean           @default(true)
+  failureNotificationAddress String?
+  useTapInboxFallback        Boolean           @default(true)
+  activated                  Boolean           @default(false)
+  activatedAt                DateTime?
+  skipTestAcknowledged       Boolean           @default(false)
+  metadata                   Json              @default("{}")
+  createdAt                  DateTime          @default(now())
+  updatedAt                  DateTime          @updatedAt
+
+  business            Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  primaryDestination  ReplyDestination? @relation("ReplyPolicyPrimary", fields: [primaryDestinationId], references: [id], onDelete: SetNull)
+  fallbackDestination ReplyDestination? @relation("ReplyPolicyFallback", fields: [fallbackDestinationId], references: [id], onDelete: SetNull)
+
+  @@unique([businessId, locationId])
+  @@index([businessId])
+}
+
+/** Opaque reply+token@receiving-subdomain alias → context map */
+model ReplyAlias {
+  id                    String    @id @default(cuid())
+  businessId            String
+  /** Public opaque token (not a DB id); hashed lookup key also stored */
+  token                 String    @unique
+  tokenHash             String    @unique
+  campaignId            String?
+  contactId             String?
+  relationshipId        String?
+  originatingMessageRef String?
+  emailDocumentVersion  Int?
+  replyPolicyMode       ReplyHandlingMode?
+  destinationId         String?
+  expiresAt             DateTime
+  deactivatedAt         DateTime?
+  metadata              Json      @default("{}")
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, expiresAt])
+  @@index([campaignId])
+  @@index([contactId])
+}
+
+/** Provider webhook / inbound event idempotency */
+model ReplyProviderEvent {
+  id               String   @id @default(cuid())
+  businessId       String?
+  provider         String   @default("resend")
+  eventId          String
+  receivedEmailId  String?
+  eventType        String
+  processingState  String   @default("received")
+  payloadDigest    String?
+  lastError        String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@unique([provider, eventId])
+  @@index([provider, receivedEmailId])
+  @@index([businessId, createdAt])
+}
+
+/** Canonical initial inbound reply (not a second Inbox) */
+model ReplyInitialMessage {
+  id                   String            @id @default(cuid())
+  businessId           String
+  locationId           String?
+  contactId            String?
+  relationshipId       String?
+  campaignId           String?
+  threadId             String?
+  inboxMessageId       String?
+  aliasId              String?
+  provider             String            @default("resend")
+  providerMessageId    String?
+  internetMessageId    String?
+  inReplyTo            String?
+  referencesHeader     String?
+  fromAddress          String
+  toAddress            String
+  replyAlias           String?
+  subject              String?
+  normalizedText       String
+  sanitizedHtmlRef     String?
+  receivedAt           DateTime
+  attachmentMetadata   Json              @default("[]")
+  classification       String?
+  urgency              String?
+  routingDestinationId String?
+  routingState         ReplyRoutingState @default(RECEIVED)
+  externalReference    String?
+  evidenceClass        String            @default("confirmed")
+  retentionState       String            @default("active")
+  metadata             Json              @default("{}")
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  routingAttempts ReplyRoutingAttempt[]
+
+  @@unique([provider, providerMessageId])
+  @@index([businessId, receivedAt])
+  @@index([campaignId])
+  @@index([threadId])
+  @@index([routingState])
+}
+
+model ReplyRoutingAttempt {
+  id                 String   @id @default(cuid())
+  businessId         String
+  initialMessageId   String?
+  destinationId      String?
+  attemptNumber      Int      @default(1)
+  status             String
+  idempotencyKey     String   @unique
+  providerRef        String?
+  errorCode          String?
+  errorMessage       String?
+  handoffKind        String?
+  createdAt          DateTime @default(now())
+
+  business       Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  initialMessage ReplyInitialMessage? @relation(fields: [initialMessageId], references: [id], onDelete: SetNull)
+  destination    ReplyDestination?    @relation(fields: [destinationId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, createdAt])
+  @@index([destinationId, createdAt])
+  @@index([initialMessageId])
 }

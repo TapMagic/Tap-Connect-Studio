@@ -96,12 +96,13 @@ export const integrations: IntegrationStatus[] = [
   },
   {
     id: "resend",
-    name: "Resend Email",
+    name: "TapConnect Email (Resend)",
     configured: has("RESEND_API_KEY"),
-    description: "Branded auto-reply and lead thank-you emails.",
-    envVars: ["RESEND_API_KEY", "RESEND_FROM_EMAIL"],
+    description:
+      "Provider details for Email & Replies — TapConnect Email is powered by Resend.",
+    envVars: ["RESEND_API_KEY", "RESEND_FROM_EMAIL", "RESEND_WEBHOOK_SECRET", "TAPCONNECT_RECEIVING_SUBDOMAIN"],
     signupUrl: "https://resend.com",
-    costNote: "Free tier — 100 emails/day",
+    costNote: "Free tier — 100 emails/day · Powered by Resend",
   },
   {
     id: "stripe",

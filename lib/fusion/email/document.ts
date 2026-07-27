@@ -11,6 +11,10 @@ import {
   type CampaignEmailResponse,
 } from "@/lib/campaign-email";
 import type { ContentBlock } from "@/lib/types/campaign";
+import {
+  parseCampaignReplyOverride,
+} from "@/lib/fusion/email-replies/policy";
+import type { CampaignReplyHandlingOverride } from "@/lib/fusion/email-replies/types";
 
 export type EmailApprovalState = "draft" | "approved" | "rejected";
 
@@ -33,6 +37,11 @@ export type EmailDocument = CampaignEmailResponse & {
   preheader?: string;
   fromName?: string;
   replyTo?: string;
+  /**
+   * Campaign-level reply-handling override (optional).
+   * When absent, Email workspace inherits the business Email & Replies policy.
+   */
+  replyHandling?: CampaignReplyHandlingOverride | null;
   /** Email surface visual overrides (Brand → Email theme → block preset → item) */
   visualTheme?: EmailVisualTheme;
   /** Campaign offer bind metadata */
@@ -92,6 +101,7 @@ export function parseEmailDocument(
       typeof o.preheader === "string" ? o.preheader : "Your offer is inside — open to claim.",
     fromName: typeof o.fromName === "string" ? o.fromName : businessName,
     replyTo: typeof o.replyTo === "string" ? o.replyTo : undefined,
+    replyHandling: parseCampaignReplyOverride(o.replyHandling),
     visualTheme,
     offerBlockId: typeof o.offerBlockId === "string" ? o.offerBlockId : undefined,
     offerFactsFingerprint:

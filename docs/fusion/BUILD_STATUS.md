@@ -1,10 +1,35 @@
 # Fusion build status — honest incomplete inventory
 
-**Date:** 2026-07-26  
+**Date:** 2026-07-27  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (wave start):** `c44a3de19156a469e6b4178a61f28ce3f6de2c41`  
+**HEAD (wave start):** `10f3db02c415a0755f4028b5a6fac8d5f3aba28c`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
+
+## Email & Replies Integration Foundation V1 (local uncommitted)
+
+**Starting HEAD:** `10f3db02c415a0755f4028b5a6fac8d5f3aba28c`  
+**Scope:** Provider-neutral Reply Routing + Email & Replies card/wizard + Resend adapter/inbound webhook + Campaign reply-policy section + **durable Prisma runtime store** + authoritative TapInbox thread/message retain (keep-copy / TAP_INBOX / failure fallback) + provider-event idempotency + routing activity. **No Google/Microsoft OAuth. No live Campaign send. No production DNS/webhook. No Owner-ready claim.**  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY**  
+**Doc:** `docs/fusion/EMAIL_AND_REPLIES_INTEGRATION_FOUNDATION_V1.md`
+
+| Gate | Result |
+|------|--------|
+| `tsc --noEmit` | **PASS** |
+| lint | **0 errors** (pre-existing `<img>` / unused-var warnings only) |
+| `npm run test:fusion` | **700/700 PASS** |
+| Targeted email-replies foundation (memory) | **31/31 PASS** |
+| Targeted Prisma durability | **9/9 PASS** (`tapconnect_fusion_dev`) |
+| `npm run build` | **PASS** |
+| `npx prisma validate` | **PASS** |
+| Local migrate status | **12 migrations · schema up to date** (`tapconnect_fusion_dev`) |
+| Headed `e2e/email-replies-foundation.spec.ts` | **3/3 PASS** (axe 0 serious/critical; reload + 2nd context + activity) |
+
+**Runtime:** Prisma is the normal store. Memory adapter is test-only (`EMAIL_REPLIES_STORE=memory`). No silent memory fallback. Dev server must load a Prisma client that includes Reply* models (regenerate + restart if `findFirst` on undefined).
+
+**Not claimed:** Live Campaign send; production DNS/webhook registration; Owner-ready / Owner-accepted; live-send readiness.
+
+---
 
 ## Campaign Format Migration (local uncommitted — pre-commit verified)
 

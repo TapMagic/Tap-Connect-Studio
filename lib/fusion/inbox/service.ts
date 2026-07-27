@@ -301,11 +301,22 @@ export async function createThreadFromEmail(input: {
   relationshipId?: string;
   campaignId?: string;
   campaignTitle?: string;
+  /** Optional provider label (default email_inbound) */
+  provider?: string;
+  /** Optional provider message id for idempotent inbound retention */
+  providerRef?: string;
+  /** Extra InboxMessage metadata (threading headers, attachments, unread) */
+  messageMetadata?: Prisma.InputJsonValue;
 }): Promise<ThreadRecord> {
   const metadata: Prisma.InputJsonValue = {
     ...(input.campaignId ? { campaignId: input.campaignId } : {}),
     ...(input.campaignTitle ? { campaignTitle: input.campaignTitle } : {}),
   };
+
+  const messageMeta =
+    input.messageMetadata && typeof input.messageMetadata === "object"
+      ? input.messageMetadata
+      : {};
 
   const thread = await prisma.messageThread.create({
     data: {
@@ -323,7 +334,9 @@ export async function createThreadFromEmail(input: {
           direction: "INBOUND",
           body: input.body,
           subject: input.subject,
-          provider: "email_inbound",
+          provider: input.provider ?? "email_inbound",
+          providerRef: input.providerRef,
+          metadata: messageMeta,
         },
       },
     },
@@ -341,6 +354,7 @@ export async function createThreadFromEmail(input: {
         channel: "email",
         campaignId: input.campaignId ?? null,
         participant: input.email,
+        providerRef: input.providerRef ?? null,
       },
     })
   );

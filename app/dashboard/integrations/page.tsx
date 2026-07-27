@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ProductivityWorkPanel } from "@/components/fusion/connectors/productivity-work-panel";
 import { TapCastChannelsPanelServer } from "@/components/fusion/tapcast/tapcast-channels-panel-server";
+import { EmailRepliesIntegrationCard } from "@/components/fusion/email-replies/email-replies-integration-card";
 
 export default function IntegrationsPage() {
   const configured = getConfiguredCount();
@@ -19,6 +20,11 @@ export default function IntegrationsPage() {
           Management adapters are listed below with mock connect and live credential gates.
         </p>
       </div>
+
+      <section id="email-replies-section" className="scroll-mt-24 space-y-3">
+        <h2 className="text-xl font-semibold">Communications</h2>
+        <EmailRepliesIntegrationCard />
+      </section>
 
       <section id="productivity-work" className="scroll-mt-24 space-y-3">
         <h2

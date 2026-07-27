@@ -78,6 +78,9 @@ import {
   rejectEmailLocally,
   emailApprovalHostMessage,
 } from "@/lib/fusion/email/approval";
+import { CampaignReplyHandlingSection } from "@/components/fusion/email-replies/campaign-reply-handling-section";
+import { canLiveSend } from "@/lib/fusion/email/approval";
+import type { CampaignReplyHandlingOverride } from "@/lib/fusion/email-replies/types";
 import { markPlainTextStale } from "@/lib/fusion/email/plain-text";
 import type { EmailPreviewMode } from "@/lib/fusion/email/compatibility";
 import type { BlockType, ContentBlock } from "@/lib/types/campaign";
@@ -791,7 +794,26 @@ export function EmailAuthoringWorkspace({
           />
         }
         canvas={
-          <div className="flex h-full min-h-0 flex-col" data-testid="email-live-canvas">
+          <div className="flex h-full min-h-0 flex-col gap-3 p-3" data-testid="email-live-canvas">
+            <CampaignReplyHandlingSection
+              campaignId={campaign.id}
+              replyHandling={document.replyHandling}
+              onOverrideChange={(next: CampaignReplyHandlingOverride | null) => {
+                patchDocument(
+                  {
+                    replyHandling: next,
+                    ...(next?.directReplyTo
+                      ? { replyTo: next.directReplyTo }
+                      : {}),
+                  },
+                  next ? "Campaign reply override" : "Reset reply handling"
+                );
+              }}
+            />
+            <p className="text-[10px] text-white/45" data-testid="email-no-live-send">
+              Campaign live send remains disabled
+              {canLiveSend() ? "" : " (no-send contract)"}.
+            </p>
             <EmailLivePreview
               document={document}
               businessName={businessName}
