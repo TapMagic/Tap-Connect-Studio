@@ -269,12 +269,12 @@ test.describe("campaign format pre-commit proof", () => {
 
     // Restore seed-safe surface so later public-tap a11y is not poisoned by this proof.
     await page.getByTestId("campaign-tool-colors").click();
-    const bgHex = page.getByTestId("campaign-color-background-hex");
-    if ((await bgHex.count()) > 0) {
-      const current = await bgHex.inputValue();
+    const restoreBgHex = page.getByTestId("campaign-color-background-hex");
+    if ((await restoreBgHex.count()) > 0) {
+      const current = await restoreBgHex.inputValue();
       if (/334155/i.test(current)) {
-        await bgHex.fill("#0b0f19");
-        await bgHex.blur();
+        await restoreBgHex.fill("#0b0f19");
+        await restoreBgHex.blur();
         await page.getByTestId("campaign-save").click();
         await expect(page.getByTestId("campaign-editor-status")).toContainText(
           /Saved|Published/i,

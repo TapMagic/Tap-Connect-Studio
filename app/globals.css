@@ -151,6 +151,20 @@
   background: #050814;
 }
 
+/* Email / Communications zone — restrained steel / blue-gray atmosphere only */
+.email-zone-glow {
+  box-shadow: inset 0 0 80px -24px oklch(0.55 0.06 250 / 0.14);
+  background-image: radial-gradient(
+    ellipse 80% 50% at 50% 0%,
+    oklch(0.5 0.05 250 / 0.07),
+    transparent 70%
+  );
+}
+
+.email-authoring-shell {
+  background: #050814;
+}
+
 /* Keep tokens dark even if the OS is in light mode */
 @media (prefers-color-scheme: light) {
   :root,

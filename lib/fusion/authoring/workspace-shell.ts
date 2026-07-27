@@ -48,7 +48,7 @@ export type WorkspaceIdentity = {
   id: string;
   label: string;
   objectLabel?: string;
-  zone?: "brand" | "card" | "campaign" | "inbox" | "insights" | "autopilot" | "generic";
+  zone?: "brand" | "card" | "campaign" | "email" | "inbox" | "insights" | "autopilot" | "generic";
 };
 
 export type WorkspaceShellSnapshot = {
