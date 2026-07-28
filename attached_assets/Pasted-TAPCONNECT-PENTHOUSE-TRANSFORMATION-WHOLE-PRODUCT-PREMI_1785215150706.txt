@@ -1,0 +1,2305 @@
+TAPCONNECT PENTHOUSE TRANSFORMATION
+WHOLE-PRODUCT PREMIUM REDESIGN, UX RECONSTRUCTION, FUNCTIONAL ENRICHMENT,
+MOTION DIRECTION, CONSOLE IMPROVEMENT, INSIGHTS IMPROVEMENT, AND COMMERCIAL EXPERIENCE
+
+READ THIS ENTIRE BRIEF BEFORE TAKING ANY ACTION.
+
+======================================================================
+ABSOLUTE STOP CONDITION — DO NOT PORT OR REPLATFORM
+======================================================================
+
+This is an existing, substantial Next.js application imported into Replit for isolated
+design, development, and preview work.
+
+DO NOT PORT, MIGRATE, CONVERT, OR REPLATFORM THIS APPLICATION.
+
+Specifically, do not:
+
+- convert Next.js to Vite
+- convert App Router routes to React Router
+- create an Express replacement backend
+- create a separate frontend artifact
+- move Prisma into a new standalone backend
+- replace Clerk’s existing Next.js architecture
+- replace existing API routes
+- replace server components merely to make the app “Replit native”
+- copy the product into a disconnected prototype
+- create a parallel application
+- run a “Port imported Vercel app to Replit” workflow
+- change deployment architecture
+- configure Replit production publishing
+- create a Replit production database
+- replace the existing package/runtime structure
+- remove authoritative domain systems because they are complex
+
+Replit is only the isolated workshop and preview environment.
+
+Preserve the existing:
+
+- Next.js application
+- Next.js App Router
+- TypeScript architecture
+- Prisma architecture
+- Clerk architecture
+- existing API routes
+- Resend provider adapters
+- Stripe provider adapters
+- domain services
+- routes
+- data models
+- tests
+- deployment assumptions
+
+The assignment is to transform and improve the real existing application in place.
+
+======================================================================
+REQUIRED PREFLIGHT
+======================================================================
+
+Before changing any file, run and report:
+
+git branch --show-current
+git rev-parse HEAD
+git status --short
+
+Required branch:
+
+replit-penthouse-transformation
+
+Required starting commit:
+
+e0a258b28871e158d764f5eadcb4dada121f4992
+
+The `.replit` file may exist locally only for preview port mapping and may be excluded
+through `.git/info/exclude`.
+
+Confirm the following paths exist:
+
+- app/page.tsx
+- app/dashboard/
+- app/offer/
+- package.json
+- prisma/schema.prisma
+- components/marketing/card-centered-landing.tsx
+- components/marketing/landing-material.css
+- components/marketing/integration-ticker.tsx
+- components/marketing/product-explorer.tsx
+- components/fusion/studio-assembly/
+- lib/fusion/studio/zone-tokens.ts
+- lib/fusion/icons/registry.ts
+- public/marketing/product/
+- e2e/studio-assembly-owner-calibration.spec.ts
+
+If the branch, SHA, or required application files do not match, stop immediately and
+report the discrepancy.
+
+Do not reconstruct missing files from this brief.
+
+======================================================================
+MISSION
+======================================================================
+
+Transform the existing TapConnect application from a capable Fusion/V1 foundation into
+a premium, immersive, visually distinctive, commercially persuasive, deeply functional,
+high-end product.
+
+V1 was the ground floor.
+
+The target is the penthouse.
+
+The current application already contains substantial architecture and working systems.
+Your assignment is to:
+
+- run the real application
+- inspect the full public and authenticated product
+- understand the existing domain architecture
+- directly improve the actual product
+- make strong creative decisions
+- redesign weak layouts
+- improve hierarchy
+- improve navigation
+- improve interaction
+- improve feature discoverability
+- improve workflow continuity
+- improve empty, error, readiness, and disabled states
+- improve perceived and actual feature richness
+- improve mobile behavior
+- improve console and operational surfaces
+- improve Insights and TapProof
+- improve Autopilot’s usefulness throughout the product
+- add additional improvements where they clearly strengthen the experience
+- deliver a functioning transformed experimental branch for Owner review
+
+Do not stop with:
+
+- an audit
+- a design memo
+- a list of recommendations
+- static mockups
+- screenshots only
+- a detached homepage prototype
+- a separate design route
+- a superficial visual skin
+- minor padding adjustments
+- slightly brighter borders
+- a generic component-library makeover
+
+Run the product.
+
+Study the product.
+
+Change the product.
+
+Deliver the improved product.
+
+======================================================================
+CREATIVE AND PRODUCT AUTHORITY
+======================================================================
+
+You are acting as:
+
+- senior product designer
+- senior UX architect
+- motion director
+- interaction designer
+- design-systems lead
+- conversion-focused marketing designer
+- front-end engineer
+- information architect
+- workflow designer
+- accessibility specialist
+- product strategist
+- creative director
+- operator-console designer
+- analytics and Insights experience designer
+
+You have permission to make strong professional decisions.
+
+You may:
+
+- restructure page layouts
+- reorganize information hierarchy
+- rethink weak navigation patterns
+- combine redundant controls
+- simplify cumbersome flows
+- expose important hidden capabilities
+- progressively disclose advanced controls
+- remove duplicate chrome
+- demote legacy or laboratory surfaces
+- redesign generic components
+- create new reusable UI systems
+- create richer interaction patterns
+- strengthen semantic color differentiation
+- refine the proprietary icon family
+- improve typography
+- improve lighting and depth
+- improve motion choreography
+- add useful previews
+- add contextual help
+- add useful filtering and search
+- add workflow recovery
+- add meaningful empty states
+- improve setup and onboarding
+- improve provider-readiness communication
+- add valuable microinteractions
+- add features that naturally complete an existing workflow
+- add improvements not explicitly named here when they clearly increase comprehension,
+  function, flow, confidence, conversion, accessibility, performance, or product value
+
+Do not preserve a weak layout merely because it already exists.
+
+You are allowed to decide:
+
+- this section is too dense
+- this screen is too empty
+- this interaction is too subtle
+- this effect is excessive
+- this page order is weak
+- this workflow has unnecessary steps
+- this feature is too hidden
+- this control belongs in a contextual drawer
+- this route should be demoted
+- this page looks like a developer tool
+- this feature needs richer explanation
+- this screen needs better visual evidence
+- this capability should appear contextually elsewhere
+- this design should be simplified
+- this design should be more ambitious
+
+Make ordinary creative and UX decisions without asking for permission.
+
+Stop and ask only when:
+
+- an essential business fact is genuinely unknown
+- a decision would alter legal obligations
+- a decision would alter billing policy
+- production access would be required
+- an official brand asset is required but unavailable
+- two interpretations would materially change the commercial product
+
+======================================================================
+MOONSHOT QUALITY STANDARD
+======================================================================
+
+The current product may give you a wheel and an ironing board.
+
+Your assignment is to make it fly to the moon.
+
+Use the best principles demonstrated by premium products such as:
+
+- Canva
+- Apple Pages
+- Figma
+- Framer
+- Webflow
+- Linear
+- Stripe Dashboard
+- Intercom
+- Front
+- Shopify
+- Mixpanel
+- Amplitude
+- Tableau
+- Power BI
+- polished Apple product pages
+
+These are quality references only.
+
+Do not copy proprietary branding, text, iconography, or exact layouts.
+
+Use their strongest principles:
+
+CANVA / APPLE PAGES
+
+- approachable power
+- beautiful authoring
+- live creative surfaces
+- contextual controls
+- intelligent blank states
+- clear templates and starting points
+- direct manipulation
+- polish without intimidation
+
+FIGMA / FRAMER / WEBFLOW
+
+- canvas priority
+- strong selection feedback
+- contextual panels
+- responsive preview
+- predictable drawers
+- deep capability available on demand
+- exact visual response
+
+LINEAR
+
+- calm information density
+- restrained motion
+- excellent status hierarchy
+- strong keyboard and focus behavior
+- clear next action
+
+STRIPE
+
+- trust
+- readiness
+- exact provider state
+- strong configuration UX
+- clear recovery
+- no false success
+- commercial confidence
+
+INTERCOM / FRONT
+
+- clear communication context
+- relationship history
+- assignment and routing without clutter
+- operational calm
+
+MIXPANEL / AMPLITUDE / TABLEAU / POWER BI
+
+- evidence hierarchy
+- drilldown
+- attribution
+- trends
+- understandable metrics
+- narrative insight
+- decision support rather than chart clutter
+
+SHOPIFY
+
+- guided setup
+- owned commercial journey
+- strong preview
+- clear publication state
+- provider handoff without surrendering the customer experience
+
+======================================================================
+PREMIUM DEFINITION — LOCKED
+======================================================================
+
+Premium does not mean merely dark.
+
+Premium does not mean merely neon.
+
+Premium does not mean giant empty spaces.
+
+Premium does not mean animation everywhere.
+
+Premium means:
+
+- immediate comprehension
+- strong hierarchy
+- precise composition
+- exact alignment
+- cohesive typography
+- distinctive identity
+- readable contrast
+- dimensionality used deliberately
+- clear actions
+- satisfying interaction response
+- useful feedback
+- excellent empty states
+- excellent loading and readiness states
+- polished transitions
+- feature discoverability
+- workflow continuity
+- progressive capability
+- no dead buttons
+- no fake provider readiness
+- no false success
+- no abandoned-looking screens
+- no generic dashboard filler
+- no developer-demo aesthetic
+- one coherent product before and after login
+- a sense that every element belongs
+
+The experience should make an Owner or prospective buyer feel:
+
+- this product is substantial
+- this product is understandable
+- this product is cohesive
+- this product is alive
+- this product will reduce work
+- this product respects systems I already use
+- this product can grow with my business
+- this product is worth paying for
+- this is not merely another digital business card
+
+======================================================================
+NON-NEGOTIABLE PRODUCT LAW
+======================================================================
+
+The Card is the center of the TapConnect universe.
+
+TapConnect is the living Card.
+
+TapConnect Studio is the broader operating system and capability system working around
+the Card.
+
+Studio exists to:
+
+- create the Card
+- connect customers to the Card
+- keep the relationship alive
+- operate the relationship intelligently
+- prove what the Card accomplished
+
+The Card must never become one equally weighted module among many.
+
+The Card is the throne.
+
+Every major workspace should make clear:
+
+1. Which Card or relationship does this support?
+2. What does this capability do for the Card?
+3. What should the host do next?
+
+Supporting systems include:
+
+- Brand Kit
+- Assets
+- Tap Points
+- Campaigns
+- Offers
+- Card Spotlight
+- TapSave
+- Audience
+- Relationships
+- Consent and suppression
+- Email
+- Communications
+- Reply Routing
+- TapInbox
+- Cases
+- Autopilot
+- Integrations
+- Insights
+- TapProof
+- Decision Queue
+- Trust and governance
+
+Do not create a competing center.
+
+======================================================================
+PRESERVE AUTHORITATIVE SYSTEMS
+======================================================================
+
+The application already contains meaningful architecture.
+
+Do not casually create parallel:
+
+- Card models
+- Campaign models
+- Offer models
+- visual property systems
+- media libraries
+- relationship systems
+- Inbox systems
+- communication ledgers
+- analytics stores
+- integration registries
+- Stripe storefronts
+- authentication systems
+- entitlement systems
+- navigation shells
+- design-token systems
+
+Use and improve the authoritative systems already present.
+
+Architectural changes are allowed only when they clearly improve maintainability or
+experience and do not silently replace working domain ownership.
+
+======================================================================
+ENVIRONMENT AND PROVIDER PLACEHOLDERS
+======================================================================
+
+Never hard-code secrets.
+
+Never commit real credentials.
+
+Create or improve `.env.example` and an operator setup guide.
+
+Expected placeholders may include:
+
+AUTHENTICATION
+
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=[CLERK_PUBLISHABLE_KEY]
+CLERK_SECRET_KEY=[CLERK_SECRET_KEY]
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=[CLERK_SIGN_IN_URL]
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=[CLERK_SIGN_UP_URL]
+NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/dashboard
+NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/dashboard
+
+EMAIL / RESEND
+
+RESEND_API_KEY=[RESEND_API_KEY]
+RESEND_WEBHOOK_SECRET=[RESEND_WEBHOOK_SECRET]
+RESEND_WEBHOOK_SECRET_PREVIOUS=[OPTIONAL_PREVIOUS_WEBHOOK_SECRET]
+EMAIL_FROM_ADDRESS=[DEFAULT_FROM_ADDRESS]
+EMAIL_FROM_NAME=[DEFAULT_FROM_NAME]
+EMAIL_RECEIVING_DOMAIN=[RECEIVING_DOMAIN]
+EMAIL_REPLY_ALIAS_DOMAIN=[REPLY_ALIAS_DOMAIN]
+EMAIL_REPLIES_STORE=prisma
+EMAIL_RUNTIME_MODE=local_mock
+
+STRIPE
+
+NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=[STRIPE_TEST_PUBLISHABLE_KEY]
+STRIPE_SECRET_KEY=[STRIPE_TEST_SECRET_KEY]
+STRIPE_WEBHOOK_SECRET=[STRIPE_TEST_WEBHOOK_SECRET]
+STRIPE_MODE=test
+STRIPE_LIVE_ENABLED=false
+
+OPENAI
+
+OPENAI_API_KEY=[OPENAI_API_KEY]
+OPENAI_MODEL=[APPROVED_MODEL]
+AI_RUNTIME_MODE=local_mock
+
+DATABASE
+
+DATABASE_URL=[LOCAL_OR_TEST_DATABASE_URL]
+DIRECT_URL=[OPTIONAL_DIRECT_DATABASE_URL]
+
+MEDIA / STORAGE
+
+UPLOADTHING_TOKEN=[UPLOADTHING_TOKEN]
+CLOUDFLARE_R2_ACCOUNT_ID=[R2_ACCOUNT_ID]
+CLOUDFLARE_R2_ACCESS_KEY_ID=[R2_ACCESS_KEY_ID]
+CLOUDFLARE_R2_SECRET_ACCESS_KEY=[R2_SECRET_ACCESS_KEY]
+CLOUDFLARE_R2_BUCKET=[R2_BUCKET]
+CLOUDFLARE_R2_PUBLIC_URL=[R2_PUBLIC_URL]
+
+PUBLIC PRODUCT FAMILY
+
+NEXT_PUBLIC_APP_URL=[LOCAL_OR_PREVIEW_URL]
+NEXT_PUBLIC_TAP_THE_MAGIC_URL=[TAP_THE_MAGIC_URL]
+NEXT_PUBLIC_PET_FINDER_URL=[PET_FINDER_URL]
+NEXT_PUBLIC_TAPSTAY_URL=[TAPSTAY_URL]
+
+INTEGRATIONS
+
+MONDAY_CLIENT_ID=[MONDAY_CLIENT_ID]
+MONDAY_CLIENT_SECRET=[MONDAY_CLIENT_SECRET]
+ZAPIER_WEBHOOK_BASE_URL=[ZAPIER_WEBHOOK_BASE_URL]
+MANYCHAT_API_KEY=[MANYCHAT_API_KEY]
+GETRESPONSE_API_KEY=[GETRESPONSE_API_KEY]
+
+OBSERVABILITY
+
+SENTRY_DSN=[SENTRY_DSN]
+UPTIMEROBOT_MONITOR_URL=[MONITOR_OR_HEALTHCHECK_URL]
+
+Missing provider credentials must not block ordinary local review.
+
+When credentials are absent:
+
+- use deterministic local/test behavior
+- preserve authoring and preview
+- show honest provider-required states
+- distinguish local mock, provider test, configured, live-ready, planned, and unavailable
+- never claim external delivery
+- never show false success
+- never expose secrets
+- never disable unrelated capabilities
+- never leave inert buttons visible
+
+Clerk missing:
+
+- preserve a safe local development session
+- clearly label it as local development
+- never expose the fallback in production mode
+
+Resend missing:
+
+- preserve Email authoring
+- preserve rendering and previews
+- preserve local inbound fixtures
+- preserve Reply Routing configuration
+- do not send externally
+- do not claim delivery
+
+Stripe missing:
+
+- preserve published offer Cards
+- preserve local checkout simulation
+- preserve cancel and return
+- do not create live charges
+- label simulation honestly
+
+OpenAI missing:
+
+- preserve deterministic prepared examples
+- preserve manual editing
+- show provider readiness honestly
+- do not leave silent AI controls
+
+======================================================================
+WHOLE-PRODUCT AUDIT
+======================================================================
+
+Inspect the application as:
+
+- first-time visitor
+- prospective buyer
+- Card-only customer
+- solo business
+- established business using external tools
+- multi-location business
+- daily operator
+- phone user
+- keyboard user
+- reduced-motion user
+- Owner evaluating commercial value
+
+Review at minimum:
+
+PUBLIC
+
+- root landing page
+- cinematic Studio Assembly
+- interactive product explorer
+- static Card-centered map
+- Create / Connect / Keep / Operate / Prove
+- product deep dives
+- screenshots and product evidence
+- TapConnect versus Studio selector
+- tier cards
+- published offer Cards
+- checkout simulation
+- checkout cancel
+- checkout return
+- integration story
+- Autopilot story
+- TapProof story
+- business use cases
+- Pet Finder and TapStay
+- footer
+- metadata
+- SEO
+- desktop
+- tablet
+- phone
+
+AUTHENTICATED
+
+- authentication entry
+- first-entry Assembly
+- everyday entry
+- Home / Card Command Center
+- global Create
+- navigation
+- Experiences
+- Card Assembly
+- Card editor
+- Card preview
+- public Card
+- Brand Kit
+- Assets
+- Tap Points
+- Campaign Workbench
+- public Campaign
+- Email workspace
+- Email & Replies
+- TapInbox
+- Cases
+- Audience
+- Relationships
+- Consent
+- suppression
+- Autopilot
+- Insights
+- TapProof
+- Integrations
+- Settings
+- Help
+- Decision Queue
+- provider readiness
+- mobile owner experience
+
+Audit every visible control and classify it as:
+
+A. Local and expected to work
+B. Provider-dependent with honest local/test mode
+C. Intentionally unavailable and clearly explained
+D. Broken
+
+Rules:
+
+- A must work
+- B must communicate its state
+- C must be visibly disabled or labeled
+- D must be fixed
+- no dead clickable controls
+- no console-only feedback as the sole customer feedback
+- no false success
+
+======================================================================
+VISUAL DIRECTION
+======================================================================
+
+Create a premium dark environment that is:
+
+- immersive
+- dimensional
+- elegant
+- precise
+- modern
+- distinctive
+- sophisticated
+- alive
+- powerful
+- understandable
+- commercially persuasive
+- magical without childishness
+- futuristic without generic cyberpunk
+- feature-rich without chaos
+- calm during real work
+
+Avoid:
+
+- flat dark rectangles on a dark page
+- barely visible zone differences
+- random gradients
+- rainbow navigation
+- fuzzy neon everywhere
+- arcade visuals
+- nightclub signage
+- excessive glassmorphism
+- giant empty areas
+- tiny low-contrast text
+- generic feature-grid walls
+- stock icon soup
+- constant reading-time motion
+- decoration without purpose
+
+======================================================================
+MATERIAL AND LIGHTING SYSTEM
+======================================================================
+
+Create three surface levels.
+
+LEVEL 1 — SIGNATURE STAGE
+
+For:
+
+- Studio Assembly
+- cinematic hero
+- vertical Card
+- full-value platform moment
+- primary Card-centered map
+
+May use:
+
+- strongest dimensionality
+- controlled perspective
+- directional light
+- crisp illuminated edges
+- semantic bloom
+- inner highlights
+- layered surfaces
+- meaningful particles or trails
+- reflected Card light
+- deliberate depth staging
+
+LEVEL 2 — MAJOR PRODUCT SURFACES
+
+For:
+
+- explorer panels
+- deep dives
+- major screenshots
+- tier cards
+- integration panels
+- sibling products
+- important Studio panels
+- command surfaces
+- operational console
+
+Use:
+
+- dark neutral face
+- crisp 1–2px semantic illuminated edge
+- brighter leading-edge highlight
+- restrained 18–32px ambient bloom
+- subtle inner bevel
+- controlled dimensional shadow
+- slight translucency where appropriate
+- hover/focus lift
+- precise selected state
+
+LEVEL 3 — SUPPORTING SURFACES
+
+For:
+
+- body copy
+- secondary settings
+- supplemental lists
+- captions
+- minor controls
+- footer/legal content
+
+Keep these calm and primarily neutral.
+
+Do not turn every paragraph into a neon card.
+
+======================================================================
+SEMANTIC COLOR SYSTEM
+======================================================================
+
+Use one coherent system before and after login.
+
+GREEN — ACTION ONLY
+
+Use green for:
+
+- Create
+- Continue
+- Save
+- Publish
+- Activate
+- Choose
+- Build
+- Review prepared action
+- Explore the selected path
+- meaningful forward action
+
+Do not use green as a generic section or hover color.
+
+CARD / CREATIVE
+
+- graphite
+- warm ivory
+- muted champagne
+
+BRAND KIT
+
+- dusty blush
+- muted champagne
+- warm stone
+
+ASSETS
+
+- deep indigo
+- cool amethyst
+- restrained ultraviolet
+- platinum/silver edge
+
+TAP POINTS
+
+- deep navy
+- cool steel
+- restrained signal cyan
+
+CAMPAIGNS
+
+- deep olive
+- tobacco
+- muted brass
+- controlled gold
+
+TAPSAVE / RETENTION
+
+- muted deep teal
+- cool green-blue
+- retained glow distinct from CTA green
+
+AUDIENCE / RELATIONSHIPS
+
+- slate blue
+- ink
+- soft steel
+
+EMAIL / COMMUNICATIONS
+
+- deep ink
+- steel
+- muted blue-gray
+
+SERVICE / TAPINBOX / CASES
+
+- charcoal
+- smoke
+- muted rust
+
+AUTOPILOT
+
+- muted midnight
+- dark moss
+- steel
+
+INSIGHTS / TAPPROOF
+
+- deep teal
+- graphite
+- cool stone
+
+INTEGRATIONS
+
+- graphite
+- tobacco
+- restrained copper
+- warm steel
+
+TRUST / SETTINGS
+
+- charcoal
+- neutral stone
+- restrained silver
+
+Each zone must be identifiable through:
+
+1. Crisp semantic edge
+2. Ambient bloom or atmosphere
+3. Matching icon/header accent
+
+At normal brightness and 100% zoom, a viewer should perceive the difference between:
+
+- Brand and Assets
+- Campaign and Email
+- Audience and Insights
+- Service and Autopilot
+- Integrations and neutral background
+
+If differentiation exists only in CSS inspection, strengthen it.
+
+======================================================================
+ICON SYSTEM
+======================================================================
+
+Create or refine one proprietary TapConnect icon family.
+
+Use:
+
+- consistent rounded-line geometry
+- consistent stroke weight
+- consistent corners
+- restrained solid details
+- small-size recognition
+- marketing-scale strength
+- neutral default
+- semantic active accent
+- SVG
+- accessible labels
+
+Required concepts:
+
+- Home
+- Card
+- Brand
+- Assets
+- Tap Points
+- Campaigns
+- Email
+- TapSave
+- Audience
+- Relationships
+- Communications
+- TapInbox / Service
+- Autopilot
+- Insights
+- TapProof
+- Integrations
+- Trust
+- Settings
+- Create
+
+Do not use:
+
+- robot head for Autopilot
+- generic puzzle pieces for every integration
+- disconnected megaphone for Campaigns
+- generic chart without proof/evidence language for TapProof
+
+Use the same icon family in:
+
+- landing
+- Assembly
+- map
+- explorer
+- tier cards
+- Studio navigation
+- workspace headers
+- documentation
+
+======================================================================
+INTERACTION SYSTEM
+======================================================================
+
+Interactive cards, icons, frames, and controls should feel responsive and premium.
+
+Desktop hover may use:
+
+- 2–4px lift
+- restrained scale around 1.01–1.02
+- tighter semantic edge
+- increased icon clarity
+- deeper shadow
+- connector activation
+- supporting detail reveal
+- restrained pointer perspective
+
+Keyboard focus must be as clear as hover.
+
+Touch must provide:
+
+- pressed
+- selected
+- expanded
+
+No essential content may depend only on hover.
+
+Reduced motion should preserve:
+
+- brightness
+- border emphasis
+- selection
+- focus
+
+while removing unnecessary travel.
+
+Do not use green hover glow unless the element is the primary action.
+
+======================================================================
+STUDIO ASSEMBLY
+======================================================================
+
+The landing experience should begin almost inside the TapConnect universe.
+
+The central Card must be a recognizable vertical profile/business Card.
+
+It should communicate within roughly one second:
+
+- business identity
+- logo or avatar
+- business name
+- short descriptor
+- customer actions
+- TapSave
+- NFC/contactless or tap cue
+- “Tap or scan” language
+- Spotlight where appropriate
+
+Do not use:
+
+- abstract slab
+- horizontal dashboard panel
+- credit-card styling
+- unexplained glass rectangle
+
+Assembly sequence:
+
+1. Near-dark opening
+2. Vertical Card resolves from warm light
+3. Tap/NFC pulse activates Card
+4. Capabilities emerge in semantic colors
+5. Studio assembles around Card
+6. Capabilities briefly demonstrate function
+7. Meaningful magical crescendo
+8. Camera pulls backward
+9. Navigation and page resolve
+10. Assembly settles into permanent product map
+11. The same object remains interactive
+
+Capability demonstrations:
+
+Tap Points:
+- signal reaches Card
+
+Campaign:
+- Spotlight attaches
+
+TapSave:
+- retained ring closes
+
+Audience:
+- customer signals become relationship context
+
+Email / Communications:
+- message travels and returns through routing
+
+Autopilot:
+- scattered paths become one prepared next action
+
+Integrations:
+- bridge extends outward
+
+Insights / TapProof:
+- evidence resolves into confirmation
+
+Trust:
+- protection layer forms beneath the system
+
+Every effect must explain real product value.
+
+No meaningless glitter.
+
+The pullback should feel like the viewer’s field of vision expands, not like a small
+widget simply shrinks.
+
+Opening frame:
+
+- Card is large
+- Card identity remains understandable
+- critical content is not clipped
+- tap cue is visible
+- Skip is visible
+- safe viewport units are used
+
+Settled frame:
+
+- complete ecosystem visible
+- no icon clipping
+- no label clipping
+- Card remains central
+- explanation panel readable
+- no dead gaps
+- no glow clipping
+
+Scroll accelerates settlement.
+
+Skip settles immediately.
+
+Reduced motion uses a short close-up-to-map dissolve.
+
+======================================================================
+LANDING PAGE
+======================================================================
+
+The full landing page must persuade even when:
+
+- motion is skipped
+- reduced motion is enabled
+- visitor uses a phone
+- visitor prefers reading
+- visitor never opens every icon
+- visitor arrives from search
+
+Required story:
+
+1. Cinematic Studio Assembly
+2. Settled interactive product map
+3. Static Card-centered architecture map
+4. Create / Connect / Keep / Operate / Prove
+5. Product deep dives
+6. TapConnect versus TapConnect Studio
+7. Tier / offer cards
+8. Owned purchase journey
+9. Integrations
+10. Solo-business and established-business examples
+11. Autopilot
+12. TapProof
+13. Final Card-centered CTA
+14. Pet Finder and TapStay
+15. Footer
+
+The page should be rich and substantial without becoming a wall of cards.
+
+======================================================================
+INTERACTIVE PRODUCT EXPLORER
+======================================================================
+
+The Card remains central.
+
+Selecting a capability should:
+
+- lift selected icon
+- brighten its semantic edge
+- activate connector to Card
+- soften other icons without hiding them
+- open a premium explanation panel
+- reveal a feature submenu
+- update URL hash where useful
+- remain keyboard and touch accessible
+
+Desktop:
+
+- map roughly 55–65%
+- panel roughly 35–45%
+
+Phone:
+
+- Card first
+- capability selector/list
+- explanation immediately below selected capability
+- no tiny orbit labels
+
+Each capability panel must answer:
+
+- What is it?
+- What does it do for the Card?
+- Why should the business care?
+- What capabilities are included?
+- What should the visitor do next?
+
+Include complete stories for:
+
+- Card
+- Brand Kit
+- Assets
+- Tap Points
+- Campaigns
+- TapSave
+- Audience and Relationships
+- Email and Communications
+- Autopilot
+- Insights and TapProof
+- Integrations
+- Trust Fabric
+
+Use one primary green CTA per panel.
+
+======================================================================
+PRODUCT DEEP DIVES
+======================================================================
+
+Create premium, substantial sections for:
+
+- Card + Brand
+- Assets
+- Tap Points + Campaigns
+- TapSave + Relationships
+- Email + Communications
+- Autopilot
+- Integrations
+- Insights + TapProof
+
+Each section should contain:
+
+- proprietary icon
+- semantic lighting
+- Card relationship statement
+- meaningful written explanation
+- actual functions
+- customer/business outcome
+- real scrubbed product screenshot or honest illustration
+- premium dimensional frame
+- one primary green CTA
+
+Do not allow screenshots or frames to disappear into the background.
+
+Do not use generic stock photography as the primary proof.
+
+======================================================================
+TAPCONNECT VERSUS TAPCONNECT STUDIO
+======================================================================
+
+Explain clearly:
+
+TAPCONNECT
+
+- living Card
+- complete and useful on its own
+- core Card support
+- not a crippled Studio trial
+
+TAPCONNECT STUDIO
+
+- broader operating system around the same Card
+- capabilities vary by tier
+- upgrade does not require rebuilding Card
+
+Create an interactive selector that visually adds or removes supporting capabilities
+around the same Card.
+
+Do not implement final entitlements in this experimental wave.
+
+======================================================================
+TIER AND OFFER CARDS
+======================================================================
+
+Create polished working presentations for:
+
+- TapConnect
+- TapConnect Studio
+- Studio Growth
+- Studio Scale
+
+Treat Growth and Scale as working names unless current approved copy says otherwise.
+
+Do not assign final prices.
+
+Do not invent “Most Popular.”
+
+Each offer surface should show:
+
+- vertical Card
+- capability icons around Card
+- intended customer
+- primary outcome
+- major capability groups
+- allowance/capacity placeholders
+- upgrade continuity
+- one primary CTA
+
+Higher-tier hover may illuminate more capability icons.
+
+Do not create a giant forty-row feature matrix.
+
+======================================================================
+OWNED PURCHASE JOURNEY
+======================================================================
+
+Required journey:
+
+Landing
+→ published TapConnect offer Card
+→ product/tier review
+→ secure checkout
+→ return to TapConnect
+→ verification
+→ confirmation
+→ account/claim/onboarding
+→ Studio Assembly reflecting purchased capabilities
+
+Internal law:
+
+Own the journey.
+Delegate only the transaction.
+
+Do not send landing CTAs directly to Stripe.
+
+Use local/test checkout only.
+
+Do not create live charges.
+
+Preserve cancel, verification, and return context.
+
+======================================================================
+INTEGRATIONS
+======================================================================
+
+Create a premium “Works with what you already use” experience.
+
+Use an integration ticker or capability ribbon where it improves comprehension.
+
+Possible honest labels include:
+
+- Monday
+- Zapier
+- ManyChat
+- CRM
+- Support
+- Booking
+- Automation
+- Webhooks
+- other current categories
+
+Rules:
+
+- slow motion
+- pause on hover
+- pause on focus
+- static wrapping grid for reduced motion
+- no repeated screen-reader announcements
+- approved logos or honest typography
+- no invented partner status
+- no implied readiness merely because a logo appears
+
+Selecting an integration should explain:
+
+- what Tap sends
+- what it receives
+- one-way or bidirectional
+- what Tap knows afterward
+- customer setup
+- operator setup
+- current maturity
+
+Group integrations honestly:
+
+- Works now
+- Available after setup
+- Local/provider test
+- Planned
+
+======================================================================
+SMALL BUSINESS AND ESTABLISHED BUSINESS
+======================================================================
+
+Present both as valid.
+
+SMALL BUSINESS
+
+- Card
+- TapSave
+- TapInbox
+- routing
+- Autopilot support
+- Insights
+
+ESTABLISHED BUSINESS
+
+- Card creates customer moment
+- TapConnect preserves attribution
+- Tap routes enriched context to Monday or another external system
+- external system owns assignment/resolution/reporting
+- Tap retains truthful evidence
+
+Do not portray external workflow ownership as inferior.
+
+======================================================================
+AUTOPILOT
+======================================================================
+
+Autopilot must feel woven through the whole platform.
+
+It should:
+
+- prepare
+- recommend
+- organize
+- route
+- monitor
+- detect incomplete setup
+- detect stale content
+- fill blanks using trusted Brand/business context
+- summarize evidence
+- surface decisions
+- ask only when necessary
+- preserve approval for consequential actions
+- stop
+- undo
+
+Do not reduce Autopilot to Email or support.
+
+Do not use decorative AI branding without workflow value.
+
+======================================================================
+TAPPROOF AND INSIGHTS
+======================================================================
+
+Show the evidence chain:
+
+Tap
+→ Card
+→ customer action
+→ relationship
+→ handoff or conversion
+→ confirmed evidence
+
+Insights should be a premium decision-intelligence experience, not a row of generic
+summary cards.
+
+Consider:
+
+- Card health narrative
+- Tap Point comparison
+- Campaign contribution
+- TapSave retention
+- relationship growth
+- reply and routing evidence
+- confirmed versus inferred evidence
+- date comparison
+- anomaly or change explanation
+- Autopilot interpretation
+- recommended next step
+- drill-through to source records
+- source and confidence labels
+
+Do not invent data.
+
+Use persisted sources and honest fixtures.
+
+Use truthful empty states when evidence does not exist.
+
+======================================================================
+AUTHENTICATED STUDIO
+======================================================================
+
+Apply the same premium visual and interaction language after login.
+
+The public site and Studio should feel like one product.
+
+HOME / CARD COMMAND CENTER
+
+Show:
+
+- primary Card
+- public state
+- Edit/View
+- Tap Point state
+- active Spotlight
+- TapSave state
+- proof strip
+- Autopilot recommendation
+- one green next action
+- needs-attention area
+
+CARD ASSEMBLY
+
+- Card first
+- supporting systems compact
+- clear readiness
+- clear next action
+
+CARD EDITOR
+
+Preserve and improve:
+
+- Card-first canvas
+- one Command Shade
+- one contextual drawer
+- coherent scrolling
+- no duplicate toolbar
+- Undo/Redo
+- Focus
+- preview
+- responsive preview
+- local authoring
+- provider honesty
+- Save/Done hierarchy
+- direct manipulation where useful
+
+Aim for the approachable power of Canva or Pages without copying them.
+
+BRAND KIT
+
+- focused owner workflow
+- identity
+- voice
+- business knowledge
+- inheritance
+- approved content
+- strong previews
+
+ASSETS
+
+Give Assets a full product identity.
+
+Improve:
+
+- library
+- filtering
+- search
+- source and rights state
+- previews
+- reuse
+- Brand relationship
+- upload state
+- drag/drop where appropriate
+- high-quality empty states
+
+EXPERIENCES
+
+Primary:
+
+- Card
+- Campaign
+- Email
+
+Supporting:
+
+- TapSave
+- forms
+- outcomes
+- Wallet only where actual maturity supports it
+
+Demote Labs and legacy work.
+
+CAMPAIGN
+
+- visibly supports Card
+- preview prominent
+- Spotlight relationship clear
+- offer authority clear
+- publication state clear
+- dense technical details secondary
+- clear stop/version behavior
+
+EMAIL
+
+- supports Card and Campaign
+- subject
+- preheader
+- content
+- preview
+- dark inbox preview
+- plain-text preview
+- reply policy
+- approval
+- no-send honesty
+- detached work surface where helpful
+
+EMAIL & REPLIES
+
+- simple customer setup
+- advanced operator details secondary
+- routing activity
+- maturity
+- fallback
+- clear external boundary
+- clear TapInbox path
+
+AUDIENCE / RELATIONSHIPS
+
+- Contacts
+- history
+- consent
+- suppression
+- eligibility
+- attribution
+- useful groups
+- clear empty states
+- clear relationship story
+
+COMMUNICATIONS / TAPINBOX / CASES
+
+- clear threads
+- Card/Campaign context
+- assignment
+- status
+- Guardian
+- recovery
+- external boundary
+- no competing product center
+
+INTEGRATIONS
+
+- maturity grouping
+- setup clarity
+- send/receive boundary
+- runtime status
+- truthful evidence
+
+SETTINGS / TRUST
+
+- calm
+- organized
+- searchable
+- owner versus operator clarity
+- provider readiness
+- permissions
+- governance
+- no secrets displayed
+
+GLOBAL CREATE
+
+Make Create outcome-driven.
+
+Examples:
+
+- Create or improve my Card
+- Promote something
+- Bring customers back
+- Connect a Tap Point
+- Collect customer information
+- Route customer activity
+- Prepare an Email
+- Let Autopilot prepare the next step
+
+Do not present only a generic artifact catalog.
+
+======================================================================
+CONSOLE AND OPERATIONAL EXPERIENCE
+======================================================================
+
+Review all operational surfaces as a connected console.
+
+The operational experience should feel:
+
+- calm
+- high-signal
+- actionable
+- alive
+- clear about health
+- clear about provider state
+- clear about failures
+- clear about what needs attention
+- capable of progressive drilldown
+- visually coherent with the Card-centered system
+
+Improve or create a reusable console pattern for:
+
+- provider health
+- Tap Point health
+- routing failures
+- Campaign readiness
+- Email readiness
+- unresolved decisions
+- account setup
+- production readiness
+- integration status
+
+Do not create another dashboard merely to have one.
+
+Use one coherent operational system.
+
+======================================================================
+ADDITIONAL IMPROVEMENT PERMISSION
+======================================================================
+
+You are encouraged to add worthwhile improvements beyond this list when they clearly
+benefit the product.
+
+Examples:
+
+- better contextual previews
+- better setup wizards
+- better publication readiness
+- better search and filtering
+- improved onboarding progress
+- improved mobile approvals
+- improved empty states
+- smarter default selections
+- reusable Card relationship marker
+- contextual Help explorer
+- navigation memory
+- safer undo and recovery
+- better provider troubleshooting
+- improved route continuity
+- richer “where used” information
+- more useful command palette
+- stronger keyboard behavior
+- better saved-state feedback
+- clearer warning and error messages
+- more useful Autopilot recommendations
+- improved product education
+- improved cross-feature handoff
+- improved commercial conversion flow
+
+Additional work must improve:
+
+- comprehension
+- function
+- flow
+- discoverability
+- confidence
+- accessibility
+- performance
+- conversion
+- perceived value
+- actual value
+
+Do not add novelty that does not serve the product.
+
+Do not create competing domain systems.
+
+======================================================================
+FEATURE RICHNESS
+======================================================================
+
+Do not confuse simplicity with a lack of capability.
+
+Expose power progressively:
+
+- obvious primary path
+- calm default
+- contextual drawers
+- advanced controls on demand
+- strong previews
+- intelligent empty states
+- useful status
+- provider readiness
+- stop/undo/recovery
+- filtering
+- search
+- saved preferences
+- integration maturity
+- truthful evidence
+
+Hide complexity until useful.
+
+Do not remove valuable capability merely to make screens sparse.
+
+======================================================================
+MOTION AND PERFORMANCE
+======================================================================
+
+Prefer:
+
+- CSS
+- SVG
+- existing animation systems
+- transform
+- opacity
+- lightweight state machines
+
+Avoid:
+
+- heavy WebGL
+- large 3D engines
+- prerecorded hero-video dependency
+- autoplay sound
+- constant reading-time motion
+- layout-thrashing animations
+- large dependencies without strong justification
+
+Measure:
+
+- performance
+- accessibility
+- best practices
+- SEO
+- LCP
+- CLS
+- TBT
+- interaction responsiveness
+- JS weight
+- CSS weight
+- image weight
+- frame stability
+
+Optimize:
+
+- logo assets
+- screenshots
+- duplicate downloads
+- below-fold media
+- hydration
+- layout shift
+- long-running effects
+
+The experience may be cinematic without becoming slow.
+
+======================================================================
+RESPONSIVE EXPECTATIONS
+======================================================================
+
+DESKTOP
+
+- cinematic Assembly
+- map plus explanation panel
+- premium hover/focus
+- integration ticker
+- dimensional offer cards
+- powerful authoring
+- calm operational console
+
+TABLET
+
+- simplified geometry
+- readable labels
+- usable drawers
+- no crushed canvas
+- no clipped orbit
+- coherent page rhythm
+
+PHONE
+
+- vertical Card first
+- simplified Assembly
+- capability list or accordion
+- no tiny orbit labels
+- no horizontal overflow
+- minimum practical touch targets
+- readable tier cards
+- useful authoring
+- setup and approvals usable
+- no hover dependency
+- reduced or static integrations where appropriate
+
+======================================================================
+ACCESSIBILITY
+======================================================================
+
+Require:
+
+- semantic headings
+- semantic buttons
+- keyboard navigation
+- visible focus
+- screen-reader labels
+- early Skip
+- safe post-animation focus
+- no focus traps
+- no rapid flashing
+- no autoplay audio
+- no color-only meaning
+- reduced-motion behavior
+- high-zoom support
+- real text outside canvas
+- meaningful alt text
+- accessible icons
+- no hidden essential content
+- zero serious/critical axe violations
+
+The cinematic experience must not become an accessibility toll booth.
+
+======================================================================
+MARKETING CLAIMS
+======================================================================
+
+Do not claim:
+
+- first
+- only
+- unique in the world
+- best
+- category leader
+- impossible to copy
+
+Demonstrate differentiation through product quality and capability.
+
+Do not create unsupported comparative claims.
+
+======================================================================
+PET FINDER AND TAPSTAY
+======================================================================
+
+Create premium sibling-product experiences.
+
+PET FINDER
+
+- warm protective atmosphere
+- tap-ready pet profile
+- finder access
+- owner contact
+- privacy
+- owned product journey
+
+TAPSTAY
+
+- refined hospitality atmosphere
+- property and guest information
+- tap/QR/link access
+- host-managed content
+- owned product journey
+
+Use official assets only where present.
+
+Do not invent official logos.
+
+Use refined typographic identity when logos are missing.
+
+Do not link directly to Stripe.
+
+These should feel like product discoveries rather than advertisements.
+
+======================================================================
+FOOTER
+======================================================================
+
+Use truthful links or non-links for:
+
+- TapConnect
+- TapConnect Studio
+- Pet Finder
+- TapStay
+- Tap The Magic
+- Privacy
+- Terms
+- Accessibility
+- Support
+- Contact
+
+Do not create fake legal content solely to activate links.
+
+======================================================================
+WORK PROCESS
+======================================================================
+
+PHASE 1 — UNDERSTAND
+
+- run application
+- map architecture
+- inspect routes
+- inspect domains
+- inspect providers
+- inspect design system
+- inspect tests
+- inspect current motion
+- identify strengths and weaknesses
+
+PHASE 2 — CREATIVE DIRECTIONS
+
+Develop at least three genuinely different coherent directions.
+
+They should vary meaningfully in:
+
+- Card presentation
+- lighting
+- materials
+- typography
+- map geometry
+- motion tone
+- page rhythm
+- workspace atmosphere
+- dimensionality
+- navigation treatment
+
+Examples may include:
+
+- refined architectural neon
+- illuminated precision hardware
+- warm editorial premium technology
+
+Do not create three trivial color variations.
+
+Evaluate against:
+
+- Card centrality
+- comprehension
+- distinction
+- premium quality
+- accessibility
+- performance
+- mobile use
+- conversion potential
+- whole-product consistency
+
+Choose the strongest direction professionally.
+
+Do not wait for Owner approval unless the decision changes the business model.
+
+PHASE 3 — DESIGN SYSTEM
+
+Create or refine:
+
+- semantic tokens
+- icon family
+- typography
+- spacing
+- radii
+- material levels
+- edge lighting
+- bloom
+- shadows
+- interaction states
+- focus
+- selected
+- disabled
+- warning
+- error
+- success
+- motion
+- reduced motion
+- responsive behavior
+- empty-state standards
+- provider readiness
+- maturity language
+- Card relationship anchor
+
+PHASE 4 — BUILD
+
+Implement the chosen direction in the real application.
+
+Do not stop with design concepts.
+
+PHASE 5 — ENRICH
+
+Add or improve functionality where it naturally strengthens the product.
+
+PHASE 6 — VALIDATE
+
+Test the entire public and authenticated experience.
+
+PHASE 7 — PRESENT
+
+Deliver working previews and clear Owner-review materials.
+
+======================================================================
+TESTING
+======================================================================
+
+Preserve and extend current tests.
+
+Run at minimum:
+
+- TypeScript
+- lint
+- existing Fusion tests
+- build
+- Prisma validation
+- route smoke tests
+- landing e2e
+- Studio Assembly e2e
+- Card e2e
+- Campaign e2e
+- Email e2e
+- Email & Replies e2e
+- Audience/Consent e2e
+- Autopilot e2e
+- Insights/TapProof e2e
+- Integrations e2e
+- Decision Queue e2e
+- offer Card e2e
+- checkout cancel/return e2e
+- J1 ID-001
+- J1 ID-005
+- desktop
+- tablet
+- phone
+- keyboard
+- reduced motion
+- axe
+- Lighthouse or equivalent
+- no live payment
+- no live send
+- no customer contact
+
+Do not weaken tests merely to fit the redesign.
+
+When an existing test asserts an outdated visual contract, preserve the user outcome and
+update the assertion only when the old presentation requirement is genuinely no longer
+correct.
+
+======================================================================
+GIT AND SAFETY
+======================================================================
+
+Work only on:
+
+replit-penthouse-transformation
+
+Logical commits on this experimental branch are allowed.
+
+Do not:
+
+- merge
+- modify main
+- modify tapconnect-v1-v2-fusion
+- modify replit-penthouse-source
+- force-push
+- deploy
+- publish through Replit
+- configure production Replit resources
+- create live charges
+- send live Email
+- contact customers
+- alter production data
+- register production webhooks
+- alter DNS
+- expose secrets
+- begin unrelated product development
+
+Keep the experiment reversible.
+
+======================================================================
+OWNER REVIEW ARTIFACTS
+======================================================================
+
+Provide:
+
+- local preview URL
+- exact startup command
+- authentication/test path
+- route list
+- full-page desktop screenshot
+- full-page tablet screenshot
+- full-page phone screenshot
+- Studio Assembly motion proof
+- before/after comparisons
+- Home
+- Card
+- Card editor
+- Brand
+- Assets
+- Tap Points
+- Campaign
+- Email
+- Email & Replies
+- Audience
+- Communications
+- Autopilot
+- Insights
+- TapProof
+- Integrations
+- Settings
+- Console
+- tier cards
+- offer Card
+- checkout return
+- Pet Finder/TapStay
+- reduced-motion view
+- icon sheet
+- token sheet
+- material/lighting sheet
+- route map
+- test report
+- performance report
+- accessibility report
+- known limitations
+
+Keep a local preview available for Owner review.
+
+======================================================================
+FINAL SUCCESS STANDARD
+======================================================================
+
+The work is not successful merely because it runs.
+
+It is successful when:
+
+- the Card is unmistakably central
+- the public experience commands attention
+- the landing page remains persuasive without motion
+- the zones are clearly distinguishable
+- Assets is visible and valuable
+- icon language is proprietary and consistent
+- surfaces feel dimensional and premium
+- hover/focus/touch are clear
+- green remains the action color
+- the page tells a complete written and visual story
+- logged-in Studio feels like the same product
+- Home is Card-centered
+- Card authoring feels powerful and approachable
+- navigation is clearer
+- workflows are easier
+- functionality is richer
+- capabilities are more discoverable
+- Autopilot is woven through the platform
+- Insights explain evidence and next steps
+- integrations are honest and useful
+- console surfaces are calm and actionable
+- provider states are clear
+- dead controls are eliminated
+- mobile is credible
+- accessibility is preserved
+- performance is strong
+- purchase remains owned by TapConnect except for secure transaction processing
+- the experience feels substantially more valuable
+- the result feels like the penthouse rather than a decorated ground floor
+
+======================================================================
+FINAL REPORT
+======================================================================
+
+Return:
+
+1. Preflight results
+2. Executive creative diagnosis
+3. Whole-product UX diagnosis
+4. Creative directions explored
+5. Selected direction and reasoning
+6. Exact files changed
+7. Commits created
+8. Architecture preserved
+9. Design-system changes
+10. Icon system
+11. Semantic color system
+12. Assets identity
+13. Material and lighting system
+14. Typography system
+15. Interaction system
+16. Motion system
+17. Studio Assembly
+18. Cinematic pullback
+19. Landing-page architecture
+20. Product explorer
+21. Deep-dive sections
+22. TapConnect/Studio selector
+23. Tier cards
+24. Integration ticker
+25. Offer journey
+26. Checkout cancel and return
+27. Pet Finder/TapStay
+28. Home improvements
+29. Card improvements
+30. Brand improvements
+31. Assets improvements
+32. Tap Points improvements
+33. Campaign improvements
+34. Email improvements
+35. Email & Replies improvements
+36. Audience improvements
+37. Communications improvements
+38. Autopilot improvements
+39. Insights/TapProof improvements
+40. Integrations improvements
+41. Settings improvements
+42. Console improvements
+43. Navigation improvements
+44. Create-flow improvements
+45. New workflows
+46. Existing workflows improved
+47. Functions added
+48. Functions removed or demoted
+49. Provider placeholders
+50. Local/test behavior
+51. Desktop experience
+52. Tablet experience
+53. Phone experience
+54. Reduced-motion experience
+55. Accessibility results
+56. Performance results
+57. SEO results
+58. Test results
+59. Regression results
+60. Screenshots
+61. Motion proof
+62. Preview URL
+63. Startup instructions
+64. Known limitations
+65. Missing official assets
+66. Production integration recommendations
+67. Risks and tradeoffs
+68. Confirmation no production actions occurred
+69. Confirmation no live payment occurred
+70. Confirmation no live Email send occurred
+71. Confirmation no customer was contacted
+72. Confirmation no merge or deployment occurred
+
+Do not merge.
+
+Do not deploy.
+
+Do not publish through Replit.
+
+Do not enable live payment.
+
+Do not enable live Email sending.
+
+Do not contact customers.
+
+Deliver a functioning transformed experimental branch for Owner review.
