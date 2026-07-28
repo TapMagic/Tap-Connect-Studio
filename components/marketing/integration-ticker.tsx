@@ -111,6 +111,10 @@ export function IntegrationTicker({ className }: { className?: string }) {
             <span className="font-medium text-white">Tap knows afterward: </span>
             {selected.whatTapKnows}
           </p>
+          <p className="text-sm text-white/70" data-testid="ticker-setup">
+            <span className="font-medium text-white">Setup: </span>
+            {selected.setup}
+          </p>
           <p className="text-xs text-white/55">
             Presence in this ribbon does not imply production readiness.
           </p>

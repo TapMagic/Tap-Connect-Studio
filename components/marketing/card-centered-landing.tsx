@@ -675,6 +675,64 @@ export function CardCenteredLanding() {
           </div>
         </section>
 
+        {/* G2. Owned purchase journey — own the journey, delegate only the transaction */}
+        <section
+          id="purchase-journey"
+          className="landing-chrome mx-auto max-w-6xl px-4 py-14 sm:px-6"
+          aria-labelledby="purchase-journey-heading"
+          data-testid="landing-purchase-journey"
+        >
+          <div
+            className="tc-surface tc-surface-l2 p-6 sm:p-8"
+            data-zone="card"
+            style={zoneSurfaceStyle("card")}
+          >
+            <h2 id="purchase-journey-heading" className="text-2xl font-semibold sm:text-3xl">
+              An owned purchase journey
+            </h2>
+            <p className="mt-3 max-w-3xl text-sm text-white/70">
+              You stay inside TapConnect from the first tap to onboarding. Payment is the only
+              step delegated — to Stripe, when it is production-configured. Landing CTAs never
+              send you straight to a payment provider.
+            </p>
+            <ol
+              className="mt-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+              aria-label="Purchase journey steps"
+            >
+              {[
+                { n: "01", t: "Published offer Card", d: "Review the offer on a TapConnect-owned page — capabilities, terms, and billing choice." },
+                { n: "02", t: "Secure checkout", d: "In this environment, checkout runs as an honestly labeled local simulation — no real charge." },
+                { n: "03", t: "Return & verification", d: "You return to TapConnect. The session is verified server-side; cancel keeps your context." },
+                { n: "04", t: "Confirmation & onboarding", d: "Confirmation leads into account claim and Studio Assembly reflecting your path." },
+              ].map((step) => (
+                <li
+                  key={step.n}
+                  className="rounded-xl border border-white/10 bg-black/20 p-4"
+                  data-testid={`purchase-step-${step.n}`}
+                >
+                  <p className="text-[11px] font-medium uppercase tracking-[0.16em] text-white/60">
+                    {step.n}
+                  </p>
+                  <h3 className="mt-2 text-base font-semibold">{step.t}</h3>
+                  <p className="mt-2 text-sm text-white/70">{step.d}</p>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-6 flex flex-wrap items-center gap-4">
+              <Link
+                href="/offer/tapconnect"
+                data-testid="purchase-journey-cta"
+                className="inline-flex min-h-11 items-center rounded-lg bg-[var(--studio-go)] px-5 text-sm font-semibold text-[var(--studio-go-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+              >
+                Walk the journey
+              </Link>
+              <p className="text-xs text-white/60">
+                Local checkout simulation — no live charges occur in this environment.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* H. Integrations */}
         <section
           id="integrations"

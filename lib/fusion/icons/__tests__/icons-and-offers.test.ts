@@ -130,6 +130,7 @@ describe("sibling products and claims", () => {
   it("deep dives cover required product areas", () => {
     const ids = DEEP_DIVES.map((d) => d.id);
     assert.ok(ids.includes("card-brand"));
+    assert.ok(ids.includes("assets-deep"));
     assert.ok(ids.includes("tappoints-campaigns"));
     assert.ok(ids.includes("tapsave-relationships"));
     assert.ok(ids.includes("email-comms"));
@@ -138,9 +139,12 @@ describe("sibling products and claims", () => {
     assert.ok(ids.includes("tapproof-deep"));
   });
 
-  it("deep dives use scrubbed WebP product captures", () => {
+  it("deep dives use scrubbed WebP captures or honest illustrations", () => {
     for (const dive of DEEP_DIVES) {
-      assert.equal(dive.visual.kind, "screenshot");
+      if (dive.visual.kind === "illustration") {
+        // Honest illustration is allowed only with a stated reason (no staged fakes).
+        assert.ok(dive.visual.reason.length > 20, dive.id);
+      }
       if (dive.visual.kind === "screenshot") {
         assert.match(dive.visual.src, /\.webp$/);
         assert.ok(dive.visual.alt.length > 12);

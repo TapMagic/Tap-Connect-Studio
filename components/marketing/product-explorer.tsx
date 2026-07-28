@@ -7,15 +7,17 @@ import {
   EXPLORER_MATURITY_LABEL,
   explorerForSelector,
   getExplorerCapability,
+  type ExplorerCapabilityId,
   type ProductExplorerCapability,
 } from "@/lib/marketing/product-explorer";
 import { trackAssemblyEvent } from "@/lib/fusion/studio-assembly";
 import { ZONE_TOKENS } from "@/lib/fusion/studio/zone-tokens";
-import type { AssemblyCapabilityId } from "@/lib/fusion/studio-assembly/types";
 import { cn } from "@/lib/utils";
 
 const EXPLORER_ICON: Record<string, TapConnectIconId> = {
+  card: "card",
   brand: "brand",
+  assets: "assets",
   tap_points: "tap_points",
   campaigns: "campaigns",
   tapsave: "tapsave",
@@ -27,10 +29,10 @@ const EXPLORER_ICON: Record<string, TapConnectIconId> = {
   trust_fabric: "trust_fabric",
 };
 
-function parseHashCapability(hash: string): AssemblyCapabilityId | null {
+function parseHashCapability(hash: string): ExplorerCapabilityId | null {
   const m = hash.match(/^#explorer-([a-z_]+)/);
   if (!m) return null;
-  const id = m[1] as AssemblyCapabilityId;
+  const id = m[1] as ExplorerCapabilityId;
   return getExplorerCapability(id) ? id : null;
 }
 
@@ -50,7 +52,7 @@ export function ProductExplorer({
   className,
 }: {
   mode?: "tapconnect" | "studio";
-  initialCapabilityId?: AssemblyCapabilityId | null;
+  initialCapabilityId?: ExplorerCapabilityId | null;
   className?: string;
 }) {
   const headingId = useId();
@@ -58,13 +60,13 @@ export function ProductExplorer({
   const hash = useSyncExternalStore(subscribeHash, getHashSnapshot, () => "");
   const hashCapability = parseHashCapability(hash);
 
-  const [manualId, setManualId] = useState<AssemblyCapabilityId | null>(
+  const [manualId, setManualId] = useState<ExplorerCapabilityId | null>(
     () => initialCapabilityId ?? null
   );
   const [featureId, setFeatureId] = useState<string | null>(null);
-  const [featureForCap, setFeatureForCap] = useState<AssemblyCapabilityId | null>(null);
+  const [featureForCap, setFeatureForCap] = useState<ExplorerCapabilityId | null>(null);
 
-  const selectedId: AssemblyCapabilityId | null =
+  const selectedId: ExplorerCapabilityId | null =
     hashCapability ??
     (manualId && list.some((c) => c.id === manualId) ? manualId : null) ??
     list[0]?.id ??
@@ -77,7 +79,7 @@ export function ProductExplorer({
   );
   const selectedFeature = selected?.features.find((f) => f.id === activeFeatureId);
 
-  function selectCapability(id: AssemblyCapabilityId) {
+  function selectCapability(id: ExplorerCapabilityId) {
     setManualId(id);
     setFeatureId(null);
     setFeatureForCap(id);
@@ -196,7 +198,7 @@ export function ProductExplorer({
               </div>
 
               <div>
-                <h4 className="text-sm font-medium text-white/90">Features</h4>
+                <h4 className="text-sm font-medium text-white/90">What&apos;s included</h4>
                 <ul className="mt-2 space-y-1" role="list">
                   {selected.features.map((f) => {
                     const on = f.id === activeFeatureId;
@@ -238,6 +240,17 @@ export function ProductExplorer({
                   Select a feature for a focused explanation.
                 </p>
               )}
+
+              {/* One green forward action per panel — the visitor's next step */}
+              <div className="pt-1">
+                <a
+                  href={selected.ctaHref}
+                  data-testid={`explorer-cta-${selected.id}`}
+                  className="inline-flex min-h-11 items-center justify-center rounded-lg bg-[var(--studio-go)] px-4 text-sm font-semibold text-[var(--studio-go-fg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+                >
+                  {selected.ctaLabel}
+                </a>
+              </div>
             </div>
           ) : (
             <p className="text-sm text-white/55">No capabilities in this mode.</p>

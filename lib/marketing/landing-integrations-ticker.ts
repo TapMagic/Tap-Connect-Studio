@@ -12,6 +12,8 @@ export type IntegrationTickerItem = {
   whatReturns: string;
   direction: "outbound" | "bidirectional" | "inbound";
   whatTapKnows: string;
+  /** Honest setup expectation — what a business must do before this is live. */
+  setup: string;
 };
 
 export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
@@ -24,6 +26,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "Board item status and assignee when connected",
     direction: "bidirectional",
     whatTapKnows: "Handoff evidence with provenance labels",
+    setup: "Connect a monday.com account via OAuth in Studio Integrations.",
   },
   {
     id: "webhooks",
@@ -34,6 +37,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "Acknowledge / optional callback URL",
     direction: "outbound",
     whatTapKnows: "Delivery attempt status",
+    setup: "Add an endpoint URL and verify the signing secret.",
   },
   {
     id: "zapier",
@@ -44,6 +48,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "Downstream action results via Zap",
     direction: "bidirectional",
     whatTapKnows: "Trigger firing evidence — not live until configured",
+    setup: "Planned — no setup path is offered yet.",
   },
   {
     id: "manychat",
@@ -54,6 +59,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "Conversation state when connected",
     direction: "bidirectional",
     whatTapKnows: "Messaging handoff status — planned connector",
+    setup: "Planned — no setup path is offered yet.",
   },
   {
     id: "crm",
@@ -64,6 +70,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "CRM record IDs / sync acknowledgements",
     direction: "bidirectional",
     whatTapKnows: "Which CRM record received the handoff",
+    setup: "Map fields and authorize your CRM in Studio Integrations.",
   },
   {
     id: "support",
@@ -74,6 +81,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "Ticket ID when a desk is wired",
     direction: "outbound",
     whatTapKnows: "Local TapInbox path works; external desks need setup",
+    setup: "Local TapInbox works now; wiring an external desk needs its credentials.",
   },
   {
     id: "booking",
@@ -84,6 +92,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "Confirmation when a booking provider is live",
     direction: "bidirectional",
     whatTapKnows: "Booking is not claimed live without credentials",
+    setup: "Planned — booking providers connect here once available.",
   },
   {
     id: "qr-media",
@@ -94,6 +103,7 @@ export const INTEGRATION_TICKER_ITEMS: IntegrationTickerItem[] = [
     whatReturns: "Scan opens the Card",
     direction: "inbound",
     whatTapKnows: "Tap / scan evidence on the Card",
+    setup: "None — works in Studio without an external account.",
   },
 ];
 

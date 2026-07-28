@@ -13,6 +13,9 @@ export type ExplorerMaturity =
   | "planned"
   | "varies_by_plan";
 
+/** Explorer covers the Assembly capabilities plus Card and Assets stories. */
+export type ExplorerCapabilityId = AssemblyCapabilityId | "card" | "assets";
+
 export type ExplorerFeature = {
   id: string;
   name: string;
@@ -21,7 +24,7 @@ export type ExplorerFeature = {
 };
 
 export type ProductExplorerCapability = {
-  id: AssemblyCapabilityId;
+  id: ExplorerCapabilityId;
   name: string;
   zone: StudioZoneId;
   shortDescription: string;
@@ -48,6 +51,43 @@ export const EXPLORER_MATURITY_LABEL: Record<ExplorerMaturity, string> = {
 };
 
 export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
+  {
+    id: "card",
+    name: "The Card",
+    zone: "card",
+    shortDescription:
+      "A living vertical business Card — identity, actions, TapSave, and Spotlight in one relationship hub.",
+    cardRelationship:
+      "The Card is the center of the TapConnect universe. Every other capability exists to create, connect, keep, operate, or prove this relationship.",
+    customerValue:
+      "One stable place customers recognize and return to — complete and useful on its own, never a crippled trial of Studio.",
+    features: [
+      {
+        id: "card-editor",
+        name: "Card editor & preview",
+        description: "Author the Card with live preview and publish a public Card page.",
+        maturity: "works_now",
+      },
+      {
+        id: "card-actions",
+        name: "Customer actions",
+        description: "Call, save, ask, book-intent, and campaign actions surfaced on the Card.",
+        maturity: "works_now",
+      },
+      {
+        id: "card-spotlight",
+        name: "Card Spotlight",
+        description: "Surface a timely campaign on the Card without replacing the hub.",
+        maturity: "works_now",
+      },
+    ],
+    icon: "IdCard",
+    destinationHref: "/dashboard/card",
+    maturity: "works_now",
+    planAvailability: "tapconnect_core",
+    ctaLabel: "Start with the Card",
+    ctaHref: "/offer/tapconnect",
+  },
   {
     id: "brand",
     name: "Brand Kit",
@@ -76,8 +116,39 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard/assets",
     maturity: "works_now",
     planAvailability: "tapconnect_core",
-    ctaLabel: "Explore Brand Kit",
-    ctaHref: "#explorer-brand",
+    ctaLabel: "Start with the Card",
+    ctaHref: "/offer/tapconnect",
+  },
+  {
+    id: "assets",
+    name: "Assets",
+    zone: "assets",
+    shortDescription:
+      "The media and creative library behind Card, Campaign, and Email surfaces.",
+    cardRelationship:
+      "Assets supply the imagery and media the Card and its campaigns present — one library, reused everywhere the Card appears.",
+    customerValue:
+      "Upload once, reuse across surfaces, and see where each asset is used instead of re-uploading per screen.",
+    features: [
+      {
+        id: "asset-library",
+        name: "Asset library",
+        description: "Organize logos, photos, and media used by Card and Campaign surfaces.",
+        maturity: "works_now",
+      },
+      {
+        id: "asset-usage",
+        name: "Where-used context",
+        description: "See which Card and Campaign surfaces reference an asset.",
+        maturity: "local_or_test",
+      },
+    ],
+    icon: "Images",
+    destinationHref: "/dashboard/assets",
+    maturity: "works_now",
+    planAvailability: "studio",
+    ctaLabel: "See Studio around the Card",
+    ctaHref: "/offer/studio",
   },
   {
     id: "tap_points",
@@ -107,8 +178,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard/tap-points",
     maturity: "works_now",
     planAvailability: "tapconnect_core",
-    ctaLabel: "Explore Tap Points",
-    ctaHref: "#explorer-tap_points",
+    ctaLabel: "Start with the Card",
+    ctaHref: "/offer/tapconnect",
   },
   {
     id: "campaigns",
@@ -138,8 +209,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard/experiences",
     maturity: "works_now",
     planAvailability: "tapconnect_core",
-    ctaLabel: "Explore Campaigns",
-    ctaHref: "#explorer-campaigns",
+    ctaLabel: "Start with the Card",
+    ctaHref: "/offer/tapconnect",
   },
   {
     id: "tapsave",
@@ -169,8 +240,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard/card",
     maturity: "works_now",
     planAvailability: "tapconnect_core",
-    ctaLabel: "Explore TapSave",
-    ctaHref: "#explorer-tapsave",
+    ctaLabel: "Start with the Card",
+    ctaHref: "/offer/tapconnect",
   },
   {
     id: "audience",
@@ -200,8 +271,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard/audience",
     maturity: "works_now",
     planAvailability: "studio",
-    ctaLabel: "Explore Audience",
-    ctaHref: "#explorer-audience",
+    ctaLabel: "See Studio around the Card",
+    ctaHref: "/offer/studio",
   },
   {
     id: "email",
@@ -232,8 +303,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard/experiences",
     maturity: "local_or_test",
     planAvailability: "studio",
-    ctaLabel: "Explore Email",
-    ctaHref: "#explorer-email",
+    ctaLabel: "See Studio around the Card",
+    ctaHref: "/offer/studio",
   },
   {
     id: "autopilot",
@@ -263,8 +334,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard",
     maturity: "works_now",
     planAvailability: "studio",
-    ctaLabel: "Explore Autopilot",
-    ctaHref: "#explorer-autopilot",
+    ctaLabel: "See Studio around the Card",
+    ctaHref: "/offer/studio",
   },
   {
     id: "insights",
@@ -294,8 +365,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     destinationHref: "/dashboard/insights",
     maturity: "works_now",
     planAvailability: "studio",
-    ctaLabel: "Explore Insights",
-    ctaHref: "#explorer-insights",
+    ctaLabel: "See Studio around the Card",
+    ctaHref: "/offer/studio",
   },
   {
     id: "integrations",
@@ -326,8 +397,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     maturity: "after_setup",
     planAvailability: "varies_by_plan",
     crossCutting: true,
-    ctaLabel: "Explore Integrations",
-    ctaHref: "#explorer-integrations",
+    ctaLabel: "Compare offer paths",
+    ctaHref: "#offers",
   },
   {
     id: "trust_fabric",
@@ -358,8 +429,8 @@ export const PRODUCT_EXPLORER_CAPABILITIES: ProductExplorerCapability[] = [
     maturity: "works_now",
     planAvailability: "varies_by_plan",
     crossCutting: true,
-    ctaLabel: "Explore Trust",
-    ctaHref: "#explorer-trust_fabric",
+    ctaLabel: "Compare offer paths",
+    ctaHref: "#offers",
   },
 ];
 

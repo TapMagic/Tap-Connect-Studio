@@ -1,2 +1,3 @@
 - [Fusion dev DB setup](fusion-dev-db-setup.md) — DB name must match fusion+dev; use tapconnect_fusion_dev + FUSION_ env flags; fresh DB needs prisma db push, not migrate.
+- [Replit env tooling](replit-env-tooling.md) — bare shell has no node (use available-pid2-node-paths); Playwright needs Nix system deps; keep replit.nix out of git.
 - Lint baseline: `npm run lint` has ~29 pre-existing errors on this repo; compare against baseline before blaming new changes.

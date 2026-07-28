@@ -75,6 +75,32 @@ export const DEEP_DIVES: DeepDiveSection[] = [
     ctaHref: "#explorer-brand",
   },
   {
+    id: "assets-deep",
+    title: "Assets",
+    icon: "assets",
+    zone: "assets",
+    what: "Assets is the media and creative library behind every surface the Card presents — logos, photos, and media in one governed place.",
+    cardSupport:
+      "The Card and its campaigns draw imagery from Assets, so identity stays consistent everywhere the Card appears.",
+    benefit:
+      "Upload once and reuse across Card, Campaign, and Email surfaces instead of re-uploading per screen.",
+    functions: [
+      "Asset library for logos, photos, and media",
+      "Reuse across Card and Campaign surfaces",
+      "Where-used context (local/test honesty)",
+    ],
+    maturity:
+      "The library works locally. External storage providers need credentials before production media delivery.",
+    visualHint: "Asset library behind the Card's surfaces",
+    visual: {
+      kind: "illustration",
+      reason:
+        "No scrubbed Assets screenshot is captured yet — shown as an honest illustration rather than a staged fake.",
+    },
+    ctaLabel: "Explore Assets",
+    ctaHref: "#explorer-assets",
+  },
+  {
     id: "tappoints-campaigns",
     title: "Tap Points + Campaign activation",
     icon: "campaigns",
@@ -244,5 +270,11 @@ export const TIER_CARD_VIEWS = PUBLISHED_OFFERS.map((o) => ({
   priceNote: o.priceDisplayPlaceholder,
 }));
 
-/** Surfaces deferred from marketing screenshots (none currently). */
-export const DEFERRED_PRODUCT_SCREENSHOTS: Array<{ surface: string; reason: string }> = [];
+/** Surfaces deferred from marketing screenshots. */
+export const DEFERRED_PRODUCT_SCREENSHOTS: Array<{ surface: string; reason: string }> = [
+  {
+    surface: "Assets library",
+    reason:
+      "No scrubbed seed/demo Assets capture exists yet — the deep dive uses an honest illustration until one is produced.",
+  },
+];
