@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 
-/** Dedicated pricing URL → landing comparison chart */
+/** Public pricing stub — commercial journey owns offer Cards, not raw Stripe. */
 export default function PricingPage() {
-  redirect("/#compare");
+  redirect("/#offers");
 }

@@ -97,31 +97,33 @@
   --studio-status-neutral: oklch(0.7 0.02 250);
 
   /* Zone atmosphere tokens — location only, not CTA / status.
-     Strengthened for owner perceptibility while remaining restrained. */
-  --zone-home-glow: oklch(0.78 0.06 95 / 0.22);
-  --zone-home-atmosphere: oklch(0.62 0.05 95 / 0.12);
-  --zone-card-glow: oklch(0.82 0.05 95 / 0.26);
-  --zone-card-atmosphere: oklch(0.72 0.04 95 / 0.14);
-  --zone-brand-glow: oklch(0.76 0.08 25 / 0.28);
-  --zone-brand-atmosphere: oklch(0.68 0.06 35 / 0.14);
-  --zone-campaign-glow: oklch(0.66 0.11 85 / 0.3);
-  --zone-campaign-atmosphere: oklch(0.58 0.09 75 / 0.16);
-  --zone-email-glow: oklch(0.6 0.09 250 / 0.28);
-  --zone-email-atmosphere: oklch(0.52 0.07 250 / 0.14);
-  --zone-audience-glow: oklch(0.6 0.08 255 / 0.28);
-  --zone-audience-atmosphere: oklch(0.5 0.06 255 / 0.14);
-  --zone-service-glow: oklch(0.6 0.09 40 / 0.28);
-  --zone-service-atmosphere: oklch(0.48 0.07 35 / 0.14);
-  --zone-autopilot-glow: oklch(0.55 0.07 160 / 0.28);
-  --zone-autopilot-atmosphere: oklch(0.45 0.06 155 / 0.14);
-  --zone-insights-glow: oklch(0.6 0.1 195 / 0.28);
-  --zone-insights-atmosphere: oklch(0.5 0.08 195 / 0.14);
-  --zone-integrations-glow: oklch(0.64 0.09 55 / 0.28);
-  --zone-integrations-atmosphere: oklch(0.54 0.07 50 / 0.14);
-  --zone-tap-points-glow: oklch(0.64 0.1 230 / 0.3);
-  --zone-tap-points-atmosphere: oklch(0.54 0.08 220 / 0.15);
-  --zone-settings-glow: oklch(0.7 0.03 250 / 0.22);
-  --zone-settings-atmosphere: oklch(0.55 0.02 250 / 0.12);
+     Owner calibration: stronger chroma for normal-brightness distinction. */
+  --zone-home-glow: oklch(0.78 0.08 95 / 0.32);
+  --zone-home-atmosphere: oklch(0.62 0.07 95 / 0.18);
+  --zone-card-glow: oklch(0.86 0.07 95 / 0.36);
+  --zone-card-atmosphere: oklch(0.74 0.05 95 / 0.18);
+  --zone-brand-glow: oklch(0.78 0.12 28 / 0.4);
+  --zone-brand-atmosphere: oklch(0.68 0.1 35 / 0.2);
+  --zone-assets-glow: oklch(0.62 0.16 295 / 0.45);
+  --zone-assets-atmosphere: oklch(0.42 0.12 295 / 0.28);
+  --zone-campaign-glow: oklch(0.72 0.14 82 / 0.42);
+  --zone-campaign-atmosphere: oklch(0.58 0.12 78 / 0.22);
+  --zone-email-glow: oklch(0.66 0.14 248 / 0.4);
+  --zone-email-atmosphere: oklch(0.5 0.1 248 / 0.2);
+  --zone-audience-glow: oklch(0.64 0.14 275 / 0.4);
+  --zone-audience-atmosphere: oklch(0.48 0.1 275 / 0.2);
+  --zone-service-glow: oklch(0.66 0.14 42 / 0.4);
+  --zone-service-atmosphere: oklch(0.5 0.1 38 / 0.2);
+  --zone-autopilot-glow: oklch(0.62 0.13 168 / 0.4);
+  --zone-autopilot-atmosphere: oklch(0.46 0.1 165 / 0.2);
+  --zone-insights-glow: oklch(0.68 0.14 195 / 0.42);
+  --zone-insights-atmosphere: oklch(0.52 0.11 195 / 0.22);
+  --zone-integrations-glow: oklch(0.72 0.15 52 / 0.45);
+  --zone-integrations-atmosphere: oklch(0.56 0.12 50 / 0.24);
+  --zone-tap-points-glow: oklch(0.72 0.15 225 / 0.42);
+  --zone-tap-points-atmosphere: oklch(0.56 0.12 220 / 0.22);
+  --zone-settings-glow: oklch(0.74 0.05 250 / 0.3);
+  --zone-settings-atmosphere: oklch(0.55 0.03 250 / 0.16);
 }
 
 @layer base {
@@ -160,13 +162,13 @@
   }
 }
 
-/* Brand / Creative zone — location atmosphere only (not CTA hierarchy) */
+/* Brand / Creative zone — dusty blush / champagne (identity) */
 .brand-zone-glow,
 .zone-brand {
   position: relative;
   box-shadow:
-    inset 3px 0 0 0 oklch(0.76 0.08 25 / 0.55),
-    inset 0 0 100px -20px var(--zone-brand-glow);
+    inset 3px 0 0 0 oklch(0.82 0.12 30 / 0.75),
+    inset 0 0 100px -16px var(--zone-brand-glow);
   background-image: radial-gradient(
     ellipse 85% 55% at 50% 0%,
     var(--zone-brand-atmosphere),
@@ -174,13 +176,33 @@
   );
 }
 
+/* Assets — deep indigo / amethyst / platinum (media library) */
+.assets-zone-glow,
+.zone-assets {
+  position: relative;
+  box-shadow:
+    inset 3px 0 0 0 oklch(0.78 0.14 295 / 0.85),
+    inset 0 0 110px -14px var(--zone-assets-glow);
+  background-image:
+    radial-gradient(
+      ellipse 85% 55% at 50% 0%,
+      var(--zone-assets-atmosphere),
+      transparent 72%
+    ),
+    linear-gradient(
+      160deg,
+      oklch(0.28 0.08 295 / 0.35),
+      transparent 55%
+    );
+}
+
 /* Card / Relationship hub — graphite / ivory / champagne atmosphere */
 .card-zone-glow,
 .zone-card {
   position: relative;
   box-shadow:
-    inset 3px 0 0 0 oklch(0.82 0.05 95 / 0.5),
-    inset 0 0 100px -20px var(--zone-card-glow);
+    inset 3px 0 0 0 oklch(0.9 0.06 95 / 0.7),
+    inset 0 0 100px -16px var(--zone-card-glow);
   background-image: radial-gradient(
     ellipse 75% 50% at 50% 0%,
     var(--zone-card-atmosphere),
@@ -325,18 +347,19 @@
 }
 
 /* Zone label / rail accents — text + icon only; never replace green GO */
-.zone-label-card { color: oklch(0.9 0.03 95); }
-.zone-label-brand { color: oklch(0.86 0.04 25); }
-.zone-label-campaign { color: oklch(0.82 0.05 85); }
-.zone-label-email { color: oklch(0.82 0.04 250); }
-.zone-label-audience { color: oklch(0.8 0.04 255); }
-.zone-label-service { color: oklch(0.8 0.04 40); }
-.zone-label-autopilot { color: oklch(0.78 0.04 160); }
-.zone-label-insights { color: oklch(0.8 0.04 195); }
-.zone-label-integrations { color: oklch(0.82 0.04 55); }
-.zone-label-tap-points { color: oklch(0.82 0.04 230); }
-.zone-label-settings { color: oklch(0.84 0.01 250); }
-.zone-label-home { color: oklch(0.88 0.03 95); }
+.zone-label-card { color: oklch(0.94 0.03 95); }
+.zone-label-brand { color: oklch(0.9 0.07 28); }
+.zone-label-assets { color: oklch(0.86 0.1 295); }
+.zone-label-campaign { color: oklch(0.88 0.09 82); }
+.zone-label-email { color: oklch(0.88 0.08 248); }
+.zone-label-audience { color: oklch(0.86 0.09 275); }
+.zone-label-service { color: oklch(0.88 0.09 42); }
+.zone-label-autopilot { color: oklch(0.86 0.08 168); }
+.zone-label-insights { color: oklch(0.88 0.09 195); }
+.zone-label-integrations { color: oklch(0.9 0.09 52); }
+.zone-label-tap-points { color: oklch(0.9 0.09 225); }
+.zone-label-settings { color: oklch(0.9 0.02 250); }
+.zone-label-home { color: oklch(0.92 0.04 95); }
 
 /* Nav active: calm green GO indicator only — not rainbow zone fills */
 .studio-nav-active {
@@ -345,14 +368,21 @@
   box-shadow: inset 3px 0 0 0 var(--studio-go);
 }
 
+/* Brief destination illumination during Studio Assembly settle */
+[data-assembly-lit="1"] {
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--zone-card-glow, oklch(0.78 0.04 95)) 55%, transparent);
+}
+
 @media (prefers-reduced-motion: reduce) {
   .brand-zone-glow,
   .card-zone-glow,
   .campaign-zone-glow,
   .email-zone-glow,
+  .assets-zone-glow,
   .zone-home,
   .zone-card,
   .zone-brand,
+  .zone-assets,
   .zone-campaign,
   .zone-email,
   .zone-audience,

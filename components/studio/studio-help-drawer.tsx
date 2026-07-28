@@ -82,6 +82,14 @@ export function StudioHelpDrawer() {
           <p className="mt-3 border-t border-white/8 pt-2 text-[10px] text-white/35">
             Workspace settings and recovery remain under Settings.
           </p>
+          <a
+            href="/dashboard?assembly=replay"
+            data-testid="studio-assembly-help-replay"
+            className="mt-2 inline-flex min-h-11 items-center text-xs font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            onClick={() => setOpen(false)}
+          >
+            Replay Studio Assembly
+          </a>
         </div>
       ) : null}
     </div>

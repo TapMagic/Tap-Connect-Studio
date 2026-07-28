@@ -3,21 +3,9 @@
 import Link from "next/link";
 import { useEffect, useId, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
-import {
-  BarChart3,
-  ChevronDown,
-  ChevronLeft,
-  ChevronRight,
-  LayoutDashboard,
-  Layers3,
-  Menu,
-  Nfc,
-  Palette,
-  Settings,
-  Users,
-  X,
-} from "lucide-react";
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
+import { TapConnectIcon } from "@/components/fusion/icons/tapconnect-icons";
+import { NAV_DESTINATION_ICON } from "@/lib/fusion/icons/registry";
 import { cn } from "@/lib/utils";
 import {
   STUDIO_NAV,
@@ -30,18 +18,15 @@ import {
   type DisplayReadiness,
 } from "@/lib/fusion/readiness/display-status";
 import type { ResolveContext } from "@/lib/fusion/features/resolve";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Menu,
+  X,
+} from "lucide-react";
 
 const NAV_PREF_KEY = "tapconnect.studio.navExpanded";
-
-const ICONS = {
-  home: LayoutDashboard,
-  experiences: Layers3,
-  tap_points: Nfc,
-  audience: Users,
-  insights: BarChart3,
-  assets: Palette,
-  settings: Settings,
-} as const;
 
 function displayTone(d: DisplayReadiness) {
   switch (d) {
@@ -176,7 +161,7 @@ export function DashboardNav({
         >
           {STUDIO_NAV.map((item) => {
             const active = destination.id === item.id;
-            const Icon = ICONS[item.id as keyof typeof ICONS] ?? LayoutDashboard;
+            const iconId = NAV_DESTINATION_ICON[item.id] ?? "home";
             return (
               <Link
                 key={item.id}
@@ -190,9 +175,15 @@ export function DashboardNav({
                     : "text-white/55 hover:bg-white/5 hover:text-white"
                 )}
                 data-nav-zone={item.id}
+                data-assembly-dest={item.id}
+                data-testid={`nav-icon-${item.id}`}
                 {...(active ? { "aria-current": "page" as const } : {})}
               >
-                <Icon className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+                <TapConnectIcon
+                  id={iconId}
+                  className="h-4 w-4 shrink-0 opacity-90"
+                  decorative
+                />
                 {expanded ? <span className="truncate">{item.label}</span> : (
                   <span className="sr-only">{item.label}</span>
                 )}
@@ -368,7 +359,7 @@ export function MobileDashboardNav({
         >
           {STUDIO_NAV.map((item) => {
             const active = destination.id === item.id;
-            const Icon = ICONS[item.id as keyof typeof ICONS] ?? LayoutDashboard;
+            const iconId = NAV_DESTINATION_ICON[item.id] ?? "home";
             return (
               <Link
                 key={item.id}
@@ -380,9 +371,10 @@ export function MobileDashboardNav({
                     : "bg-white/5 text-white/75"
                 )}
                 onClick={() => setDrawerOpen(false)}
+                data-assembly-dest={item.id}
                 {...(active ? { "aria-current": "page" as const } : {})}
               >
-                <Icon className="h-4 w-4 shrink-0" aria-hidden />
+                <TapConnectIcon id={iconId} className="h-4 w-4 shrink-0" decorative />
                 <span>
                   <span className="block">{item.label}</span>
                   <span className="block text-[11px] font-normal opacity-70">

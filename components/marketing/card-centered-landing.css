@@ -1,0 +1,150 @@
+/* Card-centered landing — cinematic pullback reveal continuity */
+
+.landing-root {
+  --landing-reveal-blur: 0px;
+  --landing-reveal-dim: 1;
+  --landing-chrome-opacity: 1;
+}
+
+.landing-root[data-landing-reveal="opening"] {
+  --landing-reveal-blur: 7px;
+  --landing-reveal-dim: 0.42;
+  --landing-chrome-opacity: 0.55;
+}
+
+.landing-root[data-landing-reveal="pullback"] {
+  --landing-reveal-blur: 2.5px;
+  --landing-reveal-dim: 0.78;
+  --landing-chrome-opacity: 0.88;
+}
+
+.landing-root[data-landing-reveal="settled"] {
+  --landing-reveal-blur: 0px;
+  --landing-reveal-dim: 1;
+  --landing-chrome-opacity: 1;
+}
+
+.landing-chrome {
+  opacity: var(--landing-chrome-opacity);
+  filter: blur(var(--landing-reveal-blur)) brightness(var(--landing-reveal-dim));
+  transition:
+    opacity 1.4s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: filter, opacity;
+}
+
+.landing-root[data-landing-reveal="settled"] .landing-chrome {
+  filter: none;
+}
+
+.landing-assembly-shell {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  transition: margin 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-root[data-landing-reveal="opening"] .landing-assembly-shell {
+  margin-inline: 0;
+}
+
+.landing-root[data-landing-reveal="settled"] .landing-assembly-shell,
+.landing-root[data-landing-reveal="pullback"] .landing-assembly-shell {
+  margin-inline: auto;
+  max-width: 72rem;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .landing-root[data-landing-reveal="settled"] .landing-assembly-shell,
+  .landing-root[data-landing-reveal="pullback"] .landing-assembly-shell {
+    padding-inline: 1.5rem;
+  }
+}
+
+.landing-hero-grid {
+  display: grid;
+  gap: 1.5rem;
+  align-items: center;
+  /* Reserve opening-stage height so pullback does not collapse the page (CLS). */
+  min-height: 92svh;
+}
+
+.landing-root[data-landing-reveal="opening"] .landing-hero-grid {
+  position: relative;
+  grid-template-columns: 1fr;
+  min-height: 100svh;
+  gap: 0;
+}
+
+@media (min-width: 1024px) {
+  .landing-root[data-landing-reveal="pullback"] .landing-hero-grid,
+  .landing-root[data-landing-reveal="settled"] .landing-hero-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr);
+  }
+}
+
+.landing-hero-copy {
+  max-width: 36rem;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .landing-hero-copy {
+    padding-inline: 1.5rem;
+  }
+}
+
+/* Opening: copy overlays the stage — assembly owns the viewport; Card stays fully in-frame */
+.landing-root[data-landing-reveal="opening"] .landing-hero-copy {
+  position: absolute;
+  z-index: 4;
+  left: 0.75rem;
+  top: max(0.75rem, env(safe-area-inset-top, 0px));
+  max-width: min(22rem, calc(100% - 7rem));
+  max-height: 28svh;
+  overflow: hidden;
+  padding: 0.75rem 1rem;
+  pointer-events: none;
+}
+
+.landing-root[data-landing-reveal="opening"] .landing-hero-copy a,
+.landing-root[data-landing-reveal="opening"] .landing-hero-copy button {
+  pointer-events: auto;
+}
+
+.landing-root[data-landing-reveal="opening"] .landing-assembly-shell {
+  min-height: 100svh;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-block: max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.landing-deep-shot {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid oklch(0.7 0.02 95 / 0.18);
+  background: oklch(0.12 0.02 260);
+}
+
+.landing-deep-shot img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-chrome,
+  .landing-assembly-shell {
+    transition: opacity 0.2s ease !important;
+  }
+
+  .landing-chrome {
+    filter: none !important;
+    opacity: 1 !important;
+  }
+}

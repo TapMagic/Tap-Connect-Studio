@@ -1,9 +1,11 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { ArrowRight, AlertTriangle, Radio, CheckCircle2 } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { OutcomeRecipes } from "@/components/studio/outcome-recipes";
 import { HomeCardCommandCenter } from "@/components/studio/home-card-command-center";
+import { StudioEntryAssembly } from "@/components/studio/studio-entry-assembly";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
 import { requireBusiness } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/services/devices";
@@ -16,6 +18,7 @@ import { listDecisionQueueItems } from "@/lib/fusion/studio/operator-alerts";
 import { CREATE_RECIPES } from "@/lib/fusion/studio/create-recipes";
 import { loadCardRelationshipContext } from "@/lib/fusion/studio/load-card-relationship";
 import { getEmptyState } from "@/lib/fusion/studio/empty-states";
+import type { AssemblyCardSnapshot } from "@/lib/fusion/studio-assembly";
 
 export const dynamic = "force-dynamic";
 
@@ -83,8 +86,23 @@ export default async function DashboardPage() {
   const onboardingSteps = setup.steps;
   const startRecipes = CREATE_RECIPES.filter((r) => r.group === "Start");
 
+  const assemblyCard: AssemblyCardSnapshot = {
+    cardName: card.cardName,
+    publicStateLabel: card.publicStateLabel,
+    tapPointHealthy: card.tapPointHealthy,
+    tapPointCount: card.tapPointCount,
+    spotlightTitle: card.spotlightTitle,
+    tapSaveEnabled: card.tapSaveEnabled,
+    nextActionLabel: card.nextAction.label,
+    proofSummary: `${card.proof.taps} taps · ${card.proof.saves} saves · ${card.proof.contacts} contacts`,
+    safeForPublicAnalytics: true,
+  };
+
   return (
     <div className="zone-home space-y-10 p-5 lg:p-8" data-testid="studio-home-outcomes">
+      <Suspense fallback={null}>
+        <StudioEntryAssembly card={assemblyCard} />
+      </Suspense>
       <header className="space-y-1">
         <p className="zone-label-home text-[11px] font-semibold uppercase tracking-[0.2em]">
           Home · {business.name}

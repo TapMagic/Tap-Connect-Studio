@@ -1,0 +1,829 @@
+/* Studio Assembly — CSS-first choreography. Zone accents via existing --zone-* tokens. */
+
+.sa-root {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: oklch(0.92 0.02 95);
+  background: oklch(0.12 0.02 260);
+}
+
+.sa-root[data-mode="LANDING_FULL"] {
+  min-height: min(88vh, 820px);
+  --sa-stage-scale: 1;
+  --sa-card-scale: 1.08;
+  --sa-orbit-scale: 1.15;
+  transition:
+    min-height 1.6s cubic-bezier(0.22, 1, 0.36, 1),
+    border-radius 1.2s ease;
+}
+
+/* Extreme close-up — nearly full viewport before pullback */
+.sa-root[data-mode="LANDING_FULL"][data-cinematic="opening"] {
+  min-height: min(92svh, 900px);
+  border-radius: 0;
+}
+
+.sa-root[data-mode="LANDING_FULL"][data-cinematic="pullback"] {
+  min-height: min(72vh, 720px);
+  --sa-card-scale: 1.04;
+  --sa-orbit-scale: 1.05;
+}
+
+.sa-root[data-mode="LANDING_FULL"][data-cinematic="settled"] {
+  min-height: min(620px, 78svh);
+  --sa-card-scale: 1;
+  --sa-orbit-scale: 1;
+  border-radius: 1.25rem;
+  border: 1px solid oklch(0.7 0.02 95 / 0.18);
+  overflow: visible;
+}
+
+.sa-root[data-mode="FIRST_STUDIO_ENTRY"],
+.sa-root[data-mode="EVERYDAY_ENTRY"] {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  min-height: 100dvh;
+  background: oklch(0.1 0.015 260 / 0.96);
+}
+
+.sa-stage {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: inherit;
+  padding: 1.5rem 1rem 4rem;
+}
+
+.sa-trust-underlay {
+  position: absolute;
+  inset: 12% 8% 18%;
+  border-radius: 2rem;
+  border: 1px solid oklch(0.4 0.02 250 / 0.25);
+  background: radial-gradient(
+    ellipse at 50% 80%,
+    oklch(0.22 0.02 250 / 0.35),
+    transparent 70%
+  );
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.sa-root[data-phase="capability_demo"] .sa-trust-underlay,
+.sa-root[data-phase="crescendo"] .sa-trust-underlay,
+.sa-root[data-phase="full_value_frame"] .sa-trust-underlay,
+.sa-root[data-phase="pullback"] .sa-trust-underlay,
+.sa-root[data-phase="icons_settle"] .sa-trust-underlay,
+.sa-root[data-phase="complete"] .sa-trust-underlay,
+.sa-root[data-phase="skipped"] .sa-trust-underlay {
+  opacity: 0.85;
+}
+
+.sa-card-glow {
+  position: absolute;
+  width: min(420px, 70vw);
+  height: min(420px, 70vw);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    oklch(0.78 0.06 95 / 0.35),
+    oklch(0.5 0.03 95 / 0.08) 45%,
+    transparent 70%
+  );
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+  pointer-events: none;
+}
+
+.sa-root[data-phase="card_glow"] .sa-card-glow,
+.sa-root[data-phase="card_resolve"] .sa-card-glow,
+.sa-root[data-phase="tap_pulse"] .sa-card-glow,
+.sa-root[data-phase="capabilities_emerge"] .sa-card-glow,
+.sa-root[data-phase="capability_demo"] .sa-card-glow,
+.sa-root[data-phase="crescendo"] .sa-card-glow,
+.sa-root[data-phase="full_value_frame"] .sa-card-glow,
+.sa-root[data-phase="pullback"] .sa-card-glow,
+.sa-root[data-phase="icons_settle"] .sa-card-glow,
+.sa-root[data-phase="card_forward"] .sa-card-glow,
+.sa-root[data-phase="card_unfold"] .sa-card-glow,
+.sa-root[data-phase="complete"] .sa-card-glow,
+.sa-root[data-phase="skipped"] .sa-card-glow {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sa-card {
+  position: relative;
+  z-index: 3;
+  /* Vertical profile Card — portrait silhouette, not a horizontal slab */
+  width: min(210px, 46vw);
+  aspect-ratio: 5 / 8.2;
+  max-height: min(68svh, 420px);
+  border-radius: 1.35rem;
+  border: 1.5px solid oklch(0.82 0.05 95 / 0.45);
+  background:
+    linear-gradient(165deg, oklch(0.3 0.025 95 / 0.95), oklch(0.15 0.015 260 / 0.98)),
+    oklch(0.18 0.02 95);
+  box-shadow:
+    0 0 0 1px oklch(0.9 0.03 95 / 0.12),
+    inset 0 1px 0 oklch(0.98 0.02 95 / 0.16),
+    0 0 28px oklch(0.82 0.06 95 / 0.22),
+    0 24px 60px oklch(0.05 0.02 260 / 0.55);
+  padding: 0.95rem 0.85rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  opacity: 0;
+  transform: translateY(12px) scale(0.96);
+  transition:
+    opacity 0.55s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.5s ease,
+    width 1.5s cubic-bezier(0.22, 1, 0.36, 1),
+    max-height 1.5s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+}
+
+.sa-root[data-mode="LANDING_FULL"] .sa-card {
+  width: min(200px, 42vw);
+  max-height: min(64svh, 400px);
+}
+
+.sa-root[data-mode="LANDING_FULL"][data-cinematic="settled"] .sa-card,
+.sa-root[data-mode="LANDING_FULL"][data-phase="skipped"] .sa-card {
+  width: min(180px, 38vw);
+  max-height: min(48svh, 320px);
+}
+
+.sa-root[data-mode="LANDING_FULL"][data-cinematic="opening"] {
+  padding-block: max(0.5rem, env(safe-area-inset-top, 0px))
+    max(0.75rem, env(safe-area-inset-bottom, 0px));
+}
+
+.sa-root[data-mode="LANDING_FULL"][data-cinematic="settled"] .sa-stage {
+  overflow: visible;
+  padding-bottom: 5rem;
+}
+
+.sa-card-avatar {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.85rem;
+  display: grid;
+  place-items: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  color: oklch(0.96 0.02 95);
+  background: linear-gradient(145deg, oklch(0.45 0.04 95), oklch(0.22 0.02 260));
+  border: 1px solid oklch(0.85 0.04 95 / 0.35);
+  margin-bottom: 0.55rem;
+  flex-shrink: 0;
+}
+
+.sa-card-descriptor {
+  margin: 0 0 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.35;
+  color: oklch(0.8 0.02 95 / 0.85);
+}
+
+.sa-tap-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2rem;
+  margin: 0 0 0.55rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  border: 1px solid oklch(0.7 0.1 220 / 0.45);
+  background: oklch(0.2 0.03 220 / 0.45);
+  color: oklch(0.88 0.04 220);
+  font-size: 0.68rem;
+  font-weight: 550;
+}
+
+.sa-tap-cue-icon {
+  width: 1.1rem;
+  height: 1.1rem;
+  flex-shrink: 0;
+}
+
+.sa-card-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.35rem;
+  margin-top: auto;
+  padding-top: 0.45rem;
+}
+
+.sa-card-actions span {
+  display: inline-flex;
+  min-height: 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.5rem;
+  border: 1px solid oklch(0.75 0.02 95 / 0.22);
+  background: oklch(0.18 0.02 260 / 0.65);
+  font-size: 0.62rem;
+  color: oklch(0.9 0.02 95 / 0.9);
+}
+
+.sa-card-actions span[data-primary="true"] {
+  border-color: oklch(0.78 0.1 145 / 0.4);
+  color: oklch(0.9 0.06 145);
+}
+
+
+.sa-root[data-phase="card_resolve"] .sa-card,
+.sa-root[data-phase="tap_pulse"] .sa-card,
+.sa-root[data-phase="capabilities_emerge"] .sa-card,
+.sa-root[data-phase="capability_demo"] .sa-card,
+.sa-root[data-phase="crescendo"] .sa-card,
+.sa-root[data-phase="full_value_frame"] .sa-card,
+.sa-root[data-phase="pullback"] .sa-card,
+.sa-root[data-phase="icons_settle"] .sa-card,
+.sa-root[data-phase="complete"] .sa-card,
+.sa-root[data-phase="skipped"] .sa-card {
+  opacity: 1;
+  transform: translateY(0) scale(var(--sa-card-scale, 1));
+}
+
+.sa-root[data-phase="card_forward"] .sa-card,
+.sa-root[data-phase="card_unfold"] .sa-card {
+  opacity: 1;
+  transform: translateY(0) scale(1.12);
+  box-shadow:
+    0 0 40px oklch(0.78 0.06 95 / 0.25),
+    0 30px 80px oklch(0.05 0.02 260 / 0.6);
+}
+
+.sa-root[data-phase="card_unfold"] .sa-card {
+  opacity: 0.35;
+  transform: translateY(-8%) scale(1.2);
+}
+
+.sa-card-kicker {
+  font-size: 0.65rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: oklch(0.82 0.04 95 / 0.75);
+  margin-bottom: 0.35rem;
+}
+
+.sa-card-name {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: oklch(0.96 0.01 95);
+  margin: 0 0 0.5rem;
+}
+
+.sa-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sa-card-meta li {
+  font-size: 0.7rem;
+  color: oklch(0.78 0.02 95 / 0.75);
+  border: 1px solid oklch(0.7 0.02 95 / 0.18);
+  border-radius: 0.4rem;
+  padding: 0.2rem 0.45rem;
+}
+
+.sa-pulse-ring {
+  position: absolute;
+  z-index: 2;
+  width: min(320px, 82vw);
+  height: min(320px, 82vw);
+  border-radius: 50%;
+  border: 1px solid oklch(0.7 0.08 220 / 0.45);
+  opacity: 0;
+  transform: scale(0.7);
+  pointer-events: none;
+}
+
+.sa-root[data-phase="tap_pulse"] .sa-pulse-ring {
+  animation: sa-pulse 0.85s ease-out 1;
+}
+
+@keyframes sa-pulse {
+  0% {
+    opacity: 0.7;
+    transform: scale(0.72);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.25);
+  }
+}
+
+.sa-orbit {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+
+.sa-capability {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 5.5rem;
+  margin: -1.5rem 0 0 -2.75rem;
+  opacity: 0;
+  transform: translate(0, 0) scale(0.6);
+  transition:
+    opacity 0.45s ease,
+    transform 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+  pointer-events: auto;
+}
+
+.sa-capability[data-visible="true"] {
+  opacity: 1;
+}
+
+.sa-capability-icon {
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 0.85rem;
+  border: 1px solid color-mix(in oklch, var(--sa-zone, oklch(0.7 0.04 95)) 45%, transparent);
+  background: color-mix(in oklch, var(--sa-zone, oklch(0.7 0.04 95)) 18%, oklch(0.14 0.02 260));
+  color: var(--sa-zone, oklch(0.85 0.04 95));
+}
+
+.sa-capability-label {
+  font-size: 0.68rem;
+  text-align: center;
+  line-height: 1.2;
+  color: oklch(0.88 0.02 95 / 0.9);
+  text-shadow: 0 1px 8px oklch(0.05 0.02 260 / 0.8);
+}
+
+.sa-capability[data-cross="true"] .sa-capability-icon {
+  border-style: dashed;
+  opacity: 0.9;
+}
+
+.sa-capability[data-id="trust_fabric"] {
+  /* underlay peer — not equal orbital weight */
+  z-index: 1;
+}
+
+.sa-frame {
+  position: absolute;
+  z-index: 5;
+  bottom: 12%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(520px, 92vw);
+  border-radius: 1rem;
+  border: 1px solid oklch(0.7 0.04 95 / 0.25);
+  background: oklch(0.14 0.02 260 / 0.88);
+  padding: 0.85rem 1rem;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  backdrop-filter: blur(8px);
+}
+
+.sa-root[data-phase="full_value_frame"] .sa-frame,
+.sa-root[data-phase="pullback"] .sa-frame,
+.sa-root[data-phase="icons_settle"] .sa-frame,
+.sa-root[data-phase="complete"] .sa-frame {
+  opacity: 1;
+}
+
+.sa-frame-title {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: oklch(0.94 0.02 95);
+}
+
+.sa-frame-note {
+  margin: 0 0 0.55rem;
+  font-size: 0.68rem;
+  color: oklch(0.75 0.02 95 / 0.75);
+}
+
+.sa-frame-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sa-frame-items li {
+  font-size: 0.65rem;
+  padding: 0.25rem 0.45rem;
+  border-radius: 0.35rem;
+  border: 1px solid oklch(0.55 0.02 95 / 0.3);
+  color: oklch(0.8 0.02 95 / 0.85);
+}
+
+.sa-frame-items li[data-active="true"] {
+  border-color: oklch(0.7 0.05 95 / 0.45);
+  background: oklch(0.7 0.04 95 / 0.1);
+}
+
+.sa-controls {
+  position: absolute;
+  z-index: 6;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.sa-controls button {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid oklch(0.7 0.02 95 / 0.28);
+  background: oklch(0.16 0.02 260 / 0.85);
+  color: oklch(0.92 0.02 95);
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.sa-controls button:focus-visible {
+  outline: 2px solid var(--studio-go, oklch(0.84 0.24 147));
+  outline-offset: 2px;
+}
+
+.sa-controls button.sa-go {
+  border-color: color-mix(in oklch, var(--studio-go, oklch(0.84 0.24 147)) 50%, transparent);
+  background: color-mix(in oklch, var(--studio-go, oklch(0.84 0.24 147)) 18%, transparent);
+  color: var(--studio-go, oklch(0.84 0.24 147));
+}
+
+.sa-sr-status {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sa-next-action {
+  position: absolute;
+  z-index: 5;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 0.45s ease 0.15s;
+}
+
+.sa-root[data-phase="card_unfold"] .sa-next-action,
+.sa-root[data-phase="complete"] .sa-next-action {
+  opacity: 1;
+}
+
+.sa-next-action span {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  padding: 0.5rem 1rem;
+  border-radius: 0.65rem;
+  background: var(--studio-go, oklch(0.84 0.24 147));
+  color: var(--studio-go-fg, oklch(0.18 0.04 147));
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Phone: keep close-up orbit geometry during opening; listify after settle */
+@media (max-width: 767px) {
+  .sa-capability-label {
+    font-size: 0.62rem;
+  }
+
+  .sa-root[data-layout="phone"][data-cinematic="opening"] .sa-orbit,
+  .sa-root[data-layout="phone"][data-cinematic="pullback"] .sa-orbit {
+    position: absolute;
+    inset: 0;
+    display: block;
+    pointer-events: none;
+  }
+
+  .sa-root[data-layout="phone"][data-cinematic="settled"] .sa-orbit,
+  .sa-root[data-layout="phone"][data-phase="skipped"] .sa-orbit,
+  .sa-root[data-layout="phone"][data-phase="complete"] .sa-orbit,
+  .sa-root[data-layout="phone"][data-phase="icons_settle"] .sa-orbit {
+    position: relative;
+    inset: auto;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+    width: min(100%, 360px);
+    margin-top: 1rem;
+    pointer-events: auto;
+  }
+
+  .sa-root[data-layout="phone"][data-cinematic="settled"] .sa-capability,
+  .sa-root[data-layout="phone"][data-phase="skipped"] .sa-capability,
+  .sa-root[data-layout="phone"][data-phase="complete"] .sa-capability,
+  .sa-root[data-layout="phone"][data-phase="icons_settle"] .sa-capability {
+    position: relative;
+    left: auto;
+    top: auto;
+    margin: 0;
+    width: auto;
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 0.75rem;
+    min-height: 44px;
+    transform: none !important;
+  }
+
+  .sa-root[data-layout="phone"] .sa-frame {
+    position: relative;
+    bottom: auto;
+    left: auto;
+    transform: none;
+    margin-top: 1rem;
+    width: 100%;
+  }
+}
+
+/* Meaningful capability demonstration overlays */
+.sa-demo-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+.sa-demo-signal {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 2px;
+  height: min(28vh, 160px);
+  margin-left: -1px;
+  margin-top: calc(min(28vh, 160px) * -1);
+  background: linear-gradient(
+    to top,
+    oklch(0.75 0.12 220 / 0.85),
+    transparent
+  );
+  opacity: 0;
+  transform-origin: bottom center;
+  transform: scaleY(0.2);
+  transition: opacity 0.35s ease, transform 0.45s ease;
+}
+
+.sa-root[data-demo-beat="tap_points"] .sa-demo-signal {
+  opacity: 1;
+  transform: scaleY(1);
+}
+
+.sa-demo-spotlight {
+  position: absolute;
+  left: 50%;
+  top: 42%;
+  width: min(220px, 55vw);
+  height: 2.5rem;
+  margin-left: calc(min(220px, 55vw) / -2);
+  border-radius: 0.55rem;
+  border: 1px solid oklch(0.78 0.08 85 / 0.55);
+  background: linear-gradient(
+    90deg,
+    oklch(0.72 0.1 85 / 0.15),
+    oklch(0.78 0.08 85 / 0.35)
+  );
+  opacity: 0;
+  transform: translateY(8px) scale(0.92);
+  transition: opacity 0.35s ease, transform 0.4s ease;
+  box-shadow: 0 0 24px oklch(0.78 0.08 85 / 0.25);
+}
+
+.sa-root[data-demo-beat="campaigns"] .sa-demo-spotlight,
+.sa-card[data-spotlight="true"] .sa-demo-spotlight {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+
+.sa-card[data-spotlight="true"] {
+  box-shadow:
+    0 0 0 1px oklch(0.78 0.08 85 / 0.35),
+    0 0 36px oklch(0.78 0.08 85 / 0.28),
+    0 24px 60px oklch(0.05 0.02 260 / 0.55);
+}
+
+.sa-card[data-tapsave="true"] {
+  outline: 2px solid oklch(0.78 0.1 145 / 0.45);
+  outline-offset: 6px;
+}
+
+.sa-demo-retain {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(360px, 78vw);
+  height: min(360px, 78vw);
+  margin: calc(min(360px, 78vw) / -2) 0 0 calc(min(360px, 78vw) / -2);
+  border-radius: 50%;
+  border: 2px solid oklch(0.78 0.1 145 / 0.45);
+  box-shadow: inset 0 0 40px oklch(0.78 0.1 145 / 0.18);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.4s ease, transform 0.45s ease;
+}
+
+.sa-root[data-demo-beat="tapsave"] .sa-demo-retain {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.sa-demo-bridge {
+  position: absolute;
+  right: 8%;
+  top: 48%;
+  width: min(28vw, 160px);
+  height: 3px;
+  border-radius: 999px;
+  background: linear-gradient(
+    90deg,
+    oklch(0.7 0.08 55 / 0.2),
+    oklch(0.72 0.1 55 / 0.85)
+  );
+  opacity: 0;
+  transform: scaleX(0.2);
+  transform-origin: left center;
+  transition: opacity 0.35s ease, transform 0.5s ease;
+}
+
+.sa-root[data-demo-beat="integrations"] .sa-demo-bridge {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.sa-demo-proof {
+  position: absolute;
+  left: 50%;
+  bottom: 18%;
+  transform: translateX(-50%) scale(0.9);
+  min-height: 44px;
+  padding: 0.45rem 0.85rem;
+  border-radius: 0.65rem;
+  border: 1px solid oklch(0.7 0.05 95 / 0.4);
+  background: oklch(0.16 0.02 260 / 0.9);
+  color: oklch(0.92 0.02 95);
+  font-size: 0.75rem;
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.4s ease;
+}
+
+.sa-root[data-demo-beat="insights"] .sa-demo-proof,
+.sa-card[data-proof="true"] ~ .sa-demo-layer .sa-demo-proof {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}
+
+.sa-demo-paths {
+  position: absolute;
+  inset: 22% 18%;
+  border-radius: 1.5rem;
+  border: 1px dashed oklch(0.7 0.04 280 / 0.35);
+  opacity: 0;
+  transition: opacity 0.4s ease, border-color 0.4s ease;
+}
+
+.sa-root[data-demo-beat="autopilot"] .sa-demo-paths {
+  opacity: 1;
+  border-color: oklch(0.78 0.08 280 / 0.55);
+  border-style: solid;
+}
+
+.sa-demo-route {
+  position: absolute;
+  left: 18%;
+  right: 18%;
+  top: 28%;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    oklch(0.7 0.06 250 / 0.2),
+    oklch(0.78 0.08 250 / 0.8),
+    oklch(0.7 0.06 250 / 0.2)
+  );
+  opacity: 0;
+  transform: scaleX(0.3);
+  transition: opacity 0.35s ease, transform 0.5s ease;
+}
+
+.sa-root[data-demo-beat="email"] .sa-demo-route {
+  opacity: 1;
+  transform: scaleX(1);
+}
+
+.sa-demo-relationship {
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  transform: translate(-50%, 0) scale(0.9);
+  display: flex;
+  gap: 0.35rem;
+  opacity: 0;
+  transition: opacity 0.35s ease, transform 0.4s ease;
+}
+
+.sa-demo-relationship span {
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+  background: oklch(0.75 0.08 200 / 0.85);
+}
+
+.sa-root[data-demo-beat="audience"] .sa-demo-relationship {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+/* Crescendo — calm lift, light paths, no continuous orbit */
+.sa-root[data-phase="crescendo"] .sa-capability[data-visible="true"] {
+  filter: brightness(1.08);
+}
+
+.sa-root[data-phase="crescendo"] .sa-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  border: 1px solid oklch(0.85 0.04 95 / 0.18);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.sa-root[data-phase="crescendo"] .sa-capability,
+.sa-root[data-phase="full_value_frame"] .sa-capability,
+.sa-root[data-phase="pullback"] .sa-capability,
+.sa-root[data-phase="icons_settle"] .sa-capability,
+.sa-root[data-phase="complete"] .sa-capability {
+  animation: none;
+}
+
+.sa-capability[data-active-demo="true"] .sa-capability-icon {
+  box-shadow: 0 0 18px color-mix(in oklch, var(--sa-zone) 45%, transparent);
+  transform: scale(1.08);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-card-glow,
+  .sa-card,
+  .sa-capability,
+  .sa-frame,
+  .sa-trust-underlay,
+  .sa-next-action,
+  .sa-demo-signal,
+  .sa-demo-spotlight,
+  .sa-demo-retain,
+  .sa-demo-bridge,
+  .sa-demo-proof,
+  .sa-demo-paths,
+  .sa-demo-route,
+  .sa-demo-relationship {
+    transition: opacity 0.2s ease !important;
+    animation: none !important;
+  }
+
+  .sa-root[data-phase="tap_pulse"] .sa-pulse-ring {
+    animation: none;
+    opacity: 0.4;
+    transform: scale(1);
+  }
+
+  .sa-capability {
+    transform: none !important;
+  }
+
+  .sa-root[data-phase="card_forward"] .sa-card,
+  .sa-root[data-phase="card_unfold"] .sa-card {
+    transform: none;
+  }
+}

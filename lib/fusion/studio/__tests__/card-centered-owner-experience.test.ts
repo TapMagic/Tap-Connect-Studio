@@ -30,6 +30,7 @@ describe("zone token contract", () => {
     for (const id of [
       "card",
       "brand",
+      "assets",
       "campaign",
       "email",
       "audience",
@@ -51,7 +52,7 @@ describe("zone token contract", () => {
   it("maps studio destinations without rainbow nav", () => {
     assert.equal(zoneForStudioDestination("home"), "home");
     assert.equal(zoneForStudioDestination("experiences"), "card");
-    assert.equal(zoneForStudioDestination("assets"), "brand");
+    assert.equal(zoneForStudioDestination("assets"), "assets");
     assert.equal(zoneForStudioDestination("unknown"), null);
   });
 

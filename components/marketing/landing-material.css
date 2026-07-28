@@ -1,0 +1,216 @@
+/**
+ * Premium landing / Assembly material system — architectural neon, not nightclub.
+ * Level 1 signature · Level 2 major product · Level 3 supporting.
+ */
+
+.tc-surface {
+  --tc-edge: oklch(0.78 0.04 95 / 0.45);
+  --tc-bloom: oklch(0.7 0.04 95 / 0.18);
+  --tc-face: oklch(0.14 0.02 260 / 0.92);
+  position: relative;
+  isolation: isolate;
+  border-radius: 1.15rem;
+  background:
+    linear-gradient(
+      165deg,
+      oklch(0.22 0.02 95 / 0.28) 0%,
+      var(--tc-face) 42%,
+      oklch(0.11 0.02 260 / 0.96) 100%
+    );
+  border: 1px solid color-mix(in oklch, var(--tc-edge) 55%, transparent);
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--tc-edge) 28%, transparent),
+    inset 0 1px 0 oklch(0.95 0.02 95 / 0.14),
+    inset 0 -1px 0 oklch(0.05 0.02 260 / 0.35),
+    0 18px 40px oklch(0.05 0.02 260 / 0.45);
+  transition:
+    transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.28s ease,
+    border-color 0.28s ease,
+    filter 0.28s ease;
+}
+
+.tc-surface-l1 {
+  border-radius: 1.35rem;
+  box-shadow:
+    0 0 0 1.5px color-mix(in oklch, var(--tc-edge) 70%, transparent),
+    inset 0 1px 0 oklch(0.98 0.02 95 / 0.18),
+    inset 0 -1px 0 oklch(0.05 0.02 260 / 0.4),
+    0 0 28px color-mix(in oklch, var(--tc-bloom) 70%, transparent),
+    0 28px 60px oklch(0.05 0.02 260 / 0.55);
+}
+
+.tc-surface-l2 {
+  box-shadow:
+    0 0 0 1px color-mix(in oklch, var(--tc-edge) 55%, transparent),
+    inset 0 1px 0 oklch(0.95 0.02 95 / 0.12),
+    inset 0 -1px 0 oklch(0.05 0.02 260 / 0.3),
+    0 0 20px color-mix(in oklch, var(--tc-bloom) 45%, transparent),
+    0 18px 42px oklch(0.05 0.02 260 / 0.42);
+}
+
+.tc-surface-l3 {
+  border-color: oklch(0.7 0.02 95 / 0.14);
+  box-shadow:
+    inset 0 1px 0 oklch(0.95 0.02 95 / 0.06),
+    0 8px 20px oklch(0.05 0.02 260 / 0.25);
+  background: oklch(0.13 0.02 260 / 0.55);
+}
+
+.tc-surface[data-zone] {
+  --tc-edge: var(--zone-neon, oklch(0.78 0.04 95 / 0.55));
+  --tc-bloom: var(--zone-bloom, oklch(0.7 0.04 95 / 0.22));
+}
+
+.tc-interactive:hover,
+.tc-interactive:focus-visible,
+.tc-interactive[data-selected="true"],
+.tc-interactive[aria-pressed="true"] {
+  transform: translateY(-3px);
+  filter: brightness(1.06);
+  border-color: color-mix(in oklch, var(--tc-edge) 85%, white 10%);
+  box-shadow:
+    0 0 0 1.5px color-mix(in oklch, var(--tc-edge) 80%, transparent),
+    inset 0 1px 0 oklch(0.98 0.02 95 / 0.2),
+    0 0 26px color-mix(in oklch, var(--tc-bloom) 70%, transparent),
+    0 22px 48px oklch(0.05 0.02 260 / 0.5);
+  outline: none;
+}
+
+.tc-interactive:focus-visible {
+  outline: 2px solid var(--studio-go, oklch(0.84 0.24 147));
+  outline-offset: 3px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-interactive:hover,
+  .tc-interactive:focus-visible,
+  .tc-interactive[data-selected="true"] {
+    transform: none;
+  }
+}
+
+/* Integration ticker */
+.tc-ticker {
+  position: relative;
+  overflow: hidden;
+  mask-image: linear-gradient(
+    90deg,
+    transparent,
+    #000 8%,
+    #000 92%,
+    transparent
+  );
+}
+
+.tc-ticker-track {
+  display: flex;
+  width: max-content;
+  gap: 0.75rem;
+  animation: tc-ticker-scroll 42s linear infinite;
+}
+
+.tc-ticker:hover .tc-ticker-track,
+.tc-ticker:focus-within .tc-ticker-track {
+  animation-play-state: paused;
+}
+
+@keyframes tc-ticker-scroll {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-ticker-track {
+    animation: none;
+    flex-wrap: wrap;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .tc-ticker {
+    mask-image: none;
+  }
+}
+
+/* Story progress rail */
+.tc-story-rail {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 30;
+  display: none;
+  gap: 0.35rem;
+  padding: 0.45rem;
+  border-radius: 999px;
+  background: oklch(0.12 0.02 260 / 0.82);
+  border: 1px solid oklch(0.7 0.02 95 / 0.18);
+  backdrop-filter: blur(10px);
+}
+
+@media (min-width: 1100px) {
+  .tc-story-rail {
+    display: inline-flex;
+    position: fixed;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    flex-direction: column;
+    border-radius: 1rem;
+    padding: 0.55rem 0.4rem;
+  }
+}
+
+.tc-story-rail a {
+  min-height: 44px;
+  min-width: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 0.65rem;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: oklch(0.78 0.02 95 / 0.75);
+  border: 1px solid transparent;
+  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.tc-story-rail a[data-active="true"] {
+  color: var(--rail-zone, oklch(0.9 0.04 95));
+  border-color: color-mix(in oklch, var(--rail-zone, oklch(0.9 0.04 95)) 55%, transparent);
+  background: color-mix(in oklch, var(--rail-zone, oklch(0.9 0.04 95)) 12%, transparent);
+}
+
+.tc-story-rail a:focus-visible {
+  outline: 2px solid var(--studio-go);
+  outline-offset: 2px;
+}
+
+/* Sticky Card relationship marker (deep dives) */
+.tc-card-marker {
+  position: sticky;
+  top: 4.5rem;
+  z-index: 20;
+  margin-bottom: 1rem;
+  padding: 0.65rem 0.9rem;
+  border-radius: 0.85rem;
+  border: 1px solid oklch(0.82 0.06 95 / 0.35);
+  background: oklch(0.14 0.02 260 / 0.9);
+  box-shadow: 0 0 18px oklch(0.82 0.06 95 / 0.18);
+  backdrop-filter: blur(8px);
+}
+
+@media (max-width: 767px) {
+  .tc-card-marker {
+    position: relative;
+    top: auto;
+  }
+}
+
+.tc-card-marker[data-zone] {
+  border-color: color-mix(in oklch, var(--tc-edge) 65%, transparent);
+  box-shadow: 0 0 20px color-mix(in oklch, var(--tc-bloom) 55%, transparent);
+}

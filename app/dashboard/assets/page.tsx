@@ -17,7 +17,7 @@ export default async function AssetsHubPage() {
   const hasBrand = Boolean(business.logoUrl || brandKit);
 
   return (
-    <div className="space-y-8 p-5 lg:p-8" data-testid="assets-workspace">
+    <div className="zone-assets space-y-8 p-5 lg:p-8" data-testid="assets-workspace">
       <header className="space-y-3 border-b border-white/8 pb-6">
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
           Assets

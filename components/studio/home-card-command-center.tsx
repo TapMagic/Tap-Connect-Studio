@@ -27,6 +27,8 @@ export function HomeCardCommandCenter({
     <section
       className="zone-home space-y-5 rounded-2xl border border-white/10 px-5 py-6 sm:px-6"
       data-testid="home-card-command-center"
+      data-assembly-dest="home"
+      tabIndex={-1}
       aria-labelledby="home-card-heading"
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
@@ -130,6 +132,7 @@ export function HomeCardCommandCenter({
         <div
           className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-4"
           data-testid="home-next-action"
+          data-assembly-dest="autopilot_next"
         >
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
             <Sparkles className="h-3.5 w-3.5" aria-hidden />
