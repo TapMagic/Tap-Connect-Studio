@@ -4,11 +4,12 @@ import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   Bell,
+  CircleDot,
   Command,
   Plus,
   Search,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -227,33 +228,45 @@ export function StudioTopBar({
             data-testid="studio-create-menu"
             className="absolute right-0 top-full z-50 mt-2 max-h-[70vh] w-80 overflow-y-auto rounded-xl border border-white/10 bg-[#0d1320] p-2 shadow-2xl shadow-black/50"
           >
-            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary/80">
+            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/40">
               What do you want to do?
             </p>
-            {recipesByGroup().map(({ group, items }) => (
-              <div key={`recipe-${group}`} className="mb-2">
-                <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/30">
-                  {group}
-                </p>
-                {items.map((r) => (
-                  <button
-                    key={r.id}
-                    type="button"
-                    role="menuitem"
-                    data-testid={`studio-create-recipe-${r.id}`}
-                    title={r.description}
-                    className="flex w-full flex-col rounded-lg px-2 py-1.5 text-left hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                    onClick={() => go(r.href)}
+            {recipesByGroup().map(({ group, items }) => {
+              const isAdvanced = group === "Advanced";
+              return (
+                <div key={`recipe-${group}`} className="mb-2">
+                  <p
+                    className={cn(
+                      "px-2 py-1 text-[10px] font-semibold uppercase tracking-wide",
+                      isAdvanced ? "text-white/25" : "text-white/40"
+                    )}
                   >
-                    <span className="text-sm text-white/90">{r.label}</span>
-                    <span className="text-[11px] text-white/40">{r.description}</span>
-                  </button>
-                ))}
-              </div>
-            ))}
+                    {isAdvanced ? "Advanced · Labs / legacy" : group}
+                  </p>
+                  {items.map((r) => (
+                    <button
+                      key={r.id}
+                      type="button"
+                      role="menuitem"
+                      data-testid={`studio-create-recipe-${r.id}`}
+                      data-create-group={group}
+                      title={r.description}
+                      className={cn(
+                        "flex w-full flex-col rounded-lg px-2 py-1.5 text-left hover:bg-white/5 focus-visible:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+                        isAdvanced && "opacity-70"
+                      )}
+                      onClick={() => go(r.href)}
+                    >
+                      <span className="text-sm text-white/90">{r.label}</span>
+                      <span className="text-[11px] text-white/40">{r.description}</span>
+                    </button>
+                  ))}
+                </div>
+              );
+            })}
             <div className="my-2 border-t border-white/8" />
-            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/30">
-              More actions
+            <p className="px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-white/25">
+              More actions · advanced modules
             </p>
             {createGroups.map(([group, actions]) => (
               <div key={group} className="mb-2">
@@ -313,10 +326,10 @@ export function StudioTopBar({
         className={cn(
           "hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] sm:flex",
           readinessTone === "attention"
-            ? "border-amber-500/40 bg-amber-500/10 text-amber-100"
+            ? "border-[color:var(--studio-status-warn)]/40 text-[color:var(--studio-status-warn)]"
             : readinessTone === "setup"
-              ? "border-sky-500/35 bg-sky-500/10 text-sky-100"
-              : "border-primary/30 bg-primary/10 text-primary"
+              ? "border-[color:var(--studio-status-info)]/40 text-[color:var(--studio-status-info)]"
+              : "border-[color:var(--studio-status-ok)]/35 text-[color:var(--studio-status-ok)]"
         )}
         role="status"
         aria-live="polite"
@@ -326,7 +339,11 @@ export function StudioTopBar({
             : "Workspace readiness"
         }
       >
-        <Sparkles className="h-3 w-3" aria-hidden />
+        {readinessTone === "attention" ? (
+          <AlertTriangle className="h-3 w-3" aria-hidden />
+        ) : (
+          <CircleDot className="h-3 w-3" aria-hidden />
+        )}
         {readinessLabel}
         {alertCount > 0 ? ` · ${alertCount}` : ""}
       </Link>
@@ -355,7 +372,7 @@ export function StudioTopBar({
           <Bell className="h-4 w-4" aria-hidden />
           {alertCount > 0 ? (
             <span
-              className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-amber-400"
+              className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-[color:var(--studio-status-warn)]"
               aria-hidden
             />
           ) : null}
@@ -374,7 +391,7 @@ export function StudioTopBar({
             </p>
             {alertCount > 0 ? (
               <div className="mt-2 space-y-2">
-                <p className="text-sm text-amber-100">
+                <p className="text-sm text-[color:var(--studio-status-warn)]">
                   {alertCount} failed outbox job{alertCount === 1 ? "" : "s"} need recovery.
                 </p>
                 <p className="text-[11px] text-white/45">

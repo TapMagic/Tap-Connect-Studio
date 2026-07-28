@@ -14,6 +14,11 @@ import {
 import { loadCardRelationshipContext } from "@/lib/fusion/studio/load-card-relationship";
 import { requireBusiness } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import {
+  OperationsConsole,
+  type OperationsGroup,
+  type OperationsStatus,
+} from "@/components/studio/operations-console";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +29,29 @@ export default async function IntegrationsPage() {
   });
   const resendConfigured = getIntegration("resend").configured;
   const catalog = buildIntegrationMaturityCatalog({ resendConfigured });
+
+  const groupStatus: Record<string, OperationsStatus> = {
+    works_now: "ok",
+    after_setup: "info",
+    local_or_test: "warn",
+    planned: "neutral",
+  };
+  const overviewGroup: OperationsGroup = {
+    id: "integration-overview",
+    title: "Integration maturity overview",
+    description: "Honest state per capability tier — logos never imply working behavior.",
+    rows: catalog.map(({ group, cards }) => {
+      const meta = MATURITY_GROUP_META[group];
+      return {
+        id: `overview-${group}`,
+        label: meta.title,
+        detail: meta.description,
+        status: groupStatus[group] ?? "neutral",
+        count: cards.length,
+        action: { label: "Jump to section", href: `#${group}-heading` },
+      };
+    }),
+  };
 
   return (
     <div
@@ -42,6 +70,11 @@ export default async function IntegrationsPage() {
           and knows — plus who must set it up.
         </p>
       </div>
+
+      <OperationsConsole
+        groups={[overviewGroup]}
+        testId="integrations-operations-console"
+      />
 
       <section id="email-replies-section" className="scroll-mt-24 space-y-3">
         <h2 className="text-lg font-semibold text-white/90">Email & Replies (detail)</h2>
@@ -69,7 +102,7 @@ export default async function IntegrationsPage() {
                   key={c.id}
                   className={cn(
                     "border-white/10 bg-white/[0.02]",
-                    c.configured && "border-primary/25"
+                    c.configured && "border-[color:var(--studio-status-ok)]/25"
                   )}
                   data-testid={`integration-card-${c.id}`}
                   data-maturity-group={group}
@@ -139,7 +172,10 @@ export default async function IntegrationsPage() {
         <h2 data-testid="productivity-work-heading" className="text-lg font-semibold">
           Productivity adapters (detail)
         </h2>
-        <p data-testid="productivity-live-badge" className="text-xs font-medium text-sky-300">
+        <p
+          data-testid="productivity-live-badge"
+          className="text-xs font-medium text-[color:var(--studio-status-info)]"
+        >
           VERIFIED — CREDENTIALS REQUIRED (live) · capability shown honestly above
         </p>
         <ProductivityWorkPanel />

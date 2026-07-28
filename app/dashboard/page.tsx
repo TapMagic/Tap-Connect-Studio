@@ -1,12 +1,17 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, AlertTriangle, Radio, CheckCircle2 } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { OnboardingChecklist } from "@/components/dashboard/onboarding-checklist";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { OutcomeRecipes } from "@/components/studio/outcome-recipes";
 import { HomeCardCommandCenter } from "@/components/studio/home-card-command-center";
 import { StudioEntryAssembly } from "@/components/studio/studio-entry-assembly";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
+import {
+  OperationsConsole,
+  type OperationsGroup,
+  type OperationsStatus,
+} from "@/components/studio/operations-console";
 import { requireBusiness } from "@/lib/auth";
 import { getDashboardStats } from "@/lib/services/devices";
 import { prisma } from "@/lib/db";
@@ -86,6 +91,69 @@ export default async function DashboardPage() {
   const onboardingSteps = setup.steps;
   const startRecipes = CREATE_RECIPES.filter((r) => r.group === "Start");
 
+  const fleetStatus: OperationsStatus =
+    fleet.critical > 0
+      ? "critical"
+      : fleet.warning > 0
+        ? "warn"
+        : devices.length === 0
+          ? "neutral"
+          : "ok";
+
+  const decisionRows = decisionItems.map((item) => {
+    const human = humanizeError(item.detail, item.title);
+    return {
+      id: item.id,
+      label: item.title,
+      detail: `${human.title}${human.action ? ` ${human.action}` : ""}`,
+      status:
+        item.kind === "outbox_dead_letter" ? ("critical" as const) : ("warn" as const),
+      count: (item.occurrenceCount ?? 1) > 1 ? item.occurrenceCount : undefined,
+      meta: `${item.aggregateType}:${item.aggregateId} · ${new Date(
+        item.occurredAt
+      ).toLocaleString()}`,
+      action: { label: item.nextActionLabel ?? "Open related work", href: item.href },
+      testId: `decision-item-${item.kind}`,
+    };
+  });
+
+  const operationsGroups: OperationsGroup[] = [
+    {
+      id: "decisions",
+      title: "Unresolved decisions",
+      description: "Delivery and publish failures with a recovery path.",
+      testId: "decision-queue-items",
+      emptyLabel: "Nothing blocked — failures appear here with a recovery path.",
+      rows: decisionRows,
+    },
+    {
+      id: "fleet",
+      title: "Tap Point health",
+      description: "Routing readiness of the entry points into this Card.",
+      rows: [
+        {
+          id: "fleet-summary",
+          label:
+            devices.length === 0
+              ? "No Tap Points connected"
+              : `${fleet.healthy} healthy · ${fleet.warning} warn · ${fleet.critical} critical`,
+          detail:
+            devices.length === 0
+              ? "Connect a device or NFC slot so taps reach your Card."
+              : "Fleet routing status across connected entry points.",
+          status: fleetStatus,
+          action: { label: "Fleet workspace", href: "/dashboard/tap-points" },
+        },
+        {
+          id: "working-now",
+          label: `${stats.activeDevices} active · ${stats.liveCampaigns} live campaigns`,
+          detail: "Currently running and reachable by customers.",
+          status: stats.activeDevices > 0 ? ("ok" as const) : ("neutral" as const),
+        },
+      ],
+    },
+  ];
+
   const assemblyCard: AssemblyCardSnapshot = {
     cardName: card.cardName,
     publicStateLabel: card.publicStateLabel,
@@ -114,121 +182,28 @@ export default async function DashboardPage() {
       <OutcomeRecipes recipes={startRecipes} compact />
 
       <section id="decision-queue" className="scroll-mt-24 space-y-3" data-testid="decision-queue">
-        <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/35">
-          Needs attention
-        </h2>
-        <div className="grid gap-3 lg:grid-cols-3">
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-            <div className="flex items-center gap-2 text-amber-200">
-              <AlertTriangle className="h-4 w-4" aria-hidden />
-              <p className="text-sm font-medium">Problems</p>
-            </div>
-            <p className="mt-3 text-3xl font-semibold tabular-nums text-white">
-              {decisionItems.length}
-            </p>
-            <p className="mt-1 text-xs text-white/45">Delivery and publish alerts</p>
+        <div className="flex items-end justify-between gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
+            Needs attention
+          </h2>
+          {decisionItems.length > 0 ? (
             <Link
               href="/dashboard/settings#outbox"
-              className="mt-3 inline-flex min-h-11 items-center gap-1 text-xs text-primary hover:underline"
+              className="inline-flex items-center gap-1 text-xs text-white/60 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
-              Open recovery <ArrowRight className="h-3 w-3" />
+              Open recovery <ArrowRight className="h-3 w-3" aria-hidden />
             </Link>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-            <div className="flex items-center gap-2 text-primary">
-              <Radio className="h-4 w-4" aria-hidden />
-              <p className="text-sm font-medium">Tap Point health</p>
-            </div>
-            <p className="mt-3 text-sm text-white/80">
-              {fleet.healthy} healthy · {fleet.warning} warn · {fleet.critical} critical
-            </p>
-            <Link
-              href="/dashboard/tap-points"
-              className="mt-3 inline-flex min-h-11 items-center gap-1 text-xs text-primary hover:underline"
-            >
-              Fleet workspace <ArrowRight className="h-3 w-3" />
-            </Link>
-          </div>
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-4">
-            <div className="flex items-center gap-2 text-emerald-300">
-              <CheckCircle2 className="h-4 w-4" aria-hidden />
-              <p className="text-sm font-medium">Working now</p>
-            </div>
-            <p className="mt-3 text-3xl font-semibold tabular-nums text-white">
-              {stats.activeDevices}
-            </p>
-            <p className="mt-1 text-xs text-white/45">
-              Active devices · {stats.liveCampaigns} live campaigns
-            </p>
-          </div>
+          ) : null}
         </div>
-
-        {decisionItems.length > 0 ? (
-          <ul
-            className="divide-y divide-white/6 overflow-hidden rounded-xl border border-amber-500/25 bg-amber-500/[0.04]"
-            data-testid="decision-queue-items"
-            aria-label="Failure remediation list"
-          >
-            {decisionItems.map((item) => {
-              const human = humanizeError(item.detail, item.title);
-              return (
-                <li
-                  key={item.id}
-                  className="flex flex-col gap-1 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
-                  data-testid={`decision-item-${item.kind}`}
-                  data-decision-id={item.id}
-                  data-occurrence-count={item.occurrenceCount ?? 1}
-                >
-                  <div className="min-w-0">
-                    <p className="text-sm text-white/90">
-                      {item.title}
-                      {(item.occurrenceCount ?? 1) > 1 ? (
-                        <span className="ml-2 rounded-full border border-amber-500/40 px-1.5 py-0.5 text-[10px] text-amber-100">
-                          ×{item.occurrenceCount}
-                        </span>
-                      ) : null}
-                    </p>
-                    <p className="mt-0.5 text-xs text-white/45 line-clamp-3">
-                      {human.title}
-                      {human.action ? ` ${human.action}` : ""}
-                    </p>
-                    <p
-                      className="mt-1 font-mono text-[10px] text-white/35"
-                      data-testid="decision-item-meta"
-                    >
-                      {item.aggregateType}:{item.aggregateId}
-                      {" · "}
-                      <time dateTime={item.occurredAt}>
-                        {new Date(item.occurredAt).toLocaleString()}
-                      </time>
-                    </p>
-                    {item.detail && item.detail !== human.title ? (
-                      <details className="mt-1">
-                        <summary className="cursor-pointer text-[11px] text-white/40 hover:text-white/60">
-                          View details
-                        </summary>
-                        <p className="mt-1 font-mono text-[10px] text-white/35">
-                          {item.detail}
-                        </p>
-                      </details>
-                    ) : null}
-                  </div>
-                  <Link
-                    href={item.href}
-                    className="inline-flex min-h-11 shrink-0 items-center gap-1 text-xs text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-                  >
-                    {item.nextActionLabel ?? "Open related work"}{" "}
-                    <ArrowRight className="h-3 w-3" />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        ) : (
+        <OperationsConsole
+          groups={operationsGroups}
+          testId="home-operations-console"
+        />
+        {decisionItems.length === 0 ? (
           <p className="text-xs text-white/40" data-testid="decision-queue-empty">
             Nothing blocked — failures appear here with a recovery path.
           </p>
-        )}
+        ) : null}
       </section>
 
       {setup.incomplete ? (
@@ -265,7 +240,7 @@ export default async function DashboardPage() {
                       Updated {new Date(c.updatedAt).toLocaleString()}
                     </span>
                   </span>
-                  <span className="font-mono text-[10px] uppercase text-primary">{c.status}</span>
+                  <span className="font-mono text-[10px] uppercase text-white/50">{c.status}</span>
                 </Link>
               </li>
             ))}

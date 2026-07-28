@@ -484,7 +484,9 @@ export function EmailAuthoringWorkspace({
               <span data-testid="email-local-approval-state">
                 Approval · {document.approvalState || "draft"}
               </span>
-              <span data-testid="email-no-send-state">No live send</span>
+              <span data-testid="email-no-send-state" data-adapter={emailReady ? "live" : "mock"}>
+                {emailReady ? "No live send (this wave)" : "No live send · mock adapter"}
+              </span>
             </>
           }
         />
@@ -697,6 +699,7 @@ export function EmailAuthoringWorkspace({
             historyLabels={history.past.map((p) => p.label)}
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
+            emailReady={emailReady}
             audienceReadiness={audienceReadiness}
             offerState={offerState}
             previewMode={previewMode}
@@ -869,9 +872,16 @@ export function EmailAuthoringWorkspace({
                 );
               }}
             />
-            <p className="text-[10px] text-white/45" data-testid="email-no-live-send">
-              Campaign live send remains disabled
-              {canLiveSend() ? "" : " (no-send contract)"}.
+            <p
+              className="text-[10px] text-white/45"
+              data-testid="email-no-live-send"
+              data-adapter={emailReady ? "live" : "mock"}
+            >
+              {canLiveSend()
+                ? null
+                : emailReady
+                  ? "Live send stays disabled in this wave — prepare and approve here."
+                  : "No email provider connected (mock adapter) — approving prepares the email locally; nothing is delivered."}
             </p>
             <EmailLivePreview
               document={document}

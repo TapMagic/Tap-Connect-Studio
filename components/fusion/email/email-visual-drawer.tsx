@@ -48,6 +48,8 @@ export type EmailVisualDrawerProps = {
   historyLabels?: string[];
   mediaUploadReady?: boolean;
   stockReady?: boolean;
+  /** Resend fully configured (server-computed via isEmailReady). When false, running on mock adapter. */
+  emailReady?: boolean;
   audienceReadiness?: EmailAudienceReadiness;
   offerState?: EmailOfferProjectionState;
   previewMode?: EmailPreviewMode;
@@ -111,6 +113,7 @@ export function EmailVisualDrawer({
   historyLabels = [],
   mediaUploadReady = false,
   stockReady = false,
+  emailReady = false,
   audienceReadiness,
   offerState = "unbound",
   previewMode = "desktop",
@@ -569,6 +572,27 @@ export function EmailVisualDrawer({
         <p className="text-xs text-primary" data-testid="email-approval-message">
           {emailApprovalHostMessage(document)}
         </p>
+        <div
+          className={cn(
+            "rounded-lg border p-3 text-xs",
+            emailReady
+              ? "border-sky-500/30 bg-sky-500/10 text-sky-100"
+              : "border-amber-500/40 bg-amber-500/10 text-amber-100"
+          )}
+          data-testid="email-provider-honesty"
+          data-adapter={emailReady ? "live" : "mock"}
+        >
+          <p className="font-medium">
+            {emailReady
+              ? "Resend is connected."
+              : "No email provider is connected — nothing will be sent."}
+          </p>
+          <p className="mt-1 text-white/70">
+            {emailReady
+              ? "A verified provider is configured. Live sending stays off in this wave — prepare and approve here first."
+              : "This workspace runs on the mock adapter (Resend is not configured). Approving prepares the email locally but never delivers a real message. Connect Resend in Settings to enable live sending later."}
+          </p>
+        </div>
         <Button
           type="button"
           size="sm"
@@ -576,9 +600,13 @@ export function EmailVisualDrawer({
           className="w-full min-h-11"
           disabled
           data-testid="email-send-disabled"
-          title="Live send is not enabled in this wave"
+          title={
+            emailReady
+              ? "Live send is not enabled in this wave"
+              : "No email provider connected — running on the mock adapter"
+          }
         >
-          Send (not available)
+          {emailReady ? "Send (not available in this wave)" : "Send (no provider — mock adapter)"}
         </Button>
         {onApprove ? (
           <div className="flex gap-2">

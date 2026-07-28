@@ -495,7 +495,7 @@ export function InboxShell({
             message.toLowerCase().includes("fail") ||
             message.toLowerCase().includes("closed")
               ? "text-amber-500"
-              : "text-primary"
+              : "text-[oklch(0.82_0.11_42)]"
           }`}
           data-testid="inbox-status-message"
           role="status"
@@ -543,8 +543,11 @@ export function InboxShell({
                 type="button"
                 onClick={() => loadThread(t.id)}
                 data-testid={`inbox-thread-${t.id}`}
-                className={`block w-full border-b border-border/40 px-3 py-3 text-left text-sm hover:bg-muted/40 ${
-                  selectedId === t.id ? "bg-primary/10" : ""
+                aria-pressed={selectedId === t.id}
+                className={`block w-full border-b border-border/40 px-3 py-3 text-left text-sm transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.66_0.12_42_/_0.6)] ${
+                  selectedId === t.id
+                    ? "border-l-2 border-l-[oklch(0.66_0.12_42)] bg-[oklch(0.66_0.12_42_/_0.1)]"
+                    : "border-l-2 border-l-transparent"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
@@ -580,11 +583,11 @@ export function InboxShell({
 
               {selectedThread?.suggestedReply?.body ? (
                 <div
-                  className="rounded-lg border border-primary/30 bg-primary/5 p-3"
+                  className="rounded-lg border border-[oklch(0.66_0.12_42_/_0.3)] bg-[oklch(0.66_0.12_42_/_0.06)] p-3"
                   data-testid="inbox-suggested-reply"
                 >
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-xs font-semibold text-primary">
+                    <p className="text-xs font-semibold text-[oklch(0.82_0.11_42)]">
                       Suggested reply · {selectedThread.suggestedReply.mode}
                     </p>
                     <Badge variant="outline" className="text-[10px]">
@@ -664,7 +667,7 @@ export function InboxShell({
                           blocked
                             ? "border border-amber-500/40 bg-amber-500/10 mr-6"
                             : m.direction === "OUTBOUND"
-                              ? "bg-primary/15 ml-6"
+                              ? "bg-[oklch(0.66_0.12_42_/_0.14)] ml-6"
                               : m.direction === "SYSTEM"
                                 ? "bg-muted/50 text-muted-foreground"
                                 : "bg-muted/30 mr-6"
@@ -751,6 +754,16 @@ export function InboxShell({
                   Preference check (Channel Guardian) runs before provider send. Blocked attempts are
                   logged on the thread as system messages.
                 </p>
+                <p className="mt-1">
+                  If a reply failed to route, check reply routing setup:{" "}
+                  <a
+                    href="/dashboard/integrations#ln"
+                    className="text-[oklch(0.82_0.11_42)] hover:underline"
+                    data-testid="inbox-routing-recovery-link"
+                  >
+                    Email &amp; reply routing attempts →
+                  </a>
+                </p>
               </details>
               <div className="flex flex-wrap gap-2">
                 <Button
@@ -816,7 +829,10 @@ export function InboxShell({
                   </p>
                   <p className="text-[10px] text-muted-foreground">
                     Internal notes stay on the case — they are never sent to the customer.{" "}
-                    <a href="/dashboard/audience/cases" className="text-primary hover:underline">
+                    <a
+                      href="/dashboard/audience/cases"
+                      className="text-[oklch(0.82_0.11_42)] hover:underline"
+                    >
                       Open Cases workspace
                     </a>
                   </p>

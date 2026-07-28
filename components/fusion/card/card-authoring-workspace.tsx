@@ -16,7 +16,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Redo2, Save, Undo2 } from "lucide-react";
+import { Monitor, Redo2, Save, Smartphone, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdaptiveWorkspaceShell,
@@ -145,6 +145,9 @@ export function CardAuthoringWorkspace({
     () => initialShell.snapshot
   );
   const [sessionRestored] = useState(() => Boolean(restored.sessionDraftRestored));
+  const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">(
+    "desktop"
+  );
   const [outlineBody, setOutlineBody] = useState<ReactNode>(null);
   const [status, setStatus] = useState<CardBuilderShellStatus>({
     dirty: false,
@@ -348,6 +351,8 @@ export function CardAuthoringWorkspace({
       >
         <Redo2 className="h-4 w-4" />
       </Button>
+      {/* Secondary Save/Done — always keyboard-reachable; the GREEN forward
+          action lives in the single primaryAction slot (Save when dirty, Done when clean). */}
       {status.dirty ? (
         <Link
           href="/dashboard/card"
@@ -417,24 +422,41 @@ export function CardAuthoringWorkspace({
         }}
         outline={shell.focusMode ? undefined : outline}
         canvas={
-          <TapCardBuilder
-            {...builderProps}
-            workspaceMode
-            escapeMode
-            shellHosted
-            activeToolId={activeToolId}
-            shellFocusMode={shell.focusMode}
-            doneHref="/dashboard/card"
-            publicCode={publicCode}
-            tapPointCount={tapPointCount}
-            activeSpotlightTitle={activeSpotlightTitle}
-            onShellApi={(api) => {
-              apiRef.current = api;
-            }}
-            onShellOutline={setOutlineBody}
-            onShellStatus={onStatusChange}
-            onRequestTool={openCardTool}
-          />
+          <div
+            className={cn(
+              "flex h-full min-h-0 w-full justify-center",
+              previewViewport === "mobile" && "overflow-y-auto py-4"
+            )}
+            data-testid="card-canvas-viewport"
+            data-preview-viewport={previewViewport}
+          >
+            <div
+              className={cn(
+                "h-full min-h-0 w-full transition-[max-width] duration-200 ease-out motion-reduce:transition-none",
+                previewViewport === "mobile" &&
+                  "mx-auto max-w-[420px] rounded-2xl border border-white/10 shadow-2xl"
+              )}
+            >
+              <TapCardBuilder
+                {...builderProps}
+                workspaceMode
+                escapeMode
+                shellHosted
+                activeToolId={activeToolId}
+                shellFocusMode={shell.focusMode}
+                doneHref="/dashboard/card"
+                publicCode={publicCode}
+                tapPointCount={tapPointCount}
+                activeSpotlightTitle={activeSpotlightTitle}
+                onShellApi={(api) => {
+                  apiRef.current = api;
+                }}
+                onShellOutline={setOutlineBody}
+                onShellStatus={onStatusChange}
+                onRequestTool={openCardTool}
+              />
+            </div>
+          </div>
         }
         drawerContent={
           shell.drawerOpen && !shell.focusMode && activeToolId ? (
@@ -511,6 +533,43 @@ export function CardAuthoringWorkspace({
                 Public URL unavailable
               </span>
             )}
+            <div
+              className="inline-flex items-center rounded-md border border-white/15 p-0.5"
+              role="group"
+              aria-label="Preview viewport"
+              data-testid="card-viewport-toggle"
+            >
+              <button
+                type="button"
+                aria-pressed={previewViewport === "desktop"}
+                aria-label="Desktop preview"
+                data-testid="card-viewport-desktop"
+                onClick={() => setPreviewViewport("desktop")}
+                className={cn(
+                  "inline-flex min-h-9 min-w-9 items-center justify-center rounded",
+                  previewViewport === "desktop"
+                    ? "bg-white/12 text-white"
+                    : "text-white/55 hover:text-white/80"
+                )}
+              >
+                <Monitor className="h-4 w-4" aria-hidden />
+              </button>
+              <button
+                type="button"
+                aria-pressed={previewViewport === "mobile"}
+                aria-label="Mobile preview"
+                data-testid="card-viewport-mobile"
+                onClick={() => setPreviewViewport("mobile")}
+                className={cn(
+                  "inline-flex min-h-9 min-w-9 items-center justify-center rounded",
+                  previewViewport === "mobile"
+                    ? "bg-white/12 text-white"
+                    : "text-white/55 hover:text-white/80"
+                )}
+              >
+                <Smartphone className="h-4 w-4" aria-hidden />
+              </button>
+            </div>
             <button
               type="button"
               className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/70 hover:bg-white/5"

@@ -5,7 +5,6 @@ import { useEffect, useState, useTransition } from "react";
 import { Gift, RefreshCw, ShieldAlert } from "lucide-react";
 import { TapLoopRulesEditor } from "@/components/fusion/audience/taploop-rules-editor";
 import { ErrorMessage } from "@/components/ui/error-message";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -230,7 +229,7 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
           <p className="font-semibold">TapLoop disabled</p>
         </div>
         <p className="text-sm text-muted-foreground">
-          Enable <code className="text-primary">loyalty.taploop</code> in Platform Admin, then
+          Enable <code className="text-[oklch(0.82_0.11_275)]">loyalty.taploop</code> in Platform Admin, then
           reload this page.
         </p>
         <Link
@@ -526,11 +525,19 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Gift className="h-5 w-5 text-primary" />
+            <Gift className="h-5 w-5 text-[oklch(0.74_0.13_275)]" />
             <h2 className="text-lg font-semibold" data-testid="taploop-heading">
               TapLoop program manager
             </h2>
-            <Badge>loyalty.taploop</Badge>
+            <span
+              className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+              style={{
+                borderColor: "var(--studio-status-ok)",
+                color: "var(--studio-status-ok)",
+              }}
+            >
+              loyalty.taploop
+            </span>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
             Create programs, earning rules, tiers, rewards; enroll members; award / redeem /
@@ -576,7 +583,7 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
               data-testid={`taploop-kpi-${k.key}`}
             >
               <p className="text-[11px] text-muted-foreground">{k.label}</p>
-              <p className="text-xl font-semibold text-primary">{k.value}</p>
+              <p className="text-xl font-semibold text-[oklch(0.82_0.11_275)]">{k.value}</p>
               <p className="text-[10px] text-muted-foreground">
                 {k.evidenceClass} · {k.source}
               </p>
@@ -658,15 +665,29 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
               <li key={p.id} className="flex flex-wrap items-center gap-2 text-sm">
                 <button
                   type="button"
-                  className={`text-left ${programId === p.id ? "font-semibold text-primary" : ""}`}
+                  className={`text-left ${programId === p.id ? "font-semibold text-[oklch(0.86_0.09_275)]" : ""}`}
+                  aria-pressed={programId === p.id}
                   onClick={() => setProgramId(p.id)}
                   data-testid={`taploop-program-${p.id}`}
                 >
                   {p.name}
                 </button>
-                <Badge variant={p.active ? "default" : "outline"}>
+                <span
+                  className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                  style={
+                    p.active
+                      ? {
+                          borderColor: "var(--studio-status-ok)",
+                          color: "var(--studio-status-ok)",
+                        }
+                      : {
+                          borderColor: "var(--studio-status-neutral)",
+                          color: "var(--studio-status-neutral)",
+                        }
+                  }
+                >
                   {p.active ? "active" : "paused"}
-                </Badge>
+                </span>
                 <span className="text-xs text-muted-foreground">
                   {p.earnRules?.length ?? 0} rules · {p.tiers?.length ?? 0} tiers ·{" "}
                   {p.rewards?.length ?? 0} rewards
@@ -819,9 +840,12 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
                 <li key={m.enrollmentId}>
                   <button
                     type="button"
-                    className={`w-full rounded-md px-2 py-1.5 text-left hover:bg-muted/40 ${
-                      member?.enrollmentId === m.enrollmentId ? "bg-primary/10 text-primary" : ""
+                    className={`w-full rounded-md border-l-2 border-transparent px-2 py-1.5 text-left hover:bg-white/[0.04] ${
+                      member?.enrollmentId === m.enrollmentId
+                        ? "border-l-[oklch(0.64_0.12_275)] bg-[oklch(0.64_0.12_275_/_0.1)] text-[oklch(0.86_0.09_275)]"
+                        : ""
                     }`}
+                    aria-pressed={member?.enrollmentId === m.enrollmentId}
                     onClick={() => openMember(m.enrollmentId)}
                     data-testid={`taploop-member-${m.enrollmentId}`}
                   >
@@ -842,7 +866,7 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
             <div className="space-y-2 text-sm">
               <p data-testid="taploop-member-balance">
                 <span className="text-muted-foreground">Balance:</span>{" "}
-                <span className="font-semibold text-primary">{member.balance}</span>
+                <span className="font-semibold text-[oklch(0.82_0.11_275)]">{member.balance}</span>
                 {member.tierName ? ` · ${member.tierName}` : ""} · {member.status}
               </p>
               <p className="text-xs text-muted-foreground">
@@ -899,7 +923,7 @@ export function TapLoopWorkspace({ enabled }: { enabled: boolean }) {
       </section>
 
       {message ? (
-        <p className="text-sm text-primary" data-testid="taploop-message" role="status">
+        <p className="text-sm text-[oklch(0.82_0.11_275)]" data-testid="taploop-message" role="status">
           {message}
         </p>
       ) : null}

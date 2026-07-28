@@ -52,10 +52,15 @@ export default async function CampaignsPage() {
   return (
     <div className="space-y-6 p-6 lg:p-8">
       <div className="flex items-center justify-between">
-        <div>
+        <div className="space-y-1.5">
+          <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Campaign · the page your Card serves
+          </p>
           <h1 className="text-2xl font-bold">Campaigns</h1>
-          <p className="text-muted-foreground">
-            Manage drafts, live pages, archives, and device assignments
+          <p className="max-w-2xl text-muted-foreground">
+            Each campaign is a live page a tap opens. Manage drafts, live pages, archives, and which
+            devices point to them. <span className="text-foreground">Next:</span> edit a draft, then
+            assign it to a device so taps go live.
           </p>
           <p className="mt-1">
             <OpenInTapCanvasLink objectType="campaigns" objectId="hub" />

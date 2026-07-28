@@ -27,7 +27,7 @@ export default async function AudienceInboxPage() {
     <div className="zone-service space-y-6 p-4 sm:p-6">
       <div>
         <p className="zone-label-service text-xs">
-          <Link href="/dashboard/audience" className="hover:text-primary hover:underline">
+          <Link href="/dashboard/audience" className="hover:text-[oklch(0.82_0.11_42)] hover:underline">
             Audience
           </Link>{" "}
           / Inbox
@@ -37,7 +37,10 @@ export default async function AudienceInboxPage() {
           Customer conversations and cases. We’ll check preferences before any reply is sent.
         </p>
         <div className="mt-2 flex flex-wrap gap-3 text-xs">
-          <Link href="/dashboard/audience/cases" className="text-primary hover:underline">
+          <Link
+            href="/dashboard/audience/cases"
+            className="text-[oklch(0.82_0.11_42)] hover:underline"
+          >
             Open Cases workspace
           </Link>
         </div>

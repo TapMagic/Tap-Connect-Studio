@@ -3,6 +3,9 @@ import { StudioHubSections } from "@/components/studio/hub-sections";
 import { AudienceWorkspace } from "@/components/fusion/audience/audience-workspace";
 import { TapLoopWorkspace } from "@/components/fusion/audience/taploop-workspace";
 import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
+import { AutopilotRecommendations } from "@/components/fusion/insights/autopilot-recommendations";
+import { listProposals } from "@/lib/fusion/autopilot/proposals";
+import type { AutopilotProposal } from "@/lib/fusion/autopilot/types";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -30,6 +33,13 @@ export default async function AudienceHubPage() {
   ]);
 
   const tapLoopReady = isFeatureEnabled("loyalty.taploop", featureCtx);
+
+  let proposals: AutopilotProposal[] = [];
+  try {
+    proposals = await listProposals(business.id, { limit: 10, status: "pending" });
+  } catch {
+    proposals = [];
+  }
 
   return (
     <div className="zone-audience space-y-8 p-5 lg:p-8" data-testid="audience-workspace">
@@ -77,7 +87,7 @@ export default async function AudienceHubPage() {
             className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-3"
           >
             <p className="text-xs text-white/45">{stat.label}</p>
-            <p className="text-2xl font-bold text-primary">{stat.value}</p>
+            <p className="text-2xl font-bold text-[oklch(0.82_0.11_275)]">{stat.value}</p>
           </div>
         ))}
       </div>
@@ -85,6 +95,13 @@ export default async function AudienceHubPage() {
       {contactCount === 0 && leadCount === 0 ? (
         <TruthfulEmptyStatePanel state={getEmptyState("audience")} />
       ) : null}
+
+      <AutopilotRecommendations
+        proposals={proposals}
+        cardSuggestion={card.autopilotSuggestion}
+        cardName={card.cardName}
+        emptyHint="Autopilot has nothing prepared for your audience yet. Recommendations appear when it detects incomplete consent coverage or stale relationships — none detected in scope."
+      />
 
       <div id="workspace" className="scroll-mt-20 space-y-6">
         <AudienceWorkspace initialContactCount={contactCount} tapLoopEnabled={tapLoopReady} />

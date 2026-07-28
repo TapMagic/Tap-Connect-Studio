@@ -16,6 +16,22 @@ function formatValue(k: InsightKpi): string {
   return String(k.value);
 }
 
+/**
+ * Delta direction → status token. GO green is reserved for primary actions, so a
+ * movement caption uses the muted status-ok / status-warn / status-neutral tokens,
+ * never --studio-go / --primary.
+ */
+function deltaToneStyle(d: InsightKpiDelta): { color: string } {
+  if (d.delta > 0) return { color: "var(--studio-status-ok)" };
+  if (d.delta < 0) return { color: "var(--studio-status-warn)" };
+  return { color: "var(--studio-status-neutral)" };
+}
+
+/** Confirmed = stored events; everything else is inferred/computed and labeled as such. */
+function evidenceBasis(k: InsightKpi): "Confirmed" | "Inferred" {
+  return k.evidenceClass === "confirmed" ? "Confirmed" : "Inferred";
+}
+
 export function InsightsKpiGrid({
   kpis,
   deltas,
@@ -57,9 +73,9 @@ export function InsightsKpiGrid({
         className={cn(
           "rounded-xl border p-4",
           accent
-            ? "border-primary/20 bg-gradient-to-br from-card/80 to-black/30"
+            ? "border-[oklch(0.66_0.13_195_/_0.25)] bg-gradient-to-br from-card/80 to-black/30"
             : "border-border/60 bg-card/40",
-          active && "ring-1 ring-primary/60"
+          active && "ring-1 ring-[oklch(0.66_0.13_195_/_0.6)]"
         )}
         data-testid={`insights-kpi-${k.key}`}
       >
@@ -74,19 +90,31 @@ export function InsightsKpiGrid({
           {formatValue(k)}
         </p>
         {d ? (
-          <p className="mt-1 text-[10px] text-primary/90" data-testid={`insights-delta-${k.key}`}>
+          <p
+            className="mt-1 text-[10px]"
+            style={deltaToneStyle(d)}
+            data-testid={`insights-delta-${k.key}`}
+          >
             {formatDeltaCaption(d)} · derived
           </p>
         ) : null}
-        <p className="mt-1 text-[10px] text-muted-foreground">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
+          <span
+            className={cn(
+              "inline-flex items-center rounded-full border px-1.5 py-0.5 text-[9px] font-medium uppercase tracking-wide",
+              k.evidenceClass === "confirmed"
+                ? "border-[oklch(0.78_0.12_155_/_0.5)] text-[oklch(0.82_0.12_155)]"
+                : "border-white/15 text-white/55"
+            )}
+            data-testid={`insights-basis-${k.key}`}
+          >
+            {evidenceBasis(k)}
+          </span>
           <span
             className={
-              evidenceClassTone(k.evidenceClass) === "primary"
-                ? "text-primary"
-                : evidenceClassTone(k.evidenceClass) === "muted"
-                  ? "text-muted-foreground"
-                  : ""
+              evidenceClassTone(k.evidenceClass) === "muted" ? "text-white/40" : "text-white/55"
             }
+            style={{ fontSize: "10px" }}
           >
             {formatEvidenceCaption({
               evidenceClass: k.evidenceClass,
@@ -95,11 +123,11 @@ export function InsightsKpiGrid({
               mockPath: k.key.startsWith("commerce_"),
             })}
           </span>
-        </p>
+        </div>
         <div className="mt-3 flex flex-wrap gap-2 text-[11px]">
           <Link
             href={drillHref}
-            className="text-primary hover:underline"
+            className="text-[oklch(0.82_0.11_195)] hover:underline"
             data-testid={`insights-drill-${k.key}`}
           >
             {active ? "Clear drill-down" : "Drill down"}
@@ -122,7 +150,9 @@ export function InsightsKpiGrid({
     <div className="space-y-4">
       {commerce.length > 0 ? (
         <div className="space-y-2">
-          <h3 className="text-sm font-semibold text-primary">Commerce &amp; loyalty signals</h3>
+          <h3 className="text-sm font-semibold text-[oklch(0.88_0.09_195)]">
+            Commerce &amp; loyalty signals
+          </h3>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {commerce.map((k) => card(k, true))}
           </div>

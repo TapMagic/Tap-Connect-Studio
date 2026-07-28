@@ -5,7 +5,6 @@ import Link from "next/link";
 import { Gift, Mail, Search, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 
 type ContactRow = {
   id: string;
@@ -242,15 +241,22 @@ export function AudienceWorkspace({
                 <button
                   type="button"
                   onClick={() => openContact(c.id)}
-                  className={`flex w-full items-start gap-2 px-4 py-3 text-left text-sm hover:bg-muted/40 ${
-                    selectedId === c.id ? "bg-primary/10" : ""
+                  aria-pressed={selectedId === c.id}
+                  className={`flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition-colors hover:bg-white/[0.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[oklch(0.64_0.12_275_/_0.6)] ${
+                    selectedId === c.id
+                      ? "border-l-2 border-[oklch(0.64_0.12_275)] bg-[oklch(0.64_0.12_275_/_0.1)]"
+                      : "border-l-2 border-transparent"
                   }`}
                 >
-                  <User className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
-                  <div>
-                    <p className="font-medium">{c.name || c.email || "Unnamed"}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {c.email} · {c.leadCount} leads · {c.consentCount} consents
+                  <User className="mt-0.5 h-4 w-4 shrink-0 text-[oklch(0.74_0.13_275)]" />
+                  <div className="min-w-0">
+                    <p className="truncate font-medium text-white">
+                      {c.name || c.email || "Unnamed"}
+                    </p>
+                    <p className="truncate text-xs text-white/50">{c.email || c.phone || "—"}</p>
+                    <p className="mt-0.5 text-[11px] text-white/40">
+                      {c.leadCount} lead{c.leadCount === 1 ? "" : "s"} · {c.consentCount} consent
+                      {c.consentCount === 1 ? "" : "s"}
                     </p>
                   </div>
                 </button>
@@ -298,18 +304,45 @@ export function AudienceWorkspace({
 
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-border/60 p-4">
-                <p className="mb-2 text-sm font-semibold">Consent</p>
-                <ul className="space-y-1 text-xs text-muted-foreground">
-                  {detail.consents.length === 0 ? (
-                    <li>None yet</li>
-                  ) : (
-                    detail.consents.map((c) => (
-                      <li key={c.id}>
-                        {c.channel} · {c.status} · {c.recordedAt.slice(0, 10)}
-                      </li>
-                    ))
-                  )}
-                </ul>
+                <p className="mb-2 text-sm font-semibold">Consent &amp; suppression</p>
+                {detail.consents.length === 0 ? (
+                  <p className="text-xs text-white/50">
+                    No consent recorded. This contact is suppressed from all marketing channels
+                    until consent is captured.
+                  </p>
+                ) : (
+                  <ul className="space-y-1.5 text-xs">
+                    {detail.consents.map((c) => {
+                      const granted = c.status === "GRANTED";
+                      return (
+                        <li key={c.id} className="flex items-center justify-between gap-2">
+                          <span className="text-white/70">
+                            {c.channel}
+                            <span className="ml-1 text-white/35">
+                              · {c.recordedAt.slice(0, 10)}
+                            </span>
+                          </span>
+                          <span
+                            className="inline-flex items-center rounded-full border px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                            style={
+                              granted
+                                ? {
+                                    borderColor: "var(--studio-status-ok)",
+                                    color: "var(--studio-status-ok)",
+                                  }
+                                : {
+                                    borderColor: "var(--studio-status-warn)",
+                                    color: "var(--studio-status-warn)",
+                                  }
+                            }
+                          >
+                            {granted ? "Granted" : "Suppressed"}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                )}
               </div>
               <div className="rounded-xl border border-border/60 p-4">
                 <p className="mb-2 text-sm font-semibold">Leads</p>
@@ -327,9 +360,9 @@ export function AudienceWorkspace({
               </div>
             </div>
 
-            <div className="rounded-xl border border-primary/20 bg-card/40 p-4">
+            <div className="rounded-xl border border-[oklch(0.64_0.12_275_/_0.25)] bg-card/40 p-4">
               <div className="mb-3 flex items-center gap-2">
-                <Mail className="h-4 w-4 text-primary" />
+                <Mail className="h-4 w-4 text-[oklch(0.74_0.13_275)]" />
                 <p className="font-semibold">Contact timeline</p>
               </div>
               {detail.timeline.length === 0 ? (
@@ -343,7 +376,7 @@ export function AudienceWorkspace({
                       key={event.id}
                       className="flex items-start gap-3 rounded-lg border border-border/40 bg-background/40 px-3 py-2"
                     >
-                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-primary shadow-[0_0_8px_hsl(var(--primary)/0.8)]" />
+                      <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-[oklch(0.74_0.13_275)] shadow-[0_0_8px_oklch(0.74_0.13_275_/_0.8)]" />
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-foreground">{event.label}</p>
                         <p className="text-xs text-muted-foreground">
@@ -360,7 +393,7 @@ export function AudienceWorkspace({
               {detail.relationships[0] ? (
                 <Link
                   href={`/dashboard/audience/inbox`}
-                  className="mt-3 inline-flex text-xs font-medium text-primary underline-offset-4 hover:underline"
+                  className="mt-3 inline-flex text-xs font-medium text-[oklch(0.82_0.11_275)] underline-offset-4 hover:underline"
                 >
                   Open TapInbox threads
                 </Link>
@@ -370,12 +403,25 @@ export function AudienceWorkspace({
             <div className="rounded-xl border border-border/60 bg-card/30 p-4">
               <div className="mb-3 flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Gift className="h-4 w-4 text-primary" />
+                  <Gift className="h-4 w-4 text-[oklch(0.74_0.13_275)]" />
                   <p className="font-semibold">TapLoop loyalty</p>
                 </div>
-                <Badge variant={tapLoopEnabled ? "default" : "outline"}>
+                <span
+                  className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+                  style={
+                    tapLoopEnabled
+                      ? {
+                          borderColor: "var(--studio-status-ok)",
+                          color: "var(--studio-status-ok)",
+                        }
+                      : {
+                          borderColor: "var(--studio-status-neutral)",
+                          color: "var(--studio-status-neutral)",
+                        }
+                  }
+                >
                   {tapLoopEnabled ? "loyalty.taploop on" : "feature off"}
-                </Badge>
+                </span>
               </div>
               {!tapLoopEnabled ? (
                 <p className="text-sm text-muted-foreground">
@@ -444,7 +490,7 @@ export function AudienceWorkspace({
                       Inspect ledger
                     </Button>
                     {balance !== null ? (
-                      <span className="text-sm text-primary">Balance: {balance}</span>
+                      <span className="text-sm text-[oklch(0.82_0.11_275)]">Balance: {balance}</span>
                     ) : null}
                   </div>
                   {ledger.length > 0 ? (

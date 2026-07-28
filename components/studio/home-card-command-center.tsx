@@ -50,12 +50,12 @@ export function HomeCardCommandCenter({
           <div className="flex flex-wrap items-center gap-2 pt-1">
             <span
               className={cn(
-                "rounded-md px-2 py-1 text-xs font-medium",
+                "inline-flex items-center gap-1.5 rounded-md border px-2 py-1 text-xs font-medium",
                 card.publicState === "published"
-                  ? "bg-primary/15 text-primary"
+                  ? "border-[color:var(--studio-status-ok)]/30 text-[color:var(--studio-status-ok)]"
                   : card.publicState === "retired" || card.needsAttention
-                    ? "bg-amber-500/15 text-amber-100"
-                    : "bg-white/10 text-white/75"
+                    ? "border-[color:var(--studio-status-warn)]/30 text-[color:var(--studio-status-warn)]"
+                    : "border-white/12 bg-white/[0.04] text-white/75"
               )}
               data-testid="home-card-state"
             >
@@ -154,10 +154,10 @@ export function HomeCardCommandCenter({
 
         {card.needsAttention ? (
           <div
-            className="rounded-xl border border-amber-500/30 bg-amber-500/[0.06] px-4 py-4"
+            className="rounded-xl border border-[color:var(--studio-status-warn)]/30 bg-[color:var(--studio-status-warn)]/[0.06] px-4 py-4"
             data-testid="home-needs-attention"
           >
-            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-amber-200">
+            <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--studio-status-warn)]">
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
               Needs attention
             </p>
@@ -166,7 +166,7 @@ export function HomeCardCommandCenter({
             <Link
               href={card.needsAttention.href}
               data-testid="home-needs-attention-go"
-              className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-amber-100 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-[color:var(--studio-status-warn)] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             >
               Open recovery <ArrowRight className="h-3.5 w-3.5" />
             </Link>
@@ -185,7 +185,7 @@ export function HomeCardCommandCenter({
             <p className="mt-1 text-xs text-white/55">{card.autopilotSuggestion.detail}</p>
             <Link
               href={card.autopilotSuggestion.href}
-              className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-white/80 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+              className="mt-3 inline-flex min-h-11 items-center gap-1 text-sm text-white/80 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
               data-testid="home-autopilot-go"
             >
               Review recommendation <ArrowRight className="h-3.5 w-3.5" />

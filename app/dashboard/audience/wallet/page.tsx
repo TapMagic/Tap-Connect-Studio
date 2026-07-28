@@ -81,7 +81,7 @@ export default async function AudienceWalletPage({ searchParams }: Props) {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">
-            <Link href="/dashboard/audience" className="hover:text-primary hover:underline">
+            <Link href="/dashboard/audience" className="hover:text-[oklch(0.82_0.11_275)] hover:underline">
               Audience
             </Link>{" "}
             / Wallet
@@ -105,15 +105,15 @@ export default async function AudienceWalletPage({ searchParams }: Props) {
       ) : (
         <>
           {focusedSummary ? (
-            <section className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+            <section className="rounded-xl border border-[oklch(0.64_0.12_275_/_0.22)] bg-[oklch(0.64_0.12_275_/_0.06)] p-4">
               <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-primary/80">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-[oklch(0.82_0.09_275)]">
                   {mockInstall ? "Mock install preview" : "Pass preview"}
                 </h2>
                 {focusedPublicToken ? (
                   <Link
                     href={`/mytap/${focusedPublicToken}`}
-                    className="text-xs text-primary hover:underline"
+                    className="text-xs text-[oklch(0.82_0.11_275)] hover:underline"
                   >
                     View linked MyTap →
                   </Link>

@@ -5,7 +5,8 @@ import { getAnalyticsTimeseries } from "@/lib/services/analytics";
 import { prisma } from "@/lib/db";
 import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { EmptyState } from "@/components/ui/empty-state";
+import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
+import { getEmptyState } from "@/lib/fusion/studio/empty-states";
 
 export const dynamic = "force-dynamic";
 
@@ -33,12 +34,15 @@ export default async function AnalyticsPage() {
   const hasData = stats.totalTaps > 0 || stats.totalLeads > 0;
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
+    <div className="zone-insights space-y-6 p-6 lg:p-8" data-testid="analytics-page">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold">Analytics</h1>
-          <p className="text-muted-foreground">
-            How taps turn into leads — last 14 days and all-time
+          <p className="zone-label-insights text-[11px] font-semibold uppercase tracking-[0.18em]">
+            Insights / Analytics
+          </p>
+          <h1 className="text-2xl font-bold text-white">Analytics</h1>
+          <p className="text-white/55">
+            How taps on your Card turn into leads — last 14 days and all-time.
           </p>
         </div>
         <Link href="/dashboard/leads" className={buttonVariants({ variant: "outline", size: "sm" })}>
@@ -47,12 +51,7 @@ export default async function AnalyticsPage() {
       </div>
 
       {!hasData ? (
-        <EmptyState
-          title="No tap data yet"
-          description="Assign a campaign to a device and open the public /t/ link. Charts fill in as people engage."
-          actionHref="/dashboard/devices"
-          actionLabel="Go to devices"
-        />
+        <TruthfulEmptyStatePanel state={getEmptyState("insights")} testId="analytics-empty" />
       ) : null}
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
@@ -85,7 +84,7 @@ export default async function AnalyticsPage() {
               {seriesData.series.map((day) => (
                 <div key={day.date} className="flex flex-1 flex-col items-center gap-1">
                   <div
-                    className="w-full rounded-t-sm bg-primary/80 transition-all"
+                    className="w-full rounded-t-sm bg-[oklch(0.66_0.13_195_/_0.8)] transition-all"
                     style={{
                       height: `${Math.max(4, (day.taps / seriesData.maxTaps) * 100)}%`,
                     }}
@@ -157,7 +156,7 @@ export default async function AnalyticsPage() {
                   <div className="flex justify-between text-sm">
                     <Link
                       href={`/dashboard/campaigns/${c.id}`}
-                      className="font-medium hover:text-primary"
+                      className="font-medium hover:text-[oklch(0.82_0.11_195)]"
                     >
                       {c.title}
                     </Link>
@@ -167,7 +166,7 @@ export default async function AnalyticsPage() {
                   </div>
                   <div className="h-1.5 overflow-hidden rounded-full bg-muted">
                     <div
-                      className="h-full rounded-full bg-primary"
+                      className="h-full rounded-full bg-[oklch(0.66_0.13_195)]"
                       style={{
                         width: `${(c._count.tapEvents / maxCampaignTaps) * 100}%`,
                       }}
@@ -191,7 +190,7 @@ export default async function AnalyticsPage() {
                 <div key={d.id} className="flex justify-between text-sm">
                   <Link
                     href={`/dashboard/devices/${d.id}`}
-                    className="font-medium hover:text-primary"
+                    className="font-medium hover:text-[oklch(0.82_0.11_195)]"
                   >
                     {d.nickname ?? d.deviceCode}
                   </Link>

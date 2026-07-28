@@ -73,7 +73,9 @@ export function TapLoopRulesEditor({
           <button
             type="button"
             className={`rounded-md px-2.5 py-1 text-[11px] font-medium ${
-              mode === "guided" ? "bg-primary/15 text-primary" : "text-muted-foreground"
+              mode === "guided"
+                ? "bg-[oklch(0.64_0.12_275_/_0.15)] text-[oklch(0.86_0.09_275)]"
+                : "text-muted-foreground"
             }`}
             aria-pressed={mode === "guided"}
             data-testid="taploop-rules-mode-guided"
@@ -84,7 +86,9 @@ export function TapLoopRulesEditor({
           <button
             type="button"
             className={`rounded-md px-2.5 py-1 text-[11px] font-medium ${
-              mode === "json" ? "bg-primary/15 text-primary" : "text-muted-foreground"
+              mode === "json"
+                ? "bg-[oklch(0.64_0.12_275_/_0.15)] text-[oklch(0.86_0.09_275)]"
+                : "text-muted-foreground"
             }`}
             aria-pressed={mode === "json"}
             data-testid="taploop-rules-mode-json"

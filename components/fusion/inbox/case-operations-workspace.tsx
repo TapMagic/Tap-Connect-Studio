@@ -158,7 +158,7 @@ export function CaseOperationsWorkspace({
       <header className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-xs text-muted-foreground">
-            <Link href="/dashboard/audience" className="hover:text-primary hover:underline">
+            <Link href="/dashboard/audience" className="hover:text-[oklch(0.82_0.11_42)] hover:underline">
               Audience
             </Link>{" "}
             / Cases
@@ -188,7 +188,7 @@ export function CaseOperationsWorkspace({
             className={cn(
               "rounded-full border px-3 py-1 text-xs",
               view === v.id
-                ? "border-primary/50 bg-primary/15 text-primary"
+                ? "border-[oklch(0.66_0.12_42_/_0.55)] bg-[oklch(0.66_0.12_42_/_0.15)] text-[oklch(0.88_0.09_42)]"
                 : "border-white/10 text-white/65 hover:bg-white/5"
             )}
             onClick={() => setView(v.id)}
@@ -223,9 +223,11 @@ export function CaseOperationsWorkspace({
                   <button
                     type="button"
                     className={cn(
-                      "flex w-full flex-col gap-1 px-4 py-3 text-left hover:bg-white/[0.03]",
-                      selectedId === c.id && "bg-primary/10"
+                      "flex w-full flex-col gap-1 border-l-2 border-transparent px-4 py-3 text-left transition-colors hover:bg-white/[0.03]",
+                      selectedId === c.id &&
+                        "border-l-[oklch(0.66_0.12_42)] bg-[oklch(0.66_0.12_42_/_0.1)]"
                     )}
+                    aria-pressed={selectedId === c.id}
                     onClick={() => setSelectedId(c.id)}
                     data-testid={`case-row-${c.id}`}
                   >
@@ -261,7 +263,7 @@ export function CaseOperationsWorkspace({
           ) : (
             <div className="space-y-3">
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">
+                <p className="text-[10px] font-semibold uppercase tracking-wide text-[oklch(0.88_0.09_42)]">
                   Case detail
                 </p>
                 <h2 className="text-sm font-semibold text-white">{selected.subject}</h2>
@@ -272,7 +274,7 @@ export function CaseOperationsWorkspace({
                       {" · "}
                       <Link
                         href="/dashboard/audience/inbox"
-                        className="text-primary underline underline-offset-2 hover:text-primary/90"
+                        className="text-[oklch(0.82_0.11_42)] underline underline-offset-2 hover:opacity-90"
                       >
                         Open conversation
                       </Link>
@@ -387,7 +389,7 @@ export function CaseOperationsWorkspace({
               </div>
 
               {message ? (
-                <p className="text-xs text-primary" data-testid="case-ops-message" role="status">
+                <p className="text-xs text-[oklch(0.82_0.11_42)]" data-testid="case-ops-message" role="status">
                   {message}
                 </p>
               ) : null}

@@ -56,6 +56,19 @@ export const EMPTY_STATES = {
     actionLabel: "Review consent or broaden the audience",
     actionHref: "/dashboard/audience#workspace",
   },
+  leads: {
+    id: "empty_leads",
+    title: "No leads captured yet",
+    whatMissing: "No contacts have submitted a capture form on your Card yet.",
+    whyEmpty:
+      "Leads appear after someone taps a live Tap Point and submits a capture block — with consent recorded at the moment of capture.",
+    isNormal: true,
+    normalNote: "Normal for a new Card or one not yet live on a Tap Point.",
+    actionLabel: "Add a capture block on the Card",
+    actionHref: "/dashboard/workbench",
+    evidenceNote:
+      "Every lead stores its consent state and the Tap Point / Campaign it came from — attribution is confirmed, never inferred.",
+  },
   campaigns: {
     id: "empty_campaigns",
     title: "No campaigns yet",

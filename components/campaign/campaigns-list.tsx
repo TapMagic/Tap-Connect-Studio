@@ -13,7 +13,6 @@ import {
   Play,
   Trash2,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,6 +32,24 @@ export type CampaignListItem = {
 };
 
 export type AssignableDevice = { id: string; label: string };
+
+/**
+ * Honest status tokens — never green (green is reserved for the primary action).
+ * LIVE reads as "info" (running), not "go".
+ */
+const STATUS_TOKEN: Record<string, { token: string; label: string }> = {
+  LIVE: { token: "var(--studio-status-info)", label: "live" },
+  SCHEDULED: { token: "var(--studio-status-info)", label: "scheduled" },
+  READY: { token: "var(--studio-status-ok)", label: "ready" },
+  PAUSED: { token: "var(--studio-status-warn)", label: "paused" },
+  DRAFT: { token: "var(--studio-status-neutral)", label: "draft" },
+  ARCHIVED: { token: "var(--studio-status-neutral)", label: "archived" },
+  CLOSED: { token: "var(--studio-status-neutral)", label: "closed" },
+};
+
+function statusToken(status: string) {
+  return STATUS_TOKEN[status] ?? { token: "var(--studio-status-neutral)", label: status.toLowerCase() };
+}
 
 const TABS = [
   { id: "ALL", label: "All" },
@@ -319,7 +336,19 @@ export function CampaignsList({
                       </p>
                     )}
                   </div>
-                  <Badge variant="outline">{c.status.toLowerCase()}</Badge>
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full border border-border/60 px-2.5 py-0.5 text-xs font-medium capitalize"
+                    data-testid={`campaign-status-${c.id}`}
+                    data-status={c.status}
+                    title={`Status: ${statusToken(c.status).label}`}
+                  >
+                    <span
+                      aria-hidden
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: statusToken(c.status).token }}
+                    />
+                    {statusToken(c.status).label}
+                  </span>
                 </CardHeader>
                 <CardContent className="flex flex-wrap items-center gap-2">
                   <Link href={`/dashboard/campaigns/${c.id}`}>

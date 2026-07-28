@@ -16,6 +16,10 @@ import { SuppressionListPanel } from "@/components/fusion/comms/suppression-list
 import { KnowledgeSnippetsPanel } from "@/components/fusion/autopilot/knowledge-snippets-panel";
 import { listPermissionMatrix } from "@/lib/fusion/authz/permission-matrix";
 import { StudioHubSections } from "@/components/studio/hub-sections";
+import {
+  OperationsConsole,
+  type OperationsGroup,
+} from "@/components/studio/operations-console";
 
 export const dynamic = "force-dynamic";
 
@@ -45,6 +49,74 @@ export default async function SettingsHubPage() {
     deadLetters = [];
     suppressions = [];
   }
+
+  const enabledFeatureCount = features.filter((f) => f.enabled).length;
+  const trustOpsGroups: OperationsGroup[] = [
+    {
+      id: "providers",
+      title: "Provider & integration status",
+      description: "Honest maturity — no secrets shown here.",
+      rows: [
+        {
+          id: "integrations",
+          label: `${configured}/${integrations.length} providers configured`,
+          detail: "Full maturity catalog with receives / sends / setup owner.",
+          status: configured > 0 ? "ok" : "neutral",
+          action: { label: "Open Integrations", href: "/dashboard/integrations" },
+        },
+        {
+          id: "email-readiness",
+          label: emailReady.ready ? "Email: live (Resend)" : "Email: mock adapter",
+          detail: emailReady.ready
+            ? "Provider keys present — production DNS/webhook still required for live mail."
+            : `Local mock always available. Missing: ${emailReady.missingEnvVars.join(", ") || "n/a"}`,
+          status: emailReady.ready ? "info" : "neutral",
+        },
+        {
+          id: "autopilot",
+          label: autopilotEnabled ? "Automation Team: enabled" : "Automation Team: disabled",
+          detail: autopilotEnabled
+            ? "Budget, recipes, and knowledge APIs are active for this workspace."
+            : "Gated until ai.autopilot is enabled in Platform Admin.",
+          status: autopilotEnabled ? "ok" : "neutral",
+        },
+      ],
+    },
+    {
+      id: "recovery",
+      title: "Unresolved decisions & recovery",
+      description: "Delivery failures and their recovery path.",
+      emptyLabel: "No failed delivery jobs — the outbox is calm.",
+      rows:
+        deadLetters.length > 0
+          ? [
+              {
+                id: "outbox",
+                label: `${deadLetters.length} outbox dead letter${deadLetters.length === 1 ? "" : "s"}`,
+                detail: "Failed delivery jobs waiting for retry or resolution.",
+                status: "critical",
+                count: deadLetters.length,
+                action: { label: "Open recovery", href: "#outbox" },
+              },
+              {
+                id: "features",
+                label: `${enabledFeatureCount} features enabled`,
+                detail: "Feature registry — authorized operators only.",
+                status: "info",
+                action: { label: "Platform Admin", href: "/admin/platform" },
+              },
+            ]
+          : [
+              {
+                id: "features",
+                label: `${enabledFeatureCount} features enabled`,
+                detail: "Feature registry — authorized operators only.",
+                status: "info",
+                action: { label: "Platform Admin", href: "/admin/platform" },
+              },
+            ],
+    },
+  ];
 
   return (
     <div className="zone-settings space-y-8 p-5 lg:p-8" data-testid="settings-workspace">
@@ -82,10 +154,23 @@ export default async function SettingsHubPage() {
         >
           <p className="font-medium text-white/90">Platform Admin</p>
           <p className="mt-1 text-xs text-white/45">
-            {features.filter((f) => f.enabled).length} features enabled · authorized only
+            {enabledFeatureCount} features enabled · authorized only
           </p>
         </Link>
       </div>
+
+      <OperationsConsole
+        title="Trust & operations"
+        subtitle="One console for provider health, readiness, and unresolved decisions. No secrets are shown here."
+        groups={trustOpsGroups}
+        testId="settings-operations-console"
+      />
+
+      <div className="border-t border-white/8" />
+
+      <h2 className="text-xs font-semibold uppercase tracking-[0.14em] text-white/40">
+        Detail panels
+      </h2>
 
       <section className="rounded-xl border border-border/60 p-4">
         <h2 className="text-sm font-semibold">Email provider readiness</h2>
@@ -120,7 +205,7 @@ export default async function SettingsHubPage() {
               {autopilotBudget.ledgerEntryCount} ledger entries
             </p>
             {!autopilotBudget.ok ? (
-              <p className="mt-2 text-xs text-amber-400/90">
+              <p className="mt-2 text-xs text-[color:var(--studio-status-warn)]">
                 Monthly budget exhausted — generation blocked until next month or plan upgrade.
               </p>
             ) : null}

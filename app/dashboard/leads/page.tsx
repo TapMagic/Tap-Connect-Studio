@@ -1,7 +1,9 @@
+import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { LeadsManager } from "@/components/leads/leads-manager";
-import { EmptyState } from "@/components/ui/empty-state";
+import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
+import { getEmptyState } from "@/lib/fusion/studio/empty-states";
 import { formatRelativeDate } from "@/lib/utils/app";
 
 export const dynamic = "force-dynamic";
@@ -44,21 +46,31 @@ export default async function LeadsPage() {
     };
   });
 
+  const consented = rows.filter((r) => r.consentGiven).length;
+
   return (
-    <div className="space-y-6 p-6 lg:p-8">
-      <div>
-        <h1 className="text-2xl font-bold">Leads</h1>
-        <p className="text-muted-foreground">
-          Contacts from tap pages — mark contacted, add notes, export CSV
+    <div className="zone-audience space-y-6 p-6 lg:p-8" data-testid="leads-page">
+      <div className="space-y-2">
+        <p className="zone-label-audience text-[11px] font-semibold uppercase tracking-[0.18em]">
+          <Link href="/dashboard/audience" className="hover:underline">
+            Audience
+          </Link>{" "}
+          / Leads
         </p>
+        <h1 className="text-2xl font-bold text-white">Leads</h1>
+        <p className="text-white/55">
+          People who met your Card via a Tap Point and left their details — mark contacted, add
+          notes, export CSV.
+        </p>
+        {rows.length > 0 ? (
+          <p className="text-xs text-white/45" data-testid="leads-consent-summary">
+            {consented} of {rows.length} shown have marketing consent recorded · the rest are
+            suppressed from marketing until consent is captured.
+          </p>
+        ) : null}
       </div>
       {rows.length === 0 ? (
-        <EmptyState
-          title="No leads yet"
-          description="Add a contact capture block to a live campaign. When someone submits, you'll get an email and they'll get a thank-you."
-          actionHref="/dashboard/workbench"
-          actionLabel="Open Workbench"
-        />
+        <TruthfulEmptyStatePanel state={getEmptyState("leads")} testId="leads-empty" />
       ) : (
         <LeadsManager leads={rows} />
       )}

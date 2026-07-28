@@ -14,6 +14,10 @@ import {
   sectionsForDestination,
 } from "@/lib/fusion/studio/ia";
 import {
+  resolveZoneTokens,
+  zoneForStudioDestination,
+} from "@/lib/fusion/studio/zone-tokens";
+import {
   resolveSectionReadiness,
   type DisplayReadiness,
 } from "@/lib/fusion/readiness/display-status";
@@ -29,21 +33,21 @@ import {
 const NAV_PREF_KEY = "tapconnect.studio.navExpanded";
 
 function displayTone(d: DisplayReadiness) {
+  // Status tokens only — never green (--studio-go). Green is reserved for + Create.
   switch (d) {
     case "owner_ready":
-      return "text-primary border-primary/40";
     case "functional_final_verification_required":
-      return "text-emerald-300/90 border-emerald-500/30";
+      return "text-[color:var(--studio-status-ok)] border-[color:var(--studio-status-ok)]/30";
     case "integrated_incomplete_workflow":
-      return "text-amber-200 border-amber-500/40";
+      return "text-[color:var(--studio-status-warn)] border-[color:var(--studio-status-warn)]/40";
     case "verified_credentials_required":
-      return "text-sky-200 border-sky-500/40";
+      return "text-[color:var(--studio-status-info)] border-[color:var(--studio-status-info)]/40";
     case "blocked":
-      return "text-red-200 border-red-500/40";
+      return "text-[color:var(--studio-status-critical)] border-[color:var(--studio-status-critical)]/40";
     case "development":
     case "disabled":
     default:
-      return "text-muted-foreground border-border/60";
+      return "text-[color:var(--studio-status-neutral)] border-white/12";
   }
 }
 
@@ -162,6 +166,18 @@ export function DashboardNav({
           {STUDIO_NAV.map((item) => {
             const active = destination.id === item.id;
             const iconId = NAV_DESTINATION_ICON[item.id] ?? "home";
+            const zone = zoneForStudioDestination(item.id);
+            const tokens = zone ? resolveZoneTokens(zone) : null;
+            // Zone atmosphere on the ACTIVE item only — restrained rail accent,
+            // never green (green is reserved for + Create).
+            const activeStyle =
+              active && tokens
+                ? {
+                    color: tokens.labelColor,
+                    boxShadow: `inset 2px 0 0 0 ${tokens.railAccent}`,
+                    background: "rgba(255,255,255,0.05)",
+                  }
+                : undefined;
             return (
               <Link
                 key={item.id}
@@ -171,10 +187,12 @@ export function DashboardNav({
                   "flex items-center gap-2.5 rounded-lg py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   expanded ? "px-2.5" : "justify-center px-0",
                   active
-                    ? "studio-nav-active"
+                    ? "text-white"
                     : "text-white/55 hover:bg-white/5 hover:text-white"
                 )}
+                style={activeStyle}
                 data-nav-zone={item.id}
+                data-nav-active={active ? "1" : "0"}
                 data-assembly-dest={item.id}
                 data-testid={`nav-icon-${item.id}`}
                 {...(active ? { "aria-current": "page" as const } : {})}
@@ -182,6 +200,7 @@ export function DashboardNav({
                 <TapConnectIcon
                   id={iconId}
                   className="h-4 w-4 shrink-0 opacity-90"
+                  style={active && tokens ? { color: tokens.iconAccent } : undefined}
                   decorative
                 />
                 {expanded ? <span className="truncate">{item.label}</span> : (
@@ -360,21 +379,35 @@ export function MobileDashboardNav({
           {STUDIO_NAV.map((item) => {
             const active = destination.id === item.id;
             const iconId = NAV_DESTINATION_ICON[item.id] ?? "home";
+            const zone = zoneForStudioDestination(item.id);
+            const tokens = zone ? resolveZoneTokens(zone) : null;
+            const activeStyle =
+              active && tokens
+                ? {
+                    color: tokens.labelColor,
+                    boxShadow: `inset 2px 0 0 0 ${tokens.railAccent}`,
+                  }
+                : undefined;
             return (
               <Link
                 key={item.id}
                 href={item.href}
                 className={cn(
                   "flex min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium",
-                  active
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-white/5 text-white/75"
+                  active ? "bg-white/[0.07] text-white" : "bg-white/5 text-white/75"
                 )}
+                style={activeStyle}
                 onClick={() => setDrawerOpen(false)}
                 data-assembly-dest={item.id}
+                data-nav-active={active ? "1" : "0"}
                 {...(active ? { "aria-current": "page" as const } : {})}
               >
-                <TapConnectIcon id={iconId} className="h-4 w-4 shrink-0" decorative />
+                <TapConnectIcon
+                  id={iconId}
+                  className="h-4 w-4 shrink-0"
+                  style={active && tokens ? { color: tokens.iconAccent } : undefined}
+                  decorative
+                />
                 <span>
                   <span className="block">{item.label}</span>
                   <span className="block text-[11px] font-normal opacity-70">
@@ -393,16 +426,22 @@ export function MobileDashboardNav({
       >
         {STUDIO_NAV.map((item) => {
           const active = destination.id === item.id;
+          const zone = zoneForStudioDestination(item.id);
+          const tokens = zone ? resolveZoneTokens(zone) : null;
+          const activeStyle =
+            active && tokens
+              ? { color: tokens.labelColor, boxShadow: `inset 0 -2px 0 0 ${tokens.railAccent}` }
+              : undefined;
           return (
             <Link
               key={item.id}
               href={item.href}
               className={cn(
                 "inline-flex min-h-11 items-center whitespace-nowrap rounded-full px-3 py-2.5 text-xs font-medium",
-                active
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-white/5 text-white/60"
+                active ? "bg-white/[0.07] text-white" : "bg-white/5 text-white/60"
               )}
+              style={activeStyle}
+              data-nav-active={active ? "1" : "0"}
               {...(active ? { "aria-current": "page" as const } : {})}
             >
               {item.label}

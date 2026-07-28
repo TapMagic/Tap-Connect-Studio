@@ -29,6 +29,21 @@ const EVIDENCE_OPTIONS = [
   "incomplete",
 ] as const;
 
+/**
+ * Selected filter-chip styling. GO green (--studio-go / --primary) is reserved for
+ * primary actions only — a selected filter is a state, not an action, so it uses the
+ * Insights zone accent (oklch 195 hue) instead of the green `default` button variant.
+ */
+const CHIP_SELECTED =
+  "border border-[oklch(0.66_0.13_195_/_0.7)] bg-[oklch(0.66_0.13_195_/_0.16)] text-[oklch(0.9_0.09_195)] shadow-[0_0_0_1px_oklch(0.66_0.13_195_/_0.4),0_0_18px_oklch(0.66_0.13_195_/_0.22)]";
+
+function chipClass(selected: boolean): string {
+  return cn(
+    buttonVariants({ variant: "outline", size: "sm" }),
+    selected && CHIP_SELECTED
+  );
+}
+
 export function InsightsControls({
   days,
   view,
@@ -133,10 +148,8 @@ export function InsightsControls({
               drill: drill ?? undefined,
               campaignId: campaignId ?? undefined,
             })}
-            className={buttonVariants({
-              variant: d === days ? "default" : "outline",
-              size: "sm",
-            })}
+            className={chipClass(d === days)}
+            aria-pressed={d === days}
           >
             {d}d
           </Link>
@@ -150,10 +163,8 @@ export function InsightsControls({
             drill: drill ?? undefined,
             campaignId: campaignId ?? undefined,
           })}
-          className={buttonVariants({
-            variant: compare ? "default" : "outline",
-            size: "sm",
-          })}
+          className={chipClass(compare)}
+          aria-pressed={compare}
           data-testid="insights-compare-toggle"
         >
           {compare ? "Comparing prior" : "Compare prior"}
@@ -171,10 +182,8 @@ export function InsightsControls({
               evidence,
               campaignId: campaignId ?? undefined,
             })}
-            className={buttonVariants({
-              variant: v === view ? "default" : "outline",
-              size: "sm",
-            })}
+            className={chipClass(v === view)}
+            aria-pressed={v === view}
             data-testid={`insights-view-${v}`}
           >
             {INSIGHTS_VIEW_LABELS[v]}
@@ -194,10 +203,8 @@ export function InsightsControls({
               drill: drill ?? undefined,
               campaignId: campaignId ?? undefined,
             })}
-            className={buttonVariants({
-              variant: e === evidence ? "default" : "outline",
-              size: "sm",
-            })}
+            className={chipClass(e === evidence)}
+            aria-pressed={e === evidence}
             data-testid={`insights-evidence-${e}`}
           >
             {e === "all" ? "All evidence" : e}

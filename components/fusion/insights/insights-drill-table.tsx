@@ -59,7 +59,7 @@ export function InsightsDrillTable({
                     ) : null}
                   </td>
                   <td className="py-2 pr-3 tabular-nums">{r.value}</td>
-                  <td className="py-2 pr-3 text-xs text-primary">
+                  <td className="py-2 pr-3 text-xs text-[oklch(0.82_0.11_195)]">
                     {formatEvidenceCaption({
                       evidenceClass: r.evidenceClass,
                       source: "",
@@ -69,7 +69,7 @@ export function InsightsDrillTable({
                   <td className="py-2">
                     <Link
                       href={r.drillThroughHref}
-                      className="text-primary hover:underline text-xs"
+                      className="text-[oklch(0.82_0.11_195)] hover:underline text-xs"
                     >
                       Open
                     </Link>
@@ -121,7 +121,7 @@ export function InsightsProvenancePanel({
               data-testid="insights-proof-row"
             >
               <p className="text-sm text-white">{p.claim}</p>
-              <p className="mt-1 text-[11px] text-primary">
+              <p className="mt-1 text-[11px] text-[oklch(0.82_0.11_195)]">
                 {labelEvidence(p.evidenceClass)} · confidence{" "}
                 {Math.round(p.confidence * 100)}%
                 {p.humanVerified ? " · human verified" : " · not human verified"}

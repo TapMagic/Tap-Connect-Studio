@@ -15,9 +15,15 @@ import {
   InsightsDrillTable,
   InsightsProvenancePanel,
 } from "@/components/fusion/insights/insights-drill-table";
+import { InsightsCardNarrative } from "@/components/fusion/insights/insights-card-narrative";
+import { AutopilotRecommendations } from "@/components/fusion/insights/autopilot-recommendations";
+import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
 import { getEmptyState } from "@/lib/fusion/studio/empty-states";
 import { humanizeError } from "@/lib/fusion/errors/humanize";
+import { loadCardRelationshipContext } from "@/lib/fusion/studio/load-card-relationship";
+import { listProposals } from "@/lib/fusion/autopilot/proposals";
+import type { AutopilotProposal } from "@/lib/fusion/autopilot/types";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +59,17 @@ export default async function InsightsHubPage({
     failureRecovery = null;
   }
 
+  const card = await loadCardRelationshipContext(business.id, business.name, {
+    logoUrl: business.logoUrl,
+  }).catch(() => null);
+
+  let proposals: AutopilotProposal[] = [];
+  try {
+    proposals = await listProposals(business.id, { limit: 10, status: "pending" });
+  } catch {
+    proposals = [];
+  }
+
   const kpis = snapshot.kpis;
   const empty = snapshot.empty && !snapshot.error;
   const showError = Boolean(snapshot.error);
@@ -60,6 +77,7 @@ export default async function InsightsHubPage({
 
   return (
     <div className="zone-insights space-y-8 p-5 lg:p-8" data-testid="insights-hub">
+      {card ? <CardRelationshipAnchor card={card} role="insights_proof" /> : null}
       <header className="space-y-2 border-b border-white/8 pb-6">
         <p className="zone-label-insights text-[11px] font-semibold uppercase tracking-[0.18em]">
           Insights
@@ -97,7 +115,7 @@ export default async function InsightsHubPage({
         ) : null}
         <span>
           Freshness:{" "}
-          <span className="text-primary">{snapshot.freshness.label}</span> (fetched{" "}
+          <span className="text-[oklch(0.82_0.11_195)]">{snapshot.freshness.label}</span> (fetched{" "}
           {new Date(snapshot.fetchedAt).toLocaleString()})
         </span>
       </div>
@@ -144,6 +162,16 @@ export default async function InsightsHubPage({
         </Card>
       ) : null}
 
+      {!showError && kpis.length > 0 && card ? (
+        <InsightsCardNarrative
+          cardName={card.cardName}
+          kpis={kpis}
+          deltas={snapshot.deltas}
+          rangeDays={snapshot.rangeDays}
+          cardHref={card.openHref}
+        />
+      ) : null}
+
       {!showError && kpis.length > 0 ? (
         <InsightsKpiGrid
           kpis={kpis}
@@ -154,6 +182,14 @@ export default async function InsightsHubPage({
           evidence={snapshot.evidenceFilter}
           drillKey={snapshot.drillKey}
           campaignId={snapshot.campaignId}
+        />
+      ) : null}
+
+      {card ? (
+        <AutopilotRecommendations
+          proposals={proposals}
+          cardSuggestion={card.autopilotSuggestion}
+          cardName={card.cardName}
         />
       ) : null}
 
@@ -168,7 +204,7 @@ export default async function InsightsHubPage({
       <Card className="border-border/60">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
+            <BarChart3 className="h-4 w-4 text-[oklch(0.78_0.13_195)]" />
             <CardTitle>Failure &amp; recovery</CardTitle>
           </div>
           <CardDescription>
@@ -190,7 +226,9 @@ export default async function InsightsHubPage({
                   <p className="mt-1 text-[10px] text-muted-foreground">
                     <span
                       className={
-                        evidenceClassTone(m.evidenceClass) === "primary" ? "text-primary" : ""
+                        evidenceClassTone(m.evidenceClass) === "primary"
+                          ? "text-[oklch(0.82_0.11_195)]"
+                          : ""
                       }
                     >
                       {formatEvidenceCaption({
@@ -210,7 +248,7 @@ export default async function InsightsHubPage({
       <Card className="border-border/60">
         <CardHeader>
           <div className="flex items-center gap-2">
-            <BarChart3 className="h-4 w-4 text-primary" />
+            <BarChart3 className="h-4 w-4 text-[oklch(0.78_0.13_195)]" />
             <CardTitle>Evidence legend</CardTitle>
           </div>
           <CardDescription>

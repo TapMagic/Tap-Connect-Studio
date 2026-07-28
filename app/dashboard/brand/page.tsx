@@ -25,24 +25,45 @@ export default async function BrandClassicPage() {
   return (
     <div className="zone-brand space-y-6 p-6 lg:p-8 pb-24" data-testid="brand-kit-classic">
       <CardRelationshipAnchor card={card} role="brand_identity" />
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
-            Advanced · Legacy Brand administration
-          </p>
-          <h1 className="mt-1 text-2xl font-bold">Brand Kit (classic)</h1>
-          <p className="text-muted-foreground">
-            Compatibility form for colors, logo, contact card, socials, and compliance. Shared
-            visual authoring remains the primary Brand experience.
+
+      {/* Demotion banner — this is the legacy/advanced path, not the default. */}
+      <div
+        className="flex flex-col gap-3 rounded-lg border border-white/10 bg-white/[0.02] px-4 py-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+        data-testid="brand-legacy-demotion"
+      >
+        <div className="flex items-start gap-2">
+          <span
+            className="mt-0.5 inline-flex shrink-0 items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide"
+            style={{
+              color: "var(--studio-status-neutral)",
+              borderColor: "color-mix(in oklch, var(--studio-status-neutral) 40%, transparent)",
+            }}
+          >
+            Advanced · Legacy
+          </span>
+          <p className="text-white/55">
+            You&rsquo;re on the compatibility form. Brand Kit changes here still flow into your Card
+            and campaigns — but the focused workspace is the recommended way to edit brand.
           </p>
         </div>
         <Link
           href="/dashboard/brand/edit"
           data-testid="brand-open-focused-workspace"
-          className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg bg-[var(--studio-go)] px-4 text-sm font-medium text-[var(--studio-go-fg)] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
         >
-          Open focused workspace (default)
+          Open focused workspace
         </Link>
+      </div>
+
+      <div className="opacity-80">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/35">
+          Legacy Brand administration
+        </p>
+        <h1 className="mt-1 text-xl font-semibold text-white/80">Brand Kit (classic form)</h1>
+        <p className="mt-1 text-sm text-white/45">
+          Compatibility form for colors, logo, contact card, socials, and compliance. Everything you
+          save here becomes the single source of truth the Card inherits.
+        </p>
       </div>
       <BrandKeywordsSection initialPack={brandKit?.keywordBrandPack} />
       <BrandKitForm

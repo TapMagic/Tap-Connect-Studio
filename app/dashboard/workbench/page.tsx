@@ -12,10 +12,19 @@ export default async function WorkbenchPage() {
 
   return (
     <div className="space-y-8 p-6 lg:p-8">
-      <div>
+      <div className="space-y-2">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+          Campaign · serves your Tap Card
+        </p>
         <h1 className="text-2xl font-bold tracking-tight">Campaign Workbench</h1>
-        <p className="text-muted-foreground">
-          Start with an intent, not a blank page. Preview templates, then create a draft with your brand colors.
+        <p className="max-w-2xl text-muted-foreground">
+          Start with an outcome, not a blank page. Each template becomes a live page your Card
+          points to when someone taps — pick the result you want, and we&rsquo;ll create a draft in
+          your brand colors.
+        </p>
+        <p className="text-sm text-muted-foreground">
+          <span className="text-foreground">What&rsquo;s next:</span> choose a template below → we
+          create a draft campaign → edit and assign it to a device so taps go live.
         </p>
       </div>
 

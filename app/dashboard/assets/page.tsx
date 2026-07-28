@@ -1,90 +1,156 @@
 import Link from "next/link";
-import { ArrowRight, ImageIcon, Palette } from "lucide-react";
+import { ArrowRight, Palette } from "lucide-react";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
-import { FILE_FORMAT_REGISTRY } from "@/lib/fusion/formats/registry";
+import { isMediaUploadReady } from "@/lib/config/integrations";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
+import {
+  AssetsLibrary,
+  type LibraryAsset,
+} from "@/components/fusion/assets/assets-library";
 
 export const dynamic = "force-dynamic";
 
+/** Extract candidate media URLs from a JSON blob (mirrors /api/media). */
+function collectUrls(blob: unknown): string[] {
+  const text = JSON.stringify(blob ?? {});
+  const matches = text.match(/https?:\/\/[^"\\\s]+|data:image\/[^"\\\s]+/g);
+  return matches ?? [];
+}
+
 export default async function AssetsHubPage() {
   const { business } = await requireBusiness();
-  const brandKit = await prisma.brandKit
-    .findUnique({ where: { businessId: business.id } })
-    .catch(() => null);
-  const imageFormats = FILE_FORMAT_REGISTRY.filter((f) => f.kind === "image" && f.upload).length;
+
+  const [brandKit, assets, campaigns] = await Promise.all([
+    prisma.brandKit.findUnique({ where: { businessId: business.id } }).catch(() => null),
+    prisma.mediaAsset.findMany({
+      where: { businessId: business.id },
+      orderBy: { createdAt: "desc" },
+      take: 120,
+    }),
+    prisma.campaign.findMany({
+      where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+      select: {
+        id: true,
+        title: true,
+        contentBlocks: true,
+        themeOverrides: true,
+        primaryMedia: true,
+      },
+      take: 80,
+    }),
+  ]);
+
   const hasBrand = Boolean(business.logoUrl || brandKit);
+
+  // Build a URL -> usage map so each asset can show truthful "used in".
+  const usage = new Map<string, { label: string; href: string; detail?: string }[]>();
+  function record(url: string, entry: { label: string; href: string; detail?: string }) {
+    if (!url) return;
+    const list = usage.get(url) ?? [];
+    if (!list.some((e) => e.label === entry.label && e.href === entry.href)) {
+      list.push(entry);
+      usage.set(url, list);
+    }
+  }
+
+  if (business.logoUrl) {
+    record(business.logoUrl, {
+      label: "Brand Kit logo",
+      href: "/dashboard/brand/edit",
+      detail: "Identity mark",
+    });
+  }
+  // Card (Brand Kit tapCard) media
+  if (brandKit?.tapCard) {
+    for (const url of collectUrls(brandKit.tapCard)) {
+      record(url, { label: "Your Card", href: "/dashboard/card/edit" });
+    }
+  }
+  for (const c of campaigns) {
+    const urls = new Set([
+      ...collectUrls(c.contentBlocks),
+      ...collectUrls(c.themeOverrides),
+      ...collectUrls(c.primaryMedia),
+    ]);
+    for (const url of urls) {
+      record(url, {
+        label: c.title,
+        href: `/dashboard/campaigns/${c.id}`,
+        detail: "Campaign",
+      });
+    }
+  }
+
+  const libraryAssets: LibraryAsset[] = assets.map((a) => ({
+    id: a.id,
+    url: a.url,
+    filename: a.filename,
+    mimeType: a.mimeType,
+    sizeBytes: a.sizeBytes,
+    source: a.source,
+    createdAt: a.createdAt.toISOString(),
+    usedIn: usage.get(a.url) ?? [],
+    isBrandLogo: Boolean(business.logoUrl && a.url === business.logoUrl),
+  }));
+
+  const mediaUploadReady = isMediaUploadReady();
+  const usedCount = libraryAssets.filter((a) => a.usedIn.length > 0).length;
 
   return (
     <div className="zone-assets space-y-8 p-5 lg:p-8" data-testid="assets-workspace">
       <header className="space-y-3 border-b border-white/8 pb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:oklch(0.86_0.1_295)]">
           Assets
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Brand & media</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-white">Media library</h1>
         <p className="max-w-2xl text-sm text-white/55">
-          Keep Brand Kit as the single source of truth. Media and templates inherit — never a
-          second brand system.
+          Every image, logo, and file you reuse across your Card and campaigns lives here. Brand Kit
+          stays the single source of truth for identity — the library never becomes a second brand
+          system.
         </p>
-        <div className="flex flex-wrap gap-2 pt-1">
+      </header>
+
+      {/* Brand Kit relationship — Assets flows FROM Brand, never replaces it. */}
+      <section
+        className="rounded-xl border border-white/10 bg-white/[0.02] px-5 py-4"
+        data-testid="assets-brand-relationship"
+        aria-label="Brand Kit relationship"
+      >
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="text-sm font-medium text-white/90">
+              Brand Kit is your source of truth
+            </p>
+            <p className="mt-1 text-xs text-white/50">
+              {hasBrand
+                ? "Your logo and colors come from Brand Kit — the Card and campaigns inherit them automatically. Media you add here supports those experiences."
+                : "Set up Brand Kit first so your Card and campaigns look like you. Media added here supports, but never replaces, your brand identity."}
+            </p>
+          </div>
           <Link
             href="/dashboard/brand/edit"
             data-testid="assets-cta-brand"
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex min-h-11 shrink-0 items-center gap-2 rounded-lg bg-[var(--studio-go)] px-4 text-sm font-medium text-[var(--studio-go-fg)] hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
           >
             <Palette className="h-4 w-4" aria-hidden />
             {hasBrand ? "Open Brand Kit" : "Set up Brand Kit"}
           </Link>
-          <Link
-            href="/dashboard/workbench"
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/90 hover:border-primary/40"
-          >
-            <ImageIcon className="h-4 w-4" aria-hidden />
-            Templates in workbench
-          </Link>
         </div>
-      </header>
-
-      <section
-        className="grid gap-3 lg:grid-cols-2"
-        aria-label="Asset status"
-        data-testid="assets-status"
-      >
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4">
-          <p className="text-sm font-medium text-white/90">Brand Kit</p>
-          <p className="mt-2 text-xs text-white/50">
-            {hasBrand
-              ? "Logo or kit present — builders can inherit colors and marks."
-              : "Not set yet — start here so Cards and campaigns look like you."}
-          </p>
+        <div className="mt-3 flex flex-wrap items-center gap-4 text-[11px] text-white/40">
+          <span data-testid="assets-count-total">{libraryAssets.length} in library</span>
+          <span data-testid="assets-count-used">{usedCount} in use on Card / campaigns</span>
           <Link
-            href="/dashboard/brand/edit"
-            className="mt-3 inline-flex items-center gap-1 text-xs text-primary hover:underline"
-            data-testid="assets-edit-brand"
+            href="/dashboard/card/edit"
+            className="inline-flex items-center gap-1 text-white/50 hover:text-white/80"
           >
-            {hasBrand ? "Edit Brand Kit" : "Create Brand Kit"}{" "}
-            <ArrowRight className="h-3 w-3" />
+            Add media to your Card <ArrowRight className="h-3 w-3" />
           </Link>
-          <Link
-            href="/dashboard/brand"
-            className="mt-2 block text-[11px] text-white/40 hover:text-white/60"
-            data-testid="assets-classic-brand"
-          >
-            Legacy Brand administration
-          </Link>
-        </div>
-        <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4">
-          <p className="text-sm font-medium text-white/90">Media formats</p>
-          <p className="mt-2 text-xs text-white/50">
-            {imageFormats}+ image formats registered · Pexels / Unsplash / Logo.dev / R2 when
-            configured.
-          </p>
-          <p className="mt-3 text-[11px] text-white/35">
-            Upload and stock search live inside Card and Campaign builders.
-          </p>
         </div>
       </section>
+
+      <AssetsLibrary initialAssets={libraryAssets} mediaUploadReady={mediaUploadReady} />
 
       <details className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium text-white/80">
