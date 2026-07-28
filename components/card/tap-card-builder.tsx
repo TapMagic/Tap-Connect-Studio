@@ -687,7 +687,11 @@ export function TapCardBuilder({
   }
 
   function addAction() {
-    const catalog = TAP_CARD_ACTION_CATALOG.find((c) => c.kind === addKind);
+    addActionOfKind(addKind);
+  }
+
+  function addActionOfKind(kind: TapCardActionKind) {
+    const catalog = TAP_CARD_ACTION_CATALOG.find((c) => c.kind === kind);
     const id = nanoid(8);
     setSections([
       ...sorted,
@@ -696,11 +700,11 @@ export function TapCardBuilder({
         type: "action",
         enabled: true,
         order: sorted.length,
-        actionKind: addKind,
-        label: catalog?.label ?? addKind,
-        icon: catalog?.icon ?? addKind,
-        finish: addKind === "review" ? "soft" : config.defaultFinish,
-        style: addKind === "review" ? "soft" : config.defaultFinish,
+        actionKind: kind,
+        label: catalog?.label ?? kind,
+        icon: catalog?.icon ?? kind,
+        finish: kind === "review" ? "soft" : config.defaultFinish,
+        style: kind === "review" ? "soft" : config.defaultFinish,
         shape: config.defaultShape,
         backgroundColor: config.pillColor,
         textColor: config.pillTextColor,
@@ -939,6 +943,12 @@ export function TapCardBuilder({
       patchConfig,
       patchConfigColor,
       patchSection,
+      onAddSection: (type) =>
+        addSection(type as Exclude<TapCardSectionType, "action_row">),
+      onAddAction: (kind) => {
+        setAddKind(kind as TapCardActionKind);
+        addActionOfKind(kind as TapCardActionKind);
+      },
       setSelectedId,
       setShowFreeform,
       onRetireToggle: retireToggle,

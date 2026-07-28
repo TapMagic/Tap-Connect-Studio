@@ -177,7 +177,10 @@ test.describe("Card-Centered Owner Experience V1", () => {
   test("Zone system overview + nav restraint + axe", async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await page.goto(`${BASE}/dashboard`, { waitUntil: "networkidle" });
-    await expect(page.locator(".studio-nav-active").first()).toBeVisible({ timeout: 60_000 });
+    // Redesigned nav marks the active route with aria-current instead of a class.
+    await expect(
+      page.getByTestId("studio-nav-rail").locator('[aria-current="page"]').first()
+    ).toBeVisible({ timeout: 60_000 });
     await page.screenshot({ path: path.join(SHOT, "22-zone-system-overview.png"), fullPage: true });
 
     for (const [w, h] of [

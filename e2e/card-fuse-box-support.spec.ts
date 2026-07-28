@@ -22,20 +22,18 @@ test.describe("card fuse-box support slice", () => {
       "not_yet_available",
     ]).toContain(status);
     await page.getByTestId("card-edit-open").click();
-    await expect(page.getByTestId("card-builder-host")).toBeVisible({ timeout: 45_000 });
-    await expect(page.getByTestId("card-save")).toBeVisible({ timeout: 30_000 });
-    await expect(page.locator(".builder-studio")).toBeVisible();
+    // Redesign: the builder is shell-hosted in the adaptive edit workspace.
+    await expect(page.getByTestId("tap-card-builder")).toBeVisible({ timeout: 45_000 });
+    await expect(page.getByTestId("card-save").first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("card-canvas-viewport")).toBeVisible();
   });
 
   test("editor lists Ask a Question action and utility toggle", async ({ page }) => {
     await page.goto("/dashboard/card/edit");
-    await expect(page.getByTestId("card-save")).toBeVisible({ timeout: 60_000 });
-    await expect(page.getByTestId("card-utility-layer-editor")).toBeVisible();
-    await expect(page.getByTestId("utility-toggle-support")).toBeVisible();
-    const kindSelect = page
-      .locator("select")
-      .filter({ has: page.locator("option[value='support']") })
-      .first();
+    await expect(page.getByTestId("card-save").first()).toBeVisible({ timeout: 60_000 });
+    // Redesign: adding actions lives in the Outline tool drawer.
+    await page.getByTestId("card-tool-outline").click();
+    const kindSelect = page.getByTestId("card-drawer-add-action-kind");
     await expect(kindSelect).toBeVisible({ timeout: 15_000 });
     await kindSelect.selectOption("support");
     await expect(kindSelect).toHaveValue("support");

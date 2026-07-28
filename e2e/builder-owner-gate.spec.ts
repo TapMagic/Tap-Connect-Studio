@@ -374,11 +374,23 @@ test.describe("Builder owner gate (Card + Campaign)", () => {
     const headlineRow = page.getByTestId("campaign-block-proof_headline_0");
     await expect(headlineRow).toBeVisible({ timeout: 15_000 });
     await headlineRow.scrollIntoViewIfNeeded();
-    await page.getByRole("button", { name: /^Select block headline$/i }).click();
+    // Redesign adds a canvas select handle with the same accessible name —
+    // target the outline-row select button explicitly.
+    await page
+      .getByRole("button", { name: /^Select block headline$/i })
+      .and(page.getByTestId("campaign-block-proof_headline_0"))
+      .click();
     await expect(page.getByText(/^Edit:\s*headline$/i)).toBeVisible({ timeout: 10_000 });
-    const headlineInput = page.getByTestId("block-headline-text");
-    await headlineInput.scrollIntoViewIfNeeded();
-    await expect(headlineInput).toBeVisible({ timeout: 15_000 });
+    const headlineField = page.getByTestId("block-headline-text");
+    await headlineField.scrollIntoViewIfNeeded();
+    await expect(headlineField).toBeVisible({ timeout: 15_000 });
+    // Headline control may be a bare input or an expanded field wrapper.
+    const headlineInput = (await headlineField
+      .first()
+      .evaluate((el) => el.tagName === "INPUT" || el.tagName === "TEXTAREA")
+      .catch(() => false))
+      ? headlineField.first()
+      : headlineField.locator("input, textarea").first();
     await headlineInput.fill(`${marker}_UI`);
     notes.push("ui_headline_edit");
 
@@ -864,9 +876,11 @@ test.describe("Builder owner gate (Card + Campaign)", () => {
     const stamp = Date.now();
     const marker = `CardProof_${stamp}`;
 
-    await page.goto(`${BASE}/dashboard/card`, { waitUntil: "domcontentloaded" });
+    // Redesign: /dashboard/card is now the Assembly hub; the builder chrome
+    // (save/undo/redo) lives in the focused editor at /dashboard/card/edit.
+    await page.goto(`${BASE}/dashboard/card/edit`, { waitUntil: "domcontentloaded" });
     await page.waitForTimeout(900);
-    await expect(page.getByTestId("card-save")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("card-save").first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("card-undo")).toBeVisible();
     await expect(page.getByTestId("card-redo")).toBeVisible();
     notes.push("card_chrome");

@@ -149,7 +149,7 @@ export function InsightsControls({
               campaignId: campaignId ?? undefined,
             })}
             className={chipClass(d === days)}
-            aria-pressed={d === days}
+            aria-current={d === days ? "true" : undefined}
           >
             {d}d
           </Link>
@@ -164,7 +164,7 @@ export function InsightsControls({
             campaignId: campaignId ?? undefined,
           })}
           className={chipClass(compare)}
-          aria-pressed={compare}
+          aria-current={compare ? "true" : undefined}
           data-testid="insights-compare-toggle"
         >
           {compare ? "Comparing prior" : "Compare prior"}
@@ -183,7 +183,7 @@ export function InsightsControls({
               campaignId: campaignId ?? undefined,
             })}
             className={chipClass(v === view)}
-            aria-pressed={v === view}
+            aria-current={v === view ? "true" : undefined}
             data-testid={`insights-view-${v}`}
           >
             {INSIGHTS_VIEW_LABELS[v]}
@@ -204,7 +204,7 @@ export function InsightsControls({
               campaignId: campaignId ?? undefined,
             })}
             className={chipClass(e === evidence)}
-            aria-pressed={e === evidence}
+            aria-current={e === evidence ? "true" : undefined}
             data-testid={`insights-evidence-${e}`}
           >
             {e === "all" ? "All evidence" : e}

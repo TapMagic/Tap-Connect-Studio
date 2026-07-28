@@ -130,26 +130,38 @@ test.describe("Builder exploratory controls", () => {
       }
     }
 
-    // Format sample — Page theme Finish honesty (None must not coerce to metallic)
+    // Format sample — default finish honesty now lives in the shared Layout tool
+    // drawer (Page theme panel points to it; "Flat" is the honest non-premium
+    // default and must not coerce to metallic).
     await page.getByRole("button", { name: /^Page theme$/i }).click();
-    const finish = page.getByTestId("finish-picker").first();
+    await page.getByTestId("campaign-open-layout-tool").click();
+    const finish = page.getByTestId("campaign-default-button-finish").first();
     await expect(finish).toBeVisible({ timeout: 10_000 });
     const opts = await finish.locator("option").allTextContents();
-    const hasNone = opts.some((o) => /None/i.test(o));
-    notes.push(`finish_none=${hasNone}`);
-    if (!hasNone) blockers.push("finish_picker_missing_none");
-    await finish.selectOption("");
-    await expect(finish).toHaveValue("");
-    notes.push("finish_none_honest");
+    const hasFlat = opts.some((o) => /Flat/i.test(o));
+    notes.push(`finish_flat=${hasFlat}`);
+    if (!hasFlat) blockers.push("finish_picker_missing_flat");
+    await finish.selectOption("flat");
+    await expect(finish).toHaveValue("flat");
+    notes.push("finish_flat_honest");
     if (opts.length > 1) {
       await finish.selectOption({ index: 1 }).catch(() => undefined);
       notes.push("finish_sample_selected");
     }
+    // Close the drawer so subsequent block edits use the outline panel
+    await page.getByTestId("campaign-drawer-collapse").first().click().catch(() => undefined);
 
     // Headline live preview sample
     await selectCampaignBlock(page, "campaign-block-hl");
-    const headlineInput = page.getByTestId("block-headline-text");
-    if ((await headlineInput.count()) > 0) {
+    const headlineField = page.getByTestId("block-headline-text");
+    // The headline control may be a bare input or an expanded field wrapper.
+    const headlineInput = (await headlineField
+      .first()
+      .evaluate((el) => el.tagName === "INPUT" || el.tagName === "TEXTAREA")
+      .catch(() => false))
+      ? headlineField.first()
+      : headlineField.locator("input, textarea").first();
+    if ((await headlineField.count()) > 0) {
       const next = `${marker}_EDIT`;
       await headlineInput.fill(next);
       await page.waitForTimeout(250);
@@ -227,7 +239,13 @@ test.describe("Builder exploratory controls", () => {
     // Undo sample
     await selectCampaignBlock(page, "campaign-block-hl");
     if ((await page.getByTestId("block-headline-text").count()) > 0) {
-      await page.getByTestId("block-headline-text").fill(`${marker}_UNDO`);
+      const undoField = page.getByTestId("block-headline-text").first();
+      const undoInput = (await undoField
+        .evaluate((el) => el.tagName === "INPUT" || el.tagName === "TEXTAREA")
+        .catch(() => false))
+        ? undoField
+        : undoField.locator("input, textarea").first();
+      await undoInput.fill(`${marker}_UNDO`);
       await page.waitForTimeout(200);
       if (!(await page.getByTestId("campaign-undo").isDisabled())) {
         await page.getByTestId("campaign-undo").click();

@@ -407,26 +407,40 @@ export function CampaignEditor({
   const selectedDeviceCode = devices.find((d) => d.id === selectedDevice)?.deviceCode;
   const selectedBlock = blocks.find((b) => b.id === selectedBlockId) ?? null;
 
-  const restoredShell = useMemo(() => loadWorkspaceShellState(CAMPAIGN_WORKSPACE_ID), []);
+  // Hydration-safe restore: server renders the default shell; the persisted
+  // session state is applied after mount so SSR and first client render match.
   const [shell, setShell] = useState<WorkspaceShellSnapshot>(() =>
     createShellSnapshot(CAMPAIGN_WORKSPACE_ID, {
-      workspaceMode: restoredShell.focusMode ? "focus" : "browse",
-      shadePreference: restoredShell.shadePreference,
-      priorShadeDisplay: restoredShell.priorShadeDisplay || "open",
-      focusMode: restoredShell.focusMode,
+      workspaceMode: "browse",
       dirty: false,
       saved: true,
-      selectedToolId: restoredShell.selectedToolId,
-      drawerOpen: restoredShell.drawerOpen,
-      drawerSizeMode: restoredShell.drawerSizeMode,
-      customDrawerWidthPct: restoredShell.customDrawerWidthPct,
-      selectedObjectId: restoredShell.selectedObjectId,
     })
   );
-  const [toolMemory, setToolMemory] = useState<Record<string, ToolDrawerMemory>>(
-    () => restoredShell.toolMemory ?? {}
-  );
-  const [sessionRestored] = useState(() => Boolean(restoredShell.sessionDraftRestored));
+  const [toolMemory, setToolMemory] = useState<Record<string, ToolDrawerMemory>>({});
+  const [sessionRestored, setSessionRestored] = useState(false);
+  const shellRestoreApplied = useRef(false);
+  useEffect(() => {
+    if (shellRestoreApplied.current) return;
+    shellRestoreApplied.current = true;
+    const restoredShell = loadWorkspaceShellState(CAMPAIGN_WORKSPACE_ID);
+    setShell(
+      createShellSnapshot(CAMPAIGN_WORKSPACE_ID, {
+        workspaceMode: restoredShell.focusMode ? "focus" : "browse",
+        shadePreference: restoredShell.shadePreference,
+        priorShadeDisplay: restoredShell.priorShadeDisplay || "open",
+        focusMode: restoredShell.focusMode,
+        dirty: false,
+        saved: true,
+        selectedToolId: restoredShell.selectedToolId,
+        drawerOpen: restoredShell.drawerOpen,
+        drawerSizeMode: restoredShell.drawerSizeMode,
+        customDrawerWidthPct: restoredShell.customDrawerWidthPct,
+        selectedObjectId: restoredShell.selectedObjectId,
+      })
+    );
+    setToolMemory(restoredShell.toolMemory ?? {});
+    setSessionRestored(Boolean(restoredShell.sessionDraftRestored));
+  }, []);
   const [visualDirty, setVisualDirty] = useState(false);
 
   type VisualDraft = { theme: CampaignThemeState; blocks: ContentBlock[]; selectedItemId: string | null };
@@ -1182,7 +1196,7 @@ export function CampaignEditor({
 
       <div className="flex min-h-0 flex-1 flex-col lg:flex-row">
         {/* Left rail */}
-        <aside className="builder-studio-rail flex w-full shrink-0 flex-col border-r border-border/60 lg:w-[280px]">
+        <aside className="builder-studio-rail flex w-full shrink-0 flex-col border-r border-border/60 lg:w-[200px] xl:w-[280px]">
           <div className="flex gap-1 overflow-x-auto border-b border-border/50 p-2">
             {TABS.map((t) => {
               const Icon = t.icon;
@@ -1720,7 +1734,7 @@ export function CampaignEditor({
 
         {/* Right inspector — independent scroll column (hidden while Task Drawer owns the tool) */}
         {tab === "content" && !shellForUi.drawerOpen && (
-          <aside className="builder-studio-inspector flex w-full shrink-0 flex-col border-l border-border/60 lg:w-[340px]">
+          <aside className="builder-studio-inspector flex w-full shrink-0 flex-col border-l border-border/60 lg:w-[240px] xl:w-[340px]">
             <div
               className="sticky top-0 z-10 border-b border-border/50 bg-background/95 px-4 py-2.5 text-sm font-semibold backdrop-blur"
               data-testid="campaign-format-heading"

@@ -306,19 +306,20 @@ test.describe("J1 first public tap residuals", () => {
     }
 
     // Slot: Monday evening via Studio proof control (React state, not datetime-local fill)
-    await page.getByTestId("time-travel-proof-slot").click();
+    // Click inside the retry loop — the first click can land before hydration.
     await expect(async () => {
+      await page.getByTestId("time-travel-proof-slot").click();
       expect((await readResult()).reason).toBe("slot");
-    }).toPass({ timeout: 5000 });
+    }).toPass({ timeout: 15_000 });
     const slot = await readResult();
     notes.push(`slot_reason_attr=${slot.reason}`, `slot_text=${slot.text.slice(0, 180)}`);
     expect(/Matched slot|Evenings|Evening/i.test(slot.text)).toBeTruthy();
 
     // Default: Monday morning outside evening window
-    await page.getByTestId("time-travel-proof-default").click();
     await expect(async () => {
+      await page.getByTestId("time-travel-proof-default").click();
       expect((await readResult()).reason).toBe("default");
-    }).toPass({ timeout: 5000 });
+    }).toPass({ timeout: 15_000 });
     const def = await readResult();
     notes.push(`default_reason_attr=${def.reason}`, `default_text=${def.text.slice(0, 180)}`);
     expect(/default campaign/i.test(def.text)).toBeTruthy();
@@ -336,10 +337,10 @@ test.describe("J1 first public tap residuals", () => {
 
     await page.goto(groupUrl, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("time-travel-preview")).toBeVisible({ timeout: 20000 });
-    await page.getByTestId("time-travel-proof-default").click();
     await expect(async () => {
+      await page.getByTestId("time-travel-proof-default").click();
       expect((await readResult()).reason).toBe("end");
-    }).toPass({ timeout: 5000 });
+    }).toPass({ timeout: 15_000 });
     const end = await readResult();
     notes.push(`end_reason_attr=${end.reason}`, `end_text=${end.text.slice(0, 180)}`);
     expect(/end \/ fallback|end campaign/i.test(end.text)).toBeTruthy();
@@ -357,20 +358,20 @@ test.describe("J1 first public tap residuals", () => {
     // Boundaries at seed Evenings 16:00 start
     await page.goto(groupUrl, { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("time-travel-preview")).toBeVisible({ timeout: 20000 });
-    await page.getByTestId("time-travel-proof-boundary-before").click();
     await expect(async () => {
+      await page.getByTestId("time-travel-proof-boundary-before").click();
       expect((await readResult()).reason).toBe("default");
-    }).toPass({ timeout: 5000 });
+    }).toPass({ timeout: 15_000 });
     const boundary = await readResult();
     notes.push(
       `boundary_1559_reason=${boundary.reason}`,
       `boundary_1559_text=${boundary.text.slice(0, 120)}`
     );
 
-    await page.getByTestId("time-travel-proof-boundary-on").click();
     await expect(async () => {
+      await page.getByTestId("time-travel-proof-boundary-on").click();
       expect((await readResult()).reason).toBe("slot");
-    }).toPass({ timeout: 5000 });
+    }).toPass({ timeout: 15_000 });
     const boundaryOn = await readResult();
     notes.push(
       `boundary_1600_reason=${boundaryOn.reason}`,

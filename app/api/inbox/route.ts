@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { prisma } from "@/lib/db";
 import { requireBusiness } from "@/lib/auth";
 import { checkAnyFeatureGate, featureGateJsonBody } from "@/lib/fusion/features/gate";
 import { loadFeatureContext } from "@/lib/fusion/features/server";
@@ -308,11 +309,29 @@ export async function POST(request: Request) {
         return NextResponse.json({ ok: true, attachment: result.attachment });
       }
       case "run_operator_closeout": {
+        // Resolve contact/relationship from the live DB when the caller does
+        // not provide them — static LOCAL_SEED ids may not exist in this DB.
+        let contactId = body.contactId ?? null;
+        let relationshipId = body.relationshipId ?? null;
+        if (!contactId || !relationshipId) {
+          const rel = await prisma.customerRelationship.findFirst({
+            where: {
+              businessId: business.id,
+              ...(contactId ? { contactId } : {}),
+            },
+            orderBy: { createdAt: "asc" },
+            select: { id: true, contactId: true },
+          });
+          if (rel) {
+            contactId = contactId ?? rel.contactId;
+            relationshipId = relationshipId ?? rel.id;
+          }
+        }
         const result = await runInboxOperatorCloseout({
           businessId: business.id,
           actorId: user.id,
-          contactId: body.contactId ?? LOCAL_SEED.contactId,
-          relationshipId: body.relationshipId ?? LOCAL_SEED.relationshipId,
+          contactId: contactId ?? LOCAL_SEED.contactId,
+          relationshipId: relationshipId ?? LOCAL_SEED.relationshipId,
           campaignId: body.campaignId ?? LOCAL_SEED.campaignId,
           campaignTitle: body.campaignTitle ?? LOCAL_SEED.campaignTitle,
         });

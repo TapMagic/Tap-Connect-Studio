@@ -89,8 +89,19 @@ test.describe("email authoring workspace", () => {
       "advanced",
     ] as const;
 
+    // Technical tools live inside a collapsed "Technical" disclosure now.
+    const openTechnical = async () => {
+      const details = page.getByTestId("email-technical-tools");
+      if ((await details.count()) > 0 && (await details.getAttribute("open")) === null) {
+        await details.locator("summary").click();
+      }
+    };
+
     for (const tool of drawers) {
-      await page.getByTestId(`email-tool-${tool}`).click();
+      if (["plain_text", "history", "advanced"].includes(tool)) {
+        await openTechnical();
+      }
+      await page.getByTestId(`email-tool-${tool}`).first().click();
       await expect(page.getByTestId("email-contextual-drawer")).toBeVisible();
       await expect(page.getByTestId("email-live-preview")).toBeVisible();
       await expect(page.getByTestId("email-live-preview")).toHaveAttribute(
@@ -168,14 +179,18 @@ test.describe("email authoring workspace", () => {
     await expect(page.getByText(/Email draft saved/i)).toBeVisible({ timeout: 30_000 });
     await shot(page, "03-after-save");
 
-    // Capture Advanced HTML before reload
-    await page.getByTestId("email-tool-advanced").click();
+    // Capture Advanced HTML before reload (expand Technical disclosure first)
+    const techDetails = page.getByTestId("email-technical-tools");
+    if ((await techDetails.count()) > 0 && (await techDetails.getAttribute("open")) === null) {
+      await techDetails.locator("summary").click();
+    }
+    await page.getByTestId("email-tool-advanced").first().click();
     await expect(page.getByTestId("email-html-output")).toBeVisible();
     const htmlBefore = await page.getByTestId("email-html-output").innerText();
     expect(htmlBefore).not.toMatch(/<script/i);
     expect(htmlBefore).not.toMatch(/\bon\w+\s*=/i);
 
-    await page.getByTestId("email-tool-plain_text").click();
+    await page.getByTestId("email-tool-plain_text").first().click();
     await expect(page.getByTestId("email-drawer-plain-text")).toBeVisible();
     const plainBefore = await page.getByTestId("email-plain-text-editor").inputValue();
     expect(plainBefore.length).toBeGreaterThan(20);
@@ -202,7 +217,11 @@ test.describe("email authoring workspace", () => {
     });
     await other.getByTestId("email-tool-subject").click();
     await expect(other.getByTestId("email-subject-input")).toHaveValue(subjectValue);
-    await other.getByTestId("email-tool-advanced").click();
+    const otherTech = other.getByTestId("email-technical-tools");
+    if ((await otherTech.count()) > 0 && (await otherTech.getAttribute("open")) === null) {
+      await otherTech.locator("summary").click();
+    }
+    await other.getByTestId("email-tool-advanced").first().click();
     const htmlAfter = await other.getByTestId("email-html-output").innerText();
     expect(htmlAfter).toContain("224466");
     await other.close();

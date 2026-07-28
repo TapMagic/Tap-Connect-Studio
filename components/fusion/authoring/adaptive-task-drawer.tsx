@@ -176,7 +176,7 @@ export function AdaptiveTaskDrawer({
         </div>
         <div
           ref={scrollRef}
-          className="overflow-y-auto p-3"
+          className="overflow-y-auto p-3 pb-20"
           style={{ maxHeight: `calc(${sheetHeight} - 3.5rem)` }}
           data-testid="adaptive-drawer-scroll"
         >

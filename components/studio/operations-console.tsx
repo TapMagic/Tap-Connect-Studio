@@ -32,6 +32,12 @@ export type OperationsRow = {
   };
   /** Optional secondary meta (timestamp, provenance) */
   meta?: string;
+  /** Optional testid for the meta line (e.g. decision-item-meta) */
+  metaTestId?: string;
+  /** Optional raw technical detail, shown behind a collapsed disclosure */
+  technicalDetail?: string;
+  /** Optional stable domain id emitted as data-decision-id for deep-linking */
+  decisionId?: string;
   testId?: string;
 };
 
@@ -124,6 +130,7 @@ function OperationsRowItem({ row }: { row: OperationsRow }) {
       className="flex flex-col gap-1.5 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
       data-testid={row.testId ?? `ops-row-${row.id}`}
       data-ops-status={row.status}
+      {...(row.decisionId ? { "data-decision-id": row.decisionId } : {})}
     >
       <div className="flex min-w-0 items-start gap-2.5">
         <Icon className={cn("mt-0.5 h-4 w-4 shrink-0", meta.color)} aria-hidden />
@@ -144,7 +151,22 @@ function OperationsRowItem({ row }: { row: OperationsRow }) {
           </p>
           <p className="mt-0.5 text-xs text-white/50">{row.detail}</p>
           {row.meta ? (
-            <p className="mt-0.5 font-mono text-[10px] text-white/35">{row.meta}</p>
+            <p
+              className="mt-0.5 font-mono text-[10px] text-white/35"
+              {...(row.metaTestId ? { "data-testid": row.metaTestId } : {})}
+            >
+              {row.meta}
+            </p>
+          ) : null}
+          {row.technicalDetail ? (
+            <details className="mt-1">
+              <summary className="cursor-pointer text-[10px] text-white/40">
+                Technical detail
+              </summary>
+              <p className="mt-0.5 break-all font-mono text-[10px] text-white/40">
+                {row.technicalDetail}
+              </p>
+            </details>
           ) : null}
         </div>
       </div>

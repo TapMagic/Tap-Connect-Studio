@@ -18,6 +18,8 @@ function loadSeedIdsFromDisk(): Partial<{
   eveningCampaignId: string;
   groupId: string;
   contactId: string;
+  relationshipId: string;
+  enrollmentId: string;
   deviceCode: string;
 }> {
   try {
@@ -45,9 +47,14 @@ export const SEED = {
     diskSeed.eveningCampaignId ??
     "",
   groupId: process.env.SEED_GROUP_ID ?? diskSeed.groupId ?? "",
-  enrollmentId: process.env.SEED_ENROLLMENT_ID ?? "cmrx5yojf0009bv9kivpac97i",
+  enrollmentId:
+    process.env.SEED_ENROLLMENT_ID ??
+    diskSeed.enrollmentId ??
+    "cmrx5yojf0009bv9kivpac97i",
   contactId:
     process.env.SEED_CONTACT_ID ?? diskSeed.contactId ?? "cms1cazb20003gh9kaf22yry8",
+  relationshipId:
+    process.env.SEED_RELATIONSHIP_ID ?? diskSeed.relationshipId ?? "",
   deviceCode: process.env.SEED_DEVICE_CODE ?? diskSeed.deviceCode ?? "seeddemo01",
   journeyName: process.env.SEED_JOURNEY_NAME ?? "[SEED] Demo Journey",
   campaignTitle: process.env.SEED_CAMPAIGN_TITLE ?? "[SEED] Welcome Offer",

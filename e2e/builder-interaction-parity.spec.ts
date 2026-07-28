@@ -461,17 +461,20 @@ test.describe("Builder interaction parity", () => {
       notes.push(`side_tab_${side}_escape_to_content`);
     }
 
-    // Finish picker honesty — Page theme FinishPicker has honest None (allowNone)
+    // Finish honesty — default finish now lives in the shared Layout tool
+    // drawer ("Flat" is the honest non-premium default, no metallic coercion).
     await page.getByRole("button", { name: /^Page theme$/i }).click();
-    const finishPickers = page.getByTestId("finish-picker");
+    await page.getByTestId("campaign-open-layout-tool").click();
+    const finishPickers = page.getByTestId("campaign-default-button-finish");
     await expect(finishPickers.first()).toBeVisible({ timeout: 10_000 });
     const opts = await finishPickers.first().locator("option").allTextContents();
-    const hasNone = opts.some((o) => /None/i.test(o));
-    notes.push(`finish_none_option=${hasNone}`);
-    if (!hasNone) blockers.push("finish_picker_missing_none");
-    await finishPickers.first().selectOption("");
-    await expect(finishPickers.first()).toHaveValue("");
-    notes.push("finish_none_selected_honest");
+    const hasFlat = opts.some((o) => /Flat/i.test(o));
+    notes.push(`finish_flat_option=${hasFlat}`);
+    if (!hasFlat) blockers.push("finish_picker_missing_flat");
+    await finishPickers.first().selectOption("flat");
+    await expect(finishPickers.first()).toHaveValue("flat");
+    notes.push("finish_flat_selected_honest");
+    await page.getByTestId("campaign-drawer-collapse").first().click().catch(() => undefined);
 
     writeProof({
       id: "P-builder-exits-bg-remove",
@@ -620,11 +623,17 @@ test.describe("Builder interaction parity", () => {
 
     // Change a value → verify live render
     await selectCampaignBlock(page, "campaign-block-hl");
-    const headlineInput = page
+    const headlineField = page
       .getByTestId("block-headline-text")
       .or(page.getByLabel(/^Headline$/i))
       .first();
-    if ((await headlineInput.count()) > 0) {
+    // The headline control may be a bare input or an expanded field wrapper.
+    const headlineInput = (await headlineField
+      .evaluate((el) => el.tagName === "INPUT" || el.tagName === "TEXTAREA")
+      .catch(() => false))
+      ? headlineField
+      : headlineField.locator("input, textarea").first();
+    if ((await headlineField.count()) > 0) {
       const next = `${marker}_EDIT`;
       await headlineInput.fill(next);
       await page.waitForTimeout(300);
@@ -691,8 +700,14 @@ test.describe("Builder interaction parity", () => {
 
     // Undo after a small change (skip if history empty / control honestly disabled)
     await selectCampaignBlock(page, "campaign-block-hl");
-    const hi2 = page.getByTestId("block-headline-text");
-    if ((await hi2.count()) > 0) {
+    const hi2Field = page.getByTestId("block-headline-text");
+    if ((await hi2Field.count()) > 0) {
+      const hi2 = (await hi2Field
+        .first()
+        .evaluate((el) => el.tagName === "INPUT" || el.tagName === "TEXTAREA")
+        .catch(() => false))
+        ? hi2Field.first()
+        : hi2Field.locator("input, textarea").first();
       await hi2.fill(`${marker}_UNDO`);
       await page.waitForTimeout(400);
       const undo = page.getByTestId("campaign-undo");

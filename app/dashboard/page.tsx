@@ -114,6 +114,9 @@ export default async function DashboardPage() {
       ).toLocaleString()}`,
       action: { label: item.nextActionLabel ?? "Open related work", href: item.href },
       testId: `decision-item-${item.kind}`,
+      metaTestId: "decision-item-meta",
+      decisionId: item.id,
+      technicalDetail: item.detail || undefined,
     };
   });
 

@@ -17,6 +17,7 @@ import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inherit
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { cn } from "@/lib/utils";
 import {
+  TAP_CARD_ACTION_CATALOG,
   TAP_CARD_LAYOUT_OPTIONS,
   TAP_CARD_SHAPE_OPTIONS,
   type TapCardButtonShape,
@@ -55,6 +56,8 @@ export type CardShellToolDrawerProps = {
     value: string
   ) => void;
   patchSection: (id: string, patch: Partial<TapCardSection>) => void;
+  onAddSection: (type: string) => void;
+  onAddAction: (kind: string) => void;
   setSelectedId: (id: string | null) => void;
   setShowFreeform: (v: boolean) => void;
   onRetireToggle: () => void;
@@ -93,6 +96,8 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
     patchConfig,
     patchConfigColor,
     patchSection,
+    onAddSection,
+    onAddAction,
     setSelectedId,
     setShowFreeform,
     onBrandStateChange,
@@ -129,6 +134,60 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
             </li>
           ))}
         </ul>
+        <div className="space-y-2 border-t border-white/10 pt-3" data-testid="card-drawer-add">
+          <Label className="text-[10px] text-white/55">Add block</Label>
+          <div className="flex flex-wrap gap-1.5">
+            {(
+              [
+                ["special_offer", "Offer"],
+                ["promo_header", "Promo"],
+                ["image", "Image"],
+                ["logo_block", "Logo"],
+                ["text", "Text"],
+                ["spacer", "Spacer"],
+              ] as const
+            ).map(([type, label]) => (
+              <Button
+                key={type}
+                type="button"
+                size="sm"
+                variant="outline"
+                className="h-8 text-xs"
+                data-testid={`card-drawer-add-${type}`}
+                onClick={() => onAddSection(type)}
+              >
+                {label}
+              </Button>
+            ))}
+          </div>
+          <Label className="text-[10px] text-white/55">Add action</Label>
+          <select
+            aria-label="Action kind to add"
+            className="flex h-9 w-full rounded-lg border border-white/15 bg-black/40 px-2 text-sm"
+            defaultValue="vcard"
+            data-testid="card-drawer-add-action-kind"
+          >
+            {TAP_CARD_ACTION_CATALOG.map((c) => (
+              <option key={c.kind} value={c.kind}>
+                {c.label}
+              </option>
+            ))}
+          </select>
+          <Button
+            type="button"
+            size="sm"
+            className="w-full"
+            data-testid="card-drawer-add-action"
+            onClick={(e) => {
+              const select = (e.currentTarget.parentElement?.querySelector(
+                "select[aria-label='Action kind to add']"
+              ) ?? null) as HTMLSelectElement | null;
+              onAddAction(select?.value || "vcard");
+            }}
+          >
+            Add action
+          </Button>
+        </div>
       </div>
     );
   }

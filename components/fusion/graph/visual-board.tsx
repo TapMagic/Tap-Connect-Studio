@@ -477,7 +477,7 @@ export function VisualBoard({
                 data-board-node
                 data-testid={`${testIdPrefix}-${node.id}`}
                 aria-pressed={selected}
-                aria-label={`${node.label}${node.subtitle ? `, ${node.subtitle}` : ""}`}
+                aria-label={`Select ${node.label} node${node.subtitle ? `, ${node.subtitle}` : ""}`}
                 onPointerDown={(e) => onNodePointerDown(e, node.id)}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === " ") {

@@ -351,6 +351,15 @@ test.describe("Keywords owner-gate matrix", () => {
     ];
     for (const s of surfaces) {
       await page.goto(`${BASE}${s.path}`, { waitUntil: "domcontentloaded" });
+      // Some surfaces tuck the panel behind a collapsed disclosure now.
+      const hidden = page.getByTestId(s.testId).first();
+      if ((await hidden.count()) > 0 && !(await hidden.isVisible())) {
+        const summary = page
+          .locator("details", { has: page.getByTestId(s.testId) })
+          .locator("summary")
+          .first();
+        if ((await summary.count()) > 0) await summary.click();
+      }
       await expect(page.getByTestId(s.testId).first()).toBeVisible({ timeout: 25000 });
       notes.push(`surface_ok=${s.path}`);
     }

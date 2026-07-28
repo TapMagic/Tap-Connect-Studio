@@ -113,7 +113,12 @@ test.describe("brand v0 pre-commit visual + inheritance proof", () => {
     );
     await page.getByTestId("brand-undo").first().click({ force: true });
 
-    // Detached affordance
+    // Detached affordance — the Command Shade may auto-collapse while editing;
+    // expand it first (the affordance lives in the expanded shade).
+    if ((await page.getByTestId("brand-open-detached").count()) === 0) {
+      // Pin the shade open so auto-collapse cannot hide it again mid-assert.
+      await page.getByTestId("command-shade-pin-open").click();
+    }
     await expect(page.getByTestId("brand-open-detached")).toHaveAttribute("target", "_blank");
     await shot(page, "05-desktop-after-promote-history");
 
@@ -203,9 +208,9 @@ test.describe("brand v0 pre-commit visual + inheritance proof", () => {
     );
     await shot(page, "13-desktop-refresh-restored");
 
-    // Return to Studio
+    // Return to Studio — Brand workspace returns to the Assets workspace.
     await page.getByTestId("brand-return-studio").click();
-    await expect(page.getByTestId("brand-kit-classic")).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("assets-workspace")).toBeVisible({ timeout: 30_000 });
   });
 
   test("axe matrix brand surfaces", async ({ page }) => {

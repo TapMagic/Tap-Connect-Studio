@@ -37,6 +37,8 @@ export type CardEditorLiveModel = {
     value: string
   ) => void;
   patchSection: (id: string, patch: Partial<TapCardSection>) => void;
+  onAddSection: (type: string) => void;
+  onAddAction: (kind: string) => void;
   setSelectedId: (id: string | null) => void;
   setShowFreeform: (v: boolean) => void;
   onRetireToggle: () => void;

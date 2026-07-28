@@ -270,6 +270,7 @@ export function AssetsLibrary({
           accept="image/*,application/pdf"
           multiple
           className="sr-only"
+          aria-label="Upload asset files"
           data-testid="assets-upload-input"
           disabled={!mediaUploadReady || uploading}
           onChange={(e) => void handleFiles(e.target.files)}

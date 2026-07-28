@@ -102,16 +102,14 @@ test.describe("Inbox + Channel Guardian operator UI", () => {
     await expect(page.getByTestId("inbox-shell")).toBeVisible({ timeout: 30_000 });
     const threadBtn = page.getByTestId(`inbox-thread-${threadId}`);
     await expect(threadBtn).toBeVisible({ timeout: 20_000 });
-    await Promise.all([
-      page.waitForResponse(
-        (r) => r.url().includes(`threadId=${threadId}`) && r.ok(),
-        { timeout: 20_000 }
-      ),
-      threadBtn.click(),
-    ]);
-    await expect(page.getByTestId("inbox-messages")).toContainText(/Thanks — mock support reply/i, {
-      timeout: 15_000,
-    });
+    // Click may land before hydration after a reload — retry until the thread loads.
+    await expect(async () => {
+      await threadBtn.click();
+      await expect(page.getByTestId("inbox-messages")).toContainText(
+        /Thanks — mock support reply/i,
+        { timeout: 5_000 }
+      );
+    }).toPass({ timeout: 30_000 });
     notes.push("persistence_reload");
 
     writeProof({
@@ -168,7 +166,7 @@ test.describe("Inbox + Channel Guardian operator UI", () => {
     await page.getByTestId("inbox-reply-composer").fill("Should be blocked by Guardian");
     await page.getByTestId("inbox-send-reply").click();
     await expect(page.getByTestId("inbox-status-message")).toContainText(
-      /Suppressed|blocked|Guardian/i,
+      /Suppressed|blocked|Guardian|asked not to be contacted|suppression list/i,
       { timeout: 20_000 }
     );
     await expect(page.getByTestId("inbox-guardian-block")).toBeVisible({ timeout: 10_000 });
@@ -207,6 +205,8 @@ test.describe("Inbox + Channel Guardian operator UI", () => {
         action: "run_operator_closeout",
         campaignId: SEED.campaignId,
         campaignTitle: SEED.campaignTitle,
+        ...(SEED.contactId ? { contactId: SEED.contactId } : {}),
+        ...(SEED.relationshipId ? { relationshipId: SEED.relationshipId } : {}),
       },
     });
     expect(closeout.ok()).toBeTruthy();

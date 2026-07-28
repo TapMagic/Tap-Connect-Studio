@@ -49,7 +49,8 @@ test.describe("brand visual authoring core v0", () => {
     await page.keyboard.press("Escape");
     await expect(page.getByTestId("brand-contextual-drawer")).toHaveCount(0);
     await page.keyboard.press("Escape");
-    await expect(page.getByTestId("brand-kit-classic")).toBeVisible({ timeout: 30_000 });
+    // Brand workspace exits to its Studio home — the Assets workspace.
+    await expect(page.getByTestId("assets-workspace")).toBeVisible({ timeout: 30_000 });
   });
 
   test("Starter Kit approve + Card override + Brand change + reset + undo/redo", async ({
