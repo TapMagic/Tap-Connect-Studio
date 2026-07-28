@@ -382,6 +382,7 @@ export function TemplateGallery({
                 <button
                   type="button"
                   title="Save as user template (coming soon)"
+                  aria-label="Save as user template (coming soon)"
                   className="rounded p-1 text-muted-foreground opacity-50"
                   disabled
                 >

@@ -17,6 +17,9 @@ export type TapConnectIconId =
   | "service"
   | "autopilot"
   | "insights"
+  | "tapproof"
+  | "relationships"
+  | "communications"
   | "integrations"
   | "trust_fabric"
   | "settings"
@@ -71,7 +74,7 @@ export const TAPCONNECT_ICON_REGISTRY: Record<TapConnectIconId, TapConnectIconDe
   tapsave: {
     id: "tapsave",
     label: "TapSave",
-    zone: "card",
+    zone: "tapsave",
     navDestinationId: "home",
     description: "Retained Card return path",
   },
@@ -109,6 +112,27 @@ export const TAPCONNECT_ICON_REGISTRY: Record<TapConnectIconId, TapConnectIconDe
     zone: "insights",
     navDestinationId: "insights",
     description: "Evidence points resolving into confirmed proof",
+  },
+  tapproof: {
+    id: "tapproof",
+    label: "TapProof",
+    zone: "insights",
+    navDestinationId: "insights",
+    description: "Confirmed evidence seal — proof the Card produced the outcome",
+  },
+  relationships: {
+    id: "relationships",
+    label: "Relationships",
+    zone: "audience",
+    navDestinationId: "audience",
+    description: "Two customer threads bonded into one remembered relationship",
+  },
+  communications: {
+    id: "communications",
+    label: "Communications",
+    zone: "email",
+    navDestinationId: "experiences",
+    description: "Governed two-way exchange around the Card",
   },
   integrations: {
     id: "integrations",

@@ -219,6 +219,45 @@ export function IconHome(props: IconProps) {
   );
 }
 
+export function IconTapProof(props: IconProps) {
+  return (
+    <Base title={props.title ?? "TapProof"} {...props}>
+      {/* Evidence points resolving into a confirmed seal */}
+      <circle cx="12" cy="12" r="6.4" {...strokeProps} />
+      <path d="M9.2 12.2 11.2 14.2 15 9.8" {...strokeProps} />
+      <circle cx="12" cy="3.6" r="0.85" fill="currentColor" stroke="none" opacity={0.7} />
+      <circle cx="19.4" cy="8.4" r="0.85" fill="currentColor" stroke="none" opacity={0.7} />
+      <circle cx="4.6" cy="8.4" r="0.85" fill="currentColor" stroke="none" opacity={0.7} />
+      <path d="M12 4.6v1M18.6 9l-.9.5M5.4 9l.9.5" {...strokeProps} opacity={0.45} />
+    </Base>
+  );
+}
+
+export function IconRelationships(props: IconProps) {
+  return (
+    <Base title={props.title ?? "Relationships"} {...props}>
+      {/* Two identities bonded by a continuous thread */}
+      <circle cx="8.4" cy="9.4" r="2.6" {...strokeProps} />
+      <circle cx="15.8" cy="9.4" r="2.6" {...strokeProps} />
+      <path d="M4.6 18.4c.5-2.6 2-4.1 3.8-4.1 1.1 0 2 .5 2.7 1.4" {...strokeProps} />
+      <path d="M19.4 18.4c-.5-2.6-2-4.1-3.8-4.1-1.1 0-2 .5-2.7 1.4" {...strokeProps} />
+      <path d="M10.9 17.2a1.6 1.6 0 0 1 2.2 0" {...strokeProps} opacity={0.85} />
+      <circle cx="12" cy="19" r="0.9" fill="currentColor" stroke="none" opacity={0.85} />
+    </Base>
+  );
+}
+
+export function IconCommunications(props: IconProps) {
+  return (
+    <Base title={props.title ?? "Communications"} {...props}>
+      {/* Governed two-way exchange */}
+      <path d="M4 6.8h10a1.6 1.6 0 0 1 1.6 1.6v3.4a1.6 1.6 0 0 1-1.6 1.6H9.4L6.4 16v-2.6H5.6A1.6 1.6 0 0 1 4 11.8V8.4A1.6 1.6 0 0 1 5.6 6.8Z" {...strokeProps} />
+      <path d="M18.4 10.2h.4a1.6 1.6 0 0 1 1.6 1.6v3.4a1.6 1.6 0 0 1-1.6 1.6h-.8V19l-3-2.2h-3.4" {...strokeProps} opacity={0.8} />
+      <path d="M7.2 9.4h5.6M7.2 11.4h3.6" {...strokeProps} opacity={0.85} />
+    </Base>
+  );
+}
+
 const MAP: Record<TapConnectIconId, (p: IconProps) => ReactNode> = {
   card: IconCard,
   brand: IconBrand,
@@ -231,6 +270,9 @@ const MAP: Record<TapConnectIconId, (p: IconProps) => ReactNode> = {
   service: IconService,
   autopilot: IconAutopilot,
   insights: IconInsights,
+  tapproof: IconTapProof,
+  relationships: IconRelationships,
+  communications: IconCommunications,
   integrations: IconIntegrations,
   trust_fabric: IconTrustFabric,
   settings: IconSettings,

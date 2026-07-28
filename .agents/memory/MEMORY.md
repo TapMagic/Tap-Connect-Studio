@@ -1,0 +1,2 @@
+- [Fusion dev DB setup](fusion-dev-db-setup.md) — DB name must match fusion+dev; use tapconnect_fusion_dev + FUSION_ env flags; fresh DB needs prisma db push, not migrate.
+- Lint baseline: `npm run lint` has ~29 pre-existing errors on this repo; compare against baseline before blaming new changes.

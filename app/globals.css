@@ -2,6 +2,9 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@clerk/ui/themes/shadcn.css";
+/* Premium material system (tc-surface levels, interaction states, readiness,
+   empty states, Card anchor) — shared by landing AND Studio. */
+@import "../components/marketing/landing-material.css";
 
 /* Class-based dark: ignore prefers-color-scheme / device light mode */
 @custom-variant dark (&:where(.dark, .dark *));
@@ -122,8 +125,22 @@
   --zone-integrations-atmosphere: oklch(0.56 0.12 50 / 0.24);
   --zone-tap-points-glow: oklch(0.72 0.15 225 / 0.42);
   --zone-tap-points-atmosphere: oklch(0.56 0.12 220 / 0.22);
+  --zone-tapsave-glow: oklch(0.68 0.12 185 / 0.42);
+  --zone-tapsave-atmosphere: oklch(0.52 0.09 185 / 0.22);
   --zone-settings-glow: oklch(0.74 0.05 250 / 0.3);
   --zone-settings-atmosphere: oklch(0.55 0.03 250 / 0.16);
+
+  /* Motion standards — one vocabulary before and after login.
+     fast: state feedback · base: surface transitions · slow: staged reveals */
+  --motion-fast: 140ms;
+  --motion-base: 240ms;
+  --motion-slow: 420ms;
+  --ease-settle: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Interaction-state standards */
+  --state-disabled-opacity: 0.55;
+  --state-pressed-shift: 1px;
 }
 
 @layer base {
@@ -334,6 +351,19 @@
   );
 }
 
+/* TapSave / Retention — muted deep teal, retained glow distinct from CTA green */
+.zone-tapsave {
+  position: relative;
+  box-shadow:
+    inset 3px 0 0 0 oklch(0.64 0.1 185 / 0.6),
+    inset 0 0 100px -20px var(--zone-tapsave-glow);
+  background-image: radial-gradient(
+    ellipse 85% 55% at 50% 0%,
+    var(--zone-tapsave-atmosphere),
+    transparent 72%
+  );
+}
+
 .zone-settings {
   position: relative;
   box-shadow:
@@ -358,6 +388,7 @@
 .zone-label-insights { color: oklch(0.88 0.09 195); }
 .zone-label-integrations { color: oklch(0.9 0.09 52); }
 .zone-label-tap-points { color: oklch(0.9 0.09 225); }
+.zone-label-tapsave { color: oklch(0.88 0.08 185); }
 .zone-label-settings { color: oklch(0.9 0.02 250); }
 .zone-label-home { color: oklch(0.92 0.04 95); }
 
@@ -391,6 +422,7 @@
   .zone-insights,
   .zone-integrations,
   .zone-tap-points,
+  .zone-tapsave,
   .zone-settings {
     transition: none;
   }

@@ -18,6 +18,7 @@ export type StudioZoneId =
   | "insights"
   | "integrations"
   | "tap_points"
+  | "tapsave"
   | "settings"
   | "home";
 
@@ -208,6 +209,19 @@ export const ZONE_TOKENS: Record<StudioZoneId, ZoneTokenSet> = {
     iconAccent: "oklch(0.8 0.14 220)",
     neonEdge: "oklch(0.84 0.15 222 / 0.9)",
     bloom: "oklch(0.68 0.13 225 / 0.36)",
+  },
+  tapsave: {
+    id: "tapsave",
+    label: "TapSave",
+    role: "Retention and the retained return path",
+    atmosphereClass: "zone-tapsave",
+    cssPrefix: "--zone-tapsave",
+    railAccent: "oklch(0.66 0.1 185)",
+    labelColor: "oklch(0.88 0.08 185)",
+    mutedBorder: "oklch(0.5 0.07 185 / 0.55)",
+    iconAccent: "oklch(0.76 0.11 185)",
+    neonEdge: "oklch(0.8 0.12 185 / 0.88)",
+    bloom: "oklch(0.62 0.1 185 / 0.34)",
   },
   settings: {
     id: "settings",
