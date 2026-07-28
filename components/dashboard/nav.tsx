@@ -186,9 +186,10 @@ export function DashboardNav({
                   "flex items-center gap-2.5 rounded-lg py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   expanded ? "px-2.5" : "justify-center px-0",
                   active
-                    ? "bg-primary/15 text-primary"
+                    ? "studio-nav-active"
                     : "text-white/55 hover:bg-white/5 hover:text-white"
                 )}
+                data-nav-zone={item.id}
                 {...(active ? { "aria-current": "page" as const } : {})}
               >
                 <Icon className="h-4 w-4 shrink-0 opacity-90" aria-hidden />

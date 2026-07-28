@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { requireBusiness } from "@/lib/auth";
 import { fetchInsightsSnapshot } from "@/lib/fusion/insights/metrics";
 import { fetchBusinessFailureRecovery } from "@/lib/fusion/insights/failure-recovery";
@@ -7,7 +6,6 @@ import {
   formatEvidenceCaption,
 } from "@/lib/fusion/insights/evidence-display";
 import { INSIGHTS_VIEW_LABELS } from "@/lib/fusion/insights/views";
-import { buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { BarChart3 } from "lucide-react";
 import { StudioHubSections } from "@/components/studio/hub-sections";
@@ -17,6 +15,8 @@ import {
   InsightsDrillTable,
   InsightsProvenancePanel,
 } from "@/components/fusion/insights/insights-drill-table";
+import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
+import { getEmptyState } from "@/lib/fusion/studio/empty-states";
 import { humanizeError } from "@/lib/fusion/errors/humanize";
 
 export const dynamic = "force-dynamic";
@@ -59,9 +59,9 @@ export default async function InsightsHubPage({
   const insightsHuman = snapshot.error ? humanizeError(snapshot.error) : null;
 
   return (
-    <div className="space-y-8 p-5 lg:p-8" data-testid="insights-hub">
+    <div className="zone-insights space-y-8 p-5 lg:p-8" data-testid="insights-hub">
       <header className="space-y-2 border-b border-white/8 pb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="zone-label-insights text-[11px] font-semibold uppercase tracking-[0.18em]">
           Insights
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-white">What happened</h1>
@@ -127,24 +127,10 @@ export default async function InsightsHubPage({
       ) : null}
 
       {empty && !showError ? (
-        <Card className="border-dashed border-border/60" data-testid="insights-empty">
-          <CardHeader>
-            <CardTitle>No confirmed activity yet</CardTitle>
-            <CardDescription>
-              Insights stay empty until TapEvents, Leads, Contacts, or TapCommerce mock orders
-              appear. Commerce wiring uses modeled evidence for mock checkout — never shown as live
-              Stripe fact.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Link
-              href="/dashboard/tap-points"
-              className={buttonVariants({ variant: "outline", size: "sm" })}
-            >
-              Go to Tap Points
-            </Link>
-          </CardContent>
-        </Card>
+        <TruthfulEmptyStatePanel
+          state={getEmptyState("insights")}
+          testId="insights-empty"
+        />
       ) : null}
 
       {!empty && !showError && kpis.length === 0 ? (

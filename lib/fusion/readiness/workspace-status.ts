@@ -107,7 +107,7 @@ export function firstTapSetupProgress(flags: FirstTapSetupFlags): {
     {
       id: "brand",
       label: "Add logo & brand colors",
-      href: "/dashboard/brand",
+      href: "/dashboard/brand/edit",
       done: flags.hasBrand,
     },
     {

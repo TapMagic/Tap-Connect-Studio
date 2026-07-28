@@ -69,8 +69,9 @@ export default async function AssetsHubPage() {
           <Link
             href="/dashboard/brand"
             className="mt-2 block text-[11px] text-white/40 hover:text-white/60"
+            data-testid="assets-classic-brand"
           >
-            Classic Brand Kit form
+            Legacy Brand administration
           </Link>
         </div>
         <div className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-4">

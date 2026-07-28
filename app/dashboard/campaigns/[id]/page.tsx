@@ -14,6 +14,7 @@ import {
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureExecutable } from "@/lib/fusion/features/resolve";
 import { findCampaignWhereUsed } from "@/lib/fusion/studio/where-used";
+import { loadCardRelationshipContext } from "@/lib/fusion/studio/load-card-relationship";
 import type { ContentBlock } from "@/lib/types/campaign";
 
 export const dynamic = "force-dynamic";
@@ -26,7 +27,8 @@ export default async function CampaignEditPage({ params }: PageProps) {
   const { id } = await params;
   const { business } = await requireBusiness();
 
-  const [campaign, brandKit, devices, siblingCampaigns, whereUsed] = await Promise.all([
+  const [campaign, brandKit, devices, siblingCampaigns, whereUsed, cardRelationship] =
+    await Promise.all([
     prisma.campaign.findFirst({
       where: { id, businessId: business.id },
     }),
@@ -41,6 +43,7 @@ export default async function CampaignEditPage({ params }: PageProps) {
       select: { id: true, title: true, status: true },
     }),
     findCampaignWhereUsed(business.id, id),
+    loadCardRelationshipContext(business.id, business.name, { logoUrl: business.logoUrl }),
   ]);
 
   if (!campaign) notFound();
@@ -91,6 +94,7 @@ export default async function CampaignEditPage({ params }: PageProps) {
         }}
         autopilotReady={autopilotReady}
         subscriptionTier={business.subscriptionTier}
+        cardRelationship={cardRelationship}
       />
       <div className="px-4 pb-6 lg:px-6">
         <WhereUsedPanel

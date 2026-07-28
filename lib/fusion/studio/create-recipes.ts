@@ -1,6 +1,7 @@
 /**
  * Outcome-oriented Create recipes — plain-language intents that route into
- * real authoring surfaces. May imply multi-step journeys without inventing objects.
+ * real authoring surfaces. Card-first hierarchy; may imply multi-step journeys
+ * without inventing objects.
  */
 
 export type CreateRecipe = {
@@ -13,14 +14,14 @@ export type CreateRecipe = {
   href: string;
   /** Plain-language next steps after landing */
   nextSteps: string[];
-  group: "Start" | "Grow" | "Operate";
+  group: "Start" | "Grow" | "Operate" | "Advanced";
 };
 
 export const CREATE_RECIPES: CreateRecipe[] = [
   {
     id: "recipe_card",
-    label: "Create a Card",
-    description: "Design the digital card people see when they tap.",
+    label: "Build my customer Card",
+    description: "Create or improve the living relationship hub people see when they tap.",
     href: "/dashboard/card",
     nextSteps: [
       "Add your logo and contact actions",
@@ -30,35 +31,33 @@ export const CREATE_RECIPES: CreateRecipe[] = [
     group: "Start",
   },
   {
-    id: "recipe_card_offer",
-    label: "Create a measurable offer on my Card",
-    description:
-      "Autopilot prepares a Card Spotlight offer plan from your Campaign and Brand Kit — review locally before anything goes live.",
-    href: "/dashboard/card?wire=offer",
-    nextSteps: [
-      "Prepare your plan with Autopilot (local only)",
-      "Answer any missing detail, preview the customer experience, approve locally",
-      "Take manual control when you are ready to bind or publish",
-    ],
-    group: "Start",
-  },
-  {
     id: "recipe_campaign",
-    label: "Launch a campaign takeover",
-    description:
-      "Full campaign page for a Tap Point — use when you need a takeover, not only a Card Spotlight.",
+    label: "Promote something",
+    description: "Start a Campaign that can Spotlight on the Card or take over a Tap Point.",
     href: "/dashboard/workbench",
     nextSteps: [
       "Pick a template or blank canvas",
       "Add offer or lead-capture blocks",
-      "Publish, then assign to devices",
+      "Publish, then bind Spotlight or assign devices",
+    ],
+    group: "Start",
+  },
+  {
+    id: "recipe_email",
+    label: "Prepare an Email",
+    description: "Email lives on campaigns — prepare a return path (no live send in this wave).",
+    href: "/dashboard/campaigns",
+    nextSteps: [
+      "Open or create a campaign",
+      "Use the Email workspace",
+      "Check Email & Replies readiness under Integrations",
     ],
     group: "Start",
   },
   {
     id: "recipe_tap_point",
-    label: "Set up a Tap Point",
-    description: "Register a device or NFC slot so taps reach your experience.",
+    label: "Connect a Tap Point",
+    description: "Register a device or NFC slot so taps reach your Card experience.",
     href: "/dashboard/devices#create",
     nextSteps: [
       "Create the device slot",
@@ -68,9 +67,22 @@ export const CREATE_RECIPES: CreateRecipe[] = [
     group: "Start",
   },
   {
+    id: "recipe_card_offer",
+    label: "Bring customers back",
+    description:
+      "Autopilot prepares a measurable Card Spotlight offer from Campaign and Brand — review locally.",
+    href: "/dashboard/card?wire=offer",
+    nextSteps: [
+      "Prepare your plan with Autopilot (local only)",
+      "Answer any missing detail, preview, approve locally",
+      "Take manual control when ready to bind or publish",
+    ],
+    group: "Grow",
+  },
+  {
     id: "recipe_contacts",
-    label: "Capture and retain contacts",
-    description: "Open Audience to review leads, consent, and relationships.",
+    label: "Collect customer information",
+    description: "Open Audience for consent, memory, and eligibility around the Card.",
     href: "/dashboard/audience#workspace",
     nextSteps: [
       "Add a lead form on a campaign if you need new capture",
@@ -87,18 +99,6 @@ export const CREATE_RECIPES: CreateRecipe[] = [
       "Name the program",
       "Set how points are earned",
       "Add a reward members can redeem",
-    ],
-    group: "Grow",
-  },
-  {
-    id: "recipe_email",
-    label: "Send an email",
-    description: "Email lives on campaigns — open the list, then the email builder.",
-    href: "/dashboard/campaigns",
-    nextSteps: [
-      "Open or create a campaign",
-      "Use Email blocks / follow-up",
-      "Check email readiness under Settings if send is blocked",
     ],
     group: "Grow",
   },
@@ -134,10 +134,18 @@ export const CREATE_RECIPES: CreateRecipe[] = [
     ],
     group: "Operate",
   },
+  {
+    id: "recipe_labs",
+    label: "Advanced / Labs",
+    description: "TapCanvas, mock Orders, and other experimental surfaces — demoted from primary Create.",
+    href: "/dashboard/experiences",
+    nextSteps: ["Open Experiences", "Expand Labs / legacy", "Use only when you need those tools"],
+    group: "Advanced",
+  },
 ];
 
 export function recipesByGroup(): Array<{ group: CreateRecipe["group"]; items: CreateRecipe[] }> {
-  const order: CreateRecipe["group"][] = ["Start", "Grow", "Operate"];
+  const order: CreateRecipe["group"][] = ["Start", "Grow", "Operate", "Advanced"];
   return order.map((group) => ({
     group,
     items: CREATE_RECIPES.filter((r) => r.group === group),

@@ -21,6 +21,8 @@ import {
 } from "@/lib/fusion/email-replies/types";
 import type { ReplyHandlingMode, ReplyMessageCategory } from "@/lib/fusion/email-replies/types";
 import { categoryHostLabel } from "@/lib/fusion/email-replies/destination";
+import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
+import { getEmptyState } from "@/lib/fusion/studio/empty-states";
 
 type CardModel = {
   state: string;
@@ -355,7 +357,11 @@ export function EmailRepliesIntegrationCard() {
           </CardHeader>
           <CardContent className="space-y-3 text-sm">
             {activityItems.length === 0 ? (
-              <p className="text-muted-foreground">No routing attempts yet.</p>
+              <TruthfulEmptyStatePanel
+                state={getEmptyState("routing")}
+                testId="empty-routing"
+                className="py-6"
+              />
             ) : (
               activityItems.map((item) => (
                 <div

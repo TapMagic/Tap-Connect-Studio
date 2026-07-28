@@ -62,6 +62,8 @@ export default async function AudienceCasesPage() {
   });
 
   return (
-    <CaseOperationsWorkspace cases={cases} currentUserId={user.id} />
+    <div className="zone-service p-4 sm:p-6" data-testid="cases-workspace">
+      <CaseOperationsWorkspace cases={cases} currentUserId={user.id} />
+    </div>
   );
 }

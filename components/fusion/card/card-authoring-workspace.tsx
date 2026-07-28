@@ -52,6 +52,18 @@ ensureDefaultToolRegistries();
 
 const WORKSPACE_ID = "card-authoring";
 
+function readLifecycleIntent(): boolean {
+  if (typeof window === "undefined") return false;
+  const hash = window.location.hash.replace(/^#/, "");
+  const toolParam = new URLSearchParams(window.location.search).get("tool");
+  return (
+    hash === "card-retire" ||
+    hash === "lifecycle" ||
+    toolParam === "lifecycle" ||
+    toolParam === "retire"
+  );
+}
+
 /** Primary rail tools (aliases format/inspector omitted from rail). */
 const CARD_RAIL_TOOLS = CARD_AUTHORING_TOOLS.filter(
   (t) => t.id !== "format" && t.id !== "inspector"
@@ -96,11 +108,10 @@ export function CardAuthoringWorkspace({
 }: CardAuthoringWorkspaceProps) {
   const router = useRouter();
   const restored = useMemo(() => loadWorkspaceShellState(WORKSPACE_ID), []);
-  const [toolMemory, setToolMemory] = useState<Record<string, ToolDrawerMemory>>(
-    () => restored.toolMemory ?? {}
-  );
-  const [shell, setShell] = useState<WorkspaceShellSnapshot>(() =>
-    createShellSnapshot(WORKSPACE_ID, {
+  const lifecycleIntent = useMemo(() => readLifecycleIntent(), []);
+  const initialShell = useMemo(() => {
+    const baseMemory = restored.toolMemory ?? {};
+    const base = createShellSnapshot(WORKSPACE_ID, {
       workspaceMode: restored.focusMode ? "focus" : "browse",
       shadePreference: restored.shadePreference,
       priorShadeDisplay: restored.priorShadeDisplay || "open",
@@ -121,7 +132,17 @@ export function CardAuthoringWorkspace({
         null,
       dirty: false,
       saved: true,
-    })
+    });
+    if (!lifecycleIntent || restored.focusMode) {
+      return { snapshot: base, memory: baseMemory };
+    }
+    return openAdaptiveTool(base, WORKSPACE_ID, "lifecycle", baseMemory);
+  }, [lifecycleIntent, restored]);
+  const [toolMemory, setToolMemory] = useState<Record<string, ToolDrawerMemory>>(
+    () => initialShell.memory
+  );
+  const [shell, setShell] = useState<WorkspaceShellSnapshot>(
+    () => initialShell.snapshot
   );
   const [sessionRestored] = useState(() => Boolean(restored.sessionDraftRestored));
   const [outlineBody, setOutlineBody] = useState<ReactNode>(null);
@@ -152,6 +173,19 @@ export function CardAuthoringWorkspace({
   useEffect(() => {
     apiRef.current?.setFocusMode(shell.focusMode);
   }, [shell.focusMode]);
+
+  // Deep-link from assembly: focus the authoritative retire control once drawer is open.
+  useEffect(() => {
+    if (!lifecycleIntent || shell.selectedToolId !== "lifecycle") return;
+    const t = window.setTimeout(() => {
+      const el = document.querySelector<HTMLElement>(
+        '[data-testid="card-retire-toggle"]'
+      );
+      el?.focus();
+      el?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 120);
+    return () => window.clearTimeout(t);
+  }, [lifecycleIntent, shell.selectedToolId]);
 
   const openCardTool = useCallback(
     (toolId: string) => {
@@ -283,6 +317,15 @@ export function CardAuthoringWorkspace({
 
   const shadeExtras = (
     <div className="flex flex-wrap items-center gap-2" data-testid="card-shade-extras">
+      {!builderProps.freeformEnabled ? (
+        <span
+          className="text-[10px] text-white/40"
+          data-testid="freeform-honest-disabled"
+          title="Freeform canvas is not enabled for this workspace"
+        >
+          Freeform off
+        </span>
+      ) : null}
       <Button
         type="button"
         variant="outline"

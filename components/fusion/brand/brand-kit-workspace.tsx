@@ -732,7 +732,7 @@ export function BrandKitWorkspace({
           drawerRootTestId="brand-contextual-drawer"
           returnAction={
             <Link
-              href="/dashboard/brand"
+              href="/dashboard/assets"
               className="inline-flex min-h-11 items-center rounded-md border border-white/15 px-2.5 text-xs text-white/75"
               data-testid="brand-return-studio"
             >
@@ -757,7 +757,7 @@ export function BrandKitWorkspace({
               className="inline-flex min-h-11 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
               onClick={() => {
                 if (dirty && !window.confirm("Leave with unsaved session changes?")) return;
-                router.push("/dashboard/brand");
+                router.push("/dashboard/assets");
               }}
             >
               Done
@@ -957,8 +957,8 @@ export function BrandKitWorkspace({
               Logo, colors, and type below update Brand Kit. Existing saved Cards keep stored values
               until re-saved. Classic form remains at Brand Kit for contact and compliance.
             </p>
-            <Link href="/dashboard/brand" className="text-xs text-primary underline">
-              Open classic Brand Kit form
+            <Link href="/dashboard/brand" className="text-xs text-primary underline" data-testid="brand-open-classic">
+              Legacy Brand administration
             </Link>
           </div>
         );

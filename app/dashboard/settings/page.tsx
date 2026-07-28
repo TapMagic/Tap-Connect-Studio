@@ -47,9 +47,9 @@ export default async function SettingsHubPage() {
   }
 
   return (
-    <div className="space-y-8 p-5 lg:p-8" data-testid="settings-workspace">
+    <div className="zone-settings space-y-8 p-5 lg:p-8" data-testid="settings-workspace">
       <header className="space-y-2 border-b border-white/8 pb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="zone-label-settings text-[11px] font-semibold uppercase tracking-[0.18em]">
           Settings
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-white">Workspace controls</h1>

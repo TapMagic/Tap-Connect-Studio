@@ -7,8 +7,8 @@ import { prisma } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 /**
- * Focused Brand Kit authoring escape — Shared Visual Authoring Core V0 host.
- * Done / Esc → /dashboard/brand. Classic form remains as compatibility fallback.
+ * Focused Brand Kit authoring escape — ordinary owner Brand path.
+ * Classic administration remains at /dashboard/brand (legacy).
  */
 export default async function BrandKitEditPage() {
   const { business } = await requireBusiness();
@@ -30,8 +30,9 @@ export default async function BrandKitEditPage() {
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col overflow-hidden"
+      className="zone-brand flex h-full min-h-0 flex-col overflow-hidden"
       data-testid="brand-edit-workspace-host"
+      data-brand-default-owner-path="true"
       data-escape-authoring="true"
     >
       <BrandKitWorkspace

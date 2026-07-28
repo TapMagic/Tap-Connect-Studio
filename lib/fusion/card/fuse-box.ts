@@ -190,7 +190,7 @@ export function buildCardFuseBoxConnections(
         : "available_to_configure",
       summary: "Brand Kit email promo / campaign email — not Card mailto fuse.",
       readiness: "Mock · Resend live = credentials required",
-      primaryHref: "/dashboard/brand",
+      primaryHref: "/dashboard/brand/edit",
       canEdit: true,
     },
     {

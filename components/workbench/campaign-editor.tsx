@@ -86,6 +86,7 @@ import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
 import { normalizeContentBlocks } from "@/lib/services/normalize-content-blocks";
 import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { ExpandedTextField } from "@/components/design/expanded-text-field";
+import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
 import { cn } from "@/lib/utils";
 import {
   scrollChildIntoNearestView,
@@ -301,6 +302,8 @@ interface CampaignEditorProps {
   };
   autopilotReady?: boolean;
   subscriptionTier: string;
+  /** Compact Card relationship context — not a second Card model */
+  cardRelationship?: import("@/lib/fusion/studio/card-relationship").CardRelationshipContext | null;
 }
 
 const TABS: { id: EditorTab; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
@@ -320,6 +323,7 @@ export function CampaignEditor({
   integrations,
   autopilotReady = false,
   subscriptionTier,
+  cardRelationship = null,
 }: CampaignEditorProps) {
   const router = useRouter();
   const [tab, setTab] = useState<EditorTab>("content");
@@ -906,6 +910,23 @@ export function CampaignEditor({
       data-shell-consumer="campaign-authoring"
       data-resolver="shared-visual-core-v0"
     >
+      {cardRelationship ? (
+        <CardRelationshipAnchor
+          card={cardRelationship}
+          role="campaign_conversion"
+          extras={
+            cardRelationship.spotlightTitle ? (
+              <span data-testid="campaign-offer-role" className="text-amber-100/90">
+                Active offer · Spotlight
+              </span>
+            ) : (
+              <span data-testid="campaign-offer-role" className="text-white/45">
+                Offer role · not projected as Spotlight
+              </span>
+            )
+          }
+        />
+      ) : null}
       {sessionRestored ? (
         <p className="sr-only" role="status" data-testid="campaign-session-restore-notice">
           {SESSION_RESTORE_LABEL}
@@ -1240,11 +1261,12 @@ export function CampaignEditor({
                   </div>
                 )}
 
-                <div
+                <details
                   className="rounded-lg border border-border/50 bg-muted/20 p-3"
                   data-testid="campaign-versions"
+                  data-default-collapsed="true"
                 >
-                  <div className="mb-2 flex items-center justify-between gap-2">
+                  <summary className="mb-2 flex cursor-pointer list-none items-center justify-between gap-2">
                     <p className="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                       <History className="h-3.5 w-3.5" aria-hidden />
                       Versions
@@ -1255,12 +1277,15 @@ export function CampaignEditor({
                       size="sm"
                       className="h-7 px-2 text-[10px]"
                       data-testid="campaign-versions-refresh"
-                      onClick={() => void refreshVersions()}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        void refreshVersions();
+                      }}
                       disabled={versionsLoading}
                     >
                       Refresh
                     </Button>
-                  </div>
+                  </summary>
                   {versions.length === 0 ? (
                     <p className="text-[11px] text-muted-foreground">
                       {versionsLoading ? "Loading…" : "Save or publish to create a version."}
@@ -1291,7 +1316,7 @@ export function CampaignEditor({
                       ))}
                     </ul>
                   )}
-                </div>
+                </details>
 
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                   Blocks

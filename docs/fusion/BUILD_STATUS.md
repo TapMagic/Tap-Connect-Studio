@@ -2,9 +2,35 @@
 
 **Date:** 2026-07-27  
 **Branch:** `tapconnect-v1-v2-fusion`  
-**HEAD (wave start):** `10f3db02c415a0755f4028b5a6fac8d5f3aba28c`  
+**HEAD (wave start):** `7133088177dee65b11dd14241d9b84fff28af1b4`  
 **Rule:** Railway untouched. Isolated DB: `tapconnect_fusion_dev`.  
 **Platform overall:** **NOT OWNER-READY** (allowed labels only: OWNER-READY | VERIFIED — CREDENTIALS REQUIRED | IMPLEMENTED BUT NOT OWNER-READY | BLOCKED).
+
+## Card-Centered Owner Experience + Zone Identity V1 (local uncommitted)
+
+**Starting HEAD:** `7133088177dee65b11dd14241d9b84fff28af1b4`  
+**Scope:** Home Card Command Center · reusable Card relationship anchor · Experiences hierarchy · focused Brand default · Campaign/Email Card anchors · Integrations maturity groups · truthful empty states · restrained zone-token system · Card-first Create · one green next-action model. **No live send. No new providers. No nav rewrite. No Owner-ready claim.**  
+**Classification:** **IMPLEMENTED BUT NOT OWNER-READY**  
+**Doc:** `docs/fusion/CARD_CENTERED_OWNER_EXPERIENCE_AND_ZONE_IDENTITY_V1.md`
+
+| Gate | Result |
+|------|--------|
+| Starting conditions | **PASS** (branch, HEAD `7133088…`, Prisma migrate up to date, runtime Prisma) |
+| `tsc --noEmit` | **PASS** |
+| lint | **0 errors** |
+| `npm run test:fusion` | **712/712 PASS** |
+| Targeted owner/zone/create tests | **12/12 PASS** |
+| `npm run build` | **PASS** |
+| Headed `e2e/card-centered-owner-experience.spec.ts` | **11/11 PASS** · screenshots `tmp/card-centered-owner-experience/01–22` |
+| Precommit J1 + zone pass | **12/12 PASS** (`j1-first-public-tap` + `card-centered-precommit`) · `tmp/card-centered-owner-experience-precommit/` |
+| Decision Queue residual | **FIXED** — wave had dropped `decision-item-meta` (classification A); restored |
+| Card retire residual | **FIXED** — `#card-retire` handoff missing at starting HEAD (classification G); deep-link opens Lifecycle drawer |
+| Zone perceptibility | Token-level glow/rail strengthening + comparison sheet |
+
+**Not claimed:** Owner-ready / Owner-accepted; live send; production DNS/webhooks; new providers.
+
+
+---
 
 ## Email & Replies Integration Foundation V1 (local uncommitted)
 

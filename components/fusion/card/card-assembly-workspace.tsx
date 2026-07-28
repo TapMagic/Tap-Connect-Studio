@@ -94,13 +94,21 @@ export function CardAssemblyWorkspace({
 
   return (
     <div
-      className="mx-auto max-w-6xl space-y-8 px-4 py-6 lg:px-6 lg:py-8"
+      className={cn(
+        "mx-auto max-w-6xl space-y-8 px-4 py-6 lg:px-6 lg:py-8",
+        showAutopilotOutcome ? "zone-autopilot" : "zone-card"
+      )}
       data-testid="card-assembly-workspace"
     >
       <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-primary">
-            Card assembly
+          <p
+            className={cn(
+              "text-[10px] font-semibold uppercase tracking-[0.18em]",
+              showAutopilotOutcome ? "zone-label-autopilot" : "zone-label-card"
+            )}
+          >
+            {showAutopilotOutcome ? "Autopilot · Card offer" : "Card assembly"}
           </p>
           <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
             Your Tap Card hub
@@ -374,7 +382,7 @@ export function CardAssemblyWorkspace({
             </p>
           </div>
           <Link
-            href="/dashboard/card/edit#card-retire"
+            href="/dashboard/card/edit?tool=lifecycle#card-retire"
             className="inline-flex min-h-10 shrink-0 items-center rounded-lg border border-white/15 px-4 py-2 text-sm text-white/85 hover:bg-white/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
             data-testid="card-retire-entry"
           >

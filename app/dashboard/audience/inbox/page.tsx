@@ -24,9 +24,9 @@ export default async function AudienceInboxPage() {
   }
 
   return (
-    <div className="space-y-6 p-4 sm:p-6">
+    <div className="zone-service space-y-6 p-4 sm:p-6">
       <div>
-        <p className="text-xs text-muted-foreground">
+        <p className="zone-label-service text-xs">
           <Link href="/dashboard/audience" className="hover:text-primary hover:underline">
             Audience
           </Link>{" "}

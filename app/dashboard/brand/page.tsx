@@ -3,25 +3,37 @@ import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { BrandKitForm } from "@/components/brand/brand-kit-form";
 import { BrandKeywordsSection } from "@/components/fusion/keywords/brand-keywords-section";
+import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
 import { isMediaUploadReady, isStockImagesReady } from "@/lib/config/integrations";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
+import { loadCardRelationshipContext } from "@/lib/fusion/studio/load-card-relationship";
 
 export const dynamic = "force-dynamic";
 
-export default async function BrandPage() {
+/**
+ * Legacy / classic Brand administration.
+ * Ordinary owner path is the focused workspace at /dashboard/brand/edit.
+ */
+export default async function BrandClassicPage() {
   const { business } = await requireBusiness();
 
-  const brandKit = await prisma.brandKit.findUnique({
-    where: { businessId: business.id },
-  });
+  const [brandKit, card] = await Promise.all([
+    prisma.brandKit.findUnique({ where: { businessId: business.id } }),
+    loadCardRelationshipContext(business.id, business.name, { logoUrl: business.logoUrl }),
+  ]);
 
   return (
-    <div className="space-y-6 p-6 lg:p-8 pb-24" data-testid="brand-kit-classic">
+    <div className="zone-brand space-y-6 p-6 lg:p-8 pb-24" data-testid="brand-kit-classic">
+      <CardRelationshipAnchor card={card} role="brand_identity" />
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Brand Kit</h1>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
+            Advanced · Legacy Brand administration
+          </p>
+          <h1 className="mt-1 text-2xl font-bold">Brand Kit (classic)</h1>
           <p className="text-muted-foreground">
-            Colors, logo, contact card, socials, and compliance defaults for every tap page.
+            Compatibility form for colors, logo, contact card, socials, and compliance. Shared
+            visual authoring remains the primary Brand experience.
           </p>
         </div>
         <Link
@@ -29,7 +41,7 @@ export default async function BrandPage() {
           data-testid="brand-open-focused-workspace"
           className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
         >
-          Open focused workspace
+          Open focused workspace (default)
         </Link>
       </div>
       <BrandKeywordsSection initialPack={brandKit?.keywordBrandPack} />

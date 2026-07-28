@@ -16,6 +16,7 @@ import {
 } from "@/components/fusion/authoring/adaptive-workspace-shell";
 import { EmailVisualDrawer } from "@/components/fusion/email/email-visual-drawer";
 import { EmailLivePreview } from "@/components/fusion/email/email-live-preview";
+import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -146,6 +147,7 @@ export type EmailAuthoringWorkspaceProps = {
   audienceContacts?: AudienceContactSummary[];
   audienceConsentLoaded?: boolean;
   audienceSuppressionLoaded?: boolean;
+  cardRelationship?: import("@/lib/fusion/studio/card-relationship").CardRelationshipContext | null;
 };
 
 type EmailDraft = {
@@ -166,6 +168,7 @@ export function EmailAuthoringWorkspace({
   audienceContacts = [],
   audienceConsentLoaded = false,
   audienceSuppressionLoaded = false,
+  cardRelationship = null,
 }: EmailAuthoringWorkspaceProps) {
   const router = useRouter();
   const previewRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -461,6 +464,31 @@ export function EmailAuthoringWorkspace({
       data-resolver="shared-visual-core-v0"
       data-editor-ready="true"
     >
+      {cardRelationship ? (
+        <CardRelationshipAnchor
+          card={cardRelationship}
+          role="email_return"
+          extras={
+            <>
+              <span data-testid="email-parent-campaign">Campaign · {campaign.title}</span>
+              <span data-testid="email-offer-freshness">
+                {offerState === "stale"
+                  ? "Offer freshness · stale"
+                  : offerState === "current"
+                    ? "Offer freshness · current"
+                    : `Offer · ${offerState}`}
+              </span>
+              <span data-testid="email-reply-handling-state">
+                Reply handling · {document.replyHandling?.mode || "default"}
+              </span>
+              <span data-testid="email-local-approval-state">
+                Approval · {document.approvalState || "draft"}
+              </span>
+              <span data-testid="email-no-send-state">No live send</span>
+            </>
+          }
+        />
+      ) : null}
       {sessionRestored ? (
         <p className="sr-only" role="status" data-testid="email-session-restore-notice">
           {SESSION_RESTORE_LABEL}
@@ -582,7 +610,9 @@ export function EmailAuthoringWorkspace({
         }
         outline={
           <div className="space-y-2 p-2" data-testid="email-tool-rail">
-            {EMAIL_AUTHORING_TOOLS.map((tool) => (
+            {EMAIL_AUTHORING_TOOLS.filter(
+              (t) => !["advanced", "plain_text", "history"].includes(t.id)
+            ).map((tool) => (
               <button
                 key={tool.id}
                 type="button"
@@ -598,6 +628,35 @@ export function EmailAuthoringWorkspace({
                 {tool.label}
               </button>
             ))}
+            <details
+              className="rounded-md border border-white/8 px-2 py-1.5"
+              data-testid="email-technical-tools"
+              data-default-collapsed="true"
+            >
+              <summary className="cursor-pointer text-[11px] text-white/45">
+                Technical · HTML / compatibility / Advanced
+              </summary>
+              <div className="mt-1 space-y-1">
+                {EMAIL_AUTHORING_TOOLS.filter((t) =>
+                  ["plain_text", "history", "advanced"].includes(t.id)
+                ).map((tool) => (
+                  <button
+                    key={tool.id}
+                    type="button"
+                    data-testid={`email-tool-${tool.id}`}
+                    onClick={() => openEmailTool(tool.id)}
+                    className={cn(
+                      "flex min-h-11 w-full items-center rounded-md px-3 text-left text-xs",
+                      activeToolId === tool.id
+                        ? "bg-primary/20 text-primary"
+                        : "text-white/70 hover:bg-white/5"
+                    )}
+                  >
+                    {tool.label}
+                  </button>
+                ))}
+              </div>
+            </details>
           </div>
         }
         mobileToolRail={

@@ -56,7 +56,7 @@ export function DashboardChrome({
       return;
     }
     if (pathname?.startsWith("/dashboard/brand/edit")) {
-      router.push("/dashboard/brand");
+      router.push("/dashboard/assets");
       return;
     }
     if (pathname) setRestoredForPath(pathname);

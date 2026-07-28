@@ -1,6 +1,9 @@
+import Link from "next/link";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { AudienceWorkspace } from "@/components/fusion/audience/audience-workspace";
 import { TapLoopWorkspace } from "@/components/fusion/audience/taploop-workspace";
+import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
+import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import {
@@ -9,7 +12,8 @@ import {
 } from "@/lib/fusion/audience";
 import { listFeatureOverrides, toResolveOverrides } from "@/lib/fusion/features/overrides";
 import { isFeatureEnabled } from "@/lib/fusion/features";
-import Link from "next/link";
+import { loadCardRelationshipContext } from "@/lib/fusion/studio/load-card-relationship";
+import { getEmptyState } from "@/lib/fusion/studio/empty-states";
 
 export const dynamic = "force-dynamic";
 
@@ -18,18 +22,20 @@ export default async function AudienceHubPage() {
   const overrides = toResolveOverrides(await listFeatureOverrides());
   const featureCtx = { overrides };
 
-  const [leadCount, contactCount, relationshipCount] = await Promise.all([
+  const [leadCount, contactCount, relationshipCount, card] = await Promise.all([
     prisma.lead.count({ where: { businessId: business.id } }),
     countContactsForBusiness(business.id).catch(() => 0),
     countRelationshipsForBusiness(business.id).catch(() => 0),
+    loadCardRelationshipContext(business.id, business.name, { logoUrl: business.logoUrl }),
   ]);
 
   const tapLoopReady = isFeatureEnabled("loyalty.taploop", featureCtx);
 
   return (
-    <div className="space-y-8 p-5 lg:p-8" data-testid="audience-workspace">
+    <div className="zone-audience space-y-8 p-5 lg:p-8" data-testid="audience-workspace">
+      <CardRelationshipAnchor card={card} role="audience_relationships" />
       <header className="space-y-3 border-b border-white/8 pb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="zone-label-audience text-[11px] font-semibold uppercase tracking-[0.18em]">
           Audience
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-white">
@@ -75,6 +81,10 @@ export default async function AudienceHubPage() {
           </div>
         ))}
       </div>
+
+      {contactCount === 0 && leadCount === 0 ? (
+        <TruthfulEmptyStatePanel state={getEmptyState("audience")} />
+      ) : null}
 
       <div id="workspace" className="scroll-mt-20 space-y-6">
         <AudienceWorkspace initialContactCount={contactCount} tapLoopEnabled={tapLoopReady} />

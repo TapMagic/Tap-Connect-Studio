@@ -81,9 +81,9 @@ export default async function TapPointsHubPage() {
   const withErrors = fleetBadges.filter((b) => b.errors.length > 0).length;
 
   return (
-    <div className="space-y-8 p-5 lg:p-8" data-testid="tap-points-workspace">
+    <div className="zone-tap-points space-y-8 p-5 lg:p-8" data-testid="tap-points-workspace">
       <header className="space-y-2 border-b border-white/8 pb-6">
-        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+        <p className="zone-label-tap-points text-[11px] font-semibold uppercase tracking-[0.18em]">
           Tap Points
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-white">Devices & fleet</h1>
