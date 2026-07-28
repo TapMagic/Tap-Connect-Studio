@@ -318,6 +318,10 @@ describe("Tool registry", () => {
     assert.equal(getWorkspaceTool("brand-kit", "colors")?.recommendedDrawerMode, "compact");
     assert.equal(getWorkspaceTool("brand-kit", "history")?.recommendedDrawerMode, "expanded");
     assert.equal(getWorkspaceTool("card-authoring", "format")?.id, "format");
+    assert.equal(getWorkspaceTool("card-authoring", "colors")?.id, "colors");
+    assert.equal(getWorkspaceTool("card-authoring", "content")?.id, "content");
+    assert.equal(getWorkspaceTool("card-authoring", "lifecycle")?.id, "lifecycle");
+    assert.ok(getWorkspaceTools("card-authoring").length >= 13);
     assert.equal(getWorkspaceTool("campaign-authoring", "colors")?.recommendedDrawerMode, "compact");
     assert.equal(getWorkspaceTool("campaign-authoring", "media")?.recommendedDrawerMode, "library");
   });

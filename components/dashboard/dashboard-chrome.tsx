@@ -119,13 +119,17 @@ export function DashboardChrome({
             </button>
             <button
               type="button"
-              className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-primary/40 bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary hover:bg-primary/20"
+              className="inline-flex min-h-8 items-center gap-1.5 rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/80 hover:bg-white/5"
               data-testid="authoring-exit-escape"
               onClick={exitEscape}
-              title="Exit to Card assembly (Esc)"
+              title={
+                pathname?.startsWith("/dashboard/card/edit")
+                  ? "Return to Card assembly (Esc) — Command Shade Done is primary"
+                  : "Exit focused workspace (Esc)"
+              }
             >
               <X className="h-3.5 w-3.5" aria-hidden />
-              Exit
+              {pathname?.startsWith("/dashboard/card/edit") ? "Assembly" : "Exit"}
             </button>
           </div>
         </div>

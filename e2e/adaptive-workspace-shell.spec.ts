@@ -137,7 +137,7 @@ test.describe("adaptive workspace shell v1", () => {
     await expect(page.getByTestId("brand-session-restore-notice")).toBeAttached();
   });
 
-  test("Card second-consumer uses Command Shade contract", async ({ page }) => {
+  test("Card full Adaptive Workspace Shell consumer", async ({ page }) => {
     await page.goto("/dashboard/card/edit");
     await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({
       timeout: 60_000,
@@ -146,14 +146,27 @@ test.describe("adaptive workspace shell v1", () => {
       "data-adaptive-shell",
       "v1"
     );
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute(
+      "data-shell-consumer",
+      "card-authoring"
+    );
     await expect(page.getByTestId("command-shade")).toBeVisible();
-    await expect(page.getByTestId("card-edit-compact-toolbar")).toBeVisible();
+    await expect(page.getByTestId("card-edit-compact-toolbar")).toBeAttached();
     await expect(page.getByTestId("tap-card-builder")).toBeVisible();
+    await expect(page.getByTestId("tap-card-builder")).toHaveAttribute(
+      "data-shell-hosted",
+      "true"
+    );
     await expect(page.getByTestId("card-preview-canvas")).toBeVisible();
     await expect(page.getByTestId("card-shade-done")).toHaveClass(/bg-primary/);
+    await expect(page.locator(".builder-studio-toolbar")).toHaveCount(0);
+    await expect(page.getByTestId("card-inspector-rail")).toBeHidden();
 
-    // Builder focus still works
-    await page.getByTestId("card-focus-mode").click();
+    await page.getByTestId("card-tool-colors").click();
+    await expect(page.getByTestId("card-contextual-drawer")).toBeVisible();
+    await expect(page.getByTestId("card-drawer-colors")).toBeVisible();
+
+    await page.getByTestId("command-shade-focus").click();
     await expect(page.getByTestId("tap-card-builder")).toHaveAttribute(
       "data-focus-mode",
       "true"

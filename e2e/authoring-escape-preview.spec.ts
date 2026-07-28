@@ -10,7 +10,7 @@ test.describe("authoring escape + preview + inbox humanization", () => {
   test.skip(!headed, "Set PROOF_HEADED=1");
   test.describe.configure({ timeout: 180_000 });
 
-  test("edit escape hides studio nav; panes scroll; Done exits", async ({ page }) => {
+  test("edit escape hides studio nav; Adaptive shell; Done exits", async ({ page }) => {
     await page.goto("/dashboard/card/edit");
     await expect(page.getByTestId("dashboard-chrome")).toHaveAttribute(
       "data-escape-mode",
@@ -19,21 +19,14 @@ test.describe("authoring escape + preview + inbox humanization", () => {
     );
     await expect(page.getByTestId("authoring-escape-bar")).toBeVisible();
     await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible();
-    await expect(page.getByTestId("card-builder-host")).toBeVisible();
+    await expect(page.getByTestId("authoring-workspace-shell")).toBeVisible();
+    await expect(page.getByTestId("authoring-canvas")).toBeVisible();
 
-    const outline = page.getByTestId("card-outline-rail");
     const canvas = page.getByTestId("card-preview-canvas");
-    const inspector = page.getByTestId("card-inspector-rail");
-    await expect(outline).toBeVisible();
     await expect(canvas).toBeVisible();
-    await expect(inspector).toBeVisible();
+    await expect(page.getByTestId("card-inspector-rail")).toBeHidden();
+    await expect(page.getByTestId("authoring-outline")).toBeVisible();
 
-    await outline.evaluate((el) => {
-      el.scrollTop = 0;
-    });
-    await outline.evaluate((el) => {
-      el.scrollTop = el.scrollHeight;
-    });
     await canvas.evaluate((el) => {
       el.scrollTop = 0;
     });
@@ -41,10 +34,10 @@ test.describe("authoring escape + preview + inbox humanization", () => {
       el.scrollTop = el.scrollHeight;
     });
 
-    await page.getByTestId("card-toggle-outline").click();
-    await expect(outline).toBeHidden();
-    await page.getByTestId("card-toggle-outline").click();
-    await expect(outline).toBeVisible();
+    await page.getByTestId("card-tool-colors").click();
+    await expect(page.getByTestId("card-contextual-drawer")).toBeVisible();
+    await page.getByTestId("card-drawer-collapse").click();
+    await expect(page.getByTestId("card-contextual-drawer")).toHaveCount(0);
 
     await page.getByTestId("card-edit-done-link").click();
     await expect(page.getByTestId("card-assembly-workspace")).toBeVisible({ timeout: 30_000 });

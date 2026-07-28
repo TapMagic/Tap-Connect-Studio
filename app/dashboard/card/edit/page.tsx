@@ -1,6 +1,4 @@
-import { TapCardBuilder } from "@/components/card/tap-card-builder";
-import { AuthoringWorkspaceShell } from "@/components/fusion/authoring/authoring-workspace-shell";
-import { CardAuthoringShellChrome } from "@/components/fusion/card/card-authoring-shell-chrome";
+import { CardAuthoringWorkspace } from "@/components/fusion/card/card-authoring-workspace";
 import { requireBusiness, isPlatformAdmin } from "@/lib/auth";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard } from "@/lib/brand/tap-card";
@@ -14,8 +12,8 @@ export const dynamic = "force-dynamic";
 
 /**
  * True focused Card authoring escape — Studio nav hidden by DashboardChrome.
- * Adaptive Workspace Shell V1: Command Shade owns global chrome; builder owns
- * Outline · Canvas · Format. Done / Esc → /dashboard/card.
+ * Full Adaptive Workspace Shell: Command Shade · Outline · live Card · one Task Drawer.
+ * Done / Esc → /dashboard/card.
  */
 export default async function TapCardEditPage() {
   const { user, business } = await requireBusiness();
@@ -112,47 +110,43 @@ export default async function TapCardEditPage() {
   const publicCode =
     devices.find((d) => d.deviceCode === "seeddemo01")?.deviceCode ?? devices[0]?.deviceCode;
 
-  return (
-    <CardAuthoringShellChrome publicCode={publicCode}>
-      <AuthoringWorkspaceShell
-        title="Card"
-        subtitle="Shared authoring shell · builder owns Outline · Canvas · Format"
-        className="h-full !bg-transparent [&_header]:hidden"
-        canvas={
-          <TapCardBuilder
-            initialConfig={config}
-            profile={{
-              ...profile,
-              phone: profile.phone || business.phone || undefined,
-              email: profile.email || business.email || undefined,
-              website: profile.website || business.website || undefined,
-            }}
-            businessName={business.name}
-            logoUrl={business.logoUrl}
-            reviewUrl={business.googleReviewUrl}
-            mediaUploadReady={isMediaUploadReady()}
-            stockReady={isStockImagesReady()}
-            isAdmin={isPlatformAdmin(user)}
-            isLandingDemo={Boolean(landingDemo)}
-            devices={devices}
-            campaigns={campaigns}
-            freeformEnabled={freeformEnabled}
-            brandKitId={brandKit?.id ?? null}
-            brandColors={
-              brandKit
-                ? {
-                    primaryColor: brandKit.primaryColor,
-                    secondaryColor: brandKit.secondaryColor,
-                    accentColor: brandKit.accentColor,
-                  }
-                : null
-            }
-            workspaceMode
-            escapeMode
-            doneHref="/dashboard/card"
-          />
+  const activeSpotlight =
+    campaignRows.find((c) => c.status === "LIVE" || c.status === "READY") ?? null;
+
+  const builderProps = {
+    initialConfig: config,
+    profile: {
+      ...profile,
+      phone: profile.phone || business.phone || undefined,
+      email: profile.email || business.email || undefined,
+      website: profile.website || business.website || undefined,
+    },
+    businessName: business.name,
+    logoUrl: business.logoUrl,
+    reviewUrl: business.googleReviewUrl,
+    mediaUploadReady: isMediaUploadReady(),
+    stockReady: isStockImagesReady(),
+    isAdmin: isPlatformAdmin(user),
+    isLandingDemo: Boolean(landingDemo),
+    devices,
+    campaigns,
+    freeformEnabled,
+    brandKitId: brandKit?.id ?? null,
+    brandColors: brandKit
+      ? {
+          primaryColor: brandKit.primaryColor,
+          secondaryColor: brandKit.secondaryColor,
+          accentColor: brandKit.accentColor,
         }
-      />
-    </CardAuthoringShellChrome>
+      : null,
+  };
+
+  return (
+    <CardAuthoringWorkspace
+      {...builderProps}
+      publicCode={publicCode}
+      tapPointCount={devices.length}
+      activeSpotlightTitle={activeSpotlight?.title ?? null}
+    />
   );
 }

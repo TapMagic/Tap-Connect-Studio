@@ -172,7 +172,7 @@ export const BRAND_KIT_TOOLS: WorkspaceToolDefinition[] = [
   },
 ];
 
-/** Card authoring — shell second-consumer tools (minimal; Format stays in builder). */
+/** Card authoring — Adaptive Workspace Shell tools (one drawer topic at a time). */
 export const CARD_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
   {
     id: "outline",
@@ -185,6 +185,148 @@ export const CARD_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
     featureReadiness: "ready",
     workspaceIds: ["card-authoring"],
   },
+  {
+    id: "content",
+    label: "Content",
+    icon: "PanelRight",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "brand",
+    label: "Brand",
+    icon: "BadgeCheck",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    triggersConstructMode: true,
+    supportsSelectionMemory: false,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "colors",
+    label: "Colors",
+    icon: "Palette",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "typography",
+    label: "Typography",
+    icon: "Type",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "buttons",
+    label: "Buttons",
+    icon: "MousePointerClick",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "media",
+    label: "Media",
+    icon: "Image",
+    recommendedDrawerMode: "library",
+    mobileSheetMode: "library",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "layout",
+    label: "Layout",
+    icon: "LayoutTemplate",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "offer",
+    label: "Offer Spotlight",
+    icon: "Sparkles",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "tapsave",
+    label: "TapSave",
+    icon: "Bookmark",
+    recommendedDrawerMode: "compact",
+    mobileSheetMode: "compact",
+    triggersConstructMode: true,
+    supportsSelectionMemory: false,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "history",
+    label: "History",
+    icon: "History",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "lifecycle",
+    label: "Lifecycle",
+    icon: "GitBranch",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    supportsSelectionMemory: false,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
+    id: "advanced",
+    label: "Advanced",
+    icon: "Code2",
+    recommendedDrawerMode: "expanded",
+    mobileSheetMode: "expanded",
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["card-authoring"],
+  },
+  /** Compatibility aliases — open Content / Colors drawers */
   {
     id: "format",
     label: "Format",
@@ -535,9 +677,8 @@ export function ensureDefaultToolRegistries(): void {
   if (!registries.has("brand-kit")) {
     registerWorkspaceTools("brand-kit", BRAND_KIT_TOOLS);
   }
-  if (!registries.has("card-authoring")) {
-    registerWorkspaceTools("card-authoring", CARD_AUTHORING_TOOLS);
-  }
+  // Always refresh Card tools — registry grew with Adaptive Task Drawer topics.
+  registerWorkspaceTools("card-authoring", CARD_AUTHORING_TOOLS);
   if (!registries.has("campaign-authoring")) {
     registerWorkspaceTools("campaign-authoring", CAMPAIGN_AUTHORING_TOOLS);
   }

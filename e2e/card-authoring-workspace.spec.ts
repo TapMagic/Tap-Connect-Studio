@@ -24,13 +24,24 @@ test.describe("card authoring workspace wave", () => {
     await expect(page.locator(".builder-studio")).toHaveCount(0);
   });
 
-  test("edit route is full-screen authoring with zoom + focus", async ({ page }) => {
+  test("edit route is full Adaptive shell with zoom + focus", async ({ page }) => {
     await page.goto("/dashboard/card/edit");
     await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({ timeout: 60_000 });
     await expect(page.getByTestId("authoring-workspace-shell")).toBeVisible();
-    await expect(page.getByTestId("card-builder-host")).toBeVisible();
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute(
+      "data-adaptive-shell",
+      "v1"
+    );
     await expect(page.getByTestId("card-save")).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId("card-preview-canvas")).toBeVisible();
+    await expect(page.getByTestId("tap-card-builder")).toHaveAttribute(
+      "data-shell-hosted",
+      "true"
+    );
+    // One primary toolbar — builder chrome hidden
+    await expect(page.locator(".builder-studio-toolbar")).toHaveCount(0);
+    await expect(page.getByTestId("card-inspector-rail")).toBeHidden();
+
     const canvas = page.getByTestId("card-preview-canvas");
     const box = await canvas.boundingBox();
     expect(box?.height ?? 0).toBeGreaterThan(280);
@@ -40,9 +51,9 @@ test.describe("card authoring workspace wave", () => {
     await page.getByTestId("card-zoom-100").click();
     await expect(page.getByTestId("card-preview-phone")).toHaveAttribute("data-zoom", "1");
     await page.getByTestId("card-zoom-in").click();
-    await page.getByTestId("card-focus-mode").click();
+    await page.getByTestId("command-shade-focus").click();
     await expect(page.getByTestId("tap-card-builder")).toHaveAttribute("data-focus-mode", "true");
-    await page.getByTestId("card-done-editing").click();
+    await page.getByTestId("card-shade-done").click();
     await expect(page.getByTestId("card-assembly-workspace")).toBeVisible({ timeout: 30_000 });
   });
 

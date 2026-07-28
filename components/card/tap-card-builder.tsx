@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Columns2,
@@ -36,6 +36,7 @@ import { ButtonLayoutControls } from "@/components/design/button-layout-controls
 import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
+import { publishCardEditorLive } from "@/components/fusion/card/card-editor-live";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
 import {
@@ -78,6 +79,33 @@ type CampaignLinkOption = {
   devices: { code: string; label: string }[];
 };
 
+export type CardBuilderShellApi = {
+  save: () => Promise<void>;
+  undo: () => void;
+  redo: () => void;
+  setFocusMode: (next: boolean) => void;
+  retireToggle: () => void;
+};
+
+export type CardBuilderShellPanels = {
+  outline: ReactNode;
+  drawer: ReactNode;
+};
+
+export type CardBuilderShellStatus = {
+  dirty: boolean;
+  saving: boolean;
+  focusMode: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  message: string | null;
+  lifecycleStatus: string;
+  brandSource: string;
+  selectedId: string | null;
+  sectionCount: number;
+  cardName: string;
+};
+
 type Props = {
   initialConfig: TapConnectCardConfig;
   profile: BrandContactProfile;
@@ -106,6 +134,17 @@ type Props = {
   escapeMode?: boolean;
   /** After Done editing */
   doneHref?: string;
+  /** Hosted by AdaptiveWorkspaceShell — hide duplicate chrome / permanent inspector. */
+  shellHosted?: boolean;
+  activeToolId?: string | null;
+  shellFocusMode?: boolean;
+  publicCode?: string | null;
+  tapPointCount?: number;
+  activeSpotlightTitle?: string | null;
+  onShellApi?: (api: CardBuilderShellApi) => void;
+  onShellOutline?: (outline: ReactNode) => void;
+  onShellStatus?: (status: CardBuilderShellStatus) => void;
+  onRequestTool?: (toolId: string) => void;
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -177,6 +216,16 @@ export function TapCardBuilder({
   workspaceMode = false,
   escapeMode = false,
   doneHref = "/dashboard/card",
+  shellHosted = false,
+  activeToolId = null,
+  shellFocusMode,
+  publicCode = null,
+  tapPointCount = 0,
+  activeSpotlightTitle = null,
+  onShellApi,
+  onShellOutline,
+  onShellStatus,
+  onRequestTool,
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -761,11 +810,168 @@ export function TapCardBuilder({
     router.refresh();
   }
 
+  function retireToggle() {
+    const retired = config.lifecycleStatus === "retired";
+    setConfig((c) => ({
+      ...c,
+      lifecycleStatus: retired ? "active" : "retired",
+      retiredAt: retired ? undefined : new Date().toISOString(),
+    }));
+    setDirty(true);
+    setMessage(
+      retired
+        ? "Marked active — Save to restore the Tap Card"
+        : "Marked retired — Save to retire (where-used still lists assignments)"
+    );
+  }
+
+  // Adaptive shell: focus is owned by Command Shade when hosted.
+  const effectiveFocus = shellHosted
+    ? Boolean(shellFocusMode)
+    : focusMode;
+
+  useEffect(() => {
+    if (!shellHosted || !onShellApi) return;
+    onShellApi({
+      save,
+      undo: undoSections,
+      redo: redoSections,
+      setFocusMode: (next) => {
+        if (shellHosted) return; // shell owns focus
+        if (next === focusMode) return;
+        toggleFocusMode();
+      },
+      retireToggle,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- API bridge refresh on undo capability
+  }, [shellHosted, onShellApi, canUndoSections, canRedoSections, focusMode]);
+
+  useEffect(() => {
+    if (!shellHosted || !onShellStatus) return;
+    onShellStatus({
+      dirty,
+      saving,
+      focusMode: effectiveFocus,
+      canUndo: canUndoSections,
+      canRedo: canRedoSections,
+      message,
+      lifecycleStatus: config.lifecycleStatus || "active",
+      brandSource: brandState.useBrandKit ? "Brand Kit" : "Custom Card",
+      selectedId,
+      sectionCount: sorted.length,
+      cardName: businessName || "Card",
+    });
+  }, [
+    shellHosted,
+    onShellStatus,
+    dirty,
+    saving,
+    effectiveFocus,
+    canUndoSections,
+    canRedoSections,
+    message,
+    config.lifecycleStatus,
+    brandState.useBrandKit,
+    selectedId,
+    sorted.length,
+    businessName,
+  ]);
+
+  const outlineHashRef = useRef("");
+  useEffect(() => {
+    if (!shellHosted || !onShellOutline) return;
+    const ordered = sectionsHistory.slice().sort((a, b) => a.order - b.order);
+    const hash = `${selectedId ?? ""}::${ordered.map((s) => `${s.id}:${s.label || s.type}`).join("|")}`;
+    if (outlineHashRef.current === hash) return;
+    outlineHashRef.current = hash;
+    onShellOutline(
+      <div
+        className="space-y-1"
+        data-testid="card-shell-outline-segments"
+        data-segments={hash}
+      >
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-white/40">
+          Segments
+        </p>
+        {ordered.map((section) => (
+          <button
+            key={section.id}
+            type="button"
+            className={cn(
+              "flex min-h-9 w-full items-center rounded-md px-2 text-left text-[11px]",
+              selectedId === section.id
+                ? "bg-primary/20 text-primary"
+                : "text-white/70 hover:bg-white/5"
+            )}
+            onClick={() => {
+              setSelectedId(section.id);
+              onRequestTool?.("content");
+            }}
+          >
+            {section.label || section.type}
+          </button>
+        ))}
+      </div>
+    );
+  }, [shellHosted, onShellOutline, sectionsHistory, selectedId, onRequestTool]);
+
+  useEffect(() => {
+    if (!shellHosted) {
+      publishCardEditorLive(null);
+      return () => publishCardEditorLive(null);
+    }
+    publishCardEditorLive({
+      config,
+      selected,
+      sorted,
+      brandState,
+      mediaUploadReady,
+      stockReady,
+      freeformEnabled,
+      showFreeform,
+      isAdmin,
+      demoPublished,
+      versions,
+      logoUrl,
+      brandKitId,
+      message,
+      onBrandStateChange: handleBrandStateChange,
+      patchConfig,
+      patchConfigColor,
+      patchSection,
+      setSelectedId,
+      setShowFreeform,
+      onRetireToggle: retireToggle,
+      onPublishDemo: (p) => void publishDemo(p),
+      onRollback: (id) => void rollbackToVersion(id),
+      strInherited: (key) => strInherited(brandState, key as BrandFieldKey),
+    });
+    return () => publishCardEditorLive(null);
+    // Publish after paint when Card model inputs change — avoid blank-deps notify storms.
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- live model bridge
+  }, [
+    shellHosted,
+    config,
+    selected,
+    sectionsHistory,
+    brandState,
+    mediaUploadReady,
+    stockReady,
+    freeformEnabled,
+    showFreeform,
+    isAdmin,
+    demoPublished,
+    versions,
+    logoUrl,
+    brandKitId,
+    message,
+  ]);
+
   return (
     <div
       className={cn(
         "builder-studio flex h-full min-h-0 flex-col overflow-hidden",
-        escapeMode
+        escapeMode || shellHosted
           ? "h-full max-h-full"
           : workspaceMode
             ? "max-lg:min-h-[calc(100dvh-4rem)]"
@@ -774,9 +980,13 @@ export function TapCardBuilder({
       data-testid="tap-card-builder"
       data-workspace-mode={workspaceMode ? "true" : "false"}
       data-escape-mode={escapeMode ? "true" : "false"}
-      data-focus-mode={focusMode ? "true" : "false"}
+      data-shell-hosted={shellHosted ? "true" : "false"}
+      data-focus-mode={effectiveFocus ? "true" : "false"}
       data-dirty={dirty ? "true" : "false"}
+      data-active-tool={activeToolId ?? ""}
     >
+
+      {!shellHosted ? (
       <div className="builder-studio-toolbar z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-2.5">
         <div>
           <h1 className="text-sm font-semibold">
@@ -936,6 +1146,60 @@ export function TapCardBuilder({
           ) : null}
         </div>
       </div>
+      ) : null}
+
+      {shellHosted ? (
+        <div
+          className="shrink-0 border-b border-white/10 px-4 py-2"
+          data-testid="card-relationship-status"
+        >
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/60">
+            <span className="font-semibold text-white/90">{businessName || "Card"}</span>
+            <span
+              className={cn(
+                "rounded px-1.5 py-0.5",
+                config.lifecycleStatus === "retired"
+                  ? "bg-amber-500/15 text-amber-200"
+                  : "bg-primary/15 text-primary"
+              )}
+              data-testid="card-status-public"
+            >
+              {config.lifecycleStatus === "retired" ? "Retired" : "Active"}
+            </span>
+            <span data-testid="card-status-tappoints">
+              {tapPointCount} Tap Point{tapPointCount === 1 ? "" : "s"}
+            </span>
+            <span data-testid="card-status-spotlight">
+              {activeSpotlightTitle
+                ? `Spotlight · ${activeSpotlightTitle}`
+                : "No Campaign Spotlight"}
+            </span>
+            <span data-testid="card-status-tapsave">
+              {config.utilityLayer?.enabled === false ? "TapSave off" : "TapSave on"}
+            </span>
+            <span data-testid="card-status-brand">
+              {brandState.useBrandKit ? "Brand Kit" : "Custom"}
+            </span>
+            {dirty ? (
+              <span className="text-amber-200" data-testid="card-status-next">
+                Next: Save Card
+              </span>
+            ) : (
+              <span data-testid="card-status-next">Next: review live preview</span>
+            )}
+            {publicCode ? (
+              <a
+                href={`/t/${publicCode}?public=1`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-primary hover:underline"
+              >
+                Public opens locally ↗
+              </a>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       {showFreeform && freeformEnabled ? (
         <div className="z-20 shrink-0 border-b border-border/60 bg-background px-4 py-3">
@@ -960,6 +1224,7 @@ export function TapCardBuilder({
       ) : null}
 
       {/* Design menus — collapsible to free preview height */}
+      {!shellHosted ? (
       <div className="z-20 shrink-0 border-b border-border/60 bg-background">
         <div className="flex items-center justify-between gap-2 px-4 py-2">
           <BrandInheritanceBar
@@ -1250,15 +1515,18 @@ export function TapCardBuilder({
       </div>
         ) : null}
       </div>
+      ) : null}
 
       {message ? (
-        <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary">{message}</p>
+        <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary" role="status">
+          {message}
+        </p>
       ) : null}
 
       <div
         className={cn(
           "grid min-h-0 flex-1 grid-cols-1 max-lg:flex-none",
-          focusMode || (outlineCollapsed && inspectorCollapsed)
+          shellHosted || focusMode || (outlineCollapsed && inspectorCollapsed)
             ? "lg:grid-cols-1"
             : outlineCollapsed
               ? formatOpen
@@ -1275,12 +1543,13 @@ export function TapCardBuilder({
                     : "lg:grid-cols-[300px_minmax(0,1fr)_320px]"
         )}
         data-testid="card-builder-panes"
+        data-shell-canvas={shellHosted ? "true" : "false"}
       >
         {/* Left — blocks / add (independent scroll) */}
         <aside
           className={cn(
             "builder-studio-rail min-h-0 overflow-y-auto overscroll-contain border-r border-border/60 max-lg:max-h-[40vh] lg:h-auto",
-            (focusMode || outlineCollapsed) && "hidden"
+            (shellHosted || focusMode || outlineCollapsed) && "hidden"
           )}
           data-testid="card-outline-rail"
         >
@@ -1612,7 +1881,12 @@ export function TapCardBuilder({
         {/* Center — phone preview scrolls independently; never collapses to zero */}
         <div
           ref={previewScrollRef}
-          className="builder-studio-canvas min-h-[min(55vh,420px)] min-w-0 overflow-y-auto overscroll-contain border-x border-border/40 lg:min-h-0 lg:h-auto"
+          className={cn(
+            "builder-studio-canvas min-w-0 overflow-y-auto overscroll-contain border-x border-border/40",
+            shellHosted
+              ? "min-h-0 flex-1 lg:h-auto"
+              : "min-h-[min(55vh,420px)] lg:min-h-0 lg:h-auto"
+          )}
           data-testid="card-preview-canvas"
         >
           <div className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur">
@@ -1622,8 +1896,11 @@ export function TapCardBuilder({
             <Button
               type="button"
               size="sm"
-              variant={previewZoom === "fit" ? "default" : "outline"}
-              className="h-7 text-xs"
+              variant="outline"
+              className={cn(
+                "h-7 text-xs",
+                previewZoom === "fit" && "border-primary/50 bg-primary/10 text-primary"
+              )}
               data-testid="card-zoom-fit"
               onClick={() => setPreviewZoom("fit")}
             >
@@ -1632,8 +1909,11 @@ export function TapCardBuilder({
             <Button
               type="button"
               size="sm"
-              variant={previewZoom === 1 ? "default" : "outline"}
-              className="h-7 text-xs"
+              variant="outline"
+              className={cn(
+                "h-7 text-xs",
+                previewZoom === 1 && "border-primary/50 bg-primary/10 text-primary"
+              )}
               data-testid="card-zoom-100"
               onClick={() => setPreviewZoom(1)}
             >
@@ -1669,16 +1949,32 @@ export function TapCardBuilder({
             >
               +
             </Button>
+            {!shellHosted ? (
             <Button
               type="button"
               size="sm"
-              variant={focusMode ? "default" : "outline"}
-              className="h-7 text-xs"
+              variant="outline"
+              className={cn(
+                "h-7 text-xs",
+                focusMode && "border-primary/50 bg-primary/10 text-primary"
+              )}
               data-testid="card-preview-focus"
               onClick={() => toggleFocusMode()}
             >
               {focusMode ? "Full overview" : "Focus preview"}
             </Button>
+            ) : (
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              data-testid="card-preview-focus"
+              onClick={() => onRequestTool?.("content")}
+            >
+              Edit selection
+            </Button>
+            )}
           </div>
           <div className="flex justify-center p-4 pb-12">
             <div
@@ -1718,7 +2014,7 @@ export function TapCardBuilder({
         <aside
           className={cn(
             "builder-studio-inspector min-h-0 overflow-y-auto overscroll-contain border-l border-border/60 max-lg:max-h-[40vh] lg:h-auto",
-            (focusMode || inspectorCollapsed) && "hidden"
+            (shellHosted || focusMode || inspectorCollapsed) && "hidden"
           )}
           data-testid="card-inspector-rail"
         >
@@ -3083,7 +3379,7 @@ export function TapCardBuilder({
           </div>
         </aside>
         <FormatWorkspace
-          open={formatOpen}
+          open={formatOpen && !shellHosted}
           onClose={() => setFormatOpen(false)}
           title={selected ? `Format · ${selected.label || selected.type}` : "Format · Card"}
           subtitle="Expanded Format workspace — typography, style, layout, and appearance. Quick controls remain in the inspector."
