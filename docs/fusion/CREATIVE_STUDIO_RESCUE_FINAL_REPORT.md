@@ -10,7 +10,7 @@
 | Tip | SHA |
 |-----|-----|
 | Ancestry checkpoint | `ff8c6c1` → `798793a` → … → `460c2f5` (prior remote tip) |
-| This pass (post-push) | *pinned in follow-up docs commit after FF push* |
+| This pass (local/remote tip) | `f231ceef61b58bc9e511d8a1e2ecb00253057400` |
 | Push policy | Normal fast-forward only — no force-push, merge, or deploy |
 
 **Note:** Remote was already past `798793a` at start of this pass. All valid work after that commit is preserved.
