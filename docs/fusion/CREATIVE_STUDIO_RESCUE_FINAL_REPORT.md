@@ -1,6 +1,6 @@
 # Creative Studio Rescue — Final Report
 
-**Classification:** `IMPLEMENTATION IN PROGRESS`
+**Classification:** `OWNER-READY CANDIDATE — VERIFICATION PENDING`
 
 **Branch:** `tapconnect-creative-studio-rescue`  
 **Immutable source:** `replit-penthouse-finished-import` @ `f7457a48a3e41d271e6569f54b4b1cde12160821`
@@ -9,40 +9,35 @@
 
 | Tip | SHA |
 |-----|-----|
-| Ancestry checkpoint | `ff8c6c1` → `798793a` → … → `b454824` (prior remote tip) |
-| This pass (feature) | *see `git rev-parse HEAD` after push — feature commit message below* |
+| Ancestry checkpoint | `798793a` preserved; work continues after it |
+| Feature tip (interactive complete) | `dfc0d2e055b80af89b5987dbe30c8c2abb594eb3` |
+| Live remote tip | `git rev-parse origin/tapconnect-creative-studio-rescue` |
 | Push policy | Normal fast-forward only — no force-push, merge, or deploy |
 
-**Note:** Remote was already past `798793a`. All valid work after that commit is preserved. Use `git rev-parse origin/tapconnect-creative-studio-rescue` for the live tip.
-
-## Gates (run on final tip)
+## Gates (feature tip `dfc0d2e`)
 
 | Command | Result |
 |---------|--------|
 | `npx tsc --noEmit` | PASS |
 | `npx prisma validate` | PASS |
-| `npm run build` | PASS (with `NEXT_PUBLIC_PREVIEW_BASE_URL=http://192.168.2.24:3010`) |
+| `npm run build` | PASS (`NEXT_PUBLIC_PREVIEW_BASE_URL=http://192.168.2.24:3010`) |
 | `npm test` | PASS — **805**/805 |
 | `npm run test:fusion` | PASS — **775**/775 |
-| creative-studio + card + J1 e2e | PASS — **23**/23 (workers=1, `BASE_URL=:3010`) |
-| Live Device Studio QR | Decodes to LAN `:3010`; HTTP **200**; draft banner; no Clerk |
-| Update / expire / revoke | PASS (unit evidence JSON; no publish) |
-| Studio health | listening `*:3010`; `/dashboard/card/edit` → **200** |
+| creative-studio + card + J1 e2e | PASS — **23**/23 |
+| Live Device Studio QR | Decodes to LAN `:3010`; HTTP **200**; draft; no Clerk |
+| Update / expire / revoke | PASS (no publish) |
 
-## This pass additions
+## Owner-ready surfaces (agent-complete)
 
-1. Group / multi-select move-as-unit (`expandSelectionToGroups`, `translateNodes`) on canvas drag + nudge
-2. Responsive `resolveNodeBox` anchors, width %, min width; editable safe-area padding
-3. Composition Background sliding panel (none / solid / gradient)
-4. Composition text → Professional Typography catalog (Level 2)
-5. Frame padding, rotation, border color
-6. Image opacity; Image / Media Level 0–2 `ImagePanelStack` in Card media drawer
-7. + Button add control on composition hub
+- Interactive Creative Composition Block (select, drag, resize, align/distribute, layer, group-as-unit, lock, duplicate/delete, undo/redo)
+- Extensible registered mask/frame catalog (incl. shirt proof case)
+- Contextual Inspector + horizontal Sliding Panel Stack (Levels 0–2)
+- Composition typography, background, responsive anchors; Card Image/Media stack
+- Live Device auto QR, update phone preview, revoke — awaiting **physical** scan
 
-## Remaining for Owner-ready
+## Remaining for `OWNER-READY — VERIFIED`
 
-- **Physical camera scan** on a handset (QR file / Live Device panel ready on LAN `192.168.2.24:3010`)
-- Owner acceptance of the interactive workflow
+Physical phone camera scan + Owner acceptance of the walkthrough above.
 
 ## Safety
 

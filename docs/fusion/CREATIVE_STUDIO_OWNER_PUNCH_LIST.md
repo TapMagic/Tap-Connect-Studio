@@ -1,20 +1,26 @@
 # Creative Studio Rescue — Owner Punch List
 
-**Classification:** `IMPLEMENTATION IN PROGRESS`
+**Classification:** `OWNER-READY CANDIDATE — VERIFICATION PENDING`
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| P0 | Fast-forward push rescue branch | Critical | **Closed** — remote advances with normal FF pushes |
-| P1 | Screenshot/video pack | High | **Closed** — composition slides + Live Device QR + walkthrough webm |
-| P2 | Physical-phone QR scan | Critical | **Owner action** — Studio QR decodes to `http://192.168.2.24:3010/preview/card/…` (HTTP 200 draft) |
-| P5 | Related e2e | Critical | **Closed** — creative-studio-rescue + card/J1 suites green |
-| P13 | Interactive Composition Block | High | **Closed** — select/drag/resize/align/layer/group-as-unit/lock/duplicate/delete/undo |
-| P14 | Frame / border / group inspectors | Medium | **Closed** — hubs + sliding studios + focal/scale/padding/rotation |
+| P0 | Fast-forward push rescue branch | Critical | **Closed** |
+| P1 | Screenshot/video pack | High | **Closed** |
+| P2 | Physical-phone QR scan | Critical | **Owner action** — scan Live Device QR / `tmp/.../live-device/studio-ui-qr.png` on same Wi‑Fi |
+| P5 | Related e2e | Critical | **Closed** |
+| P13 | Interactive Composition Block | High | **Closed** |
+| P14 | Frame / border / group inspectors | Medium | **Closed** |
 | P15 | Draft update / expire / revoke | High | **Closed** |
-| P16 | Extensible mask catalog | Medium | **Closed** — rectangle→shirt plus polygon + organic |
-| P17 | Group move-as-unit + anchors | High | **Closed** — expand selection, translate group, resolveNodeBox |
-| P18 | Composition typography / background / Image Media stack | Medium | **Closed** — ProfessionalTypography + background panel + ImagePanelStack |
+| P16 | Extensible mask catalog | Medium | **Closed** |
+| P17 | Group move-as-unit + anchors | High | **Closed** |
+| P18 | Composition typography / background / Image Media stack | Medium | **Closed** |
 
-## Owner-ready gate
+## Owner verification gate
 
-Scan the Live Device QR (or `tmp/.../live-device/studio-ui-qr.png`) on a phone on the same Wi‑Fi, confirm draft preview, then review the composition walkthrough.
+1. Open Studio Card edit on LAN `:3010`.
+2. Walk composition: add block → frame/mask → text over image → layer → group → resize/move.
+3. Open Live Device; confirm auto QR (no Generate ritual).
+4. Scan QR on a physical phone (same Wi‑Fi); confirm draft / Not Published preview.
+5. Update phone preview, then Revoke; return to edit with selection restored.
+
+After those steps pass, classification may move to `OWNER-READY — VERIFIED`.
