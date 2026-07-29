@@ -51,19 +51,18 @@ export function ProfessionalTypographyPanel({
   const [level, setLevel] = useState<PanelLevel>("root");
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState<FontCategory | "all">("all");
-  const [recent, setRecent] = useState<string[]>([]);
-  const [favorites, setFavorites] = useState<string[]>([]);
+  const [recent, setRecent] = useState<string[]>(() =>
+    typeof window === "undefined" ? [] : readRecentFonts()
+  );
+  const [favorites, setFavorites] = useState<string[]>(() =>
+    typeof window === "undefined" ? [] : readFavoriteFonts()
+  );
   const [loadingId, setLoadingId] = useState<string | null>(null);
   const [sampleMode, setSampleMode] = useState<
     "card" | "custom" | "alphabet" | "numbers" | "headline" | "paragraph"
   >("card");
   const [customSample, setCustomSample] = useState("");
   const [candidateId, setCandidateId] = useState<string | null>(null);
-
-  useEffect(() => {
-    setRecent(readRecentFonts());
-    setFavorites(readFavoriteFonts());
-  }, []);
 
   const currentFont = useMemo(() => {
     if (value.customFontFamily) {

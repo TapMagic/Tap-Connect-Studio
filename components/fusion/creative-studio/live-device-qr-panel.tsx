@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import QRCode from "qrcode";
 import { Copy, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -114,12 +114,6 @@ export function LiveDeviceQrPanel({
     [payload, revision, token]
   );
 
-  useEffect(() => {
-    void createOrUpdate("create");
-    // intentionally once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   return (
     <div
       className={cn("space-y-3 p-3", className)}
@@ -134,6 +128,17 @@ export function LiveDeviceQrPanel({
           </p>
         </div>
       </div>
+
+      {!previewUrl && !busy && !error ? (
+        <Button
+          type="button"
+          className="min-h-11 w-full bg-primary text-primary-foreground"
+          data-testid="preview-generate-qr"
+          onClick={() => void createOrUpdate("create")}
+        >
+          Generate phone preview QR
+        </Button>
+      ) : null}
 
       {stale ? (
         <p
