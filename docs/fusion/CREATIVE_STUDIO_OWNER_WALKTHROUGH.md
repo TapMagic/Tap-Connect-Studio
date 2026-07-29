@@ -1,7 +1,7 @@
 # Creative Studio Owner Walkthrough Results
 
 Branch: `tapconnect-creative-studio-rescue`  
-**Classification:** `OWNER-READY CANDIDATE — VERIFICATION PENDING`
+**Classification:** `IMPLEMENTATION IN PROGRESS`
 
 | # | Step | Result | Notes |
 |---|------|--------|-------|
@@ -10,7 +10,7 @@ Branch: `tapconnect-creative-studio-rescue`
 | 19 | Phone fallback / reading order / safe area | PASS | Agent |
 | 20 | Undo / Redo | PASS | Agent |
 | 21–23 | Preview → Live Device → auto QR | PASS | Decoded LAN `:3010` |
-| 24 | Physical phone camera | **PENDING OWNER** | Required for Verified |
+| 24 | Physical phone camera | **BLOCKED** | Phone cannot reach LAN; QR **not** passed |
 | 25–27 | Update / expire / revoke | PASS | Unit + evidence JSON |
 | Background / Responsive / Typography / Image Media stack | PASS | Agent |
 
