@@ -15,6 +15,7 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { FinishPicker } from "@/components/design/format-controls";
 import { ButtonPanelStack } from "@/components/fusion/creative-studio/button-panel-stack";
 import { TextPanelStack } from "@/components/fusion/creative-studio/text-panel-stack";
+import { ImagePanelStack } from "@/components/fusion/creative-studio/image-panel-stack";
 import { CompositionPanelStack } from "@/components/fusion/creative-studio/composition-panel-stack";
 import { HistoryPanel } from "@/components/fusion/creative-studio/history-panel";
 import {
@@ -463,14 +464,25 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
         {!stockReady ? (
           <HonestNote>Media search provider is not configured.</HonestNote>
         ) : null}
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={config.showHeaderLogo === true}
-            onChange={(e) => patchConfig({ showHeaderLogo: e.target.checked })}
-          />
-          Logo above card
-        </label>
+        <ImagePanelStack
+          selected={selected}
+          onPatchSection={patchSection}
+          onClose={props.onCloseTool}
+          headerLogoUrl={
+            config.headerLogoUrl ||
+            (brandState.useBrandKit ? strInherited("logoUrl") : undefined) ||
+            logoUrl ||
+            ""
+          }
+          showHeaderLogo={config.showHeaderLogo === true}
+          onToggleHeaderLogo={(on) => patchConfig({ showHeaderLogo: on })}
+          onPatchHeaderLogo={(url) =>
+            patchConfig({
+              headerLogoUrl: url,
+              ...(url ? {} : { showHeaderLogo: false }),
+            })
+          }
+        />
         {config.showHeaderLogo === true ? (
           <MediaPicker
             label="Header logo"
@@ -489,9 +501,6 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
           />
-        ) : null}
-        {selected?.type === "image" || selected?.type === "logo_block" ? (
-          <HonestNote>Use Content drawer for the selected image/logo block.</HonestNote>
         ) : null}
       </div>
     );

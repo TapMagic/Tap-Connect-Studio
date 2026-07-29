@@ -9,11 +9,14 @@ import {
   createCompositionNode,
   createStarterCreativeComposition,
   distributeNodes,
+  expandSelectionToGroups,
   frameMaskPath,
   groupNodes,
+  resolveNodeBox,
   sendBackward,
   sendToBack,
   setNodeLocked,
+  translateNodes,
   ungroupNodes,
 } from "@/lib/fusion/creative-studio/composition";
 
@@ -63,6 +66,25 @@ describe("creative composition operations", () => {
     assert.equal(aligned.find((n) => n.id === "t2")?.x, 0.1);
     const dist = distributeNodes(nodes, ["t1", "t2", "t3"], "horizontal");
     assert.ok(dist.find((n) => n.id === "t2")!.x > dist.find((n) => n.id === "t1")!.x);
+  });
+
+  it("expands group selection and translates as a unit", () => {
+    const nodes = [
+      createCompositionNode("text", { id: "t1", x: 0.1, y: 0.1, width: 0.2, height: 0.1, zIndex: 1 }),
+      createCompositionNode("text", { id: "t2", x: 0.4, y: 0.2, width: 0.2, height: 0.1, zIndex: 2 }),
+    ];
+    const grouped = groupNodes(nodes, ["t1", "t2"]);
+    const expanded = expandSelectionToGroups(grouped, ["t1"]);
+    assert.deepEqual(expanded.sort(), ["t1", "t2"]);
+    const moved = translateNodes(grouped, expanded, 0.05, 0.05);
+    assert.ok(Math.abs((moved.find((n) => n.id === "t1")!.x) - 0.15) < 1e-9);
+    assert.ok(Math.abs((moved.find((n) => n.id === "t2")!.x) - 0.45) < 1e-9);
+    const box = resolveNodeBox({
+      ...createCompositionNode("text", { id: "a", x: 0.5, y: 0.5, width: 0.2, height: 0.1 }),
+      anchor: "center",
+    });
+    assert.ok(Math.abs(box.left - 0.4) < 1e-9);
+    assert.ok(Math.abs(box.top - 0.45) < 1e-9);
   });
 
   it("preserves accessible reading order independent of zIndex", () => {

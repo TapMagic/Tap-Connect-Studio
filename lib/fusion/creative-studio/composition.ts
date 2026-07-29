@@ -641,3 +641,102 @@ export function deleteNodes(
   const set = new Set(ids);
   return nodes.filter((n) => !set.has(n.id) || n.locked);
 }
+
+/** Expand selection so grouped members move/select together. */
+export function expandSelectionToGroups(
+  nodes: CreativeCompositionNode[],
+  ids: string[]
+): string[] {
+  const seed = new Set(ids);
+  const groupIds = new Set<string>();
+  for (const n of nodes) {
+    if (seed.has(n.id) && n.groupId) groupIds.add(n.groupId);
+  }
+  if (!groupIds.size) return [...ids];
+  const out = new Set(ids);
+  for (const n of nodes) {
+    if (n.groupId && groupIds.has(n.groupId)) out.add(n.id);
+  }
+  return [...out];
+}
+
+/** Translate selected (unlocked) nodes by relative deltas, clamped to the surface. */
+export function translateNodes(
+  nodes: CreativeCompositionNode[],
+  ids: string[],
+  dx: number,
+  dy: number
+): CreativeCompositionNode[] {
+  const set = new Set(ids);
+  const movers = nodes.filter((n) => set.has(n.id) && !n.locked);
+  if (!movers.length) return nodes;
+  const cdx = Math.min(
+    Math.max(dx, -Math.min(...movers.map((n) => n.x))),
+    Math.min(...movers.map((n) => 1 - n.x - n.width))
+  );
+  const cdy = Math.min(
+    Math.max(dy, -Math.min(...movers.map((n) => n.y))),
+    Math.min(...movers.map((n) => 1 - n.y - n.height))
+  );
+  return nodes.map((n) => {
+    if (!set.has(n.id) || n.locked) return n;
+    return {
+      ...n,
+      x: Math.min(1 - n.width, Math.max(0, n.x + cdx)),
+      y: Math.min(1 - n.height, Math.max(0, n.y + cdy)),
+    };
+  });
+}
+
+export type ResolvedNodeBox = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+};
+
+/**
+ * Resolve proportional box + optional anchor for responsive placement.
+ * Storage remains relative 0–1; anchors reinterpret x/y as the anchor point.
+ */
+export function resolveNodeBox(node: CreativeCompositionNode): ResolvedNodeBox {
+  const width = Math.min(
+    1,
+    Math.max(0.04, node.widthPct != null ? node.widthPct : node.width)
+  );
+  const height = Math.min(
+    1,
+    Math.max(0.04, node.heightPct != null ? node.heightPct : node.height)
+  );
+  const anchor = node.anchor || "top-left";
+  let left = node.x;
+  let top = node.y;
+  if (anchor === "top-right" || anchor === "right" || anchor === "bottom-right") {
+    left = node.x - width;
+  } else if (
+    anchor === "top" ||
+    anchor === "center" ||
+    anchor === "bottom"
+  ) {
+    left = node.x - width / 2;
+  }
+  if (
+    anchor === "bottom-left" ||
+    anchor === "bottom" ||
+    anchor === "bottom-right"
+  ) {
+    top = node.y - height;
+  } else if (
+    anchor === "left" ||
+    anchor === "center" ||
+    anchor === "right"
+  ) {
+    top = node.y - height / 2;
+  }
+  return {
+    left: Math.min(1 - width, Math.max(0, left)),
+    top: Math.min(1 - height, Math.max(0, top)),
+    width,
+    height,
+  };
+}

@@ -7,11 +7,13 @@
 | P0 | Fast-forward push rescue branch | Critical | **Closed** — remote advances with normal FF pushes |
 | P1 | Screenshot/video pack | High | **Closed** — composition slides + Live Device QR + walkthrough webm |
 | P2 | Physical-phone QR scan | Critical | **Owner action** — Studio QR decodes to `http://192.168.2.24:3010/preview/card/…` (HTTP 200 draft) |
-| P5 | Related e2e | Critical | **Closed** — creative-studio-rescue + card/J1 suites green this tip |
-| P13 | Interactive Composition Block | High | **Closed** — select/drag/resize/align/layer/group/lock/duplicate/delete/undo |
-| P14 | Frame / border / group inspectors | Medium | **Closed** — hubs + sliding studios + focal/scale/masks |
+| P5 | Related e2e | Critical | **Closed** — creative-studio-rescue + card/J1 suites green |
+| P13 | Interactive Composition Block | High | **Closed** — select/drag/resize/align/layer/group-as-unit/lock/duplicate/delete/undo |
+| P14 | Frame / border / group inspectors | Medium | **Closed** — hubs + sliding studios + focal/scale/padding/rotation |
 | P15 | Draft update / expire / revoke | High | **Closed** |
-| P16 | Extensible mask catalog | Medium | **Closed** — rectangle→shirt plus polygon + organic registered paths |
+| P16 | Extensible mask catalog | Medium | **Closed** — rectangle→shirt plus polygon + organic |
+| P17 | Group move-as-unit + anchors | High | **Closed** — expand selection, translate group, resolveNodeBox |
+| P18 | Composition typography / background / Image Media stack | Medium | **Closed** — ProfessionalTypography + background panel + ImagePanelStack |
 
 ## Owner-ready gate
 

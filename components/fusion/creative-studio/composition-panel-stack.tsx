@@ -8,6 +8,7 @@ import {
   NestedPanelShell,
   PanelNavRow,
 } from "@/components/fusion/creative-studio/nested-panel-shell";
+import { ProfessionalTypographyPanel } from "@/components/fusion/creative-studio/professional-typography-panel";
 import {
   FRAME_MASK_CATALOG,
   alignNodes,
@@ -17,12 +18,14 @@ import {
   deleteNodes,
   distributeNodes,
   duplicateNodes,
+  expandSelectionToGroups,
   groupNodes,
   sendBackward,
   sendToBack,
   setNodeLocked,
   ungroupNodes,
   type AlignMode,
+  type CreativeCompositionAnchor,
   type CreativeCompositionBlock,
   type CreativeCompositionNode,
   type CreativeCompositionPrimitive,
@@ -33,6 +36,7 @@ type Level =
   | "root"
   | "add"
   | "text"
+  | "typography"
   | "image"
   | "frame"
   | "shape"
@@ -41,7 +45,9 @@ type Level =
   | "align"
   | "group"
   | "fallback"
-  | "masks";
+  | "masks"
+  | "background"
+  | "responsive";
 
 export type CompositionPanelStackProps = {
   block: CreativeCompositionBlock;
@@ -98,7 +104,8 @@ export function CompositionPanelStack({
       root: "Composition",
       add: "Add",
       text: "Text",
-      image: "Image",
+      typography: "Typography & Formatting",
+      image: "Image & Media",
       frame: "Frame",
       shape: "Shape",
       border: "Border / Divider",
@@ -107,8 +114,11 @@ export function CompositionPanelStack({
       group: "Group",
       fallback: "Phone fallback",
       masks: "Masking Shape",
+      background: "Background",
+      responsive: "Responsive",
     };
     if (level === "masks") return [...base, "Frame", labels.masks];
+    if (level === "typography") return [...base, "Text", labels.typography];
     return [...base, labels[level]];
   }, [level]);
 
@@ -161,7 +171,18 @@ export function CompositionPanelStack({
     <NestedPanelShell
       title={title}
       breadcrumbs={crumbs}
-      onBack={level === "root" ? undefined : () => setLevel(level === "masks" ? "frame" : "root")}
+      onBack={
+        level === "root"
+          ? undefined
+          : () =>
+              setLevel(
+                level === "masks"
+                  ? "frame"
+                  : level === "typography"
+                    ? "text"
+                    : "root"
+              )
+      }
       onClose={onClose}
       testId="composition-panel-stack"
     >
@@ -186,6 +207,7 @@ export function CompositionPanelStack({
                   ["frame", "Frame"],
                   ["shape", "Shape"],
                   ["border", "Border"],
+                  ["button", "Button"],
                 ] as const
               ).map(([id, label]) => (
                 <Button
@@ -353,7 +375,19 @@ export function CompositionPanelStack({
                   variant="outline"
                   className="min-h-9"
                   data-testid="composition-hub-group"
-                  onClick={() => patchNodes(groupNodes(block.nodes, selectedNodeIds), "Grouped items")}
+                  onClick={() => {
+                    const next = groupNodes(block.nodes, selectedNodeIds);
+                    const gid = next.find((n) => n.id === selectedNodeIds[0])?.groupId;
+                    patchNodes(next, "Grouped items");
+                    if (gid) {
+                      onSelectNodes(
+                        expandSelectionToGroups(
+                          next,
+                          next.filter((n) => n.groupId === gid).map((n) => n.id)
+                        )
+                      );
+                    }
+                  }}
                 >
                   Group
                 </Button>
@@ -413,6 +447,12 @@ export function CompositionPanelStack({
           ) : null}
 
           <PanelNavRow
+            label="Background"
+            hint={block.background?.kind || "none"}
+            testId="composition-open-background"
+            onClick={() => setLevel("background")}
+          />
+          <PanelNavRow
             label="Layering"
             hint="Forward / back / front / back"
             testId="composition-open-layering"
@@ -428,6 +468,14 @@ export function CompositionPanelStack({
             testId="composition-open-group"
             onClick={() => setLevel("group")}
           />
+          {node ? (
+            <PanelNavRow
+              label="Responsive"
+              hint={node.anchor || "top-left"}
+              testId="composition-open-responsive"
+              onClick={() => setLevel("responsive")}
+            />
+          ) : null}
           <PanelNavRow
             label="Phone fallback"
             hint={block.mobileFallback}
@@ -449,7 +497,9 @@ export function CompositionPanelStack({
                       : "border-white/10"
                   }`}
                   data-testid={`composition-layer-${n.id}`}
-                  onClick={() => onSelectNodes([n.id])}
+                  onClick={() =>
+                    onSelectNodes(expandSelectionToGroups(block.nodes, [n.id]))
+                  }
                 >
                   <span>
                     {n.primitive}
@@ -474,6 +524,12 @@ export function CompositionPanelStack({
               patchNode(node.id, { props: { text: e.target.value } }, "Edited composition text")
             }
           />
+          <PanelNavRow
+            label="Open font catalog"
+            hint={String(node.props.fontFamily || "Inter")}
+            testId="composition-open-typography"
+            onClick={() => setLevel("typography")}
+          />
           <Label className="text-xs">Point size</Label>
           <Input
             type="number"
@@ -496,6 +552,55 @@ export function CompositionPanelStack({
             data-testid="composition-text-color"
             onChange={(e) =>
               patchNode(node.id, { props: { color: e.target.value } }, "Changed composition text color")
+            }
+          />
+        </div>
+      ) : null}
+
+      {level === "typography" && node?.primitive === "text" ? (
+        <div data-testid="composition-panel-typography">
+          <ProfessionalTypographyPanel
+            sampleText={String(node.props.text || "Composition text")}
+            brandFontIds={["inter", "source-serif-4", "playfair"]}
+            value={{
+              customFontFamily: String(node.props.fontFamily || ""),
+              fontSizePx: Number(node.props.fontSize || 18),
+              fontWeight:
+                Number(node.props.fontWeight || 600) >= 700
+                  ? "bold"
+                  : Number(node.props.fontWeight || 600) >= 600
+                    ? "semibold"
+                    : "normal",
+              italic: Boolean(node.props.italic),
+              color: String(node.props.color || "#f8fafc"),
+              align: (String(node.props.align || "center") as
+                | "left"
+                | "center"
+                | "right"),
+            }}
+            onChange={(f) =>
+              patchNode(
+                node.id,
+                {
+                  props: {
+                    fontFamily: f.customFontFamily || node.props.fontFamily,
+                    fontSize: f.fontSizePx ?? node.props.fontSize,
+                    fontWeight: f.fontWeight
+                      ? ({
+                          normal: 400,
+                          medium: 500,
+                          semibold: 600,
+                          bold: 700,
+                          black: 900,
+                        } as const)[f.fontWeight]
+                      : node.props.fontWeight,
+                    italic: f.italic ?? false,
+                    color: f.color ?? node.props.color,
+                    align: f.align ?? node.props.align,
+                  },
+                },
+                "Changed composition typography"
+              )
             }
           />
         </div>
@@ -538,6 +643,24 @@ export function CompositionPanelStack({
               </button>
             ))}
           </div>
+          <Label className="text-xs">
+            Opacity {Math.round(Number(node.props.opacity ?? 1) * 100)}%
+          </Label>
+          <input
+            type="range"
+            min={10}
+            max={100}
+            value={Math.round(Number(node.props.opacity ?? 1) * 100)}
+            data-testid="composition-image-opacity"
+            className="w-full"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { opacity: Number(e.target.value) / 100 } },
+                "Changed image opacity"
+              )
+            }
+          />
         </div>
       ) : null}
 
@@ -654,6 +777,53 @@ export function CompositionPanelStack({
             data-testid="composition-frame-alt"
             onChange={(e) =>
               patchNode(node.id, { props: { alt: e.target.value } }, "Set frame alt text")
+            }
+          />
+          <Label className="text-xs">Border color</Label>
+          <Input
+            type="color"
+            value={String(node.props.borderColor || "#ffffff")}
+            data-testid="composition-frame-border-color"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { borderColor: e.target.value } },
+                "Changed frame border color"
+              )
+            }
+          />
+          <Label className="text-xs">Padding {Number(node.props.padding || 0)}px</Label>
+          <input
+            type="range"
+            min={0}
+            max={32}
+            value={Number(node.props.padding || 0)}
+            data-testid="composition-frame-padding"
+            className="w-full"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { padding: Number(e.target.value) } },
+                "Changed frame padding"
+              )
+            }
+          />
+          <Label className="text-xs">
+            Rotation {Number(node.rotationDeg || 0)}°
+          </Label>
+          <input
+            type="range"
+            min={-45}
+            max={45}
+            value={Number(node.rotationDeg || 0)}
+            data-testid="composition-frame-rotation"
+            className="w-full"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { rotationDeg: Number(e.target.value) },
+                "Rotated frame"
+              )
             }
           />
         </div>
@@ -937,6 +1107,176 @@ export function CompositionPanelStack({
               {label}
             </button>
           ))}
+          <Label className="text-xs">
+            Safe area padding {block.safeAreaPaddingPx ?? 12}px
+          </Label>
+          <input
+            type="range"
+            min={0}
+            max={40}
+            value={block.safeAreaPaddingPx ?? 12}
+            data-testid="composition-safe-area"
+            className="w-full"
+            onChange={(e) =>
+              onChangeBlock(
+                { ...block, safeAreaPaddingPx: Number(e.target.value) },
+                "Changed composition safe area"
+              )
+            }
+          />
+        </div>
+      ) : null}
+
+      {level === "background" ? (
+        <div className="space-y-3" data-testid="composition-panel-background">
+          <Label className="text-xs">Background</Label>
+          <div className="flex flex-wrap gap-1">
+            {(
+              [
+                ["none", "None"],
+                ["solid", "Solid"],
+                ["gradient", "Gradient"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                className={`min-h-9 rounded-md border px-3 text-xs ${
+                  (block.background?.kind || "none") === id
+                    ? "border-white/35 bg-white/10"
+                    : "border-white/10"
+                }`}
+                data-testid={`composition-bg-${id}`}
+                onClick={() =>
+                  onChangeBlock(
+                    {
+                      ...block,
+                      background: {
+                        kind: id,
+                        value:
+                          id === "solid"
+                            ? block.background?.value || "#0b0f19"
+                            : id === "gradient"
+                              ? block.background?.value ||
+                                "linear-gradient(180deg,#0b0f19,#1a2332)"
+                              : undefined,
+                      },
+                    },
+                    `Set composition background to ${id}`
+                  )
+                }
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          {block.background?.kind === "solid" ? (
+            <Input
+              type="color"
+              value={block.background.value || "#0b0f19"}
+              data-testid="composition-bg-color"
+              onChange={(e) =>
+                onChangeBlock(
+                  {
+                    ...block,
+                    background: { kind: "solid", value: e.target.value },
+                  },
+                  "Changed composition background color"
+                )
+              }
+            />
+          ) : null}
+          {block.background?.kind === "gradient" ? (
+            <Input
+              value={
+                block.background.value ||
+                "linear-gradient(180deg,#0b0f19,#1a2332)"
+              }
+              data-testid="composition-bg-gradient"
+              onChange={(e) =>
+                onChangeBlock(
+                  {
+                    ...block,
+                    background: { kind: "gradient", value: e.target.value },
+                  },
+                  "Changed composition gradient"
+                )
+              }
+            />
+          ) : null}
+        </div>
+      ) : null}
+
+      {level === "responsive" && node ? (
+        <div className="space-y-3" data-testid="composition-panel-responsive">
+          <Label className="text-xs">Anchor</Label>
+          <div className="grid grid-cols-3 gap-1">
+            {(
+              [
+                "top-left",
+                "top",
+                "top-right",
+                "left",
+                "center",
+                "right",
+                "bottom-left",
+                "bottom",
+                "bottom-right",
+              ] as CreativeCompositionAnchor[]
+            ).map((a) => (
+              <button
+                key={a}
+                type="button"
+                className={`min-h-9 rounded-md border px-1 text-[10px] ${
+                  (node.anchor || "top-left") === a
+                    ? "border-white/35 bg-white/10"
+                    : "border-white/10"
+                }`}
+                data-testid={`composition-anchor-${a}`}
+                onClick={() =>
+                  patchNode(node.id, { anchor: a }, `Set anchor ${a}`)
+                }
+              >
+                {a}
+              </button>
+            ))}
+          </div>
+          <Label className="text-xs">
+            Width % {Math.round((node.widthPct ?? node.width) * 100)}
+          </Label>
+          <input
+            type="range"
+            min={8}
+            max={100}
+            value={Math.round((node.widthPct ?? node.width) * 100)}
+            data-testid="composition-width-pct"
+            className="w-full"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                {
+                  widthPct: Number(e.target.value) / 100,
+                  width: Number(e.target.value) / 100,
+                },
+                "Changed responsive width"
+              )
+            }
+          />
+          <Label className="text-xs">Min width (px)</Label>
+          <Input
+            type="number"
+            min={0}
+            max={480}
+            value={Number(node.minWidthPx || 0)}
+            data-testid="composition-min-width"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { minWidthPx: Number(e.target.value) || undefined },
+                "Changed min width"
+              )
+            }
+          />
         </div>
       ) : null}
     </NestedPanelShell>

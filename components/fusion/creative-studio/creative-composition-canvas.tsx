@@ -7,8 +7,11 @@ import {
   accessibleReadingOrder,
   deleteNodes,
   duplicateNodes,
+  expandSelectionToGroups,
   frameMaskPath,
+  resolveNodeBox,
   sortCompositionNodes,
+  translateNodes,
   type CreativeCompositionBlock,
   type CreativeCompositionNode,
   type FrameMaskId,
@@ -118,6 +121,7 @@ function NodeVisual({
             clipPath: `url(#${clipId})`,
             WebkitClipPath: `url(#${clipId})`,
             boxShadow: borderW ? `inset 0 0 0 ${borderW}px ${borderColor}` : undefined,
+            padding: num(node.props.padding, 0),
           }}
         >
           {src ? (
@@ -224,6 +228,9 @@ export function CreativeCompositionCanvas({
     startX: number;
     startY: number;
     orig: CreativeCompositionNode;
+    /** Snapshot of all nodes at drag start (for group/multi move). */
+    origNodes: CreativeCompositionNode[];
+    moveIds: string[];
   } | null>(null);
 
   useEffect(() => {
@@ -299,16 +306,9 @@ export function CreativeCompositionCanvas({
       if (e.key === "ArrowDown") dy = step;
       if (dx || dy) {
         e.preventDefault();
-        const set = new Set(selectedNodeIds);
+        const ids = expandSelectionToGroups(block.nodes, selectedNodeIds);
         commitNodes(
-          block.nodes.map((n) => {
-            if (!set.has(n.id) || n.locked) return n;
-            return {
-              ...n,
-              x: Math.min(1 - n.width, Math.max(0, n.x + dx)),
-              y: Math.min(1 - n.height, Math.max(0, n.y + dy)),
-            };
-          }),
+          translateNodes(block.nodes, ids, dx, dy),
           "Nudged composition items"
         );
       }
@@ -327,20 +327,29 @@ export function CreativeCompositionCanvas({
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
     const multi = e.metaKey || e.ctrlKey || e.shiftKey;
+    let nextIds: string[];
     if (multi) {
-      const next = selectedSet.has(node.id)
+      nextIds = selectedSet.has(node.id)
         ? selectedNodeIds.filter((id) => id !== node.id)
         : [...selectedNodeIds, node.id];
-      onSelectNodes?.(next);
     } else if (!selectedSet.has(node.id)) {
-      onSelectNodes?.([node.id]);
+      nextIds = expandSelectionToGroups(block.nodes, [node.id]);
+    } else {
+      nextIds = expandSelectionToGroups(block.nodes, selectedNodeIds);
     }
+    onSelectNodes?.(nextIds);
+    const moveIds =
+      mode === "move"
+        ? expandSelectionToGroups(block.nodes, nextIds)
+        : [node.id];
     setDrag({
       id: node.id,
       mode,
       startX: e.clientX,
       startY: e.clientY,
       orig: { ...node },
+      origNodes: block.nodes.map((n) => ({ ...n, props: { ...n.props } })),
+      moveIds,
     });
   };
 
@@ -349,15 +358,12 @@ export function CreativeCompositionCanvas({
     const rect = surfaceRef.current.getBoundingClientRect();
     const dx = (e.clientX - drag.startX) / rect.width;
     const dy = (e.clientY - drag.startY) / rect.height;
-    const nodes = (draftNodes ?? block.nodes).map((n) => {
+    if (drag.mode === "move") {
+      setDraftNodes(translateNodes(drag.origNodes, drag.moveIds, dx, dy));
+      return;
+    }
+    const nodes = drag.origNodes.map((n) => {
       if (n.id !== drag.id) return n;
-      if (drag.mode === "move") {
-        return {
-          ...n,
-          x: Math.min(1 - n.width, Math.max(0, drag.orig.x + dx)),
-          y: Math.min(1 - n.height, Math.max(0, drag.orig.y + dy)),
-        };
-      }
       return {
         ...n,
         width: Math.min(1 - n.x, Math.max(0.08, drag.orig.width + dx)),
@@ -371,11 +377,16 @@ export function CreativeCompositionCanvas({
     if (!drag) return;
     const nodes = draftNodes ?? block.nodes;
     const mode = drag.mode;
+    const groupMove = mode === "move" && drag.moveIds.length > 1;
     setDrag(null);
     setDraftNodes(null);
     commitNodes(
       nodes,
-      mode === "resize" ? "Resized composition item" : "Moved composition item"
+      mode === "resize"
+        ? "Resized composition item"
+        : groupMove
+          ? "Moved composition group"
+          : "Moved composition item"
     );
   };
 
@@ -466,6 +477,7 @@ export function CreativeCompositionCanvas({
 
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);
+        const box = resolveNodeBox(node);
         return (
           <div
             key={node.id}
@@ -475,11 +487,13 @@ export function CreativeCompositionCanvas({
               selected && editMode && "ring-2 ring-white/70 ring-offset-1 ring-offset-transparent"
             )}
             style={{
-              left: `${node.x * 100}%`,
-              top: `${node.y * 100}%`,
-              width: `${node.width * 100}%`,
-              height: `${node.height * 100}%`,
+              left: `${box.left * 100}%`,
+              top: `${box.top * 100}%`,
+              width: `${box.width * 100}%`,
+              height: `${box.height * 100}%`,
               zIndex: node.zIndex,
+              minWidth: node.minWidthPx,
+              maxWidth: node.maxWidthPx,
               transform: node.rotationDeg
                 ? `rotate(${node.rotationDeg}deg)`
                 : undefined,
@@ -490,6 +504,7 @@ export function CreativeCompositionCanvas({
             data-selected={selected ? "true" : "false"}
             data-locked={node.locked ? "true" : "false"}
             data-group={node.groupId || undefined}
+            data-anchor={node.anchor || "top-left"}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
             role={editMode ? "button" : undefined}
             tabIndex={editMode ? 0 : undefined}

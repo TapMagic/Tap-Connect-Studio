@@ -178,6 +178,11 @@ test.describe("creative studio rescue", () => {
     await page.getByTestId("composition-fallback-stack").click();
     await page.getByTestId("panel-stack-back").click();
 
+    await page.getByTestId("composition-open-background").click();
+    await expect(page.getByTestId("composition-panel-background")).toBeVisible();
+    await page.getByTestId("composition-bg-solid").click();
+    await page.getByTestId("panel-stack-back").click();
+
     await page.getByTestId("composition-add-border").click();
     await expect(page.getByTestId("composition-panel-border")).toBeVisible();
     await page.getByTestId("composition-border-style-dashed").click();
@@ -194,9 +199,16 @@ test.describe("creative studio rescue", () => {
       await frameLayer2.first().click();
       await page.getByTestId("composition-open-frame").click();
       await expect(page.getByTestId("composition-frame-focal-x")).toBeVisible();
+      await expect(page.getByTestId("composition-frame-padding")).toBeVisible();
       await page.getByTestId("composition-open-masks").click();
       await expect(page.getByTestId("composition-mask-polygon")).toBeVisible();
       await expect(page.getByTestId("composition-mask-organic")).toBeVisible();
+      await page.getByTestId("panel-stack-back").click();
+      await page.getByTestId("panel-stack-back").click();
     }
+
+    await page.getByTestId("composition-open-responsive").click();
+    await expect(page.getByTestId("composition-panel-responsive")).toBeVisible();
+    await page.getByTestId("composition-anchor-center").click();
   });
 });
