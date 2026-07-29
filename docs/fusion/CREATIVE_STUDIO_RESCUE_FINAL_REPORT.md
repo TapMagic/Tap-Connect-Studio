@@ -10,9 +10,9 @@
 
 | Tip | SHA |
 |-----|-----|
-| Clean local HEAD | `fa8fd7860b6e9756089d518306e6c8a724f44d2f` |
+| Clean local HEAD | `75ccae3cabd149e0fb9b3bc01d7e3873adee3668` |
 | Remote HEAD before push | `ff8c6c135e1c083fdcd6a7b8750c47c5c79b6fae` |
-| Remote HEAD after push | *pending successful fast-forward push* |
+| Remote HEAD after push | **unchanged** — push blocked: HTTP 403 `Permission denied to TapMagic` |
 
 ## Commit ancestry (clean line — no merge `30c9372`)
 
