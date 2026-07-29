@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import {
   FRAME_MASK_CATALOG,
   accessibleReadingOrder,
+  deleteNodes,
+  duplicateNodes,
   frameMaskPath,
   sortCompositionNodes,
   type CreativeCompositionBlock,
@@ -97,6 +99,7 @@ function NodeVisual({
     const fy = num(node.props.focalY, 0.5) * 100;
     const borderW = num(node.props.borderWidth, 0);
     const borderColor = str(node.props.borderColor, "#ffffff");
+    const mediaScale = num(node.props.mediaScale, 1);
     return (
       <div className="relative h-full w-full">
         <svg className="absolute h-0 w-0" aria-hidden>
@@ -126,6 +129,8 @@ function NodeVisual({
               style={{
                 objectFit: fit as "cover" | "contain",
                 objectPosition: `${fx}% ${fy}%`,
+                transform: mediaScale !== 1 ? `scale(${mediaScale})` : undefined,
+                transformOrigin: `${fx}% ${fy}%`,
               }}
               draggable={false}
             />
@@ -260,6 +265,57 @@ export function CreativeCompositionCanvas({
     },
     [block, onChangeBlock]
   );
+
+  useEffect(() => {
+    if (!editMode) return;
+    function onKey(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.("input, textarea, select, [contenteditable=true]")) {
+        return;
+      }
+      if (!selectedNodeIds.length) return;
+      if (e.key === "Delete" || e.key === "Backspace") {
+        e.preventDefault();
+        commitNodes(
+          deleteNodes(block.nodes, selectedNodeIds),
+          "Deleted composition items"
+        );
+        onSelectNodes?.([]);
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
+        e.preventDefault();
+        const { nodes, newIds } = duplicateNodes(block.nodes, selectedNodeIds);
+        commitNodes(nodes, "Duplicated composition items");
+        if (newIds.length) onSelectNodes?.(newIds);
+      }
+      // Arrow nudge — responsive relative units
+      const step = e.shiftKey ? 0.02 : 0.005;
+      let dx = 0;
+      let dy = 0;
+      if (e.key === "ArrowLeft") dx = -step;
+      if (e.key === "ArrowRight") dx = step;
+      if (e.key === "ArrowUp") dy = -step;
+      if (e.key === "ArrowDown") dy = step;
+      if (dx || dy) {
+        e.preventDefault();
+        const set = new Set(selectedNodeIds);
+        commitNodes(
+          block.nodes.map((n) => {
+            if (!set.has(n.id) || n.locked) return n;
+            return {
+              ...n,
+              x: Math.min(1 - n.width, Math.max(0, n.x + dx)),
+              y: Math.min(1 - n.height, Math.max(0, n.y + dy)),
+            };
+          }),
+          "Nudged composition items"
+        );
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [editMode, selectedNodeIds, block.nodes, commitNodes, onSelectNodes]);
 
   const onPointerDownNode = (
     e: React.PointerEvent,

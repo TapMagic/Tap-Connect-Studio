@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,9 @@ import {
   bringForward,
   bringToFront,
   createCompositionNode,
+  deleteNodes,
   distributeNodes,
+  duplicateNodes,
   groupNodes,
   sendBackward,
   sendToBack,
@@ -49,12 +51,25 @@ export type CompositionPanelStackProps = {
   onClose?: () => void;
 };
 
+const MEMORY_KEY = "tc.composition.panel.level";
+
 function primaryNode(
   block: CreativeCompositionBlock,
   ids: string[]
 ): CreativeCompositionNode | null {
   if (!ids.length) return null;
   return block.nodes.find((n) => n.id === ids[0]) || null;
+}
+
+function readRememberedLevel(blockId: string): Level {
+  if (typeof window === "undefined") return "root";
+  try {
+    const raw = sessionStorage.getItem(`${MEMORY_KEY}.${blockId}`);
+    if (!raw) return "root";
+    return raw as Level;
+  } catch {
+    return "root";
+  }
 }
 
 export function CompositionPanelStack({
@@ -64,9 +79,17 @@ export function CompositionPanelStack({
   onChangeBlock,
   onClose,
 }: CompositionPanelStackProps) {
-  const [level, setLevel] = useState<Level>("root");
+  const [level, setLevel] = useState<Level>(() => readRememberedLevel(block.id));
   const node = primaryNode(block, selectedNodeIds);
   const multi = selectedNodeIds.length > 1;
+
+  useEffect(() => {
+    try {
+      sessionStorage.setItem(`${MEMORY_KEY}.${block.id}`, level);
+    } catch {
+      /* ignore */
+    }
+  }, [block.id, level]);
 
   const crumbs = useMemo(() => {
     const base = ["Composition"];
@@ -284,6 +307,43 @@ export function CompositionPanelStack({
                     )
                   }
                 />
+              </div>
+            ) : null}
+            {multi || node ? (
+              <div className="flex flex-wrap gap-1 border-t border-white/10 pt-2" data-testid="composition-hub-actions">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-9"
+                  disabled={!selectedNodeIds.length}
+                  data-testid="composition-duplicate"
+                  onClick={() => {
+                    const { nodes, newIds } = duplicateNodes(
+                      block.nodes,
+                      selectedNodeIds
+                    );
+                    patchNodes(nodes, "Duplicated composition items");
+                    if (newIds.length) onSelectNodes(newIds);
+                  }}
+                >
+                  Duplicate
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-9"
+                  disabled={!selectedNodeIds.length}
+                  data-testid="composition-delete"
+                  onClick={() => {
+                    patchNodes(
+                      deleteNodes(block.nodes, selectedNodeIds),
+                      "Deleted composition items"
+                    );
+                    onSelectNodes([]);
+                  }}
+                >
+                  Delete
+                </Button>
               </div>
             ) : null}
             {multi ? (
@@ -519,6 +579,83 @@ export function CompositionPanelStack({
               </button>
             ))}
           </div>
+          <Label className="text-xs">
+            Focal X {Math.round(Number(node.props.focalX ?? 0.5) * 100)}%
+          </Label>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(Number(node.props.focalX ?? 0.5) * 100)}
+            data-testid="composition-frame-focal-x"
+            className="w-full"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { focalX: Number(e.target.value) / 100 } },
+                "Changed frame focal point"
+              )
+            }
+          />
+          <Label className="text-xs">
+            Focal Y {Math.round(Number(node.props.focalY ?? 0.5) * 100)}%
+          </Label>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            value={Math.round(Number(node.props.focalY ?? 0.5) * 100)}
+            data-testid="composition-frame-focal-y"
+            className="w-full"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { focalY: Number(e.target.value) / 100 } },
+                "Changed frame focal point"
+              )
+            }
+          />
+          <Label className="text-xs">
+            Media scale {Number(node.props.mediaScale ?? 1).toFixed(2)}×
+          </Label>
+          <input
+            type="range"
+            min={50}
+            max={200}
+            value={Math.round(Number(node.props.mediaScale ?? 1) * 100)}
+            data-testid="composition-frame-scale"
+            className="w-full"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { mediaScale: Number(e.target.value) / 100 } },
+                "Changed frame media scale"
+              )
+            }
+          />
+          <Label className="text-xs">Frame border width</Label>
+          <Input
+            type="number"
+            min={0}
+            max={12}
+            value={Number(node.props.borderWidth || 0)}
+            data-testid="composition-frame-border-width"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { borderWidth: Number(e.target.value) || 0 } },
+                "Changed frame border"
+              )
+            }
+          />
+          <Label className="text-xs">Alt text</Label>
+          <Input
+            value={String(node.props.alt || "")}
+            data-testid="composition-frame-alt"
+            onChange={(e) =>
+              patchNode(node.id, { props: { alt: e.target.value } }, "Set frame alt text")
+            }
+          />
         </div>
       ) : null}
 

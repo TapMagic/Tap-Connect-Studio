@@ -20,6 +20,8 @@ import {
 describe("creative composition operations", () => {
   it("includes shirt mask and starter layering", () => {
     assert.ok(FRAME_MASK_CATALOG.some((m) => m.id === "shirt"));
+    assert.ok(FRAME_MASK_CATALOG.some((m) => m.id === "polygon"));
+    assert.ok(FRAME_MASK_CATALOG.some((m) => m.id === "organic"));
     assert.ok(frameMaskPath("shirt").includes("M35"));
     const starter = createStarterCreativeComposition("c1");
     assert.equal(starter.nodes.length, 3);
@@ -82,5 +84,25 @@ describe("creative composition operations", () => {
     ];
     const order = accessibleReadingOrder(nodes).map((n) => n.id);
     assert.deepEqual(order, ["top", "bottom"]);
+  });
+
+  it("duplicates and deletes selected nodes", async () => {
+    const { duplicateNodes, deleteNodes } = await import(
+      "@/lib/fusion/creative-studio/composition"
+    );
+    const nodes = [
+      createCompositionNode("text", { id: "t1", zIndex: 1 }),
+      createCompositionNode("shape", { id: "s1", zIndex: 2 }),
+    ];
+    const dup = duplicateNodes(nodes, ["t1"]);
+    assert.equal(dup.nodes.length, 3);
+    assert.equal(dup.newIds.length, 1);
+    assert.ok(dup.nodes.some((n) => n.id === dup.newIds[0]));
+    const deleted = deleteNodes(dup.nodes, ["s1"]);
+    assert.equal(deleted.length, 2);
+    assert.equal(
+      deleted.find((n) => n.id === "s1"),
+      undefined
+    );
   });
 });

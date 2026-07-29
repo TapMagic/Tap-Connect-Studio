@@ -40,6 +40,8 @@ export type FrameMaskId =
   | "ticket"
   | "shield"
   | "star"
+  | "polygon"
+  | "organic"
   | "shirt";
 
 export const FRAME_MASK_CATALOG: {
@@ -92,6 +94,16 @@ export const FRAME_MASK_CATALOG: {
     id: "star",
     label: "Star",
     path: "M50 4 L61 38 L96 38 L68 58 L79 92 L50 72 L21 92 L32 58 L4 38 L39 38 Z",
+  },
+  {
+    id: "polygon",
+    label: "Polygon",
+    path: "M50 4 L90 28 L90 72 L50 96 L10 72 L10 28 Z",
+  },
+  {
+    id: "organic",
+    label: "Organic",
+    path: "M28 18 C42 4 62 8 74 22 C92 28 96 48 86 64 C94 78 78 94 58 90 C42 98 22 88 16 70 C4 58 8 34 28 18 Z",
   },
   {
     id: "shirt",
@@ -593,4 +605,39 @@ export function updateCompositionNodes(
   nodes: CreativeCompositionNode[]
 ): CreativeCompositionBlock {
   return { ...block, nodes };
+}
+
+export function duplicateNodes(
+  nodes: CreativeCompositionNode[],
+  ids: string[]
+): { nodes: CreativeCompositionNode[]; newIds: string[] } {
+  const set = new Set(ids);
+  const maxZ = nodes.reduce((m, n) => Math.max(m, n.zIndex), 0);
+  const newIds: string[] = [];
+  const clones: CreativeCompositionNode[] = [];
+  let z = maxZ;
+  for (const n of nodes) {
+    if (!set.has(n.id) || n.locked) continue;
+    z += 1;
+    const id = `node-${nanoid(6)}`;
+    newIds.push(id);
+    clones.push({
+      ...n,
+      id,
+      x: Math.min(0.92, n.x + 0.04),
+      y: Math.min(0.92, n.y + 0.04),
+      zIndex: z,
+      locked: false,
+      props: { ...n.props },
+    });
+  }
+  return { nodes: [...nodes, ...clones], newIds };
+}
+
+export function deleteNodes(
+  nodes: CreativeCompositionNode[],
+  ids: string[]
+): CreativeCompositionNode[] {
+  const set = new Set(ids);
+  return nodes.filter((n) => !set.has(n.id) || n.locked);
 }

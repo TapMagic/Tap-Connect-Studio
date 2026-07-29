@@ -183,5 +183,20 @@ test.describe("creative studio rescue", () => {
     await page.getByTestId("composition-border-style-dashed").click();
     await page.getByTestId("panel-stack-back").click();
     await expect(page.getByTestId("composition-hub-border")).toBeVisible();
+
+    await page.getByTestId("composition-duplicate").click();
+    await expect(page.getByTestId("composition-hub-border")).toBeVisible();
+
+    const frameLayer2 = page.locator('[data-testid^="composition-layer-"]').filter({
+      hasText: "frame",
+    });
+    if (await frameLayer2.count()) {
+      await frameLayer2.first().click();
+      await page.getByTestId("composition-open-frame").click();
+      await expect(page.getByTestId("composition-frame-focal-x")).toBeVisible();
+      await page.getByTestId("composition-open-masks").click();
+      await expect(page.getByTestId("composition-mask-polygon")).toBeVisible();
+      await expect(page.getByTestId("composition-mask-organic")).toBeVisible();
+    }
   });
 });

@@ -4,13 +4,14 @@
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| P0 | Fast-forward push rescue branch | Critical | **Closed** — remote HEAD `584479a` |
-| P1 | Screenshot/video pack | High | **Closed** — composition slides + Live Device QR shots + walkthrough webm |
+| P0 | Fast-forward push rescue branch | Critical | **Closed** — remote advances with normal FF pushes |
+| P1 | Screenshot/video pack | High | **Closed** — composition slides + Live Device QR + walkthrough webm |
 | P2 | Physical-phone QR scan | Critical | **Owner action** — Studio QR decodes to `http://192.168.2.24:3010/preview/card/…` (HTTP 200 draft) |
-| P5 | Related e2e | Critical | **Closed** — creative-studio-rescue 6/6 |
-| P13 | Interactive Composition Block | High | **Closed** |
-| P14 | Frame / border / group inspectors | Medium | **Closed** — hubs + sliding studios |
+| P5 | Related e2e | Critical | **Closed** — creative-studio-rescue + card/J1 suites green this tip |
+| P13 | Interactive Composition Block | High | **Closed** — select/drag/resize/align/layer/group/lock/duplicate/delete/undo |
+| P14 | Frame / border / group inspectors | Medium | **Closed** — hubs + sliding studios + focal/scale/masks |
 | P15 | Draft update / expire / revoke | High | **Closed** |
+| P16 | Extensible mask catalog | Medium | **Closed** — rectangle→shirt plus polygon + organic registered paths |
 
 ## Owner-ready gate
 
