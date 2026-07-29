@@ -67,6 +67,15 @@ export const BLOCK_LIBRARY: BlockLibraryEntry[] = [
   { id: "card.text", label: "Text", family: "content", tapCardType: "text", addable: true, contracts: ["text"], description: "Text section" },
   { id: "card.spacer", label: "Spacer", family: "layout", tapCardType: "spacer", addable: true, contracts: ["spacer"], description: "Card spacer" },
   { id: "card.footer_cta", label: "Footer CTA", family: "actions", tapCardType: "footer_cta", addable: true, contracts: ["action"], description: "Footer call to action" },
+  {
+    id: "card.creative_composition",
+    label: "Creative Composition",
+    family: "advanced",
+    addable: false,
+    contracts: ["layout", "media", "text", "action"],
+    description:
+      "Bounded freeform composition block for framed media, layered text, and offer artwork — shared Card/Offer/Email primitive (UI progressive).",
+  },
 
   // Expanded relationship / pillar blocks (wired, feature-gated)
   { id: "rel.tapsave", label: "TapSave / Keep Card", family: "relationship", addable: true, contracts: ["action"], description: "Save relationship CTA" },

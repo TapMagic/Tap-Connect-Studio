@@ -208,7 +208,6 @@ export function ProfessionalTypographyPanel({
               [
                 ["typography", "Typography"],
                 ["font", "Font"],
-                ["sample", "Font sample window"],
               ] as const
             ).map(([next, label]) => (
               <button
@@ -216,14 +215,16 @@ export function ProfessionalTypographyPanel({
                 type="button"
                 className="flex min-h-11 w-full items-center justify-between rounded-md border border-white/10 px-3 text-left text-sm text-white/85 hover:bg-white/5"
                 data-testid={`text-panel-open-${next}`}
-                onClick={() =>
-                  setLevel(next === "font" || next === "sample" ? next : "typography")
-                }
+                onClick={() => setLevel(next === "font" ? "font" : "typography")}
               >
                 {label}
                 <span className="text-white/35">›</span>
               </button>
             ))}
+            <p className="pt-1 text-[11px] text-white/40">
+              Open Font, then the specimen action on a row for alphabet samples. Selecting a
+              font row applies it.
+            </p>
             <label className="block space-y-1 pt-2">
               <span className="text-[11px] uppercase tracking-wide text-white/45">
                 Size

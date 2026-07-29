@@ -42,14 +42,11 @@ type ButtonLevel =
   | "advanced";
 
 const ROOT_ITEMS: { id: ButtonLevel; label: string; hint?: string }[] = [
-  { id: "content", label: "Content", hint: "Label and accessibility" },
-  { id: "action", label: "Action", hint: "Destination and type" },
+  { id: "content", label: "Content & Action", hint: "Label and destination" },
   { id: "typography", label: "Typography" },
-  { id: "appearance", label: "Appearance" },
-  { id: "shape", label: "Shape" },
-  { id: "spacing", label: "Size & Spacing" },
+  { id: "appearance", label: "Appearance", hint: "Fill, shape, border, glow" },
+  { id: "spacing", label: "Layout & Spacing" },
   { id: "icon", label: "Icon" },
-  { id: "visibility", label: "Visibility" },
   { id: "behavior", label: "Behavior" },
   { id: "test", label: "Test Action" },
   { id: "advanced", label: "Advanced" },
@@ -127,7 +124,69 @@ export function ButtonPanelStack({
       testId="button-panel-stack"
     >
       {level === "root" ? (
-        <div className="space-y-2" data-testid="button-panel-root">
+        <div className="space-y-3" data-testid="button-panel-root">
+          <div
+            className="rounded-md border border-white/10 bg-white/[0.03] p-3 space-y-2"
+            data-testid="button-panel-hub"
+          >
+            <p className="text-[10px] uppercase tracking-wide text-white/40">
+              Common controls
+            </p>
+            <p className="text-sm text-white/90" data-testid="button-hub-label">
+              {selected.label || "Button"}
+            </p>
+            <p className="truncate text-[11px] text-white/45" data-testid="button-hub-destination">
+              {selected.actionKind || "action"} · {destination || "No destination"}
+            </p>
+            <button
+              type="button"
+              className="flex min-h-10 w-full items-center justify-between rounded-md border border-white/10 px-3 text-left text-xs"
+              data-testid="button-hub-open-typography"
+              onClick={() => setLevel("typography")}
+            >
+              <span>
+                Font ·{" "}
+                <span style={{ fontFamily: selected.format?.fontFamily || "inherit" }}>
+                  {selected.format?.fontFamily || "Brand default"}
+                </span>
+              </span>
+              <span className="text-white/35">›</span>
+            </button>
+            <div className="flex gap-2">
+              <label className="flex-1 space-y-1">
+                <span className="text-[10px] text-white/40">Fill</span>
+                <input
+                  type="color"
+                  className="h-9 w-full"
+                  value={selected.backgroundColor || config.pillColor || "#222222"}
+                  data-testid="button-hub-fill"
+                  onChange={(e) =>
+                    onPatch({ backgroundColor: e.target.value }, "Changed button fill")
+                  }
+                />
+              </label>
+              <label className="flex-1 space-y-1">
+                <span className="text-[10px] text-white/40">Text</span>
+                <input
+                  type="color"
+                  className="h-9 w-full"
+                  value={selected.textColor || config.pillTextColor || "#ffffff"}
+                  data-testid="button-hub-text-color"
+                  onChange={(e) =>
+                    onPatch({ textColor: e.target.value }, "Changed button text color")
+                  }
+                />
+              </label>
+            </div>
+            <Button
+              type="button"
+              className="min-h-10 w-full bg-primary text-primary-foreground"
+              data-testid="button-hub-test-action"
+              onClick={() => onTestAction?.()}
+            >
+              Test Action
+            </Button>
+          </div>
           <p className="text-[11px] text-white/45">
             Editing {selected.label || selected.actionKind || "button"} · Edit selects —
             use Test Action to try the destination.
@@ -138,9 +197,18 @@ export function ButtonPanelStack({
               label={item.label}
               hint={item.hint}
               testId={`button-panel-open-${item.id}`}
-              onClick={() => setLevel(item.id)}
+              onClick={() => setLevel(item.id === "content" ? "content" : item.id)}
             />
           ))}
+          <button
+            type="button"
+            className="flex min-h-11 w-full items-center justify-between rounded-md border border-white/10 px-3 text-left text-sm text-white/85 hover:bg-white/5"
+            data-testid="button-panel-open-action"
+            onClick={() => setLevel("action")}
+          >
+            Action destination
+            <span className="text-white/35">›</span>
+          </button>
           <div className="border-t border-white/10 pt-3">
             <Label className="text-[10px] text-white/45">All actions layout</Label>
             <div className="mt-1 flex flex-wrap gap-1">
@@ -305,6 +373,32 @@ export function ButtonPanelStack({
               }
             />
           </label>
+          <div className="space-y-2">
+            <p className="text-[11px] text-white/45">Shape</p>
+            <div className="grid grid-cols-2 gap-2">
+              {TAP_CARD_SHAPE_OPTIONS.map((o) => (
+                <button
+                  key={o.id}
+                  type="button"
+                  className={cn(
+                    "min-h-11 rounded-md border px-2 text-xs",
+                    (selected.shape || config.defaultShape) === o.id
+                      ? "border-white/40 bg-white/10"
+                      : "border-white/10"
+                  )}
+                  data-testid={`button-shape-${o.id}`}
+                  onClick={() =>
+                    onPatch(
+                      { shape: o.id as TapCardButtonShape },
+                      "Changed button shape"
+                    )
+                  }
+                >
+                  {o.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <label className="block space-y-1">
             <span className="text-[11px] text-white/45">
               Opacity {selected.opacity ?? 100}%
@@ -338,29 +432,16 @@ export function ButtonPanelStack({
 
       {level === "shape" ? (
         <div className="space-y-3" data-testid="button-panel-shape">
-          <div className="grid grid-cols-2 gap-2">
-            {TAP_CARD_SHAPE_OPTIONS.map((o) => (
-              <button
-                key={o.id}
-                type="button"
-                className={cn(
-                  "min-h-11 rounded-md border px-2 text-xs",
-                  (selected.shape || config.defaultShape) === o.id
-                    ? "border-white/40 bg-white/10"
-                    : "border-white/10"
-                )}
-                data-testid={`button-shape-${o.id}`}
-                onClick={() =>
-                  onPatch(
-                    { shape: o.id as TapCardButtonShape },
-                    "Changed button shape"
-                  )
-                }
-              >
-                {o.label}
-              </button>
-            ))}
-          </div>
+          <p className="text-[11px] text-white/45">
+            Shape lives in Appearance. Use Back, then Appearance.
+          </p>
+          <button
+            type="button"
+            className="min-h-10 text-xs text-white/70"
+            onClick={() => setLevel("appearance")}
+          >
+            Open Appearance
+          </button>
         </div>
       ) : null}
 

@@ -145,7 +145,7 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
                 className={cn(
                   "flex min-h-11 w-full items-center rounded-md px-3 text-left text-xs",
                   selected?.id === section.id
-                    ? "bg-primary/20 text-primary"
+                    ? "border border-white/25 bg-white/10 text-white"
                     : "text-white/75 hover:bg-white/5"
                 )}
                 onClick={() => setSelectedId(section.id)}
@@ -374,7 +374,7 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
                 className={cn(
                   "inline-flex min-h-11 items-center gap-1.5 rounded-md px-3 text-xs font-medium",
                   config.actionsLayout === opt.id
-                    ? "bg-primary/20 text-primary"
+                    ? "border border-white/30 bg-white/10 text-white"
                     : "hover:bg-muted"
                 )}
                 onClick={() =>

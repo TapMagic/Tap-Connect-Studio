@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { Copy, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,9 +53,13 @@ export function LiveDeviceQrPanel({
   const [sessionRevision, setSessionRevision] = useState(revision);
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [status, setStatus] = useState<"idle" | "creating" | "ready" | "error">(
+    "idle"
+  );
   const [error, setError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
-  const [updatedAt] = useState(() => new Date().toISOString());
+  const [updatedAt, setUpdatedAt] = useState(() => new Date().toISOString());
+  const autoStarted = useRef(false);
   const stale = revision > sessionRevision;
 
   const payload = useMemo(
@@ -75,21 +79,21 @@ export function LiveDeviceQrPanel({
   const createOrUpdate = useCallback(
     async (mode: "create" | "update") => {
       setBusy(true);
+      setStatus("creating");
       setError(null);
       try {
         const res = await fetch("/api/preview/card/session", {
           method: mode === "update" && token ? "PATCH" : "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(
-            mode === "update" && token
-              ? { token, ...payload }
-              : payload
+            mode === "update" && token ? { token, ...payload } : payload
           ),
         });
         const data = (await res.json()) as SessionResponse & { token?: string };
         if (!res.ok || !data.ok) {
           setError(data.error || "Preview session unavailable");
           setGuidance(data.recovery || data.guidance || null);
+          setStatus("error");
           return;
         }
         if (data.token) setToken(data.token);
@@ -97,6 +101,7 @@ export function LiveDeviceQrPanel({
         setReachable(Boolean(data.reachableForPhone));
         setGuidance(data.guidance || null);
         setSessionRevision(data.revision ?? revision);
+        setUpdatedAt(new Date().toISOString());
         if (data.expiresAt) setExpiresAt(data.expiresAt);
         if (data.url && data.reachableForPhone) {
           const png = await QRCode.toDataURL(data.url, {
@@ -105,12 +110,17 @@ export function LiveDeviceQrPanel({
             errorCorrectionLevel: "M",
           });
           setQrDataUrl(png);
+          setStatus("ready");
         } else {
           setQrDataUrl(null);
+          setStatus(data.url ? "ready" : "error");
         }
       } catch {
         setError("Could not create phone preview");
-        setGuidance("Try again, or copy the link after fixing NEXT_PUBLIC_PREVIEW_BASE_URL.");
+        setGuidance(
+          "Try again, or copy the link after fixing NEXT_PUBLIC_PREVIEW_BASE_URL."
+        );
+        setStatus("error");
       } finally {
         setBusy(false);
       }
@@ -118,36 +128,59 @@ export function LiveDeviceQrPanel({
     [payload, revision, token]
   );
 
+  // Entering Live Device auto-creates or refreshes the phone preview QR.
+  useEffect(() => {
+    if (autoStarted.current) return;
+    autoStarted.current = true;
+    void createOrUpdate("create");
+  }, [createOrUpdate]);
+
   return (
     <div
       className={cn("space-y-3 p-3", className)}
       data-testid="live-device-qr-panel"
+      data-preview-status={status}
     >
       <div className="flex items-center gap-2">
         <Smartphone className="h-4 w-4 text-white/70" aria-hidden />
         <div>
-          <p className="text-sm font-medium text-white">{STUDIO_WORDING.openLiveDevice}</p>
+          <p className="text-sm font-medium text-white">
+            {STUDIO_WORDING.openLiveDevice}
+          </p>
           <p className="text-[11px] text-white/45" data-testid="preview-qr-card-name">
-            {cardName} · {STUDIO_WORDING.draftPreview} · {STUDIO_WORDING.previewOnlyNotPublished}
+            {cardName} · {STUDIO_WORDING.draftPreview} ·{" "}
+            {STUDIO_WORDING.previewOnlyNotPublished}
           </p>
           <p className="text-[10px] text-white/35" data-testid="preview-qr-meta">
             Updated {new Date(updatedAt).toLocaleString()}
             {expiresAt ? ` · Expires ${new Date(expiresAt).toLocaleString()}` : ""}
             {` · rev ${sessionRevision}`}
           </p>
+          <p
+            className="text-[10px] text-white/40"
+            data-testid="preview-status-label"
+            data-status={status}
+          >
+            {status === "creating"
+              ? STUDIO_WORDING.creatingPhonePreview
+              : status === "ready"
+                ? STUDIO_WORDING.phonePreviewReady
+                : status === "error"
+                  ? "Preview unavailable"
+                  : "Preparing…"}
+          </p>
+          {status === "ready" ? (
+            <span className="sr-only" data-testid="live-device-status-ready">
+              Phone preview ready
+            </span>
+          ) : null}
+          {status === "error" ? (
+            <span className="sr-only" data-testid="live-device-status-error">
+              Preview unavailable
+            </span>
+          ) : null}
         </div>
       </div>
-
-      {!previewUrl && !busy && !error ? (
-        <Button
-          type="button"
-          className="min-h-11 w-full bg-primary text-primary-foreground"
-          data-testid="preview-generate-qr"
-          onClick={() => void createOrUpdate("create")}
-        >
-          Generate phone preview QR
-        </Button>
-      ) : null}
 
       {stale ? (
         <p
@@ -171,6 +204,7 @@ export function LiveDeviceQrPanel({
             type="button"
             variant="outline"
             className="mt-2 min-h-10"
+            data-testid="preview-generate-qr"
             onClick={() => void createOrUpdate("create")}
           >
             Try again
@@ -203,7 +237,9 @@ export function LiveDeviceQrPanel({
           className="flex min-h-[160px] items-center justify-center rounded-lg border border-dashed border-white/15 text-xs text-white/45"
           data-testid="preview-qr-unavailable"
         >
-          {busy ? "Generating preview…" : "QR unavailable until a reachable preview URL is configured"}
+          {busy
+            ? STUDIO_WORDING.creatingPhonePreview
+            : "QR unavailable until a reachable preview URL is configured"}
         </div>
       )}
 
@@ -238,32 +274,39 @@ export function LiveDeviceQrPanel({
               variant="outline"
               className="min-h-10"
               data-testid="preview-revoke"
-              disabled={!token || busy}
-              onClick={() => {
+              disabled={busy || !token}
+              onClick={async () => {
                 if (!token) return;
-                void fetch("/api/preview/card/revoke", {
-                  method: "POST",
-                  headers: { "Content-Type": "application/json" },
-                  body: JSON.stringify({ token }),
-                }).then(() => {
-                  setQrDataUrl(null);
+                setBusy(true);
+                try {
+                  await fetch("/api/preview/card/revoke", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ token }),
+                  });
                   setPreviewUrl(null);
+                  setQrDataUrl(null);
                   setToken(null);
-                  setError("Preview revoked — generate a new QR to continue.");
-                });
+                  setStatus("idle");
+                  autoStarted.current = false;
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
-              Revoke preview
+              Revoke
             </Button>
-            <a
-              href={previewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex min-h-10 items-center rounded-md border border-white/15 px-3 text-xs text-white/80"
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10"
               data-testid="preview-open-tab"
+              onClick={() =>
+                window.open(previewUrl, "_blank", "noopener,noreferrer")
+              }
             >
-              Open in new tab
-            </a>
+              Open preview
+            </Button>
           </div>
         </div>
       ) : null}

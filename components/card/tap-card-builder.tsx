@@ -947,7 +947,7 @@ export function TapCardBuilder({
             className={cn(
               "flex min-h-9 w-full items-center rounded-md px-2 text-left text-[11px]",
               selectedId === section.id
-                ? "bg-primary/20 text-primary"
+                ? "border border-white/25 bg-white/10 text-white"
                 : "text-white/70 hover:bg-white/5"
             )}
             onClick={() => {

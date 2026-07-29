@@ -2,6 +2,7 @@ export * from "./modes";
 export * from "./panel-stack";
 export * from "./selection";
 export * from "./wording";
+export * from "./composition";
 export * from "./fonts/catalog";
 export * from "./fonts/points";
 export * from "./fonts/load";

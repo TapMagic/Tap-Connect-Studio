@@ -103,7 +103,7 @@ export function FreeformCanvasPanel({
             className={cn(
               "absolute rounded-lg border px-2 py-1.5 text-left text-[11px] text-white transition",
               selectedId === node.id
-                ? "border-primary bg-primary/20 shadow-[0_0_12px_rgba(114,255,138,0.35)]"
+                ? "border-white/40 bg-white/10 shadow-[0_0_0_1px_rgba(255,255,255,0.2)]"
                 : "border-white/20 bg-white/10 hover:border-white/40"
             )}
             style={{

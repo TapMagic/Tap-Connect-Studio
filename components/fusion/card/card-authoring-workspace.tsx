@@ -389,7 +389,7 @@ export function CardAuthoringWorkspace({
             className={cn(
               "flex min-h-11 w-full items-center rounded-md px-3 text-left text-xs",
               activeToolId === tool.id && shell.drawerOpen
-                ? "bg-primary/20 text-primary"
+                ? "border border-white/25 bg-white/10 text-white"
                 : "text-white/70 hover:bg-white/5"
             )}
           >
@@ -415,7 +415,7 @@ export function CardAuthoringWorkspace({
           className={cn(
             "min-h-11 shrink-0 rounded-md px-3 text-xs",
             activeToolId === tool.id && shell.drawerOpen
-              ? "bg-primary/20 text-primary"
+              ? "border border-white/30 bg-white/10 text-white"
               : "border border-white/10 text-white/70"
           )}
         >

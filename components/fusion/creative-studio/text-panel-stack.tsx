@@ -14,6 +14,7 @@ type TextLevel =
   | "root"
   | "content"
   | "typography"
+  | "appearance"
   | "color"
   | "alignment"
   | "width"
@@ -23,17 +24,21 @@ type TextLevel =
   | "a11y"
   | "advanced";
 
-const ROOT_ITEMS: { id: TextLevel; label: string }[] = [
+const ROOT_ITEMS: { id: TextLevel; label: string; hint?: string }[] = [
   { id: "content", label: "Content" },
-  { id: "typography", label: "Typography" },
+  { id: "typography", label: "Typography & Formatting" },
+  { id: "appearance", label: "Appearance", hint: "Color, alignment, width, effects" },
+  { id: "responsive", label: "Responsive" },
+  { id: "a11y", label: "Accessibility" },
+  { id: "advanced", label: "Advanced" },
+];
+
+const APPEARANCE_ITEMS: { id: TextLevel; label: string }[] = [
   { id: "color", label: "Color" },
   { id: "alignment", label: "Alignment" },
   { id: "width", label: "Width" },
   { id: "spacing", label: "Spacing" },
   { id: "effects", label: "Effects" },
-  { id: "responsive", label: "Responsive" },
-  { id: "a11y", label: "Accessibility" },
-  { id: "advanced", label: "Advanced" },
 ];
 
 export type TextPanelStackProps = {
@@ -64,6 +69,13 @@ export function TextPanelStack({
 
   const crumbs = useMemo(() => {
     if (level === "root") return ["Text"];
+    if (APPEARANCE_ITEMS.some((a) => a.id === level)) {
+      return [
+        "Text",
+        "Appearance",
+        APPEARANCE_ITEMS.find((a) => a.id === level)?.label || level,
+      ];
+    }
     return ["Text", ROOT_ITEMS.find((r) => r.id === level)?.label || level];
   }, [level]);
 
@@ -106,13 +118,101 @@ export function TextPanelStack({
           : ROOT_ITEMS.find((r) => r.id === level)?.label || "Text"
       }
       breadcrumbs={crumbs}
-      onBack={level === "root" ? undefined : () => setLevel("root")}
+      onBack={
+        level === "root"
+          ? undefined
+          : () =>
+              setLevel(
+                APPEARANCE_ITEMS.some((a) => a.id === level) && level !== "appearance"
+                  ? "appearance"
+                  : "root"
+              )
+      }
       onClose={onClose}
       testId="text-panel-stack"
     >
       {level === "root" ? (
-        <div className="space-y-2" data-testid="text-panel-root">
+        <div className="space-y-3" data-testid="text-panel-root">
+          <div
+            className="rounded-md border border-white/10 bg-white/[0.03] p-3 space-y-2"
+            data-testid="text-panel-hub"
+          >
+            <p className="text-[10px] uppercase tracking-wide text-white/40">
+              Common controls
+            </p>
+            <button
+              type="button"
+              className="flex min-h-10 w-full items-center justify-between rounded-md border border-white/10 px-3 text-left text-xs text-white/85"
+              data-testid="text-hub-open-font"
+              onClick={() => setLevel("typography")}
+            >
+              <span>
+                Font ·{" "}
+                <span style={{ fontFamily: format.fontFamily || "inherit" }}>
+                  {format.fontFamily || "Brand default"}
+                </span>
+              </span>
+              <span className="text-white/35">›</span>
+            </button>
+            <div className="flex flex-wrap gap-2">
+              {brandColors.slice(0, 5).map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  className="h-8 w-8 rounded-md border border-white/20"
+                  style={{ background: c }}
+                  aria-label={`Quick color ${c}`}
+                  data-testid={`text-hub-color-${c.replace("#", "")}`}
+                  onClick={() =>
+                    patchFormat({ ...format, color: c }, "Applied Brand color")
+                  }
+                />
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-1">
+              {(
+                [
+                  ["left", "Left"],
+                  ["center", "Center"],
+                  ["right", "Right"],
+                ] as const
+              ).map(([id, label]) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`min-h-9 rounded-md border px-2 text-[11px] ${
+                    (format.align || "left") === id
+                      ? "border-white/35 bg-white/10"
+                      : "border-white/10"
+                  }`}
+                  data-testid={`text-hub-align-${id}`}
+                  onClick={() =>
+                    patchFormat({ ...format, align: id }, "Changed text alignment")
+                  }
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
           {ROOT_ITEMS.map((item) => (
+            <PanelNavRow
+              key={item.id}
+              label={item.label}
+              hint={item.hint}
+              testId={`text-panel-open-${item.id}`}
+              onClick={() => setLevel(item.id)}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {level === "appearance" ? (
+        <div className="space-y-2" data-testid="text-panel-appearance">
+          <p className="text-[11px] text-white/45">
+            Visual properties for this text. Open a group for dedicated controls.
+          </p>
+          {APPEARANCE_ITEMS.map((item) => (
             <PanelNavRow
               key={item.id}
               label={item.label}

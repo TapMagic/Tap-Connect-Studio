@@ -229,3 +229,47 @@ describe("creative-studio preview base url", () => {
     assert.equal(lan.reachableForPhone, true);
   });
 });
+
+describe("creative composition registry", () => {
+  it("registers a typed empty composition and layer sort", async () => {
+    const { BLOCK_LIBRARY } = await import("@/lib/fusion/blocks/library");
+    const {
+      CREATIVE_COMPOSITION_BLOCK_ID,
+      createEmptyCreativeComposition,
+      sortCompositionNodes,
+    } = await import("@/lib/fusion/creative-studio/composition");
+    const entry = BLOCK_LIBRARY.find((b) => b.id === CREATIVE_COMPOSITION_BLOCK_ID);
+    assert.ok(entry);
+    assert.equal(entry?.addable, false);
+    assert.equal(entry?.family, "advanced");
+    const block = createEmptyCreativeComposition("c1");
+    assert.equal(block.version, 1);
+    assert.equal(block.mobileFallback, "stack");
+    const sorted = sortCompositionNodes([
+      {
+        id: "b",
+        primitive: "text",
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        zIndex: 2,
+        props: {},
+      },
+      {
+        id: "a",
+        primitive: "image",
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+        zIndex: 1,
+        props: {},
+      },
+    ]);
+    assert.deepEqual(
+      sorted.map((n) => n.id),
+      ["a", "b"]
+    );
+  });
+});

@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ChevronLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -17,6 +17,7 @@ export type NestedPanelShellProps = {
 
 /**
  * Shared nested panel chrome — Back one level · Close · breadcrumb · title.
+ * Escape backs one level when available, otherwise closes the inspector.
  */
 export function NestedPanelShell({
   title,
@@ -28,6 +29,17 @@ export function NestedPanelShell({
   testId = "nested-panel-shell",
   footer,
 }: NestedPanelShellProps) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      e.stopPropagation();
+      if (onBack) onBack();
+      else if (onClose) onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onBack, onClose]);
+
   return (
     <div
       className={cn("flex h-full min-h-0 flex-col", className)}

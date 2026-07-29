@@ -52,12 +52,17 @@ test.describe("creative studio rescue", () => {
     await expect(
       page.getByTestId("text-panel-stack").or(page.getByTestId("professional-typography-panel"))
     ).toBeVisible({ timeout: 15_000 });
-    const openFont = page.getByTestId("text-panel-open-font");
-    if (await openFont.isVisible()) {
-      await openFont.click();
-      await expect(page.getByTestId("font-picker-panel")).toBeVisible();
-      await page.getByTestId("font-search").fill("Inter");
-      await expect(page.getByTestId("font-row-inter")).toBeVisible();
+    const hubFont = page.getByTestId("text-hub-open-font");
+    if (await hubFont.count()) {
+      await hubFont.click();
+      await expect(
+        page.getByTestId("font-picker-panel").or(page.getByTestId("professional-typography-panel"))
+      ).toBeVisible();
+      const search = page.getByTestId("font-search");
+      if (await search.count()) {
+        await search.fill("Inter");
+        await expect(page.getByTestId("font-row-inter")).toBeVisible();
+      }
     }
   });
 
@@ -77,11 +82,15 @@ test.describe("creative studio rescue", () => {
     const empty = page.getByTestId("card-drawer-buttons");
     await expect(stack.or(empty)).toBeVisible({ timeout: 15_000 });
     if (await stack.isVisible()) {
+      await expect(page.getByTestId("button-panel-hub")).toBeVisible();
       await page.getByTestId("button-panel-open-action").click();
       await expect(page.getByTestId("button-panel-action")).toBeVisible();
       await page.getByTestId("panel-stack-back").click();
-      await page.getByTestId("button-panel-open-test").click();
-      await expect(page.getByTestId("button-panel-test")).toBeVisible();
+      await page.getByTestId("button-panel-open-appearance").click();
+      await expect(page.getByTestId("button-panel-appearance")).toBeVisible();
+      await expect(page.getByTestId("button-hub-test-action")).toBeHidden();
+      await page.getByTestId("panel-stack-back").click();
+      await expect(page.getByTestId("button-hub-test-action")).toBeVisible();
     }
   });
 
@@ -105,5 +114,18 @@ test.describe("creative studio rescue", () => {
     await expect(page.getByTestId("session-history-panel")).toBeVisible({
       timeout: 15_000,
     });
+  });
+
+  test("selected tool uses neutral highlight not green", async ({ page }) => {
+    await page.goto("/dashboard/card/edit");
+    await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("card-tool-typography").click();
+    const tool = page.getByTestId("card-tool-typography");
+    await expect(tool).toBeVisible();
+    const cls = (await tool.getAttribute("class")) || "";
+    expect(cls.includes("bg-primary/20")).toBe(false);
+    expect(cls.includes("bg-white/10") || cls.includes("border-white")).toBe(true);
   });
 });

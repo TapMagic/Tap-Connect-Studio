@@ -50,10 +50,12 @@ test("desktop Owner workflow evidence", async ({ page }) => {
   await page.getByTestId("card-tool-typography").click();
   await expect(page.getByTestId("card-drawer-typography")).toBeVisible({ timeout: 15_000 });
   await page.screenshot({ path: SHOT("desktop", "04-text-inspector.png") });
-  const openFont = page.getByTestId("text-panel-open-font");
+  const openFont = page
+    .getByTestId("text-hub-open-font")
+    .or(page.getByTestId("text-panel-open-typography"));
   if (await openFont.count()) {
     await openFont.click();
-    if (await page.getByTestId("font-picker-panel").count()) {
+    if (await page.getByTestId("font-picker-panel").or(page.getByTestId("professional-typography-panel")).count()) {
       await page.screenshot({ path: SHOT("desktop", "05-font-previews.png") });
     }
   }
@@ -85,6 +87,8 @@ test("desktop Owner workflow evidence", async ({ page }) => {
   await page.getByTestId("preview-live-device").click();
   await expect(page.getByTestId("live-device-dock")).toBeVisible({ timeout: 15_000 });
   await page.screenshot({ path: SHOT("desktop", "11-live-device-qr.png") });
+  // Auto-create on enter — wait for status, do not require Generate
+  await expect(page.getByTestId("live-device-qr-panel")).toBeVisible();
   await page.getByTestId("preview-exit").click();
   await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute(
     "data-studio-mode",
@@ -180,11 +184,16 @@ test("Live Device token + LAN preview HTTP evidence", async ({ page, request }) 
   await expect(page.getByTestId("live-device-dock")).toBeVisible({ timeout: 20_000 });
   await page.screenshot({ path: SHOT("live-device", "01-qr-panel.png") });
 
-  const generate = page.getByTestId("preview-generate-qr");
-  if (await generate.isVisible()) {
-    await generate.click();
-  }
-  await page.waitForTimeout(1500);
+  // Auto-create on Live Device enter — wait for ready QR (or honest error).
+  await expect(page.getByTestId("live-device-qr-panel")).toBeVisible();
+  await expect
+    .poll(async () => {
+      const ready = await page.getByTestId("live-device-status-ready").count();
+      const err = await page.getByTestId("live-device-status-error").count();
+      const img = await page.getByTestId("preview-qr-image").count();
+      return ready + err + img;
+    }, { timeout: 25_000 })
+    .toBeGreaterThan(0);
   await page.screenshot({ path: SHOT("live-device", "02-qr-generated.png") });
 
   const previewLink = page.getByTestId("preview-url-text");
