@@ -77,9 +77,19 @@ function readLifecycleIntent(): boolean {
   );
 }
 
-/** Primary rail tools (aliases format/inspector omitted from rail). */
+/**
+ * Compact primary rail — shallow one-topic panes consolidated into
+ * Inspector / Appearance hubs. Aliases stay registered for deep-links.
+ */
+const CARD_RAIL_HIDDEN = new Set([
+  "format",
+  "inspector",
+  "brand",
+  "colors",
+  "layout",
+]);
 const CARD_RAIL_TOOLS = CARD_AUTHORING_TOOLS.filter(
-  (t) => t.id !== "format" && t.id !== "inspector"
+  (t) => !CARD_RAIL_HIDDEN.has(t.id)
 );
 
 export type CardAuthoringWorkspaceProps = {
@@ -168,6 +178,9 @@ export function CardAuthoringWorkspace({
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>("desktop");
   const [liveDeviceOpen, setLiveDeviceOpen] = useState(false);
   const [previewRevision, setPreviewRevision] = useState(1);
+  const [appearanceEntryLevel, setAppearanceEntryLevel] = useState<
+    "root" | "colors" | "brand" | "layout" | "segment"
+  >("root");
   const [editSelectionMemory, setEditSelectionMemory] = useState<string | null>(
     null
   );
@@ -319,10 +332,22 @@ export function CardAuthoringWorkspace({
 
   const openCardTool = useCallback(
     (toolId: string) => {
-      // Compatibility aliases
+      // Compatibility aliases → consolidated sliding hubs
+      if (toolId === "colors" || toolId === "format") {
+        setAppearanceEntryLevel("colors");
+      } else if (toolId === "brand") {
+        setAppearanceEntryLevel("brand");
+      } else if (toolId === "layout") {
+        setAppearanceEntryLevel("layout");
+      } else if (toolId === "appearance") {
+        setAppearanceEntryLevel("root");
+      }
       const resolved =
-        toolId === "format"
-          ? "colors"
+        toolId === "format" ||
+        toolId === "colors" ||
+        toolId === "brand" ||
+        toolId === "layout"
+          ? "appearance"
           : toolId === "inspector"
             ? "content"
             : toolId;
@@ -339,6 +364,14 @@ export function CardAuthoringWorkspace({
     },
     [toolMemory]
   );
+
+  const closeCardTool = useCallback(() => {
+    setShell((s) => ({
+      ...s,
+      drawerOpen: false,
+      selectedToolId: null,
+    }));
+  }, []);
 
   const onShellChange = useCallback((next: WorkspaceShellSnapshot) => {
     setShell(next);
@@ -701,7 +734,12 @@ export function CardAuthoringWorkspace({
           !shell.focusMode &&
           studioMode === "edit" &&
           activeToolId ? (
-            <CardLiveToolDrawer toolId={activeToolId} />
+            <CardLiveToolDrawer
+              toolId={activeToolId}
+              onCloseTool={closeCardTool}
+              onRequestTool={openCardTool}
+              appearanceInitialLevel={appearanceEntryLevel}
+            />
           ) : undefined
         }
         drawerTitle={

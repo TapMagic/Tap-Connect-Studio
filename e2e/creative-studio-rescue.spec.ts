@@ -147,8 +147,12 @@ test.describe("creative studio rescue", () => {
     await expect(page.getByTestId("composition-panel-stack")).toBeVisible({
       timeout: 15_000,
     });
-    await expect(page.getByTestId("creative-composition-canvas")).toBeVisible();
-    await expect(page.getByTestId("composition-reading-order")).toBeAttached();
+    await expect(
+      page.getByTestId("creative-composition-canvas").first()
+    ).toBeVisible();
+    await expect(
+      page.getByTestId("composition-reading-order").first()
+    ).toBeAttached();
 
     // Select frame layer and apply shirt mask via sliding stack
     const frameLayer = page.locator('[data-testid^="composition-layer-"]').filter({

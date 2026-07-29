@@ -6,9 +6,23 @@
 |----|------|----------|--------|
 | P2 | Physical-phone QR (reachability) | Critical | **PASS** (HTTPS tunnel) — not Verified overall |
 | P2v | Visual fidelity Live Device vs Studio | Critical | **Fix shipped — pending Owner re-scan** |
+| P2i | Desktop Contextual Inspector sliding stack | Critical | **Fix shipped on `/dashboard/card/edit` — pending Owner review** |
 | P2a | Direct LAN phone reachability | Critical | Blocked by AP/client isolation (network) |
 | P2b | Temporary HTTPS tunnel | High | Active locally (not committed) |
 | Composition / inspectors / automated proofs | — | Closed |
+
+## Desktop inspector (root cause)
+
+Owner route mounted Adaptive Workspace + NestedPanelShell stacks, but panels swapped in place (no horizontal slide) and shallow Colors/Brand/Layout panes stayed as fragmented static drawers.
+
+## Desktop inspector fix
+
+- `NestedPanelShell` horizontal Sliding Panel Stack (`data-sliding-panel-stack`, depth motion)
+- Appearance hub consolidates Colors / Brand / Layout
+- Inspector Selection Hub for Content
+- Close collapses drawer; Back reverses slide
+- Route tests: `e2e/creative-studio-sliding-inspector.spec.ts`
+- Evidence video: `tmp/creative-studio-rescue/evidence/inspector/after-fix-sliding-inspector.webm`
 
 ## Fidelity defect (root cause)
 

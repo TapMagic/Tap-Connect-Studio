@@ -171,6 +171,13 @@ export function CompositionPanelStack({
     <NestedPanelShell
       title={title}
       breadcrumbs={crumbs}
+      depth={
+        level === "root"
+          ? 0
+          : level === "masks" || level === "typography"
+            ? 2
+            : 1
+      }
       onBack={
         level === "root"
           ? undefined

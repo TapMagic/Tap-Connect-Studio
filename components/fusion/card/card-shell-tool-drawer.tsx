@@ -17,12 +17,13 @@ import { ButtonPanelStack } from "@/components/fusion/creative-studio/button-pan
 import { TextPanelStack } from "@/components/fusion/creative-studio/text-panel-stack";
 import { ImagePanelStack } from "@/components/fusion/creative-studio/image-panel-stack";
 import { CompositionPanelStack } from "@/components/fusion/creative-studio/composition-panel-stack";
+import { AppearancePanelStack } from "@/components/fusion/creative-studio/appearance-panel-stack";
+import { SelectionPanelStack } from "@/components/fusion/creative-studio/selection-panel-stack";
 import { HistoryPanel } from "@/components/fusion/creative-studio/history-panel";
 import {
   createStarterCreativeComposition,
   parseCreativeComposition,
 } from "@/lib/fusion/creative-studio/composition";
-import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { cn } from "@/lib/utils";
@@ -30,7 +31,6 @@ import {
   TAP_CARD_ACTION_CATALOG,
   TAP_CARD_LAYOUT_OPTIONS,
   type TapCardSection,
-  type TapCardSurfaceFill,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 import type { BrandInheritanceState } from "@/lib/fusion/authoring/brand-inheritance";
@@ -91,6 +91,8 @@ export type CardShellToolDrawerProps = {
   strInherited: (key: string) => string | undefined;
   onTestAction: (section: TapCardSection) => void;
   onCloseTool?: () => void;
+  onRequestTool?: (toolId: string) => void;
+  appearanceInitialLevel?: "root" | "colors" | "brand" | "layout" | "segment";
   selectedCompositionNodeIds?: string[];
   setSelectedCompositionNodeIds?: (ids: string[]) => void;
 };
@@ -139,7 +141,21 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
   } = props;
 
   const resolved =
-    toolId === "format" ? "colors" : toolId === "inspector" ? "content" : toolId;
+    toolId === "format" || toolId === "colors" || toolId === "brand" || toolId === "layout"
+      ? "appearance"
+      : toolId === "inspector"
+        ? "content"
+        : toolId;
+
+  const appearanceInitial =
+    props.appearanceInitialLevel ||
+    (toolId === "colors"
+      ? ("colors" as const)
+      : toolId === "brand"
+        ? ("brand" as const)
+        : toolId === "layout"
+          ? ("layout" as const)
+          : ("root" as const));
 
   if (resolved === "composition") {
     const block =
@@ -166,7 +182,7 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
       );
     }
     return (
-      <div className="h-full min-h-0" data-testid="card-drawer-composition">
+      <div className="min-h-0" data-testid="card-drawer-composition">
         <CompositionPanelStack
           block={block}
           selectedNodeIds={selectedCompositionNodeIds}
@@ -262,113 +278,29 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
     );
   }
 
-  if (resolved === "brand") {
+  if (resolved === "appearance") {
     return (
-      <div className="space-y-3" data-testid="card-drawer-brand">
-        <BrandInheritanceBar state={brandState} onChange={onBrandStateChange} />
-        <HonestNote>
-          Brand values are copied into this Card session. Durable live-linked Brand sync is
-          Phase 2 — Card formatting remains available locally.
-        </HonestNote>
-      </div>
-    );
-  }
-
-  if (resolved === "colors") {
-    return (
-      <div className="space-y-3" data-testid="card-drawer-colors">
-        <p className="text-xs font-semibold text-white">Card colors</p>
-        <div className="flex flex-wrap gap-3">
-          {(
-            [
-              ["accentColor", "Accent"],
-              ["surfaceColor", "Surface"],
-              ["textColor", "Text"],
-              ["pillColor", "Pill fill"],
-              ["pillTextColor", "Pill text"],
-              ["neonColor", "Neon glow"],
-            ] as const
-          ).map(([key, label]) => (
-            <div key={key} className="space-y-1">
-              <Label className="text-[10px]">{label}</Label>
-              <Input
-                type="color"
-                aria-label={`${label} color`}
-                className="h-9 w-14 cursor-pointer p-1"
-                data-testid={`card-color-${key}`}
-                value={
-                  (config[key] as string | undefined) ||
-                  (key === "pillColor"
-                    ? "#0c0a07"
-                    : key === "pillTextColor"
-                      ? "#f5e6a8"
-                      : key === "accentColor" || key === "neonColor"
-                        ? strInherited("accentColor") ||
-                          strInherited("primaryColor") ||
-                          config.accentColor
-                        : key === "surfaceColor"
-                          ? strInherited("backgroundColor") ||
-                            config.surfaceColor ||
-                            config.accentColor
-                          : key === "textColor"
-                            ? strInherited("textColor") ||
-                              config.textColor ||
-                              config.accentColor
-                            : config.accentColor)
-                }
-                onChange={(e) => patchConfigColor(key, e.target.value)}
-              />
-            </div>
-          ))}
-        </div>
-        <div className="space-y-1">
-          <Label className="text-[10px]">Card background</Label>
-          <select
-            aria-label="Card background fill"
-            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-xs"
-            value={config.surfaceFill || "solid"}
-            onChange={(e) =>
-              patchConfig({ surfaceFill: e.target.value as TapCardSurfaceFill })
-            }
-          >
-            <option value="solid">Solid</option>
-            <option value="gradient">Gradient</option>
-          </select>
-        </div>
-        {selected ? (
-          <div className="space-y-2 border-t border-white/10 pt-3">
-            <p className="text-xs font-semibold">Selected segment colors</p>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <Label className="text-xs">Fill</Label>
-                <Input
-                  type="color"
-                  value={selected.backgroundColor || config.pillColor || "#0c0a07"}
-                  onChange={(e) =>
-                    patchSection(selected.id, { backgroundColor: e.target.value })
-                  }
-                />
-              </div>
-              <div>
-                <Label className="text-xs">Text</Label>
-                <Input
-                  type="color"
-                  value={selected.textColor || config.pillTextColor || "#f5e6a8"}
-                  onChange={(e) =>
-                    patchSection(selected.id, { textColor: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-          </div>
-        ) : null}
+      <div className="min-h-0" data-testid="card-drawer-appearance">
+        <AppearancePanelStack
+          key={`appearance-${appearanceInitial}`}
+          config={config}
+          selected={selected}
+          brandState={brandState}
+          onBrandStateChange={onBrandStateChange}
+          patchConfig={patchConfig}
+          patchConfigColor={patchConfigColor}
+          patchSection={patchSection}
+          strInherited={strInherited}
+          onClose={props.onCloseTool}
+          initialLevel={appearanceInitial}
+        />
       </div>
     );
   }
 
   if (resolved === "typography") {
     return (
-      <div className="h-full min-h-0" data-testid="card-drawer-typography">
+      <div className="min-h-0" data-testid="card-drawer-typography">
         <TextPanelStack
           selected={selected}
           config={config}
@@ -502,51 +434,6 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
             stockReady={stockReady}
           />
         ) : null}
-      </div>
-    );
-  }
-
-  if (resolved === "layout") {
-    return (
-      <div className="space-y-3" data-testid="card-drawer-layout">
-        <FinishPicker
-          label="Card shell"
-          value={config.cardFinish}
-          allowNone={false}
-          onChange={(cardFinish) => {
-            if (cardFinish) patchConfig({ cardFinish });
-          }}
-        />
-        <div className="min-w-[140px] space-y-1">
-          <Label className="text-[10px]">
-            Transparency {config.surfaceOpacity ?? 100}%
-          </Label>
-          <input
-            type="range"
-            min={35}
-            max={100}
-            aria-label="Card surface transparency"
-            value={config.surfaceOpacity ?? 100}
-            onChange={(e) => patchConfig({ surfaceOpacity: Number(e.target.value) })}
-            className="w-full"
-          />
-        </div>
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={config.collapsible}
-            onChange={(e) => patchConfig({ collapsible: e.target.checked })}
-          />
-          Collapsible
-        </label>
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={Boolean(config.compactActionsOnly)}
-            onChange={(e) => patchConfig({ compactActionsOnly: e.target.checked })}
-          />
-          Buttons only
-        </label>
       </div>
     );
   }
@@ -769,62 +656,15 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
     );
   }
 
-  // content (default) — selected segment essentials + open hint
+  // content (default) — Selection Hub with horizontal drill-ins
   return (
-    <div className="space-y-3" data-testid="card-drawer-content">
-      <p className="text-sm font-semibold">
-        {selected ? `Edit: ${selected.label || selected.type}` : "Select a segment"}
-      </p>
-      {!selected ? (
-        <HonestNote>
-          Pick a segment from Outline or the live Card. Use Colors, Typography, Buttons, and
-          Media tools for design — Content edits the selected block.
-        </HonestNote>
-      ) : (
-        <div className="space-y-3">
-          <label className="flex items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              checked={selected.enabled}
-              onChange={(e) => patchSection(selected.id, { enabled: e.target.checked })}
-            />
-            Enabled
-          </label>
-          <Input
-            value={selected.label ?? ""}
-            onChange={(e) => patchSection(selected.id, { label: e.target.value })}
-            placeholder="Label"
-            aria-label="Segment label"
-            data-testid="card-content-label"
-          />
-          {selected.type === "action" ? (
-            <Input
-              value={selected.href ?? ""}
-              onChange={(e) => patchSection(selected.id, { href: e.target.value })}
-              placeholder="https://…"
-              data-testid="card-content-href"
-            />
-          ) : null}
-          {selected.type === "text" ? (
-            <Input
-              value={selected.text ?? ""}
-              onChange={(e) => patchSection(selected.id, { text: e.target.value })}
-              placeholder="Text"
-              data-testid="card-content-text"
-            />
-          ) : null}
-          {selected.type === "special_offer" ? (
-            <HonestNote>
-              Offer fields — open Offer Spotlight for Campaign bind, or edit title/CTA on the
-              segment after selecting it here.
-            </HonestNote>
-          ) : null}
-          <p className="text-[11px] text-white/45">
-            Full segment editors remain available for every block type via Outline selection.
-            Compatibility inspector path: Advanced.
-          </p>
-        </div>
-      )}
+    <div className="min-h-0" data-testid="card-drawer-content">
+      <SelectionPanelStack
+        selected={selected}
+        patchSection={patchSection}
+        onOpenTool={(id) => props.onRequestTool?.(id)}
+        onClose={props.onCloseTool}
+      />
     </div>
   );
 }

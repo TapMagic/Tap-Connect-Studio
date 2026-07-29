@@ -119,6 +119,7 @@ export function ButtonPanelStack({
     <NestedPanelShell
       title={title}
       breadcrumbs={crumbs}
+      depth={level === "root" ? 0 : 1}
       onBack={level === "root" ? undefined : back}
       onClose={onClose}
       testId="button-panel-stack"

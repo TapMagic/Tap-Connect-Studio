@@ -57,6 +57,7 @@ export function ImagePanelStack({
       <NestedPanelShell
         title="Image / Media"
         breadcrumbs={["Image / Media"]}
+        depth={0}
         onClose={onClose}
         testId="image-panel-stack"
       >
@@ -93,6 +94,7 @@ export function ImagePanelStack({
     <NestedPanelShell
       title={level === "root" ? "Image / Media" : crumbs[crumbs.length - 1]}
       breadcrumbs={crumbs}
+      depth={level === "root" ? 0 : 1}
       onBack={level === "root" ? undefined : () => setLevel("root")}
       onClose={onClose}
       testId="image-panel-stack"

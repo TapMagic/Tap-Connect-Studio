@@ -435,3 +435,41 @@
     color-scheme: only dark;
   }
 }
+
+/* Contextual Inspector — horizontal Sliding Panel Stack */
+@keyframes tc-panel-slide-forward {
+  from {
+    transform: translateX(36%);
+    opacity: 0.45;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes tc-panel-slide-back {
+  from {
+    transform: translateX(-36%);
+    opacity: 0.45;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.tc-panel-slide-forward {
+  animation: tc-panel-slide-forward 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.tc-panel-slide-back {
+  animation: tc-panel-slide-back 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-panel-slide-forward,
+  .tc-panel-slide-back {
+    animation: none;
+  }
+}

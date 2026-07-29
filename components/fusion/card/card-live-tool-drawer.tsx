@@ -7,7 +7,17 @@ import {
   subscribeCardEditorLive,
 } from "@/components/fusion/card/card-editor-live";
 
-export function CardLiveToolDrawer({ toolId }: { toolId: string }): ReactNode {
+export function CardLiveToolDrawer({
+  toolId,
+  onCloseTool,
+  onRequestTool,
+  appearanceInitialLevel,
+}: {
+  toolId: string;
+  onCloseTool?: () => void;
+  onRequestTool?: (toolId: string) => void;
+  appearanceInitialLevel?: "root" | "colors" | "brand" | "layout" | "segment";
+}): ReactNode {
   const model = useSyncExternalStore(
     subscribeCardEditorLive,
     getCardEditorLive,
@@ -22,5 +32,13 @@ export function CardLiveToolDrawer({ toolId }: { toolId: string }): ReactNode {
     );
   }
 
-  return <CardShellToolDrawer toolId={toolId} {...model} />;
+  return (
+    <CardShellToolDrawer
+      toolId={toolId}
+      {...model}
+      onCloseTool={onCloseTool ?? model.onCloseTool}
+      onRequestTool={onRequestTool}
+      appearanceInitialLevel={appearanceInitialLevel}
+    />
+  );
 }

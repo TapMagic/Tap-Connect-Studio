@@ -118,6 +118,13 @@ export function TextPanelStack({
           : ROOT_ITEMS.find((r) => r.id === level)?.label || "Text"
       }
       breadcrumbs={crumbs}
+      depth={
+        level === "root"
+          ? 0
+          : APPEARANCE_ITEMS.some((a) => a.id === level) && level !== "appearance"
+            ? 2
+            : 1
+      }
       onBack={
         level === "root"
           ? undefined

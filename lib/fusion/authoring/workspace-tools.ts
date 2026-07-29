@@ -187,7 +187,7 @@ export const CARD_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
   },
   {
     id: "content",
-    label: "Content",
+    label: "Inspector",
     icon: "PanelRight",
     recommendedDrawerMode: "balanced",
     mobileSheetMode: "balanced",
@@ -197,6 +197,19 @@ export const CARD_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
     featureReadiness: "ready",
     workspaceIds: ["card-authoring"],
   },
+  {
+    id: "appearance",
+    label: "Appearance",
+    icon: "Palette",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  /** Consolidated into Appearance — kept as aliases for selection / deep-links. */
   {
     id: "brand",
     label: "Brand",

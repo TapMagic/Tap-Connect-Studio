@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { ChevronLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -13,10 +13,16 @@ export type NestedPanelShellProps = {
   className?: string;
   testId?: string;
   footer?: ReactNode;
+  /**
+   * Stack depth for horizontal slide (0 = Selection Hub / root).
+   * Forward increases depth; Back decreases — motion reverses.
+   */
+  depth?: number;
 };
 
 /**
  * Shared nested panel chrome — Back one level · Close · breadcrumb · title.
+ * Levels slide horizontally in the same inspector space.
  * Escape backs one level when available, otherwise closes the inspector.
  */
 export function NestedPanelShell({
@@ -28,7 +34,19 @@ export function NestedPanelShell({
   className,
   testId = "nested-panel-shell",
   footer,
+  depth = 0,
 }: NestedPanelShellProps) {
+  const prevDepthRef = useRef(depth);
+  const slideDirection: "forward" | "back" | "none" =
+    depth > prevDepthRef.current
+      ? "forward"
+      : depth < prevDepthRef.current
+        ? "back"
+        : "none";
+  useEffect(() => {
+    prevDepthRef.current = depth;
+  }, [depth]);
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
@@ -42,12 +60,15 @@ export function NestedPanelShell({
 
   return (
     <div
-      className={cn("flex h-full min-h-0 flex-col", className)}
+      className={cn("flex min-h-0 flex-col", className)}
       data-testid={testId}
+      data-sliding-panel-stack="true"
+      data-panel-depth={String(depth)}
+      data-panel-slide-direction={slideDirection}
       role="region"
       aria-label={title}
     >
-      <div className="flex items-center gap-2 border-b border-white/10 px-3 py-2">
+      <div className="flex shrink-0 items-center gap-2 border-b border-white/10 px-3 py-2">
         {onBack ? (
           <button
             type="button"
@@ -87,9 +108,22 @@ export function NestedPanelShell({
           </button>
         ) : null}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">{children}</div>
+      <div className="relative min-h-0 overflow-hidden">
+        <div
+          key={`panel-depth-${depth}`}
+          data-panel-slide-track
+          data-slide-direction={slideDirection}
+          className={cn(
+            "min-h-0 p-3",
+            slideDirection === "forward" && "tc-panel-slide-forward",
+            slideDirection === "back" && "tc-panel-slide-back"
+          )}
+        >
+          {children}
+        </div>
+      </div>
       {footer ? (
-        <div className="border-t border-white/10 p-3" data-testid="panel-stack-footer">
+        <div className="shrink-0 border-t border-white/10 p-3" data-testid="panel-stack-footer">
           {footer}
         </div>
       ) : null}
