@@ -10,8 +10,8 @@
 | Tip | SHA |
 |-----|-----|
 | Prior remote HEAD (confirmed FF push) | `798793a2144057b60a1ed7de369b542ec75b82e4` |
-| Push history | Normal fast-forward `ff8c6c1` → `798793a` — **succeeded** (no force-push, merge, or deploy) |
-| This continuation tip | run `git rev-parse HEAD` after commit (interactive composition pass) |
+| Push history | Normal fast-forward `ff8c6c1` → `798793a` → `28fb78a` — **succeeded** (no force-push, merge, or deploy) |
+| Current remote HEAD | `28fb78ab174a811d8f4edd4f71eb3adbc651491c` |
 
 ## Gates (this continuation)
 

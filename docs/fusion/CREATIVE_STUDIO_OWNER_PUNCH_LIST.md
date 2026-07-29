@@ -4,7 +4,7 @@
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| P0 | Fast-forward push `tapconnect-creative-studio-rescue` | Critical | **Closed** — remote HEAD `798793a` (FF from `ff8c6c1`); continuation tip pending next push |
+| P0 | Fast-forward push `tapconnect-creative-studio-rescue` | Critical | **Closed** — remote HEAD `28fb78a` (FF from `798793a`) |
 | P1 | Owner screenshot/video pack (panel slides, composition) | High | **Closed** for composition pack — see `tmp/.../walkthrough/composition` + video |
 | P2 | Physical-phone QR scan on same LAN | Critical | **Open for Owner camera** — QR encode/decode + LAN Studio ready; agent cannot operate handset |
 | P3 | Nested panel depth memory | Low | Partial |
