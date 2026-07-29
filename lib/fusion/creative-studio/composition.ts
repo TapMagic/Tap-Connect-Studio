@@ -162,7 +162,7 @@ export function createEmptyCreativeComposition(
     label: "Creative Composition",
     nodes: [],
     background: { kind: "none" },
-    mobileFallback: "stack",
+    mobileFallback: "scale",
     safeAreaPaddingPx: 12,
   };
 }
@@ -179,7 +179,7 @@ export function createStarterCreativeComposition(
     id,
     label: "Creative Composition",
     background: { kind: "solid", value: "#0b0f19" },
-    mobileFallback: "stack",
+    mobileFallback: "scale",
     safeAreaPaddingPx: 12,
     nodes: [
       {
@@ -246,6 +246,13 @@ export function sortCompositionNodes(
   return [...nodes].sort((a, b) => a.zIndex - b.zIndex || a.id.localeCompare(b.id));
 }
 
+export function compositionAppliesMobileFallback(input: {
+  editMode?: boolean;
+  forceMobileFallback?: boolean;
+}): boolean {
+  return !input.editMode && Boolean(input.forceMobileFallback);
+}
+
 export function parseCreativeComposition(
   raw: unknown
 ): CreativeCompositionBlock | null {
@@ -262,9 +269,11 @@ export function parseCreativeComposition(
         ? (o.background as CreativeCompositionBlock["background"])
         : { kind: "none" },
     mobileFallback:
-      o.mobileFallback === "scale" || o.mobileFallback === "hide_decorative"
+      o.mobileFallback === "stack" ||
+      o.mobileFallback === "scale" ||
+      o.mobileFallback === "hide_decorative"
         ? o.mobileFallback
-        : "stack",
+        : "scale",
     safeAreaPaddingPx:
       typeof o.safeAreaPaddingPx === "number" ? o.safeAreaPaddingPx : 12,
   };

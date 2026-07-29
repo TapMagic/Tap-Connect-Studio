@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import {
   FRAME_MASK_CATALOG,
   accessibleReadingOrder,
+  compositionAppliesMobileFallback,
   deleteNodes,
   duplicateNodes,
   expandSelectionToGroups,
@@ -245,11 +246,14 @@ export function CreativeCompositionCanvas({
   }, []);
 
   const selectedSet = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
-  /** Edit keeps freeform; phone fallback applies in preview/public when narrow. */
-  const applyFallback = !editMode && (forceMobileFallback || narrow);
+  const applyFallback = compositionAppliesMobileFallback({
+    editMode,
+    forceMobileFallback,
+  });
   const useStack = applyFallback && block.mobileFallback === "stack";
   const hideDecorative =
     applyFallback && block.mobileFallback === "hide_decorative";
+  /** scale (default) keeps freeform relative layout — same renderer as edit */
 
   const workingNodes = draftNodes ?? block.nodes;
 
@@ -456,7 +460,10 @@ export function CreativeCompositionCanvas({
         padding: block.safeAreaPaddingPx ?? 12,
       }}
       data-testid="creative-composition-canvas"
-      data-mobile-fallback={forceMobileFallback ? block.mobileFallback : "desktop"}
+      data-mobile-fallback={
+        applyFallback ? block.mobileFallback : "freeform"
+      }
+      data-surface-narrow={narrow ? "true" : "false"}
       role="group"
       aria-label={block.label}
       onPointerMove={onPointerMove}

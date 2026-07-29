@@ -1079,13 +1079,15 @@ export function CompositionPanelStack({
       {level === "fallback" ? (
         <div className="space-y-2" data-testid="composition-panel-fallback">
           <p className="text-[11px] text-white/45">
-            On narrow screens, compositions must stay readable. Choose an honest fallback.
+            Live Device and customer phones keep the same freeform composition as the
+            Studio canvas (scale). Stack / hide-decorative only apply when you explicitly
+            preview the phone fallback in Studio.
           </p>
           {(
             [
-              ["stack", "Stack (recommended)"],
-              ["scale", "Scale"],
-              ["hide_decorative", "Hide decorative"],
+              ["scale", "Scale (recommended — matches Studio)"],
+              ["stack", "Stack (reading-order reflow when forced)"],
+              ["hide_decorative", "Hide decorative (when forced)"],
             ] as const
           ).map(([id, label]) => (
             <button

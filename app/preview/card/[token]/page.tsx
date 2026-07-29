@@ -1,4 +1,6 @@
+import "@/app/t/tap.css";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { CompositionFontLoader } from "@/components/fusion/creative-studio/composition-font-loader";
 import { getPreviewSession } from "@/lib/fusion/creative-studio/preview/tokens";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
@@ -112,6 +114,7 @@ export default async function PreviewCardPage({
       data-testid="preview-card-page"
       data-preview-revision={String(record.revision)}
     >
+      <CompositionFontLoader config={config} />
       <div
         className="mx-auto mb-4 max-w-md rounded-xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-amber-50"
         data-testid="preview-draft-banner"
@@ -122,7 +125,7 @@ export default async function PreviewCardPage({
         <p className="text-xs opacity-80">{updatedLabel}</p>
         <p className="text-xs opacity-80">{STUDIO_WORDING.previewOnlyNotPublished}</p>
       </div>
-      <div className="mx-auto max-w-md">
+      <div className="mx-auto max-w-md" data-testid="preview-card-composition-host">
         <TapConnectCard
           config={config}
           profile={profile}
@@ -132,6 +135,7 @@ export default async function PreviewCardPage({
           forceExpanded
           interactionMode="preview"
           previewSafe
+          compositionForceMobile={false}
         />
       </div>
       <p className="mx-auto mt-6 max-w-md text-center text-[11px] text-white/35">

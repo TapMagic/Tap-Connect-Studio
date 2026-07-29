@@ -10,7 +10,7 @@ Branch: `tapconnect-creative-studio-rescue`
 | 19 | Phone fallback / reading order / safe area | PASS | Agent |
 | 20 | Undo / Redo | PASS | Agent |
 | 21–23 | Preview → Live Device → auto QR | PASS | Decoded LAN `:3010` |
-| 24 | Physical phone camera | **PENDING** | LAN blocked; temporary HTTPS tunnel ready — QR not yet Owner-passed |
+| 24 | Physical phone camera | **REACHABILITY PASS / FIDELITY RE-SCAN** | HTTPS OK; visual match pending after freeform fix |
 | 25–27 | Update / expire / revoke | PASS | Unit + evidence JSON |
 | Background / Responsive / Typography / Image Media stack | PASS | Agent |
 

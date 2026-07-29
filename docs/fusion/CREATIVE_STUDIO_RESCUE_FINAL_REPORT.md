@@ -2,34 +2,25 @@
 
 **Classification:** `OWNER-READY CANDIDATE — VERIFICATION PENDING`
 
-**Branch:** `tapconnect-creative-studio-rescue`  
-**Immutable source:** `replit-penthouse-finished-import` @ `f7457a48a3e41d271e6569f54b4b1cde12160821`
+**Branch:** `tapconnect-creative-studio-rescue`
 
-## Exact tips
-
-| Tip | Notes |
-|-----|-------|
-| Feature tip | `dfc0d2e` interactive composition complete |
-| Live remote tip | `git rev-parse origin/tapconnect-creative-studio-rescue` |
-| Push policy | Normal FF only — no force-push, merge, or deploy |
-
-## Physical verification status
+## Physical verification
 
 | Check | Result |
 |-------|--------|
-| Studio bind | `*:3010` |
-| Mac LAN IP | `192.168.2.24` |
-| macOS firewall | Disabled — not blocking |
-| Mac → LAN Studio | **200** |
-| Phone → LAN | **Unreachable** (network isolation; not Owner failure) |
-| Temporary Cloudflare quick tunnel | Local-only; URL **not** committed |
-| Fresh tunnel QR / preview | HTTPS **200**, Draft / Not Published, no Clerk; QR decode matches UI URL |
-| Physical QR scan | **Not passed yet** — ready for Owner phone |
+| HTTPS tunnel QR reachability | **PASS** (prior Owner scan) |
+| Visual fidelity (alignment / wrap / layers) | **FAIL → fixed in code; re-scan pending** |
+| Direct LAN | Blocked (isolation) — not Owner failure |
+| Classification | **Not** `OWNER-READY — VERIFIED` |
 
-## Remaining for `OWNER-READY — VERIFIED`
+## Fidelity fix summary
 
-Owner scans the **current tunnel** Live Device QR on a physical phone, confirms draft preview, then agent terminates the tunnel and restores LAN preview base locally.
+Customer-facing Live Device / Preview no longer auto-stacks Creative Composition on narrow widths. Same freeform renderer as Studio edit unless fallback is explicitly forced. Preview route now includes Card `tap.css` and composition font loading.
+
+## Remaining
+
+Owner re-scans the fresh temporary HTTPS QR and confirms composition matches Studio canvas.
 
 ## Safety
 
-No force-push; no merge; no deploy; no publish; no live payment/Email/customer contact; no secrets or tunnel URLs committed.
+No merge/deploy/publish; no tunnel URLs or secrets committed.

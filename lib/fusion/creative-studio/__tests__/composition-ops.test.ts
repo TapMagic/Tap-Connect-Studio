@@ -17,6 +17,7 @@ import {
   sendToBack,
   setNodeLocked,
   translateNodes,
+  compositionAppliesMobileFallback,
   ungroupNodes,
 } from "@/lib/fusion/creative-studio/composition";
 
@@ -106,6 +107,23 @@ describe("creative composition operations", () => {
     ];
     const order = accessibleReadingOrder(nodes).map((n) => n.id);
     assert.deepEqual(order, ["top", "bottom"]);
+  });
+
+  it("applies mobile fallback only when explicitly forced", () => {
+    assert.equal(
+      compositionAppliesMobileFallback({ editMode: true, forceMobileFallback: true }),
+      false
+    );
+    assert.equal(
+      compositionAppliesMobileFallback({ editMode: false, forceMobileFallback: false }),
+      false
+    );
+    assert.equal(
+      compositionAppliesMobileFallback({ editMode: false, forceMobileFallback: true }),
+      true
+    );
+    const starter = createStarterCreativeComposition("c2");
+    assert.equal(starter.mobileFallback, "scale");
   });
 
   it("duplicates and deletes selected nodes", async () => {
