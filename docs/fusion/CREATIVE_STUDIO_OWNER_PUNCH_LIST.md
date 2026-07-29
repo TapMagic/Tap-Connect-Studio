@@ -1,19 +1,22 @@
 # Creative Studio Rescue — Owner Punch List
 
-Use with the 57-step walkthrough. Status after completion pass:
+Status after controlled repair + verification on clean history from `ff8c6c1`.
+
+**Classification:** `IMPLEMENTATION IN PROGRESS`
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| P1 | Capture screenshot set 01–30 + workflow video | Medium | Open — run locally into `tmp/creative-studio-rescue/` |
-| P2 | Real-phone QR scan with reachable `NEXT_PUBLIC_PREVIEW_BASE_URL` | High | Open — Owner device required |
+| P0 | Fast-forward push `tapconnect-creative-studio-rescue` (no force) | Critical | Open until remote HEAD matches local |
+| P1 | Complete Owner screenshot/video pack (Preview toolbar, QR UI, workflow video) | High | Partial — desktop/chrome/history + LAN phone-sim preview captured |
+| P2 | Physical-phone QR scan on same LAN as `NEXT_PUBLIC_PREVIEW_BASE_URL` | Critical | Open — agent did not operate a physical handset |
 | P3 | Nested panel depth memory when reopening Button tool | Low | Partial |
-| P4 | Per-device visibility still honest-only (no independent overrides) | Low | Documented |
-| P5 | Full e2e matrix + `npm run build` + J1 ID-001/005 on this tip | High | Open |
-| P6 | Chrome control bar slightly reduces canvas vs ideal Focus | Low | Acceptable friction |
-| P7 | History mixes session undo labels with publication rollback | Low | Clarify copy if Owners confuse |
-| P8 | Font comparison loads Google Fonts — confirm CSP in production | Medium | Verify on deploy target |
-| P9 | Tablet/phone Owner proof screenshots | Medium | Open |
+| P4 | Per-device visibility honest-only | Low | Documented |
+| P5 | Related e2e + J1 ID-001/005 + responsive/a11y | Critical | **Closed** on local tip (26/26 related suite) |
+| P6 | Live-model Maximum update depth | Critical | **Closed** — signature notify + stable labels + useSyncExternalStore |
+| P7 | Lifecycle deep-link from assembly | High | **Closed** — client mount open |
+| P8 | Font CSP on production deploy target | Medium | Verify on deploy |
+| P9 | History session vs publication copy clarity | Low | Open |
 
 ## Owner-ready gate
 
-Do not classify Owner-ready until P1, P2, and P5 are closed and walkthrough steps 38–45 pass on a real phone without developer coaching.
+Do not classify Owner-ready until **P0** and **P2** close and the walkthrough Live Device steps pass on a real phone without developer coaching.
