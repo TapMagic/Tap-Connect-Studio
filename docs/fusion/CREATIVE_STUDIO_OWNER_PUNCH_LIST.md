@@ -4,17 +4,14 @@
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| P0 | Fast-forward push `tapconnect-creative-studio-rescue` | Critical | **Closed** — remote HEAD `28fb78a` (FF from `798793a`) |
-| P1 | Owner screenshot/video pack (panel slides, composition) | High | **Closed** for composition pack — see `tmp/.../walkthrough/composition` + video |
-| P2 | Physical-phone QR scan on same LAN | Critical | **Open for Owner camera** — QR encode/decode + LAN Studio ready; agent cannot operate handset |
-| P3 | Nested panel depth memory | Low | Partial |
-| P5 | Related e2e + J1 ID-001/005 + responsive/a11y | Critical | **Closed** this tip (28 related proofs) |
-| P6–P7 | Live-model loop / lifecycle deep-link | Critical/High | **Closed** |
-| P10–P12 | Green Action Law / Auto QR / Text·Button hubs | High | **Closed** |
-| P13 | Creative Composition Block interactive canvas | High | **Closed** (interactive) |
-| P14 | Frame / shape / group inspector matrices | Medium | **Closed** for Composition stack |
-| P15 | Draft update / expire / revoke without publish | High | **Closed** (unit + evidence JSON) |
+| P0 | Fast-forward push rescue branch | Critical | Closed at `9a64a60`; this pass pending next FF push |
+| P1 | Screenshot/video pack | High | **Closed** — composition slides + Live Device QR shots + walkthrough webm |
+| P2 | Physical-phone QR scan | Critical | **Owner action** — Studio QR decodes to `http://192.168.2.24:3010/preview/card/…` (HTTP 200 draft) |
+| P5 | Related e2e | Critical | **Closed** — creative-studio-rescue 6/6 |
+| P13 | Interactive Composition Block | High | **Closed** |
+| P14 | Frame / border / group inspectors | Medium | **Closed** — hubs + sliding studios |
+| P15 | Draft update / expire / revoke | High | **Closed** |
 
 ## Owner-ready gate
 
-Do not classify Owner-ready until **P2** closes with a physical scan and the Owner accepts the walkthrough without developer coaching.
+Scan the Live Device QR (or `tmp/.../live-device/studio-ui-qr.png`) on a phone on the same Wi‑Fi, confirm draft preview, then review the composition walkthrough.

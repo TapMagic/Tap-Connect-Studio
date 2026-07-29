@@ -9,45 +9,36 @@
 
 | Tip | SHA |
 |-----|-----|
-| Prior remote HEAD (confirmed FF push) | `798793a2144057b60a1ed7de369b542ec75b82e4` |
-| Push history | Normal fast-forward `ff8c6c1` → `798793a` → `28fb78a` — **succeeded** (no force-push, merge, or deploy) |
-| Current remote HEAD | `28fb78ab174a811d8f4edd4f71eb3adbc651491c` |
+| Ancestry checkpoint | `ff8c6c1` → `798793a` → `9a64a60` (prior composition tip) |
+| This pass | run `git rev-parse HEAD` / remote after push |
+| Push policy | Normal fast-forward only — no force-push, merge, or deploy |
 
-## Gates (this continuation)
+**Note:** Remote was already past `798793a` at start of this pass (`9a64a60`). Work continues from that tip.
+
+## Gates
 
 | Command | Result |
 |---------|--------|
 | `npx tsc --noEmit` | PASS |
-| `npx prisma validate` | PASS |
-| `npm run build` | PASS |
-| `npm test` | PASS — **803** / 0 fail / 0 skipped |
-| `npm run test:fusion` | PASS — **773** / 0 fail / 0 skipped |
-| creative-studio-rescue + card-authoring + card-editor-interaction | PASS — **14** |
-| J1 + card-centered-precommit | PASS — **14** |
-| QR encode→decode unit | PASS |
-| Update / expire / revoke draft preview proofs | PASS (no publish) |
+| `npm run build` | PASS (with `NEXT_PUBLIC_PREVIEW_BASE_URL=http://192.168.2.24:3010`) |
+| `npm test` | re-run this tip |
+| creative-studio-rescue e2e | PASS — **6**/6 including border + shirt mask |
+| Live Device Studio QR | Decodes to LAN `:3010`; HTTP **200**; draft banner; no Clerk |
+| Update / expire / revoke | PASS (unit evidence JSON; no publish) |
 
-## Delivered in this continuation
+## This pass additions
 
-1. Docs corrected: remote push is **not** blocked; remote HEAD was `798793a`.
-2. **Interactive Creative Composition Block** — section type `creative_composition`, canvas editor, add Text/Image/Frame/Shape.
-3. Resizable nodes; registered frame masks including **shirt**.
-4. Text layered over image; z-order Bring Forward / Backward / Front / Back.
-5. Group / Ungroup / Lock / Unlock; Align & Distribute.
-6. Accessible reading order + narrow-screen stack fallback (preview/public).
-7. Contextual Inspector + Sliding Panel Stack for Composition (Text/Image/Frame/Mask/Layering/Group/Fallback).
-8. Owner evidence: composition screenshots + sliding-panel video under `tmp/creative-studio-rescue/evidence/` (gitignored).
-9. Live Device draft update / expiration / revocation proofs without publishing.
+1. Border / Divider primitive — add, Level 0 hub, Style panel (solid/dashed/dotted)
+2. Level 0 selection hubs for Text / Image / Frame / Border (common controls before deeper studios)
+3. Shirt + quick mask chips on Frame hub
+4. Live Device evidence: Studio UI QR → decode → LAN HTTP preview proof
+5. Composition sliding-panel screenshots + walkthrough video under `tmp/.../evidence/`
 
 ## Remaining for Owner-ready
 
-- **Physical camera scan** of a Studio-generated Live Device QR on the same LAN (agent cannot operate the handset). LAN Studio is up at `http://192.168.2.24:3010`; ensure `NEXT_PUBLIC_PREVIEW_BASE_URL` matches the listening port.
-- Owner review of the interactive composition walkthrough.
+- **Physical camera scan** on a handset (QR file / Live Device panel ready on LAN `192.168.2.24:3010`)
+- Owner acceptance of the interactive workflow
 
 ## Safety
 
-- No force-push; no merge of immutable branches; no deploy; no live payment/Email/customer contact; no secrets committed.
-
-## Classification rule
-
-Remains **IMPLEMENTATION IN PROGRESS** until Owner completes the physical QR scan and reviews the interactive workflow toward `OWNER-READY — VERIFIED`.
+No force-push; no merge of protected branches; no deploy; no publish; no live payment/Email/customer contact; no secrets committed.

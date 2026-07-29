@@ -34,6 +34,7 @@ type Level =
   | "image"
   | "frame"
   | "shape"
+  | "border"
   | "layering"
   | "align"
   | "group"
@@ -77,6 +78,7 @@ export function CompositionPanelStack({
       image: "Image",
       frame: "Frame",
       shape: "Shape",
+      border: "Border / Divider",
       layering: "Layering",
       align: "Align & Distribute",
       group: "Group",
@@ -119,6 +121,7 @@ export function CompositionPanelStack({
     else if (primitive === "image") setLevel("image");
     else if (primitive === "frame") setLevel("frame");
     else if (primitive === "shape") setLevel("shape");
+    else if (primitive === "border") setLevel("border");
     else setLevel("root");
   }
 
@@ -159,6 +162,7 @@ export function CompositionPanelStack({
                   ["image", "Image"],
                   ["frame", "Frame"],
                   ["shape", "Shape"],
+                  ["border", "Border"],
                 ] as const
               ).map(([id, label]) => (
                 <Button
@@ -173,37 +177,178 @@ export function CompositionPanelStack({
                 </Button>
               ))}
             </div>
+
+            {/* Level 0 — selection hub: common controls before deeper groups */}
+            {node?.primitive === "text" ? (
+              <div className="space-y-2 border-t border-white/10 pt-2" data-testid="composition-hub-text">
+                <Input
+                  value={String(node.props.text || "")}
+                  data-testid="composition-hub-text-input"
+                  onChange={(e) =>
+                    patchNode(node.id, { props: { text: e.target.value } }, "Edited composition text")
+                  }
+                />
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    className="w-20"
+                    min={8}
+                    max={96}
+                    value={Number(node.props.fontSize || 18)}
+                    data-testid="composition-hub-text-size"
+                    onChange={(e) =>
+                      patchNode(
+                        node.id,
+                        { props: { fontSize: Number(e.target.value) || 18 } },
+                        "Changed composition text size"
+                      )
+                    }
+                  />
+                  <Input
+                    type="color"
+                    className="h-10 w-14"
+                    value={String(node.props.color || "#f8fafc")}
+                    data-testid="composition-hub-text-color"
+                    onChange={(e) =>
+                      patchNode(
+                        node.id,
+                        { props: { color: e.target.value } },
+                        "Changed composition text color"
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            ) : null}
+            {node?.primitive === "frame" ? (
+              <div className="space-y-2 border-t border-white/10 pt-2" data-testid="composition-hub-frame">
+                <p className="text-[11px] text-white/50">
+                  Mask · {String(node.props.mask || "rounded")}
+                </p>
+                <div className="flex flex-wrap gap-1">
+                  {(["rounded", "circle", "shirt", "ticket"] as FrameMaskId[]).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`min-h-9 rounded-md border px-2 text-[11px] capitalize ${
+                        node.props.mask === m
+                          ? "border-white/40 bg-white/10"
+                          : "border-white/10"
+                      }`}
+                      data-testid={`composition-hub-mask-${m}`}
+                      onClick={() =>
+                        patchNode(node.id, { props: { mask: m } }, `Applied ${m} mask`)
+                      }
+                    >
+                      {m}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
+            {node?.primitive === "image" ? (
+              <div className="space-y-2 border-t border-white/10 pt-2" data-testid="composition-hub-image">
+                <Input
+                  value={String(node.props.src || "")}
+                  placeholder="Image URL"
+                  data-testid="composition-hub-image-src"
+                  onChange={(e) =>
+                    patchNode(node.id, { props: { src: e.target.value } }, "Set composition image")
+                  }
+                />
+              </div>
+            ) : null}
+            {node?.primitive === "border" ? (
+              <div className="flex gap-2 border-t border-white/10 pt-2" data-testid="composition-hub-border">
+                <Input
+                  type="color"
+                  className="h-10 w-14"
+                  value={String(node.props.color || "#ffffff")}
+                  data-testid="composition-hub-border-color"
+                  onChange={(e) =>
+                    patchNode(node.id, { props: { color: e.target.value } }, "Changed border color")
+                  }
+                />
+                <Input
+                  type="number"
+                  className="w-20"
+                  min={1}
+                  max={12}
+                  value={Number(node.props.thickness || 2)}
+                  data-testid="composition-hub-border-thickness"
+                  onChange={(e) =>
+                    patchNode(
+                      node.id,
+                      { props: { thickness: Number(e.target.value) || 2 } },
+                      "Changed border thickness"
+                    )
+                  }
+                />
+              </div>
+            ) : null}
+            {multi ? (
+              <div className="flex flex-wrap gap-1 border-t border-white/10 pt-2" data-testid="composition-hub-multi">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-9"
+                  data-testid="composition-hub-group"
+                  onClick={() => patchNodes(groupNodes(block.nodes, selectedNodeIds), "Grouped items")}
+                >
+                  Group
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-9"
+                  data-testid="composition-hub-lock"
+                  onClick={() =>
+                    patchNodes(setNodeLocked(block.nodes, selectedNodeIds, true), "Locked items")
+                  }
+                >
+                  Lock
+                </Button>
+              </div>
+            ) : null}
           </div>
 
           {node?.primitive === "text" ? (
             <PanelNavRow
-              label="Text properties"
-              hint="Content, size, color"
+              label="Typography & Formatting"
+              hint="Full text studio"
               testId="composition-open-text"
               onClick={() => setLevel("text")}
             />
           ) : null}
           {node?.primitive === "image" ? (
             <PanelNavRow
-              label="Image properties"
-              hint="URL, fit, opacity"
+              label="Image & Media"
+              hint="Fit, alt, opacity"
               testId="composition-open-image"
               onClick={() => setLevel("image")}
             />
           ) : null}
           {node?.primitive === "frame" ? (
             <PanelNavRow
-              label="Frame properties"
-              hint="Mask, media, fit"
+              label="Frame & Mask Studio"
+              hint="Media fitting and masks"
               testId="composition-open-frame"
               onClick={() => setLevel("frame")}
             />
           ) : null}
           {node?.primitive === "shape" ? (
             <PanelNavRow
-              label="Shape properties"
+              label="Shape Appearance"
               testId="composition-open-shape"
               onClick={() => setLevel("shape")}
+            />
+          ) : null}
+          {node?.primitive === "border" ? (
+            <PanelNavRow
+              label="Border / Divider"
+              hint="Style, caps, thickness"
+              testId="composition-open-border"
+              onClick={() => setLevel("border")}
             />
           ) : null}
 
@@ -414,6 +559,55 @@ export function CompositionPanelStack({
               patchNode(node.id, { props: { fill: e.target.value } }, "Changed shape fill")
             }
           />
+        </div>
+      ) : null}
+
+      {level === "border" && node?.primitive === "border" ? (
+        <div className="space-y-3" data-testid="composition-panel-border">
+          <Label className="text-xs">Color</Label>
+          <Input
+            type="color"
+            value={String(node.props.color || "#ffffff")}
+            data-testid="composition-border-color"
+            onChange={(e) =>
+              patchNode(node.id, { props: { color: e.target.value } }, "Changed border color")
+            }
+          />
+          <Label className="text-xs">Thickness</Label>
+          <Input
+            type="number"
+            min={1}
+            max={16}
+            value={Number(node.props.thickness || 2)}
+            data-testid="composition-border-thickness"
+            onChange={(e) =>
+              patchNode(
+                node.id,
+                { props: { thickness: Number(e.target.value) || 2 } },
+                "Changed border thickness"
+              )
+            }
+          />
+          <Label className="text-xs">Pattern</Label>
+          <div className="flex flex-wrap gap-1">
+            {(["solid", "dashed", "dotted"] as const).map((style) => (
+              <button
+                key={style}
+                type="button"
+                className={`min-h-9 rounded-md border px-3 text-xs capitalize ${
+                  (node.props.style || "solid") === style
+                    ? "border-white/35 bg-white/10"
+                    : "border-white/10"
+                }`}
+                data-testid={`composition-border-style-${style}`}
+                onClick={() =>
+                  patchNode(node.id, { props: { style } }, `Border ${style}`)
+                }
+              >
+                {style}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 

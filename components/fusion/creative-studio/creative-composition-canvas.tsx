@@ -161,13 +161,23 @@ function NodeVisual({
   }
 
   if (node.primitive === "border") {
+    const style = str(node.props.style, "solid");
+    const thickness = num(node.props.thickness, 2);
+    const color = str(node.props.color, "#fff");
     return (
       <div
-        className="h-full w-full"
-        style={{
-          borderTop: `${num(node.props.thickness, 2)}px ${str(node.props.style, "solid")} ${str(node.props.color, "#fff")}`,
-        }}
-      />
+        className="flex h-full w-full items-center"
+        data-border-style={style}
+      >
+        <div
+          className="w-full"
+          style={{
+            borderTopWidth: thickness,
+            borderTopStyle: style as "solid" | "dashed" | "dotted",
+            borderTopColor: color,
+          }}
+        />
+      </div>
     );
   }
 

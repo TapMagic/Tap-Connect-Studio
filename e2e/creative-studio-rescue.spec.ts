@@ -176,5 +176,12 @@ test.describe("creative studio rescue", () => {
     await page.getByTestId("composition-open-fallback").click();
     await expect(page.getByTestId("composition-panel-fallback")).toBeVisible();
     await page.getByTestId("composition-fallback-stack").click();
+    await page.getByTestId("panel-stack-back").click();
+
+    await page.getByTestId("composition-add-border").click();
+    await expect(page.getByTestId("composition-panel-border")).toBeVisible();
+    await page.getByTestId("composition-border-style-dashed").click();
+    await page.getByTestId("panel-stack-back").click();
+    await expect(page.getByTestId("composition-hub-border")).toBeVisible();
   });
 });
