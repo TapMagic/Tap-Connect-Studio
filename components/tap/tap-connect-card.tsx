@@ -40,6 +40,10 @@ import {
   buildActionPropertyMap,
 } from "@/lib/fusion/authoring/card-visual-resolve";
 import { resolveItemProperties } from "@/lib/fusion/authoring/visual-property";
+import {
+  blocksCustomerActivation,
+  type CreativeStudioMode,
+} from "@/lib/fusion/creative-studio/modes";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -52,12 +56,22 @@ type TapConnectCardProps = {
   selectedSectionId?: string | null;
   /** Builder-only chrome (e.g. Linked badge) — hidden on live taps */
   builderChrome?: boolean;
+  /**
+   * Creative Studio interaction contract:
+   * edit = select only · preview = safe activate · public = live.
+   * Defaults to edit when builderChrome is set, otherwise public.
+   */
+  interactionMode?: CreativeStudioMode;
+  /** Direct canvas selection — Edit mode only */
+  onSectionSelect?: (sectionId: string | null) => void;
   /** Public/runtime context for platform-bound actions (e.g. Ask a Question) */
   supportContext?: Omit<CardSupportContext, "sectionId" | "businessName"> | null;
   /** Public/runtime context for Offer fuse claim path */
   offerContext?: Omit<CardOfferContext, "sectionId" | "businessName" | "offerTitle" | "offerDescription" | "offerCode" | "offerExpires" | "offerCta" | "offerBlockId"> | null;
   /** When true, campaign-bound Spotlight uses claim form instead of bare link */
   offerFuseEnabled?: boolean;
+  /** Preview-safe: consequential actions show honest messages instead of live side effects */
+  previewSafe?: boolean;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
 };
@@ -79,12 +93,18 @@ export function TapConnectCard({
   forceExpanded = false,
   selectedSectionId = null,
   builderChrome = false,
+  interactionMode,
+  onSectionSelect,
   supportContext = null,
   offerContext = null,
   offerFuseEnabled = false,
+  previewSafe = false,
   className = "",
   onAction,
 }: TapConnectCardProps) {
+  const mode: CreativeStudioMode =
+    interactionMode ?? (builderChrome ? "edit" : "public");
+  const editSelects = blocksCustomerActivation(mode);
   const [collapsed, setCollapsed] = useState(
     !forceExpanded && config.collapsible && config.defaultCollapsed
   );
@@ -184,21 +204,45 @@ export function TapConnectCard({
     onAction?.("vcard", "download");
   }
 
+  function selectSection(sectionId: string, e?: MouseEvent) {
+    if (!editSelects) return false;
+    e?.preventDefault();
+    e?.stopPropagation();
+    onSectionSelect?.(sectionId);
+    return true;
+  }
+
   async function handleAction(section: TapCardSection) {
+    if (editSelects) {
+      onSectionSelect?.(section.id);
+      return;
+    }
+
     const kind = section.actionKind;
     onAction?.(kind || section.type, section.id);
 
     if (kind === "vcard") {
+      if (previewSafe || mode === "preview") {
+        setToast("Save Contact is available in Preview — contact file opens on this device.");
+        window.setTimeout(() => setToast(null), 3600);
+      }
       await downloadVcf();
       return;
     }
     if (kind === "support") {
       if (!supportContext?.businessId) {
         setToast(
-          builderChrome
-            ? "Ask a Question is available on the public Card after publish"
-            : "Support is temporarily unavailable"
+          mode === "preview" || previewSafe
+            ? "This action is visible in Preview, but no live message will be sent."
+            : builderChrome
+              ? "Ask a Question is available on the public Card after publish"
+              : "Support is temporarily unavailable"
         );
+        window.setTimeout(() => setToast(null), 3600);
+        return;
+      }
+      if (mode === "preview" || previewSafe) {
+        setToast("This action is visible in Preview, but no live message will be sent.");
         window.setTimeout(() => setToast(null), 3600);
         return;
       }
@@ -246,6 +290,7 @@ export function TapConnectCard({
           ...textFormatToCss(promo.format),
         }}
         onClick={(e) => {
+          if (selectSection(promo.id, e)) return;
           if (!promo.href || promo.href === "#") e.preventDefault();
           onAction?.("promo_header", promo.id);
         }}
@@ -279,7 +324,7 @@ export function TapConnectCard({
       rawMode === "campaign" &&
       Boolean(section.linkedCampaignId) &&
       Boolean(offerContext?.businessId);
-    const mode = fuseCampaign ? "fuse" : rawMode === "campaign" ? "link" : rawMode;
+    const offerMode = fuseCampaign ? "fuse" : rawMode === "campaign" ? "link" : rawMode;
     const href = section.href?.trim();
     const campaignLinked = Boolean(section.linkedCampaignId);
     const open =
@@ -289,13 +334,20 @@ export function TapConnectCard({
     const claiming = claimSectionId === section.id;
 
     function activate(e: MouseEvent) {
+      if (selectSection(section.id, e)) return;
       onAction?.("special_offer", section.id);
-      if (mode === "fuse") {
+      if ((mode === "preview" || previewSafe) && offerMode === "fuse") {
+        e.preventDefault();
+        setToast("This offer is visible in Preview, but no live claim will be recorded.");
+        window.setTimeout(() => setToast(null), 3600);
+        return;
+      }
+      if (offerMode === "fuse") {
         e.preventDefault();
         setClaimSectionId((prev) => (prev === section.id ? null : section.id));
         return;
       }
-      if (mode === "expand") {
+      if (offerMode === "expand") {
         e.preventDefault();
         setOpenOffers((prev) => ({
           ...prev,
@@ -341,22 +393,22 @@ export function TapConnectCard({
           ) : null}
         </div>
         <span className="tcc-special-cta">
-          {mode === "fuse"
+          {offerMode === "fuse"
             ? claiming
               ? "Hide offer"
               : section.offerCta || "Claim offer"
-            : mode === "expand"
+            : offerMode === "expand"
               ? open
                 ? "Hide offer"
                 : section.offerCta || "View offer"
               : section.offerCta || (campaignLinked ? "Open campaign" : "Open")}
-          <ChevronRight className={cn("size-4", (open || claiming) && (mode === "expand" || mode === "fuse") && "rotate-90")} />
+          <ChevronRight className={cn("size-4", (open || claiming) && (offerMode === "expand" || offerMode === "fuse") && "rotate-90")} />
         </span>
       </>
     );
 
     const offerPanel =
-      mode === "expand" && open ? (
+      offerMode === "expand" && open ? (
         <div className="tcc-special-offer-panel">
           <p className="tcc-special-offer-title">
             {section.offerTitle || section.headline || "Your offer"}
@@ -385,7 +437,7 @@ export function TapConnectCard({
       ) : null;
 
     const fusePanel =
-      mode === "fuse" && claiming && offerContext?.businessId && section.linkedCampaignId ? (
+      offerMode === "fuse" && claiming && offerContext?.businessId && section.linkedCampaignId ? (
         <div className="mt-2 px-1">
           <CardOfferClaimForm
             context={{
@@ -422,7 +474,7 @@ export function TapConnectCard({
       selectedSectionId === section.id && "tcc-section-selected"
     );
 
-    if (mode === "link" && href && href !== "#") {
+    if (offerMode === "link" && href && href !== "#") {
       return (
         <div
           key={section.id}
@@ -987,7 +1039,9 @@ export function TapConnectCard({
                 defaultPillText={config.pillTextColor}
                 defaultNeon={config.neonColor}
                 avatarUrl={mark}
+                editSelects={editSelects}
                 onActivate={() => void handleAction(section)}
+                onSelect={(e) => selectSection(section.id, e)}
               />
             ))}
           </div>
@@ -1092,9 +1146,30 @@ export function TapConnectCard({
         "tcc",
         finishClass(config.cardFinish, "tcc-shell-finish"),
         config.view3d && "tcc-view-3d",
+        editSelects && "tcc-edit-selects",
         className
       )}
       style={style}
+      data-interaction-mode={mode}
+      data-edit-selects={editSelects ? "true" : "false"}
+      onClickCapture={(e) => {
+        if (!editSelects) return;
+        const el = (e.target as HTMLElement | null)?.closest?.(
+          "[data-section-id]"
+        ) as HTMLElement | null;
+        if (!el) return;
+        const id = el.getAttribute("data-section-id");
+        if (!id) return;
+        e.preventDefault();
+        e.stopPropagation();
+        onSectionSelect?.(id);
+      }}
+      onClick={(e) => {
+        if (!editSelects) return;
+        const target = e.target as HTMLElement | null;
+        if (target?.closest?.("[data-section-id]")) return;
+        onSectionSelect?.(null);
+      }}
     >
       {(() => {
         const headerSrc = firstImageUrl(config.headerLogoUrl, logoUrl);
@@ -1156,7 +1231,9 @@ function ActionPill({
   defaultPillText,
   defaultNeon,
   avatarUrl,
+  editSelects = false,
   onActivate,
+  onSelect,
 }: {
   section: TapCardSection;
   selected?: boolean;
@@ -1167,7 +1244,9 @@ function ActionPill({
   defaultPillText?: string;
   defaultNeon?: string;
   avatarUrl?: string | null;
+  editSelects?: boolean;
   onActivate: () => void;
+  onSelect?: (e: MouseEvent) => void;
 }) {
   const kind = section.actionKind || "custom";
   const icon = section.icon || kind;
@@ -1283,7 +1362,13 @@ function ActionPill({
           ...(finish === "brand" && brand ? brand : {}),
         } as CSSProperties
       }
-      onClick={onActivate}
+      onClick={(e) => {
+        if (editSelects) {
+          onSelect?.(e);
+          return;
+        }
+        onActivate();
+      }}
     >
       {after ? (
         <>

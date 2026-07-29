@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MediaPicker } from "@/components/media/media-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
+import { ProfessionalTypographyPanel } from "@/components/fusion/creative-studio/professional-typography-panel";
 import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { cn } from "@/lib/utils";
@@ -297,27 +298,44 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
   }
 
   if (resolved === "typography") {
+    const sample =
+      selected?.label ||
+      selected?.text ||
+      selected?.headline ||
+      config.titleFormat?.customFontFamily ||
+      "Your Card headline";
     return (
       <div className="space-y-4" data-testid="card-drawer-typography">
-        <TextFormatControls
-          title="Card title"
-          value={config.titleFormat}
-          onChange={(titleFormat) => patchConfig({ titleFormat })}
+        <ProfessionalTypographyPanel
+          value={
+            selected
+              ? selected.format ?? {}
+              : config.titleFormat ?? {}
+          }
+          sampleText={typeof sample === "string" ? sample : "Your Card headline"}
+          brandFontIds={["inter", "source-serif-4", "playfair"]}
+          onChange={(format) => {
+            if (selected) patchSection(selected.id, { format });
+            else patchConfig({ titleFormat: format });
+          }}
         />
-        <TextFormatControls
-          title="Card body"
-          value={config.bodyFormat}
-          onChange={(bodyFormat) => patchConfig({ bodyFormat })}
-        />
-        {selected ? (
-          <TextFormatControls
-            title="Selected block"
-            value={selected.format ?? {}}
-            onChange={(format) => patchSection(selected.id, { format })}
-          />
-        ) : (
-          <HonestNote>Select a segment for block-level typography.</HonestNote>
-        )}
+        <details className="rounded-md border border-white/10 p-2" data-testid="legacy-type-presets">
+          <summary className="cursor-pointer text-xs text-white/55">
+            Additional Card-level type (optional presets)
+          </summary>
+          <div className="mt-3 space-y-3">
+            <TextFormatControls
+              title="Card title"
+              value={config.titleFormat}
+              onChange={(titleFormat) => patchConfig({ titleFormat })}
+            />
+            <TextFormatControls
+              title="Card body"
+              value={config.bodyFormat}
+              onChange={(bodyFormat) => patchConfig({ bodyFormat })}
+            />
+          </div>
+        </details>
       </div>
     );
   }

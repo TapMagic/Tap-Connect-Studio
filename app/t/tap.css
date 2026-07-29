@@ -1094,10 +1094,20 @@
 }
 
 /* ── Tap Connect Card (premium flexible digital card) ─────────────────────── */
+/* Selection: neutral high-contrast — not green success / publish chrome */
 .tcc-section-selected {
-  outline: 2px solid color-mix(in srgb, var(--tcc-accent) 85%, #a3e635);
+  outline: 2px solid #e8eaef;
   outline-offset: 3px;
-  box-shadow: 0 0 0 4px color-mix(in srgb, var(--tcc-accent) 25%, transparent);
+  box-shadow: 0 0 0 1px rgba(15, 18, 28, 0.55), 0 0 0 4px rgba(232, 234, 239, 0.35);
+}
+
+.tcc-edit-selects [data-section-id] {
+  cursor: pointer;
+}
+
+.tcc-edit-selects a,
+.tcc-edit-selects button.tcc-pill {
+  cursor: pointer;
 }
 
 .tcc {

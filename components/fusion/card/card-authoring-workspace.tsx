@@ -16,7 +16,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Monitor, Redo2, Save, Smartphone, Undo2 } from "lucide-react";
+import { Monitor, Redo2, Save, Smartphone, Tablet, Undo2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdaptiveWorkspaceShell,
@@ -28,6 +28,18 @@ import {
   type CardBuilderShellStatus,
 } from "@/components/card/tap-card-builder";
 import { CardLiveToolDrawer } from "@/components/fusion/card/card-live-tool-drawer";
+import { PreviewToolbar } from "@/components/fusion/creative-studio/preview-toolbar";
+import { LiveDeviceQrPanel } from "@/components/fusion/creative-studio/live-device-qr-panel";
+import {
+  getCardEditorLive,
+  subscribeCardEditorLive,
+} from "@/components/fusion/card/card-editor-live";
+import {
+  PREVIEW_VIEWPORT_WIDTHS,
+  type CreativeStudioMode,
+  type PreviewViewport,
+} from "@/lib/fusion/creative-studio/modes";
+import { STUDIO_WORDING } from "@/lib/fusion/creative-studio/wording";
 import {
   createShellSnapshot,
   type ToolDrawerMemory,
@@ -145,8 +157,13 @@ export function CardAuthoringWorkspace({
     () => initialShell.snapshot
   );
   const [sessionRestored] = useState(() => Boolean(restored.sessionDraftRestored));
-  const [previewViewport, setPreviewViewport] = useState<"desktop" | "mobile">(
-    "desktop"
+  const [studioMode, setStudioMode] = useState<CreativeStudioMode>("edit");
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>("desktop");
+  const [liveDeviceOpen, setLiveDeviceOpen] = useState(false);
+  const [previewRevision, setPreviewRevision] = useState(1);
+  const [liveConfigTick, setLiveConfigTick] = useState(0);
+  const [editSelectionMemory, setEditSelectionMemory] = useState<string | null>(
+    null
   );
   const [outlineBody, setOutlineBody] = useState<ReactNode>(null);
   const [status, setStatus] = useState<CardBuilderShellStatus>({
@@ -171,6 +188,30 @@ export function CardAuthoringWorkspace({
       })
     );
   }, [shell, toolMemory, sessionRestored]);
+
+  useEffect(() => {
+    return subscribeCardEditorLive(() => {
+      setLiveConfigTick((n) => n + 1);
+      setPreviewRevision((n) => n + 1);
+    });
+  }, []);
+
+  const liveModel = liveConfigTick >= 0 ? getCardEditorLive() : null;
+
+  const enterPreview = useCallback(() => {
+    setEditSelectionMemory(status.selectedId);
+    setStudioMode("preview");
+    setShell((s) => ({ ...s, drawerOpen: false, focusMode: true }));
+  }, [status.selectedId]);
+
+  const exitPreview = useCallback(() => {
+    setStudioMode("edit");
+    setLiveDeviceOpen(false);
+    setShell((s) => ({ ...s, focusMode: false }));
+    if (editSelectionMemory) {
+      apiRef.current?.selectSection?.(editSelectionMemory);
+    }
+  }, [editSelectionMemory]);
 
   // Keep builder focus in sync with shell Focus.
   useEffect(() => {
@@ -296,17 +337,17 @@ export function CardAuthoringWorkspace({
     </div>
   );
 
-  /** Green = next forward action only: Save when dirty, Done when clean. */
+  /** Green = forward action only: Save when dirty, Finish editing when clean. */
   const primaryAction = status.dirty ? (
     <Button
       type="button"
       className="inline-flex min-h-11 items-center bg-primary px-3 text-primary-foreground"
       data-testid="card-save"
-      disabled={status.saving}
+      disabled={status.saving || studioMode === "preview"}
       onClick={() => void apiRef.current?.save()}
     >
       <Save className="mr-1 h-4 w-4" />
-      {status.saving ? "Saving…" : "Save Card"}
+      {status.saving ? STUDIO_WORDING.saving : STUDIO_WORDING.save}
     </Button>
   ) : (
     <Link
@@ -314,12 +355,19 @@ export function CardAuthoringWorkspace({
       className="inline-flex min-h-11 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
       data-testid="card-shade-done"
     >
-      Done
+      {STUDIO_WORDING.finishEditing}
     </Link>
   );
 
   const shadeExtras = (
     <div className="flex flex-wrap items-center gap-2" data-testid="card-shade-extras">
+      <span
+        className="rounded-md border border-white/10 px-2 py-1 text-[10px] text-white/55"
+        data-testid="studio-save-state"
+        data-saved={status.dirty ? "false" : "true"}
+      >
+        {status.dirty ? STUDIO_WORDING.unsaved : STUDIO_WORDING.saved}
+      </span>
       {!builderProps.freeformEnabled ? (
         <span
           className="text-[10px] text-white/40"
@@ -334,25 +382,27 @@ export function CardAuthoringWorkspace({
         variant="outline"
         className="inline-flex min-h-11 min-w-11 items-center justify-center"
         onClick={() => apiRef.current?.undo()}
-        disabled={!status.canUndo}
+        disabled={!status.canUndo || studioMode === "preview"}
         data-testid="card-undo"
-        aria-label="Undo"
+        aria-label={STUDIO_WORDING.undo}
+        title={`${STUDIO_WORDING.undo} (⌘Z / Ctrl+Z)`}
       >
         <Undo2 className="h-4 w-4" />
+        <span className="sr-only">{STUDIO_WORDING.undo}</span>
       </Button>
       <Button
         type="button"
         variant="outline"
         className="inline-flex min-h-11 min-w-11 items-center justify-center"
         onClick={() => apiRef.current?.redo()}
-        disabled={!status.canRedo}
+        disabled={!status.canRedo || studioMode === "preview"}
         data-testid="card-redo"
-        aria-label="Redo"
+        aria-label={STUDIO_WORDING.redo}
+        title={`${STUDIO_WORDING.redo} (⌘⇧Z / Ctrl+Shift+Z)`}
       >
         <Redo2 className="h-4 w-4" />
+        <span className="sr-only">{STUDIO_WORDING.redo}</span>
       </Button>
-      {/* Secondary Save/Done — always keyboard-reachable; the GREEN forward
-          action lives in the single primaryAction slot (Save when dirty, Done when clean). */}
       {status.dirty ? (
         <Link
           href="/dashboard/card"
@@ -364,7 +414,7 @@ export function CardAuthoringWorkspace({
             }
           }}
         >
-          Done
+          {STUDIO_WORDING.finishEditing}
         </Link>
       ) : (
         <Button
@@ -376,10 +426,9 @@ export function CardAuthoringWorkspace({
           onClick={() => void apiRef.current?.save()}
         >
           <Save className="mr-1 h-4 w-4" />
-          Save
+          {STUDIO_WORDING.save}
         </Button>
       )}
-      {/* Focus is owned by Command Shade — keep alias for docs, not for Playwright clicks */}
       <span className="sr-only" data-testid="card-focus-mode" aria-hidden>
         Focus lives on command-shade-focus
       </span>
@@ -393,6 +442,7 @@ export function CardAuthoringWorkspace({
       data-escape-authoring="true"
       data-adaptive-shell="v1"
       data-shell-consumer="card-authoring"
+      data-studio-mode={studioMode}
       data-maturity="implemented-not-owner-ready"
     >
       {sessionRestored ? (
@@ -406,12 +456,41 @@ export function CardAuthoringWorkspace({
         Command Shade owns Card chrome
       </div>
 
+      {studioMode === "preview" ? (
+        <PreviewToolbar
+          viewport={previewViewport}
+          onViewportChange={setPreviewViewport}
+          liveDeviceActive={liveDeviceOpen}
+          onLiveDevice={() => setLiveDeviceOpen((v) => !v)}
+          onExit={exitPreview}
+        />
+      ) : null}
+
+      {studioMode === "preview" && liveDeviceOpen ? (
+        <div className="border-b border-white/10 bg-[#0a0e16]" data-testid="live-device-dock">
+          <LiveDeviceQrPanel
+            config={liveModel?.config || builderProps.initialConfig}
+            profile={builderProps.profile}
+            businessName={builderProps.businessName}
+            cardName={status.cardName}
+            brandKitId={builderProps.brandKitId}
+            logoUrl={builderProps.logoUrl}
+            reviewUrl={builderProps.reviewUrl}
+            revision={previewRevision}
+          />
+        </div>
+      ) : null}
+
       <AdaptiveWorkspaceShell
         identity={{
           id: WORKSPACE_ID,
           label: status.cardName || "Card",
           objectLabel: [
-            status.lifecycleStatus === "retired" ? "Retired" : "Public-ready",
+            studioMode === "preview"
+              ? STUDIO_WORDING.draftPreview
+              : status.lifecycleStatus === "retired"
+                ? "Retired"
+                : "Working draft",
             tapPointCount ? `${tapPointCount} Tap Points` : null,
             activeSpotlightTitle ? `Spotlight · ${activeSpotlightTitle}` : null,
             status.brandSource,
@@ -420,21 +499,29 @@ export function CardAuthoringWorkspace({
             .join(" · "),
           zone: "card",
         }}
-        outline={shell.focusMode ? undefined : outline}
+        outline={shell.focusMode || studioMode === "preview" ? undefined : outline}
         canvas={
           <div
             className={cn(
               "flex h-full min-h-0 w-full justify-center",
-              previewViewport === "mobile" && "overflow-y-auto py-4"
+              previewViewport !== "desktop" && "overflow-y-auto py-4"
             )}
             data-testid="card-canvas-viewport"
             data-preview-viewport={previewViewport}
+            data-studio-mode={studioMode}
+            style={
+              previewViewport !== "desktop"
+                ? { maxWidth: PREVIEW_VIEWPORT_WIDTHS[previewViewport] }
+                : undefined
+            }
           >
             <div
               className={cn(
                 "h-full min-h-0 w-full transition-[max-width] duration-200 ease-out motion-reduce:transition-none",
-                previewViewport === "mobile" &&
-                  "mx-auto max-w-[420px] rounded-2xl border border-white/10 shadow-2xl"
+                previewViewport === "phone" &&
+                  "mx-auto max-w-[390px] rounded-2xl border border-white/10 shadow-2xl",
+                previewViewport === "tablet" &&
+                  "mx-auto max-w-[768px] rounded-xl border border-white/10 shadow-xl"
               )}
             >
               <TapCardBuilder
@@ -442,8 +529,9 @@ export function CardAuthoringWorkspace({
                 workspaceMode
                 escapeMode
                 shellHosted
-                activeToolId={activeToolId}
-                shellFocusMode={shell.focusMode}
+                interactionMode={studioMode === "preview" ? "preview" : "edit"}
+                activeToolId={studioMode === "preview" ? null : activeToolId}
+                shellFocusMode={shell.focusMode || studioMode === "preview"}
                 doneHref="/dashboard/card"
                 publicCode={publicCode}
                 tapPointCount={tapPointCount}
@@ -459,7 +547,10 @@ export function CardAuthoringWorkspace({
           </div>
         }
         drawerContent={
-          shell.drawerOpen && !shell.focusMode && activeToolId ? (
+          shell.drawerOpen &&
+          !shell.focusMode &&
+          studioMode === "edit" &&
+          activeToolId ? (
             <CardLiveToolDrawer toolId={activeToolId} />
           ) : undefined
         }
@@ -474,7 +565,7 @@ export function CardAuthoringWorkspace({
         recommendedDrawerMode={recommendedDrawerMode}
         zoneClassName="card-zone-glow"
         shadeExtras={shadeExtras}
-        mobileToolRail={mobileToolRail}
+        mobileToolRail={studioMode === "edit" ? mobileToolRail : undefined}
         desktopDrawerCloseTestId="card-drawer-collapse"
         mobileDrawerCloseTestId="card-drawer-collapse"
         mobileSheetTestId="card-mobile-sheet"
@@ -487,7 +578,7 @@ export function CardAuthoringWorkspace({
             className="inline-flex min-h-11 items-center rounded-md border border-white/20 px-2.5 text-xs text-white/85 hover:bg-white/5"
             data-testid="card-edit-done-link"
           >
-            Return
+            {STUDIO_WORDING.backToOverview}
           </Link>
         }
         openInNewTab={
@@ -507,6 +598,25 @@ export function CardAuthoringWorkspace({
             className="flex flex-wrap items-center gap-2"
             data-testid="card-preview-controls"
           >
+            {studioMode === "edit" ? (
+              <button
+                type="button"
+                className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/85 hover:bg-white/5"
+                data-testid="card-preview-as-customer"
+                onClick={enterPreview}
+              >
+                {STUDIO_WORDING.previewAsCustomer}
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/85 hover:bg-white/5"
+                data-testid="card-exit-preview"
+                onClick={exitPreview}
+              >
+                {STUDIO_WORDING.exitPreview}
+              </button>
+            )}
             <Link
               href="/dashboard/card/preview"
               className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/75 hover:bg-white/5"
@@ -522,7 +632,7 @@ export function CardAuthoringWorkspace({
                 className="rounded-md border border-white/15 px-2.5 py-1 text-xs text-white/70 hover:bg-white/5"
                 data-testid="card-edit-preview-public"
               >
-                Open public URL
+                {STUDIO_WORDING.publishedCard}
               </a>
             ) : (
               <span
@@ -530,7 +640,7 @@ export function CardAuthoringWorkspace({
                 title="No Tap Point device code available"
                 data-testid="card-edit-preview-public-unavailable"
               >
-                Public URL unavailable
+                Published Card unavailable
               </span>
             )}
             <div
@@ -539,36 +649,30 @@ export function CardAuthoringWorkspace({
               aria-label="Preview viewport"
               data-testid="card-viewport-toggle"
             >
-              <button
-                type="button"
-                aria-pressed={previewViewport === "desktop"}
-                aria-label="Desktop preview"
-                data-testid="card-viewport-desktop"
-                onClick={() => setPreviewViewport("desktop")}
-                className={cn(
-                  "inline-flex min-h-9 min-w-9 items-center justify-center rounded",
-                  previewViewport === "desktop"
-                    ? "bg-white/12 text-white"
-                    : "text-white/55 hover:text-white/80"
-                )}
-              >
-                <Monitor className="h-4 w-4" aria-hidden />
-              </button>
-              <button
-                type="button"
-                aria-pressed={previewViewport === "mobile"}
-                aria-label="Mobile preview"
-                data-testid="card-viewport-mobile"
-                onClick={() => setPreviewViewport("mobile")}
-                className={cn(
-                  "inline-flex min-h-9 min-w-9 items-center justify-center rounded",
-                  previewViewport === "mobile"
-                    ? "bg-white/12 text-white"
-                    : "text-white/55 hover:text-white/80"
-                )}
-              >
-                <Smartphone className="h-4 w-4" aria-hidden />
-              </button>
+              {(
+                [
+                  ["desktop", Monitor],
+                  ["tablet", Tablet],
+                  ["phone", Smartphone],
+                ] as const
+              ).map(([id, Icon]) => (
+                <button
+                  key={id}
+                  type="button"
+                  aria-pressed={previewViewport === id}
+                  aria-label={id === "phone" ? "Phone preview" : `${id[0].toUpperCase()}${id.slice(1)} preview`}
+                  data-testid={`card-viewport-${id === "phone" ? "mobile" : id}`}
+                  onClick={() => setPreviewViewport(id)}
+                  className={cn(
+                    "inline-flex min-h-9 min-w-9 items-center justify-center rounded",
+                    previewViewport === id
+                      ? "bg-white/12 text-white"
+                      : "text-white/55 hover:text-white/80"
+                  )}
+                >
+                  <Icon className="h-4 w-4" aria-hidden />
+                </button>
+              ))}
             </div>
             <button
               type="button"

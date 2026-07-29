@@ -85,6 +85,7 @@ export type CardBuilderShellApi = {
   redo: () => void;
   setFocusMode: (next: boolean) => void;
   retireToggle: () => void;
+  selectSection: (id: string | null) => void;
 };
 
 export type CardBuilderShellPanels = {
@@ -145,6 +146,8 @@ type Props = {
   onShellOutline?: (outline: ReactNode) => void;
   onShellStatus?: (status: CardBuilderShellStatus) => void;
   onRequestTool?: (toolId: string) => void;
+  /** Creative Studio Edit vs Preview — defaults to edit when hosted */
+  interactionMode?: "edit" | "preview";
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -226,6 +229,7 @@ export function TapCardBuilder({
   onShellOutline,
   onShellStatus,
   onRequestTool,
+  interactionMode = "edit",
 }: Props) {
   const router = useRouter();
   const [config, setConfig] = useState(initialConfig);
@@ -846,6 +850,7 @@ export function TapCardBuilder({
         toggleFocusMode();
       },
       retireToggle,
+      selectSection: (id) => setSelectedId(id),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- API bridge refresh on undo capability
   }, [shellHosted, onShellApi, canUndoSections, canRedoSections, focusMode]);
@@ -2012,8 +2017,35 @@ export function TapCardBuilder({
                   logoUrl={logoUrl}
                   reviewUrl={reviewUrl}
                   forceExpanded
-                  builderChrome
-                  selectedSectionId={selectedId}
+                  builderChrome={interactionMode === "edit"}
+                  interactionMode={interactionMode}
+                  previewSafe={interactionMode === "preview"}
+                  selectedSectionId={interactionMode === "edit" ? selectedId : null}
+                  onSectionSelect={
+                    interactionMode === "edit"
+                      ? (id) => {
+                          setSelectedId(id);
+                          if (id && onRequestTool) {
+                            const section = sectionsHistory.find((s) => s.id === id);
+                            if (section?.type === "action") onRequestTool("buttons");
+                            else if (
+                              section?.type === "text" ||
+                              section?.type === "identity"
+                            )
+                              onRequestTool("typography");
+                            else if (
+                              section?.type === "hero" ||
+                              section?.type === "logo_block" ||
+                              section?.type === "image"
+                            )
+                              onRequestTool("media");
+                            else if (section?.type === "special_offer")
+                              onRequestTool("offer");
+                            else onRequestTool("content");
+                          }
+                        }
+                      : undefined
+                  }
                 />
               </div>
             </div>
