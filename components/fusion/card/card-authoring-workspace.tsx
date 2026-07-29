@@ -178,7 +178,12 @@ export function CardAuthoringWorkspace({
     selectedId: null,
     sectionCount: 0,
     cardName: builderProps.businessName || "Card",
+    pastLabels: [],
+    futureLabels: [],
   });
+  const [chromeState, setChromeState] = useState<
+    "expanded" | "compact" | "collapsed" | "pinned" | "focus"
+  >("expanded");
   const apiRef = useRef<CardBuilderShellApi | null>(null);
 
   useEffect(() => {
@@ -202,16 +207,68 @@ export function CardAuthoringWorkspace({
     setEditSelectionMemory(status.selectedId);
     setStudioMode("preview");
     setShell((s) => ({ ...s, drawerOpen: false, focusMode: true }));
+    setChromeState("focus");
   }, [status.selectedId]);
 
   const exitPreview = useCallback(() => {
     setStudioMode("edit");
     setLiveDeviceOpen(false);
     setShell((s) => ({ ...s, focusMode: false }));
+    setChromeState("expanded");
     if (editSelectionMemory) {
       apiRef.current?.selectSection?.(editSelectionMemory);
     }
   }, [editSelectionMemory]);
+
+  const applyChromeState = useCallback(
+    (next: "expanded" | "compact" | "collapsed" | "pinned" | "focus") => {
+      setChromeState(next);
+      if (next === "focus") {
+        setShell((s) => ({
+          ...s,
+          focusMode: true,
+          drawerOpen: false,
+          shadePreference: "auto",
+          priorShadeDisplay: "collapsed",
+        }));
+        return;
+      }
+      if (next === "pinned") {
+        setShell((s) => ({
+          ...s,
+          focusMode: false,
+          shadePreference: "pinned_open",
+          priorShadeDisplay: "open",
+        }));
+        return;
+      }
+      if (next === "collapsed") {
+        setShell((s) => ({
+          ...s,
+          focusMode: false,
+          shadePreference: "pinned_collapsed",
+          priorShadeDisplay: "collapsed",
+        }));
+        return;
+      }
+      if (next === "compact") {
+        setShell((s) => ({
+          ...s,
+          focusMode: false,
+          shadePreference: "auto",
+          priorShadeDisplay: "peek",
+        }));
+        return;
+      }
+      setShell((s) => ({
+        ...s,
+        focusMode: false,
+        shadePreference: "auto",
+        priorShadeDisplay: "open",
+      }));
+    },
+    []
+  );
 
   // Keep builder focus in sync with shell Focus.
   useEffect(() => {
@@ -271,7 +328,9 @@ export function CardAuthoringWorkspace({
         prev.brandSource === next.brandSource &&
         prev.selectedId === next.selectedId &&
         prev.sectionCount === next.sectionCount &&
-        prev.cardName === next.cardName
+        prev.cardName === next.cardName &&
+        prev.pastLabels.join("|") === next.pastLabels.join("|") &&
+        prev.futureLabels.join("|") === next.futureLabels.join("|")
       ) {
         return prev;
       }
@@ -443,6 +502,7 @@ export function CardAuthoringWorkspace({
       data-adaptive-shell="v1"
       data-shell-consumer="card-authoring"
       data-studio-mode={studioMode}
+      data-chrome-state={chromeState}
       data-maturity="implemented-not-owner-ready"
     >
       {sessionRestored ? (
@@ -456,13 +516,72 @@ export function CardAuthoringWorkspace({
         Command Shade owns Card chrome
       </div>
 
+      {studioMode === "edit" ? (
+        <div
+          className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-[#0a0e16] px-3 py-2"
+          data-testid="studio-chrome-controls"
+          role="toolbar"
+          aria-label="Workspace chrome"
+        >
+          {(
+            [
+              ["expanded", "Expanded"],
+              ["compact", "Compact"],
+              ["collapsed", "Collapsed"],
+              ["pinned", "Pinned"],
+              ["focus", "Focus on canvas"],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={chromeState === id}
+              data-testid={`chrome-state-${id}`}
+              onClick={() => applyChromeState(id)}
+              className={cn(
+                "min-h-9 rounded-md border px-2.5 text-[11px]",
+                chromeState === id
+                  ? "border-white/35 bg-white/10 text-white"
+                  : "border-white/10 text-white/60"
+              )}
+            >
+              {label}
+            </button>
+          ))}
+          <button
+            type="button"
+            className="min-h-9 rounded-md border border-white/10 px-2.5 text-[11px] text-white/60"
+            data-testid="open-history-panel"
+            onClick={() => openCardTool("history")}
+          >
+            History
+          </button>
+        </div>
+      ) : null}
+
       {studioMode === "preview" ? (
         <PreviewToolbar
           viewport={previewViewport}
           onViewportChange={setPreviewViewport}
           liveDeviceActive={liveDeviceOpen}
           onLiveDevice={() => setLiveDeviceOpen((v) => !v)}
+          onRefresh={() => setPreviewRevision((n) => n + 1)}
+          onCopyLink={() => {
+            const url = publicCode
+              ? `${window.location.origin}/t/${publicCode}?public=1`
+              : window.location.href;
+            void navigator.clipboard.writeText(url);
+          }}
+          onOpenTab={() => {
+            if (publicCode) {
+              window.open(`/t/${publicCode}?public=1`, "_blank", "noopener,noreferrer");
+            }
+          }}
           onExit={exitPreview}
+          revision={previewRevision}
+          draftStateLabel={
+            status.dirty ? STUDIO_WORDING.unsaved : STUDIO_WORDING.workingDraft
+          }
         />
       ) : null}
 

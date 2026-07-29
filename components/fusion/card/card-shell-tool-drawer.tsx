@@ -12,16 +12,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MediaPicker } from "@/components/media/media-picker";
-import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
-import { ProfessionalTypographyPanel } from "@/components/fusion/creative-studio/professional-typography-panel";
+import { FinishPicker } from "@/components/design/format-controls";
+import { ButtonPanelStack } from "@/components/fusion/creative-studio/button-panel-stack";
+import { TextPanelStack } from "@/components/fusion/creative-studio/text-panel-stack";
+import { HistoryPanel } from "@/components/fusion/creative-studio/history-panel";
 import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
+import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { cn } from "@/lib/utils";
 import {
   TAP_CARD_ACTION_CATALOG,
   TAP_CARD_LAYOUT_OPTIONS,
-  TAP_CARD_SHAPE_OPTIONS,
-  type TapCardButtonShape,
   type TapCardSection,
   type TapCardSurfaceFill,
   type TapConnectCardConfig,
@@ -44,8 +45,21 @@ export type CardShellToolDrawerProps = {
   logoUrl?: string | null;
   brandKitId?: string | null;
   message: string | null;
+  profile: BrandContactProfile;
+  reviewUrl?: string | null;
+  businessName: string;
+  pastLabels: string[];
+  futureLabels: string[];
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
   onBrandStateChange: (next: BrandInheritanceState) => void;
-  patchConfig: (patch: Partial<TapConnectCardConfig>) => void;
+  patchConfig: (
+    patch: Partial<TapConnectCardConfig>,
+    label?: string,
+    batch?: boolean
+  ) => void;
   patchConfigColor: (
     key:
       | "accentColor"
@@ -56,7 +70,11 @@ export type CardShellToolDrawerProps = {
       | "neonColor",
     value: string
   ) => void;
-  patchSection: (id: string, patch: Partial<TapCardSection>) => void;
+  patchSection: (
+    id: string,
+    patch: Partial<TapCardSection>,
+    label?: string
+  ) => void;
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
   setSelectedId: (id: string | null) => void;
@@ -65,6 +83,8 @@ export type CardShellToolDrawerProps = {
   onPublishDemo: (publish: boolean) => void;
   onRollback: (snapshotId: string) => void;
   strInherited: (key: string) => string | undefined;
+  onTestAction: (section: TapCardSection) => void;
+  onCloseTool?: () => void;
 };
 
 function HonestNote({ children }: { children: ReactNode }) {
@@ -298,51 +318,48 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
   }
 
   if (resolved === "typography") {
-    const sample =
-      selected?.label ||
-      selected?.text ||
-      selected?.headline ||
-      config.titleFormat?.customFontFamily ||
-      "Your Card headline";
     return (
-      <div className="space-y-4" data-testid="card-drawer-typography">
-        <ProfessionalTypographyPanel
-          value={
-            selected
-              ? selected.format ?? {}
-              : config.titleFormat ?? {}
-          }
-          sampleText={typeof sample === "string" ? sample : "Your Card headline"}
-          brandFontIds={["inter", "source-serif-4", "playfair"]}
-          onChange={(format) => {
-            if (selected) patchSection(selected.id, { format });
-            else patchConfig({ titleFormat: format });
-          }}
-        />
-        <details className="rounded-md border border-white/10 p-2" data-testid="legacy-type-presets">
-          <summary className="cursor-pointer text-xs text-white/55">
-            Additional Card-level type (optional presets)
-          </summary>
-          <div className="mt-3 space-y-3">
-            <TextFormatControls
-              title="Card title"
-              value={config.titleFormat}
-              onChange={(titleFormat) => patchConfig({ titleFormat })}
-            />
-            <TextFormatControls
-              title="Card body"
-              value={config.bodyFormat}
-              onChange={(bodyFormat) => patchConfig({ bodyFormat })}
-            />
-          </div>
-        </details>
-      </div>
+      <TextPanelStack
+        selected={selected}
+        config={config}
+        onPatchSection={patchSection}
+        onPatchConfig={patchConfig}
+        onClose={props.onCloseTool}
+        brandColors={[
+          (brandState.useBrandKit
+            ? strInherited("accentColor") || config.accentColor
+            : config.accentColor) || "#22c55e",
+          config.surfaceColor || "#0b0f19",
+          config.textColor || "#f8fafc",
+          "#22c55e",
+          "#0ea5e9",
+          "#f59e0b",
+        ]}
+      />
     );
   }
 
   if (resolved === "buttons") {
+    if (selected?.type === "action") {
+      return (
+        <ButtonPanelStack
+          selected={selected}
+          config={config}
+          profile={props.profile}
+          reviewUrl={props.reviewUrl}
+          onPatch={(patch, label) => patchSection(selected.id, patch, label)}
+          onPatchConfig={patchConfig}
+          onClose={props.onCloseTool}
+          onTestAction={() => props.onTestAction(selected)}
+        />
+      );
+    }
     return (
       <div className="space-y-3" data-testid="card-drawer-buttons">
+        <HonestNote>
+          Select a button on the Card to open the nested Button panel. Layout defaults
+          below apply to all actions.
+        </HonestNote>
         <div className="space-y-1">
           <Label className="text-[10px] font-semibold uppercase tracking-wide text-primary">
             Actions layout
@@ -358,7 +375,9 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
                     ? "bg-primary/20 text-primary"
                     : "hover:bg-muted"
                 )}
-                onClick={() => patchConfig({ actionsLayout: opt.id })}
+                onClick={() =>
+                  patchConfig({ actionsLayout: opt.id }, "Changed actions layout")
+                }
               >
                 {opt.id === "grid_2" ? (
                   <Columns2 className="h-3.5 w-3.5" />
@@ -370,57 +389,14 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
             ))}
           </div>
         </div>
-        <div className="space-y-1">
-          <Label className="text-[10px]">Default button shape</Label>
-          <select
-            aria-label="Button shape"
-            className="flex h-9 w-full rounded-lg border border-input bg-background px-2 text-xs"
-            value={config.defaultShape}
-            onChange={(e) =>
-              patchConfig({ defaultShape: e.target.value as TapCardButtonShape })
-            }
-          >
-            {TAP_CARD_SHAPE_OPTIONS.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
         <FinishPicker
-          label="Tile / finish"
+          label="Default finish"
           value={config.defaultFinish}
           allowNone={false}
           onChange={(defaultFinish) => {
-            if (defaultFinish) patchConfig({ defaultFinish });
+            if (defaultFinish) patchConfig({ defaultFinish }, "Changed button finish");
           }}
         />
-        <label className="flex items-center gap-2 text-xs">
-          <input
-            type="checkbox"
-            checked={Boolean(config.view3d)}
-            onChange={(e) => patchConfig({ view3d: e.target.checked })}
-          />
-          3-D raised buttons
-        </label>
-        {selected?.type === "action" ? (
-          <div className="space-y-2 border-t border-white/10 pt-3">
-            <p className="text-xs font-semibold">Selected action</p>
-            <Input
-              value={selected.label ?? ""}
-              onChange={(e) => patchSection(selected.id, { label: e.target.value })}
-              placeholder="Label"
-              aria-label="Segment label"
-            />
-            <Input
-              value={selected.href ?? ""}
-              onChange={(e) => patchSection(selected.id, { href: e.target.value })}
-              placeholder="https://…"
-            />
-          </div>
-        ) : (
-          <HonestNote>Select an action segment for per-button overrides.</HonestNote>
-        )}
       </div>
     );
   }
@@ -618,6 +594,15 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
   if (resolved === "history") {
     return (
       <div className="space-y-3" data-testid="card-drawer-history">
+        <HistoryPanel
+          pastLabels={props.pastLabels || []}
+          futureLabels={props.futureLabels || []}
+          canUndo={props.canUndo}
+          canRedo={props.canRedo}
+          onUndo={props.onUndo}
+          onRedo={props.onRedo}
+          onClose={props.onCloseTool}
+        />
         <p className="text-xs font-semibold">Publication versions</p>
         {!brandKitId ? (
           <HonestNote>Version history requires a saved Brand Kit subject.</HonestNote>

@@ -24,8 +24,21 @@ export type CardEditorLiveModel = {
   logoUrl?: string | null;
   brandKitId?: string | null;
   message: string | null;
+  profile: import("@/lib/brand/contact-profile").BrandContactProfile;
+  reviewUrl?: string | null;
+  businessName: string;
+  pastLabels: string[];
+  futureLabels: string[];
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
   onBrandStateChange: (next: BrandInheritanceState) => void;
-  patchConfig: (patch: Partial<TapConnectCardConfig>) => void;
+  patchConfig: (
+    patch: Partial<TapConnectCardConfig>,
+    label?: string,
+    batch?: boolean
+  ) => void;
   patchConfigColor: (
     key:
       | "accentColor"
@@ -36,7 +49,11 @@ export type CardEditorLiveModel = {
       | "neonColor",
     value: string
   ) => void;
-  patchSection: (id: string, patch: Partial<TapCardSection>) => void;
+  patchSection: (
+    id: string,
+    patch: Partial<TapCardSection>,
+    label?: string
+  ) => void;
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
   setSelectedId: (id: string | null) => void;
@@ -45,6 +62,8 @@ export type CardEditorLiveModel = {
   onPublishDemo: (publish: boolean) => void;
   onRollback: (snapshotId: string) => void;
   strInherited: (key: string) => string | undefined;
+  onTestAction: (section: TapCardSection) => void;
+  onCloseTool?: () => void;
 };
 
 const live: { current: CardEditorLiveModel | null } = { current: null };

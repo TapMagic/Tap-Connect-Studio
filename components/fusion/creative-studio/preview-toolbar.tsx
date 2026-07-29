@@ -4,6 +4,7 @@ import { Monitor, Smartphone, Tablet } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   PREVIEW_VIEWPORT_LABELS,
+  PREVIEW_VIEWPORT_WIDTHS,
   type PreviewViewport,
 } from "@/lib/fusion/creative-studio/modes";
 import { STUDIO_WORDING } from "@/lib/fusion/creative-studio/wording";
@@ -13,10 +14,13 @@ export type PreviewToolbarProps = {
   onViewportChange: (v: PreviewViewport) => void;
   onLiveDevice: () => void;
   onRefresh?: () => void;
+  onUpdatePreview?: () => void;
   onCopyLink?: () => void;
   onOpenTab?: () => void;
   onExit: () => void;
   liveDeviceActive?: boolean;
+  revision?: number;
+  draftStateLabel?: string;
   className?: string;
 };
 
@@ -25,10 +29,13 @@ export function PreviewToolbar({
   onViewportChange,
   onLiveDevice,
   onRefresh,
+  onUpdatePreview,
   onCopyLink,
   onOpenTab,
   onExit,
   liveDeviceActive,
+  revision,
+  draftStateLabel,
   className,
 }: PreviewToolbarProps) {
   return (
@@ -43,6 +50,14 @@ export function PreviewToolbar({
     >
       <span className="text-xs font-medium text-amber-200/90" data-testid="preview-mode-badge">
         {STUDIO_WORDING.draftPreview}
+      </span>
+      <span
+        className="rounded border border-white/10 px-2 py-0.5 text-[10px] text-white/55"
+        data-testid="preview-state-label"
+      >
+        {draftStateLabel || STUDIO_WORDING.workingDraft}
+        {typeof revision === "number" ? ` · rev ${revision}` : ""}
+        {` · ${PREVIEW_VIEWPORT_WIDTHS[viewport]}px`}
       </span>
       {(
         [
@@ -91,6 +106,16 @@ export function PreviewToolbar({
           onClick={onRefresh}
         >
           Refresh preview
+        </button>
+      ) : null}
+      {onUpdatePreview ? (
+        <button
+          type="button"
+          data-testid="preview-update"
+          className="min-h-10 rounded-md bg-primary px-2.5 text-xs text-primary-foreground"
+          onClick={onUpdatePreview}
+        >
+          Update preview
         </button>
       ) : null}
       {onCopyLink ? (

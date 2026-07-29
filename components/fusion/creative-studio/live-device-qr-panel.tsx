@@ -29,6 +29,7 @@ type SessionResponse = {
   isLocalhost?: boolean;
   guidance?: string | null;
   revision?: number;
+  expiresAt?: string;
   error?: string;
   consequence?: string;
   recovery?: string;
@@ -53,6 +54,8 @@ export function LiveDeviceQrPanel({
   const [token, setToken] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [updatedAt] = useState(() => new Date().toISOString());
   const stale = revision > sessionRevision;
 
   const payload = useMemo(
@@ -94,6 +97,7 @@ export function LiveDeviceQrPanel({
         setReachable(Boolean(data.reachableForPhone));
         setGuidance(data.guidance || null);
         setSessionRevision(data.revision ?? revision);
+        if (data.expiresAt) setExpiresAt(data.expiresAt);
         if (data.url && data.reachableForPhone) {
           const png = await QRCode.toDataURL(data.url, {
             margin: 1,
@@ -123,8 +127,13 @@ export function LiveDeviceQrPanel({
         <Smartphone className="h-4 w-4 text-white/70" aria-hidden />
         <div>
           <p className="text-sm font-medium text-white">{STUDIO_WORDING.openLiveDevice}</p>
-          <p className="text-[11px] text-white/45">
-            Temporary draft preview — not published
+          <p className="text-[11px] text-white/45" data-testid="preview-qr-card-name">
+            {cardName} · {STUDIO_WORDING.draftPreview} · {STUDIO_WORDING.previewOnlyNotPublished}
+          </p>
+          <p className="text-[10px] text-white/35" data-testid="preview-qr-meta">
+            Updated {new Date(updatedAt).toLocaleString()}
+            {expiresAt ? ` · Expires ${new Date(expiresAt).toLocaleString()}` : ""}
+            {` · rev ${sessionRevision}`}
           </p>
         </div>
       </div>
@@ -223,6 +232,28 @@ export function LiveDeviceQrPanel({
             >
               <RefreshCw className="mr-1 h-3.5 w-3.5" />
               {STUDIO_WORDING.updatePhonePreview}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10"
+              data-testid="preview-revoke"
+              disabled={!token || busy}
+              onClick={() => {
+                if (!token) return;
+                void fetch("/api/preview/card/revoke", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ token }),
+                }).then(() => {
+                  setQrDataUrl(null);
+                  setPreviewUrl(null);
+                  setToken(null);
+                  setError("Preview revoked — generate a new QR to continue.");
+                });
+              }}
+            >
+              Revoke preview
             </Button>
             <a
               href={previewUrl}

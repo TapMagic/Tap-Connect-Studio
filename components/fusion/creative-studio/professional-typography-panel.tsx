@@ -27,9 +27,10 @@ import {
   ptToPx,
   resolvePointSize,
 } from "@/lib/fusion/creative-studio/fonts/points";
+import { FontComparison } from "@/components/fusion/creative-studio/font-comparison";
 import type { TextFormat } from "@/lib/design/premium-finish";
 
-type PanelLevel = "root" | "typography" | "font" | "sample";
+type PanelLevel = "root" | "typography" | "font" | "sample" | "compare";
 
 export type ProfessionalTypographyPanelProps = {
   value?: TextFormat;
@@ -125,6 +126,21 @@ export function ProfessionalTypographyPanel({
 
   const weightOptions = currentFont.weights;
 
+  if (level === "compare") {
+    return (
+      <FontComparison
+        sampleText={sampleText}
+        pointSize={pointSize}
+        onBack={() => setLevel("font")}
+        onClose={onClose}
+        onPick={(id) => {
+          const font = getFontById(id);
+          if (font) void pickFont(font);
+        }}
+      />
+    );
+  }
+
   return (
     <div
       className={cn("flex h-full min-h-0 flex-col", className)}
@@ -162,7 +178,12 @@ export function ProfessionalTypographyPanel({
                   : "Font sample"}
           </p>
           <p className="truncate text-[11px] text-white/45" data-testid="panel-stack-breadcrumb">
-            {["Text", level !== "root" ? "Typography" : null, level === "font" || level === "sample" ? "Font" : null, level === "sample" ? "Sample" : null]
+            {[
+              "Text",
+              level !== "root" ? "Typography" : null,
+              level === "font" || level === "sample" ? "Font" : null,
+              level === "sample" ? "Sample" : null,
+            ]
               .filter(Boolean)
               .join(" → ")}
           </p>
@@ -421,6 +442,14 @@ export function ProfessionalTypographyPanel({
               value={query}
               onChange={(e) => setQuery(e.target.value)}
             />
+            <button
+              type="button"
+              className="min-h-10 w-full rounded-md border border-white/15 text-xs text-white/75"
+              data-testid="open-font-comparison"
+              onClick={() => setLevel("compare")}
+            >
+              Compare recent fonts
+            </button>
             <div className="flex flex-wrap gap-1" data-testid="font-category-filters">
               <button
                 type="button"

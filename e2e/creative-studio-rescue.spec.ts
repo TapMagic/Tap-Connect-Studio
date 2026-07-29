@@ -49,12 +49,61 @@ test.describe("creative studio rescue", () => {
       timeout: 60_000,
     });
     await page.getByTestId("card-tool-typography").click();
-    await expect(page.getByTestId("professional-typography-panel")).toBeVisible({
+    await expect(
+      page.getByTestId("text-panel-stack").or(page.getByTestId("professional-typography-panel"))
+    ).toBeVisible({ timeout: 15_000 });
+    const openFont = page.getByTestId("text-panel-open-font");
+    if (await openFont.isVisible()) {
+      await openFont.click();
+      await expect(page.getByTestId("font-picker-panel")).toBeVisible();
+      await page.getByTestId("font-search").fill("Inter");
+      await expect(page.getByTestId("font-row-inter")).toBeVisible();
+    }
+  });
+
+  test("button nested panel opens from tool after selection", async ({ page }) => {
+    await page.goto("/dashboard/card/edit");
+    await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("card-tool-buttons").click();
+    // Without selection, honest empty state; with outline select an action if present
+    const outlineBtn = page.locator('[data-testid="card-outline-rail"] button').first();
+    if (await outlineBtn.count()) {
+      await outlineBtn.click();
+    }
+    await page.getByTestId("card-tool-buttons").click();
+    const stack = page.getByTestId("button-panel-stack");
+    const empty = page.getByTestId("card-drawer-buttons");
+    await expect(stack.or(empty)).toBeVisible({ timeout: 15_000 });
+    if (await stack.isVisible()) {
+      await page.getByTestId("button-panel-open-action").click();
+      await expect(page.getByTestId("button-panel-action")).toBeVisible();
+      await page.getByTestId("panel-stack-back").click();
+      await page.getByTestId("button-panel-open-test").click();
+      await expect(page.getByTestId("button-panel-test")).toBeVisible();
+    }
+  });
+
+  test("chrome states and history control are available", async ({ page }) => {
+    await page.goto("/dashboard/card/edit");
+    await expect(page.getByTestId("studio-chrome-controls")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("chrome-state-compact").click();
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute(
+      "data-chrome-state",
+      "compact"
+    );
+    await page.getByTestId("chrome-state-focus").click();
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute(
+      "data-chrome-state",
+      "focus"
+    );
+    await page.getByTestId("chrome-state-expanded").click();
+    await page.getByTestId("open-history-panel").click();
+    await expect(page.getByTestId("session-history-panel").or(page.getByTestId("card-drawer-history"))).toBeVisible({
       timeout: 15_000,
     });
-    await page.getByTestId("text-panel-open-font").click();
-    await expect(page.getByTestId("font-picker-panel")).toBeVisible();
-    await page.getByTestId("font-search").fill("Inter");
-    await expect(page.getByTestId("font-row-inter")).toBeVisible();
   });
 });

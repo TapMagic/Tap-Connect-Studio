@@ -43,7 +43,8 @@ import {
   BuilderPreviewEmpty,
   tapCardPreviewEmptyReason,
 } from "@/components/workbench/builder-preview-empty";
-import { useUndoRedo } from "@/lib/hooks/use-undo-redo";
+import { useLabeledUndoRedo } from "@/lib/hooks/use-labeled-undo-redo";
+import { describeConfigChange, describeSectionsChange } from "@/lib/fusion/creative-studio/history-labels";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   createInheritanceState,
@@ -59,6 +60,7 @@ import {
   TAP_CARD_ACTION_CATALOG,
   TAP_CARD_LAYOUT_OPTIONS,
   TAP_CARD_SHAPE_OPTIONS,
+  resolveActionHref,
   type TapCardActionKind,
   type TapCardButtonShape,
   type TapCardHeroFill,
@@ -105,6 +107,8 @@ export type CardBuilderShellStatus = {
   selectedId: string | null;
   sectionCount: number;
   cardName: string;
+  pastLabels: string[];
+  futureLabels: string[];
 };
 
 type Props = {
@@ -232,16 +236,18 @@ export function TapCardBuilder({
   interactionMode = "edit",
 }: Props) {
   const router = useRouter();
-  const [config, setConfig] = useState(initialConfig);
   const {
-    state: sectionsHistory,
-    setState: setSectionsHistory,
-    undo: undoSections,
-    redo: redoSections,
-    canUndo: canUndoSections,
-    canRedo: canRedoSections,
-    reset: resetSections,
-  } = useUndoRedo<TapCardSection[]>(initialConfig.sections);
+    state: config,
+    setState: setConfigHistory,
+    undo: undoEditor,
+    redo: redoEditor,
+    canUndo: canUndoEditor,
+    canRedo: canRedoEditor,
+    reset: resetConfigHistory,
+    pastLabels,
+    futureLabels,
+  } = useLabeledUndoRedo<TapConnectCardConfig>(initialConfig, { maxDepth: 50, batchMs: 350 });
+  const sectionsHistory = config.sections;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [dragId, setDragId] = useState<string | null>(null);
   const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
@@ -283,16 +289,6 @@ export function TapCardBuilder({
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
   const cardEmptyReason = tapCardPreviewEmptyReason(sorted);
 
-  const [prevSectionsHistory, setPrevSectionsHistory] = useState(sectionsHistory);
-  if (sectionsHistory !== prevSectionsHistory) {
-    setPrevSectionsHistory(sectionsHistory);
-    setConfig((c) =>
-      JSON.stringify(c.sections) === JSON.stringify(sectionsHistory)
-        ? c
-        : { ...c, sections: sectionsHistory }
-    );
-  }
-
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
       if (!(e.metaKey || e.ctrlKey)) return;
@@ -300,15 +296,15 @@ export function TapCardBuilder({
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.key === "z" && !e.shiftKey) {
         e.preventDefault();
-        undoSections();
+        undoEditor();
       } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
         e.preventDefault();
-        redoSections();
+        redoEditor();
       }
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undoSections, redoSections]);
+  }, [undoEditor, redoEditor]);
 
   useEffect(() => {
     if (!selectedId || !previewScrollRef.current) return;
@@ -368,9 +364,24 @@ export function TapCardBuilder({
     return c.label.toLowerCase().includes(q) || c.kind.includes(q);
   });
 
-  function patchConfig(patch: Partial<TapConnectCardConfig>) {
+  function patchConfig(
+    patch: Partial<TapConnectCardConfig>,
+    label?: string,
+    batch = false
+  ) {
     setDirty(true);
-    setConfig((c) => ({ ...c, ...patch }));
+    setConfigHistory(
+      (c) => {
+        const next = { ...c, ...patch };
+        return next;
+      },
+      {
+        label:
+          label ||
+          describeConfigChange(config, { ...config, ...patch }),
+        batch,
+      }
+    );
   }
 
   function applyInheritedColors(state: BrandInheritanceState) {
@@ -380,18 +391,22 @@ export function TapCardBuilder({
     const surface = strInherited(state, "backgroundColor");
     const text = strInherited(state, "textColor");
     const logo = strInherited(state, "logoUrl");
-    setConfig((c) => {
-      const next = { ...c };
-      if (accent && !c.accentColor?.trim()) next.accentColor = accent;
-      if (accent && !c.neonColor?.trim()) next.neonColor = accent;
-      if (surface && !c.surfaceColor?.trim()) next.surfaceColor = surface;
-      if (text && !c.textColor?.trim()) next.textColor = text;
-      if (logo && !c.headerLogoUrl?.trim()) {
-        next.headerLogoUrl = logo;
-        next.showHeaderLogo = true;
-      }
-      return next;
-    });
+    setConfigHistory(
+      (c) => {
+        const next = { ...c };
+        if (accent && !c.accentColor?.trim()) next.accentColor = accent;
+        if (accent && !c.neonColor?.trim()) next.neonColor = accent;
+        if (surface && !c.surfaceColor?.trim()) next.surfaceColor = surface;
+        if (text && !c.textColor?.trim()) next.textColor = text;
+        if (logo && !c.headerLogoUrl?.trim()) {
+          next.headerLogoUrl = logo;
+          next.showHeaderLogo = true;
+        }
+        return next;
+      },
+      { label: "Applied Brand colors" }
+    );
+    setDirty(true);
   }
 
   function handleBrandStateChange(next: BrandInheritanceState) {
@@ -497,15 +512,32 @@ export function TapCardBuilder({
     return local ?? "";
   }
 
-  function setSections(next: TapCardSection[], record = true) {
+  function setSections(
+    next: TapCardSection[],
+    record = true,
+    label = "Updated Card sections"
+  ) {
     const ordered = next.map((s, i) => ({ ...s, order: i }));
     setDirty(true);
-    setSectionsHistory(ordered, record);
-    setConfig((c) => ({ ...c, sections: ordered }));
+    setConfigHistory(
+      (c) => ({ ...c, sections: ordered }),
+      record
+        ? { label: label || describeSectionsChange(config.sections, ordered) }
+        : { record: false }
+    );
   }
 
-  function patchSection(id: string, patch: Partial<TapCardSection>) {
-    setSections(sorted.map((s) => (s.id === id ? { ...s, ...patch } : s)), false);
+  function patchSection(
+    id: string,
+    patch: Partial<TapCardSection>,
+    label?: string
+  ) {
+    const next = sorted.map((s) => (s.id === id ? { ...s, ...patch } : s));
+    setSections(
+      next,
+      true,
+      label || describeSectionsChange(sorted, next)
+    );
   }
 
   function linkCampaignToSection(sectionId: string, campaignId: string) {
@@ -772,8 +804,7 @@ export function TapCardBuilder({
     };
     const tapCard = data.brandKit?.tapCard;
     if (tapCard && typeof tapCard === "object" && Array.isArray(tapCard.sections)) {
-      setConfig(tapCard);
-      resetSections(tapCard.sections);
+      resetConfigHistory(tapCard);
     }
     setMessage(`Rolled back to v${data.restoredFrom?.version ?? "?"}`);
     await refreshVersions();
@@ -820,11 +851,14 @@ export function TapCardBuilder({
 
   function retireToggle() {
     const retired = config.lifecycleStatus === "retired";
-    setConfig((c) => ({
-      ...c,
-      lifecycleStatus: retired ? "active" : "retired",
-      retiredAt: retired ? undefined : new Date().toISOString(),
-    }));
+    setConfigHistory(
+      (c) => ({
+        ...c,
+        lifecycleStatus: retired ? "active" : "retired",
+        retiredAt: retired ? undefined : new Date().toISOString(),
+      }),
+      { label: retired ? "Restored Card lifecycle" : "Retired Card" }
+    );
     setDirty(true);
     setMessage(
       retired
@@ -842,8 +876,8 @@ export function TapCardBuilder({
     if (!shellHosted || !onShellApi) return;
     onShellApi({
       save,
-      undo: undoSections,
-      redo: redoSections,
+      undo: undoEditor,
+      redo: redoEditor,
       setFocusMode: (next) => {
         if (shellHosted) return; // shell owns focus
         if (next === focusMode) return;
@@ -853,7 +887,7 @@ export function TapCardBuilder({
       selectSection: (id) => setSelectedId(id),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- API bridge refresh on undo capability
-  }, [shellHosted, onShellApi, canUndoSections, canRedoSections, focusMode]);
+  }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode]);
 
   useEffect(() => {
     if (!shellHosted || !onShellStatus) return;
@@ -861,14 +895,16 @@ export function TapCardBuilder({
       dirty,
       saving,
       focusMode: effectiveFocus,
-      canUndo: canUndoSections,
-      canRedo: canRedoSections,
+      canUndo: canUndoEditor,
+      canRedo: canRedoEditor,
       message,
       lifecycleStatus: config.lifecycleStatus || "active",
       brandSource: brandState.useBrandKit ? "Brand Kit" : "Custom Card",
       selectedId,
       sectionCount: sorted.length,
       cardName: businessName || "Card",
+      pastLabels,
+      futureLabels,
     });
   }, [
     shellHosted,
@@ -876,14 +912,16 @@ export function TapCardBuilder({
     dirty,
     saving,
     effectiveFocus,
-    canUndoSections,
-    canRedoSections,
+    canUndoEditor,
+    canRedoEditor,
     message,
     config.lifecycleStatus,
     brandState.useBrandKit,
     selectedId,
     sorted.length,
     businessName,
+    pastLabels,
+    futureLabels,
   ]);
 
   const outlineHashRef = useRef("");
@@ -944,6 +982,15 @@ export function TapCardBuilder({
       logoUrl,
       brandKitId,
       message,
+      profile,
+      reviewUrl,
+      businessName,
+      pastLabels,
+      futureLabels,
+      canUndo: canUndoEditor,
+      canRedo: canRedoEditor,
+      onUndo: undoEditor,
+      onRedo: redoEditor,
       onBrandStateChange: handleBrandStateChange,
       patchConfig,
       patchConfigColor,
@@ -960,6 +1007,28 @@ export function TapCardBuilder({
       onPublishDemo: (p) => void publishDemo(p),
       onRollback: (id) => void rollbackToVersion(id),
       strInherited: (key) => strInherited(brandState, key as BrandFieldKey),
+      onTestAction: (section) => {
+        const kind = section.actionKind;
+        if (kind === "support" || kind === "vcard") {
+          setMessage(
+            kind === "support"
+              ? "Test Action: Ask a Question is visible in Preview, but no live message will be sent."
+              : "Test Action: Save Contact opens a contact file on this device — it does not publish."
+          );
+          return;
+        }
+        const href = resolveActionHref(section, profile, reviewUrl) || section.href;
+        if (!href) {
+          setMessage("Test Action: no destination is set for this button.");
+          return;
+        }
+        window.open(
+          href,
+          href.startsWith("http") ? "_blank" : "_self",
+          "noopener,noreferrer"
+        );
+        setMessage("Test Action opened the destination safely (Edit mode does not activate Card taps).");
+      },
     });
     return () => publishCardEditorLive(null);
     // Publish after paint when Card model inputs change — avoid blank-deps notify storms.
@@ -980,6 +1049,10 @@ export function TapCardBuilder({
     logoUrl,
     brandKitId,
     message,
+    pastLabels,
+    futureLabels,
+    canUndoEditor,
+    canRedoEditor,
   ]);
 
   return (
@@ -1029,10 +1102,10 @@ export function TapCardBuilder({
             type="button"
             variant="outline"
             size="sm"
-            onClick={undoSections}
-            disabled={!canUndoSections}
-            title="Undo segment change (⌘Z)"
-            aria-label="Undo segment change"
+            onClick={undoEditor}
+            disabled={!canUndoEditor}
+            title="Undo (⌘Z / Ctrl+Z)"
+            aria-label="Undo"
             data-testid="card-undo"
           >
             <Undo2 className="h-4 w-4" />
@@ -1041,10 +1114,10 @@ export function TapCardBuilder({
             type="button"
             variant="outline"
             size="sm"
-            onClick={redoSections}
-            disabled={!canRedoSections}
-            title="Redo segment change (⌘⇧Z)"
-            aria-label="Redo segment change"
+            onClick={redoEditor}
+            disabled={!canRedoEditor}
+            title="Redo (⌘⇧Z / Ctrl+Shift+Z)"
+            aria-label="Redo"
             data-testid="card-redo"
           >
             <Redo2 className="h-4 w-4" />
@@ -1133,11 +1206,15 @@ export function TapCardBuilder({
             data-testid="card-retire-toggle"
             onClick={() => {
               const retired = config.lifecycleStatus === "retired";
-              setConfig((c) => ({
-                ...c,
-                lifecycleStatus: retired ? "active" : "retired",
-                retiredAt: retired ? undefined : new Date().toISOString(),
-              }));
+              setConfigHistory(
+                (c) => ({
+                  ...c,
+                  lifecycleStatus: retired ? "active" : "retired",
+                  retiredAt: retired ? undefined : new Date().toISOString(),
+                }),
+                { label: retired ? "Restored Card lifecycle" : "Retired Card" }
+              );
+              setDirty(true);
               setMessage(
                 retired
                   ? "Marked active — Save to restore the Tap Card"
