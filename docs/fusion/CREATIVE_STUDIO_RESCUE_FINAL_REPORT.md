@@ -10,7 +10,7 @@
 | Tip | SHA |
 |-----|-----|
 | Ancestry checkpoint | `ff8c6c1` → `798793a` → `9a64a60` (prior composition tip) |
-| This pass | run `git rev-parse HEAD` / remote after push |
+| This pass (remote) | `584479aa25107bde0e5273816a7ce9c54ec7714c` |
 | Push policy | Normal fast-forward only — no force-push, merge, or deploy |
 
 **Note:** Remote was already past `798793a` at start of this pass (`9a64a60`). Work continues from that tip.

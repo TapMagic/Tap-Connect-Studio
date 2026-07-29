@@ -4,7 +4,7 @@
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| P0 | Fast-forward push rescue branch | Critical | Closed at `9a64a60`; this pass pending next FF push |
+| P0 | Fast-forward push rescue branch | Critical | **Closed** — remote HEAD `584479a` |
 | P1 | Screenshot/video pack | High | **Closed** — composition slides + Live Device QR shots + walkthrough webm |
 | P2 | Physical-phone QR scan | Critical | **Owner action** — Studio QR decodes to `http://192.168.2.24:3010/preview/card/…` (HTTP 200 draft) |
 | P5 | Related e2e | Critical | **Closed** — creative-studio-rescue 6/6 |
