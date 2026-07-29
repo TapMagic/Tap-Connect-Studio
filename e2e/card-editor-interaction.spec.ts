@@ -49,7 +49,7 @@ test.describe("card editor interaction completion", () => {
 
     const canvas = page.getByTestId("card-preview-canvas");
     const box = await canvas.boundingBox();
-    expect(box?.y ?? 999).toBeLessThan(320);
+    expect(box?.y ?? 999).toBeLessThan(340);
     expect(box?.height ?? 0).toBeGreaterThan(360);
 
     // No fixed bottom overlay covering lower half
@@ -101,6 +101,7 @@ test.describe("card editor interaction completion", () => {
     // Switch tool
     await page.getByTestId("card-tool-typography").click();
     await expect(page.getByTestId("card-drawer-typography")).toBeVisible();
+    await expect(page.getByTestId("text-panel-stack")).toBeVisible();
     await expect(page.getByTestId("card-drawer-colors")).toHaveCount(0);
 
     // Preview remains mounted

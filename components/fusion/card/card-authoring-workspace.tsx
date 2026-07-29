@@ -146,10 +146,16 @@ export function CardAuthoringWorkspace({
       dirty: false,
       saved: true,
     });
-    if (!lifecycleIntent || restored.focusMode) {
-      return { snapshot: base, memory: baseMemory };
+    if (lifecycleIntent) {
+      // Deep-link from assembly always wins over restored focus mode.
+      const browseBase = {
+        ...base,
+        focusMode: false,
+        workspaceMode: "browse" as const,
+      };
+      return openAdaptiveTool(browseBase, WORKSPACE_ID, "lifecycle", baseMemory);
     }
-    return openAdaptiveTool(base, WORKSPACE_ID, "lifecycle", baseMemory);
+    return { snapshot: base, memory: baseMemory };
   }, [lifecycleIntent, restored]);
   const [toolMemory, setToolMemory] = useState<Record<string, ToolDrawerMemory>>(
     () => initialShell.memory
@@ -193,6 +199,30 @@ export function CardAuthoringWorkspace({
       })
     );
   }, [shell, toolMemory, sessionRestored]);
+
+  // Client-only deep link: SSR cannot read window URL, so open Lifecycle after mount.
+  useEffect(() => {
+    if (!readLifecycleIntent()) return;
+    setChromeState("expanded");
+    setShell((s) => {
+      if (s.selectedToolId === "lifecycle" && s.drawerOpen && !s.focusMode) {
+        return s;
+      }
+      const { snapshot, memory } = openAdaptiveTool(
+        {
+          ...s,
+          focusMode: false,
+          workspaceMode: "browse",
+        },
+        WORKSPACE_ID,
+        "lifecycle",
+        toolMemory
+      );
+      setToolMemory(memory);
+      return snapshot;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot URL handoff
+  }, []);
 
   // Read live config via external store — never mirror notifies into setState
   // (that previously caused Maximum update depth with publishCardEditorLive).
@@ -495,14 +525,14 @@ export function CardAuthoringWorkspace({
 
   return (
     <div
-      className="flex h-full min-h-0 flex-col overflow-hidden"
+      className="relative flex h-full min-h-0 flex-col overflow-hidden"
       data-testid="card-edit-workspace-host"
       data-escape-authoring="true"
       data-adaptive-shell="v1"
       data-shell-consumer="card-authoring"
       data-studio-mode={studioMode}
       data-chrome-state={chromeState}
-      data-maturity="implemented-not-owner-ready"
+      data-maturity="implementation-in-progress"
     >
       {sessionRestored ? (
         <p className="sr-only" role="status" data-testid="card-session-restore-notice">
@@ -517,44 +547,46 @@ export function CardAuthoringWorkspace({
 
       {studioMode === "edit" ? (
         <div
-          className="flex flex-wrap items-center gap-2 border-b border-white/10 bg-[#0a0e16] px-3 py-2"
+          className="pointer-events-none absolute left-2 right-2 top-2 z-40 flex flex-wrap items-center gap-1.5"
           data-testid="studio-chrome-controls"
           role="toolbar"
           aria-label="Workspace chrome"
         >
-          {(
-            [
-              ["expanded", "Expanded"],
-              ["compact", "Compact"],
-              ["collapsed", "Collapsed"],
-              ["pinned", "Pinned"],
-              ["focus", "Focus on canvas"],
-            ] as const
-          ).map(([id, label]) => (
+          <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-white/15 bg-[#0a0e16]/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
+            {(
+              [
+                ["expanded", "Expanded"],
+                ["compact", "Compact"],
+                ["collapsed", "Collapsed"],
+                ["pinned", "Pinned"],
+                ["focus", "Focus on canvas"],
+              ] as const
+            ).map(([id, label]) => (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={chromeState === id}
+                data-testid={`chrome-state-${id}`}
+                onClick={() => applyChromeState(id)}
+                className={cn(
+                  "min-h-8 rounded-md border px-2 text-[10px]",
+                  chromeState === id
+                    ? "border-white/35 bg-white/10 text-white"
+                    : "border-white/10 text-white/60"
+                )}
+              >
+                {label}
+              </button>
+            ))}
             <button
-              key={id}
               type="button"
-              aria-pressed={chromeState === id}
-              data-testid={`chrome-state-${id}`}
-              onClick={() => applyChromeState(id)}
-              className={cn(
-                "min-h-9 rounded-md border px-2.5 text-[11px]",
-                chromeState === id
-                  ? "border-white/35 bg-white/10 text-white"
-                  : "border-white/10 text-white/60"
-              )}
+              className="min-h-8 rounded-md border border-white/10 px-2 text-[10px] text-white/60"
+              data-testid="open-history-panel"
+              onClick={() => openCardTool("history")}
             >
-              {label}
+              History
             </button>
-          ))}
-          <button
-            type="button"
-            className="min-h-9 rounded-md border border-white/10 px-2.5 text-[11px] text-white/60"
-            data-testid="open-history-panel"
-            onClick={() => openCardTool("history")}
-          >
-            History
-          </button>
+          </div>
         </div>
       ) : null}
 

@@ -102,7 +102,7 @@ test.describe("creative studio rescue", () => {
     );
     await page.getByTestId("chrome-state-expanded").click();
     await page.getByTestId("open-history-panel").click();
-    await expect(page.getByTestId("session-history-panel").or(page.getByTestId("card-drawer-history"))).toBeVisible({
+    await expect(page.getByTestId("session-history-panel")).toBeVisible({
       timeout: 15_000,
     });
   });

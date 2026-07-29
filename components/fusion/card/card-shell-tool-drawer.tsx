@@ -319,23 +319,25 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
 
   if (resolved === "typography") {
     return (
-      <TextPanelStack
-        selected={selected}
-        config={config}
-        onPatchSection={patchSection}
-        onPatchConfig={patchConfig}
-        onClose={props.onCloseTool}
-        brandColors={[
-          (brandState.useBrandKit
-            ? strInherited("accentColor") || config.accentColor
-            : config.accentColor) || "#22c55e",
-          config.surfaceColor || "#0b0f19",
-          config.textColor || "#f8fafc",
-          "#22c55e",
-          "#0ea5e9",
-          "#f59e0b",
-        ]}
-      />
+      <div className="h-full min-h-0" data-testid="card-drawer-typography">
+        <TextPanelStack
+          selected={selected}
+          config={config}
+          onPatchSection={patchSection}
+          onPatchConfig={patchConfig}
+          onClose={props.onCloseTool}
+          brandColors={[
+            (brandState.useBrandKit
+              ? strInherited("accentColor") || config.accentColor
+              : config.accentColor) || "#22c55e",
+            config.surfaceColor || "#0b0f19",
+            config.textColor || "#f8fafc",
+            "#22c55e",
+            "#0ea5e9",
+            "#f59e0b",
+          ]}
+        />
+      </div>
     );
   }
 
