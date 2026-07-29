@@ -11,7 +11,7 @@
 |-----|-----|
 | Ancestry checkpoint | `ff8c6c1` → `798793a` → … → `460c2f5` (prior remote tip) |
 | This pass (feature tip) | `f231ceef61b58bc9e511d8a1e2ecb00253057400` |
-| Remote tip (docs pin) | `4cdd79465173fa2880c8e5c39a8680363b90dba8` |
+| Remote tip | `00ec4ee` — see `git rev-parse origin/tapconnect-creative-studio-rescue` |
 | Push policy | Normal fast-forward only — no force-push, merge, or deploy |
 
 **Note:** Remote was already past `798793a` at start of this pass. All valid work after that commit is preserved.
