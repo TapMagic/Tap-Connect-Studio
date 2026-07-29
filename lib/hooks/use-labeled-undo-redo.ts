@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   createLabeledHistory,
   pushLabeledHistory,
@@ -91,6 +91,17 @@ export function useLabeledUndoRedo<T>(initial: T, options: Options = {}) {
     };
   }, []);
 
+  // Stable label array identity when history entries are unchanged — prevents
+  // live-publish / shell-status effects from re-firing every render.
+  const pastLabels = useMemo(
+    () => history.past.map((e) => e.label),
+    [history.past]
+  );
+  const futureLabels = useMemo(
+    () => history.future.map((e) => e.label),
+    [history.future]
+  );
+
   return {
     state: history.present,
     setState: setPresent,
@@ -100,7 +111,7 @@ export function useLabeledUndoRedo<T>(initial: T, options: Options = {}) {
     withoutRecording,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
-    pastLabels: history.past.map((e) => e.label),
-    futureLabels: history.future.map((e) => e.label),
+    pastLabels,
+    futureLabels,
   };
 }

@@ -1,6 +1,9 @@
 /**
  * Live Card editor model bridge — Adaptive Task Drawer reads latest builder state
  * without portal setState loops.
+ *
+ * Publication notifies only when material editor state changes (signature).
+ * Callback identity churn from parent re-renders must not notify subscribers.
  */
 
 import type { BrandInheritanceState } from "@/lib/fusion/authoring/brand-inheritance";
@@ -68,9 +71,48 @@ export type CardEditorLiveModel = {
 
 const live: { current: CardEditorLiveModel | null } = { current: null };
 const listeners = new Set<() => void>();
+let materialSignature = "null";
+let notifyGeneration = 0;
+
+/** Material fields only — excludes callback identity. */
+export function cardEditorLiveMaterialSignature(
+  model: CardEditorLiveModel | null
+): string {
+  if (!model) return "null";
+  return JSON.stringify({
+    config: model.config,
+    selectedId: model.selected?.id ?? null,
+    sortedIds: model.sorted.map((s) => s.id),
+    brandState: model.brandState,
+    mediaUploadReady: model.mediaUploadReady,
+    stockReady: model.stockReady,
+    freeformEnabled: model.freeformEnabled,
+    showFreeform: model.showFreeform,
+    isAdmin: model.isAdmin,
+    demoPublished: model.demoPublished,
+    versions: model.versions,
+    logoUrl: model.logoUrl ?? null,
+    brandKitId: model.brandKitId ?? null,
+    message: model.message,
+    businessName: model.businessName,
+    pastLabels: model.pastLabels,
+    futureLabels: model.futureLabels,
+    canUndo: model.canUndo,
+    canRedo: model.canRedo,
+    reviewUrl: model.reviewUrl ?? null,
+  });
+}
 
 export function publishCardEditorLive(model: CardEditorLiveModel | null): void {
   live.current = model;
+  const nextSig = cardEditorLiveMaterialSignature(model);
+  if (nextSig === materialSignature) {
+    // Keep latest callbacks on `live.current` without notifying — prevents
+    // reciprocal setState storms when effect deps churn on new array identity.
+    return;
+  }
+  materialSignature = nextSig;
+  notifyGeneration += 1;
   listeners.forEach((l) => l());
 }
 
@@ -78,9 +120,21 @@ export function getCardEditorLive(): CardEditorLiveModel | null {
   return live.current;
 }
 
+export function getCardEditorLiveGeneration(): number {
+  return notifyGeneration;
+}
+
 export function subscribeCardEditorLive(listener: () => void): () => void {
   listeners.add(listener);
   return () => {
     listeners.delete(listener);
   };
+}
+
+/** Test-only: reset module store between cases. */
+export function __resetCardEditorLiveForTests(): void {
+  live.current = null;
+  materialSignature = "null";
+  notifyGeneration = 0;
+  listeners.clear();
 }

@@ -152,6 +152,68 @@ describe("creative-studio preview tokens", () => {
     const got = getPreviewSession(token);
     assert.equal(got.ok, true);
   });
+
+  it("enforces token boundary: foreign token cannot read another Card session", () => {
+    __clearPreviewSessionsForTests();
+    process.env.PREVIEW_TOKEN_SECRET = "boundary-secret";
+    const a = createPreviewSession({
+      businessId: "biz_a",
+      brandKitId: "bk_a",
+      cardName: "Card A",
+      businessName: "Biz A",
+      snapshotJson: JSON.stringify({ id: "a" }),
+      profileJson: "{}",
+    });
+    const b = createPreviewSession({
+      businessId: "biz_b",
+      brandKitId: "bk_b",
+      cardName: "Card B",
+      businessName: "Biz B",
+      snapshotJson: JSON.stringify({ id: "b" }),
+      profileJson: "{}",
+    });
+    assert.notEqual(a.token, b.token);
+    const gotA = getPreviewSession(a.token);
+    const gotB = getPreviewSession(b.token);
+    assert.equal(gotA.ok && gotA.record.businessId, "biz_a");
+    assert.equal(gotB.ok && gotB.record.businessId, "biz_b");
+    assert.equal(gotA.ok && gotA.record.cardName, "Card A");
+    assert.equal(gotB.ok && gotB.record.cardName, "Card B");
+    // Tampered / wrong secret
+    process.env.PREVIEW_TOKEN_SECRET = "other-secret";
+    const bad = verifyPreviewToken(a.token);
+    assert.equal(bad.ok, false);
+    process.env.PREVIEW_TOKEN_SECRET = "boundary-secret";
+    // Revocation denies further reads
+    const doomed = createPreviewSession({
+      businessId: "biz_a",
+      brandKitId: "bk",
+      cardName: "Old",
+      businessName: "Old",
+      snapshotJson: "{}",
+      profileJson: "{}",
+    });
+    const revoked = revokePreviewSession(doomed.token);
+    assert.equal(revoked.ok, true);
+    assert.equal(getPreviewSession(doomed.token).ok, false);
+  });
+
+  it("preview path is draft preview not public slug and carries no clerk marker", () => {
+    __clearPreviewSessionsForTests();
+    process.env.PREVIEW_TOKEN_SECRET = "boundary-secret";
+    const s = createPreviewSession({
+      businessId: "biz_a",
+      brandKitId: "bk",
+      cardName: "X",
+      businessName: "X",
+      snapshotJson: "{}",
+      profileJson: "{}",
+    });
+    assert.ok(s.path.startsWith("/preview/card/"));
+    assert.equal(s.path.includes("/t/"), false);
+    assert.equal(JSON.stringify(s.record).toLowerCase().includes("clerk"), false);
+    assert.equal(s.token.toLowerCase().includes("clerk"), false);
+  });
 });
 
 describe("creative-studio preview base url", () => {

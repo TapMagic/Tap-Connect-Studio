@@ -3,7 +3,7 @@
 /**
  * Card authoring — full Adaptive Workspace Shell consumer.
  * One Command Shade · optional Outline · live Card canvas · one Adaptive Task Drawer.
- * Maturity: IMPLEMENTED BUT NOT OWNER-READY.
+ * Maturity: IMPLEMENTATION IN PROGRESS.
  */
 
 import {
@@ -12,6 +12,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import Link from "next/link";
@@ -161,7 +162,6 @@ export function CardAuthoringWorkspace({
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>("desktop");
   const [liveDeviceOpen, setLiveDeviceOpen] = useState(false);
   const [previewRevision, setPreviewRevision] = useState(1);
-  const [liveConfigTick, setLiveConfigTick] = useState(0);
   const [editSelectionMemory, setEditSelectionMemory] = useState<string | null>(
     null
   );
@@ -194,14 +194,13 @@ export function CardAuthoringWorkspace({
     );
   }, [shell, toolMemory, sessionRestored]);
 
-  useEffect(() => {
-    return subscribeCardEditorLive(() => {
-      setLiveConfigTick((n) => n + 1);
-      setPreviewRevision((n) => n + 1);
-    });
-  }, []);
-
-  const liveModel = liveConfigTick >= 0 ? getCardEditorLive() : null;
+  // Read live config via external store — never mirror notifies into setState
+  // (that previously caused Maximum update depth with publishCardEditorLive).
+  const liveModel = useSyncExternalStore(
+    subscribeCardEditorLive,
+    getCardEditorLive,
+    getCardEditorLive
+  );
 
   const enterPreview = useCallback(() => {
     setEditSelectionMemory(status.selectedId);
