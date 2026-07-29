@@ -240,8 +240,9 @@ describe("creative composition registry", () => {
     } = await import("@/lib/fusion/creative-studio/composition");
     const entry = BLOCK_LIBRARY.find((b) => b.id === CREATIVE_COMPOSITION_BLOCK_ID);
     assert.ok(entry);
-    assert.equal(entry?.addable, false);
+    assert.equal(entry?.addable, true);
     assert.equal(entry?.family, "advanced");
+    assert.equal(entry?.tapCardType, "creative_composition");
     const block = createEmptyCreativeComposition("c1");
     assert.equal(block.version, 1);
     assert.equal(block.mobileFallback, "stack");

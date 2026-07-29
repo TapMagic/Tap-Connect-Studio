@@ -4,22 +4,17 @@
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
-| P0 | Fast-forward push `tapconnect-creative-studio-rescue` (no force) | Critical | Open until remote HEAD matches local |
-| P1 | Complete Owner screenshot/video pack (panel slides, QR auto, composition) | High | Partial |
-| P2 | Physical-phone QR scan on same LAN as `NEXT_PUBLIC_PREVIEW_BASE_URL` | Critical | Open |
-| P3 | Nested panel depth memory when reopening tools | Low | Partial |
-| P4 | Per-device visibility honest-only | Low | Documented |
-| P5 | Related e2e + J1 ID-001/005 + responsive/a11y | Critical | Re-verify after this pass |
-| P6 | Live-model Maximum update depth | Critical | **Closed** |
-| P7 | Lifecycle deep-link from assembly | High | **Closed** |
-| P8 | Font CSP on production deploy target | Medium | Verify on deploy |
-| P9 | History session vs publication copy clarity | Low | Open |
-| P10 | Green Action Law (selection ≠ green) | High | **Closed** in Card Studio chrome |
-| P11 | Auto Live Device QR + Update phone preview | High | **Closed** in UI + unit decode proof; physical scan open |
-| P12 | Text/Button Level 0 hubs + Button Appearance consolidate | High | **Closed** for Card inspector |
-| P13 | Creative Composition Block interactive canvas | High | Registry only — UI progressive |
-| P14 | Frame / shape / group inspector matrices | Medium | Progressive |
+| P0 | Fast-forward push `tapconnect-creative-studio-rescue` | Critical | **Closed** — remote HEAD `798793a` (FF from `ff8c6c1`); continuation tip pending next push |
+| P1 | Owner screenshot/video pack (panel slides, composition) | High | **Closed** for composition pack — see `tmp/.../walkthrough/composition` + video |
+| P2 | Physical-phone QR scan on same LAN | Critical | **Open for Owner camera** — QR encode/decode + LAN Studio ready; agent cannot operate handset |
+| P3 | Nested panel depth memory | Low | Partial |
+| P5 | Related e2e + J1 ID-001/005 + responsive/a11y | Critical | **Closed** this tip (28 related proofs) |
+| P6–P7 | Live-model loop / lifecycle deep-link | Critical/High | **Closed** |
+| P10–P12 | Green Action Law / Auto QR / Text·Button hubs | High | **Closed** |
+| P13 | Creative Composition Block interactive canvas | High | **Closed** (interactive) |
+| P14 | Frame / shape / group inspector matrices | Medium | **Closed** for Composition stack |
+| P15 | Draft update / expire / revoke without publish | High | **Closed** (unit + evidence JSON) |
 
 ## Owner-ready gate
 
-Do not classify Owner-ready until **P0** and **P2** close and the walkthrough Live Device + composition steps pass without developer coaching.
+Do not classify Owner-ready until **P2** closes with a physical scan and the Owner accepts the walkthrough without developer coaching.

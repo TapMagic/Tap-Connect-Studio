@@ -128,4 +128,53 @@ test.describe("creative studio rescue", () => {
     expect(cls.includes("bg-primary/20")).toBe(false);
     expect(cls.includes("bg-white/10") || cls.includes("border-white")).toBe(true);
   });
+
+  test("creative composition block: add, select, mask, layer, group", async ({
+    page,
+  }) => {
+    await page.goto("/dashboard/card/edit");
+    await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({
+      timeout: 60_000,
+    });
+    await page.getByTestId("card-tool-composition").click();
+    await expect(page.getByTestId("card-drawer-composition")).toBeVisible({
+      timeout: 15_000,
+    });
+    const add = page.getByTestId("composition-drawer-add");
+    if (await add.isVisible()) {
+      await add.click();
+    }
+    await expect(page.getByTestId("composition-panel-stack")).toBeVisible({
+      timeout: 15_000,
+    });
+    await expect(page.getByTestId("creative-composition-canvas")).toBeVisible();
+    await expect(page.getByTestId("composition-reading-order")).toBeAttached();
+
+    // Select frame layer and apply shirt mask via sliding stack
+    const frameLayer = page.locator('[data-testid^="composition-layer-"]').filter({
+      hasText: "frame",
+    });
+    if (await frameLayer.count()) {
+      await frameLayer.first().click();
+      await page.getByTestId("composition-open-frame").click();
+      await expect(page.getByTestId("composition-panel-frame")).toBeVisible();
+      await page.getByTestId("composition-open-masks").click();
+      await expect(page.getByTestId("composition-panel-masks")).toBeVisible();
+      await page.getByTestId("composition-mask-shirt").click();
+      await page.getByTestId("panel-stack-back").click();
+      await page.getByTestId("panel-stack-back").click();
+    }
+
+    await page.getByTestId("composition-open-layering").click();
+    await expect(page.getByTestId("composition-panel-layering")).toBeVisible();
+    await page.getByTestId("composition-layer-front").click();
+    await page.getByTestId("panel-stack-back").click();
+
+    await page.getByTestId("composition-open-group").click();
+    await expect(page.getByTestId("composition-panel-group")).toBeVisible();
+    await page.getByTestId("panel-stack-back").click();
+    await page.getByTestId("composition-open-fallback").click();
+    await expect(page.getByTestId("composition-panel-fallback")).toBeVisible();
+    await page.getByTestId("composition-fallback-stack").click();
+  });
 });

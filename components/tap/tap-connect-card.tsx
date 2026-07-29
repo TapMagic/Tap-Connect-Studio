@@ -44,6 +44,12 @@ import {
   blocksCustomerActivation,
   type CreativeStudioMode,
 } from "@/lib/fusion/creative-studio/modes";
+import { CreativeCompositionCanvas } from "@/components/fusion/creative-studio/creative-composition-canvas";
+import {
+  createStarterCreativeComposition,
+  parseCreativeComposition,
+  type CreativeCompositionBlock,
+} from "@/lib/fusion/creative-studio/composition";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -64,6 +70,16 @@ type TapConnectCardProps = {
   interactionMode?: CreativeStudioMode;
   /** Direct canvas selection — Edit mode only */
   onSectionSelect?: (sectionId: string | null) => void;
+  /** Composition node selection (Edit) when a Creative Composition section is active */
+  selectedCompositionNodeIds?: string[];
+  onCompositionNodeSelect?: (sectionId: string, nodeIds: string[]) => void;
+  onCompositionChange?: (
+    sectionId: string,
+    composition: CreativeCompositionBlock,
+    label?: string
+  ) => void;
+  /** Force composition phone fallback (narrow preview) */
+  compositionForceMobile?: boolean;
   /** Public/runtime context for platform-bound actions (e.g. Ask a Question) */
   supportContext?: Omit<CardSupportContext, "sectionId" | "businessName"> | null;
   /** Public/runtime context for Offer fuse claim path */
@@ -95,6 +111,10 @@ export function TapConnectCard({
   builderChrome = false,
   interactionMode,
   onSectionSelect,
+  selectedCompositionNodeIds = [],
+  onCompositionNodeSelect,
+  onCompositionChange,
+  compositionForceMobile = false,
   supportContext = null,
   offerContext = null,
   offerFuseEnabled = false,
@@ -959,6 +979,41 @@ export function TapConnectCard({
     );
   }
 
+  function renderCreativeComposition(section: TapCardSection) {
+    const block =
+      parseCreativeComposition(section.composition) ||
+      createStarterCreativeComposition(section.id);
+    return (
+      <div
+        key={section.id}
+        className={cn(
+          "tcc-creative-composition my-2",
+          selectedSectionId === section.id && "tcc-section-selected"
+        )}
+        {...sectionDomProps(section.id, selectedSectionId)}
+        data-testid={`creative-composition-section-${section.id}`}
+      >
+        <CreativeCompositionCanvas
+          block={block}
+          editMode={editSelects}
+          selectedNodeIds={
+            selectedSectionId === section.id ? selectedCompositionNodeIds : []
+          }
+          forceMobileFallback={compositionForceMobile}
+          onSelectNodes={(ids) => {
+            onSectionSelect?.(section.id);
+            onCompositionNodeSelect?.(section.id, ids);
+          }}
+          onChangeBlock={
+            editSelects
+              ? (next, label) => onCompositionChange?.(section.id, next, label)
+              : undefined
+          }
+        />
+      </div>
+    );
+  }
+
   function renderSpacer(section: TapCardSection) {
     const h = section.height === "sm" ? 12 : section.height === "lg" ? 36 : 22;
     return (
@@ -1127,6 +1182,9 @@ export function TapConnectCard({
         break;
       case "text":
         bodyNodes.push(renderText(s));
+        break;
+      case "creative_composition":
+        bodyNodes.push(renderCreativeComposition(s));
         break;
       case "spacer":
         bodyNodes.push(renderSpacer(s));

@@ -37,6 +37,7 @@ import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
 import { publishCardEditorLive } from "@/components/fusion/card/card-editor-live";
+import { createStarterCreativeComposition } from "@/lib/fusion/creative-studio/composition";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
 import {
@@ -249,6 +250,9 @@ export function TapCardBuilder({
   } = useLabeledUndoRedo<TapConnectCardConfig>(initialConfig, { maxDepth: 50, batchMs: 350 });
   const sectionsHistory = config.sections;
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedCompositionNodeIds, setSelectedCompositionNodeIds] = useState<
+    string[]
+  >([]);
   const [dragId, setDragId] = useState<string | null>(null);
   const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
   const [actionSearch, setActionSearch] = useState("");
@@ -673,6 +677,8 @@ export function TapCardBuilder({
                 ? "Hottest Deal banner"
                 : type === "text"
                   ? "Text box"
+                  : type === "creative_composition"
+                    ? "Creative Composition"
                   : type === "spacer"
                     ? "Spacer"
                     : type,
@@ -681,6 +687,9 @@ export function TapCardBuilder({
       base.imageWidthPercent = 100;
       base.imageRadius = "rounded_md";
       base.opacity = 100;
+    }
+    if (type === "creative_composition") {
+      base.composition = createStarterCreativeComposition(`comp-${id}`);
     }
     if (type === "logo_block") {
       base.logoBlockLayout = "columns";
@@ -1029,6 +1038,8 @@ export function TapCardBuilder({
         );
         setMessage("Test Action opened the destination safely (Edit mode does not activate Card taps).");
       },
+      selectedCompositionNodeIds,
+      setSelectedCompositionNodeIds,
     });
     return () => publishCardEditorLive(null);
     // Publish after paint when Card model inputs change — avoid blank-deps notify storms.
@@ -1053,6 +1064,7 @@ export function TapCardBuilder({
     futureLabels,
     canUndoEditor,
     canRedoEditor,
+    selectedCompositionNodeIds,
   ]);
 
   return (
@@ -1783,6 +1795,15 @@ export function TapCardBuilder({
                   <Type className="mr-1 h-3.5 w-3.5" />
                   Text
                 </Button>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  data-testid="add-creative-composition"
+                  onClick={() => addSection("creative_composition")}
+                >
+                  Composition
+                </Button>
                 <Button type="button" size="sm" variant="outline" onClick={() => addSection("spacer")}>
                   Spacer
                 </Button>
@@ -2098,10 +2119,25 @@ export function TapCardBuilder({
                   interactionMode={interactionMode}
                   previewSafe={interactionMode === "preview"}
                   selectedSectionId={interactionMode === "edit" ? selectedId : null}
+                  selectedCompositionNodeIds={
+                    interactionMode === "edit" ? selectedCompositionNodeIds : []
+                  }
+                  onCompositionNodeSelect={
+                    interactionMode === "edit"
+                      ? (_sectionId, ids) => setSelectedCompositionNodeIds(ids)
+                      : undefined
+                  }
+                  onCompositionChange={
+                    interactionMode === "edit"
+                      ? (sectionId, composition, label) =>
+                          patchSection(sectionId, { composition }, label || "Edited composition")
+                      : undefined
+                  }
                   onSectionSelect={
                     interactionMode === "edit"
                       ? (id) => {
                           setSelectedId(id);
+                          if (!id) setSelectedCompositionNodeIds([]);
                           if (id && onRequestTool) {
                             const section = sectionsHistory.find((s) => s.id === id);
                             if (section?.type === "action") onRequestTool("buttons");
@@ -2118,6 +2154,8 @@ export function TapCardBuilder({
                               onRequestTool("media");
                             else if (section?.type === "special_offer")
                               onRequestTool("offer");
+                            else if (section?.type === "creative_composition")
+                              onRequestTool("composition");
                             else onRequestTool("content");
                           }
                         }

@@ -97,6 +97,20 @@ const TYPE_MAP: Record<string, SelectionPanelHint> = {
     rootTitle: "Footer",
     toolId: "content",
   },
+  creative_composition: {
+    rootPanelId: "composition",
+    rootTitle: "Creative Composition",
+    toolId: "composition",
+    nested: [
+      { id: "text", title: "Text" },
+      { id: "image", title: "Image" },
+      { id: "frame", title: "Frame" },
+      { id: "layering", title: "Layering" },
+      { id: "align", title: "Align & Distribute" },
+      { id: "group", title: "Group & Lock" },
+      { id: "fallback", title: "Phone fallback" },
+    ],
+  },
   spacer: {
     rootPanelId: "spacer",
     rootTitle: "Spacer",

@@ -15,7 +15,12 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { FinishPicker } from "@/components/design/format-controls";
 import { ButtonPanelStack } from "@/components/fusion/creative-studio/button-panel-stack";
 import { TextPanelStack } from "@/components/fusion/creative-studio/text-panel-stack";
+import { CompositionPanelStack } from "@/components/fusion/creative-studio/composition-panel-stack";
 import { HistoryPanel } from "@/components/fusion/creative-studio/history-panel";
+import {
+  createStarterCreativeComposition,
+  parseCreativeComposition,
+} from "@/lib/fusion/creative-studio/composition";
 import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
@@ -85,6 +90,8 @@ export type CardShellToolDrawerProps = {
   strInherited: (key: string) => string | undefined;
   onTestAction: (section: TapCardSection) => void;
   onCloseTool?: () => void;
+  selectedCompositionNodeIds?: string[];
+  setSelectedCompositionNodeIds?: (ids: string[]) => void;
 };
 
 function HonestNote({ children }: { children: ReactNode }) {
@@ -126,10 +133,51 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
     onPublishDemo,
     onRollback,
     strInherited,
+    selectedCompositionNodeIds = [],
+    setSelectedCompositionNodeIds,
   } = props;
 
   const resolved =
     toolId === "format" ? "colors" : toolId === "inspector" ? "content" : toolId;
+
+  if (resolved === "composition") {
+    const block =
+      selected?.type === "creative_composition"
+        ? parseCreativeComposition(selected.composition) ||
+          createStarterCreativeComposition(selected.id)
+        : null;
+    if (!block || !selected) {
+      return (
+        <div className="space-y-3" data-testid="card-drawer-composition">
+          <HonestNote>
+            Add a Creative Composition block, then select it on the Card to edit
+            layered text, frames, and images.
+          </HonestNote>
+          <Button
+            type="button"
+            className="min-h-11 w-full"
+            data-testid="composition-drawer-add"
+            onClick={() => onAddSection("creative_composition")}
+          >
+            Add Creative Composition
+          </Button>
+        </div>
+      );
+    }
+    return (
+      <div className="h-full min-h-0" data-testid="card-drawer-composition">
+        <CompositionPanelStack
+          block={block}
+          selectedNodeIds={selectedCompositionNodeIds}
+          onSelectNodes={(ids) => setSelectedCompositionNodeIds?.(ids)}
+          onChangeBlock={(next, label) =>
+            patchSection(selected.id, { composition: next }, label)
+          }
+          onClose={props.onCloseTool}
+        />
+      </div>
+    );
+  }
 
   if (resolved === "outline") {
     return (

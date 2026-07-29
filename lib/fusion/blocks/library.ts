@@ -71,10 +71,11 @@ export const BLOCK_LIBRARY: BlockLibraryEntry[] = [
     id: "card.creative_composition",
     label: "Creative Composition",
     family: "advanced",
-    addable: false,
+    tapCardType: "creative_composition",
+    addable: true,
     contracts: ["layout", "media", "text", "action"],
     description:
-      "Bounded freeform composition block for framed media, layered text, and offer artwork — shared Card/Offer/Email primitive (UI progressive).",
+      "Bounded freeform composition block for framed media, layered text, and offer artwork — shared Card/Offer/Email primitive.",
   },
 
   // Expanded relationship / pillar blocks (wired, feature-gated)

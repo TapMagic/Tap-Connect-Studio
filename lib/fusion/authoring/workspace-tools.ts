@@ -270,6 +270,18 @@ export const CARD_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
     workspaceIds: ["card-authoring"],
   },
   {
+    id: "composition",
+    label: "Composition",
+    icon: "Layers",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    triggersConstructMode: true,
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "ready",
+    workspaceIds: ["card-authoring"],
+  },
+  {
     id: "offer",
     label: "Offer Spotlight",
     icon: "Sparkles",

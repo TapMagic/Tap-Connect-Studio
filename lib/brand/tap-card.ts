@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { PremiumFinish, TextFormat } from "@/lib/design/premium-finish";
+import type { CreativeCompositionBlock } from "@/lib/fusion/creative-studio/composition";
 
 /** Action kinds — link target helpers. Any custom URL still works with kind "custom". */
 export type TapCardActionKind =
@@ -40,7 +41,9 @@ export type TapCardSectionType =
   | "special_offer"
   | "text"
   | "spacer"
-  | "footer_cta";
+  | "footer_cta"
+  /** Bounded freeform Creative Composition Block inside the Card section stack. */
+  | "creative_composition";
 
 export type TapCardSpecialStyle = "banner" | "ribbon" | "tile" | "card";
 export type TapCardOfferMode = "link" | "expand" | "campaign";
@@ -210,6 +213,10 @@ export type TapCardSection = {
   imageWidthPercent?: number;
   imageRadius?: TapCardButtonShape;
   altText?: string;
+  /**
+   * Creative Composition Block payload (when type === "creative_composition").
+   */
+  composition?: CreativeCompositionBlock;
 };
 
 /** Page-level utilities that survive Campaign / Experience resolution. */

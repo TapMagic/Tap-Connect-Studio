@@ -67,6 +67,8 @@ export type CardEditorLiveModel = {
   strInherited: (key: string) => string | undefined;
   onTestAction: (section: TapCardSection) => void;
   onCloseTool?: () => void;
+  selectedCompositionNodeIds?: string[];
+  setSelectedCompositionNodeIds?: (ids: string[]) => void;
 };
 
 const live: { current: CardEditorLiveModel | null } = { current: null };
@@ -100,6 +102,7 @@ export function cardEditorLiveMaterialSignature(
     canUndo: model.canUndo,
     canRedo: model.canRedo,
     reviewUrl: model.reviewUrl ?? null,
+    selectedCompositionNodeIds: model.selectedCompositionNodeIds ?? [],
   });
 }
 
