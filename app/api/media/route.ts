@@ -28,8 +28,13 @@ export async function GET(request: Request) {
     const { user, business } = await requireBusiness();
     const params = new URL(request.url).searchParams;
     const usedOnly = params.get("usedOnly") === "1";
+    const unusedOnly = params.get("unusedOnly") === "1";
     const favoriteOnly = params.get("favorite") === "1";
     const recentOnly = params.get("recent") === "1";
+    const logosOnly = params.get("logos") === "1";
+    const yourMediaOnly = params.get("yours") === "1";
+    const needsAlt = params.get("needsAlt") === "1";
+    const collectionId = (params.get("collectionId") || "").trim();
     const approval = params.get("approval");
     const query = (params.get("query") || "").trim();
     const take = Math.max(1, Math.min(100, Number(params.get("limit") || 80) || 80));
@@ -49,12 +54,36 @@ export async function GET(request: Request) {
           ...(recentOnly
             ? { recents: { some: { businessId: business.id, userId: user.id } } }
             : {}),
+          ...(collectionId
+            ? {
+                collectionMembers: {
+                  some: { businessId: business.id, collectionId },
+                },
+              }
+            : {}),
+          ...(yourMediaOnly ? { source: "upload" } : {}),
+          ...(logosOnly
+            ? {
+                OR: [
+                  { mimeType: { contains: "svg" } },
+                  { filename: { contains: "logo", mode: "insensitive" } },
+                  { source: "logo_dev" },
+                ],
+              }
+            : {}),
+          ...(needsAlt
+            ? {
+                OR: [{ defaultAltText: null }, { defaultAltText: "" }],
+              }
+            : {}),
           ...(query
             ? {
                 OR: [
                   { filename: { contains: query, mode: "insensitive" } },
                   { creatorName: { contains: query, mode: "insensitive" } },
                   { attributionText: { contains: query, mode: "insensitive" } },
+                  { defaultAltText: { contains: query, mode: "insensitive" } },
+                  { provider: { contains: query, mode: "insensitive" } },
                 ],
               }
             : {}),
@@ -81,7 +110,7 @@ export async function GET(request: Request) {
         orderBy: { createdAt: "desc" },
         take,
       }),
-      usedOnly
+      usedOnly || unusedOnly
         ? prisma.campaign.findMany({
             where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
             select: { contentBlocks: true, themeOverrides: true, primaryMedia: true },
@@ -95,14 +124,20 @@ export async function GET(request: Request) {
       recent: recents[0] ?? null,
       usages,
     }));
-    if (!usedOnly) return NextResponse.json({ assets: normalized });
+
+    if (!usedOnly && !unusedOnly) {
+      return NextResponse.json({ assets: normalized });
+    }
 
     const used = collectUsedUrls({
       logoUrl: business.logoUrl,
       campaigns,
     });
 
-    const filtered = normalized.filter((asset) => asset.usages.length > 0 || used.has(asset.url));
+    const filtered = normalized.filter((asset) => {
+      const isUsed = asset.usages.length > 0 || used.has(asset.url);
+      return unusedOnly ? !isUsed : isUsed;
+    });
     return NextResponse.json({ assets: filtered, usedCount: filtered.length });
   } catch (error) {
     console.error("List media error:", error);

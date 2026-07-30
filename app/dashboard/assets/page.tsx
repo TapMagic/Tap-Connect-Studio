@@ -6,10 +6,8 @@ import { isMediaUploadReady } from "@/lib/config/integrations";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { ownerMediaUsageLabel } from "@/lib/media/usage-labels";
-import {
-  AssetsLibrary,
-  type LibraryAsset,
-} from "@/components/fusion/assets/assets-library";
+import { type LibraryAsset } from "@/components/fusion/assets/assets-library";
+import { AssetStudioWorkspace } from "@/components/fusion/assets/asset-studio-workspace";
 
 export const dynamic = "force-dynamic";
 
@@ -148,11 +146,10 @@ export default async function AssetsHubPage() {
         <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[color:oklch(0.86_0.1_295)]">
           Assets
         </p>
-        <h1 className="text-3xl font-semibold tracking-tight text-white">Media library</h1>
-        <p className="max-w-2xl text-sm text-white/55">
-          Every image, logo, and file you reuse across your Card and campaigns lives here. Brand Kit
-          stays the single source of truth for identity — the library never becomes a second brand
-          system.
+        <h1 className="text-3xl font-semibold tracking-tight text-white">Asset Studio</h1>
+        <p className="max-w-2xl text-sm leading-relaxed text-white/60">
+          Organize Media and Logos in Collections without leaving Assets. Brand Kit remains the
+          source of truth for identity — Assets support your Card, Email, Campaigns, and TapCanvas.
         </p>
       </header>
 
@@ -194,7 +191,10 @@ export default async function AssetsHubPage() {
         </div>
       </section>
 
-      <AssetsLibrary initialAssets={libraryAssets} mediaUploadReady={mediaUploadReady} />
+      <AssetStudioWorkspace
+        initialAssets={libraryAssets}
+        mediaUploadReady={mediaUploadReady}
+      />
 
       <details className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3">
         <summary className="cursor-pointer text-sm font-medium text-white/80">

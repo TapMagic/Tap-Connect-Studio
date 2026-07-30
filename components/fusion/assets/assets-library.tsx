@@ -8,7 +8,7 @@
  * Maturity: IMPLEMENTED BUT NOT OWNER-READY.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   FileText,
@@ -127,18 +127,36 @@ function SourceIcon({ source }: { source: AssetSource }) {
 export function AssetsLibrary({
   initialAssets,
   mediaUploadReady,
+  onSelectionChange,
 }: {
   initialAssets: LibraryAsset[];
   mediaUploadReady: boolean;
+  onSelectionChange?: (ids: string[]) => void;
 }) {
   const [assets, setAssets] = useState<LibraryAsset[]>(initialAssets);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SourceFilter>("all");
   const [selected, setSelected] = useState<LibraryAsset | null>(null);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Keep grid in sync when parent smart-view / collection filters change.
+  useEffect(() => {
+    setAssets(initialAssets);
+  }, [initialAssets]);
+
+  function toggleSelectedId(id: string) {
+    setSelectedIds((prev) => {
+      const next = prev.includes(id)
+        ? prev.filter((x) => x !== id)
+        : [...prev, id];
+      onSelectionChange?.(next);
+      return next;
+    });
+  }
 
   const counts = useMemo(() => {
     const c = { all: assets.length, upload: 0, stock: 0, generated: 0, url: 0 };
@@ -401,12 +419,30 @@ export function AssetsLibrary({
             const meta = sourceMeta(asset.source);
             const isImage = asset.mimeType.startsWith("image/");
             return (
-              <li key={asset.id}>
+              <li key={asset.id} className="relative">
+                <label className="absolute left-2 top-2 z-10 inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-white/30"
+                    checked={selectedIds.includes(asset.id)}
+                    data-testid={`asset-select-${asset.id}`}
+                    onChange={() => toggleSelectedId(asset.id)}
+                    aria-label={`Select ${asset.filename || "asset"}`}
+                  />
+                </label>
                 <button
                   type="button"
                   onClick={() => setSelected(asset)}
                   data-testid={`asset-card-${asset.id}`}
                   className="group flex w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] text-left transition-colors hover:border-white/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData(
+                      "application/x-tapconnect-asset",
+                      JSON.stringify({ id: asset.id, url: asset.url })
+                    );
+                    e.dataTransfer.effectAllowed = "copy";
+                  }}
                 >
                   <div className="relative aspect-square w-full overflow-hidden bg-black/30">
                     {isImage ? (

@@ -334,6 +334,8 @@ model Business {
   mediaAssets               MediaAsset[]
   mediaAssetFavorites       MediaAssetFavorite[]
   mediaAssetRecents         MediaAssetRecent[]
+  mediaCollections          MediaCollection[]
+  mediaCollectionMembers    MediaCollectionMember[]
   creativeAssetUsages       CreativeAssetUsage[]
   creativeResources         CreativeResource[]
   creativeResourceUsages    CreativeResourceUsage[]
@@ -928,12 +930,54 @@ model MediaAsset {
   favorites              MediaAssetFavorite[]
   recents                MediaAssetRecent[]
   usages                 CreativeAssetUsage[]
+  collectionMembers      MediaCollectionMember[]
   knowledgeSources       KnowledgeSource[]
   brandPropertyDecisions BrandPropertyDecision[]
 
   @@unique([businessId, provider, providerAssetId])
   @@index([businessId, approvalStatus, createdAt])
   @@index([businessId, contentHash])
+}
+
+/// Owner-facing Collection — organization only; does not duplicate MediaAsset bytes.
+model MediaCollection {
+  id          String   @id @default(cuid())
+  businessId  String
+  name        String
+  description String?
+  icon        String?
+  accent      String?
+  sortOrder   Int      @default(0)
+  pinned      Boolean  @default(false)
+  parentId    String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  business Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  parent   MediaCollection?       @relation("MediaCollectionNesting", fields: [parentId], references: [id], onDelete: SetNull)
+  children MediaCollection[]      @relation("MediaCollectionNesting")
+  members  MediaCollectionMember[]
+
+  @@unique([businessId, name])
+  @@index([businessId, sortOrder])
+  @@index([businessId, pinned, updatedAt])
+}
+
+model MediaCollectionMember {
+  id           String   @id @default(cuid())
+  businessId   String
+  collectionId String
+  mediaAssetId String
+  sortOrder    Int      @default(0)
+  addedAt      DateTime @default(now())
+
+  business   Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  collection MediaCollection @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset      @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([collectionId, mediaAssetId])
+  @@index([businessId, mediaAssetId])
+  @@index([collectionId, sortOrder])
 }
 
 model MediaAssetFavorite {
