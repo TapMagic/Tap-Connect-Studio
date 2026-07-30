@@ -17,6 +17,15 @@ import {
   type CreativeCompositionNode,
   type FrameMaskId,
 } from "@/lib/fusion/creative-studio/composition";
+import {
+  DEFAULT_GRADIENT,
+  gradientToCss,
+} from "@/lib/fusion/creative-studio/gradient";
+import { surfacePatternStyle } from "@/lib/fusion/creative-studio/patterns";
+import {
+  snapCompositionNodes,
+  type CompositionGuide,
+} from "@/lib/fusion/creative-studio/composition-snap";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -54,7 +63,25 @@ function NodeVisual({
           fontSize: num(node.props.fontSize, 18),
           fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
           fontWeight: num(node.props.fontWeight, 600),
-          textAlign: (str(node.props.align, "center") as "left" | "center" | "right"),
+          fontStyle: node.props.italic === true ? "italic" : "normal",
+          textDecoration: [
+            node.props.underline === true ? "underline" : "",
+            node.props.strikethrough === true ? "line-through" : "",
+          ]
+            .filter(Boolean)
+            .join(" ") || undefined,
+          letterSpacing: `${num(node.props.letterSpacingEm, 0)}em`,
+          lineHeight: num(node.props.lineHeight, 1.2),
+          textTransform: str(node.props.textTransform, "none") as
+            | "none"
+            | "uppercase"
+            | "lowercase"
+            | "capitalize",
+          textAlign: (str(node.props.align, "center") as
+            | "left"
+            | "center"
+            | "right"
+            | "justify"),
           justifyContent:
             str(node.props.align, "center") === "left"
               ? "flex-start"
@@ -70,7 +97,10 @@ function NodeVisual({
 
   if (node.primitive === "image") {
     const src = str(node.props.src);
-    const fit = str(node.props.fit, "cover") as "cover" | "contain";
+    const fit = str(node.props.fit, "cover") as "cover" | "contain" | "fill" | "none";
+    const flipX = node.props.flipX === true ? -1 : 1;
+    const flipY = node.props.flipY === true ? -1 : 1;
+    const mediaRotation = num(node.props.mediaRotation, 0);
     return (
       <div
         className="h-full w-full overflow-hidden rounded-md bg-white/10"
@@ -80,9 +110,26 @@ function NodeVisual({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={src}
-            alt={str(node.props.alt, "Image")}
+            alt={node.props.decorative === true ? "" : str(node.props.alt, "Image")}
             className="h-full w-full"
-            style={{ objectFit: fit }}
+            style={{
+              objectFit: fit,
+              objectPosition: `${num(node.props.focalX, 0.5) * 100}% ${
+                num(node.props.focalY, 0.5) * 100
+              }%`,
+              opacity: num(node.props.opacity, 1),
+              transform: `scale(${flipX}, ${flipY}) rotate(${mediaRotation}deg)`,
+              filter: [
+                `brightness(${num(node.props.brightness, 1)})`,
+                `contrast(${num(node.props.contrast, 1)})`,
+                `saturate(${num(node.props.saturation, 1)})`,
+                `blur(${num(node.props.blur, 0)}px)`,
+                node.props.grayscale === true ? "grayscale(1)" : "",
+                node.props.sepia === true ? "sepia(1)" : "",
+              ]
+                .filter(Boolean)
+                .join(" "),
+            }}
             draggable={false}
           />
         ) : (
@@ -103,6 +150,12 @@ function NodeVisual({
     const fy = num(node.props.focalY, 0.5) * 100;
     const borderW = num(node.props.borderWidth, 0);
     const borderColor = str(node.props.borderColor, "#ffffff");
+    const borderOpacity = num(node.props.borderOpacity, 1);
+    const borderStyle = str(node.props.borderStyle, "solid");
+    const borderAlignment = str(node.props.borderAlignment, "center");
+    const scaleStroke = node.props.scaleStroke !== false;
+    const borderGlow = num(node.props.borderGlow, 0);
+    const borderShadow = num(node.props.borderShadow, 0);
     const mediaScale = num(node.props.mediaScale, 1);
     return (
       <div className="relative h-full w-full">
@@ -121,7 +174,6 @@ function NodeVisual({
           style={{
             clipPath: `url(#${clipId})`,
             WebkitClipPath: `url(#${clipId})`,
-            boxShadow: borderW ? `inset 0 0 0 ${borderW}px ${borderColor}` : undefined,
             padding: num(node.props.padding, 0),
           }}
         >
@@ -146,6 +198,46 @@ function NodeVisual({
             </div>
           )}
         </div>
+        {borderW > 0 ? (
+          <svg
+            viewBox="0 0 100 100"
+            preserveAspectRatio="none"
+            className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
+            aria-hidden
+            style={{
+              clipPath:
+                borderAlignment === "inside" ? `url(#${clipId})` : undefined,
+              filter:
+                borderGlow > 0
+                  ? `drop-shadow(0 0 ${borderGlow}px ${borderColor})`
+                  : borderShadow > 0
+                    ? `drop-shadow(0 ${Math.max(1, borderShadow / 2)}px ${borderShadow}px rgba(0,0,0,.55))`
+                    : undefined,
+            }}
+          >
+            <path
+              d={frameMaskPath(mask)}
+              fill="none"
+              stroke={borderColor}
+              strokeOpacity={borderOpacity}
+              strokeWidth={
+                borderAlignment === "inside" || borderAlignment === "outside"
+                  ? borderW * 2
+                  : borderW
+              }
+              strokeDasharray={
+                borderStyle === "dashed"
+                  ? "8 5"
+                  : borderStyle === "dotted"
+                    ? "1 5"
+                    : undefined
+              }
+              strokeLinecap={borderStyle === "dotted" ? "round" : "butt"}
+              strokeLinejoin="round"
+              vectorEffect={scaleStroke ? undefined : "non-scaling-stroke"}
+            />
+          </svg>
+        ) : null}
       </div>
     );
   }
@@ -174,20 +266,102 @@ function NodeVisual({
     const style = str(node.props.style, "solid");
     const thickness = num(node.props.thickness, 2);
     const color = str(node.props.color, "#fff");
+    const opacity = num(node.props.opacity, 1);
+    const cap = str(node.props.cap, "round");
+    const startMarker = str(node.props.startMarker, "none");
+    const endMarker = str(node.props.endMarker, "none");
+    const markerId = (side: "start" | "end", type: string) =>
+      `divider-${node.id}-${side}-${type}`;
+    const dash =
+      style === "dashed"
+        ? "10 7"
+        : style === "dotted"
+          ? "1 7"
+          : style === "custom"
+            ? str(node.props.customDash, "12 5 3 5")
+            : undefined;
+    const linePath =
+      style === "wavy"
+        ? "M2 10 C8 1 14 19 20 10 S32 1 38 10 S50 19 56 10 S68 1 74 10 S86 19 98 10"
+        : "M2 10 H98";
+    const markerShape = (type: string) => {
+      if (type === "arrow") return <path d="M0 0 L10 5 L0 10 Z" fill={color} />;
+      if (type === "diamond")
+        return <path d="M0 5 L5 0 L10 5 L5 10 Z" fill={color} />;
+      if (type === "circle") return <circle cx="5" cy="5" r="4" fill={color} />;
+      if (type === "square") return <rect x="1" y="1" width="8" height="8" fill={color} />;
+      return null;
+    };
     return (
-      <div
-        className="flex h-full w-full items-center"
+      <svg
+        viewBox="0 0 100 20"
+        preserveAspectRatio="none"
+        className="h-full w-full overflow-visible"
         data-border-style={style}
+        role="img"
+        aria-label={str(node.props.label, "Divider")}
       >
-        <div
-          className="w-full"
-          style={{
-            borderTopWidth: thickness,
-            borderTopStyle: style as "solid" | "dashed" | "dotted",
-            borderTopColor: color,
-          }}
-        />
-      </div>
+        <defs>
+          {(["start", "end"] as const).map((side) => {
+            const type = side === "start" ? startMarker : endMarker;
+            return type === "none" ? null : (
+              <marker
+                key={side}
+                id={markerId(side, type)}
+                viewBox="0 0 10 10"
+                refX={side === "start" ? 1 : 9}
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto-start-reverse"
+              >
+                {markerShape(type)}
+              </marker>
+            );
+          })}
+        </defs>
+        {style === "double" ? (
+          <>
+            <path
+              d="M2 7 H98"
+              fill="none"
+              stroke={color}
+              strokeOpacity={opacity}
+              strokeWidth={Math.max(1, thickness / 2)}
+              vectorEffect="non-scaling-stroke"
+            />
+            <path
+              d="M2 13 H98"
+              fill="none"
+              stroke={color}
+              strokeOpacity={opacity}
+              strokeWidth={Math.max(1, thickness / 2)}
+              vectorEffect="non-scaling-stroke"
+            />
+          </>
+        ) : (
+          <path
+            d={linePath}
+            fill="none"
+            stroke={color}
+            strokeOpacity={opacity}
+            strokeWidth={thickness}
+            strokeDasharray={dash}
+            strokeLinecap={cap === "square" ? "square" : "round"}
+            vectorEffect="non-scaling-stroke"
+            markerStart={
+              startMarker === "none"
+                ? undefined
+                : `url(#${markerId("start", startMarker)})`
+            }
+            markerEnd={
+              endMarker === "none"
+                ? undefined
+                : `url(#${markerId("end", endMarker)})`
+            }
+          />
+        )}
+      </svg>
     );
   }
 
@@ -223,6 +397,7 @@ export function CreativeCompositionCanvas({
   const [draftNodes, setDraftNodes] = useState<CreativeCompositionNode[] | null>(
     null
   );
+  const [guides, setGuides] = useState<CompositionGuide[]>([]);
   const [drag, setDrag] = useState<{
     id: string;
     mode: "move" | "resize";
@@ -363,7 +538,13 @@ export function CreativeCompositionCanvas({
     const dx = (e.clientX - drag.startX) / rect.width;
     const dy = (e.clientY - drag.startY) / rect.height;
     if (drag.mode === "move") {
-      setDraftNodes(translateNodes(drag.origNodes, drag.moveIds, dx, dy));
+      const translated = translateNodes(drag.origNodes, drag.moveIds, dx, dy);
+      const snapped = snapCompositionNodes({
+        nodes: translated,
+        movingIds: drag.moveIds,
+      });
+      setDraftNodes(snapped.nodes);
+      setGuides(snapped.guides);
       return;
     }
     const nodes = drag.origNodes.map((n) => {
@@ -384,6 +565,7 @@ export function CreativeCompositionCanvas({
     const groupMove = mode === "move" && drag.moveIds.length > 1;
     setDrag(null);
     setDraftNodes(null);
+    setGuides([]);
     commitNodes(
       nodes,
       mode === "resize"
@@ -398,8 +580,44 @@ export function CreativeCompositionCanvas({
     block.background?.kind === "solid"
       ? block.background.value || "#0b0f19"
       : block.background?.kind === "gradient"
-        ? block.background.value || "linear-gradient(180deg,#0b0f19,#1a2332)"
+        ? block.background.gradient
+          ? gradientToCss(block.background.gradient)
+          : block.background.value || gradientToCss(DEFAULT_GRADIENT)
         : "transparent";
+  const backgroundImage = block.background?.image;
+  const backgroundStyle =
+    block.background?.kind === "image" && backgroundImage?.src
+      ? {
+          backgroundColor: "#0b0f19",
+          backgroundImage: `${
+            backgroundImage.overlayColor && (backgroundImage.overlayOpacity || 0) > 0
+              ? `linear-gradient(${backgroundImage.overlayColor}${Math.round(
+                  (backgroundImage.overlayOpacity || 0) * 255
+                )
+                  .toString(16)
+                  .padStart(2, "0")}, ${backgroundImage.overlayColor}${Math.round(
+                  (backgroundImage.overlayOpacity || 0) * 255
+                )
+                  .toString(16)
+                  .padStart(2, "0")}), `
+              : ""
+          }url("${backgroundImage.src.replaceAll('"', "%22")}")`,
+          backgroundSize:
+            backgroundImage.fit === "fill"
+              ? "100% 100%"
+              : backgroundImage.fit === "original"
+                ? `${Math.round(backgroundImage.scale * 100)}% auto`
+                : backgroundImage.fit,
+          backgroundPosition: `${backgroundImage.focalX * 100}% ${
+            backgroundImage.focalY * 100
+          }%`,
+          backgroundRepeat: backgroundImage.repeat,
+        }
+      : (block.background?.kind === "pattern" ||
+            block.background?.kind === "texture") &&
+          block.background.pattern
+        ? surfacePatternStyle(block.background.pattern)
+        : { background: bg };
 
   if (useStack) {
     return (
@@ -409,7 +627,7 @@ export function CreativeCompositionCanvas({
           "flex flex-col gap-3 rounded-xl border border-white/10 p-3",
           className
         )}
-        style={{ background: bg }}
+        style={backgroundStyle}
         data-testid="creative-composition-canvas"
         data-mobile-fallback="stack"
         role="group"
@@ -455,7 +673,7 @@ export function CreativeCompositionCanvas({
         className
       )}
       style={{
-        background: bg,
+        ...backgroundStyle,
         aspectRatio: String(aspectRatio),
         padding: block.safeAreaPaddingPx ?? 12,
       }}
@@ -481,6 +699,33 @@ export function CreativeCompositionCanvas({
           </li>
         ))}
       </ol>
+
+      {editMode
+        ? guides.map((guide, index) => (
+            <div
+              key={`${guide.axis}-${guide.value}-${index}`}
+              className="pointer-events-none absolute z-[999] bg-[#b8ff2c] shadow-[0_0_6px_rgba(184,255,44,.65)]"
+              style={
+                guide.axis === "x"
+                  ? {
+                      left: `${guide.value * 100}%`,
+                      top: 0,
+                      bottom: 0,
+                      width: 1,
+                    }
+                  : {
+                      top: `${guide.value * 100}%`,
+                      left: 0,
+                      right: 0,
+                      height: 1,
+                    }
+              }
+              data-testid={`composition-guide-${guide.axis}`}
+              data-guide-kind={guide.kind}
+              aria-hidden
+            />
+          ))
+        : null}
 
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);

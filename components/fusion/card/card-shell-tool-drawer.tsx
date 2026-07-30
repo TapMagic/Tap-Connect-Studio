@@ -191,6 +191,8 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
             patchSection(selected.id, { composition: next }, label)
           }
           onClose={props.onCloseTool}
+          mediaUploadReady={mediaUploadReady}
+          stockReady={stockReady}
         />
       </div>
     );
@@ -408,6 +410,8 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
           }
           showHeaderLogo={config.showHeaderLogo === true}
           onToggleHeaderLogo={(on) => patchConfig({ showHeaderLogo: on })}
+          mediaUploadReady={mediaUploadReady}
+          stockReady={stockReady}
           onPatchHeaderLogo={(url) =>
             patchConfig({
               headerLogoUrl: url,

@@ -6,7 +6,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { BgRemovePanel } from "@/components/media/bg-remove-panel";
+import { SharedMediaAssetBrowser } from "@/components/media/shared-media-asset-browser";
 import type { BgRemoveProvenance } from "@/lib/media/bg-remove";
+import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
 
 interface MediaPickerProps {
   value?: string;
@@ -104,6 +106,7 @@ export function MediaPicker({
   const [message, setMessage] = useState<string | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [bgRemoveOpen, setBgRemoveOpen] = useState(false);
+  const [sharedBrowserOpen, setSharedBrowserOpen] = useState(false);
   const [originalBeforeCutout, setOriginalBeforeCutout] = useState<string | null>(null);
 
   const refreshLibrary = useCallback(() => {
@@ -367,9 +370,32 @@ export function MediaPicker({
     applyUrl(originalUrl, "Original image restored", { source: "upload" });
   }
 
+  function chooseSharedAsset(asset: MediaAssetCandidate) {
+    applyUrl(asset.url, `${asset.sourceLabel} asset inserted`, {
+      filename: asset.label,
+      source:
+        asset.source === "pexels" || asset.source === "studio"
+          ? "stock"
+          : asset.source === "url"
+            ? "url"
+            : "upload",
+    });
+  }
+
   return (
     <div className="space-y-3" data-testid="media-picker">
       <Label className="text-xs">{label}</Label>
+
+      <Button
+        type="button"
+        className="min-h-11 w-full"
+        variant="outline"
+        onClick={() => setSharedBrowserOpen(true)}
+        data-testid="open-shared-media-browser"
+      >
+        <ImageIcon className="mr-2 h-4 w-4" />
+        Browse media & assets
+      </Button>
 
       {value ? (
         <div className="relative overflow-hidden rounded-lg border border-border/50">
@@ -400,6 +426,15 @@ export function MediaPicker({
           </div>
         </div>
       ) : null}
+
+      <SharedMediaAssetBrowser
+        open={sharedBrowserOpen}
+        onClose={() => setSharedBrowserOpen(false)}
+        onSelect={chooseSharedAsset}
+        mediaUploadReady={mediaUploadReady}
+        stockReady={stockReady}
+        selectionKind={label.toLowerCase().includes("logo") ? "logo" : "any"}
+      />
 
       <input
         ref={fileRef}

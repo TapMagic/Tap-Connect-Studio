@@ -97,6 +97,8 @@ export type AdaptiveWorkspaceShellProps = {
   mobileDrawerCloseTestId?: string;
   mobileSheetTestId?: string;
   drawerRootTestId?: string;
+  /** NestedPanelShell owns Back/Close — hide Adaptive drawer title row. */
+  suppressDrawerHeader?: boolean;
 };
 
 export function AdaptiveWorkspaceShell({
@@ -124,6 +126,7 @@ export function AdaptiveWorkspaceShell({
   mobileDrawerCloseTestId = "adaptive-drawer-close",
   mobileSheetTestId,
   drawerRootTestId = "adaptive-task-drawer",
+  suppressDrawerHeader = false,
 }: AdaptiveWorkspaceShellProps) {
   const isPhone = useIsPhoneLayout();
   const reducedMotion = usePrefersReducedMotion();
@@ -346,7 +349,7 @@ export function AdaptiveWorkspaceShell({
             recommendedMode={recommendedDrawerMode}
             onClose={closeDrawer}
             onSizeModeChange={onSizeModeChange}
-            onResetSize={onResetSize}
+            onResetSize={suppressDrawerHeader ? undefined : onResetSize}
             initialScrollTop={scrollTop}
             onScrollTopChange={(top) => {
               if (!snapshot.selectedToolId) return;
@@ -360,6 +363,7 @@ export function AdaptiveWorkspaceShell({
             closeTestId={desktopDrawerCloseTestId}
             rootTestId={drawerRootTestId}
             dataTopic={snapshot.selectedToolId ?? undefined}
+            suppressHeader={suppressDrawerHeader}
           >
             {drawerContent}
           </AdaptiveTaskDrawer>
@@ -391,6 +395,7 @@ export function AdaptiveWorkspaceShell({
           sheetTestId={mobileSheetTestId}
           rootTestId={drawerRootTestId}
           dataTopic={snapshot.selectedToolId ?? undefined}
+          suppressHeader={suppressDrawerHeader}
         >
           {drawerContent}
         </AdaptiveTaskDrawer>

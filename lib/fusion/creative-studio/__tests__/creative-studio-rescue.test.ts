@@ -245,7 +245,7 @@ describe("creative composition registry", () => {
     assert.equal(entry?.tapCardType, "creative_composition");
     const block = createEmptyCreativeComposition("c1");
     assert.equal(block.version, 1);
-    assert.equal(block.mobileFallback, "stack");
+    assert.equal(block.mobileFallback, "scale");
     const sorted = sortCompositionNodes([
       {
         id: "b",

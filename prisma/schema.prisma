@@ -582,15 +582,23 @@ model ScanSession {
 // ─── Media & Templates (placeholders — wired when integrations added) ─────────
 
 model MediaAsset {
-  id         String   @id @default(cuid())
-  businessId String
-  campaignId String?
-  url        String
-  filename   String?
-  mimeType   String
-  sizeBytes  Int      @default(0)
-  source     String   @default("upload") // upload | stock | url
-  createdAt  DateTime @default(now())
+  id              String   @id @default(cuid())
+  businessId      String
+  campaignId      String?
+  url             String
+  filename        String?
+  mimeType        String
+  sizeBytes       Int      @default(0)
+  width           Int?
+  height          Int?
+  source          String   @default("upload") // upload | stock | logo_dev | url
+  providerId      String?
+  sourceUrl       String?
+  attributionName String?
+  attributionUrl  String?
+  rights          String?
+  importedAt      DateTime?
+  createdAt       DateTime @default(now())
 
   business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
   campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)

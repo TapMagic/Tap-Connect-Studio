@@ -11,12 +11,20 @@ test.describe("creative studio sliding inspector", () => {
       timeout: 60_000,
     });
     await expect(page.getByTestId("card-tool-appearance")).toBeVisible();
+    // Closed until a left-rail tool is selected
+    await expect(page.getByTestId("card-contextual-drawer")).toHaveCount(0);
 
     await page.getByTestId("card-tool-appearance").click();
     const stack = page.getByTestId("appearance-panel-stack");
     await expect(stack).toBeVisible({ timeout: 20_000 });
+    await expect(page.getByTestId("card-contextual-drawer")).toHaveAttribute(
+      "data-drawer-entered",
+      "true",
+      { timeout: 3_000 }
+    );
     await expect(stack).toHaveAttribute("data-sliding-panel-stack", "true");
     await expect(stack).toHaveAttribute("data-panel-depth", "0");
+    await expect(stack).toHaveAttribute("data-panel-slide-ms", "560");
     await expect(page.getByTestId("appearance-panel-hub")).toBeVisible();
     await expect(page.locator("[data-panel-slide-track]")).toHaveCount(1);
 
@@ -25,16 +33,26 @@ test.describe("creative studio sliding inspector", () => {
     await expect(page.getByTestId("card-tool-brand")).toHaveCount(0);
     await expect(page.getByTestId("card-tool-layout")).toHaveCount(0);
 
+    await expect(
+      page.getByTestId("adaptive-drawer-header-suppressed")
+    ).toBeAttached();
+
     await page.getByTestId("appearance-open-colors").click();
     await expect(stack).toHaveAttribute("data-panel-depth", "1");
-    await expect(page.getByTestId("appearance-panel-colors")).toBeVisible();
+    // Dual-pane track briefly mounts both panes during the horizontal slide
+    await expect(
+      page.locator('[data-panel-slide-pane="incoming"]')
+    ).toBeVisible({ timeout: 5_000 });
+    await expect(page.getByTestId("appearance-panel-colors")).toBeVisible({
+      timeout: 8_000,
+    });
     await expect(page.getByTestId("panel-stack-back")).toBeVisible();
-    await expect(stack).toHaveAttribute("data-panel-slide-direction", "forward");
 
     await page.getByTestId("panel-stack-back").click();
     await expect(stack).toHaveAttribute("data-panel-depth", "0");
-    await expect(page.getByTestId("appearance-panel-hub")).toBeVisible();
-    await expect(stack).toHaveAttribute("data-panel-slide-direction", "back");
+    await expect(page.getByTestId("appearance-panel-hub")).toBeVisible({
+      timeout: 8_000,
+    });
   });
 
   test("Inspector Selection Hub opens and Close collapses drawer", async ({

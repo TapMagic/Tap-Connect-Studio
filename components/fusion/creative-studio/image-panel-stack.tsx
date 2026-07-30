@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { MediaPicker } from "@/components/media/media-picker";
 import {
   NestedPanelShell,
   PanelNavRow,
@@ -20,6 +21,8 @@ export type ImagePanelStackProps = {
   onPatchHeaderLogo?: (url: string) => void;
   showHeaderLogo?: boolean;
   onToggleHeaderLogo?: (on: boolean) => void;
+  mediaUploadReady?: boolean;
+  stockReady?: boolean;
 };
 
 /**
@@ -33,6 +36,8 @@ export function ImagePanelStack({
   onPatchHeaderLogo,
   showHeaderLogo,
   onToggleHeaderLogo,
+  mediaUploadReady = false,
+  stockReady = false,
 }: ImagePanelStackProps) {
   const [level, setLevel] = useState<MediaLevel>("root");
   const isImage =
@@ -145,12 +150,12 @@ export function ImagePanelStack({
 
       {level === "source" ? (
         <div className="space-y-2" data-testid="image-panel-source">
-          <Label className="text-xs">Image URL</Label>
-          <Input
+          <MediaPicker
             value={String(src || "")}
-            data-testid="image-panel-src"
-            onChange={(e) => {
-              const url = e.target.value;
+            label={selected?.type === "logo_block" || !selected ? "Brand logo" : "Card image"}
+            mediaUploadReady={mediaUploadReady}
+            stockReady={stockReady}
+            onChange={(url) => {
               if (selected) {
                 patchSelected(
                   selected.type === "logo_block"

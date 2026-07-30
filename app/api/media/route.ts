@@ -64,8 +64,18 @@ const createSchema = z.object({
   url: z.string().min(1),
   filename: z.string().optional(),
   mimeType: z.string().default("image/jpeg"),
-  source: z.enum(["upload", "stock", "url", "bg-remove"]).default("url"),
+  source: z
+    .enum(["upload", "stock", "logo_dev", "url", "bg-remove"])
+    .default("url"),
   campaignId: z.string().optional(),
+  width: z.number().int().positive().optional(),
+  height: z.number().int().positive().optional(),
+  providerId: z.string().max(200).optional(),
+  sourceUrl: z.string().url().optional(),
+  attributionName: z.string().max(300).optional(),
+  attributionUrl: z.string().url().optional(),
+  rights: z.string().max(1000).optional(),
+  importedAt: z.coerce.date().optional(),
 });
 
 export async function POST(request: Request) {
@@ -93,6 +103,14 @@ export async function POST(request: Request) {
         filename: body.filename,
         mimeType: body.mimeType,
         source: body.source,
+        width: body.width,
+        height: body.height,
+        providerId: body.providerId,
+        sourceUrl: body.sourceUrl,
+        attributionName: body.attributionName,
+        attributionUrl: body.attributionUrl,
+        rights: body.rights,
+        importedAt: body.importedAt,
       },
     });
 

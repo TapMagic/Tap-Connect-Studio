@@ -4,6 +4,7 @@ import type { BrandKit } from "@prisma/client";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
+import { CompositionFontLoader } from "@/components/fusion/creative-studio/composition-font-loader";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
@@ -65,6 +66,7 @@ export function TapConnectCardPublic({
       style={{ backgroundColor, color: config.textColor || "#f8fafc" }}
       data-testid="tap-card-first-public"
     >
+      <CompositionFontLoader config={config} />
       <div className="tap-page-inner mx-auto max-w-lg px-4 py-6">
         <TapConnectCard
           config={config}

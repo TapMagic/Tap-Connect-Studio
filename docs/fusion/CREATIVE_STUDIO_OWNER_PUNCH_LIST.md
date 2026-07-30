@@ -1,6 +1,6 @@
 # Creative Studio Rescue — Owner Punch List
 
-**Classification:** `OWNER-READY CANDIDATE — VERIFICATION PENDING`
+**Classification:** `IMPLEMENTATION IN PROGRESS`
 
 | ID | Item | Severity | Status |
 |----|------|----------|--------|
@@ -10,6 +10,12 @@
 | P2a | Direct LAN phone reachability | Critical | Blocked by AP/client isolation (network) |
 | P2b | Temporary HTTPS tunnel | High | Active locally (not committed) |
 | Composition / inspectors / automated proofs | — | Closed |
+
+## Capability-completeness pass
+
+Closed in code and initial route proof: shared media browser, provider token isolation/import contract, typed gradients, image backgrounds, patterns/textures, mask-path outlines, scale/exact stroke, expanded masks, image adjustments, divider completion, typography render parity, font parity, and smart guides.
+
+Open: structured flow wrapping, full Shape Studio, durable Layers completion, saved styles/compositions, editable templates, final responsive/accessibility/performance matrix, complete Owner walkthrough evidence, and physical-phone fidelity re-scan.
 
 ## Desktop inspector (root cause)
 

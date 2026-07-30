@@ -10,6 +10,7 @@ import {
   useCallback,
   useEffect,
   useRef,
+  useState,
   type KeyboardEvent,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -26,6 +27,10 @@ import {
   type DrawerSizeMode,
   type MobileSheetMode,
 } from "@/lib/fusion/authoring/workspace-shell";
+import {
+  PANEL_STACK_EASING,
+  PANEL_STACK_SLIDE_MS,
+} from "@/components/fusion/creative-studio/nested-panel-shell";
 
 export type AdaptiveTaskDrawerProps = {
   open: boolean;
@@ -49,6 +54,11 @@ export type AdaptiveTaskDrawerProps = {
   sheetTestId?: string;
   rootTestId?: string;
   dataTopic?: string;
+  /**
+   * When content owns its chrome (NestedPanelShell Sliding Stack),
+   * hide the duplicate Adaptive drawer title/close row.
+   */
+  suppressHeader?: boolean;
 };
 
 export function AdaptiveTaskDrawer({
@@ -70,9 +80,28 @@ export function AdaptiveTaskDrawer({
   sheetTestId,
   rootTestId = "adaptive-task-drawer",
   dataTopic,
+  suppressHeader = false,
 }: AdaptiveTaskDrawerProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startPct: number } | null>(null);
+  const [entered, setEntered] = useState(false);
+
+  useEffect(() => {
+    if (!open) {
+      setEntered(false);
+      return;
+    }
+    // Enter once when the dock opens — keep position when switching tools.
+    setEntered(false);
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setEntered(true));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open || !scrollRef.current) return;
@@ -141,14 +170,21 @@ export function AdaptiveTaskDrawer({
     return (
       <div
         className={cn(
-          "fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-2xl border border-white/10 bg-[#0a0f1c] shadow-2xl",
+          "tc-inspector-panel fixed inset-x-0 bottom-0 z-40 overflow-hidden rounded-t-2xl bg-[#0a0f1c] motion-reduce:transition-none",
+          entered
+            ? "translate-y-0 opacity-100"
+            : "translate-y-6 opacity-0",
           className
         )}
-        style={{ maxHeight: sheetHeight }}
+        style={{
+          maxHeight: sheetHeight,
+          transition: `transform ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}, opacity ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}`,
+        }}
         data-testid={sheetTestId ?? rootTestId}
         data-drawer-placement="bottom"
         data-drawer-size={sizeMode}
         data-mobile-sheet={sheetMode}
+        data-drawer-entered={entered ? "true" : "false"}
         data-tool-id={toolId ?? ""}
         data-topic={dataTopic ?? ""}
         role="dialog"
@@ -189,18 +225,21 @@ export function AdaptiveTaskDrawer({
   return (
     <aside
       className={cn(
-        "relative flex h-full min-h-0 shrink-0 flex-col border-l border-white/8 bg-[#070b14]",
+        "tc-inspector-panel relative flex h-full min-h-0 shrink-0 flex-col bg-[#070b14] motion-reduce:transition-none",
+        entered ? "translate-x-0 opacity-100" : "translate-x-10 opacity-0",
         className
       )}
       style={{
         width: `${widthPct}%`,
         minWidth: `${DRAWER_WIDTH_MIN_PCT}%`,
         maxWidth: `${DRAWER_WIDTH_MAX_PCT}%`,
+        transition: `transform ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}, opacity ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}, width ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}`,
       }}
       data-testid={rootTestId}
       data-drawer-placement="side"
       data-drawer-size={sizeMode}
       data-drawer-width-pct={String(widthPct)}
+      data-drawer-entered={entered ? "true" : "false"}
       data-tool-id={toolId ?? ""}
       data-topic={dataTopic ?? ""}
       aria-label={title}
@@ -221,36 +260,49 @@ export function AdaptiveTaskDrawer({
         <GripVertical className="h-4 w-4 text-white/35" aria-hidden />
       </div>
 
-      <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
-        <h2 className="truncate text-sm font-semibold text-white">{title}</h2>
-        <div className="flex items-center gap-1">
-          {onResetSize ? (
+      {!suppressHeader ? (
+        <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2">
+          <h2 className="truncate text-sm font-semibold text-white">{title}</h2>
+          <div className="flex items-center gap-1">
+            {onResetSize ? (
+              <button
+                type="button"
+                data-testid="adaptive-drawer-reset-size"
+                aria-label={`Reset to recommended ${recommendedMode} size`}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-white/15 text-white/60 hover:bg-white/5"
+                onClick={onResetSize}
+                title="Reset to recommended size"
+              >
+                <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+              </button>
+            ) : null}
             <button
               type="button"
-              data-testid="adaptive-drawer-reset-size"
-              aria-label={`Reset to recommended ${recommendedMode} size`}
-              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-white/15 text-white/60 hover:bg-white/5"
-              onClick={onResetSize}
-              title="Reset to recommended size"
+              aria-label="Collapse drawer"
+              data-testid={closeTestId}
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5"
+              onClick={onClose}
             >
-              <RotateCcw className="h-3.5 w-3.5" aria-hidden />
+              <X className="h-4 w-4" aria-hidden />
             </button>
-          ) : null}
-          <button
-            type="button"
-            aria-label="Collapse drawer"
-            data-testid={closeTestId}
-            className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-white/15 text-white/70 hover:bg-white/5"
-            onClick={onClose}
-          >
-            <X className="h-4 w-4" aria-hidden />
+          </div>
+        </div>
+      ) : (
+        <div className="sr-only" data-testid="adaptive-drawer-header-suppressed">
+          {title}
+          <button type="button" data-testid={closeTestId} onClick={onClose}>
+            Close
           </button>
         </div>
-      </div>
+      )}
       <div
         ref={scrollRef}
-        className="min-h-0 flex-1 overflow-y-auto p-3"
+        className={cn(
+          "min-h-0 flex-1 overflow-y-auto",
+          suppressHeader ? "p-0" : "p-3"
+        )}
         data-testid="adaptive-drawer-scroll"
+        data-owns-chrome={suppressHeader ? "content" : "drawer"}
       >
         {children}
       </div>

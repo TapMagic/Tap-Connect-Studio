@@ -459,12 +459,13 @@
   }
 }
 
+/* Keep in sync with PANEL_STACK_SLIDE_MS / PANEL_STACK_EASING in nested-panel-shell */
 .tc-panel-slide-forward {
-  animation: tc-panel-slide-forward 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tc-panel-slide-forward 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .tc-panel-slide-back {
-  animation: tc-panel-slide-back 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: tc-panel-slide-back 560ms cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -472,4 +473,37 @@
   .tc-panel-slide-back {
     animation: none;
   }
+
+  [data-panel-slide-track] {
+    transition: none !important;
+  }
+}
+
+/* Contextual inspector — neon divider glow (Tap Connect lime) */
+.tc-inspector-panel {
+  --tc-inspector-neon: #b8ff2c;
+  border-color: color-mix(in srgb, var(--tc-inspector-neon) 55%, transparent);
+  box-shadow:
+    -1px 0 0 color-mix(in srgb, var(--tc-inspector-neon) 70%, transparent),
+    -10px 0 28px color-mix(in srgb, var(--tc-inspector-neon) 18%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--tc-inspector-neon) 28%, transparent),
+    inset 0 0 24px color-mix(in srgb, var(--tc-inspector-neon) 6%, transparent);
+}
+
+[data-drawer-placement="side"].tc-inspector-panel {
+  border-left: 1px solid color-mix(in srgb, var(--tc-inspector-neon) 65%, transparent);
+}
+
+[data-drawer-placement="bottom"].tc-inspector-panel {
+  border-top: 1px solid color-mix(in srgb, var(--tc-inspector-neon) 65%, transparent);
+  box-shadow:
+    0 -1px 0 color-mix(in srgb, var(--tc-inspector-neon) 70%, transparent),
+    0 -12px 32px color-mix(in srgb, var(--tc-inspector-neon) 16%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--tc-inspector-neon) 28%, transparent);
+}
+
+[data-sliding-panel-stack="true"].tc-inspector-panel {
+  /* Inner stack sits inside the drawer glow — keep a lighter edge only */
+  box-shadow: none;
+  border: none;
 }

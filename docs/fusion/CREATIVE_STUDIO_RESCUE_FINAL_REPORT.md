@@ -1,6 +1,6 @@
 # Creative Studio Rescue — Final Report
 
-**Classification:** `OWNER-READY CANDIDATE — VERIFICATION PENDING`
+**Classification:** `IMPLEMENTATION IN PROGRESS`
 
 **Branch:** `tapconnect-creative-studio-rescue`
 
@@ -20,6 +20,8 @@ Customer-facing Live Device / Preview no longer auto-stacks Creative Composition
 ## Remaining
 
 Owner re-scans the fresh temporary HTTPS QR and confirms composition matches Studio canvas.
+
+The capability-completeness directive reopened implementation beyond the original rescue boundary. Shared media/providers, typed visual backgrounds, corrected outlines, expanded masks, image/divider controls, typography parity, and guides are now implemented, but flow wrapping, full Shape Studio, durable reuse/templates, and final verification remain open. This report must not be promoted until those matrix rows and the Owner walkthrough close.
 
 ## Safety
 

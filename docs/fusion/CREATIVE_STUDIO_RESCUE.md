@@ -60,6 +60,6 @@ For real-phone QR: set `NEXT_PUBLIC_PREVIEW_BASE_URL` to a LAN or hosted URL the
 
 ## Classification
 
-**IMPLEMENTED BUT NOT OWNER-READY**
+**IMPLEMENTATION IN PROGRESS**
 
 Core contract, fonts, nested type panel, preview tokens, and wording are in place. Remaining for Owner-ready: full nested Button panel drill-ins, config-wide undo labels, polished Focus/chrome collapse UX, complete acceptance walkthrough proof artifacts, and e2e coverage expansion.

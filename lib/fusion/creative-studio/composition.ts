@@ -7,6 +7,8 @@
  */
 
 import { nanoid } from "nanoid";
+import type { GradientModel } from "@/lib/fusion/creative-studio/gradient";
+import type { SurfacePatternModel } from "@/lib/fusion/creative-studio/patterns";
 
 export type CreativeCompositionPrimitive =
   | "text"
@@ -42,72 +44,204 @@ export type FrameMaskId =
   | "star"
   | "polygon"
   | "organic"
+  | "diamond"
+  | "heart"
+  | "cloud"
+  | "label"
+  | "coupon"
+  | "house"
+  | "building"
+  | "paw"
+  | "cup"
+  | "bottle"
+  | "car"
+  | "bag"
+  | "hat"
+  | "flower"
+  | "apple"
+  | "baby-bib"
+  | "basketball"
   | "shirt";
 
 export const FRAME_MASK_CATALOG: {
   id: FrameMaskId;
   label: string;
+  category?: string;
   /** SVG path in 0–100 viewBox coordinates */
   path: string;
 }[] = [
   {
     id: "rectangle",
     label: "Rectangle",
+    category: "Basic",
     path: "M0 0 H100 V100 H0 Z",
   },
   {
     id: "rounded",
     label: "Rounded",
+    category: "Rounded",
     path: "M12 0 H88 Q100 0 100 12 V88 Q100 100 88 100 H12 Q0 100 0 88 V12 Q0 0 12 0 Z",
   },
   {
     id: "circle",
     label: "Circle",
+    category: "Basic",
     path: "M50 0 A50 50 0 1 1 49.9 0 Z",
   },
   {
     id: "oval",
     label: "Oval",
+    category: "Rounded",
     path: "M50 5 A40 45 0 1 1 49.9 5 Z",
   },
   {
     id: "arch",
     label: "Arch",
+    category: "Geometric",
     path: "M10 100 V45 A40 40 0 0 1 90 45 V100 Z",
   },
   {
     id: "badge",
     label: "Badge",
+    category: "Badges",
     path: "M50 2 L62 28 L90 32 L70 52 L75 80 L50 68 L25 80 L30 52 L10 32 L38 28 Z",
   },
   {
     id: "ticket",
     label: "Ticket",
+    category: "Tickets",
     path: "M0 15 H100 V85 H0 V70 A8 8 0 0 1 0 50 A8 8 0 0 1 0 30 Z",
   },
   {
     id: "shield",
     label: "Shield",
+    category: "Badges",
     path: "M50 2 L92 18 V48 C92 72 70 90 50 98 C30 90 8 72 8 48 V18 Z",
   },
   {
     id: "star",
     label: "Star",
+    category: "Decorative",
     path: "M50 4 L61 38 L96 38 L68 58 L79 92 L50 72 L21 92 L32 58 L4 38 L39 38 Z",
   },
   {
     id: "polygon",
     label: "Polygon",
+    category: "Geometric",
     path: "M50 4 L90 28 L90 72 L50 96 L10 72 L10 28 Z",
   },
   {
     id: "organic",
     label: "Organic",
+    category: "Organic",
     path: "M28 18 C42 4 62 8 74 22 C92 28 96 48 86 64 C94 78 78 94 58 90 C42 98 22 88 16 70 C4 58 8 34 28 18 Z",
+  },
+  {
+    id: "diamond",
+    label: "Diamond",
+    category: "Geometric",
+    path: "M50 2 L98 50 L50 98 L2 50 Z",
+  },
+  {
+    id: "heart",
+    label: "Heart",
+    category: "Decorative",
+    path: "M50 92 C35 78 8 60 8 34 C8 12 35 5 50 24 C65 5 92 12 92 34 C92 60 65 78 50 92 Z",
+  },
+  {
+    id: "cloud",
+    label: "Cloud",
+    category: "Children",
+    path: "M24 78 C8 78 4 58 16 49 C12 29 34 18 48 30 C58 10 86 18 84 42 C102 48 96 76 78 78 Z",
+  },
+  {
+    id: "label",
+    label: "Product Label",
+    category: "Labels",
+    path: "M8 18 Q8 8 18 8 H72 L94 50 L72 92 H18 Q8 92 8 82 Z",
+  },
+  {
+    id: "coupon",
+    label: "Coupon",
+    category: "Coupons",
+    path: "M4 16 H96 V34 C84 34 84 66 96 66 V84 H4 V66 C16 66 16 34 4 34 Z",
+  },
+  {
+    id: "house",
+    label: "House",
+    category: "Real Estate",
+    path: "M8 46 L50 8 L92 46 V94 H62 V64 H38 V94 H8 Z",
+  },
+  {
+    id: "building",
+    label: "Building",
+    category: "Buildings",
+    path: "M18 8 H82 V94 H18 Z M30 20 H42 V32 H30 Z M58 20 H70 V32 H58 Z M30 42 H42 V54 H30 Z M58 42 H70 V54 H58 Z",
+  },
+  {
+    id: "paw",
+    label: "Paw",
+    category: "Pets",
+    path: "M50 92 C30 92 20 76 30 61 C38 49 43 43 50 43 C57 43 62 49 70 61 C80 76 70 92 50 92 Z M18 50 C5 47 8 24 21 27 C32 30 30 53 18 50 Z M39 34 C26 32 28 8 41 10 C53 12 51 36 39 34 Z M61 34 C49 36 47 12 59 10 C72 8 74 32 61 34 Z M82 50 C70 53 68 30 79 27 C92 24 95 47 82 50 Z",
+  },
+  {
+    id: "cup",
+    label: "Cup",
+    category: "Beverage",
+    path: "M18 18 H76 V34 H86 C100 34 100 62 86 68 H76 V90 H18 Z M76 44 V58 H84 C90 56 90 46 84 44 Z",
+  },
+  {
+    id: "bottle",
+    label: "Bottle",
+    category: "Beverage",
+    path: "M38 4 H62 V20 L70 30 V92 H30 V30 L38 20 Z",
+  },
+  {
+    id: "car",
+    label: "Car",
+    category: "Automotive",
+    path: "M12 42 L24 20 H76 L88 42 L96 50 V76 H84 A10 10 0 0 1 64 76 H36 A10 10 0 0 1 16 76 H4 V50 Z",
+  },
+  {
+    id: "bag",
+    label: "Shopping Bag",
+    category: "Bags",
+    path: "M18 28 H82 V94 H18 Z M34 30 V22 C34 4 66 4 66 22 V30 H58 V22 C58 14 42 14 42 22 V30 Z",
+  },
+  {
+    id: "hat",
+    label: "Hat",
+    category: "Apparel",
+    path: "M16 62 C18 28 34 12 50 12 C66 12 82 28 84 62 C96 66 98 78 86 82 C64 90 36 90 14 82 C2 78 4 66 16 62 Z",
+  },
+  {
+    id: "flower",
+    label: "Flower",
+    category: "Floral",
+    path: "M50 42 C30 26 34 4 50 18 C66 4 70 26 58 42 C80 30 96 46 76 56 C92 72 70 84 56 66 C54 94 30 94 44 66 C24 84 6 66 26 54 C4 42 20 24 42 42 Z",
+  },
+  {
+    id: "apple",
+    label: "Apple",
+    category: "Food",
+    path: "M52 24 C58 10 70 6 78 10 C72 22 64 26 54 28 C74 24 90 40 86 64 C82 88 64 98 50 88 C36 98 18 88 14 64 C10 38 30 22 50 28 Z",
+  },
+  {
+    id: "baby-bib",
+    label: "Baby Bib",
+    category: "Baby",
+    path: "M32 8 H68 V28 C88 36 92 58 80 80 C68 100 32 100 20 80 C8 58 12 36 32 28 Z M42 8 V24 H58 V8 Z",
+  },
+  {
+    id: "basketball",
+    label: "Basketball",
+    category: "Sports",
+    path: "M50 4 A46 46 0 1 1 49.9 4 Z",
   },
   {
     id: "shirt",
     label: "Shirt",
+    category: "Apparel",
     path: "M35 8 L50 18 L65 8 L88 22 L78 38 L72 32 V92 H28 V32 L22 38 L12 22 Z",
   },
 ];
@@ -144,8 +278,26 @@ export type CreativeCompositionBlock = {
   label: string;
   nodes: CreativeCompositionNode[];
   background?: {
-    kind: "solid" | "gradient" | "image" | "none";
+    kind: "solid" | "gradient" | "image" | "pattern" | "texture" | "none";
+    /** Legacy CSS/string value retained for import compatibility only. */
     value?: string;
+    gradient?: GradientModel;
+    pattern?: SurfacePatternModel;
+    image?: {
+      src: string;
+      fit: "cover" | "contain" | "fill" | "original";
+      focalX: number;
+      focalY: number;
+      scale: number;
+      repeat: "no-repeat" | "repeat" | "repeat-x" | "repeat-y";
+      blur: number;
+      brightness: number;
+      contrast: number;
+      overlayColor?: string;
+      overlayOpacity?: number;
+      decorative?: boolean;
+      alt?: string;
+    };
   };
   mobileFallback: "stack" | "scale" | "hide_decorative";
   safeAreaPaddingPx?: number;

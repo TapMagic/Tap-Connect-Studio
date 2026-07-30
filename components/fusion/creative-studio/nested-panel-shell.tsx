@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import { ChevronLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -20,10 +26,22 @@ export type NestedPanelShellProps = {
   depth?: number;
 };
 
+type SlideDir = "forward" | "back";
+
+/** Premium, clearly visible stack motion (Owner-calibrated). */
+export const PANEL_STACK_SLIDE_MS = 560;
+export const PANEL_STACK_EASING = "cubic-bezier(0.16, 1, 0.3, 1)";
+
+type TransitionState = {
+  dir: SlideDir;
+  outgoing: ReactNode;
+  incoming: ReactNode;
+  depth: number;
+};
+
 /**
- * Shared nested panel chrome — Back one level · Close · breadcrumb · title.
- * Levels slide horizontally in the same inspector space.
- * Escape backs one level when available, otherwise closes the inspector.
+ * Shared nested panel chrome — Back · Close · breadcrumb · title.
+ * Levels slide horizontally in the same inspector space (true dual-pane track).
  */
 export function NestedPanelShell({
   title,
@@ -36,16 +54,54 @@ export function NestedPanelShell({
   footer,
   depth = 0,
 }: NestedPanelShellProps) {
-  const prevDepthRef = useRef(depth);
-  const slideDirection: "forward" | "back" | "none" =
-    depth > prevDepthRef.current
-      ? "forward"
-      : depth < prevDepthRef.current
-        ? "back"
-        : "none";
+  const depthRef = useRef(depth);
+  const childrenRef = useRef<ReactNode>(children);
+  const transitioningRef = useRef(false);
+  const [settled, setSettled] = useState<ReactNode>(children);
+  const [transition, setTransition] = useState<TransitionState | null>(null);
+  const [trackOffset, setTrackOffset] = useState(0); // 0 | -50
+  const slideDirection: "forward" | "back" | "none" = transition
+    ? transition.dir
+    : "none";
+
+  useLayoutEffect(() => {
+    if (depth === depthRef.current) {
+      childrenRef.current = children;
+      if (!transitioningRef.current) setSettled(children);
+      return;
+    }
+    const dir: SlideDir = depth > depthRef.current ? "forward" : "back";
+    const outgoing = childrenRef.current;
+    const incoming = children;
+    depthRef.current = depth;
+    childrenRef.current = children;
+    transitioningRef.current = true;
+    setTransition({ dir, outgoing, incoming, depth });
+    setTrackOffset(dir === "forward" ? 0 : -50);
+  }, [depth, children]);
+
   useEffect(() => {
-    prevDepthRef.current = depth;
-  }, [depth]);
+    if (!transition) return;
+    const target = transition.dir === "forward" ? -50 : 0;
+    const reduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (reduced) {
+      setSettled(childrenRef.current);
+      setTransition(null);
+      setTrackOffset(0);
+      transitioningRef.current = false;
+      return;
+    }
+    let raf2 = 0;
+    const raf1 = requestAnimationFrame(() => {
+      raf2 = requestAnimationFrame(() => setTrackOffset(target));
+    });
+    return () => {
+      cancelAnimationFrame(raf1);
+      cancelAnimationFrame(raf2);
+    };
+  }, [transition]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -58,13 +114,25 @@ export function NestedPanelShell({
     return () => window.removeEventListener("keydown", onKey);
   }, [onBack, onClose]);
 
+  function finishTransition() {
+    if (!transition) return;
+    // Selection/data can arrive after depth changes (for example Add Image).
+    // Settle the latest pane content rather than the empty first transition frame.
+    setSettled(childrenRef.current);
+    setTransition(null);
+    setTrackOffset(0);
+    transitioningRef.current = false;
+  }
+
   return (
     <div
-      className={cn("flex min-h-0 flex-col", className)}
+      className={cn("tc-inspector-panel flex min-h-0 flex-col", className)}
       data-testid={testId}
       data-sliding-panel-stack="true"
       data-panel-depth={String(depth)}
       data-panel-slide-direction={slideDirection}
+      data-panel-dual-pane={transition ? "true" : "false"}
+      data-panel-slide-ms={String(PANEL_STACK_SLIDE_MS)}
       role="region"
       aria-label={title}
     >
@@ -109,21 +177,73 @@ export function NestedPanelShell({
         ) : null}
       </div>
       <div className="relative min-h-0 overflow-hidden">
-        <div
-          key={`panel-depth-${depth}`}
-          data-panel-slide-track
-          data-slide-direction={slideDirection}
-          className={cn(
-            "min-h-0 p-3",
-            slideDirection === "forward" && "tc-panel-slide-forward",
-            slideDirection === "back" && "tc-panel-slide-back"
-          )}
-        >
-          {children}
-        </div>
+        {transition ? (
+          <div
+            data-panel-slide-track
+            data-slide-direction={transition.dir}
+            data-track-offset={String(trackOffset)}
+            className="flex w-[200%] will-change-transform motion-reduce:transition-none"
+            style={{
+              transform: `translateX(${trackOffset}%)`,
+              transition: `transform ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}`,
+            }}
+            onTransitionEnd={(e) => {
+              if (e.propertyName === "transform") finishTransition();
+            }}
+          >
+            {transition.dir === "forward" ? (
+              <>
+                <div
+                  className="w-1/2 shrink-0 border-r border-white/10 p-3 opacity-90"
+                  data-panel-slide-pane="outgoing"
+                  style={{
+                    transition: `opacity ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}`,
+                  }}
+                >
+                  {transition.outgoing}
+                </div>
+                <div
+                  className="w-1/2 shrink-0 p-3"
+                  data-panel-slide-pane="incoming"
+                >
+                  {childrenRef.current}
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="w-1/2 shrink-0 p-3"
+                  data-panel-slide-pane="incoming"
+                >
+                  {childrenRef.current}
+                </div>
+                <div
+                  className="w-1/2 shrink-0 border-l border-white/10 p-3 opacity-90"
+                  data-panel-slide-pane="outgoing"
+                  style={{
+                    transition: `opacity ${PANEL_STACK_SLIDE_MS}ms ${PANEL_STACK_EASING}`,
+                  }}
+                >
+                  {transition.outgoing}
+                </div>
+              </>
+            )}
+          </div>
+        ) : (
+          <div
+            data-panel-slide-track
+            data-slide-direction="none"
+            className="p-3"
+          >
+            {settled}
+          </div>
+        )}
       </div>
       {footer ? (
-        <div className="shrink-0 border-t border-white/10 p-3" data-testid="panel-stack-footer">
+        <div
+          className="shrink-0 border-t border-white/10 p-3"
+          data-testid="panel-stack-footer"
+        >
           {footer}
         </div>
       ) : null}

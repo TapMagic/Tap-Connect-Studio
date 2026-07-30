@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
+import { CompositionFontLoader } from "@/components/fusion/creative-studio/composition-font-loader";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import {
@@ -102,6 +103,7 @@ export function CardPreviewWorkspace({
       className="flex h-full min-h-0 flex-col overflow-hidden"
       data-testid="card-preview-workspace"
     >
+      <CompositionFontLoader config={config} />
       <header
         className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b border-white/10 px-3 py-2"
         data-testid="card-preview-toolbar"

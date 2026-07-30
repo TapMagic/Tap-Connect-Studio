@@ -43,6 +43,7 @@ import {
 import { STUDIO_WORDING } from "@/lib/fusion/creative-studio/wording";
 import {
   createShellSnapshot,
+  rememberToolDrawer,
   type ToolDrawerMemory,
   type WorkspaceShellSnapshot,
 } from "@/lib/fusion/authoring/workspace-shell";
@@ -64,6 +65,10 @@ import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 ensureDefaultToolRegistries();
 
 const WORKSPACE_ID = "card-authoring";
+/** Shared inspector dock size — every tool opens to the same place. */
+const CARD_INSPECTOR_SIZE_KEY = "card-inspector";
+/** Default dock width when no personal resize has been saved yet. */
+const CARD_INSPECTOR_DEFAULT_MODE = "balanced" as const;
 
 function readLifecycleIntent(): boolean {
   if (typeof window === "undefined") return false;
@@ -134,13 +139,15 @@ export function CardAuthoringWorkspace({
   const lifecycleIntent = useMemo(() => readLifecycleIntent(), []);
   const initialShell = useMemo(() => {
     const baseMemory = restored.toolMemory ?? {};
+    // Inspector starts closed — open only after a left-rail (or canvas) selection.
+    // Lifecycle deep-link is the exception below.
     const base = createShellSnapshot(WORKSPACE_ID, {
       workspaceMode: restored.focusMode ? "focus" : "browse",
       shadePreference: restored.shadePreference,
       priorShadeDisplay: restored.priorShadeDisplay || "open",
       focusMode: restored.focusMode,
-      selectedToolId: restored.selectedToolId,
-      drawerOpen: Boolean(restored.selectedToolId) && !restored.focusMode,
+      selectedToolId: null,
+      drawerOpen: false,
       drawerSizeMode:
         (restored.selectedToolId &&
           restored.toolMemory?.[restored.selectedToolId]?.sizeMode) ||
@@ -149,10 +156,7 @@ export function CardAuthoringWorkspace({
         (restored.selectedToolId &&
           restored.toolMemory?.[restored.selectedToolId]?.customWidthPct) ||
         null,
-      selectedObjectId:
-        (restored.selectedToolId &&
-          restored.toolMemory?.[restored.selectedToolId]?.selectedItemId) ||
-        null,
+      selectedObjectId: null,
       dirty: false,
       saved: true,
     });
@@ -358,8 +362,34 @@ export function CardAuthoringWorkspace({
           resolved,
           toolMemory
         );
-        setToolMemory(memory);
-        return snapshot;
+        const shared = toolMemory[CARD_INSPECTOR_SIZE_KEY];
+        // Same dock every time: keep current width when switching tools;
+        // when opening from closed, use the shared personal size (or default).
+        const sizeMode = s.drawerOpen
+          ? s.drawerSizeMode
+          : shared?.sizeMode || CARD_INSPECTOR_DEFAULT_MODE;
+        const customDrawerWidthPct = s.drawerOpen
+          ? s.customDrawerWidthPct
+          : sizeMode === "custom"
+            ? shared?.customWidthPct ?? null
+            : null;
+        const nextMemory = rememberToolDrawer(
+          rememberToolDrawer(memory, CARD_INSPECTOR_SIZE_KEY, {
+            sizeMode,
+            customWidthPct: customDrawerWidthPct,
+          }),
+          resolved,
+          {
+            sizeMode,
+            customWidthPct: customDrawerWidthPct,
+          }
+        );
+        setToolMemory(nextMemory);
+        return {
+          ...snapshot,
+          drawerSizeMode: sizeMode,
+          customDrawerWidthPct,
+        };
       });
     },
     [toolMemory]
@@ -375,6 +405,14 @@ export function CardAuthoringWorkspace({
 
   const onShellChange = useCallback((next: WorkspaceShellSnapshot) => {
     setShell(next);
+    if (next.drawerOpen) {
+      setToolMemory((m) =>
+        rememberToolDrawer(m, CARD_INSPECTOR_SIZE_KEY, {
+          sizeMode: next.drawerSizeMode,
+          customWidthPct: next.customDrawerWidthPct,
+        })
+      );
+    }
   }, []);
 
   const onStatusChange = useCallback((next: CardBuilderShellStatus) => {
@@ -405,10 +443,7 @@ export function CardAuthoringWorkspace({
   }, []);
 
   const activeToolId = shell.selectedToolId;
-  const recommendedDrawerMode =
-    (activeToolId &&
-      getWorkspaceTool(WORKSPACE_ID, activeToolId)?.recommendedDrawerMode) ||
-    "balanced";
+  const recommendedDrawerMode = CARD_INSPECTOR_DEFAULT_MODE;
 
   const outline = (
     <div className="space-y-3" data-testid="card-outline-rail">
@@ -758,6 +793,18 @@ export function CardAuthoringWorkspace({
         mobileDrawerCloseTestId="card-drawer-collapse"
         mobileSheetTestId="card-mobile-sheet"
         drawerRootTestId="card-contextual-drawer"
+        suppressDrawerHeader={Boolean(
+          activeToolId &&
+            [
+              "appearance",
+              "content",
+              "composition",
+              "typography",
+              "buttons",
+              "media",
+              "history",
+            ].includes(activeToolId)
+        )}
         onExitWorkspace={() => router.push("/dashboard/card")}
         primaryAction={primaryAction}
         returnAction={

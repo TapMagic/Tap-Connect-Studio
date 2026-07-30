@@ -7,6 +7,11 @@ export type LogoSearchHit = {
   alt: string;
   source: "logo_dev" | "wikimedia" | "favicon" | "duckduckgo" | "domain";
   domain?: string;
+  sourceUrl?: string;
+  providerId?: string;
+  width?: number;
+  height?: number;
+  rights?: string;
 };
 
 export type LogoSearchOptions = {
@@ -103,6 +108,41 @@ function logoDevNameUrl(
   return `https://img.logo.dev/name/${encodeURIComponent(slug)}?${logoDevParams(token, opts, size)}`;
 }
 
+/** Server-only upstream URL. Never return this token-bearing URL to a client. */
+export function logoDevUpstreamUrl(input: {
+  domain?: string;
+  name?: string;
+  theme?: LogoDevTheme;
+  greyscale?: boolean;
+  size?: number;
+}): string | null {
+  const token = process.env.LOGO_DEV_TOKEN?.trim();
+  if (!token) return null;
+  const size = Math.max(32, Math.min(512, input.size || 256));
+  const opts: LogoSearchOptions = {
+    theme: input.theme || "auto",
+    greyscale: Boolean(input.greyscale),
+  };
+  if (input.domain) return logoDevDomainUrl(input.domain, token, opts, size);
+  if (input.name) return logoDevNameUrl(input.name, token, opts, size);
+  return null;
+}
+
+function logoDevProxyUrl(
+  input: { domain?: string; name?: string },
+  opts: LogoSearchOptions,
+  size: number
+): string {
+  const params = new URLSearchParams({
+    size: String(size),
+    theme: opts.theme || "auto",
+  });
+  if (input.domain) params.set("domain", input.domain);
+  if (input.name) params.set("name", input.name);
+  if (opts.greyscale) params.set("greyscale", "1");
+  return `/api/logos/image?${params}`;
+}
+
 async function urlExists(url: string): Promise<boolean> {
   try {
     const res = await fetch(url, { method: "HEAD", next: { revalidate: 0 } });
@@ -128,11 +168,16 @@ function domainHits(
   if (logoDevToken) {
     hits.push({
       id: `logo-dev-${domain}-${opts.theme || "auto"}-${opts.greyscale ? "g" : "c"}`,
-      url: logoDevDomainUrl(domain, logoDevToken, opts, 256),
-      thumb: logoDevDomainUrl(domain, logoDevToken, opts, 128),
+      url: logoDevProxyUrl({ domain }, opts, 256),
+      thumb: logoDevProxyUrl({ domain }, opts, 128),
       alt: `${label} logo`,
       source: "logo_dev",
       domain,
+      sourceUrl: `https://logo.dev`,
+      providerId: domain,
+      width: 256,
+      height: 256,
+      rights: "Logo.dev source; trademark and usage rights remain with the brand owner.",
     });
   }
 
@@ -243,10 +288,15 @@ export async function searchLogosAndIcons(
     const name = brandSlug(trimmed) || trimmed;
     add({
       id: `logo-dev-name-${name}-${options.theme}-${options.greyscale ? "g" : "c"}`,
-      url: logoDevNameUrl(name, logoDevToken, options, 256),
-      thumb: logoDevNameUrl(name, logoDevToken, options, 128),
+      url: logoDevProxyUrl({ name }, options, 256),
+      thumb: logoDevProxyUrl({ name }, options, 128),
       alt: `${trimmed} logo`,
       source: "logo_dev",
+      sourceUrl: "https://logo.dev",
+      providerId: name,
+      width: 256,
+      height: 256,
+      rights: "Logo.dev source; trademark and usage rights remain with the brand owner.",
     });
   }
 
