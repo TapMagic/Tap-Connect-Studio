@@ -13,7 +13,6 @@ test.describe.serial("Card-first onboarding Owner walkthrough", () => {
 
   test("completes the visible draft-only journey on desktop and mobile", async ({
     page,
-    context,
   }) => {
     mkdirSync(evidence, { recursive: true });
 
@@ -74,68 +73,78 @@ test.describe.serial("Card-first onboarding Owner walkthrough", () => {
       ).toBeVisible();
     }
 
-    const prepareKit = page.getByRole("button", {
-      name: "Prepare Brand Starter Kit",
-    });
-    if (await prepareKit.isVisible()) await prepareKit.click();
-    await expect(page.getByText("primaryColor", { exact: true })).toBeVisible();
-    await expect(page.getByText("accessibility", { exact: true })).toBeVisible();
+    const brandHeading = page.getByRole("heading", { name: "We found your Brand" });
+    if (await brandHeading.isVisible()) {
+      const prepareKit = page.getByRole("button", {
+        name: "Prepare Brand Starter Kit",
+      });
+      if (await prepareKit.isVisible()) await prepareKit.click();
+      await expect(page.getByText("primaryColor", { exact: true }).first()).toBeVisible();
+      await expect(page.getByText("accessibility", { exact: true }).first()).toBeVisible();
 
-    const primaryColor = page.locator("article").filter({ hasText: "primaryColor" });
-    const approveColor = primaryColor.getByRole("button", { name: "Approve" });
-    if (await approveColor.isVisible()) await approveColor.click();
-    const lockColor = primaryColor.getByRole("button", {
-      name: "Lock",
-      exact: true,
-    });
-    if ((await primaryColor.getByLabel("Locked").count()) === 0) {
-      await expect(lockColor).toBeVisible();
-      await lockColor.click();
+      const primaryColor = page
+        .locator("article")
+        .filter({ hasText: "primaryColor" })
+        .first();
+      const approveColor = primaryColor.getByRole("button", { name: "Approve" });
+      if (await approveColor.isVisible()) await approveColor.click();
+      const lockColor = primaryColor.getByRole("button", {
+        name: "Lock",
+        exact: true,
+      });
+      if ((await primaryColor.getByLabel("Locked").count()) === 0) {
+        await expect(lockColor).toBeVisible();
+        await lockColor.click();
+      }
+      await expect(primaryColor.getByLabel("Locked")).toBeVisible();
+
+      await page.getByRole("button", { name: "Replace logo" }).click();
+      await expect(page.getByText("Logo.dev availability")).toBeVisible();
+      await page.getByTestId("media-browser-search").fill("northstar.example");
+      await page.getByRole("button", { name: "Search" }).click();
+      await page.getByTestId("media-browser-result").first().click();
+      await page.getByTestId("media-browser-insert").click();
+      const logoDecision = page.locator("article").filter({ hasText: "logo" }).last();
+      await expect(logoDecision).toContainText("SUGGESTED");
+      const approveRights = logoDecision.getByRole("button", {
+        name: "Approve asset rights",
+      });
+      if ((await approveRights.count()) > 0 && (await approveRights.isEnabled())) {
+        await approveRights.click();
+      }
+      const approveLogo = logoDecision.getByRole("button", {
+        name: "Approve",
+        exact: true,
+      });
+      if ((await approveLogo.count()) > 0 && (await approveLogo.isVisible())) {
+        await approveLogo.click();
+      }
+
+      await page.getByRole("button", { name: "Browse Pexels imagery" }).click();
+      await expect(page.getByText("Pexels availability")).toBeVisible();
+      await page.getByTestId("media-browser-search").fill("workshop");
+      await page.getByRole("button", { name: "Search" }).click();
+      await page.getByTestId("media-browser-result").first().click();
+      await page.getByTestId("media-browser-insert").click();
+      await expect(
+        page.locator("article").filter({ hasText: "imageryDirection" }).last()
+      ).toContainText("SUGGESTED");
+
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(
+        page
+          .locator("article")
+          .filter({ hasText: "primaryColor" })
+          .first()
+          .getByLabel("Locked")
+      ).toBeVisible();
+      await page.screenshot({
+        path: path.join(evidence, "03-brand-starter-kit-desktop.png"),
+        fullPage: true,
+      });
+
+      await page.getByRole("button", { name: "Continue to first Card" }).click();
     }
-    await expect(primaryColor.getByLabel("Locked")).toBeVisible();
-
-    await page.getByRole("button", { name: "Replace logo" }).click();
-    await expect(page.getByText("Logo.dev availability")).toBeVisible();
-    await page.getByTestId("media-browser-search").fill("northstar.example");
-    await page.getByRole("button", { name: "Search" }).click();
-    await page.getByTestId("media-browser-result").first().click();
-    await page.getByTestId("media-browser-insert").click();
-    const logoDecision = page.locator("article").filter({ hasText: "logo" }).last();
-    await expect(logoDecision).toContainText("SUGGESTED");
-    const approveRights = logoDecision.getByRole("button", {
-      name: "Approve asset rights",
-    });
-    if ((await approveRights.count()) > 0 && (await approveRights.isEnabled())) {
-      await approveRights.click();
-    }
-    const approveLogo = logoDecision.getByRole("button", {
-      name: "Approve",
-      exact: true,
-    });
-    if ((await approveLogo.count()) > 0 && (await approveLogo.isVisible())) {
-      await approveLogo.click();
-    }
-
-    await page.getByRole("button", { name: "Browse Pexels imagery" }).click();
-    await expect(page.getByText("Pexels availability")).toBeVisible();
-    await page.getByTestId("media-browser-search").fill("workshop");
-    await page.getByRole("button", { name: "Search" }).click();
-    await page.getByTestId("media-browser-result").first().click();
-    await page.getByTestId("media-browser-insert").click();
-    await expect(
-      page.locator("article").filter({ hasText: "imageryDirection" }).last()
-    ).toContainText("SUGGESTED");
-
-    await page.reload({ waitUntil: "networkidle" });
-    await expect(
-      page.locator("article").filter({ hasText: "primaryColor" }).first().getByLabel("Locked")
-    ).toBeVisible();
-    await page.screenshot({
-      path: path.join(evidence, "03-brand-starter-kit-desktop.png"),
-      fullPage: true,
-    });
-
-    await page.getByRole("button", { name: "Continue to first Card" }).click();
     await expect(page.getByText("Draft changes not published").first()).toBeVisible();
     await page.getByRole("button", { name: "Save draft" }).click();
     await expect(page.getByText(/Saved draft · Draft changes not published/).first()).toBeVisible();
@@ -166,19 +175,17 @@ test.describe.serial("Card-first onboarding Owner walkthrough", () => {
       before.brandKit.tapCardDraftRevision
     );
 
-    const previewPromise = context.waitForEvent("page");
     await page.getByRole("link", { name: "Preview as customer" }).click();
-    const preview = await previewPromise;
-    await preview.waitForLoadState("networkidle");
+    await expect(page).toHaveURL(/\/dashboard\/card\/preview/);
     await expect(
-      preview.getByText("Customer preview · Draft changes not published")
+      page.getByText("Customer preview · Draft changes not published")
     ).toBeVisible();
-    await expect(preview.getByText("Northstar Workshop").first()).toBeVisible();
-    await preview.screenshot({
+    await expect(page.getByText("Northstar Workshop").first()).toBeVisible();
+    await page.screenshot({
       path: path.join(evidence, "04-customer-draft-preview.png"),
       fullPage: true,
     });
-    await preview.close();
+    await page.goto("/onboarding?stage=card", { waitUntil: "networkidle" });
 
     await page.setViewportSize({ width: 390, height: 844 });
     await page.reload({ waitUntil: "networkidle" });

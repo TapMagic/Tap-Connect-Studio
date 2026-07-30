@@ -203,12 +203,15 @@ describe("Reset Campaign theme to Brand", () => {
   it("resetCampaignSurfaceProperty clears one key", () => {
     let model = buildCampaignVisualModel(
       brand,
-      { backgroundColor: "#222222" },
+      { backgroundColor: "#222222", textColor: "#eeeeee" },
       [],
       null
     );
     model = resetCampaignSurfaceProperty(model, "background");
-    assert.equal(resolveCampaignSurface(model).background?.source, "brand");
+    const surface = resolveCampaignSurface(model);
+    assert.equal(surface.background?.source, "brand");
+    assert.equal(surface.headline?.value, "#eeeeee");
+    assert.equal(surface.headline?.source, "surface");
   });
 });
 

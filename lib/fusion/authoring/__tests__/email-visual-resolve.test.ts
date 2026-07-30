@@ -97,10 +97,16 @@ describe("CTA item override", () => {
 
 describe("Reset property to Brand", () => {
   it("resets surface color to Brand", () => {
-    let model = buildEmailVisualModel(brand, { headlineColor: "#112233" }, blocks);
+    let model = buildEmailVisualModel(
+      brand,
+      { headlineColor: "#112233", backgroundColor: "#445566" },
+      blocks
+    );
     model = resetEmailSurfaceProperty(model, "headline");
     const surface = resolveEmailSurface(model);
     assert.equal(surface.headline?.source, "brand");
+    assert.equal(surface.background?.value, "#445566");
+    assert.equal(surface.background?.source, "surface");
   });
 
   it("resets entire Email theme to Brand", () => {
