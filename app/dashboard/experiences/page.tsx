@@ -35,6 +35,14 @@ const PRIMARY = [
     testId: "experiences-primary-email",
     icon: Mail,
   },
+  {
+    id: "canvas",
+    label: "TapCanvas",
+    href: "/dashboard/experiences/canvas",
+    description: "Freeform workspace for planning, mood boards, and visual layouts",
+    testId: "experiences-primary-canvas",
+    icon: Layers3,
+  },
 ] as const;
 
 const RELATIONSHIP_SUPPORT = [
@@ -65,13 +73,6 @@ const RELATIONSHIP_SUPPORT = [
 ] as const;
 
 const LABS = [
-  {
-    id: "canvas",
-    label: "TapCanvas",
-    href: "/dashboard/experiences/canvas",
-    description: "Freeform workspace for planning, mood boards, and visual layouts",
-    maturity: "Available",
-  },
   {
     id: "whiteboard",
     label: "Campaign planning board",
@@ -173,7 +174,7 @@ export default async function ExperiencesHubPage() {
         >
           Primary experiences
         </h2>
-        <ul className="grid gap-3 sm:grid-cols-3">
+        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {PRIMARY.map((item, index) => {
             const Icon = item.icon;
             return (

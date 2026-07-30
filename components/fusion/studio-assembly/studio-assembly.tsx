@@ -583,6 +583,20 @@ export function StudioAssembly({
               <li data-testid="sa-card-proof-meta">{cardView.proofSummary}</li>
             ) : null}
           </ul>
+          <div
+            className="sa-trust-states"
+            data-testid="sa-trust-states"
+            aria-label="Trust states"
+          >
+            <span data-active={showProof ? "1" : "0"}>Source confirmed</span>
+            <span data-active="1">Owner approved</span>
+            <span data-active={showSpotlight ? "1" : "0"}>Brand asset approved</span>
+            <span data-active={cardView.publicStateLabel?.toLowerCase().includes("draft") ? "1" : "0"}>
+              {cardView.publicStateLabel?.toLowerCase().includes("draft")
+                ? "Draft protected"
+                : "Preview — not public"}
+            </span>
+          </div>
           <div className="sa-card-actions" data-testid="sa-card-actions" aria-hidden>
             <span data-primary="true">Save</span>
             <span>Contact</span>

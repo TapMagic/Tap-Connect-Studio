@@ -19,6 +19,7 @@ import { useState, type ReactNode } from "react";
 import { TapConnectLogo } from "@/components/brand/tap-connect-logo";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import { TapConnectIcon } from "@/components/fusion/icons/tapconnect-icons";
+import { PublicRetentionPath } from "@/components/marketing/public-retention-path";
 import { PLANS } from "@/lib/plans";
 import { isClerkClientConfigured } from "@/lib/utils/clerk-client";
 import type { TapConnectIconId } from "@/lib/fusion/icons/registry";
@@ -433,34 +434,36 @@ export function PublicExperienceLanding() {
               Actions appear when the Owner configures them. Availability can vary by plan and
               setup.
             </p>
+            <div
+              className="public-trust-states"
+              data-testid="public-trust-states"
+              aria-label="Trust states on the living Card"
+            >
+              <span data-active="1">Source confirmed</span>
+              <span data-active="1">Owner approved</span>
+              <span>Brand asset approved</span>
+              <span>Preview — not public</span>
+              <span>Draft protected</span>
+            </div>
           </div>
         </section>
 
         <section className="public-tapsave" aria-labelledby="tapsave-heading" data-testid="tapsave-section">
-          <div className="public-tapsave__trail" aria-hidden>
-            <span>first tap</span>
-            <i />
-            <span>kept Card</span>
-            <i />
-            <span>useful return</span>
-          </div>
           <div className="public-tapsave__content public-section">
             <div>
               <TapConnectIcon id="tapsave" decorative />
-              <p className="public-kicker">TapSave</p>
+              <p className="public-kicker">Keep the Card</p>
               <h2 id="tapsave-heading">The relationship does not have to end with the tap.</h2>
-            </div>
-            <div>
               <p>
                 TapSave helps a customer keep the business in their pocket and return to the same
-                living Card later. The business can keep approved information and experiences
-                useful without forcing an app download.
+                living Card later — without forcing an app download.
               </p>
               <p className="public-qualification">
                 TapSave is not permission for spam, surveillance, or automatic Campaign sending.
                 Consent and explicit Owner controls remain part of the relationship.
               </p>
             </div>
+            <PublicRetentionPath />
           </div>
         </section>
 
