@@ -18,6 +18,28 @@ const schema = z.object({
   website: z.string().trim().min(1).max(500),
 });
 
+const fixtureHomepage = `
+  <!doctype html>
+  <html>
+    <head>
+      <meta property="og:site_name" content="Northstar Workshop">
+      <meta name="description" content="A fictional local workshop used for isolated TapConnect testing.">
+      <script type="application/ld+json">
+        {
+          "@type": "LocalBusiness",
+          "name": "Northstar Workshop",
+          "telephone": "+1 555 010 2040",
+          "email": "hello@northstar.example",
+          "address": {
+            "addressLocality": "Portland",
+            "addressRegion": "ME"
+          }
+        }
+      </script>
+    </head>
+  </html>
+`;
+
 const globalRateState = globalThis as typeof globalThis & {
   __onboardingWebsiteRate?: Map<string, number[]>;
 };
@@ -51,7 +73,17 @@ export async function POST(request: Request) {
     }
     const body = schema.parse(await request.json());
     requestedWebsite = body.website;
-    const result = await intakeHomepage(body.website);
+    const fixtureMode =
+      process.env.NODE_ENV !== "production" &&
+      process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture";
+    const result = await intakeHomepage(
+      body.website,
+      fixtureMode
+        ? {
+            fetchHtml: async (url) => ({ finalUrl: url, html: fixtureHomepage }),
+          }
+        : {}
+    );
     const saved = await createKnowledgeFacts({
       businessId: business.id,
       source: {

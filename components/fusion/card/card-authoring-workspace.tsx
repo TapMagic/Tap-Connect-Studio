@@ -99,6 +99,7 @@ const CARD_RAIL_TOOLS = CARD_AUTHORING_TOOLS.filter(
 
 export type CardAuthoringWorkspaceProps = {
   initialConfig: TapConnectCardConfig;
+  initialDraftRevision?: number;
   profile: BrandContactProfile;
   businessName: string;
   logoUrl?: string | null;
@@ -126,12 +127,14 @@ export type CardAuthoringWorkspaceProps = {
   publicCode?: string | null;
   tapPointCount?: number;
   activeSpotlightTitle?: string | null;
+  doneHref?: string;
 };
 
 export function CardAuthoringWorkspace({
   publicCode,
   tapPointCount = 0,
   activeSpotlightTitle = null,
+  doneHref = "/dashboard/card",
   ...builderProps
 }: CardAuthoringWorkspaceProps) {
   const router = useRouter();
@@ -512,7 +515,7 @@ export function CardAuthoringWorkspace({
     </Button>
   ) : (
     <Link
-      href="/dashboard/card"
+      href={doneHref}
       className="inline-flex min-h-11 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
       data-testid="card-shade-done"
     >
@@ -566,7 +569,7 @@ export function CardAuthoringWorkspace({
       </Button>
       {status.dirty ? (
         <Link
-          href="/dashboard/card"
+          href={doneHref}
           className="inline-flex min-h-11 items-center rounded-md border border-white/20 px-2.5 text-xs text-white/85 hover:bg-white/5"
           data-testid="card-done-editing"
           onClick={(e) => {
@@ -755,7 +758,7 @@ export function CardAuthoringWorkspace({
                 interactionMode={studioMode === "preview" ? "preview" : "edit"}
                 activeToolId={studioMode === "preview" ? null : activeToolId}
                 shellFocusMode={shell.focusMode || studioMode === "preview"}
-                doneHref="/dashboard/card"
+                doneHref={doneHref}
                 publicCode={publicCode}
                 tapPointCount={tapPointCount}
                 activeSpotlightTitle={activeSpotlightTitle}
@@ -810,11 +813,11 @@ export function CardAuthoringWorkspace({
               "history",
             ].includes(activeToolId)
         )}
-        onExitWorkspace={() => router.push("/dashboard/card")}
+        onExitWorkspace={() => router.push(doneHref)}
         primaryAction={primaryAction}
         returnAction={
           <Link
-            href="/dashboard/card"
+            href={doneHref}
             className="inline-flex min-h-11 items-center rounded-md border border-white/20 px-2.5 text-xs text-white/85 hover:bg-white/5"
             data-testid="card-edit-done-link"
           >

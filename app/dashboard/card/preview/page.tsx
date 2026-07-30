@@ -5,7 +5,9 @@ import { parseTapConnectCard } from "@/lib/brand/tap-card";
 import { prisma } from "@/lib/db";
 import { isFeatureEnabled } from "@/lib/fusion/features";
 import { listFeatureOverrides } from "@/lib/fusion/features/overrides";
-import type { ContentBlock } from "@/lib/types/campaign";
+import { PreviewViewedMarker } from "@/components/onboarding/preview-viewed-marker";
+import { isTapConnectCardDraft } from "@/lib/fusion/card/draft";
+import { buildFirstCardDraft } from "@/lib/fusion/card/first-card-draft";
 import "@/app/t/tap.css";
 
 export const dynamic = "force-dynamic";
@@ -35,13 +37,23 @@ export default async function TapCardPreviewPage() {
     organization: profile.organization || business.name,
     displayName: profile.displayName || business.name,
   };
-  const config = parseTapConnectCard(brandKit?.tapCard, {
+  const safeFallback = buildFirstCardDraft({
+    businessName: business.name,
+    outcome: business.primaryCustomerOutcome || "ESSENTIALS",
+    facts: [],
+  }).draft;
+  const config = parseTapConnectCard(
+    isTapConnectCardDraft(brandKit?.tapCardDraft)
+      ? brandKit.tapCardDraft
+      : safeFallback,
+    {
     businessName: business.name,
     profile: contactProfile,
     logoUrl: business.logoUrl,
     accentColor: brandKit?.accentColor || "#d4af37",
     reviewUrl: business.googleReviewUrl,
-  });
+    }
+  );
 
   const liveAssignment = await prisma.deviceAssignment.findFirst({
     where: { businessId: business.id, status: "ACTIVE" },
@@ -78,20 +90,23 @@ export default async function TapCardPreviewPage() {
     devices[0]?.deviceCode ||
     null;
 
-  const campaignBlocks = Array.isArray(liveAssignment?.campaign?.contentBlocks)
-    ? (liveAssignment!.campaign!.contentBlocks as unknown as ContentBlock[])
-    : [];
-
   const themeOverrides =
     (liveAssignment?.campaign?.themeOverrides as Record<string, unknown>) ?? {};
 
   // Inject Brand Kit tapCard onto a lightweight brandKit-shaped object for Campaign renderer
   const brandKitForPreview = brandKit
-    ? { ...brandKit, tapCard: brandKit.tapCard ?? config }
+    ? { ...brandKit, tapCard: config }
     : null;
 
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden" data-testid="card-preview-host">
+      <PreviewViewedMarker />
+      <div
+        className="border-b border-lime-300/25 bg-lime-300/10 px-4 py-2 text-center text-xs font-medium text-lime-100"
+        role="status"
+      >
+        Customer preview · Draft changes not published
+      </div>
       <CardPreviewWorkspace
         config={config}
         profile={contactProfile}
@@ -100,9 +115,9 @@ export default async function TapCardPreviewPage() {
         logoUrl={business.logoUrl}
         reviewUrl={business.googleReviewUrl}
         publicHref={publicCode ? `/t/${publicCode}?public=1` : null}
-        campaignBlocks={campaignBlocks}
-        campaignId={liveAssignment?.campaign?.id ?? null}
-        deviceSlotId={liveAssignment?.deviceSlot.id ?? null}
+        campaignBlocks={[]}
+        campaignId={null}
+        deviceSlotId={null}
         theme={{
           primaryColor:
             (themeOverrides.primaryColor as string) ||

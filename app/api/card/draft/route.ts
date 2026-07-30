@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import type { FontStyle } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import {
   BusinessCapabilityError,
@@ -30,22 +31,13 @@ const saveSchema = z.object({
 });
 
 async function generationInputs(businessId: string) {
-  const [business, brandKit, facts, decisions] = await Promise.all([
+  const [business, facts, decisions] = await Promise.all([
     prisma.business.findUniqueOrThrow({
       where: { id: businessId },
       select: {
         name: true,
         primaryCustomerOutcome: true,
         cardFirstOnboardingPreviewedAt: true,
-      },
-    }),
-    prisma.brandKit.findUniqueOrThrow({
-      where: { businessId },
-      select: {
-        primaryColor: true,
-        backgroundColor: true,
-        textColor: true,
-        fontStyle: true,
       },
     }),
     prisma.knowledgeFact.findMany({
@@ -93,7 +85,7 @@ async function generationInputs(businessId: string) {
     primaryColor: decisionValue("primaryColor"),
     backgroundColor: decisionValue("backgroundColor"),
     textColor: decisionValue("textColor"),
-    fontStyle: brandKit.fontStyle,
+    fontStyle: decisionValue("fontStyle") as FontStyle | undefined,
     decisionIds: [...latestDecisions.values()].map((decision) => decision.id),
   };
 

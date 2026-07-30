@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto";
 import { resolveEnv } from "@/lib/config/env-aliases";
+import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 
 export function generateDeviceCode(length = 20): string {
   return randomBytes(Math.ceil(length / 2))
@@ -60,6 +61,7 @@ export function getDevicePath(deviceCode: string): string {
 }
 
 export function isClerkConfigured(): boolean {
+  if (isLocalDevAuthEnabled()) return false;
   return Boolean(
     resolveEnv("NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY") && resolveEnv("CLERK_SECRET_KEY")
   );

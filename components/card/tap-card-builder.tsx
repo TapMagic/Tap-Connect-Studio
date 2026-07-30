@@ -114,6 +114,7 @@ export type CardBuilderShellStatus = {
 
 type Props = {
   initialConfig: TapConnectCardConfig;
+  initialDraftRevision?: number;
   profile: BrandContactProfile;
   businessName: string;
   logoUrl?: string | null;
@@ -208,6 +209,7 @@ function strInherited(
 
 export function TapCardBuilder({
   initialConfig,
+  initialDraftRevision = 0,
   profile,
   businessName,
   logoUrl,
@@ -270,6 +272,7 @@ export function TapCardBuilder({
   } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [draftRevision, setDraftRevision] = useState(initialDraftRevision);
   const [message, setMessage] = useState<string | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
@@ -824,20 +827,22 @@ export function TapCardBuilder({
     setSaving(true);
     setMessage(null);
     setSaveFailed(false);
-    const res = await fetch("/api/brand", {
-      method: "PATCH",
+    const res = await fetch("/api/card/draft", {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ tapCard: config }),
+      body: JSON.stringify({ draft: config, expectedRevision: draftRevision }),
     });
     setSaving(false);
     if (!res.ok) {
-      setMessage("Save failed");
+      const data = await res.json().catch(() => ({}));
+      setMessage(data.error || "Save failed");
       setSaveFailed(true);
       return;
     }
+    const data = (await res.json()) as { revision?: number };
+    if (typeof data.revision === "number") setDraftRevision(data.revision);
     setDirty(false);
-    setMessage("Tap Connect Card saved");
-    await refreshVersions();
+    setMessage("Saved draft · Draft changes not published");
     router.refresh();
   }
 
@@ -1209,7 +1214,7 @@ export function TapCardBuilder({
           ) : null}
           <Button size="sm" onClick={() => void save()} disabled={saving} data-testid="card-save">
             <Save className="mr-1 h-4 w-4" />
-            {saving ? "Saving…" : "Save card"}
+            {saving ? "Saving…" : "Save draft"}
           </Button>
           <Button
             size="sm"
@@ -1286,10 +1291,10 @@ export function TapCardBuilder({
             </span>
             {dirty ? (
               <span className="text-amber-200" data-testid="card-status-next">
-                Next: Save Card
+                Unsaved changes
               </span>
             ) : (
-              <span data-testid="card-status-next">Next: review live preview</span>
+              <span data-testid="card-status-next">Saved draft · Draft changes not published</span>
             )}
             {publicCode ? (
               <a

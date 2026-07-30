@@ -392,6 +392,7 @@ export async function createBusinessWithDefaults(params: {
   userId: string;
   website?: string;
   phone?: string;
+  email?: string;
   businessCategory?: BusinessCategory;
   primaryCustomerOutcome?: CustomerOutcome;
   initialCardDraft?: TapConnectCardConfig;
@@ -403,6 +404,7 @@ export async function createBusinessWithDefaults(params: {
         slug: params.slug,
         website: params.website,
         phone: params.phone,
+        email: params.email,
         businessCategory: params.businessCategory,
         primaryCustomerOutcome: params.primaryCustomerOutcome,
         users: {

@@ -1,11 +1,14 @@
 import { CardAuthoringWorkspace } from "@/components/fusion/card/card-authoring-workspace";
-import { requireBusiness, isPlatformAdmin } from "@/lib/auth";
+import { isPlatformAdmin } from "@/lib/auth";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard } from "@/lib/brand/tap-card";
 import { isMediaUploadReady, isStockImagesReady } from "@/lib/config/integrations";
 import { prisma } from "@/lib/db";
 import { isFeatureEnabled } from "@/lib/fusion/features";
 import { listFeatureOverrides } from "@/lib/fusion/features/overrides";
+import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
+import { beginCardDraftEditing } from "@/lib/fusion/card/draft";
+import { buildFirstCardDraft } from "@/lib/fusion/card/first-card-draft";
 import "@/app/t/tap.css";
 
 export const dynamic = "force-dynamic";
@@ -15,8 +18,16 @@ export const dynamic = "force-dynamic";
  * Full Adaptive Workspace Shell: Command Shade · Outline · live Card · one Task Drawer.
  * Done / Esc → /dashboard/card.
  */
-export default async function TapCardEditPage() {
-  const { user, business } = await requireBusiness();
+export default async function TapCardEditPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ returnTo?: string }>;
+}) {
+  const { user, business } =
+    await requireBusinessCapability("card.draft.edit");
+  const query = await searchParams;
+  const doneHref =
+    query.returnTo === "/onboarding" ? "/onboarding?stage=card" : "/dashboard/card";
   const overrides = await listFeatureOverrides();
   const freeformEnabled = isFeatureEnabled("card.builder.freeform", {
     overrides,
@@ -24,7 +35,13 @@ export default async function TapCardEditPage() {
   });
   const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
   const profile = parseBrandContactProfile(brandKit?.socialLinks);
-  const config = parseTapConnectCard(brandKit?.tapCard, {
+  const safeFallback = buildFirstCardDraft({
+    businessName: business.name,
+    outcome: business.primaryCustomerOutcome || "ESSENTIALS",
+    facts: [],
+  }).draft;
+  const draftState = await beginCardDraftEditing(business.id, safeFallback);
+  const config = parseTapConnectCard(draftState.tapCardDraft, {
     businessName: business.name,
     profile: {
       ...profile,
@@ -115,6 +132,7 @@ export default async function TapCardEditPage() {
 
   const builderProps = {
     initialConfig: config,
+    initialDraftRevision: draftState.tapCardDraftRevision,
     profile: {
       ...profile,
       phone: profile.phone || business.phone || undefined,
@@ -147,6 +165,7 @@ export default async function TapCardEditPage() {
       publicCode={publicCode}
       tapPointCount={devices.length}
       activeSpotlightTitle={activeSpotlight?.title ?? null}
+      doneHref={doneHref}
     />
   );
 }

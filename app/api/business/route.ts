@@ -38,6 +38,7 @@ const createSchema = z.object({
   name: z.string().min(2).max(100),
   website: z.string().url().optional().or(z.literal("")),
   phone: z.string().max(30).optional(),
+  email: z.string().email().optional().or(z.literal("")),
   businessCategory: z.enum(categories),
   primaryCustomerOutcome: z.enum(outcomes),
 });
@@ -79,7 +80,17 @@ export async function POST(request: Request) {
     const generated = buildFirstCardDraft({
       businessName: body.name,
       outcome: body.primaryCustomerOutcome,
-      facts: [],
+      facts: [
+        ...(body.website
+          ? [{ id: "owner-website", factKey: "website", value: body.website }]
+          : []),
+        ...(body.phone
+          ? [{ id: "owner-phone", factKey: "phone", value: body.phone }]
+          : []),
+        ...(body.email
+          ? [{ id: "owner-email", factKey: "email", value: body.email }]
+          : []),
+      ],
     });
     const business = await createBusinessWithDefaults({
       name: body.name,
@@ -87,6 +98,7 @@ export async function POST(request: Request) {
       userId: user.id,
       website: body.website || undefined,
       phone: body.phone,
+      email: body.email || undefined,
       businessCategory: body.businessCategory,
       primaryCustomerOutcome: body.primaryCustomerOutcome,
       initialCardDraft: generated.draft,
@@ -98,6 +110,7 @@ export async function POST(request: Request) {
         ? [{ factKey: "website" as const, value: body.website }]
         : []),
       ...(body.phone ? [{ factKey: "phone" as const, value: body.phone }] : []),
+      ...(body.email ? [{ factKey: "email" as const, value: body.email }] : []),
     ];
     await createKnowledgeFacts({
       businessId: business.id,

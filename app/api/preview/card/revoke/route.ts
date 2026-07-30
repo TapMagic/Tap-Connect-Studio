@@ -1,9 +1,28 @@
 import { NextResponse } from "next/server";
-import { revokePreviewSession } from "@/lib/fusion/creative-studio/preview/tokens";
+import {
+  getPreviewSession,
+  revokePreviewSession,
+} from "@/lib/fusion/creative-studio/preview/tokens";
+import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 
 export const runtime = "nodejs";
 
 export async function POST(req: Request) {
+  let businessId: string;
+  try {
+    const context = await requireBusinessCapability("preview.mutate");
+    businessId = context.business.id;
+  } catch {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Preview revoke requires a signed-in Studio session",
+        consequence: "Preview remains reachable until it expires.",
+        recovery: "Sign in to the owning workspace and try again.",
+      },
+      { status: 401 }
+    );
+  }
   let token = "";
   try {
     const body = (await req.json()) as { token?: string };
@@ -17,6 +36,18 @@ export async function POST(req: Request) {
         recovery: "Provide the preview token and try again.",
       },
       { status: 400 }
+    );
+  }
+  const existing = getPreviewSession(token);
+  if (!existing.ok || existing.record.businessId !== businessId) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Preview session does not belong to this workspace",
+        consequence: "No preview was revoked.",
+        recovery: "Open the owning workspace and try again.",
+      },
+      { status: 403 }
     );
   }
   const result = revokePreviewSession(token);

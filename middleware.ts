@@ -1,5 +1,6 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 
 const isPublicRoute = createRouteMatcher([
   "/",
@@ -20,10 +21,13 @@ const isPublicRoute = createRouteMatcher([
   "/preview/(.*)",
 ]);
 
-const isClerkConfigured = Boolean(
-  process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
-    process.env.CLERK_SECRET_KEY
-);
+const localDevAuth = isLocalDevAuthEnabled();
+const isClerkConfigured =
+  !localDevAuth &&
+  Boolean(
+    process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY &&
+      process.env.CLERK_SECRET_KEY
+  );
 
 export default isClerkConfigured
   ? clerkMiddleware(async (auth, request) => {

@@ -363,14 +363,20 @@ export function extractHomepageFindings(html: string, finalUrl: URL): WebsiteFin
   return findings.slice(0, 20);
 }
 
-export async function intakeHomepage(input: string): Promise<WebsiteIntakeResult> {
+export async function intakeHomepage(
+  input: string,
+  dependencies: {
+    fetchHtml?: (url: URL) => Promise<{ finalUrl: URL; html: string }>;
+    now?: () => Date;
+  } = {}
+): Promise<WebsiteIntakeResult> {
   const requested = normalizeHomepageUrl(input);
-  const { finalUrl, html } = await requestHtml(requested);
+  const { finalUrl, html } = await (dependencies.fetchHtml || requestHtml)(requested);
   return {
     requestedUrl: requested.toString(),
     finalUrl: finalUrl.toString(),
     contentHash: createHash("sha256").update(html).digest("hex"),
     findings: extractHomepageFindings(html, finalUrl),
-    fetchedAt: new Date().toISOString(),
+    fetchedAt: (dependencies.now?.() || new Date()).toISOString(),
   };
 }

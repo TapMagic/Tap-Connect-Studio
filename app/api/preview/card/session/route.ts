@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { requireBusiness } from "@/lib/auth";
 import {
   createPreviewSession,
+  getPreviewSession,
   updatePreviewSession,
 } from "@/lib/fusion/creative-studio/preview/tokens";
+import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import {
   buildPreviewAbsoluteUrl,
   resolvePreviewBaseUrl,
@@ -24,18 +25,8 @@ function ownerFacingError(
 }
 
 async function resolveBusinessId(): Promise<string> {
-  try {
-    const { business } = await requireBusiness();
-    return business.id;
-  } catch {
-    if (
-      process.env.PREVIEW_RUNTIME_MODE === "local_test" ||
-      process.env.NODE_ENV !== "production"
-    ) {
-      return "local-dev-business";
-    }
-    throw new Error("auth_required");
-  }
+  const { business } = await requireBusinessCapability("preview.mutate");
+  return business.id;
 }
 
 export async function POST(req: Request) {
@@ -109,6 +100,17 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
+  let businessId: string;
+  try {
+    businessId = await resolveBusinessId();
+  } catch {
+    return ownerFacingError(
+      "Preview update requires a signed-in Studio session",
+      "Phone still shows the previous draft.",
+      "Sign in to TapConnect Studio, then try again.",
+      401
+    );
+  }
   let body: {
     token?: string;
     snapshot?: unknown;
@@ -130,6 +132,15 @@ export async function PATCH(req: Request) {
       "Preview session missing",
       "Phone was not updated.",
       "Generate a new Live device QR, then try again."
+    );
+  }
+  const existing = getPreviewSession(body.token);
+  if (!existing.ok || existing.record.businessId !== businessId) {
+    return ownerFacingError(
+      "Preview session does not belong to this workspace",
+      "Phone was not updated.",
+      "Generate a new preview from this workspace.",
+      403
     );
   }
   const result = updatePreviewSession(body.token, {

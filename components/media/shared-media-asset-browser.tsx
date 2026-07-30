@@ -237,6 +237,11 @@ export function SharedMediaAssetBrowser({
     if (!open) return;
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const timer = window.setTimeout(() => {
+      setTab(initialTab);
+      setResults([]);
+      setSelected(null);
+      setQuery("");
+      setStatus(null);
       closeRef.current?.focus();
       void Promise.all([loadLibrary(), loadProviderStatus()]).catch((error) =>
         setStatus(error instanceof Error ? error.message : "Asset library unavailable")
@@ -246,7 +251,7 @@ export function SharedMediaAssetBrowser({
       window.clearTimeout(timer);
       openerRef.current?.focus();
     };
-  }, [open, loadLibrary, loadProviderStatus]);
+  }, [open, initialTab, loadLibrary, loadProviderStatus]);
 
   function selectTab(id: BrowserTab) {
     setTab(id);

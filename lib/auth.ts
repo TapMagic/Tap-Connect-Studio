@@ -1,6 +1,7 @@
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
+import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 import { isClerkConfigured } from "@/lib/utils/app";
 import { isPlatformAdminEmail, normalizeEmail } from "@/lib/config/admins";
 import {
@@ -31,6 +32,9 @@ async function getOrCreateDevUser(): Promise<SessionUser> {
 }
 
 export async function getSessionUser(): Promise<SessionUser | null> {
+  if (isLocalDevAuthEnabled()) {
+    return getOrCreateDevUser();
+  }
   if (!isClerkConfigured()) {
     return getOrCreateDevUser();
   }
@@ -101,6 +105,12 @@ export async function getActiveBusiness(user: SessionUser): Promise<Business | n
 }
 
 export function isPlatformAdmin(user: { email: string }): boolean {
+  if (
+    user.email === DEV_USER_EMAIL &&
+    isLocalDevAuthEnabled()
+  ) {
+    return false;
+  }
   return isPlatformAdminEmail(user.email);
 }
 
@@ -122,7 +132,7 @@ export async function requireBusiness(): Promise<{
 }> {
   const user = await requireSessionUser();
 
-  if (isPlatformAdminEmail(user.email)) {
+  if (isPlatformAdmin(user)) {
     const business = await ensureAdminWorkspace(user);
     return { user, business };
   }
@@ -136,10 +146,18 @@ export async function requireBusiness(): Promise<{
 }
 
 export async function resolvePostAuthRedirect(): Promise<string> {
+  if (isLocalDevAuthEnabled()) {
+    await getOrCreateDevUser();
+    return "/onboarding";
+  }
   const user = await requireSessionUser();
   if (isPlatformAdminEmail(user.email)) {
     await ensureAdminWorkspace(user);
     return "/admin";
   }
-  return postAuthPath(user);
+  const active = user.memberships[0]?.business;
+  if (!active || !active.cardFirstOnboardingCompletedAt) {
+    return "/onboarding";
+  }
+  return "/dashboard";
 }
