@@ -186,6 +186,85 @@ enum CreativeResourceStatus {
   DEPRECATED
 }
 
+enum BusinessCategory {
+  PROFESSIONAL_SERVICES
+  HEALTH_WELLNESS
+  FOOD_HOSPITALITY
+  RETAIL_ECOMMERCE
+  HOME_LOCAL_SERVICES
+  REAL_ESTATE
+  NONPROFIT_COMMUNITY
+  CREATOR_PERSONAL_BRAND
+  OTHER
+}
+
+enum CustomerOutcome {
+  CONTACT
+  REVIEWS
+  OFFER
+  APPOINTMENTS
+  DIRECTIONS
+  ESSENTIALS
+  LOYALTY
+  FAQ
+}
+
+enum KnowledgeSourceKind {
+  OWNER
+  WEBSITE
+  UPLOAD
+  SOCIAL
+  BRAND_ASSET
+  SYSTEM
+}
+
+enum KnowledgeIngestionStatus {
+  PENDING
+  READY
+  PARTIAL
+  FAILED
+}
+
+enum KnowledgeApprovalStatus {
+  SUGGESTED
+  APPROVED
+  REJECTED
+  STALE
+}
+
+enum KnowledgeContradictionStatus {
+  NONE
+  SUSPECTED
+  CONFIRMED
+}
+
+enum KnowledgeEvidenceClass {
+  HOST_DECLARED
+  SYSTEM_OBSERVED
+  DERIVED
+  INFERRED
+}
+
+enum BrandDecisionStatus {
+  SUGGESTED
+  KEPT
+  APPROVED
+  REJECTED
+  IGNORED
+  REPLACED
+}
+
+enum BrandDecisionScope {
+  BRAND
+  CARD_ONLY
+}
+
+enum BrandRightsStatus {
+  CONFIRMED
+  NEEDS_CONFIRMATION
+  NOT_APPLICABLE
+}
+
 // ─── Users & Business ────────────────────────────────────────────────────────
 
 model User {
@@ -215,26 +294,30 @@ model User {
 }
 
 model Business {
-  id                  String             @id @default(cuid())
-  name                String
-  slug                String             @unique
-  logoUrl             String?
-  website             String?
-  phone               String?
-  email               String?
-  googleReviewUrl     String?
+  id                             String             @id @default(cuid())
+  name                           String
+  slug                           String             @unique
+  logoUrl                        String?
+  website                        String?
+  phone                          String?
+  email                          String?
+  googleReviewUrl                String?
   /**
    * IANA timezone, e.g. America/New_York — used when a group has no timezone set
    */
-  timezone            String             @default("America/New_York")
-  complianceCategory  ComplianceCategory @default(GENERAL)
-  subscriptionTier    PlanTier           @default(BASIC)
-  activeDeviceLimit   Int                @default(1)
-  activeCampaignLimit Int                @default(3)
-  billingStatus       SubscriptionStatus @default(INCOMPLETE)
-  stripeCustomerId    String?            @unique
-  createdAt           DateTime           @default(now())
-  updatedAt           DateTime           @updatedAt
+  timezone                       String             @default("America/New_York")
+  complianceCategory             ComplianceCategory @default(GENERAL)
+  subscriptionTier               PlanTier           @default(BASIC)
+  activeDeviceLimit              Int                @default(1)
+  activeCampaignLimit            Int                @default(3)
+  billingStatus                  SubscriptionStatus @default(INCOMPLETE)
+  stripeCustomerId               String?            @unique
+  businessCategory               BusinessCategory?
+  primaryCustomerOutcome         CustomerOutcome?
+  cardFirstOnboardingPreviewedAt DateTime?
+  cardFirstOnboardingCompletedAt DateTime?
+  createdAt                      DateTime           @default(now())
+  updatedAt                      DateTime           @updatedAt
 
   users                     BusinessUser[]
   brandKit                  BrandKit?
@@ -294,6 +377,9 @@ model Business {
   replyProviderEvents       ReplyProviderEvent[]
   replyRoutingAttempts      ReplyRoutingAttempt[]
   replyInitialMessages      ReplyInitialMessage[]
+  knowledgeSources          KnowledgeSource[]
+  knowledgeFacts            KnowledgeFact[]
+  brandPropertyDecisions    BrandPropertyDecision[]
 }
 
 model BusinessUser {
@@ -323,64 +409,172 @@ model Location {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  devices  DeviceSlot[]
+  business         Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  devices          DeviceSlot[]
+  knowledgeSources KnowledgeSource[]
+  knowledgeFacts   KnowledgeFact[]
 }
 
 // ─── Brand Kit ───────────────────────────────────────────────────────────────
 
 model BrandKit {
-  id                String      @id @default(cuid())
-  businessId        String      @unique
-  primaryColor      String      @default("#22c55e")
-  secondaryColor    String      @default("#0ea5e9")
-  accentColor       String      @default("#f59e0b")
-  backgroundColor   String      @default("#0b0f19")
-  textColor         String      @default("#f8fafc")
-  fontStyle         FontStyle   @default(MODERN)
-  buttonStyle       ButtonStyle @default(ROUNDED)
-  defaultLanguage   String      @default("en")
-  tone              String      @default("professional")
-  defaultDisclaimer String?
-  ageGateEnabled    Boolean     @default(false)
-  ageGateMinAge     Int         @default(21)
-  socialLinks       Json        @default("{}")
-  defaultFooter     Json        @default("[]")
+  id                    String      @id @default(cuid())
+  businessId            String      @unique
+  primaryColor          String      @default("#22c55e")
+  secondaryColor        String      @default("#0ea5e9")
+  accentColor           String      @default("#f59e0b")
+  backgroundColor       String      @default("#0b0f19")
+  textColor             String      @default("#f8fafc")
+  fontStyle             FontStyle   @default(MODERN)
+  buttonStyle           ButtonStyle @default(ROUNDED)
+  defaultLanguage       String      @default("en")
+  tone                  String      @default("professional")
+  defaultDisclaimer     String?
+  ageGateEnabled        Boolean     @default(false)
+  ageGateMinAge         Int         @default(21)
+  socialLinks           Json        @default("{}")
+  defaultFooter         Json        @default("[]")
   /**
    * Default orphan-tag end page (same shape as EndExperience)
    */
-  endExperience     Json        @default("{}")
+  endExperience         Json        @default("{}")
   /**
    * Lead follow-up promo email template
    */
-  emailPromo        Json        @default("{}")
+  emailPromo            Json        @default("{}")
   /**
    * Extra custom links: [{ title, description, iconUrl, href }] — legacy JSON
    */
-  otherLinks        Json        @default("[]")
+  otherLinks            Json        @default("[]")
   /**
    * Tap Connect Card layout — flexible digital business card
    */
-  tapCard           Json        @default("{}")
+  tapCard               Json        @default("{}")
+  /**
+   * Saved Card draft. Draft writes never mutate tapCard or publication state.
+   */
+  tapCardDraft          Json?
+  tapCardDraftUpdatedAt DateTime?
+  tapCardDraftRevision  Int         @default(0)
+  tapCardPublishedAt    DateTime?
   /**
    * Legacy keyword Brand Pack JSON — mirrored from BrandVocabularyTerm for compatibility
    */
-  keywordBrandPack  Json        @default("{}")
+  keywordBrandPack      Json        @default("{}")
   /**
    * Last / default library icon selected in the Brand Kit IconPicker
    */
-  iconName          String?
+  iconName              String?
   /**
    * Hex color for the Brand Kit default icon
    */
-  iconColor         String      @default("#000000")
-  createdAt         DateTime    @default(now())
-  updatedAt         DateTime    @updatedAt
+  iconColor             String      @default("#000000")
+  createdAt             DateTime    @default(now())
+  updatedAt             DateTime    @updatedAt
 
-  business        Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  links           BrandLink[]
-  vocabularyTerms BrandVocabularyTerm[]
-  vocabularyPacks BrandVocabularyPack[]
+  business          Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  links             BrandLink[]
+  vocabularyTerms   BrandVocabularyTerm[]
+  vocabularyPacks   BrandVocabularyPack[]
+  propertyDecisions BrandPropertyDecision[]
+}
+
+// ─── Governed Business Knowledge & Brand decisions ──────────────────────────
+
+model KnowledgeSource {
+  id              String                   @id @default(cuid())
+  businessId      String
+  locationId      String?
+  mediaAssetId    String?
+  kind            KnowledgeSourceKind
+  normalizedUri   String?
+  displayLabel    String
+  contentHash     String?
+  ingestionStatus KnowledgeIngestionStatus @default(PENDING)
+  rightsNote      String?
+  metadata        Json                     @default("{}")
+  capturedAt      DateTime                 @default(now())
+  lastVerifiedAt  DateTime?
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
+
+  business       Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location       Location?               @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  mediaAsset     MediaAsset?             @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  facts          KnowledgeFact[]
+  brandDecisions BrandPropertyDecision[]
+
+  @@index([businessId, kind])
+  @@index([businessId, normalizedUri])
+  @@index([mediaAssetId])
+}
+
+model KnowledgeFact {
+  id                  String                       @id @default(cuid())
+  businessId          String
+  locationId          String?
+  sourceId            String
+  factKey             String
+  value               Json
+  confidence          Float
+  approvalStatus      KnowledgeApprovalStatus      @default(SUGGESTED)
+  contradictionStatus KnowledgeContradictionStatus @default(NONE)
+  contradictionGroup  String?
+  evidenceClass       KnowledgeEvidenceClass
+  whereUsed           Json                         @default("[]")
+  version             Int                          @default(1)
+  supersedesId        String?
+  approvedById        String?
+  approvedAt          DateTime?
+  lastVerifiedAt      DateTime
+  createdAt           DateTime                     @default(now())
+  updatedAt           DateTime                     @updatedAt
+
+  business   Business        @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  location   Location?       @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  source     KnowledgeSource @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  supersedes KnowledgeFact?  @relation("KnowledgeFactVersions", fields: [supersedesId], references: [id], onDelete: SetNull)
+  revisions  KnowledgeFact[] @relation("KnowledgeFactVersions")
+
+  @@index([businessId, factKey, approvalStatus])
+  @@index([sourceId])
+  @@index([locationId])
+  @@index([supersedesId])
+}
+
+model BrandPropertyDecision {
+  id                 String              @id @default(cuid())
+  businessId         String
+  brandKitId         String
+  propertyKey        String
+  candidate          Json
+  status             BrandDecisionStatus @default(SUGGESTED)
+  scope              BrandDecisionScope  @default(BRAND)
+  locked             Boolean             @default(false)
+  lockedAt           DateTime?
+  knowledgeSourceId  String?
+  mediaAssetId       String?
+  provider           String?
+  confidence         Float?
+  rationale          String?
+  rightsStatus       BrandRightsStatus   @default(NOT_APPLICABLE)
+  replacesDecisionId String?
+  actedById          String?
+  approvedAt         DateTime?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  business        Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  brandKit        BrandKit                @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+  knowledgeSource KnowledgeSource?        @relation(fields: [knowledgeSourceId], references: [id], onDelete: SetNull)
+  mediaAsset      MediaAsset?             @relation(fields: [mediaAssetId], references: [id], onDelete: SetNull)
+  replaces        BrandPropertyDecision?  @relation("BrandDecisionVersions", fields: [replacesDecisionId], references: [id], onDelete: SetNull)
+  replacements    BrandPropertyDecision[] @relation("BrandDecisionVersions")
+
+  @@index([brandKitId, propertyKey, status])
+  @@index([businessId, propertyKey])
+  @@index([mediaAssetId])
+  @@index([knowledgeSourceId])
 }
 
 /**
@@ -726,14 +920,16 @@ model MediaAsset {
   importedAt      DateTime?
   createdAt       DateTime            @default(now())
 
-  business    Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  campaign    Campaign?            @relation(fields: [campaignId], references: [id], onDelete: SetNull)
-  approvedBy  User?                @relation("MediaAssetApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
-  parentAsset MediaAsset?          @relation("MediaAssetDerivatives", fields: [parentAssetId], references: [id], onDelete: SetNull)
-  derivatives MediaAsset[]         @relation("MediaAssetDerivatives")
-  favorites   MediaAssetFavorite[]
-  recents     MediaAssetRecent[]
-  usages      CreativeAssetUsage[]
+  business               Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaign               Campaign?               @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  approvedBy             User?                   @relation("MediaAssetApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  parentAsset            MediaAsset?             @relation("MediaAssetDerivatives", fields: [parentAssetId], references: [id], onDelete: SetNull)
+  derivatives            MediaAsset[]            @relation("MediaAssetDerivatives")
+  favorites              MediaAssetFavorite[]
+  recents                MediaAssetRecent[]
+  usages                 CreativeAssetUsage[]
+  knowledgeSources       KnowledgeSource[]
+  brandPropertyDecisions BrandPropertyDecision[]
 
   @@unique([businessId, provider, providerAssetId])
   @@index([businessId, approvalStatus, createdAt])

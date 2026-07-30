@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireBusiness } from "@/lib/auth";
+import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import { verifyExternalCandidate } from "@/lib/media/candidate-token";
 import { RemoteMediaError } from "@/lib/media/remote-image";
 import { importExternalImage, MediaServiceError } from "@/lib/media/service";
@@ -11,7 +11,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const { business } = await requireBusiness();
+    const { business } = await requireBusinessCapability("brand.propose");
     const body = schema.parse(await request.json());
     const payload = verifyExternalCandidate(body.candidateToken, business.id);
     const asset = await importExternalImage({

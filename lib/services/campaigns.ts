@@ -1,6 +1,12 @@
 import { nanoid } from "nanoid";
-import type { CampaignType, Prisma } from "@prisma/client";
+import type {
+  BusinessCategory,
+  CampaignType,
+  CustomerOutcome,
+  Prisma,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
+import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import { getTemplateById } from "@/lib/campaign-templates";
 import type { ContentBlock } from "@/lib/types/campaign";
 import {
@@ -386,6 +392,9 @@ export async function createBusinessWithDefaults(params: {
   userId: string;
   website?: string;
   phone?: string;
+  businessCategory?: BusinessCategory;
+  primaryCustomerOutcome?: CustomerOutcome;
+  initialCardDraft?: TapConnectCardConfig;
 }) {
   return prisma.$transaction(async (tx) => {
     const business = await tx.business.create({
@@ -394,6 +403,8 @@ export async function createBusinessWithDefaults(params: {
         slug: params.slug,
         website: params.website,
         phone: params.phone,
+        businessCategory: params.businessCategory,
+        primaryCustomerOutcome: params.primaryCustomerOutcome,
         users: {
           create: {
             userId: params.userId,
@@ -401,7 +412,13 @@ export async function createBusinessWithDefaults(params: {
           },
         },
         brandKit: {
-          create: {},
+          create: params.initialCardDraft
+            ? {
+                tapCardDraft: params.initialCardDraft as unknown as Prisma.InputJsonValue,
+                tapCardDraftRevision: 1,
+                tapCardDraftUpdatedAt: new Date(),
+              }
+            : {},
         },
         locations: {
           create: {

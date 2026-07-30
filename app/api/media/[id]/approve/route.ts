@@ -1,20 +1,17 @@
 import { NextResponse } from "next/server";
-import { requireBusiness } from "@/lib/auth";
 import {
-  canApproveBrandMedia,
   MediaServiceError,
   setMediaApproval,
 } from "@/lib/media/service";
+import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 
 export async function POST(
   _request: Request,
   context: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { user, business } = await requireBusiness();
-    if (!canApproveBrandMedia(user, business.id)) {
-      return NextResponse.json({ error: "Owner or Manager approval required" }, { status: 403 });
-    }
+    const { user, business } =
+      await requireBusinessCapability("brand.approve");
     const { id } = await context.params;
     const asset = await setMediaApproval({
       businessId: business.id,

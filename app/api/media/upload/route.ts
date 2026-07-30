@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireBusiness } from "@/lib/auth";
+import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import { uploadMediaPlaceholder } from "@/lib/integrations/placeholders";
 import { MediaServiceError, storeUploadedImage } from "@/lib/media/service";
 
@@ -8,7 +8,7 @@ export async function POST(request: Request) {
   if (placeholder) return NextResponse.json(placeholder, { status: 503 });
 
   try {
-    const { business } = await requireBusiness();
+    const { business } = await requireBusinessCapability("brand.propose");
     const form = await request.formData();
     const file = form.get("file");
     if (!(file instanceof File)) {

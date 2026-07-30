@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireBusiness } from "@/lib/auth";
+import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import { isMediaUploadReady } from "@/lib/config/integrations";
 import { verifyProviderCandidate } from "@/lib/media/candidate-token";
 import { RemoteMediaError } from "@/lib/media/remote-image";
@@ -15,7 +15,7 @@ const schema = z.object({
 
 export async function POST(request: Request) {
   try {
-    const { business } = await requireBusiness();
+    const { business } = await requireBusinessCapability("brand.propose");
     if (!isMediaUploadReady()) {
       return NextResponse.json(
         {
