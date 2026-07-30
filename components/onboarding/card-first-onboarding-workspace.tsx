@@ -24,6 +24,7 @@ import {
 } from "@/lib/fusion/card/first-card-draft";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
+import { FieldSourceChip } from "@/components/fusion/authoring/intelligent-prefill-bar";
 
 type BusinessState = {
   name: string;
@@ -198,6 +199,12 @@ export function CardFirstOnboardingWorkspace({
 
   function go(next: number) {
     setStage(next);
+    const url = new URL(window.location.href);
+    url.searchParams.set(
+      "stage",
+      (["business", "knowledge", "brand", "card"] as const)[next] ?? "business"
+    );
+    window.history.replaceState(window.history.state, "", url);
     window.setTimeout(() => headingRef.current?.focus(), 0);
   }
 
@@ -242,7 +249,6 @@ export function CardFirstOnboardingWorkspace({
         setRevision(1);
       }
       setMessage("Your business basics are saved. Your provisional Card is ready.");
-      router.refresh();
       go(1);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Business details could not be saved.");
@@ -271,7 +277,10 @@ export function CardFirstOnboardingWorkspace({
         body: JSON.stringify({ website: business.website }),
       });
       await refreshKnowledge();
-      setMessage("Homepage findings are ready. They remain Suggested until you approve them.");
+      await refreshDecisions();
+      setMessage(
+        "Homepage findings and Brand suggestions are ready. They remain Suggested until you approve them."
+      );
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Homepage review failed.");
       setMessage("You can continue with manual entry.");
@@ -776,6 +785,17 @@ export function CardFirstOnboardingWorkspace({
                           <span className="rounded-full border border-white/15 px-2 py-1 text-[11px]">
                             {fact.approvalStatus === "SUGGESTED" ? "Suggested" : fact.approvalStatus}
                           </span>
+                        </div>
+                        <div className="mt-2">
+                          <FieldSourceChip
+                            source={
+                              fact.source.kind === "WEBSITE"
+                                ? "website"
+                                : fact.source.kind === "OWNER"
+                                  ? "custom"
+                                  : "business"
+                            }
+                          />
                         </div>
                         <dl className="mt-3 grid gap-1 text-xs text-white/55 sm:grid-cols-2">
                           <div><dt className="inline font-medium text-white/75">Source: </dt><dd className="inline">{fact.source.displayLabel}</dd></div>

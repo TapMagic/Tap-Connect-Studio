@@ -76,14 +76,23 @@ export default async function OnboardingPage({
     }),
   ]);
   const query = await searchParams;
+  const requestedStage =
+    query.stage === "business"
+      ? 0
+      : query.stage === "knowledge"
+        ? 1
+        : query.stage === "brand"
+          ? 2
+          : query.stage === "card"
+            ? 3
+            : null;
   const initialStage =
-    query.stage === "card"
+    requestedStage ??
+    (business.cardFirstOnboardingPreviewedAt
       ? 3
-      : business.cardFirstOnboardingPreviewedAt
-        ? 3
-        : decisions.length > 0
+      : decisions.length > 0
         ? 2
-        : 1;
+        : 1);
 
   return (
     <CardFirstOnboardingWorkspace

@@ -1,21 +1,31 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { FinishPicker } from "@/components/design/format-controls";
-import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
+import { IntelligentPrefillBar } from "@/components/fusion/authoring/intelligent-prefill-bar";
 import {
   NestedPanelShell,
   PanelNavRow,
 } from "@/components/fusion/creative-studio/nested-panel-shell";
-import type { BrandInheritanceState } from "@/lib/fusion/authoring/brand-inheritance";
+import {
+  type BrandFieldKey,
+  type BrandInheritanceState,
+  type BrandKitSnapshot,
+} from "@/lib/fusion/authoring/brand-inheritance";
+import {
+  DEFAULT_PREFILL_POLICY,
+  parsePrefillPolicy,
+  type IntelligentPrefillPolicy,
+} from "@/lib/fusion/authoring/intelligent-prefill";
 import type {
   TapCardSection,
   TapCardSurfaceFill,
   TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 type Level = "root" | "colors" | "brand" | "layout" | "segment";
+const CARD_PREFILL_POLICY_KEY = "tapconnect:card:intelligent-prefill-policy:v1";
 
 export type AppearancePanelStackProps = {
   config: TapConnectCardConfig;
@@ -57,6 +67,40 @@ export function AppearancePanelStack({
   initialLevel = "root",
 }: AppearancePanelStackProps) {
   const [level, setLevel] = useState<Level>(initialLevel);
+  const [prefillPolicy, setPrefillPolicy] =
+    useState<IntelligentPrefillPolicy>(DEFAULT_PREFILL_POLICY);
+  const [prefillPolicyLoaded, setPrefillPolicyLoaded] = useState(false);
+  const approvedSnapshot = useMemo(() => {
+    const snapshot: BrandKitSnapshot = {};
+    for (const [key, field] of Object.entries(brandState.fields) as [
+      BrandFieldKey,
+      NonNullable<(typeof brandState.fields)[BrandFieldKey]>,
+    ][]) {
+      if (field.inheritedValue !== undefined && field.inheritedValue !== null) {
+        snapshot[key] = field.inheritedValue;
+      }
+    }
+    return snapshot;
+  }, [brandState]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = window.localStorage.getItem(CARD_PREFILL_POLICY_KEY);
+        setPrefillPolicy(parsePrefillPolicy(stored ? JSON.parse(stored) : null));
+      } catch {
+        setPrefillPolicy({ ...DEFAULT_PREFILL_POLICY });
+      } finally {
+        setPrefillPolicyLoaded(true);
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (!prefillPolicyLoaded) return;
+    window.localStorage.setItem(CARD_PREFILL_POLICY_KEY, JSON.stringify(prefillPolicy));
+  }, [prefillPolicy, prefillPolicyLoaded]);
 
   const crumbs = useMemo(() => {
     const base = ["Appearance"];
@@ -118,7 +162,14 @@ export function AppearancePanelStack({
 
       {level === "brand" ? (
         <div className="space-y-3" data-testid="appearance-panel-brand">
-          <BrandInheritanceBar state={brandState} onChange={onBrandStateChange} />
+          <IntelligentPrefillBar
+            state={brandState}
+            onChange={onBrandStateChange}
+            approvedSnapshot={approvedSnapshot}
+            policy={prefillPolicy}
+            onPolicyChange={setPrefillPolicy}
+            sourceSummary="the Business and Brand Kit values loaded for this Card"
+          />
           <p className="rounded-md border border-white/10 bg-white/5 px-2.5 py-2 text-[11px] text-white/55">
             Brand values are copied into this Card session. Durable live-linked Brand
             sync is Phase 2 — Card formatting remains available locally.

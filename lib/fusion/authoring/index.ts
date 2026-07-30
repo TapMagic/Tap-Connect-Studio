@@ -11,6 +11,7 @@ export * from "./card-visual-resolve";
 export * from "./campaign-visual-resolve";
 export * from "./email-visual-resolve";
 export * from "./brand-inheritance";
+export * from "./intelligent-prefill";
 export * from "./workspace-state";
 export * from "./intake";
 export * from "./workspace-shell";

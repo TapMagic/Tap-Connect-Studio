@@ -67,7 +67,6 @@ import {
   intakeFromAssetUrl,
   intakeFromPastedHex,
   intakeFromPastedText,
-  intakeFromWebsiteUrl,
 } from "@/lib/fusion/authoring/intake";
 import {
   BRAND_TOPIC_LABELS,
@@ -845,8 +844,8 @@ export function BrandKitWorkspace({
               local.
             </p>
             <p className="text-xs text-white/60">
-              Maturity: implemented but not Owner-ready — local Discover fixtures only; no live
-              crawl, durable sync, or full application matrix.
+              Homepage discovery proposes Suggested Brand choices with provenance. Nothing becomes
+              Brand truth until you approve it. Cards keep stored values until re-saved.
             </p>
             <button
               type="button"
@@ -1405,8 +1404,8 @@ export function BrandKitWorkspace({
       >
         <p className="text-xs font-medium text-white/80">Add Brand material</p>
         <p className="text-[11px] text-white/55">
-          Prepared locally in this Studio session — website addresses use fixture shortlists, not a
-          live crawl.
+          Reviews the supplied homepage and permitted same-origin styles only. Findings stay
+          Suggested until approved — never invents services, prices, or policies.
         </p>
         <label className="block text-xs text-white/55">
           Website URL
@@ -1423,17 +1422,65 @@ export function BrandKitWorkspace({
               data-testid="intake-website-submit"
               className="min-h-11 rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground"
               onClick={() => {
-                const result = intakeFromWebsiteUrl(websiteInput, {
-                  businessName,
-                  logoUrl: draft.brand.logoUrl,
-                });
-                setIntakeMsg(result.message);
-                if (result.ok && result.starter) {
-                  commit({ ...draft, starter: result.starter }, "Discover from website (local)");
-                }
+                void (async () => {
+                  setIntakeMsg("Reviewing homepage…");
+                  try {
+                    const response = await fetch("/api/business/knowledge/website", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({ website: websiteInput }),
+                    });
+                    const json = (await response.json()) as {
+                      error?: string;
+                      notice?: string;
+                      candidates?: Array<{
+                        kind: string;
+                        propertyKey?: string;
+                        value: string;
+                        evidence: string;
+                      }>;
+                    };
+                    if (!response.ok) {
+                      setIntakeMsg(
+                        `${json.error || "Homepage review failed."} No facts or Brand suggestions were created. Retry or add Brand material manually.`
+                      );
+                      return;
+                    }
+                    const logos = (json.candidates || [])
+                      .filter((c) => c.kind === "logo" || c.kind === "favicon")
+                      .map((c, index) => ({
+                        id: `web-logo-${index}`,
+                        url: c.value,
+                        role: "primary" as const,
+                        approval: "suggested" as const,
+                        source: c.evidence || "Homepage",
+                        format: "image",
+                      }));
+                    commit(
+                      {
+                        ...draft,
+                        logos: logos.length
+                          ? logos.reduce(
+                              (acc, logo) => upsertLogo(acc, logo),
+                              draft.logos
+                            )
+                          : draft.logos,
+                      },
+                      "Discover from website (Suggested)"
+                    );
+                    setIntakeMsg(
+                      json.notice ||
+                        "Homepage findings and Brand suggestions are ready — still Suggested."
+                    );
+                  } catch {
+                    setIntakeMsg(
+                      "Homepage review failed. No facts or Brand suggestions were created. Retry or add Brand material manually."
+                    );
+                  }
+                })();
               }}
             >
-              Prepare
+              Review homepage
             </button>
           </div>
         </label>

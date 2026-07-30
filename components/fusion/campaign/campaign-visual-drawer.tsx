@@ -129,7 +129,7 @@ export function CampaignVisualDrawer({
           data-testid="campaign-reset-theme-brand"
           onClick={onResetThemeToBrand}
         >
-          Reset Campaign theme to Brand
+          Reset entire theme to Brand
         </Button>
         {onPreviewBrandChange ? (
           <Button

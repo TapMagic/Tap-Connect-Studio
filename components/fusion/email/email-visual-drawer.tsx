@@ -211,7 +211,7 @@ export function EmailVisualDrawer({
           data-testid="email-reset-theme-brand"
           onClick={onResetThemeToBrand}
         >
-          Reset Email theme to Brand
+          Reset entire theme to Brand
         </Button>
       </div>
     );

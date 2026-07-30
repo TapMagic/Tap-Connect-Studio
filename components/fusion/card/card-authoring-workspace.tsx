@@ -363,44 +363,42 @@ export function CardAuthoringWorkspace({
           : toolId === "inspector"
             ? "content"
             : toolId;
-      setShell((s) => {
-        const { snapshot, memory } = openAdaptiveTool(
-          s,
-          WORKSPACE_ID,
-          resolved,
-          toolMemory
-        );
-        const shared = toolMemory[CARD_INSPECTOR_SIZE_KEY];
-        // Same dock every time: keep current width when switching tools;
-        // when opening from closed, use the shared personal size (or default).
-        const sizeMode = s.drawerOpen
-          ? s.drawerSizeMode
-          : shared?.sizeMode || CARD_INSPECTOR_DEFAULT_MODE;
-        const customDrawerWidthPct = s.drawerOpen
-          ? s.customDrawerWidthPct
-          : sizeMode === "custom"
-            ? shared?.customWidthPct ?? null
-            : null;
-        const nextMemory = rememberToolDrawer(
-          rememberToolDrawer(memory, CARD_INSPECTOR_SIZE_KEY, {
-            sizeMode,
-            customWidthPct: customDrawerWidthPct,
-          }),
-          resolved,
-          {
-            sizeMode,
-            customWidthPct: customDrawerWidthPct,
-          }
-        );
-        setToolMemory(nextMemory);
-        return {
-          ...snapshot,
-          drawerSizeMode: sizeMode,
-          customDrawerWidthPct,
-        };
+      const { snapshot, memory } = openAdaptiveTool(
+        shell,
+        WORKSPACE_ID,
+        resolved,
+        toolMemory
+      );
+      const shared = toolMemory[CARD_INSPECTOR_SIZE_KEY];
+      // Same dock every time: keep current width when switching tools;
+      // when opening from closed, use the shared personal size (or default).
+      const sizeMode = shell.drawerOpen
+        ? shell.drawerSizeMode
+        : shared?.sizeMode || CARD_INSPECTOR_DEFAULT_MODE;
+      const customDrawerWidthPct = shell.drawerOpen
+        ? shell.customDrawerWidthPct
+        : sizeMode === "custom"
+          ? shared?.customWidthPct ?? null
+          : null;
+      const nextMemory = rememberToolDrawer(
+        rememberToolDrawer(memory, CARD_INSPECTOR_SIZE_KEY, {
+          sizeMode,
+          customWidthPct: customDrawerWidthPct,
+        }),
+        resolved,
+        {
+          sizeMode,
+          customWidthPct: customDrawerWidthPct,
+        }
+      );
+      setToolMemory(nextMemory);
+      setShell({
+        ...snapshot,
+        drawerSizeMode: sizeMode,
+        customDrawerWidthPct,
       });
     },
-    [toolMemory]
+    [shell, toolMemory]
   );
 
   const closeCardTool = useCallback(() => {
@@ -608,6 +606,8 @@ export function CardAuthoringWorkspace({
       data-shell-consumer="card-authoring"
       data-studio-mode={studioMode}
       data-chrome-state={chromeState}
+      data-drawer-open={shell.drawerOpen ? "true" : "false"}
+      data-selected-tool={shell.selectedToolId ?? ""}
       data-maturity="implementation-in-progress"
     >
       {sessionRestored ? (
