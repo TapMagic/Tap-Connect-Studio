@@ -97,7 +97,45 @@ test.describe.serial("Creative Platform completion Owner workflow", () => {
     await page.getByTestId("composition-add-image").click();
     await expect(page.getByTestId("composition-image-outline")).toBeVisible();
     await page.getByTestId("composition-image-crop-1-1").click();
+    await page.getByLabel(/^Brightness /).fill("135");
+    const [adjustmentSave] = await Promise.all([
+      page.waitForResponse(
+        (response) =>
+          response.url().includes("/api/brand") &&
+          response.request().method() === "PATCH"
+      ),
+      page.getByTestId("card-save").first().click(),
+    ]);
+    expect(adjustmentSave.ok()).toBeTruthy();
+    await page.reload({ waitUntil: "networkidle" });
+    if (
+      !(await page
+        .getByTestId("composition-panel-image")
+        .isVisible()
+        .catch(() => false))
+    ) {
+      await page
+        .locator('[data-testid^="creative-composition-section-"]')
+        .last()
+        .click();
+      await page.getByTestId("card-tool-composition").click();
+      const stack = page.getByTestId("composition-panel-stack");
+      await expect(stack).toBeVisible();
+      for (let depth = 0; depth < 3; depth += 1) {
+        if ((await stack.getAttribute("data-panel-depth")) === "0") break;
+        await page.getByTestId("panel-stack-back").click();
+      }
+      await page
+        .locator('[data-testid^="composition-layer-"] > button')
+        .filter({ hasText: /^image/ })
+        .first()
+        .click();
+      await page.getByTestId("composition-open-image").click();
+    }
+    await expect(page.getByTestId("composition-panel-image")).toBeVisible();
+    await expect(page.getByLabel(/^Brightness 135%/)).toBeVisible();
     await page.getByTestId("composition-image-reset").click();
+    await expect(page.getByLabel(/^Brightness 100%/)).toBeVisible();
 
     await page.getByTestId("panel-stack-back").click();
     await page.getByTestId("composition-add-shape").click();
