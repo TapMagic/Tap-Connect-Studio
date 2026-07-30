@@ -1,0 +1,19 @@
+{
+  "results": [
+    {
+      "id": "fixture-acme-domain",
+      "domain": "acme.example",
+      "name": "Acme Fixture",
+      "sourcePageUrl": "https://www.logo.dev/",
+      "width": 256,
+      "height": 256
+    },
+    {
+      "id": "fixture-tapconnect-name",
+      "name": "TapConnect Fixture",
+      "sourcePageUrl": "https://www.logo.dev/",
+      "width": 256,
+      "height": 256
+    }
+  ]
+}

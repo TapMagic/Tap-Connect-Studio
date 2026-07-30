@@ -1,0 +1,45 @@
+{
+  "page1": {
+    "nextPage": 2,
+    "photos": [
+      {
+        "id": 41001,
+        "width": 1600,
+        "height": 1067,
+        "url": "https://www.pexels.com/photo/tapconnect-fixture-cafe-41001/",
+        "alt": "Coffee and a phone on a cafe table",
+        "photographer": "TapConnect Fixture Studio",
+        "photographerUrl": "https://www.pexels.com/@tapconnect-fixture-studio/",
+        "large": "https://images.pexels.com/photos/41001/pexels-photo-41001.jpeg",
+        "medium": "https://images.pexels.com/photos/41001/pexels-photo-41001.jpeg?auto=compress&w=640"
+      },
+      {
+        "id": 41002,
+        "width": 1200,
+        "height": 1200,
+        "url": "https://www.pexels.com/photo/tapconnect-fixture-product-41002/",
+        "alt": "Product display with a bright green accent",
+        "photographer": "TapConnect Fixture Studio",
+        "photographerUrl": "https://www.pexels.com/@tapconnect-fixture-studio/",
+        "large": "https://images.pexels.com/photos/41002/pexels-photo-41002.jpeg",
+        "medium": "https://images.pexels.com/photos/41002/pexels-photo-41002.jpeg?auto=compress&w=640"
+      }
+    ]
+  },
+  "page2": {
+    "nextPage": null,
+    "photos": [
+      {
+        "id": 41003,
+        "width": 1067,
+        "height": 1600,
+        "url": "https://www.pexels.com/photo/tapconnect-fixture-portrait-41003/",
+        "alt": "Portrait-oriented storefront",
+        "photographer": "TapConnect Fixture Studio",
+        "photographerUrl": "https://www.pexels.com/@tapconnect-fixture-studio/",
+        "large": "https://images.pexels.com/photos/41003/pexels-photo-41003.jpeg",
+        "medium": "https://images.pexels.com/photos/41003/pexels-photo-41003.jpeg?auto=compress&w=640"
+      }
+    ]
+  }
+}
