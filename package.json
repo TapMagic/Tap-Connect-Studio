@@ -7,7 +7,7 @@
     "build": "prisma generate && next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts lib/fusion/**/*.test.ts lib/services/**/__tests__/**/*.test.ts lib/utils/**/__tests__/**/*.test.ts components/**/__tests__/**/*.test.ts",
+    "test": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts lib/fusion/**/*.test.ts lib/media/**/__tests__/**/*.test.ts lib/services/**/__tests__/**/*.test.ts lib/utils/**/__tests__/**/*.test.ts components/**/__tests__/**/*.test.ts",
     "test:fusion": "node --import tsx --test lib/fusion/**/__tests__/**/*.test.ts lib/fusion/__tests__/**/*.test.ts",
     "test:e2e:proofs": "playwright test e2e/*.spec.ts",
     "test:e2e:proofs:headed": "PROOF_HEADED=1 playwright test e2e/*.spec.ts --headed",

@@ -16,6 +16,18 @@ import {
   putMediaObject,
 } from "./storage";
 
+export type MediaImportDependencies = {
+  fetchRemoteImage: typeof fetchRemoteImage;
+  putMediaObject: typeof putMediaObject;
+  deleteMediaObject: typeof deleteMediaObject;
+};
+
+const defaultImportDependencies: MediaImportDependencies = {
+  fetchRemoteImage,
+  putMediaObject,
+  deleteMediaObject,
+};
+
 export class MediaServiceError extends Error {
   constructor(
     message: string,
@@ -56,7 +68,8 @@ function providerImportUrl(payload: VerifiedProviderCandidate): string {
 }
 
 export async function importProviderCandidate(
-  payload: VerifiedProviderCandidate
+  payload: VerifiedProviderCandidate,
+  dependencies: MediaImportDependencies = defaultImportDependencies
 ): Promise<MediaAsset> {
   const { candidate, businessId } = payload;
   const existing = await prisma.mediaAsset.findUnique({
@@ -70,13 +83,13 @@ export async function importProviderCandidate(
   });
   if (existing) return existing;
 
-  const remote = await fetchRemoteImage(providerImportUrl(payload));
+  const remote = await dependencies.fetchRemoteImage(providerImportUrl(payload));
   const contentHash = createHash("sha256").update(remote.bytes).digest("hex");
   const extension = extensionForMime(remote.mimeType);
   const storageKey = `${businessId}/imports/${candidate.provider}/${safeSegment(
     candidate.providerAssetId
   )}-${contentHash.slice(0, 12)}.${extension}`;
-  const url = await putMediaObject({
+  const url = await dependencies.putMediaObject({
     storageKey,
     bytes: remote.bytes,
     mimeType: remote.mimeType,
@@ -124,10 +137,10 @@ export async function importProviderCandidate(
         importedAt: new Date(),
       },
     });
-    if (asset.storageKey !== storageKey) await deleteMediaObject(storageKey);
+    if (asset.storageKey !== storageKey) await dependencies.deleteMediaObject(storageKey);
     return asset;
   } catch (error) {
-    await deleteMediaObject(storageKey).catch(() => undefined);
+    await dependencies.deleteMediaObject(storageKey).catch(() => undefined);
     throw error;
   }
 }
@@ -136,8 +149,8 @@ export async function importExternalImage(input: {
   businessId: string;
   url: string;
   filename: string;
-}): Promise<MediaAsset> {
-  const remote = await fetchRemoteImage(input.url);
+}, dependencies: MediaImportDependencies = defaultImportDependencies): Promise<MediaAsset> {
+  const remote = await dependencies.fetchRemoteImage(input.url);
   const contentHash = createHash("sha256").update(remote.bytes).digest("hex");
   const existing = await prisma.mediaAsset.findFirst({
     where: { businessId: input.businessId, contentHash },
@@ -146,7 +159,7 @@ export async function importExternalImage(input: {
 
   const extension = extensionForMime(remote.mimeType);
   const storageKey = `${input.businessId}/imports/url/${contentHash}.${extension}`;
-  const url = await putMediaObject({
+  const url = await dependencies.putMediaObject({
     storageKey,
     bytes: remote.bytes,
     mimeType: remote.mimeType,
@@ -172,7 +185,7 @@ export async function importExternalImage(input: {
       },
     });
   } catch (error) {
-    await deleteMediaObject(storageKey).catch(() => undefined);
+    await dependencies.deleteMediaObject(storageKey).catch(() => undefined);
     throw error;
   }
 }
@@ -255,7 +268,11 @@ export async function setMediaFavorite(input: {
   if (input.favorite) {
     await prisma.mediaAssetFavorite.upsert({
       where: key,
-      create: input,
+      create: {
+        businessId: input.businessId,
+        userId: input.userId,
+        mediaAssetId: input.mediaAssetId,
+      },
       update: {},
     });
   } else {
@@ -309,6 +326,26 @@ export async function setMediaApproval(input: {
           approvedById: null,
         },
   });
+}
+
+export async function resolveApprovedBrandLogo(
+  businessId: string,
+  mediaAssetId: string
+): Promise<MediaAsset> {
+  const asset = await prisma.mediaAsset.findFirst({
+    where: {
+      id: mediaAssetId,
+      businessId,
+      approvalStatus: "APPROVED",
+    },
+  });
+  if (!asset) {
+    throw new MediaServiceError(
+      "Approve this Brand asset before making it the primary logo.",
+      409
+    );
+  }
+  return asset;
 }
 
 export async function replaceAssetUsages(input: {

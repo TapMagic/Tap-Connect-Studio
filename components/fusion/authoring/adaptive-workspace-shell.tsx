@@ -175,6 +175,7 @@ export function AdaptiveWorkspaceShell({
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
+      if (document.querySelector('[data-testid="shared-media-browser"]')) return;
       const layer = nextEscLayer({
         modalOpen: snapshot.modalOpen,
         drawerOpen: snapshot.drawerOpen,

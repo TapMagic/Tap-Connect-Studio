@@ -84,7 +84,7 @@ async function resolvePublicAddress(hostname: string): Promise<{
   return { address: selected.address, family: selected.family as 4 | 6 };
 }
 
-function parseSafeUrl(input: string): URL {
+export function parseSafeRemoteUrl(input: string): URL {
   let url: URL;
   try {
     url = new URL(input);
@@ -116,6 +116,32 @@ export function sniffImageMime(bytes: Buffer): RemoteImage["mimeType"] | null {
   const gif = bytes.subarray(0, 6).toString("ascii");
   if (gif === "GIF87a" || gif === "GIF89a") return "image/gif";
   return null;
+}
+
+export function validateRemoteImageBytes(input: {
+  bytes: Buffer;
+  declaredMime?: string;
+  declaredSize?: number | null;
+}): RemoteImage["mimeType"] {
+  if (
+    input.bytes.byteLength > MAX_MEDIA_BYTES ||
+    (input.declaredSize != null && input.declaredSize > MAX_MEDIA_BYTES)
+  ) {
+    throw new RemoteMediaError("Source image exceeds 8MB", "too_large", 413);
+  }
+  const mimeType = sniffImageMime(input.bytes);
+  if (!mimeType) {
+    throw new RemoteMediaError(
+      "Source bytes are not a supported PNG, JPEG, WebP, or GIF image",
+      "unsupported_mime",
+      415
+    );
+  }
+  const declaredMime = input.declaredMime?.split(";")[0].trim().toLowerCase();
+  if (declaredMime && declaredMime !== mimeType) {
+    throw new RemoteMediaError("Source MIME type does not match its bytes", "unsupported_mime", 415);
+  }
+  return mimeType;
 }
 
 async function requestOnce(url: URL): Promise<{
@@ -180,7 +206,7 @@ export async function fetchRemoteImage(
   input: string,
   redirectsRemaining = MAX_REDIRECTS
 ): Promise<RemoteImage> {
-  const url = parseSafeUrl(input);
+  const url = parseSafeRemoteUrl(input);
   let response;
   try {
     response = await requestOnce(url);
@@ -200,21 +226,13 @@ export async function fetchRemoteImage(
     throw new RemoteMediaError(`Source returned ${response.status}`, "upstream", 502);
   }
 
-  const mimeType = sniffImageMime(response.bytes);
-  if (!mimeType) {
-    throw new RemoteMediaError(
-      "Source bytes are not a supported PNG, JPEG, WebP, or GIF image",
-      "unsupported_mime",
-      415
-    );
-  }
-  const declaredMime = String(response.headers["content-type"] || "")
-    .split(";")[0]
-    .trim()
-    .toLowerCase();
-  if (declaredMime && declaredMime !== mimeType) {
-    throw new RemoteMediaError("Source MIME type does not match its bytes", "unsupported_mime", 415);
-  }
+  const mimeType = validateRemoteImageBytes({
+    bytes: response.bytes,
+    declaredMime: String(response.headers["content-type"] || ""),
+    declaredSize: response.headers["content-length"]
+      ? Number(response.headers["content-length"])
+      : null,
+  });
 
   return {
     finalUrl: url.toString(),

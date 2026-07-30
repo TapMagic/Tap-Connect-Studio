@@ -8,7 +8,11 @@ import {
   type CardPublishManifest,
 } from "@/lib/fusion/publication/snapshots";
 import { collectDocumentMediaReferences } from "@/lib/media/document-usage";
-import { recordSavedDocumentAssetUsage } from "@/lib/media/service";
+import {
+  MediaServiceError,
+  recordSavedDocumentAssetUsage,
+  resolveApprovedBrandLogo,
+} from "@/lib/media/service";
 import type { Prisma } from "@prisma/client";
 
 const schema = z.object({
@@ -112,20 +116,10 @@ export async function PATCH(request: Request) {
 
     let resolvedLogoUrl = logoUrl;
     if (logoMediaAssetId) {
-      const approvedAsset = await prisma.mediaAsset.findFirst({
-        where: {
-          id: logoMediaAssetId,
-          businessId: business.id,
-          approvalStatus: "APPROVED",
-        },
-        select: { url: true },
-      });
-      if (!approvedAsset) {
-        return NextResponse.json(
-          { error: "Approve this Brand asset before making it the primary logo." },
-          { status: 409 }
-        );
-      }
+      const approvedAsset = await resolveApprovedBrandLogo(
+        business.id,
+        logoMediaAssetId
+      );
       resolvedLogoUrl = approvedAsset.url;
     } else if (
       logoUrl !== undefined &&
@@ -241,6 +235,9 @@ export async function PATCH(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid Brand Kit data" }, { status: 400 });
+    }
+    if (error instanceof MediaServiceError) {
+      return NextResponse.json({ error: error.message }, { status: error.status });
     }
     console.error("Brand kit update error:", error);
     return NextResponse.json({ error: "Failed to update brand kit" }, { status: 500 });
