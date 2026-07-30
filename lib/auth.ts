@@ -8,6 +8,7 @@ import {
   ensureAdminWorkspace,
   postAuthPath,
 } from "@/lib/services/admins";
+import { postAuthDestination } from "@/lib/fusion/auth/post-auth-destination";
 import type { Business, BusinessUser, User } from "@prisma/client";
 
 export type SessionUser = User & {
@@ -147,17 +148,27 @@ export async function requireBusiness(): Promise<{
 
 export async function resolvePostAuthRedirect(): Promise<string> {
   if (isLocalDevAuthEnabled()) {
-    await getOrCreateDevUser();
-    return "/onboarding";
+    const user = await getOrCreateDevUser();
+    const active = user.memberships[0]?.business;
+    return postAuthDestination({
+      isPlatformAdmin: false,
+      hasBusiness: Boolean(active),
+      cardFirstOnboardingCompleted: Boolean(active?.cardFirstOnboardingCompletedAt),
+    });
   }
   const user = await requireSessionUser();
   if (isPlatformAdminEmail(user.email)) {
     await ensureAdminWorkspace(user);
-    return "/admin";
+    return postAuthDestination({
+      isPlatformAdmin: true,
+      hasBusiness: true,
+      cardFirstOnboardingCompleted: true,
+    });
   }
   const active = user.memberships[0]?.business;
-  if (!active || !active.cardFirstOnboardingCompletedAt) {
-    return "/onboarding";
-  }
-  return "/dashboard";
+  return postAuthDestination({
+    isPlatformAdmin: false,
+    hasBusiness: Boolean(active),
+    cardFirstOnboardingCompleted: Boolean(active?.cardFirstOnboardingCompletedAt),
+  });
 }
