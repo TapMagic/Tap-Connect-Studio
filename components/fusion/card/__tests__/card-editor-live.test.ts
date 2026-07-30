@@ -61,6 +61,14 @@ function stubModel(
     onRollback: noop,
     strInherited: () => undefined,
     onTestAction: noop,
+    reorderSections: noop,
+    moveSectionBy: noop,
+    moveSectionTo: noop,
+    duplicateSection: noop,
+    copySection: noop,
+    deleteSection: noop,
+    toggleSectionVisible: noop,
+    toggleSectionLocked: noop,
     ...overrides,
   };
 }
