@@ -3,6 +3,11 @@ import { isIP } from "node:net";
 import { resolve4, resolve6 } from "node:dns/promises";
 import http from "node:http";
 import https from "node:https";
+import {
+  extractHomepageDiscovery,
+  listSameOriginStylesheetUrls,
+  type WebsiteDiscoveryCandidate,
+} from "@/lib/fusion/knowledge/website-discovery";
 
 const MAX_REDIRECTS = 3;
 const MAX_BYTES = 750_000;
@@ -28,8 +33,15 @@ export type WebsiteIntakeResult = {
   finalUrl: string;
   contentHash: string;
   findings: WebsiteFinding[];
+  candidates: WebsiteDiscoveryCandidate[];
   fetchedAt: string;
 };
+
+export function websiteReviewFingerprint(result: WebsiteIntakeResult): string {
+  return createHash("sha256")
+    .update(`${result.finalUrl}\n${result.contentHash}`)
+    .digest("hex");
+}
 
 export class WebsiteIntakeError extends Error {
   constructor(
@@ -239,144 +251,132 @@ async function requestHtml(
   });
 }
 
-function decodeHtml(value: string): string {
-  return value
-    .replace(/&amp;/gi, "&")
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;|&apos;/gi, "'")
-    .replace(/&lt;/gi, "<")
-    .replace(/&gt;/gi, ">")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 2_000);
+export function extractHomepageFindings(
+  html: string,
+  finalUrl: URL,
+  opts?: { sameOriginCssText?: string }
+): WebsiteFinding[] {
+  return extractHomepageDiscovery(html, finalUrl, opts).findings;
 }
 
-function meta(html: string, key: string): string | undefined {
-  const escaped = key.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const patterns = [
-    new RegExp(
-      `<meta[^>]+(?:property|name)=["']${escaped}["'][^>]+content=["']([^"']+)["'][^>]*>`,
-      "i"
-    ),
-    new RegExp(
-      `<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["']${escaped}["'][^>]*>`,
-      "i"
-    ),
-  ];
-  for (const pattern of patterns) {
-    const value = html.match(pattern)?.[1];
-    if (value) return decodeHtml(value);
+async function requestSameOriginText(
+  url: URL,
+  expectedOrigin: string,
+  redirects = 0
+): Promise<string> {
+  if (redirects > MAX_REDIRECTS) {
+    throw new WebsiteIntakeError("The stylesheet redirected too many times.", "redirect_limit");
   }
-}
-
-function jsonLdObjects(html: string): Record<string, unknown>[] {
-  const results: Record<string, unknown>[] = [];
-  const pattern =
-    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
-  for (let index = 0; index < 25; index += 1) {
-    const match = pattern.exec(html);
-    if (!match) break;
-    if (Buffer.byteLength(match[1], "utf8") > 50_000) continue;
-    try {
-      const parsed = JSON.parse(match[1]) as unknown;
-      const graph =
-        parsed && typeof parsed === "object"
-          ? (parsed as { "@graph"?: unknown })["@graph"]
-          : undefined;
-      const values = Array.isArray(parsed)
-        ? parsed
-        : Array.isArray(graph)
-          ? graph
-          : [parsed];
-      for (const value of values) {
-        if (value && typeof value === "object" && !Array.isArray(value)) {
-          results.push(value as Record<string, unknown>);
+  if (url.origin !== expectedOrigin) {
+    throw new WebsiteIntakeError("Stylesheets must remain on the homepage origin.", "invalid_url");
+  }
+  const [pinned] = await publicAddresses(url.hostname);
+  const client = url.protocol === "https:" ? https : http;
+  return new Promise((resolve, reject) => {
+    const request = client.request(
+      url,
+      {
+        method: "GET",
+        headers: {
+          "User-Agent": "TapConnect-Onboarding/1.0 (+homepage-only)",
+          Accept: "text/css,*/*;q=0.1",
+        },
+        lookup: (_hostname, _options, callback) => {
+          callback(null, pinned.address, pinned.family);
+        },
+      },
+      (response) => {
+        const status = response.statusCode || 0;
+        if (status >= 300 && status < 400 && response.headers.location) {
+          response.resume();
+          let next: URL;
+          try {
+            next = normalizeHomepageUrl(new URL(response.headers.location, url).toString());
+          } catch (error) {
+            reject(error);
+            return;
+          }
+          void requestSameOriginText(next, expectedOrigin, redirects + 1).then(resolve, reject);
+          return;
         }
+        if (status < 200 || status >= 300) {
+          response.resume();
+          reject(new WebsiteIntakeError(`Stylesheet HTTP ${status}.`, "upstream_error"));
+          return;
+        }
+        const contentType = String(response.headers["content-type"] || "")
+          .split(";")[0]
+          .trim()
+          .toLowerCase();
+        if (contentType !== "text/css") {
+          response.resume();
+          reject(
+            new WebsiteIntakeError(
+              "The stylesheet did not return CSS.",
+              "unsupported_content"
+            )
+          );
+          return;
+        }
+        const chunks: Buffer[] = [];
+        let size = 0;
+        response.on("data", (chunk: Buffer) => {
+          size += chunk.length;
+          if (size > 120_000) {
+            request.destroy(
+              new WebsiteIntakeError("The stylesheet was too large to review safely.", "too_large")
+            );
+            return;
+          }
+          chunks.push(chunk);
+        });
+        response.on("end", () => resolve(Buffer.concat(chunks).toString("utf8")));
       }
-    } catch {
-      // Malformed structured data is ignored; the Owner can enter facts manually.
-    }
-  }
-  return results;
+    );
+    request.setTimeout(TIMEOUT_MS, () => {
+      request.destroy(new WebsiteIntakeError("Stylesheet request timed out.", "timeout"));
+    });
+    request.on("error", reject);
+    request.end();
+  });
 }
 
-function addFinding(
-  findings: WebsiteFinding[],
-  factKey: WebsiteFinding["factKey"],
-  value: unknown,
-  confidence: number,
-  evidence: string
-) {
-  if (typeof value !== "string") return;
-  const normalized = decodeHtml(value);
-  if (!normalized || findings.some((finding) => finding.factKey === factKey && finding.value === normalized)) {
-    return;
-  }
-  findings.push({ factKey, value: normalized, confidence, evidence: evidence.slice(0, 240) });
-}
-
-export function extractHomepageFindings(html: string, finalUrl: URL): WebsiteFinding[] {
-  const findings: WebsiteFinding[] = [];
-  addFinding(findings, "website", finalUrl.origin, 1, "Final homepage URL");
-  addFinding(findings, "businessName", meta(html, "og:site_name"), 0.85, "Open Graph site name");
-  addFinding(
-    findings,
-    "description",
-    meta(html, "og:description") || meta(html, "description"),
-    0.75,
-    "Homepage description metadata"
+async function fetchSameOriginCss(html: string, finalUrl: URL): Promise<string> {
+  const urls = listSameOriginStylesheetUrls(html, finalUrl);
+  const chunks = await Promise.all(
+    urls.map(async (href) => {
+      try {
+        return await requestSameOriginText(new URL(href), finalUrl.origin);
+      } catch {
+        // Stylesheets are optional discovery inputs. Invalid responses contribute nothing.
+        return "";
+      }
+    })
   );
-
-  for (const object of jsonLdObjects(html)) {
-    const type = object["@type"];
-    const types = Array.isArray(type) ? type : [type];
-    if (
-      !types.some(
-        (entry) =>
-          typeof entry === "string" &&
-          ["Organization", "LocalBusiness", "ProfessionalService", "Person"].includes(entry)
-      )
-    ) {
-      continue;
-    }
-    addFinding(findings, "businessName", object.name, 0.9, "Homepage structured data");
-    addFinding(findings, "phone", object.telephone, 0.85, "Homepage structured data");
-    addFinding(findings, "email", object.email, 0.85, "Homepage structured data");
-    const address = object.address;
-    if (typeof address === "string") {
-      addFinding(findings, "address", address, 0.85, "Homepage structured data");
-    } else if (address && typeof address === "object" && !Array.isArray(address)) {
-      const record = address as Record<string, unknown>;
-      const fullAddress = [
-        record.streetAddress,
-        record.addressLocality,
-        record.addressRegion,
-        record.postalCode,
-      ]
-        .filter((part): part is string => typeof part === "string" && Boolean(part.trim()))
-        .join(", ");
-      addFinding(findings, "address", fullAddress, 0.85, "Homepage structured data");
-      addFinding(findings, "city", record.addressLocality, 0.85, "Homepage structured data");
-      addFinding(findings, "state", record.addressRegion, 0.85, "Homepage structured data");
-    }
-  }
-  return findings.slice(0, 20);
+  return chunks.filter(Boolean).join("\n");
 }
 
 export async function intakeHomepage(
   input: string,
   dependencies: {
     fetchHtml?: (url: URL) => Promise<{ finalUrl: URL; html: string }>;
+    fetchCssText?: (html: string, finalUrl: URL) => Promise<string>;
     now?: () => Date;
   } = {}
 ): Promise<WebsiteIntakeResult> {
   const requested = normalizeHomepageUrl(input);
-  const { finalUrl, html } = await (dependencies.fetchHtml || requestHtml)(requested);
+  const fetchHtml = dependencies.fetchHtml || requestHtml;
+  const { finalUrl, html } = await fetchHtml(requested);
+  const sameOriginCssText = await (
+    dependencies.fetchCssText || fetchSameOriginCss
+  )(html, finalUrl);
+  const discovery = extractHomepageDiscovery(html, finalUrl, { sameOriginCssText });
   return {
     requestedUrl: requested.toString(),
     finalUrl: finalUrl.toString(),
     contentHash: createHash("sha256").update(html).digest("hex"),
-    findings: extractHomepageFindings(html, finalUrl),
+    findings: discovery.findings,
+    candidates: discovery.candidates,
     fetchedAt: (dependencies.now?.() || new Date()).toISOString(),
   };
 }

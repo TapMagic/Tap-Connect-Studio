@@ -492,6 +492,7 @@ model KnowledgeSource {
   normalizedUri   String?
   displayLabel    String
   contentHash     String?
+  requestFingerprint String?
   ingestionStatus KnowledgeIngestionStatus @default(PENDING)
   rightsNote      String?
   metadata        Json                     @default("{}")
@@ -508,6 +509,7 @@ model KnowledgeSource {
 
   @@index([businessId, kind])
   @@index([businessId, normalizedUri])
+  @@unique([businessId, kind, requestFingerprint])
   @@index([mediaAssetId])
 }
 

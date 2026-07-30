@@ -23,6 +23,8 @@ export const ONBOARDING_FACT_KEYS = [
   "offerDescription",
   "offerUrl",
   "faq",
+  "socialLinks",
+  "services",
 ] as const;
 
 export type OnboardingFactKey = (typeof ONBOARDING_FACT_KEYS)[number];
