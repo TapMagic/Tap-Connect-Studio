@@ -180,7 +180,7 @@ export function StudioTopBar({
       <div
         className="hidden min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 sm:flex"
         data-testid="studio-workspace-chip"
-        title="Single-workspace context — multi-location switching is not shipped"
+        title="Single-workspace context — multi-location switching is coming later"
       >
         <span className="text-[10px] uppercase tracking-wide text-white/60">Workspace</span>
         <span className="max-w-[10rem] truncate text-xs font-medium text-white/90 lg:max-w-[14rem]">

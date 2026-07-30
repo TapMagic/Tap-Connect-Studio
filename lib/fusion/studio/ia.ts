@@ -70,7 +70,7 @@ export const STUDIO_NAV: StudioNavItem[] = [
     label: "Home",
     href: "/dashboard",
     aliases: ["/dashboard"],
-    description: "Decision queue, readiness, and outcomes",
+    description: "What needs attention and what to do next",
   },
   {
     id: "experiences",
@@ -84,15 +84,16 @@ export const STUDIO_NAV: StudioNavItem[] = [
       "/dashboard/groups",
       "/dashboard/experiences/journeys",
       "/dashboard/experiences/orders",
+      "/dashboard/experiences/canvas",
     ],
-    description: "Cards, Campaigns, Groups, TapFlow, commerce",
+    description: "Card, Campaigns, Email, TapCanvas, and journeys",
   },
   {
     id: "tap_points",
     label: "Tap Points",
     href: "/dashboard/tap-points",
     aliases: ["/dashboard/devices", "/dashboard/scan", "/dashboard/pulse"],
-    description: "Devices, fleet health, Scan Mode, Pulse",
+    description: "Connect and manage physical and digital entry points",
   },
   {
     id: "audience",
@@ -103,28 +104,28 @@ export const STUDIO_NAV: StudioNavItem[] = [
       "/dashboard/audience/inbox",
       "/dashboard/audience/wallet",
     ],
-    description: "Leads, relationships, Inbox, Wallet, TapLoop",
+    description: "People, Inbox, Wallet, and loyalty",
   },
   {
     id: "insights",
     label: "Insights",
     href: "/dashboard/insights",
     aliases: ["/dashboard/analytics"],
-    description: "Analytics, TapProof, operational alerts",
+    description: "Results, proof, and performance",
   },
   {
     id: "assets",
     label: "Assets",
     href: "/dashboard/assets",
     aliases: ["/dashboard/brand", "/dashboard/brand/edit"],
-    description: "Brand Kit, media, templates",
+    description: "Media, logos, Brand Kit, and Collections",
   },
   {
     id: "settings",
     label: "Settings",
     href: "/dashboard/settings",
     aliases: ["/dashboard/integrations", "/dashboard/billing"],
-    description: "Workspace, billing, integrations, Automation Team",
+    description: "Workspace, connections, billing, and team",
   },
 ];
 
@@ -226,17 +227,17 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       id: "tapcanvas",
       label: "TapCanvas",
       href: "/dashboard/experiences/canvas",
-      description: "Sketch · Build · Operate · Analyze — linked object graph",
-      maturity: "alpha",
+      description: "Freeform workspace for planning, mood boards, and visual layouts",
+      maturity: "functional",
       featureId: "canvas.tapcanvas",
       group: "Build",
     },
     {
       id: "whiteboard",
-      label: "Whiteboard (legacy) · Campaign workbench",
+      label: "Campaign planning board · Campaign workbench",
       href: "/dashboard/workbench",
-      description: "Same campaign workbench — prefer TapCanvas for freeform graphs",
-      maturity: "alpha",
+      description: "Campaign authoring workspace — use TapCanvas for freeform layouts",
+      maturity: "functional",
       group: "Build",
       opensSurface: "Campaign workbench",
     },
@@ -270,18 +271,18 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "taptrail",
-      label: "TapTrail — not shipped · Insights",
+      label: "TapTrail · Insights",
       href: "/dashboard/insights",
-      description: "No dedicated TapTrail surface yet — opens Insights hub",
+      description: "Coming later — opens Insights for now",
       maturity: "scaffolded",
-      group: "Labs",
+      group: "More",
       opensSurface: "Insights",
     },
     {
       id: "orders",
-      label: "Orders (TapCommerce mock)",
+      label: "Orders",
       href: "/dashboard/experiences/orders",
-      description: "Mock checkout, refunds, and order list",
+      description: "Checkout simulation for testing — not live commerce",
       maturity: "beta",
       featureId: "commerce.tapcommerce",
       group: "Commerce",
@@ -300,7 +301,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       id: "devices",
       label: "Devices",
       href: "/dashboard/devices",
-      description: "V1 device inventory, provisioning, and replacement",
+      description: "Device inventory, provisioning, and replacement",
       maturity: "owner_ready",
       group: "Fleet",
     },
@@ -325,7 +326,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       id: "pulse",
       label: "Pulse",
       href: "/dashboard/pulse",
-      description: "Field shell — fleet health; claim/offline not shipped",
+      description: "Field shell for fleet health — claim and offline coming later",
       maturity: "alpha",
       featureId: "ops.pulse",
       group: "Field",
@@ -336,7 +337,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       id: "leads",
       label: "Leads",
       href: "/dashboard/leads",
-      description: "V1 lead list + CSV",
+      description: "Lead list and CSV export",
       maturity: "owner_ready",
       group: "Core",
     },
@@ -352,7 +353,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
       id: "wallet",
       label: "Wallet",
       href: "/dashboard/audience/wallet",
-      description: "Pass lifecycle (mock adapter)",
+      description: "Pass lifecycle — connection required for live issuance",
       maturity: "verified_needs_credentials",
       featureId: "wallet.apple_google",
       group: "Retention",
@@ -378,11 +379,11 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "tapguide",
-      label: "TapGuide — not shipped · Audience hub",
+      label: "TapGuide · Audience",
       href: "/dashboard/audience",
-      description: "No dedicated TapGuide surface yet — opens Audience hub",
+      description: "Coming later — opens Audience for now",
       maturity: "scaffolded",
-      group: "Labs",
+      group: "More",
       opensSurface: "Audience",
     },
     {
@@ -396,18 +397,18 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "referrals",
-      label: "Referrals — not shipped · TapLoop",
+      label: "Referrals · TapLoop",
       href: "/dashboard/audience#taploop",
-      description: "Referral product not shipped — opens TapLoop on Audience",
+      description: "Coming later — opens TapLoop for now",
       maturity: "scaffolded",
-      group: "Labs",
+      group: "More",
       opensSurface: "TapLoop",
     },
     {
       id: "orders",
-      label: "Orders (TapCommerce mock)",
+      label: "Orders",
       href: "/dashboard/experiences/orders",
-      description: "Mock purchase history, bookings stubs, and invoices live here",
+      description: "Checkout simulation and order history for testing",
       maturity: "beta",
       featureId: "commerce.tapcommerce",
       group: "Commerce",
@@ -424,7 +425,7 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "analytics",
-      label: "V1 Analytics",
+      label: "Analytics",
       href: "/dashboard/analytics",
       description: "Classic analytics views",
       maturity: "owner_ready",
@@ -577,20 +578,20 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "fragments",
-      label: "Content fragments — not shipped · Workbench",
+      label: "Content fragments · Campaign workbench",
       href: "/dashboard/workbench",
-      description: "No fragment library yet — opens campaign workbench",
+      description: "Coming later — opens Campaign workbench for now",
       maturity: "scaffolded",
-      group: "Labs",
+      group: "More",
       opensSurface: "Campaign workbench",
     },
     {
       id: "translations",
-      label: "Translations & rights — not shipped · Assets hub",
+      label: "Translations & rights · Assets",
       href: "/dashboard/assets",
-      description: "Locale packs and rights metadata are not shipped — opens Assets hub",
+      description: "Coming later — opens Assets for now",
       maturity: "scaffolded",
-      group: "Labs",
+      group: "More",
       opensSurface: "Assets",
     },
   ],
@@ -605,11 +606,11 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "locations",
-      label: "Locations — multi-facility not shipped",
+      label: "Locations · Settings",
       href: "/dashboard/settings",
-      description: "No location switcher yet — Settings is single-workspace only",
+      description: "Coming later — Settings is single-workspace today",
       maturity: "scaffolded",
-      group: "Labs",
+      group: "More",
       opensSurface: "Settings",
     },
     {
@@ -790,16 +791,16 @@ export const CREATE_ACTIONS: CreateAction[] = [
     href: "/dashboard/experiences/canvas",
     description: "Linked object graph — Sketch/Build/Operate/Analyze",
     maturity: "alpha",
-    group: "Advanced / Labs",
+    group: "More tools",
     intent: "open",
   },
   {
     id: "whiteboard",
-    label: "Open workbench (legacy whiteboard)",
+    label: "Open Campaign planning board",
     href: "/dashboard/workbench",
-    description: "Opens campaign workbench — prefer TapCanvas",
+    description: "Opens Campaign authoring — prefer TapCanvas for freeform layouts",
     maturity: "alpha",
-    group: "Advanced / Labs",
+    group: "More tools",
     intent: "open",
   },
   {
@@ -808,7 +809,7 @@ export const CREATE_ACTIONS: CreateAction[] = [
     href: "/dashboard/experiences/tapcast/tiktok",
     description: "TapCast channel — live publish needs credentials",
     maturity: "verified_needs_credentials",
-    group: "Advanced / Labs",
+    group: "More tools",
     intent: "open",
   },
   {
@@ -817,7 +818,7 @@ export const CREATE_ACTIONS: CreateAction[] = [
     href: "/dashboard/experiences/tapcast",
     description: "Omnichannel hub — live channels need credentials",
     maturity: "verified_needs_credentials",
-    group: "Advanced / Labs",
+    group: "More tools",
     intent: "open",
   },
   {
@@ -941,11 +942,11 @@ export const CREATE_ACTIONS: CreateAction[] = [
     id: "booking",
     label: "Booking",
     href: "/dashboard/experiences/orders",
-    description: "Booking create is not shipped",
+    description: "Booking create is coming later",
     maturity: "scaffolded",
     group: "Audience",
     intent: "unavailable",
-    unavailableReason: "Booking wizard not shipped — orders panel is mock commerce only",
+    unavailableReason: "Booking wizard is coming later — Orders is a checkout simulation only",
   },
 ];
 
@@ -992,7 +993,20 @@ export function findDishonestCreateActions(
  * @deprecated Prefer resolveSectionReadiness() — static OWNER-READY must not appear in UI.
  * Labels below are provisional only; hub badges use derived DisplayReadiness.
  */
+/** Owner-facing maturity chips in Studio search / chrome. */
 export const MATURITY_LABEL: Record<StudioMaturity, string> = {
+  owner_ready: "Ready",
+  functional: "Available",
+  beta: "Available",
+  alpha: "Setup needed",
+  internal: "Coming later",
+  verified_needs_credentials: "Credentials required",
+  scaffolded: "Coming later",
+  disabled: "Not included in your plan",
+};
+
+/** Platform Admin / honesty diagnostics — engineering classifications. */
+export const ENGINEERING_MATURITY_LABEL: Record<StudioMaturity, string> = {
   owner_ready: "FUNCTIONAL — FINAL VERIFICATION REQUIRED",
   functional: "FUNCTIONAL — FINAL VERIFICATION REQUIRED",
   beta: "FUNCTIONAL — FINAL VERIFICATION REQUIRED",
@@ -1070,7 +1084,7 @@ export function findDishonestAliasFanIn(
         const labelOk =
           s.label.toLowerCase().includes(surfaceToken) ||
           s.label.includes("·") ||
-          /not shipped/i.test(s.label);
+          /coming later/i.test(s.label);
         if (!labelOk) {
           problems.push(
             `${navId}/${s.id}: opensSurface="${s.opensSurface}" but label "${s.label}" does not name the surface`

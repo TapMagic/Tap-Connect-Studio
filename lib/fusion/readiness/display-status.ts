@@ -8,7 +8,7 @@ import { FEATURE_DEFINITIONS } from "@/lib/fusion/features/registry";
 import { isFeatureEnabled, type ResolveContext } from "@/lib/fusion/features/resolve";
 import type { StudioMaturity, StudioSection } from "@/lib/fusion/studio/ia";
 
-/** User-visible readiness vocabulary (charter §10) */
+/** Platform Admin / engineering readiness vocabulary (charter §10) */
 export type DisplayReadiness =
   | "owner_ready"
   | "verified_credentials_required"
@@ -26,6 +26,20 @@ export const DISPLAY_READINESS_LABEL: Record<DisplayReadiness, string> = {
   development: "DEVELOPMENT",
   blocked: "BLOCKED",
   disabled: "DISABLED",
+};
+
+/**
+ * Owner-facing readiness labels for Studio nav and workspace chrome.
+ * Engineering classifications remain in DISPLAY_READINESS_LABEL / Platform Admin.
+ */
+export const OWNER_FACING_READINESS_LABEL: Record<DisplayReadiness, string> = {
+  owner_ready: "Ready",
+  verified_credentials_required: "Credentials required",
+  functional_final_verification_required: "Available",
+  integrated_incomplete_workflow: "Setup needed",
+  development: "Coming later",
+  blocked: "Blocked",
+  disabled: "Not included in your plan",
 };
 
 export type VerificationRecord = {
@@ -438,13 +452,18 @@ export function maturityToProvisional(m: StudioMaturity): DisplayReadiness {
 
 export type ResolvedSectionReadiness = {
   display: DisplayReadiness;
+  /** Platform Admin / engineering label */
   label: string;
+  /** Owner-facing short label for Studio chrome */
+  ownerLabel: string;
   whatWorks: string;
   whatDoesNot: string;
   missingDependencies: string[];
   lastVerifiedAt: string | null;
   testsOrProbes: string;
   nextAction: string;
+  /** Owner-safe next-step hint (no ledger archaeology) */
+  ownerNextAction: string;
   featureId?: string;
 };
 
@@ -517,9 +536,31 @@ export function resolveSectionReadiness(
 
   const uniqueMissing = [...new Set(missingDependencies)];
 
+  const engineeringNext =
+    ledger?.nextAction ??
+    (display === "verified_credentials_required"
+      ? "Supply sandbox credentials via Integrations / .env.local — live remains VERIFIED — CREDENTIALS REQUIRED (see docs/fusion/PROVIDER_READINESS.md); never Railway prod"
+      : display === "development"
+        ? "Implement workflow before promoting readiness"
+        : "Execute isolated-DB + browser proof (ISOLATED_DB_PROOF_QUEUE) then record VERIFICATION_LEDGER");
+
+  const ownerNextAction =
+    display === "verified_credentials_required"
+      ? "Connect this provider under Settings to use live delivery."
+      : display === "blocked"
+        ? "Resolve the blocking issue, then try again."
+        : display === "development" || display === "disabled"
+          ? "This area is not part of your current Owner workflow."
+          : display === "integrated_incomplete_workflow"
+            ? "Finish the remaining setup steps in this workspace."
+            : display === "owner_ready"
+              ? "Ready for normal use."
+              : "Open this workspace to continue.";
+
   return {
     display,
     label: DISPLAY_READINESS_LABEL[display],
+    ownerLabel: OWNER_FACING_READINESS_LABEL[display],
     whatWorks: section.description,
     whatDoesNot:
       uniqueMissing.length > 0
@@ -528,19 +569,19 @@ export function resolveSectionReadiness(
     missingDependencies: uniqueMissing,
     lastVerifiedAt: ledger?.lastVerifiedAt ?? null,
     testsOrProbes: ledger?.notes ?? "Unit/integration tests only — no OWNER-READY browser ledger entry",
-    nextAction:
-      ledger?.nextAction ??
-      (display === "verified_credentials_required"
-        ? "Supply sandbox credentials via Integrations / .env.local — live remains VERIFIED — CREDENTIALS REQUIRED (see docs/fusion/PROVIDER_READINESS.md); never Railway prod"
-        : display === "development"
-          ? "Implement workflow before promoting readiness"
-          : "Execute isolated-DB + browser proof (ISOLATED_DB_PROOF_QUEUE) then record VERIFICATION_LEDGER"),
+    nextAction: engineeringNext,
+    ownerNextAction,
     featureId: section.featureId,
   };
 }
 
-/** Downgrade helper for Create actions / IA static fields */
+/** Owner-facing Create menu / IA static fields — never engineering ledger prose. */
 export function safeDisplayLabel(m: StudioMaturity): string {
+  return OWNER_FACING_READINESS_LABEL[maturityToProvisional(m)];
+}
+
+/** Platform Admin / diagnostics — full engineering classification. */
+export function engineeringDisplayLabel(m: StudioMaturity): string {
   return DISPLAY_READINESS_LABEL[maturityToProvisional(m)];
 }
 

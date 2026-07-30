@@ -118,7 +118,7 @@ test.describe("UX spine discoverability", () => {
     const honesty = page.getByTestId("pulse-field-honesty");
     if (enable.ok()) {
       await expect(honesty).toBeVisible({ timeout: 15_000 });
-      await expect(honesty).toContainText(/not shipped/i);
+      await expect(honesty).toContainText(/coming later/i);
       await expect(honesty.getByRole("link", { name: /Scan Mode/i })).toBeVisible();
       await expect(page.getByText(/Claim session \(stub\)/i)).toHaveCount(0);
       await expect(page.getByText(/Offline queue \(stub\)/i)).toHaveCount(0);

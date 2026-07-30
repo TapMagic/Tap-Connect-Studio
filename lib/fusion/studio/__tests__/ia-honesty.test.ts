@@ -22,13 +22,16 @@ describe("Studio IA · UX spine honesty (ID-004)", () => {
     assert.notEqual(workbench.label, STUDIO_NAV.find((n) => n.id === "experiences")?.label);
   });
 
-  it("parks TapTrail / TapGuide / Locations as not-shipped aliases", () => {
+  it("parks TapTrail / TapGuide / Locations as coming-later aliases", () => {
     const taptrail = sectionsForDestination("experiences").find((s) => s.id === "taptrail");
     const tapguide = sectionsForDestination("audience").find((s) => s.id === "tapguide");
     const locations = sectionsForDestination("settings").find((s) => s.id === "locations");
-    assert.ok(taptrail && /not shipped/i.test(taptrail.label));
-    assert.ok(tapguide && /not shipped/i.test(tapguide.label));
-    assert.ok(locations && /not shipped/i.test(locations.label));
+    assert.ok(taptrail && taptrail.maturity === "scaffolded");
+    assert.ok(tapguide && tapguide.maturity === "scaffolded");
+    assert.ok(locations && locations.maturity === "scaffolded");
+    assert.match(taptrail.description, /coming later/i);
+    assert.match(tapguide.description, /coming later/i);
+    assert.match(locations.description, /coming later/i);
     assert.equal(taptrail.opensSurface, "Insights");
     assert.equal(tapguide.opensSurface, "Audience");
     assert.equal(locations.opensSurface, "Settings");

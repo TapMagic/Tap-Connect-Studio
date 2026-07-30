@@ -3,7 +3,7 @@ import { AlertTriangle, CalendarClock, Radio, WifiOff } from "lucide-react";
 
 /**
  * Honest Pulse field outcomes when ops.pulse is enabled.
- * Claim / offline queue / PWA sync are not shipped — operators get real exits
+ * Claim / offline queue / PWA sync are coming later — operators get real exits
  * (Scan Mode, Campaign Groups, Tap Points) instead of stub UIs that look live.
  */
 export function PulseFieldHonestyPanel() {
@@ -17,13 +17,12 @@ export function PulseFieldHonestyPanel() {
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-200" aria-hidden />
         <div className="min-w-0 space-y-1">
           <p className="text-sm font-medium text-amber-50">
-            Pulse field claim, offline queue, and installable PWA are not shipped
+            Pulse field claim, offline queue, and installable PWA are coming later
           </p>
           <p className="text-xs text-amber-100/80">
             This shell shows live fleet health and waiting scan counts only. Use Scan Mode for
-            activate/claim, Campaign Groups for rotations, and Tap Points for the studio fleet
-            list. Enabling <code className="font-mono text-[10px]">ops.pulse</code> does not unlock
-            a separate field claim API.
+            activate and claim, Campaign Groups for rotations, and Tap Points for the studio fleet
+            list. Turning Pulse on does not unlock a separate field claim workflow yet.
           </p>
         </div>
       </div>

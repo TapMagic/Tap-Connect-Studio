@@ -42,16 +42,16 @@ const RELATIONSHIP_SUPPORT = [
     id: "tapsave",
     label: "TapSave / Keep",
     href: "/dashboard/card/edit",
-    description: "Retention utilities on the Card — keep the relationship after the tap",
-    maturity: "Functional",
+    description: "Help customers keep the relationship after the tap",
+    maturity: "Available",
     testId: "experiences-support-tapsave",
   },
   {
     id: "wallet",
     label: "Wallet",
     href: "/dashboard/audience/wallet",
-    description: "Apple/Google Wallet path — provider-gated; not a full migration",
-    maturity: "Provider-gated",
+    description: "Apple and Google Wallet passes — connection required for live issuance",
+    maturity: "Needs connection",
     testId: "experiences-support-wallet",
   },
   {
@@ -59,46 +59,46 @@ const RELATIONSHIP_SUPPORT = [
     label: "Customer actions / TapFlow",
     href: "/dashboard/experiences/journeys",
     description: "Journey drafts for follow-up actions",
-    maturity: "Functional",
+    maturity: "Available",
     testId: "experiences-support-journeys",
   },
 ] as const;
 
 const LABS = [
   {
-    id: "whiteboard",
-    label: "Whiteboard (legacy)",
-    href: "/dashboard/workbench",
-    description: "Legacy alias to Campaign workbench",
-    maturity: "Legacy",
-  },
-  {
-    id: "taptrail",
-    label: "TapTrail Labs",
-    href: "/dashboard/insights",
-    description: "Not shipped — opens Insights",
-    maturity: "Placeholder",
-  },
-  {
-    id: "orders",
-    label: "Orders (mock)",
-    href: "/dashboard/experiences/orders",
-    description: "TapCommerce mock checkout — not production commerce",
-    maturity: "Mock/test",
-  },
-  {
     id: "canvas",
     label: "TapCanvas",
     href: "/dashboard/experiences/canvas",
-    description: "Linked object graph — experimental",
-    maturity: "Experimental",
+    description: "Freeform workspace for planning, mood boards, and visual layouts",
+    maturity: "Available",
+  },
+  {
+    id: "whiteboard",
+    label: "Campaign planning board",
+    href: "/dashboard/workbench",
+    description: "Campaign authoring workspace",
+    maturity: "Available",
+  },
+  {
+    id: "taptrail",
+    label: "TapTrail",
+    href: "/dashboard/insights",
+    description: "Coming later — opens Insights for now",
+    maturity: "Coming later",
+  },
+  {
+    id: "orders",
+    label: "Orders",
+    href: "/dashboard/experiences/orders",
+    description: "Checkout simulation for testing — not live commerce",
+    maturity: "Draft only",
   },
   {
     id: "tapcast",
     label: "TapCast",
     href: "/dashboard/experiences/tapcast",
     description: "Social distribution — credentials required for live channels",
-    maturity: "Provider-gated",
+    maturity: "Needs connection",
   },
 ] as const;
 
@@ -125,10 +125,11 @@ export default async function ExperiencesHubPage() {
           Experiences
         </p>
         <h1 className="text-3xl font-semibold tracking-tight text-white">
-          Make and ship around the Card
+          Create and run experiences around the Card
         </h1>
-        <p className="max-w-2xl text-sm text-white/55">
-          Card first. Campaigns and Email support the relationship. Labs stay demoted.
+        <p className="max-w-2xl text-sm leading-relaxed text-white/60">
+          Card first. Campaigns and Email support the relationship. Extra tools stay under
+          More until you need them.
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
           <Link
@@ -242,7 +243,7 @@ export default async function ExperiencesHubPage() {
         data-testid="experiences-labs"
       >
         <summary className="cursor-pointer text-sm font-medium text-white/70">
-          Labs / legacy / experimental
+          More tools
         </summary>
         <ul className="mt-3 space-y-2" data-testid="experiences-labs-list">
           {LABS.map((item) => (
@@ -309,7 +310,7 @@ export default async function ExperiencesHubPage() {
       <StudioHubSections
         destinationId="experiences"
         title="Full Experiences catalog"
-        subtitle="Readiness detail for every tool — Labs remain secondary"
+        subtitle="Full catalog of Experiences tools and their current availability"
         collapsible
         defaultOpen={false}
       />

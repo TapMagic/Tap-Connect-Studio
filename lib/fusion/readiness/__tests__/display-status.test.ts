@@ -4,6 +4,7 @@ import {
   maturityToProvisional,
   resolveSectionReadiness,
   DISPLAY_READINESS_LABEL,
+  OWNER_FACING_READINESS_LABEL,
 } from "../display-status";
 import type { StudioSection } from "@/lib/fusion/studio/ia";
 
@@ -27,6 +28,11 @@ describe("display readiness derivation", () => {
     const r = resolveSectionReadiness(section);
     assert.notEqual(r.display, "owner_ready");
     assert.equal(r.label, DISPLAY_READINESS_LABEL.functional_final_verification_required);
+    assert.equal(
+      r.ownerLabel,
+      OWNER_FACING_READINESS_LABEL.functional_final_verification_required
+    );
+    assert.equal(r.ownerLabel, "Available");
     // Cards ledger may already record headed proofs; residuals (blockers / missing proofs) must remain.
     assert.ok(
       r.missingDependencies.length > 0,

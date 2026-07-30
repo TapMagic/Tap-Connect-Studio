@@ -84,9 +84,10 @@ export default async function SettingsHubPage() {
     },
     {
       id: "recovery",
-      title: "Unresolved decisions & recovery",
-      description: "Delivery failures and their recovery path.",
-      emptyLabel: "No failed delivery jobs — the outbox is calm.",
+      title: "Items that need your review",
+      description: "Failed deliveries and recovery steps.",
+      emptyLabel:
+        "Nothing needs your attention. No failed delivery jobs are waiting.",
       rows:
         deadLetters.length > 0
           ? [

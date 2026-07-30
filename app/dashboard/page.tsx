@@ -97,7 +97,7 @@ export default async function DashboardPage() {
       : fleet.warning > 0
         ? "warn"
         : devices.length === 0
-          ? "neutral"
+          ? "warn"
           : "ok";
 
   const decisionRows = decisionItems.map((item) => {
@@ -112,7 +112,11 @@ export default async function DashboardPage() {
       meta: `${item.aggregateType}:${item.aggregateId} · ${new Date(
         item.occurredAt
       ).toLocaleString()}`,
-      action: { label: item.nextActionLabel ?? "Open related work", href: item.href },
+      action: {
+        label: item.nextActionLabel ?? "Review item",
+        href: item.href,
+        primary: true,
+      },
       testId: `decision-item-${item.kind}`,
       metaTestId: "decision-item-meta",
       decisionId: item.id,
@@ -123,36 +127,81 @@ export default async function DashboardPage() {
   const operationsGroups: OperationsGroup[] = [
     {
       id: "decisions",
-      title: "Unresolved decisions",
-      description: "Delivery and publish failures with a recovery path.",
+      title:
+        decisionItems.length === 0
+          ? "Nothing needs your attention"
+          : decisionItems.length === 1
+            ? "1 item needs your review"
+            : `${decisionItems.length} items need your review`,
+      description:
+        decisionItems.length === 0
+          ? "No approvals, failed deliveries, or publishing issues are blocking your work."
+          : "Approvals, failed deliveries, and publishing issues that need a next step.",
       testId: "decision-queue-items",
-      emptyLabel: "Nothing blocked — failures appear here with a recovery path.",
+      emptyLabel:
+        "Nothing needs your attention. No approvals, failed deliveries, or publishing issues are blocking your work.",
       rows: decisionRows,
     },
     {
       id: "fleet",
-      title: "Tap Point health",
-      description: "Routing readiness of the entry points into this Card.",
+      title:
+        devices.length === 0
+          ? "Tap Points not connected yet"
+          : fleet.critical > 0 || fleet.warning > 0
+            ? "Tap Points need attention"
+            : "Tap Points connected",
+      description:
+        devices.length === 0
+          ? "Your Card can be previewed, but customers cannot reach it through a physical Tap Point until one is connected."
+          : "Entry points that route customers into this Card.",
       rows: [
         {
           id: "fleet-summary",
           label:
             devices.length === 0
-              ? "No Tap Points connected"
-              : `${fleet.healthy} healthy · ${fleet.warning} warn · ${fleet.critical} critical`,
+              ? "Tap Points not connected yet"
+              : `${fleet.healthy} healthy · ${fleet.warning} need attention · ${fleet.critical} blocked`,
           detail:
             devices.length === 0
-              ? "Connect a device or NFC slot so taps reach your Card."
+              ? "Your Card can be previewed, but customers cannot reach it through a physical Tap Point until one is connected."
               : "Fleet routing status across connected entry points.",
           status: fleetStatus,
-          action: { label: "Fleet workspace", href: "/dashboard/tap-points" },
+          action:
+            devices.length === 0
+              ? {
+                  label: "Connect a Tap Point",
+                  href: "/dashboard/tap-points",
+                  primary: true,
+                }
+              : {
+                  label: "Open Tap Point workspace",
+                  href: "/dashboard/tap-points",
+                },
         },
-        {
-          id: "working-now",
-          label: `${stats.activeDevices} active · ${stats.liveCampaigns} live campaigns`,
-          detail: "Currently running and reachable by customers.",
-          status: stats.activeDevices > 0 ? ("ok" as const) : ("neutral" as const),
-        },
+        ...(devices.length > 0
+          ? [
+              {
+                id: "working-now",
+                label: `${stats.activeDevices} active · ${stats.liveCampaigns} live campaigns`,
+                detail: "Currently running and reachable by customers.",
+                status:
+                  stats.activeDevices > 0
+                    ? ("ok" as const)
+                    : ("neutral" as const),
+              },
+            ]
+          : [
+              {
+                id: "open-workspace",
+                label: "Tap Point workspace",
+                detail: "Add or assign a Tap Point when you are ready.",
+                status: "info" as const,
+                action: {
+                  label: "Open Tap Point workspace",
+                  href: "/dashboard/tap-points",
+                },
+              },
+            ]),
       ],
     },
   ];
@@ -203,8 +252,9 @@ export default async function DashboardPage() {
           testId="home-operations-console"
         />
         {decisionItems.length === 0 ? (
-          <p className="text-xs text-white/40" data-testid="decision-queue-empty">
-            Nothing blocked — failures appear here with a recovery path.
+          <p className="text-sm leading-relaxed text-white/50" data-testid="decision-queue-empty">
+            Nothing needs your attention. No approvals, failed deliveries, or publishing
+            issues are blocking your work.
           </p>
         ) : null}
       </section>
