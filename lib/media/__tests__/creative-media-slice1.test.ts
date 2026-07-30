@@ -30,6 +30,17 @@ import {
   setMediaFavorite,
   type MediaImportDependencies,
 } from "@/lib/media/service";
+import {
+  deleteMediaObject,
+  localMediaStorageEnabled,
+  putMediaObject,
+  readLocalMediaObject,
+} from "@/lib/media/storage";
+import { ownerMediaUsageLabel } from "@/lib/media/usage-labels";
+
+function setNodeEnv(value: string | undefined) {
+  (process.env as Record<string, string | undefined>).NODE_ENV = value;
+}
 
 const pexelsCandidate: ProviderCandidate = {
   provider: "pexels",
@@ -251,6 +262,53 @@ describe("document media references", () => {
   });
 });
 
+describe("fixture local storage", () => {
+  it("is server-controlled, durable, and disabled in production", async () => {
+    const originalMode = process.env.CREATIVE_PROVIDER_MODE;
+    const originalNodeEnv = process.env.NODE_ENV;
+    const storageKey = `owner-test/local-${nanoid()}.png`;
+    try {
+      setNodeEnv("test");
+      process.env.CREATIVE_PROVIDER_MODE = "fixture";
+      assert.equal(localMediaStorageEnabled(), true);
+      const url = await putMediaObject({
+        storageKey,
+        bytes: Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+        mimeType: "image/png",
+      });
+      assert.match(url, /^\/api\/media\/local\?key=/);
+      assert.equal((await readLocalMediaObject(storageKey)).byteLength, 8);
+
+      setNodeEnv("production");
+      assert.equal(localMediaStorageEnabled(), false);
+    } finally {
+      setNodeEnv(originalNodeEnv);
+      if (originalMode === undefined) delete process.env.CREATIVE_PROVIDER_MODE;
+      else process.env.CREATIVE_PROVIDER_MODE = originalMode;
+      setNodeEnv("test");
+      process.env.CREATIVE_PROVIDER_MODE = "fixture";
+      await deleteMediaObject(storageKey);
+      setNodeEnv(originalNodeEnv);
+      if (originalMode === undefined) delete process.env.CREATIVE_PROVIDER_MODE;
+      else process.env.CREATIVE_PROVIDER_MODE = originalMode;
+    }
+  });
+});
+
+describe("Owner-facing usage labels", () => {
+  it("keeps raw document paths out of primary labels", () => {
+    assert.equal(
+      ownerMediaUsageLabel("CARD", "$.tapCard.sections[0].composition.nodes[0]"),
+      "Card composition"
+    );
+    assert.equal(
+      ownerMediaUsageLabel("EMAIL", "$.formSettings.emailResponse.blocks[0]"),
+      "Email hero"
+    );
+    assert.equal(ownerMediaUsageLabel("CAMPAIGN", "$.contentBlocks[0]"), "Campaign creative");
+  });
+});
+
 const databaseAvailable = Boolean(process.env.DATABASE_URL);
 
 describe(
@@ -420,6 +478,35 @@ describe(
         }),
         0
       );
+    });
+
+    it("imports fixture bytes into durable local storage without provider hotlinks", async () => {
+      const originalMode = process.env.CREATIVE_PROVIDER_MODE;
+      const originalNodeEnv = process.env.NODE_ENV;
+      let storageKey: string | null = null;
+      try {
+        setNodeEnv("test");
+        process.env.CREATIVE_PROVIDER_MODE = "fixture";
+        const candidate = {
+          ...pexelsCandidate,
+          providerAssetId: `fixture-local-${nanoid()}`,
+        };
+        const payload = verifyProviderCandidate(
+          signProviderCandidate(businessId, candidate),
+          businessId
+        );
+        const imported = await importProviderCandidate(payload);
+        storageKey = imported.storageKey;
+        assert.match(imported.url, /^\/api\/media\/local\?key=/);
+        assert.doesNotMatch(imported.url, /images\.pexels\.com/);
+        assert.ok(storageKey);
+        assert.ok((await readLocalMediaObject(storageKey)).byteLength > 100);
+      } finally {
+        if (storageKey) await deleteMediaObject(storageKey);
+        setNodeEnv(originalNodeEnv);
+        if (originalMode === undefined) delete process.env.CREATIVE_PROVIDER_MODE;
+        else process.env.CREATIVE_PROVIDER_MODE = originalMode;
+      }
     });
   }
 );
