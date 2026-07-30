@@ -45,6 +45,8 @@ import {
   type CreativeStudioMode,
 } from "@/lib/fusion/creative-studio/modes";
 import { CreativeCompositionCanvas } from "@/components/fusion/creative-studio/creative-composition-canvas";
+import { CreativeDomRenderer } from "@/components/fusion/creative-platform/creative-dom-renderer";
+import { compositionBlockToRenderDocument } from "@/lib/fusion/creative-platform/composition-adapter";
 import {
   createStarterCreativeComposition,
   parseCreativeComposition,
@@ -993,23 +995,29 @@ export function TapConnectCard({
         {...sectionDomProps(section.id, selectedSectionId)}
         data-testid={`creative-composition-section-${section.id}`}
       >
-        <CreativeCompositionCanvas
-          block={block}
-          editMode={editSelects}
-          selectedNodeIds={
-            selectedSectionId === section.id ? selectedCompositionNodeIds : []
-          }
-          forceMobileFallback={compositionForceMobile}
-          onSelectNodes={(ids) => {
-            onSectionSelect?.(section.id);
-            onCompositionNodeSelect?.(section.id, ids);
-          }}
-          onChangeBlock={
-            editSelects
-              ? (next, label) => onCompositionChange?.(section.id, next, label)
-              : undefined
-          }
-        />
+        {editSelects ? (
+          <CreativeCompositionCanvas
+            block={block}
+            editMode
+            selectedNodeIds={
+              selectedSectionId === section.id ? selectedCompositionNodeIds : []
+            }
+            forceMobileFallback={compositionForceMobile}
+            onSelectNodes={(ids) => {
+              onSectionSelect?.(section.id);
+              onCompositionNodeSelect?.(section.id, ids);
+            }}
+            onChangeBlock={(next, label) =>
+              onCompositionChange?.(section.id, next, label)
+            }
+          />
+        ) : (
+          <CreativeDomRenderer
+            document={compositionBlockToRenderDocument(block)}
+            label={block.label}
+            forceMobileFallback={compositionForceMobile}
+          />
+        )}
       </div>
     );
   }

@@ -23,7 +23,9 @@ export type BlockType =
   | "digital_card"
   | "spacer"
   | "columns"
-  | "banner";
+  | "banner"
+  | "creative_section"
+  | "creative_flow";
 
 export interface UpcomingScheduleData {
   headline?: string;

@@ -10,6 +10,8 @@ import type { EmailDocument } from "@/lib/fusion/email/document";
 import type { EmailPreviewMode } from "@/lib/fusion/email/compatibility";
 import { renderEmailHtml } from "@/lib/fusion/email/html-render";
 import { resolvePlainTextForDocument } from "@/lib/fusion/email/plain-text";
+import { CreativeDomRenderer } from "@/components/fusion/creative-platform/creative-dom-renderer";
+import { CreativeFlowRenderer } from "@/components/fusion/creative-platform/creative-flow-renderer";
 
 export type EmailLivePreviewProps = {
   document: EmailDocument;
@@ -227,6 +229,15 @@ export function EmailBlockPreview({
   const mutedClass = darkInbox ? "text-slate-400" : "text-slate-500";
 
   switch (block.type) {
+    case "creative_section":
+      return (
+        <CreativeDomRenderer
+          document={data.document}
+          label={String(data.resourceName || block.label)}
+        />
+      );
+    case "creative_flow":
+      return <CreativeFlowRenderer section={data} />;
     case "headline": {
       const align = (data.alignment as string) || "center";
       return (

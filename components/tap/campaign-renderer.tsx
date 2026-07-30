@@ -31,6 +31,8 @@ import type { ResolvedUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import { findPrimarySpotlightSection } from "@/lib/fusion/card/offer";
 import { CARD_OFFER_FUSE_FEATURE } from "@/lib/fusion/card/offer";
+import { CreativeDomRenderer } from "@/components/fusion/creative-platform/creative-dom-renderer";
+import { CreativeFlowRenderer } from "@/components/fusion/creative-platform/creative-flow-renderer";
 
 interface CampaignTheme {
   primaryColor: string;
@@ -487,6 +489,25 @@ function BlockRenderer({
   const shell = { selected, editMode, onSelect };
 
   switch (block.type) {
+    case "creative_section":
+      return (
+        <StyledBlockShell
+          block={block}
+          {...shell}
+          className="px-4 py-4"
+        >
+          <CreativeDomRenderer
+            document={data.document}
+            label={(data.resourceName as string) || block.label}
+          />
+        </StyledBlockShell>
+      );
+    case "creative_flow":
+      return (
+        <StyledBlockShell block={block} {...shell} className="px-4 py-4">
+          <CreativeFlowRenderer section={data} />
+        </StyledBlockShell>
+      );
     case "hero_image": {
       const imageUrl = data.imageUrl as string;
       if (!imageUrl) return null;

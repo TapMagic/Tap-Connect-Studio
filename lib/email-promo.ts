@@ -1,4 +1,8 @@
 import type { ContentBlock } from "@/lib/types/campaign";
+import {
+  renderCreativeEmailDocument,
+  renderCreativeFlowEmail,
+} from "@/lib/fusion/creative-platform/email-render";
 
 export type EmailPromoTemplate = {
   enabled: boolean;
@@ -98,7 +102,13 @@ export function renderEmailPromoHtml(params: {
 
   for (const block of blocks) {
     const data = block.data as Record<string, unknown>;
-    if (block.type === "headline") {
+    if (block.type === "creative_section") {
+      const creative = renderCreativeEmailDocument(data.document);
+      if (creative) parts.push(creative);
+    } else if (block.type === "creative_flow") {
+      const flow = renderCreativeFlowEmail(data);
+      if (flow) parts.push(flow);
+    } else if (block.type === "headline") {
       const headline = String(data.headline || "").replaceAll("{{name}}", name);
       const sub = data.subheadline
         ? String(data.subheadline).replaceAll("{{name}}", name)

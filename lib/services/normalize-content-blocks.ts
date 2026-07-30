@@ -24,6 +24,8 @@ const KNOWN_BLOCK_TYPES = new Set<string>([
   "spacer",
   "columns",
   "banner",
+  "creative_section",
+  "creative_flow",
 ]);
 
 /** Legacy / seed / autopilot aliases → CampaignPageRenderer block types */

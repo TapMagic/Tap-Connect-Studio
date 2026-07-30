@@ -15,6 +15,33 @@ function blockToPlain(block: ContentBlock, name: string): string[] {
   const lines: string[] = [];
 
   switch (block.type) {
+    case "creative_section": {
+      const document =
+        data.document && typeof data.document === "object"
+          ? (data.document as {
+              nodes?: { primitive?: string; props?: Record<string, unknown> }[];
+            })
+          : null;
+      for (const node of document?.nodes || []) {
+        if (node.primitive === "text" && node.props?.text) {
+          lines.push(personalize(String(node.props.text), name));
+        } else if (node.primitive === "image" && node.props?.alt) {
+          lines.push(`[${String(node.props.alt)}]`);
+        } else if (node.primitive === "button" && node.props?.label) {
+          lines.push(
+            `${String(node.props.label)}${
+              node.props.url ? `: ${String(node.props.url)}` : ""
+            }`
+          );
+        }
+      }
+      break;
+    }
+    case "creative_flow": {
+      if (data.heading) lines.push(personalize(String(data.heading), name));
+      if (data.body) lines.push(personalize(String(data.body), name));
+      break;
+    }
     case "headline": {
       const headline = personalize(String(data.headline || ""), name);
       const sub = data.subheadline

@@ -22,6 +22,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { MediaPicker } from "@/components/media/media-picker";
+import { ReusableDesignBrowser } from "@/components/fusion/creative-studio/reusable-design-browser";
+import { CreativeFlowSectionEditor } from "@/components/fusion/creative-platform/creative-flow-section-editor";
+import type {
+  CreativeFlowSection,
+  CreativeRenderDocument,
+} from "@/lib/fusion/creative-platform/model";
 import {
   applyEmailCtaOverridesToBlocks,
   applyResolvedToEmailTheme,
@@ -92,6 +98,27 @@ ensureDefaultToolRegistries();
 const EMAIL_WORKSPACE_ID = "email-authoring";
 
 const EMAIL_BLOCKS: { type: BlockType; label: string; data: Record<string, unknown> }[] = [
+  {
+    type: "creative_section",
+    label: "Reusable creative section",
+    data: { document: null, resourceRef: null },
+  },
+  {
+    type: "creative_flow",
+    label: "Image + text layout",
+    data: {
+      schemaVersion: 1,
+      layout: "image_left",
+      image: { mediaAssetId: "", fallbackUrl: "" },
+      heading: "Your story",
+      body: "A responsive image and text section.",
+      gutterPx: 24,
+      imageWidthPercent: 45,
+      alignment: "center",
+      mobileStack: "image_first",
+      background: { kind: "solid", color: "#ffffff" },
+    },
+  },
   {
     type: "headline",
     label: "Headline",
@@ -432,8 +459,21 @@ export function EmailAuthoringWorkspace({
         data: structuredClone(preset.data),
       },
     ];
-    patchDocument({ blocks }, "Add block");
-    setSelectedSection(id);
+    const nextDocument = markPlainTextStale({ ...document, blocks });
+    pushDraft(
+      {
+        document: nextDocument,
+        visual: buildVisual(nextDocument, id, visualModel.selectedItemId),
+        selectedSectionId: id,
+      },
+      `Added ${preset.label}`
+    );
+    setShell((current) => ({
+      ...current,
+      dirty: true,
+      saved: false,
+      selectedObjectId: id,
+    }));
   }
 
   function patchBlockData(id: string, key: string, value: unknown) {
@@ -794,6 +834,86 @@ export function EmailAuthoringWorkspace({
                 {selectedBlock ? (
                   <div className="space-y-2 border-t border-white/10 pt-3">
                     <Label className="text-xs">Edit: {selectedBlock.label}</Label>
+                    {selectedBlock.type === "creative_section" && (
+                      <ReusableDesignBrowser
+                        kind="COMPOSITION"
+                        value={
+                          (selectedBlock.data as { document?: CreativeRenderDocument })
+                            .document
+                        }
+                        title="Reusable creative sections"
+                        onInsert={(creativeDocument, _label, resource) =>
+                          patchDocument(
+                            {
+                              blocks: (document.blocks ?? []).map((block) =>
+                                block.id === selectedBlock.id
+                                  ? {
+                                      ...block,
+                                      data: {
+                                        document: creativeDocument,
+                                        resourceName: resource.name,
+                                        resourceRef: {
+                                          resourceId: resource.id,
+                                          revisionId: resource.currentRevision?.id,
+                                          resourceName: resource.name,
+                                        },
+                                      },
+                                    }
+                                  : block
+                              ),
+                            },
+                            "Inserted reusable creative section"
+                          )
+                        }
+                      />
+                    )}
+                    {selectedBlock.type === "creative_flow" && (
+                      <div className="space-y-3">
+                        <CreativeFlowSectionEditor
+                          value={
+                            selectedBlock.data as Partial<CreativeFlowSection> &
+                              Record<string, unknown>
+                          }
+                          mediaUploadReady={mediaUploadReady}
+                          stockReady={stockReady}
+                          onChange={(next, label) =>
+                            patchDocument(
+                              {
+                                blocks: (document.blocks ?? []).map((block) =>
+                                  block.id === selectedBlock.id
+                                    ? { ...block, data: next }
+                                    : block
+                                ),
+                              },
+                              label
+                            )
+                          }
+                        />
+                        {(selectedBlock.data as { image?: { mediaAssetId?: string } })
+                          .image?.mediaAssetId ? (
+                          <ReusableDesignBrowser
+                            kind="EMAIL_SECTION"
+                            value={selectedBlock.data as CreativeFlowSection}
+                            title="Saved Email sections"
+                            onInsert={(next) =>
+                              patchDocument(
+                                {
+                                  blocks: (document.blocks ?? []).map((block) =>
+                                    block.id === selectedBlock.id
+                                      ? {
+                                          ...block,
+                                          data: next as unknown as Record<string, unknown>,
+                                        }
+                                      : block
+                                  ),
+                                },
+                                "Inserted reusable Email section"
+                              )
+                            }
+                          />
+                        ) : null}
+                      </div>
+                    )}
                     {selectedBlock.type === "headline" && (
                       <>
                         <Input

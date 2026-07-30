@@ -87,6 +87,12 @@ import { normalizeContentBlocks } from "@/lib/services/normalize-content-blocks"
 import { CampaignActions } from "@/components/campaign/campaign-actions";
 import { ExpandedTextField } from "@/components/design/expanded-text-field";
 import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
+import { ReusableDesignBrowser } from "@/components/fusion/creative-studio/reusable-design-browser";
+import { CreativeFlowSectionEditor } from "@/components/fusion/creative-platform/creative-flow-section-editor";
+import type {
+  CreativeFlowSection,
+  CreativeRenderDocument,
+} from "@/lib/fusion/creative-platform/model";
 import { cn } from "@/lib/utils";
 import {
   scrollChildIntoNearestView,
@@ -104,6 +110,27 @@ import {
 type EditorTab = "content" | "qr" | "schedule" | "email" | "ai";
 
 const ADDABLE_BLOCKS: { type: BlockType; label: string; data: Record<string, unknown> }[] = [
+  {
+    type: "creative_section",
+    label: "Reusable creative section",
+    data: { document: null, resourceRef: null },
+  },
+  {
+    type: "creative_flow",
+    label: "Image + text layout",
+    data: {
+      schemaVersion: 1,
+      layout: "image_left",
+      image: { mediaAssetId: "", fallbackUrl: "" },
+      heading: "Tell your story",
+      body: "Pair imagery and text in a responsive structured layout.",
+      gutterPx: 24,
+      imageWidthPercent: 45,
+      alignment: "center",
+      mobileStack: "image_first",
+      background: { kind: "solid", color: "#0b0f19" },
+    },
+  },
   {
     type: "headline",
     label: "Headline",
@@ -1869,6 +1896,9 @@ export function CampaignEditor({
                   <BlockFields
                     block={selectedBlock}
                     onUpdate={(key, value) => updateBlockData(selectedBlock.id, key, value)}
+                    onReplaceData={(data) =>
+                      updateBlock(selectedBlock.id, { data })
+                    }
                     onStyleChange={(style) => updateBlock(selectedBlock.id, { style })}
                     mediaUploadReady={integrations.mediaUpload}
                     stockReady={integrations.stockImages}
@@ -1902,6 +1932,7 @@ export function CampaignEditor({
 function BlockFields({
   block,
   onUpdate,
+  onReplaceData,
   onStyleChange,
   mediaUploadReady,
   stockReady,
@@ -1912,6 +1943,7 @@ function BlockFields({
 }: {
   block: ContentBlock;
   onUpdate: (key: string, value: unknown) => void;
+  onReplaceData: (data: Record<string, unknown>) => void;
   onStyleChange: (style: BlockStyle) => void;
   mediaUploadReady: boolean;
   stockReady: boolean;
@@ -1925,6 +1957,71 @@ function BlockFields({
   const styleControls = (
     <BlockStyleControls style={block.style} onChange={onStyleChange} />
   );
+
+  if (block.type === "creative_section") {
+    return (
+      <div className="space-y-3">
+        <p className="text-xs text-muted-foreground">
+          Insert the same approved composition used by Card or Email. The selected
+          revision is pinned into this draft.
+        </p>
+        <ReusableDesignBrowser
+          kind="COMPOSITION"
+          value={
+            data.document && typeof data.document === "object"
+              ? (data.document as CreativeRenderDocument)
+              : undefined
+          }
+          title="Reusable creative sections"
+          onInsert={(document, _label, resource) =>
+            onReplaceData({
+              document,
+              resourceName: resource.name,
+              resourceRef: {
+                resourceId: resource.id,
+                revisionId: resource.currentRevision?.id,
+                resourceName: resource.name,
+              },
+            })
+          }
+        />
+        {data.resourceName ? (
+          <p className="text-xs text-emerald-300">
+            Using {String(data.resourceName)}
+          </p>
+        ) : null}
+        {styleControls}
+      </div>
+    );
+  }
+
+  if (block.type === "creative_flow") {
+    const flowValue = data as Partial<CreativeFlowSection> &
+      Record<string, unknown>;
+    const hasImage =
+      flowValue.image &&
+      typeof flowValue.image === "object" &&
+      Boolean((flowValue.image as { mediaAssetId?: string }).mediaAssetId);
+    return (
+      <div className="space-y-3">
+        <CreativeFlowSectionEditor
+          value={flowValue}
+          onChange={(next) => onReplaceData(next)}
+          mediaUploadReady={mediaUploadReady}
+          stockReady={stockReady}
+        />
+        {hasImage ? (
+          <ReusableDesignBrowser
+            kind="CAMPAIGN_SECTION"
+            value={flowValue as CreativeFlowSection}
+            title="Saved Campaign sections"
+            onInsert={(next) => onReplaceData(next as unknown as Record<string, unknown>)}
+          />
+        ) : null}
+        {styleControls}
+      </div>
+    );
+  }
 
   if (block.type === "hero_image") {
     return (
