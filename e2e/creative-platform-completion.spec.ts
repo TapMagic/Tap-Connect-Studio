@@ -71,6 +71,24 @@ test.describe.serial("Creative Platform completion Owner workflow", () => {
   }) => {
     await openComposition(page);
     await page.getByTestId("composition-add-frame").click();
+    const frameResizeHandle = page
+      .locator(
+        '[data-testid="creative-composition-canvas"][data-edit-mode="true"] [data-composition-node][data-primitive="frame"][data-selected="true"]'
+      )
+      .locator('[data-testid$="-se"]');
+    const frameHandleBox = await frameResizeHandle.boundingBox();
+    expect(frameHandleBox).not.toBeNull();
+    await page.mouse.move(
+      (frameHandleBox?.x || 0) + (frameHandleBox?.width || 0) / 2,
+      (frameHandleBox?.y || 0) + (frameHandleBox?.height || 0) / 2
+    );
+    await page.mouse.down();
+    await page.mouse.move(
+      (frameHandleBox?.x || 0) + 32,
+      (frameHandleBox?.y || 0) + 24,
+      { steps: 4 }
+    );
+    await page.mouse.up();
     const borderWidth = page.getByTestId("composition-frame-border-width");
     await borderWidth.fill("10");
     await borderWidth.fill("2");
@@ -137,6 +155,39 @@ test.describe.serial("Creative Platform completion Owner workflow", () => {
     await page.getByTestId("composition-image-reset").click();
     await expect(page.getByLabel(/^Brightness 100%/)).toBeVisible();
 
+    await page.getByTestId("panel-stack-back").click();
+    await page.getByTestId("composition-add-border").click();
+    await expect(page.getByTestId("composition-panel-border")).toBeVisible();
+    await page.getByTestId("composition-border-thickness").fill("3");
+    await page.getByTestId("composition-border-style-dashed").click();
+    await page.getByLabel("Width %").fill("70");
+    await page.getByLabel("Rotation").fill("12");
+    const dividerId = await page
+      .locator(
+        '[data-testid="creative-composition-canvas"][data-edit-mode="true"] [data-composition-node][data-primitive="border"][data-selected="true"]'
+      )
+      .getAttribute("data-composition-node");
+    expect(dividerId).toBeTruthy();
+    await page.getByTestId("panel-stack-back").click();
+    await page
+      .locator('[data-testid^="composition-layer-"] > button')
+      .filter({ hasText: /^text/ })
+      .first()
+      .click();
+    const dividerLayer = page.getByTestId(`composition-layer-${dividerId}`);
+    await dividerLayer.locator("button").first().click();
+    await expect(
+      page.locator(
+        `[data-composition-node="${dividerId}"][data-selected="true"]`
+      )
+    ).toBeVisible();
+    await dividerLayer.getByRole("button", { name: "Lock", exact: true }).click();
+    await expect(
+      dividerLayer.getByRole("button", { name: "Unlock", exact: true })
+    ).toBeVisible();
+    await dividerLayer.getByRole("button", { name: "Unlock", exact: true }).click();
+    await page.getByTestId("composition-open-layering").click();
+    await page.getByTestId("composition-layer-front").click();
     await page.getByTestId("panel-stack-back").click();
     await page.getByTestId("composition-add-shape").click();
     await expect(page.getByTestId("shape-studio")).toBeVisible();
