@@ -31,6 +31,17 @@ export type LibraryAsset = {
   mimeType: string;
   sizeBytes: number;
   source: AssetSource;
+  provider: string | null;
+  sourcePageUrl: string | null;
+  creatorName: string | null;
+  creatorUrl: string | null;
+  licenseCode: string | null;
+  licenseUrl: string | null;
+  attributionText: string | null;
+  rightsNote: string | null;
+  approvalStatus: "UNREVIEWED" | "APPROVED" | "REJECTED";
+  isFavorite: boolean;
+  recentAt: string | null;
   createdAt: string;
   /** Where this asset is currently used (Card / Campaign / Brand logo). */
   usedIn: { label: string; href: string; detail?: string }[];
@@ -53,10 +64,17 @@ function sourceMeta(source: AssetSource): {
         token: "var(--studio-status-ok)",
       };
     case "stock":
+    case "pexels":
       return {
-        label: "Stock",
-        rights: "Stock provider (Pexels / Unsplash) — check the provider license before reuse.",
+        label: "Pexels",
+        rights: "Imported under the recorded Pexels provenance and license.",
         token: "var(--studio-status-info)",
+      };
+    case "logo_dev":
+      return {
+        label: "Logo.dev",
+        rights: "Discovery source only; trademark rights remain with the brand owner.",
+        token: "var(--studio-status-warn)",
       };
     case "bg-remove":
       return {
@@ -66,8 +84,8 @@ function sourceMeta(source: AssetSource): {
       };
     case "url":
       return {
-        label: "Linked URL",
-        rights: "Referenced by URL — rights and availability depend on the origin.",
+        label: "URL import",
+        rights: "Durable imported copy; origin rights remain unverified.",
         token: "var(--studio-status-warn)",
       };
     default:
@@ -82,6 +100,7 @@ function sourceMeta(source: AssetSource): {
 function matchesFilter(source: AssetSource, filter: SourceFilter): boolean {
   if (filter === "all") return true;
   if (filter === "generated") return source === "bg-remove";
+  if (filter === "stock") return source === "stock" || source === "pexels";
   return source === filter;
 }
 
@@ -93,7 +112,9 @@ function formatBytes(bytes: number): string {
 }
 
 function SourceIcon({ source }: { source: AssetSource }) {
-  if (source === "stock") return <Sparkles className="h-3 w-3" aria-hidden />;
+  if (source === "stock" || source === "pexels") {
+    return <Sparkles className="h-3 w-3" aria-hidden />;
+  }
   if (source === "url") return <Link2 className="h-3 w-3" aria-hidden />;
   return <ImageIcon className="h-3 w-3" aria-hidden />;
 }
@@ -118,7 +139,7 @@ export function AssetsLibrary({
     const c = { all: assets.length, upload: 0, stock: 0, generated: 0, url: 0 };
     for (const a of assets) {
       if (a.source === "upload") c.upload += 1;
-      else if (a.source === "stock") c.stock += 1;
+      else if (a.source === "stock" || a.source === "pexels") c.stock += 1;
       else if (a.source === "bg-remove") c.generated += 1;
       else if (a.source === "url") c.url += 1;
     }
@@ -153,7 +174,7 @@ export function AssetsLibrary({
         for (const file of Array.from(files)) {
           const form = new FormData();
           form.append("file", file);
-          const res = await fetch("/api/upload", { method: "POST", body: form });
+          const res = await fetch("/api/media/upload", { method: "POST", body: form });
           const data = await res.json().catch(() => ({}));
           if (!res.ok || !data?.asset) {
             setUploadError(
@@ -179,6 +200,17 @@ export function AssetsLibrary({
               mimeType: a.mimeType,
               sizeBytes: a.sizeBytes ?? 0,
               source: a.source ?? "upload",
+              provider: null,
+              sourcePageUrl: null,
+              creatorName: null,
+              creatorUrl: null,
+              licenseCode: "OWNER_SUPPLIED",
+              licenseUrl: null,
+              attributionText: null,
+              rightsNote: "Owner supplied this asset and is responsible for usage rights.",
+              approvalStatus: "UNREVIEWED",
+              isFavorite: false,
+              recentAt: null,
               createdAt: a.createdAt ?? new Date().toISOString(),
               usedIn: [],
               isBrandLogo: false,
@@ -267,7 +299,7 @@ export function AssetsLibrary({
         <input
           ref={inputRef}
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/png,image/jpeg,image/webp,image/gif"
           multiple
           className="sr-only"
           aria-label="Upload asset files"
@@ -292,7 +324,7 @@ export function AssetsLibrary({
               {uploading ? " · uploading…" : ""}
             </p>
             <p className="mt-1 text-[11px] text-white/40">
-              Images and PDF up to 8MB. Files land in your library and can be reused across the Card
+              PNG, JPEG, WebP, or GIF up to 8MB. Files land in your library and can be reused across the Card
               and campaigns.
             </p>
           </>
@@ -487,9 +519,64 @@ export function AssetsLibrary({
                     <SourceIcon source={selected.source} />
                     {sourceMeta(selected.source).label}
                   </span>
-                  <p className="mt-1.5 text-white/55">{sourceMeta(selected.source).rights}</p>
+                  <p className="mt-1.5 text-white/55">
+                    {selected.rightsNote || sourceMeta(selected.source).rights}
+                  </p>
                 </dd>
               </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <dt className="text-white/40">Provider</dt>
+                  <dd className="mt-0.5 text-white/70">{selected.provider || "None"}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/40">Approval</dt>
+                  <dd className="mt-0.5 text-white/70">{selected.approvalStatus}</dd>
+                </div>
+              </div>
+              <div>
+                <dt className="text-white/40">Creator / attribution</dt>
+                <dd className="mt-0.5 text-white/70">
+                  {selected.attributionText || selected.creatorName || "Not provided"}
+                </dd>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <dt className="text-white/40">License</dt>
+                  <dd className="mt-0.5 text-white/70">{selected.licenseCode || "Not asserted"}</dd>
+                </div>
+                <div>
+                  <dt className="text-white/40">Activity</dt>
+                  <dd className="mt-0.5 text-white/70">
+                    {selected.isFavorite ? "Favorite" : "Not favorite"}
+                    {selected.recentAt ? " · Recent" : ""}
+                  </dd>
+                </div>
+              </div>
+              {selected.sourcePageUrl || selected.licenseUrl ? (
+                <div className="flex flex-wrap gap-3">
+                  {selected.sourcePageUrl ? (
+                    <a
+                      href={selected.sourcePageUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-white/75 underline"
+                    >
+                      Original source
+                    </a>
+                  ) : null}
+                  {selected.licenseUrl ? (
+                    <a
+                      href={selected.licenseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-white/75 underline"
+                    >
+                      License
+                    </a>
+                  ) : null}
+                </div>
+              ) : null}
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <dt className="text-white/40">Type</dt>

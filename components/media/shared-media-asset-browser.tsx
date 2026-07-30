@@ -5,29 +5,23 @@ import { createPortal } from "react-dom";
 import {
   Building2,
   Check,
-  ChevronLeft,
-  ChevronRight,
   ExternalLink,
   Heart,
   ImageIcon,
   Link2,
   Loader2,
   Search,
+  ShieldCheck,
   Upload,
   X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  isFavoriteMedia,
-  readFavoriteMedia,
-  readRecentMedia,
-  rememberRecentMedia,
-  toggleFavoriteMedia,
-  type MediaAssetCandidate,
-  type MediaAssetSource,
-  type MediaOrientation,
+import type {
+  MediaAssetCandidate,
+  MediaAssetSource,
+  MediaOrientation,
 } from "@/lib/media/asset-browser";
 import { cn } from "@/lib/utils";
 
@@ -47,47 +41,44 @@ type ApiAsset = {
   filename: string | null;
   mimeType: string;
   source: string;
+  provider?: string | null;
+  providerAssetId?: string | null;
   width?: number | null;
   height?: number | null;
-  providerId?: string | null;
-  sourceUrl?: string | null;
-  attributionName?: string | null;
-  attributionUrl?: string | null;
-  rights?: string | null;
+  sourcePageUrl?: string | null;
+  creatorName?: string | null;
+  creatorUrl?: string | null;
+  licenseCode?: string | null;
+  licenseUrl?: string | null;
+  attributionText?: string | null;
+  rightsNote?: string | null;
+  approvalStatus?: "UNREVIEWED" | "APPROVED" | "REJECTED";
+  defaultAltText?: string | null;
+  isFavorite?: boolean;
+  recent?: { lastUsedAt: string; useCount: number } | null;
 };
 
-type StockHit = {
+type ProviderHit = {
   id: string;
   url: string;
   thumb: string;
   alt: string;
-  photographer: string;
+  photographer?: string;
   photographerUrl?: string;
   sourceUrl?: string;
   width?: number;
   height?: number;
   providerId?: string;
   rights?: string;
-  source: "pexels" | "unsplash";
-};
-
-type LogoHit = {
-  id: string;
-  url: string;
-  thumb: string;
-  alt: string;
-  source: "logo_dev" | "wikimedia" | "favicon" | "duckduckgo" | "domain";
-  domain?: string;
-  sourceUrl?: string;
-  providerId?: string;
-  width?: number;
-  height?: number;
-  rights?: string;
+  attributionText?: string;
+  licenseUrl?: string;
+  candidateToken: string;
+  source: "pexels" | "logo_dev";
 };
 
 const TABS: { id: BrowserTab; label: string; icon: typeof ImageIcon }[] = [
   { id: "studio", label: "Studio", icon: ImageIcon },
-  { id: "brand", label: "Brand", icon: Building2 },
+  { id: "brand", label: "Brand", icon: ShieldCheck },
   { id: "recent", label: "Recent", icon: ImageIcon },
   { id: "favorites", label: "Favorites", icon: Heart },
   { id: "pexels", label: "Pexels", icon: Search },
@@ -98,74 +89,60 @@ const TABS: { id: BrowserTab; label: string; icon: typeof ImageIcon }[] = [
 
 function libraryCandidate(asset: ApiAsset): MediaAssetCandidate {
   const source: MediaAssetSource =
-    asset.source === "logo_dev"
+    asset.provider === "logo_dev"
       ? "logo_dev"
-      : asset.source === "stock"
-        ? "studio"
-        : asset.source === "upload"
-          ? "upload"
+      : asset.source === "upload"
+        ? "upload"
+        : asset.source === "url"
+          ? "url"
           : "studio";
   return {
     id: asset.id,
+    mediaAssetId: asset.id,
     url: asset.url,
     thumbUrl: asset.url,
-    label: asset.filename || "Studio asset",
+    label: asset.defaultAltText || asset.filename || "Studio asset",
     source,
-    sourceLabel:
-      asset.source === "logo_dev"
-        ? "Logo.dev import"
-        : asset.source === "stock"
-          ? "Imported stock"
-          : asset.source === "upload"
-            ? "Upload"
-            : "Studio",
-    sourceUrl: asset.sourceUrl || undefined,
-    providerId: asset.providerId || undefined,
-    attributionName: asset.attributionName || undefined,
-    attributionUrl: asset.attributionUrl || undefined,
+    sourceLabel: asset.provider || (asset.source === "upload" ? "Upload" : "Studio"),
+    sourceUrl: asset.sourcePageUrl || undefined,
+    providerId: asset.providerAssetId || undefined,
+    attributionName: asset.creatorName || undefined,
+    attributionUrl: asset.creatorUrl || undefined,
     width: asset.width || undefined,
     height: asset.height || undefined,
     mimeType: asset.mimeType,
-    rights: asset.rights || undefined,
-    isBrandApproved: asset.source === "logo_dev",
+    rights: asset.rightsNote || undefined,
+    licenseCode: asset.licenseCode || undefined,
+    licenseUrl: asset.licenseUrl || undefined,
+    attributionText: asset.attributionText || undefined,
+    approvalStatus: asset.approvalStatus || "UNREVIEWED",
+    isBrandApproved: asset.approvalStatus === "APPROVED",
+    isFavorite: Boolean(asset.isFavorite),
+    recentAt: asset.recent?.lastUsedAt,
   };
 }
 
-function stockCandidate(hit: StockHit): MediaAssetCandidate {
+function providerCandidate(hit: ProviderHit): MediaAssetCandidate {
   return {
     id: hit.id,
     url: hit.url,
     thumbUrl: hit.thumb,
-    label: hit.alt || "Pexels image",
-    source: "pexels",
-    sourceLabel: hit.source === "pexels" ? "Pexels" : "Unsplash",
+    label: hit.alt,
+    source: hit.source,
+    sourceLabel: hit.source === "pexels" ? "Pexels" : "Logo.dev",
     sourceUrl: hit.sourceUrl,
     providerId: hit.providerId,
     attributionName: hit.photographer,
     attributionUrl: hit.photographerUrl,
     width: hit.width,
     height: hit.height,
-    mimeType: "image/jpeg",
+    mimeType: hit.source === "pexels" ? "image/jpeg" : "image/png",
     rights: hit.rights,
-  };
-}
-
-function logoCandidate(hit: LogoHit): MediaAssetCandidate {
-  return {
-    id: hit.id,
-    url: hit.url,
-    thumbUrl: hit.thumb,
-    label: hit.alt,
-    source: hit.source === "logo_dev" ? "logo_dev" : "brand",
-    sourceLabel: hit.source === "logo_dev" ? "Logo.dev" : hit.source,
-    sourceUrl: hit.sourceUrl,
-    providerId: hit.providerId || hit.domain,
-    width: hit.width,
-    height: hit.height,
-    mimeType: "image/png",
-    rights:
-      hit.rights ||
-      "External logo source. Trademark and usage rights remain with the brand owner.",
+    licenseUrl: hit.licenseUrl,
+    attributionText: hit.attributionText,
+    approvalStatus: "UNREVIEWED",
+    candidateToken: hit.candidateToken,
+    importKind: "provider",
   };
 }
 
@@ -188,15 +165,14 @@ export function SharedMediaAssetBrowser({
   stockReady = false,
   initialTab = "studio",
   title = "Media & Asset Browser",
-  selectionKind = "any",
 }: SharedMediaAssetBrowserProps) {
+  const dialogRef = useRef<HTMLElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const openerRef = useRef<HTMLElement | null>(null);
   const [tab, setTab] = useState<BrowserTab>(initialTab);
   const [library, setLibrary] = useState<MediaAssetCandidate[]>([]);
   const [results, setResults] = useState<MediaAssetCandidate[]>([]);
-  const [recent, setRecent] = useState<MediaAssetCandidate[]>([]);
-  const [favorites, setFavorites] = useState<MediaAssetCandidate[]>([]);
   const [selected, setSelected] = useState<MediaAssetCandidate | null>(null);
   const [query, setQuery] = useState("");
   const [orientation, setOrientation] = useState<MediaOrientation>("all");
@@ -210,31 +186,51 @@ export function SharedMediaAssetBrowser({
   const [status, setStatus] = useState<string | null>(null);
 
   const loadLibrary = useCallback(async () => {
-    try {
-      const response = await fetch("/api/media");
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "Asset library unavailable");
-      setLibrary((data.assets || []).map(libraryCandidate));
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Asset library unavailable");
-    }
+    const response = await fetch("/api/media");
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Asset library unavailable");
+    setLibrary((data.assets || []).map(libraryCandidate));
   }, []);
 
   useEffect(() => {
     if (!open) return;
-    setTab(initialTab);
-    setRecent(readRecentMedia());
-    setFavorites(readFavoriteMedia());
-    void loadLibrary();
-    closeRef.current?.focus();
-  }, [open, initialTab, loadLibrary]);
+    openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    const timer = window.setTimeout(() => {
+      closeRef.current?.focus();
+      void loadLibrary().catch((error) =>
+        setStatus(error instanceof Error ? error.message : "Asset library unavailable")
+      );
+    }, 0);
+    return () => {
+      window.clearTimeout(timer);
+      openerRef.current?.focus();
+    };
+  }, [open, loadLibrary]);
 
   useEffect(() => {
     if (!open) return;
     function onKey(event: KeyboardEvent) {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      onClose();
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onClose();
+        return;
+      }
+      if (event.key !== "Tab" || !dialogRef.current) return;
+      const focusable = Array.from(
+        dialogRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])'
+        )
+      );
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     }
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -245,45 +241,36 @@ export function SharedMediaAssetBrowser({
       tab === "studio"
         ? library
         : tab === "brand"
-          ? library.filter(
-              (asset) => asset.source === "logo_dev" || asset.isBrandApproved
-            )
+          ? library.filter((asset) => asset.approvalStatus === "APPROVED")
           : tab === "recent"
-            ? recent
+            ? library
+                .filter((asset) => asset.recentAt)
+                .sort((a, b) => String(b.recentAt).localeCompare(String(a.recentAt)))
             : tab === "favorites"
-              ? favorites
+              ? library.filter((asset) => asset.isFavorite)
               : results;
     const normalized = query.trim().toLowerCase();
-    if (
-      !normalized ||
-      tab === "pexels" ||
-      tab === "logo_dev" ||
-      tab === "upload" ||
-      tab === "url"
-    ) {
-      return source;
-    }
+    if (!normalized || tab === "pexels" || tab === "logo_dev") return source;
     return source.filter((asset) =>
       `${asset.label} ${asset.sourceLabel} ${asset.attributionName || ""}`
         .toLowerCase()
         .includes(normalized)
     );
-  }, [favorites, library, query, recent, results, tab]);
+  }, [library, query, results, tab]);
 
-  async function searchProvider(next = false) {
+  async function searchProvider(loadMore = false) {
     const q = query.trim();
     if (q.length < 2) {
-      setStatus("Enter at least two characters.");
+      setStatus("Enter at least two characters, then retry.");
       return;
     }
-    const requestedPage = next ? page + 1 : 1;
+    const requestedPage = loadMore ? page + 1 : 1;
     setBusy("search");
     setStatus(null);
     try {
       const params = new URLSearchParams({ q });
-      let endpoint = "/api/logos/search";
+      const endpoint = tab === "pexels" ? "/api/stock/search" : "/api/logos/search";
       if (tab === "pexels") {
-        endpoint = "/api/stock/search";
         params.set("page", String(requestedPage));
         if (orientation !== "all") params.set("orientation", orientation);
         if (color) params.set("color", color.replace(/^#/, ""));
@@ -293,139 +280,161 @@ export function SharedMediaAssetBrowser({
       }
       const response = await fetch(`${endpoint}?${params}`);
       const data = await response.json();
-      const items =
-        tab === "pexels"
-          ? (data.results || []).map(stockCandidate)
-          : (data.results || []).map(logoCandidate);
       if (!response.ok) {
         setResults([]);
-        setStatus(data.message || data.error || "Provider unavailable");
+        setStatus(
+          `${data.message || data.error || "Provider unavailable"} Upload an image or retry this source.`
+        );
         return;
       }
-      setResults((current) => (next ? [...current, ...items] : items));
+      const items = (data.results || []).map(providerCandidate);
+      setResults((current) => (loadMore ? [...current, ...items] : items));
       setPage(requestedPage);
       setNextPage(data.nextPage ?? null);
-      if (!items.length) setStatus("No results. Try another search.");
+      if (!items.length) setStatus("No results were returned. Try a broader search.");
     } catch {
       setResults([]);
-      setStatus("Provider unavailable. Retry or use another source.");
+      setStatus("The provider could not be reached. Retry or use Upload or Studio.");
     } finally {
       setBusy(null);
     }
   }
 
   async function uploadFile(file: File) {
-    if (!mediaUploadReady) {
-      setStatus("Durable upload storage is not configured.");
-      return;
-    }
     setBusy("upload");
     setStatus(null);
     try {
       const form = new FormData();
       form.set("file", file);
-      form.set("asLogo", selectionKind === "logo" ? "true" : "false");
-      const response = await fetch("/api/upload", { method: "POST", body: form });
+      const response = await fetch("/api/media/upload", { method: "POST", body: form });
       const data = await response.json();
       if (!response.ok || !data.asset) throw new Error(data.error || "Upload failed");
       const candidate = libraryCandidate(data.asset);
-      setLibrary((current) => [
-        candidate,
-        ...current.filter((item) => item.id !== candidate.id),
-      ]);
+      setLibrary((current) => [candidate, ...current.filter((item) => item.id !== candidate.id)]);
       setSelected(candidate);
-      setStatus("Upload ready to insert.");
+      setStatus("Upload stored in Studio and ready to insert.");
     } catch (error) {
-      setStatus(error instanceof Error ? error.message : "Upload failed");
+      setStatus(`${error instanceof Error ? error.message : "Upload failed"} Nothing was inserted.`);
     } finally {
       setBusy(null);
     }
+  }
+
+  async function probeAdvancedUrl() {
+    setBusy("url");
+    setStatus(null);
+    try {
+      const response = await fetch("/api/media/url/probe", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "URL probe failed");
+      setSelected({
+        id: `external-${data.candidateToken.slice(-12)}`,
+        url: data.previewUrl,
+        thumbUrl: data.previewUrl,
+        label: new URL(data.previewUrl).hostname,
+        source: "url",
+        sourceLabel: "Advanced URL · verified",
+        sourceUrl: data.previewUrl,
+        mimeType: data.mimeType,
+        rights: data.rights,
+        approvalStatus: "UNREVIEWED",
+        candidateToken: data.candidateToken,
+        importKind: "external_url",
+      });
+      setStatus("URL passed safety checks. Insert imports a durable TapConnect copy.");
+    } catch (error) {
+      setSelected(null);
+      setStatus(`${error instanceof Error ? error.message : "URL probe failed"} Check the URL and retry.`);
+    } finally {
+      setBusy(null);
+    }
+  }
+
+  async function toggleFavorite(asset: MediaAssetCandidate) {
+    if (!asset.mediaAssetId) {
+      setStatus("Import this provider result before adding it to durable Favorites.");
+      return;
+    }
+    const favorite = !asset.isFavorite;
+    const response = await fetch(`/api/media/${asset.mediaAssetId}/favorite`, {
+      method: favorite ? "PUT" : "DELETE",
+    });
+    if (!response.ok) {
+      setStatus("Favorite could not be updated. Retry.");
+      return;
+    }
+    setLibrary((current) =>
+      current.map((item) => (item.id === asset.id ? { ...item, isFavorite: favorite } : item))
+    );
+    setSelected((current) =>
+      current?.id === asset.id ? { ...current, isFavorite: favorite } : current
+    );
+  }
+
+  async function approveSelected() {
+    if (!selected?.mediaAssetId) return;
+    setBusy("approve");
+    const response = await fetch(`/api/media/${selected.mediaAssetId}/approve`, { method: "POST" });
+    const data = await response.json();
+    if (!response.ok) {
+      setStatus(data.error || "Approval failed.");
+      setBusy(null);
+      return;
+    }
+    const approved = libraryCandidate({ ...data.asset, isFavorite: selected.isFavorite });
+    setLibrary((current) =>
+      current.map((item) => (item.id === approved.id ? approved : item))
+    );
+    setSelected(approved);
+    setStatus("Approved for Brand use. Choosing a primary logo remains a separate action.");
+    setBusy(null);
   }
 
   async function insertSelection() {
     if (!selected) return;
     setBusy("insert");
     setStatus(null);
-    let finalAsset = selected;
-    if (
-      mediaUploadReady &&
-      (selected.source === "pexels" || selected.source === "logo_dev")
-    ) {
-      try {
-        const response = await fetch("/api/media/import", {
+    try {
+      let finalAsset = selected;
+      if (selected.candidateToken) {
+        if (!mediaUploadReady) throw new Error("Durable media storage is unavailable");
+        const endpoint =
+          selected.importKind === "external_url"
+            ? "/api/media/url/import"
+            : "/api/media/import";
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            url: selected.url,
-            filename: selected.label,
-            source: selected.source,
-            providerId: selected.providerId,
-            sourceUrl: selected.sourceUrl,
-            attributionName: selected.attributionName,
-            attributionUrl: selected.attributionUrl,
-            rights: selected.rights,
-            width: selected.width,
-            height: selected.height,
-          }),
+          body: JSON.stringify({ candidateToken: selected.candidateToken }),
         });
         const data = await response.json();
-        if (!response.ok || !data.asset) {
-          throw new Error(data.message || data.error || "Import failed");
-        }
-        finalAsset = {
-          ...selected,
-          id: data.asset.id,
-          url: data.asset.url,
-          thumbUrl: data.asset.url,
-          source: selected.source === "logo_dev" ? "logo_dev" : "studio",
-          sourceLabel: `${selected.sourceLabel} · imported`,
-        };
+        if (!response.ok || !data.asset) throw new Error(data.error || "Import failed");
+        finalAsset = libraryCandidate(data.asset);
         setLibrary((current) => [
           finalAsset,
           ...current.filter((item) => item.id !== finalAsset.id),
         ]);
-      } catch (error) {
-        setBusy(null);
-        setStatus(
-          `${error instanceof Error ? error.message : "Import failed"}. Nothing was inserted.`
-        );
-        return;
       }
-    }
-    rememberRecentMedia(finalAsset);
-    onSelect(finalAsset);
-    setBusy(null);
-    onClose();
-  }
-
-  function addAdvancedUrl() {
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== "https:") throw new Error();
-      setSelected({
-        id: `url-${url}`,
-        url,
-        thumbUrl: url,
-        label: parsed.hostname,
-        source: "url",
-        sourceLabel: "Advanced URL",
-        sourceUrl: url,
-        rights: "Linked URL. Availability and usage rights depend on the origin.",
-      });
-      setStatus("URL is ready to preview. It will remain externally hosted.");
-    } catch {
-      setStatus("Enter a valid HTTPS image URL.");
+      onSelect(finalAsset);
+      onClose();
+    } catch (error) {
+      setStatus(`${error instanceof Error ? error.message : "Import failed"} Nothing was inserted.`);
+    } finally {
+      setBusy(null);
     }
   }
 
   if (!open) return null;
-
   const providerSearch = tab === "pexels" || tab === "logo_dev";
   const showGrid = !["upload", "url"].includes(tab);
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/75 p-0 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/75 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
@@ -433,6 +442,7 @@ export function SharedMediaAssetBrowser({
       data-testid="shared-media-browser-overlay"
     >
       <section
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="shared-media-browser-title"
@@ -445,7 +455,7 @@ export function SharedMediaAssetBrowser({
               {title}
             </h2>
             <p className="text-[11px] text-white/45">
-              Preview first. Provider media is imported before insertion when storage is available.
+              Provider and URL media are imported before selection. Brand approval is explicit.
             </p>
           </div>
           <Button
@@ -494,17 +504,12 @@ export function SharedMediaAssetBrowser({
 
         <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="flex min-h-0 flex-1 flex-col border-b border-white/10 lg:border-b-0 lg:border-r">
-            {!["upload", "url"].includes(tab) ? (
+            {showGrid ? (
               <div className="space-y-2 border-b border-white/10 p-3">
                 <div className="flex gap-2">
                   <label className="relative flex-1">
-                    <span className="sr-only">
-                      {providerSearch ? `Search ${tab}` : "Filter assets"}
-                    </span>
-                    <Search
-                      className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35"
-                      aria-hidden
-                    />
+                    <span className="sr-only">{providerSearch ? `Search ${tab}` : "Filter assets"}</span>
+                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-white/35" />
                     <Input
                       type="search"
                       value={query}
@@ -512,7 +517,7 @@ export function SharedMediaAssetBrowser({
                       onKeyDown={(event) => {
                         if (event.key === "Enter" && providerSearch) {
                           event.preventDefault();
-                          void searchProvider(false);
+                          void searchProvider();
                         }
                       }}
                       className="pl-9"
@@ -529,15 +534,11 @@ export function SharedMediaAssetBrowser({
                   {providerSearch ? (
                     <Button
                       type="button"
-                      onClick={() => void searchProvider(false)}
+                      onClick={() => void searchProvider()}
                       disabled={busy === "search" || (tab === "pexels" && !stockReady)}
                       data-testid="media-browser-search-submit"
                     >
-                      {busy === "search" ? (
-                        <Loader2 className="h-4 w-4 animate-spin" aria-label="Searching" />
-                      ) : (
-                        "Search"
-                      )}
+                      {busy === "search" ? <Loader2 className="h-4 w-4 animate-spin" /> : "Search"}
                     </Button>
                   ) : null}
                 </div>
@@ -545,9 +546,7 @@ export function SharedMediaAssetBrowser({
                   <div className="flex flex-wrap gap-2">
                     <select
                       value={orientation}
-                      onChange={(event) =>
-                        setOrientation(event.target.value as MediaOrientation)
-                      }
+                      onChange={(event) => setOrientation(event.target.value as MediaOrientation)}
                       aria-label="Pexels orientation"
                       className="min-h-10 rounded-lg border border-white/15 bg-black/30 px-3 text-xs"
                     >
@@ -565,11 +564,6 @@ export function SharedMediaAssetBrowser({
                         aria-label="Pexels color filter"
                       />
                     </label>
-                    {color ? (
-                      <Button type="button" variant="ghost" size="sm" onClick={() => setColor("")}>
-                        Clear color
-                      </Button>
-                    ) : null}
                   </div>
                 ) : null}
                 {tab === "logo_dev" ? (
@@ -602,17 +596,13 @@ export function SharedMediaAssetBrowser({
             {tab === "upload" ? (
               <div className="grid flex-1 place-items-center p-6">
                 <div className="max-w-md space-y-4 text-center">
-                  <Upload className="mx-auto h-9 w-9 text-white/50" aria-hidden />
-                  <div>
-                    <p className="font-medium">Upload to TapConnect media storage</p>
-                    <p className="mt-1 text-xs text-white/50">
-                      Images up to 8MB. The original remains reusable in Studio assets.
-                    </p>
-                  </div>
+                  <Upload className="mx-auto h-9 w-9 text-white/50" />
+                  <p className="font-medium">Upload to TapConnect media storage</p>
+                  <p className="text-xs text-white/50">PNG, JPEG, WebP, or GIF up to 8MB.</p>
                   <input
                     ref={fileRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/png,image/jpeg,image/webp,image/gif"
                     className="sr-only"
                     onChange={(event) => {
                       const file = event.target.files?.[0];
@@ -629,7 +619,7 @@ export function SharedMediaAssetBrowser({
                   </Button>
                   {!mediaUploadReady ? (
                     <p className="text-xs text-amber-200" role="status">
-                      Upload storage is unavailable. Configure R2 or choose an existing source.
+                      Upload storage is unavailable. Configure R2 or choose a Studio asset.
                     </p>
                   ) : null}
                 </div>
@@ -639,13 +629,10 @@ export function SharedMediaAssetBrowser({
             {tab === "url" ? (
               <div className="grid flex-1 place-items-center p-6">
                 <div className="w-full max-w-xl space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                  <div>
-                    <p className="font-medium">Advanced external URL</p>
-                    <p className="text-xs text-white/50">
-                      Use only when upload, Brand, Studio, Pexels, or Logo.dev is unsuitable.
-                      External links can expire and rights remain your responsibility.
-                    </p>
-                  </div>
+                  <p className="font-medium">Advanced URL import</p>
+                  <p className="text-xs text-white/50">
+                    TapConnect checks the host, redirects, MIME, and size, then imports a durable copy.
+                  </p>
                   <Label htmlFor="advanced-media-url">HTTPS image URL</Label>
                   <div className="flex gap-2">
                     <Input
@@ -654,8 +641,13 @@ export function SharedMediaAssetBrowser({
                       onChange={(event) => setUrl(event.target.value)}
                       placeholder="https://…"
                     />
-                    <Button type="button" variant="outline" onClick={addAdvancedUrl}>
-                      Preview
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void probeAdvancedUrl()}
+                      disabled={busy === "url"}
+                    >
+                      Check
                     </Button>
                   </div>
                 </div>
@@ -670,7 +662,6 @@ export function SharedMediaAssetBrowser({
               >
                 {visible.map((asset) => {
                   const active = selected?.id === asset.id;
-                  const favorite = isFavoriteMedia(asset);
                   return (
                     <div
                       key={`${asset.source}-${asset.id}`}
@@ -693,37 +684,31 @@ export function SharedMediaAssetBrowser({
                           alt={asset.label}
                           loading="lazy"
                           className={cn(
-                            "aspect-square w-full bg-[linear-gradient(45deg,#111_25%,transparent_25%),linear-gradient(-45deg,#111_25%,transparent_25%)] object-cover",
-                            asset.source === "logo_dev" || asset.source === "brand"
-                              ? "p-4 object-contain"
-                              : ""
+                            "aspect-square w-full bg-black/30 object-cover",
+                            asset.source === "logo_dev" ? "p-4 object-contain" : ""
                           )}
                         />
-                        <span className="block truncate px-2 pb-0.5 pt-2 text-xs">
-                          {asset.label}
-                        </span>
+                        <span className="block truncate px-2 pb-0.5 pt-2 text-xs">{asset.label}</span>
                         <span className="block truncate px-2 pb-2 text-[10px] text-white/45">
                           {asset.sourceLabel}
                           {asset.attributionName ? ` · ${asset.attributionName}` : ""}
                         </span>
                       </button>
-                      <button
-                        type="button"
-                        aria-label={`${favorite ? "Remove" : "Add"} ${asset.label} ${
-                          favorite ? "from" : "to"
-                        } favorites`}
-                        className="absolute right-2 top-2 grid min-h-9 min-w-9 place-items-center rounded-full border border-white/20 bg-black/65"
-                        onClick={() => {
-                          const next = toggleFavoriteMedia(asset);
-                          setFavorites(next.favorites);
-                        }}
-                      >
-                        <Heart
-                          className={cn("h-4 w-4", favorite ? "fill-white" : "")}
-                          aria-hidden
-                        />
-                      </button>
-                      {asset.isBrandApproved ? (
+                      {asset.mediaAssetId ? (
+                        <button
+                          type="button"
+                          aria-label={`${asset.isFavorite ? "Remove" : "Add"} ${asset.label} ${
+                            asset.isFavorite ? "from" : "to"
+                          } favorites`}
+                          className="absolute right-2 top-2 grid min-h-9 min-w-9 place-items-center rounded-full border border-white/20 bg-black/65"
+                          onClick={() => void toggleFavorite(asset)}
+                        >
+                          <Heart
+                            className={cn("h-4 w-4", asset.isFavorite ? "fill-white" : "")}
+                          />
+                        </button>
+                      ) : null}
+                      {asset.approvalStatus === "APPROVED" ? (
                         <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2 py-1 text-[9px] font-semibold">
                           Brand-approved
                         </span>
@@ -734,14 +719,14 @@ export function SharedMediaAssetBrowser({
                 {!visible.length ? (
                   <div className="col-span-full grid min-h-48 place-items-center text-center text-sm text-white/45">
                     {tab === "pexels" && !stockReady
-                      ? "Pexels is unavailable. Upload or choose a Studio asset."
+                      ? "Pexels is not configured. Upload or choose a Studio asset."
                       : providerSearch
                         ? "Search to browse provider results."
                         : "No assets in this source yet."}
                   </div>
                 ) : null}
                 {tab === "pexels" && nextPage ? (
-                  <div className="col-span-full flex justify-center py-2">
+                  <div className="col-span-full flex justify-center">
                     <Button
                       type="button"
                       variant="outline"
@@ -759,47 +744,67 @@ export function SharedMediaAssetBrowser({
           <aside className="max-h-[42dvh] overflow-y-auto p-4 lg:max-h-none" aria-label="Selected media preview">
             {selected ? (
               <div className="space-y-4">
-                <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black/30">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={selected.url}
-                    alt={selected.label}
-                    className="aspect-[4/3] w-full object-contain"
-                  />
-                  <span className="absolute left-2 top-2 rounded-full bg-black/75 px-2 py-1 text-[10px]">
-                    Selected
-                  </span>
-                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={selected.url}
+                  alt={selected.label}
+                  className="aspect-[4/3] w-full rounded-xl border border-white/10 bg-black/30 object-contain"
+                />
                 <div>
                   <p className="font-medium">{selected.label}</p>
                   <p className="text-xs text-white/50">{selected.sourceLabel}</p>
                 </div>
-                <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs">
+                <dl className="grid grid-cols-2 gap-2 text-xs">
                   <dt className="text-white/45">Dimensions</dt>
                   <dd>
                     {selected.width && selected.height
                       ? `${selected.width} × ${selected.height}`
                       : "Not reported"}
                   </dd>
-                  <dt className="text-white/45">Type</dt>
-                  <dd>{selected.mimeType || "Image"}</dd>
+                  <dt className="text-white/45">Approval</dt>
+                  <dd>{selected.approvalStatus || "UNREVIEWED"}</dd>
+                  <dt className="text-white/45">License</dt>
+                  <dd>{selected.licenseCode || "Not asserted"}</dd>
                   <dt className="text-white/45">Attribution</dt>
-                  <dd>{selected.attributionName || "Not provided"}</dd>
+                  <dd>{selected.attributionText || selected.attributionName || "Not provided"}</dd>
                 </dl>
                 {selected.rights ? (
                   <p className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/55">
                     {selected.rights}
                   </p>
                 ) : null}
-                {selected.sourceUrl ? (
-                  <a
-                    href={selected.sourceUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="inline-flex min-h-10 items-center gap-1 text-xs text-white/65 underline"
+                <div className="flex flex-wrap gap-2">
+                  {selected.sourceUrl ? (
+                    <a
+                      href={selected.sourceUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-10 items-center gap-1 text-xs text-white/65 underline"
+                    >
+                      Source <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : null}
+                  {selected.licenseUrl ? (
+                    <a
+                      href={selected.licenseUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex min-h-10 items-center gap-1 text-xs text-white/65 underline"
+                    >
+                      License <ExternalLink className="h-3 w-3" />
+                    </a>
+                  ) : null}
+                </div>
+                {selected.mediaAssetId && selected.approvalStatus === "UNREVIEWED" ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => void approveSelected()}
+                    disabled={busy === "approve"}
                   >
-                    Original source <ExternalLink className="h-3 w-3" aria-hidden />
-                  </a>
+                    Approve for Brand
+                  </Button>
                 ) : null}
                 <Button
                   type="button"
@@ -809,24 +814,16 @@ export function SharedMediaAssetBrowser({
                   data-testid="media-browser-insert"
                 >
                   {busy === "insert" ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Importing…
-                    </>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   ) : (
-                    <>
-                      <Check className="mr-2 h-4 w-4" />
-                      {mediaUploadReady &&
-                      (selected.source === "pexels" || selected.source === "logo_dev")
-                        ? "Import and insert"
-                        : "Insert selected"}
-                    </>
+                    <Check className="mr-2 h-4 w-4" />
                   )}
+                  {selected.candidateToken ? "Import and insert" : "Insert selected"}
                 </Button>
               </div>
             ) : (
               <div className="grid min-h-44 place-items-center text-center text-sm text-white/45">
-                Choose an asset to see a larger preview and source details.
+                Choose an asset to inspect provenance, rights, and approval.
               </div>
             )}
             {status ? (
@@ -840,19 +837,8 @@ export function SharedMediaAssetBrowser({
             ) : null}
           </aside>
         </div>
-
-        <footer className="flex min-h-12 items-center justify-between border-t border-white/10 px-3 text-[10px] text-white/40">
-          <span>Provider media is never used until you choose Insert.</span>
-          <span className="hidden items-center gap-2 sm:flex">
-            <ChevronLeft className="h-3 w-3" />
-            Source tabs
-            <ChevronRight className="h-3 w-3" />
-            Preview
-          </span>
-        </footer>
       </section>
     </div>,
     document.body
   );
 }
-

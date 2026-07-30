@@ -20,12 +20,26 @@ function collectUrls(blob: unknown): string[] {
 }
 
 export default async function AssetsHubPage() {
-  const { business } = await requireBusiness();
+  const { user, business } = await requireBusiness();
 
   const [brandKit, assets, campaigns] = await Promise.all([
     prisma.brandKit.findUnique({ where: { businessId: business.id } }).catch(() => null),
     prisma.mediaAsset.findMany({
       where: { businessId: business.id },
+      include: {
+        favorites: {
+          where: { businessId: business.id, userId: user.id },
+          select: { id: true },
+        },
+        recents: {
+          where: { businessId: business.id, userId: user.id },
+          select: { lastUsedAt: true, useCount: true },
+        },
+        usages: {
+          where: { businessId: business.id },
+          select: { surface: true, subjectId: true, documentPath: true },
+        },
+      },
       orderBy: { createdAt: "desc" },
       take: 120,
     }),
@@ -83,17 +97,45 @@ export default async function AssetsHubPage() {
     }
   }
 
-  const libraryAssets: LibraryAsset[] = assets.map((a) => ({
-    id: a.id,
-    url: a.url,
-    filename: a.filename,
-    mimeType: a.mimeType,
-    sizeBytes: a.sizeBytes,
-    source: a.source,
-    createdAt: a.createdAt.toISOString(),
-    usedIn: usage.get(a.url) ?? [],
-    isBrandLogo: Boolean(business.logoUrl && a.url === business.logoUrl),
-  }));
+  const libraryAssets: LibraryAsset[] = assets.map((asset) => {
+    const durableUsage = asset.usages.map((item) => ({
+      label:
+        item.surface === "CARD"
+          ? "Your Card"
+          : item.surface === "EMAIL"
+            ? "Campaign email"
+            : `${item.surface[0]}${item.surface.slice(1).toLowerCase()}`,
+      href:
+        item.surface === "CARD"
+          ? "/dashboard/card/edit"
+          : item.surface === "EMAIL"
+            ? `/dashboard/campaigns/${item.subjectId}/email`
+            : `/dashboard/campaigns/${item.subjectId}`,
+      detail: item.documentPath,
+    }));
+    return {
+      id: asset.id,
+      url: asset.url,
+      filename: asset.filename,
+      mimeType: asset.mimeType,
+      sizeBytes: asset.sizeBytes,
+      source: asset.source,
+      provider: asset.provider,
+      sourcePageUrl: asset.sourcePageUrl,
+      creatorName: asset.creatorName,
+      creatorUrl: asset.creatorUrl,
+      licenseCode: asset.licenseCode,
+      licenseUrl: asset.licenseUrl,
+      attributionText: asset.attributionText,
+      rightsNote: asset.rightsNote,
+      approvalStatus: asset.approvalStatus,
+      isFavorite: asset.favorites.length > 0,
+      recentAt: asset.recents[0]?.lastUsedAt.toISOString() ?? null,
+      createdAt: asset.createdAt.toISOString(),
+      usedIn: durableUsage.length ? durableUsage : usage.get(asset.url) ?? [],
+      isBrandLogo: Boolean(business.logoUrl && asset.url === business.logoUrl),
+    };
+  });
 
   const mediaUploadReady = isMediaUploadReady();
   const usedCount = libraryAssets.filter((a) => a.usedIn.length > 0).length;

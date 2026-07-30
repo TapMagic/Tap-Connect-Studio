@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 
 export type LogoLibraryItem = {
   id: string;
+  mediaAssetId?: string;
   url: string;
   role: "primary" | "alternate" | "icon" | "other";
   format?: string;
@@ -98,12 +99,12 @@ export function LogoLibrary({
               </dl>
             </button>
             <div className="mt-3 flex flex-wrap gap-2">
-              {onSetPrimary ? (
+              {onSetPrimary && item.approval === "approved" ? (
                 <ActionBtn testId={`logo-primary-${item.id}`} onClick={() => onSetPrimary(item.id)}>
                   Choose primary
                 </ActionBtn>
               ) : null}
-              {onApprove ? (
+              {onApprove && item.approval !== "approved" ? (
                 <ActionBtn
                   testId={`logo-approve-${item.id}`}
                   primary

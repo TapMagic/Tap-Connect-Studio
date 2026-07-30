@@ -360,7 +360,14 @@ export function BrandKitWorkspace({
     link: colors.link,
   });
 
-  async function saveBrand(patch: Partial<BrandKitVisualFields & { logoUrl?: string | null }>) {
+  async function saveBrand(
+    patch: Partial<
+      BrandKitVisualFields & {
+        logoUrl?: string | null;
+        logoMediaAssetId?: string | null;
+      }
+    >
+  ) {
     setSaving(true);
     setSaveMsg(null);
     try {
@@ -414,17 +421,16 @@ export function BrandKitWorkspace({
     } else if (item.kind === "logo_primary") {
       next = {
         ...next,
-        brand: { ...next.brand, logoUrl: item.value },
         logos: upsertLogo(next.logos, {
-          id: "logo-primary",
+          id: `suggested-${item.id}`,
           url: item.value,
-          role: "primary",
-          approval: "approved",
+          role: "alternate",
+          approval: "suggested",
           source: STARTER_PROVENANCE_LABELS[item.provenance],
           format: "svg",
         }),
       };
-      void saveBrand({ logoUrl: item.value });
+      setSaveMsg("Logo suggestion added. Import and approve it before choosing it as primary.");
     } else if (item.kind === "font_body") {
       const body = (item.value as PremiumFontFamily) || "sans";
       next = {
@@ -972,6 +978,10 @@ export function BrandKitWorkspace({
               onSetPrimary={(id) => {
                 const logo = draft.logos.find((l) => l.id === id);
                 if (!logo) return;
+                if (logo.approval !== "approved") {
+                  setSaveMsg("Approve this logo before choosing it as primary.");
+                  return;
+                }
                 commit(
                   {
                     ...draft,
@@ -983,18 +993,35 @@ export function BrandKitWorkspace({
                   },
                   "Logo selection · primary"
                 );
-                void saveBrand({ logoUrl: logo.url });
+                void saveBrand({
+                  logoUrl: logo.url,
+                  logoMediaAssetId: logo.mediaAssetId,
+                });
               }}
               onApprove={(id) => {
-                commit(
-                  {
-                    ...draft,
-                    logos: draft.logos.map((l) =>
-                      l.id === id ? { ...l, approval: "approved" } : l
-                    ),
-                  },
-                  "Approve logo"
-                );
+                const logo = draft.logos.find((item) => item.id === id);
+                if (!logo?.mediaAssetId) {
+                  setSaveMsg("Import this logo into Studio before approval.");
+                  return;
+                }
+                void fetch(`/api/media/${logo.mediaAssetId}/approve`, { method: "POST" })
+                  .then(async (response) => {
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.error || "Approval failed");
+                    commit(
+                      {
+                        ...draft,
+                        logos: draft.logos.map((item) =>
+                          item.id === id ? { ...item, approval: "approved" } : item
+                        ),
+                      },
+                      "Approve logo"
+                    );
+                    setSaveMsg("Logo approved for Brand use.");
+                  })
+                  .catch((error) =>
+                    setSaveMsg(error instanceof Error ? error.message : "Approval failed")
+                  );
               }}
               onIgnore={(id) => {
                 commit(
@@ -1013,23 +1040,43 @@ export function BrandKitWorkspace({
               <p className="mb-2 text-xs text-white/60">Upload or pick from library</p>
               <MediaPicker
                 value={draft.brand.logoUrl || ""}
-                onChange={(url) => {
+                onAssetChange={(asset) => {
+                  if (!asset) {
+                    commit(
+                      { ...draft, brand: { ...draft.brand, logoUrl: null } },
+                      "Logo selection · cleared"
+                    );
+                    void saveBrand({ logoUrl: null, logoMediaAssetId: null });
+                    return;
+                  }
+                  if (!asset.mediaAssetId) return;
+                  const approved = asset.approvalStatus === "APPROVED";
                   commit(
                     {
                       ...draft,
-                      brand: { ...draft.brand, logoUrl: url },
+                      brand: approved
+                        ? { ...draft.brand, logoUrl: asset.url }
+                        : draft.brand,
                       logos: upsertLogo(draft.logos, {
-                        id: `upload-${Date.now()}`,
-                        url,
-                        role: "primary",
-                        approval: "approved",
-                        source: "Upload",
-                        format: guessFormat(url),
+                        id: asset.mediaAssetId,
+                        mediaAssetId: asset.mediaAssetId,
+                        url: asset.url,
+                        role: approved ? "primary" : "alternate",
+                        approval: approved ? "approved" : "suggested",
+                        source: asset.sourceLabel,
+                        format: guessFormat(asset.url),
                       }),
                     },
-                    "Logo upload / replace"
+                    approved ? "Logo selection · primary" : "Logo imported · awaiting approval"
                   );
-                  void saveBrand({ logoUrl: url });
+                  if (approved) {
+                    void saveBrand({
+                      logoUrl: asset.url,
+                      logoMediaAssetId: asset.mediaAssetId,
+                    });
+                  } else {
+                    setSaveMsg("Logo imported as unreviewed. Approve it before choosing primary.");
+                  }
                 }}
                 mediaUploadReady={mediaUploadReady}
                 stockReady={stockReady}
