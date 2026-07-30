@@ -36,8 +36,9 @@ function displayTone(d: DisplayReadiness) {
   // Status tokens only — never green (--studio-go). Green is reserved for + Create.
   switch (d) {
     case "owner_ready":
-    case "functional_final_verification_required":
       return "text-[color:var(--studio-status-ok)] border-[color:var(--studio-status-ok)]/30";
+    case "functional_final_verification_required":
+      return "text-[color:var(--studio-status-info)] border-[color:var(--studio-status-info)]/30";
     case "integrated_incomplete_workflow":
       return "text-[color:var(--studio-status-warn)] border-[color:var(--studio-status-warn)]/40";
     case "verified_credentials_required":
@@ -47,7 +48,7 @@ function displayTone(d: DisplayReadiness) {
     case "development":
     case "disabled":
     default:
-      return "text-[color:var(--studio-status-neutral)] border-white/12";
+      return "text-white/55 border-white/15";
   }
 }
 
@@ -115,8 +116,8 @@ export function DashboardNav({
         data-testid="studio-nav-rail"
         data-nav-expanded={expanded ? "1" : "0"}
         className={cn(
-          "flex h-full flex-col border-r border-white/8 bg-[#070b14] transition-[width] duration-200",
-          expanded ? "w-[14rem]" : "w-[3.5rem]"
+          "flex h-full flex-col border-r border-white/8 bg-[#070b14] font-sans transition-[width] duration-200",
+          expanded ? "w-[16.5rem]" : "w-[3.75rem]"
         )}
       >
         <div
@@ -136,10 +137,10 @@ export function DashboardNav({
             <TapConnectLogo variant="mark" priority />
             {expanded ? (
               <div className="min-w-0">
-                <p className="text-[13px] font-semibold tracking-tight text-white">
+                <p className="text-sm font-semibold tracking-tight text-white">
                   Tap Connect
                 </p>
-                <p className="truncate text-[11px] text-white/45">{businessName}</p>
+                <p className="truncate text-xs text-white/55">{businessName}</p>
               </div>
             ) : null}
           </Link>
@@ -148,7 +149,7 @@ export function DashboardNav({
             data-testid="studio-nav-expand-toggle"
             aria-label={expanded ? "Collapse navigation labels" : "Expand navigation labels"}
             aria-pressed={expanded}
-            className="rounded-md border border-white/10 p-1.5 text-white/50 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            className="rounded-md border border-white/10 p-1.5 text-white/60 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
             onClick={() => setExpanded(!expanded)}
           >
             {expanded ? (
@@ -160,7 +161,7 @@ export function DashboardNav({
         </div>
 
         <nav
-          className="min-h-0 flex-1 space-y-0.5 overflow-y-auto px-1.5 py-3"
+          className="min-h-0 flex-1 space-y-1 overflow-y-auto px-1.5 py-3"
           aria-label="Studio primary"
         >
           {STUDIO_NAV.map((item) => {
@@ -168,27 +169,35 @@ export function DashboardNav({
             const iconId = NAV_DESTINATION_ICON[item.id] ?? "home";
             const zone = zoneForStudioDestination(item.id);
             const tokens = zone ? resolveZoneTokens(zone) : null;
-            // Zone atmosphere on the ACTIVE item only — restrained rail accent,
-            // never green (green is reserved for + Create).
+            // Zone accent on icons always (subtle when inactive); stronger neon + rail when active.
             const activeStyle =
               active && tokens
                 ? {
                     color: tokens.labelColor,
-                    boxShadow: `inset 2px 0 0 0 ${tokens.railAccent}`,
-                    background: "rgba(255,255,255,0.05)",
+                    boxShadow: `inset 3px 0 0 0 ${tokens.railAccent}, 0 0 0 1px ${tokens.neonEdge}`,
+                    background: "rgba(255,255,255,0.06)",
                   }
                 : undefined;
+            const iconStyle = tokens
+              ? {
+                  color: tokens.iconAccent,
+                  filter: active
+                    ? `drop-shadow(0 0 4px ${tokens.bloom})`
+                    : undefined,
+                  opacity: active ? 1 : 0.72,
+                }
+              : undefined;
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                title={item.description}
+                title={`${item.label} — ${item.description}`}
                 className={cn(
-                  "flex items-center gap-2.5 rounded-lg py-2 text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
+                  "flex items-center gap-2.5 rounded-lg py-2.5 text-[14px] font-medium leading-snug transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50",
                   expanded ? "px-2.5" : "justify-center px-0",
                   active
                     ? "text-white"
-                    : "text-white/55 hover:bg-white/5 hover:text-white"
+                    : "text-white/70 hover:bg-white/5 hover:text-white"
                 )}
                 style={activeStyle}
                 data-nav-zone={item.id}
@@ -199,11 +208,18 @@ export function DashboardNav({
               >
                 <TapConnectIcon
                   id={iconId}
-                  className="h-4 w-4 shrink-0 opacity-90"
-                  style={active && tokens ? { color: tokens.iconAccent } : undefined}
+                  className="h-[1.125rem] w-[1.125rem] shrink-0"
+                  style={iconStyle}
                   decorative
                 />
-                {expanded ? <span className="truncate">{item.label}</span> : (
+                {expanded ? (
+                  <span className="min-w-0">
+                    <span className="block truncate">{item.label}</span>
+                    <span className="mt-0.5 block text-[11px] font-normal leading-snug text-white/50">
+                      {item.description}
+                    </span>
+                  </span>
+                ) : (
                   <span className="sr-only">{item.label}</span>
                 )}
               </Link>
@@ -248,15 +264,15 @@ export function DashboardNav({
           id="studio-secondary-tray"
           data-testid="studio-secondary-tray"
           aria-label={`${destination.label} tools`}
-          className="flex w-[13.5rem] shrink-0 flex-col border-r border-white/8 bg-[#080c16]"
+          className="flex w-[16rem] shrink-0 flex-col border-r border-white/8 bg-[#080c16] font-sans"
         >
           <div className="flex items-center justify-between border-b border-white/8 px-3 py-2.5">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-white/55">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-white/65">
               {destination.label}
             </p>
             <button
               type="button"
-              className="rounded p-1 text-white/40 hover:bg-white/5 hover:text-white"
+              className="rounded p-1 text-white/45 hover:bg-white/5 hover:text-white"
               aria-label="Hide tools tray"
               onClick={() => setTrayOpen(false)}
             >
@@ -266,7 +282,7 @@ export function DashboardNav({
           <nav className="min-h-0 flex-1 space-y-3 overflow-y-auto px-2 py-3">
             {grouped.map(({ group, items }) => (
               <div key={group} className="space-y-0.5">
-                <p className="px-2 pb-1 text-[10px] font-medium uppercase tracking-wide text-white/55">
+                <p className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-white/55">
                   {group}
                 </p>
                 {items.map((s) => {
@@ -281,16 +297,16 @@ export function DashboardNav({
                       key={s.id}
                       href={s.href}
                       className={cn(
-                        "block rounded-md px-2 py-1.5 text-[12px] transition-colors",
+                        "block rounded-md px-2 py-2 text-[13px] leading-snug transition-colors",
                         sectionActive
                           ? "bg-white/8 text-white"
-                          : "text-white/55 hover:bg-white/5 hover:text-white/85"
+                          : "text-white/70 hover:bg-white/5 hover:text-white"
                       )}
-                      title={`${readiness.label}: ${readiness.nextAction}`}
+                      title={`${readiness.ownerLabel}: ${readiness.ownerNextAction}`}
                       {...(sectionActive ? { "aria-current": "page" as const } : {})}
                     >
-                      <span className="truncate">{s.label}</span>
-                      <span className="mt-0.5 block truncate text-[10px] text-white/50">
+                      <span className="block font-medium">{s.label}</span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-white/50">
                         {s.description}
                       </span>
                     </Link>
@@ -299,8 +315,8 @@ export function DashboardNav({
               </div>
             ))}
           </nav>
-          <p className="shrink-0 border-t border-white/8 px-3 py-2 text-[10px] leading-snug text-white/50">
-            Platform Admin is under Settings. Readiness details open from each workspace.
+          <p className="shrink-0 border-t border-white/8 px-3 py-2 text-[11px] leading-snug text-white/50">
+            Detailed setup diagnostics stay under Settings → Platform Admin.
           </p>
         </aside>
       ) : null}
@@ -493,24 +509,24 @@ export function MobileDashboardNav({
                       <Link
                         key={s.id}
                         href={s.href}
-                        className="block rounded-md px-2 py-2.5 text-[12px] text-white/75 hover:bg-white/5 hover:text-white"
-                        title={`${readiness.label}: ${readiness.nextAction}`}
+                        className="block rounded-md px-2 py-2.5 text-[13px] text-white/80 hover:bg-white/5 hover:text-white"
+                        title={`${readiness.ownerLabel}: ${readiness.ownerNextAction}`}
                         onClick={() => setMoreOpen(false)}
                       >
                         <span className="flex items-start justify-between gap-2">
                           <span>
                             <span className="block font-medium text-white/90">{s.label}</span>
-                            <span className="mt-0.5 block text-[11px] text-white/40">
+                            <span className="mt-0.5 block text-[11px] leading-snug text-white/50">
                               {s.description}
                             </span>
                           </span>
                           <span
                             className={cn(
-                              "mt-0.5 shrink-0 rounded border px-1 py-px text-[9px] uppercase tracking-wide",
+                              "mt-0.5 shrink-0 rounded border px-1.5 py-0.5 text-[10px] font-medium tracking-wide",
                               displayTone(readiness.display)
                             )}
                           >
-                            {readiness.label.split("—")[0].trim().split(" ")[0]}
+                            {readiness.ownerLabel}
                           </span>
                         </span>
                       </Link>
