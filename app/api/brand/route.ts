@@ -24,6 +24,7 @@ const schema = z.object({
   ageGateMinAge: z.number().optional(),
   googleReviewUrl: z.string().nullable().optional(),
   logoUrl: z.string().nullable().optional(),
+  logoMediaAssetId: z.string().nullable().optional(),
   website: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   email: z
@@ -70,16 +71,17 @@ export async function GET() {
     const { business } = await requireBusiness();
     const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
     const assets = await prisma.mediaAsset.findMany({
-      where: { businessId: business.id, source: "upload" },
+      where: { businessId: business.id, approvalStatus: "APPROVED" },
       orderBy: { createdAt: "desc" },
       take: 12,
-      select: { url: true },
+      select: { id: true, url: true, approvalStatus: true },
     });
     return NextResponse.json({
       brandKit,
       businessName: business.name,
       logoUrl: business.logoUrl,
       logoOptions: [business.logoUrl, ...assets.map((a) => a.url)].filter(Boolean),
+      approvedLogoAssets: assets,
     });
   } catch (error) {
     console.error("Brand get error:", error);
@@ -93,6 +95,7 @@ export async function PATCH(request: Request) {
     const body = schema.parse(await request.json());
     const {
       logoUrl,
+      logoMediaAssetId,
       googleReviewUrl,
       email,
       website,
@@ -104,6 +107,34 @@ export async function PATCH(request: Request) {
       tapCard,
       ...brandFields
     } = body;
+
+    let resolvedLogoUrl = logoUrl;
+    if (logoMediaAssetId) {
+      const approvedAsset = await prisma.mediaAsset.findFirst({
+        where: {
+          id: logoMediaAssetId,
+          businessId: business.id,
+          approvalStatus: "APPROVED",
+        },
+        select: { url: true },
+      });
+      if (!approvedAsset) {
+        return NextResponse.json(
+          { error: "Approve this Brand asset before making it the primary logo." },
+          { status: 409 }
+        );
+      }
+      resolvedLogoUrl = approvedAsset.url;
+    } else if (
+      logoUrl !== undefined &&
+      logoUrl !== null &&
+      logoUrl !== business.logoUrl
+    ) {
+      return NextResponse.json(
+        { error: "A tenant-owned approved mediaAssetId is required for a new primary logo." },
+        { status: 400 }
+      );
+    }
 
     const existingKit = await prisma.brandKit.findUnique({
       where: { businessId: business.id },
@@ -150,7 +181,7 @@ export async function PATCH(request: Request) {
 
     if (
       googleReviewUrl !== undefined ||
-      logoUrl !== undefined ||
+      resolvedLogoUrl !== undefined ||
       email !== undefined ||
       website !== undefined ||
       phone !== undefined
@@ -159,7 +190,7 @@ export async function PATCH(request: Request) {
         where: { id: business.id },
         data: {
           ...(googleReviewUrl !== undefined ? { googleReviewUrl } : {}),
-          ...(logoUrl !== undefined ? { logoUrl } : {}),
+          ...(resolvedLogoUrl !== undefined ? { logoUrl: resolvedLogoUrl } : {}),
           ...(email !== undefined ? { email } : {}),
           ...(website !== undefined ? { website } : {}),
           ...(phone !== undefined ? { phone } : {}),
@@ -191,11 +222,14 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json({
       brandKit,
-      logoUrl: logoUrl ?? business.logoUrl,
+      logoUrl: resolvedLogoUrl ?? business.logoUrl,
       email: email ?? business.email,
       snapshot,
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ error: "Invalid Brand Kit data" }, { status: 400 });
+    }
     console.error("Brand kit update error:", error);
     return NextResponse.json({ error: "Failed to update brand kit" }, { status: 500 });
   }

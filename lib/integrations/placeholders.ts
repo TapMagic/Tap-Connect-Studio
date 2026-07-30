@@ -39,9 +39,9 @@ export async function stockSearchPlaceholder() {
   if (!isStockImagesReady()) {
     return notConfiguredResponse(
       "stock_images",
-      "Stock image search requires Unsplash and/or Pexels API keys (free).",
-      ["UNSPLASH_ACCESS_KEY", "PEXELS_API_KEY"],
-      "https://unsplash.com/developers"
+      "Pexels search requires a Pexels API key. Upload and Studio assets remain available.",
+      ["PEXELS_API_KEY"],
+      "https://www.pexels.com/api/"
     );
   }
   return null;

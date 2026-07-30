@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 
@@ -26,14 +25,61 @@ function collectUsedUrls(params: {
 
 export async function GET(request: Request) {
   try {
-    const { business } = await requireBusiness();
-    const usedOnly = new URL(request.url).searchParams.get("usedOnly") === "1";
+    const { user, business } = await requireBusiness();
+    const params = new URL(request.url).searchParams;
+    const usedOnly = params.get("usedOnly") === "1";
+    const favoriteOnly = params.get("favorite") === "1";
+    const recentOnly = params.get("recent") === "1";
+    const approval = params.get("approval");
+    const query = (params.get("query") || "").trim();
+    const take = Math.max(1, Math.min(100, Number(params.get("limit") || 80) || 80));
 
     const [assets, campaigns] = await Promise.all([
       prisma.mediaAsset.findMany({
-        where: { businessId: business.id },
+        where: {
+          businessId: business.id,
+          ...(approval === "APPROVED" ||
+          approval === "UNREVIEWED" ||
+          approval === "REJECTED"
+            ? { approvalStatus: approval }
+            : {}),
+          ...(favoriteOnly
+            ? { favorites: { some: { businessId: business.id, userId: user.id } } }
+            : {}),
+          ...(recentOnly
+            ? { recents: { some: { businessId: business.id, userId: user.id } } }
+            : {}),
+          ...(query
+            ? {
+                OR: [
+                  { filename: { contains: query, mode: "insensitive" } },
+                  { creatorName: { contains: query, mode: "insensitive" } },
+                  { attributionText: { contains: query, mode: "insensitive" } },
+                ],
+              }
+            : {}),
+        },
+        include: {
+          favorites: {
+            where: { businessId: business.id, userId: user.id },
+            select: { id: true },
+          },
+          recents: {
+            where: { businessId: business.id, userId: user.id },
+            select: { lastUsedAt: true, useCount: true },
+          },
+          usages: {
+            where: { businessId: business.id },
+            select: {
+              surface: true,
+              subjectId: true,
+              documentPath: true,
+              updatedAt: true,
+            },
+          },
+        },
         orderBy: { createdAt: "desc" },
-        take: 80,
+        take,
       }),
       usedOnly
         ? prisma.campaign.findMany({
@@ -43,16 +89,20 @@ export async function GET(request: Request) {
         : Promise.resolve([]),
     ]);
 
-    if (!usedOnly) {
-      return NextResponse.json({ assets });
-    }
+    const normalized = assets.map(({ favorites, recents, usages, ...asset }) => ({
+      ...asset,
+      isFavorite: favorites.length > 0,
+      recent: recents[0] ?? null,
+      usages,
+    }));
+    if (!usedOnly) return NextResponse.json({ assets: normalized });
 
     const used = collectUsedUrls({
       logoUrl: business.logoUrl,
       campaigns,
     });
 
-    const filtered = assets.filter((a) => used.has(a.url));
+    const filtered = normalized.filter((asset) => asset.usages.length > 0 || used.has(asset.url));
     return NextResponse.json({ assets: filtered, usedCount: filtered.length });
   } catch (error) {
     console.error("List media error:", error);
@@ -60,66 +110,13 @@ export async function GET(request: Request) {
   }
 }
 
-const createSchema = z.object({
-  url: z.string().min(1),
-  filename: z.string().optional(),
-  mimeType: z.string().default("image/jpeg"),
-  source: z
-    .enum(["upload", "stock", "logo_dev", "url", "bg-remove"])
-    .default("url"),
-  campaignId: z.string().optional(),
-  width: z.number().int().positive().optional(),
-  height: z.number().int().positive().optional(),
-  providerId: z.string().max(200).optional(),
-  sourceUrl: z.string().url().optional(),
-  attributionName: z.string().max(300).optional(),
-  attributionUrl: z.string().url().optional(),
-  rights: z.string().max(1000).optional(),
-  importedAt: z.coerce.date().optional(),
-});
-
-export async function POST(request: Request) {
-  try {
-    const { business } = await requireBusiness();
-    const body = createSchema.parse(await request.json());
-
-    // Skip giant data-URLs in DB (keep library lean — those are campaign-embedded)
-    if (body.url.startsWith("data:") && body.url.length > 200_000) {
-      return NextResponse.json({ skipped: true, reason: "data-url too large" });
-    }
-
-    const existing = await prisma.mediaAsset.findFirst({
-      where: { businessId: business.id, url: body.url },
-    });
-    if (existing) {
-      return NextResponse.json({ asset: existing });
-    }
-
-    const asset = await prisma.mediaAsset.create({
-      data: {
-        businessId: business.id,
-        campaignId: body.campaignId,
-        url: body.url,
-        filename: body.filename,
-        mimeType: body.mimeType,
-        source: body.source,
-        width: body.width,
-        height: body.height,
-        providerId: body.providerId,
-        sourceUrl: body.sourceUrl,
-        attributionName: body.attributionName,
-        attributionUrl: body.attributionUrl,
-        rights: body.rights,
-        importedAt: body.importedAt,
-      },
-    });
-
-    return NextResponse.json({ asset });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      return NextResponse.json({ error: "Invalid media data" }, { status: 400 });
-    }
-    console.error("Create media error:", error);
-    return NextResponse.json({ error: "Failed to save media" }, { status: 500 });
-  }
+export async function POST() {
+  await requireBusiness();
+  return NextResponse.json(
+    {
+      error: "Direct media registration is retired",
+      message: "Use media upload, provider import, or Advanced URL import.",
+    },
+    { status: 410 }
+  );
 }

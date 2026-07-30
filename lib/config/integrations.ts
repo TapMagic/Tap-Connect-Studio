@@ -134,7 +134,7 @@ export function isMediaUploadReady(): boolean {
 }
 
 export function isStockImagesReady(): boolean {
-  return getIntegration("unsplash").configured || getIntegration("pexels").configured;
+  return getIntegration("pexels").configured;
 }
 
 /** Web logo search works with Wikimedia + favicons; Logo.dev enhances results. */

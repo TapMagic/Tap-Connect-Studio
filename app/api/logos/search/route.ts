@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
 import { requireBusiness } from "@/lib/auth";
-import {
-  searchLogosAndIcons,
-  type LogoDevTheme,
-} from "@/lib/services/logo-search";
+import { signProviderCandidate } from "@/lib/media/candidate-token";
+import { getLogoDevProvider } from "@/lib/media/providers/logo-dev";
+import type { LogoDevTheme } from "@/lib/services/logo-search";
 
 export async function GET(request: Request) {
   try {
-    await requireBusiness();
+    const { business } = await requireBusiness();
 
     const { searchParams } = new URL(request.url);
     const query = (searchParams.get("q") ?? "").trim();
@@ -24,14 +23,44 @@ export async function GET(request: Request) {
       searchParams.get("greyscale") === "1" ||
       searchParams.get("greyscale") === "true";
 
-    const results = await searchLogosAndIcons(query, { theme, greyscale });
+    const result = await getLogoDevProvider().search({ query, theme, greyscale });
+    if (!result.ok) {
+      return NextResponse.json(
+        {
+          ok: false,
+          provider: "logo_dev",
+          logoDev: false,
+          unavailable: true,
+          code: result.code,
+          error: result.message,
+          message: result.message,
+          results: [],
+        },
+        { status: result.status }
+      );
+    }
+
     return NextResponse.json({
       ok: true,
       query,
       theme,
       greyscale,
-      results,
-      logoDev: Boolean(process.env.LOGO_DEV_TOKEN?.trim()),
+      results: result.candidates.map((candidate) => ({
+        id: `logo-dev-${candidate.providerAssetId}-${theme}-${greyscale ? "g" : "c"}`,
+        url: candidate.previewUrl,
+        thumb: candidate.thumbnailUrl,
+        alt: candidate.altText,
+        source: "logo_dev",
+        sourceUrl: candidate.sourcePageUrl,
+        providerId: candidate.providerAssetId,
+        width: candidate.width,
+        height: candidate.height,
+        rights: candidate.rightsNote,
+        attributionText: candidate.attributionText,
+        treatment: candidate.treatment,
+        candidateToken: signProviderCandidate(business.id, candidate),
+      })),
+      logoDev: true,
     });
   } catch (error) {
     console.error("Logo search error:", error);
