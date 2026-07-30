@@ -11,6 +11,10 @@ import {
 import { recordOperatorAlert } from "@/lib/fusion/studio/operator-alerts";
 import { collectDocumentMediaReferences } from "@/lib/media/document-usage";
 import { recordSavedDocumentAssetUsage } from "@/lib/media/service";
+import {
+  collectDocumentCreativeResourceReferences,
+  recordSavedDocumentResourceUsage,
+} from "@/lib/fusion/creative-platform/document-usage";
 import type { Prisma } from "@prisma/client";
 
 /** Builder owner-gate: PATCH records PublicationSnapshot on save/publish. */
@@ -171,6 +175,17 @@ export async function PATCH(request: Request) {
       where: { id },
       data,
     });
+    if (updates.contentBlocks !== undefined) {
+      await recordSavedDocumentResourceUsage({
+        businessId: business.id,
+        surface: "CAMPAIGN",
+        subjectId: campaign.id,
+        references: collectDocumentCreativeResourceReferences(
+          campaign.contentBlocks,
+          "$.contentBlocks"
+        ),
+      });
+    }
 
     const formSettings =
       updates.formSettings && typeof updates.formSettings === "object"
@@ -183,6 +198,15 @@ export async function PATCH(request: Request) {
         surface: "EMAIL",
         subjectId: campaign.id,
         usages: collectDocumentMediaReferences(
+          formSettings.emailResponse,
+          "$.formSettings.emailResponse"
+        ),
+      });
+      await recordSavedDocumentResourceUsage({
+        businessId: business.id,
+        surface: "EMAIL",
+        subjectId: campaign.id,
+        references: collectDocumentCreativeResourceReferences(
           formSettings.emailResponse,
           "$.formSettings.emailResponse"
         ),

@@ -164,6 +164,28 @@ enum CreativeSurfaceKind {
   COUPON
 }
 
+enum CreativeResourceKind {
+  COMPOSITION
+  TEXT_STYLE
+  BUTTON_STYLE
+  FRAME_TREATMENT
+  GRADIENT
+  BACKGROUND
+  PALETTE
+  MASK_FAVORITES
+  OFFER_LAYOUT
+  COUPON_LAYOUT
+  EMAIL_SECTION
+  CAMPAIGN_SECTION
+  TEMPLATE
+}
+
+enum CreativeResourceStatus {
+  DRAFT
+  APPROVED
+  DEPRECATED
+}
+
 // ─── Users & Business ────────────────────────────────────────────────────────
 
 model User {
@@ -176,14 +198,20 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships         BusinessUser[]
-  campaignsCreated    Campaign[]           @relation("CampaignCreatedBy")
-  campaignsUpdated    Campaign[]           @relation("CampaignUpdatedBy")
-  assignmentsMade     DeviceAssignment[]
-  scanSessions        ScanSession[]
-  approvedMediaAssets MediaAsset[]         @relation("MediaAssetApprovedBy")
-  mediaAssetFavorites MediaAssetFavorite[]
-  mediaAssetRecents   MediaAssetRecent[]
+  memberships               BusinessUser[]
+  campaignsCreated          Campaign[]                 @relation("CampaignCreatedBy")
+  campaignsUpdated          Campaign[]                 @relation("CampaignUpdatedBy")
+  assignmentsMade           DeviceAssignment[]
+  scanSessions              ScanSession[]
+  approvedMediaAssets       MediaAsset[]               @relation("MediaAssetApprovedBy")
+  mediaAssetFavorites       MediaAssetFavorite[]
+  mediaAssetRecents         MediaAssetRecent[]
+  creativeResourcesCreated  CreativeResource[]         @relation("CreativeResourceCreatedBy")
+  creativeResourcesUpdated  CreativeResource[]         @relation("CreativeResourceUpdatedBy")
+  creativeResourcesApproved CreativeResource[]         @relation("CreativeResourceApprovedBy")
+  creativeResourceRevisions CreativeResourceRevision[]
+  creativeResourceFavorites CreativeResourceFavorite[]
+  creativeResourceRecents   CreativeResourceRecent[]
 }
 
 model Business {
@@ -224,6 +252,10 @@ model Business {
   mediaAssetFavorites       MediaAssetFavorite[]
   mediaAssetRecents         MediaAssetRecent[]
   creativeAssetUsages       CreativeAssetUsage[]
+  creativeResources         CreativeResource[]
+  creativeResourceUsages    CreativeResourceUsage[]
+  creativeResourceFavorites CreativeResourceFavorite[]
+  creativeResourceRecents   CreativeResourceRecent[]
   savedTemplates            SavedTemplate[]
   journeyDrafts             JourneyDraft[]
   journeyPublishedVersions  JourneyPublishedVersion[]
@@ -754,6 +786,106 @@ model CreativeAssetUsage {
 
   @@unique([businessId, surface, subjectId, documentPath, mediaAssetId])
   @@index([businessId, mediaAssetId])
+}
+
+model CreativeResource {
+  id                String                 @id @default(cuid())
+  businessId        String
+  kind              CreativeResourceKind
+  name              String
+  activeNameKey     String?                @unique
+  status            CreativeResourceStatus @default(DRAFT)
+  currentRevisionId String?                @unique
+  createdById       String
+  updatedById       String
+  approvedById      String?
+  approvedAt        DateTime?
+  deletedAt         DateTime?
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+
+  business        Business                   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  createdBy       User                       @relation("CreativeResourceCreatedBy", fields: [createdById], references: [id])
+  updatedBy       User                       @relation("CreativeResourceUpdatedBy", fields: [updatedById], references: [id])
+  approvedBy      User?                      @relation("CreativeResourceApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  revisions       CreativeResourceRevision[] @relation("ResourceRevisions")
+  currentRevision CreativeResourceRevision?  @relation("CurrentResourceRevision", fields: [currentRevisionId], references: [id], onDelete: SetNull)
+  usages          CreativeResourceUsage[]
+  favorites       CreativeResourceFavorite[]
+  recents         CreativeResourceRecent[]
+
+  @@index([businessId, kind, status])
+  @@index([businessId, updatedAt])
+}
+
+model CreativeResourceRevision {
+  id            String   @id @default(cuid())
+  resourceId    String
+  version       Int
+  schemaVersion Int
+  payload       Json
+  createdById   String
+  createdAt     DateTime @default(now())
+
+  resource   CreativeResource        @relation("ResourceRevisions", fields: [resourceId], references: [id], onDelete: Cascade)
+  createdBy  User                    @relation(fields: [createdById], references: [id])
+  currentFor CreativeResource?       @relation("CurrentResourceRevision")
+  usages     CreativeResourceUsage[]
+
+  @@unique([resourceId, version])
+  @@index([resourceId, createdAt])
+}
+
+model CreativeResourceUsage {
+  id                 String              @id @default(cuid())
+  businessId         String
+  resourceId         String
+  resourceRevisionId String
+  surface            CreativeSurfaceKind
+  subjectId          String
+  documentPath       String
+  published          Boolean             @default(false)
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  business Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  resource CreativeResource         @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+  revision CreativeResourceRevision @relation(fields: [resourceRevisionId], references: [id], onDelete: Restrict)
+
+  @@unique([businessId, surface, subjectId, documentPath], map: "creative_resource_usage_subject_path_key")
+  @@index([businessId, resourceId])
+  @@index([businessId, resourceRevisionId])
+}
+
+model CreativeResourceFavorite {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  resourceId String
+  createdAt  DateTime @default(now())
+
+  business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource CreativeResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId, resourceId])
+  @@index([businessId, userId, createdAt])
+}
+
+model CreativeResourceRecent {
+  id         String   @id @default(cuid())
+  businessId String
+  userId     String
+  resourceId String
+  lastUsedAt DateTime @default(now())
+  useCount   Int      @default(1)
+
+  business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  resource CreativeResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId, resourceId])
+  @@index([businessId, userId, lastUsedAt])
 }
 
 model SavedTemplate {

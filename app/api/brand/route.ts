@@ -9,6 +9,10 @@ import {
 } from "@/lib/fusion/publication/snapshots";
 import { collectDocumentMediaReferences } from "@/lib/media/document-usage";
 import {
+  collectDocumentCreativeResourceReferences,
+  recordSavedDocumentResourceUsage,
+} from "@/lib/fusion/creative-platform/document-usage";
+import {
   MediaServiceError,
   recordSavedDocumentAssetUsage,
   resolveApprovedBrandLogo,
@@ -201,6 +205,15 @@ export async function PATCH(request: Request) {
         surface: "CARD",
         subjectId: brandKit.id,
         usages: collectDocumentMediaReferences(tapCard, "$.tapCard"),
+      });
+      await recordSavedDocumentResourceUsage({
+        businessId: business.id,
+        surface: "CARD",
+        subjectId: brandKit.id,
+        references: collectDocumentCreativeResourceReferences(
+          tapCard,
+          "$.tapCard"
+        ),
       });
     }
 
