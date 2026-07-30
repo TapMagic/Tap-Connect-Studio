@@ -1,25 +1,31 @@
 import type { Metadata } from "next";
-import { CardCenteredLanding } from "@/components/marketing/card-centered-landing";
-import { LANDING_HERO } from "@/lib/marketing/landing-card-centered";
+import { PublicExperienceLanding } from "@/components/marketing/public-experience-landing";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 
-export const dynamic = "force-dynamic";
-
 export const metadata: Metadata = {
-  title: "TapConnect — The Card. Studio around it.",
+  title: "TapConnect — Your business, ready to tap",
   description:
-    "TapConnect is the Card — a living customer relationship hub. TapConnect Studio is the operating system that creates, connects, keeps, operates, and proves that relationship. Capability availability varies by plan.",
+    "TapConnect learns about your business, prepares your Brand, and creates your first living Card—so every tap can become a useful customer relationship.",
   openGraph: {
-    title: "TapConnect — The Card. Studio around it.",
-    description: LANDING_HERO.subhead,
+    title: "TapConnect — Your business, ready to tap",
+    description:
+      "Tell us about your business. Review the Brand foundation, then Preview your first living Card.",
     url: "/",
-    images: [{ url: TAP_CONNECT_LOGO, width: 1200, height: 1200, alt: "TapConnect logo" }],
+    images: [
+      {
+        url: "/marketing/product/public-card.webp",
+        width: 1200,
+        height: 750,
+        alt: "TapConnect living Card",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "TapConnect — The Card. Studio around it.",
-    description: LANDING_HERO.subhead,
-    images: [TAP_CONNECT_LOGO],
+    title: "TapConnect — Your business, ready to tap",
+    description:
+      "Tell us about your business. Review the Brand foundation, then Preview your first living Card.",
+    images: ["/marketing/product/public-card.webp"],
   },
   alternates: { canonical: "/" },
 };
@@ -39,14 +45,14 @@ const LANDING_JSON_LD = {
       name: "TapConnect Studio",
       applicationCategory: "BusinessApplication",
       operatingSystem: "Web",
-      description: LANDING_HERO.subhead,
+      description:
+        "The operating system and capabilities surrounding the TapConnect living Card. Availability varies by plan.",
     },
   ],
 };
 
 /**
- * Card-centered public landing — SEO-readable without animation.
- * Studio Assembly enhances; static headings and copy remain indexable.
+ * Public acquisition experience — the full story remains readable without motion.
  */
 export default function Home() {
   return (
@@ -56,7 +62,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(LANDING_JSON_LD) }}
       />
       {/* Crawlable summary lives in visible sections below — avoid duplicate H1. */}
-      <CardCenteredLanding />
+      <PublicExperienceLanding />
     </>
   );
 }
