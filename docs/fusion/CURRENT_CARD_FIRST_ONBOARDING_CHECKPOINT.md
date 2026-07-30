@@ -1,6 +1,13 @@
 # TapConnect Card-First Onboarding Checkpoint
 
-Source commit: `fd46ad42d7b6bc95160d1e3bc901707d5129387a`
+Original audit base: `fd46ad42d7b6bc95160d1e3bc901707d5129387a`  
+Current implementation base: `9e7abb59265df388d1c769da9daae7342ebfe5c4`  
+Implementation branch: `tapconnect-card-first-onboarding-implementation`
+
+The current implementation base contains the completed Creative Platform. Card-first onboarding
+must consume its Shared Media Browser, provider boundaries, durable provenance and approvals,
+Creative Studio controls, shared creative contracts, and Preview/Public renderers directly. The
+original audit remains historical context; it is not the implementation baseline.
 
 ## Locked Product Center
 
@@ -268,9 +275,9 @@ Do not hide the Card until the final onboarding screen.
 
 ## Reuse Existing Platform Work
 
-Preserve and reuse the completed Creative Studio work at source commit:
+Preserve and reuse the completed Creative Platform at implementation source commit:
 
-`fd46ad42d7b6bc95160d1e3bc901707d5129387a`
+`9e7abb59265df388d1c769da9daae7342ebfe5c4`
 
 Reuse:
 

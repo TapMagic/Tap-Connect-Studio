@@ -1,10 +1,33 @@
 # Card-First Onboarding Implementation Plan
 
-Status: implementation-ready proposal; no application implementation is authorized by this document  
+Status: implementation authorized; reconciled for the first vertical slice  
 Repository: `TapMagic/Tap-Connect-Studio`  
-Branch: `tapconnect-card-first-onboarding`  
-Audited checkpoint: `8e73f840aefcac18ed1992efa2b1bce79e9473e5`  
+Branch: `tapconnect-card-first-onboarding-implementation`  
+Original audit base: `fd46ad42d7b6bc95160d1e3bc901707d5129387a`  
+Current implementation base: `9e7abb59265df388d1c769da9daae7342ebfe5c4`  
 Target experience: **TELL US ABOUT YOUR BUSINESS → WE FOUND YOUR BRAND → HERE IS YOUR FIRST CARD**
+
+### Implementation-base reconciliation
+
+The implementation base includes the completed Creative Platform after the original audit. The
+Shared Media and Asset Browser, Logo.dev and Pexels boundaries, durable media provenance and
+approval, Creative Studio controls, reusable design resources, shared Card/Email/Campaign creative
+contracts, and Preview/Public renderers are now established platform capabilities. This slice
+integrates those systems rather than rebuilding the planned placeholders or parallel onboarding
+versions.
+
+The Owner decisions for implementation supersede unresolved recommendations in Section 30:
+
+- guarded homepage-only extraction with manual correction;
+- deterministic onboarding Autopilot on BASIC without OpenAI;
+- no Tap Point reservation, creation, assignment, or consumption;
+- progressive location capture and no full address unless the outcome requires it;
+- OWNER and MANAGER may approve and lock; MARKETING may edit/propose only; VIEWER is read-only;
+- customer Preview is required before onboarding completion;
+- PDF/document-text extraction remains deferred;
+- `BrandKit.tapCardDraft` is the saved draft and `BrandKit.tapCard` remains published;
+- legacy `tapCard` is copied to a draft only when its Owner first begins editing, not by a blanket
+  migration backfill, and the copy never changes public state.
 
 ## 1. Executive recommendation
 
@@ -431,7 +454,9 @@ Data contract:
 
 - Add `BrandKit.tapCardDraft`, `tapCardDraftUpdatedAt`, and a draft revision/hash.
 - Preserve `BrandKit.tapCard` as the currently published Card for backward compatibility.
-- On migration, copy every existing non-null `tapCard` into `tapCardDraft`; treat existing `tapCard` as already published so public behavior does not change.
+- Existing workspaces keep `tapCard` as published. If no draft exists, copy it to `tapCardDraft`
+  only when an authorized Owner first begins editing; the compatibility copy has no public side
+  effect.
 - Draft save validates and updates only draft fields. It does not create PublicationSnapshot, change `tapCard`, create an assignment, or emit a public event.
 - A future explicit publish operation validates the draft, copies draft to `tapCard`, records a PublicationSnapshot, and records actor/time. That operation is outside Slice 1.
 - Snapshot restore must eventually distinguish “restore as draft” from “republish”; the current immediate update to `tapCard` is not used by onboarding.
@@ -598,9 +623,10 @@ Create one additive migration:
 6. Enums for category, desired outcome, knowledge source/status/evidence, Brand decision status/scope.
 7. Extend the accepted Autopilot artifact-kind validation in code; keep `AutopilotProposal` JSON storage rather than adding provider-specific proposal tables.
 
-Backfill:
+Compatibility:
 
-- copy non-null `BrandKit.tapCard` to `tapCardDraft`;
+- do not blanket-copy published Cards during migration; lazily initialize `tapCardDraft` from a
+  non-null legacy `tapCard` only on the first authorized edit;
 - set `tapCardPublishedAt` for legacy non-null public Cards using the best existing timestamp and document the approximation;
 - leave new category/outcome/completion fields null for existing workspaces;
 - do not synthesize approval or provenance records for legacy Brand values. Treat them as legacy current values until the Owner reviews them.
@@ -758,10 +784,10 @@ Acceptance evidence should include desktop/tablet/mobile screenshots, keyboard/a
    Recommendation: no. Collect the permanent default Location progressively only when the selected outcome needs directions/local details.
 6. **Document extraction:** should uploaded PDF/text extraction enter Slice 1?  
    Recommendation: no. Preserve uploads and provenance now; defer extraction and review policy.
-7. **Role policy:** may MARKETING approve/lock Brand and save Card drafts, or only OWNER/MANAGER?  
-   Recommendation: allow MARKETING to edit/save drafts and approve non-business facts; reserve workspace identity, lock override, and publication for OWNER/MANAGER.
-8. **Onboarding completion:** is a saved draft sufficient, or must the Owner also complete customer preview?  
-   Recommendation: saved valid draft is sufficient; preview remains strongly prompted but not a completion blocker.
+7. **Role policy:** resolved. OWNER and MANAGER may approve and lock. MARKETING may edit and
+   propose but may not approve or lock. VIEWER is read-only.
+8. **Onboarding completion:** resolved. A valid saved draft and completed customer Preview are
+   both required. Preview remains view-only and does not publish.
 
 ## 31. Explicitly deferred items
 
