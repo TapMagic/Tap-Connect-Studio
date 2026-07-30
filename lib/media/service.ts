@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import type {
   CreativeSurfaceKind,
   MediaAsset,
+  Prisma,
 } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
@@ -354,4 +355,76 @@ export async function replaceAssetUsages(input: {
       skipDuplicates: true,
     }),
   ]);
+}
+
+export async function recordSavedDocumentAssetUsage(input: {
+  businessId: string;
+  userId: string;
+  surface: CreativeSurfaceKind;
+  subjectId: string;
+  usages: { mediaAssetId: string; documentPath: string }[];
+}): Promise<void> {
+  const unique = Array.from(
+    new Map(
+      input.usages.map((usage) => [
+        `${usage.mediaAssetId}:${usage.documentPath}`,
+        usage,
+      ])
+    ).values()
+  );
+  const mediaAssetIds = Array.from(new Set(unique.map((usage) => usage.mediaAssetId)));
+  if (mediaAssetIds.length) {
+    const count = await prisma.mediaAsset.count({
+      where: { businessId: input.businessId, id: { in: mediaAssetIds } },
+    });
+    if (count !== mediaAssetIds.length) {
+      throw new MediaServiceError("A media usage references another business", 404);
+    }
+  }
+
+  const operations: Prisma.PrismaPromise<unknown>[] = [
+    prisma.creativeAssetUsage.deleteMany({
+      where: {
+        businessId: input.businessId,
+        surface: input.surface,
+        subjectId: input.subjectId,
+      },
+    }),
+  ];
+  if (unique.length) {
+    operations.push(
+      prisma.creativeAssetUsage.createMany({
+        data: unique.map((usage) => ({
+          businessId: input.businessId,
+          surface: input.surface,
+          subjectId: input.subjectId,
+          mediaAssetId: usage.mediaAssetId,
+          documentPath: usage.documentPath,
+        })),
+      })
+    );
+    for (const mediaAssetId of mediaAssetIds) {
+      operations.push(
+        prisma.mediaAssetRecent.upsert({
+          where: {
+            businessId_userId_mediaAssetId: {
+              businessId: input.businessId,
+              userId: input.userId,
+              mediaAssetId,
+            },
+          },
+          create: {
+            businessId: input.businessId,
+            userId: input.userId,
+            mediaAssetId,
+          },
+          update: {
+            lastUsedAt: new Date(),
+            useCount: { increment: 1 },
+          },
+        })
+      );
+    }
+  }
+  await prisma.$transaction(operations);
 }

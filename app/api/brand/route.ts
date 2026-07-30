@@ -7,6 +7,8 @@ import {
   snapshotCardBeforeUpdate,
   type CardPublishManifest,
 } from "@/lib/fusion/publication/snapshots";
+import { collectDocumentMediaReferences } from "@/lib/media/document-usage";
+import { recordSavedDocumentAssetUsage } from "@/lib/media/service";
 import type { Prisma } from "@prisma/client";
 
 const schema = z.object({
@@ -195,6 +197,16 @@ export async function PATCH(request: Request) {
           ...(website !== undefined ? { website } : {}),
           ...(phone !== undefined ? { phone } : {}),
         },
+      });
+    }
+
+    if (tapCard !== undefined) {
+      await recordSavedDocumentAssetUsage({
+        businessId: business.id,
+        userId: user.id,
+        surface: "CARD",
+        subjectId: brandKit.id,
+        usages: collectDocumentMediaReferences(tapCard, "$.tapCard"),
       });
     }
 

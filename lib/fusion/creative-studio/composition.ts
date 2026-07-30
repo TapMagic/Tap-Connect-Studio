@@ -285,6 +285,9 @@ export type CreativeCompositionBlock = {
     pattern?: SurfacePatternModel;
     image?: {
       src: string;
+      /** Durable reference for new edits; src remains the version-1 fallback URL. */
+      mediaAssetId?: string;
+      fallbackUrl?: string;
       fit: "cover" | "contain" | "fill" | "original";
       focalX: number;
       focalY: number;

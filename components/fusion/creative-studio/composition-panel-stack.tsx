@@ -326,14 +326,13 @@ export function CompositionPanelStack({
             ) : null}
             {node?.primitive === "image" ? (
               <div className="space-y-2 border-t border-white/10 pt-2" data-testid="composition-hub-image">
-                <Input
-                  value={String(node.props.src || "")}
-                  placeholder="Image URL"
-                  data-testid="composition-hub-image-src"
-                  onChange={(e) =>
-                    patchNode(node.id, { props: { src: e.target.value } }, "Set composition image")
-                  }
-                />
+                <p className="truncate text-[11px] text-white/50" data-testid="composition-hub-image-src">
+                  {node.props.mediaAssetId
+                    ? `Studio asset · ${String(node.props.mediaAssetId)}`
+                    : node.props.src
+                      ? "Legacy image URL"
+                      : "No image selected"}
+                </p>
               </div>
             ) : null}
             {node?.primitive === "border" ? (
@@ -727,16 +726,19 @@ export function CompositionPanelStack({
         <div className="space-y-3" data-testid="composition-panel-image">
           <MediaPicker
             value={String(node.props.src || "")}
+            valueAssetId={String(node.props.mediaAssetId || "") || undefined}
             label="Composition image"
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
-            onChange={(url) =>
+            onAssetChange={(asset) =>
               patchNode(
                 node.id,
                 {
                   props: {
-                    src: url,
-                    originalSrc: node.props.originalSrc || url,
+                    src: asset?.url || "",
+                    fallbackUrl: asset?.url || "",
+                    mediaAssetId: asset?.mediaAssetId,
+                    originalSrc: node.props.originalSrc || asset?.url || "",
                   },
                 },
                 "Selected composition image"
@@ -983,13 +985,20 @@ export function CompositionPanelStack({
         <div className="space-y-3" data-testid="composition-panel-frame">
           <MediaPicker
             value={String(node.props.mediaSrc || node.props.src || "")}
+            valueAssetId={String(node.props.mediaAssetId || "") || undefined}
             label="Frame media"
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
-            onChange={(url) =>
+            onAssetChange={(asset) =>
               patchNode(
                 node.id,
-                { props: { mediaSrc: url } },
+                {
+                  props: {
+                    mediaSrc: asset?.url || "",
+                    fallbackUrl: asset?.url || "",
+                    mediaAssetId: asset?.mediaAssetId,
+                  },
+                },
                 "Selected frame media"
               )
             }
@@ -1775,11 +1784,19 @@ export function CompositionPanelStack({
             <div className="space-y-3" data-testid="composition-background-image-controls">
               <MediaPicker
                 value={block.background.image?.src || ""}
+                valueAssetId={block.background.image?.mediaAssetId}
                 label="Composition background image"
                 mediaUploadReady={mediaUploadReady}
                 stockReady={stockReady}
-                onChange={(src) =>
-                  patchBackgroundImage({ src }, "Selected composition background image")
+                onAssetChange={(asset) =>
+                  patchBackgroundImage(
+                    {
+                      src: asset?.url || "",
+                      fallbackUrl: asset?.url || "",
+                      mediaAssetId: asset?.mediaAssetId,
+                    },
+                    "Selected composition background image"
+                  )
                 }
               />
               <Label className="text-xs">Fit</Label>
