@@ -20,6 +20,7 @@ import { AppearancePanelStack } from "@/components/fusion/creative-studio/appear
 import { SelectionPanelStack } from "@/components/fusion/creative-studio/selection-panel-stack";
 import { HistoryPanel } from "@/components/fusion/creative-studio/history-panel";
 import { CardOutlineRow } from "@/components/fusion/card/card-outline-row";
+import { AskTapConnectDrawer } from "@/components/fusion/ask/ask-tapconnect-drawer";
 import {
   createStarterCreativeComposition,
   parseCreativeComposition,
@@ -220,6 +221,22 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
           defaultForegroundColor={config.textColor}
         />
       </div>
+    );
+  }
+
+  if (resolved === "ask-tapconnect" || resolved === "ask") {
+    return (
+      <AskTapConnectDrawer
+        workspace="Card"
+        selectionLabel={selected ? selected.label || selected.type : null}
+        aiLive={false}
+        canUndo={props.canUndo}
+        onUndo={props.onUndo}
+        onReject={() => props.setSelectedId(null)}
+        onApplyDraft={() => {
+          /* Draft apply stays host-owned; Card uses Undo for reversibility. */
+        }}
+      />
     );
   }
 

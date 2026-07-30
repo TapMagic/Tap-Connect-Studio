@@ -215,6 +215,16 @@ export type TapCardSection = {
   imageWidthPercent?: number;
   imageRadius?: TapCardButtonShape;
   altText?: string;
+  /** Image fit for Card media blocks */
+  objectFit?: "cover" | "contain" | "fill";
+  decorative?: boolean;
+  rotation?: number;
+  flipX?: boolean;
+  flipY?: boolean;
+  brightness?: number;
+  contrast?: number;
+  saturation?: number;
+  blur?: number;
   /**
    * Creative Composition Block payload (when type === "creative_composition").
    */
