@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Bell,
@@ -10,6 +10,7 @@ import {
   Command,
   Plus,
   Search,
+  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,6 +24,7 @@ import {
 import { recipesByGroup } from "@/lib/fusion/studio/create-recipes";
 import { safeDisplayLabel } from "@/lib/fusion/readiness/display-status";
 import { StudioHelpDrawer } from "@/components/studio/studio-help-drawer";
+import { AskTapConnectDrawer } from "@/components/fusion/ask/ask-tapconnect-drawer";
 import { cn } from "@/lib/utils";
 
 export function StudioTopBar({
@@ -48,9 +50,11 @@ export function StudioTopBar({
   const notificationsBtnRef = useRef<HTMLButtonElement>(null);
   const createMenuRef = useRef<HTMLDivElement>(null);
   const notificationsMenuRef = useRef<HTMLDivElement>(null);
+  const pathname = usePathname();
   const [createOpen, setCreateOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const [query, setQuery] = useState("");
 
   const index = useMemo(() => studioSearchIndex(), []);
@@ -430,6 +434,48 @@ export function StudioTopBar({
           </div>
         ) : null}
       </div>
+
+      <button
+        type="button"
+        data-testid="ask-tapconnect-global"
+        className="inline-flex min-h-9 items-center gap-1.5 rounded-lg border border-white/15 bg-white/[0.03] px-2.5 text-xs font-medium text-white/80 hover:border-white/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        onClick={() => setAskOpen(true)}
+        title="Ask TapConnect"
+      >
+        <Sparkles className="h-3.5 w-3.5" aria-hidden />
+        <span className="hidden sm:inline">Ask TapConnect</span>
+      </button>
+
+      {askOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-end bg-black/55 p-3 sm:p-6"
+          role="presentation"
+          onClick={() => setAskOpen(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ask TapConnect"
+            className="max-h-[min(90dvh,40rem)] w-full max-w-md overflow-y-auto rounded-2xl border border-white/12 bg-[#0d1320] p-4 shadow-2xl"
+            data-testid="ask-tapconnect-global-dialog"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <AskTapConnectDrawer
+              workspace={pathname?.startsWith("/dashboard") ? pathname : "Studio"}
+              aiLive={false}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="mt-3 w-full"
+              onClick={() => setAskOpen(false)}
+            >
+              Close
+            </Button>
+          </div>
+        </div>
+      ) : null}
 
       <StudioHelpDrawer />
 

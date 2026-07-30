@@ -186,6 +186,17 @@ export const CARD_AUTHORING_TOOLS: WorkspaceToolDefinition[] = [
     workspaceIds: ["card-authoring"],
   },
   {
+    id: "ask-tapconnect",
+    label: "Ask TapConnect",
+    icon: "Sparkles",
+    recommendedDrawerMode: "balanced",
+    mobileSheetMode: "balanced",
+    supportsSelectionMemory: true,
+    supportsResize: true,
+    featureReadiness: "partial",
+    workspaceIds: ["card-authoring"],
+  },
+  {
     id: "content",
     label: "Inspector",
     icon: "PanelRight",
