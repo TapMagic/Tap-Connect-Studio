@@ -34,23 +34,6 @@ function failure(
   return { ok: false, provider: "logo_dev", code, status, message };
 }
 
-function proxyUrl(input: {
-  domain?: string;
-  name?: string;
-  theme: LogoDevTheme;
-  greyscale: boolean;
-  size: number;
-}): string {
-  const params = new URLSearchParams({
-    theme: input.theme,
-    size: String(input.size),
-  });
-  if (input.domain) params.set("domain", input.domain);
-  if (input.name) params.set("name", input.name);
-  if (input.greyscale) params.set("greyscale", "1");
-  return `/api/logos/image?${params}`;
-}
-
 function normalizeLogoDevHit(
   hit: LogoSearchHit,
   input: Required<Pick<LogoDevSearchInput, "theme" | "greyscale">>
@@ -97,25 +80,11 @@ function fixtureResult(
     scenario === "empty"
       ? []
       : fixture.results.map((result) => {
-          const previewUrl = proxyUrl({
-            domain: result.domain,
-            name: result.domain ? undefined : result.name,
-            theme: input.theme,
-            greyscale: input.greyscale,
-            size: 256,
-          });
-          const thumbnailUrl = proxyUrl({
-            domain: result.domain,
-            name: result.domain ? undefined : result.name,
-            theme: input.theme,
-            greyscale: input.greyscale,
-            size: 128,
-          });
           return normalizeLogoDevHit(
             {
               id: result.id,
-              url: previewUrl,
-              thumb: thumbnailUrl,
+              url: "/tap-connect-logo.png",
+              thumb: "/tap-connect-logo.png",
               alt: `${result.name} logo`,
               source: "logo_dev",
               domain: result.domain,

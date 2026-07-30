@@ -3,9 +3,31 @@ import {
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
+import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import path from "node:path";
 import { isMediaUploadReady } from "@/lib/config/integrations";
 
 let client: S3Client | null = null;
+const LOCAL_STORAGE_ROOT = path.join(
+  process.cwd(),
+  "tmp",
+  "creative-media-storage"
+);
+
+export function localMediaStorageEnabled(): boolean {
+  return (
+    process.env.NODE_ENV !== "production" &&
+    process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture"
+  );
+}
+
+function localMediaPath(storageKey: string): string {
+  const resolved = path.resolve(LOCAL_STORAGE_ROOT, storageKey);
+  if (!resolved.startsWith(`${LOCAL_STORAGE_ROOT}${path.sep}`)) {
+    throw new Error("Invalid local media storage key");
+  }
+  return resolved;
+}
 
 function r2Client(): S3Client {
   if (client) return client;
@@ -34,7 +56,17 @@ export function extensionForMime(mimeType: string): string {
 }
 
 export function publicMediaUrl(storageKey: string): string {
+  if (localMediaStorageEnabled()) {
+    return `/api/media/local?key=${encodeURIComponent(storageKey)}`;
+  }
   return `${process.env.R2_PUBLIC_URL!.replace(/\/$/, "")}/${storageKey}`;
+}
+
+export async function readLocalMediaObject(storageKey: string): Promise<Buffer> {
+  if (!localMediaStorageEnabled()) {
+    throw new Error("Local media storage is disabled");
+  }
+  return readFile(localMediaPath(storageKey));
 }
 
 export async function putMediaObject(input: {
@@ -43,6 +75,15 @@ export async function putMediaObject(input: {
   mimeType: string;
 }): Promise<string> {
   requireMediaStorage();
+  if (localMediaStorageEnabled()) {
+    const filePath = localMediaPath(input.storageKey);
+    await mkdir(path.dirname(filePath), { recursive: true });
+    await writeFile(filePath, input.bytes, { flag: "wx", mode: 0o600 }).catch(async (error) => {
+      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      await writeFile(filePath, input.bytes);
+    });
+    return publicMediaUrl(input.storageKey);
+  }
   await r2Client().send(
     new PutObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,
@@ -56,6 +97,10 @@ export async function putMediaObject(input: {
 
 export async function deleteMediaObject(storageKey: string): Promise<void> {
   if (!isMediaUploadReady()) return;
+  if (localMediaStorageEnabled()) {
+    await rm(localMediaPath(storageKey), { force: true });
+    return;
+  }
   await r2Client().send(
     new DeleteObjectCommand({
       Bucket: process.env.R2_BUCKET_NAME!,

@@ -1,4 +1,6 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { nanoid } from "nanoid";
 import type {
   CreativeSurfaceKind,
@@ -7,9 +9,15 @@ import type {
 } from "@prisma/client";
 import type { SessionUser } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { providerFixtureModeEnabled } from "@/lib/media/providers/types";
 import { logoDevUpstreamUrl } from "@/lib/services/logo-search";
 import type { VerifiedProviderCandidate } from "./candidate-token";
-import { fetchRemoteImage, MAX_MEDIA_BYTES, sniffImageMime } from "./remote-image";
+import {
+  fetchRemoteImage,
+  MAX_MEDIA_BYTES,
+  sniffImageMime,
+  type RemoteImage,
+} from "./remote-image";
 import {
   deleteMediaObject,
   extensionForMime,
@@ -67,6 +75,27 @@ function providerImportUrl(payload: VerifiedProviderCandidate): string {
   return upstream;
 }
 
+async function fixtureProviderImage(
+  provider: VerifiedProviderCandidate["candidate"]["provider"]
+): Promise<RemoteImage> {
+  if (!providerFixtureModeEnabled()) {
+    throw new Error("Fixture provider media is disabled");
+  }
+  const relativePath =
+    provider === "logo_dev"
+      ? "tap-connect-logo.png"
+      : path.join("marketing", "use-cases", "boutiques.jpg");
+  const bytes = await readFile(path.join(process.cwd(), "public", relativePath));
+  const mimeType = sniffImageMime(bytes);
+  if (!mimeType) throw new Error("Checked-in provider fixture is not a supported image");
+  return {
+    finalUrl: `fixture://${provider}/${relativePath}`,
+    bytes,
+    mimeType,
+    declaredSize: bytes.byteLength,
+  };
+}
+
 export async function importProviderCandidate(
   payload: VerifiedProviderCandidate,
   dependencies: MediaImportDependencies = defaultImportDependencies
@@ -83,7 +112,9 @@ export async function importProviderCandidate(
   });
   if (existing) return existing;
 
-  const remote = await dependencies.fetchRemoteImage(providerImportUrl(payload));
+  const remote = providerFixtureModeEnabled()
+    ? await fixtureProviderImage(candidate.provider)
+    : await dependencies.fetchRemoteImage(providerImportUrl(payload));
   const contentHash = createHash("sha256").update(remote.bytes).digest("hex");
   const extension = extensionForMime(remote.mimeType);
   const storageKey = `${businessId}/imports/${candidate.provider}/${safeSegment(

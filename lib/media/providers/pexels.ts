@@ -138,16 +138,18 @@ function fixtureResult(
   const candidates =
     scenario === "empty"
       ? []
-      : pageFixture.photos.map((photo) =>
-          normalizePhoto(
+      : pageFixture.photos.map((photo) => ({
+          ...normalizePhoto(
             {
               ...photo,
               photographer_url: photo.photographerUrl,
               src: { large: photo.large, medium: photo.medium },
             },
             input.query
-          )
-        );
+          ),
+          previewUrl: "/marketing/use-cases/boutiques.jpg",
+          thumbnailUrl: "/marketing/use-cases/boutiques.jpg",
+        }));
   return {
     ok: true,
     provider: "pexels",

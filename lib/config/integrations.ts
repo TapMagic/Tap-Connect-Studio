@@ -130,11 +130,19 @@ export function getIntegration(id: IntegrationId): IntegrationStatus {
 
 export function isMediaUploadReady(): boolean {
   // R2 alone is enough for server-side uploads; UploadThing is optional UX helper.
-  return getIntegration("r2").configured && Boolean(process.env.R2_PUBLIC_URL?.trim());
+  return (
+    (getIntegration("r2").configured && Boolean(process.env.R2_PUBLIC_URL?.trim())) ||
+    (process.env.NODE_ENV !== "production" &&
+      process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture")
+  );
 }
 
 export function isStockImagesReady(): boolean {
-  return getIntegration("pexels").configured;
+  return (
+    getIntegration("pexels").configured ||
+    (process.env.NODE_ENV !== "production" &&
+      process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture")
+  );
 }
 
 /** Web logo search works with Wikimedia + favicons; Logo.dev enhances results. */

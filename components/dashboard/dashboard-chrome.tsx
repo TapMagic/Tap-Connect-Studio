@@ -9,6 +9,7 @@ import { useCallback, useEffect, useState, type ReactNode } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { PanelLeft, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SharedMediaBrowserProvider } from "@/components/media/shared-media-browser-provider";
 
 const ESCAPE_PREFIXES = [
   "/dashboard/card/edit",
@@ -153,7 +154,7 @@ export function DashboardChrome({
           )}
           data-testid="dashboard-main"
         >
-          {children}
+          <SharedMediaBrowserProvider>{children}</SharedMediaBrowserProvider>
         </main>
       </div>
     </div>

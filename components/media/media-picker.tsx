@@ -5,6 +5,7 @@ import { ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { SharedMediaAssetBrowser } from "@/components/media/shared-media-asset-browser";
+import { useSharedMediaBrowser } from "@/components/media/shared-media-browser-provider";
 import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
 
 interface MediaPickerProps {
@@ -28,6 +29,7 @@ export function MediaPicker({
   stockReady = false,
 }: MediaPickerProps) {
   const [browserOpen, setBrowserOpen] = useState(false);
+  const sharedBrowser = useSharedMediaBrowser();
 
   function chooseAsset(asset: MediaAssetCandidate) {
     onChange?.(asset.url);
@@ -37,6 +39,19 @@ export function MediaPicker({
   function clearAsset() {
     onChange?.("");
     onAssetChange?.(null);
+  }
+
+  function openMediaBrowser() {
+    if (sharedBrowser) {
+      sharedBrowser.openBrowser({
+        onSelect: chooseAsset,
+        mediaUploadReady,
+        stockReady,
+        selectionKind: label.toLowerCase().includes("logo") ? "logo" : "any",
+      });
+      return;
+    }
+    setBrowserOpen(true);
   }
 
   return (
@@ -61,7 +76,7 @@ export function MediaPicker({
                 type="button"
                 size="sm"
                 variant="outline"
-                onClick={() => setBrowserOpen(true)}
+                onClick={openMediaBrowser}
               >
                 Replace
               </Button>
@@ -82,7 +97,7 @@ export function MediaPicker({
           type="button"
           className="min-h-11 w-full"
           variant="outline"
-          onClick={() => setBrowserOpen(true)}
+          onClick={openMediaBrowser}
           data-testid="open-shared-media-browser"
         >
           <ImageIcon className="mr-2 h-4 w-4" />
@@ -95,14 +110,16 @@ export function MediaPicker({
         shared browser.
       </p>
 
-      <SharedMediaAssetBrowser
-        open={browserOpen}
-        onClose={() => setBrowserOpen(false)}
-        onSelect={chooseAsset}
-        mediaUploadReady={mediaUploadReady}
-        stockReady={stockReady}
-        selectionKind={label.toLowerCase().includes("logo") ? "logo" : "any"}
-      />
+      {!sharedBrowser ? (
+        <SharedMediaAssetBrowser
+          open={browserOpen}
+          onClose={() => setBrowserOpen(false)}
+          onSelect={chooseAsset}
+          mediaUploadReady={mediaUploadReady}
+          stockReady={stockReady}
+          selectionKind={label.toLowerCase().includes("logo") ? "logo" : "any"}
+        />
+      ) : null}
     </div>
   );
 }

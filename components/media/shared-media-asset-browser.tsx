@@ -35,6 +35,25 @@ type BrowserTab =
   | "upload"
   | "url";
 
+type ProviderState =
+  | "checking"
+  | "ready"
+  | "fixture"
+  | "not_configured"
+  | "rate_limited"
+  | "unavailable";
+
+type ProviderStatus = {
+  state: ProviderState;
+  label:
+    | "Checking…"
+    | "Ready"
+    | "Fixture mode"
+    | "Not configured"
+    | "Rate limited"
+    | "Unavailable";
+};
+
 type ApiAsset = {
   id: string;
   url: string;
@@ -184,6 +203,13 @@ export function SharedMediaAssetBrowser({
   const [url, setUrl] = useState("");
   const [busy, setBusy] = useState<string | null>(null);
   const [status, setStatus] = useState<string | null>(null);
+  const [providerStatus, setProviderStatus] = useState<{
+    pexels: ProviderStatus;
+    logo_dev: ProviderStatus;
+  }>({
+    pexels: { state: "checking", label: "Checking…" },
+    logo_dev: { state: "checking", label: "Checking…" },
+  });
 
   const loadLibrary = useCallback(async () => {
     const response = await fetch("/api/media");
@@ -192,12 +218,27 @@ export function SharedMediaAssetBrowser({
     setLibrary((data.assets || []).map(libraryCandidate));
   }, []);
 
+  const loadProviderStatus = useCallback(async () => {
+    try {
+      const response = await fetch("/api/media/providers/status");
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Provider status unavailable");
+      setProviderStatus(data.providers);
+    } catch (error) {
+      setProviderStatus({
+        pexels: { state: "unavailable", label: "Unavailable" },
+        logo_dev: { state: "unavailable", label: "Unavailable" },
+      });
+      throw error;
+    }
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     openerRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     const timer = window.setTimeout(() => {
       closeRef.current?.focus();
-      void loadLibrary().catch((error) =>
+      void Promise.all([loadLibrary(), loadProviderStatus()]).catch((error) =>
         setStatus(error instanceof Error ? error.message : "Asset library unavailable")
       );
     }, 0);
@@ -205,7 +246,15 @@ export function SharedMediaAssetBrowser({
       window.clearTimeout(timer);
       openerRef.current?.focus();
     };
-  }, [open, loadLibrary]);
+  }, [open, loadLibrary, loadProviderStatus]);
+
+  function selectTab(id: BrowserTab) {
+    setTab(id);
+    setResults([]);
+    setSelected(null);
+    setStatus(null);
+    if (id === "pexels" || id === "logo_dev") setQuery("");
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -283,6 +332,14 @@ export function SharedMediaAssetBrowser({
       const data = await response.json();
       if (!response.ok) {
         setResults([]);
+        const provider = tab === "pexels" ? "pexels" : "logo_dev";
+        const nextStatus: ProviderStatus =
+          data.code === "not_configured"
+            ? { state: "not_configured", label: "Not configured" }
+            : data.code === "rate_limited"
+              ? { state: "rate_limited", label: "Rate limited" }
+              : { state: "unavailable", label: "Unavailable" };
+        setProviderStatus((current) => ({ ...current, [provider]: nextStatus }));
         setStatus(
           `${data.message || data.error || "Provider unavailable"} Upload an image or retry this source.`
         );
@@ -415,11 +472,17 @@ export function SharedMediaAssetBrowser({
         const data = await response.json();
         if (!response.ok || !data.asset) throw new Error(data.error || "Import failed");
         finalAsset = libraryCandidate(data.asset);
-        setLibrary((current) => [
-          finalAsset,
-          ...current.filter((item) => item.id !== finalAsset.id),
-        ]);
       }
+      if (!finalAsset.mediaAssetId) throw new Error("Stored media asset identity is missing");
+      const usedResponse = await fetch(`/api/media/${finalAsset.mediaAssetId}/used`, {
+        method: "POST",
+      });
+      if (!usedResponse.ok) throw new Error("Recent activity could not be recorded");
+      finalAsset = { ...finalAsset, recentAt: new Date().toISOString() };
+      setLibrary((current) => [
+        finalAsset,
+        ...current.filter((item) => item.id !== finalAsset.id),
+      ]);
       onSelect(finalAsset);
       onClose();
     } catch (error) {
@@ -471,8 +534,29 @@ export function SharedMediaAssetBrowser({
           </Button>
         </header>
 
+        <div className="border-b border-white/10 p-2 sm:hidden">
+          <Label htmlFor="media-source-select" className="sr-only">
+            Media source
+          </Label>
+          <select
+            id="media-source-select"
+            value={tab}
+            onChange={(event) => selectTab(event.target.value as BrowserTab)}
+            className="min-h-11 w-full rounded-lg border border-white/20 bg-[#090d16] px-3 text-sm text-white"
+            data-testid="media-source-select"
+          >
+            {TABS.map(({ id, label }) => (
+              <option key={id} value={id}>
+                {label}
+                {id === "pexels" || id === "logo_dev"
+                  ? ` — ${providerStatus[id].label}`
+                  : ""}
+              </option>
+            ))}
+          </select>
+        </div>
         <div
-          className="flex shrink-0 gap-1 overflow-x-auto border-b border-white/10 p-2"
+          className="hidden shrink-0 gap-1 overflow-x-auto border-b border-white/10 p-2 sm:flex"
           role="tablist"
           aria-label="Media sources"
         >
@@ -483,13 +567,7 @@ export function SharedMediaAssetBrowser({
               role="tab"
               aria-selected={tab === id}
               data-testid={`media-source-${id}`}
-              onClick={() => {
-                setTab(id);
-                setResults([]);
-                setSelected(null);
-                setStatus(null);
-                if (id === "pexels" || id === "logo_dev") setQuery("");
-              }}
+              onClick={() => selectTab(id)}
               className={cn(
                 "inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg border px-3 text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60",
                 tab === id
@@ -499,6 +577,14 @@ export function SharedMediaAssetBrowser({
             >
               <Icon className="h-3.5 w-3.5" aria-hidden />
               {label}
+              {id === "pexels" || id === "logo_dev" ? (
+                <span
+                  className="rounded-full border border-white/15 px-1.5 py-0.5 text-[9px] text-white/60"
+                  data-testid={`provider-status-${id}`}
+                >
+                  {providerStatus[id].label}
+                </span>
+              ) : null}
             </button>
           ))}
         </div>
@@ -507,6 +593,17 @@ export function SharedMediaAssetBrowser({
           <div className="flex min-h-0 flex-1 flex-col border-b border-white/10 lg:border-b-0 lg:border-r">
             {showGrid ? (
               <div className="space-y-2 border-b border-white/10 p-3">
+                {providerSearch ? (
+                  <div
+                    className="flex items-center justify-between rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-xs"
+                    data-testid={`provider-readiness-${tab}`}
+                  >
+                    <span>{tab === "pexels" ? "Pexels" : "Logo.dev"} availability</span>
+                    <span className="font-medium text-white">
+                      {providerStatus[tab === "pexels" ? "pexels" : "logo_dev"].label}
+                    </span>
+                  </div>
+                ) : null}
                 <div className="flex gap-2">
                   <label className="relative flex-1">
                     <span className="sr-only">{providerSearch ? `Search ${tab}` : "Filter assets"}</span>
