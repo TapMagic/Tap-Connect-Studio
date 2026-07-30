@@ -44,7 +44,12 @@ export type LibraryAsset = {
   recentAt: string | null;
   createdAt: string;
   /** Where this asset is currently used (Card / Campaign / Brand logo). */
-  usedIn: { label: string; href: string; detail?: string }[];
+  usedIn: {
+    label: string;
+    href: string;
+    detail?: string;
+    developerPath?: string;
+  }[];
   isBrandLogo: boolean;
 };
 
@@ -606,6 +611,12 @@ export function AssetsLibrary({
                           </Link>
                           {u.detail ? (
                             <span className="ml-1 text-white/40">· {u.detail}</span>
+                          ) : null}
+                          {u.developerPath ? (
+                            <details className="mt-1 text-[10px] text-white/35">
+                              <summary className="cursor-pointer">Developer details</summary>
+                              <code className="mt-1 block break-all">{u.developerPath}</code>
+                            </details>
                           ) : null}
                         </li>
                       ))}

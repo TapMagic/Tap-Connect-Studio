@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { isMediaUploadReady } from "@/lib/config/integrations";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
+import { ownerMediaUsageLabel } from "@/lib/media/usage-labels";
 import {
   AssetsLibrary,
   type LibraryAsset,
@@ -59,8 +60,14 @@ export default async function AssetsHubPage() {
   const hasBrand = Boolean(business.logoUrl || brandKit);
 
   // Build a URL -> usage map so each asset can show truthful "used in".
-  const usage = new Map<string, { label: string; href: string; detail?: string }[]>();
-  function record(url: string, entry: { label: string; href: string; detail?: string }) {
+  const usage = new Map<
+    string,
+    { label: string; href: string; detail?: string; developerPath?: string }[]
+  >();
+  function record(
+    url: string,
+    entry: { label: string; href: string; detail?: string; developerPath?: string }
+  ) {
     if (!url) return;
     const list = usage.get(url) ?? [];
     if (!list.some((e) => e.label === entry.label && e.href === entry.href)) {
@@ -71,7 +78,7 @@ export default async function AssetsHubPage() {
 
   if (business.logoUrl) {
     record(business.logoUrl, {
-      label: "Brand Kit logo",
+      label: "Brand logo",
       href: "/dashboard/brand/edit",
       detail: "Identity mark",
     });
@@ -99,19 +106,14 @@ export default async function AssetsHubPage() {
 
   const libraryAssets: LibraryAsset[] = assets.map((asset) => {
     const durableUsage = asset.usages.map((item) => ({
-      label:
-        item.surface === "CARD"
-          ? "Your Card"
-          : item.surface === "EMAIL"
-            ? "Campaign email"
-            : `${item.surface[0]}${item.surface.slice(1).toLowerCase()}`,
+      label: ownerMediaUsageLabel(item.surface, item.documentPath),
       href:
         item.surface === "CARD"
           ? "/dashboard/card/edit"
           : item.surface === "EMAIL"
             ? `/dashboard/campaigns/${item.subjectId}/email`
             : `/dashboard/campaigns/${item.subjectId}`,
-      detail: item.documentPath,
+      developerPath: item.documentPath,
     }));
     return {
       id: asset.id,
