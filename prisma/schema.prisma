@@ -141,6 +141,29 @@ enum ButtonStyle {
   SOFT
 }
 
+enum MediaApprovalStatus {
+  UNREVIEWED
+  APPROVED
+  REJECTED
+}
+
+enum MediaLicenseCode {
+  OWNER_SUPPLIED
+  PEXELS
+  NO_LICENSE_ASSERTED
+  EXTERNAL_UNVERIFIED
+  OTHER
+}
+
+enum CreativeSurfaceKind {
+  CARD
+  EMAIL
+  CAMPAIGN
+  SPOTLIGHT
+  OFFER
+  COUPON
+}
+
 // ─── Users & Business ────────────────────────────────────────────────────────
 
 model User {
@@ -153,11 +176,14 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  memberships      BusinessUser[]
-  campaignsCreated Campaign[]     @relation("CampaignCreatedBy")
-  campaignsUpdated Campaign[]     @relation("CampaignUpdatedBy")
-  assignmentsMade  DeviceAssignment[]
-  scanSessions     ScanSession[]
+  memberships         BusinessUser[]
+  campaignsCreated    Campaign[]           @relation("CampaignCreatedBy")
+  campaignsUpdated    Campaign[]           @relation("CampaignUpdatedBy")
+  assignmentsMade     DeviceAssignment[]
+  scanSessions        ScanSession[]
+  approvedMediaAssets MediaAsset[]         @relation("MediaAssetApprovedBy")
+  mediaAssetFavorites MediaAssetFavorite[]
+  mediaAssetRecents   MediaAssetRecent[]
 }
 
 model Business {
@@ -169,7 +195,9 @@ model Business {
   phone               String?
   email               String?
   googleReviewUrl     String?
-  /** IANA timezone, e.g. America/New_York — used when a group has no timezone set */
+  /**
+   * IANA timezone, e.g. America/New_York — used when a group has no timezone set
+   */
   timezone            String             @default("America/New_York")
   complianceCategory  ComplianceCategory @default(GENERAL)
   subscriptionTier    PlanTier           @default(BASIC)
@@ -180,57 +208,60 @@ model Business {
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
 
-  users        BusinessUser[]
-  brandKit     BrandKit?
-  locations    Location[]
-  devices      DeviceSlot[]
-  campaigns    Campaign[]
-  campaignGroups CampaignGroup[]
-  assignments  DeviceAssignment[]
-  leads        Lead[]
-  tapEvents    TapEvent[]
-  clickEvents  ClickEvent[]
-  scanSessions ScanSession[]
-  subscription Subscription?
-  mediaAssets  MediaAsset[]
-  savedTemplates SavedTemplate[]
-  journeyDrafts JourneyDraft[]
-  journeyPublishedVersions JourneyPublishedVersion[]
-  journeyExecutions JourneyExecution[]
-  journeyProviderEvents JourneyProviderEvent[]
-  scheduleRules ScheduleRule[]
-  groupSlots   CampaignGroupSlot[]
-  brandLinks   BrandLink[]
-  contacts     Contact[]
-  customerRelationships CustomerRelationship[]
-  consentRecords ConsentRecord[]
-  walletPasses WalletPass[]
-  messageThreads MessageThread[]
-  tapCases     TapCase[]
-  suppressions CommunicationSuppression[]
-  tapSaveMoments TapSaveMoment[]
-  autopilotProposals AutopilotProposal[]
-  loyaltyPrograms LoyaltyProgram[]
-  loyaltyEnrollments LoyaltyEnrollment[]
-  loyaltyLedgerEntries LoyaltyLedgerEntry[]
-  tapCanvasDocuments TapCanvasDocument[]
-  tikTokCasts TikTokCast[]
-  tikTokConnection TikTokConnection?
-  tikTokAuditLogs TikTokAuditLog[]
-  tapCastChannelVariants TapCastChannelVariant[]
+  users                     BusinessUser[]
+  brandKit                  BrandKit?
+  locations                 Location[]
+  devices                   DeviceSlot[]
+  campaigns                 Campaign[]
+  campaignGroups            CampaignGroup[]
+  assignments               DeviceAssignment[]
+  leads                     Lead[]
+  tapEvents                 TapEvent[]
+  clickEvents               ClickEvent[]
+  scanSessions              ScanSession[]
+  subscription              Subscription?
+  mediaAssets               MediaAsset[]
+  mediaAssetFavorites       MediaAssetFavorite[]
+  mediaAssetRecents         MediaAssetRecent[]
+  creativeAssetUsages       CreativeAssetUsage[]
+  savedTemplates            SavedTemplate[]
+  journeyDrafts             JourneyDraft[]
+  journeyPublishedVersions  JourneyPublishedVersion[]
+  journeyExecutions         JourneyExecution[]
+  journeyProviderEvents     JourneyProviderEvent[]
+  scheduleRules             ScheduleRule[]
+  groupSlots                CampaignGroupSlot[]
+  brandLinks                BrandLink[]
+  contacts                  Contact[]
+  customerRelationships     CustomerRelationship[]
+  consentRecords            ConsentRecord[]
+  walletPasses              WalletPass[]
+  messageThreads            MessageThread[]
+  tapCases                  TapCase[]
+  suppressions              CommunicationSuppression[]
+  tapSaveMoments            TapSaveMoment[]
+  autopilotProposals        AutopilotProposal[]
+  loyaltyPrograms           LoyaltyProgram[]
+  loyaltyEnrollments        LoyaltyEnrollment[]
+  loyaltyLedgerEntries      LoyaltyLedgerEntry[]
+  tapCanvasDocuments        TapCanvasDocument[]
+  tikTokCasts               TikTokCast[]
+  tikTokConnection          TikTokConnection?
+  tikTokAuditLogs           TikTokAuditLog[]
+  tapCastChannelVariants    TapCastChannelVariant[]
   tapCastChannelConnections TapCastChannelConnection[]
-  tapCastAuditLogs TapCastAuditLog[]
-  brandVocabularyTerms BrandVocabularyTerm[]
-  brandVocabularyPacks BrandVocabularyPack[]
-  vocabularySuggestionRuns VocabularySuggestionRun[]
+  tapCastAuditLogs          TapCastAuditLog[]
+  brandVocabularyTerms      BrandVocabularyTerm[]
+  brandVocabularyPacks      BrandVocabularyPack[]
+  vocabularySuggestionRuns  VocabularySuggestionRun[]
   vocabularyAnalyticsEvents VocabularyAnalyticsEvent[]
   vocabularyTriggerBindings VocabularyTriggerBinding[]
-  replyDestinations ReplyDestination[]
-  replyPolicies ReplyPolicy[]
-  replyAliases ReplyAlias[]
-  replyProviderEvents ReplyProviderEvent[]
-  replyRoutingAttempts ReplyRoutingAttempt[]
-  replyInitialMessages ReplyInitialMessage[]
+  replyDestinations         ReplyDestination[]
+  replyPolicies             ReplyPolicy[]
+  replyAliases              ReplyAlias[]
+  replyProviderEvents       ReplyProviderEvent[]
+  replyRoutingAttempts      ReplyRoutingAttempt[]
+  replyInitialMessages      ReplyInitialMessage[]
 }
 
 model BusinessUser {
@@ -247,18 +278,18 @@ model BusinessUser {
 }
 
 model Location {
-  id        String   @id @default(cuid())
+  id         String   @id @default(cuid())
   businessId String
-  name      String
-  address   String?
-  city      String?
-  state     String?
-  zip       String?
-  phone     String?
-  mapUrl    String?
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  name       String
+  address    String?
+  city       String?
+  state      String?
+  zip        String?
+  phone      String?
+  mapUrl     String?
+  isDefault  Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
   devices  DeviceSlot[]
@@ -267,46 +298,62 @@ model Location {
 // ─── Brand Kit ───────────────────────────────────────────────────────────────
 
 model BrandKit {
-  id               String      @id @default(cuid())
-  businessId       String      @unique
-  primaryColor     String      @default("#22c55e")
-  secondaryColor   String      @default("#0ea5e9")
-  accentColor      String      @default("#f59e0b")
-  backgroundColor  String      @default("#0b0f19")
-  textColor        String      @default("#f8fafc")
-  fontStyle        FontStyle   @default(MODERN)
-  buttonStyle      ButtonStyle @default(ROUNDED)
-  defaultLanguage  String      @default("en")
-  tone             String      @default("professional")
+  id                String      @id @default(cuid())
+  businessId        String      @unique
+  primaryColor      String      @default("#22c55e")
+  secondaryColor    String      @default("#0ea5e9")
+  accentColor       String      @default("#f59e0b")
+  backgroundColor   String      @default("#0b0f19")
+  textColor         String      @default("#f8fafc")
+  fontStyle         FontStyle   @default(MODERN)
+  buttonStyle       ButtonStyle @default(ROUNDED)
+  defaultLanguage   String      @default("en")
+  tone              String      @default("professional")
   defaultDisclaimer String?
-  ageGateEnabled   Boolean     @default(false)
-  ageGateMinAge    Int         @default(21)
-  socialLinks      Json        @default("{}")
-  defaultFooter    Json        @default("[]")
-  /** Default orphan-tag end page (same shape as EndExperience) */
-  endExperience    Json        @default("{}")
-  /** Lead follow-up promo email template */
-  emailPromo       Json        @default("{}")
-  /** Extra custom links: [{ title, description, iconUrl, href }] — legacy JSON */
-  otherLinks       Json        @default("[]")
-  /** Tap Connect Card layout — flexible digital business card */
-  tapCard          Json        @default("{}")
-  /** Legacy keyword Brand Pack JSON — mirrored from BrandVocabularyTerm for compatibility */
-  keywordBrandPack Json        @default("{}")
-  /** Last / default library icon selected in the Brand Kit IconPicker */
-  iconName         String?
-  /** Hex color for the Brand Kit default icon */
-  iconColor        String      @default("#000000")
-  createdAt        DateTime    @default(now())
-  updatedAt        DateTime    @updatedAt
+  ageGateEnabled    Boolean     @default(false)
+  ageGateMinAge     Int         @default(21)
+  socialLinks       Json        @default("{}")
+  defaultFooter     Json        @default("[]")
+  /**
+   * Default orphan-tag end page (same shape as EndExperience)
+   */
+  endExperience     Json        @default("{}")
+  /**
+   * Lead follow-up promo email template
+   */
+  emailPromo        Json        @default("{}")
+  /**
+   * Extra custom links: [{ title, description, iconUrl, href }] — legacy JSON
+   */
+  otherLinks        Json        @default("[]")
+  /**
+   * Tap Connect Card layout — flexible digital business card
+   */
+  tapCard           Json        @default("{}")
+  /**
+   * Legacy keyword Brand Pack JSON — mirrored from BrandVocabularyTerm for compatibility
+   */
+  keywordBrandPack  Json        @default("{}")
+  /**
+   * Last / default library icon selected in the Brand Kit IconPicker
+   */
+  iconName          String?
+  /**
+   * Hex color for the Brand Kit default icon
+   */
+  iconColor         String      @default("#000000")
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  links    BrandLink[]
+  business        Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  links           BrandLink[]
   vocabularyTerms BrandVocabularyTerm[]
   vocabularyPacks BrandVocabularyPack[]
 }
 
-/** Normalized brand / social / custom links with persisted icon + color */
+/**
+ * Normalized brand / social / custom links with persisted icon + color
+ */
 model BrandLink {
   id          String   @id @default(cuid())
   businessId  String
@@ -314,11 +361,17 @@ model BrandLink {
   title       String   @default("")
   description String?
   href        String   @default("")
-  /** Library icon id from IconPicker (e.g. "home", "slack") */
+  /**
+   * Library icon id from IconPicker (e.g. "home", "slack")
+   */
   iconName    String?
-  /** Custom hex tint from IconPicker */
+  /**
+   * Custom hex tint from IconPicker
+   */
   iconColor   String   @default("#000000")
-  /** Preferred logo / image mark when set */
+  /**
+   * Preferred logo / image mark when set
+   */
   logoUrl     String?
   platform    String?
   sortOrder   Int      @default(0)
@@ -352,33 +405,35 @@ model Subscription {
 // ─── Devices ─────────────────────────────────────────────────────────────────
 
 model DeviceSlot {
-  id                   String       @id @default(cuid())
-  businessId           String?
-  deviceCode           String       @unique
-  deviceType           DeviceType   @default(GENERIC_NFC)
-  status               DeviceStatus @default(UNASSIGNED)
-  authMode             AuthMode     @default(STANDARD)
-  nickname             String?
-  locationId           String?
-  locationNote         String?
-  totalTapCount        Int          @default(0)
-  lastTappedAt         DateTime?
-  issuedAt             DateTime     @default(now())
-  activatedAt          DateTime?
-  batchId              String?
-  metadata             Json         @default("{}")
-  /** When set, tap resolves via this group's schedule (shared across all table/bar tags) */
-  campaignGroupId      String?
-  createdAt            DateTime     @default(now())
-  updatedAt            DateTime     @updatedAt
+  id              String       @id @default(cuid())
+  businessId      String?
+  deviceCode      String       @unique
+  deviceType      DeviceType   @default(GENERIC_NFC)
+  status          DeviceStatus @default(UNASSIGNED)
+  authMode        AuthMode     @default(STANDARD)
+  nickname        String?
+  locationId      String?
+  locationNote    String?
+  totalTapCount   Int          @default(0)
+  lastTappedAt    DateTime?
+  issuedAt        DateTime     @default(now())
+  activatedAt     DateTime?
+  batchId         String?
+  metadata        Json         @default("{}")
+  /**
+   * When set, tap resolves via this group's schedule (shared across all table/bar tags)
+   */
+  campaignGroupId String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
 
-  business    Business?          @relation(fields: [businessId], references: [id], onDelete: SetNull)
-  location    Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
-  campaignGroup CampaignGroup?   @relation(fields: [campaignGroupId], references: [id], onDelete: SetNull)
-  assignments DeviceAssignment[]
-  tapEvents   TapEvent[]
-  leads       Lead[]
-  clickEvents ClickEvent[]
+  business      Business?          @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  location      Location?          @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  campaignGroup CampaignGroup?     @relation(fields: [campaignGroupId], references: [id], onDelete: SetNull)
+  assignments   DeviceAssignment[]
+  tapEvents     TapEvent[]
+  leads         Lead[]
+  clickEvents   ClickEvent[]
   scheduleRules ScheduleRule[]
 }
 
@@ -399,96 +454,116 @@ model Campaign {
   themeOverrides     Json           @default("{}")
   scheduledStart     DateTime?
   scheduledEnd       DateTime?
-  /** After schedule ends — contact opportunity (EndExperience JSON) */
+  /**
+   * After schedule ends — contact opportunity (EndExperience JSON)
+   */
   endExperience      Json           @default("{}")
-  /** When true (admin only), this card/campaign powers the public landing live demo */
+  /**
+   * When true (admin only), this card/campaign powers the public landing live demo
+   */
   isLandingDemo      Boolean        @default(false)
-  /** Optional parent group — this campaign is a scheduled “special” in the group */
+  /**
+   * Optional parent group — this campaign is a scheduled “special” in the group
+   */
   groupId            String?
   createdById        String?
   updatedById        String?
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
-  business    Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  group       CampaignGroup?     @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  createdBy   User?              @relation("CampaignCreatedBy", fields: [createdById], references: [id])
-  updatedBy   User?              @relation("CampaignUpdatedBy", fields: [updatedById], references: [id])
-  assignments DeviceAssignment[]
-  leads       Lead[]
-  tapEvents   TapEvent[]
-  clickEvents ClickEvent[]
-  mediaAssets MediaAsset[]
-  scheduleRules ScheduleRule[]
-  groupSlots  CampaignGroupSlot[]
-  defaultForGroups CampaignGroup[] @relation("GroupDefaultCampaign")
-  endForGroups     CampaignGroup[] @relation("GroupEndCampaign")
+  business         Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  group            CampaignGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy        User?               @relation("CampaignCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User?               @relation("CampaignUpdatedBy", fields: [updatedById], references: [id])
+  assignments      DeviceAssignment[]
+  leads            Lead[]
+  tapEvents        TapEvent[]
+  clickEvents      ClickEvent[]
+  mediaAssets      MediaAsset[]
+  scheduleRules    ScheduleRule[]
+  groupSlots       CampaignGroupSlot[]
+  defaultForGroups CampaignGroup[]     @relation("GroupDefaultCampaign")
+  endForGroups     CampaignGroup[]     @relation("GroupEndCampaign")
 }
 
-/** Shared schedule hub — many devices share one rotating set of timed pages. */
+/**
+ * Shared schedule hub — many devices share one rotating set of timed pages.
+ */
 model CampaignGroup {
-  id                 String         @id @default(cuid())
-  businessId         String
-  title              String
-  description        String?
-  status             CampaignStatus @default(LIVE)
-  /** IANA timezone for day/time matching (falls back to business.timezone) */
-  timezone           String?
-  /** When true, tap pages from this group can show an upcoming schedule strip */
-  showUpcomingOnPages Boolean       @default(true)
-  /** Optional industry hint for starter seeds / copy (hospitality, salon, wedding, …) */
-  industryHint       String?
-  /** Shown when no slot matches the current day/time */
-  defaultCampaignId  String?
-  /** End / “offer over” page — normal campaign used when nothing else matches */
-  endCampaignId      String?
-  createdAt          DateTime       @default(now())
-  updatedAt          DateTime       @updatedAt
+  id                  String         @id @default(cuid())
+  businessId          String
+  title               String
+  description         String?
+  status              CampaignStatus @default(LIVE)
+  /**
+   * IANA timezone for day/time matching (falls back to business.timezone)
+   */
+  timezone            String?
+  /**
+   * When true, tap pages from this group can show an upcoming schedule strip
+   */
+  showUpcomingOnPages Boolean        @default(true)
+  /**
+   * Optional industry hint for starter seeds / copy (hospitality, salon, wedding, …)
+   */
+  industryHint        String?
+  /**
+   * Shown when no slot matches the current day/time
+   */
+  defaultCampaignId   String?
+  /**
+   * End / “offer over” page — normal campaign used when nothing else matches
+   */
+  endCampaignId       String?
+  createdAt           DateTime       @default(now())
+  updatedAt           DateTime       @updatedAt
 
-  business         Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  defaultCampaign  Campaign?          @relation("GroupDefaultCampaign", fields: [defaultCampaignId], references: [id], onDelete: SetNull)
-  endCampaign      Campaign?          @relation("GroupEndCampaign", fields: [endCampaignId], references: [id], onDelete: SetNull)
-  campaigns        Campaign[]
-  slots            CampaignGroupSlot[]
-  devices          DeviceSlot[]
+  business        Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  defaultCampaign Campaign?           @relation("GroupDefaultCampaign", fields: [defaultCampaignId], references: [id], onDelete: SetNull)
+  endCampaign     Campaign?           @relation("GroupEndCampaign", fields: [endCampaignId], references: [id], onDelete: SetNull)
+  campaigns       Campaign[]
+  slots           CampaignGroupSlot[]
+  devices         DeviceSlot[]
 
   @@index([businessId])
 }
 
-/** One timed page inside a group (weekday offer, weekend promo, after-hours consult, etc.) */
+/**
+ * One timed page inside a group (weekday offer, weekend promo, after-hours consult, etc.)
+ */
 model CampaignGroupSlot {
-  id           String   @id @default(cuid())
-  businessId   String
-  groupId      String
-  campaignId   String
-  label        String
-  daysOfWeek   Json     @default("[]") // [1,2,3,4,5] Mon=1
-  startTime    String?  // "16:00"
-  endTime      String?  // "23:59"
-  priority     Int      @default(0)
-  enabled      Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id         String   @id @default(cuid())
+  businessId String
+  groupId    String
+  campaignId String
+  label      String
+  daysOfWeek Json     @default("[]") // [1,2,3,4,5] Mon=1
+  startTime  String? // "16:00"
+  endTime    String? // "23:59"
+  priority   Int      @default(0)
+  enabled    Boolean  @default(true)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  business Business     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
   group    CampaignGroup @relation(fields: [groupId], references: [id], onDelete: Cascade)
-  campaign Campaign     @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  campaign Campaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
 
   @@index([groupId, enabled])
 }
 
 model DeviceAssignment {
-  id                  String           @id @default(cuid())
-  deviceSlotId        String
-  campaignId          String
-  businessId          String
-  status              AssignmentStatus @default(ACTIVE)
-  startsAt            DateTime         @default(now())
-  endsAt              DateTime?
-  assignedById        String?
+  id                   String           @id @default(cuid())
+  deviceSlotId         String
+  campaignId           String
+  businessId           String
+  status               AssignmentStatus @default(ACTIVE)
+  startsAt             DateTime         @default(now())
+  endsAt               DateTime?
+  assignedById         String?
   replacedAssignmentId String?
-  createdAt           DateTime         @default(now())
-  updatedAt           DateTime         @updatedAt
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
 
   deviceSlot DeviceSlot @relation(fields: [deviceSlotId], references: [id], onDelete: Cascade)
   campaign   Campaign   @relation(fields: [campaignId], references: [id], onDelete: Cascade)
@@ -534,19 +609,21 @@ model ClickEvent {
 }
 
 model Lead {
-  id           String   @id @default(cuid())
-  businessId   String
-  campaignId   String?
-  deviceSlotId String?
-  /** Bridge to canonical Contact when audience spine is available */
-  contactId    String?
-  name         String?
-  email        String
-  phone        String?
-  metadata     Json     @default("{}")
-  consentGiven Boolean  @default(false)
-  couponClaimed Boolean @default(false)
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  businessId    String
+  campaignId    String?
+  deviceSlotId  String?
+  /**
+   * Bridge to canonical Contact when audience spine is available
+   */
+  contactId     String?
+  name          String?
+  email         String
+  phone         String?
+  metadata      Json     @default("{}")
+  consentGiven  Boolean  @default(false)
+  couponClaimed Boolean  @default(false)
+  createdAt     DateTime @default(now())
 
   business   Business    @relation(fields: [businessId], references: [id], onDelete: Cascade)
   campaign   Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
@@ -560,18 +637,18 @@ model Lead {
 // ─── Scan Sessions ───────────────────────────────────────────────────────────
 
 model ScanSession {
-  id                 String            @id @default(cuid())
-  businessId         String
-  createdByUserId    String
-  status             ScanSessionStatus @default(WAITING)
-  sessionType        ScanSessionType   @default(OWNER_PHONE)
-  expiresAt          DateTime
+  id                  String            @id @default(cuid())
+  businessId          String
+  createdByUserId     String
+  status              ScanSessionStatus @default(WAITING)
+  sessionType         ScanSessionType   @default(OWNER_PHONE)
+  expiresAt           DateTime
   scannedDeviceSlotId String?
-  scannedByUserId    String?
-  scannedAt          DateTime?
-  accessCode         String?
-  createdAt          DateTime          @default(now())
-  updatedAt          DateTime          @updatedAt
+  scannedByUserId     String?
+  scannedAt           DateTime?
+  accessCode          String?
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
 
   business  Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
   createdBy User     @relation(fields: [createdByUserId], references: [id], onDelete: Cascade)
@@ -582,40 +659,113 @@ model ScanSession {
 // ─── Media & Templates (placeholders — wired when integrations added) ─────────
 
 model MediaAsset {
-  id              String   @id @default(cuid())
+  id              String              @id @default(cuid())
   businessId      String
   campaignId      String?
   url             String
+  storageKey      String?
+  contentHash     String?
   filename        String?
   mimeType        String
-  sizeBytes       Int      @default(0)
+  sizeBytes       Int                 @default(0)
   width           Int?
   height          Int?
-  source          String   @default("upload") // upload | stock | logo_dev | url
-  providerId      String?
-  sourceUrl       String?
-  attributionName String?
-  attributionUrl  String?
-  rights          String?
+  source          String              @default("upload") // upload | pexels | logo_dev | url
+  provider        String?
+  providerAssetId String?
+  providerId      String? // legacy compatibility
+  sourcePageUrl   String?
+  sourceUrl       String? // legacy compatibility
+  creatorName     String?
+  creatorUrl      String?
+  attributionName String? // legacy compatibility
+  attributionUrl  String? // legacy compatibility
+  licenseCode     MediaLicenseCode?
+  licenseUrl      String?
+  attributionText String?
+  rightsNote      String?
+  rights          String? // legacy compatibility
+  approvalStatus  MediaApprovalStatus @default(UNREVIEWED)
+  approvedAt      DateTime?
+  approvedById    String?
+  defaultAltText  String?
+  parentAssetId   String?
+  renditionKind   String?
   importedAt      DateTime?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime            @default(now())
 
-  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  business    Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaign    Campaign?            @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  approvedBy  User?                @relation("MediaAssetApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  parentAsset MediaAsset?          @relation("MediaAssetDerivatives", fields: [parentAssetId], references: [id], onDelete: SetNull)
+  derivatives MediaAsset[]         @relation("MediaAssetDerivatives")
+  favorites   MediaAssetFavorite[]
+  recents     MediaAssetRecent[]
+  usages      CreativeAssetUsage[]
 
-  @@index([businessId])
+  @@unique([businessId, provider, providerAssetId])
+  @@index([businessId, approvalStatus, createdAt])
+  @@index([businessId, contentHash])
+}
+
+model MediaAssetFavorite {
+  id           String   @id @default(cuid())
+  businessId   String
+  userId       String
+  mediaAssetId String
+  createdAt    DateTime @default(now())
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId, mediaAssetId])
+  @@index([businessId, userId, createdAt])
+}
+
+model MediaAssetRecent {
+  id           String   @id @default(cuid())
+  businessId   String
+  userId       String
+  mediaAssetId String
+  lastUsedAt   DateTime @default(now())
+  useCount     Int      @default(1)
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, userId, mediaAssetId])
+  @@index([businessId, userId, lastUsedAt])
+}
+
+model CreativeAssetUsage {
+  id           String              @id @default(cuid())
+  businessId   String
+  mediaAssetId String
+  surface      CreativeSurfaceKind
+  subjectId    String
+  documentPath String
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+
+  business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  mediaAsset MediaAsset @relation(fields: [mediaAssetId], references: [id], onDelete: Cascade)
+
+  @@unique([businessId, surface, subjectId, documentPath, mediaAssetId])
+  @@index([businessId, mediaAssetId])
 }
 
 model SavedTemplate {
-  id             String   @id @default(cuid())
+  id             String       @id @default(cuid())
   businessId     String
   name           String
   campaignType   CampaignType
-  contentBlocks  Json     @default("[]")
-  themeOverrides Json     @default("{}")
+  contentBlocks  Json         @default("[]")
+  themeOverrides Json         @default("{}")
   thumbnailUrl   String?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -629,7 +779,9 @@ enum JourneyLifecycleStatus {
   PAUSED
 }
 
-/** TapFlow journey drafts — JSON definition + lifecycle for publish/activate/pause */
+/**
+ * TapFlow journey drafts — JSON definition + lifecycle for publish/activate/pause
+ */
 model JourneyDraft {
   id            String                 @id @default(cuid())
   businessId    String
@@ -643,9 +795,9 @@ model JourneyDraft {
   createdAt     DateTime               @default(now())
   updatedAt     DateTime               @updatedAt
 
-  business           Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  publishedVersions  JourneyPublishedVersion[]
-  executions         JourneyExecution[]
+  business          Business                  @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  publishedVersions JourneyPublishedVersion[]
+  executions        JourneyExecution[]
 
   @@index([businessId, updatedAt])
   @@index([businessId, status])
@@ -673,17 +825,19 @@ enum JourneyExecutionStepStatus {
   BLOCKED
 }
 
-/** Immutable definition snapshot — ACTIVE visitor runs bind here, not mutable drafts. */
+/**
+ * Immutable definition snapshot — ACTIVE visitor runs bind here, not mutable drafts.
+ */
 model JourneyPublishedVersion {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   businessId  String
   journeyId   String
   version     Int
   name        String
   definition  Json
-  publishedAt DateTime @default(now())
+  publishedAt DateTime  @default(now())
   activatedAt DateTime?
-  createdAt   DateTime @default(now())
+  createdAt   DateTime  @default(now())
 
   business   Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
   journey    JourneyDraft       @relation(fields: [journeyId], references: [id], onDelete: Cascade)
@@ -693,7 +847,9 @@ model JourneyPublishedVersion {
   @@index([businessId, journeyId])
 }
 
-/** Persisted live visitor execution instance (one engine with dry-run / simulate). */
+/**
+ * Persisted live visitor execution instance (one engine with dry-run / simulate).
+ */
 model JourneyExecution {
   id                 String                 @id @default(cuid())
   businessId         String
@@ -758,7 +914,9 @@ model JourneyExecutionStep {
   @@index([businessId, occurredAt])
 }
 
-/** Provider / webhook intake — unique event keys prevent duplicate side effects. */
+/**
+ * Provider / webhook intake — unique event keys prevent duplicate side effects.
+ */
 model JourneyProviderEvent {
   id          String   @id @default(cuid())
   businessId  String
@@ -777,20 +935,20 @@ model JourneyProviderEvent {
 }
 
 model ScheduleRule {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   businessId   String
   deviceSlotId String
   campaignId   String
   label        String
-  daysOfWeek   Json     @default("[]") // [1,2,3,4,5] Mon=1
-  startTime    String?  // "17:00"
-  endTime      String?  // "23:59"
+  daysOfWeek   Json      @default("[]") // [1,2,3,4,5] Mon=1
+  startTime    String? // "17:00"
+  endTime      String? // "23:59"
   startDate    DateTime?
   endDate      DateTime?
-  priority     Int      @default(0)
-  enabled      Boolean  @default(true)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  priority     Int       @default(0)
+  enabled      Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   business   Business   @relation(fields: [businessId], references: [id], onDelete: Cascade)
   deviceSlot DeviceSlot @relation(fields: [deviceSlotId], references: [id], onDelete: Cascade)
@@ -801,7 +959,9 @@ model ScheduleRule {
 
 // ─── Platform marketing CMS ───────────────────────────────────────────────────
 
-/** Editable "Built for the physical world" tiles on the public landing page. */
+/**
+ * Editable "Built for the physical world" tiles on the public landing page.
+ */
 model LandingUseCase {
   id                String   @id @default(cuid())
   industry          String
@@ -825,15 +985,23 @@ model LandingUseCase {
   @@index([enabled, sortOrder])
 }
 
-/** Which campaign (or Tap Card workspace) powers each Live Demo mode on the landing page. */
+/**
+ * Which campaign (or Tap Card workspace) powers each Live Demo mode on the landing page.
+ */
 model LandingDemoSlot {
-  /** card | offer | product | review */
+  /**
+   * card | offer | product | review
+   */
   mode       String   @id
   campaignId String?
   enabled    Boolean  @default(true)
-  /** When false, logo is hidden even if a URL exists */
+  /**
+   * When false, logo is hidden even if a URL exists
+   */
   showLogo   Boolean  @default(true)
-  /** Optional logo override; empty string = explicitly no logo (do not fall back) */
+  /**
+   * Optional logo override; empty string = explicitly no logo (do not fall back)
+   */
   logoUrl    String?
   updatedAt  DateTime @updatedAt
 }
@@ -863,11 +1031,15 @@ enum FusionTapPointStatus {
   RETIRED
 }
 
-/** Scoped feature overrides — Feature Registry IDs live in code; overrides persist here. */
+/**
+ * Scoped feature overrides — Feature Registry IDs live in code; overrides persist here.
+ */
 model FeatureFlagOverride {
   id         String   @id @default(cuid())
   featureId  String
-  /** global | plan:BASIC | business:<id> | location:<id> | user:<id> | cohort:<id> */
+  /**
+   * global | plan:BASIC | business:<id> | location:<id> | user:<id> | cohort:<id>
+   */
   scope      String
   enabled    Boolean
   reason     String?
@@ -938,17 +1110,19 @@ model FusionIdempotencyRecord {
  * During bridge, code may equal DeviceSlot.deviceCode.
  */
 model TapPoint {
-  id               String               @id @default(cuid())
-  businessId       String?
-  name             String?
-  status           FusionTapPointStatus @default(UNASSIGNED)
-  /** Bridge to V1 device inventory while DeviceUnit is introduced */
-  deviceSlotId     String?              @unique
-  createdAt        DateTime             @default(now())
-  updatedAt        DateTime             @updatedAt
+  id           String               @id @default(cuid())
+  businessId   String?
+  name         String?
+  status       FusionTapPointStatus @default(UNASSIGNED)
+  /**
+   * Bridge to V1 device inventory while DeviceUnit is introduced
+   */
+  deviceSlotId String?              @unique
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 
-  address          TapPointAddress?
-  publications     PublicationSnapshot[]
+  address      TapPointAddress?
+  publications PublicationSnapshot[]
 
   @@index([businessId, status])
 }
@@ -956,18 +1130,24 @@ model TapPoint {
 model TapPointAddress {
   id         String   @id @default(cuid())
   tapPointId String   @unique
-  /** Opaque permanent public code — never rewrite for content changes */
+  /**
+   * Opaque permanent public code — never rewrite for content changes
+   */
   code       String   @unique
   createdAt  DateTime @default(now())
 
   tapPoint TapPoint @relation(fields: [tapPointId], references: [id], onDelete: Cascade)
 }
 
-/** Immutable validated render snapshot for Card or Campaign Experience */
+/**
+ * Immutable validated render snapshot for Card or Campaign Experience
+ */
 model PublicationSnapshot {
   id            String   @id @default(cuid())
   businessId    String
-  /** card | campaign | experience */
+  /**
+   * card | campaign | experience
+   */
   subjectType   String
   subjectId     String
   version       Int
@@ -1016,7 +1196,9 @@ enum AutopilotProposalStatus {
   UNDONE
 }
 
-/** Canonical person record scoped to a business workspace */
+/**
+ * Canonical person record scoped to a business workspace
+ */
 model Contact {
   id         String   @id @default(cuid())
   businessId String
@@ -1027,11 +1209,11 @@ model Contact {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  business      Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  relationships CustomerRelationship[]
-  consents      ConsentRecord[]
-  leads         Lead[]
-  loyaltyEnrollments LoyaltyEnrollment[]
+  business             Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  relationships        CustomerRelationship[]
+  consents             ConsentRecord[]
+  leads                Lead[]
+  loyaltyEnrollments   LoyaltyEnrollment[]
   loyaltyLedgerEntries LoyaltyLedgerEntry[]
 
   @@index([businessId, createdAt])
@@ -1039,12 +1221,16 @@ model Contact {
   @@index([businessId, phone])
 }
 
-/** Business ↔ contact link — MyTap uses publicToken, never PII in URLs */
+/**
+ * Business ↔ contact link — MyTap uses publicToken, never PII in URLs
+ */
 model CustomerRelationship {
   id               String                   @id @default(cuid())
   businessId       String
   contactId        String
-  /** Opaque public identifier for /mytap/[relationshipId] */
+  /**
+   * Opaque public identifier for /mytap/[relationshipId]
+   */
   publicToken      String                   @unique @default(cuid())
   status           FusionRelationshipStatus @default(ACTIVE)
   sourceType       String?
@@ -1055,10 +1241,10 @@ model CustomerRelationship {
   createdAt        DateTime                 @default(now())
   updatedAt        DateTime                 @updatedAt
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  moments  TapSaveMoment[]
-  loyaltyEnrollments LoyaltyEnrollment[]
+  business             Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact              Contact              @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  moments              TapSaveMoment[]
+  loyaltyEnrollments   LoyaltyEnrollment[]
   loyaltyLedgerEntries LoyaltyLedgerEntry[]
 
   @@unique([businessId, contactId])
@@ -1084,7 +1270,9 @@ model ConsentRecord {
   @@index([businessId, recordedAt])
 }
 
-/** TapSave relationship moments — retention timeline for MyTap */
+/**
+ * TapSave relationship moments — retention timeline for MyTap
+ */
 model TapSaveMoment {
   id             String   @id @default(cuid())
   businessId     String
@@ -1104,24 +1292,28 @@ model TapSaveMoment {
   @@index([businessId, kind])
 }
 
-/** Autopilot / Automation Team proposals — durable review lifecycle */
+/**
+ * Autopilot / Automation Team proposals — durable review lifecycle
+ */
 model AutopilotProposal {
-  id                     String                  @id @default(cuid())
-  businessId             String
-  recipeId               String
-  mode                   String
-  status                 AutopilotProposalStatus @default(PENDING)
-  prompt                 String
-  summary                String
-  artifacts              Json                    @default("[]")
-  warnings               Json                    @default("[]")
-  /** Artifact kinds accepted on PARTIAL (empty when full accept) */
-  acceptedArtifactKinds  Json                    @default("[]")
-  previousStatus         AutopilotProposalStatus?
-  actorId                String?
-  createdAt              DateTime                @default(now())
-  updatedAt              DateTime                @updatedAt
-  decidedAt              DateTime?
+  id                    String                   @id @default(cuid())
+  businessId            String
+  recipeId              String
+  mode                  String
+  status                AutopilotProposalStatus  @default(PENDING)
+  prompt                String
+  summary               String
+  artifacts             Json                     @default("[]")
+  warnings              Json                     @default("[]")
+  /**
+   * Artifact kinds accepted on PARTIAL (empty when full accept)
+   */
+  acceptedArtifactKinds Json                     @default("[]")
+  previousStatus        AutopilotProposalStatus?
+  actorId               String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+  decidedAt             DateTime?
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -1147,23 +1339,23 @@ enum FusionWalletPassStatus {
 }
 
 model WalletPass {
-  id               String                 @id @default(cuid())
-  businessId       String
-  contactId        String?
-  relationshipId   String?
-  platform         FusionWalletPlatform
-  status           FusionWalletPassStatus @default(DRAFT)
-  serialNumber     String
-  version          Int                    @default(1)
-  cardId           String?
-  externalId       String?
-  installUrl       String?
-  previewUrl       String?
-  replacedById     String?
-  projection       Json                   @default("{}")
-  mock             Boolean                @default(true)
-  createdAt        DateTime               @default(now())
-  updatedAt        DateTime               @updatedAt
+  id             String                 @id @default(cuid())
+  businessId     String
+  contactId      String?
+  relationshipId String?
+  platform       FusionWalletPlatform
+  status         FusionWalletPassStatus @default(DRAFT)
+  serialNumber   String
+  version        Int                    @default(1)
+  cardId         String?
+  externalId     String?
+  installUrl     String?
+  previewUrl     String?
+  replacedById   String?
+  projection     Json                   @default("{}")
+  mock           Boolean                @default(true)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
 
   business Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
   events   WalletPassEvent[]
@@ -1175,15 +1367,15 @@ model WalletPass {
 }
 
 model WalletPassEvent {
-  id          String   @id @default(cuid())
-  passId      String
-  businessId  String
-  action      String
-  fromStatus  String?
-  toStatus    String
-  actorId     String?
-  metadata    Json     @default("{}")
-  occurredAt  DateTime @default(now())
+  id         String   @id @default(cuid())
+  passId     String
+  businessId String
+  action     String
+  fromStatus String?
+  toStatus   String
+  actorId    String?
+  metadata   Json     @default("{}")
+  occurredAt DateTime @default(now())
 
   pass WalletPass @relation(fields: [passId], references: [id], onDelete: Cascade)
 
@@ -1269,7 +1461,7 @@ model InboxMessage {
 }
 
 model TapCase {
-  id             String          @id @default(cuid())
+  id             String           @id @default(cuid())
   businessId     String
   threadId       String?
   contactId      String?
@@ -1277,12 +1469,12 @@ model TapCase {
   status         FusionCaseStatus @default(OPEN)
   subject        String
   assigneeId     String?
-  priority       Int             @default(3)
-  openedAt       DateTime        @default(now())
+  priority       Int              @default(3)
+  openedAt       DateTime         @default(now())
   closedAt       DateTime?
-  metadata       Json            @default("{}")
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  metadata       Json             @default("{}")
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
 
   business Business       @relation(fields: [businessId], references: [id], onDelete: Cascade)
   thread   MessageThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
@@ -1292,7 +1484,9 @@ model TapCase {
   @@index([assigneeId])
 }
 
-/** Preference / suppression list — respected before any outbound send */
+/**
+ * Preference / suppression list — respected before any outbound send
+ */
 model CommunicationSuppression {
   id         String   @id @default(cuid())
   businessId String
@@ -1329,12 +1523,14 @@ model LoyaltyProgram {
   businessId String
   name       String
   active     Boolean  @default(true)
-  /** [{ id, label, points, event }] */
+  /**
+   * [{ id, label, points, event }]
+   */
   earnRules  Json     @default("[]")
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  business    Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business    Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
   tiers       LoyaltyTier[]
   rewards     LoyaltyReward[]
   enrollments LoyaltyEnrollment[]
@@ -1349,7 +1545,9 @@ model LoyaltyTier {
   name            String
   rank            Int    @default(0)
   thresholdPoints Int    @default(0)
-  /** string[] */
+  /**
+   * string[]
+   */
   perks           Json   @default("[]")
 
   program LoyaltyProgram @relation(fields: [programId], references: [id], onDelete: Cascade)
@@ -1381,10 +1579,10 @@ model LoyaltyEnrollment {
   createdAt      DateTime                @default(now())
   updatedAt      DateTime                @updatedAt
 
-  program      LoyaltyProgram         @relation(fields: [programId], references: [id], onDelete: Cascade)
-  business     Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  contact      Contact                @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  relationship CustomerRelationship?  @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
+  program      LoyaltyProgram        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  business     Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  contact      Contact               @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  relationship CustomerRelationship? @relation(fields: [relationshipId], references: [id], onDelete: SetNull)
   ledger       LoyaltyLedgerEntry[]
 
   @@unique([programId, contactId])
@@ -1400,13 +1598,17 @@ model LoyaltyLedgerEntry {
   contactId       String
   relationshipId  String?
   type            LoyaltyLedgerType
-  /** Always store positive magnitude; sign implied by type (see computeBalance) */
+  /**
+   * Always store positive magnitude; sign implied by type (see computeBalance)
+   */
   points          Int
   reason          String
   evidenceId      String?
   campaignId      String?
   rewardId        String?
-  /** Unique per business — prevents duplicate award/redeem/reverse */
+  /**
+   * Unique per business — prevents duplicate award/redeem/reverse
+   */
   idempotencyKey  String
   reversesEntryId String?
   createdBy       String            @default("staff")
@@ -1449,32 +1651,36 @@ enum CanvasApprovalStatus {
 }
 
 model TapCanvasDocument {
-  id          String        @id @default(cuid())
-  businessId  String
-  name        String
-  mode        TapCanvasMode @default(sketch)
-  version     Int           @default(1)
-  /** Authoritative graph: { nodes, edges } */
-  graph       Json          @default("{\"nodes\":[],\"edges\":[]}")
-  /** comments, overlays, issues cache, permissions, collaboration */
-  metadata    Json          @default("{}")
-  archivedAt  DateTime?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id         String        @id @default(cuid())
+  businessId String
+  name       String
+  mode       TapCanvasMode @default(sketch)
+  version    Int           @default(1)
+  /**
+   * Authoritative graph: { nodes, edges }
+   */
+  graph      Json          @default("{\"nodes\":[],\"edges\":[]}")
+  /**
+   * comments, overlays, issues cache, permissions, collaboration
+   */
+  metadata   Json          @default("{}")
+  archivedAt DateTime?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 
-  business     Business                          @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  versions     CanvasVersionRecord[]
-  items        CanvasItem[]
-  connectors   CanvasConnector[]
-  frames       CanvasFrame[]
-  comments     CanvasComment[]
-  bindings     CanvasObjectBinding[]
-  proposals    CanvasProposal[]
-  approvals    CanvasApproval[]
-  overlays     CanvasExecutionOverlay[]
-  issues       CanvasIssue[]
+  business       Business                           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  versions       CanvasVersionRecord[]
+  items          CanvasItem[]
+  connectors     CanvasConnector[]
+  frames         CanvasFrame[]
+  comments       CanvasComment[]
+  bindings       CanvasObjectBinding[]
+  proposals      CanvasProposal[]
+  approvals      CanvasApproval[]
+  overlays       CanvasExecutionOverlay[]
+  issues         CanvasIssue[]
   ewiProjections CanvasExternalWorkItemProjection[]
-  auditLogs    CanvasAuditLog[]
+  auditLogs      CanvasAuditLog[]
 
   @@index([businessId, updatedAt])
   @@index([businessId, archivedAt])
@@ -1606,15 +1812,15 @@ model CanvasProposal {
 }
 
 model CanvasApproval {
-  id           String               @id @default(cuid())
-  documentId   String
-  subjectType  String
-  subjectId    String
-  status       CanvasApprovalStatus @default(pending)
-  workItemId   String?
-  decidedAt    DateTime?
-  createdAt    DateTime             @default(now())
-  updatedAt    DateTime             @updatedAt
+  id          String               @id @default(cuid())
+  documentId  String
+  subjectType String
+  subjectId   String
+  status      CanvasApprovalStatus @default(pending)
+  workItemId  String?
+  decidedAt   DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
 
   document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
@@ -1633,16 +1839,16 @@ model CanvasExecutionOverlay {
 }
 
 model CanvasIssue {
-  id          String   @id @default(cuid())
-  documentId  String
-  code        String
-  severity    String   @default("warn")
-  message     String
-  nodeId      String?
-  evidence    Json     @default("{}")
-  resolved    Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id         String   @id @default(cuid())
+  documentId String
+  code       String
+  severity   String   @default("warn")
+  message    String
+  nodeId     String?
+  evidence   Json     @default("{}")
+  resolved   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
@@ -1650,18 +1856,18 @@ model CanvasIssue {
 }
 
 model CanvasExternalWorkItemProjection {
-  id               String   @id @default(cuid())
-  documentId       String
-  nodeId           String
-  workItemId       String
-  provider         String
-  externalId       String?
-  title            String
-  status           String?
-  syncStatus       String?
-  lastSyncedAt     DateTime?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id           String    @id @default(cuid())
+  documentId   String
+  nodeId       String
+  workItemId   String
+  provider     String
+  externalId   String?
+  title        String
+  status       String?
+  syncStatus   String?
+  lastSyncedAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   document TapCanvasDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
 
@@ -1684,23 +1890,23 @@ model CanvasAuditLog {
 // ─── TikTok TapCast (persisted; live post = CREDENTIALS REQUIRED) ─────────────
 
 model TikTokCast {
-  id               String   @id @default(cuid())
-  businessId       String
-  title            String
-  status           String   @default("draft")
-  payload          Json     @default("{}")
-  campaignId       String?
-  cardId           String?
-  tapPointId       String?
-  scheduledAt      DateTime?
-  publishedAt      DateTime?
-  externalDraftId  String?
-  externalPostId   String?
-  lastError        String?
-  retryCount       Int      @default(0)
-  mode             String   @default("mock")
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String    @id @default(cuid())
+  businessId      String
+  title           String
+  status          String    @default("draft")
+  payload         Json      @default("{}")
+  campaignId      String?
+  cardId          String?
+  tapPointId      String?
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  externalDraftId String?
+  externalPostId  String?
+  lastError       String?
+  retryCount      Int       @default(0)
+  mode            String    @default("mock")
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -1709,11 +1915,11 @@ model TikTokCast {
 }
 
 model TikTokConnection {
-  businessId  String   @id
-  mode        String   @default("mock")
-  capabilities Json    @default("[]")
-  connectedAt DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  businessId   String   @id
+  mode         String   @default("mock")
+  capabilities Json     @default("[]")
+  connectedAt  DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 }
@@ -1734,23 +1940,23 @@ model TikTokAuditLog {
 // ─── Omnichannel TapCast (campaign channel variants; live = CREDENTIALS REQUIRED) ─
 
 model TapCastChannelVariant {
-  id               String    @id @default(cuid())
-  businessId       String
-  campaignId       String
-  channelId        String
-  title            String
-  status           String    @default("draft")
-  payload          Json      @default("{}")
-  scheduledAt      DateTime?
-  publishedAt      DateTime?
-  externalDraftId  String?
-  externalPostId   String?
-  lastError        String?
-  retryCount       Int       @default(0)
-  mode             String    @default("mock")
-  tikTokCastId     String?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  id              String    @id @default(cuid())
+  businessId      String
+  campaignId      String
+  channelId       String
+  title           String
+  status          String    @default("draft")
+  payload         Json      @default("{}")
+  scheduledAt     DateTime?
+  publishedAt     DateTime?
+  externalDraftId String?
+  externalPostId  String?
+  lastError       String?
+  retryCount      Int       @default(0)
+  mode            String    @default("mock")
+  tikTokCastId    String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -1864,9 +2070,9 @@ model BrandVocabularyTerm {
   updatedAt       DateTime                 @updatedAt
   archivedAt      DateTime?
 
-  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  brandKit BrandKit? @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
-  packMembers BrandVocabularyPackMember[]
+  business        Business                    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  brandKit        BrandKit?                   @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
+  packMembers     BrandVocabularyPackMember[]
   triggerBindings VocabularyTriggerBinding[]
 
   @@unique([businessId, kind, normalizedValue, scope])
@@ -1877,24 +2083,24 @@ model BrandVocabularyTerm {
 }
 
 model BrandVocabularyPack {
-  id             String    @id @default(cuid())
-  businessId     String
-  brandKitId     String?
-  slug           String
-  name           String
-  description    String?
-  locale         String    @default("en")
-  channels       Json      @default("[]")
-  version        Int       @default(1)
-  approved       Boolean   @default(false)
-  archivedAt     DateTime?
-  createdBy      String?
-  updatedBy      String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  businessId  String
+  brandKitId  String?
+  slug        String
+  name        String
+  description String?
+  locale      String    @default("en")
+  channels    Json      @default("[]")
+  version     Int       @default(1)
+  approved    Boolean   @default(false)
+  archivedAt  DateTime?
+  createdBy   String?
+  updatedBy   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
-  business Business  @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  brandKit BrandKit? @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
+  business Business                    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  brandKit BrandKit?                   @relation(fields: [brandKitId], references: [id], onDelete: SetNull)
   members  BrandVocabularyPackMember[]
 
   @@unique([businessId, slug])
@@ -1916,23 +2122,23 @@ model BrandVocabularyPackMember {
 }
 
 model VocabularySuggestionRun {
-  id                  String   @id @default(cuid())
-  businessId          String
-  channel             String?
-  campaignId          String?
-  surface             String?
-  requestContext      Json     @default("{}")
-  generated           Json     @default("[]")
-  selected            Json     @default("[]")
-  rejected            Json     @default("[]")
-  appliedDestination  String?
-  modelProvider       String   @default("local_grounded")
-  recipeVersion       String   @default("keywords.v1")
-  costCents           Int      @default(0)
-  evidenceClass       String   @default("modeled")
-  actorId             String?
-  createdAt           DateTime @default(now())
-  updatedAt           DateTime @updatedAt
+  id                 String   @id @default(cuid())
+  businessId         String
+  channel            String?
+  campaignId         String?
+  surface            String?
+  requestContext     Json     @default("{}")
+  generated          Json     @default("[]")
+  selected           Json     @default("[]")
+  rejected           Json     @default("[]")
+  appliedDestination String?
+  modelProvider      String   @default("local_grounded")
+  recipeVersion      String   @default("keywords.v1")
+  costCents          Int      @default(0)
+  evidenceClass      String   @default("modeled")
+  actorId            String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -1950,7 +2156,9 @@ model VocabularyAnalyticsEvent {
   campaignId String?
   families   Json     @default("[]")
   detail     Json     @default("{}")
-  /** Always counts_only_no_causal_claim — never interpret as lift */
+  /**
+   * Always counts_only_no_causal_claim — never interpret as lift
+   */
   disclaimer String   @default("counts_only_no_causal_claim")
   actorId    String?
   createdAt  DateTime @default(now())
@@ -1961,7 +2169,9 @@ model VocabularyAnalyticsEvent {
   @@index([businessId, channel])
 }
 
-/** Active conversational trigger bindings — collisions detected within scope */
+/**
+ * Active conversational trigger bindings — collisions detected within scope
+ */
 model VocabularyTriggerBinding {
   id              String    @id @default(cuid())
   businessId      String
@@ -2031,58 +2241,72 @@ enum ReplyRoutingState {
   SKIPPED_DIRECT
 }
 
-/** Verified reply destination — no provider secrets in this row */
+/**
+ * Verified reply destination — no provider secrets in this row
+ */
 model ReplyDestination {
-  id                      String                   @id @default(cuid())
-  businessId              String
-  locationId              String?
-  name                    String
-  destinationType         ReplyDestinationType
-  /** Opaque reference (integration id, webhook id) — never a secret */
-  destinationReference    String?
-  /** Normalized email or endpoint reference (not a credential) */
-  normalizedAddress       String?
-  verificationStatus      ReplyVerificationStatus  @default(UNVERIFIED)
-  enabled                 Boolean                  @default(true)
-  role                    ReplyDestinationRole     @default(PRIMARY)
-  /** Message categories this destination accepts */
-  selectedCategories      Json                     @default("[\"all\"]")
-  keepCopyInTap           Boolean                  @default(false)
+  id                         String                  @id @default(cuid())
+  businessId                 String
+  locationId                 String?
+  name                       String
+  destinationType            ReplyDestinationType
+  /**
+   * Opaque reference (integration id, webhook id) — never a secret
+   */
+  destinationReference       String?
+  /**
+   * Normalized email or endpoint reference (not a credential)
+   */
+  normalizedAddress          String?
+  verificationStatus         ReplyVerificationStatus @default(UNVERIFIED)
+  enabled                    Boolean                 @default(true)
+  role                       ReplyDestinationRole    @default(PRIMARY)
+  /**
+   * Message categories this destination accepts
+   */
+  selectedCategories         Json                    @default("[\"all\"]")
+  keepCopyInTap              Boolean                 @default(false)
   failureNotificationAddress String?
-  /** Capability flags as string[] — host UI never shows raw keys as primary copy */
-  capabilities            Json                     @default("[]")
-  /** Credential reference key (env/vault pointer) — never the secret value */
-  credentialRef           String?
-  lastTestedAt            DateTime?
-  lastTestResult          String?
-  lastSuccessfulRouteAt   DateTime?
-  lastFailureAt           DateTime?
-  consecutiveFailureCount Int                      @default(0)
-  paused                  Boolean                  @default(false)
-  pausedReason            String?
-  createdAt               DateTime                 @default(now())
-  updatedAt               DateTime                 @updatedAt
+  /**
+   * Capability flags as string[] — host UI never shows raw keys as primary copy
+   */
+  capabilities               Json                    @default("[]")
+  /**
+   * Credential reference key (env/vault pointer) — never the secret value
+   */
+  credentialRef              String?
+  lastTestedAt               DateTime?
+  lastTestResult             String?
+  lastSuccessfulRouteAt      DateTime?
+  lastFailureAt              DateTime?
+  consecutiveFailureCount    Int                     @default(0)
+  paused                     Boolean                 @default(false)
+  pausedReason               String?
+  createdAt                  DateTime                @default(now())
+  updatedAt                  DateTime                @updatedAt
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business           Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
   verificationTokens ReplyVerificationToken[]
   routingAttempts    ReplyRoutingAttempt[]
-  primaryPolicies    ReplyPolicy[] @relation("ReplyPolicyPrimary")
-  fallbackPolicies   ReplyPolicy[] @relation("ReplyPolicyFallback")
+  primaryPolicies    ReplyPolicy[]            @relation("ReplyPolicyPrimary")
+  fallbackPolicies   ReplyPolicy[]            @relation("ReplyPolicyFallback")
 
   @@index([businessId, enabled])
   @@index([businessId, normalizedAddress])
   @@index([businessId, verificationStatus])
 }
 
-/** Single-use destination verification tokens (hashed) */
+/**
+ * Single-use destination verification tokens (hashed)
+ */
 model ReplyVerificationToken {
-  id            String   @id @default(cuid())
+  id            String    @id @default(cuid())
   destinationId String
   businessId    String
   tokenHash     String
   expiresAt     DateTime
   usedAt        DateTime?
-  createdAt     DateTime @default(now())
+  createdAt     DateTime  @default(now())
 
   destination ReplyDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
 
@@ -2121,13 +2345,17 @@ model ReplyPolicy {
   @@index([businessId])
 }
 
-/** Opaque reply+token@receiving-subdomain alias → context map */
+/**
+ * Opaque reply+token@receiving-subdomain alias → context map
+ */
 model ReplyAlias {
-  id                    String    @id @default(cuid())
+  id                    String             @id @default(cuid())
   businessId            String
-  /** Public opaque token (not a DB id); hashed lookup key also stored */
-  token                 String    @unique
-  tokenHash             String    @unique
+  /**
+   * Public opaque token (not a DB id); hashed lookup key also stored
+   */
+  token                 String             @unique
+  tokenHash             String             @unique
   campaignId            String?
   contactId             String?
   relationshipId        String?
@@ -2137,9 +2365,9 @@ model ReplyAlias {
   destinationId         String?
   expiresAt             DateTime
   deactivatedAt         DateTime?
-  metadata              Json      @default("{}")
-  createdAt             DateTime  @default(now())
-  updatedAt             DateTime  @updatedAt
+  metadata              Json               @default("{}")
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
 
   business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
 
@@ -2148,19 +2376,21 @@ model ReplyAlias {
   @@index([contactId])
 }
 
-/** Provider webhook / inbound event idempotency */
+/**
+ * Provider webhook / inbound event idempotency
+ */
 model ReplyProviderEvent {
-  id               String   @id @default(cuid())
-  businessId       String?
-  provider         String   @default("resend")
-  eventId          String
-  receivedEmailId  String?
-  eventType        String
-  processingState  String   @default("received")
-  payloadDigest    String?
-  lastError        String?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              String   @id @default(cuid())
+  businessId      String?
+  provider        String   @default("resend")
+  eventId         String
+  receivedEmailId String?
+  eventType       String
+  processingState String   @default("received")
+  payloadDigest   String?
+  lastError       String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
   business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
 
@@ -2169,7 +2399,9 @@ model ReplyProviderEvent {
   @@index([businessId, createdAt])
 }
 
-/** Canonical initial inbound reply (not a second Inbox) */
+/**
+ * Canonical initial inbound reply (not a second Inbox)
+ */
 model ReplyInitialMessage {
   id                   String            @id @default(cuid())
   businessId           String
@@ -2204,7 +2436,7 @@ model ReplyInitialMessage {
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business        Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
   routingAttempts ReplyRoutingAttempt[]
 
   @@unique([provider, providerMessageId])
@@ -2215,18 +2447,18 @@ model ReplyInitialMessage {
 }
 
 model ReplyRoutingAttempt {
-  id                 String   @id @default(cuid())
-  businessId         String
-  initialMessageId   String?
-  destinationId      String?
-  attemptNumber      Int      @default(1)
-  status             String
-  idempotencyKey     String   @unique
-  providerRef        String?
-  errorCode          String?
-  errorMessage       String?
-  handoffKind        String?
-  createdAt          DateTime @default(now())
+  id               String   @id @default(cuid())
+  businessId       String
+  initialMessageId String?
+  destinationId    String?
+  attemptNumber    Int      @default(1)
+  status           String
+  idempotencyKey   String   @unique
+  providerRef      String?
+  errorCode        String?
+  errorMessage     String?
+  handoffKind      String?
+  createdAt        DateTime @default(now())
 
   business       Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
   initialMessage ReplyInitialMessage? @relation(fields: [initialMessageId], references: [id], onDelete: SetNull)
