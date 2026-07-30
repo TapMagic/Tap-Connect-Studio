@@ -10,6 +10,7 @@ const isPublicRoute = createRouteMatcher([
   "/sign-up(.*)",
   "/onboarding(.*)",
   "/t/(.*)",
+  "/mytap/(.*)",
   "/scan/(.*)",
   "/api/health(.*)",
   "/api/leads",
@@ -18,6 +19,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/scan/claim(.*)",
   "/api/integrations/status(.*)",
   "/api/public/(.*)",
+  "/api/tapsave/(.*)",
+  "/api/mytap/(.*)",
   "/preview/(.*)",
 ]);
 
