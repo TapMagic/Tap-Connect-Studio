@@ -77,6 +77,8 @@ export interface BlockStyle {
 
 export interface HeroImageData {
   imageUrl: string;
+  /** Durable library reference for new edits; imageUrl remains the render fallback. */
+  mediaAssetId?: string;
   altText?: string;
   overlayText?: string;
   aspect?: "4/3" | "16/9" | "1/1" | "21/9" | "auto";

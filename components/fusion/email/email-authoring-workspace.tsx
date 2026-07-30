@@ -752,14 +752,6 @@ export function EmailAuthoringWorkspace({
               );
             }}
             onOpenOutlineTool={() => openEmailTool("outline")}
-            onMediaChange={(sectionId, imageUrl) => {
-              const blocks = (document.blocks ?? []).map((b) =>
-                b.id === sectionId
-                  ? { ...b, data: { ...b.data, imageUrl } }
-                  : b
-              );
-              patchDocument({ blocks }, "Replace image");
-            }}
             blockOutline={
               <div className="space-y-1">
                 {sorted.map((block) => (
@@ -829,7 +821,28 @@ export function EmailAuthoringWorkspace({
                       <MediaPicker
                         label="Image"
                         value={(selectedBlock.data as { imageUrl?: string }).imageUrl ?? ""}
-                        onChange={(url) => patchBlockData(selectedBlock.id, "imageUrl", url)}
+                        valueAssetId={
+                          (selectedBlock.data as { mediaAssetId?: string }).mediaAssetId
+                        }
+                        onAssetChange={(asset) => {
+                          patchDocument(
+                            {
+                              blocks: (document.blocks ?? []).map((block) =>
+                                block.id === selectedBlock.id
+                                  ? {
+                                      ...block,
+                                      data: {
+                                        ...block.data,
+                                        imageUrl: asset?.url || "",
+                                        mediaAssetId: asset?.mediaAssetId,
+                                      },
+                                    }
+                                  : block
+                              ),
+                            },
+                            "Replace image"
+                          );
+                        }}
                         mediaUploadReady={mediaUploadReady}
                         stockReady={stockReady}
                         campaignId={campaign.id}

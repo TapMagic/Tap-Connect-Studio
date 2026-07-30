@@ -9,6 +9,8 @@ import {
   type CampaignPublishManifest,
 } from "@/lib/fusion/publication/snapshots";
 import { recordOperatorAlert } from "@/lib/fusion/studio/operator-alerts";
+import { collectDocumentMediaReferences } from "@/lib/media/document-usage";
+import { recordSavedDocumentAssetUsage } from "@/lib/media/service";
 import type { Prisma } from "@prisma/client";
 
 /** Builder owner-gate: PATCH records PublicationSnapshot on save/publish. */
@@ -169,6 +171,23 @@ export async function PATCH(request: Request) {
       where: { id },
       data,
     });
+
+    const formSettings =
+      updates.formSettings && typeof updates.formSettings === "object"
+        ? (updates.formSettings as Record<string, unknown>)
+        : null;
+    if (formSettings && "emailResponse" in formSettings) {
+      await recordSavedDocumentAssetUsage({
+        businessId: business.id,
+        userId: user.id,
+        surface: "EMAIL",
+        subjectId: campaign.id,
+        usages: collectDocumentMediaReferences(
+          formSettings.emailResponse,
+          "$.formSettings.emailResponse"
+        ),
+      });
+    }
 
     let snapshot = null;
     if (contentChanging || updates.status === "LIVE") {

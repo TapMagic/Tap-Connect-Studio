@@ -67,7 +67,6 @@ export type EmailVisualDrawerProps = {
   onReject?: () => void;
   onRefreshOffer?: () => void;
   onOpenOutlineTool?: () => void;
-  onMediaChange?: (sectionId: string, imageUrl: string) => void;
   blockOutline?: ReactNode;
   contentEditor?: ReactNode;
   legacyPanel?: ReactNode;
@@ -131,7 +130,6 @@ export function EmailVisualDrawer({
   onReject,
   onRefreshOffer,
   onOpenOutlineTool,
-  onMediaChange,
   blockOutline,
   contentEditor,
   legacyPanel,
@@ -411,6 +409,9 @@ export function EmailVisualDrawer({
     const imageUrl = isImageSection
       ? String((block.data as { imageUrl?: string }).imageUrl || "")
       : "";
+    const mediaAssetId = isImageSection
+      ? String((block.data as { mediaAssetId?: string }).mediaAssetId || "")
+      : "";
     return (
       <div className="space-y-4" data-testid="email-drawer-media">
         <p className="text-xs text-white/55">
@@ -440,8 +441,23 @@ export function EmailVisualDrawer({
             <MediaPicker
               label="Hero image"
               value={imageUrl}
-              onChange={(url) => {
-                if (sectionId) onMediaChange?.(sectionId, url);
+              valueAssetId={mediaAssetId || undefined}
+              onAssetChange={(asset) => {
+                if (!sectionId) return;
+                onDocumentChange({
+                  blocks: (document.blocks ?? []).map((item) =>
+                    item.id === sectionId
+                      ? {
+                          ...item,
+                          data: {
+                            ...item.data,
+                            imageUrl: asset?.url || "",
+                            mediaAssetId: asset?.mediaAssetId,
+                          },
+                        }
+                      : item
+                  ),
+                });
               }}
               mediaUploadReady={mediaUploadReady}
               stockReady={stockReady}
