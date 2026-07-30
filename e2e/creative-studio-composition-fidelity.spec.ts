@@ -23,7 +23,7 @@ async function ensureComposition(page: import("@playwright/test").Page) {
   });
   const add = page.getByTestId("composition-drawer-add");
   if (await add.isVisible()) await add.click();
-  await expect(page.getByTestId("creative-composition-canvas")).toBeVisible({
+  await expect(page.getByTestId("creative-composition-canvas").first()).toBeVisible({
     timeout: 15_000,
   });
   await page.getByTestId("composition-open-fallback").click();
@@ -38,7 +38,7 @@ test("studio composition canvas stays freeform on edit", async ({ page }) => {
     timeout: 60_000,
   });
   await ensureComposition(page);
-  const canvas = page.getByTestId("creative-composition-canvas");
+  const canvas = page.getByTestId("creative-composition-canvas").first();
   await expect(canvas).toHaveAttribute("data-mobile-fallback", "freeform");
   await page.screenshot({
     path: path.join(SHOT_DIR, "01-studio-edit-canvas.png"),

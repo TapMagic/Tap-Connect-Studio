@@ -54,7 +54,7 @@ test("desktop Owner workflow evidence", async ({ page }) => {
     .getByTestId("text-hub-open-font")
     .or(page.getByTestId("text-panel-open-typography"));
   if (await openFont.count()) {
-    await openFont.click();
+    await openFont.first().click();
     if (await page.getByTestId("font-picker-panel").or(page.getByTestId("professional-typography-panel")).count()) {
       await page.screenshot({ path: SHOT("desktop", "05-font-previews.png") });
     }
@@ -180,6 +180,14 @@ test("Live Device token + LAN preview HTTP evidence", async ({ page, request }) 
     timeout: 60_000,
   });
   await page.getByTestId("card-preview-as-customer").click();
+  await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute(
+    "data-studio-mode",
+    "preview",
+    { timeout: 20_000 }
+  );
+  await expect(page.getByTestId("preview-toolbar")).toBeVisible({
+    timeout: 20_000,
+  });
   await page.getByTestId("preview-live-device").click();
   await expect(page.getByTestId("live-device-dock")).toBeVisible({ timeout: 20_000 });
   await page.screenshot({ path: SHOT("live-device", "01-qr-panel.png") });

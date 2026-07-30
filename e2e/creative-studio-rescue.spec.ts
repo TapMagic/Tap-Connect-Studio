@@ -163,7 +163,7 @@ test.describe("creative studio rescue", () => {
       await page.getByTestId("composition-open-frame").click();
       await expect(page.getByTestId("composition-panel-frame")).toBeVisible();
       await page.getByTestId("composition-open-masks").click();
-      await expect(page.getByTestId("composition-panel-masks")).toBeVisible();
+      await expect(page.getByTestId("frame-mask-browser")).toBeVisible();
       await page.getByTestId("composition-mask-shirt").click();
       await page.getByTestId("panel-stack-back").click();
       await page.getByTestId("panel-stack-back").click();
