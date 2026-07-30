@@ -15,9 +15,11 @@
 - stop position from 0–100
 - opacity from 0–1
 
-`normalizeGradient` clamps imported values. `gradientToCss` is the only normal conversion to CSS. Raw CSS remains only as legacy composition import compatibility and is not the Owner editing workflow.
+`normalizeGradient` clamps imported values. `gradientToCss` performs the normal typed
+conversion to CSS. Raw CSS remains for legacy composition compatibility and is not the
+normal Owner editing control.
 
-## Owner workflow
+## Visible Card Owner workflow
 
 Quick mode:
 
@@ -37,7 +39,11 @@ Advanced Gradient Studio:
 - radial center
 - curated presets
 
-Every change is committed through the Card composition history path with a labeled operation.
+The Gradient Studio is mounted in Creative Composition → Background on
+`/dashboard/card/edit`, and changes use the composition update/history path. Unit tests
+cover normalization and CSS conversion; route tests cover opening the quick/advanced
+controls. These checks do not exhaust visual output, undo labels, keyboard operation, or
+contrast at all stop combinations.
 
 ## Pattern and texture model
 
@@ -45,5 +51,14 @@ Every change is committed through the Card composition history path with a label
 
 ## Remaining shared-color work
 
-The typed gradient and procedural background models are active in Creative Composition. A complete shared Brand/document/recent/favorite color picker, contrast one-click correction, and saved palette registry remain `IMPLEMENTED BUT INCOMPLETE`.
+The typed gradient and procedural background models are active in Creative Composition.
+They are not yet a shared cross-product design system.
+
+- Typed Creative Composition gradients: `IMPLEMENTATION IN PROGRESS`
+- Procedural patterns/textures: `IMPLEMENTATION IN PROGRESS`
+- Shared Brand/document/recent/favorite color picker: `NOT IMPLEMENTED`
+- One-click contrast correction and complete contrast guidance: `NOT IMPLEMENTED`
+- Durable saved palettes/gradients and cross-surface apply: `NOT IMPLEMENTED`
+- Manual visual, responsive, keyboard, and assistive-technology review:
+  `IMPLEMENTATION IN PROGRESS`
 

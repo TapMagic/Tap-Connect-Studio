@@ -4,18 +4,25 @@
 
 ## Product rule
 
-TapConnect must use one family of registries for media, fonts, colors, gradients, patterns, textures, masks, shapes, treatments, compositions, sections, and templates. A Card, Offer, Coupon, Email, and Campaign must not invent parallel pickers for the same design primitive.
+The product direction is one family of registries for media, fonts, colors, gradients,
+patterns, textures, masks, shapes, treatments, compositions, sections, and templates.
+The current product does not yet satisfy that rule across Card, Offer, Coupon, Email,
+Campaign, Brand, and Assets.
 
-## Active shared registries
+## Current foundations
 
-- Media: `SharedMediaAssetBrowser` through `MediaPicker`
-- Fonts: professional font catalog and lazy loader
-- Gradients: typed presets
-- Patterns/textures: procedural catalog
-- Masks: safe SVG registry
-- Card actions: Card action catalog
+- Media: `SharedMediaAssetBrowser` is reachable through `MediaPicker` at the audited Card
+  and Composition insertion points; universal cross-surface adoption is incomplete.
+- Fonts: professional font catalog and composition font loader are active.
+- Gradients: typed presets and editor are active in Creative Composition only.
+- Patterns/textures: procedural catalog is active in Creative Composition only.
+- Masks: registered safe SVG catalog is active in Creative Composition frames.
+- Card actions: existing action catalog is separate from a reusable visual-style system.
 
-## Reusable record contract
+Each foundation remains `IMPLEMENTATION IN PROGRESS`; presence of a registry does not
+mean a durable Owner reuse workflow exists.
+
+## Future reusable record contract
 
 Future durable saved records must include:
 
@@ -37,5 +44,18 @@ Applying a record must:
 
 ## Current truth
 
-Whole-card publication snapshots and campaign `SavedTemplate` exist, but there is not yet one durable Creative Studio saved-composition/style/template registry on the actual Card route. This capability remains `MISSING` in the capability matrix and must not be represented as Owner-ready.
+Whole-card publication snapshots and Campaign `SavedTemplate` records exist, but they
+are not a durable Creative Studio saved-style/composition/template workflow on the
+actual Card route.
+
+- Save/apply Creative styles: `NOT IMPLEMENTED`
+- Save/apply Creative compositions: `NOT IMPLEMENTED`
+- Editable Creative Composition templates: `NOT IMPLEMENTED`
+- Durable thumbnails, versioning, usage count, favorite/Brand approval, duplicate/edit/
+  delete/apply operations: `NOT IMPLEMENTED`
+- Shared cross-surface media/font/gradient/pattern/mask foundations:
+  `IMPLEMENTATION IN PROGRESS`
+
+No existing type, Campaign template, publication snapshot, or isolated catalog should be
+represented as a completed reusable design system.
 

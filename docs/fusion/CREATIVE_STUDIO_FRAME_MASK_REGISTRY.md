@@ -8,7 +8,7 @@ Frame masks are registered, reviewed SVG paths in the `0 0 100 100` coordinate s
 
 The renderer never accepts arbitrary SVG markup.
 
-## Owner workflow
+## Visible Card Owner workflow
 
 Composition → Frame & Mask Studio → Masking Shape provides:
 
@@ -20,7 +20,13 @@ Composition → Frame & Mask Studio → Masking Shape provides:
 - current mask highlighting
 - keyboard-focusable selection
 
-Current categories include Basic, Rounded, Geometric, Organic, Badges, Labels, Tickets, Coupons, Apparel, Bags, Food, Beverage, Automotive, Real Estate, Buildings, Pets, Sports, Children, Baby, Floral, Decorative, and Seasonal-friendly entries.
+The browser is mounted on `/dashboard/card/edit`. Route coverage proves search/category
+selection for a sample mask; it does not prove every catalog entry, favorite/recent
+transition, keyboard path, or rendered scale.
+
+Current categories include Basic, Rounded, Geometric, Organic, Badges, Labels, Tickets,
+Coupons, Apparel, Bags, Food, Beverage, Automotive, Real Estate, Buildings, Pets,
+Sports, Children, Baby, Floral, Decorative, and Seasonal-friendly entries.
 
 ## Frame outline
 
@@ -37,4 +43,13 @@ The outline is an SVG path using the same registered mask path, so it follows th
 ## Deferred
 
 Custom mask upload remains intentionally deferred until SVG sanitization, licensing, accessibility, performance, and renderer compatibility are addressed.
+
+## Remaining truth
+
+- Registered mask selection/rendering: `IMPLEMENTATION IN PROGRESS`
+- Mask-following frame outline controls: `IMPLEMENTATION IN PROGRESS`
+- Durable favorites/recent and Brand-approved mask governance: `NOT IMPLEMENTED`
+- Arbitrary SVG upload: `NOT IMPLEMENTED`
+- Exhaustive visual scale/alignment, responsive, keyboard, and screen-reader review:
+  `IMPLEMENTATION IN PROGRESS`
 

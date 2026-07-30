@@ -2,45 +2,40 @@
 
 **Classification:** `IMPLEMENTATION IN PROGRESS`
 
-| ID | Item | Severity | Status |
-|----|------|----------|--------|
-| P2 | Physical-phone QR (reachability) | Critical | **PASS** (HTTPS tunnel) — not Verified overall |
-| P2v | Visual fidelity Live Device vs Studio | Critical | **Fix shipped — pending Owner re-scan** |
-| P2i | Desktop Contextual Inspector sliding stack | Critical | **Fix shipped on `/dashboard/card/edit` — pending Owner review** |
-| P2a | Direct LAN phone reachability | Critical | Blocked by AP/client isolation (network) |
-| P2b | Temporary HTTPS tunnel | High | Active locally (not committed) |
-| Composition / inspectors / automated proofs | — | Closed |
+## Blocking truth
 
-## Capability-completeness pass
+| ID | Item | Current state | Classification |
+|---|---|---|---|
+| P1 | Physical-phone Studio/Live Device visual comparison | Freeform fallback fix exists; fresh Owner re-scan has not occurred | `IMPLEMENTATION IN PROGRESS` |
+| P2 | Live Pexels workflow | No local credential; only UI/contract/unavailable behavior can be tested | `IMPLEMENTATION IN PROGRESS` |
+| P3 | Live Logo.dev workflow | No local credential; proxy isolation has mock/unit coverage only | `IMPLEMENTATION IN PROGRESS` |
+| P4 | Durable provider import | R2 credentials unavailable; no real upload/import/persistence proof | `IMPLEMENTATION IN PROGRESS` |
+| P5 | Reusable styles/compositions | No durable save/apply workflow on Card Owner route | `NOT IMPLEMENTED` |
+| P6 | Editable Creative templates | Existing Campaign templates are not wired to Creative Composition | `NOT IMPLEMENTED` |
+| P7 | Structured text/image wrapping | No shared flow model or Owner controls | `NOT IMPLEMENTED` |
+| P8 | Full Shape Studio | Only basic shapes and limited properties exist | `IMPLEMENTATION IN PROGRESS` |
+| P9 | Durable Layers workflow | No complete naming, thumbnails, search, drag/keyboard reorder, or conflict warnings | `IMPLEMENTATION IN PROGRESS` |
+| P10 | Shared color system | No unified Brand/document/recent/favorite palette or contrast repair | `IMPLEMENTATION IN PROGRESS` |
+| P11 | Manual accessibility | Keyboard-only and VoiceOver Owner passes are outstanding | `IMPLEMENTATION IN PROGRESS` |
+| P12 | Manual responsive/visual calibration | Route simulation is not final clipping, overlap, touch, or browser review | `IMPLEMENTATION IN PROGRESS` |
+| P13 | Custom SVG masks | Deferred until sanitization, rights, accessibility, performance, and compatibility are designed | `NOT IMPLEMENTED` |
+| P14 | Background removal | No configured real runtime verified through the shared browser | `IMPLEMENTATION IN PROGRESS` |
 
-Closed in code and initial route proof: shared media browser, provider token isolation/import contract, typed gradients, image backgrounds, patterns/textures, mask-path outlines, scale/exact stroke, expanded masks, image adjustments, divider completion, typography render parity, font parity, and smart guides.
+## Implemented foundations that remain incomplete
 
-Open: structured flow wrapping, full Shape Studio, durable Layers completion, saved styles/compositions, editable templates, final responsive/accessibility/performance matrix, complete Owner walkthrough evidence, and physical-phone fidelity re-scan.
+- Shared Media and Asset Browser is reachable from Card and Composition media controls,
+  but it is not yet the one picker for every Studio surface.
+- Typed gradients, image backgrounds, procedural patterns/textures, registered masks,
+  frame outlines, image adjustments, dividers, typography parity, geometry, and snap
+  guides are visible on the Card route, but do not have exhaustive visual, responsive,
+  accessibility, persistence, and cross-surface proof.
+- Sliding inspectors and freeform Live Device rendering are wired, but still require
+  manual Owner review.
+- Provider unavailable states and secret boundaries are implemented, but credentialed
+  live behavior is not verified.
 
-## Desktop inspector (root cause)
+## Network residual
 
-Owner route mounted Adaptive Workspace + NestedPanelShell stacks, but panels swapped in place (no horizontal slide) and shallow Colors/Brand/Layout panes stayed as fragmented static drawers.
-
-## Desktop inspector fix
-
-- `NestedPanelShell` horizontal Sliding Panel Stack (`data-sliding-panel-stack`, depth motion)
-- Appearance hub consolidates Colors / Brand / Layout
-- Inspector Selection Hub for Content
-- Close collapses drawer; Back reverses slide
-- Route tests: `e2e/creative-studio-sliding-inspector.spec.ts`
-- Evidence video: `tmp/creative-studio-rescue/evidence/inspector/after-fix-sliding-inspector.webm`
-
-## Fidelity defect (root cause)
-
-Live Device / Preview applied **stack** mobile fallback whenever the composition surface was narrow (`<420px`), while Studio edit always used freeform. Phone layout therefore dropped alignment, layering, and text-over-image.
-
-## Fix
-
-- Shared `CreativeCompositionCanvas` applies stack/hide only when `compositionForceMobile` is explicit
-- Default fallback preference: **scale** (matches Studio)
-- Live Device route loads `tap.css` + composition font loader
-- Regression: `e2e/creative-studio-composition-fidelity.spec.ts`
-
-## Owner re-scan
-
-Use the **new** temporary HTTPS Live Device QR in Studio (Update phone preview first). Do not mark Verified until composition visually matches Studio.
+Direct LAN phone reachability was previously blocked by access-point/client isolation.
+A temporary HTTPS tunnel is local infrastructure, not committed product behavior. No
+tunnel URL or credential may be committed.

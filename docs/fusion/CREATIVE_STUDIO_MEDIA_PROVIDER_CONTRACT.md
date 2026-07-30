@@ -2,23 +2,26 @@
 
 **Classification:** `IMPLEMENTATION IN PROGRESS`
 
-## One browser
+## Actual Owner-route surface
 
-All creative media selection must converge on `SharedMediaAssetBrowser`, surfaced through `MediaPicker`. Current Owner-route insertion points:
+`SharedMediaAssetBrowser` is surfaced through `MediaPicker` at these verified code
+insertion points:
 
-- Card image, hero, logo, and header-logo source
+- Card image/logo source controls that already use `MediaPicker`
 - Creative Composition image
 - Creative Composition frame media
 - Creative Composition background image
-- Existing Email, Campaign, Brand, icon, and builder locations already using `MediaPicker`
 
-Sources are Studio, Brand, Recent, Favorites, Pexels, Logo.dev, Upload, and Advanced URL.
+The browser visibly exposes Studio, Brand, Recent, Favorites, Pexels, Logo.dev, Upload,
+and Advanced URL. It is not yet proven to be the universal picker for every Email,
+Campaign, Brand, Offer, icon, template, and Assets workflow.
 
 ## Server-only provider boundary
 
 - Pexels credentials are read only in `/api/stock/search`.
 - Logo.dev credentials are read only in `lib/services/logo-search.ts` and `/api/logos/image`.
-- Search responses return authenticated TapConnect proxy URLs for Logo.dev; token-bearing upstream URLs are never returned to the browser.
+- Logo.dev search code returns TapConnect proxy URLs rather than token-bearing upstream
+  URLs; this has unit coverage with a mocked provider token/fetch.
 - `/api/media/import` accepts only allowlisted image hosts or a validated Logo.dev proxy descriptor.
 - No provider secret is stored in composition/Card JSON.
 
@@ -30,7 +33,10 @@ Provider search never changes the Card. A result becomes active only after the O
 2. reviews source, dimensions, attribution, and rights;
 3. chooses **Import and insert**.
 
-When R2 is configured, Pexels and Logo.dev bytes are copied to TapConnect-controlled storage and provider metadata is persisted on `MediaAsset`. If durable storage is unavailable, the browser must not claim an import succeeded.
+When R2 is configured, the implemented route copies allowlisted provider bytes to
+TapConnect-controlled storage and persists metadata on `MediaAsset`. In this closeout
+environment all R2 settings are missing, so that behavior is unverified. The current
+unavailable response must not be described as a successful import.
 
 ## Provider honesty
 
@@ -44,5 +50,19 @@ When R2 is configured, Pexels and Logo.dev bytes are copied to TapConnect-contro
 
 - Favorites and recent history are browser-local convenience state.
 - Brand-approved status is currently inferred for imported logo assets; durable approval workflow remains incomplete.
-- R2 is the implemented durable store. UploadThing is not represented as active runtime behavior.
+- Pexels and Logo.dev credentials are not available in the closeout environment.
+- Live provider results, real rate limits, real proxy bytes, attribution payloads, and
+  durable import have not been exercised end to end.
+- Provider tests use controlled mocks and validate contracts, not provider availability.
+- R2 is the only implemented durable provider-import store. UploadThing is not active
+  runtime behavior.
+- Advanced URL may remain externally hosted and carries no rights or durability claim.
+
+## Capability classifications
+
+- Shared browser on the Card Owner route: `IMPLEMENTATION IN PROGRESS`
+- Live Pexels workflow: `IMPLEMENTATION IN PROGRESS`
+- Live Logo.dev workflow: `IMPLEMENTATION IN PROGRESS`
+- Durable provider import: `IMPLEMENTATION IN PROGRESS`
+- Universal cross-Studio media workflow: `IMPLEMENTATION IN PROGRESS`
 
