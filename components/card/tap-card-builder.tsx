@@ -45,7 +45,17 @@ import {
   tapCardPreviewEmptyReason,
 } from "@/components/workbench/builder-preview-empty";
 import { useLabeledUndoRedo } from "@/lib/hooks/use-labeled-undo-redo";
-import { describeConfigChange, describeSectionsChange } from "@/lib/fusion/creative-studio/history-labels";
+import {
+  describeConfigChange,
+  describeSectionsChange,
+  describeSectionReorder,
+  sectionDisplayName,
+} from "@/lib/fusion/creative-studio/history-labels";
+import {
+  moveByDelta,
+  moveToExtreme,
+  reorderById,
+} from "@/lib/fusion/authoring/reorder-list";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import {
   createInheritanceState,
@@ -539,6 +549,18 @@ export function TapCardBuilder({
     patch: Partial<TapCardSection>,
     label?: string
   ) {
+    const current = sorted.find((s) => s.id === id);
+    if (current?.locked) {
+      const keys = Object.keys(patch);
+      const onlyLockToggle =
+        keys.length === 1 && keys[0] === "locked";
+      const onlyVisibility =
+        keys.length === 1 && keys[0] === "enabled";
+      if (!onlyLockToggle && !onlyVisibility) {
+        setMessage("Unlock this block before editing it.");
+        return;
+      }
+    }
     const next = sorted.map((s) => (s.id === id ? { ...s, ...patch } : s));
     setSections(
       next,
@@ -641,25 +663,96 @@ export function TapCardBuilder({
   }
 
   function reorder(fromId: string, toId: string) {
-    if (fromId === toId) return;
-    const from = sorted.findIndex((s) => s.id === fromId);
-    const to = sorted.findIndex((s) => s.id === toId);
-    if (from < 0 || to < 0) return;
-    const next = [...sorted];
-    const [item] = next.splice(from, 1);
-    next.splice(to, 0, item);
-    setSections(next);
+    const next = reorderById(sorted, fromId, toId);
+    if (!next) return;
+    setSections(next, true, describeSectionReorder(sorted, next));
   }
 
   function moveSectionBy(id: string, delta: number) {
-    const fromIndex = sorted.findIndex((s) => s.id === id);
-    if (fromIndex < 0) return;
-    const toIndex = fromIndex + delta;
-    if (toIndex < 0 || toIndex >= sorted.length) return;
+    const next = moveByDelta(sorted, id, delta);
+    if (!next) return;
+    setSections(next, true, describeSectionReorder(sorted, next));
+  }
+
+  function moveSectionTo(id: string, edge: "top" | "bottom") {
+    const next = moveToExtreme(sorted, id, edge);
+    if (!next) return;
+    const name = sectionDisplayName(sorted.find((s) => s.id === id));
+    setSections(
+      next,
+      true,
+      edge === "top" ? `Moved "${name}" to top` : `Moved "${name}" to bottom`
+    );
+  }
+
+  function duplicateSection(id: string) {
+    const index = sorted.findIndex((s) => s.id === id);
+    if (index < 0) return;
+    const section = sorted[index]!;
+    const clone: TapCardSection = {
+      ...structuredClone(section),
+      id: nanoid(8),
+      locked: false,
+      label: `${section.label || section.type} copy`,
+    };
     const next = [...sorted];
-    const [item] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, item);
-    setSections(next);
+    next.splice(index + 1, 0, clone);
+    setSections(next, true, `Duplicated ${sectionDisplayName(section)}`);
+    setSelectedId(clone.id);
+  }
+
+  function copySection(id: string) {
+    const section = sorted.find((s) => s.id === id);
+    if (!section) return;
+    try {
+      void navigator.clipboard?.writeText(
+        JSON.stringify({ tapCardSection: section }, null, 2)
+      );
+      setMessage(`Copied “${sectionDisplayName(section)}”`);
+    } catch {
+      setMessage("Clipboard unavailable — use Duplicate instead.");
+    }
+  }
+
+  function deleteSection(id: string) {
+    const section = sorted.find((s) => s.id === id);
+    if (!section) return;
+    if (section.locked) {
+      setMessage("Unlock this block before deleting it.");
+      return;
+    }
+    setSections(
+      sorted.filter((s) => s.id !== id),
+      true,
+      `Deleted ${sectionDisplayName(section)}`
+    );
+    if (selectedId === id) setSelectedId(null);
+  }
+
+  function toggleSectionVisible(id: string) {
+    const section = sorted.find((s) => s.id === id);
+    if (!section) return;
+    const nextEnabled = !section.enabled;
+    patchSection(
+      id,
+      { enabled: nextEnabled },
+      nextEnabled
+        ? `Showed ${sectionDisplayName(section)}`
+        : `Hid ${sectionDisplayName(section)}`
+    );
+  }
+
+  function toggleSectionLocked(id: string) {
+    const section = sorted.find((s) => s.id === id);
+    if (!section) return;
+    const nextLocked = !section.locked;
+    patchSection(
+      id,
+      { locked: nextLocked },
+      nextLocked
+        ? `Locked ${sectionDisplayName(section)}`
+        : `Unlocked ${sectionDisplayName(section)}`
+    );
   }
 
   function addSection(type: Exclude<TapCardSectionType, "action_row">) {
@@ -1045,6 +1138,14 @@ export function TapCardBuilder({
       },
       selectedCompositionNodeIds,
       setSelectedCompositionNodeIds,
+      reorderSections: reorder,
+      moveSectionBy,
+      moveSectionTo,
+      duplicateSection,
+      copySection,
+      deleteSection,
+      toggleSectionVisible,
+      toggleSectionLocked,
     });
     return () => publishCardEditorLive(null);
     // Publish after paint when Card model inputs change — avoid blank-deps notify storms.

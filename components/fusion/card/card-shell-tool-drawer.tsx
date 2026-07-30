@@ -5,7 +5,7 @@
  * Hosted via portal into AdaptiveTaskDrawer from TapCardBuilder (shellHosted).
  */
 
-import type { ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Columns2, Rows3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,7 @@ import { CompositionPanelStack } from "@/components/fusion/creative-studio/compo
 import { AppearancePanelStack } from "@/components/fusion/creative-studio/appearance-panel-stack";
 import { SelectionPanelStack } from "@/components/fusion/creative-studio/selection-panel-stack";
 import { HistoryPanel } from "@/components/fusion/creative-studio/history-panel";
+import { CardOutlineRow } from "@/components/fusion/card/card-outline-row";
 import {
   createStarterCreativeComposition,
   parseCreativeComposition,
@@ -94,6 +95,14 @@ export type CardShellToolDrawerProps = {
   appearanceInitialLevel?: "root" | "colors" | "brand" | "layout" | "segment";
   selectedCompositionNodeIds?: string[];
   setSelectedCompositionNodeIds?: (ids: string[]) => void;
+  reorderSections?: (fromId: string, toId: string) => void;
+  moveSectionBy?: (id: string, delta: number) => void;
+  moveSectionTo?: (id: string, edge: "top" | "bottom") => void;
+  duplicateSection?: (id: string) => void;
+  copySection?: (id: string) => void;
+  deleteSection?: (id: string) => void;
+  toggleSectionVisible?: (id: string) => void;
+  toggleSectionLocked?: (id: string) => void;
 };
 
 function HonestNote({ children }: { children: ReactNode }) {
@@ -137,7 +146,17 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
     strInherited,
     selectedCompositionNodeIds = [],
     setSelectedCompositionNodeIds,
+    reorderSections,
+    moveSectionBy,
+    moveSectionTo,
+    duplicateSection,
+    copySection,
+    deleteSection,
+    toggleSectionVisible,
+    toggleSectionLocked,
   } = props;
+
+  const [outlineDragId, setOutlineDragId] = useState<string | null>(null);
 
   const resolved =
     toolId === "format" || toolId === "colors" || toolId === "brand" || toolId === "layout"
@@ -205,29 +224,67 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
   }
 
   if (resolved === "outline") {
+    const blocks = sorted.filter((s) => s.type !== "action");
+    const actions = sorted.filter((s) => s.type === "action");
+    const renderOutlineList = (items: TapCardSection[], listTestId: string) => (
+      <ul className="space-y-1.5" data-testid={listTestId}>
+        {items.map((section) => {
+          const index = sorted.findIndex((s) => s.id === section.id);
+          return (
+            <CardOutlineRow
+              key={section.id}
+              section={section}
+              index={index}
+              total={sorted.length}
+              selected={selected?.id === section.id}
+              dragging={outlineDragId === section.id}
+              onSelect={() => setSelectedId(section.id)}
+              onDragStart={() => setOutlineDragId(section.id)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={() => {
+                if (outlineDragId && reorderSections) {
+                  reorderSections(outlineDragId, section.id);
+                }
+                setOutlineDragId(null);
+              }}
+              onDragEnd={() => setOutlineDragId(null)}
+              onToggleVisible={() => toggleSectionVisible?.(section.id)}
+              onToggleLock={() => toggleSectionLocked?.(section.id)}
+              onMoveUp={() => moveSectionBy?.(section.id, -1)}
+              onMoveDown={() => moveSectionBy?.(section.id, 1)}
+              onMoveTop={() => moveSectionTo?.(section.id, "top")}
+              onMoveBottom={() => moveSectionTo?.(section.id, "bottom")}
+              onDuplicate={() => duplicateSection?.(section.id)}
+              onCopy={() => copySection?.(section.id)}
+              onDelete={() => deleteSection?.(section.id)}
+            />
+          );
+        })}
+      </ul>
+    );
+
     return (
-      <div className="space-y-2" data-testid="card-drawer-outline">
-        <p className="text-xs text-white/55">
-          Segments on this Card. Select one to edit in Content.
+      <div className="space-y-3" data-testid="card-drawer-outline">
+        <p className="text-xs leading-relaxed text-white/55">
+          Document structure for this Card. Drag to reorder. Hide, lock, duplicate,
+          or delete from each row.
         </p>
-        <ul className="space-y-1">
-          {sorted.map((section) => (
-            <li key={section.id}>
-              <button
-                type="button"
-                className={cn(
-                  "flex min-h-11 w-full items-center rounded-md px-3 text-left text-xs",
-                  selected?.id === section.id
-                    ? "border border-white/25 bg-white/10 text-white"
-                    : "text-white/75 hover:bg-white/5"
-                )}
-                onClick={() => setSelectedId(section.id)}
-              >
-                {section.label || section.type}
-              </button>
-            </li>
-          ))}
-        </ul>
+        <div className="space-y-2">
+          <Label className="text-[11px] text-white/60">Blocks</Label>
+          {blocks.length > 0 ? (
+            renderOutlineList(blocks, "card-outline-blocks")
+          ) : (
+            <p className="text-xs text-white/40">No blocks yet.</p>
+          )}
+        </div>
+        <div className="space-y-2">
+          <Label className="text-[11px] text-white/60">Action buttons</Label>
+          {actions.length > 0 ? (
+            renderOutlineList(actions, "card-outline-actions")
+          ) : (
+            <p className="text-xs text-white/40">No action buttons yet.</p>
+          )}
+        </div>
         <div className="space-y-2 border-t border-white/10 pt-3" data-testid="card-drawer-add">
           <Label className="text-[10px] text-white/55">Add block</Label>
           <div className="flex flex-wrap gap-1.5">

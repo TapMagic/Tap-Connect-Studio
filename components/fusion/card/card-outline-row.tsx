@@ -1,0 +1,277 @@
+"use client";
+
+/**
+ * Shared Card Outline row contract:
+ * drag handle · block icon · readable name · visibility · lock · overflow
+ */
+
+import { useId, useState } from "react";
+import {
+  Copy,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Lock,
+  MoreHorizontal,
+  Trash2,
+  Unlock,
+  Image as ImageIcon,
+  Type,
+  Square,
+  MousePointerClick,
+  Sparkles,
+  Layers,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import type { TapCardSection } from "@/lib/brand/tap-card";
+import { sectionDisplayName } from "@/lib/fusion/creative-studio/history-labels";
+
+function blockIcon(section: TapCardSection) {
+  switch (section.type) {
+    case "action":
+      return MousePointerClick;
+    case "image":
+    case "logo_block":
+      return ImageIcon;
+    case "text":
+    case "promo_header":
+      return Type;
+    case "special_offer":
+      return Sparkles;
+    case "spacer":
+      return Square;
+    case "creative_composition":
+      return Layers;
+    default:
+      return Square;
+  }
+}
+
+export type CardOutlineRowProps = {
+  section: TapCardSection;
+  index: number;
+  total: number;
+  selected: boolean;
+  dragging: boolean;
+  onSelect: () => void;
+  onDragStart: () => void;
+  onDragOver: (e: React.DragEvent) => void;
+  onDrop: () => void;
+  onDragEnd: () => void;
+  onToggleVisible: () => void;
+  onToggleLock: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  onMoveTop: () => void;
+  onMoveBottom: () => void;
+  onDuplicate: () => void;
+  onCopy: () => void;
+  onDelete: () => void;
+};
+
+export function CardOutlineRow({
+  section,
+  index,
+  total,
+  selected,
+  dragging,
+  onSelect,
+  onDragStart,
+  onDragOver,
+  onDrop,
+  onDragEnd,
+  onToggleVisible,
+  onToggleLock,
+  onMoveUp,
+  onMoveDown,
+  onMoveTop,
+  onMoveBottom,
+  onDuplicate,
+  onCopy,
+  onDelete,
+}: CardOutlineRowProps) {
+  const menuId = useId();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const Icon = blockIcon(section);
+  const name = sectionDisplayName(section);
+  const locked = Boolean(section.locked);
+  const visible = section.enabled !== false;
+
+  return (
+    <li
+      data-testid={`card-outline-row-${section.id}`}
+      data-outline-type={section.type}
+      data-outline-locked={locked ? "1" : "0"}
+      data-outline-visible={visible ? "1" : "0"}
+      className={cn(
+        "relative rounded-lg border",
+        selected
+          ? "border-white/30 bg-white/10"
+          : "border-white/10 bg-white/[0.02] hover:border-white/20",
+        !visible && "opacity-55",
+        dragging && "opacity-50"
+      )}
+      onDragOver={onDragOver}
+      onDrop={onDrop}
+    >
+      <div className="flex items-center gap-1 px-1.5 py-1.5">
+        <button
+          type="button"
+          draggable
+          aria-label={`Drag to reorder ${name}`}
+          data-testid={`card-outline-drag-${section.id}`}
+          className="inline-flex h-9 w-8 shrink-0 cursor-grab items-center justify-center rounded text-white/45 hover:bg-white/5 hover:text-white/80 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          onDragStart={(e) => {
+            e.dataTransfer.effectAllowed = "move";
+            e.dataTransfer.setData("text/plain", section.id);
+            onDragStart();
+          }}
+          onDragEnd={onDragEnd}
+          onKeyDown={(e) => {
+            if (e.key === "ArrowUp" && (e.altKey || e.metaKey)) {
+              e.preventDefault();
+              onMoveUp();
+            } else if (e.key === "ArrowDown" && (e.altKey || e.metaKey)) {
+              e.preventDefault();
+              onMoveDown();
+            }
+          }}
+        >
+          <GripVertical className="h-4 w-4" aria-hidden />
+        </button>
+
+        <Icon className="h-3.5 w-3.5 shrink-0 text-white/50" aria-hidden />
+
+        <button
+          type="button"
+          className="min-w-0 flex-1 truncate rounded px-1 py-1.5 text-left text-[13px] font-medium text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-pressed={selected}
+          aria-label={`Select ${name}`}
+          data-testid={`card-outline-select-${section.id}`}
+          onClick={onSelect}
+        >
+          {name}
+        </button>
+
+        <button
+          type="button"
+          className="inline-flex h-9 w-8 shrink-0 items-center justify-center rounded text-white/55 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-label={visible ? `Hide ${name}` : `Show ${name}`}
+          aria-pressed={!visible}
+          data-testid={`card-outline-visibility-${section.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleVisible();
+          }}
+        >
+          {visible ? (
+            <Eye className="h-3.5 w-3.5" aria-hidden />
+          ) : (
+            <EyeOff className="h-3.5 w-3.5" aria-hidden />
+          )}
+        </button>
+
+        <button
+          type="button"
+          className="inline-flex h-9 w-8 shrink-0 items-center justify-center rounded text-white/55 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+          aria-label={locked ? `Unlock ${name}` : `Lock ${name}`}
+          aria-pressed={locked}
+          data-testid={`card-outline-lock-${section.id}`}
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleLock();
+          }}
+        >
+          {locked ? (
+            <Lock className="h-3.5 w-3.5" aria-hidden />
+          ) : (
+            <Unlock className="h-3.5 w-3.5" aria-hidden />
+          )}
+        </button>
+
+        <div className="relative">
+          <button
+            type="button"
+            className="inline-flex h-9 w-8 shrink-0 items-center justify-center rounded text-white/55 hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-label={`More actions for ${name}`}
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
+            aria-controls={menuId}
+            data-testid={`card-outline-menu-${section.id}`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setMenuOpen((v) => !v);
+            }}
+          >
+            <MoreHorizontal className="h-3.5 w-3.5" aria-hidden />
+          </button>
+          {menuOpen ? (
+            <div
+              id={menuId}
+              role="menu"
+              className="absolute right-0 top-full z-20 mt-1 min-w-[11rem] rounded-lg border border-white/15 bg-[#0c1220] py-1 shadow-xl"
+              data-testid={`card-outline-menu-panel-${section.id}`}
+            >
+              {(
+                [
+                  ["Move up", onMoveUp, index === 0],
+                  ["Move down", onMoveDown, index >= total - 1],
+                  ["Move to top", onMoveTop, index === 0],
+                  ["Move to bottom", onMoveBottom, index >= total - 1],
+                ] as const
+              ).map(([label, action, disabled]) => (
+                <button
+                  key={label}
+                  type="button"
+                  role="menuitem"
+                  disabled={disabled}
+                  className="flex w-full px-3 py-2 text-left text-xs text-white/85 hover:bg-white/5 disabled:opacity-35"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    action();
+                  }}
+                >
+                  {label}
+                </button>
+              ))}
+              <div className="my-1 border-t border-white/10" />
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-white/85 hover:bg-white/5"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDuplicate();
+                }}
+              >
+                <Copy className="h-3 w-3" aria-hidden /> Duplicate
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full px-3 py-2 text-left text-xs text-white/85 hover:bg-white/5"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onCopy();
+                }}
+              >
+                Copy
+              </button>
+              <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-300 hover:bg-white/5"
+                onClick={() => {
+                  setMenuOpen(false);
+                  onDelete();
+                }}
+              >
+                <Trash2 className="h-3 w-3" aria-hidden /> Delete
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </div>
+    </li>
+  );
+}

@@ -69,6 +69,15 @@ export type CardEditorLiveModel = {
   onCloseTool?: () => void;
   selectedCompositionNodeIds?: string[];
   setSelectedCompositionNodeIds?: (ids: string[]) => void;
+  /** Outline document-structure ops */
+  reorderSections: (fromId: string, toId: string) => void;
+  moveSectionBy: (id: string, delta: number) => void;
+  moveSectionTo: (id: string, edge: "top" | "bottom") => void;
+  duplicateSection: (id: string) => void;
+  copySection: (id: string) => void;
+  deleteSection: (id: string) => void;
+  toggleSectionVisible: (id: string) => void;
+  toggleSectionLocked: (id: string) => void;
 };
 
 const live: { current: CardEditorLiveModel | null } = { current: null };

@@ -100,6 +100,8 @@ export type TapCardSection = {
   type: TapCardSectionType;
   enabled: boolean;
   order: number;
+  /** When true, content edits are blocked until unlocked (reorder still allowed unless UI opts out). */
+  locked?: boolean;
   label?: string;
   text?: string;
   textRight?: string;

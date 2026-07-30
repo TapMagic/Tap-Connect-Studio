@@ -4,10 +4,51 @@
  */
 
 import type { TapCardSection, TapConnectCardConfig } from "@/lib/brand/tap-card";
+import { describeMoveAboveBelow } from "@/lib/fusion/authoring/reorder-list";
 
-function sectionName(s: TapCardSection | undefined): string {
+export function sectionDisplayName(s: TapCardSection | undefined): string {
   if (!s) return "item";
   return s.label || s.text || s.headline || s.type.replace(/_/g, " ");
+}
+
+function sectionName(s: TapCardSection | undefined): string {
+  return sectionDisplayName(s);
+}
+
+/** Explicit reorder label: Moved "A" above "B". */
+export function describeSectionReorder(
+  prev: TapCardSection[],
+  next: TapCardSection[]
+): string {
+  const prevIds = prev.map((s) => s.id);
+  const nextIds = next.map((s) => s.id);
+  if (prevIds.join("|") === nextIds.join("|")) return "Updated Card sections";
+
+  let movedId: string | undefined;
+  for (let i = 0; i < nextIds.length; i++) {
+    if (prevIds[i] !== nextIds[i]) {
+      // Prefer the id that changed position
+      const candidate =
+        nextIds.find((id, idx) => prevIds.indexOf(id) !== idx) ?? nextIds[i];
+      movedId = candidate;
+      break;
+    }
+  }
+  if (!movedId) return "Reordered Card sections";
+
+  const fromIndex = prevIds.indexOf(movedId);
+  const toIndex = nextIds.indexOf(movedId);
+  const moved = next.find((s) => s.id === movedId);
+  const neighbor =
+    toIndex < fromIndex
+      ? next[toIndex + 1]
+      : next[toIndex - 1];
+  return describeMoveAboveBelow(
+    sectionDisplayName(moved),
+    neighbor ? sectionDisplayName(neighbor) : undefined,
+    fromIndex,
+    toIndex
+  );
 }
 
 export function describeConfigChange(
@@ -56,7 +97,7 @@ export function describeSectionsChange(
   const orderChanged =
     prev.map((s) => s.id).join("|") !== next.map((s) => s.id).join("|");
   if (orderChanged) {
-    return "Reordered Card sections";
+    return describeSectionReorder(prev, next);
   }
   for (let i = 0; i < next.length; i++) {
     const a = prev.find((p) => p.id === next[i].id) || prev[i];
@@ -78,6 +119,9 @@ export function describeSectionsChange(
     }
     if (a.imageUrl !== b.imageUrl || a.logoUrl !== b.logoUrl) {
       return `Changed ${name} image`;
+    }
+    if (Boolean(a.locked) !== Boolean(b.locked)) {
+      return b.locked ? `Locked ${name}` : `Unlocked ${name}`;
     }
     if (a.enabled !== b.enabled) {
       return b.enabled ? `Showed ${name}` : `Hid ${name}`;
