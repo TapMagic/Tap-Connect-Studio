@@ -72,6 +72,9 @@ These results prove reachability of those controls, not completion of the whole 
 35. Rights/provenance are collected during provider import, but Assets discards those fields when constructing its view model and displays generic source text: `app/dashboard/assets/page.tsx:86-96` and `components/fusion/assets/assets-library.tsx:42-79`.
 36. Most media rendering uses raw `<img>` without stored renditions or responsive `srcset`; provider thumbnails are lazy, but imported assets are not optimized or deduplicated by content hash.
 37. `requireBusiness()` selects the first membership and APIs filter by `businessId`; there is no role check for creative mutation beyond membership. The plan must add explicit creative permissions without changing onboarding.
+38. The checked-in migration history adds provenance columns but contains no baseline `CREATE TABLE "MediaAsset"` migration. A fresh migrate-only database therefore cannot be assumed to reproduce the schema even though the current development database has the table.
+39. `/api/upload` accepts a client-provided `campaignId` without proving the Campaign belongs to the active business. Canonical library upload does not need this field; the compatibility route must reject cross-tenant or unknown Campaign IDs.
+40. Two real creative subsystems currently coexist: Card Creative Composition owns freeform primitives/gradients/masks, while Shared Visual Authoring Core owns Brand-derived property stacks for Card actions, Email, and Campaign. Completion must connect these as token resolution plus one composition contract, not preserve them as two competing builders.
 
 ## 3. Capability truth matrix
 
@@ -80,7 +83,7 @@ Classification describes Owner-ready truth at the checkpoint, not type or test p
 | # | Capability | Classification | Evidence and reason |
 |---|---|---|---|
 | 1 | Shared media browser | REUSE WITH MODIFICATION | Visible from `MediaPicker`, all required tabs exist, but legacy duplicate galleries remain and several tabs are not durable. |
-| 2 | MediaAsset storage and provenance | REUSE WITH MODIFICATION | Tenant-scoped model and provenance migration exist; approval, license, storage key, derivative, and usage fields are incomplete. |
+| 2 | MediaAsset storage and provenance | REUSE WITH MODIFICATION | Tenant-scoped model and provenance migration exist, but the checked-in migration history lacks the base table; approval, license, storage key, derivative, and usage fields are incomplete. |
 | 3 | Upload workflows | REUSE WITH MODIFICATION | R2 upload is real; data-URL fallback and PDF/image contract mismatch prevent one durable image path. |
 | 4 | Brand assets | REUSE WITH MODIFICATION | Brand Kit and Brand tab exist, but provider discovery is conflated with approval. |
 | 5 | Recent and favorite assets | REPLACE | Current implementation is localStorage-only and contains full external candidate records. |
@@ -790,7 +793,12 @@ Add normal relations to `Business`, `User`, and `MediaAsset` in the actual schem
 
 ## 28. Exact migrations
 
-1. `creative_media_truth`:
+1. `media_asset_baseline_reconciliation`:
+   - add a migration ordered before `20260730000011_creative_media_provenance` that creates the pre-provenance `MediaAsset` table, indexes, and Business/Campaign foreign keys only when absent;
+   - make the SQL idempotent for existing databases that already received the table through historical schema synchronization;
+   - verify both paths: an empty database running the full migration chain and a clone of the current isolated development database running only pending migrations;
+   - do not edit the already-applied provenance migration and do not use `db push` or `migrate resolve` to conceal schema drift.
+2. `creative_media_truth`:
    - add media enums/columns;
    - backfill `provider="pexels"` where `source=stock` and source URL/provider facts identify Pexels;
    - backfill `provider="logo_dev"` where source is Logo.dev;
@@ -798,14 +806,14 @@ Add normal relations to `Business`, `User`, and `MediaAsset` in the actual schem
    - map existing rights text conservatively;
    - set all existing assets `UNREVIEWED`; if a Business primary `logoUrl` exactly matches a tenant `MediaAsset.url`, that existing row may be backfilled `APPROVED` with a migration report. If there is no matching asset, keep the legacy URL readable but create no synthetic approved asset; require Owner import and approval before the primary logo can be changed;
    - add indexes after backfill.
-2. `creative_media_activity`:
+3. `creative_media_activity`:
    - create Favorites, Recent, and AssetUsage tables with cascades and tenant indexes.
-3. `creative_resources`:
+4. `creative_resources`:
    - create enums/resource/revision/usage tables;
    - no automatic conversion of arbitrary `SavedTemplate` rows.
-4. `creative_resource_backfill`:
+5. `creative_resource_backfill`:
    - optional controlled script converts valid `SavedTemplate` rows into `TEMPLATE` resources, writes a compatibility map, and leaves original rows until acceptance.
-5. Do not migrate localStorage Recent/Favorites because they are device-local, may contain unimported provider URLs, and cannot be trusted as tenant data.
+6. Do not migrate localStorage Recent/Favorites because they are device-local, may contain unimported provider URLs, and cannot be trusted as tenant data.
 
 All migrations run only against isolated development first, then use normal deploy migration. No `db push`.
 
@@ -814,7 +822,8 @@ All migrations run only against isolated development first, then use normal depl
 ### Media
 
 - `GET /api/media`: cursor pagination; filters `source`, `approval`, `favorite`, `recent`, `purpose`, `query`; returns complete normalized DTO and rendition URLs.
-- `POST /api/media/upload`: canonical upload endpoint; validate image MIME by bytes; create original plus queued renditions. Keep `/api/upload` as a temporary delegating compatibility route.
+- `POST /api/media/upload`: canonical library upload endpoint; validate image MIME by bytes; create original plus queued renditions. It does not accept `campaignId`; surface usage is recorded only after a successful document save.
+- Keep `/api/upload` as a temporary delegating compatibility route. If a legacy caller supplies `campaignId`, load it under `{id, businessId}` and return 404 when it is not owned by the active business.
 - `POST /api/media/import`: accept signed provider candidate token; import only server-resolved candidate facts.
 - `POST /api/media/url/probe`: SSRF-safe HTTPS probe with DNS/private-range blocking, redirects bounded, content-type/size response.
 - `POST /api/media/url/import`: imports a successfully probed token.
@@ -1002,6 +1011,7 @@ Unit tests inject adapters directly. E2E selects fixture adapters only through s
 ## 38. Known risks
 
 - Existing JSON documents contain URL-only media and untyped node props; migration must be tolerant and reversible.
+- The checked-in migrations lack the base `MediaAsset` creation, so empty-database and existing-database migration paths both require proof before any feature migration is accepted.
 - Email-client support cannot match DOM freeform rendering without generated renditions.
 - SVG stroke placement is not natively equivalent across browsers; pixel proofs are required.
 - R2 public URLs may lack an image transformation service; rendition generation may require a worker or server image dependency.
@@ -1106,7 +1116,8 @@ Implement:
 - Extend MediaAsset with storageKey, contentHash, provider, providerAssetId, sourcePageUrl, creatorName, creatorUrl, licenseCode, licenseUrl, attributionText, rightsNote, approvalStatus, approvedAt, approvedById, defaultAltText, parentAssetId, renditionKind. Logo.dev uses provider identity plus `NO_LICENSE_ASSERTED` and structured trademark/source rights; it is not encoded as a copyright license.
 - Add MediaAssetFavorite, MediaAssetRecent, and CreativeAssetUsage with businessId/user or surface/subject/document path/mediaAssetId and tenant indexes.
 - Add the normal Prisma relations.
-- Create normal migrations. Backfill existing provider fields conservatively. Mark a primary Business logo approved only when its URL exactly matches a tenant MediaAsset; leave unmatched legacy URLs readable but require Owner import/approval before replacement.
+- First add an idempotent pre-provenance MediaAsset baseline migration because the repository has no checked-in CREATE TABLE migration. Prove the complete chain on an empty database and pending-only deployment on a clone of the isolated development database.
+- Create normal feature migrations. Backfill existing provider fields conservatively. Mark a primary Business logo approved only when its URL exactly matches a tenant MediaAsset; leave unmatched legacy URLs readable but require Owner import/approval before replacement.
 - Do not use db push.
 
 2. Provider adapters and fixtures
@@ -1124,6 +1135,7 @@ Implement:
 - The client cannot supply creator/license/provider facts as authority.
 - Deduplicate per business/provider/providerAssetId.
 - Failed import inserts nothing.
+- Canonical library upload does not accept campaignId. The temporary /api/upload compatibility route must verify any supplied Campaign belongs to the active business before linking it.
 
 4. Shared browser
 - Keep components/media/shared-media-asset-browser.tsx as the permanent browser.
