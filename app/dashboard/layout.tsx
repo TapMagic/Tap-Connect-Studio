@@ -5,6 +5,8 @@ import { DevModeBanner } from "@/components/dev-mode-banner";
 import { requireBusiness } from "@/lib/auth";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { prisma } from "@/lib/db";
+import { computeTapPointHealth, summarizeFleetHealth } from "@/lib/fusion/devices/health";
+import { listTapPointsForBusiness } from "@/lib/fusion/devices/tap-point-bridge";
 import { loadFeatureContext } from "@/lib/fusion/features/server";
 import {
   computeWorkspaceStatus,
@@ -50,27 +52,61 @@ export default async function DashboardLayout({
   const { business } = await requireBusiness();
   const featureCtx = await loadFeatureContext();
 
-  const [brandKit, campaignCount, devices, stats, decisionItems] = await Promise.all([
-    prisma.brandKit.findUnique({ where: { businessId: business.id } }).catch(() => null),
-    prisma.campaign
-      .count({
-        where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+  const [brandKit, campaignCount, devices, stats, decisionItems, tapPoints] =
+    await Promise.all([
+      prisma.brandKit.findUnique({ where: { businessId: business.id } }).catch(() => null),
+      prisma.campaign
+        .count({
+          where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+        })
+        .catch(() => 0),
+      prisma.deviceSlot
+        .findMany({
+          where: { businessId: business.id },
+          take: 40,
+          select: { id: true, status: true, totalTapCount: true, deviceCode: true },
+        })
+        .catch(
+          () =>
+            [] as {
+              id: string;
+              status: string;
+              totalTapCount: number;
+              deviceCode: string | null;
+            }[]
+        ),
+      getDashboardStats(business.id).catch(() => ({
+        liveCampaigns: 0,
+        activeDevices: 0,
+        totalTaps: 0,
+        totalLeads: 0,
+      })),
+      listDecisionQueueItems({ businessId: business.id, limit: 50 }).catch(() => []),
+      listTapPointsForBusiness(business.id).catch(() => []),
+    ]);
+
+  const deviceById = new Map(devices.map((d) => [d.id, d]));
+  const unbridged = devices.filter((d) => !tapPoints.some((tp) => tp.deviceSlotId === d.id));
+  const fleet = summarizeFleetHealth([
+    ...tapPoints.map((tp) => {
+      const device = tp.deviceSlotId ? deviceById.get(tp.deviceSlotId) : undefined;
+      return computeTapPointHealth({
+        status: tp.status,
+        hasAddress: Boolean(tp.address?.code),
+        totalTapCount: device?.totalTapCount,
+        deviceStatus: device?.status,
+        bridged: true,
+      });
+    }),
+    ...unbridged.map((d) =>
+      computeTapPointHealth({
+        status: d.status,
+        hasAddress: Boolean(d.deviceCode),
+        totalTapCount: d.totalTapCount,
+        deviceStatus: d.status,
+        bridged: false,
       })
-      .catch(() => 0),
-    prisma.deviceSlot
-      .findMany({
-        where: { businessId: business.id },
-        take: 1,
-        select: { id: true },
-      })
-      .catch(() => [] as { id: string }[]),
-    getDashboardStats(business.id).catch(() => ({
-      liveCampaigns: 0,
-      activeDevices: 0,
-      totalTaps: 0,
-      totalLeads: 0,
-    })),
-    listDecisionQueueItems({ businessId: business.id, limit: 50 }).catch(() => []),
+    ),
   ]);
 
   const setup = firstTapSetupProgress({
@@ -85,6 +121,7 @@ export default async function DashboardLayout({
     setupTotal: setup.total,
     outboxFailed: countOutboxOnlyFailures(decisionItems),
     operatorFailures: countOperatorFailures(decisionItems),
+    criticalTapPoints: fleet.critical,
   });
 
   return (

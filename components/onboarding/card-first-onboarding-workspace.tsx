@@ -961,7 +961,11 @@ export function CardFirstOnboardingWorkspace({
                   <Link href="/dashboard/card/edit?returnTo=%2Fonboarding" className="inline-flex min-h-11 items-center rounded-lg border border-white/20 px-3 text-sm">
                     Edit in Creative Studio
                   </Link>
-                  <Link href="/dashboard/card/preview" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center rounded-lg border border-lime-300/30 bg-lime-300/10 px-3 text-sm text-lime-100">
+                  <Link
+                    href="/dashboard/card/preview"
+                    className="inline-flex min-h-11 items-center rounded-lg border border-lime-300/30 bg-lime-300/10 px-3 text-sm text-lime-100"
+                    data-testid="onboarding-preview-same-tab"
+                  >
                     <Eye className="mr-2 h-4 w-4" /> Preview as customer
                   </Link>
                 </div>
