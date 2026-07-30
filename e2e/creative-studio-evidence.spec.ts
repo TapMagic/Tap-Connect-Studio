@@ -29,6 +29,25 @@ test.beforeAll(() => {
   fs.mkdirSync(path.join(ROOT, "live-device"), { recursive: true });
 });
 
+async function enterEmbeddedPreview(page: import("@playwright/test").Page) {
+  const host = page.getByTestId("card-edit-workspace-host");
+  const previewCta = page.getByTestId("card-preview-as-customer");
+  if (!(await previewCta.isVisible().catch(() => false))) {
+    await page.getByTestId("command-shade-pin-open").click();
+    await expect(page.getByTestId("command-shade")).toHaveAttribute(
+      "data-shade-display",
+      "open"
+    );
+  }
+  await expect(previewCta).toBeVisible({ timeout: 20_000 });
+  await expect(previewCta).toBeEnabled();
+  await page.waitForTimeout(300);
+  await previewCta.click();
+  await expect(host).toHaveAttribute("data-studio-mode", "preview", {
+    timeout: 20_000,
+  });
+}
+
 test("desktop Owner workflow evidence", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/dashboard/card/edit", { waitUntil: "domcontentloaded" });
@@ -72,12 +91,14 @@ test("desktop Owner workflow evidence", async ({ page }) => {
   await page.getByTestId("open-history-panel").click();
   await expect(page.getByTestId("session-history-panel")).toBeVisible();
   await page.screenshot({ path: SHOT("desktop", "07-history.png") });
+  await page
+    .getByTestId("session-history-panel")
+    .getByRole("button", { name: "Close panel" })
+    .click();
 
   // Leave focus/compact before Preview — Preview CTA lives on the command shade.
   await page.getByTestId("chrome-state-expanded").click();
-  const previewCta = page.getByTestId("card-preview-as-customer");
-  await expect(previewCta).toBeVisible({ timeout: 20_000 });
-  await previewCta.click();
+  await enterEmbeddedPreview(page);
   await expect(page.getByTestId("preview-toolbar")).toBeVisible();
   await page.screenshot({ path: SHOT("desktop", "08-preview-toolbar.png") });
   await page.getByTestId("preview-viewport-tablet").click();
@@ -179,12 +200,7 @@ test("Live Device token + LAN preview HTTP evidence", async ({ page, request }) 
   await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({
     timeout: 60_000,
   });
-  await page.getByTestId("card-preview-as-customer").click();
-  await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute(
-    "data-studio-mode",
-    "preview",
-    { timeout: 20_000 }
-  );
+  await enterEmbeddedPreview(page);
   await expect(page.getByTestId("preview-toolbar")).toBeVisible({
     timeout: 20_000,
   });

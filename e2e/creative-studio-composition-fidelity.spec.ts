@@ -31,6 +31,25 @@ async function ensureComposition(page: import("@playwright/test").Page) {
   await page.getByTestId("panel-stack-back").click();
 }
 
+async function enterEmbeddedPreview(page: import("@playwright/test").Page) {
+  const host = page.getByTestId("card-edit-workspace-host");
+  const previewCta = page.getByTestId("card-preview-as-customer");
+  if (!(await previewCta.isVisible().catch(() => false))) {
+    await page.getByTestId("command-shade-pin-open").click();
+    await expect(page.getByTestId("command-shade")).toHaveAttribute(
+      "data-shade-display",
+      "open"
+    );
+  }
+  await expect(previewCta).toBeVisible({ timeout: 20_000 });
+  await expect(previewCta).toBeEnabled();
+  await page.waitForTimeout(300);
+  await previewCta.click();
+  await expect(host).toHaveAttribute("data-studio-mode", "preview", {
+    timeout: 20_000,
+  });
+}
+
 test("studio composition canvas stays freeform on edit", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto("/dashboard/card/edit", { waitUntil: "networkidle" });
@@ -59,15 +78,7 @@ test("live device phone viewport keeps freeform composition", async ({
   await page.keyboard.press("Escape").catch(() => {});
   await page.getByTestId("chrome-state-expanded").click();
   await page.waitForTimeout(400);
-  const previewCta = page.getByTestId("card-preview-as-customer");
-  await previewCta.scrollIntoViewIfNeeded().catch(() => {});
-  // If CTA still hidden, use view-only preview entry
-  if (!(await previewCta.isVisible().catch(() => false))) {
-    const alt = page.getByTestId("card-edit-open-preview");
-    if (await alt.isVisible().catch(() => false)) await alt.click();
-  } else {
-    await previewCta.click({ timeout: 20_000 });
-  }
+  await enterEmbeddedPreview(page);
   await expect(page.getByTestId("preview-toolbar")).toBeVisible({ timeout: 20_000 });
   await page.getByTestId("preview-viewport-phone").click();
   await page.waitForTimeout(500);
