@@ -67,6 +67,8 @@ export const FRAME_MASK_CATALOG: {
   id: FrameMaskId;
   label: string;
   category?: string;
+  tags?: string[];
+  approvedByPlatform?: boolean;
   /** SVG path in 0–100 viewBox coordinates */
   path: string;
 }[] = [
@@ -261,6 +263,7 @@ export type CreativeCompositionNode = {
   height: number;
   rotationDeg?: number;
   zIndex: number;
+  name?: string;
   locked?: boolean;
   visible?: boolean;
   groupId?: string | null;
@@ -298,12 +301,18 @@ export type CreativeCompositionBlock = {
       contrast: number;
       overlayColor?: string;
       overlayOpacity?: number;
+      blendMode?: "normal" | "multiply" | "screen" | "overlay" | "soft-light";
       decorative?: boolean;
       alt?: string;
     };
   };
   mobileFallback: "stack" | "scale" | "hide_decorative";
   safeAreaPaddingPx?: number;
+  resourceRef?: {
+    resourceId: string;
+    revisionId: string;
+    resourceName: string;
+  };
 };
 
 export const CREATIVE_COMPOSITION_BLOCK_ID = "card.creative_composition" as const;
@@ -431,6 +440,10 @@ export function parseCreativeComposition(
         : "scale",
     safeAreaPaddingPx:
       typeof o.safeAreaPaddingPx === "number" ? o.safeAreaPaddingPx : 12,
+    resourceRef:
+      o.resourceRef && typeof o.resourceRef === "object"
+        ? (o.resourceRef as CreativeCompositionBlock["resourceRef"])
+        : undefined,
   };
 }
 
@@ -796,6 +809,117 @@ export function duplicateNodes(
     });
   }
   return { nodes: [...nodes, ...clones], newIds };
+}
+
+export function copyCompositionNodes(
+  nodes: CreativeCompositionNode[],
+  ids: string[]
+): CreativeCompositionNode[] {
+  const selected = new Set(expandSelectionToGroups(nodes, ids));
+  return nodes
+    .filter((node) => selected.has(node.id) && !node.locked)
+    .map((node) => structuredClone(node));
+}
+
+export function pasteCompositionNodes(
+  nodes: CreativeCompositionNode[],
+  copied: CreativeCompositionNode[]
+): { nodes: CreativeCompositionNode[]; newIds: string[] } {
+  const maxZ = nodes.reduce((maximum, node) => Math.max(maximum, node.zIndex), 0);
+  const idMap = new Map(copied.map((node) => [node.id, `node-${nanoid(6)}`]));
+  const groupMap = new Map<string, string>();
+  for (const node of copied) {
+    if (node.groupId && !groupMap.has(node.groupId)) {
+      groupMap.set(node.groupId, `group-${nanoid(6)}`);
+    }
+  }
+  const clones = copied.map((node, index) => ({
+    ...structuredClone(node),
+    id: idMap.get(node.id) || `node-${nanoid(6)}`,
+    x: Math.min(0.96, node.x + 0.04),
+    y: Math.min(0.96, node.y + 0.04),
+    zIndex: maxZ + index + 1,
+    locked: false,
+    groupId: node.groupId ? groupMap.get(node.groupId) || null : null,
+  }));
+  return {
+    nodes: [...nodes, ...clones],
+    newIds: clones.map((node) => node.id),
+  };
+}
+
+export function alignNodesToCanvas(
+  nodes: CreativeCompositionNode[],
+  ids: string[],
+  mode: AlignMode
+): CreativeCompositionNode[] {
+  const selected = new Set(ids);
+  return nodes.map((node) => {
+    if (!selected.has(node.id) || node.locked) return node;
+    if (mode === "left") return { ...node, x: 0 };
+    if (mode === "right") return { ...node, x: 1 - node.width };
+    if (mode === "center") return { ...node, x: (1 - node.width) / 2 };
+    if (mode === "top") return { ...node, y: 0 };
+    if (mode === "bottom") return { ...node, y: 1 - node.height };
+    return { ...node, y: (1 - node.height) / 2 };
+  });
+}
+
+export function tidyNodes(
+  nodes: CreativeCompositionNode[],
+  ids: string[]
+): CreativeCompositionNode[] {
+  const selected = nodes
+    .filter((node) => ids.includes(node.id) && !node.locked)
+    .sort((left, right) => left.y - right.y || left.x - right.x);
+  if (selected.length < 2) return nodes;
+  const columns = Math.ceil(Math.sqrt(selected.length));
+  const gap = 0.03;
+  const cellWidth = Math.min(
+    ...selected.map((node) => node.width),
+    (1 - gap * (columns + 1)) / columns
+  );
+  const rows = Math.ceil(selected.length / columns);
+  const cellHeight = Math.min(
+    ...selected.map((node) => node.height),
+    (1 - gap * (rows + 1)) / rows
+  );
+  const placements = new Map(
+    selected.map((node, index) => [
+      node.id,
+      {
+        x: gap + (index % columns) * (cellWidth + gap),
+        y: gap + Math.floor(index / columns) * (cellHeight + gap),
+      },
+    ])
+  );
+  return nodes.map((node) => {
+    const placement = placements.get(node.id);
+    return placement ? { ...node, ...placement } : node;
+  });
+}
+
+export function distanceBetweenNodes(
+  first: CreativeCompositionNode,
+  second: CreativeCompositionNode,
+  canvas: { widthPx: number; heightPx: number }
+): { horizontalPx: number; verticalPx: number } {
+  const horizontal =
+    first.x + first.width <= second.x
+      ? second.x - (first.x + first.width)
+      : second.x + second.width <= first.x
+        ? first.x - (second.x + second.width)
+        : 0;
+  const vertical =
+    first.y + first.height <= second.y
+      ? second.y - (first.y + first.height)
+      : second.y + second.height <= first.y
+        ? first.y - (second.y + second.height)
+        : 0;
+  return {
+    horizontalPx: Math.round(horizontal * canvas.widthPx),
+    verticalPx: Math.round(vertical * canvas.heightPx),
+  };
 }
 
 export function deleteNodes(

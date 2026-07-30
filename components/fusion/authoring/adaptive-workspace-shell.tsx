@@ -329,7 +329,7 @@ export function AdaptiveWorkspaceShell({
           </aside>
         ) : null}
 
-        <main
+        <section
           ref={canvasMountRef}
           className={cn(
             "min-h-0 min-w-0 flex-1 overflow-hidden",
@@ -337,9 +337,10 @@ export function AdaptiveWorkspaceShell({
           )}
           data-testid="authoring-canvas"
           data-live-surface="true"
+          aria-label="Creative canvas"
         >
           {canvas}
-        </main>
+        </section>
 
         {showDrawer && !isPhone ? (
           <AdaptiveTaskDrawer

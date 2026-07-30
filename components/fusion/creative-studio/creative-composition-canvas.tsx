@@ -47,6 +47,14 @@ function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
 }
 
+function colorWithOpacity(color: string, opacity: number): string {
+  if (!/^#[0-9a-f]{6}$/i.test(color)) return color;
+  const alpha = Math.round(Math.max(0, Math.min(1, opacity)) * 255)
+    .toString(16)
+    .padStart(2, "0");
+  return `${color}${alpha}`;
+}
+
 function NodeVisual({
   node,
   editMode,
@@ -101,10 +109,57 @@ function NodeVisual({
     const flipX = node.props.flipX === true ? -1 : 1;
     const flipY = node.props.flipY === true ? -1 : 1;
     const mediaRotation = num(node.props.mediaRotation, 0);
+    const mediaScale = num(node.props.mediaScale, 1);
+    const positionX = num(node.props.positionX, 0.5);
+    const positionY = num(node.props.positionY, 0.5);
+    const cropX = Math.max(0, Math.min(1, num(node.props.cropX, 0)));
+    const cropY = Math.max(0, Math.min(1, num(node.props.cropY, 0)));
+    const cropWidth = Math.max(
+      0.05,
+      Math.min(1 - cropX, num(node.props.cropWidth, 1))
+    );
+    const cropHeight = Math.max(
+      0.05,
+      Math.min(1 - cropY, num(node.props.cropHeight, 1))
+    );
+    const temperature = num(node.props.temperature, 0);
+    const tint = num(node.props.tint, 0);
+    const highlights = num(node.props.highlights, 0);
+    const shadows = num(node.props.shadows, 0);
+    const clarity = num(node.props.clarity, 0);
+    const vignette = num(node.props.vignette, 0);
+    const duotoneStrength = num(node.props.duotoneStrength, 0);
     return (
       <div
-        className="h-full w-full overflow-hidden rounded-md bg-white/10"
-        style={{ opacity: num(node.props.opacity, 1) }}
+        className="relative h-full w-full overflow-hidden rounded-md bg-white/10"
+        style={{
+          opacity: num(node.props.opacity, 1),
+          borderWidth:
+            str(node.props.outlinePlacement, "center") === "outside"
+              ? undefined
+              : num(node.props.outlineWidth, 0),
+          borderStyle: str(node.props.outlineStyle, "solid") as
+            | "solid"
+            | "dashed"
+            | "dotted",
+          borderColor: colorWithOpacity(
+            str(node.props.outlineColor, "#ffffff"),
+            num(node.props.outlineOpacity, 1)
+          ),
+          borderRadius: num(node.props.outlineRadius, 6),
+          outline:
+            str(node.props.outlinePlacement, "center") === "outside" &&
+            num(node.props.outlineWidth, 0) > 0
+              ? `${num(node.props.outlineWidth, 0)}px ${str(
+                  node.props.outlineStyle,
+                  "solid"
+                )} ${colorWithOpacity(
+                  str(node.props.outlineColor, "#ffffff"),
+                  num(node.props.outlineOpacity, 1)
+                )}`
+              : undefined,
+          outlineOffset: 0,
+        }}
       >
         {src ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -117,12 +172,20 @@ function NodeVisual({
               objectPosition: `${num(node.props.focalX, 0.5) * 100}% ${
                 num(node.props.focalY, 0.5) * 100
               }%`,
-              opacity: num(node.props.opacity, 1),
-              transform: `scale(${flipX}, ${flipY}) rotate(${mediaRotation}deg)`,
+              clipPath: `inset(${cropY * 100}% ${
+                (1 - cropX - cropWidth) * 100
+              }% ${(1 - cropY - cropHeight) * 100}% ${cropX * 100}%)`,
+              transform: `translate(${(positionX - 0.5) * 200}%, ${
+                (positionY - 0.5) * 200
+              }%) scale(${mediaScale * flipX}, ${mediaScale * flipY}) rotate(${mediaRotation}deg)`,
               filter: [
-                `brightness(${num(node.props.brightness, 1)})`,
-                `contrast(${num(node.props.contrast, 1)})`,
+                `brightness(${
+                  num(node.props.brightness, 1) + highlights * 0.18 + shadows * 0.12
+                })`,
+                `contrast(${num(node.props.contrast, 1) + clarity * 0.2})`,
                 `saturate(${num(node.props.saturation, 1)})`,
+                `sepia(${Math.max(0, temperature) * 0.35})`,
+                `hue-rotate(${Math.max(0, -temperature) * 18 + tint * 14}deg)`,
                 `blur(${num(node.props.blur, 0)}px)`,
                 node.props.grayscale === true ? "grayscale(1)" : "",
                 node.props.sepia === true ? "sepia(1)" : "",
@@ -137,6 +200,31 @@ function NodeVisual({
             {editMode ? "Add image URL in inspector" : "Image"}
           </div>
         )}
+        {src && duotoneStrength > 0 ? (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background: `linear-gradient(135deg, ${str(
+                node.props.duotoneShadow,
+                "#0b0f19"
+              )}, ${str(node.props.duotoneHighlight, "#9cff57")})`,
+              mixBlendMode: "color",
+              opacity: duotoneStrength,
+            }}
+            aria-hidden
+          />
+        ) : null}
+        {src && vignette > 0 ? (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{
+              background:
+                "radial-gradient(circle, transparent 35%, rgba(0,0,0,.95) 100%)",
+              opacity: vignette,
+            }}
+            aria-hidden
+          />
+        ) : null}
       </div>
     );
   }
@@ -201,12 +289,18 @@ function NodeVisual({
         {borderW > 0 ? (
           <svg
             viewBox="0 0 100 100"
-            preserveAspectRatio="none"
+            preserveAspectRatio="xMidYMid meet"
             className="pointer-events-none absolute inset-0 h-full w-full overflow-visible"
             aria-hidden
             style={{
               clipPath:
-                borderAlignment === "inside" ? `url(#${clipId})` : undefined,
+                borderAlignment === "inside"
+                  ? `url(#${clipId}-outline-inside)`
+                  : undefined,
+              mask:
+                borderAlignment === "outside"
+                  ? `url(#${clipId}-outline-outside)`
+                  : undefined,
               filter:
                 borderGlow > 0
                   ? `drop-shadow(0 0 ${borderGlow}px ${borderColor})`
@@ -215,6 +309,15 @@ function NodeVisual({
                     : undefined,
             }}
           >
+            <defs>
+              <clipPath id={`${clipId}-outline-inside`}>
+                <path d={frameMaskPath(mask)} />
+              </clipPath>
+              <mask id={`${clipId}-outline-outside`}>
+                <rect width="100" height="100" fill="white" />
+                <path d={frameMaskPath(mask)} fill="black" />
+              </mask>
+            </defs>
             <path
               d={frameMaskPath(mask)}
               fill="none"
@@ -244,19 +347,59 @@ function NodeVisual({
 
   if (node.primitive === "shape") {
     const shape = str(node.props.shape, "rounded");
+    const fillKind = str(node.props.fillKind, "solid");
     const radius =
-      shape === "circle" ? "50%" : shape === "square" ? "0" : "0.75rem";
+      shape === "ellipse"
+        ? "50%"
+        : shape === "rectangle"
+          ? 0
+          : num(node.props.radius, 12);
+    const clipPaths: Record<string, string | undefined> = {
+      triangle: "polygon(50% 0, 100% 100%, 0 100%)",
+      polygon: "polygon(25% 7%, 75% 7%, 100% 50%, 75% 93%, 25% 93%, 0 50%)",
+      star: "polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 94%, 50% 72%, 21% 94%, 32% 57%, 2% 35%, 39% 35%)",
+      arrow: "polygon(0 30%, 60% 30%, 60% 0, 100% 50%, 60% 100%, 60% 70%, 0 70%)",
+      badge: "polygon(50% 0, 62% 20%, 85% 15%, 80% 38%, 100% 50%, 80% 62%, 85% 85%, 62% 80%, 50% 100%, 38% 80%, 15% 85%, 20% 62%, 0 50%, 20% 38%, 15% 15%, 38% 20%)",
+      speech: "polygon(0 0, 100% 0, 100% 78%, 65% 78%, 50% 100%, 45% 78%, 0 78%)",
+      organic: "polygon(10% 25%, 30% 5%, 60% 12%, 86% 5%, 95% 35%, 88% 70%, 65% 92%, 35% 85%, 8% 95%, 2% 55%)",
+    };
+    const fill =
+      fillKind === "gradient" && node.props.gradient
+        ? gradientToCss(node.props.gradient as typeof DEFAULT_GRADIENT)
+        : fillKind === "image" && str(node.props.imageSrc)
+          ? `url("${str(node.props.imageSrc).replaceAll('"', "%22")}") center / cover no-repeat`
+          : str(node.props.fill, "#22c55e");
+    const shadow = num(node.props.shadow, 0);
+    const glow = num(node.props.glow, 0);
     return (
       <div
         className="h-full w-full"
         style={{
-          background: str(node.props.fill, "#22c55e"),
+          background: fill,
           opacity: num(node.props.opacity, 1),
           borderRadius: radius,
+          clipPath: clipPaths[shape],
           border:
             num(node.props.strokeWidth, 0) > 0
               ? `${num(node.props.strokeWidth, 0)}px solid ${str(node.props.stroke, "#fff")}`
               : undefined,
+          boxShadow: [
+            shadow > 0 ? `0 ${Math.max(2, shadow / 3)}px ${shadow}px rgba(0,0,0,.55)` : "",
+            glow > 0
+              ? `0 0 ${glow}px ${str(node.props.stroke, "#9cff57")}`
+              : "",
+          ]
+            .filter(Boolean)
+            .join(", ") || undefined,
+          mixBlendMode: str(node.props.blendMode, "normal") as
+            | "normal"
+            | "multiply"
+            | "screen"
+            | "overlay"
+            | "soft-light",
+          transform: `scale(${node.props.flipX === true ? -1 : 1}, ${
+            node.props.flipY === true ? -1 : 1
+          })`,
         }}
       />
     );
@@ -394,13 +537,15 @@ export function CreativeCompositionCanvas({
 }: CreativeCompositionCanvasProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
+  const [zoom, setZoom] = useState(1);
   const [draftNodes, setDraftNodes] = useState<CreativeCompositionNode[] | null>(
     null
   );
   const [guides, setGuides] = useState<CompositionGuide[]>([]);
   const [drag, setDrag] = useState<{
     id: string;
-    mode: "move" | "resize";
+    mode: "move" | "resize" | "rotate";
+    handle?: "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
     startX: number;
     startY: number;
     orig: CreativeCompositionNode;
@@ -444,6 +589,39 @@ export function CreativeCompositionCanvas({
     () => accessibleReadingOrder(visibleNodes),
     [visibleNodes]
   );
+  const zoomControls = editMode ? (
+    <div
+      className="absolute right-2 top-2 z-[1001] flex items-center gap-1 rounded-lg border border-white/15 bg-black/80 p-1"
+      data-testid="composition-zoom-controls"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <button
+        type="button"
+        className="min-h-8 min-w-8 rounded border border-white/10 text-xs"
+        onClick={() => setZoom((current) => Math.max(0.25, current - 0.25))}
+        aria-label="Zoom out"
+      >
+        −
+      </button>
+      <span className="min-w-12 text-center text-[10px]">{Math.round(zoom * 100)}%</span>
+      <button
+        type="button"
+        className="min-h-8 min-w-8 rounded border border-white/10 text-xs"
+        onClick={() => setZoom((current) => Math.min(4, current + 0.25))}
+        aria-label="Zoom in"
+      >
+        +
+      </button>
+      <button
+        type="button"
+        className="min-h-8 rounded border border-white/10 px-2 text-[10px]"
+        onClick={() => setZoom(1)}
+        data-testid="composition-fit-canvas"
+      >
+        Fit
+      </button>
+    </div>
+  ) : null;
 
   const commitNodes = useCallback(
     (nodes: CreativeCompositionNode[], label: string) => {
@@ -476,13 +654,14 @@ export function CreativeCompositionCanvas({
         if (newIds.length) onSelectNodes?.(newIds);
       }
       // Arrow nudge — responsive relative units
-      const step = e.shiftKey ? 0.02 : 0.005;
+      const rect = surfaceRef.current?.getBoundingClientRect();
+      const stepPx = e.shiftKey ? 10 : 1;
       let dx = 0;
       let dy = 0;
-      if (e.key === "ArrowLeft") dx = -step;
-      if (e.key === "ArrowRight") dx = step;
-      if (e.key === "ArrowUp") dy = -step;
-      if (e.key === "ArrowDown") dy = step;
+      if (e.key === "ArrowLeft") dx = -stepPx / Math.max(rect?.width || 1, 1);
+      if (e.key === "ArrowRight") dx = stepPx / Math.max(rect?.width || 1, 1);
+      if (e.key === "ArrowUp") dy = -stepPx / Math.max(rect?.height || 1, 1);
+      if (e.key === "ArrowDown") dy = stepPx / Math.max(rect?.height || 1, 1);
       if (dx || dy) {
         e.preventDefault();
         const ids = expandSelectionToGroups(block.nodes, selectedNodeIds);
@@ -499,7 +678,8 @@ export function CreativeCompositionCanvas({
   const onPointerDownNode = (
     e: React.PointerEvent,
     node: CreativeCompositionNode,
-    mode: "move" | "resize"
+    mode: "move" | "resize" | "rotate",
+    handle?: "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w"
   ) => {
     if (!editMode || node.locked) return;
     e.stopPropagation();
@@ -524,6 +704,7 @@ export function CreativeCompositionCanvas({
     setDrag({
       id: node.id,
       mode,
+      handle,
       startX: e.clientX,
       startY: e.clientY,
       orig: { ...node },
@@ -547,12 +728,51 @@ export function CreativeCompositionCanvas({
       setGuides(snapped.guides);
       return;
     }
+    if (drag.mode === "rotate") {
+      const centerX = rect.left + (drag.orig.x + drag.orig.width / 2) * rect.width;
+      const centerY = rect.top + (drag.orig.y + drag.orig.height / 2) * rect.height;
+      const angle =
+        (Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180) / Math.PI +
+        90;
+      setDraftNodes(
+        drag.origNodes.map((node) =>
+          node.id === drag.id ? { ...node, rotationDeg: Math.round(angle) } : node
+        )
+      );
+      return;
+    }
     const nodes = drag.origNodes.map((n) => {
       if (n.id !== drag.id) return n;
+      const handle = drag.handle || "se";
+      const west = handle.includes("w");
+      const east = handle.includes("e");
+      const north = handle.includes("n");
+      const south = handle.includes("s");
+      let x = west ? Math.min(n.x + n.width - 0.02, Math.max(0, n.x + dx)) : n.x;
+      let y = north ? Math.min(n.y + n.height - 0.02, Math.max(0, n.y + dy)) : n.y;
+      let width = west
+        ? n.width + (n.x - x)
+        : east
+          ? Math.min(1 - n.x, Math.max(0.02, n.width + dx))
+          : n.width;
+      let height = north
+        ? n.height + (n.y - y)
+        : south
+          ? Math.min(1 - n.y, Math.max(0.02, n.height + dy))
+          : n.height;
+      if (n.props.aspectLocked === true && (east || west) && (north || south)) {
+        const aspect = drag.orig.width / drag.orig.height;
+        if (Math.abs(dx) >= Math.abs(dy)) height = width / aspect;
+        else width = height * aspect;
+        if (west) x = drag.orig.x + drag.orig.width - width;
+        if (north) y = drag.orig.y + drag.orig.height - height;
+      }
       return {
         ...n,
-        width: Math.min(1 - n.x, Math.max(0.08, drag.orig.width + dx)),
-        height: Math.min(1 - n.y, Math.max(0.08, drag.orig.height + dy)),
+        x: Math.max(0, x),
+        y: Math.max(0, y),
+        width: Math.min(1 - x, Math.max(0.02, width)),
+        height: Math.min(1 - y, Math.max(0.02, height)),
       };
     });
     setDraftNodes(nodes);
@@ -570,6 +790,8 @@ export function CreativeCompositionCanvas({
       nodes,
       mode === "resize"
         ? "Resized composition item"
+        : mode === "rotate"
+          ? "Rotated composition item"
         : groupMove
           ? "Moved composition group"
           : "Moved composition item"
@@ -612,27 +834,48 @@ export function CreativeCompositionCanvas({
             backgroundImage.focalY * 100
           }%`,
           backgroundRepeat: backgroundImage.repeat,
+          backgroundBlendMode: backgroundImage.blendMode || "normal",
         }
       : (block.background?.kind === "pattern" ||
             block.background?.kind === "texture") &&
           block.background.pattern
         ? surfacePatternStyle(block.background.pattern)
         : { background: bg };
+  const backgroundTreatmentStyle =
+    block.background?.kind === "image" && backgroundImage
+      ? {
+          filter: `blur(${backgroundImage.blur || 0}px) brightness(${
+            backgroundImage.brightness || 1
+          }) contrast(${backgroundImage.contrast || 1})`,
+          transform:
+            (backgroundImage.blur || 0) > 0
+              ? `scale(${1 + Math.min(backgroundImage.blur || 0, 20) / 100})`
+              : undefined,
+        }
+      : undefined;
 
   if (useStack) {
     return (
       <div
         ref={surfaceRef}
         className={cn(
-          "flex flex-col gap-3 rounded-xl border border-white/10 p-3",
+          "relative flex flex-col gap-3 overflow-hidden rounded-xl border border-white/10 p-3",
           className
         )}
-        style={backgroundStyle}
+        style={{ zoom: editMode ? zoom : undefined }}
         data-testid="creative-composition-canvas"
+        data-edit-mode={editMode ? "true" : "false"}
         data-mobile-fallback="stack"
         role="group"
         aria-label={block.label}
       >
+        {zoomControls}
+        <div
+          className="pointer-events-none absolute inset-0"
+          style={{ ...backgroundStyle, ...backgroundTreatmentStyle }}
+          data-testid="composition-background-renderer"
+          aria-hidden
+        />
         <ol className="sr-only" data-testid="composition-reading-order">
           {readingOrder.map((n) => (
             <li key={n.id}>
@@ -647,7 +890,7 @@ export function CreativeCompositionCanvas({
         {readingOrder.map((node) => (
           <div
             key={node.id}
-            className="relative min-h-[72px] w-full"
+            className="relative z-[1] min-h-[72px] w-full"
             data-composition-node={node.id}
             data-primitive={node.primitive}
             data-selected={selectedSet.has(node.id) ? "true" : "false"}
@@ -673,11 +916,12 @@ export function CreativeCompositionCanvas({
         className
       )}
       style={{
-        ...backgroundStyle,
         aspectRatio: String(aspectRatio),
         padding: block.safeAreaPaddingPx ?? 12,
+        zoom: editMode ? zoom : undefined,
       }}
       data-testid="creative-composition-canvas"
+      data-edit-mode={editMode ? "true" : "false"}
       data-mobile-fallback={
         applyFallback ? block.mobileFallback : "freeform"
       }
@@ -691,6 +935,21 @@ export function CreativeCompositionCanvas({
         if (editMode) onSelectNodes?.([]);
       }}
     >
+      {zoomControls}
+      <div
+        className="pointer-events-none absolute inset-0"
+        style={{ ...backgroundStyle, ...backgroundTreatmentStyle }}
+        data-testid="composition-background-renderer"
+        aria-hidden
+      />
+      {editMode && (block.safeAreaPaddingPx || 0) > 0 ? (
+        <div
+          className="pointer-events-none absolute z-[998] border border-dashed border-[#9cff57]/45"
+          style={{ inset: block.safeAreaPaddingPx }}
+          data-testid="composition-safe-area-guide"
+          aria-hidden
+        />
+      ) : null}
       {/* Accessible reading order (visually hidden list for SR) */}
       <ol className="sr-only" data-testid="composition-reading-order">
         {readingOrder.map((n) => (
@@ -758,19 +1017,80 @@ export function CreativeCompositionCanvas({
             data-group={node.groupId || undefined}
             data-anchor={node.anchor || "top-left"}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
-            role={editMode ? "button" : undefined}
+            onKeyDown={(event) => {
+              if (
+                !editMode ||
+                !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
+                  event.key
+                )
+              ) {
+                return;
+              }
+              event.preventDefault();
+              event.stopPropagation();
+              event.nativeEvent.stopImmediatePropagation();
+              const rect = surfaceRef.current?.getBoundingClientRect();
+              const stepPx = event.shiftKey ? 10 : 1;
+              const dx =
+                event.key === "ArrowLeft"
+                  ? -stepPx / Math.max(rect?.width || 1, 1)
+                  : event.key === "ArrowRight"
+                    ? stepPx / Math.max(rect?.width || 1, 1)
+                    : 0;
+              const dy =
+                event.key === "ArrowUp"
+                  ? -stepPx / Math.max(rect?.height || 1, 1)
+                  : event.key === "ArrowDown"
+                    ? stepPx / Math.max(rect?.height || 1, 1)
+                    : 0;
+              const ids = expandSelectionToGroups(block.nodes, selectedNodeIds);
+              commitNodes(
+                translateNodes(block.nodes, ids, dx, dy),
+                event.shiftKey
+                  ? "Nudged composition items 10 pixels"
+                  : "Nudged composition items 1 pixel"
+              );
+            }}
+            role={editMode ? (selected && !node.locked ? "group" : "button") : undefined}
             tabIndex={editMode ? 0 : undefined}
             aria-label={`${node.primitive}${node.locked ? " locked" : ""}`}
           >
             <NodeVisual node={node} editMode={editMode} />
             {editMode && selected && !node.locked ? (
-              <button
-                type="button"
-                className="absolute -bottom-1 -right-1 h-3.5 w-3.5 rounded-sm border border-white/80 bg-white/90"
-                data-testid={`composition-resize-${node.id}`}
-                aria-label="Resize"
-                onPointerDown={(e) => onPointerDownNode(e, node, "resize")}
-              />
+              <>
+                {(
+                  [
+                    ["nw", "-left-1.5 -top-1.5 cursor-nwse-resize"],
+                    ["n", "left-1/2 -top-1.5 -translate-x-1/2 cursor-ns-resize"],
+                    ["ne", "-right-1.5 -top-1.5 cursor-nesw-resize"],
+                    ["e", "-right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+                    ["se", "-bottom-1.5 -right-1.5 cursor-nwse-resize"],
+                    ["s", "left-1/2 -bottom-1.5 -translate-x-1/2 cursor-ns-resize"],
+                    ["sw", "-bottom-1.5 -left-1.5 cursor-nesw-resize"],
+                    ["w", "-left-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+                  ] as const
+                ).map(([handle, position]) => (
+                  <button
+                    key={handle}
+                    type="button"
+                    className={`absolute z-[2] h-3.5 w-3.5 rounded-sm border border-white/80 bg-white/90 ${position}`}
+                    data-testid={`composition-resize-${node.id}-${handle}`}
+                    aria-label={`Resize ${handle}`}
+                    onPointerDown={(event) =>
+                      onPointerDownNode(event, node, "resize", handle)
+                    }
+                  />
+                ))}
+                <button
+                  type="button"
+                  className="absolute -top-9 left-1/2 z-[2] h-5 w-5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-[#9cff57]"
+                  data-testid={`composition-rotate-${node.id}`}
+                  aria-label="Rotate"
+                  onPointerDown={(event) =>
+                    onPointerDownNode(event, node, "rotate")
+                  }
+                />
+              </>
             ) : null}
           </div>
         );

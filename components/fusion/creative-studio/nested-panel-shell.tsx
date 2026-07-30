@@ -67,7 +67,13 @@ export function NestedPanelShell({
   useLayoutEffect(() => {
     if (depth === depthRef.current) {
       childrenRef.current = children;
-      if (!transitioningRef.current) setSettled(children);
+      if (transitioningRef.current) {
+        setTransition((current) =>
+          current ? { ...current, incoming: children } : current
+        );
+      } else {
+        setSettled(children);
+      }
       return;
     }
     const dir: SlideDir = depth > depthRef.current ? "forward" : "back";
@@ -206,7 +212,7 @@ export function NestedPanelShell({
                   className="w-1/2 shrink-0 p-3"
                   data-panel-slide-pane="incoming"
                 >
-                  {childrenRef.current}
+                  {transition.incoming}
                 </div>
               </>
             ) : (
@@ -215,7 +221,7 @@ export function NestedPanelShell({
                   className="w-1/2 shrink-0 p-3"
                   data-panel-slide-pane="incoming"
                 >
-                  {childrenRef.current}
+                  {transition.incoming}
                 </div>
                 <div
                   className="w-1/2 shrink-0 border-l border-white/10 p-3 opacity-90"
@@ -272,7 +278,7 @@ export function PanelNavRow({
       <span>
         {label}
         {hint ? (
-          <span className="mt-0.5 block text-[11px] text-white/40">{hint}</span>
+          <span className="mt-0.5 block text-[11px] text-white/65">{hint}</span>
         ) : null}
       </span>
       <span className="text-white/35" aria-hidden>

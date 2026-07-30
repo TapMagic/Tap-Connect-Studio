@@ -9,7 +9,6 @@ import type { ReactNode } from "react";
 import Link from "next/link";
 import { Columns2, Rows3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MediaPicker } from "@/components/media/media-picker";
 import { FinishPicker } from "@/components/design/format-controls";
@@ -193,6 +192,13 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
           onClose={props.onCloseTool}
           mediaUploadReady={mediaUploadReady}
           stockReady={stockReady}
+          brandColors={[
+            config.accentColor,
+            config.surfaceColor,
+            config.textColor,
+            config.neonColor,
+          ].filter((color): color is string => Boolean(color))}
+          defaultForegroundColor={config.textColor}
         />
       </div>
     );

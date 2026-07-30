@@ -137,6 +137,8 @@ export function CardAuthoringWorkspace({
   const router = useRouter();
   const restored = useMemo(() => loadWorkspaceShellState(WORKSPACE_ID), []);
   const lifecycleIntent = useMemo(() => readLifecycleIntent(), []);
+  // This initialization intentionally captures one restored session snapshot.
+  // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const initialShell = useMemo(() => {
     const baseMemory = restored.toolMemory ?? {};
     // Inspector starts closed — open only after a left-rail (or canvas) selection.
@@ -220,24 +222,27 @@ export function CardAuthoringWorkspace({
   // Client-only deep link: SSR cannot read window URL, so open Lifecycle after mount.
   useEffect(() => {
     if (!readLifecycleIntent()) return;
-    setChromeState("expanded");
-    setShell((s) => {
-      if (s.selectedToolId === "lifecycle" && s.drawerOpen && !s.focusMode) {
-        return s;
-      }
-      const { snapshot, memory } = openAdaptiveTool(
-        {
-          ...s,
-          focusMode: false,
-          workspaceMode: "browse",
-        },
-        WORKSPACE_ID,
-        "lifecycle",
-        toolMemory
-      );
-      setToolMemory(memory);
-      return snapshot;
-    });
+    const timer = window.setTimeout(() => {
+      setChromeState("expanded");
+      setShell((s) => {
+        if (s.selectedToolId === "lifecycle" && s.drawerOpen && !s.focusMode) {
+          return s;
+        }
+        const { snapshot, memory } = openAdaptiveTool(
+          {
+            ...s,
+            focusMode: false,
+            workspaceMode: "browse",
+          },
+          WORKSPACE_ID,
+          "lifecycle",
+          toolMemory
+        );
+        setToolMemory(memory);
+        return snapshot;
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot URL handoff
   }, []);
 
@@ -526,7 +531,7 @@ export function CardAuthoringWorkspace({
       </span>
       {!builderProps.freeformEnabled ? (
         <span
-          className="text-[10px] text-white/40"
+          className="text-[10px] text-white/65"
           data-testid="freeform-honest-disabled"
           title="Freeform canvas is not enabled for this workspace"
         >

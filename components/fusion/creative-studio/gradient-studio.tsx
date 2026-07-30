@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Plus, RotateCcw, Shuffle, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus, RotateCcw, Shuffle, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ReusableDesignBrowser } from "@/components/fusion/creative-studio/reusable-design-browser";
+import { contrastRatio } from "@/lib/fusion/creative-platform/render";
 import {
   DEFAULT_GRADIENT,
   GRADIENT_PRESETS,
@@ -21,12 +23,18 @@ export type GradientStudioProps = {
   value?: GradientModel | null;
   onChange: (gradient: GradientModel, label: string) => void;
   brandColors?: string[];
+  brandGradient?: GradientModel | null;
+  foregroundColor?: string;
+  onSuggestedTextColor?: (color: "#000000" | "#ffffff") => void;
 };
 
 export function GradientStudio({
   value,
   onChange,
   brandColors = [],
+  brandGradient,
+  foregroundColor = "#ffffff",
+  onSuggestedTextColor,
 }: GradientStudioProps) {
   const gradient = useMemo(() => normalizeGradient(value), [value]);
   const [advanced, setAdvanced] = useState(false);
@@ -35,6 +43,35 @@ export function GradientStudio({
   );
   const selected =
     gradient.stops.find((stop) => stop.id === selectedStopId) || gradient.stops[0];
+  const contrast = useMemo(() => {
+    const current = Math.min(
+      ...gradient.stops.map((stop) => contrastRatio(foregroundColor, stop.color))
+    );
+    const black = Math.min(
+      ...gradient.stops.map((stop) => contrastRatio("#000000", stop.color))
+    );
+    const white = Math.min(
+      ...gradient.stops.map((stop) => contrastRatio("#ffffff", stop.color))
+    );
+    return {
+      current,
+      suggested: black >= white ? ("#000000" as const) : ("#ffffff" as const),
+      suggestedRatio: Math.max(black, white),
+    };
+  }, [foregroundColor, gradient.stops]);
+  const resetGradient = useMemo(() => {
+    if (brandGradient) return normalizeGradient(brandGradient);
+    if (brandColors.length >= 2) {
+      return normalizeGradient({
+        ...DEFAULT_GRADIENT,
+        stops: [
+          { ...DEFAULT_GRADIENT.stops[0], color: brandColors[0] },
+          { ...DEFAULT_GRADIENT.stops[1], color: brandColors[1] },
+        ],
+      });
+    }
+    return structuredClone(DEFAULT_GRADIENT);
+  }, [brandColors, brandGradient]);
 
   function patch(patchValue: Partial<GradientModel>, label: string) {
     onChange(normalizeGradient({ ...gradient, ...patchValue }), label);
@@ -138,8 +175,9 @@ export function GradientStudio({
           size="sm"
           variant="ghost"
           onClick={() =>
-            onChange(structuredClone(DEFAULT_GRADIENT), "Reset gradient to Brand")
+            onChange(structuredClone(resetGradient), "Reset gradient to Brand")
           }
+          data-testid="gradient-reset-brand"
         >
           <RotateCcw className="mr-1 h-3.5 w-3.5" />
           Reset to Brand
@@ -369,13 +407,66 @@ export function GradientStudio({
             </div>
           </div>
 
-          <p className="text-[11px] text-white/45">
-            Contrast depends on the content above this gradient. TapConnect will add
-            one-click text correction when shared contrast pairing is complete.
-          </p>
+          <div
+            className={`rounded-lg border p-3 text-xs ${
+              contrast.current < 4.5
+                ? "border-amber-300/35 bg-amber-300/10"
+                : "border-emerald-300/25 bg-emerald-300/5"
+            }`}
+            data-testid="gradient-contrast-assistance"
+          >
+            <p className="flex items-center gap-2 font-medium">
+              {contrast.current < 4.5 ? (
+                <AlertTriangle className="h-4 w-4 text-amber-200" />
+              ) : (
+                <CheckIcon />
+              )}
+              {contrast.current < 4.5
+                ? `Contrast warning · ${contrast.current.toFixed(2)}:1`
+                : `Readable contrast · ${contrast.current.toFixed(2)}:1`}
+            </p>
+            <p className="mt-1 text-[11px] text-white/55">
+              Checks the selected text color against every gradient stop.
+            </p>
+            {contrast.current < 4.5 ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="mt-2"
+                onClick={() => onSuggestedTextColor?.(contrast.suggested)}
+                disabled={!onSuggestedTextColor}
+                data-testid="gradient-use-readable-text"
+              >
+                Use suggested readable text ({contrast.suggestedRatio.toFixed(2)}:1)
+              </Button>
+            ) : null}
+          </div>
         </div>
       ) : null}
+
+      <ReusableDesignBrowser
+        kind="GRADIENT"
+        value={gradient}
+        compact
+        title="Saved and recent gradients"
+        onInsert={(next, label) => onChange(normalizeGradient(next), label)}
+      />
     </section>
+  );
+}
+
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 20 20" className="h-4 w-4 text-emerald-200" aria-hidden>
+      <path
+        d="m4 10 4 4 8-9"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="2"
+        strokeLinecap="round"
+      />
+    </svg>
   );
 }
 

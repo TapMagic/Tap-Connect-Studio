@@ -13,21 +13,35 @@ import { ProfessionalTypographyPanel } from "@/components/fusion/creative-studio
 import { GradientStudio } from "@/components/fusion/creative-studio/gradient-studio";
 import { PatternTextureStudio } from "@/components/fusion/creative-studio/pattern-texture-studio";
 import { FrameMaskBrowser } from "@/components/fusion/creative-studio/frame-mask-browser";
+import { ShapeStudio } from "@/components/fusion/creative-studio/shape-studio";
+import { ReusableDesignBrowser } from "@/components/fusion/creative-studio/reusable-design-browser";
 import { DEFAULT_GRADIENT } from "@/lib/fusion/creative-studio/gradient";
 import { DEFAULT_SURFACE_PATTERN } from "@/lib/fusion/creative-studio/patterns";
 import {
+  compositionBlockToRenderDocument,
+  compositionBackgroundToFill,
+  creativeFillToCompositionBackground,
+  renderDocumentToCompositionBlock,
+} from "@/lib/fusion/creative-platform/composition-adapter";
+import type { CreativeRenderDocument } from "@/lib/fusion/creative-platform/model";
+import {
   alignNodes,
+  alignNodesToCanvas,
   bringForward,
   bringToFront,
+  copyCompositionNodes,
   createCompositionNode,
   deleteNodes,
+  distanceBetweenNodes,
   distributeNodes,
   duplicateNodes,
   expandSelectionToGroups,
   groupNodes,
+  pasteCompositionNodes,
   sendBackward,
   sendToBack,
   setNodeLocked,
+  tidyNodes,
   ungroupNodes,
   type AlignMode,
   type CreativeCompositionAnchor,
@@ -62,6 +76,8 @@ export type CompositionPanelStackProps = {
   onClose?: () => void;
   mediaUploadReady?: boolean;
   stockReady?: boolean;
+  brandColors?: string[];
+  defaultForegroundColor?: string;
 };
 
 const MEMORY_KEY = "tc.composition.panel.level";
@@ -93,10 +109,23 @@ export function CompositionPanelStack({
   onClose,
   mediaUploadReady = false,
   stockReady = false,
+  brandColors = [],
+  defaultForegroundColor = "#ffffff",
 }: CompositionPanelStackProps) {
   const [level, setLevel] = useState<Level>(() => readRememberedLevel(block.id));
+  const [clipboard, setClipboard] = useState<CreativeCompositionNode[]>([]);
   const node = primaryNode(block, selectedNodeIds);
   const multi = selectedNodeIds.length > 1;
+  const measurementNodes = selectedNodeIds
+    .map((id) => block.nodes.find((item) => item.id === id))
+    .filter((item): item is CreativeCompositionNode => Boolean(item));
+  const distanceMeasurement =
+    measurementNodes.length === 2
+      ? distanceBetweenNodes(measurementNodes[0], measurementNodes[1], {
+          widthPx: 400,
+          heightPx: 500,
+        })
+      : null;
 
   useEffect(() => {
     try {
@@ -225,7 +254,7 @@ export function CompositionPanelStack({
             className="rounded-md border border-white/10 bg-white/[0.03] p-3 space-y-2"
             data-testid="composition-panel-hub"
           >
-            <p className="text-[10px] uppercase tracking-wide text-white/40">
+            <p className="text-[10px] uppercase tracking-wide text-white/65">
               Creative Composition
             </p>
             <p className="text-xs text-white/60">
@@ -387,6 +416,34 @@ export function CompositionPanelStack({
                   variant="outline"
                   className="min-h-9"
                   disabled={!selectedNodeIds.length}
+                  onClick={() => {
+                    setClipboard(
+                      copyCompositionNodes(block.nodes, selectedNodeIds)
+                    );
+                  }}
+                  data-testid="composition-copy"
+                >
+                  Copy
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-9"
+                  disabled={!clipboard.length}
+                  onClick={() => {
+                    const pasted = pasteCompositionNodes(block.nodes, clipboard);
+                    patchNodes(pasted.nodes, "Pasted composition items");
+                    onSelectNodes(pasted.newIds);
+                  }}
+                  data-testid="composition-paste"
+                >
+                  Paste
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="min-h-9"
+                  disabled={!selectedNodeIds.length}
                   data-testid="composition-delete"
                   onClick={() => {
                     patchNodes(
@@ -414,7 +471,7 @@ export function CompositionPanelStack({
                     ["rotationDeg", "°", Math.round(node.rotationDeg || 0)],
                   ] as const
                 ).map(([key, label, value]) => (
-                  <label key={key} className="space-y-1 text-[9px] text-white/45">
+                  <label key={key} className="space-y-1 text-[9px] text-white/65">
                     <span>{label}</span>
                     <Input
                       type="number"
@@ -554,33 +611,111 @@ export function CompositionPanelStack({
           />
 
           <div className="space-y-1" data-testid="composition-layers-list">
-            <Label className="text-[10px] text-white/45">Layers</Label>
+            <Label className="text-[10px] text-white/65">Layers</Label>
             {[...block.nodes]
               .sort((a, b) => b.zIndex - a.zIndex)
               .map((n) => (
-                <button
+                <div
                   key={n.id}
-                  type="button"
-                  className={`flex min-h-9 w-full items-center justify-between rounded-md border px-2 text-left text-xs ${
+                  className={`rounded-md border p-2 ${
                     selectedNodeIds.includes(n.id)
                       ? "border-white/35 bg-white/10"
                       : "border-white/10"
                   }`}
                   data-testid={`composition-layer-${n.id}`}
-                  onClick={() =>
-                    onSelectNodes(expandSelectionToGroups(block.nodes, [n.id]))
-                  }
                 >
-                  <span>
-                    {n.primitive}
-                    {n.locked ? " · locked" : ""}
-                    {n.groupId ? " · grouped" : ""}
-                    {n.visible === false ? " · hidden" : ""}
-                  </span>
-                  <span className="text-white/35">z{n.zIndex}</span>
-                </button>
+                  <button
+                    type="button"
+                    className="flex min-h-9 w-full items-center justify-between text-left text-xs"
+                    onClick={(event) => {
+                      if (event.shiftKey || event.metaKey || event.ctrlKey) {
+                        onSelectNodes(
+                          selectedNodeIds.includes(n.id)
+                            ? selectedNodeIds.filter((id) => id !== n.id)
+                            : [...selectedNodeIds, n.id]
+                        );
+                        return;
+                      }
+                      onSelectNodes(expandSelectionToGroups(block.nodes, [n.id]));
+                    }}
+                  >
+                    <span>
+                      {n.name || n.primitive}
+                      {n.groupId ? " · grouped" : ""}
+                    </span>
+                    <span className="text-white/65">z{n.zIndex}</span>
+                  </button>
+                  <div className="grid grid-cols-[1fr_auto_auto] gap-1">
+                    <Input
+                      value={n.name || ""}
+                      placeholder={n.primitive}
+                      aria-label={`Rename ${n.primitive} layer`}
+                      className="h-9 text-xs"
+                      onChange={(event) =>
+                        patchNode(
+                          n.id,
+                          { name: event.target.value },
+                          `Renamed ${n.primitive} layer`
+                        )
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="min-h-9 rounded border border-white/10 px-2 text-[10px]"
+                      aria-pressed={n.visible !== false}
+                      onClick={() =>
+                        patchNode(
+                          n.id,
+                          { visible: n.visible === false },
+                          n.visible === false ? "Showed layer" : "Hid layer"
+                        )
+                      }
+                    >
+                      {n.visible === false ? "Show" : "Hide"}
+                    </button>
+                    <button
+                      type="button"
+                      className="min-h-9 rounded border border-white/10 px-2 text-[10px]"
+                      aria-pressed={Boolean(n.locked)}
+                      onClick={() =>
+                        patchNode(
+                          n.id,
+                          { locked: !n.locked },
+                          n.locked ? "Unlocked layer" : "Locked layer"
+                        )
+                      }
+                    >
+                      {n.locked ? "Unlock" : "Lock"}
+                    </button>
+                  </div>
+                </div>
               ))}
           </div>
+          <ReusableDesignBrowser
+            kind="COMPOSITION"
+            value={compositionBlockToRenderDocument(block)}
+            title="Reusable compositions"
+            onInsert={(document: CreativeRenderDocument, label, resource) => {
+              const next = renderDocumentToCompositionBlock(document, {
+                  id: block.id,
+                  label: block.label,
+                });
+              onChangeBlock(
+                {
+                  ...next,
+                  resourceRef:
+                    resource.currentRevisionId && resource.currentRevision
+                      ? {
+                          resourceId: resource.id,
+                          revisionId: resource.currentRevision.id,
+                          resourceName: resource.name,
+                        }
+                      : undefined,
+                },
+                label
+              );
+            }}
+          />
         </div>
       ) : null}
 
@@ -789,6 +924,134 @@ export function CompositionPanelStack({
               )
             }
           />
+          <div className="space-y-3 rounded-lg border border-white/10 p-3" data-testid="composition-image-outline">
+            <p className="text-xs font-medium">Object outline</p>
+            <div className="grid grid-cols-[1fr_64px] gap-2">
+              <Input
+                type="number"
+                min={0}
+                max={48}
+                value={Number(node.props.outlineWidth || 0)}
+                aria-label="Object outline width"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { outlineWidth: Number(event.target.value) || 0 } },
+                    "Changed object outline width"
+                  )
+                }
+              />
+              <Input
+                type="color"
+                value={String(node.props.outlineColor || "#ffffff")}
+                aria-label="Object outline color"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { outlineColor: event.target.value } },
+                    "Changed object outline color"
+                  )
+                }
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <select
+                value={String(node.props.outlineStyle || "solid")}
+                aria-label="Object outline style"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { outlineStyle: event.target.value } },
+                    "Changed object outline style"
+                  )
+                }
+                className="min-h-10 rounded-lg border border-white/15 bg-black/30 px-2 text-xs"
+              >
+                <option value="solid">Solid</option>
+                <option value="dashed">Dashed</option>
+                <option value="dotted">Dotted</option>
+              </select>
+              <select
+                value={String(node.props.outlinePlacement || "center")}
+                aria-label="Object outline placement"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { outlinePlacement: event.target.value } },
+                    "Changed object outline placement"
+                  )
+                }
+                className="min-h-10 rounded-lg border border-white/15 bg-black/30 px-2 text-xs"
+              >
+                <option value="inside">Inside</option>
+                <option value="center">Center</option>
+                <option value="outside">Outside</option>
+              </select>
+            </div>
+            <label className="space-y-1 text-xs">
+              <span>
+                Outline opacity{" "}
+                {Math.round(Number(node.props.outlineOpacity ?? 1) * 100)}%
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(Number(node.props.outlineOpacity ?? 1) * 100)}
+                className="w-full"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    {
+                      props: {
+                        outlineOpacity: Number(event.target.value) / 100,
+                      },
+                    },
+                    "Changed object outline opacity"
+                  )
+                }
+              />
+            </label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="number"
+                min={0}
+                max={500}
+                value={Number(node.props.outlineRadius || 6)}
+                aria-label="Object outline radius"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { outlineRadius: Number(event.target.value) || 0 } },
+                    "Changed object outline radius"
+                  )
+                }
+              />
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() =>
+                  patchNode(
+                    node.id,
+                    {
+                      props: {
+                        outlineWidth: 0,
+                        outlineColor: "#ffffff",
+                        outlineOpacity: 1,
+                        outlineStyle: "solid",
+                        outlinePlacement: "center",
+                        outlineRadius: 6,
+                      },
+                    },
+                    "Reset object outline"
+                  )
+                }
+              >
+                Reset outline
+              </Button>
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-2">
             <label className="space-y-1 text-xs">
               <span>Focal X {Math.round(Number(node.props.focalX ?? 0.5) * 100)}%</span>
@@ -822,6 +1085,130 @@ export function CompositionPanelStack({
                 }
               />
             </label>
+          </div>
+          <Label className="text-xs">Crop</Label>
+          <div className="grid grid-cols-3 gap-1">
+            {(
+              [
+                ["original", 1, 1],
+                ["1:1", 0.8, 0.8],
+                ["4:3", 0.9, 0.675],
+                ["16:9", 0.94, 0.529],
+                ["3:4", 0.675, 0.9],
+              ] as const
+            ).map(([label, width, height]) => (
+              <button
+                key={label}
+                type="button"
+                className="min-h-10 rounded-lg border border-white/10 px-2 text-xs"
+                onClick={() =>
+                  patchNode(
+                    node.id,
+                    {
+                      props: {
+                        cropAspect: label,
+                        cropX: (1 - width) / 2,
+                        cropY: (1 - height) / 2,
+                        cropWidth: width,
+                        cropHeight: height,
+                      },
+                    },
+                    label === "original" ? "Reset image crop" : `Cropped image to ${label}`
+                  )
+                }
+                data-testid={`composition-image-crop-${label.replace(":", "-")}`}
+              >
+                {label === "original" ? "No crop" : label}
+              </button>
+            ))}
+            <button
+              type="button"
+              className="min-h-10 rounded-lg border border-white/10 px-2 text-xs"
+              onClick={() =>
+                patchNode(
+                  node.id,
+                  { props: { cropAspect: "free" } },
+                  "Enabled free crop"
+                )
+              }
+            >
+              Free crop
+            </button>
+          </div>
+          {node.props.cropAspect === "free" ? (
+            <div className="grid grid-cols-2 gap-3" data-testid="composition-image-free-crop">
+              {(
+                [
+                  ["cropX", "Crop left", 0],
+                  ["cropY", "Crop top", 0],
+                  ["cropWidth", "Crop width", 1],
+                  ["cropHeight", "Crop height", 1],
+                ] as const
+              ).map(([key, label, fallback]) => (
+                <label key={key} className="space-y-1 text-xs">
+                  <span>
+                    {label} {Math.round(Number(node.props[key] ?? fallback) * 100)}%
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={Math.round(Number(node.props[key] ?? fallback) * 100)}
+                    onChange={(event) =>
+                      patchNode(
+                        node.id,
+                        { props: { [key]: Number(event.target.value) / 100 } },
+                        "Adjusted free crop"
+                      )
+                    }
+                  />
+                </label>
+              ))}
+            </div>
+          ) : null}
+          <label className="space-y-1 text-xs">
+            <span>Image scale {Math.round(Number(node.props.mediaScale ?? 1) * 100)}%</span>
+            <input
+              type="range"
+              min={25}
+              max={300}
+              value={Math.round(Number(node.props.mediaScale ?? 1) * 100)}
+              className="w-full"
+              onChange={(event) =>
+                patchNode(
+                  node.id,
+                  { props: { mediaScale: Number(event.target.value) / 100 } },
+                  "Scaled image content"
+                )
+              }
+            />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            {(
+              [
+                ["positionX", "Position X"],
+                ["positionY", "Position Y"],
+              ] as const
+            ).map(([key, label]) => (
+              <label key={key} className="space-y-1 text-xs">
+                <span>
+                  {label} {Math.round(Number(node.props[key] ?? 0.5) * 100)}%
+                </span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={Math.round(Number(node.props[key] ?? 0.5) * 100)}
+                  onChange={(event) =>
+                    patchNode(
+                      node.id,
+                      { props: { [key]: Number(event.target.value) / 100 } },
+                      "Positioned image content"
+                    )
+                  }
+                />
+              </label>
+            ))}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -877,6 +1264,12 @@ export function CompositionPanelStack({
               ["brightness", "Brightness", 25, 200, 100],
               ["contrast", "Contrast", 25, 200, 100],
               ["saturation", "Saturation", 0, 200, 100],
+              ["temperature", "Temperature", -100, 100, 0],
+              ["tint", "Tint", -100, 100, 0],
+              ["highlights", "Highlights", -100, 100, 0],
+              ["shadows", "Shadows", -100, 100, 0],
+              ["clarity", "Clarity", -100, 100, 0],
+              ["vignette", "Vignette", 0, 100, 0],
               ["blur", "Blur", 0, 20, 0],
             ] as const
           ).map(([key, label, min, max, fallback]) => {
@@ -932,6 +1325,54 @@ export function CompositionPanelStack({
               </label>
             ))}
           </div>
+          <div className="space-y-2 rounded-lg border border-white/10 p-3">
+            <Label className="text-xs">Duotone</Label>
+            <div className="grid grid-cols-2 gap-2">
+              <Input
+                type="color"
+                value={String(node.props.duotoneShadow || "#0b0f19")}
+                aria-label="Duotone shadow color"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { duotoneShadow: event.target.value } },
+                    "Changed duotone shadow"
+                  )
+                }
+              />
+              <Input
+                type="color"
+                value={String(node.props.duotoneHighlight || "#9cff57")}
+                aria-label="Duotone highlight color"
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { duotoneHighlight: event.target.value } },
+                    "Changed duotone highlight"
+                  )
+                }
+              />
+            </div>
+            <label className="space-y-1 text-xs">
+              <span>
+                Strength {Math.round(Number(node.props.duotoneStrength || 0) * 100)}%
+              </span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                className="w-full"
+                value={Math.round(Number(node.props.duotoneStrength || 0) * 100)}
+                onChange={(event) =>
+                  patchNode(
+                    node.id,
+                    { props: { duotoneStrength: Number(event.target.value) / 100 } },
+                    "Changed image duotone"
+                  )
+                }
+              />
+            </label>
+          </div>
           <label className="flex min-h-11 items-center gap-2 text-xs">
             <input
               type="checkbox"
@@ -963,12 +1404,27 @@ export function CompositionPanelStack({
                     flipX: false,
                     flipY: false,
                     mediaRotation: 0,
+                    mediaScale: 1,
+                    positionX: 0.5,
+                    positionY: 0.5,
+                    cropAspect: "original",
+                    cropX: 0,
+                    cropY: 0,
+                    cropWidth: 1,
+                    cropHeight: 1,
                     brightness: 1,
                     contrast: 1,
                     saturation: 1,
+                    temperature: 0,
+                    tint: 0,
+                    highlights: 0,
+                    shadows: 0,
+                    clarity: 0,
+                    vignette: 0,
                     blur: 0,
                     grayscale: false,
                     sepia: false,
+                    duotoneStrength: 0,
                   },
                 },
                 "Reset image to original"
@@ -1172,7 +1628,7 @@ export function CompositionPanelStack({
             />
             Scale stroke with frame
           </label>
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/65">
             {node.props.scaleStroke !== false
               ? "Outline scales proportionally as the frame is resized."
               : "Outline keeps the exact configured pixel width."}
@@ -1280,17 +1736,50 @@ export function CompositionPanelStack({
       ) : null}
 
       {level === "shape" && node?.primitive === "shape" ? (
-        <div className="space-y-3" data-testid="composition-panel-shape">
-          <Label className="text-xs">Fill</Label>
-          <Input
-            type="color"
-            value={String(node.props.fill || "#22c55e")}
-            data-testid="composition-shape-fill"
-            onChange={(e) =>
-              patchNode(node.id, { props: { fill: e.target.value } }, "Changed shape fill")
-            }
-          />
-        </div>
+        <ShapeStudio
+          node={node}
+          mediaUploadReady={mediaUploadReady}
+          stockReady={stockReady}
+          brandColors={brandColors}
+          onPatch={(patch, label) => patchNode(node.id, patch, label)}
+          onConvertToFrame={() => {
+            const geometryToMask: Record<string, FrameMaskId> = {
+              rectangle: "rectangle",
+              rounded: "rounded",
+              ellipse: "oval",
+              triangle: "polygon",
+              polygon: "polygon",
+              star: "star",
+              arrow: "label",
+              badge: "badge",
+              speech: "cloud",
+              organic: "organic",
+            };
+            patchNode(
+              node.id,
+              {
+                primitive: "frame",
+                props: {
+                  mask: geometryToMask[String(node.props.shape || "rounded")] || "rounded",
+                  mediaSrc:
+                    String(node.props.fillKind) === "image"
+                      ? String(node.props.imageSrc || "")
+                      : "",
+                  mediaAssetId: node.props.mediaAssetId,
+                  fit: "cover",
+                  focalX: 0.5,
+                  focalY: 0.5,
+                  borderWidth: Number(node.props.strokeWidth || 0),
+                  borderColor: String(node.props.stroke || "#ffffff"),
+                  scaleStroke: false,
+                  alt: "Framed media",
+                },
+              },
+              "Converted shape to frame"
+            );
+            setLevel("frame");
+          }}
+        />
       ) : null}
 
       {level === "border" && node?.primitive === "border" ? (
@@ -1496,9 +1985,18 @@ export function CompositionPanelStack({
 
       {level === "align" ? (
         <div className="space-y-3" data-testid="composition-panel-align">
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/65">
             Select two or more items (Shift-click on canvas) to align.
           </p>
+          {distanceMeasurement ? (
+            <p
+              className="rounded-lg border border-[#9cff57]/25 bg-[#9cff57]/5 p-2 text-xs"
+              data-testid="composition-distance-measurement"
+            >
+              Distance · {distanceMeasurement.horizontalPx}px horizontal ·{" "}
+              {distanceMeasurement.verticalPx}px vertical
+            </p>
+          ) : null}
           <div className="grid grid-cols-3 gap-1">
             {(
               [
@@ -1560,6 +2058,47 @@ export function CompositionPanelStack({
               Distribute V
             </Button>
           </div>
+          <div className="space-y-2 border-t border-white/10 pt-3">
+            <p className="text-[10px] uppercase tracking-wide text-white/65">
+              Align to canvas
+            </p>
+            <div className="grid grid-cols-3 gap-1">
+              {(
+                ["left", "center", "right", "top", "middle", "bottom"] as AlignMode[]
+              ).map((mode) => (
+                <Button
+                  key={`canvas-${mode}`}
+                  type="button"
+                  variant="outline"
+                  className="min-h-10 capitalize"
+                  disabled={!selectedNodeIds.length}
+                  onClick={() =>
+                    patchNodes(
+                      alignNodesToCanvas(block.nodes, selectedNodeIds, mode),
+                      `Aligned ${mode} to canvas`
+                    )
+                  }
+                >
+                  {mode}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="outline"
+            className="min-h-11 w-full"
+            disabled={selectedNodeIds.length < 2}
+            onClick={() =>
+              patchNodes(
+                tidyNodes(block.nodes, selectedNodeIds),
+                "Tidied composition items"
+              )
+            }
+            data-testid="composition-tidy"
+          >
+            Tidy up · equal spacing
+          </Button>
         </div>
       ) : null}
 
@@ -1626,7 +2165,7 @@ export function CompositionPanelStack({
 
       {level === "fallback" ? (
         <div className="space-y-2" data-testid="composition-panel-fallback">
-          <p className="text-[11px] text-white/45">
+          <p className="text-[11px] text-white/65">
             Live Device and customer phones keep the same freeform composition as the
             Studio canvas (scale). Stack / hide-decorative only apply when you explicitly
             preview the phone fallback in Studio.
@@ -1769,6 +2308,22 @@ export function CompositionPanelStack({
           {block.background?.kind === "gradient" ? (
             <GradientStudio
               value={block.background.gradient}
+              brandColors={brandColors}
+              foregroundColor={
+                node?.primitive === "text"
+                  ? String(node.props.color || defaultForegroundColor)
+                  : defaultForegroundColor
+              }
+              onSuggestedTextColor={
+                node?.primitive === "text"
+                  ? (color) =>
+                      patchNode(
+                        node.id,
+                        { props: { color } },
+                        "Applied readable text color"
+                      )
+                  : undefined
+              }
               onChange={(gradient, label) =>
                 onChangeBlock(
                   {
@@ -1874,6 +2429,111 @@ export function CompositionPanelStack({
                 <option value="repeat-x">Repeat horizontal</option>
                 <option value="repeat-y">Repeat vertical</option>
               </select>
+              <label className="space-y-1 text-xs">
+                <span>
+                  Scale {Math.round((block.background.image?.scale || 1) * 100)}%
+                </span>
+                <input
+                  type="range"
+                  min={25}
+                  max={300}
+                  value={Math.round((block.background.image?.scale || 1) * 100)}
+                  className="w-full"
+                  onChange={(event) =>
+                    patchBackgroundImage(
+                      { scale: Number(event.target.value) / 100 },
+                      "Scaled background image"
+                    )
+                  }
+                  data-testid="background-image-scale"
+                />
+              </label>
+              <label className="space-y-1 text-xs">
+                <span>Blur {Math.round(block.background.image?.blur || 0)} px</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={40}
+                  value={block.background.image?.blur || 0}
+                  className="w-full"
+                  onChange={(event) =>
+                    patchBackgroundImage(
+                      { blur: Number(event.target.value) },
+                      "Changed background blur"
+                    )
+                  }
+                  data-testid="background-image-blur"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <label className="space-y-1 text-xs">
+                  <span>
+                    Brightness{" "}
+                    {Math.round((block.background.image?.brightness || 1) * 100)}%
+                  </span>
+                  <input
+                    type="range"
+                    min={25}
+                    max={200}
+                    value={Math.round(
+                      (block.background.image?.brightness || 1) * 100
+                    )}
+                    className="w-full"
+                    onChange={(event) =>
+                      patchBackgroundImage(
+                        { brightness: Number(event.target.value) / 100 },
+                        "Changed background brightness"
+                      )
+                    }
+                  />
+                </label>
+                <label className="space-y-1 text-xs">
+                  <span>
+                    Contrast{" "}
+                    {Math.round((block.background.image?.contrast || 1) * 100)}%
+                  </span>
+                  <input
+                    type="range"
+                    min={25}
+                    max={200}
+                    value={Math.round(
+                      (block.background.image?.contrast || 1) * 100
+                    )}
+                    className="w-full"
+                    onChange={(event) =>
+                      patchBackgroundImage(
+                        { contrast: Number(event.target.value) / 100 },
+                        "Changed background contrast"
+                      )
+                    }
+                  />
+                </label>
+              </div>
+              <Label className="text-xs">Blend mode</Label>
+              <select
+                value={block.background.image?.blendMode || "normal"}
+                onChange={(event) =>
+                  patchBackgroundImage(
+                    {
+                      blendMode: event.target.value as
+                        | "normal"
+                        | "multiply"
+                        | "screen"
+                        | "overlay"
+                        | "soft-light",
+                    },
+                    "Changed background blend mode"
+                  )
+                }
+                className="min-h-10 w-full rounded-lg border border-white/15 bg-black/30 px-3 text-xs"
+                data-testid="background-image-blend-mode"
+              >
+                <option value="normal">Normal</option>
+                <option value="multiply">Multiply</option>
+                <option value="screen">Screen</option>
+                <option value="overlay">Overlay</option>
+                <option value="soft-light">Soft light</option>
+              </select>
               <div className="grid grid-cols-[64px_1fr] items-center gap-2">
                 <Input
                   type="color"
@@ -1908,6 +2568,44 @@ export function CompositionPanelStack({
                   />
                 </label>
               </div>
+              <label className="flex min-h-11 items-center gap-2 text-xs">
+                <input
+                  type="checkbox"
+                  checked={Boolean(block.background.image?.decorative)}
+                  onChange={(event) =>
+                    patchBackgroundImage(
+                      {
+                        decorative: event.target.checked,
+                        alt: event.target.checked
+                          ? ""
+                          : block.background?.image?.alt || "",
+                      },
+                      event.target.checked
+                        ? "Marked background decorative"
+                        : "Marked background meaningful"
+                    )
+                  }
+                />
+                Decorative image
+              </label>
+              {!block.background.image?.decorative ? (
+                <Input
+                  value={block.background.image?.alt || ""}
+                  placeholder="Describe this background"
+                  aria-label="Background image alt text"
+                  onChange={(event) =>
+                    patchBackgroundImage(
+                      { alt: event.target.value },
+                      "Changed background alt text"
+                    )
+                  }
+                />
+              ) : null}
+              <p className="rounded-lg border border-white/10 bg-white/[0.03] p-2 text-[11px] text-white/55">
+                Contrast assistance: use the tint overlay when text loses clarity.
+                Higher overlay opacity improves readability without changing the
+                source asset.
+              </p>
               <Button
                 type="button"
                 variant="outline"
@@ -1953,6 +2651,20 @@ export function CompositionPanelStack({
               }
             />
           ) : null}
+          <ReusableDesignBrowser
+            kind="BACKGROUND"
+            value={compositionBackgroundToFill(block.background)}
+            title="Saved backgrounds"
+            onInsert={(fill, label) =>
+              onChangeBlock(
+                {
+                  ...block,
+                  background: creativeFillToCompositionBackground(fill),
+                },
+                label
+              )
+            }
+          />
         </div>
       ) : null}
 

@@ -1,33 +1,13 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Heart, Search } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Check, Heart, RotateCcw, Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   FRAME_MASK_CATALOG,
   type FrameMaskId,
 } from "@/lib/fusion/creative-studio/composition";
-
-const FAVORITES_KEY = "tapconnect.masks.favorites.v1";
-const RECENT_KEY = "tapconnect.masks.recent.v1";
-
-function readIds(key: string): string[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const parsed = JSON.parse(localStorage.getItem(key) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
-function writeIds(key: string, ids: string[]) {
-  try {
-    localStorage.setItem(key, JSON.stringify(ids));
-  } catch {
-    // Optional convenience state.
-  }
-}
 
 export function FrameMaskBrowser({
   value,
@@ -38,15 +18,52 @@ export function FrameMaskBrowser({
 }) {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
-  const [favorites, setFavorites] = useState<string[]>(() =>
-    readIds(FAVORITES_KEY)
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [recent, setRecent] = useState<string[]>([]);
+  const [resourceId, setResourceId] = useState<string | null>(null);
+  const [resourceStatus, setResourceStatus] = useState<"DRAFT" | "APPROVED">(
+    "DRAFT"
   );
-  const [recent, setRecent] = useState<string[]>(() => readIds(RECENT_KEY));
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const loadLibrary = useCallback(async () => {
+    try {
+      const response = await fetch(
+        "/api/creative-resources?kind=MASK_FAVORITES",
+        { cache: "no-store" }
+      );
+      const body = (await response.json()) as {
+        resources?: {
+          id: string;
+          status: "DRAFT" | "APPROVED";
+          currentRevision?: {
+            payload?: {
+              value?: { maskIds?: string[]; recentMaskIds?: string[] };
+            };
+          };
+        }[];
+        error?: string;
+      };
+      if (!response.ok) throw new Error(body.error || "Mask library unavailable");
+      const resource = body.resources?.[0];
+      setResourceId(resource?.id || null);
+      setResourceStatus(resource?.status || "DRAFT");
+      setFavorites(resource?.currentRevision?.payload?.value?.maskIds || []);
+      setRecent(resource?.currentRevision?.payload?.value?.recentMaskIds || []);
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "Mask library unavailable");
+    }
+  }, []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => void loadLibrary(), 0);
+    return () => window.clearTimeout(timer);
+  }, [loadLibrary]);
   const categories = useMemo(
     () => [
       "All",
       "Favorites",
       "Recent",
+      "Brand approved",
       ...Array.from(
         new Set(FRAME_MASK_CATALOG.map((mask) => mask.category || "Basic"))
       ),
@@ -59,7 +76,13 @@ export function FrameMaskBrowser({
       if (category === "Favorites" && !favorites.includes(mask.id)) return false;
       if (category === "Recent" && !recent.includes(mask.id)) return false;
       if (
-        !["All", "Favorites", "Recent"].includes(category) &&
+        category === "Brand approved" &&
+        (resourceStatus !== "APPROVED" || !favorites.includes(mask.id))
+      ) {
+        return false;
+      }
+      if (
+        !["All", "Favorites", "Recent", "Brand approved"].includes(category) &&
         (mask.category || "Basic") !== category
       ) {
         return false;
@@ -75,13 +98,53 @@ export function FrameMaskBrowser({
       if (recent.includes(right.id)) return 1;
       return left.label.localeCompare(right.label);
     });
-  }, [category, favorites, query, recent]);
+  }, [category, favorites, query, recent, resourceStatus]);
+
+  async function persist(nextFavorites: string[], nextRecent: string[]) {
+    setSaving(true);
+    setError(null);
+    try {
+      const payload = {
+        schemaVersion: 1,
+        resourceKind: "MASK_FAVORITES",
+        value: { maskIds: nextFavorites, recentMaskIds: nextRecent },
+        metadata: { tags: ["personal"] },
+      };
+      const response = await fetch(
+        resourceId
+          ? `/api/creative-resources/${resourceId}/revisions`
+          : "/api/creative-resources",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(
+            resourceId
+              ? { payload }
+              : { kind: "MASK_FAVORITES", name: "My mask library", payload }
+          ),
+        }
+      );
+      const body = (await response.json()) as {
+        resource?: { id: string };
+        error?: string;
+      };
+      if (!response.ok) throw new Error(body.error || "Mask library could not be saved");
+      if (body.resource?.id) setResourceId(body.resource.id);
+      setResourceStatus("DRAFT");
+    } catch (saveError) {
+      setError(
+        saveError instanceof Error ? saveError.message : "Mask library could not be saved"
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
 
   function apply(mask: FrameMaskId) {
     const nextRecent = [mask, ...recent.filter((id) => id !== mask)].slice(0, 12);
     setRecent(nextRecent);
-    writeIds(RECENT_KEY, nextRecent);
     onChange(mask);
+    void persist(favorites, nextRecent);
   }
 
   function toggleFavorite(mask: FrameMaskId) {
@@ -89,7 +152,7 @@ export function FrameMaskBrowser({
       ? favorites.filter((id) => id !== mask)
       : [mask, ...favorites];
     setFavorites(next);
-    writeIds(FAVORITES_KEY, next);
+    void persist(next, recent);
   }
 
   return (
@@ -124,6 +187,28 @@ export function FrameMaskBrowser({
         className="grid grid-cols-2 gap-2"
         role="listbox"
         aria-label="Frame masks"
+        onKeyDown={(event) => {
+          if (!["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp"].includes(event.key)) {
+            return;
+          }
+          const options = Array.from(
+            event.currentTarget.querySelectorAll<HTMLButtonElement>(
+              'button[role="option"]'
+            )
+          );
+          const current = options.indexOf(document.activeElement as HTMLButtonElement);
+          if (current < 0) return;
+          event.preventDefault();
+          const delta =
+            event.key === "ArrowRight"
+              ? 1
+              : event.key === "ArrowLeft"
+                ? -1
+                : event.key === "ArrowDown"
+                  ? 2
+                  : -2;
+          options[(current + delta + options.length) % options.length]?.focus();
+        }}
       >
         {visible.map((mask) => {
           const selected = value === mask.id;
@@ -158,6 +243,14 @@ export function FrameMaskBrowser({
                 <span className="text-[9px] text-white/40">
                   {mask.category || "Basic"}
                 </span>
+                {resourceStatus === "APPROVED" && favorites.includes(mask.id) ? (
+                  <span className="flex items-center gap-1 text-[9px] text-[#b8ff2c]">
+                    <Check className="h-2.5 w-2.5" />
+                    Brand approved
+                  </span>
+                ) : mask.approvedByPlatform !== false ? (
+                  <span className="text-[9px] text-white/40">Safe platform registry</span>
+                ) : null}
               </button>
               <button
                 type="button"
@@ -177,6 +270,57 @@ export function FrameMaskBrowser({
       {!visible.length ? (
         <p className="py-6 text-center text-xs text-white/45">
           No masks match this search.
+        </p>
+      ) : null}
+      <div className="flex items-center justify-between border-t border-white/10 pt-3">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          onClick={() => apply("rectangle")}
+          data-testid="mask-reset"
+        >
+          <RotateCcw className="mr-1 h-3.5 w-3.5" />
+          Reset mask
+        </Button>
+        {resourceId && favorites.length > 0 && resourceStatus !== "APPROVED" ? (
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              setSaving(true);
+              void fetch(`/api/creative-resources/${resourceId}/approve`, {
+                method: "POST",
+              })
+                .then(async (response) => {
+                  if (!response.ok) {
+                    const body = (await response.json()) as { error?: string };
+                    throw new Error(body.error || "Brand approval failed");
+                  }
+                  setResourceStatus("APPROVED");
+                })
+                .catch((approvalError: unknown) =>
+                  setError(
+                    approvalError instanceof Error
+                      ? approvalError.message
+                      : "Brand approval failed"
+                  )
+                )
+                .finally(() => setSaving(false));
+            }}
+          >
+            <Check className="mr-1 h-3.5 w-3.5" />
+            Approve favorites for Brand
+          </Button>
+        ) : null}
+        <span className="text-[10px] text-white/45" role={saving ? "status" : undefined}>
+          {saving ? "Saving…" : "Saved to workspace"}
+        </span>
+      </div>
+      {error ? (
+        <p role="alert" className="text-xs text-red-200">
+          {error}
         </p>
       ) : null}
     </div>

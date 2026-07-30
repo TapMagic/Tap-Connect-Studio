@@ -89,9 +89,13 @@ export function AuthoringWorkspaceShell({
             {outline}
           </aside>
         ) : null}
-        <main className="min-h-0 overflow-hidden p-0" data-testid="authoring-canvas">
+        <section
+          className="min-h-0 overflow-hidden p-0"
+          data-testid="authoring-canvas"
+          aria-label="Creative canvas"
+        >
           {canvas}
-        </main>
+        </section>
         {!focusMode && format ? (
           <aside
             className="min-h-0 overflow-y-auto border-t border-white/8 lg:border-l lg:border-t-0"
