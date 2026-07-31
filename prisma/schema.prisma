@@ -265,17 +265,156 @@ enum BrandRightsStatus {
   NOT_APPLICABLE
 }
 
+enum PlatformUserStatus {
+  ACTIVE
+  INVITED
+  SUSPENDED
+  ARCHIVED
+  DELETION_SCHEDULED
+}
+
+enum PlatformDeletionState {
+  NONE
+  SCHEDULED
+  BLOCKED_BY_HOLD
+  RETAINED_TOMBSTONE
+}
+
+enum WorkspaceKind {
+  CUSTOMER
+  INTERNAL
+  PERSONAL_SANDBOX
+  DEMO
+  PARTNER
+  TEST_FIXTURE
+}
+
+enum BusinessLifecycleState {
+  PROVISIONING
+  TRIAL
+  ACTIVE
+  PAST_DUE
+  RESTRICTED
+  SUSPENDED
+  CANCELLED
+  ARCHIVED
+  DELETION_SCHEDULED
+  DELETED
+  LEGAL_HOLD
+}
+
+enum PlatformRoleStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum PermissionEffect {
+  ALLOW
+  DENY
+}
+
+enum PlatformInvitationStatus {
+  DRAFT
+  SENT
+  VIEWED
+  ACCEPTED
+  EXPIRED
+  REVOKED
+  FAILED
+}
+
+enum PlatformSessionStatus {
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum SupportSessionStatus {
+  ACTIVE
+  EXITED
+  EXPIRED
+  REVOKED
+}
+
+enum CatalogStatus {
+  ACTIVE
+  RETIRED
+}
+
+enum ServiceAvailability {
+  INTERNAL
+  PRIVATE_BETA
+  PUBLIC
+}
+
+enum EntitlementOverrideStatus {
+  PENDING
+  ACTIVE
+  REVOKED
+  EXPIRED
+}
+
+enum DeletionRequestStatus {
+  PENDING
+  APPROVED
+  CANCELLED
+  BLOCKED
+  GRACE_PERIOD
+  READY
+  APPLIED
+  FAILED
+}
+
+enum DemoVisibility {
+  PRIVATE
+  SHARED
+}
+
+enum DemoPromotionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+enum DemoPublicationStatus {
+  DRAFT
+  PUBLISHED
+  ROLLED_BACK
+  UNPUBLISHED
+}
+
+enum ApprovalRequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  CANCELLED
+  APPLIED
+  FAILED
+}
+
 // ─── Users & Business ────────────────────────────────────────────────────────
 
 model User {
-  id        String   @id @default(cuid())
-  clerkId   String?  @unique
-  email     String   @unique
-  firstName String?
-  lastName  String?
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                       String                @id @default(cuid())
+  clerkId                  String?               @unique
+  email                    String                @unique
+  firstName                String?
+  lastName                 String?
+  displayName              String?
+  imageUrl                 String?
+  profilePhotoMediaAssetId String?
+  profilePhotoAlt          String?
+  platformStatus           PlatformUserStatus    @default(ACTIVE)
+  preferredTimezone        String                @default("America/New_York")
+  locale                   String                @default("en-US")
+  lastSeenAt               DateTime?
+  lastActiveWorkspaceId    String?
+  archivedAt               DateTime?
+  deletionState            PlatformDeletionState @default(NONE)
+  createdAt                DateTime              @default(now())
+  updatedAt                DateTime              @updatedAt
 
   memberships               BusinessUser[]
   campaignsCreated          Campaign[]                 @relation("CampaignCreatedBy")
@@ -291,12 +430,24 @@ model User {
   creativeResourceRevisions CreativeResourceRevision[]
   creativeResourceFavorites CreativeResourceFavorite[]
   creativeResourceRecents   CreativeResourceRecent[]
+  profilePhoto              MediaAsset?                @relation("PlatformUserProfilePhoto", fields: [profilePhotoMediaAssetId], references: [id], onDelete: SetNull)
+  platformRoleBindings      PlatformRoleBinding[]
+  platformDirectPermissions PlatformDirectPermission[]
+  platformSessions          PlatformSession[]
+  presenceHeartbeats        PresenceHeartbeat[]
+  supportSessionsStarted    SupportSession[]           @relation("SupportSessionActor")
+  supportSessionsReceived   SupportSession[]           @relation("SupportSessionSubject")
+  demoMetadataOwned         DemoWorkspaceMetadata[]    @relation("DemoOwner")
+  demoManagerBindings       DemoManager[]
+  internalNotesAuthored     InternalNote[]             @relation("InternalNoteAuthor")
+
+  @@index([platformStatus, lastSeenAt])
 }
 
 model Business {
-  id                             String             @id @default(cuid())
+  id                             String                 @id @default(cuid())
   name                           String
-  slug                           String             @unique
+  slug                           String                 @unique
   logoUrl                        String?
   website                        String?
   phone                          String?
@@ -305,19 +456,24 @@ model Business {
   /**
    * IANA timezone, e.g. America/New_York — used when a group has no timezone set
    */
-  timezone                       String             @default("America/New_York")
-  complianceCategory             ComplianceCategory @default(GENERAL)
-  subscriptionTier               PlanTier           @default(BASIC)
-  activeDeviceLimit              Int                @default(1)
-  activeCampaignLimit            Int                @default(3)
-  billingStatus                  SubscriptionStatus @default(INCOMPLETE)
-  stripeCustomerId               String?            @unique
+  timezone                       String                 @default("America/New_York")
+  complianceCategory             ComplianceCategory     @default(GENERAL)
+  subscriptionTier               PlanTier               @default(BASIC)
+  activeDeviceLimit              Int                    @default(1)
+  activeCampaignLimit            Int                    @default(3)
+  billingStatus                  SubscriptionStatus     @default(INCOMPLETE)
+  stripeCustomerId               String?                @unique
   businessCategory               BusinessCategory?
   primaryCustomerOutcome         CustomerOutcome?
   cardFirstOnboardingPreviewedAt DateTime?
   cardFirstOnboardingCompletedAt DateTime?
-  createdAt                      DateTime           @default(now())
-  updatedAt                      DateTime           @updatedAt
+  workspaceKind                  WorkspaceKind          @default(CUSTOMER)
+  lifecycleState                 BusinessLifecycleState @default(ACTIVE)
+  planDefinitionId               String?
+  archivedAt                     DateTime?
+  deletionScheduledAt            DateTime?
+  createdAt                      DateTime               @default(now())
+  updatedAt                      DateTime               @updatedAt
 
   users                     BusinessUser[]
   brandKit                  BrandKit?
@@ -382,6 +538,17 @@ model Business {
   knowledgeSources          KnowledgeSource[]
   knowledgeFacts            KnowledgeFact[]
   brandPropertyDecisions    BrandPropertyDecision[]
+  planDefinition            PlanDefinition?               @relation(fields: [planDefinitionId], references: [id], onDelete: SetNull)
+  entitlementOverrides      BusinessEntitlementOverride[]
+  accountRestrictions       AccountRestriction[]
+  deletionRequests          DeletionRequest[]
+  legalHolds                LegalHold[]
+  demoMetadata              DemoWorkspaceMetadata?
+  landingDemoBindings       LandingDemoBinding[]
+  controlInternalNotes      InternalNote[]
+
+  @@index([workspaceKind, lifecycleState])
+  @@index([lifecycleState, deletionScheduledAt])
 }
 
 model BusinessUser {
@@ -395,6 +562,517 @@ model BusinessUser {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([businessId, userId])
+}
+
+// ─── Platform Control Room ──────────────────────────────────────────────────
+
+model PlatformRole {
+  id                String             @id @default(cuid())
+  key               String             @unique
+  name              String             @unique
+  description       String
+  status            PlatformRoleStatus @default(ACTIVE)
+  protected         Boolean            @default(false)
+  ownerRole         Boolean            @default(false)
+  createdById       String?
+  retiredAt         DateTime?
+  replacementRoleId String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  permissions     PlatformRolePermission[]
+  bindings        PlatformRoleBinding[]
+  invitations     PlatformInvitation[]
+  replacementRole PlatformRole?            @relation("PlatformRoleReplacement", fields: [replacementRoleId], references: [id], onDelete: SetNull)
+  replacedRoles   PlatformRole[]           @relation("PlatformRoleReplacement")
+
+  @@index([status, name])
+}
+
+model PlatformRolePermission {
+  id            String           @id @default(cuid())
+  roleId        String
+  permissionKey String
+  effect        PermissionEffect @default(ALLOW)
+  createdAt     DateTime         @default(now())
+
+  role PlatformRole @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([roleId, permissionKey])
+  @@index([permissionKey, effect])
+}
+
+model PlatformRoleBinding {
+  id               String    @id @default(cuid())
+  userId           String
+  roleId           String
+  environmentScope String    @default("*")
+  businessId       String    @default("*")
+  grantedById      String?
+  reason           String
+  startsAt         DateTime  @default(now())
+  expiresAt        DateTime?
+  createdAt        DateTime  @default(now())
+
+  user User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role PlatformRole @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  @@unique([userId, roleId, environmentScope, businessId])
+  @@index([userId, expiresAt])
+  @@index([businessId])
+}
+
+model PlatformDirectPermission {
+  id               String           @id @default(cuid())
+  userId           String
+  permissionKey    String
+  effect           PermissionEffect
+  environmentScope String           @default("*")
+  businessId       String           @default("*")
+  reason           String
+  grantedById      String?
+  startsAt         DateTime         @default(now())
+  expiresAt        DateTime?
+  createdAt        DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, permissionKey, environmentScope, businessId])
+  @@index([userId, effect, expiresAt])
+  @@index([permissionKey])
+}
+
+model PlatformInvitation {
+  id                    String                   @id @default(cuid())
+  email                 String
+  displayName           String
+  roleId                String
+  status                PlatformInvitationStatus @default(DRAFT)
+  tokenHash             String?                  @unique
+  environmentScope      String                   @default("*")
+  expiresAt             DateTime
+  internalNote          String?
+  requireMfa            Boolean                  @default(true)
+  createSandbox         Boolean                  @default(true)
+  demoPortfolioAccess   Boolean                  @default(false)
+  createdById           String
+  sentAt                DateTime?
+  viewedAt              DateTime?
+  acceptedAt            DateTime?
+  acceptedByClerkUserId String?
+  revokedAt             DateTime?
+  failedReason          String?
+  createdAt             DateTime                 @default(now())
+  updatedAt             DateTime                 @updatedAt
+
+  role                PlatformRole                      @relation(fields: [roleId], references: [id], onDelete: Restrict)
+  permissions         PlatformInvitationPermission[]
+  businessScopes      PlatformInvitationBusinessScope[]
+  businessMemberships PlatformInvitationMembership[]
+
+  @@index([status, expiresAt])
+  @@index([email, status])
+}
+
+model PlatformInvitationPermission {
+  id            String           @id @default(cuid())
+  invitationId  String
+  permissionKey String
+  effect        PermissionEffect
+
+  invitation PlatformInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@unique([invitationId, permissionKey])
+}
+
+model PlatformInvitationBusinessScope {
+  id           String @id @default(cuid())
+  invitationId String
+  businessId   String
+
+  invitation PlatformInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@unique([invitationId, businessId])
+  @@index([businessId])
+}
+
+model PlatformInvitationMembership {
+  id           String   @id @default(cuid())
+  invitationId String
+  businessId   String
+  role         UserRole @default(VIEWER)
+
+  invitation PlatformInvitation @relation(fields: [invitationId], references: [id], onDelete: Cascade)
+
+  @@unique([invitationId, businessId])
+  @@index([businessId])
+}
+
+model PlatformSession {
+  id                       String                @id @default(cuid())
+  userId                   String
+  externalSessionId        String?               @unique
+  status                   PlatformSessionStatus @default(ACTIVE)
+  deviceSummary            String?
+  browserSummary           String?
+  ipAddressRedacted        String?
+  currentWorkspaceId       String?
+  currentArea              String?
+  startedAt                DateTime              @default(now())
+  lastSeenAt               DateTime              @default(now())
+  revokedAt                DateTime?
+  revokedById              String?
+  reauthenticationRequired Boolean               @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status, lastSeenAt])
+  @@index([status, lastSeenAt])
+}
+
+model PresenceHeartbeat {
+  id          String   @id @default(cuid())
+  userId      String
+  sessionId   String
+  workspaceId String?
+  majorArea   String?
+  occurredAt  DateTime @default(now())
+  expiresAt   DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@index([sessionId, occurredAt])
+}
+
+model SupportSession {
+  id                   String               @id @default(cuid())
+  actorUserId          String
+  subjectUserId        String
+  businessId           String?
+  externalActorTokenId String?
+  reason               String
+  status               SupportSessionStatus @default(ACTIVE)
+  startedAt            DateTime             @default(now())
+  expiresAt            DateTime
+  endedAt              DateTime?
+  endedById            String?
+  localFixture         Boolean              @default(false)
+  createdAt            DateTime             @default(now())
+
+  actor   User @relation("SupportSessionActor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  subject User @relation("SupportSessionSubject", fields: [subjectUserId], references: [id], onDelete: Restrict)
+
+  @@index([actorUserId, status, expiresAt])
+  @@index([subjectUserId, status])
+  @@index([businessId, status])
+}
+
+model ServiceDefinition {
+  id              String              @id @default(cuid())
+  key             String              @unique
+  ownerFacingName String
+  description     String
+  category        String
+  availability    ServiceAvailability @default(INTERNAL)
+  usageUnit       String?
+  defaultEnabled  Boolean             @default(false)
+  customerVisible Boolean             @default(false)
+  diagnosticsPath String?
+  status          CatalogStatus       @default(ACTIVE)
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+
+  dependencies     ServiceDependency[]           @relation("DependentService")
+  dependedOnBy     ServiceDependency[]           @relation("RequiredService")
+  planEntitlements PlanEntitlement[]
+  overrides        BusinessEntitlementOverride[]
+  restrictions     AccountRestriction[]
+
+  @@index([status, category])
+}
+
+model ServiceDependency {
+  id                String @id @default(cuid())
+  serviceId         String
+  requiredServiceId String
+
+  service         ServiceDefinition @relation("DependentService", fields: [serviceId], references: [id], onDelete: Cascade)
+  requiredService ServiceDefinition @relation("RequiredService", fields: [requiredServiceId], references: [id], onDelete: Restrict)
+
+  @@unique([serviceId, requiredServiceId])
+}
+
+model PlanDefinition {
+  id                     String        @id @default(cuid())
+  key                    String        @unique
+  name                   String        @unique
+  description            String
+  status                 CatalogStatus @default(ACTIVE)
+  tapPointAllowance      Int           @default(0)
+  locationAllowance      Int           @default(1)
+  storageAllowanceBytes  BigInt        @default(0)
+  campaignAllowance      Int           @default(0)
+  emailAllowance         Int           @default(0)
+  aiAllowance            Int           @default(0)
+  trialDays              Int           @default(0)
+  upgradePathKey         String?
+  grandfatheringBehavior String        @default("preserve")
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
+
+  entitlements PlanEntitlement[]
+  businesses   Business[]
+
+  @@index([status, name])
+}
+
+model PlanEntitlement {
+  id        String  @id @default(cuid())
+  planId    String
+  serviceId String
+  enabled   Boolean @default(true)
+  allowance Int?
+
+  plan    PlanDefinition    @relation(fields: [planId], references: [id], onDelete: Cascade)
+  service ServiceDefinition @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@unique([planId, serviceId])
+  @@index([serviceId, enabled])
+}
+
+model BusinessEntitlementOverride {
+  id                  String                    @id @default(cuid())
+  businessId          String
+  serviceId           String
+  enabled             Boolean?
+  allowance           Int?
+  grantKind           String
+  startsAt            DateTime                  @default(now())
+  expiresAt           DateTime?
+  reason              String
+  billingImpact       String?
+  customerVisibleNote String?
+  internalNote        String?
+  grantedById         String
+  approvalId          String?
+  status              EntitlementOverrideStatus @default(ACTIVE)
+  revokedAt           DateTime?
+  revokedById         String?
+  createdAt           DateTime                  @default(now())
+  updatedAt           DateTime                  @updatedAt
+
+  business Business          @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service  ServiceDefinition @relation(fields: [serviceId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, status, expiresAt])
+  @@index([serviceId, status])
+}
+
+model AccountRestriction {
+  id                         String    @id @default(cuid())
+  businessId                 String
+  userId                     String?
+  serviceId                  String?
+  capability                 String
+  reason                     String
+  internalNote               String?
+  customerVisibleExplanation String?
+  startsAt                   DateTime  @default(now())
+  expiresAt                  DateTime?
+  createdById                String
+  approvalId                 String?
+  revokedAt                  DateTime?
+  revokedById                String?
+  createdAt                  DateTime  @default(now())
+
+  business Business           @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  service  ServiceDefinition? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+
+  @@index([businessId, capability, expiresAt])
+  @@index([userId, expiresAt])
+}
+
+model DeletionRequest {
+  id                  String                @id @default(cuid())
+  targetType          String
+  targetId            String
+  businessId          String?
+  requestedById       String
+  reason              String
+  consequence         String
+  retentionExceptions String?
+  graceEndsAt         DateTime
+  status              DeletionRequestStatus @default(PENDING)
+  approvalId          String?
+  cancelledAt         DateTime?
+  cancelledById       String?
+  appliedAt           DateTime?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: SetNull)
+
+  @@index([targetType, targetId, status])
+  @@index([businessId, status])
+  @@index([status, graceEndsAt])
+}
+
+model LegalHold {
+  id           String    @id @default(cuid())
+  businessId   String
+  reason       String
+  authority    String
+  placedById   String
+  placedAt     DateTime  @default(now())
+  releasedAt   DateTime?
+  releasedById String?
+  approvalId   String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Restrict)
+
+  @@index([businessId, releasedAt])
+}
+
+model DemoWorkspaceMetadata {
+  id                   String              @id @default(cuid())
+  businessId           String              @unique
+  description          String
+  industryUseCase      String
+  ownerUserId          String
+  visibility           DemoVisibility      @default(PRIVATE)
+  promotionStatus      DemoPromotionStatus @default(DRAFT)
+  allowedPublicActions String[]            @default([])
+  blockedActions       String[]            @default([])
+  resetPolicy          String              @default("manual")
+  standaloneSlug       String              @unique
+  fixtureProvenance    String
+  currentPublicationId String?
+  lastResetAt          DateTime?
+  lastResetById        String?
+  submittedAt          DateTime?
+  reviewedAt           DateTime?
+  reviewedById         String?
+  reviewNote           String?
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
+
+  business        Business             @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  owner           User                 @relation("DemoOwner", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  managers        DemoManager[]
+  publications    DemoPublication[]
+  landingBindings LandingDemoBinding[]
+
+  @@index([visibility, promotionStatus])
+  @@index([ownerUserId, visibility])
+}
+
+model DemoManager {
+  id             String @id @default(cuid())
+  demoMetadataId String
+  userId         String
+
+  demoMetadata DemoWorkspaceMetadata @relation(fields: [demoMetadataId], references: [id], onDelete: Cascade)
+  user         User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([demoMetadataId, userId])
+  @@index([userId])
+}
+
+model DemoPublication {
+  id                    String                @id @default(cuid())
+  demoMetadataId        String
+  publicationSnapshotId String
+  version               Int
+  status                DemoPublicationStatus @default(DRAFT)
+  readinessPassed       Boolean               @default(false)
+  readinessSummary      String
+  contentHash           String
+  publishedById         String?
+  publishedAt           DateTime?
+  rolledBackFromId      String?
+  unpublishedAt         DateTime?
+  createdAt             DateTime              @default(now())
+
+  demoMetadata DemoWorkspaceMetadata @relation(fields: [demoMetadataId], references: [id], onDelete: Cascade)
+
+  @@unique([demoMetadataId, version])
+  @@unique([publicationSnapshotId])
+  @@index([demoMetadataId, status, publishedAt])
+}
+
+model LandingDemoBinding {
+  id                  String    @id @default(cuid())
+  slotKey             String
+  businessId          String
+  demoMetadataId      String
+  demoPublicationId   String
+  active              Boolean   @default(false)
+  activatedById       String?
+  activatedAt         DateTime?
+  deactivatedAt       DateTime?
+  priorBindingId      String?
+  rollbackOfBindingId String?
+  createdAt           DateTime  @default(now())
+
+  business     Business              @relation(fields: [businessId], references: [id], onDelete: Restrict)
+  demoMetadata DemoWorkspaceMetadata @relation(fields: [demoMetadataId], references: [id], onDelete: Restrict)
+
+  @@index([slotKey, active, activatedAt])
+  @@index([demoPublicationId])
+}
+
+model ApprovalRequest {
+  id                   String                @id @default(cuid())
+  actionKey            String
+  targetType           String
+  targetId             String
+  requesterId          String
+  reason               String
+  consequence          String
+  requiredApproverRole String
+  separationRequired   Boolean               @default(true)
+  status               ApprovalRequestStatus @default(PENDING)
+  expiresAt            DateTime
+  decidedById          String?
+  decidedAt            DateTime?
+  decisionNote         String?
+  appliedAt            DateTime?
+  failureReason        String?
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
+
+  @@index([status, expiresAt])
+  @@index([targetType, targetId])
+  @@index([requesterId, status])
+}
+
+model InternalNote {
+  id         String   @id @default(cuid())
+  targetType String
+  targetId   String
+  businessId String?
+  authorId   String
+  body       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  business Business? @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  author   User      @relation("InternalNoteAuthor", fields: [authorId], references: [id], onDelete: Restrict)
+
+  @@index([targetType, targetId, createdAt])
+  @@index([businessId, createdAt])
+}
+
+model PlatformConfiguration {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String
+  updatedById String?
+  reason      String?
+  updatedAt   DateTime @updatedAt
+  createdAt   DateTime @default(now())
 }
 
 model Location {
@@ -484,22 +1162,22 @@ model BrandKit {
 // ─── Governed Business Knowledge & Brand decisions ──────────────────────────
 
 model KnowledgeSource {
-  id              String                   @id @default(cuid())
-  businessId      String
-  locationId      String?
-  mediaAssetId    String?
-  kind            KnowledgeSourceKind
-  normalizedUri   String?
-  displayLabel    String
-  contentHash     String?
+  id                 String                   @id @default(cuid())
+  businessId         String
+  locationId         String?
+  mediaAssetId       String?
+  kind               KnowledgeSourceKind
+  normalizedUri      String?
+  displayLabel       String
+  contentHash        String?
   requestFingerprint String?
-  ingestionStatus KnowledgeIngestionStatus @default(PENDING)
-  rightsNote      String?
-  metadata        Json                     @default("{}")
-  capturedAt      DateTime                 @default(now())
-  lastVerifiedAt  DateTime?
-  createdAt       DateTime                 @default(now())
-  updatedAt       DateTime                 @updatedAt
+  ingestionStatus    KnowledgeIngestionStatus @default(PENDING)
+  rightsNote         String?
+  metadata           Json                     @default("{}")
+  capturedAt         DateTime                 @default(now())
+  lastVerifiedAt     DateTime?
+  createdAt          DateTime                 @default(now())
+  updatedAt          DateTime                 @updatedAt
 
   business       Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
   location       Location?               @relation(fields: [locationId], references: [id], onDelete: SetNull)
@@ -507,9 +1185,9 @@ model KnowledgeSource {
   facts          KnowledgeFact[]
   brandDecisions BrandPropertyDecision[]
 
+  @@unique([businessId, kind, requestFingerprint])
   @@index([businessId, kind])
   @@index([businessId, normalizedUri])
-  @@unique([businessId, kind, requestFingerprint])
   @@index([mediaAssetId])
 }
 
@@ -935,6 +1613,7 @@ model MediaAsset {
   collectionMembers      MediaCollectionMember[]
   knowledgeSources       KnowledgeSource[]
   brandPropertyDecisions BrandPropertyDecision[]
+  platformUserPhotos     User[]                  @relation("PlatformUserProfilePhoto")
 
   @@unique([businessId, provider, providerAssetId])
   @@index([businessId, approvalStatus, createdAt])
@@ -955,9 +1634,9 @@ model MediaCollection {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  business Business               @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  parent   MediaCollection?       @relation("MediaCollectionNesting", fields: [parentId], references: [id], onDelete: SetNull)
-  children MediaCollection[]      @relation("MediaCollectionNesting")
+  business Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  parent   MediaCollection?        @relation("MediaCollectionNesting", fields: [parentId], references: [id], onDelete: SetNull)
+  children MediaCollection[]       @relation("MediaCollectionNesting")
   members  MediaCollectionMember[]
 
   @@unique([businessId, name])
@@ -1427,20 +2106,34 @@ model FeatureFlagOverride {
 }
 
 model PlatformAuditEvent {
-  id            String               @id @default(cuid())
-  businessId    String?
-  actorType     FusionAuditActorType @default(SYSTEM)
-  actorId       String?
-  action        String
-  resourceType  String
-  resourceId    String
-  correlationId String
-  metadata      Json                 @default("{}")
-  occurredAt    DateTime             @default(now())
+  id               String               @id @default(cuid())
+  businessId       String?
+  actorType        FusionAuditActorType @default(SYSTEM)
+  actorId          String?
+  actingSubjectId  String?
+  targetUserId     String?
+  action           String
+  permissionUsed   String?
+  resourceType     String
+  resourceId       String
+  priorValue       Json?
+  newValue         Json?
+  reason           String?
+  environment      String               @default("local")
+  sessionId        String?
+  supportSessionId String?
+  success          Boolean              @default(true)
+  correlationId    String
+  approvalId       String?
+  metadata         Json                 @default("{}")
+  occurredAt       DateTime             @default(now())
 
   @@index([occurredAt])
   @@index([resourceType, resourceId])
   @@index([businessId, occurredAt])
+  @@index([actorId, occurredAt])
+  @@index([correlationId])
+  @@index([approvalId])
 }
 
 model FusionOutboxEvent {
