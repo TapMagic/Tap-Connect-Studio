@@ -16,6 +16,7 @@ import {
   recordSavedDocumentResourceUsage,
 } from "@/lib/fusion/creative-platform/document-usage";
 import type { Prisma } from "@prisma/client";
+import { appendAuditEvent } from "@/lib/control/audit";
 
 /** Builder owner-gate: PATCH records PublicationSnapshot on save/publish. */
 
@@ -210,6 +211,16 @@ export async function PATCH(request: Request) {
           formSettings.emailResponse,
           "$.formSettings.emailResponse"
         ),
+      });
+      await appendAuditEvent({
+        actorId: user.id,
+        businessId: business.id,
+        action: "studio.email_draft.saved",
+        permissionUsed: "business.membership",
+        resourceType: "Campaign",
+        resourceId: campaign.id,
+        reason: "Saved Email draft in Studio",
+        newValue: { campaignTitle: campaign.title, publicationSnapshot: "save" },
       });
     }
 

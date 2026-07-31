@@ -37,7 +37,7 @@ export async function GET(
       },
       {
         status: 404,
-        headers: { "Cache-Control": "public, max-age=0, s-maxage=30" },
+        headers: { "Cache-Control": "no-store" },
       },
     );
   }
@@ -69,7 +69,7 @@ export async function GET(
       status: 304,
       headers: {
         ETag: etag,
-        "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": "no-store",
       },
     });
   }
@@ -94,11 +94,10 @@ export async function GET(
     {
       headers: {
         ETag: etag,
-        "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=300",
+        "Cache-Control": "no-store",
         "Content-Security-Policy": "default-src 'none'; frame-ancestors 'self'",
         "X-Content-Type-Options": "nosniff",
       },
     },
   );
 }
-

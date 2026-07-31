@@ -5,6 +5,7 @@ import { requireControlActor } from "@/lib/control/identity";
 import { getControlSnapshot } from "@/lib/control/snapshot";
 import { prisma } from "@/lib/db";
 import "./control-room.css";
+import { buildWorkspaceMenuModel, WORKSPACE_COOKIE } from "@/lib/workspace/context";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,16 @@ export default async function ControlRoomPage({
   const initialSection = SECTIONS.has(requestedSection) ? requestedSection : "overview";
   const viewAsUserId = cookieStore.get("tapconnect_view_as")?.value;
   const supportSessionId = cookieStore.get("tapconnect_support_session")?.value;
-  const [viewAsUser, supportSession] = await Promise.all([
+  const workspaceUser = await prisma.user.findUniqueOrThrow({
+    where: { id: actor.id },
+    include: { memberships: { include: { business: true } } },
+  });
+  const selectedWorkspaceId = cookieStore.get(WORKSPACE_COOKIE)?.value;
+  const selectedWorkspace =
+    workspaceUser.memberships.find(
+      (membership) => membership.businessId === selectedWorkspaceId,
+    )?.business ?? workspaceUser.memberships[0]?.business ?? null;
+  const [viewAsUser, supportSession, workspaceMenu] = await Promise.all([
     viewAsUserId
       ? prisma.user.findUnique({
           where: { id: viewAsUserId },
@@ -51,6 +61,7 @@ export default async function ControlRoomPage({
           },
         })
       : null,
+    buildWorkspaceMenuModel(workspaceUser, selectedWorkspace),
   ]);
 
   return (
@@ -79,8 +90,8 @@ export default async function ControlRoomPage({
               }
             : null
         }
+        workspaceMenu={workspaceMenu}
       />
     </Suspense>
   );
 }
-

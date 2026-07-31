@@ -18,6 +18,7 @@ import {
   type ApprovedCardFact,
   type FirstCardBrand,
 } from "@/lib/fusion/card/first-card-draft";
+import { appendAuditEvent } from "@/lib/control/audit";
 
 export const runtime = "nodejs";
 
@@ -96,9 +97,12 @@ async function generationInputs(businessId: string) {
   };
 }
 
-async function generateForBusiness(businessId: string) {
+async function generateForBusiness(
+  businessId: string,
+  options: { allowSafeDefaultOutcome?: boolean } = {},
+) {
   const input = await generationInputs(businessId);
-  if (!input.business.primaryCustomerOutcome) {
+  if (!input.business.primaryCustomerOutcome && !options.allowSafeDefaultOutcome) {
     throw new CardDraftError(
       "Choose a customer outcome before generating the Card.",
       "invalid_draft",
@@ -108,7 +112,7 @@ async function generateForBusiness(businessId: string) {
   return {
     ...buildFirstCardDraft({
       businessName: input.business.name,
-      outcome: input.business.primaryCustomerOutcome,
+      outcome: input.business.primaryCustomerOutcome ?? "ESSENTIALS",
       facts: input.facts,
       brand: input.brand,
     }),
@@ -138,7 +142,7 @@ export async function GET() {
     const { business } = await requireBusinessCapability("onboarding.read");
     const [kit, generated] = await Promise.all([
       getCardDraft(business.id),
-      generateForBusiness(business.id),
+      generateForBusiness(business.id, { allowSafeDefaultOutcome: true }),
     ]);
     return NextResponse.json({
       draft: kit.tapCardDraft,
@@ -211,13 +215,26 @@ export async function POST(request: Request) {
 
 export async function PUT(request: Request) {
   try {
-    const { business } =
+    const { business, user } =
       await requireBusinessCapability("card.draft.edit");
     const body = saveSchema.parse(await request.json());
     const kit = await saveCardDraft({
       businessId: business.id,
       draft: body.draft,
       expectedRevision: body.expectedRevision,
+    });
+    await appendAuditEvent({
+      actorId: user.id,
+      businessId: business.id,
+      action: "studio.card_draft.saved",
+      permissionUsed: "card.draft.edit",
+      resourceType: "BrandKit",
+      resourceId: kit.id,
+      reason: "Saved Card draft in Studio",
+      newValue: {
+        revision: kit.tapCardDraftRevision,
+        updatedAt: kit.tapCardDraftUpdatedAt,
+      },
     });
     return NextResponse.json({
       draft: kit.tapCardDraft,

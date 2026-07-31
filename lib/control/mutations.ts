@@ -25,6 +25,7 @@ import {
   hashPublishManifest,
   recordPublicationSnapshot,
 } from "@/lib/fusion/publication/snapshots";
+import { isTapConnectCardDraft } from "@/lib/fusion/card/draft";
 
 type MutationInput = {
   operation?: unknown;
@@ -37,6 +38,7 @@ export type ControlMutationResult = {
   ok: true;
   message: string;
   resourceId?: string;
+  workspaceId?: string;
   invitationLink?: string;
   cookie?: {
     name: string;
@@ -1335,53 +1337,97 @@ export async function performControlMutation(
           })
         : null;
     const name = text(data, "name");
+    const managerUserId = optionalText(data, "managerUserId");
+    if (managerUserId === actor.id) {
+      throw new Error("The owner is already a Demo manager.");
+    }
+    const manager = managerUserId
+      ? await prisma.user.findFirst({
+          where: { id: managerUserId, platformStatus: "ACTIVE" },
+          select: { id: true },
+        })
+      : null;
+    if (managerUserId && !manager) throw new Error("Choose an active Demo manager.");
     const plan = await prisma.planDefinition.findUnique({ where: { key: "demo-safe" } });
-    const business = await prisma.business.create({
-      data: {
-        name,
-        slug: `${slugify(name)}-${randomUUID().slice(0, 6)}`,
-        workspaceKind: "DEMO",
-        lifecycleState: "ACTIVE",
-        planDefinitionId: plan?.id,
-        brandKit: source?.business.brandKit
-          ? {
-              create: {
-                primaryColor: source.business.brandKit.primaryColor,
-                secondaryColor: source.business.brandKit.secondaryColor,
-                accentColor: source.business.brandKit.accentColor,
-                backgroundColor: source.business.brandKit.backgroundColor,
-                textColor: source.business.brandKit.textColor,
-                tapCard: source.business.brandKit.tapCard as Prisma.InputJsonValue,
-              },
-            }
-          : {
-              create: {
-                tapCard: {
-                  version: 1,
-                  identity: { name, tagline: "Safe TapConnect demo" },
-                  sections: [],
-                },
-              },
+    const sourceCard = source?.business.brandKit?.tapCardDraft ??
+      source?.business.brandKit?.tapCard;
+    const initialCard = sourceCard && typeof sourceCard === "object"
+      ? sourceCard
+      : {
+          version: 1,
+          identity: { name, tagline: "Safe TapConnect demo" },
+          sections: [],
+        };
+    const { business, demo } = await prisma.$transaction(async (tx) => {
+      const createdBusiness = await tx.business.create({
+        data: {
+          name,
+          slug: `${slugify(name)}-${randomUUID().slice(0, 6)}`,
+          workspaceKind: "DEMO",
+          lifecycleState: "ACTIVE",
+          planDefinitionId: plan?.id,
+          brandKit: {
+            create: {
+              primaryColor: source?.business.brandKit?.primaryColor,
+              secondaryColor: source?.business.brandKit?.secondaryColor,
+              accentColor: source?.business.brandKit?.accentColor,
+              backgroundColor: source?.business.brandKit?.backgroundColor,
+              textColor: source?.business.brandKit?.textColor,
+              tapCard: initialCard as Prisma.InputJsonValue,
+              tapCardDraft: initialCard as Prisma.InputJsonValue,
+              tapCardDraftRevision: 1,
+              tapCardDraftUpdatedAt: new Date(),
             },
-      },
-    });
-    const demo = await prisma.demoWorkspaceMetadata.create({
-      data: {
-        businessId: business.id,
-        description: optionalText(data, "description") ?? source?.description ?? "Safe TapConnect demo workspace",
-        industryUseCase: optionalText(data, "industryUseCase") ?? source?.industryUseCase ?? "General",
-        ownerUserId: actor.id,
-        visibility: bool(data, "shared", false) ? "SHARED" : "PRIVATE",
-        promotionStatus: bool(data, "shared", false) ? "APPROVED" : "DRAFT",
-        allowedPublicActions: source?.allowedPublicActions ?? ["card.view", "card.keep"],
-        blockedActions: [...DEMO_BLOCKED_ACTIONS],
-        standaloneSlug: `${slugify(name)}-${randomUUID().slice(0, 6)}`,
-        fixtureProvenance: optionalText(data, "fixtureProvenance") ?? "Administrator-authored demo fixture data",
-        managers: { create: { userId: actor.id } },
-      },
-    });
-    await prisma.businessUser.create({
-      data: { businessId: business.id, userId: actor.id, role: "OWNER" },
+          },
+        },
+      });
+      await tx.mediaCollection.createMany({
+        data: [
+          {
+            businessId: createdBusiness.id,
+            name: "Brand assets",
+            description: "Logos, colors, and approved brand media for this Demo.",
+            pinned: true,
+            sortOrder: 0,
+          },
+          {
+            businessId: createdBusiness.id,
+            name: "Demo content",
+            description: "Safe fixture media used by the Demo Card and campaigns.",
+            pinned: true,
+            sortOrder: 1,
+          },
+        ],
+      });
+      await tx.businessUser.create({
+        data: { businessId: createdBusiness.id, userId: actor.id, role: "OWNER" },
+      });
+      if (manager) {
+        await tx.businessUser.create({
+          data: { businessId: createdBusiness.id, userId: manager.id, role: "MANAGER" },
+        });
+      }
+      const createdDemo = await tx.demoWorkspaceMetadata.create({
+        data: {
+          businessId: createdBusiness.id,
+          description: optionalText(data, "description") ?? source?.description ?? "Safe TapConnect demo workspace",
+          industryUseCase: optionalText(data, "industryUseCase") ?? source?.industryUseCase ?? "General",
+          ownerUserId: actor.id,
+          visibility: bool(data, "shared", false) ? "SHARED" : "PRIVATE",
+          promotionStatus: bool(data, "shared", false) ? "APPROVED" : "DRAFT",
+          allowedPublicActions: source?.allowedPublicActions ?? ["card.view", "card.keep"],
+          blockedActions: [...DEMO_BLOCKED_ACTIONS],
+          standaloneSlug: `${slugify(name)}-${randomUUID().slice(0, 6)}`,
+          fixtureProvenance: optionalText(data, "fixtureProvenance") ?? "Administrator-authored demo fixture data",
+          managers: {
+            create: [
+              { userId: actor.id },
+              ...(manager ? [{ userId: manager.id }] : []),
+            ],
+          },
+        },
+      });
+      return { business: createdBusiness, demo: createdDemo };
     });
     await audit({
       actor,
@@ -1391,9 +1437,23 @@ export async function performControlMutation(
       resourceId: demo.id,
       businessId: business.id,
       reason: reason(data),
-      next: { name, clonedFrom: source?.id, safetyBlocks: [...DEMO_BLOCKED_ACTIONS] },
+      next: {
+        name,
+        clonedFrom: source?.id,
+        managerUserId: manager?.id,
+        cardDraftRevision: 1,
+        collections: ["Brand assets", "Demo content"],
+        safetyBlocks: [...DEMO_BLOCKED_ACTIONS],
+      },
     });
-    return { ok: true, message: source ? "Demo cloned safely." : "Demo workspace created.", resourceId: demo.id };
+    return {
+      ok: true,
+      message: source
+        ? "Demo cloned with a Studio-ready Card draft."
+        : "Demo workspace is ready to operate in Studio.",
+      resourceId: demo.id,
+      workspaceId: business.id,
+    };
   }
 
   if (operation === "demo.submit" || operation === "demo.review") {
@@ -1450,12 +1510,13 @@ export async function performControlMutation(
       where: { id },
       include: { business: { include: { brandKit: true } }, publications: true },
     });
-    const tapCard = demo.business.brandKit?.tapCard;
+    const brandKit = demo.business.brandKit;
+    const tapCard = brandKit?.tapCardDraft;
     const readiness = demoReadiness({
       workspaceKind: demo.business.workspaceKind,
       fixtureProvenance: demo.fixtureProvenance,
       blockedActions: demo.blockedActions,
-      hasCardSnapshot: Boolean(tapCard && typeof tapCard === "object"),
+      hasCardSnapshot: isTapConnectCardDraft(tapCard),
     });
     if (!readiness.passed) throw new Error(`Demo readiness failed: ${readiness.issues.join(" ")}`);
     const manifest = {
@@ -1493,10 +1554,19 @@ export async function performControlMutation(
         unpublishedAt: null,
       },
     });
-    await prisma.demoWorkspaceMetadata.update({
-      where: { id: demo.id },
-      data: { currentPublicationId: publication.id },
-    });
+    await prisma.$transaction([
+      prisma.demoWorkspaceMetadata.update({
+        where: { id: demo.id },
+        data: { currentPublicationId: publication.id },
+      }),
+      prisma.brandKit.update({
+        where: { businessId: demo.businessId },
+        data: {
+          tapCard: tapCard as Prisma.InputJsonValue,
+          tapCardPublishedAt: new Date(),
+        },
+      }),
+    ]);
     await audit({
       actor,
       operation,
@@ -1505,9 +1575,14 @@ export async function performControlMutation(
       resourceId: publication.id,
       businessId: demo.businessId,
       reason: reason(data),
-      next: { version, snapshotId: snapshot.id },
+      next: {
+        version,
+        snapshotId: snapshot.id,
+        cardDraftRevision: brandKit?.tapCardDraftRevision ?? 0,
+        cardDraftUpdatedAt: brandKit?.tapCardDraftUpdatedAt,
+      },
     });
-    return { ok: true, message: "Demo Card revision published safely.", resourceId: publication.id };
+    return { ok: true, message: "Current saved Demo Card draft published safely.", resourceId: publication.id };
   }
 
   if (operation === "demo.rollback") {
@@ -1574,23 +1649,23 @@ export async function performControlMutation(
       });
       return { ok: true, message: "Landing binding approval requested.", resourceId: approval.id };
     }
-    if (active) {
-      await prisma.landingDemoBinding.update({
-        where: { id: active.id },
+    const binding = await prisma.$transaction(async (tx) => {
+      await tx.landingDemoBinding.updateMany({
+        where: { slotKey, active: true },
         data: { active: false, deactivatedAt: new Date() },
       });
-    }
-    const binding = await prisma.landingDemoBinding.create({
-      data: {
-        slotKey,
-        businessId: demo.businessId,
-        demoMetadataId,
-        demoPublicationId,
-        active: true,
-        activatedById: actor.id,
-        activatedAt: new Date(),
-        priorBindingId: active?.id,
-      },
+      return tx.landingDemoBinding.create({
+        data: {
+          slotKey,
+          businessId: demo.businessId,
+          demoMetadataId,
+          demoPublicationId,
+          active: true,
+          activatedById: actor.id,
+          activatedAt: new Date(),
+          priorBindingId: active?.id,
+        },
+      });
     });
     await audit({
       actor,
@@ -1608,8 +1683,11 @@ export async function performControlMutation(
 
   if (operation === "demo.binding.unbind") {
     const id = text(data, "id");
-    const binding = await prisma.landingDemoBinding.update({
+    const binding = await prisma.landingDemoBinding.findUniqueOrThrow({
       where: { id },
+    });
+    await prisma.landingDemoBinding.updateMany({
+      where: { slotKey: binding.slotKey, active: true },
       data: { active: false, deactivatedAt: new Date() },
     });
     await audit({
@@ -1634,8 +1712,8 @@ export async function performControlMutation(
       where: { id: binding.priorBindingId },
     });
     await prisma.$transaction([
-      prisma.landingDemoBinding.update({
-        where: { id },
+      prisma.landingDemoBinding.updateMany({
+        where: { slotKey: binding.slotKey, active: true },
         data: { active: false, deactivatedAt: new Date() },
       }),
       prisma.landingDemoBinding.update({

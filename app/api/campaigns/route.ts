@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { isPlatformAdmin, requireBusiness } from "@/lib/auth";
 import { createCampaignFromTemplate } from "@/lib/services/campaigns";
+import { appendAuditEvent } from "@/lib/control/audit";
 
 const schema = z.object({
   templateId: z.string(),
@@ -36,6 +37,16 @@ export async function POST(request: Request) {
       templateId: body.templateId,
       title: body.title,
       userId: user.id,
+    });
+    await appendAuditEvent({
+      actorId: user.id,
+      businessId: business.id,
+      action: "studio.campaign_draft.created",
+      permissionUsed: "business.membership",
+      resourceType: "Campaign",
+      resourceId: campaign.id,
+      reason: "Created Campaign draft in Studio",
+      newValue: { title: campaign.title, templateId: body.templateId },
     });
 
     revalidatePath("/dashboard");

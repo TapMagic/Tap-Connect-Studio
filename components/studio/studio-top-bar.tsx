@@ -26,21 +26,23 @@ import { safeDisplayLabel } from "@/lib/fusion/readiness/display-status";
 import { StudioHelpDrawer } from "@/components/studio/studio-help-drawer";
 import { AskTapConnectDrawer } from "@/components/fusion/ask/ask-tapconnect-drawer";
 import { cn } from "@/lib/utils";
+import { WorkspaceAccessMenu } from "@/components/workspace/workspace-access-menu";
+import type { WorkspaceMenuModel } from "@/lib/workspace/context";
 
 export function StudioTopBar({
-  businessName,
   readinessLabel = "Local demo",
   readinessTone = "healthy",
   readinessReasons = [],
   readinessHref = "/dashboard",
   alertCount = 0,
+  workspaceMenu,
 }: {
-  businessName: string;
   readinessLabel?: string;
   readinessTone?: "setup" | "attention" | "healthy";
   readinessReasons?: string[];
   readinessHref?: string;
   alertCount?: number;
+  workspaceMenu: WorkspaceMenuModel;
 }) {
   const router = useRouter();
   const createMenuId = useId();
@@ -181,18 +183,7 @@ export function StudioTopBar({
       role="banner"
       className="relative z-30 flex shrink-0 items-center gap-3 border-b border-white/8 bg-[#0a0f1a]/95 px-3 py-2.5 backdrop-blur lg:px-5"
     >
-      <div
-        className="hidden min-w-0 items-center gap-2 rounded-lg border border-white/10 bg-white/[0.03] px-2.5 py-1.5 sm:flex"
-        data-testid="studio-workspace-chip"
-        title="Single-workspace context — multi-location switching is coming later"
-      >
-        <span className="text-[10px] uppercase tracking-wide text-white/60">Workspace</span>
-        <span className="max-w-[10rem] truncate text-xs font-medium text-white/90 lg:max-w-[14rem]">
-          {businessName}
-        </span>
-        <span className="hidden text-white/55 lg:inline">·</span>
-        <span className="hidden text-[11px] text-white/55 lg:inline">This workspace</span>
-      </div>
+      <WorkspaceAccessMenu model={workspaceMenu} surface="studio" />
 
       <button
         ref={searchBtnRef}
@@ -481,9 +472,7 @@ export function StudioTopBar({
 
       {isClerkConfigured() ? (
         <AuthControls />
-      ) : (
-        <span className="hidden text-[11px] text-white/55 lg:inline">Dev session</span>
-      )}
+      ) : null}
 
       {paletteOpen ? (
         <div

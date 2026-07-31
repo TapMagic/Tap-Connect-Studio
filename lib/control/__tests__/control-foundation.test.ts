@@ -21,6 +21,7 @@ import {
 import { availableCommands, executeCommand } from "@/lib/control/commands";
 import { searchControlRecords } from "@/lib/control/search";
 import { redactAuditValue } from "@/lib/control/audit";
+import { safeControlReturnPath } from "@/lib/workspace/context";
 
 test("permission catalog contains every required wave-one namespace", () => {
   for (const permission of [
@@ -252,3 +253,12 @@ test("audit redaction removes secrets recursively", () => {
   assert.deepEqual(value.list, [{ credential: "[REDACTED]" }]);
 });
 
+test("workspace return context accepts only Control Room paths", () => {
+  assert.equal(
+    safeControlReturnPath("/control?section=demo&record=demo-1"),
+    "/control?section=demo&record=demo-1",
+  );
+  assert.equal(safeControlReturnPath("/dashboard"), "/control");
+  assert.equal(safeControlReturnPath("//attacker.example/control"), "/control");
+  assert.equal(safeControlReturnPath(undefined), "/control");
+});

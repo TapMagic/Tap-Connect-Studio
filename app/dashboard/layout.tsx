@@ -20,6 +20,8 @@ import {
 import { getDashboardStats } from "@/lib/services/devices";
 import "@/app/t/tap.css";
 import type { Metadata } from "next";
+import { buildWorkspaceMenuModel } from "@/lib/workspace/context";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -49,10 +51,10 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const { business } = await requireBusiness();
+  const { business, user } = await requireBusiness();
   const featureCtx = await loadFeatureContext();
 
-  const [brandKit, campaignCount, devices, stats, decisionItems, tapPoints] =
+  const [brandKit, campaignCount, devices, stats, decisionItems, tapPoints, workspaceMenu] =
     await Promise.all([
       prisma.brandKit.findUnique({ where: { businessId: business.id } }).catch(() => null),
       prisma.campaign
@@ -83,6 +85,7 @@ export default async function DashboardLayout({
       })),
       listDecisionQueueItems({ businessId: business.id, limit: 50 }).catch(() => []),
       listTapPointsForBusiness(business.id).catch(() => []),
+      buildWorkspaceMenuModel(user, business),
     ]);
 
   const deviceById = new Map(devices.map((d) => [d.id, d]));
@@ -127,16 +130,36 @@ export default async function DashboardLayout({
   return (
     <DashboardChrome
       businessName={business.name}
-      banner={<DevModeBanner />}
+      banner={
+        <>
+          <DevModeBanner />
+          <div
+            className="flex min-h-10 items-center justify-between gap-3 border-b border-emerald-300/15 bg-emerald-300/[0.06] px-4 py-2 text-xs text-white/70"
+            data-testid="studio-context-banner"
+          >
+            <span className="truncate">
+              <strong className="text-white">{workspaceMenu.currentWorkspaceName}</strong>
+              {" · "}
+              {workspaceMenu.mode.label}
+            </span>
+            <Link
+              href={workspaceMenu.returnToControlRoom}
+              className="shrink-0 font-medium text-emerald-300 hover:text-emerald-200"
+            >
+              Return to Control Room
+            </Link>
+          </div>
+        </>
+      }
       mobileNav={<MobileDashboardNav businessName={business.name} featureCtx={featureCtx} />}
       topBar={
         <StudioTopBar
-          businessName={business.name}
           readinessLabel={workspaceStatus.label}
           readinessTone={workspaceStatus.tone}
           readinessReasons={workspaceStatus.reasons}
           readinessHref={workspaceStatus.href}
           alertCount={workspaceStatus.alertCount}
+          workspaceMenu={workspaceMenu}
         />
       }
       nav={<DashboardNav businessName={business.name} featureCtx={featureCtx} />}

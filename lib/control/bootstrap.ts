@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { Prisma } from "@prisma/client";
 import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 import { DEMO_BLOCKED_ACTIONS } from "@/lib/control/demo-policy";
 import { PLATFORM_PERMISSIONS, ROLE_TEMPLATES } from "@/lib/control/permissions";
@@ -340,6 +341,49 @@ export async function ensureLocalControlFixtures(): Promise<void> {
         update: { role },
       });
     }
+    for (const workspace of [
+      tapConnect,
+      monkeyCage,
+      promoteThat,
+      richSandbox,
+      danielSandbox,
+    ]) {
+      const fixtureCard = {
+        version: 1,
+        identity: {
+          name: workspace.name,
+          tagline: "A safe Studio-ready local workspace",
+        },
+        sections: [],
+      };
+      await prisma.brandKit.upsert({
+        where: { businessId: workspace.id },
+        create: {
+          businessId: workspace.id,
+          tapCard: fixtureCard,
+          tapCardDraft: fixtureCard,
+          tapCardDraftRevision: 1,
+          tapCardDraftUpdatedAt: new Date(),
+        },
+        update: {},
+      });
+      for (const [name, description, sortOrder] of [
+        ["Brand assets", "Logos, colors, and approved brand media.", 0],
+        ["Studio content", "Workspace media for Cards, Campaigns, and Email drafts.", 1],
+      ] as const) {
+        await prisma.mediaCollection.upsert({
+          where: { businessId_name: { businessId: workspace.id, name } },
+          create: {
+            businessId: workspace.id,
+            name,
+            description,
+            sortOrder,
+            pinned: true,
+          },
+          update: { description, sortOrder, pinned: true },
+        });
+      }
+    }
 
     const demo = await prisma.demoWorkspaceMetadata.upsert({
       where: { businessId: coreDemo.id },
@@ -360,6 +404,25 @@ export async function ensureLocalControlFixtures(): Promise<void> {
         fixtureProvenance: "Local deterministic TapConnect fixture data",
       },
     });
+    const coreDemoCard = {
+      version: 1,
+      identity: {
+        name: "TapConnect",
+        tagline: "One living Card. A clearer way to connect.",
+      },
+      sections: [
+        {
+          id: "control-demo-intro",
+          type: "text",
+          title: "Tap once. Keep the relationship.",
+          body: "This fixture Card proves safe Demo Portfolio publication.",
+        },
+      ],
+      actions: [
+        { kind: "keep", enabled: true, label: "Keep this Card" },
+      ],
+      demo: true,
+    };
     await prisma.brandKit.upsert({
       where: { businessId: coreDemo.id },
       create: {
@@ -369,28 +432,41 @@ export async function ensureLocalControlFixtures(): Promise<void> {
         accentColor: "#f4c95d",
         backgroundColor: "#07110d",
         textColor: "#f7fbf8",
-        tapCard: {
-          version: 1,
-          identity: {
-            name: "TapConnect",
-            tagline: "One living Card. A clearer way to connect.",
-          },
-          sections: [
-            {
-              id: "control-demo-intro",
-              type: "text",
-              title: "Tap once. Keep the relationship.",
-              body: "This fixture Card proves safe Demo Portfolio publication.",
-            },
-          ],
-          actions: [
-            { kind: "keep", enabled: true, label: "Keep this Card" },
-          ],
-          demo: true,
-        },
+        tapCard: coreDemoCard,
+        tapCardDraft: coreDemoCard,
+        tapCardDraftRevision: 1,
+        tapCardDraftUpdatedAt: new Date(),
       },
       update: {},
     });
+    await prisma.brandKit.updateMany({
+      where: {
+        businessId: coreDemo.id,
+        tapCardDraft: { equals: Prisma.DbNull },
+        tapCardDraftRevision: 0,
+      },
+      data: {
+        tapCardDraft: coreDemoCard,
+        tapCardDraftRevision: 1,
+        tapCardDraftUpdatedAt: new Date(),
+      },
+    });
+    for (const [name, description, sortOrder] of [
+      ["Brand assets", "Logos, colors, and approved Demo brand media.", 0],
+      ["Demo content", "Safe fixture media for the Demo Card and campaigns.", 1],
+    ] as const) {
+      await prisma.mediaCollection.upsert({
+        where: { businessId_name: { businessId: coreDemo.id, name } },
+        create: {
+          businessId: coreDemo.id,
+          name,
+          description,
+          sortOrder,
+          pinned: true,
+        },
+        update: { description, sortOrder, pinned: true },
+      });
+    }
     for (const userId of [rich.id, daniel.id]) {
       await prisma.demoManager.upsert({
         where: { demoMetadataId_userId: { demoMetadataId: demo.id, userId } },

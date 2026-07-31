@@ -7,7 +7,6 @@ import {
   Blocks,
   Building2,
   Check,
-  ChevronDown,
   ChevronLeft,
   ChevronRight,
   CircleAlert,
@@ -51,6 +50,11 @@ import {
 import type { ControlSnapshot } from "@/lib/control/snapshot";
 import { CONTROL_COMMANDS, executeCommand } from "@/lib/control/commands";
 import { PLATFORM_PERMISSIONS } from "@/lib/control/permissions";
+import {
+  OpenWorkspaceInStudio,
+  WorkspaceAccessMenu,
+} from "@/components/workspace/workspace-access-menu";
+import type { WorkspaceMenuModel } from "@/lib/workspace/context";
 
 type Section =
   | "overview"
@@ -94,6 +98,7 @@ type ControlRoomProps = {
     status: string;
     expiresAt: string;
   } | null;
+  workspaceMenu: WorkspaceMenuModel;
 };
 
 const NAVIGATION: {
@@ -314,6 +319,7 @@ export function ControlRoom({
   initialSection,
   viewAsUser,
   supportSession,
+  workspaceMenu,
 }: ControlRoomProps) {
   const router = useRouter();
   const [section, setSection] = useState<Section>((initialSection as Section) || "overview");
@@ -437,11 +443,7 @@ export function ControlRoom({
           <button type="button" onClick={() => setGlobalSearchOpen(true)} aria-label="Global search"><Search /></button>
           <button type="button" onClick={() => setPaletteOpen(true)} aria-label="Open command palette"><Command /><kbd>⌘K</kbd></button>
           <button type="button" aria-label="Notifications"><Bell /><span className="control-notification-dot" /></button>
-          <button type="button" className="control-profile-trigger" onClick={() => setDrawerOpen(true)} aria-label="Profile and session controls">
-            <Avatar name={snapshot.actor.displayName} imageUrl={snapshot.actor.imageUrl} size="small" />
-            <span><strong>{snapshot.actor.displayName}</strong><small>{snapshot.actor.roleNames.join(" · ")}</small></span>
-            <ChevronDown />
-          </button>
+          <WorkspaceAccessMenu model={workspaceMenu} surface="control" />
         </div>
       </header>
       <div className="control-shell">
@@ -485,7 +487,7 @@ export function ControlRoom({
           {section === "configuration" ? <ConfigurationSection snapshot={snapshot} openAction={openAction} /> : null}
         </main>
       </div>
-      <ActionDrawer action={action} open={drawerOpen} onClose={() => { setDrawerOpen(false); setAction(null); }} onSelectAction={openAction} onComplete={(message) => { setNotice({ tone: "good", message }); router.refresh(); }} profileFallback={!action ? snapshot : null} />
+      <ActionDrawer key={`${drawerOpen}-${action?.operation ?? "profile"}-${action?.title ?? ""}`} action={action} open={drawerOpen} onClose={() => { setDrawerOpen(false); setAction(null); }} onSelectAction={openAction} onComplete={(message) => { setNotice({ tone: "good", message }); router.refresh(); }} profileFallback={!action ? snapshot : null} />
       {paletteOpen ? <CommandPalette allowedPermissions={allowedPermissions} onClose={() => setPaletteOpen(false)} onNavigate={(next) => { if (next.kind === "navigate") { const url = new URL(next.href, window.location.origin); navigate((url.searchParams.get("section") as Section) ?? "overview"); } else { openAction(preparedAction(next.action, snapshot)); } setPaletteOpen(false); }} /> : null}
       {globalSearchOpen ? <GlobalSearch snapshot={snapshot} query={globalQuery} setQuery={setGlobalQuery} onClose={() => setGlobalSearchOpen(false)} onNavigate={(next) => { navigate(next); setGlobalSearchOpen(false); }} /> : null}
     </div>
@@ -568,7 +570,7 @@ function BusinessesSection({ snapshot, openAction }: { snapshot: ControlSnapshot
   return <>
     <SectionHeading eyebrow="Tenancy & workspace lifecycle" title="Businesses & Workspaces" description="Customer, internal, sandbox, demo, partner, and local fixture workspaces remain distinct and governed." actions={<ActionButton kind="primary" onClick={() => openAction(createBusinessAction(snapshot))}><Plus />Create workspace</ActionButton>} />
     <TableShell title="Business directory" description="Owners, plan source, restrictions, publication state, and lifecycle" search={query} onSearch={(value) => { setQuery(value); setPage(0); }} count={filtered.length} empty="No workspaces match the current query and kind." page={page} pages={Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))} onPage={setPage} filters={<label className="control-filter"><SlidersHorizontal /><select aria-label="Filter by workspace kind" value={kind} onChange={(event) => setKind(event.target.value)}><option value="ALL">All kinds</option><option value="CUSTOMER">Customer</option><option value="INTERNAL">Internal</option><option value="PERSONAL_SANDBOX">Personal sandbox</option><option value="DEMO">Demo</option><option value="PARTNER">Partner</option></select></label>}>
-      <table><thead><tr><th>Workspace</th><th>Kind & state</th><th>Owner / members</th><th>Plan</th><th>Capabilities</th><th>Activity</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{rows.map((business) => <tr key={business.id}><td><button type="button" className="control-business-cell" onClick={() => openAction(businessDetailAction(business, snapshot))}><span className="control-business-mark">{initials(business.name)}</span><span><strong>{business.name}</strong><code>{business.slug}</code></span></button></td><td><div className="control-pill-stack"><StatusPill value={business.workspaceKind} tone="info" /><StatusPill value={business.lifecycleState} /></div></td><td><strong>{business.members.find((member) => member.role === "OWNER")?.name ?? "Owner required"}</strong><small>{business.members.length} member{business.members.length === 1 ? "" : "s"}</small></td><td><strong>{business.plan?.name ?? business.subscriptionTier}</strong><small>{business.plan ? "Control Room plan" : "Legacy subscription snapshot"}</small></td><td><span>{business.restrictions.length} restriction{business.restrictions.length === 1 ? "" : "s"}</span><small>{business.overrides.length} override{business.overrides.length === 1 ? "" : "s"}</small></td><td><span>{business.counts.devices} Tap Points</span><small>{business.counts.campaigns} Campaigns · {business.counts.mediaAssets} Assets</small></td><td><button className="control-row-action" type="button" onClick={() => openAction(businessDetailAction(business, snapshot))} aria-label={`Open ${business.name}`}><MoreHorizontal /></button></td></tr>)}</tbody></table>
+      <table><thead><tr><th>Workspace</th><th>Kind & state</th><th>Owner / members</th><th>Plan</th><th>Capabilities</th><th>Activity</th><th><span className="sr-only">Actions</span></th></tr></thead><tbody>{rows.map((business) => <tr key={business.id}><td><button type="button" className="control-business-cell" onClick={() => openAction(businessDetailAction(business, snapshot))}><span className="control-business-mark">{initials(business.name)}</span><span><strong>{business.name}</strong><code>{business.slug}</code></span></button></td><td><div className="control-pill-stack"><StatusPill value={business.workspaceKind} tone="info" /><StatusPill value={business.lifecycleState} /></div></td><td><strong>{business.members.find((member) => member.role === "OWNER")?.name ?? "Owner required"}</strong><small>{business.members.length} member{business.members.length === 1 ? "" : "s"}</small></td><td><strong>{business.plan?.name ?? business.subscriptionTier}</strong><small>{business.plan ? "Control Room plan" : "Legacy subscription snapshot"}</small></td><td><span>{business.restrictions.length} restriction{business.restrictions.length === 1 ? "" : "s"}</span><small>{business.overrides.length} override{business.overrides.length === 1 ? "" : "s"}</small></td><td><span>{business.counts.devices} Tap Points</span><small>{business.counts.campaigns} Campaigns · {business.counts.mediaAssets} Assets</small></td><td><div className="control-inline-actions"><OpenWorkspaceInStudio businessId={business.id} className="control-button control-button--quiet">Open in Studio</OpenWorkspaceInStudio><button className="control-row-action" type="button" onClick={() => openAction(businessDetailAction(business, snapshot))} aria-label={`Open ${business.name} governance`}><MoreHorizontal /></button></div></td></tr>)}</tbody></table>
     </TableShell>
   </>;
 }
@@ -615,9 +617,9 @@ function SupportSection({ snapshot, openAction }: { snapshot: ControlSnapshot; o
 function DemoSection({ snapshot, openAction }: { snapshot: ControlSnapshot; openAction: (spec: ActionSpec) => void }) {
   const activeBinding = snapshot.landingBindings.find((binding) => binding.active);
   return <>
-    <SectionHeading eyebrow="Safe public demonstration" title="Demo Studio" description="Private demos move through submission and review into the shared portfolio. Publication uses immutable Card snapshots and enforced no-send/no-payment policy." actions={<ActionButton kind="primary" onClick={() => openAction(createDemoAction())}><Plus />Create demo workspace</ActionButton>} />
+    <SectionHeading eyebrow="Safe public demonstration" title="Demo Studio" description="Create a real Studio workspace, edit its Card with the normal editor, preview the saved draft, then publish an immutable safe revision." actions={<ActionButton kind="primary" onClick={() => openAction(createDemoAction(snapshot))}><Plus />Create Demo</ActionButton>} />
     <section className="control-demo-binding"><div className="control-demo-binding-mark"><Sparkles /></div><div><p className="control-eyebrow">Landing-page Demo Card</p><h2>{activeBinding ? activeBinding.demoName : "No active binding"}</h2><p>{activeBinding ? `Slot ${activeBinding.slotKey} serves revision ${activeBinding.demoPublicationId}.` : "The public retrieval endpoint currently returns an explicit fallback."}</p></div>{activeBinding ? <div className="control-heading-actions"><a href={`/api/public/demo-card/${activeBinding.slotKey}`} target="_blank" rel="noreferrer" className="control-button control-button--secondary">Inspect payload<ExternalLink /></a>{activeBinding.priorBindingId ? <ActionButton onClick={() => openAction(simpleReasonAction("demo.binding.rollback", "Roll back landing binding", "The prior immutable Demo binding becomes active again.", { id: activeBinding.id }, true))}>Roll back</ActionButton> : null}<ActionButton kind="danger" onClick={() => openAction(simpleReasonAction("demo.binding.unbind", "Unbind landing Demo Card", "The public endpoint immediately returns the explicit no-binding fallback.", { id: activeBinding.id }, true))}>Unbind</ActionButton></div> : null}</section>
-    <div className="control-demo-grid">{snapshot.demos.map((demo) => { const current = demo.publications.find((publication) => publication.id === demo.currentPublicationId); return <article className="control-demo-card" key={demo.id}><header><span className="control-demo-monogram">{initials(demo.name)}</span><div><div className="control-pill-stack"><StatusPill value={demo.visibility} tone="info" /><StatusPill value={demo.promotionStatus} /></div><h2>{demo.name}</h2><p>{demo.industryUseCase}</p></div><button type="button" className="control-row-action" onClick={() => openAction(demoDetailAction(demo))} aria-label={`Open ${demo.name} workflows`}><MoreHorizontal /></button></header><p>{demo.description}</p><dl><div><dt>Owner</dt><dd>{demo.ownerName}</dd></div><div><dt>Managers</dt><dd>{demo.managers.length}</dd></div><div><dt>Public revision</dt><dd>{current ? `v${current.version}` : "Not published"}</dd></div><div><dt>Last reset</dt><dd>{relativeTime(demo.lastResetAt)}</dd></div></dl><div className="control-safety-summary"><Shield /><span><strong>{demo.blockedActions.length} server safety blocks</strong><small>No real sends, payments, refunds, imports, or production Tap Point assignment.</small></span></div><footer>{current ? <ActionButton onClick={() => openAction(bindDemoAction(demo, current, snapshot))}>Bind to landing</ActionButton> : null}<ActionButton kind={current ? "quiet" : "primary"} onClick={() => openAction(simpleReasonAction("demo.publish", current ? `Publish new ${demo.name} revision` : `Publish ${demo.name}`, "Readiness is re-evaluated, then an immutable safe Card revision is created.", { id: demo.id }))}>{current ? "Publish new revision" : "Publish Card"}</ActionButton><ActionButton kind="quiet" onClick={() => openAction(simpleReasonAction("demo.reset", `Reset ${demo.name}`, "Fixture data returns to its governed baseline; publication history remains.", { id: demo.id }, true))}>Reset</ActionButton></footer></article>; })}</div>
+    <div className="control-demo-grid">{snapshot.demos.map((demo) => { const current = demo.publications.find((publication) => publication.id === demo.currentPublicationId); return <article className="control-demo-card" key={demo.id}><header><span className="control-demo-monogram">{initials(demo.name)}</span><div><div className="control-pill-stack"><StatusPill value={demo.visibility} tone="info" /><StatusPill value={demo.promotionStatus} /></div><h2>{demo.name}</h2><p>{demo.industryUseCase}</p></div><button type="button" className="control-row-action" onClick={() => openAction(demoDetailAction(demo))} aria-label={`Open ${demo.name} workflows`}><MoreHorizontal /></button></header><p>{demo.description}</p><dl><div><dt>Owner</dt><dd>{demo.ownerName}</dd></div><div><dt>Managers</dt><dd>{demo.managers.length}</dd></div><div><dt>Public revision</dt><dd>{current ? `v${current.version}` : "Not published"}</dd></div><div><dt>Last reset</dt><dd>{relativeTime(demo.lastResetAt)}</dd></div></dl><div className="control-safety-summary"><Shield /><span><strong>{demo.blockedActions.length} server safety blocks</strong><small>No real sends, payments, refunds, imports, or production Tap Point assignment.</small></span></div><footer><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/card/edit" className="control-button control-button--primary">Edit Card</OpenWorkspaceInStudio><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/card/preview" className="control-button control-button--secondary">Preview Card</OpenWorkspaceInStudio><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/assets" className="control-button control-button--quiet">Assets</OpenWorkspaceInStudio><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/campaigns" className="control-button control-button--quiet">Campaign & Email drafts</OpenWorkspaceInStudio>{current ? <ActionButton onClick={() => openAction(bindDemoAction(demo, current, snapshot))}>Bind to landing</ActionButton> : null}<ActionButton kind="quiet" onClick={() => openAction(simpleReasonAction("demo.publish", current ? `Publish current saved draft as a new revision` : `Publish current saved draft`, "The current saved Card draft is re-validated, then stored as an immutable Demo revision.", { id: demo.id }))}>Publish saved draft</ActionButton><ActionButton kind="quiet" onClick={() => openAction(simpleReasonAction("demo.reset", `Reset ${demo.name}`, "Fixture data returns to its governed baseline; publication history remains.", { id: demo.id }, true))}>Reset</ActionButton></footer></article>; })}</div>
   </>;
 }
 
@@ -635,7 +637,7 @@ function AuditSection({ snapshot, openAction }: { snapshot: ControlSnapshot; ope
 function ConfigurationSection({ snapshot, openAction }: { snapshot: ControlSnapshot; openAction: (spec: ActionSpec) => void }) {
   return <>
     <SectionHeading eyebrow="Wave-one policy" title="Platform Configuration" description="Non-secret environment labels, invitation, sandbox, demo, deletion, MFA, support, approval, and landing binding defaults." />
-    <section className="control-config-grid">{snapshot.configuration.map((setting) => <article key={setting.id}><span className="control-config-icon"><Settings2 /></span><div><code>{setting.key}</code><h2>{setting.value}</h2><p>{setting.description}</p><small>Updated {relativeTime(setting.updatedAt)} · {setting.reason ?? "No reason recorded"}</small></div><button type="button" onClick={() => openAction(configurationAction(setting))}>Edit</button></article>)}</section>
+    <section className="control-config-grid">{snapshot.configuration.map((setting) => { const copy = configurationCopy(setting.key, setting.value); return <article key={setting.id}><span className="control-config-icon"><Settings2 /></span><div><small>{copy.group}</small><h2>{copy.label}</h2><p>{copy.explanation}</p><strong>{copy.value}</strong><small>Updated {relativeTime(setting.updatedAt)} · {setting.reason ?? "No reason recorded"}</small></div><button type="button" onClick={() => openAction(configurationAction(setting))}>Change</button></article>; })}</section>
     <section className="control-policy-card"><Database /><div><h2>Secrets stay outside platform settings</h2><p>Keys containing secret, token, password, or credential are rejected server-side. Authentication and provider credentials remain environment-managed.</p></div></section>
   </>;
 }
@@ -644,12 +646,15 @@ function ActionDrawer({ action, open, onClose, onSelectAction, onComplete, profi
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [resultLink, setResultLink] = useState("");
+  const [resultWorkspaceId, setResultWorkspaceId] = useState("");
   const firstField = useRef<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement | null>(null);
-  useEffect(() => { if (open) window.setTimeout(() => firstField.current?.focus(), 80); }, [open, action]);
+  useEffect(() => {
+    if (open) window.setTimeout(() => firstField.current?.focus(), 80);
+  }, [open, action]);
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!action) return;
-    setBusy(true); setError(""); setResultLink("");
+    setBusy(true); setError(""); setResultLink(""); setResultWorkspaceId("");
     const form = new FormData(event.currentTarget);
     const data: Record<string, unknown> = {};
     for (const field of action.fields) {
@@ -657,18 +662,19 @@ function ActionDrawer({ action, open, onClose, onSelectAction, onComplete, profi
     }
     try {
       const response = await fetch("/api/control", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operation: action.operation, data }) });
-      const result = (await response.json()) as { ok?: boolean; message?: string; error?: string; invitationLink?: string };
+      const result = (await response.json()) as { ok?: boolean; message?: string; error?: string; invitationLink?: string; workspaceId?: string };
       if (!response.ok || !result.ok) throw new Error(result.error ?? "Action failed.");
       if (result.invitationLink) setResultLink(result.invitationLink);
+      if (result.workspaceId) setResultWorkspaceId(result.workspaceId);
       onComplete(result.message ?? "Action completed.");
-      if (!result.invitationLink) onClose();
+      if (!result.invitationLink && !result.workspaceId) onClose();
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Action failed."); } finally { setBusy(false); }
   }
   return <>
     <button type="button" className={`control-action-scrim ${open ? "is-open" : ""}`} onClick={onClose} aria-label="Close action drawer" tabIndex={open ? 0 : -1} />
     <aside className={`control-action-drawer ${open ? "is-open" : ""}`} aria-hidden={!open} inert={!open} aria-label={action?.title ?? "Profile and session controls"}>
       <header><div><p className="control-eyebrow">{action ? "Action review" : "Administrator session"}</p><h2>{action?.title ?? profileFallback?.actor.displayName ?? "Control Room"}</h2></div><button type="button" onClick={onClose} aria-label="Close"><PanelRightClose /></button></header>
-      {action ? <form onSubmit={submit}><div className="control-drawer-body"><p className="control-action-description">{action.description}</p><div className={`control-consequence ${action.destructive ? "control-consequence--danger" : ""}`}><ShieldAlert /><div><strong>Consequence preview</strong><p>{action.consequence}</p></div></div>{action.relatedActions?.length ? <div className="control-related-actions"><strong>Available governed workflows</strong><div>{action.relatedActions.map((related) => <button type="button" key={`${related.operation}-${related.title}`} onClick={() => onSelectAction(related)} className={related.destructive ? "is-destructive" : ""}>{related.title}<ChevronRight /></button>)}</div></div> : null}{action.fields.map((field, index) => <label key={field.name} className={field.type === "checkbox" ? "control-checkbox-field" : "control-form-field"}>{field.type === "checkbox" ? <><input ref={index === 0 ? (firstField as React.RefObject<HTMLInputElement>) : undefined} name={field.name} type="checkbox" defaultChecked={Boolean(field.value)} /><span><strong>{field.label}</strong>{field.hint ? <small>{field.hint}</small> : null}</span></> : <><span>{field.label}{field.required ? " *" : ""}</span>{field.type === "textarea" ? <textarea ref={index === 0 ? (firstField as React.RefObject<HTMLTextAreaElement>) : undefined} name={field.name} required={field.required} defaultValue={String(field.value ?? "")} rows={4} /> : field.type === "select" ? <select ref={index === 0 ? (firstField as React.RefObject<HTMLSelectElement>) : undefined} name={field.name} required={field.required} defaultValue={String(field.value ?? "")}><option value="">Choose…</option>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input ref={index === 0 ? (firstField as React.RefObject<HTMLInputElement>) : undefined} name={field.name} type={field.type ?? "text"} required={field.required} defaultValue={String(field.value ?? "")} />}{field.hint ? <small>{field.hint}</small> : null}</>}</label>)}{error ? <div className="control-form-error" role="alert"><CircleAlert />{error}</div> : null}{resultLink ? <div className="control-result-link"><strong>Secure fixture link</strong><code>{resultLink}</code><button type="button" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}${resultLink}`)}>Copy link</button><small>No Email or customer contact occurred.</small></div> : null}</div><footer><button type="button" className="control-button control-button--quiet" onClick={onClose}>Cancel</button><button type="submit" className={`control-button ${action.destructive ? "control-button--danger" : "control-button--primary"}`} disabled={busy}>{busy ? <><RefreshCw className="is-spinning" />Applying…</> : action.destructive ? "Confirm consequence" : "Review and apply"}</button></footer></form> : profileFallback ? <div className="control-drawer-body"><div className="control-profile-card"><Avatar name={profileFallback.actor.displayName} imageUrl={profileFallback.actor.imageUrl} size="large" /><h3>{profileFallback.actor.displayName}</h3><p>{profileFallback.actor.email}</p><code>{profileFallback.actor.clerkId}</code><div className="control-pill-stack">{profileFallback.actor.roleNames.map((role) => <StatusPill key={role} value={role} tone="info" />)}</div></div><div className="control-session-facts"><div><span>Identity adapter</span><strong>{sentence(profileFallback.actor.adapter)}</strong></div><div><span>Environment</span><strong>{sentence(profileFallback.actor.environment)}</strong></div><div><span>Permissions</span><strong>{profileFallback.effectivePermissions.filter((entry) => entry.allowed).length} allowed</strong></div></div>{profileFallback.actor.adapter === "local" ? <div className="control-local-switch"><strong>Local fixture identity</strong><p>Switching changes only the deterministic local adapter. It cannot create a production user.</p><div><button type="button" onClick={() => void fetch("/api/control", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operation: "identity.switch", data: { identity: "rich" } }) }).then(() => window.location.reload())}>Rich</button><button type="button" onClick={() => void fetch("/api/control", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operation: "identity.switch", data: { identity: "daniel" } }) }).then(() => window.location.reload())}>Daniel</button></div></div> : null}</div> : null}
+      {action ? <form onSubmit={submit}><div className="control-drawer-body"><p className="control-action-description">{action.description}</p><div className={`control-consequence ${action.destructive ? "control-consequence--danger" : ""}`}><ShieldAlert /><div><strong>Consequence preview</strong><p>{action.consequence}</p></div></div>{action.relatedActions?.length ? <div className="control-related-actions"><strong>Available governed workflows</strong><div>{action.relatedActions.map((related) => <button type="button" key={`${related.operation}-${related.title}`} onClick={() => onSelectAction(related)} className={related.destructive ? "is-destructive" : ""}>{related.title}<ChevronRight /></button>)}</div></div> : null}{!resultWorkspaceId ? action.fields.map((field, index) => <label key={field.name} className={field.type === "checkbox" ? "control-checkbox-field" : "control-form-field"}>{field.type === "checkbox" ? <><input ref={index === 0 ? (firstField as React.RefObject<HTMLInputElement>) : undefined} name={field.name} type="checkbox" defaultChecked={Boolean(field.value)} /><span><strong>{field.label}</strong>{field.hint ? <small>{field.hint}</small> : null}</span></> : <><span>{field.label}{field.required ? " *" : ""}</span>{field.type === "textarea" ? <textarea ref={index === 0 ? (firstField as React.RefObject<HTMLTextAreaElement>) : undefined} name={field.name} required={field.required} defaultValue={String(field.value ?? "")} rows={4} /> : field.type === "select" ? <select ref={index === 0 ? (firstField as React.RefObject<HTMLSelectElement>) : undefined} name={field.name} required={field.required} defaultValue={String(field.value ?? "")}><option value="">Choose…</option>{field.options?.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select> : <input ref={index === 0 ? (firstField as React.RefObject<HTMLInputElement>) : undefined} name={field.name} type={field.type ?? "text"} required={field.required} defaultValue={String(field.value ?? "")} />}{field.hint ? <small>{field.hint}</small> : null}</>}</label>) : null}{error ? <div className="control-form-error" role="alert"><CircleAlert />{error}</div> : null}{resultLink ? <div className="control-result-link"><strong>Secure fixture link</strong><code>{resultLink}</code><button type="button" onClick={() => void navigator.clipboard.writeText(`${window.location.origin}${resultLink}`)}>Copy link</button><small>No Email or customer contact occurred.</small></div> : null}{resultWorkspaceId ? <div className="control-result-link"><strong>Demo workspace ready</strong><p>The workspace has an Owner, optional manager, saved Card draft, and starter asset collections.</p><OpenWorkspaceInStudio businessId={resultWorkspaceId} href="/dashboard/card/edit" className="control-button control-button--primary">Edit Card in Studio</OpenWorkspaceInStudio><OpenWorkspaceInStudio businessId={resultWorkspaceId} href="/dashboard/card/preview" className="control-button control-button--secondary">Preview saved draft</OpenWorkspaceInStudio><small>Return here to publish the current saved draft.</small></div> : null}</div><footer><button type="button" className="control-button control-button--quiet" onClick={onClose}>{resultWorkspaceId ? "Done" : "Cancel"}</button>{!resultWorkspaceId ? <button type="submit" className={`control-button ${action.destructive ? "control-button--danger" : "control-button--primary"}`} disabled={busy}>{busy ? <><RefreshCw className="is-spinning" />Applying…</> : action.destructive ? "Confirm consequence" : "Review and apply"}</button> : null}</footer></form> : profileFallback ? <div className="control-drawer-body"><div className="control-profile-card"><Avatar name={profileFallback.actor.displayName} imageUrl={profileFallback.actor.imageUrl} size="large" /><h3>{profileFallback.actor.displayName}</h3><p>{profileFallback.actor.email}</p><code>{profileFallback.actor.clerkId}</code><div className="control-pill-stack">{profileFallback.actor.roleNames.map((role) => <StatusPill key={role} value={role} tone="info" />)}</div></div><div className="control-session-facts"><div><span>Identity adapter</span><strong>{sentence(profileFallback.actor.adapter)}</strong></div><div><span>Environment</span><strong>{sentence(profileFallback.actor.environment)}</strong></div><div><span>Permissions</span><strong>{profileFallback.effectivePermissions.filter((entry) => entry.allowed).length} allowed</strong></div></div>{profileFallback.actor.adapter === "local" ? <div className="control-local-switch"><strong>Local fixture identity</strong><p>Switching changes only the deterministic local adapter. It cannot create a production user.</p><div><button type="button" onClick={() => void fetch("/api/control", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operation: "identity.switch", data: { identity: "rich" } }) }).then(() => window.location.reload())}>Rich</button><button type="button" onClick={() => void fetch("/api/control", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ operation: "identity.switch", data: { identity: "daniel" } }) }).then(() => window.location.reload())}>Daniel</button></div></div> : null}</div> : null}
     </aside>
   </>;
 }
@@ -989,8 +995,8 @@ function viewAsAction(snapshot: ControlSnapshot): ActionSpec {
   return { operation: "view_as.start", title: "View as User", description: "Diagnose the user’s effective navigation, workspace access, and entitlement restrictions.", consequence: "No authenticated user session is created. All mutations are blocked until the administrator exits the permanent banner.", fields: [{ name: "userId", label: "User", type: "select", required: true, options: snapshot.users.filter((user) => user.id !== snapshot.actor.id).map((user) => ({ label: `${user.displayName} — ${user.email}`, value: user.id })) }, { name: "reason", label: "Diagnostic reason", type: "textarea", required: true }] };
 }
 
-function createDemoAction(): ActionSpec {
-  return { operation: "demo.create", title: "Create demo workspace", description: "Creates an isolated demo business, safe Card baseline, Owner membership, and enforced blocked-action policy.", consequence: "No customer data, external sends, money movement, provider writes, or production Tap Point assignment is enabled.", fields: [{ name: "name", label: "Demo name", required: true }, { name: "description", label: "Description", type: "textarea", required: true }, { name: "industryUseCase", label: "Industry / use case", required: true }, { name: "fixtureProvenance", label: "Fixture data provenance", type: "textarea", required: true }, { name: "shared", label: "Create directly in shared portfolio", type: "checkbox" }, { name: "reason", label: "Reason", type: "textarea", required: true }] };
+function createDemoAction(snapshot: ControlSnapshot): ActionSpec {
+  return { operation: "demo.create", title: "Create Demo", description: "Create a real, isolated Studio workspace with a saved Card draft, Demo content collections, an Owner, and an optional manager.", consequence: "The Demo can use normal Studio drafting. Real sends, payments, refunds, customer imports, and production Tap Point assignment stay blocked.", fields: [{ name: "name", label: "Demo name", required: true }, { name: "description", label: "What this Demo should show", type: "textarea", required: true }, { name: "industryUseCase", label: "Industry or use case", required: true }, { name: "managerUserId", label: "Optional manager", type: "select", options: snapshot.users.filter((user) => user.id !== snapshot.actor.id && user.status === "ACTIVE").map((user) => ({ label: `${user.displayName} — ${user.email}`, value: user.id })) }, { name: "fixtureProvenance", label: "Where the Demo content comes from", type: "textarea", required: true, hint: "For example: administrator-authored fictional business content." }, { name: "shared", label: "Add to the shared Demo portfolio now", type: "checkbox" }, { name: "reason", label: "Why this Demo is being created", type: "textarea", required: true }] };
 }
 
 function demoDetailAction(demo: ControlSnapshot["demos"][number]): ActionSpec {
@@ -1046,12 +1052,89 @@ function approvalAction(approval: ControlSnapshot["approvals"][number], approved
   return { operation: "approval.decide", title: `${approved ? "Approve" : "Reject"} ${sentence(approval.actionKey)}`, description: `${approval.reason} Target: ${approval.targetType} ${approval.targetId}.`, consequence: approved ? "Approval authorizes the governed application step; it does not bypass its final validation." : "The requested sensitive action remains blocked.", destructive: !approved, fields: [{ name: "id", label: "Approval request", value: approval.id, required: true }, { name: "approved", label: "Approved", type: "checkbox", value: approved }, { name: "reason", label: "Decision note", type: "textarea", required: true }] };
 }
 
+const CONFIGURATION_COPY: Record<
+  string,
+  { group: string; label: string; explanation: string; value?: (raw: string) => string }
+> = {
+  "platform.identity": {
+    group: "Platform",
+    label: "Internal platform name",
+    explanation: "The name administrators see for this Control Room.",
+  },
+  "support.contact": {
+    group: "Support",
+    label: "Support contact",
+    explanation: "Where administrators are directed when they need platform help.",
+  },
+  "invitation.expiration_days": {
+    group: "Invitations",
+    label: "Invitation lifetime",
+    explanation: "How many days a new administrator invitation stays usable.",
+    value: (raw) => `${raw} days`,
+  },
+  "sandbox.default_plan": {
+    group: "Workspaces",
+    label: "Default sandbox plan",
+    explanation: "The safe capability set assigned to a new personal sandbox.",
+  },
+  "demo.default_plan": {
+    group: "Demos",
+    label: "Default Demo plan",
+    explanation: "The safe capability set assigned to a newly created Demo.",
+  },
+  "deletion.grace_days": {
+    group: "Data lifecycle",
+    label: "Deletion grace period",
+    explanation: "How long recoverable records are retained before final deletion review.",
+    value: (raw) => `${raw} days`,
+  },
+  "security.mfa_required": {
+    group: "Security",
+    label: "Require administrator MFA",
+    explanation: "Whether administrator invitations require multi-factor authentication.",
+    value: (raw) => (raw === "true" ? "Required" : "Optional"),
+  },
+  "support.max_duration_minutes": {
+    group: "Support",
+    label: "Maximum support session",
+    explanation: "The longest a governed Support Session may remain active.",
+    value: (raw) => `${raw} minutes`,
+  },
+  "approval.unlimited_threshold": {
+    group: "Approvals",
+    label: "Unlimited allowance review threshold",
+    explanation: "Allowances at or above this value require a second administrator review.",
+  },
+  "landing.demo_slot_key": {
+    group: "Public Demo",
+    label: "Landing-page Demo slot",
+    explanation: "The named public slot that receives an approved Demo Card revision.",
+  },
+  "local.fixture_mode": {
+    group: "Local development",
+    label: "Deterministic fixture mode",
+    explanation: "Shows whether local Rich and Daniel identities use safe fixture data.",
+    value: (raw) => (raw === "true" ? "On" : "Off"),
+  },
+};
+
+function configurationCopy(key: string, value: string) {
+  const copy = CONFIGURATION_COPY[key] ?? {
+    group: "Platform",
+    label: sentence(key),
+    explanation: "A non-secret platform operating default.",
+  };
+  return { ...copy, value: copy.value?.(value) ?? value };
+}
+
 function configurationAction(setting: ControlSnapshot["configuration"][number]): ActionSpec {
-  return { operation: "configuration.update", title: `Edit ${setting.key}`, description: setting.description, consequence: "The new non-secret value becomes the Control Room policy default. The prior value remains in append-only audit history.", fields: [{ name: "key", label: "Setting key", value: setting.key, required: true }, { name: "value", label: "Value", value: setting.value, required: true }, { name: "description", label: "Description", value: setting.description, required: true }, { name: "reason", label: "Reason", type: "textarea", required: true }] };
+  const copy = configurationCopy(setting.key, setting.value);
+  const booleanSetting = ["security.mfa_required", "local.fixture_mode"].includes(setting.key);
+  return { operation: "configuration.update", title: `Change ${copy.label}`, description: copy.explanation, consequence: "This changes the operating default for future governed workflows. The previous value remains in audit history.", fields: [{ name: "key", label: "Setting", value: setting.key, required: true, hint: "Stable internal identifier." }, booleanSetting ? { name: "value", label: copy.label, type: "select", value: setting.value, required: true, options: [{ label: "On / required", value: "true" }, { label: "Off / optional", value: "false" }] } : { name: "value", label: copy.label, value: setting.value, required: true }, { name: "description", label: "Owner-facing explanation", value: copy.explanation, required: true }, { name: "reason", label: "Why this default is changing", type: "textarea", required: true }] };
 }
 
 function preparedAction(action: string, snapshot: ControlSnapshot): ActionSpec {
   if (action === "invite-administrator") return inviteAction(snapshot);
-  if (action === "create-demo") return createDemoAction();
+  if (action === "create-demo") return createDemoAction(snapshot);
   return grantAction(snapshot);
 }

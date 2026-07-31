@@ -10,6 +10,10 @@ import {
 } from "@/lib/services/admins";
 import { postAuthDestination } from "@/lib/fusion/auth/post-auth-destination";
 import type { Business, BusinessUser, User } from "@prisma/client";
+import { cookies } from "next/headers";
+import { ensureLocalControlFixtures } from "@/lib/control/bootstrap";
+import { resolveControlIdentity } from "@/lib/control/identity";
+import { WORKSPACE_COOKIE } from "@/lib/workspace/context";
 
 export type SessionUser = User & {
   memberships: (BusinessUser & { business: Business })[];
@@ -34,7 +38,13 @@ async function getOrCreateDevUser(): Promise<SessionUser> {
 
 export async function getSessionUser(): Promise<SessionUser | null> {
   if (isLocalDevAuthEnabled()) {
-    return getOrCreateDevUser();
+    await ensureLocalControlFixtures();
+    const identity = await resolveControlIdentity();
+    if (!identity) return null;
+    return prisma.user.findUnique({
+      where: { clerkId: identity.externalUserId },
+      include: { memberships: { include: { business: true } } },
+    });
   }
   if (!isClerkConfigured()) {
     return getOrCreateDevUser();
@@ -102,6 +112,25 @@ export async function requireSessionUser(): Promise<SessionUser> {
 }
 
 export async function getActiveBusiness(user: SessionUser): Promise<Business | null> {
+  const cookieStore = await cookies();
+  const requestedId = cookieStore.get(WORKSPACE_COOKIE)?.value;
+  if (requestedId) {
+    const membership = user.memberships.find((entry) => entry.businessId === requestedId);
+    if (membership) return membership.business;
+    const supportId = cookieStore.get("tapconnect_support_session")?.value;
+    if (supportId) {
+      const support = await prisma.supportSession.findFirst({
+        where: {
+          id: supportId,
+          actorUserId: user.id,
+          businessId: requestedId,
+          status: "ACTIVE",
+          expiresAt: { gt: new Date() },
+        },
+      });
+      if (support) return prisma.business.findUnique({ where: { id: requestedId } });
+    }
+  }
   return user.memberships[0]?.business ?? null;
 }
 
@@ -133,17 +162,14 @@ export async function requireBusiness(): Promise<{
 }> {
   const user = await requireSessionUser();
 
-  if (isPlatformAdmin(user)) {
-    const business = await ensureAdminWorkspace(user);
-    return { user, business };
-  }
-
   const business = await getActiveBusiness(user);
-  if (!business) {
-    redirect("/onboarding");
-  }
+  if (business) return { user, business };
 
-  return { user, business };
+  if (isPlatformAdmin(user)) {
+    const adminBusiness = await ensureAdminWorkspace(user);
+    return { user, business: adminBusiness };
+  }
+  redirect("/onboarding");
 }
 
 export async function resolvePostAuthRedirect(): Promise<string> {

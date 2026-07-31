@@ -114,7 +114,10 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
     await expect(
       page.getByRole("heading", { name: "Users & Administrators" }),
     ).toBeVisible();
+    const userSearch = page.getByPlaceholder("Search user directory");
+    await userSearch.fill("rich@tapconnect.local");
     await expect(page.getByRole("button", { name: /Rich/ }).first()).toBeVisible();
+    await userSearch.fill("daniel@tapconnect.local");
     await expect(page.getByRole("button", { name: /Daniel/ }).first()).toBeVisible();
     await page.goto("/control?section=businesses", { waitUntil: "networkidle" });
     const businessSearch = page.getByPlaceholder("Search business directory");
@@ -128,6 +131,65 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
       .selectOption({ label: "Platform Operator" });
     await expect(page.locator(".control-role-diff")).toContainText("Platform Operator");
     await expect(page.locator(".control-role-diff")).toContainText("only in");
+  });
+
+  test("shared workspace menu opens real Studio context and returns to Control Room", async ({
+    page,
+  }) => {
+    await page.goto("/control?section=businesses", { waitUntil: "networkidle" });
+    await page.getByTestId("control-workspace-menu").getByRole("button").first().click();
+    await expect(
+      page.getByRole("dialog", { name: "Workspace and user menu" }).getByText(
+        "Operating as myself",
+      ),
+    ).toBeVisible();
+    await page
+      .getByTestId("control-workspace-menu")
+      .getByRole("button", { name: /The Monkey Cage internal/ })
+      .click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByTestId("studio-context-banner")).toContainText("The Monkey Cage");
+    await expect(page.getByTestId("studio-workspace-menu")).toBeVisible();
+    await page.getByRole("link", { name: "Return to Control Room" }).first().click();
+    await expect(page).toHaveURL(/\/control\?section=businesses/);
+    await expect(
+      page.getByRole("heading", { name: "Businesses & Workspaces" }),
+    ).toBeVisible();
+  });
+
+  test("workspace context rejects non-membership and preserves Daniel's own sandbox", async ({
+    page,
+    context,
+  }) => {
+    await context.addCookies([
+      {
+        name: "tapconnect_control_identity",
+        value: "daniel",
+        url: process.env.BASE_URL ?? "http://127.0.0.1:3011",
+        httpOnly: true,
+        sameSite: "Lax",
+      },
+    ]);
+    await page.goto("/control?section=businesses", { waitUntil: "networkidle" });
+    await page.getByPlaceholder("Search business directory").fill("Rich’s Sandbox");
+    const richSandboxRow = page.getByRole("row").filter({ hasText: "Rich’s Sandbox" });
+    const richOpen = richSandboxRow.getByTestId(/open-studio-/);
+    const richBusinessId = (await richOpen.getAttribute("data-testid"))!.replace(
+      "open-studio-",
+      "",
+    );
+    const denied = await page.request.post("/api/workspace/context", {
+      data: { businessId: richBusinessId, returnTo: "/control?section=businesses" },
+    });
+    expect(denied.status()).toBe(403);
+
+    await page.getByTestId("control-workspace-menu").getByRole("button").first().click();
+    await page
+      .getByTestId("control-workspace-menu")
+      .getByRole("button", { name: /Daniel’s Sandbox/ })
+      .click();
+    await expect(page).toHaveURL(/\/dashboard$/);
+    await expect(page.getByTestId("studio-context-banner")).toContainText("Daniel’s Sandbox");
   });
 
   test("fixture invitation visibly accepts, revokes, and expires without Email", async ({
@@ -155,11 +217,13 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
       page.getByText("Invitation accepted and immutable identity bound."),
     ).toBeVisible();
     await page.goto("/control?section=users", { waitUntil: "networkidle" });
+    await page.getByPlaceholder("Search user directory").fill(acceptedEmail);
     const acceptedUser = page.getByRole("row").filter({
       hasText: acceptedEmail,
     }).first();
     await expect(acceptedUser.getByText(/local:invited:/)).toBeVisible();
     await page.goto("/control?section=businesses", { waitUntil: "networkidle" });
+    await page.getByPlaceholder("Search business directory").fill(`${acceptedName}’s Sandbox`);
     await expect(page.getByText(`${acceptedName}’s Sandbox`).first()).toBeVisible();
 
     await page.goto("/control?section=users", { waitUntil: "networkidle" });
@@ -201,6 +265,7 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
       },
     ]);
     await page.goto("/control?section=users", { waitUntil: "networkidle" });
+    await page.getByPlaceholder("Search user directory").fill("daniel@tapconnect.local");
     await expect(page.getByText("Platform Operator").first()).toBeVisible();
     await expect(page.getByText("Demo Manager").first()).toBeVisible();
     const danielRow = page.getByRole("row").filter({ hasText: "daniel@tapconnect.local" });
@@ -278,28 +343,34 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
     const demoRunId = Date.now().toString(36);
     const privateDemoName = `Owner Private Demo ${demoRunId}`;
     await page.goto("/control?section=demo", { waitUntil: "networkidle" });
-    await page.getByRole("button", { name: "Create demo workspace" }).click();
+    await page.getByRole("button", { name: "Create Demo" }).click();
     await page.getByRole("textbox", { name: /^Demo name/ }).fill(privateDemoName);
-    await page.getByRole("textbox", { name: /^Description/ }).fill("Private promotion acceptance fixture");
+    await page.getByRole("textbox", { name: /^What this Demo should show/ }).fill("Private promotion acceptance fixture");
     await page.getByRole("textbox", { name: /^Industry/ }).fill("Owner acceptance");
-    await page.getByRole("textbox", { name: /^Fixture data provenance/ }).fill("Synthetic local-only owner acceptance data");
-    await page.getByRole("textbox", { name: /^Reason/ }).fill("Create governed private demo");
+    await page.getByRole("textbox", { name: /^Where the Demo content comes from/ }).fill("Synthetic local-only owner acceptance data");
+    await page.getByRole("textbox", { name: /^Why this Demo is being created/ }).fill("Create governed private demo");
     await page.getByRole("button", { name: "Review and apply" }).click();
+    await expect(page.getByText("Demo workspace ready")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Edit Card in Studio" })).toBeVisible();
+    await page.getByRole("button", { name: "Done" }).click();
     let privateDemo = page.locator("article").filter({ hasText: privateDemoName });
     await privateDemo.getByRole("button", { name: `Open ${privateDemoName} workflows` }).click();
     await page.getByRole("button", { name: "Submit to shared portfolio" }).click();
     await page.getByLabel("Reason").fill("Submit private Demo for review");
     await page.getByRole("button", { name: "Review and apply" }).click();
     privateDemo = page.locator("article").filter({ hasText: privateDemoName });
+    await expect(privateDemo.getByText("Submitted")).toBeVisible();
     await privateDemo.getByRole("button", { name: `Open ${privateDemoName} workflows` }).click();
     await page.getByRole("button", { name: "Review portfolio submission" }).click();
     await page.getByLabel("Review note").fill("Approved for the safe shared Demo Portfolio");
     await page.getByRole("button", { name: "Review and apply" }).click();
     privateDemo = page.locator("article").filter({ hasText: privateDemoName });
+    await expect(privateDemo.getByText("Approved")).toBeVisible();
     await privateDemo.getByRole("button", { name: `Open ${privateDemoName} workflows` }).click();
     await page.getByLabel("Reason").fill("Clone approved demo for isolated reuse");
     await page.getByRole("button", { name: "Review and apply" }).click();
-    await expect(page.getByText("Demo cloned safely.")).toBeVisible();
+    await expect(page.getByText("Demo cloned with a Studio-ready Card draft.")).toBeVisible();
+    await page.getByRole("button", { name: "Done" }).click();
     await page.getByRole("button", { name: "Dismiss" }).click();
     privateDemo = page.locator("article").filter({ hasText: privateDemoName }).first();
     await privateDemo.getByRole("button", { name: "Reset" }).click();
@@ -309,12 +380,43 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
     await page.getByRole("button", { name: "Dismiss" }).click();
 
     const card = page.locator("article").filter({ hasText: "TapConnect Core Demo" });
-    await card
-      .getByRole("button", { name: /Publish Card|Publish new revision/ })
+    const coreStudioButton = card.getByTestId(/open-studio-/).first();
+    const coreBusinessId = (await coreStudioButton.getAttribute("data-testid"))!.replace(
+      "open-studio-",
+      "",
+    );
+    const contextResponse = await page.request.post("/api/workspace/context", {
+      data: { businessId: coreBusinessId, returnTo: "/control?section=demo" },
+    });
+    expect(contextResponse.ok()).toBeTruthy();
+    const draftResponse = await page.request.get("/api/card/draft");
+    expect(draftResponse.ok()).toBeTruthy();
+    const draftState = await draftResponse.json();
+    const draftMarker = `Saved draft ${demoRunId}`;
+    const nextDraft = {
+      ...draftState.draft,
+      identity: {
+        ...(draftState.draft.identity ?? {}),
+        tagline: draftMarker,
+      },
+    };
+    const saveResponse = await page.request.put("/api/card/draft", {
+      data: {
+        draft: nextDraft,
+        expectedRevision: draftState.revision,
+      },
+    });
+    expect(saveResponse.ok()).toBeTruthy();
+    await page.goto("/control?section=demo", { waitUntil: "networkidle" });
+    const refreshedDraftCard = page
+      .locator("article")
+      .filter({ hasText: "TapConnect Core Demo" });
+    await refreshedDraftCard
+      .getByRole("button", { name: "Publish saved draft" })
       .click();
     await page.getByLabel("Reason").fill("Owner acceptance Demo publication");
     await page.getByRole("button", { name: "Review and apply" }).click();
-    await expect(page.getByText(/Demo Card revision published safely/)).toBeVisible();
+    await expect(page.getByText(/Current saved Demo Card draft published safely/)).toBeVisible();
     const refreshedCard = page
       .locator("article")
       .filter({ hasText: "TapConnect Core Demo" });
@@ -351,6 +453,7 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
     const payload = await response.json();
     expect(payload.bound).toBe(true);
     expect(payload.card).toBeTruthy();
+    expect(JSON.stringify(payload.card)).toContain(draftMarker);
     expect(JSON.stringify(payload)).not.toMatch(/token|secret|password|clerk/i);
   });
 
