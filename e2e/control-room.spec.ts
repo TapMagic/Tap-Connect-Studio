@@ -381,6 +381,10 @@ test.describe.serial("TapConnect Platform Control Room owner acceptance", () => 
     await expect(
       page.getByRole("navigation", { name: "Control Room" }),
     ).toBeVisible();
+    await expect(page.locator(".control-rail")).toHaveCSS(
+      "transform",
+      "matrix(1, 0, 0, 1, 0, 0)",
+    );
     await page.screenshot({
       path: path.join(evidence, "04-mobile-navigation-390.png"),
       fullPage: true,
