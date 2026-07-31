@@ -38,7 +38,7 @@ export default isClerkConfigured
         await auth.protect();
       }
     })
-  : function middleware() {
+  : function proxy() {
       return NextResponse.next();
     };
 

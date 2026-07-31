@@ -25,6 +25,7 @@
 *.pem
 /tmp/
 /test-results/
+/.next-control*/
 /playwright-report/
 /blob-report/
 

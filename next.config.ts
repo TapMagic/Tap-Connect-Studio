@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Allows an isolated proof server to run alongside an IDE-managed dev server.
+  // Production and ordinary development keep Next's standard .next directory.
+  distDir: process.env.NEXT_DIST_DIR?.trim() || ".next",
   // Playwright and local proofs use 127.0.0.1; allow Turbopack HMR / client assets.
   allowedDevOrigins: ["127.0.0.1", "localhost"],
   async redirects() {
