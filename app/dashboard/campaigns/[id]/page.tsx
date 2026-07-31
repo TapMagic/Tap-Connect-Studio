@@ -58,6 +58,7 @@ export default async function CampaignEditPage({ params }: PageProps) {
           id: campaign.id,
           title: campaign.title,
           status: campaign.status,
+          templateId: campaign.templateId,
           contentBlocks: parseContentBlocks(campaign.contentBlocks) as ContentBlock[],
           themeOverrides:
             campaign.themeOverrides &&

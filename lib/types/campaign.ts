@@ -38,6 +38,8 @@ export interface ContentBlock<T = Record<string, unknown>> {
   type: BlockType;
   order: number;
   enabled: boolean;
+  /** Prevent content mutation, deletion, and reorder until the Owner unlocks it. */
+  locked?: boolean;
   label: string;
   data: T;
   /** Per-block visual overrides for mini-page design */

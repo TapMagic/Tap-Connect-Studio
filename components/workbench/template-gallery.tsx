@@ -453,7 +453,11 @@ export function WorkbenchStart({
   }
   const [title, setTitle] = useState("");
   const [loading, setLoading] = useState(false);
+  const [loadingTemplateId, setLoadingTemplateId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [lastAttempt, setLastAttempt] = useState<{ templateId: string; title: string } | null>(
+    null
+  );
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const previewTemplate = useMemo(
@@ -476,29 +480,57 @@ export function WorkbenchStart({
     if (sample && !title.trim()) setTitle(sample);
   }
 
-  async function handleCreate() {
-    if (!title.trim()) {
+  async function handleCreate(templateId = selected, requestedTitle = title.trim()) {
+    if (!requestedTitle) {
       setError("Enter a campaign title");
       return;
     }
     setLoading(true);
+    setLoadingTemplateId(templateId);
     setError(null);
+    setLastAttempt({ templateId, title: requestedTitle });
 
-    const res = await fetch("/api/campaigns", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ templateId: selected, title: title.trim() }),
-    });
+    try {
+      const res = await fetch("/api/campaigns", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ templateId, title: requestedTitle }),
+      });
 
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setError(data.error ?? "Failed to create campaign");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error ?? "The template could not be loaded into a Campaign draft.");
+        return;
+      }
+
+      const data = (await res.json()) as {
+        campaign?: { id?: string; contentBlocks?: unknown };
+        template?: { id?: string; blockCount?: number };
+      };
+      const blockCount =
+        data.template?.blockCount ??
+        (Array.isArray(data.campaign?.contentBlocks) ? data.campaign.contentBlocks.length : 0);
+      if (!data.campaign?.id || blockCount < 1) {
+        setError(
+          "The Campaign draft was not opened because its template blocks were missing. Retry safely."
+        );
+        return;
+      }
+
+      // A document navigation guarantees the newly persisted server record is
+      // read before the editor hydrates; no stale client route snapshot can
+      // present an empty canvas as success.
+      window.location.assign(
+        `/dashboard/campaigns/${data.campaign.id}?template=${encodeURIComponent(
+          data.template?.id ?? templateId
+        )}&loaded=${blockCount}`
+      );
+    } catch {
+      setError("The template could not be loaded. Check the connection and retry.");
+    } finally {
       setLoading(false);
-      return;
+      setLoadingTemplateId(null);
     }
-
-    const { campaign } = await res.json();
-    router.push(`/dashboard/campaigns/${campaign.id}`);
   }
 
   return (
@@ -535,9 +567,41 @@ export function WorkbenchStart({
             />
           </div>
         </div>
-        {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+        {loading ? (
+          <div
+            className="owner-status-frame mt-3 rounded-lg px-3 py-2 text-sm"
+            data-owner-severity="info"
+            data-testid="campaign-template-loading"
+            role="status"
+          >
+            Loading the selected template, applying Brand styling, and opening its editable blocks…
+          </div>
+        ) : null}
+        {error && !previewId ? (
+          <div
+            className="owner-status-frame mt-3 rounded-lg px-3 py-3"
+            data-owner-severity="error"
+            data-testid="campaign-template-error"
+            role="alert"
+          >
+            <p className="text-sm font-medium text-red-100">Template did not load</p>
+            <p className="mt-1 text-xs text-white/65">{error}</p>
+            {lastAttempt ? (
+              <Button
+                type="button"
+                variant="outline"
+                className="mt-3"
+                data-testid="campaign-template-retry"
+                disabled={loading}
+                onClick={() => void handleCreate(lastAttempt.templateId, lastAttempt.title)}
+              >
+                Retry template
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         <div className="mt-4 flex flex-wrap gap-2">
-          <Button onClick={handleCreate} disabled={loading}>
+          <Button onClick={() => void handleCreate(selected)} disabled={loading}>
             {loading ? "Creating..." : "Create Campaign Draft"}
           </Button>
           <Button variant="outline" onClick={() => setPreviewId(selected)}>
@@ -648,10 +712,40 @@ export function WorkbenchStart({
                 placeholder="Name this campaign"
               />
             </div>
-            {error && <p className="mt-2 text-sm text-destructive">{error}</p>}
+            {error ? (
+              <div
+                className="owner-status-frame mt-3 rounded-lg px-3 py-3"
+                data-owner-severity="error"
+                data-testid="campaign-template-error"
+                role="alert"
+              >
+                <p className="text-sm font-medium text-red-100">
+                  Template did not load
+                </p>
+                <p className="mt-1 text-xs text-white/65">{error}</p>
+                {lastAttempt ? (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="mt-3"
+                    data-testid="campaign-template-retry"
+                    disabled={loading}
+                    onClick={() =>
+                      void handleCreate(lastAttempt.templateId, lastAttempt.title)
+                    }
+                  >
+                    Retry template
+                  </Button>
+                ) : null}
+              </div>
+            ) : null}
             <div className="mt-4 flex gap-2">
-              <Button onClick={handleCreate} disabled={loading}>
-                {loading ? "Creating..." : "Use this template"}
+              <Button
+                onClick={() => void handleCreate(previewTemplate.id)}
+                disabled={loading}
+                data-loading-template={loadingTemplateId ?? undefined}
+              >
+                {loading ? "Loading template…" : "Use this template"}
               </Button>
               <Button variant="outline" onClick={() => setPreviewId(null)}>
                 Close

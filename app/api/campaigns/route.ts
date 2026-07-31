@@ -42,7 +42,18 @@ export async function POST(request: Request) {
     revalidatePath("/dashboard/campaigns");
     revalidatePath("/dashboard/workbench");
 
-    return NextResponse.json({ campaign });
+    const blockCount = Array.isArray(campaign.contentBlocks)
+      ? campaign.contentBlocks.length
+      : 0;
+
+    return NextResponse.json({
+      campaign,
+      template: {
+        id: body.templateId,
+        blockCount,
+        loaded: blockCount > 0,
+      },
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json({ error: "Invalid data" }, { status: 400 });

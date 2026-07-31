@@ -52,9 +52,13 @@ const CAMPAIGN_WORKSPACE_ID = "campaign-authoring";
 import {
   Copy,
   Eye,
+  EyeOff,
   GripVertical,
   History,
+  Layers,
+  Lock,
   Mail,
+  MoreHorizontal,
   Calendar,
   Plus,
   QrCode,
@@ -64,6 +68,7 @@ import {
   Sparkles,
   Trash2,
   Undo2,
+  Unlock,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -301,6 +306,7 @@ interface CampaignEditorProps {
     id: string;
     title: string;
     status: string;
+    templateId?: string | null;
     contentBlocks: ContentBlock[];
     themeOverrides: Record<string, unknown>;
     scheduledStart?: string | null;
@@ -414,6 +420,8 @@ export function CampaignEditor({
   const [versionsLoading, setVersionsLoading] = useState(false);
   const [addType, setAddType] = useState<BlockType>("offer_coupon");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const [blockMenuId, setBlockMenuId] = useState<string | null>(null);
   const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null);
   const [selectedButtonId, setSelectedButtonId] = useState<string | null>(null);
   const editorRootRef = useRef<HTMLDivElement>(null);
@@ -715,7 +723,9 @@ export function CampaignEditor({
     setBlocks(
       (prev) =>
         prev.map((b) =>
-          b.id === id ? { ...b, data: { ...b.data, [key]: value } } : b
+          b.id === id && !b.locked
+            ? { ...b, data: { ...b.data, [key]: value } }
+            : b
         ),
       false
     );
@@ -725,7 +735,7 @@ export function CampaignEditor({
     setBlocks(
       (prev) =>
         prev
-          .filter((b) => b.id !== id)
+          .filter((b) => b.id !== id || b.locked)
           .sort((a, b) => a.order - b.order)
           .map((b, i) => ({ ...b, order: i })),
       true
@@ -736,6 +746,10 @@ export function CampaignEditor({
     const sorted = [...blocks].sort((a, b) => a.order - b.order);
     const index = sorted.findIndex((b) => b.id === id);
     if (index < 0) return;
+    if (sorted[index]?.locked) {
+      setMessage("Unlock this block before duplicating it.");
+      return;
+    }
     const source = sorted[index];
     const clone: ContentBlock = {
       ...structuredClone(source),
@@ -753,6 +767,10 @@ export function CampaignEditor({
     const sorted = [...blocks].sort((a, b) => a.order - b.order);
     const fromIndex = sorted.findIndex((b) => b.id === id);
     if (fromIndex < 0) return;
+    if (sorted[fromIndex]?.locked) {
+      setMessage("Unlock this block before moving it.");
+      return;
+    }
     const toIndex = fromIndex + delta;
     if (toIndex < 0 || toIndex >= sorted.length) return;
     const next = [...sorted];
@@ -760,6 +778,23 @@ export function CampaignEditor({
     next.splice(toIndex, 0, item);
     setBlocks(next.map((b, i) => ({ ...b, order: i })), true);
     setMessage(delta < 0 ? "Block moved up" : "Block moved down");
+  }
+
+  function moveBlockTo(id: string, edge: "top" | "bottom") {
+    const sorted = [...blocks].sort((a, b) => a.order - b.order);
+    const fromIndex = sorted.findIndex((b) => b.id === id);
+    if (fromIndex < 0) return;
+    if (sorted[fromIndex]?.locked) {
+      setMessage("Unlock this block before moving it.");
+      return;
+    }
+    const next = [...sorted];
+    const [item] = next.splice(fromIndex, 1);
+    if (!item) return;
+    if (edge === "top") next.unshift(item);
+    else next.push(item);
+    setBlocks(next.map((b, i) => ({ ...b, order: i })), true);
+    setMessage(edge === "top" ? "Block moved to top" : "Block moved to bottom");
   }
 
   function addBlock(type: BlockType = addType) {
@@ -802,6 +837,10 @@ export function CampaignEditor({
     const fromIndex = sorted.findIndex((b) => b.id === fromId);
     const toIndex = sorted.findIndex((b) => b.id === toId);
     if (fromIndex < 0 || toIndex < 0) return;
+    if (sorted[fromIndex]?.locked) {
+      setMessage("Unlock this block before moving it.");
+      return;
+    }
     const next = [...sorted];
     const [item] = next.splice(fromIndex, 1);
     next.splice(toIndex, 0, item);
@@ -946,7 +985,9 @@ export function CampaignEditor({
       ref={editorRootRef}
       className="builder-studio campaign-authoring-shell campaign-zone-glow flex h-[calc(100vh-4rem)] flex-col"
       data-testid="campaign-editor"
-      data-editor-ready="false"
+      data-editor-ready="true"
+      data-template-id={campaign.templateId ?? "custom"}
+      data-template-block-count={sortedBlocks.length}
       data-adaptive-shell="v1"
       data-shell-consumer="campaign-authoring"
       data-resolver="shared-visual-core-v0"
@@ -972,6 +1013,21 @@ export function CampaignEditor({
         <p className="sr-only" role="status" data-testid="campaign-session-restore-notice">
           {SESSION_RESTORE_LABEL}
         </p>
+      ) : null}
+      {campaign.templateId && sortedBlocks.length > 0 ? (
+        <div
+          className="owner-status-frame mx-3 mt-3 rounded-xl px-4 py-3"
+          data-owner-severity="success"
+          data-testid="campaign-template-loaded"
+          role="status"
+        >
+          <p className="text-sm font-semibold text-emerald-100">
+            Template loaded · {sortedBlocks.length} editable blocks
+          </p>
+          <p className="mt-0.5 text-xs text-white/60">
+            Brand colors are applied. Select any block in the visible document structure to edit it.
+          </p>
+        </div>
       ) : null}
       <AdaptiveWorkspaceShell
         identity={{
@@ -1051,7 +1107,7 @@ export function CampaignEditor({
           <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="outline"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center"
+              className="inline-flex min-h-11 items-center justify-center px-3"
               onClick={() => {
                 if (visualHistory.past.length > 0) undoVisual();
                 else undoBlocks();
@@ -1062,10 +1118,11 @@ export function CampaignEditor({
               data-testid="campaign-undo"
             >
               <Undo2 className="h-4 w-4" />
+              <span className="ml-1.5">Undo change</span>
             </Button>
             <Button
               variant="outline"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center"
+              className="inline-flex min-h-11 items-center justify-center px-3"
               onClick={() => {
                 if (visualHistory.future.length > 0) redoVisual();
                 else redoBlocks();
@@ -1076,6 +1133,7 @@ export function CampaignEditor({
               data-testid="campaign-redo"
             >
               <Redo2 className="h-4 w-4" />
+              <span className="ml-1.5">Redo change</span>
             </Button>
             <Button
               className="inline-flex min-h-11 items-center bg-primary px-3 text-primary-foreground"
@@ -1378,36 +1436,71 @@ export function CampaignEditor({
                   <div
                     key={block.id}
                     data-editor-block-id={block.id}
-                    onDragOver={(e) => e.preventDefault()}
+                    data-testid={`campaign-outline-row-${block.id}`}
+                    data-block-visible={block.enabled ? "true" : "false"}
+                    data-block-locked={block.locked ? "true" : "false"}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOverId(block.id);
+                    }}
                     onDrop={() => {
                       if (dragId) reorderBlocks(dragId, block.id);
                       setDragId(null);
+                      setDragOverId(null);
                     }}
                     onClick={() => selectBlock(block.id)}
                     className={cn(
-                      "rounded-lg border px-2 py-2 text-sm transition",
+                      "relative rounded-lg border px-2 py-2 text-sm transition",
                       selectedBlockId === block.id
                         ? "border-primary bg-primary/10 ring-1 ring-primary/40"
                         : "border-border/50 hover:border-primary/40",
                       block.channel === "email" &&
                         "border-orange-500/50 bg-orange-500/10 shadow-[0_0_12px_rgba(249,115,22,0.2)]",
                       !block.enabled && "opacity-50",
-                      dragId === block.id && "opacity-60"
+                      dragId === block.id && "opacity-60",
+                      dragId &&
+                        dragOverId === block.id &&
+                        dragId !== block.id &&
+                        "border-primary/80 bg-primary/10 before:absolute before:-top-1 before:left-2 before:right-2 before:h-0.5 before:rounded-full before:bg-primary"
                     )}
                   >
                     <div className="flex items-center gap-1.5">
                       {/* Drag only on grip — row-level draggable swallows Playwright/OS clicks on Select. */}
-                      <span
+                      <button
+                        type="button"
                         draggable
-                        aria-hidden
+                        aria-label={`Drag to reorder ${block.label}`}
                         data-testid={`campaign-block-drag-${block.id}`}
-                        className="inline-flex shrink-0 cursor-grab text-muted-foreground active:cursor-grabbing"
-                        onDragStart={() => setDragId(block.id)}
-                        onDragEnd={() => setDragId(null)}
+                        className="inline-flex h-9 w-8 shrink-0 cursor-grab items-center justify-center rounded border border-white/10 bg-white/[0.04] text-white/75 active:cursor-grabbing focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        onDragStart={(event) => {
+                          if (block.locked) {
+                            event.preventDefault();
+                            setMessage("Unlock this block before moving it.");
+                            return;
+                          }
+                          event.dataTransfer.effectAllowed = "move";
+                          event.dataTransfer.setData("text/plain", block.id);
+                          setDragId(block.id);
+                        }}
+                        onDragEnd={() => {
+                          setDragId(null);
+                          setDragOverId(null);
+                        }}
                         onClick={(e) => e.stopPropagation()}
+                        onKeyDown={(event) => {
+                          if (event.key === "ArrowUp" && (event.altKey || event.metaKey)) {
+                            event.preventDefault();
+                            moveBlockBy(block.id, -1);
+                          }
+                          if (event.key === "ArrowDown" && (event.altKey || event.metaKey)) {
+                            event.preventDefault();
+                            moveBlockBy(block.id, 1);
+                          }
+                        }}
                       >
-                        <GripVertical className="h-3.5 w-3.5" aria-hidden />
-                      </span>
+                        <GripVertical className="h-5 w-5" aria-hidden />
+                      </button>
+                      <Layers className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
                       {/* testid on Select — Move ↑/↓ must not steal center clicks. */}
                       <button
                         type="button"
@@ -1440,55 +1533,119 @@ export function CampaignEditor({
                       </button>
                       <button
                         type="button"
-                        className="min-h-8 min-w-8 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                        aria-label={`Move ${block.label} up`}
-                        data-testid={`campaign-block-move-up-${block.id}`}
-                        disabled={blockIndex === 0}
+                        className="inline-flex h-9 w-8 items-center justify-center rounded text-white/60 hover:bg-white/5 hover:text-white"
+                        aria-label={block.enabled ? `Hide ${block.label}` : `Show ${block.label}`}
+                        data-testid={`campaign-block-visibility-${block.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          moveBlockBy(block.id, -1);
+                          updateBlock(block.id, { enabled: !block.enabled });
                         }}
                       >
-                        ↑
+                        {block.enabled ? (
+                          <Eye className="h-4 w-4" aria-hidden />
+                        ) : (
+                          <EyeOff className="h-4 w-4" aria-hidden />
+                        )}
                       </button>
                       <button
                         type="button"
-                        className="min-h-8 min-w-8 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                        aria-label={`Move ${block.label} down`}
-                        data-testid={`campaign-block-move-down-${block.id}`}
-                        disabled={blockIndex === sortedBlocks.length - 1}
+                        className="inline-flex h-9 w-8 items-center justify-center rounded text-white/60 hover:bg-white/5 hover:text-white"
+                        aria-label={block.locked ? `Unlock ${block.label}` : `Lock ${block.label}`}
+                        data-testid={`campaign-block-lock-${block.id}`}
                         onClick={(e) => {
                           e.stopPropagation();
-                          moveBlockBy(block.id, 1);
+                          updateBlock(block.id, { locked: !block.locked });
+                          setMessage(block.locked ? "Block unlocked" : "Block locked");
                         }}
                       >
-                        ↓
+                        {block.locked ? (
+                          <Lock className="h-4 w-4" aria-hidden />
+                        ) : (
+                          <Unlock className="h-4 w-4" aria-hidden />
+                        )}
                       </button>
-                      <button
-                        type="button"
-                        className="min-h-8 min-w-8 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                        aria-label={`Duplicate ${block.label}`}
-                        data-testid={`campaign-block-duplicate-${block.id}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateBlock(block.id);
-                        }}
-                      >
-                        <Copy className="h-3.5 w-3.5" aria-hidden />
-                      </button>
-                      <button
-                        type="button"
-                        className="min-h-8 min-w-8 text-red-400 hover:text-red-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                        aria-label={`Delete ${block.label}`}
-                        data-testid={`campaign-block-delete-${block.id}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeBlock(block.id);
-                          if (selectedBlockId === block.id) selectBlock(null);
-                        }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" aria-hidden />
-                      </button>
+                      <div className="relative">
+                        <button
+                          type="button"
+                          className="inline-flex h-9 w-8 items-center justify-center rounded text-white/60 hover:bg-white/5 hover:text-white"
+                          aria-label={`More actions for ${block.label}`}
+                          aria-expanded={blockMenuId === block.id}
+                          data-testid={`campaign-block-menu-${block.id}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            setBlockMenuId((current) => (current === block.id ? null : block.id));
+                          }}
+                        >
+                          <MoreHorizontal className="h-4 w-4" aria-hidden />
+                        </button>
+                        {blockMenuId === block.id ? (
+                          <div
+                            role="menu"
+                            className="absolute right-0 top-full z-30 mt-1 min-w-44 rounded-lg border border-white/15 bg-[#0c1220] py-1 shadow-2xl"
+                            data-testid={`campaign-block-menu-panel-${block.id}`}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            {(
+                              [
+                                ["Move up", () => moveBlockBy(block.id, -1), blockIndex === 0],
+                                [
+                                  "Move down",
+                                  () => moveBlockBy(block.id, 1),
+                                  blockIndex === sortedBlocks.length - 1,
+                                ],
+                                ["Move to top", () => moveBlockTo(block.id, "top"), blockIndex === 0],
+                                [
+                                  "Move to bottom",
+                                  () => moveBlockTo(block.id, "bottom"),
+                                  blockIndex === sortedBlocks.length - 1,
+                                ],
+                              ] as const
+                            ).map(([label, action, disabled]) => (
+                              <button
+                                key={label}
+                                type="button"
+                                role="menuitem"
+                                disabled={disabled || block.locked}
+                                className="block w-full px-3 py-2 text-left text-xs text-white/85 hover:bg-white/5 disabled:opacity-35"
+                                onClick={() => {
+                                  setBlockMenuId(null);
+                                  action();
+                                }}
+                              >
+                                {label}
+                              </button>
+                            ))}
+                            <div className="my-1 border-t border-white/10" />
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={block.locked}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-white/85 hover:bg-white/5 disabled:opacity-35"
+                              data-testid={`campaign-block-duplicate-${block.id}`}
+                              onClick={() => {
+                                setBlockMenuId(null);
+                                duplicateBlock(block.id);
+                              }}
+                            >
+                              <Copy className="h-3.5 w-3.5" aria-hidden /> Duplicate
+                            </button>
+                            <button
+                              type="button"
+                              role="menuitem"
+                              disabled={block.locked}
+                              className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-300 hover:bg-white/5 disabled:opacity-35"
+                              data-testid={`campaign-block-delete-${block.id}`}
+                              onClick={() => {
+                                setBlockMenuId(null);
+                                removeBlock(block.id);
+                                if (selectedBlockId === block.id) selectBlock(null);
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" aria-hidden /> Delete
+                            </button>
+                          </div>
+                        ) : null}
+                      </div>
                     </div>
                     <p className="mt-0.5 pl-5 text-[10px] text-muted-foreground">
                       {block.type.replace(/_/g, " ")}
