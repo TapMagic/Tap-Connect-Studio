@@ -20,6 +20,7 @@ import {
 } from "@/lib/fusion/authoring/campaign-visual-resolve";
 import { BRAND_COLOR_ROLE_LABELS } from "@/lib/fusion/authoring/brand-kit-adapter";
 import { cn } from "@/lib/utils";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export type CampaignVisualDrawerProps = {
   toolId: string | null;
@@ -509,19 +510,30 @@ export function CampaignVisualDrawer({
   if (toolId === "readiness") {
     const fails = contrast.filter((c) => c.severity === "fail");
     return (
-      <div className="space-y-3" data-testid="campaign-drawer-readiness">
+      <div
+        className="owner-status-frame space-y-3 rounded-xl p-4"
+        data-owner-severity={fails.length === 0 ? "success" : "error"}
+        data-testid="campaign-drawer-readiness"
+      >
         <p className="text-xs text-white/65">
           Publication still uses the existing Save / Publish path. Contrast warnings do not
           block experimentation; only genuinely unusable pairs should block go-live.
         </p>
         {fails.length === 0 ? (
-          <p className="text-sm text-primary" data-testid="campaign-readiness-ok">
+          <p
+            className="flex items-center gap-2 text-sm text-emerald-200"
+            data-testid="campaign-readiness-ok"
+          >
+            <CheckCircle2 className="h-4 w-4" aria-hidden />
             No blocking contrast failures on checked pairs.
           </p>
         ) : (
           <ul className="space-y-1 text-sm text-red-300">
             {fails.map((f) => (
-              <li key={f.id}>{f.label}: {f.message}</li>
+              <li key={f.id} className="flex gap-2">
+                <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
+                <span>{f.label}: {f.message}</span>
+              </li>
             ))}
           </ul>
         )}

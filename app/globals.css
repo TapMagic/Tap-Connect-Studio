@@ -1,4 +1,71 @@
 @import "tailwindcss";
+
+/*
+ * Shared Owner status lighting. The icon, label and recovery copy carry the
+ * meaning; this frame makes the condition visible at a glance without neon.
+ */
+.owner-status-frame {
+  position: relative;
+  isolation: isolate;
+  border-width: 1px;
+  border-style: solid;
+  overflow: hidden;
+}
+
+.owner-status-frame::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: var(--owner-status-color);
+  box-shadow: 0 0 18px var(--owner-status-color);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.owner-status-frame[data-owner-severity="success"] {
+  --owner-status-color: var(--studio-status-ok);
+  border-color: color-mix(in oklch, var(--studio-status-ok) 52%, transparent);
+  background:
+    radial-gradient(circle at 0 0, color-mix(in oklch, var(--studio-status-ok) 18%, transparent), transparent 48%),
+    color-mix(in oklch, var(--studio-status-ok) 7%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--studio-status-ok) 20%, transparent),
+    0 0 24px color-mix(in oklch, var(--studio-status-ok) 14%, transparent);
+}
+
+.owner-status-frame[data-owner-severity="attention"] {
+  --owner-status-color: var(--studio-status-warn);
+  border-color: color-mix(in oklch, var(--studio-status-warn) 56%, transparent);
+  background:
+    radial-gradient(circle at 0 0, color-mix(in oklch, var(--studio-status-warn) 20%, transparent), transparent 48%),
+    color-mix(in oklch, var(--studio-status-warn) 8%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--studio-status-warn) 22%, transparent),
+    0 0 26px color-mix(in oklch, var(--studio-status-warn) 16%, transparent);
+}
+
+.owner-status-frame[data-owner-severity="error"] {
+  --owner-status-color: var(--studio-status-critical);
+  border-color: color-mix(in oklch, var(--studio-status-critical) 58%, transparent);
+  background:
+    radial-gradient(circle at 0 0, color-mix(in oklch, var(--studio-status-critical) 21%, transparent), transparent 48%),
+    color-mix(in oklch, var(--studio-status-critical) 8%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--studio-status-critical) 22%, transparent),
+    0 0 28px color-mix(in oklch, var(--studio-status-critical) 17%, transparent);
+}
+
+.owner-status-frame[data-owner-severity="info"] {
+  --owner-status-color: var(--studio-status-info);
+  border-color: color-mix(in oklch, var(--studio-status-info) 44%, transparent);
+  background:
+    radial-gradient(circle at 0 0, color-mix(in oklch, var(--studio-status-info) 15%, transparent), transparent 50%),
+    color-mix(in oklch, var(--studio-status-info) 6%, transparent);
+  box-shadow:
+    inset 0 1px 0 color-mix(in oklch, var(--studio-status-info) 18%, transparent),
+    0 0 22px color-mix(in oklch, var(--studio-status-info) 11%, transparent);
+}
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@clerk/ui/themes/shadcn.css";

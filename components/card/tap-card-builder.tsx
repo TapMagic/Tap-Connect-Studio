@@ -37,6 +37,7 @@ import { ColorSwatchPicker } from "@/components/design/color-swatch-picker";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
 import { publishCardEditorLive } from "@/components/fusion/card/card-editor-live";
+import { CardOutlineRow } from "@/components/fusion/card/card-outline-row";
 import { createStarterCreativeComposition } from "@/lib/fusion/creative-studio/composition";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
@@ -266,6 +267,7 @@ export function TapCardBuilder({
     string[]
   >([]);
   const [dragId, setDragId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
   const [actionSearch, setActionSearch] = useState("");
   const [showFreeform, setShowFreeform] = useState(false);
@@ -1035,39 +1037,96 @@ export function TapCardBuilder({
   useEffect(() => {
     if (!shellHosted || !onShellOutline) return;
     const ordered = sectionsHistory.slice().sort((a, b) => a.order - b.order);
-    const hash = `${selectedId ?? ""}::${ordered.map((s) => `${s.id}:${s.label || s.type}`).join("|")}`;
+    const hash = `${selectedId ?? ""}::${dragId ?? ""}::${dragOverId ?? ""}::${ordered
+      .map(
+        (s) =>
+          `${s.id}:${s.label || s.type}:${s.enabled !== false ? "visible" : "hidden"}:${s.locked ? "locked" : "unlocked"}`
+      )
+      .join("|")}`;
     if (outlineHashRef.current === hash) return;
     outlineHashRef.current = hash;
     onShellOutline(
       <div
-        className="space-y-1"
+        className="space-y-3"
         data-testid="card-shell-outline-segments"
         data-segments={hash}
       >
-        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-white/40">
-          Segments
+        <p className="px-1 text-[10px] font-semibold uppercase tracking-wide text-white/55">
+          Document structure
         </p>
-        {ordered.map((section) => (
-          <button
-            key={section.id}
-            type="button"
-            className={cn(
-              "flex min-h-9 w-full items-center rounded-md px-2 text-left text-[11px]",
-              selectedId === section.id
-                ? "border border-white/25 bg-white/10 text-white"
-                : "text-white/70 hover:bg-white/5"
-            )}
-            onClick={() => {
-              setSelectedId(section.id);
-              onRequestTool?.("content");
-            }}
-          >
-            {section.label || section.type}
-          </button>
+        <p className="px-1 text-[11px] leading-relaxed text-white/45">
+          Drag the visible grip, or use Alt/⌘ + arrow. Every row also includes
+          visibility, lock, and more actions.
+        </p>
+        {(
+          [
+            ["Blocks", ordered.filter((section) => section.type !== "action")],
+            ["Action buttons", ordered.filter((section) => section.type === "action")],
+          ] as const
+        ).map(([label, items]) => (
+          <div key={label} className="space-y-1.5">
+            <p className="px-1 text-[10px] font-medium uppercase tracking-[0.12em] text-white/40">
+              {label}
+            </p>
+            <ul className="space-y-1.5" data-testid={`card-shell-${label === "Blocks" ? "blocks" : "actions"}`}>
+              {items.map((section) => {
+                const index = ordered.findIndex((item) => item.id === section.id);
+                return (
+                  <CardOutlineRow
+                    key={section.id}
+                    section={section}
+                    index={index}
+                    total={ordered.length}
+                    selected={selectedId === section.id}
+                    dragging={dragId === section.id}
+                    dropTarget={Boolean(dragId && dragOverId === section.id && dragId !== section.id)}
+                    onSelect={() => {
+                      setSelectedId(section.id);
+                      onRequestTool?.("content");
+                    }}
+                    onDragStart={() => setDragId(section.id)}
+                    onDragOver={(event) => {
+                      event.preventDefault();
+                      setDragOverId(section.id);
+                    }}
+                    onDrop={() => {
+                      if (dragId) reorder(dragId, section.id);
+                      setDragId(null);
+                      setDragOverId(null);
+                    }}
+                    onDragEnd={() => {
+                      setDragId(null);
+                      setDragOverId(null);
+                    }}
+                    onToggleVisible={() => toggleSectionVisible(section.id)}
+                    onToggleLock={() => toggleSectionLocked(section.id)}
+                    onMoveUp={() => moveSectionBy(section.id, -1)}
+                    onMoveDown={() => moveSectionBy(section.id, 1)}
+                    onMoveTop={() => moveSectionTo(section.id, "top")}
+                    onMoveBottom={() => moveSectionTo(section.id, "bottom")}
+                    onDuplicate={() => duplicateSection(section.id)}
+                    onCopy={() => copySection(section.id)}
+                    onDelete={() => deleteSection(section.id)}
+                  />
+                );
+              })}
+            </ul>
+          </div>
         ))}
       </div>
     );
-  }, [shellHosted, onShellOutline, sectionsHistory, selectedId, onRequestTool]);
+  // The command callbacks intentionally close over the current document. The
+  // data hash above governs republishing this external outline React tree.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    shellHosted,
+    onShellOutline,
+    sectionsHistory,
+    selectedId,
+    onRequestTool,
+    dragId,
+    dragOverId,
+  ]);
 
   useEffect(() => {
     if (!shellHosted) {
@@ -1227,6 +1286,9 @@ export function TapCardBuilder({
             data-testid="card-undo"
           >
             <Undo2 className="h-4 w-4" />
+            <span className="ml-1 hidden sm:inline">
+              {pastLabels[0] ? `Undo ${pastLabels[0]}` : "Undo"}
+            </span>
           </Button>
           <Button
             type="button"
@@ -1239,6 +1301,9 @@ export function TapCardBuilder({
             data-testid="card-redo"
           >
             <Redo2 className="h-4 w-4" />
+            <span className="ml-1 hidden sm:inline">
+              {futureLabels[0] ? `Redo ${futureLabels[0]}` : "Redo"}
+            </span>
           </Button>
           {workspaceMode ? (
             <Button

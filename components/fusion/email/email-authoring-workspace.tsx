@@ -8,7 +8,21 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Mail, Redo2, Save, Undo2 } from "lucide-react";
+import {
+  Copy,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Layers,
+  Lock,
+  Mail,
+  MoreHorizontal,
+  Redo2,
+  Save,
+  Trash2,
+  Undo2,
+  Unlock,
+} from "lucide-react";
 import { nanoid } from "nanoid";
 import {
   AdaptiveWorkspaceShell,
@@ -247,6 +261,9 @@ export function EmailAuthoringWorkspace({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [addType, setAddType] = useState<BlockType>("offer_coupon");
+  const [outlineDragId, setOutlineDragId] = useState<string | null>(null);
+  const [outlineDropId, setOutlineDropId] = useState<string | null>(null);
+  const [outlineMenuId, setOutlineMenuId] = useState<string | null>(null);
 
   const buildVisual = useCallback(
     (doc: EmailDocument, selectedSectionId: string | null, selectedItemId?: string | null) =>
@@ -478,13 +495,72 @@ export function EmailAuthoringWorkspace({
 
   function patchBlockData(id: string, key: string, value: unknown) {
     const blocks = (document.blocks ?? []).map((b) =>
-      b.id === id ? { ...b, data: { ...b.data, [key]: value } } : b
+      b.id === id && !b.locked ? { ...b, data: { ...b.data, [key]: value } } : b
     );
     patchDocument({ blocks }, "Edit block");
   }
 
   const sorted = [...(document.blocks ?? [])].sort((a, b) => a.order - b.order);
   const selectedBlock = sorted.find((b) => b.id === selectedSectionId) ?? null;
+
+  function commitOrderedBlocks(blocks: ContentBlock[], label: string) {
+    patchDocument(
+      { blocks: blocks.map((block, index) => ({ ...block, order: index })) },
+      label
+    );
+  }
+
+  function moveEmailBlock(id: string, destination: number) {
+    const from = sorted.findIndex((block) => block.id === id);
+    if (from < 0) return;
+    if (sorted[from]?.locked) {
+      setMessage("Unlock this Email block before moving it.");
+      return;
+    }
+    const to = Math.max(0, Math.min(sorted.length - 1, destination));
+    if (from === to) return;
+    const next = [...sorted];
+    const [item] = next.splice(from, 1);
+    if (!item) return;
+    next.splice(to, 0, item);
+    commitOrderedBlocks(next, `Moved ${item.label}`);
+  }
+
+  function reorderEmailBlocks(fromId: string, toId: string) {
+    const to = sorted.findIndex((block) => block.id === toId);
+    if (to >= 0) moveEmailBlock(fromId, to);
+  }
+
+  function patchEmailBlock(id: string, patch: Partial<ContentBlock>, label: string) {
+    patchDocument(
+      { blocks: sorted.map((block) => (block.id === id ? { ...block, ...patch } : block)) },
+      label
+    );
+  }
+
+  function duplicateEmailBlock(id: string) {
+    const index = sorted.findIndex((block) => block.id === id);
+    const source = sorted[index];
+    if (!source || source.locked) return;
+    const clone: ContentBlock = {
+      ...structuredClone(source),
+      id: nanoid(8),
+      label: `${source.label} copy`,
+    };
+    const next = [...sorted];
+    next.splice(index + 1, 0, clone);
+    commitOrderedBlocks(next, `Duplicated ${source.label}`);
+  }
+
+  function deleteEmailBlock(id: string) {
+    const source = sorted.find((block) => block.id === id);
+    if (!source || source.locked) return;
+    commitOrderedBlocks(
+      sorted.filter((block) => block.id !== id),
+      `Deleted ${source.label}`
+    );
+    if (selectedSectionId === id) setSelectedSection(null);
+  }
 
   const recommendedDrawerMode =
     (activeToolId && getWorkspaceTool(EMAIL_WORKSPACE_ID, activeToolId)?.recommendedDrawerMode) ||
@@ -594,23 +670,29 @@ export function EmailAuthoringWorkspace({
             </span>
             <Button
               variant="outline"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center"
+              className="inline-flex min-h-11 items-center justify-center px-3"
               onClick={undo}
               disabled={history.past.length === 0}
               data-testid="email-undo"
               aria-label="Undo"
             >
               <Undo2 className="h-4 w-4" />
+              <span className="ml-1.5">
+                {history.past[0]?.label ? `Undo ${history.past[0].label}` : "Undo change"}
+              </span>
             </Button>
             <Button
               variant="outline"
-              className="inline-flex min-h-11 min-w-11 items-center justify-center"
+              className="inline-flex min-h-11 items-center justify-center px-3"
               onClick={redo}
               disabled={history.future.length === 0}
               data-testid="email-redo"
               aria-label="Redo"
             >
               <Redo2 className="h-4 w-4" />
+              <span className="ml-1.5">
+                {history.future[0]?.label ? `Redo ${history.future[0].label}` : "Redo change"}
+              </span>
             </Button>
             <Button
               className="inline-flex min-h-11 items-center bg-primary px-3 text-primary-foreground"
@@ -699,6 +781,194 @@ export function EmailAuthoringWorkspace({
                 ))}
               </div>
             </details>
+            <div className="space-y-2 border-t border-white/10 pt-3" data-testid="email-outline-blocks">
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/55">
+                  Email blocks
+                </p>
+                <p className="mt-1 text-[11px] text-white/40">
+                  Drag the grip or use Alt/⌘ + arrow. Eye, lock, and more actions remain visible.
+                </p>
+              </div>
+              {sorted.map((block, index) => (
+                <div
+                  key={block.id}
+                  className={cn(
+                    "relative rounded-lg border px-1.5 py-1.5",
+                    selectedSectionId === block.id
+                      ? "border-primary/60 bg-primary/10"
+                      : "border-white/10 bg-white/[0.02]",
+                    !block.enabled && "opacity-55",
+                    outlineDragId === block.id && "opacity-50",
+                    outlineDragId &&
+                      outlineDropId === block.id &&
+                      outlineDragId !== block.id &&
+                      "border-primary/80 before:absolute before:-top-1 before:left-2 before:right-2 before:h-0.5 before:bg-primary"
+                  )}
+                  data-testid={`email-outline-row-${block.id}`}
+                  data-block-visible={block.enabled ? "true" : "false"}
+                  data-block-locked={block.locked ? "true" : "false"}
+                  onDragOver={(event) => {
+                    event.preventDefault();
+                    setOutlineDropId(block.id);
+                  }}
+                  onDrop={() => {
+                    if (outlineDragId) reorderEmailBlocks(outlineDragId, block.id);
+                    setOutlineDragId(null);
+                    setOutlineDropId(null);
+                  }}
+                >
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      draggable
+                      aria-label={`Drag to reorder ${block.label}`}
+                      data-testid={`email-block-drag-${block.id}`}
+                      className="inline-flex h-9 w-8 shrink-0 cursor-grab items-center justify-center rounded border border-white/10 bg-white/[0.04] text-white/75 active:cursor-grabbing"
+                      onDragStart={(event) => {
+                        if (block.locked) {
+                          event.preventDefault();
+                          setMessage("Unlock this Email block before moving it.");
+                          return;
+                        }
+                        event.dataTransfer.setData("text/plain", block.id);
+                        setOutlineDragId(block.id);
+                      }}
+                      onDragEnd={() => {
+                        setOutlineDragId(null);
+                        setOutlineDropId(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (event.key === "ArrowUp" && (event.altKey || event.metaKey)) {
+                          event.preventDefault();
+                          moveEmailBlock(block.id, index - 1);
+                        }
+                        if (event.key === "ArrowDown" && (event.altKey || event.metaKey)) {
+                          event.preventDefault();
+                          moveEmailBlock(block.id, index + 1);
+                        }
+                      }}
+                    >
+                      <GripVertical className="h-5 w-5" aria-hidden />
+                    </button>
+                    <Layers className="h-4 w-4 shrink-0 text-white/50" aria-hidden />
+                    <button
+                      type="button"
+                      className="min-w-0 flex-1 truncate px-1 text-left text-xs font-medium text-white/90"
+                      onClick={() => setSelectedSection(block.id)}
+                    >
+                      {block.label}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-8 items-center justify-center rounded text-white/60 hover:bg-white/5"
+                      aria-label={block.enabled ? `Hide ${block.label}` : `Show ${block.label}`}
+                      data-testid={`email-block-visibility-${block.id}`}
+                      onClick={() =>
+                        patchEmailBlock(
+                          block.id,
+                          { enabled: !block.enabled },
+                          `${block.enabled ? "Hid" : "Showed"} ${block.label}`
+                        )
+                      }
+                    >
+                      {block.enabled ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 w-8 items-center justify-center rounded text-white/60 hover:bg-white/5"
+                      aria-label={block.locked ? `Unlock ${block.label}` : `Lock ${block.label}`}
+                      data-testid={`email-block-lock-${block.id}`}
+                      onClick={() =>
+                        patchEmailBlock(
+                          block.id,
+                          { locked: !block.locked },
+                          `${block.locked ? "Unlocked" : "Locked"} ${block.label}`
+                        )
+                      }
+                    >
+                      {block.locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
+                    </button>
+                    <div className="relative">
+                      <button
+                        type="button"
+                        className="inline-flex h-9 w-8 items-center justify-center rounded text-white/60 hover:bg-white/5"
+                        aria-label={`More actions for ${block.label}`}
+                        data-testid={`email-block-menu-${block.id}`}
+                        onClick={() =>
+                          setOutlineMenuId((current) => (current === block.id ? null : block.id))
+                        }
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                      {outlineMenuId === block.id ? (
+                        <div
+                          role="menu"
+                          className="absolute right-0 top-full z-30 mt-1 min-w-44 rounded-lg border border-white/15 bg-[#0c1220] py-1 shadow-2xl"
+                        >
+                          {[
+                            ["Move up", () => moveEmailBlock(block.id, index - 1), index === 0],
+                            [
+                              "Move down",
+                              () => moveEmailBlock(block.id, index + 1),
+                              index === sorted.length - 1,
+                            ],
+                            ["Move to top", () => moveEmailBlock(block.id, 0), index === 0],
+                            [
+                              "Move to bottom",
+                              () => moveEmailBlock(block.id, sorted.length - 1),
+                              index === sorted.length - 1,
+                            ],
+                          ].map(([label, action, disabled]) => (
+                            <button
+                              key={String(label)}
+                              type="button"
+                              role="menuitem"
+                              disabled={Boolean(disabled) || block.locked}
+                              className="block w-full px-3 py-2 text-left text-xs text-white/85 hover:bg-white/5 disabled:opacity-35"
+                              onClick={() => {
+                                setOutlineMenuId(null);
+                                (action as () => void)();
+                              }}
+                            >
+                              {String(label)}
+                            </button>
+                          ))}
+                          <div className="my-1 border-t border-white/10" />
+                          <button
+                            type="button"
+                            role="menuitem"
+                            disabled={block.locked}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-white/85 hover:bg-white/5 disabled:opacity-35"
+                            onClick={() => {
+                              setOutlineMenuId(null);
+                              duplicateEmailBlock(block.id);
+                            }}
+                          >
+                            <Copy className="h-3.5 w-3.5" /> Duplicate
+                          </button>
+                          <button
+                            type="button"
+                            role="menuitem"
+                            disabled={block.locked}
+                            className="flex w-full items-center gap-2 px-3 py-2 text-left text-xs text-red-300 hover:bg-white/5 disabled:opacity-35"
+                            onClick={() => {
+                              setOutlineMenuId(null);
+                              deleteEmailBlock(block.id);
+                            }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" /> Delete
+                          </button>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                  <p className="pl-[4.75rem] text-[10px] text-white/40">
+                    {block.type.replaceAll("_", " ")}
+                  </p>
+                </div>
+              ))}
+            </div>
           </div>
         }
         mobileToolRail={

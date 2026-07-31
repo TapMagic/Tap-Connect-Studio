@@ -12,6 +12,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { OpenInTapCanvasLink } from "@/components/fusion/canvas/open-in-tap-canvas";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
+import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -165,6 +166,7 @@ export default async function TapPointsHubPage() {
     total: number;
     token: string;
     note: string;
+    severity: "success" | "attention" | "error" | "info";
   }[] = [
     {
       label: "Needs attention",
@@ -172,6 +174,7 @@ export default async function TapPointsHubPage() {
       total: totalPoints,
       token: "var(--studio-status-critical)",
       note: "Not serving — no address, lost, or retired",
+      severity: "error",
     },
     {
       label: "Watch",
@@ -179,6 +182,7 @@ export default async function TapPointsHubPage() {
       total: totalPoints,
       token: "var(--studio-status-warn)",
       note: "Paused, unbridged, or near capacity",
+      severity: "attention",
     },
     {
       label: "Healthy",
@@ -186,6 +190,7 @@ export default async function TapPointsHubPage() {
       total: totalPoints,
       token: "var(--studio-status-ok)",
       note: "Live and resolving public taps",
+      severity: "success",
     },
     {
       label: "Serving a Campaign",
@@ -193,6 +198,7 @@ export default async function TapPointsHubPage() {
       total: totalPoints,
       token: "var(--studio-status-info)",
       note: "Bound to a Card experience right now",
+      severity: "info",
     },
   ];
 
@@ -238,16 +244,20 @@ export default async function TapPointsHubPage() {
           {fleetTiles.map((tile) => (
             <div
               key={tile.label}
-              className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-3"
-              style={{ borderColor: `color-mix(in oklch, ${tile.token} 28%, transparent)` }}
+              className="owner-status-frame rounded-xl px-4 py-3"
+              data-owner-severity={tile.severity}
               data-testid={`fleet-tile-${tile.label.toLowerCase().replace(/\s+/g, "-")}`}
             >
               <div className="flex items-center gap-2">
-                <span
-                  className="inline-block h-2 w-2 rounded-full"
-                  style={{ backgroundColor: tile.token }}
-                  aria-hidden
-                />
+                {tile.severity === "success" ? (
+                  <CheckCircle2 className="h-4 w-4" style={{ color: tile.token }} aria-hidden />
+                ) : tile.severity === "attention" ? (
+                  <AlertTriangle className="h-4 w-4" style={{ color: tile.token }} aria-hidden />
+                ) : tile.severity === "error" ? (
+                  <XCircle className="h-4 w-4" style={{ color: tile.token }} aria-hidden />
+                ) : (
+                  <Info className="h-4 w-4" style={{ color: tile.token }} aria-hidden />
+                )}
                 <p className="text-xs text-white/60">{tile.label}</p>
               </div>
               <p className="mt-1 text-2xl font-bold" style={{ color: tile.token }}>

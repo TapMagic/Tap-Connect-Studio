@@ -2,6 +2,8 @@ import Link from "next/link";
 import {
   AlertTriangle,
   ArrowRight,
+  CheckCircle2,
+  CircleX,
   CreditCard,
   ExternalLink,
   Radio,
@@ -22,6 +24,11 @@ export function HomeCardCommandCenter({
     card.tapPointCount === 0
       ? "No Tap Points connected"
       : `${card.tapPointHealthy} healthy · ${card.tapPointWarning} warn · ${card.tapPointCritical} critical`;
+  const attentionDetail =
+    card.needsAttention?.detail &&
+    /__TURBOPACK|(?:^|\s)at\s+\S|invocation|\/Users\//i.test(card.needsAttention.detail)
+      ? "The last operation did not complete. Open recovery to review the affected setup and try again."
+      : card.needsAttention?.detail;
 
   return (
     <section
@@ -128,10 +135,79 @@ export function HomeCardCommandCenter({
         ))}
       </div>
 
+      <div
+        className="grid gap-3 md:grid-cols-3"
+        data-testid="home-operational-status"
+        aria-label="Current Card operational status"
+      >
+        {card.tapSaveEnabled ? (
+          <div
+            className="owner-status-frame rounded-xl px-4 py-3"
+            data-owner-severity="success"
+            data-testid="home-status-retention-ready"
+          >
+            <p className="flex items-center gap-2 text-sm font-semibold text-emerald-100">
+              <CheckCircle2 className="h-4 w-4" aria-hidden />
+              Retention ready
+            </p>
+            <p className="mt-1 text-xs text-white/60">
+              TapSave is available so customers can keep and reopen this living Card.
+            </p>
+          </div>
+        ) : null}
+        <div
+          className="owner-status-frame rounded-xl px-4 py-3"
+          data-owner-severity="attention"
+          data-testid="home-status-tap-point-setup"
+        >
+          <p className="flex items-center gap-2 text-sm font-semibold text-amber-100">
+            <AlertTriangle className="h-4 w-4" aria-hidden />
+            {card.tapPointCount === 0 ? "Tap Point setup needed" : "Tap Point check-in"}
+          </p>
+          <p className="mt-1 text-xs text-white/60">
+            {card.tapPointCount === 0
+              ? "No field device opens this Card yet."
+              : `${healthLabel}. Review field placement and readiness before the next Campaign.`}
+          </p>
+          <Link
+            href="/dashboard/tap-points"
+            className="mt-2 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-amber-100 hover:underline"
+          >
+            {card.tapPointCount === 0 ? "Set up Tap Points" : "Review Tap Points"}{" "}
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </div>
+        <div
+          className="owner-status-frame rounded-xl px-4 py-3"
+          data-owner-severity="error"
+          data-testid="home-status-public-blocked"
+        >
+          <p className="flex items-center gap-2 text-sm font-semibold text-red-100">
+            <CircleX className="h-4 w-4" aria-hidden />
+            {card.publicState === "published"
+              ? "Unapproved changes blocked"
+              : "Public Card unavailable"}
+          </p>
+          <p className="mt-1 text-xs text-white/60">
+            {card.publicState === "published"
+              ? "Draft edits stay off the live Card until an Owner reviews and publishes them."
+              : "Customers cannot open a public Card until this draft is ready and published."}
+          </p>
+          <Link
+            href={card.editHref}
+            className="mt-2 inline-flex min-h-11 items-center gap-1 text-xs font-medium text-red-100 hover:underline"
+          >
+            {card.publicState === "published" ? "Review Card changes" : "Review Card draft"}{" "}
+            <ArrowRight className="h-3.5 w-3.5" aria-hidden />
+          </Link>
+        </div>
+      </div>
+
       <div className="grid gap-3 lg:grid-cols-2">
         <div
-          className="rounded-xl border border-primary/25 bg-primary/10 px-4 py-4"
+          className="owner-status-frame rounded-xl px-4 py-4"
           data-testid="home-next-action"
+          data-owner-severity="info"
           data-assembly-dest="autopilot_next"
         >
           <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
@@ -154,15 +230,16 @@ export function HomeCardCommandCenter({
 
         {card.needsAttention ? (
           <div
-            className="rounded-xl border border-[color:var(--studio-status-warn)]/30 bg-[color:var(--studio-status-warn)]/[0.06] px-4 py-4"
+            className="owner-status-frame rounded-xl px-4 py-4"
             data-testid="home-needs-attention"
+            data-owner-severity="attention"
           >
             <p className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-[color:var(--studio-status-warn)]">
               <AlertTriangle className="h-3.5 w-3.5" aria-hidden />
               Needs attention
             </p>
             <p className="mt-2 text-base font-medium text-white">{card.needsAttention.title}</p>
-            <p className="mt-1 text-xs text-white/55">{card.needsAttention.detail}</p>
+            <p className="mt-1 text-xs text-white/55">{attentionDetail}</p>
             <Link
               href={card.needsAttention.href}
               data-testid="home-needs-attention-go"
@@ -173,8 +250,9 @@ export function HomeCardCommandCenter({
           </div>
         ) : card.autopilotSuggestion ? (
           <div
-            className="rounded-xl border border-white/10 bg-white/[0.03] px-4 py-4"
+            className="owner-status-frame rounded-xl px-4 py-4"
             data-testid="home-autopilot-suggestion"
+            data-owner-severity="info"
           >
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
               Autopilot prepared
@@ -192,7 +270,10 @@ export function HomeCardCommandCenter({
             </Link>
           </div>
         ) : (
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] px-4 py-4">
+          <div
+            className="owner-status-frame rounded-xl px-4 py-4"
+            data-owner-severity={card.proof.taps > 0 ? "success" : "info"}
+          >
             <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/40">
               Relationship movement
             </p>

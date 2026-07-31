@@ -35,6 +35,7 @@ import { staleOfferReviewMessage } from "@/lib/fusion/email/offer-binding";
 import type { EmailOfferProjectionState } from "@/lib/fusion/email/offer-binding";
 import { validateEmailHtml, renderEmailHtml } from "@/lib/fusion/email/html-render";
 import { cn } from "@/lib/utils";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 
 export type EmailVisualDrawerProps = {
   toolId: string | null;
@@ -564,7 +565,17 @@ export function EmailVisualDrawer({
   if (toolId === "audience" || toolId === "readiness") {
     const readiness = audienceReadiness;
     return (
-      <div className="space-y-4" data-testid="email-drawer-readiness">
+      <div
+        className="owner-status-frame space-y-4 rounded-xl p-4"
+        data-owner-severity={
+          !emailReady
+            ? "attention"
+            : readiness?.evidence === "authoritative"
+              ? "success"
+              : "info"
+        }
+        data-testid="email-drawer-readiness"
+      >
         <p
           className="text-[10px] uppercase tracking-wide text-white/40"
           data-testid="email-eligibility-evidence"
@@ -599,6 +610,11 @@ export function EmailVisualDrawer({
           data-adapter={emailReady ? "live" : "mock"}
         >
           <p className="font-medium">
+            {emailReady ? (
+              <CheckCircle2 className="mr-1.5 inline h-4 w-4" aria-hidden />
+            ) : (
+              <AlertTriangle className="mr-1.5 inline h-4 w-4" aria-hidden />
+            )}
             {emailReady
               ? "Resend is connected."
               : "No email provider is connected — nothing will be sent."}

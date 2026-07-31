@@ -1,6 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import {
+  Copy,
+  Eye,
+  EyeOff,
+  GripVertical,
+  Layers3,
+  Lock,
+  MoreHorizontal,
+  Trash2,
+  Unlock,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
@@ -114,6 +125,8 @@ export function CompositionPanelStack({
 }: CompositionPanelStackProps) {
   const [level, setLevel] = useState<Level>(() => readRememberedLevel(block.id));
   const [clipboard, setClipboard] = useState<CreativeCompositionNode[]>([]);
+  const [draggedLayerId, setDraggedLayerId] = useState<string | null>(null);
+  const [layerDropId, setLayerDropId] = useState<string | null>(null);
   const node = primaryNode(block, selectedNodeIds);
   const multi = selectedNodeIds.length > 1;
   const measurementNodes = selectedNodeIds
@@ -181,6 +194,31 @@ export function CompositionPanelStack({
       ),
       label
     );
+  }
+
+  function moveLayer(id: string, targetIndex: number) {
+    const ordered = [...block.nodes].sort((a, b) => b.zIndex - a.zIndex);
+    const from = ordered.findIndex((item) => item.id === id);
+    if (from < 0 || ordered[from].locked) return;
+    const [moved] = ordered.splice(from, 1);
+    const nextIndex = Math.max(0, Math.min(targetIndex, ordered.length));
+    ordered.splice(nextIndex, 0, moved);
+    const zById = new Map(
+      ordered.map((item, index) => [item.id, ordered.length - index])
+    );
+    patchNodes(
+      block.nodes.map((item) => ({
+        ...item,
+        zIndex: zById.get(item.id) ?? item.zIndex,
+      })),
+      `Moved ${moved.name || moved.primitive} layer`
+    );
+  }
+
+  function moveLayerToTarget(id: string, targetId: string) {
+    const ordered = [...block.nodes].sort((a, b) => b.zIndex - a.zIndex);
+    const targetIndex = ordered.findIndex((item) => item.id === targetId);
+    if (targetIndex >= 0 && id !== targetId) moveLayer(id, targetIndex);
   }
 
   function patchBackgroundImage(
@@ -614,19 +652,38 @@ export function CompositionPanelStack({
             <Label className="text-[10px] text-white/65">Layers</Label>
             {[...block.nodes]
               .sort((a, b) => b.zIndex - a.zIndex)
-              .map((n) => (
+              .map((n, layerIndex, orderedLayers) => (
                 <div
                   key={n.id}
-                  className={`rounded-md border p-2 ${
+                  className={`relative rounded-md border p-2 ${
                     selectedNodeIds.includes(n.id)
                       ? "border-white/35 bg-white/10"
                       : "border-white/10"
                   }`}
                   data-testid={`composition-layer-${n.id}`}
+                  data-layer-name={n.name || n.primitive}
+                  data-drop-target={layerDropId === n.id ? "true" : "false"}
+                  onDragOver={(event) => {
+                    if (!draggedLayerId || draggedLayerId === n.id) return;
+                    event.preventDefault();
+                    setLayerDropId(n.id);
+                  }}
+                  onDrop={(event) => {
+                    event.preventDefault();
+                    if (draggedLayerId) moveLayerToTarget(draggedLayerId, n.id);
+                    setDraggedLayerId(null);
+                    setLayerDropId(null);
+                  }}
                 >
+                  {layerDropId === n.id ? (
+                    <span
+                      aria-hidden
+                      className="absolute -top-0.5 left-2 right-2 h-0.5 rounded-full bg-[#9cff57] shadow-[0_0_10px_#9cff57]"
+                    />
+                  ) : null}
                   <button
                     type="button"
-                    className="flex min-h-9 w-full items-center justify-between text-left text-xs"
+                    className="flex min-h-10 w-full items-center gap-2 text-left text-xs"
                     onClick={(event) => {
                       if (event.shiftKey || event.metaKey || event.ctrlKey) {
                         onSelectNodes(
@@ -639,13 +696,45 @@ export function CompositionPanelStack({
                       onSelectNodes(expandSelectionToGroups(block.nodes, [n.id]));
                     }}
                   >
-                    <span>
+                    <span
+                      role="button"
+                      tabIndex={n.locked ? -1 : 0}
+                      draggable={!n.locked}
+                      aria-label={`Drag ${n.name || n.primitive} layer to reorder`}
+                      aria-disabled={n.locked}
+                      className="grid min-h-9 min-w-9 cursor-grab place-items-center rounded-md border border-white/20 bg-white/[0.06] text-white active:cursor-grabbing"
+                      onClick={(event) => event.stopPropagation()}
+                      onDragStart={(event) => {
+                        setDraggedLayerId(n.id);
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", n.id);
+                      }}
+                      onDragEnd={() => {
+                        setDraggedLayerId(null);
+                        setLayerDropId(null);
+                      }}
+                      onKeyDown={(event) => {
+                        if (!event.altKey && !event.metaKey) return;
+                        if (event.key === "ArrowUp") {
+                          event.preventDefault();
+                          moveLayer(n.id, layerIndex - 1);
+                        }
+                        if (event.key === "ArrowDown") {
+                          event.preventDefault();
+                          moveLayer(n.id, layerIndex + 1);
+                        }
+                      }}
+                    >
+                      <GripVertical className="h-5 w-5" aria-hidden />
+                    </span>
+                    <Layers3 className="h-4 w-4 shrink-0 text-white/70" aria-hidden />
+                    <span className="min-w-0 flex-1 truncate">
                       {n.name || n.primitive}
                       {n.groupId ? " · grouped" : ""}
                     </span>
-                    <span className="text-white/65">z{n.zIndex}</span>
+                    <span className="shrink-0 text-white/65">z{n.zIndex}</span>
                   </button>
-                  <div className="grid grid-cols-[1fr_auto_auto] gap-1">
+                  <div className="grid grid-cols-[1fr_auto_auto_auto] gap-1">
                     <Input
                       value={n.name || ""}
                       placeholder={n.primitive}
@@ -661,8 +750,9 @@ export function CompositionPanelStack({
                     />
                     <button
                       type="button"
-                      className="min-h-9 rounded border border-white/10 px-2 text-[10px]"
+                      className="grid min-h-9 min-w-9 place-items-center rounded border border-white/10 px-2 text-[10px]"
                       aria-pressed={n.visible !== false}
+                      aria-label={n.visible === false ? `Show ${n.name || n.primitive}` : `Hide ${n.name || n.primitive}`}
                       onClick={() =>
                         patchNode(
                           n.id,
@@ -671,12 +761,13 @@ export function CompositionPanelStack({
                         )
                       }
                     >
-                      {n.visible === false ? "Show" : "Hide"}
+                      {n.visible === false ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                     <button
                       type="button"
-                      className="min-h-9 rounded border border-white/10 px-2 text-[10px]"
+                      className="grid min-h-9 min-w-9 place-items-center rounded border border-white/10 px-2 text-[10px]"
                       aria-pressed={Boolean(n.locked)}
+                      aria-label={n.locked ? `Unlock ${n.name || n.primitive}` : `Lock ${n.name || n.primitive}`}
                       onClick={() =>
                         patchNode(
                           n.id,
@@ -685,8 +776,59 @@ export function CompositionPanelStack({
                         )
                       }
                     >
-                      {n.locked ? "Unlock" : "Lock"}
+                      {n.locked ? <Lock className="h-4 w-4" /> : <Unlock className="h-4 w-4" />}
                     </button>
+                    <details className="relative">
+                      <summary
+                        className="grid min-h-9 min-w-9 cursor-pointer list-none place-items-center rounded border border-white/10"
+                        aria-label={`More actions for ${n.name || n.primitive}`}
+                      >
+                        <MoreHorizontal className="h-4 w-4" aria-hidden />
+                      </summary>
+                      <div className="absolute right-0 z-20 mt-1 grid min-w-40 gap-1 rounded-md border border-white/15 bg-[#111827] p-1 shadow-xl">
+                        {[
+                          ["Move to top", () => moveLayer(n.id, 0), layerIndex === 0],
+                          ["Move up", () => moveLayer(n.id, layerIndex - 1), layerIndex === 0],
+                          ["Move down", () => moveLayer(n.id, layerIndex + 1), layerIndex === orderedLayers.length - 1],
+                          ["Move to bottom", () => moveLayer(n.id, orderedLayers.length - 1), layerIndex === orderedLayers.length - 1],
+                        ].map(([label, action, disabled]) => (
+                          <button
+                            key={label as string}
+                            type="button"
+                            className="min-h-9 rounded px-2 text-left text-xs hover:bg-white/10 disabled:opacity-40"
+                            disabled={Boolean(disabled) || Boolean(n.locked)}
+                            onClick={action as () => void}
+                          >
+                            {label as string}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          className="flex min-h-9 items-center gap-2 rounded px-2 text-left text-xs hover:bg-white/10 disabled:opacity-40"
+                          disabled={Boolean(n.locked)}
+                          onClick={() => {
+                            const result = duplicateNodes(block.nodes, [n.id]);
+                            patchNodes(result.nodes, `Duplicated ${n.name || n.primitive} layer`);
+                            onSelectNodes(result.newIds);
+                          }}
+                        >
+                          <Copy className="h-4 w-4" /> Duplicate
+                        </button>
+                        <button
+                          type="button"
+                          className="flex min-h-9 items-center gap-2 rounded px-2 text-left text-xs text-red-300 hover:bg-red-500/10 disabled:opacity-40"
+                          disabled={Boolean(n.locked)}
+                          onClick={() =>
+                            patchNodes(
+                              deleteNodes(block.nodes, [n.id]),
+                              `Deleted ${n.name || n.primitive} layer`
+                            )
+                          }
+                        >
+                          <Trash2 className="h-4 w-4" /> Delete
+                        </button>
+                      </div>
+                    </details>
                   </div>
                 </div>
               ))}

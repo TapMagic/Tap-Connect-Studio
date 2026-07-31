@@ -74,8 +74,7 @@ export const OWNER_STATUS_META: Record<
   success: {
     defaultLabel: "Ready",
     token: "var(--studio-status-ok)",
-    frameClass:
-      "border-[color:var(--studio-status-ok)]/35 bg-[color:var(--studio-status-ok)]/[0.06]",
+    frameClass: "owner-status-frame",
     iconClass: "text-[color:var(--studio-status-ok)]",
     pillClass:
       "border-[color:var(--studio-status-ok)]/35 text-[color:var(--studio-status-ok)]",
@@ -83,8 +82,7 @@ export const OWNER_STATUS_META: Record<
   attention: {
     defaultLabel: "Setup needed",
     token: "var(--studio-status-warn)",
-    frameClass:
-      "border-[color:var(--studio-status-warn)]/40 bg-[color:var(--studio-status-warn)]/[0.07]",
+    frameClass: "owner-status-frame",
     iconClass: "text-[color:var(--studio-status-warn)]",
     pillClass:
       "border-[color:var(--studio-status-warn)]/40 text-[color:var(--studio-status-warn)]",
@@ -92,8 +90,7 @@ export const OWNER_STATUS_META: Record<
   error: {
     defaultLabel: "Action required",
     token: "var(--studio-status-critical)",
-    frameClass:
-      "border-[color:var(--studio-status-critical)]/40 bg-[color:var(--studio-status-critical)]/[0.08]",
+    frameClass: "owner-status-frame",
     iconClass: "text-[color:var(--studio-status-critical)]",
     pillClass:
       "border-[color:var(--studio-status-critical)]/40 text-[color:var(--studio-status-critical)]",
@@ -101,8 +98,7 @@ export const OWNER_STATUS_META: Record<
   info: {
     defaultLabel: "Optional",
     token: "var(--studio-status-info)",
-    frameClass:
-      "border-[color:var(--studio-status-info)]/35 bg-[color:var(--studio-status-info)]/[0.06]",
+    frameClass: "owner-status-frame",
     iconClass: "text-[color:var(--studio-status-info)]",
     pillClass:
       "border-[color:var(--studio-status-info)]/35 text-[color:var(--studio-status-info)]",
