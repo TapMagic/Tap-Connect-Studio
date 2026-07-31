@@ -54,6 +54,12 @@ describe("studio assembly state machine", () => {
 
   it("landing cinematic sequence includes demo, crescendo, and pullback", () => {
     const seq = phaseSequenceForMode("LANDING_FULL");
+    assert.ok(seq.indexOf("tap_pulse") < seq.indexOf("card_resolve"));
+    assert.ok(seq.indexOf("card_resolve") < seq.indexOf("card_forward"));
+    assert.ok(seq.indexOf("card_forward") < seq.indexOf("retention_choice"));
+    assert.ok(seq.indexOf("retention_choice") < seq.indexOf("save_home"));
+    assert.ok(seq.indexOf("save_home") < seq.indexOf("reopen_card"));
+    assert.ok(seq.indexOf("reopen_card") < seq.indexOf("capabilities_emerge"));
     assert.ok(seq.includes("capability_demo"));
     assert.ok(seq.includes("crescendo"));
     assert.ok(seq.includes("pullback"));

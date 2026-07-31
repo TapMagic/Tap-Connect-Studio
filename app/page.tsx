@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PublicExperienceLanding } from "@/components/marketing/public-experience-landing";
+import { CardCenteredLanding } from "@/components/marketing/card-centered-landing";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 
 export const metadata: Metadata = {
@@ -62,7 +62,7 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(LANDING_JSON_LD) }}
       />
       {/* Crawlable summary lives in visible sections below — avoid duplicate H1. */}
-      <PublicExperienceLanding />
+      <CardCenteredLanding />
     </>
   );
 }

@@ -3,6 +3,20 @@
  * Level 1 signature · Level 2 major product · Level 3 supporting.
  */
 
+.landing-root {
+  --studio-go: oklch(0.89 0.24 147);
+  --studio-go-fg: oklch(0.12 0.02 147);
+}
+
+/* Muted landing copy remains muted by hierarchy, not by failing AA contrast. */
+.landing-root .text-white\/55,
+.landing-root .text-white\/60,
+.landing-root .text-white\/65,
+.landing-root .text-white\/70,
+.landing-root .text-white\/75 {
+  color: rgb(255 255 255 / 0.82) !important;
+}
+
 .tc-surface {
   --tc-edge: oklch(0.78 0.04 95 / 0.45);
   --tc-bloom: oklch(0.7 0.04 95 / 0.18);
@@ -234,22 +248,26 @@
 
 /* Story progress rail */
 .tc-story-rail {
-  position: sticky;
-  top: 0.75rem;
+  position: fixed;
+  left: 0.5rem;
+  right: 0.5rem;
+  bottom: max(0.5rem, env(safe-area-inset-bottom));
   z-index: 30;
-  display: none;
-  gap: 0.35rem;
+  display: flex;
+  justify-content: space-between;
+  gap: 0.2rem;
   padding: 0.45rem;
-  border-radius: 999px;
-  background: oklch(0.12 0.02 260 / 0.82);
+  border-radius: 1rem;
+  background: oklch(0.1 0.025 260 / 0.9);
   border: 1px solid oklch(0.7 0.02 95 / 0.18);
-  backdrop-filter: blur(10px);
+  box-shadow: 0 14px 42px oklch(0.02 0.02 260 / 0.7);
+  backdrop-filter: blur(16px);
 }
 
 @media (min-width: 1100px) {
   .tc-story-rail {
-    display: inline-flex;
-    position: fixed;
+    right: auto;
+    bottom: auto;
     left: 0.75rem;
     top: 50%;
     transform: translateY(-50%);
@@ -262,21 +280,77 @@
 .tc-story-rail a {
   min-height: 44px;
   min-width: 44px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
   border-radius: 0.65rem;
   font-size: 0.62rem;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: oklch(0.78 0.02 95 / 0.75);
   border: 1px solid transparent;
-  transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition:
+    color 0.25s ease,
+    border-color 0.25s ease,
+    background 0.25s ease,
+    transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease;
 }
 
 .tc-story-rail a[data-active="true"] {
   color: var(--rail-zone, oklch(0.9 0.04 95));
   border-color: color-mix(in oklch, var(--rail-zone, oklch(0.9 0.04 95)) 55%, transparent);
   background: color-mix(in oklch, var(--rail-zone, oklch(0.9 0.04 95)) 12%, transparent);
+  box-shadow: 0 0 18px color-mix(in oklch, var(--rail-zone) 22%, transparent);
+  transform: translateY(-3px);
+}
+
+.tc-story-rail-icon {
+  display: grid;
+  height: 1.25rem;
+  width: 1.25rem;
+  place-items: center;
+  color: var(--rail-zone, oklch(0.88 0.04 95));
+}
+
+.tc-story-rail-icon svg {
+  height: 1.15rem;
+  width: 1.15rem;
+}
+
+.tc-story-rail-label {
+  display: none;
+}
+
+@media (min-width: 1100px) {
+  .tc-story-rail a[data-active="true"] {
+    transform: translateX(4px);
+  }
+
+  .tc-story-rail a:hover,
+  .tc-story-rail a:focus-visible {
+    min-width: 9rem;
+    justify-content: flex-start;
+    padding-inline: 0.8rem;
+  }
+
+  .tc-story-rail a:hover .tc-story-rail-label,
+  .tc-story-rail a:focus-visible .tc-story-rail-label,
+  .tc-story-rail a[data-active="true"] .tc-story-rail-label {
+    display: inline;
+    white-space: nowrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-story-rail a {
+    transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+  }
+
+  .tc-story-rail a[data-active="true"] {
+    transform: none;
+  }
 }
 
 .tc-story-rail a:focus-visible {

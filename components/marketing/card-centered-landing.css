@@ -4,6 +4,13 @@
   --landing-reveal-blur: 0px;
   --landing-reveal-dim: 1;
   --landing-chrome-opacity: 1;
+  padding-bottom: 5.5rem;
+}
+
+@media (min-width: 1100px) {
+  .landing-root {
+    padding-bottom: 0;
+  }
 }
 
 .landing-root[data-landing-reveal="opening"] {
@@ -42,6 +49,11 @@
   z-index: 2;
   width: 100%;
   transition: margin 1.4s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.landing-assembly-shell > .sa-root {
+  width: 100%;
+  flex: 1 1 100%;
 }
 
 .landing-root[data-landing-reveal="opening"] .landing-assembly-shell {
@@ -84,6 +96,13 @@
   }
 }
 
+@media (min-width: 1100px) {
+  .landing-root[data-landing-reveal="pullback"] .landing-hero-copy,
+  .landing-root[data-landing-reveal="settled"] .landing-hero-copy {
+    padding-left: 7rem;
+  }
+}
+
 .landing-hero-copy {
   max-width: 36rem;
   padding-inline: 1rem;
@@ -106,6 +125,13 @@
   overflow: hidden;
   padding: 0.75rem 1rem;
   pointer-events: none;
+}
+
+@media (min-width: 1100px) {
+  .landing-root[data-landing-reveal="opening"] .landing-hero-copy {
+    left: 6.25rem;
+    max-width: min(24rem, calc(100% - 9rem));
+  }
 }
 
 .landing-root[data-landing-reveal="opening"] .landing-hero-copy a,

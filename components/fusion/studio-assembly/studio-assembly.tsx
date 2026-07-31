@@ -56,9 +56,9 @@ const ORBIT_ANGLES: Partial<Record<AssemblyCapabilityId, number>> = {
   tapsave: 50,
   audience: 90,
   email: 130,
-  autopilot: 170,
-  insights: -110,
-  integrations: -150,
+  autopilot: 155,
+  insights: -135,
+  integrations: 180,
   trust_fabric: 210,
 };
 
@@ -71,7 +71,6 @@ function cinematicStage(phase: AssemblyPhase): "opening" | "pullback" | "settled
     phase === "complete" ||
     phase === "skipped" ||
     phase === "icons_settle" ||
-    phase === "card_forward" ||
     phase === "card_unfold"
   ) {
     return "settled";
@@ -319,7 +318,6 @@ export function StudioAssembly({
       state.phase === "icons_settle" ||
       state.phase === "complete" ||
       state.phase === "skipped" ||
-      state.phase === "card_forward" ||
       state.phase === "card_unfold"
     ) {
       setEmergedCount(allCaps.length);
@@ -403,7 +401,7 @@ export function StudioAssembly({
       : cinematic === "opening"
         ? 170
         : cinematic === "settled"
-          ? 190
+          ? 220
           : 180;
 
   const statusText = useMemo(() => {
@@ -433,6 +431,12 @@ export function StudioAssembly({
         return "Capabilities settle into the interactive product map.";
       case "card_forward":
         return "The Card moves toward you.";
+      case "retention_choice":
+        return "The customer chooses to keep the living Card.";
+      case "save_home":
+        return "The Card resolves into a saved Home Screen destination.";
+      case "reopen_card":
+        return "Reopening returns to the same living Card.";
       case "card_unfold":
         return "The Card unfolds into Home.";
       case "complete":
@@ -466,6 +470,9 @@ export function StudioAssembly({
     Boolean(cardView.spotlightTitle);
   const showTapSave =
     demoBeat === "tapsave" ||
+    state.phase === "retention_choice" ||
+    state.phase === "save_home" ||
+    state.phase === "reopen_card" ||
     state.phase === "crescendo" ||
     state.phase === "full_value_frame" ||
     cardView.tapSaveEnabled;
@@ -585,7 +592,7 @@ export function StudioAssembly({
           </ul>
           <div
             className="sa-trust-states"
-            data-testid="sa-trust-states"
+            data-testid="public-trust-states"
             aria-label="Trust states"
           >
             <span data-active={showProof ? "1" : "0"}>Source confirmed</span>
@@ -597,13 +604,53 @@ export function StudioAssembly({
                 : "Preview — not public"}
             </span>
           </div>
-          <div className="sa-card-actions" data-testid="sa-card-actions" aria-hidden>
+          <div className="sa-card-actions" data-testid="sa-card-actions">
             <span data-primary="true">Save</span>
-            <span>Contact</span>
+            <button type="button" data-testid="public-retention-choice-contact">
+              Contact
+            </button>
             <span>Ask</span>
             <span>Directions</span>
           </div>
         </article>
+
+        {mode === "LANDING_FULL" ? (
+          <div
+            className="sa-retention-narrative"
+            data-testid="public-retention-path"
+          >
+            <button
+              type="button"
+              className="sa-retention-step sa-retention-choice"
+              data-testid="public-retention-choice-homescreen"
+            >
+              <span className="sa-retention-step-number">04</span>
+              <strong data-testid="sa-retention-choice">
+                Customer chooses “Keep this Card”
+              </strong>
+              <span>The useful destination stays within reach after the first tap.</span>
+            </button>
+            <div className="sa-retention-step sa-home-screen" data-testid="sa-home-screen">
+              <div className="sa-home-screen-phone">
+                <span className="sa-home-screen-notch" />
+                <span className="sa-home-screen-app">
+                  <TapConnectIcon id="card" decorative />
+                </span>
+                <span className="sa-home-screen-label">Northstar Card</span>
+              </div>
+              <div>
+                <span className="sa-retention-step-number">05</span>
+                <strong>Saved to the Home Screen</strong>
+                <span>No app hunt. The living Card becomes the return destination.</span>
+              </div>
+            </div>
+            <div className="sa-retention-step sa-reopen-card" data-testid="sa-reopen-card">
+              <span className="sa-retention-step-number">06</span>
+              <strong>Reopen the same living Card</strong>
+              <span>Current details, actions, and approved Campaign moments return with it.</span>
+            </div>
+          </div>
+        ) : null}
 
         <div className="sa-demo-layer" data-testid="sa-capability-demo" aria-hidden>
           <div className="sa-demo-signal" data-testid="sa-demo-tap-points" />
@@ -661,7 +708,8 @@ export function StudioAssembly({
                 data-visible={visible ? "true" : "false"}
                 data-active-demo={demoBeat === cap.id ? "true" : "false"}
                 data-testid={`sa-capability-${cap.id}`}
-                disabled={!interactive}
+                disabled={!interactive || cap.id === "trust_fabric"}
+                aria-hidden={cap.id === "trust_fabric" ? true : undefined}
                 aria-label={`${cap.name}. ${cap.emergence}`}
                 style={
                   {

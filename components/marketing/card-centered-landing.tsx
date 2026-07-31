@@ -33,7 +33,6 @@ import {
   USE_CASES,
 } from "@/lib/marketing/landing-card-centered";
 import { DEEP_DIVES, TIER_CARD_VIEWS } from "@/lib/marketing/landing-deep-dives";
-import { LANDING_STORY_STAGES } from "@/lib/marketing/landing-integrations-ticker";
 import {
   SIBLING_PRODUCTS,
   siblingProductHref,
@@ -66,6 +65,23 @@ const TAPSTAY_ATMOSPHERE = {
   "--tc-edge": "oklch(0.72 0.1 195 / 0.5)",
   "--tc-bloom": "oklch(0.58 0.1 195 / 0.3)",
 } as CSSProperties;
+
+const LANDING_ICON_NAV: Array<{
+  id: string;
+  label: string;
+  href: string;
+  icon: TapConnectIconId;
+  zone: StudioZoneId;
+}> = [
+  { id: "home", label: "Home", href: "#interactive-map", icon: "home", zone: "home" },
+  { id: "experiences", label: "Experiences", href: "#operating", icon: "campaigns", zone: "card" },
+  { id: "tap-points", label: "Tap Points", href: "#tappoints-campaigns", icon: "tap_points", zone: "tap_points" },
+  { id: "audience", label: "Audience", href: "#tapsave-relationships", icon: "audience", zone: "audience" },
+  { id: "insights", label: "Insights", href: "#tapproof-deep", icon: "insights", zone: "insights" },
+  { id: "assets", label: "Assets", href: "#assets-deep", icon: "assets", zone: "assets" },
+  { id: "ask", label: "Ask TapConnect", href: "#autopilot-deep", icon: "autopilot", zone: "autopilot" },
+  { id: "settings", label: "Settings", href: "#integrations", icon: "settings", zone: "settings" },
+];
 
 function revealFromPhase(phase: AssemblyPhase): "opening" | "pullback" | "settled" {
   if (
@@ -197,7 +213,7 @@ export function CardCenteredLanding() {
   const [assemblyPhase, setAssemblyPhase] = useState<AssemblyPhase>("idle");
   const [accelerateSignal, setAccelerateSignal] = useState(0);
   const [activeStageId, setActiveStageId] = useState<string>(
-    LANDING_STORY_STAGES[0]?.id ?? ""
+    LANDING_ICON_NAV[0]?.id ?? ""
   );
   const [activeDeepDiveId, setActiveDeepDiveId] = useState<string>(
     DEEP_DIVES[0]?.id ?? ""
@@ -230,7 +246,7 @@ export function CardCenteredLanding() {
   useEffect(() => {
     if (typeof window === "undefined" || typeof IntersectionObserver === "undefined") return;
     const targets: Array<{ id: string; el: HTMLElement }> = [];
-    for (const stage of LANDING_STORY_STAGES) {
+    for (const stage of LANDING_ICON_NAV) {
       const el = document.getElementById(stage.href.replace("#", ""));
       if (el) targets.push({ id: stage.id, el });
     }
@@ -292,20 +308,25 @@ export function CardCenteredLanding() {
       <nav
         className="tc-story-rail"
         data-testid="landing-story-rail"
-        aria-label="Story stages: Create, Connect, Keep, Operate, Prove"
+        aria-label="TapConnect Studio story navigation"
       >
-        {LANDING_STORY_STAGES.map((stage) => {
+        {LANDING_ICON_NAV.map((stage) => {
           const zone = ZONE_TOKENS[stage.zone];
           const active = activeStageId === stage.id;
           return (
             <a
               key={stage.id}
               href={stage.href}
+              aria-label={stage.label}
               data-testid={`landing-story-rail-${stage.id}`}
               data-active={active ? "true" : "false"}
               style={{ "--rail-zone": zone.railAccent } as CSSProperties}
+              onClick={() => setActiveStageId(stage.id)}
             >
-              {stage.label}
+              <span className="tc-story-rail-icon" aria-hidden>
+                <TapConnectIcon id={stage.icon} decorative />
+              </span>
+              <span className="tc-story-rail-label">{stage.label}</span>
             </a>
           );
         })}
@@ -572,7 +593,7 @@ export function CardCenteredLanding() {
                 key={section.id}
                 id={section.id}
                 className={cn(
-                  "grid gap-8 lg:grid-cols-2 lg:items-center",
+                  "grid scroll-mt-40 gap-8 lg:grid-cols-2 lg:items-center",
                   reverse && "lg:[&>*:first-child]:order-2"
                 )}
                 data-testid={`deep-dive-${section.id}`}
