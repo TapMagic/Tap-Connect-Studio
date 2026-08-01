@@ -268,3 +268,15 @@ Website discovery and AI create proposals, never authority. Business and Locatio
 ## Constitutional acceptance rule
 
 A capability is not complete because a route, component, schema, control, or test exists. It is complete only when the Owner can finish the intended task, understand what happened, leave and return without loss, and observe the correct customer result under the applicable policy.
+
+## V2 Extension Law
+
+Every V2 capability must be one of:
+
+1. **Direct functional extension** — expands a named functioning V1 capability while preserving the complete direct V1 workflow.
+2. **Shared infrastructure extension** — supplies reusable infrastructure that makes one or more named V1 capabilities stronger, safer, faster, more consistent, or easier to use.
+3. **Platform governance extension** — governs the users, Businesses, plans, permissions, safety, Demos, providers, or operations required to run named V1 capabilities at platform scale.
+
+A V2 capability does not automatically belong in the product unless it identifies its V1 parent function, the V1 Owner/customer outcome it improves, the direct V1 workflow that remains usable without it, the additional value it supplies, and the authority boundary it must not cross. Otherwise classify it **MISWIRED**, **DUPLICATIVE**, **ORNAMENTAL**, **OUTSIDE CURRENT PRODUCT**, or **UNRESOLVED**.
+
+No standalone V2 islands are allowed. V2 must not create a second Card authority, Campaign authority, Email authority, scheduling authority, media library, publication model, draft state, AI-controlled truth store, business identity store, or customer relationship authority. The governing inventory and current classifications are in [V2_EXTENSION_MAP.md](V2_EXTENSION_MAP.md).

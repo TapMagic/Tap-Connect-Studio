@@ -1,5 +1,7 @@
 # Reconstitution Matrix
 
+Governing rule: apply the [V2 Extension Law](TAPCONNECT_PRODUCT_CONSTITUTION.md#v2-extension-law) before every disposition below. `KEEP` never authorizes a standalone island or parallel V1 authority; it means preserve the additional value inside the named parent workflow and boundary recorded in [V2_EXTENSION_MAP.md](V2_EXTENSION_MAP.md).
+
 Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`
 
 Classification: `KEEP`, `REWIRE`, `MERGE`, `RETIRE`, `REPLACE`, `UNKNOWN`. Rows split product areas where their parts need different decisions. “Authority” is current → correct. Waves refer to `TAPCONNECT_RESCUE_PLAN.md`.

@@ -1,5 +1,7 @@
 # TapConnect Rescue Plan
 
+Every rescue action must obey the [V2 Extension Law](TAPCONNECT_PRODUCT_CONSTITUTION.md#v2-extension-law): reconnect useful later capability to a named V1 parent, preserve the direct workflow, and eliminate—not institutionalize—parallel authority. See [V2_EXTENSION_MAP.md](V2_EXTENSION_MAP.md).
+
 Status: proposed, documentation only; human approval required before implementation
 Baseline: current `d67d1399a064834d476a0675642c294cf13478e3`; V1 candidate `7357fd9806d56d07d9ded68eef2beec5ea578052`
 

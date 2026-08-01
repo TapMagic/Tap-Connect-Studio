@@ -20,6 +20,7 @@ This is a documentation-only audit. It made no implementation, test, schema, mig
 - [Reconstitution Matrix](RECONSTITUTION_MATRIX.md) — component-level KEEP/REWIRE/MERGE/RETIRE/REPLACE/UNKNOWN decisions, dependencies, risks, and implementation waves.
 - [V1 Baseline and Regression Report](V1_BASELINE_AND_REGRESSION_REPORT.md) — exact V1 candidate/range, commit/code/database/Owner-flow proof, V1-current comparisons, regressions, and restoration boundary.
 - [TapConnect Rescue Plan](TAPCONNECT_RESCUE_PLAN.md) — dependency-aware Waves 0–8 and the recommended first vertical slice.
+- [V2 Extension Map](V2_EXTENSION_MAP.md) — every meaningful post-V1 system mapped to its V1 parent, allowed authority, present classification, disposition, and rescue wave.
 
 ## Executive findings
 
@@ -30,6 +31,7 @@ This is a documentation-only audit. It made no implementation, test, schema, mig
 5. The most misleading current control is Ask TapConnect Apply: global use has no mutation callback; Card use has an empty callback; the drawer can still state that a reversible draft was applied.
 6. The highest-value later systems to preserve are governed Card drafts, shared renderers, durable Assets, Knowledge/approval provenance, Audience/consent, TapSave, rich authoring, Autopilot governance, Control Room safety, and immutable Demo publication/binding.
 7. The first implementation slice should prove the entire Card→Campaign→schedule→Tap Trace→Email→Control Room→Demo publish/bind/rollback loop in one isolated Demo Workspace before AI or Landing Page V2 work.
+8. The V2 Extension Law prohibits standalone islands and parallel Card, Campaign, Email, schedule, media, publication, draft, AI-truth, Business-identity, or customer-relationship authorities.
 
 ## Evidence boundary
 

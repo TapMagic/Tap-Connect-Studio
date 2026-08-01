@@ -1,5 +1,7 @@
 # V1 Baseline and Regression Report
 
+The V1 baseline is also the parent-function test under the [V2 Extension Law](TAPCONNECT_PRODUCT_CONSTITUTION.md#v2-extension-law): later capability cannot redefine V1 merely to justify itself. The complete extension inventory is [V2_EXTENSION_MAP.md](V2_EXTENSION_MAP.md).
+
 Current audit source: `d67d1399a064834d476a0675642c294cf13478e3`
 Exact V1 reference candidate: `7357fd9806d56d07d9ded68eef2beec5ea578052`
 Smallest coherent construction range: `f5ea2b0ab7f9cec398c4adff10039dc50824715f..7357fd9806d56d07d9ded68eef2beec5ea578052` (inclusive)

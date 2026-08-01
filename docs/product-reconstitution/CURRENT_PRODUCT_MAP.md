@@ -5,6 +5,8 @@ Method: static route, symbol, schema, test, documentation, and Git-history traci
 
 ## System spine
 
+All post-V1 systems are additionally governed and classified in [V2_EXTENSION_MAP.md](V2_EXTENSION_MAP.md). Capability breadth is not evidence of product membership unless the V1 parent and authority boundary are explicit.
+
 | Layer | Current authority candidates | Evidence | Finding |
 |---|---|---|---|
 | Tenant | `Business` + `BusinessUser`; Control Room adds `WorkspaceKind`, roles, direct permissions, entitlements, restrictions | `prisma/schema.prisma`; `lib/workspace/context.ts`; `lib/control/identity.ts` | Strong Workspace boundary, but legacy Business role checks and newer capability checks coexist. |
