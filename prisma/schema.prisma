@@ -71,8 +71,30 @@ enum CampaignStatus {
   SCHEDULED
   LIVE
   PAUSED
+  COMPLETED
   ARCHIVED
+  FAILED
   CLOSED
+}
+
+enum CardPublicationStatus {
+  PUBLISHED
+  ARCHIVED
+}
+
+enum EmailStatus {
+  DRAFT
+  READY
+  SCHEDULED
+  QUEUED
+  SENDING
+  SENT
+  PARTIALLY_DELIVERED
+  DELIVERED
+  BLOCKED
+  FAILED
+  CANCELLED
+  ARCHIVED
 }
 
 enum CampaignType {
@@ -546,6 +568,10 @@ model Business {
   demoMetadata              DemoWorkspaceMetadata?
   landingDemoBindings       LandingDemoBinding[]
   controlInternalNotes      InternalNote[]
+  cardPublications          CardPublication[]
+  campaignLifecycleEvents   CampaignLifecycleEvent[]
+  emailDocuments            EmailDocument[]
+  emailLifecycleEvents      EmailLifecycleEvent[]
 
   @@index([workspaceKind, lifecycleState])
   @@index([lifecycleState, deletionScheduledAt])
@@ -992,6 +1018,7 @@ model DemoPublication {
   publishedAt           DateTime?
   rolledBackFromId      String?
   unpublishedAt         DateTime?
+  cardPublicationId     String?
   createdAt             DateTime              @default(now())
 
   demoMetadata DemoWorkspaceMetadata @relation(fields: [demoMetadataId], references: [id], onDelete: Cascade)
@@ -1098,65 +1125,96 @@ model Location {
 // ─── Brand Kit ───────────────────────────────────────────────────────────────
 
 model BrandKit {
-  id                    String      @id @default(cuid())
-  businessId            String      @unique
-  primaryColor          String      @default("#22c55e")
-  secondaryColor        String      @default("#0ea5e9")
-  accentColor           String      @default("#f59e0b")
-  backgroundColor       String      @default("#0b0f19")
-  textColor             String      @default("#f8fafc")
-  fontStyle             FontStyle   @default(MODERN)
-  buttonStyle           ButtonStyle @default(ROUNDED)
-  defaultLanguage       String      @default("en")
-  tone                  String      @default("professional")
-  defaultDisclaimer     String?
-  ageGateEnabled        Boolean     @default(false)
-  ageGateMinAge         Int         @default(21)
-  socialLinks           Json        @default("{}")
-  defaultFooter         Json        @default("[]")
+  id                       String      @id @default(cuid())
+  businessId               String      @unique
+  primaryColor             String      @default("#22c55e")
+  secondaryColor           String      @default("#0ea5e9")
+  accentColor              String      @default("#f59e0b")
+  backgroundColor          String      @default("#0b0f19")
+  textColor                String      @default("#f8fafc")
+  fontStyle                FontStyle   @default(MODERN)
+  buttonStyle              ButtonStyle @default(ROUNDED)
+  defaultLanguage          String      @default("en")
+  tone                     String      @default("professional")
+  defaultDisclaimer        String?
+  ageGateEnabled           Boolean     @default(false)
+  ageGateMinAge            Int         @default(21)
+  socialLinks              Json        @default("{}")
+  defaultFooter            Json        @default("[]")
   /**
    * Default orphan-tag end page (same shape as EndExperience)
    */
-  endExperience         Json        @default("{}")
+  endExperience            Json        @default("{}")
   /**
    * Lead follow-up promo email template
    */
-  emailPromo            Json        @default("{}")
+  emailPromo               Json        @default("{}")
   /**
    * Extra custom links: [{ title, description, iconUrl, href }] — legacy JSON
    */
-  otherLinks            Json        @default("[]")
+  otherLinks               Json        @default("[]")
   /**
    * Tap Connect Card layout — flexible digital business card
    */
-  tapCard               Json        @default("{}")
+  tapCard                  Json        @default("{}")
   /**
    * Saved Card draft. Draft writes never mutate tapCard or publication state.
    */
-  tapCardDraft          Json?
-  tapCardDraftUpdatedAt DateTime?
-  tapCardDraftRevision  Int         @default(0)
-  tapCardPublishedAt    DateTime?
+  tapCardDraft             Json?
+  tapCardDraftUpdatedAt    DateTime?
+  tapCardDraftRevision     Int         @default(0)
+  tapCardPublishedAt       DateTime?
+  /**
+   * Canonical pointer to the immutable public Card revision.
+   */
+  currentCardPublicationId String?     @unique
   /**
    * Legacy keyword Brand Pack JSON — mirrored from BrandVocabularyTerm for compatibility
    */
-  keywordBrandPack      Json        @default("{}")
+  keywordBrandPack         Json        @default("{}")
   /**
    * Last / default library icon selected in the Brand Kit IconPicker
    */
-  iconName              String?
+  iconName                 String?
   /**
    * Hex color for the Brand Kit default icon
    */
-  iconColor             String      @default("#000000")
-  createdAt             DateTime    @default(now())
-  updatedAt             DateTime    @updatedAt
+  iconColor                String      @default("#000000")
+  createdAt                DateTime    @default(now())
+  updatedAt                DateTime    @updatedAt
 
   business          Business                @relation(fields: [businessId], references: [id], onDelete: Cascade)
   links             BrandLink[]
   vocabularyTerms   BrandVocabularyTerm[]
   vocabularyPacks   BrandVocabularyPack[]
   propertyDecisions BrandPropertyDecision[]
+  cardPublications  CardPublication[]
+}
+
+/**
+ * Canonical Card publication lifecycle. The immutable document remains in the
+ * retained PublicationSnapshot; BrandKit.tapCard is a compatibility projection.
+ */
+model CardPublication {
+  id                    String                @id @default(cuid())
+  businessId            String
+  brandKitId            String
+  publicationSnapshotId String                @unique
+  version               Int
+  sourceDraftRevision   Int
+  status                CardPublicationStatus @default(PUBLISHED)
+  comparisonSummary     Json                  @default("{}")
+  publishedById         String?
+  publishedAt           DateTime              @default(now())
+  archivedAt            DateTime?
+  rolledBackFromId      String?
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  brandKit BrandKit @relation(fields: [brandKitId], references: [id], onDelete: Cascade)
+
+  @@unique([brandKitId, version])
+  @@index([businessId, status, publishedAt])
+  @@index([brandKitId, status, version])
 }
 
 // ─── Governed Business Knowledge & Brand decisions ──────────────────────────
@@ -1379,10 +1437,10 @@ model Campaign {
   createdAt          DateTime       @default(now())
   updatedAt          DateTime       @updatedAt
 
-  business         Business            @relation(fields: [businessId], references: [id], onDelete: Cascade)
-  group            CampaignGroup?      @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  createdBy        User?               @relation("CampaignCreatedBy", fields: [createdById], references: [id])
-  updatedBy        User?               @relation("CampaignUpdatedBy", fields: [updatedById], references: [id])
+  business         Business                 @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  group            CampaignGroup?           @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  createdBy        User?                    @relation("CampaignCreatedBy", fields: [createdById], references: [id])
+  updatedBy        User?                    @relation("CampaignUpdatedBy", fields: [updatedById], references: [id])
   assignments      DeviceAssignment[]
   leads            Lead[]
   tapEvents        TapEvent[]
@@ -1390,8 +1448,29 @@ model Campaign {
   mediaAssets      MediaAsset[]
   scheduleRules    ScheduleRule[]
   groupSlots       CampaignGroupSlot[]
-  defaultForGroups CampaignGroup[]     @relation("GroupDefaultCampaign")
-  endForGroups     CampaignGroup[]     @relation("GroupEndCampaign")
+  defaultForGroups CampaignGroup[]          @relation("GroupDefaultCampaign")
+  endForGroups     CampaignGroup[]          @relation("GroupEndCampaign")
+  lifecycleEvents  CampaignLifecycleEvent[]
+  emailDocuments   EmailDocument[]
+}
+
+model CampaignLifecycleEvent {
+  id         String          @id @default(cuid())
+  businessId String
+  campaignId String
+  fromStatus CampaignStatus?
+  toStatus   CampaignStatus
+  command    String
+  reason     String?
+  actorId    String?
+  metadata   Json            @default("{}")
+  occurredAt DateTime        @default(now())
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, occurredAt])
+  @@index([campaignId, occurredAt])
 }
 
 /**
@@ -1482,38 +1561,97 @@ model DeviceAssignment {
 // ─── Analytics & Leads ───────────────────────────────────────────────────────
 
 model TapEvent {
-  id           String   @id @default(cuid())
-  businessId   String?
-  deviceSlotId String
-  campaignId   String?
-  visitorHash  String?
-  userAgent    String?
-  referrer     String?
-  createdAt    DateTime @default(now())
+  id                String   @id @default(cuid())
+  businessId        String?
+  deviceSlotId      String
+  campaignId        String?
+  visitorHash       String?
+  userAgent         String?
+  referrer          String?
+  cardPublicationId String?
+  scheduleDecision  Json?
+  fixture           Boolean  @default(false)
+  resolutionOutcome String?
+  createdAt         DateTime @default(now())
 
-  business   Business?  @relation(fields: [businessId], references: [id], onDelete: SetNull)
-  deviceSlot DeviceSlot @relation(fields: [deviceSlotId], references: [id], onDelete: Cascade)
-  campaign   Campaign?  @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  business    Business?    @relation(fields: [businessId], references: [id], onDelete: SetNull)
+  deviceSlot  DeviceSlot   @relation(fields: [deviceSlotId], references: [id], onDelete: Cascade)
+  campaign    Campaign?    @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  clickEvents ClickEvent[]
 
   @@index([deviceSlotId, createdAt])
   @@index([businessId, createdAt])
 }
 
 model ClickEvent {
-  id           String   @id @default(cuid())
-  businessId   String?
-  deviceSlotId String?
-  campaignId   String?
-  eventType    String
-  blockId      String?
-  metadata     Json     @default("{}")
-  createdAt    DateTime @default(now())
+  id                String   @id @default(cuid())
+  businessId        String?
+  deviceSlotId      String?
+  campaignId        String?
+  eventType         String
+  blockId           String?
+  tapEventId        String?
+  cardPublicationId String?
+  fixture           Boolean  @default(false)
+  metadata          Json     @default("{}")
+  createdAt         DateTime @default(now())
 
   business   Business?   @relation(fields: [businessId], references: [id], onDelete: SetNull)
   deviceSlot DeviceSlot? @relation(fields: [deviceSlotId], references: [id], onDelete: SetNull)
   campaign   Campaign?   @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  tapEvent   TapEvent?   @relation(fields: [tapEventId], references: [id], onDelete: SetNull)
 
   @@index([campaignId, eventType])
+  @@index([tapEventId, createdAt])
+  @@index([businessId, createdAt])
+}
+
+/**
+ * First-class Email authority with a legacy Campaign.formSettings projection.
+ */
+model EmailDocument {
+  id            String      @id @default(cuid())
+  businessId    String
+  campaignId    String?
+  name          String
+  subject       String      @default("")
+  document      Json        @default("{}")
+  status        EmailStatus @default(DRAFT)
+  draftRevision Int         @default(1)
+  scheduledFor  DateTime?
+  fixtureOnly   Boolean     @default(true)
+  createdById   String?
+  updatedById   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  business        Business              @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  campaign        Campaign?             @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  lifecycleEvents EmailLifecycleEvent[]
+
+  @@unique([businessId, campaignId])
+  @@index([businessId, status, updatedAt])
+  @@index([businessId, scheduledFor])
+}
+
+model EmailLifecycleEvent {
+  id          String       @id @default(cuid())
+  businessId  String
+  emailId     String
+  fromStatus  EmailStatus?
+  toStatus    EmailStatus
+  command     String
+  reason      String?
+  actorId     String?
+  providerRef String?
+  metadata    Json         @default("{}")
+  occurredAt  DateTime     @default(now())
+
+  business Business      @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  email    EmailDocument @relation(fields: [emailId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, occurredAt])
+  @@index([emailId, occurredAt])
 }
 
 model Lead {

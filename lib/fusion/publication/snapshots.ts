@@ -26,6 +26,9 @@ export type CardPublishManifest = {
   kind: "card";
   tapCard: unknown;
   label: string;
+  sourceDraftRevision?: number;
+  comparisonSummary?: unknown;
+  sourceCardPublicationId?: string;
 };
 
 export type PublishManifest = CampaignPublishManifest | CardPublishManifest;

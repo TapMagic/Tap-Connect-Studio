@@ -10,6 +10,7 @@ export type BusinessCapability =
   | "brand.approve"
   | "brand.lock"
   | "card.draft.edit"
+  | "card.publish"
   | "preview.mutate";
 
 const CAPABILITIES: Record<UserRole, ReadonlySet<BusinessCapability>> = {
@@ -22,6 +23,7 @@ const CAPABILITIES: Record<UserRole, ReadonlySet<BusinessCapability>> = {
     "brand.approve",
     "brand.lock",
     "card.draft.edit",
+    "card.publish",
     "preview.mutate",
   ]),
   MANAGER: new Set([
@@ -33,6 +35,7 @@ const CAPABILITIES: Record<UserRole, ReadonlySet<BusinessCapability>> = {
     "brand.approve",
     "brand.lock",
     "card.draft.edit",
+    "card.publish",
     "preview.mutate",
   ]),
   MARKETING: new Set([
@@ -41,6 +44,7 @@ const CAPABILITIES: Record<UserRole, ReadonlySet<BusinessCapability>> = {
     "knowledge.propose",
     "brand.propose",
     "card.draft.edit",
+    "card.publish",
     "preview.mutate",
   ]),
   VIEWER: new Set(["onboarding.read"]),

@@ -23,7 +23,15 @@ export type CardEditorLiveModel = {
   showFreeform: boolean;
   isAdmin: boolean;
   demoPublished: boolean;
-  versions: { id: string; version: number; label: string; publishedAt: string }[];
+  versions: {
+    id: string;
+    version: number;
+    label?: string;
+    publishedAt: string;
+    current?: boolean;
+    status?: string;
+    comparisonSummary?: { summary?: string };
+  }[];
   logoUrl?: string | null;
   brandKitId?: string | null;
   message: string | null;

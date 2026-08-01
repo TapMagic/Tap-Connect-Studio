@@ -6,7 +6,6 @@ import { cn } from "@/lib/utils";
 import {
   BRAND_FIELD_LABELS,
   copyOnce,
-  explainMode,
   restoreInherited,
   type BrandFieldKey,
   type BrandInheritanceState,
@@ -18,6 +17,7 @@ export function BrandInheritanceBar({
   impactKeys = [],
   className,
   compact = false,
+  saved = true,
 }: {
   state: BrandInheritanceState;
   onChange: (next: BrandInheritanceState) => void;
@@ -25,6 +25,7 @@ export function BrandInheritanceBar({
   impactKeys?: BrandFieldKey[];
   className?: string;
   compact?: boolean;
+  saved?: boolean;
 }) {
   const usingKitCount = Object.values(state.fields).filter(
     (f) => f?.mode === "linked" || f?.mode === "copied"
@@ -48,9 +49,8 @@ export function BrandInheritanceBar({
             <p className="text-sm font-semibold">Brand Kit</p>
             {!compact ? (
               <p className="text-[11px] text-muted-foreground">
-                Values are copied into this Card or Journey. Future Brand Kit changes do not
-                automatically update this object yet. Durable linked inheritance is a Phase 2
-                capability.
+                Brand can fill missing values. A custom value on this Card stays custom until you
+                reset it to Brand.
               </p>
             ) : null}
           </div>
@@ -62,7 +62,7 @@ export function BrandInheritanceBar({
             onChange={(e) => onChange({ ...state, useBrandKit: e.target.checked })}
             data-testid="brand-use-toggle"
           />
-          Use current Brand Kit values
+          Use Brand value
         </label>
       </div>
 
@@ -76,7 +76,7 @@ export function BrandInheritanceBar({
             onClick={() => onChange(copyOnce(state))}
             data-testid="brand-copy-once"
           >
-            Copy Brand Kit values
+            Use Brand value
           </Button>
           <Button
             type="button"
@@ -91,15 +91,15 @@ export function BrandInheritanceBar({
             }
             data-testid="brand-customize"
           >
-            Customize this experience
+            Use custom value here
           </Button>
           <span className="text-[11px] text-muted-foreground">
-            {usingKitCount} field(s) from Brand Kit in this session
+            {usingKitCount} field(s) From Brand · {saved ? "Saved" : "Unsaved"}
           </span>
         </div>
       ) : (
         <p className="mt-2 text-[11px] text-muted-foreground">
-          Brand Kit values are not applied — customize this experience independently.
+          Custom on this Card · {saved ? "Saved" : "Unsaved"}
         </p>
       )}
 
@@ -117,7 +117,7 @@ export function BrandInheritanceBar({
             <li key={key} className="flex items-center justify-between gap-2 text-xs">
               <span>
                 <span className="font-medium">{BRAND_FIELD_LABELS[key]}</span>
-                <span className="ml-2 text-muted-foreground">{explainMode(field.mode)}</span>
+                <span className="ml-2 text-muted-foreground">Custom on this Card</span>
                 <span className="ml-2 text-[10px] text-muted-foreground">
                   Source: {field.source === "business" ? "Business" : "Brand Kit"}
                 </span>
@@ -131,7 +131,7 @@ export function BrandInheritanceBar({
                 data-testid={`brand-restore-${key}`}
               >
                 <RotateCcw className="h-3 w-3" />
-                Restore Brand Kit values
+                Reset to Brand
               </Button>
             </li>
           ))}

@@ -56,10 +56,10 @@ export function AskTapConnectDrawer({
   }
 
   function apply() {
-    if (!preview || preview.blockedAction) return;
+    if (!preview || preview.blockedAction || !onApplyDraft) return;
     const gate = evaluateAskAction({ action: "draft_transform" });
     if (!gate.allowed) return;
-    onApplyDraft?.(preview, prompt);
+    onApplyDraft(preview, prompt);
     setApplied(true);
   }
 
@@ -160,7 +160,7 @@ export function AskTapConnectDrawer({
             <Button
               type="button"
               size="sm"
-              disabled={Boolean(preview.blockedAction) || applied}
+              disabled={Boolean(preview.blockedAction) || applied || !onApplyDraft}
               data-testid="ask-tapconnect-apply"
               onClick={apply}
             >
@@ -190,6 +190,11 @@ export function AskTapConnectDrawer({
               Undo
             </Button>
           </div>
+          {!onApplyDraft ? (
+            <p className="text-xs text-white/60" data-testid="ask-tapconnect-apply-unavailable">
+              Action assistance is being reconnected. You can continue editing directly.
+            </p>
+          ) : null}
           {applied ? (
             <p className="text-xs text-[color:var(--studio-status-ok)]" data-testid="ask-tapconnect-applied">
               Applied as a reversible draft. Nothing was published or sent.

@@ -13,6 +13,7 @@ import {
   Redo2,
   Rows3,
   Save,
+  Upload,
   Type,
   Trash2,
   Undo2,
@@ -81,6 +82,7 @@ import {
   type TapCardSectionType,
   type TapCardSpecialStyle,
   type TapCardSurfaceFill,
+  type CardPropertySources,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 
@@ -145,6 +147,8 @@ type Props = {
     primaryColor?: string | null;
     secondaryColor?: string | null;
     accentColor?: string | null;
+    backgroundColor?: string | null;
+    textColor?: string | null;
   } | null;
   /** Dedicated /dashboard/card/edit full-screen workspace */
   workspaceMode?: boolean;
@@ -205,9 +209,31 @@ function buildBrandKitSnapshot(params: {
     secondaryColor: params.brandColors?.secondaryColor || undefined,
     accentColor:
       params.brandColors?.accentColor || params.config.accentColor || undefined,
-    backgroundColor: params.config.surfaceColor || undefined,
-    textColor: params.config.textColor || undefined,
+    backgroundColor: params.brandColors?.backgroundColor || params.config.surfaceColor || undefined,
+    textColor: params.brandColors?.textColor || params.config.textColor || undefined,
   };
+}
+
+function createInitialBrandState(
+  state: BrandInheritanceState,
+  propertySources?: CardPropertySources,
+): BrandInheritanceState {
+  const fields = { ...state.fields };
+  const mappings = [
+    ["accentColor", "accentColor"],
+    ["surfaceColor", "backgroundColor"],
+    ["textColor", "textColor"],
+  ] as const;
+  for (const [cardKey, brandKey] of mappings) {
+    const source = propertySources?.[cardKey];
+    const field = fields[brandKey];
+    if (!field || !source) continue;
+    fields[brandKey] = {
+      ...field,
+      mode: source.mode === "CUSTOM" ? "overridden" : "linked",
+    };
+  }
+  return { ...state, fields };
 }
 
 function strInherited(
@@ -257,7 +283,6 @@ export function TapCardBuilder({
     redo: redoEditor,
     canUndo: canUndoEditor,
     canRedo: canRedoEditor,
-    reset: resetConfigHistory,
     pastLabels,
     futureLabels,
   } = useLabeledUndoRedo<TapConnectCardConfig>(initialConfig, { maxDepth: 50, batchMs: 350 });
@@ -289,17 +314,27 @@ export function TapCardBuilder({
   const [saveFailed, setSaveFailed] = useState(false);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
   const [versions, setVersions] = useState<
-    { id: string; version: number; label: string; publishedAt: string }[]
+    {
+      id: string;
+      publicRevisionId: string;
+      version: number;
+      sourceDraftRevision: number;
+      status: "PUBLISHED" | "ARCHIVED";
+      current: boolean;
+      publishedAt: string;
+      comparisonSummary?: { summary?: string };
+    }[]
   >([]);
+  const [currentPublicationId, setCurrentPublicationId] = useState<string | null>(null);
   const [brandState, setBrandState] = useState<BrandInheritanceState>(() =>
-    createInheritanceState(buildBrandKitSnapshot({
+    createInitialBrandState(createInheritanceState(buildBrandKitSnapshot({
       logoUrl,
       businessName,
       profile,
       reviewUrl,
       brandColors,
       config: initialConfig,
-    }))
+    })), initialConfig.propertySources)
   );
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
@@ -460,7 +495,13 @@ export function TapCardBuilder({
         patch.showHeaderLogo = true;
       }
     }
-    if (Object.keys(patch).length) patchConfig(patch);
+    if (Object.keys(patch).length) {
+      const propertySources = { ...config.propertySources };
+      if (patch.accentColor) propertySources.accentColor = { mode: "BRAND", source: "BRAND", sourceValue: patch.accentColor };
+      if (patch.surfaceColor) propertySources.surfaceColor = { mode: "BRAND", source: "BRAND", sourceValue: patch.surfaceColor };
+      if (patch.textColor) propertySources.textColor = { mode: "BRAND", source: "BRAND", sourceValue: patch.textColor };
+      patchConfig({ ...patch, propertySources });
+    }
     if (next.useBrandKit && !prev.useBrandKit) {
       applyInheritedColors(next);
       const identityPrefill = sectionsHistory.map((s) => {
@@ -493,7 +534,12 @@ export function TapCardBuilder({
     key: "accentColor" | "surfaceColor" | "textColor" | "pillColor" | "pillTextColor" | "neonColor",
     value: string
   ) {
-    patchConfig({ [key]: value });
+    const sourceKey = key === "neonColor" ? "accentColor" : key;
+    const propertySources = {
+      ...config.propertySources,
+      [sourceKey]: { mode: "CUSTOM", source: "BRAND", sourceValue: brandValueForConfigKey(sourceKey) },
+    } as CardPropertySources;
+    patchConfig({ [key]: value, propertySources });
     const brandKey: BrandFieldKey | null =
       key === "accentColor" || key === "neonColor"
         ? "accentColor"
@@ -503,6 +549,15 @@ export function TapCardBuilder({
             ? "textColor"
             : null;
     if (brandKey) setBrandState((s) => overrideField(s, brandKey, value));
+  }
+
+  function brandValueForConfigKey(key: keyof CardPropertySources): string | undefined {
+    if (key === "accentColor") {
+      return strInherited(brandState, "accentColor") || strInherited(brandState, "primaryColor") || undefined;
+    }
+    if (key === "surfaceColor") return strInherited(brandState, "backgroundColor") || undefined;
+    if (key === "textColor") return strInherited(brandState, "textColor") || undefined;
+    return undefined;
   }
 
   function identityValue(
@@ -862,14 +917,14 @@ export function TapCardBuilder({
   async function refreshVersions() {
     if (!brandKitId) return;
     try {
-      const res = await fetch(
-        `/api/publication?subjectType=card&subjectId=${encodeURIComponent(brandKitId)}`
-      );
+      const res = await fetch("/api/card/publication");
       if (res.ok) {
         const data = (await res.json()) as {
-          snapshots?: { id: string; version: number; label: string; publishedAt: string }[];
+          currentPublicationId?: string | null;
+          revisions?: typeof versions;
         };
-        setVersions(data.snapshots ?? []);
+        setVersions(data.revisions ?? []);
+        setCurrentPublicationId(data.currentPublicationId ?? null);
       }
     } catch {
       // non-blocking
@@ -883,19 +938,17 @@ export function TapCardBuilder({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per brand kit
   }, [brandKitId]);
 
-  async function rollbackToVersion(snapshotId: string) {
+  async function rollbackToVersion(publicationId: string) {
     if (!brandKitId) return;
     setSaving(true);
     setMessage(null);
     setSaveFailed(false);
-    const res = await fetch("/api/publication", {
+    const res = await fetch("/api/card/publication", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        action: "restore",
-        subjectType: "card",
-        subjectId: brandKitId,
-        snapshotId,
+        action: "rollback",
+        publicationId,
       }),
     });
     setSaving(false);
@@ -905,15 +958,38 @@ export function TapCardBuilder({
       setSaveFailed(true);
       return;
     }
-    const data = (await res.json()) as {
-      brandKit?: { tapCard?: TapConnectCardConfig };
-      restoredFrom?: { version: number };
-    };
-    const tapCard = data.brandKit?.tapCard;
-    if (tapCard && typeof tapCard === "object" && Array.isArray(tapCard.sections)) {
-      resetConfigHistory(tapCard);
+    const data = (await res.json()) as { publication?: { version?: number } };
+    setMessage(`Published Card rolled back to revision ${data.publication?.version ?? "?"}. Your saved draft was not changed.`);
+    await refreshVersions();
+    router.refresh();
+  }
+
+  async function publishSavedDraft() {
+    if (dirty) {
+      setMessage("Save this draft before publishing.");
+      return;
     }
-    setMessage(`Rolled back to v${data.restoredFrom?.version ?? "?"}`);
+    if (typeof draftRevision !== "number" || draftRevision < 1) {
+      setMessage("Save a valid draft before publishing.");
+      return;
+    }
+    setSaving(true);
+    setMessage(null);
+    const res = await fetch("/api/card/publication", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "publish", expectedDraftRevision: draftRevision }),
+    });
+    setSaving(false);
+    const data = (await res.json().catch(() => ({}))) as {
+      error?: string;
+      publication?: { version?: number };
+    };
+    if (!res.ok) {
+      setMessage(data.error ?? "Publish failed.");
+      return;
+    }
+    setMessage(`Published revision ${data.publication?.version ?? "?"}.`);
     await refreshVersions();
     router.refresh();
   }
@@ -1460,16 +1536,38 @@ export function TapCardBuilder({
                 Unsaved changes
               </span>
             ) : (
-              <span data-testid="card-status-next">Saved draft · Draft changes not published</span>
+              <span data-testid="card-status-next">
+                {versions.some(
+                  (version) => version.current && version.sourceDraftRevision === draftRevision,
+                )
+                  ? "Saved draft · Published"
+                  : "Saved draft · Draft changes not published"}
+              </span>
             )}
+            <span data-testid="card-publication-state">
+              {currentPublicationId
+                ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}`
+                : "Not published"}
+            </span>
+            <Button
+              type="button"
+              size="sm"
+              className="h-7 px-2 text-[10px]"
+              disabled={
+                saving || dirty || typeof draftRevision !== "number" || draftRevision < 1
+              }
+              data-testid="card-publish"
+              onClick={() => void publishSavedDraft()}
+            >
+              <Upload className="mr-1 h-3 w-3" />
+              Publish
+            </Button>
             {publicCode ? (
               <a
                 href={`/t/${publicCode}?public=1`}
-                target="_blank"
-                rel="noopener noreferrer"
                 className="text-primary hover:underline"
               >
-                Public opens locally ↗
+                Open public Card
               </a>
             ) : null}
           </div>
@@ -1505,6 +1603,7 @@ export function TapCardBuilder({
           <BrandInheritanceBar
             state={brandState}
             onChange={handleBrandStateChange}
+            saved={!dirty}
             compact
             className="min-w-0 flex-1 border-primary/20"
           />
@@ -2018,7 +2117,7 @@ export function TapCardBuilder({
                   Versions
                 </p>
                 {versions.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground">Save to create a version.</p>
+                  <p className="text-[11px] text-muted-foreground">Publish a saved draft to create a revision.</p>
                 ) : (
                   <ul className="max-h-28 space-y-1.5 overflow-y-auto">
                     {versions.slice(0, 6).map((v) => (
@@ -2028,7 +2127,7 @@ export function TapCardBuilder({
                         data-testid={`card-version-${v.version}`}
                       >
                         <span className="truncate text-muted-foreground">
-                          v{v.version} · {v.label}
+                          Revision {v.version}{v.current ? " · Published" : ""} · {v.comparisonSummary?.summary ?? "Card revision"}
                         </span>
                         <Button
                           type="button"
@@ -2036,7 +2135,7 @@ export function TapCardBuilder({
                           size="sm"
                           className="h-7 shrink-0 px-2 text-[10px]"
                           data-testid={`card-rollback-${v.version}`}
-                          disabled={saving}
+                          disabled={saving || v.current || v.status === "ARCHIVED"}
                           onClick={() => void rollbackToVersion(v.id)}
                         >
                           Rollback

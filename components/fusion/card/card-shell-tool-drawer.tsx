@@ -48,7 +48,15 @@ export type CardShellToolDrawerProps = {
   showFreeform: boolean;
   isAdmin: boolean;
   demoPublished: boolean;
-  versions: { id: string; version: number; label: string; publishedAt: string }[];
+  versions: {
+    id: string;
+    version: number;
+    label?: string;
+    publishedAt: string;
+    current?: boolean;
+    status?: string;
+    comparisonSummary?: { summary?: string };
+  }[];
   logoUrl?: string | null;
   brandKitId?: string | null;
   message: string | null;
@@ -637,7 +645,7 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
         {!brandKitId ? (
           <HonestNote>Version history requires a saved Brand Kit subject.</HonestNote>
         ) : versions.length === 0 ? (
-          <HonestNote>No publication snapshots yet. Save Card to create history.</HonestNote>
+          <HonestNote>No published revisions yet. Publish a saved draft to create history.</HonestNote>
         ) : (
           <ul className="space-y-2" data-testid="card-versions">
             {versions.slice(0, 8).map((v) => (
@@ -646,15 +654,16 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
                 className="flex items-center justify-between gap-2 rounded-md border border-white/10 px-2 py-2 text-xs"
               >
                 <span>
-                  v{v.version} · {v.label || "Snapshot"}
+                  Revision {v.version}{v.current ? " · Published" : ""} · {v.comparisonSummary?.summary || v.label || "Card revision"}
                 </span>
                 <Button
                   type="button"
                   size="sm"
                   variant="outline"
                   onClick={() => onRollback(v.id)}
+                  disabled={v.current || v.status === "ARCHIVED"}
                 >
-                  Restore
+                  Roll back
                 </Button>
               </li>
             ))}

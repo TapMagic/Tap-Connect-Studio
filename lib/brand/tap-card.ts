@@ -259,6 +259,16 @@ export type CardUtilityLayerSettings = {
   utilities?: CardUtilityToggle[];
 };
 
+export type CardPropertySource = {
+  mode: "BRAND" | "CUSTOM";
+  source: "BRAND";
+  sourceValue?: string;
+};
+
+export type CardPropertySources = Partial<
+  Record<"accentColor" | "surfaceColor" | "textColor" | "pillColor" | "pillTextColor", CardPropertySource>
+>;
+
 export type TapConnectCardConfig = {
   version: 1 | 2 | 3;
   accentColor: string;
@@ -297,6 +307,8 @@ export type TapConnectCardConfig = {
    * Campaign is active (Keep, Ask a Question, Save Contact, etc.).
    */
   utilityLayer?: CardUtilityLayerSettings;
+  /** Wave 1 durable authority for the appearance properties exercised by Card editing. */
+  propertySources?: CardPropertySources;
 };
 
 export const TAP_CARD_ACTION_CATALOG: {
@@ -626,8 +638,39 @@ export function parseTapConnectCard(
     lifecycleStatus: o.lifecycleStatus === "retired" ? "retired" : "active",
     retiredAt: typeof o.retiredAt === "string" ? o.retiredAt : undefined,
     utilityLayer: parseUtilityLayer(o.utilityLayer, base.utilityLayer),
+    propertySources: parseCardPropertySources(o.propertySources, o),
     sections,
   };
+}
+
+function parseCardPropertySources(
+  raw: unknown,
+  document: Record<string, unknown>,
+): CardPropertySources {
+  const keys = ["accentColor", "surfaceColor", "textColor", "pillColor", "pillTextColor"] as const;
+  const source = raw && typeof raw === "object" && !Array.isArray(raw)
+    ? (raw as Record<string, unknown>)
+    : {};
+  const result: CardPropertySources = {};
+  for (const key of keys) {
+    const candidate = source[key];
+    if (candidate && typeof candidate === "object" && !Array.isArray(candidate)) {
+      const value = candidate as Record<string, unknown>;
+      if (value.mode === "BRAND" || value.mode === "CUSTOM") {
+        result[key] = {
+          mode: value.mode,
+          source: "BRAND",
+          sourceValue: typeof value.sourceValue === "string" ? value.sourceValue : undefined,
+        };
+        continue;
+      }
+    }
+    // Conservative compatibility: every old explicit Card value is local/custom.
+    if (typeof document[key] === "string") {
+      result[key] = { mode: "CUSTOM", source: "BRAND" };
+    }
+  }
+  return result;
 }
 
 function parseUtilityLayer(

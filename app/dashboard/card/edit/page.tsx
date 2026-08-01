@@ -155,6 +155,8 @@ export default async function TapCardEditPage({
           primaryColor: brandKit.primaryColor,
           secondaryColor: brandKit.secondaryColor,
           accentColor: brandKit.accentColor,
+          backgroundColor: brandKit.backgroundColor,
+          textColor: brandKit.textColor,
         }
       : null,
   };
