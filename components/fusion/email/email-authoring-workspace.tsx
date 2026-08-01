@@ -16,6 +16,7 @@ import {
   Layers,
   Lock,
   Mail,
+  CalendarClock,
   MoreHorizontal,
   Redo2,
   Save,
@@ -178,6 +179,13 @@ export type EmailAuthoringWorkspaceProps = {
     formSettings?: unknown;
     contentBlocks?: unknown;
   };
+  emailRecord?: {
+    id: string;
+    status: string;
+    draftRevision: number;
+    document: unknown;
+    scheduledFor?: string | null;
+  };
   businessName: string;
   logoUrl?: string | null;
   brandKit: BrandKitVisualFields;
@@ -199,6 +207,7 @@ type EmailDraft = {
 
 export function EmailAuthoringWorkspace({
   campaign,
+  emailRecord,
   businessName,
   logoUrl,
   brandKit,
@@ -217,12 +226,16 @@ export function EmailAuthoringWorkspace({
     () => (Array.isArray(campaign.contentBlocks) ? (campaign.contentBlocks as ContentBlock[]) : []),
     [campaign.contentBlocks]
   );
+  const canonicalEmail = useMemo(() => emailRecord ?? {
+    id: campaign.id,
+    status: "DRAFT",
+    draftRevision: 1,
+    document: (campaign.formSettings as { emailResponse?: unknown } | null)?.emailResponse,
+    scheduledFor: null,
+  }, [emailRecord, campaign.id, campaign.formSettings]);
 
   const initialDoc = useMemo(() => {
-    const parsed = parseEmailDocument(
-      (campaign.formSettings as { emailResponse?: unknown } | null)?.emailResponse,
-      businessName
-    );
+    const parsed = parseEmailDocument(canonicalEmail.document, businessName);
     const bound = bindEmailToCampaignOffer({
       document: parsed,
       campaignId: campaign.id,
@@ -232,7 +245,7 @@ export function EmailAuthoringWorkspace({
       preservePresentation: true,
     });
     return bound.document;
-  }, [campaign.formSettings, campaign.id, campaign.title, campaign.status, businessName, pageBlocks]);
+  }, [canonicalEmail.document, campaign.id, campaign.title, campaign.status, businessName, pageBlocks]);
 
   const restoredShell = useMemo(() => loadWorkspaceShellState(EMAIL_WORKSPACE_ID), []);
   const [shell, setShell] = useState<WorkspaceShellSnapshot>(() =>
@@ -259,6 +272,11 @@ export function EmailAuthoringWorkspace({
     (restoredShell.previewSurface as EmailPreviewMode) || "desktop"
   );
   const [saving, setSaving] = useState(false);
+  const [draftRevision, setDraftRevision] = useState(canonicalEmail.draftRevision);
+  const [emailStatus, setEmailStatus] = useState(canonicalEmail.status);
+  const [scheduledFor, setScheduledFor] = useState(
+    canonicalEmail.scheduledFor ? canonicalEmail.scheduledFor.slice(0, 16) : "",
+  );
   const [message, setMessage] = useState<string | null>(null);
   const [addType, setAddType] = useState<BlockType>("offer_coupon");
   const [outlineDragId, setOutlineDragId] = useState<string | null>(null);
@@ -419,26 +437,74 @@ export function EmailAuthoringWorkspace({
     setSaving(true);
     setMessage(null);
     const payload = serializeEmailDocument(document);
-    const res = await fetch("/api/campaigns/assign", {
-      method: "PATCH",
+    const res = await fetch("/api/email", {
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id: campaign.id,
-        formSettings: {
-          ...((campaign.formSettings && typeof campaign.formSettings === "object"
-            ? campaign.formSettings
-            : {}) as object),
-          emailResponse: payload,
-        },
+        emailId: canonicalEmail.id,
+        expectedRevision: draftRevision,
+        document: payload,
       }),
     });
     setSaving(false);
     if (!res.ok) {
-      setMessage("Save failed — try again.");
+      const result = await res.json().catch(() => ({})) as { error?: string };
+      setMessage(result.error ?? "Save failed — try again.");
       return;
     }
+    const result = await res.json() as { email?: { draftRevision?: number; status?: string } };
+    if (result.email?.draftRevision) setDraftRevision(result.email.draftRevision);
+    if (result.email?.status) setEmailStatus(result.email.status);
     setMessage("Email draft saved.");
     setShell((s) => ({ ...s, dirty: false, saved: true }));
+    router.refresh();
+  }
+
+  async function scheduleFixture() {
+    if (shell.dirty) {
+      setMessage("Save this Email draft before scheduling.");
+      return;
+    }
+    if (!scheduledFor) {
+      setMessage("Choose a fixture schedule time.");
+      return;
+    }
+    setSaving(true);
+    const response = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "schedule-fixture",
+        emailId: canonicalEmail.id,
+        scheduledFor: new Date(scheduledFor).toISOString(),
+      }),
+    });
+    const result = await response.json().catch(() => ({})) as { error?: string; status?: string };
+    setSaving(false);
+    if (!response.ok) {
+      setMessage(result.error ?? "Schedule failed.");
+      return;
+    }
+    setEmailStatus("SCHEDULED");
+    setMessage("Scheduled safely. No real Email will be sent.");
+    router.refresh();
+  }
+
+  async function exerciseFixtureBlock() {
+    setSaving(true);
+    const response = await fetch("/api/email", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "execute-fixture", emailId: canonicalEmail.id }),
+    });
+    const result = await response.json().catch(() => ({})) as { error?: string };
+    setSaving(false);
+    if (!response.ok) {
+      setMessage(result.error ?? "Fixture operation failed.");
+      return;
+    }
+    setEmailStatus("BLOCKED");
+    setMessage("Blocked safely. No provider or recipient was contacted.");
     router.refresh();
   }
 
@@ -664,6 +730,21 @@ export function EmailAuthoringWorkspace({
         }
         shadeExtras={
           <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded-md border border-white/15 px-2 py-1 text-xs" data-testid="email-lifecycle-status">
+              {emailStatus === "LIVE" ? "Active" : emailStatus.charAt(0) + emailStatus.slice(1).toLowerCase().replaceAll("_", " ")}
+            </span>
+            <label className="flex items-center gap-1 text-xs text-white/65">
+              <span className="sr-only">Fixture schedule</span>
+              <input type="datetime-local" value={scheduledFor} onChange={(event) => setScheduledFor(event.target.value)} className="min-h-10 rounded-md border border-white/15 bg-black/20 px-2" data-testid="email-schedule-time" />
+            </label>
+            <Button variant="outline" className="min-h-11" disabled={saving || shell.dirty} onClick={() => void scheduleFixture()} data-testid="email-schedule-fixture">
+              <CalendarClock className="mr-1 h-4 w-4" /> Schedule
+            </Button>
+            {emailStatus === "SCHEDULED" ? (
+              <Button variant="outline" className="min-h-11" disabled={saving} onClick={() => void exerciseFixtureBlock()} data-testid="email-execute-fixture">
+                Exercise safe operation
+              </Button>
+            ) : null}
             <span className="hidden items-center gap-1 text-xs text-sky-200/80 sm:inline-flex">
               <Mail className="h-3.5 w-3.5" />
               {emailApprovalHostMessage(document)}
