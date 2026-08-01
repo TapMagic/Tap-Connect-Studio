@@ -1,6 +1,6 @@
 # Canonical Glossary
 
-Status: proposed canonical vocabulary for human review  
+Status: proposed canonical vocabulary for human review
 Evidence base: repository at `d67d1399a064834d476a0675642c294cf13478e3`
 
 Actions are `KEEP`, `RENAME`, `MERGE`, `RETIRE`, or `INTERNAL ONLY`. “Affected paths” are representative, not exhaustive; the current product map carries the expanded code map.

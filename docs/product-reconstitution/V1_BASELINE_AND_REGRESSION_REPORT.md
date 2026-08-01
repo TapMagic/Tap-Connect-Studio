@@ -1,7 +1,7 @@
 # V1 Baseline and Regression Report
 
-Current audit source: `d67d1399a064834d476a0675642c294cf13478e3`  
-Exact V1 reference candidate: `7357fd9806d56d07d9ded68eef2beec5ea578052`  
+Current audit source: `d67d1399a064834d476a0675642c294cf13478e3`
+Exact V1 reference candidate: `7357fd9806d56d07d9ded68eef2beec5ea578052`
 Smallest coherent construction range: `f5ea2b0ab7f9cec398c4adff10039dc50824715f..7357fd9806d56d07d9ded68eef2beec5ea578052` (inclusive)
 
 ## Finding
@@ -50,7 +50,7 @@ There were no migration files in the candidate tree; schema deployment depended 
 4. Owner added/reordered/configured sections and actions in `TapCardBuilder`; `TapConnectCard` showed the result.
 5. Save POSTed the full config to `/api/brand`, which upserted `BrandKit.tapCard`.
 
-**Source/save path:** `BrandKit.tapCard`; direct, whole-document write.  
+**Source/save path:** `BrandKit.tapCard`; direct, whole-document write.
 **Tests:** none committed at V1; later parity documents/tests use this behavior as the floor.
 
 ### 2–5. Edit, save/reopen, Preview, and public Card
@@ -62,7 +62,7 @@ There were no migration files in the candidate tree; schema deployment depended 
 - `/t/[deviceCode]` first resolved Campaign/group/schedule context; when Card behavior applied it rendered the business Card from the same BrandKit data and shared Card component lineage.
 - Admin landing-demo controls could project the current config, but this was not a clean general immutable publication model.
 
-**What made it dependable:** one Card object, one direct save endpoint, one DB JSON field, immediate adjacent preview, and a public fallback reading that field.  
+**What made it dependable:** one Card object, one direct save endpoint, one DB JSON field, immediate adjacent preview, and a public fallback reading that field.
 **Limitation:** Save and public state were effectively coupled; there was no robust draft/revision/publish separation.
 
 ### 6–9. Create, edit, schedule, and inspect Campaign
@@ -76,9 +76,9 @@ There were no migration files in the candidate tree; schema deployment depended 
 7. Scheduling used either Campaign dates plus a per-device `ScheduleRule` in `SchedulePanel`, or a `CampaignGroupSlot` managed under `/dashboard/groups/[id]`.
 8. Campaign list/detail, Groups, Devices, and Analytics exposed status, assignments, schedules, and results.
 
-**Source/save path:** `Campaign` plus schedule/assignment rows.  
-**Status transitions:** `DRAFT → READY/SCHEDULED/LIVE → PAUSED/ARCHIVED/CLOSED`, with assignment helpers able to set `LIVE`.  
-**Dependability:** explicit pages and DB rows, stable public URL, deterministic resolver, visible list status.  
+**Source/save path:** `Campaign` plus schedule/assignment rows.
+**Status transitions:** `DRAFT → READY/SCHEDULED/LIVE → PAUSED/ARCHIVED/CLOSED`, with assignment helpers able to set `LIVE`.
+**Dependability:** explicit pages and DB rows, stable public URL, deterministic resolver, visible list status.
 **Limitations:** overlapping schedule mechanisms and permissive playable-status policy already existed.
 
 ### 10. Use Tap Trace
@@ -89,8 +89,8 @@ There were no migration files in the candidate tree; schema deployment depended 
 4. Customer CTA called `/api/tap/click`, appending `ClickEvent` with event type and the same context.
 5. Owner opened `/dashboard/analytics`, which showed totals, 14-day taps/leads, conversion, actions, top Campaigns, and top Devices.
 
-**Source:** append-only `TapEvent` and `ClickEvent`.  
-**Dependability:** recording was in the public path and views joined to the operating objects.  
+**Source:** append-only `TapEvent` and `ClickEvent`.
+**Dependability:** recording was in the public path and views joined to the operating objects.
 **Limitation:** no event-history route and no “Tap Trace” product name; deletion code could null attribution.
 
 ### 11–13. Create, edit/Preview, and send Email
@@ -102,8 +102,8 @@ There were no migration files in the candidate tree; schema deployment depended 
 5. Reopen reparsed that JSON.
 6. Explicit Send POSTed `/api/email/send`; provider readiness controlled whether Resend could be invoked.
 
-**Source/save path:** `Campaign.formSettings.emailResponse`.  
-**Dependability:** one visible builder, Preview, explicit Save, explicit Send, Campaign context.  
+**Source/save path:** `Campaign.formSettings.emailResponse`.
+**Dependability:** one visible builder, Preview, explicit Save, explicit Send, Campaign context.
 **Limitations:** no first-class Email entity, governed schedule, audience selection/consent contract, or delivery-status history.
 
 ### 14. Operational relationship
@@ -137,7 +137,7 @@ The stable device URL and shared Business ID connected the system. Campaigns cou
 | Email create/edit | Campaign-scoped builder, Preview, save | same underlying JSON with richer authoring | PRESERVED/IMPROVED | Keep editor/render work; give Email first-class lifecycle incrementally. |
 | Email operation | explicit immediate provider send | feature/provider/consent gates and reply system | IMPROVED safety, INCOMPLETE schedule/status | Preserve gates; add governed schedule/delivery state without breaking V1 direct draft. |
 | AI | one-shot campaign generation | governed Autopilot plus Ask shell | Autopilot IMPROVED; Ask REGRESSED/MISLEADING | Keep policy/proposal infrastructure; replace no-op Ask Apply contract. |
-| Control/Demo | limited admin landing tools | robust Control Room, immutable Demo revisions/bindings | IMPROVED | Preserve; add Studio return context and retire legacy Demo publication paths. |
+| Control/Demo | limited admin landing tools | robust Control Room, immutable Demo revisions/bindings, safe section-level Studio return | IMPROVED/PARTIAL | Preserve; extend return to exact record/task and retire legacy Demo publication paths. |
 
 ## Regression introduction candidates
 
@@ -147,7 +147,7 @@ The stable device URL and shared Business ID connected the system. Campaigns cou
 | Card authority spread across shell/builder/Brand/visual histories | `ae30d3a…`, `7133088…`, Creative Studio waves | `BrandInheritanceState`, PS, config JSON, shell session | rich authoring, Undo, preview, task shell | one document transaction + persisted authority metadata; adapters for panels |
 | “Linked” presentation without durable link | `ae30d3a072576953fa3e025e64aa4b033e5ade44` | module comment says copy/session only | honest copy/restore helpers and resolver | rename current copied states; implement durable LINKED later with migration |
 | Ask Apply claims success without mutation | `0f6d07fbfd03b746d403bedf7eb896409b658985` | global host absent callback; Card host empty callback | safety policy and intent detection | disable Apply until structured host mutation exists; then editable diff/apply/undo |
-| Control Room→Studio lacks completed return | `071b874cb5e84022ca2bb880721a3a9ae054ce29` | OpenWorkspace sets context, editor `doneHref` only onboarding/Card | governance, identity, Demo publication/binding | signed/session return context to exact Demo record, identity preserved |
+| Control Room→Studio return is only section-level | `071b874cb5e84022ca2bb880721a3a9ae054ce29` | OpenWorkspace safely stores the Control URL and Studio banner returns; editor Done and Control URL omit exact Demo record/task | governance, identity, safe return, Demo publication/binding | extend the existing safe context to exact allowlisted Demo record/task, identity preserved |
 | Landing Demo duplication | legacy V1 admin path plus new Control Room | `LandingDemoSlot`, `Campaign.isLandingDemo`, `DemoPublication/Binding` | immutable Demo system | migrate consumers/bindings, then retire legacy mutable path |
 | Tap Trace obscured | Fusion Insights IA beginning after V1 | Analytics/Insights routes, no Tap Trace | provenance, drilldown, export | first-class Tap Trace history feeding Insights |
 
@@ -179,7 +179,7 @@ Before expansion continues, prove in one isolated fixture Workspace:
 - Card draft/public split without normal publish.
 - Brand “inheritance” and visual stacks without persisted one-contract authority.
 - Ask TapConnect proposal theater without real host mutation/edit.
-- Control Room open-without-return context.
+- Control Room section-level return without exact record/task continuity.
 - legacy and new landing Demo systems.
 - Email's rich authoring constrained inside Campaign JSON.
 - Tap Trace evidence hidden behind Analytics/Insights naming.

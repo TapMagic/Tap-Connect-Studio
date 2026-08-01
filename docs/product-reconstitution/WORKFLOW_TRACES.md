@@ -1,6 +1,6 @@
 # Workflow Traces
 
-Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`  
+Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`
 Execution boundary: static code and existing test-evidence inspection only. No production data, Email/Campaign send, publication, binding, payment, migration, or fixture mutation occurred. Runtime classifications use existing committed tests/documents where explicit; this audit marks its own unexecuted consequences **runtime proof required**.
 
 Classification vocabulary: **works as intended**, **technically works but misleading**, **partial**, **broken**, **circular**, **unreachable**, **unknown**.
@@ -20,7 +20,7 @@ Target: Control Room → Demo → Studio as self → Card → Brand-linked color
 | Reload | page reload reads `tapCardDraft`; parser constructs config | **Partial:** value persists; exact `CUSTOM`/source explanation may not because the authority contract is not fully serialized. |
 | Preview | embedded Preview uses in-memory config; view-only `/dashboard/card/preview` uses saved draft | **Works as intended** for draft Preview. |
 | Public result | `/t` reads `BrandKit.tapCard`, not draft | **Broken for expected publish completion:** Save/Preview do not update public Card and ordinary Studio has no publish action. |
-| Return to same Demo record | editor `doneHref` resolves only onboarding or `/dashboard/card`; no Control Room Demo `returnTo` | **Broken:** administrator lands at Card overview, not originating Control Room record. |
+| Return to same Demo record | `OpenWorkspaceInStudio` stores the current safe `/control` URL; Studio banner links to it. Editor Done still resolves only onboarding or `/dashboard/card`, and the Demo record/drawer is not encoded in the Control URL | **Partial:** Return to Control Room reaches the originating section, but not reliably the exact Demo record/workflow. |
 
 **Overwrite points:** `syncFromBrandKit` can update non-overridden session fields; parser fallbacks fill missing values; intelligent prefill may apply eligible values; Save replaces whole draft JSON; Demo publish later copies saved draft to public. A correct local custom value should survive, but durable proof of linkage semantics is missing.
 
@@ -115,7 +115,7 @@ Safety intent detection in `lib/fusion/ask/policy.ts` is valuable and should be 
 | Control Room → Demo record | snapshot and Demo card | **Works as intended**. |
 | Open Studio as self | `OpenWorkspaceInStudio` sets Workspace context; legitimate membership required | **Works as intended** per Control Room design. |
 | Edit/save/Preview | Card draft path described above | **Works for saved draft/Preview**. |
-| Return same Demo record | no originating record context in editor/Studio shell | **Broken**. |
+| Return same Demo record | safe Control return cookie/banner preserve `/control?section=demo`; exact record/drawer state is not encoded and editor Done returns to Card overview | **Partial**. |
 | Publish current saved revision | Control Room `demo.publish` reads valid `tapCardDraft`, safety-checks, creates immutable `DemoPublication`, copies to BK public | **Works by static/domain/e2e evidence**; this audit did not execute it. |
 | Bind | `demo.binding.activate`, published-only check, optional separation-of-duties approval | **Works as intended**. |
 | Inspect public payload | `/api/public/demo-card/[slotKey]`, safe manifest, ETag/cache | **Works as intended**. |
@@ -140,7 +140,7 @@ Target: Control Room → internal TapConnect Workspace → Studio → Brand → 
 | Email draft/Preview | **Works as intended candidate** | Campaign-scoped document. |
 | Audience | **Partial** | normalized Audience plus legacy Leads; consent/relationship reconciliation incomplete. |
 | Tap Trace | **Partial/misnamed** | events/Insights exist, direct history absent. |
-| Return to Control Room | **Broken** | no preserved return context. |
+| Return to Control Room | **Partial** | safe section-level return is preserved; exact business/Demo record and prior workflow state are not. |
 | Audit | **Partial** | Control/selected Studio actions append audit; not every authoring mutation has one canonical audit/revision record. |
 
 ## Cross-workflow breakpoints
@@ -148,7 +148,7 @@ Target: Control Room → internal TapConnect Workspace → Studio → Brand → 
 1. **Save is not publication:** correct as a law, but normal Card publication is missing.
 2. **Preview source varies:** embedded = unsaved in-memory; view-only = saved draft; public = old public Card; labels must remain explicit.
 3. **Source labels are not durable:** Brand/custom behavior can work visually while its explanation disappears after reload.
-4. **Return context stops at Studio entry:** Workspace continuity exists, task-origin continuity does not.
+4. **Return context is section-level:** Workspace and safe Control URL continuity exist; exact record/task continuity does not.
 5. **Campaign scheduling has multiple authorities:** date window, device rule, group slot, status, and assignment.
 6. **Email operation stops after immediate send attempt:** schedule and durable delivery state are absent.
 7. **Tap Trace facts lack a first-class Owner history:** analysis cannot substitute for inspectable evidence.

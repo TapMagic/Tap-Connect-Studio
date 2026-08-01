@@ -1,6 +1,6 @@
 # Source-of-Truth and Precedence Map
 
-Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`  
+Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`
 Normative authority: `TAPCONNECT_PRODUCT_CONSTITUTION.md`
 
 ## Current precedence systems

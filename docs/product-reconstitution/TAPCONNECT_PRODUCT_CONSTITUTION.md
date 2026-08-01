@@ -1,7 +1,7 @@
 # TapConnect Product Constitution
 
-Status: canonical product definition for human review  
-Audit source: `d67d1399a064834d476a0675642c294cf13478e3`  
+Status: canonical product definition for human review
+Audit source: `d67d1399a064834d476a0675642c294cf13478e3`
 Behavioral baseline candidate: `7357fd9806d56d07d9ded68eef2beec5ea578052`
 
 ## Constitutional premise

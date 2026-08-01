@@ -1,6 +1,6 @@
 # Current Product Map
 
-Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`  
+Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`
 Method: static route, symbol, schema, test, documentation, and Git-history tracing. No production data or consequential runtime was used. “Confirmed” means code-path confirmed; runtime behavior is labeled separately.
 
 ## System spine
@@ -190,7 +190,7 @@ Method: static route, symbol, schema, test, documentation, and Git-history traci
 - **Paths/models:** `Business`, `BusinessUser`, Workspace context API/menu; Control Room membership, Platform roles/direct permissions.
 - **Workflow:** signed-in user resolves current Business membership; Control Room can open a specific Workspace in Studio via `OpenWorkspaceInStudio`.
 - **Tests:** workspace context and Control Room e2e/domain tests.
-- **Conflict:** `OpenWorkspaceInStudio` context is server/session based, but return context is not carried into Card editor: `doneHref` only recognizes onboarding and otherwise returns `/dashboard/card`.
+- **Conflict:** `OpenWorkspaceInStudio` safely stores the originating `/control` URL in `tapconnect_control_return`, and the Studio context banner exposes Return to Control Room. The Card editor's own Done action still recognizes only onboarding or `/dashboard/card`, and Demo cards do not encode a specific record/drawer in the URL; the return therefore reaches the Demo section, not necessarily the exact Demo record/workflow.
 
 ### Control Room
 
@@ -199,7 +199,7 @@ Method: static route, symbol, schema, test, documentation, and Git-history traci
 - **Workflow:** govern directory/business/service/plan/support/Demo; all mutations same-origin and server-authorized.
 - **Tests:** `lib/control/__tests__/control-foundation.test.ts`, `e2e/control-room.spec.ts`, `docs/control-room/FOUNDATION.md` acceptance matrix.
 - **V1 relationship:** high-value later platform architecture.
-- **Gap:** opens Studio but provides no trustworthy originating record return. Ordinary content edits should not occur inside Control Room.
+- **Gap:** the safe section-level return is real and tested (`safeControlReturnPath`), but exact originating-record/task return is incomplete. Ordinary content edits should not occur inside Control Room.
 
 ### Demo Studio, publication, and landing binding
 
