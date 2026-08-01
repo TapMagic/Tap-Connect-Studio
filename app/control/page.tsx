@@ -24,7 +24,7 @@ const SECTIONS = new Set([
 export default async function ControlRoomPage({
   searchParams,
 }: {
-  searchParams: Promise<{ section?: string }>;
+  searchParams: Promise<{ section?: string; demoId?: string; workspaceId?: string; tab?: string; task?: string }>;
 }) {
   const actor = await requireControlActor();
   const [snapshot, params, cookieStore] = await Promise.all([
@@ -69,6 +69,8 @@ export default async function ControlRoomPage({
       <ControlRoom
         snapshot={snapshot}
         initialSection={initialSection}
+        initialDemoId={params.demoId ?? null}
+        initialWorkspaceId={params.workspaceId ?? null}
         viewAsUser={
           viewAsUser
             ? {

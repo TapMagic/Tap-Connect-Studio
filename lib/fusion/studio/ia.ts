@@ -76,12 +76,14 @@ export const STUDIO_NAV: StudioNavItem[] = [
     id: "experiences",
     label: "Experiences",
     href: "/dashboard/experiences",
-    aliases: [
+      aliases: [
       "/dashboard/workbench",
       "/dashboard/campaigns",
       "/dashboard/card",
       "/dashboard/builder",
       "/dashboard/groups",
+      "/dashboard/schedule",
+      "/dashboard/email",
       "/dashboard/experiences/journeys",
       "/dashboard/experiences/orders",
       "/dashboard/experiences/canvas",
@@ -110,7 +112,7 @@ export const STUDIO_NAV: StudioNavItem[] = [
     id: "insights",
     label: "Insights",
     href: "/dashboard/insights",
-    aliases: ["/dashboard/analytics"],
+    aliases: ["/dashboard/analytics", "/dashboard/tap-trace"],
     description: "Results, proof, and performance",
   },
   {
@@ -217,9 +219,17 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
     {
       id: "groups",
-      label: "Campaign Groups",
-      href: "/dashboard/groups",
+      label: "Scheduled Campaigns",
+      href: "/dashboard/schedule",
       description: "Schedules, rotations, and resolver preview",
+      maturity: "owner_ready",
+      group: "Build",
+    },
+    {
+      id: "email",
+      label: "Email",
+      href: "/dashboard/email",
+      description: "Draft, preview, schedule, and inspect Email status",
       maturity: "owner_ready",
       group: "Build",
     },
@@ -415,6 +425,14 @@ export const STUDIO_SECTIONS: Record<string, StudioSection[]> = {
     },
   ],
   insights: [
+    {
+      id: "tap-trace",
+      label: "Tap Trace",
+      href: "/dashboard/tap-trace",
+      description: "Recent taps, resolved destination, and follow-up actions",
+      maturity: "owner_ready",
+      group: "Evidence",
+    },
     {
       id: "hub",
       label: "Insights hub",

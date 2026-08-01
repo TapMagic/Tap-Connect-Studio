@@ -189,11 +189,13 @@ export function OpenWorkspaceInStudio({
   children = "Open in Studio",
   className = "",
   href = "/dashboard",
+  returnParams,
 }: {
   businessId: string;
   children?: React.ReactNode;
   className?: string;
   href?: string;
+  returnParams?: Record<string, string>;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -201,12 +203,24 @@ export function OpenWorkspaceInStudio({
   async function open() {
     setBusy(true);
     setError("");
+    const returnUrl = new URL(window.location.href);
+    for (const [key, value] of Object.entries(returnParams ?? {})) {
+      returnUrl.searchParams.set(key, value);
+    }
+    if (
+      returnUrl.pathname === "/control" &&
+      returnUrl.searchParams.get("section") === "demo" &&
+      !returnUrl.searchParams.has("demoId")
+    ) {
+      returnUrl.searchParams.set("workspaceId", businessId);
+      returnUrl.searchParams.set("tab", href.split("/").filter(Boolean).at(-1) ?? "studio");
+    }
     const response = await fetch("/api/workspace/context", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         businessId,
-        returnTo: `${window.location.pathname}${window.location.search}`,
+        returnTo: `${returnUrl.pathname}${returnUrl.search}`,
       }),
     });
     const result = (await response.json()) as { error?: string };

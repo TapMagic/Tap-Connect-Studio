@@ -90,6 +90,8 @@ type ActionSpec = {
 type ControlRoomProps = {
   snapshot: ControlSnapshot;
   initialSection: string;
+  initialDemoId?: string | null;
+  initialWorkspaceId?: string | null;
   viewAsUser: { id: string; name: string } | null;
   supportSession: {
     id: string;
@@ -311,12 +313,15 @@ function ActionButton({
   kind?: "primary" | "secondary" | "danger" | "quiet";
   disabled?: boolean;
 }) {
-  return <button type="button" className={`control-button control-button--${kind}`} onClick={onClick} disabled={disabled}>{children}</button>;
+  const ownerLabel = children === "Publish saved draft" ? "Publish Card revision" : children;
+  return <button type="button" className={`control-button control-button--${kind}`} onClick={onClick} disabled={disabled}>{ownerLabel}</button>;
 }
 
 export function ControlRoom({
   snapshot,
   initialSection,
+  initialDemoId,
+  initialWorkspaceId,
   viewAsUser,
   supportSession,
   workspaceMenu,
@@ -350,6 +355,18 @@ export function ControlRoom({
     setDrawerOpen(true);
     setNotice(null);
   }
+
+  useEffect(() => {
+    if ((!initialDemoId && !initialWorkspaceId) || section !== "demo" || action) return;
+    const demo = snapshot.demos.find(
+      (candidate) => candidate.id === initialDemoId || candidate.businessId === initialWorkspaceId,
+    );
+    if (!demo) return;
+    const restore = window.setTimeout(() => openAction(demoDetailAction(demo)), 0);
+    return () => window.clearTimeout(restore);
+    // Restore the allowlisted record context once after returning from Studio.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialDemoId, initialWorkspaceId, section]);
 
   async function quickMutation(operation: string, data: Record<string, unknown>) {
     setNotice(null);
@@ -617,7 +634,7 @@ function SupportSection({ snapshot, openAction }: { snapshot: ControlSnapshot; o
 function DemoSection({ snapshot, openAction }: { snapshot: ControlSnapshot; openAction: (spec: ActionSpec) => void }) {
   const activeBinding = snapshot.landingBindings.find((binding) => binding.active);
   return <>
-    <SectionHeading eyebrow="Safe public demonstration" title="Demo Studio" description="Create a real Studio workspace, edit its Card with the normal editor, preview the saved draft, then publish an immutable safe revision." actions={<ActionButton kind="primary" onClick={() => openAction(createDemoAction(snapshot))}><Plus />Create Demo</ActionButton>} />
+    <SectionHeading eyebrow="Safe public demonstration" title="Demo Studio" description="Create a real Studio workspace, edit and publish its Card with the normal editor, then publish an immutable safe Demo revision from that published Card revision." actions={<ActionButton kind="primary" onClick={() => openAction(createDemoAction(snapshot))}><Plus />Create Demo</ActionButton>} />
     <section className="control-demo-binding"><div className="control-demo-binding-mark"><Sparkles /></div><div><p className="control-eyebrow">Landing-page Demo Card</p><h2>{activeBinding ? activeBinding.demoName : "No active binding"}</h2><p>{activeBinding ? `Slot ${activeBinding.slotKey} serves revision ${activeBinding.demoPublicationId}.` : "The public retrieval endpoint currently returns an explicit fallback."}</p></div>{activeBinding ? <div className="control-heading-actions"><a href={`/api/public/demo-card/${activeBinding.slotKey}`} target="_blank" rel="noreferrer" className="control-button control-button--secondary">Inspect payload<ExternalLink /></a>{activeBinding.priorBindingId ? <ActionButton onClick={() => openAction(simpleReasonAction("demo.binding.rollback", "Roll back landing binding", "The prior immutable Demo binding becomes active again.", { id: activeBinding.id }, true))}>Roll back</ActionButton> : null}<ActionButton kind="danger" onClick={() => openAction(simpleReasonAction("demo.binding.unbind", "Unbind landing Demo Card", "The public endpoint immediately returns the explicit no-binding fallback.", { id: activeBinding.id }, true))}>Unbind</ActionButton></div> : null}</section>
     <div className="control-demo-grid">{snapshot.demos.map((demo) => { const current = demo.publications.find((publication) => publication.id === demo.currentPublicationId); return <article className="control-demo-card" key={demo.id}><header><span className="control-demo-monogram">{initials(demo.name)}</span><div><div className="control-pill-stack"><StatusPill value={demo.visibility} tone="info" /><StatusPill value={demo.promotionStatus} /></div><h2>{demo.name}</h2><p>{demo.industryUseCase}</p></div><button type="button" className="control-row-action" onClick={() => openAction(demoDetailAction(demo))} aria-label={`Open ${demo.name} workflows`}><MoreHorizontal /></button></header><p>{demo.description}</p><dl><div><dt>Owner</dt><dd>{demo.ownerName}</dd></div><div><dt>Managers</dt><dd>{demo.managers.length}</dd></div><div><dt>Public revision</dt><dd>{current ? `v${current.version}` : "Not published"}</dd></div><div><dt>Last reset</dt><dd>{relativeTime(demo.lastResetAt)}</dd></div></dl><div className="control-safety-summary"><Shield /><span><strong>{demo.blockedActions.length} server safety blocks</strong><small>No real sends, payments, refunds, imports, or production Tap Point assignment.</small></span></div><footer><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/card/edit" className="control-button control-button--primary">Edit Card</OpenWorkspaceInStudio><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/card/preview" className="control-button control-button--secondary">Preview Card</OpenWorkspaceInStudio><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/assets" className="control-button control-button--quiet">Assets</OpenWorkspaceInStudio><OpenWorkspaceInStudio businessId={demo.businessId} href="/dashboard/campaigns" className="control-button control-button--quiet">Campaign & Email drafts</OpenWorkspaceInStudio>{current ? <ActionButton onClick={() => openAction(bindDemoAction(demo, current, snapshot))}>Bind to landing</ActionButton> : null}<ActionButton kind="quiet" onClick={() => openAction(simpleReasonAction("demo.publish", current ? `Publish current saved draft as a new revision` : `Publish current saved draft`, "The current saved Card draft is re-validated, then stored as an immutable Demo revision.", { id: demo.id }))}>Publish saved draft</ActionButton><ActionButton kind="quiet" onClick={() => openAction(simpleReasonAction("demo.reset", `Reset ${demo.name}`, "Fixture data returns to its governed baseline; publication history remains.", { id: demo.id }, true))}>Reset</ActionButton></footer></article>; })}</div>
   </>;
@@ -712,6 +729,10 @@ function hiddenFields(values: Record<string, string>): ActionField[] {
 }
 
 function simpleReasonAction(operation: string, title: string, consequence: string, values: Record<string, string>, destructive = false): ActionSpec {
+  if (operation === "demo.publish") {
+    title = "Publish current Card revision";
+    consequence = "The current immutable published Card revision is re-validated, then stored as an immutable Demo revision.";
+  }
   return { operation, title, description: "Provide the operational reason before confirming this governed change.", consequence, destructive, fields: [...hiddenFields(values), { name: "reason", label: "Reason", type: "textarea", required: true, hint: "Stored in append-only platform audit history." }] };
 }
 
