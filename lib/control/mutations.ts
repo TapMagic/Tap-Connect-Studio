@@ -1511,7 +1511,22 @@ export async function performControlMutation(
       include: { business: { include: { brandKit: true } }, publications: true },
     });
     const brandKit = demo.business.brandKit;
-    const tapCard = brandKit?.tapCardDraft;
+    const cardPublication = brandKit?.currentCardPublicationId
+      ? await prisma.cardPublication.findFirst({
+          where: {
+            id: brandKit.currentCardPublicationId,
+            businessId: demo.businessId,
+            status: "PUBLISHED",
+          },
+        })
+      : null;
+    const cardSnapshot = cardPublication
+      ? await prisma.publicationSnapshot.findUnique({
+          where: { id: cardPublication.publicationSnapshotId },
+        })
+      : null;
+    const publishedManifest = cardSnapshot?.manifest as { kind?: string; tapCard?: unknown } | null;
+    const tapCard = publishedManifest?.kind === "card" ? publishedManifest.tapCard : null;
     const readiness = demoReadiness({
       workspaceKind: demo.business.workspaceKind,
       fixtureProvenance: demo.fixtureProvenance,
@@ -1523,6 +1538,7 @@ export async function performControlMutation(
       kind: "card" as const,
       tapCard,
       label: `Demo publication ${demo.publications.length + 1}`,
+      sourceCardPublicationId: cardPublication?.id,
     };
     const { snapshot } = await recordPublicationSnapshot({
       businessId: demo.businessId,
@@ -1544,6 +1560,7 @@ export async function performControlMutation(
         contentHash: hashPublishManifest(manifest),
         publishedById: actor.id,
         publishedAt: new Date(),
+        cardPublicationId: cardPublication?.id,
       },
       update: {
         status: "PUBLISHED",
@@ -1551,6 +1568,7 @@ export async function performControlMutation(
         readinessSummary: "Demo safety and immutable Card snapshot passed.",
         publishedById: actor.id,
         publishedAt: new Date(),
+        cardPublicationId: cardPublication?.id,
         unpublishedAt: null,
       },
     });
@@ -1558,13 +1576,6 @@ export async function performControlMutation(
       prisma.demoWorkspaceMetadata.update({
         where: { id: demo.id },
         data: { currentPublicationId: publication.id },
-      }),
-      prisma.brandKit.update({
-        where: { businessId: demo.businessId },
-        data: {
-          tapCard: tapCard as Prisma.InputJsonValue,
-          tapCardPublishedAt: new Date(),
-        },
       }),
     ]);
     await audit({
@@ -1578,11 +1589,11 @@ export async function performControlMutation(
       next: {
         version,
         snapshotId: snapshot.id,
-        cardDraftRevision: brandKit?.tapCardDraftRevision ?? 0,
-        cardDraftUpdatedAt: brandKit?.tapCardDraftUpdatedAt,
+        cardPublicationId: cardPublication?.id,
+        publicRevisionId: cardPublication?.publicationSnapshotId,
       },
     });
-    return { ok: true, message: "Current saved Demo Card draft published safely.", resourceId: publication.id };
+    return { ok: true, message: "Current published Card revision published to the Demo safely.", resourceId: publication.id };
   }
 
   if (operation === "demo.rollback") {
