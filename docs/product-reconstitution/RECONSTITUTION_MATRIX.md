@@ -89,3 +89,13 @@ Classification: `KEEP`, `REWIRE`, `MERGE`, `RETIRE`, `REPLACE`, `UNKNOWN`. Rows 
 4. Disable misleading Ask Apply before exposing a new proposal engine; do not preserve success theater for compatibility.
 5. Retire legacy landing Demo paths only after every landing consumer reads `LandingDemoBinding` and rollback is proven.
 6. Add Email lifecycle authority additively; never discard `formSettings.emailResponse` until compatibility projection is verified.
+
+## Runtime disposition adjustments
+
+The isolated certification changes confidence, not the implementation dispositions:
+
+- V1 Card, Campaign, scheduled Campaign, Tap Trace, and Email rows are runtime-proven and remain the mandatory parent workflows.
+- Current Campaign/Group scheduling and Email provider blocking are runtime-equivalent or safer; keep their extension value.
+- Current Card draft durability is runtime-proven, but `tapCardDraft` → ordinary published Card is still missing. `Ordinary Card publication` therefore remains **REPLACE / critical / W1**.
+- Current full suite is 909/909, including 9/9 database durability subtests. This does not convert unit/integration coverage into missing Owner publication behavior.
+- Screenshot/recording proof is blocked; matrix classifications requiring visual interaction remain conditional.

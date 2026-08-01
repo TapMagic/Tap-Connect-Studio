@@ -202,3 +202,19 @@ Before expansion continues, prove in one isolated fixture Workspace:
 - No historical screenshots were found in that tree; current `screenshots/dashboard-before.jpg` is not sufficient to prove all workflows.
 - Existing later documents assert V1 and parity but are secondary evidence, not a substitute for rerunning the archived tree.
 - The exact first runtime-breaking commit for each regression remains a candidate until `git bisect`-style isolated journey replay is performed in Wave 0.
+
+## Runtime certification addendum — 2026-07-31
+
+The prior static limitation is now narrowed by an exact detached replay of `7357fd9806d56d07d9ded68eef2beec5ea578052` at `/private/tmp/tap-connect-studio-v1-certification` against isolated database `tapconnect_v1_cert`.
+
+| Area | V1 runtime result | Current isolated comparison | Finding |
+|---|---|---|---|
+| Card | `PATCH /api/brand` persisted appearance/actions; reload and public resolver read the saved object | `/api/card/draft` persisted seed Business revision 1→2 and the editor reloaded it; DB `tapCard` remained the prior public value; UI says “Draft changes not published” | V1 direct outcome proven; current draft safety is valuable but normal Owner publish is still absent — **REGRESSION/MISWIRED EXTENSION** |
+| Campaign | template create, block/theme/form Save, active assignment, `LIVE`, and public render passed | seeded Campaigns rendered and remained authoritative | **PRESERVED/IMPROVED** |
+| Scheduled Campaign | device rule over assignment and Group slot over default passed; deterministic before/during/after returned default/slot/default | current Group resolver returned the same default/slot/default pattern | **EQUIVALENT**, but both trees retain noisy runtime ScheduleRule FK creation and permissive playable-status policy |
+| Tap Trace | two public taps + one click persisted with Device/Business/Campaign/action attribution; Analytics showed 2 | current public taps and click persisted; Analytics visibly showed 4 for seeded Device after the certification requests | **IMPROVED breadth, equivalent core**, still no first-class Tap Trace history |
+| Email | Campaign JSON Save/reload/Preview passed; fake address stopped at HTTP 503 provider placeholder | builder returned 200; the same fake-address send stopped at HTTP 503 | **PRESERVED/IMPROVED authoring and safety**, lifecycle gap remains |
+
+Current database proof applied all 20 committed migrations to `tapconnect_current_fusion_dev`. Full current automated result: **909 tests, 296 suites, 909 pass, 0 fail, 0 canceled, 0 skipped**. The nine Email & Replies Prisma durability subtests all ran and passed; they are reported separately from the V1 runtime because V1 has no committed test suite.
+
+Evidence: `/private/tmp/tapconnect-v1-cert-evidence`, `/private/tmp/tapconnect-current-cert-evidence`, and [v1-runtime-certification/README.md](v1-runtime-certification/README.md). Required screenshots/recordings remain blocked by the unavailable in-app browser, so the gate is conditional rather than unconditional.

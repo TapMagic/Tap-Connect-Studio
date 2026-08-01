@@ -40,3 +40,13 @@ This map applies the [V2 Extension Law](TAPCONNECT_PRODUCT_CONSTITUTION.md#v2-ex
 5. Insights derives from Tap Trace. It cannot replace inspectable `TapEvent`/`ClickEvent` history.
 
 No system above justifies redefining a V1 parent. The V1 workflow is the acceptance test; additional value is admitted only after that workflow remains complete.
+
+## Runtime application of the law
+
+The isolated comparison confirms three governing classifications:
+
+1. **Canva-style Card authoring remains MISWIRED.** Its saved draft is durable and reloadable, but the same seeded Business retains a different `BrandKit.tapCard`, the editor says “Draft changes not published,” and ordinary Studio supplies no canonical publish transition. Rich editing cannot justify an incomplete V1 customer-result workflow.
+2. **Campaign scheduling CORRECTLY EXTENDS the V1 resolver core.** Current Group before/during/after behavior matched V1 and retained the same default/slot/default semantics. Runtime ScheduleRule compatibility code still logs duplicate-constraint errors and requires W1 cleanup through committed migrations, not runtime DDL.
+3. **Email visual authoring and provider governance CORRECTLY EXTEND the V1 draft/Preview/safety path.** Both trees reloaded Campaign-owned Email content and blocked the no-credential fake-address send at HTTP 503. First-class schedule/delivery authority remains later work, not a reason to replace the working V1 direct draft.
+
+Current automated proof (909/909, including nine database durability subtests) raises confidence in the extensions' internals but does not override the Extension Law's end-to-end Owner outcome test.

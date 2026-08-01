@@ -162,3 +162,18 @@ Target: Control Room → internal TapConnect Workspace → Studio → Brand → 
 - public payload hashes before/after draft and publication changes;
 - no network calls to live Email, Campaign, payment, customer, or production providers;
 - failure cases: 409 draft conflict, invalid schedule, blocked Demo send, expired Preview, denied permission, and binding approval.
+
+## Executed runtime trace addendum
+
+The isolated replay now proves the core trace without repairing either tree:
+
+| Trace | V1 observed result | Current observed result |
+|---|---|---|
+| Card Save → reload | public `BrandKit.tapCard` retained exact edited identity, colors, call and web actions | `BrandKit.tapCardDraft` revision advanced and reloaded exact edited section |
+| Saved Card → public | same V1 stored object was the public fallback | saved draft remained separate from unchanged `tapCard`; editor explicitly said draft was not published; no normal publish command was present |
+| Campaign lifecycle | DRAFT create → saved blocks/theme/form → active assignment → LIVE | seeded LIVE Campaign and Group resolver rendered correctly |
+| Schedule boundary | Group default at 11:00, slot at 12:30, default at 14:00 America/New_York; device rule also resolved | Group default before, evening slot during, default after; no device rule in current seed |
+| Public trace | two real public requests → two TapEvents; action → ClickEvent; Analytics total 2 | public requests → TapEvents and device count; action → ClickEvent; Analytics total/device 4 at final read |
+| Email | saved Campaign response visible on builder reload; fake address blocked 503 before provider | Email builder 200; fake address blocked 503 before provider |
+
+Exact payload/HTML/SQL evidence is indexed under `/private/tmp/tapconnect-{v1,current}-cert-evidence`. Screenshot and motion-state evidence remain **BLOCKED**, not silently substituted, because the in-app Browser had no browser instance.

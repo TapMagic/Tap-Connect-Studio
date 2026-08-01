@@ -266,3 +266,17 @@ Prefer an additive slice:
 6. Decide TapCast/TapLoop/TapProof customer-facing names.
 7. Approve whether authoring Save/audit logs every property diff or one document revision summary.
 8. Approve legacy landing Demo retirement sequence and compatibility window.
+
+## Wave 0 certification status
+
+Wave 0 historical replay is functionally complete in isolated environments:
+
+- exact detached V1 commit ran without a source compatibility patch;
+- the six requested V1 journeys produced route/API/visible-HTML/database evidence;
+- current database accepted all 20 committed migrations;
+- current tests passed 909/909 with all nine Prisma durability subtests active;
+- no live provider, production data, deployment, binding, publication, or send was used.
+
+Wave 0 is not unconditionally closed because screenshots and short recordings could not be captured: the in-app Browser had no available browser. Human review may accept the strong nonvisual evidence and authorize the next planning gate, or require a browser-enabled rerun. Do **not** begin Wave 1 from this documentation branch.
+
+Runtime evidence reinforces the first W1 priority: retain current draft revision safety, add one explicit ordinary Owner publish transition, and prove the published revision—not a draft or Demo-only path—feeds `/t`.

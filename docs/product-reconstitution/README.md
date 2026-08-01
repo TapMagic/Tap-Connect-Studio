@@ -21,6 +21,7 @@ This is a documentation-only audit. It made no implementation, test, schema, mig
 - [V1 Baseline and Regression Report](V1_BASELINE_AND_REGRESSION_REPORT.md) — exact V1 candidate/range, commit/code/database/Owner-flow proof, V1-current comparisons, regressions, and restoration boundary.
 - [TapConnect Rescue Plan](TAPCONNECT_RESCUE_PLAN.md) — dependency-aware Waves 0–8 and the recommended first vertical slice.
 - [V2 Extension Map](V2_EXTENSION_MAP.md) — every meaningful post-V1 system mapped to its V1 parent, allowed authority, present classification, disposition, and rescue wave.
+- [V1 Runtime Certification](v1-runtime-certification/README.md) — isolated historical and current runtime proof, journey records, evidence index, and decision gate.
 
 ## Executive findings
 
@@ -33,11 +34,11 @@ This is a documentation-only audit. It made no implementation, test, schema, mig
 7. The first implementation slice should prove the entire Card→Campaign→schedule→Tap Trace→Email→Control Room→Demo publish/bind/rollback loop in one isolated Demo Workspace before AI or Landing Page V2 work.
 8. The V2 Extension Law prohibits standalone islands and parallel Card, Campaign, Email, schedule, media, publication, draft, AI-truth, Business-identity, or customer-relationship authorities.
 
-## Evidence boundary
+## Runtime addendum
 
-The V1 candidate is confirmed as a coherent code baseline by Git topology, exact paths/symbols/models, commit history, and later repository archaeology. Its old tree contains no committed automated test suite, and this audit did not check it out or run it. Wave 0 therefore requires isolated historical runtime replay before anyone labels the candidate runtime-certified.
+The exact V1 candidate was subsequently executed in a clean detached worktree against isolated PostgreSQL. Card, Campaign, device/Group scheduling, Tap Trace, Email, and their integrated flow passed through real routes, APIs, resolver calls, and database rows. The current tree was separately migrated and exercised against its own isolated database. The current full suite passed **909/909**, including all nine previously canceled Email & Replies Prisma durability subtests, with zero failed, canceled, or skipped tests.
 
-Current consequential runtime paths were not exercised in this audit. Existing committed tests and prior documentation are cited as secondary runtime evidence; unresolved paths remain explicitly marked runtime proof required.
+The decision remains conditional because the required in-app browser had no available browser instance, preventing screenshots and short recordings. See the certification index for the precise evidence boundary; static-only statements elsewhere in the original audit are superseded by that addendum where they conflict.
 
 ## Review order
 
@@ -48,4 +49,4 @@ Current consequential runtime paths were not exercised in this audit. Existing c
 5. Approve Rescue Plan waves and the first vertical slice.
 6. Only then authorize a separate implementation branch/pass.
 
-PRODUCT RECONSTITUTION AUDIT COMPLETE — HUMAN REVIEW REQUIRED
+V1 RUNTIME BASELINE CONDITIONALLY CERTIFIED — HUMAN DECISION REQUIRED
