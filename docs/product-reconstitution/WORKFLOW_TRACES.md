@@ -1,7 +1,10 @@
 # Workflow Traces
 
 Audited tree: `d67d1399a064834d476a0675642c294cf13478e3`
-Execution boundary: static code and existing test-evidence inspection only. No production data, Email/Campaign send, publication, binding, payment, migration, or fixture mutation occurred. Runtime classifications use existing committed tests/documents where explicit; this audit marks its own unexecuted consequences **runtime proof required**.
+
+Original pass: static code and existing test-evidence inspection.
+
+Runtime addendum: exact detached V1 and current source were later exercised against two isolated local databases. No production data, real Email/Campaign send, publication, binding, payment, deployment, or customer contact occurred. The addendum at the end supersedes original “runtime proof required” labels only for the exact journeys it records.
 
 Classification vocabulary: **works as intended**, **technically works but misleading**, **partial**, **broken**, **circular**, **unreachable**, **unknown**.
 

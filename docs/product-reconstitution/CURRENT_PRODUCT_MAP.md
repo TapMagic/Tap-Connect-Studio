@@ -241,5 +241,6 @@ All post-V1 systems are additionally governed and classified in [V2_EXTENSION_MA
 
 ## Current runtime confidence
 
-- **Repository/test evidence:** substantial unit and Playwright coverage exists, but existing documents explicitly keep many systems at Owner-acceptance pending.
-- **This audit:** performed no production access, sends, publication, migrations, or fixture mutations. Static paths are confirmed; consequential end-to-end workflows remain **runtime proof required** where noted in `WORKFLOW_TRACES.md`.
+- **Automated evidence:** the full current suite ran against isolated `tapconnect_current_fusion_dev`: 909 tests / 296 suites / 909 pass / 0 fail / 0 canceled / 0 skipped. All nine Email & Replies Prisma durability subtests ran and passed.
+- **Runtime fixture evidence:** all 20 committed migrations applied to the isolated DB; Card draft reload, public Tap/Campaign resolution, Group schedule boundaries, TapEvent/ClickEvent attribution, Analytics, Email builder, and provider-blocked Email were exercised. No production access, real send, publication, deployment, binding, payment, or customer contact occurred.
+- **Remaining confidence boundary:** screenshot and recording proof is blocked because the in-app Browser had no browser instance. Current Card draft persistence is proven, and so is the missing ordinary draft→public action; richer interaction areas remain Owner-acceptance pending.

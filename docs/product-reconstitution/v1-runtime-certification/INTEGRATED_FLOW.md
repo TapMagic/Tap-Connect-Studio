@@ -6,7 +6,7 @@ The executed chain was:
 
 `DeviceSlot 54872e3fd3e0c69446df` → Group first / device schedule second / active assignment third → primary or scheduled `Campaign` → public renderer → `TapEvent` → CTA `ClickEvent` → Campaign-owned `formSettings.emailResponse` visible in the Email builder → provider-blocked Email command.
 
-The Card remained the Business fallback/public presentation authority through `BrandKit.tapCard`. Campaign Group default selected the primary Campaign outside the slot; the Group slot selected the scheduled Campaign inside it. Tap rows carry Device, Business, and resolved Campaign. The supported action carried the same identifiers plus block ID. Email was related exactly as V1 implemented it—inside the primary Campaign—not invented as a separate relationship.
+The Card remained the Business public-presentation authority through `BrandKit.tapCard`, projected by a supported Campaign `digital_card` block. Campaign Group default selected the primary Campaign outside the slot; the Group slot selected the scheduled Campaign inside it. Tap rows carry Device, Business, and resolved Campaign. The supported action carried the same identifiers plus block ID. Email was related exactly as V1 implemented it—inside the primary Campaign—not invented as a separate relationship.
 
 Cross-checks:
 

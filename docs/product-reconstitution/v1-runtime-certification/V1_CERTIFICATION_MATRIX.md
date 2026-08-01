@@ -4,7 +4,7 @@
 |---|---|---|---|---|
 | Card create/open | `/onboarding`, `/api/business`, `/dashboard/card` | Business, BrandKit, Location created | **CONDITIONALLY CERTIFIED** | screenshots/recording blocked |
 | Card info/appearance/actions Save/reload | `PATCH /api/brand`, repeated `/dashboard/card` | exact `BrandKit.tapCard`, colors, socialLinks | **CONDITIONALLY CERTIFIED** | direct Save is public |
-| Card public result | `/t/54872e3fd3e0c69446df` | resolver reads `BrandKit.tapCard` fallback | **CONDITIONALLY CERTIFIED** | no Card revision attribution |
+| Card public result | assigned Campaign with `digital_card` → `/t/54872e3fd3e0c69446df` | public Campaign renderer reads `BrandKit.tapCard`; exact identity/actions visible | **CONDITIONALLY CERTIFIED** | no standalone Card fallback or revision attribution |
 | Campaign create/edit/Save | `/api/campaigns`, PATCH `/api/campaigns/assign` | Campaign blocks/theme/form JSON | **CONDITIONALLY CERTIFIED** | endpoint overload |
 | Campaign status/assign/activate | POST `/api/campaigns/assign` | active DeviceAssignment; Campaign LIVE; Device ACTIVE | **CONDITIONALLY CERTIFIED** | assignment mutates lifecycle |
 | Device scheduled Campaign | `/api/schedule`, public `/t` | ScheduleRule + scheduled Campaign | **CONDITIONALLY CERTIFIED** | DRAFT is playable |

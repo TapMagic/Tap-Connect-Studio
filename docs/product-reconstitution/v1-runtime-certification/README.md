@@ -1,8 +1,11 @@
 # V1 Runtime Certification
 
-Candidate: `7357fd9806d56d07d9ded68eef2beec5ea578052`  
-Detached worktree: `/private/tmp/tap-connect-studio-v1-certification`  
-Execution: 2026-07-31 EDT / 2026-08-01 UTC  
+Candidate: `7357fd9806d56d07d9ded68eef2beec5ea578052`
+
+Detached worktree: `/private/tmp/tap-connect-studio-v1-certification`
+
+Execution: 2026-07-31 EDT / 2026-08-01 UTC
+
 Evidence root: `/private/tmp/tapconnect-v1-cert-evidence`
 
 ## Decision
@@ -27,3 +30,16 @@ Additional V1 limitations are real but do not negate the demonstrated baseline: 
 Environment, compatibility, isolation, and evidence limitations are in [ENVIRONMENT_AND_COMPATIBILITY.md](ENVIRONMENT_AND_COMPATIBILITY.md). The row-level gate is in [V1_CERTIFICATION_MATRIX.md](V1_CERTIFICATION_MATRIX.md).
 
 No production/staging/customer data or provider was accessed. No Email or Campaign was sent. No implementation, schema, or checked-in migration was changed in either source tree.
+
+## Final rescue gate
+
+- Starting audit SHA: `b99cbd1906698fe189eafec379bcba6564019867`
+- V1 tree: clean detached `7357fd9806d56d07d9ded68eef2beec5ea578052`
+- V1/current databases: `tapconnect_v1_cert` and `tapconnect_current_fusion_dev`
+- Compatibility patch: none
+- V1 tests: not present; do not combine with current counts
+- Current tests: 909/909; durability subset 9/9; canceled/skipped 0/0
+- Consequential actions: none
+- Implementation authorization: none; Wave 1 was not started
+
+Human decision required: accept the nonvisual route/API/HTML/DB bundle as sufficient baseline evidence, or rerun only the screenshot/recording layer when an in-app browser is available. Functional V1 replay does not need source repair.

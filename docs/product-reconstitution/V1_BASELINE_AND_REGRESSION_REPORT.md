@@ -17,7 +17,7 @@ Evidence:
 - Repository archaeology later recorded the same exact SHA as V1 in `docs/fusion/V1_CAPABILITY_INVENTORY.md`.
 - Its tree contains one coherent App Router product with the Card, Campaign editor/lifecycle, both scheduled-Campaign mechanisms, tap/click event recording and Analytics, Email builder/save/send path, and the public resolver joining those systems.
 
-This is a **confirmed coherent code baseline**. It is not yet a freshly rerun runtime certification: V1 contains no committed Playwright/unit suite, and this audit was forbidden from checking it out or modifying it. Before restoration implementation, Wave 0 must build a read-only worktree or archive from this SHA against an isolated compatible fixture database and capture the historical journeys.
+This is a **confirmed coherent code baseline** and is now **conditionally runtime-certified** by a later documentation-only addendum. V1 contains no committed Playwright/unit suite, but the exact detached commit was run unchanged against an isolated compatible PostgreSQL fixture. The requested workflows passed with route/API/visible-HTML/database evidence. Required screenshots and recordings remain blocked because the in-app Browser had no available browser instance; see the runtime addendum and certification directory below.
 
 ## Commit evidence by capability
 
@@ -196,12 +196,12 @@ Before expansion continues, prove in one isolated fixture Workspace:
 - Lack of audit, approval, immutable Demo revisions, or tenant-safe permissions.
 - Weak accessibility/responsive behavior and ambiguous provider readiness.
 
-## Historical evidence limitations
+## Original static-phase evidence limitations
 
-- No V1 automated tests are present in the candidate tree.
-- No historical screenshots were found in that tree; current `screenshots/dashboard-before.jpg` is not sufficient to prove all workflows.
-- Existing later documents assert V1 and parity but are secondary evidence, not a substitute for rerunning the archived tree.
-- The exact first runtime-breaking commit for each regression remains a candidate until `git bisect`-style isolated journey replay is performed in Wave 0.
+- No V1 automated tests are present in the candidate tree; the later runtime pass therefore used direct journey evidence rather than inventing a V1 test count.
+- No historical screenshots were found in that tree; the later pass could not add new screenshots because no in-app browser instance was available.
+- Existing later documents remain secondary evidence; the exact detached V1 replay is now the primary runtime evidence.
+- The exact first runtime-breaking commit for each regression remains a candidate until a separate authorized `git bisect`-style replay; this was not necessary to certify the baseline behavior.
 
 ## Runtime certification addendum — 2026-07-31
 
