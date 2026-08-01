@@ -38,12 +38,14 @@ export type AssignableDevice = { id: string; label: string };
  * LIVE reads as "info" (running), not "go".
  */
 const STATUS_TOKEN: Record<string, { token: string; label: string }> = {
-  LIVE: { token: "var(--studio-status-info)", label: "live" },
+  LIVE: { token: "var(--studio-status-info)", label: "active" },
   SCHEDULED: { token: "var(--studio-status-info)", label: "scheduled" },
   READY: { token: "var(--studio-status-ok)", label: "ready" },
   PAUSED: { token: "var(--studio-status-warn)", label: "paused" },
   DRAFT: { token: "var(--studio-status-neutral)", label: "draft" },
   ARCHIVED: { token: "var(--studio-status-neutral)", label: "archived" },
+  COMPLETED: { token: "var(--studio-status-neutral)", label: "completed" },
+  FAILED: { token: "var(--studio-status-critical)", label: "failed" },
   CLOSED: { token: "var(--studio-status-neutral)", label: "closed" },
 };
 

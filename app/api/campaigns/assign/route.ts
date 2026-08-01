@@ -17,6 +17,7 @@ import {
 } from "@/lib/fusion/creative-platform/document-usage";
 import type { Prisma } from "@prisma/client";
 import { appendAuditEvent } from "@/lib/control/audit";
+import { transitionCampaign } from "@/lib/services/campaign-commands";
 
 /** Builder owner-gate: PATCH records PublicationSnapshot on save/publish. */
 
@@ -156,7 +157,6 @@ export async function PATCH(request: Request) {
       ...(updates.themeOverrides !== undefined
         ? { themeOverrides: updates.themeOverrides as Prisma.InputJsonValue }
         : {}),
-      ...(updates.status !== undefined ? { status: updates.status } : {}),
       ...(updates.scheduledStart !== undefined
         ? { scheduledStart: updates.scheduledStart ? new Date(updates.scheduledStart) : null }
         : {}),
@@ -172,10 +172,33 @@ export async function PATCH(request: Request) {
       updatedBy: { connect: { id: user.id } },
     };
 
-    const campaign = await prisma.campaign.update({
+    let campaign = await prisma.campaign.update({
       where: { id },
       data,
     });
+    if (updates.status !== undefined && updates.status !== campaign.status) {
+      const command = updates.status === "LIVE" ? "activate"
+        : updates.status === "PAUSED" ? "pause"
+          : updates.status === "SCHEDULED" ? "schedule"
+            : updates.status === "READY" ? "mark_ready"
+              : updates.status === "ARCHIVED" || updates.status === "CLOSED" ? "archive"
+                : "save_draft";
+      campaign = await transitionCampaign({
+        businessId: business.id,
+        campaignId: id,
+        toStatus: updates.status === "CLOSED" ? "ARCHIVED" : updates.status,
+        command,
+        actorId: user.id,
+        scheduledStart:
+          updates.status === "SCHEDULED"
+            ? (updates.scheduledStart ? new Date(updates.scheduledStart) : campaign.scheduledStart)
+            : undefined,
+        scheduledEnd:
+          updates.status === "SCHEDULED"
+            ? (updates.scheduledEnd ? new Date(updates.scheduledEnd) : campaign.scheduledEnd)
+            : undefined,
+      });
+    }
     if (updates.contentBlocks !== undefined) {
       await recordSavedDocumentResourceUsage({
         businessId: business.id,

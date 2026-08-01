@@ -99,6 +99,10 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
     visitorHash,
     userAgent,
     referrer,
+    cardPublicationId: device.business?.brandKit?.currentCardPublicationId,
+    scheduleDecision: result.decision,
+    fixture: ["DEMO", "TEST_FIXTURE", "PERSONAL_SANDBOX"].includes(device.business?.workspaceKind ?? ""),
+    resolutionOutcome: campaign ? "CAMPAIGN" : "CARD_FALLBACK",
   });
 
   // TapFlow live visitor path boots via TapFlowLiveBootstrap (client) so the
@@ -189,6 +193,13 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
       return (
         <>
           <TapFlowLiveBootstrap deviceCode={deviceCode} campaignId={undefined} />
+          <span
+            className="sr-only"
+            data-testid="public-card-revision"
+            data-public-revision-id={brandKit?.currentCardPublicationId ?? "legacy"}
+          >
+            Published Card revision {brandKit?.currentCardPublicationId ?? "legacy"}
+          </span>
           <TapConnectCardPublic
             config={tapCard}
             profile={contactProfile}
@@ -358,6 +369,13 @@ export default async function TapPage({ params, searchParams }: TapPageProps) {
   return (
     <>
       <TapFlowLiveBootstrap deviceCode={deviceCode} campaignId={campaign.id} />
+      <span
+        className="sr-only"
+        data-testid="public-card-revision"
+        data-public-revision-id={brandKit?.currentCardPublicationId ?? "legacy"}
+      >
+        Published Card revision {brandKit?.currentCardPublicationId ?? "legacy"}
+      </span>
       <CampaignPageRenderer
         blocks={blocks}
         theme={theme}

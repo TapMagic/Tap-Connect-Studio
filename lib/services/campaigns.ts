@@ -49,18 +49,30 @@ export async function createCampaignFromTemplate(params: {
       }
     : {};
 
-  return prisma.campaign.create({
-    data: {
-      businessId: params.businessId,
-      title: params.title,
-      campaignType: template.campaignType as CampaignType,
-      templateId: template.id,
-      contentBlocks: blocks as unknown as Prisma.InputJsonValue,
-      themeOverrides: themeOverrides as Prisma.InputJsonValue,
-      status: "DRAFT",
-      createdById: params.userId,
-      updatedById: params.userId,
-    },
+  return prisma.$transaction(async (tx) => {
+    const campaign = await tx.campaign.create({
+      data: {
+        businessId: params.businessId,
+        title: params.title,
+        campaignType: template.campaignType as CampaignType,
+        templateId: template.id,
+        contentBlocks: blocks as unknown as Prisma.InputJsonValue,
+        themeOverrides: themeOverrides as Prisma.InputJsonValue,
+        status: "DRAFT",
+        createdById: params.userId,
+        updatedById: params.userId,
+      },
+    });
+    await tx.campaignLifecycleEvent.create({
+      data: {
+        businessId: params.businessId,
+        campaignId: campaign.id,
+        toStatus: "DRAFT",
+        command: "create",
+        actorId: params.userId,
+      },
+    });
+    return campaign;
   });
 }
 
@@ -135,11 +147,6 @@ export async function assignCampaignToDevice(params: {
         status: "ACTIVE",
         activatedAt: device.activatedAt ?? new Date(),
       },
-    });
-
-    await tx.campaign.update({
-      where: { id: campaign.id },
-      data: { status: "LIVE" },
     });
 
     await syncTapPointStatusForDevice({

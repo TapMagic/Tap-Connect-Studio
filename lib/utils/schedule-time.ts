@@ -102,8 +102,10 @@ export function timeInRange(now: string, start?: string | null, end?: string | n
   if (!start && !end) return true;
   const s = start || "00:00";
   const e = end || "23:59";
-  if (s <= e) return now >= s && now <= e;
-  return now >= s || now <= e;
+  // Availability windows are start-inclusive and end-exclusive. Adjacent
+  // windows therefore resolve deterministically at their shared boundary.
+  if (s <= e) return now >= s && now < e;
+  return now >= s || now < e;
 }
 
 export type ScheduleSlotLike = {

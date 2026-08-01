@@ -32,37 +32,32 @@ export async function ensureScheduleRuleTable(): Promise<boolean> {
       ON "ScheduleRule"("deviceSlotId", "enabled");
     `);
 
-    // FKs — ignore if already exist or parent missing
-    try {
-      await prisma.$executeRawUnsafe(`
-        ALTER TABLE "ScheduleRule"
-        ADD CONSTRAINT "ScheduleRule_businessId_fkey"
-        FOREIGN KEY ("businessId") REFERENCES "Business"("id")
-        ON DELETE CASCADE ON UPDATE CASCADE;
-      `);
-    } catch {
-      /* exists */
-    }
-    try {
-      await prisma.$executeRawUnsafe(`
-        ALTER TABLE "ScheduleRule"
-        ADD CONSTRAINT "ScheduleRule_deviceSlotId_fkey"
-        FOREIGN KEY ("deviceSlotId") REFERENCES "DeviceSlot"("id")
-        ON DELETE CASCADE ON UPDATE CASCADE;
-      `);
-    } catch {
-      /* exists */
-    }
-    try {
-      await prisma.$executeRawUnsafe(`
-        ALTER TABLE "ScheduleRule"
-        ADD CONSTRAINT "ScheduleRule_campaignId_fkey"
-        FOREIGN KEY ("campaignId") REFERENCES "Campaign"("id")
-        ON DELETE CASCADE ON UPDATE CASCADE;
-      `);
-    } catch {
-      /* exists */
-    }
+    // PostgreSQL has no ADD CONSTRAINT IF NOT EXISTS, so make the compatibility
+    // bootstrap idempotent without generating an expected database error.
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ScheduleRule_businessId_fkey') THEN
+          ALTER TABLE "ScheduleRule" ADD CONSTRAINT "ScheduleRule_businessId_fkey"
+          FOREIGN KEY ("businessId") REFERENCES "Business"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ScheduleRule_deviceSlotId_fkey') THEN
+          ALTER TABLE "ScheduleRule" ADD CONSTRAINT "ScheduleRule_deviceSlotId_fkey"
+          FOREIGN KEY ("deviceSlotId") REFERENCES "DeviceSlot"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `);
+    await prisma.$executeRawUnsafe(`
+      DO $$ BEGIN
+        IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'ScheduleRule_campaignId_fkey') THEN
+          ALTER TABLE "ScheduleRule" ADD CONSTRAINT "ScheduleRule_campaignId_fkey"
+          FOREIGN KEY ("campaignId") REFERENCES "Campaign"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+        END IF;
+      END $$;
+    `);
 
     scheduleTableReady = true;
     return true;

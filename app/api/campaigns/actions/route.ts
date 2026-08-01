@@ -4,6 +4,7 @@ import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { archiveCampaign, cloneCampaign, deleteCampaign, wipeBusinessContent } from "@/lib/services/campaigns";
 import { prisma } from "@/lib/db";
+import { transitionCampaign } from "@/lib/services/campaign-commands";
 
 const actionSchema = z.discriminatedUnion("action", [
   z.object({
@@ -13,7 +14,7 @@ const actionSchema = z.discriminatedUnion("action", [
   z.object({
     action: z.literal("status"),
     campaignId: z.string(),
-    status: z.enum(["DRAFT", "READY", "LIVE", "PAUSED", "ARCHIVED", "CLOSED", "SCHEDULED"]),
+    status: z.enum(["DRAFT", "READY", "LIVE", "PAUSED", "COMPLETED", "ARCHIVED", "FAILED", "CLOSED", "SCHEDULED"]),
   }),
   z.object({
     action: z.literal("archive"),
@@ -78,10 +79,12 @@ export async function POST(request: Request) {
     }
 
     if (body.action === "archive") {
-      const campaign = await archiveCampaign({
+      const campaign = await transitionCampaign({
         businessId: business.id,
         campaignId: body.campaignId,
-        status: "ARCHIVED",
+        toStatus: "ARCHIVED",
+        command: "archive",
+        actorId: user.id,
       });
       revalidateCampaignViews();
       return NextResponse.json({ campaign });
@@ -94,35 +97,32 @@ export async function POST(request: Request) {
       if (!existing) {
         return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
       }
-      const campaign = await prisma.campaign.update({
-        where: { id: body.campaignId },
-        data: { status: "DRAFT" },
+      const campaign = await transitionCampaign({
+        businessId: business.id,
+        campaignId: body.campaignId,
+        toStatus: "DRAFT",
+        command: "restore",
+        actorId: user.id,
       });
       revalidateCampaignViews();
       return NextResponse.json({ campaign });
     }
 
     // status
-    if (body.status === "ARCHIVED" || body.status === "CLOSED") {
-      const campaign = await archiveCampaign({
-        businessId: business.id,
-        campaignId: body.campaignId,
-        status: body.status,
-      });
-      revalidateCampaignViews();
-      return NextResponse.json({ campaign });
-    }
-
-    const existing = await prisma.campaign.findFirst({
-      where: { id: body.campaignId, businessId: business.id },
-    });
-    if (!existing) {
-      return NextResponse.json({ error: "Campaign not found" }, { status: 404 });
-    }
-
-    const campaign = await prisma.campaign.update({
-      where: { id: body.campaignId },
-      data: { status: body.status },
+    const command = body.status === "LIVE" ? "activate"
+      : body.status === "PAUSED" ? "pause"
+        : body.status === "SCHEDULED" ? "schedule"
+          : body.status === "READY" ? "mark_ready"
+            : body.status === "COMPLETED" ? "complete"
+              : body.status === "FAILED" ? "fail"
+                : body.status === "ARCHIVED" || body.status === "CLOSED" ? "archive"
+                  : "save_draft";
+    const campaign = await transitionCampaign({
+      businessId: business.id,
+      campaignId: body.campaignId,
+      toStatus: body.status === "CLOSED" ? "ARCHIVED" : body.status,
+      command,
+      actorId: user.id,
     });
     revalidateCampaignViews();
     return NextResponse.json({ campaign });
@@ -156,7 +156,7 @@ export async function PATCH(request: Request) {
     const body = z
       .object({
         campaignId: z.string(),
-        status: z.enum(["DRAFT", "READY", "LIVE", "PAUSED", "ARCHIVED", "CLOSED", "SCHEDULED"]),
+        status: z.enum(["DRAFT", "READY", "LIVE", "PAUSED", "COMPLETED", "ARCHIVED", "FAILED", "CLOSED", "SCHEDULED"]),
       })
       .parse(await request.json());
 

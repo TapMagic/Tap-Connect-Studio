@@ -2,7 +2,7 @@ import { CampaignStatus, DeviceStatus, type Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { ContentBlock } from "@/lib/types/campaign";
 import { normalizeContentBlocks } from "@/lib/services/normalize-content-blocks";
-import { resolveGroupCampaign, resolveScheduledCampaign } from "@/lib/services/schedule";
+import { resolveCampaignSchedule } from "@/lib/services/schedule";
 import { ensureCampaignGroupTables } from "@/lib/db/ensure-group";
 import { ensureTapPointBridgeForDevice, resolveDeviceSlotByPublicCode } from "@/lib/fusion/devices/tap-point-bridge";
 
@@ -46,42 +46,18 @@ export async function getDeviceWithActiveCampaign(
 
   const assignment = device.assignments[0];
 
-  // 1) Campaign group (shared schedule across devices) wins when device is linked
-  if (device.campaignGroupId) {
-    const fromGroup = await resolveGroupCampaign(device.campaignGroupId, at);
-    if (fromGroup?.campaign) {
-      return {
-        device,
-        assignment,
-        campaign: fromGroup.campaign,
-        scheduleRule: null,
-        groupSlot: fromGroup.slot,
-        campaignGroup: fromGroup.group,
-      };
-    }
-  }
-
-  // 2) Per-device schedule rules
-  const scheduled = await resolveScheduledCampaign(device.id, at);
-  if (scheduled?.campaign) {
-    return {
-      device,
-      assignment,
-      campaign: scheduled.campaign,
-      scheduleRule: scheduled.rule,
-      groupSlot: null,
-      campaignGroup: device.campaignGroup,
-    };
-  }
-
-  // 3) Default assignment
+  const resolved = await resolveCampaignSchedule({
+    deviceSlotId: device.id,
+    groupId: device.campaignGroupId,
+    assignmentCampaign: assignment?.campaign ?? null,
+    timezone: device.business?.timezone,
+    at,
+  });
   return {
     device,
     assignment,
-    campaign: assignment?.campaign ?? null,
-    scheduleRule: null,
-    groupSlot: null,
-    campaignGroup: device.campaignGroup,
+    ...resolved,
+    campaignGroup: resolved.campaignGroup ?? device.campaignGroup,
   };
 }
 
@@ -92,8 +68,12 @@ export async function logTapEvent(params: {
   visitorHash?: string;
   userAgent?: string | null;
   referrer?: string | null;
+  cardPublicationId?: string | null;
+  scheduleDecision?: unknown;
+  fixture?: boolean;
+  resolutionOutcome?: string | null;
 }) {
-  await prisma.$transaction([
+  const [tapEvent] = await prisma.$transaction([
     prisma.tapEvent.create({
       data: {
         deviceSlotId: params.deviceSlotId,
@@ -102,6 +82,10 @@ export async function logTapEvent(params: {
         visitorHash: params.visitorHash,
         userAgent: params.userAgent ?? undefined,
         referrer: params.referrer ?? undefined,
+        cardPublicationId: params.cardPublicationId ?? undefined,
+        scheduleDecision: params.scheduleDecision as Prisma.InputJsonValue | undefined,
+        fixture: params.fixture ?? false,
+        resolutionOutcome: params.resolutionOutcome ?? undefined,
       },
     }),
     prisma.deviceSlot.update({
@@ -112,6 +96,7 @@ export async function logTapEvent(params: {
       },
     }),
   ]);
+  return tapEvent;
 }
 
 export function parseContentBlocks(raw: Prisma.JsonValue): ContentBlock[] {
@@ -124,14 +109,12 @@ export function isCampaignLive(campaign: {
   scheduledEnd: Date | null;
 }): boolean {
   const now = new Date();
-  if (["ARCHIVED", "CLOSED", "PAUSED"].includes(campaign.status)) return false;
+  if (["ARCHIVED", "CLOSED", "PAUSED", "FAILED", "COMPLETED", "DRAFT", "READY"].includes(campaign.status)) return false;
 
   if (campaign.scheduledStart && campaign.scheduledStart > now) return false;
   if (campaign.scheduledEnd && campaign.scheduledEnd < now) return false;
 
-  // Assigned/scheduled campaigns should render even if still marked READY/DRAFT
-  // (Publish sets LIVE; Save must not demote LIVE → DRAFT).
-  return ["LIVE", "READY", "SCHEDULED", "DRAFT"].includes(campaign.status);
+  return ["LIVE", "SCHEDULED"].includes(campaign.status);
 }
 
 export function shouldShowInactiveDevice(status: DeviceStatus): boolean {

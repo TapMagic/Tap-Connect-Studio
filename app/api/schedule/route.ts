@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
+import { transitionCampaign } from "@/lib/services/campaign-commands";
 
 const createSchema = z.object({
   deviceSlotId: z.string(),
@@ -12,6 +13,8 @@ const createSchema = z.object({
   endTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
   priority: z.number().int().min(0).max(100).default(0),
   enabled: z.boolean().default(true),
+  startDate: z.string().datetime().optional().nullable(),
+  endDate: z.string().datetime().optional().nullable(),
 });
 
 const updateSchema = createSchema.partial().extend({
@@ -47,7 +50,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    const { business } = await requireBusiness();
+    const { business, user } = await requireBusiness();
     const body = createSchema.parse(await request.json());
 
     const [device, campaign] = await Promise.all([
@@ -62,19 +65,40 @@ export async function POST(request: Request) {
     if (!device || !campaign) {
       return NextResponse.json({ error: "Device or campaign not found" }, { status: 404 });
     }
+    if (!["READY", "SCHEDULED", "LIVE"].includes(campaign.status)) {
+      return NextResponse.json(
+        { error: "Mark this Campaign Ready before scheduling it." },
+        { status: 409 },
+      );
+    }
 
-    const rule = await prisma.scheduleRule.create({
-      data: {
-        businessId: business.id,
-        deviceSlotId: body.deviceSlotId,
-        campaignId: body.campaignId,
-        label: body.label,
-        daysOfWeek: body.daysOfWeek,
-        startTime: body.startTime ?? null,
-        endTime: body.endTime ?? null,
-        priority: body.priority,
-        enabled: body.enabled,
-      },
+    const rule = await prisma.$transaction(async (tx) => {
+      if (campaign.status === "READY") {
+        await transitionCampaign({
+          businessId: business.id,
+          campaignId: campaign.id,
+          toStatus: "SCHEDULED",
+          command: "schedule",
+          actorId: user.id,
+          externalSchedule: true,
+          client: tx,
+        });
+      }
+      return tx.scheduleRule.create({
+        data: {
+          businessId: business.id,
+          deviceSlotId: body.deviceSlotId,
+          campaignId: body.campaignId,
+          label: body.label,
+          daysOfWeek: body.daysOfWeek,
+          startTime: body.startTime ?? null,
+          endTime: body.endTime ?? null,
+          startDate: body.startDate ? new Date(body.startDate) : null,
+          endDate: body.endDate ? new Date(body.endDate) : null,
+          priority: body.priority,
+          enabled: body.enabled,
+        },
+      });
     });
 
     return NextResponse.json({ rule });
@@ -107,6 +131,8 @@ export async function PATCH(request: Request) {
         ...(data.daysOfWeek !== undefined ? { daysOfWeek: data.daysOfWeek } : {}),
         ...(data.startTime !== undefined ? { startTime: data.startTime } : {}),
         ...(data.endTime !== undefined ? { endTime: data.endTime } : {}),
+        ...(data.startDate !== undefined ? { startDate: data.startDate ? new Date(data.startDate) : null } : {}),
+        ...(data.endDate !== undefined ? { endDate: data.endDate ? new Date(data.endDate) : null } : {}),
         ...(data.priority !== undefined ? { priority: data.priority } : {}),
         ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
         ...(data.campaignId !== undefined ? { campaignId: data.campaignId } : {}),
