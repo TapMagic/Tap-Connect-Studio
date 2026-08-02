@@ -7,10 +7,11 @@
  */
 
 import { useEffect, useRef, useState, type CSSProperties } from "react";
-import { HelpCircle, BookmarkPlus, Contact, MapPin, Calendar, ShoppingBag } from "lucide-react";
+import { HelpCircle, BookmarkPlus, Contact, MapPin, Calendar, ShoppingBag, Phone } from "lucide-react";
 import { KeepCardCta } from "@/components/tap/keep-card-cta";
 import { CardSupportForm } from "@/components/fusion/card/card-support-form";
 import { SaveContactButton } from "@/components/tap/save-contact";
+import { PremiumIcon } from "@/components/design/premium-icon";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { RetentionWalletMode } from "@/lib/fusion/card/retention";
 import type {
@@ -24,6 +25,7 @@ const FOCUSABLE_SELECTOR =
 
 const ICONS: Record<ResolvedCardUtility["kind"], typeof HelpCircle> = {
   keep: BookmarkPlus,
+  call: Phone,
   support: HelpCircle,
   vcard: Contact,
   map: MapPin,
@@ -223,8 +225,14 @@ function UtilityActionButton({
   businessName: string;
 }) {
   const Icon = ICONS[utility.kind];
-  const baseClass =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[var(--util-accent)]/45 bg-[var(--util-accent)]/12 px-4 py-2 text-sm font-medium text-[var(--util-text)] transition hover:bg-[var(--util-accent)]/22 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--util-accent)]/50";
+  const baseClass = cn(
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--util-accent)]/50",
+    utility.style === "solid" && "border-[var(--util-accent)] bg-[var(--util-accent)] text-[var(--util-surface)]",
+    utility.style === "outline" && "border-[var(--util-accent)] bg-transparent text-[var(--util-text)]",
+    utility.style === "soft" && "border-transparent bg-[var(--util-accent)]/18 text-[var(--util-text)]",
+    (!utility.style || utility.style === "brand") && "border-[var(--util-accent)]/45 bg-[var(--util-accent)]/12 text-[var(--util-text)] hover:bg-[var(--util-accent)]/22"
+  );
+  const icon = utility.icon ? <PremiumIcon icon={utility.icon} sizePx={16} /> : <Icon className="h-4 w-4" aria-hidden />;
 
   if (utility.kind === "support") {
     return (
@@ -235,7 +243,7 @@ function UtilityActionButton({
         data-testid="card-utility-support"
         data-utility="support"
       >
-        <Icon className="h-4 w-4" aria-hidden />
+        {icon}
         {utility.label}
       </button>
     );
@@ -267,7 +275,7 @@ function UtilityActionButton({
         target={utility.href.startsWith("http") ? "_blank" : undefined}
         rel={utility.href.startsWith("http") ? "noopener noreferrer" : undefined}
       >
-        <Icon className="h-4 w-4" aria-hidden />
+        {icon}
         {utility.label}
       </a>
     );

@@ -29,6 +29,9 @@ export type ResolvedCardUtility = {
   /** For support — open in-layer form rather than navigate */
   runtime: "local_ux" | "url" | "platform_bound";
   analyticsEvent: string;
+  icon?: string;
+  style?: CardUtilityToggle["style"];
+  sourceMode?: CardUtilityToggle["sourceMode"];
 };
 
 export type ResolveUtilityLayerInput = {
@@ -53,6 +56,7 @@ export type ResolvedUtilityLayer = {
 
 const DEFAULT_TOGGLES: CardUtilityToggle[] = [
   { kind: "keep", enabled: true, label: "Keep this Card" },
+  { kind: "call", enabled: false, label: "Call" },
   { kind: "support", enabled: true, label: "Ask a Question" },
   { kind: "vcard", enabled: true, label: "Save Contact" },
   { kind: "map", enabled: true, label: "Directions" },
@@ -62,6 +66,7 @@ const DEFAULT_TOGGLES: CardUtilityToggle[] = [
 
 const LABELS: Record<CardUtilityKind, string> = {
   keep: "Keep this Card",
+  call: "Call",
   support: "Ask a Question",
   vcard: "Save Contact",
   map: "Directions",
@@ -89,6 +94,8 @@ function mergeToggles(
   for (const d of DEFAULT_TOGGLES) byKind.set(d.kind, { ...d });
   for (const t of fromHost) {
     byKind.set(t.kind, {
+      ...byKind.get(t.kind),
+      ...t,
       kind: t.kind,
       enabled: t.enabled !== false,
       label: t.label || byKind.get(t.kind)?.label,
@@ -119,7 +126,7 @@ export function resolveCardUtilityLayer(
     };
   }
 
-  const toggles = mergeToggles(settings);
+  const toggles = mergeToggles(settings).sort((a, b) => (a.order ?? 999) - (b.order ?? 999));
   const utilities: ResolvedCardUtility[] = [];
 
   for (const toggle of toggles) {
@@ -137,6 +144,9 @@ export function resolveCardUtilityLayer(
         reason: eligible ? undefined : "TapSave Keep is not available",
         runtime: "local_ux",
         analyticsEvent: "card.utility.keep",
+        icon: toggle.icon,
+        style: toggle.style,
+        sourceMode: toggle.sourceMode,
       });
       continue;
     }
@@ -157,21 +167,27 @@ export function resolveCardUtilityLayer(
         reason: eligibility.ok ? undefined : eligibility.message,
         runtime: "platform_bound",
         analyticsEvent: "card.support.submitted",
+        icon: toggle.icon,
+        style: toggle.style,
+        sourceMode: toggle.sourceMode,
       });
       continue;
     }
 
     // map / book / shop / vcard — require configured action or resolvable href
-    const href = section
+    const href = toggle.destination || (section
       ? resolveActionHref(section, input.profile, input.reviewUrl)
       : toggle.kind === "vcard"
         ? undefined
-        : undefined;
+        : toggle.kind === "call" && input.profile.phone
+          ? `tel:${input.profile.phone}`
+          : undefined);
 
     const hasConfig =
       Boolean(section) ||
       (toggle.kind === "vcard" &&
         Boolean(input.profile.phone || input.profile.email || input.profile.displayName)) ||
+      (toggle.kind === "call" && Boolean(input.profile.phone || toggle.destination)) ||
       (toggle.kind === "map" && Boolean(input.profile.address)) ||
       (toggle.kind === "book" && Boolean(section?.href)) ||
       (toggle.kind === "shop" && Boolean(section?.href));
@@ -200,6 +216,9 @@ export function resolveCardUtilityLayer(
       href: href,
       runtime: toggle.kind === "vcard" ? "local_ux" : "url",
       analyticsEvent: `card.utility.${toggle.kind}`,
+      icon: toggle.icon,
+      style: toggle.style,
+      sourceMode: toggle.sourceMode,
     });
   }
 
@@ -220,6 +239,7 @@ export function defaultUtilityLayerSettings(): CardUtilityLayerSettings {
     presentation: "compact_row",
     utilities: [
       { kind: "keep", enabled: true, label: "Keep this Card" },
+      { kind: "call", enabled: false, label: "Call" },
       { kind: "support", enabled: true, label: "Ask a Question" },
       { kind: "vcard", enabled: true, label: "Save Contact" },
       { kind: "map", enabled: true },

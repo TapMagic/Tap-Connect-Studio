@@ -31,6 +31,8 @@ export type TapCardActionKind =
   | "support";
 
 export type TapCardSectionType =
+  /** Composer Section/Surface. Its Elements live in `composition.nodes`. */
+  | "surface"
   | "promo_header"
   | "hero"
   | "identity"
@@ -254,6 +256,37 @@ export type TapCardSection = {
   accentColor?: string;
   neonColor?: string;
   opacity?: number;
+  /** Canvas-first Section/Surface semantics. Legacy blocks remain supported. */
+  surfaceKind?:
+    | "blank"
+    | "identity"
+    | "hero"
+    | "content"
+    | "actions"
+    | "offer"
+    | "contact"
+    | "location"
+    | "gallery";
+  surfaceLayout?: "stack" | "row" | "grid" | "free";
+  surfaceWidthPercent?: number;
+  surfaceMinHeightPx?: number;
+  surfacePaddingPx?: number;
+  surfaceGapPx?: number;
+  surfaceAlign?: "start" | "center" | "end" | "stretch";
+  surfaceDistribute?: "start" | "center" | "end" | "between" | "around";
+  surfaceBorderWidthPx?: number;
+  surfaceBorderColor?: string;
+  surfaceRadiusPx?: number;
+  surfaceShadow?: "none" | "soft" | "medium" | "strong";
+  backgroundImageUrl?: string;
+  backgroundMediaAssetId?: string;
+  backgroundFit?: "cover" | "contain" | "fill";
+  backgroundPosition?: string;
+  overlayColor?: string;
+  overlayOpacity?: number;
+  responsiveBehavior?: "scale" | "stack" | "hide_decorative";
+  mobileStackOrder?: string[];
+  collapsible?: boolean;
   siblingId?: string;
   children?: TapCardSection[];
   layout?: TapCardActionsLayout;
@@ -279,6 +312,7 @@ export type TapCardSection = {
 /** Page-level utilities that survive Campaign / Experience resolution. */
 export type CardUtilityKind =
   | "keep"
+  | "call"
   | "support"
   | "vcard"
   | "map"
@@ -295,6 +329,12 @@ export type CardUtilityToggle = {
   kind: CardUtilityKind;
   enabled: boolean;
   label?: string;
+  icon?: string;
+  order?: number;
+  style?: "brand" | "soft" | "outline" | "solid";
+  destination?: string;
+  eligibility?: "eligible" | "missing_phone" | "missing_address" | "unavailable";
+  sourceMode?: "BRAND" | "CUSTOM";
 };
 
 export type CardUtilityLayerSettings = {
@@ -739,12 +779,18 @@ function parseUtilityLayer(
           (u) =>
             u &&
             typeof u === "object" &&
-            ["keep", "support", "vcard", "map", "book", "shop"].includes(u.kind)
+            ["keep", "call", "support", "vcard", "map", "book", "shop"].includes(u.kind)
         )
         .map((u) => ({
           kind: u.kind,
           enabled: u.enabled !== false,
           label: typeof u.label === "string" ? u.label : undefined,
+          icon: typeof u.icon === "string" ? u.icon : undefined,
+          order: typeof u.order === "number" ? u.order : undefined,
+          style: u.style,
+          destination: typeof u.destination === "string" ? u.destination : undefined,
+          eligibility: u.eligibility,
+          sourceMode: u.sourceMode,
         }))
     : fallback?.utilities;
   return {
