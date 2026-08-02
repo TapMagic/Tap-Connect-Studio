@@ -50,6 +50,13 @@ export type CreativeCompositionCanvasProps = {
   distribute?: "start" | "center" | "end" | "between" | "around";
   minHeightPx?: number;
   onEditNodeText?: (nodeId: string, value: string) => void;
+  containerActions?: {
+    current: "card" | "section";
+    sections: Array<{ id: string; label: string }>;
+    onMoveToCard?: (nodeId: string) => void;
+    onMoveToSection?: (nodeId: string, sectionId: string) => void;
+    onWrap?: (nodeId: string) => void;
+  };
 };
 
 function str(v: unknown, fallback = ""): string {
@@ -664,6 +671,7 @@ export function CreativeCompositionCanvas({
   distribute = "start",
   minHeightPx,
   onEditNodeText,
+  containerActions,
 }: CreativeCompositionCanvasProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
@@ -673,6 +681,12 @@ export function CreativeCompositionCanvas({
   );
   const [guides, setGuides] = useState<CompositionGuide[]>([]);
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [marquee, setMarquee] = useState<{
+    startX: number;
+    startY: number;
+    currentX: number;
+    currentY: number;
+  } | null>(null);
   const [drag, setDrag] = useState<{
     id: string;
     mode: "move" | "resize" | "rotate";
@@ -832,6 +846,10 @@ export function CreativeCompositionCanvas({
   };
 
   const onPointerMove = (e: React.PointerEvent) => {
+    if (marquee && surfaceRef.current && editMode) {
+      setMarquee((current) => current ? { ...current, currentX: e.clientX, currentY: e.clientY } : null);
+      return;
+    }
     if (!drag || !surfaceRef.current || !editMode) return;
     autoScrollForPointer(surfaceRef.current, e.clientX, e.clientY);
     const rect = surfaceRef.current.getBoundingClientRect();
@@ -904,6 +922,22 @@ export function CreativeCompositionCanvas({
   };
 
   const onPointerUp = () => {
+    if (marquee && surfaceRef.current) {
+      const rect = surfaceRef.current.getBoundingClientRect();
+      const moved = Math.hypot(marquee.currentX - marquee.startX, marquee.currentY - marquee.startY);
+      if (moved >= 4) {
+        const left = (Math.min(marquee.startX, marquee.currentX) - rect.left) / Math.max(rect.width, 1);
+        const right = (Math.max(marquee.startX, marquee.currentX) - rect.left) / Math.max(rect.width, 1);
+        const top = (Math.min(marquee.startY, marquee.currentY) - rect.top) / Math.max(rect.height, 1);
+        const bottom = (Math.max(marquee.startY, marquee.currentY) - rect.top) / Math.max(rect.height, 1);
+        onSelectNodes?.(visibleNodes.filter((node) => {
+          const box = resolveNodeBox(node);
+          return box.left < right && box.left + box.width > left && box.top < bottom && box.top + box.height > top;
+        }).map((node) => node.id));
+      }
+      setMarquee(null);
+      return;
+    }
     if (!drag) return;
     const nodes = draftNodes ?? block.nodes;
     const mode = drag.mode;
@@ -1105,7 +1139,11 @@ export function CreativeCompositionCanvas({
       onPointerCancel={onPointerUp}
       onPointerDown={(event) => {
         setContextMenu(null);
-        if (editMode && event.target === event.currentTarget) onSelectNodes?.([]);
+        if (editMode && event.target === event.currentTarget && event.button === 0) {
+          onSelectNodes?.([]);
+          setMarquee({ startX: event.clientX, startY: event.clientY, currentX: event.clientX, currentY: event.clientY });
+          event.currentTarget.setPointerCapture?.(event.pointerId);
+        }
       }}
     >
       <div
@@ -1157,6 +1195,19 @@ export function CreativeCompositionCanvas({
             />
           ))
         : null}
+      {editMode && marquee ? (
+        <div
+          className="pointer-events-none fixed z-[1001] border border-[#b8ff2c] bg-[#b8ff2c]/10"
+          style={{
+            left: Math.min(marquee.startX, marquee.currentX),
+            top: Math.min(marquee.startY, marquee.currentY),
+            width: Math.abs(marquee.currentX - marquee.startX),
+            height: Math.abs(marquee.currentY - marquee.startY),
+          }}
+          data-testid="composition-marquee"
+          aria-hidden
+        />
+      ) : null}
 
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);
@@ -1283,7 +1334,7 @@ export function CreativeCompositionCanvas({
           commitNodes(nodes, label);
           setContextMenu(null);
         };
-        return <div role="menu" aria-label={`Actions for ${node.name || node.primitive}`} className="absolute z-[1200] min-w-40 rounded-lg border border-white/15 bg-[#0b1019] p-1 text-[10px] text-white shadow-2xl" style={{ left: Math.min(contextMenu.x, Math.max(0, surfaceSize.width - 170)), top: Math.min(contextMenu.y, Math.max(0, surfaceSize.height - 245)) }} data-testid="composition-context-menu">
+        return <div role="menu" aria-label={`Actions for ${node.name || node.primitive}`} className="absolute z-[1200] min-w-44 rounded-lg border border-white/15 bg-[#0b1019] p-1 text-[10px] text-white shadow-2xl" style={{ left: Math.min(contextMenu.x, Math.max(0, surfaceSize.width - 185)), top: Math.min(contextMenu.y, Math.max(0, surfaceSize.height - 390)) }} data-testid="composition-context-menu" onPointerDown={(event) => event.stopPropagation()}>
           {!node.locked ? <>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { const duplicated = duplicateNodes(block.nodes, [node.id]); action(duplicated.nodes, "Duplicated Element"); onSelectNodes?.(duplicated.newIds); }}>Duplicate</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringForward(block.nodes, node.id), "Brought Element forward")}>Bring forward</button>
@@ -1292,6 +1343,12 @@ export function CreativeCompositionCanvas({
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(sendToBack(block.nodes, node.id), "Sent Element to back")}>Send to back</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(block.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, visible: false } : candidate), "Hid Element")}>Hide</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(block.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, locked: true } : candidate), "Locked Element")}>Lock</button>
+            {containerActions?.current === "section" && containerActions.onMoveToCard ? <>
+              <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { containerActions.onMoveToCard?.(node.id); setContextMenu(null); }}>Move to Card</button>
+              <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { containerActions.onMoveToCard?.(node.id); setContextMenu(null); }}>Remove from Section</button>
+            </> : null}
+            {containerActions?.sections.map((section) => <button key={section.id} role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { containerActions.onMoveToSection?.(node.id, section.id); setContextMenu(null); }}>Move to Section… {section.label}</button>)}
+            {containerActions?.onWrap ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { containerActions.onWrap?.(node.id); setContextMenu(null); }}>Wrap in new Section</button> : null}
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left text-red-300 hover:bg-white/5" onClick={() => { action(deleteNodes(block.nodes, [node.id]), "Deleted Element"); onSelectNodes?.([]); }}>Delete</button>
           </> : <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(block.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, locked: false } : candidate), "Unlocked Element")}>Unlock to edit or delete</button>}
         </div>;

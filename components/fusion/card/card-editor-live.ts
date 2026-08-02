@@ -76,6 +76,17 @@ export type CardEditorLiveModel = {
   onAddAction: (kind: string) => void;
   onAddSurface?: (kind: CardSurfaceKind) => void;
   onAddElement?: (kind: CardElementKind, targetSectionId?: string) => void;
+  moveElementsTo?: (
+    ids: string[],
+    fromSectionId: string | null,
+    toSectionId: string | null
+  ) => void;
+  wrapElements?: (
+    ids: string[],
+    fromSectionId: string | null,
+    kind: CardSurfaceKind
+  ) => void;
+  removeSectionKeepElements?: (sectionId: string) => void;
   onStartPoint?: (kind: "blank" | "brand" | "template" | "clone") => void;
   setSelectedId: (id: string | null) => void;
   setShowFreeform: (v: boolean) => void;

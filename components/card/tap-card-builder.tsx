@@ -91,9 +91,14 @@ import {
 } from "@/lib/fusion/card/block-model";
 import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import {
+  addElementToCardRoot,
   addElementToSurface,
   createCardSurface,
+  ensureRootComposition,
+  moveCardElements,
+  removeSectionKeepElements,
   resolveComposerSelectedObject,
+  wrapCardElementsInSection,
   type CardElementKind,
   type CardSurfaceKind,
 } from "@/lib/fusion/card/composer-model";
@@ -379,7 +384,9 @@ export function TapCardBuilder({
   const sorted = [...sectionsHistory].sort((a, b) => a.order - b.order);
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
   const selectedObject = resolveComposerSelectedObject(config, selectedId, selectedCompositionNodeIds);
-  const cardEmptyReason = tapCardPreviewEmptyReason(sorted);
+  const cardEmptyReason = config.rootComposition?.nodes.length
+    ? null
+    : tapCardPreviewEmptyReason(sorted);
   const previewUtilityLayer = resolveCardUtilityLayer({
     card: config,
     profile,
@@ -941,7 +948,29 @@ export function TapCardBuilder({
     const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface")
       ?? sorted.find((section) => section.id === selectedId && section.type === "surface");
     if (!target) {
-      setMessage(`Select a compatible Section before adding ${kind}. You can add a Blank, Content, Identity, or other Section from the Build library.`);
+      let nextConfig = addElementToCardRoot(config, kind);
+      const root = ensureRootComposition(nextConfig);
+      const addedId = root.nodes.at(-1)?.id;
+      if (kind === "map" && addedId) {
+        const location = locations.find((item) => item.isDefault) || locations[0];
+        if (location) {
+          nextConfig = {
+            ...nextConfig,
+            rootComposition: {
+              ...root,
+              nodes: root.nodes.map((node) => node.id === addedId ? {
+                ...node,
+                props: { ...node.props, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" },
+              } : node),
+            },
+          };
+        }
+      }
+      setConfigHistory(nextConfig, { label: `Added ${kind} to Card root` });
+      setDirty(true);
+      setSelectedId(null);
+      if (addedId) setSelectedCompositionNodeIds([addedId]);
+      setMessage(`Added ${kind} directly to the Card root. No Section was created.`);
       return;
     }
     let next = addElementToSurface(target, kind);
@@ -957,20 +986,16 @@ export function TapCardBuilder({
     setSelectedCompositionNodeIds([next.composition!.nodes.at(-1)!.id]);
   }
 
-  function moveComposerElement(elementId: string, targetSectionId: string) {
-    const source = sorted.find((section) => section.composition?.nodes.some((node) => node.id === elementId));
-    const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface");
-    if (!source || !target || source.id === target.id || !source.composition || !target.composition) return;
-    const element = source.composition.nodes.find((node) => node.id === elementId);
-    if (!element || element.locked) return;
-    const next = sorted.map((section) => {
-      if (section.id === source.id) return { ...section, composition: { ...source.composition!, nodes: source.composition!.nodes.filter((node) => node.id !== elementId) } };
-      if (section.id === target.id) return { ...section, composition: { ...target.composition!, nodes: [...target.composition!.nodes, { ...element, zIndex: target.composition!.nodes.length + 1 }] } };
-      return section;
-    });
-    setSections(next, true, `Moved ${element.name || "Element"} between Sections`);
-    setSelectedId(target.id);
-    setSelectedCompositionNodeIds([element.id]);
+  function moveComposerElement(elementId: string, targetSectionId: string | null) {
+    const sourceSection = sorted.find((section) => section.composition?.nodes.some((node) => node.id === elementId));
+    const sourceId = sourceSection?.id ?? (config.rootComposition?.nodes.some((node) => node.id === elementId) ? null : undefined);
+    if (sourceId === undefined || sourceId === targetSectionId) return;
+    const next = moveCardElements(config, [elementId], sourceId, targetSectionId);
+    if (next === config) return;
+    setConfigHistory(next, { label: targetSectionId ? "Moved Element into Section" : "Moved Element to Card root" });
+    setDirty(true);
+    setSelectedId(targetSectionId);
+    setSelectedCompositionNodeIds([elementId]);
   }
 
   function addAction() {
@@ -983,7 +1008,8 @@ export function TapCardBuilder({
 
   function startCardFrom(kind: "blank" | "brand" | "template" | "clone") {
     if (kind === "blank") {
-      setSections([], true, "Started a blank Card");
+      setConfigHistory({ ...config, sections: [], rootComposition: undefined }, { label: "Started a blank Card" });
+      setDirty(true);
       setSelectedId(null);
       setMessage("Your Card is ready to build.");
       return;
@@ -1372,6 +1398,29 @@ export function TapCardBuilder({
       },
       onAddSurface: addComposerSurface,
       onAddElement: addComposerElement,
+      moveElementsTo: (ids, fromSectionId, toSectionId) => {
+        const next = moveCardElements(config, ids, fromSectionId, toSectionId);
+        setConfigHistory(next, { label: toSectionId ? "Moved Elements into Section" : "Moved Elements to Card root" });
+        setDirty(true);
+        setSelectedId(toSectionId);
+        setSelectedCompositionNodeIds(ids);
+      },
+      wrapElements: (ids, fromSectionId, kind) => {
+        const wrapped = wrapCardElementsInSection(config, ids, fromSectionId, kind);
+        setConfigHistory(wrapped.config, { label: "Wrapped Elements in Section" });
+        setDirty(true);
+        setSelectedId(wrapped.sectionId);
+        setSelectedCompositionNodeIds(ids);
+      },
+      removeSectionKeepElements: (sectionId) => {
+        const section = config.sections.find((candidate) => candidate.id === sectionId);
+        const ids = section?.composition?.nodes.map((node) => node.id) ?? [];
+        const next = removeSectionKeepElements(config, sectionId);
+        setConfigHistory(next, { label: "Removed Section and kept Elements" });
+        setDirty(true);
+        setSelectedId(null);
+        setSelectedCompositionNodeIds(ids);
+      },
       onStartPoint: startCardFrom,
       setSelectedId: (id) => {
         setSelectedId(id);
@@ -1645,7 +1694,7 @@ export function TapCardBuilder({
       </div>
       ) : null}
 
-      {shellHosted ? (
+      {shellHosted && interactionMode === "edit" ? (
         <div
           className="shrink-0 border-b border-white/10 px-4 py-2"
           data-testid="card-relationship-status"
@@ -2037,7 +2086,7 @@ export function TapCardBuilder({
       </div>
       ) : null}
 
-      {message ? (
+      {message && interactionMode === "edit" ? (
         <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary" role="status">
           {message}
         </p>
@@ -2418,7 +2467,7 @@ export function TapCardBuilder({
           )}
           data-testid="card-preview-canvas"
         >
-          <div className={cn("sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur", zoomToolbarCollapsed && "[&>*:not(:last-child)]:hidden")}>
+          {interactionMode === "edit" ? <div className={cn("sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur", zoomToolbarCollapsed && "[&>*:not(:last-child)]:hidden")}>
             <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-muted-foreground" data-testid="card-zoom-percent">
               {previewZoom === "fit" ? "Fit" : `${Math.round(previewZoom * 100)}%`}
             </span>
@@ -2532,7 +2581,7 @@ export function TapCardBuilder({
             <Button type="button" size="sm" variant="outline" className="h-7 text-xs" aria-expanded={!zoomToolbarCollapsed} data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed((collapsed) => !collapsed)}>
               {zoomToolbarCollapsed ? "View controls" : "Hide"}
             </Button>
-          </div>
+          </div> : null}
           <div className={cn("flex justify-center p-4 pb-12", previewPan && "cursor-grab overflow-auto")}>
             <div
               className={cn(
@@ -2549,7 +2598,7 @@ export function TapCardBuilder({
             >
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
-                {cardEmptyReason ? (
+                {cardEmptyReason && interactionMode === "edit" ? (
                   <div className="space-y-3" data-testid="blank-card-composer">
                     <BuilderPreviewEmpty reason={cardEmptyReason} variant="card" />
                     <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-4 text-center">
@@ -2587,8 +2636,10 @@ export function TapCardBuilder({
                   }
                   onCompositionChange={
                     interactionMode === "edit"
-                      ? (sectionId, composition, label) =>
-                          patchSection(sectionId, { composition }, label || "Edited composition")
+                      ? (sectionId, composition, label) => {
+                          if (sectionId) patchSection(sectionId, { composition }, label || "Edited composition");
+                          else patchConfig({ rootComposition: composition }, label || "Edited Card root Elements");
+                        }
                       : undefined
                   }
                   onComposerDrop={
@@ -2602,11 +2653,18 @@ export function TapCardBuilder({
                   onSectionReorder={interactionMode === "edit" ? reorder : undefined}
                   onSectionResize={interactionMode === "edit" ? (sectionId, heightPx) => patchSection(sectionId, { surfaceMinHeightPx: heightPx, surfaceHeightMode: "fixed" }, "Resized Section height") : undefined}
                   onElementMove={interactionMode === "edit" ? moveComposerElement : undefined}
+                  onElementWrap={interactionMode === "edit" ? (elementId, fromSectionId) => {
+                    const wrapped = wrapCardElementsInSection(config, [elementId], fromSectionId, "blank");
+                    setConfigHistory(wrapped.config, { label: "Wrapped Element in Section" });
+                    setDirty(true);
+                    setSelectedId(wrapped.sectionId);
+                    setSelectedCompositionNodeIds([elementId]);
+                  } : undefined}
                   onSectionSelect={
                     interactionMode === "edit"
                       ? (id) => {
                           setSelectedId(id);
-                          setSelectedCompositionNodeIds([]);
+                          if (id !== selectedId) setSelectedCompositionNodeIds([]);
                           if (id && onRequestTool) {
                             const section = sectionsHistory.find((s) => s.id === id);
                             if (section?.type === "action") onRequestTool("buttons");
