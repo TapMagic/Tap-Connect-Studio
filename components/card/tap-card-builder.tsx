@@ -333,6 +333,7 @@ export function TapCardBuilder({
   const [focusMode, setFocusMode] = useState(false);
   const [previewZoom, setPreviewZoom] = useState<"fit" | number>(workspaceMode ? "fit" : 1);
   const [previewPan, setPreviewPan] = useState(false);
+  const [zoomToolbarCollapsed, setZoomToolbarCollapsed] = useState(false);
   const [designChromeCollapsed, setDesignChromeCollapsed] = useState(true);
   const [outlineCollapsed, setOutlineCollapsed] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
@@ -2380,7 +2381,7 @@ export function TapCardBuilder({
           )}
           data-testid="card-preview-canvas"
         >
-          <div className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur">
+          <div className={cn("sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur", zoomToolbarCollapsed && "[&>*:not(:last-child)]:hidden")}>
             <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-muted-foreground" data-testid="card-zoom-percent">
               {previewZoom === "fit" ? "Fit" : `${Math.round(previewZoom * 100)}%`}
             </span>
@@ -2491,6 +2492,9 @@ export function TapCardBuilder({
               Edit selection
             </Button>
             )}
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" aria-expanded={!zoomToolbarCollapsed} data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed((collapsed) => !collapsed)}>
+              {zoomToolbarCollapsed ? "View controls" : "Hide"}
+            </Button>
           </div>
           <div className={cn("flex justify-center p-4 pb-12", previewPan && "cursor-grab overflow-auto")}>
             <div

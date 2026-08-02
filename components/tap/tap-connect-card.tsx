@@ -1167,7 +1167,7 @@ export function TapConnectCard({
     return (
       <section
         key={section.id}
-        className={cn("tcc-composer-surface relative my-2 overflow-hidden", selectedSectionId === section.id && "tcc-section-selected")}
+        className={cn("group/tcc-surface tcc-composer-surface relative my-2 overflow-hidden", selectedSectionId === section.id && "tcc-section-selected")}
         style={{
           width: `${section.surfaceWidthPercent ?? 100}%`,
           minHeight,
@@ -1223,7 +1223,7 @@ export function TapConnectCard({
           <button
             type="button"
             draggable
-            className="absolute left-1/2 top-1 z-20 flex h-6 w-12 -translate-x-1/2 cursor-grab items-center justify-center rounded bg-black/55 text-xs text-white/75"
+            className={cn("absolute left-1/2 top-1 z-20 flex h-6 max-w-[70%] -translate-x-1/2 cursor-grab items-center justify-center gap-1 rounded bg-black/65 px-2 text-[9px] text-white/85 opacity-0 transition-opacity group-hover/tcc-surface:opacity-100 focus:opacity-100", selectedSectionId === section.id && "opacity-100")}
             aria-label={`Reorder ${section.label || "Section"}`}
             data-testid={`section-reorder-grip-${section.id}`}
             onPointerDown={beginSectionReorder}
@@ -1239,8 +1239,21 @@ export function TapConnectCard({
                 const target = sections[index + (event.key === "ArrowUp" ? -1 : 1)];
                 if (target) onSectionReorder?.(section.id, target.id);
               }
+              if (event.key === "Home" && sections[0]) { event.preventDefault(); onSectionReorder?.(section.id, sections[0].id); }
+              if (event.key === "End" && sections.at(-1)) { event.preventDefault(); onSectionReorder?.(section.id, sections.at(-1)!.id); }
             }}
-          >⋮⋮</button>
+          ><span aria-hidden>⋮⋮</span><span className="truncate">{section.label || "Section"}</span></button>
+        ) : null}
+        {editSelects && selectedSectionId === section.id ? (
+          <details className="absolute right-1 top-1 z-20">
+            <summary className="grid h-6 w-7 cursor-pointer list-none place-items-center rounded bg-black/65 text-xs text-white" aria-label="Section reorder menu">•••</summary>
+            <div className="mt-1 grid w-28 gap-1 rounded bg-black/90 p-1 text-[10px] text-white shadow-xl">
+              <button type="button" onClick={() => { const index = sections.findIndex((item) => item.id === section.id); if (sections[index - 1]) onSectionReorder?.(section.id, sections[index - 1]!.id); }}>Move up</button>
+              <button type="button" onClick={() => { const index = sections.findIndex((item) => item.id === section.id); if (sections[index + 1]) onSectionReorder?.(section.id, sections[index + 1]!.id); }}>Move down</button>
+              <button type="button" onClick={() => sections[0] && onSectionReorder?.(section.id, sections[0].id)}>Move to top</button>
+              <button type="button" onClick={() => sections.at(-1) && onSectionReorder?.(section.id, sections.at(-1)!.id)}>Move to bottom</button>
+            </div>
+          </details>
         ) : null}
         <CreativeCompositionCanvas
           block={{ ...block, background: { kind: "none" } }}
@@ -1249,6 +1262,8 @@ export function TapConnectCard({
           forceMobileFallback={compositionForceMobile}
           layoutMode={section.surfaceLayout || "stack"}
           gapPx={section.surfaceGapPx ?? 12}
+          align={section.surfaceAlign || "stretch"}
+          distribute={section.surfaceDistribute || "start"}
           minHeightPx={section.surfaceLayout === "free" ? coordinateHeight : Math.max(80, minHeight - padding * 2)}
           aspectRatio={section.surfaceLayout === "free" ? undefined : 390 / Math.max(120, minHeight - padding * 2)}
           className="!rounded-none !border-0"

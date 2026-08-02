@@ -115,6 +115,10 @@ function SectionInspector({ model, section }: { model: CardEditorLiveModel; sect
       <InspectorGroup title="Section · Layout">
         <TextControl label="Name" value={section.label || ""} onChange={(value) => patch({ label: value }, "Renamed Section")} />
         <SelectControl label="Layout mode" value={section.surfaceLayout || "stack"} options={["stack", "row", "grid", "free"]} onChange={(value) => patch({ surfaceLayout: value as TapCardSection["surfaceLayout"] }, "Changed Section layout")} />
+        <div className="grid grid-cols-2 gap-2">
+          <SelectControl label="Alignment" value={section.surfaceAlign || "stretch"} options={["start", "center", "end", "stretch"]} onChange={(value) => patch({ surfaceAlign: value as TapCardSection["surfaceAlign"] }, "Changed Section alignment")} />
+          <SelectControl label="Distribution" value={section.surfaceDistribute || "start"} options={["start", "center", "end", "between", "around"]} onChange={(value) => patch({ surfaceDistribute: value as TapCardSection["surfaceDistribute"] }, "Changed Section distribution")} />
+        </div>
         <SelectControl label="Height behavior" value={section.surfaceHeightMode || "fixed"} options={["auto", "fixed"]} onChange={(value) => patch({ surfaceHeightMode: value as TapCardSection["surfaceHeightMode"] }, "Changed Section height behavior")} />
         <NumberControl label="Exact minimum height (px)" value={section.surfaceMinHeightPx ?? 260} onChange={(value) => patch({ surfaceMinHeightPx: Math.max(120, value), surfaceHeightMode: "fixed" }, "Resized Section height")} />
         <div className="grid grid-cols-3 gap-1">
@@ -129,6 +133,9 @@ function SectionInspector({ model, section }: { model: CardEditorLiveModel; sect
         <p className="text-[10px] text-white/70">{section.sourceMode === "BRAND" ? "From Brand" : "Custom on this Card"}</p>
         <ColorControl label="Background color" value={section.backgroundColor || "#171b24"} onChange={(value) => patch({ backgroundColor: value, sourceMode: "LOCAL" }, "Changed Section background")} />
         <MediaPicker value={section.backgroundImageUrl} valueAssetId={section.backgroundMediaAssetId} label="Section background image" mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(value) => patch({ backgroundImageUrl: value }, "Changed Section background image")} onAssetChange={(asset) => patch({ backgroundMediaAssetId: asset?.id }, "Selected Section background Asset")} />
+        <SelectControl label="Background fit" value={section.backgroundFit || "cover"} options={["cover", "contain", "fill"]} onChange={(value) => patch({ backgroundFit: value as TapCardSection["backgroundFit"] }, "Changed Section background fit")} />
+        <TextControl label="Background position" value={section.backgroundPosition || "50% 50%"} onChange={(value) => patch({ backgroundPosition: value }, "Changed Section background position")} />
+        <ColorControl label="Overlay color" value={section.overlayColor || "#000000"} onChange={(value) => patch({ overlayColor: value }, "Changed background overlay color")} />
         <RangeControl label="Overlay opacity" value={Math.round((section.overlayOpacity ?? 0) * 100)} min={0} max={100} suffix="%" onChange={(value) => patch({ overlayOpacity: value / 100 }, "Changed background overlay")} />
         <div className="grid grid-cols-2 gap-2">
           <RangeControl label="Border" value={section.surfaceBorderWidthPx ?? 0} min={0} max={12} suffix="px" onChange={(value) => patch({ surfaceBorderWidthPx: value }, "Changed Section border")} />

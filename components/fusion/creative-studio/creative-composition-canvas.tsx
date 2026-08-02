@@ -39,6 +39,8 @@ export type CreativeCompositionCanvasProps = {
   aspectRatio?: number;
   layoutMode?: "stack" | "row" | "grid" | "free";
   gapPx?: number;
+  align?: "start" | "center" | "end" | "stretch";
+  distribute?: "start" | "center" | "end" | "between" | "around";
   minHeightPx?: number;
   onEditNodeText?: (nodeId: string, value: string) => void;
 };
@@ -566,6 +568,8 @@ export function CreativeCompositionCanvas({
   aspectRatio = 4 / 5,
   layoutMode = "free",
   gapPx = 12,
+  align = "stretch",
+  distribute = "start",
   minHeightPx,
   onEditNodeText,
 }: CreativeCompositionCanvasProps) {
@@ -885,7 +889,12 @@ export function CreativeCompositionCanvas({
           structuredMode === "row" ? "flex-row flex-wrap" : structuredMode !== "grid" ? "flex-col" : "",
           className
         )}
-        style={{ gap: gapPx, minHeight: minHeightPx }}
+        style={{
+          gap: gapPx,
+          minHeight: minHeightPx,
+          alignItems: align === "start" ? "flex-start" : align === "end" ? "flex-end" : align,
+          justifyContent: distribute === "between" ? "space-between" : distribute === "around" ? "space-around" : distribute === "start" ? "flex-start" : distribute === "end" ? "flex-end" : distribute,
+        }}
         data-testid="creative-composition-canvas"
         data-edit-mode={editMode ? "true" : "false"}
         data-mobile-fallback="stack"
@@ -1049,6 +1058,17 @@ export function CreativeCompositionCanvas({
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);
         const box = resolveNodeBox(node);
+        const beneath = selected
+          ? [...visibleNodes]
+              .filter((candidate) => candidate.id !== node.id)
+              .filter((candidate) => {
+                const candidateBox = resolveNodeBox(candidate);
+                const cx = box.left + box.width / 2;
+                const cy = box.top + box.height / 2;
+                return cx >= candidateBox.left && cx <= candidateBox.left + candidateBox.width && cy >= candidateBox.top && cy <= candidateBox.top + candidateBox.height;
+              })
+              .sort((a, b) => b.zIndex - a.zIndex)[0]
+          : undefined;
         return (
           <div
             key={node.id}
@@ -1123,6 +1143,17 @@ export function CreativeCompositionCanvas({
             />
             {editMode && selected && !node.locked ? (
               <>
+                {beneath ? (
+                  <button
+                    type="button"
+                    className="absolute -top-7 right-0 z-[3] min-h-6 rounded bg-black/80 px-1.5 text-[9px] text-white"
+                    data-testid={`composition-select-beneath-${node.id}`}
+                    onPointerDown={(event) => event.stopPropagation()}
+                    onClick={(event) => { event.stopPropagation(); onSelectNodes?.([beneath.id]); }}
+                  >
+                    Select beneath
+                  </button>
+                ) : null}
                 {(
                   [
                     ["nw", "-left-1.5 -top-1.5 cursor-nwse-resize"],
