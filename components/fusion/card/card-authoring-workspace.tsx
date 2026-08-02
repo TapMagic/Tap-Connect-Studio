@@ -13,7 +13,6 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
-  type ReactNode,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -29,6 +28,8 @@ import {
   type CardBuilderShellStatus,
 } from "@/components/card/tap-card-builder";
 import { CardLiveToolDrawer } from "@/components/fusion/card/card-live-tool-drawer";
+import { CardComposerLibrary } from "@/components/fusion/card/card-composer-library";
+import { CardComposerInspector } from "@/components/fusion/card/card-composer-inspector";
 import { PreviewToolbar } from "@/components/fusion/creative-studio/preview-toolbar";
 import { LiveDeviceQrPanel } from "@/components/fusion/creative-studio/live-device-qr-panel";
 import {
@@ -156,15 +157,14 @@ export function CardAuthoringWorkspace({
   // eslint-disable-next-line react-hooks/preserve-manual-memoization
   const initialShell = useMemo(() => {
     const baseMemory = restored.toolMemory ?? {};
-    // Inspector starts closed — open only after a left-rail (or canvas) selection.
-    // Lifecycle deep-link is the exception below.
+    // Canvas-first composer keeps the contextual inspector persistently available.
     const base = createShellSnapshot(WORKSPACE_ID, {
       workspaceMode: restored.focusMode ? "focus" : "browse",
       shadePreference: restored.shadePreference,
       priorShadeDisplay: restored.priorShadeDisplay || "open",
       focusMode: restored.focusMode,
-      selectedToolId: null,
-      drawerOpen: false,
+      selectedToolId: "content",
+      drawerOpen: true,
       drawerSizeMode:
         (restored.selectedToolId &&
           restored.toolMemory?.[restored.selectedToolId]?.sizeMode) ||
@@ -205,7 +205,6 @@ export function CardAuthoringWorkspace({
   const [editSelectionMemory, setEditSelectionMemory] = useState<string | null>(
     null
   );
-  const [outlineBody, setOutlineBody] = useState<ReactNode>(null);
   const [status, setStatus] = useState<CardBuilderShellStatus>({
     dirty: false,
     saving: false,
@@ -465,29 +464,7 @@ export function CardAuthoringWorkspace({
   const activeToolId = shell.selectedToolId;
   const recommendedDrawerMode = CARD_INSPECTOR_DEFAULT_MODE;
 
-  const outline = (
-    <div className="space-y-3" data-testid="card-outline-rail">
-      <div className="space-y-1" data-testid="card-tool-rail">
-        {CARD_RAIL_TOOLS.map((tool) => (
-          <button
-            key={tool.id}
-            type="button"
-            data-testid={`card-tool-${tool.id}`}
-            onClick={() => openCardTool(tool.id)}
-            className={cn(
-              "flex min-h-11 w-full items-center rounded-md px-3 text-left text-xs",
-              activeToolId === tool.id && shell.drawerOpen
-                ? "border border-white/25 bg-white/10 text-white"
-                : "text-white/70 hover:bg-white/5"
-            )}
-          >
-            {tool.label}
-          </button>
-        ))}
-      </div>
-      <div className="border-t border-white/10 pt-3">{outlineBody}</div>
-    </div>
-  );
+  const outline = <CardComposerLibrary model={liveModel} />;
 
   const mobileToolRail = (
     <div
@@ -781,6 +758,7 @@ export function CardAuthoringWorkspace({
                 escapeMode
                 shellHosted
                 interactionMode={studioMode === "preview" ? "preview" : "edit"}
+                compositionForceMobile={previewViewport === "phone"}
                 activeToolId={studioMode === "preview" ? null : activeToolId}
                 shellFocusMode={shell.focusMode || studioMode === "preview"}
                 doneHref={doneHref}
@@ -790,7 +768,6 @@ export function CardAuthoringWorkspace({
                 onShellApi={(api) => {
                   apiRef.current = api;
                 }}
-                onShellOutline={setOutlineBody}
                 onShellStatus={onStatusChange}
                 onRequestTool={openCardTool}
               />
@@ -802,17 +779,22 @@ export function CardAuthoringWorkspace({
           !shell.focusMode &&
           studioMode === "edit" &&
           activeToolId ? (
-            <CardLiveToolDrawer
-              toolId={activeToolId}
-              onCloseTool={closeCardTool}
-              onRequestTool={openCardTool}
-              appearanceInitialLevel={appearanceEntryLevel}
-            />
+            activeToolId === "history" || activeToolId === "lifecycle" || activeToolId === "appearance" ? (
+              <CardLiveToolDrawer
+                toolId={activeToolId}
+                onCloseTool={closeCardTool}
+                onRequestTool={openCardTool}
+                appearanceInitialLevel={appearanceEntryLevel}
+              />
+            ) : (
+              <CardComposerInspector model={liveModel} onRequestTool={openCardTool} />
+            )
           ) : undefined
         }
         drawerTitle={
-          (activeToolId && getWorkspaceTool(WORKSPACE_ID, activeToolId)?.label) ||
-          "Tools"
+          activeToolId === "history" || activeToolId === "lifecycle" || activeToolId === "appearance"
+            ? getWorkspaceTool(WORKSPACE_ID, activeToolId)?.label || "Tools"
+            : "Inspector"
         }
         toolMemory={toolMemory}
         onToolMemoryChange={setToolMemory}

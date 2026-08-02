@@ -5,7 +5,7 @@ import {
   CardOfferClaimForm,
   type CardOfferContext,
 } from "@/components/fusion/card/card-offer-claim-form";
-import { useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type DragEvent, type MouseEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Link2 } from "lucide-react";
 import {
@@ -81,6 +81,9 @@ type TapConnectCardProps = {
     composition: CreativeCompositionBlock,
     label?: string
   ) => void;
+  onComposerDrop?: (payload: { level: "section" | "element"; kind: string }, sectionId?: string) => void;
+  onSectionReorder?: (fromSectionId: string, toSectionId: string) => void;
+  onElementMove?: (elementId: string, toSectionId: string) => void;
   /** Force composition phone fallback (narrow preview) */
   compositionForceMobile?: boolean;
   /** Public/runtime context for platform-bound actions (e.g. Ask a Question) */
@@ -117,6 +120,9 @@ export function TapConnectCard({
   selectedCompositionNodeIds = [],
   onCompositionNodeSelect,
   onCompositionChange,
+  onComposerDrop,
+  onSectionReorder,
+  onElementMove,
   compositionForceMobile = false,
   supportContext = null,
   offerContext = null,
@@ -1109,6 +1115,101 @@ export function TapConnectCard({
     );
   }
 
+  function renderSurface(section: TapCardSection) {
+    const block = parseCreativeComposition(section.composition) || {
+      ...createStarterCreativeComposition(section.id),
+      nodes: [],
+    };
+    const overlay = section.overlayColor || "#000000";
+    const overlayAlpha = Math.round(Math.max(0, Math.min(1, section.overlayOpacity ?? 0)) * 255)
+      .toString(16)
+      .padStart(2, "0");
+    const image = section.backgroundImageUrl;
+    const shadow = section.surfaceShadow === "strong"
+      ? "0 18px 45px rgba(0,0,0,.4)"
+      : section.surfaceShadow === "medium"
+        ? "0 10px 28px rgba(0,0,0,.3)"
+        : section.surfaceShadow === "soft"
+          ? "0 6px 18px rgba(0,0,0,.2)"
+          : undefined;
+    return (
+      <section
+        key={section.id}
+        className={cn("tcc-composer-surface relative my-2 overflow-hidden", selectedSectionId === section.id && "tcc-section-selected")}
+        style={{
+          width: `${section.surfaceWidthPercent ?? 100}%`,
+          minHeight: section.surfaceMinHeightPx ?? 260,
+          padding: section.surfacePaddingPx ?? 24,
+          backgroundColor: section.backgroundColor || "transparent",
+          backgroundImage: image ? `linear-gradient(${overlay}${overlayAlpha}, ${overlay}${overlayAlpha}), url("${image.replaceAll('"', "%22")}")` : undefined,
+          backgroundSize: section.backgroundFit || "cover",
+          backgroundPosition: section.backgroundPosition || "50% 50%",
+          border: `${section.surfaceBorderWidthPx ?? 0}px solid ${section.surfaceBorderColor || "transparent"}`,
+          borderRadius: section.surfaceRadiusPx ?? 18,
+          boxShadow: shadow,
+          opacity: (section.opacity ?? 100) / 100,
+        }}
+        {...sectionDomProps(section.id, selectedSectionId)}
+        data-surface-kind={section.surfaceKind || "blank"}
+        data-surface-layout={section.surfaceLayout || "stack"}
+        draggable={editSelects && !section.locked}
+        onDragStart={(event) => {
+          if (event.target !== event.currentTarget) return;
+          event.dataTransfer.effectAllowed = "move";
+          event.dataTransfer.setData("application/x-tap-card-section", section.id);
+        }}
+        onDragOver={(event) => {
+          if (editSelects) event.preventDefault();
+        }}
+        onDrop={(event) => {
+          if (!editSelects) return;
+          event.preventDefault();
+          event.stopPropagation();
+          const fromSectionId = event.dataTransfer.getData("application/x-tap-card-section");
+          if (fromSectionId) {
+            onSectionReorder?.(fromSectionId, section.id);
+            return;
+          }
+          const elementId = event.dataTransfer.getData("application/x-composition-node");
+          if (elementId) {
+            onElementMove?.(elementId, section.id);
+            return;
+          }
+          if (!onComposerDrop) return;
+          try {
+            const payload = JSON.parse(event.dataTransfer.getData("application/x-tap-card-composer"));
+            onComposerDrop(payload, section.id);
+          } catch {
+            // Ignore unrelated drops.
+          }
+        }}
+      >
+        <CreativeCompositionCanvas
+          block={{ ...block, background: { kind: "none" } }}
+          editMode={editSelects}
+          selectedNodeIds={selectedSectionId === section.id ? selectedCompositionNodeIds : []}
+          forceMobileFallback={compositionForceMobile}
+          layoutMode={section.surfaceLayout || "stack"}
+          gapPx={section.surfaceGapPx ?? 12}
+          minHeightPx={Math.max(80, (section.surfaceMinHeightPx ?? 260) - (section.surfacePaddingPx ?? 24) * 2)}
+          aspectRatio={390 / Math.max(120, (section.surfaceMinHeightPx ?? 260) - (section.surfacePaddingPx ?? 24) * 2)}
+          className="!rounded-none !border-0"
+          onSelectNodes={(ids) => {
+            onSectionSelect?.(section.id);
+            onCompositionNodeSelect?.(section.id, ids);
+          }}
+          onChangeBlock={(next, label) => onCompositionChange?.(section.id, next, label)}
+          onEditNodeText={(nodeId, value) => {
+            const nodes = block.nodes.map((node) => node.id === nodeId
+              ? { ...node, props: { ...node.props, text: value } }
+              : node);
+            onCompositionChange?.(section.id, { ...block, nodes }, "Edited text on canvas");
+          }}
+        />
+      </section>
+    );
+  }
+
   function renderSpacer(section: TapCardSection) {
     const h = section.height === "sm" ? 12 : section.height === "lg" ? 36 : 22;
     return (
@@ -1311,6 +1412,9 @@ export function TapConnectCard({
       case "creative_composition":
         bodyNodes.push(renderCreativeComposition(s));
         break;
+      case "surface":
+        bodyNodes.push(renderSurface(s));
+        break;
       case "spacer":
         bodyNodes.push(renderSpacer(s));
         break;
@@ -1343,9 +1447,25 @@ export function TapConnectCard({
         if (!el) return;
         const id = el.getAttribute("data-section-id");
         if (!id) return;
-        e.preventDefault();
-        e.stopPropagation();
+        const directText = (e.target as HTMLElement | null)?.closest?.("[contenteditable=true]");
+        if (!directText) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
         onSectionSelect?.(id);
+      }}
+      onDragOver={(event: DragEvent<HTMLDivElement>) => {
+        if (editSelects && onComposerDrop) event.preventDefault();
+      }}
+      onDrop={(event: DragEvent<HTMLDivElement>) => {
+        if (!editSelects || !onComposerDrop) return;
+        event.preventDefault();
+        try {
+          const payload = JSON.parse(event.dataTransfer.getData("application/x-tap-card-composer"));
+          onComposerDrop(payload);
+        } catch {
+          // Ignore unrelated drops.
+        }
       }}
       onClick={(e) => {
         if (!editSelects) return;

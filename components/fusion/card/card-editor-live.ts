@@ -11,6 +11,7 @@ import type {
   TapCardSection,
   TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
+import type { CardElementKind, CardSurfaceKind } from "@/lib/fusion/card/composer-model";
 
 export type CardEditorLiveModel = {
   config: TapConnectCardConfig;
@@ -71,6 +72,8 @@ export type CardEditorLiveModel = {
   ) => void;
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
+  onAddSurface?: (kind: CardSurfaceKind) => void;
+  onAddElement?: (kind: CardElementKind, targetSectionId?: string) => void;
   onStartPoint?: (kind: "blank" | "brand" | "template" | "clone") => void;
   setSelectedId: (id: string | null) => void;
   setShowFreeform: (v: boolean) => void;

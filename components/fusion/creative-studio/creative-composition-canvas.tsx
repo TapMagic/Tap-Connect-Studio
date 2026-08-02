@@ -37,6 +37,10 @@ export type CreativeCompositionCanvasProps = {
   forceMobileFallback?: boolean;
   className?: string;
   aspectRatio?: number;
+  layoutMode?: "stack" | "row" | "grid" | "free";
+  gapPx?: number;
+  minHeightPx?: number;
+  onEditNodeText?: (nodeId: string, value: string) => void;
 };
 
 function str(v: unknown, fallback = ""): string {
@@ -58,9 +62,13 @@ function colorWithOpacity(color: string, opacity: number): string {
 function NodeVisual({
   node,
   editMode,
+  textEditing,
+  onEditText,
 }: {
   node: CreativeCompositionNode;
   editMode?: boolean;
+  textEditing?: boolean;
+  onEditText?: (value: string) => void;
 }) {
   if (node.primitive === "text") {
     return (
@@ -98,7 +106,18 @@ function NodeVisual({
                 : "center",
         }}
       >
-        <span className="w-full leading-tight">{str(node.props.text, "Text")}</span>
+        <span
+          className="w-full whitespace-pre-wrap leading-tight outline-none"
+          contentEditable={Boolean(editMode && textEditing)}
+          suppressContentEditableWarning
+          data-testid={`composition-inline-text-${node.id}`}
+          onPointerDown={(event) => {
+            if (textEditing) event.stopPropagation();
+          }}
+          onInput={(event) => onEditText?.(event.currentTarget.innerText)}
+        >
+          {str(node.props.text, "Text")}
+        </span>
       </div>
     );
   }
@@ -534,6 +553,10 @@ export function CreativeCompositionCanvas({
   forceMobileFallback = false,
   className,
   aspectRatio = 4 / 5,
+  layoutMode = "free",
+  gapPx = 12,
+  minHeightPx,
+  onEditNodeText,
 }: CreativeCompositionCanvasProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
@@ -568,7 +591,7 @@ export function CreativeCompositionCanvas({
   const selectedSet = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
   const applyFallback = compositionAppliesMobileFallback({
     editMode,
-    forceMobileFallback,
+    forceMobileFallback: forceMobileFallback || narrow,
   });
   const useStack = applyFallback && block.mobileFallback === "stack";
   const hideDecorative =
@@ -664,6 +687,20 @@ export function CreativeCompositionCanvas({
       if (e.key === "ArrowDown") dy = stepPx / Math.max(rect?.height || 1, 1);
       if (dx || dy) {
         e.preventDefault();
+        if (e.altKey && selectedNodeIds.length === 1) {
+          const selectedId = selectedNodeIds[0];
+          commitNodes(
+            block.nodes.map((node) => node.id === selectedId
+              ? {
+                  ...node,
+                  width: Math.max(.02, Math.min(1 - node.x, node.width + dx)),
+                  height: Math.max(.02, Math.min(1 - node.y, node.height + dy)),
+                }
+              : node),
+            "Resized composition item with keyboard"
+          );
+          return;
+        }
         const ids = expandSelectionToGroups(block.nodes, selectedNodeIds);
         commitNodes(
           translateNodes(block.nodes, ids, dx, dy),
@@ -854,15 +891,19 @@ export function CreativeCompositionCanvas({
         }
       : undefined;
 
-  if (useStack) {
+  const structured = useStack || layoutMode !== "free";
+  if (structured) {
+    const structuredMode = useStack ? "stack" : layoutMode;
     return (
       <div
         ref={surfaceRef}
         className={cn(
-          "relative flex flex-col gap-3 overflow-hidden rounded-xl border border-white/10 p-3",
+          "relative overflow-hidden rounded-xl",
+          structuredMode === "grid" ? "grid grid-cols-2" : "flex",
+          structuredMode === "row" ? "flex-row flex-wrap" : structuredMode !== "grid" ? "flex-col" : "",
           className
         )}
-        style={{ zoom: editMode ? zoom : undefined }}
+        style={{ zoom: editMode ? zoom : undefined, gap: gapPx, minHeight: minHeightPx }}
         data-testid="creative-composition-canvas"
         data-edit-mode={editMode ? "true" : "false"}
         data-mobile-fallback="stack"
@@ -890,7 +931,12 @@ export function CreativeCompositionCanvas({
         {readingOrder.map((node) => (
           <div
             key={node.id}
-            className="relative z-[1] min-h-[72px] w-full"
+            draggable={editMode && !node.locked}
+            className={cn(
+              "relative z-[1] min-h-[56px]",
+              structuredMode === "row" ? "min-w-[120px] flex-1" : "w-full",
+              editMode && "rounded-md outline outline-1 outline-transparent focus-within:outline-white/50"
+            )}
             data-composition-node={node.id}
             data-primitive={node.primitive}
             data-selected={selectedSet.has(node.id) ? "true" : "false"}
@@ -899,8 +945,39 @@ export function CreativeCompositionCanvas({
               e.stopPropagation();
               onSelectNodes?.([node.id]);
             }}
+            onPointerDown={(event) => {
+              if (!editMode) return;
+              event.stopPropagation();
+              onSelectNodes?.([node.id]);
+            }}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("application/x-composition-node", node.id);
+            }}
+            onDragOver={(event) => {
+              if (editMode) event.preventDefault();
+            }}
+            onDrop={(event) => {
+              if (!editMode) return;
+              const fromId = event.dataTransfer.getData("application/x-composition-node");
+              if (!fromId || fromId === node.id) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const current = [...block.nodes];
+              const from = current.findIndex((candidate) => candidate.id === fromId);
+              const to = current.findIndex((candidate) => candidate.id === node.id);
+              if (from < 0 || to < 0) return;
+              const [moved] = current.splice(from, 1);
+              current.splice(to, 0, moved!);
+              commitNodes(current.map((candidate, index) => ({ ...candidate, zIndex: index + 1 })), "Reordered Elements");
+            }}
           >
-            <NodeVisual node={node} editMode={editMode} />
+            <NodeVisual
+              node={node}
+              editMode={editMode}
+              textEditing={selectedSet.has(node.id)}
+              onEditText={(value) => onEditNodeText?.(node.id, value)}
+            />
           </div>
         ))}
       </div>
@@ -918,6 +995,7 @@ export function CreativeCompositionCanvas({
       style={{
         aspectRatio: String(aspectRatio),
         padding: block.safeAreaPaddingPx ?? 12,
+        minHeight: minHeightPx,
         zoom: editMode ? zoom : undefined,
       }}
       data-testid="creative-composition-canvas"
@@ -1055,7 +1133,12 @@ export function CreativeCompositionCanvas({
             tabIndex={editMode ? 0 : undefined}
             aria-label={`${node.primitive}${node.locked ? " locked" : ""}`}
           >
-            <NodeVisual node={node} editMode={editMode} />
+            <NodeVisual
+              node={node}
+              editMode={editMode}
+              textEditing={selected}
+              onEditText={(value) => onEditNodeText?.(node.id, value)}
+            />
             {editMode && selected && !node.locked ? (
               <>
                 {(

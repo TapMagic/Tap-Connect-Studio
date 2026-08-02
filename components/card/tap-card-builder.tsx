@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MediaPicker } from "@/components/media/media-picker";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
 import {
@@ -88,6 +89,13 @@ import {
   createCardBlock,
   type CardBlockKind,
 } from "@/lib/fusion/card/block-model";
+import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
+import {
+  addElementToSurface,
+  createCardSurface,
+  type CardElementKind,
+  type CardSurfaceKind,
+} from "@/lib/fusion/card/composer-model";
 
 type CampaignLinkOption = {
   id: string;
@@ -189,6 +197,7 @@ type Props = {
   onRequestTool?: (toolId: string) => void;
   /** Creative Studio Edit vs Preview — defaults to edit when hosted */
   interactionMode?: "edit" | "preview";
+  compositionForceMobile?: boolean;
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -297,6 +306,7 @@ export function TapCardBuilder({
   onShellStatus,
   onRequestTool,
   interactionMode = "edit",
+  compositionForceMobile = false,
 }: Props) {
   const router = useRouter();
   const {
@@ -365,6 +375,13 @@ export function TapCardBuilder({
   const sorted = [...sectionsHistory].sort((a, b) => a.order - b.order);
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
   const cardEmptyReason = tapCardPreviewEmptyReason(sorted);
+  const previewUtilityLayer = resolveCardUtilityLayer({
+    card: config,
+    profile,
+    reviewUrl,
+    featureEnabled: () => true,
+    keepCardEnabled: true,
+  });
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -885,6 +902,46 @@ export function TapCardBuilder({
     onRequestTool?.("content");
   }
 
+  function addComposerSurface(kind: CardSurfaceKind) {
+    const surface = createCardSurface(kind, sorted.length);
+    setSections([...sorted, surface], true, `Added ${surface.label}`);
+    setSelectedId(surface.id);
+    setSelectedCompositionNodeIds([]);
+    onRequestTool?.("content");
+  }
+
+  function addComposerElement(kind: CardElementKind, targetSectionId?: string) {
+    const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface")
+      ?? sorted.find((section) => section.id === selectedId && section.type === "surface");
+    if (!target) {
+      const surface = addElementToSurface(createCardSurface("blank", sorted.length), kind);
+      setSections([...sorted, surface], true, `Added ${kind} in a new Section`);
+      setSelectedId(surface.id);
+      setSelectedCompositionNodeIds([surface.composition!.nodes.at(-1)!.id]);
+      return;
+    }
+    const next = addElementToSurface(target, kind);
+    setSections(sorted.map((section) => section.id === target.id ? next : section), true, `Added ${kind} to ${target.label}`);
+    setSelectedId(target.id);
+    setSelectedCompositionNodeIds([next.composition!.nodes.at(-1)!.id]);
+  }
+
+  function moveComposerElement(elementId: string, targetSectionId: string) {
+    const source = sorted.find((section) => section.composition?.nodes.some((node) => node.id === elementId));
+    const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface");
+    if (!source || !target || source.id === target.id || !source.composition || !target.composition) return;
+    const element = source.composition.nodes.find((node) => node.id === elementId);
+    if (!element || element.locked) return;
+    const next = sorted.map((section) => {
+      if (section.id === source.id) return { ...section, composition: { ...source.composition!, nodes: source.composition!.nodes.filter((node) => node.id !== elementId) } };
+      if (section.id === target.id) return { ...section, composition: { ...target.composition!, nodes: [...target.composition!.nodes, { ...element, zIndex: target.composition!.nodes.length + 1 }] } };
+      return section;
+    });
+    setSections(next, true, `Moved ${element.name || "Element"} between Sections`);
+    setSelectedId(target.id);
+    setSelectedCompositionNodeIds([element.id]);
+  }
+
   function addAction() {
     addActionOfKind(addKind);
   }
@@ -1277,6 +1334,8 @@ export function TapCardBuilder({
         setAddKind(kind as TapCardActionKind);
         addActionOfKind(kind as TapCardActionKind);
       },
+      onAddSurface: addComposerSurface,
+      onAddElement: addComposerElement,
       onStartPoint: startCardFrom,
       setSelectedId,
       setShowFreeform,
@@ -2411,7 +2470,17 @@ export function TapCardBuilder({
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
                 {cardEmptyReason ? (
-                  <BuilderPreviewEmpty reason={cardEmptyReason} variant="card" />
+                  <div className="space-y-3" data-testid="blank-card-composer">
+                    <BuilderPreviewEmpty reason={cardEmptyReason} variant="card" />
+                    <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-4 text-center">
+                      <p className="text-sm font-semibold text-white">Your Card is ready to build.</p>
+                      <div className="mt-3 grid gap-2">
+                        <Button type="button" size="sm" onClick={() => addComposerSurface("blank")}>Add a Section</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => startCardFrom("template")}>Choose a template</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => startCardFrom("brand")}>Use Brand defaults</Button>
+                      </div>
+                    </div>
+                  </div>
                 ) : null}
                 <TapConnectCard
                   config={{ ...config, sections: sectionsHistory }}
@@ -2423,13 +2492,17 @@ export function TapCardBuilder({
                   builderChrome={interactionMode === "edit"}
                   interactionMode={interactionMode}
                   previewSafe={interactionMode === "preview"}
+                  compositionForceMobile={compositionForceMobile}
                   selectedSectionId={interactionMode === "edit" ? selectedId : null}
                   selectedCompositionNodeIds={
                     interactionMode === "edit" ? selectedCompositionNodeIds : []
                   }
                   onCompositionNodeSelect={
                     interactionMode === "edit"
-                      ? (_sectionId, ids) => setSelectedCompositionNodeIds(ids)
+                      ? (sectionId, ids) => {
+                          setSelectedId(sectionId);
+                          setSelectedCompositionNodeIds(ids);
+                        }
                       : undefined
                   }
                   onCompositionChange={
@@ -2438,6 +2511,16 @@ export function TapCardBuilder({
                           patchSection(sectionId, { composition }, label || "Edited composition")
                       : undefined
                   }
+                  onComposerDrop={
+                    interactionMode === "edit"
+                      ? (payload, sectionId) => {
+                          if (payload.level === "section") addComposerSurface(payload.kind as CardSurfaceKind);
+                          else addComposerElement(payload.kind as CardElementKind, sectionId);
+                        }
+                      : undefined
+                  }
+                  onSectionReorder={interactionMode === "edit" ? reorder : undefined}
+                  onElementMove={interactionMode === "edit" ? moveComposerElement : undefined}
                   onSectionSelect={
                     interactionMode === "edit"
                       ? (id) => {
@@ -2459,7 +2542,7 @@ export function TapCardBuilder({
                               onRequestTool("media");
                             else if (section?.type === "special_offer")
                               onRequestTool("offer");
-                            else if (section?.type === "creative_composition")
+                            else if (section?.type === "creative_composition" || section?.type === "surface")
                               onRequestTool("composition");
                             else onRequestTool("content");
                           }
@@ -2467,6 +2550,20 @@ export function TapCardBuilder({
                       : undefined
                   }
                 />
+                {previewUtilityLayer.visible ? (
+                  <CardUtilityLayer
+                    layer={previewUtilityLayer}
+                    businessId={brandKitId || "card-preview"}
+                    businessName={businessName}
+                    profile={profile}
+                    previewMode
+                    walletMode="preview"
+                    accentColor={config.accentColor}
+                    surfaceColor={config.surfaceColor}
+                    textColor={config.textColor}
+                    className="mt-3"
+                  />
+                ) : null}
               </div>
             </div>
           </div>
