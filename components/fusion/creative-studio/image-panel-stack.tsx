@@ -81,6 +81,7 @@ export function ImagePanelStack({
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const isImage =
     selected?.type === "image" ||
+    selected?.type === "image_gallery" ||
     selected?.type === "logo_block" ||
     selected?.type === "hero" ||
     selected?.type === "special_offer" ||
@@ -120,7 +121,7 @@ export function ImagePanelStack({
     ? `${sectionDisplayName(selected)} · Image settings`
     : "Header logo · Image settings";
   const src =
-    (selected && (selected.imageUrl || selected.logoUrl)) || headerLogoUrl || "";
+    (selected && (selected.type === "image_gallery" ? selected.imageUrls?.[0] : selected.imageUrl || selected.logoUrl)) || headerLogoUrl || "";
   const hasMedia = Boolean(src);
   const objectFit = selected?.objectFit ?? "cover";
   const decorative = Boolean(selected?.decorative);
@@ -133,7 +134,7 @@ export function ImagePanelStack({
   function setMediaUrl(url: string) {
     if (selected) {
       patchSelected(
-        selected.type === "logo_block" ? { logoUrl: url } : { imageUrl: url },
+        selected.type === "logo_block" ? { logoUrl: url } : selected.type === "image_gallery" ? { imageUrls: url ? [url, ...(selected.imageUrls || []).slice(1)] : (selected.imageUrls || []).slice(1) } : { imageUrl: url },
         url ? "Replaced image" : "Cleared image"
       );
     } else {
@@ -197,6 +198,7 @@ export function ImagePanelStack({
               if (!selected) return;
               patchSelected(asset ? {
                 mediaAssetId: asset.mediaAssetId || asset.id,
+                ...(selected.type === "image_gallery" ? { mediaAssetIds: [asset.mediaAssetId || asset.id, ...(selected.mediaAssetIds || []).slice(1)] } : {}),
                 sourceMode: "LINKED",
                 linkedObjectType: "ASSET",
                 linkedObjectId: asset.mediaAssetId || asset.id,

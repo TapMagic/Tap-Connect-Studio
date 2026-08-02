@@ -128,6 +128,7 @@ export function CardUtilityLayer({
 
   return (
     <div
+      id="card-utility-layer"
       className={cn("tap-utility-layer", shellClass, className)}
       style={
         {

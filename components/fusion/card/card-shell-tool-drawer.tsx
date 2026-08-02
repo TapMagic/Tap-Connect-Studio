@@ -68,6 +68,8 @@ export type CardShellToolDrawerProps = {
   businessName: string;
   campaigns?: Array<{ id: string; title: string; status: string; campaignType: string; features: string[]; devices: { code: string; label: string }[]; scheduledStart?: string | null; scheduledEnd?: string | null; group?: { id: string; title: string } | null }>;
   campaignGroups?: Array<{ id: string; title: string; status: string; defaultCampaignTitle?: string | null; slotCount: number }>;
+  experiences?: Array<{ id: string; name: string; status: string }>;
+  locations?: Array<{ id: string; name: string; address?: string | null; mapUrl?: string | null; isDefault?: boolean }>;
   pastLabels: string[];
   futureLabels: string[];
   canUndo: boolean;
@@ -755,6 +757,8 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
         patchSection={patchSection}
         campaigns={props.campaigns ?? []}
         campaignGroups={props.campaignGroups ?? []}
+        experiences={props.experiences ?? []}
+        locations={props.locations ?? []}
         onOpenTool={(id) => props.onRequestTool?.(id)}
         onClose={props.onCloseTool}
       />

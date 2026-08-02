@@ -910,13 +910,14 @@ export function TapConnectCard({
   }
 
   function renderRelationship(section: TapCardSection) {
+    const tapSave = section.type === "tapsave_prompt";
     return (
       <div key={section.id} className={cn("mx-3 rounded-xl border border-black/10 bg-white/55 p-4", selectedSectionId === section.id && "tcc-section-selected")} {...sectionDomProps(section.id, selectedSectionId)}>
         <p className="font-semibold">{section.text || section.label}</p>
         {section.description ? <p className="mt-1 text-sm opacity-70">{section.description}</p> : null}
-        {section.fields?.map((field) => <label key={field.id} className="mt-3 block text-xs font-medium">{field.label}{field.required ? " *" : ""}<input type={field.type} disabled={mode !== "public" || previewSafe} className="mt-1 block min-h-10 w-full rounded-lg border border-black/15 bg-white px-3" /></label>)}
+        {!tapSave ? section.fields?.map((field) => <label key={field.id} className="mt-3 block text-xs font-medium">{field.label}{field.required ? " *" : ""}<input type={field.type} disabled className="mt-1 block min-h-10 w-full rounded-lg border border-black/15 bg-white px-3" /></label>) : null}
         {section.consentText ? <p className="mt-3 text-[11px] opacity-60">{section.consentText}</p> : null}
-        <button type="button" disabled={mode !== "public" || previewSafe} className="mt-3 rounded-full bg-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">{section.buttonLabel || (section.type === "tapsave_prompt" ? "Save this Card" : "Submit")}</button>
+        {tapSave ? <a href="#card-utility-layer" className="mt-3 inline-flex rounded-full bg-black px-4 py-2 text-xs font-semibold text-white" onClick={(event) => { if (selectSection(section.id, event)) return; onAction?.("tapsave", section.id); }}>{section.buttonLabel || "Save this Card"}</a> : <button type="button" disabled={!supportContext?.businessId} className="mt-3 rounded-full bg-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-60" onClick={(event) => { if (selectSection(section.id, event)) return; if (mode === "preview" || previewSafe) { setToast("This form is visible in Preview, but no message will be sent."); window.setTimeout(() => setToast(null), 3200); return; } setSupportSectionId(section.id); }}>{section.buttonLabel || "Contact us"}</button>}
       </div>
     );
   }

@@ -53,11 +53,9 @@ export const CARD_BLOCK_LIBRARY: readonly CardBlockDefinition[] = [
   { kind: "announcement", label: "Announcement", category: "Promotion", description: "Time-sensitive news or notice" },
   { kind: "special_event", label: "Special event", category: "Promotion", description: "Event details, dates and action" },
   { kind: "contact_form", label: "Contact / lead form", category: "Relationship", description: "Consent-aware contact fields" },
-  { kind: "newsletter_signup", label: "Newsletter / Email signup", category: "Relationship", description: "Email signup with consent copy" },
   { kind: "tapsave_prompt", label: "TapSave prompt", category: "Relationship", description: "Invite visitors to keep the Card" },
   { kind: "campaign", label: "Campaign", category: "Connected", description: "Link an existing Campaign with a safe fallback" },
   { kind: "campaign_group", label: "Campaign Group", category: "Connected", description: "Link a Campaign Group or eligible rotation" },
-  { kind: "experience", label: "Experience", category: "Connected", description: "Link a TapConnect experience" },
   { kind: "location", label: "Location", category: "Connected", description: "Link a reusable business location" },
   { kind: "creative_composition", label: "Reusable TapCanvas composition", category: "Connected", description: "The canonical reusable composition block" },
 ] as const;

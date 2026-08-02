@@ -156,6 +156,8 @@ type Props = {
   devices?: { id: string; nickname: string | null; deviceCode: string }[];
   campaigns?: CampaignLinkOption[];
   campaignGroups?: CampaignGroupLinkOption[];
+  experiences?: Array<{ id: string; name: string; status: string }>;
+  locations?: Array<{ id: string; name: string; address?: string | null; mapUrl?: string | null; isDefault?: boolean }>;
   /** Platform feature: card.builder.freeform */
   freeformEnabled?: boolean;
   /** BrandKit id for publication snapshots / rollback */
@@ -276,6 +278,8 @@ export function TapCardBuilder({
   devices = [],
   campaigns = [],
   campaignGroups = [],
+  experiences = [],
+  locations = [],
   freeformEnabled = false,
   brandKitId = null,
   brandColors = null,
@@ -1255,6 +1259,8 @@ export function TapCardBuilder({
       businessName,
       campaigns,
       campaignGroups,
+      experiences,
+      locations,
       pastLabels,
       futureLabels,
       canUndo: canUndoEditor,

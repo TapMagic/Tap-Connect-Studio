@@ -149,6 +149,12 @@ export default async function TapCardEditPage({
     defaultCampaignTitle: group.defaultCampaign?.title ?? null,
     slotCount: group._count.slots,
   }));
+  const [experienceRows, locationRows] = await Promise.all([
+    prisma.journeyDraft.findMany({ where: { businessId: business.id }, orderBy: { updatedAt: "desc" }, take: 80, select: { id: true, name: true, status: true } }).catch(() => []),
+    prisma.location.findMany({ where: { businessId: business.id }, orderBy: [{ isDefault: "desc" }, { updatedAt: "desc" }], take: 80, select: { id: true, name: true, address: true, city: true, state: true, zip: true, mapUrl: true, isDefault: true } }).catch(() => []),
+  ]);
+  const experiences = experienceRows.map((item) => ({ id: item.id, name: item.name, status: item.status }));
+  const locations = locationRows.map((item) => ({ id: item.id, name: item.name, address: [item.address, item.city, item.state, item.zip].filter(Boolean).join(", ") || null, mapUrl: item.mapUrl, isDefault: item.isDefault }));
 
   const publicCode =
     devices.find((d) => d.deviceCode === "seeddemo01")?.deviceCode ?? devices[0]?.deviceCode;
@@ -175,6 +181,8 @@ export default async function TapCardEditPage({
     devices,
     campaigns,
     campaignGroups,
+    experiences,
+    locations,
     freeformEnabled,
     brandKitId: brandKit?.id ?? null,
     brandColors: brandKit

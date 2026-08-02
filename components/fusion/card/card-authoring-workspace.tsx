@@ -127,6 +127,8 @@ export type CardAuthoringWorkspaceProps = {
     defaultCampaignTitle?: string | null;
     slotCount: number;
   }[];
+  experiences?: { id: string; name: string; status: string }[];
+  locations?: { id: string; name: string; address?: string | null; mapUrl?: string | null; isDefault?: boolean }[];
   freeformEnabled?: boolean;
   brandKitId?: string | null;
   brandColors?: {

@@ -21,6 +21,8 @@ export type SelectionPanelStackProps = {
   onOpenTool: (toolId: string) => void;
   campaigns?: Array<{ id: string; title: string; status: string; campaignType: string; features: string[]; devices: { code: string; label: string }[]; scheduledStart?: string | null; scheduledEnd?: string | null; group?: { id: string; title: string } | null }>;
   campaignGroups?: Array<{ id: string; title: string; status: string; defaultCampaignTitle?: string | null; slotCount: number }>;
+  experiences?: Array<{ id: string; name: string; status: string }>;
+  locations?: Array<{ id: string; name: string; address?: string | null; mapUrl?: string | null; isDefault?: boolean }>;
   onClose?: () => void;
 };
 
@@ -34,6 +36,8 @@ export function SelectionPanelStack({
   onOpenTool,
   campaigns = [],
   campaignGroups = [],
+  experiences = [],
+  locations = [],
   onClose,
 }: SelectionPanelStackProps) {
   const [level, setLevel] = useState<Level>("root");
@@ -104,6 +108,7 @@ export function SelectionPanelStack({
         : selected?.type === "hero" ||
             selected?.type === "logo_block" ||
             selected?.type === "image" ||
+            selected?.type === "image_gallery" ||
             selected?.type === "special_offer" ||
             selected?.type === "coupon" ||
             selected?.type === "ticket" ||
@@ -268,6 +273,9 @@ export function SelectionPanelStack({
           {selected.type === "video" ? (
             <Input value={selected.videoUrl ?? ""} onChange={(e) => patchSection(selected.id, { videoUrl: e.target.value })} placeholder="https://…/video.mp4" aria-label="Video URL" data-testid="card-content-video-url" />
           ) : null}
+          {selected.type === "image_gallery" ? (
+            <textarea value={(selected.imageUrls || []).join("\n")} onChange={(e) => patchSection(selected.id, { imageUrls: e.target.value.split("\n").map((url) => url.trim()).filter(Boolean) })} placeholder="One image URL per line, or use Image & media" className="min-h-28 w-full rounded-lg border border-white/15 bg-black/40 px-3 py-2 text-sm" data-testid="card-content-gallery-urls" />
+          ) : null}
           {["special_offer", "coupon", "ticket", "announcement", "special_event"].includes(selected.type) ? (
             <div className="space-y-2" data-testid="card-local-offer-fields">
               <Input value={selected.headline ?? ""} onChange={(e) => patchSection(selected.id, { headline: e.target.value })} placeholder="Heading" aria-label="Offer heading" />
@@ -320,6 +328,28 @@ export function SelectionPanelStack({
                   }}>
                     <option value="">Choose a Campaign Group…</option>
                     {campaignGroups.map((group) => <option key={group.id} value={group.id}>{group.title} · {group.status} · {group.slotCount} slots{group.defaultCampaignTitle ? ` · default ${group.defaultCampaignTitle}` : ""}</option>)}
+                  </select>
+                </label>
+              ) : null}
+              {selected.linkedObjectType === "EXPERIENCE" ? (
+                <label className="block text-[11px] text-white/55">Experience
+                  <select value={selected.linkedObjectId || ""} className="mt-1 flex h-10 w-full rounded-lg border border-white/15 bg-black/40 px-2 text-sm" data-testid="card-linked-experience-picker" onChange={(event) => {
+                    const experience = experiences.find((item) => item.id === event.target.value);
+                    patchSection(selected.id, experience ? { linkedObjectId: experience.id, linkedObjectName: experience.name, linkedObjectStatus: experience.status, href: `/dashboard/experiences/journeys?draft=${encodeURIComponent(experience.id)}` } : { linkedObjectId: undefined, linkedObjectName: undefined, linkedObjectStatus: undefined, href: undefined }, experience ? `Linked to Experience ${experience.name}` : "Cleared Experience link");
+                  }}>
+                    <option value="">Choose an Experience…</option>
+                    {experiences.map((experience) => <option key={experience.id} value={experience.id}>{experience.name} · {experience.status}</option>)}
+                  </select>
+                </label>
+              ) : null}
+              {selected.linkedObjectType === "LOCATION" ? (
+                <label className="block text-[11px] text-white/55">Location
+                  <select value={selected.linkedObjectId || ""} className="mt-1 flex h-10 w-full rounded-lg border border-white/15 bg-black/40 px-2 text-sm" data-testid="card-linked-location-picker" onChange={(event) => {
+                    const location = locations.find((item) => item.id === event.target.value);
+                    patchSection(selected.id, location ? { linkedObjectId: location.id, linkedObjectName: location.name, linkedObjectStatus: "ACTIVE", address: location.address || undefined, href: location.mapUrl || undefined, text: location.name } : { linkedObjectId: undefined, linkedObjectName: undefined, linkedObjectStatus: undefined, address: undefined, href: undefined }, location ? `Linked to Location ${location.name}` : "Cleared Location link");
+                  }}>
+                    <option value="">Choose a Location…</option>
+                    {locations.map((location) => <option key={location.id} value={location.id}>{location.name}{location.isDefault ? " · Default" : ""}{location.address ? ` · ${location.address}` : ""}</option>)}
                   </select>
                 </label>
               ) : null}
