@@ -25,13 +25,19 @@ export type ComposerLibraryItem = {
 export type ComposerSelectedObject =
   | { type: "card"; id: "card"; sectionId: null; elementId: null }
   | { type: "section"; id: string; sectionId: string; elementId: null }
-  | { type: "element"; id: string; sectionId: string; elementId: string };
+  | { type: "element"; id: string; sectionId: string | null; elementId: string };
 
 export function resolveComposerSelectedObject(
   config: TapConnectCardConfig,
   sectionId: string | null,
   elementIds: string[] = []
 ): ComposerSelectedObject {
+  const rootElement = config.rootComposition?.nodes.find(
+    (candidate) => candidate.id === elementIds[0]
+  );
+  if (!sectionId && rootElement) {
+    return { type: "element", id: rootElement.id, sectionId: null, elementId: rootElement.id };
+  }
   const section = config.sections.find((candidate) => candidate.id === sectionId);
   if (!section) return { type: "card", id: "card", sectionId: null, elementId: null };
   const element = section.composition?.nodes.find((candidate) => candidate.id === elementIds[0]);
@@ -72,7 +78,10 @@ function surfaceDefaults(kind: CardSurfaceKind) {
     content: "Content Section", actions: "Actions Section", offer: "Offer Section",
     contact: "Contact Section", location: "Location Section", gallery: "Gallery Section",
   };
-  return { label: labels[kind], minHeight: kind === "hero" ? 420 : kind === "identity" ? 300 : 260 };
+  return {
+    label: labels[kind],
+    minHeight: kind === "blank" ? 64 : kind === "hero" ? 420 : kind === "identity" ? 300 : 260,
+  };
 }
 
 export function createCardSurface(kind: CardSurfaceKind, order: number): TapCardSection {
@@ -92,15 +101,15 @@ export function createCardSurface(kind: CardSurfaceKind, order: number): TapCard
     surfaceMinHeightPx: defaults.minHeight,
     surfaceCoordinateHeightPx: defaults.minHeight - 48,
     surfaceHeightMode: "fixed",
-    surfacePaddingPx: 24,
+    surfacePaddingPx: kind === "blank" ? 4 : 24,
     surfaceGapPx: 12,
     surfaceAlign: "stretch",
     surfaceDistribute: "start",
     surfaceBorderWidthPx: 0,
     surfaceBorderColor: "#ffffff33",
-    surfaceRadiusPx: 18,
+    surfaceRadiusPx: kind === "blank" ? 0 : 18,
     surfaceShadow: "none",
-    backgroundColor: kind === "hero" ? "#111827" : "#171b24",
+    backgroundColor: kind === "blank" ? "transparent" : kind === "hero" ? "#111827" : "#171b24",
     opacity: 100,
     overlayColor: "#000000",
     overlayOpacity: 0,
@@ -122,7 +131,7 @@ export function resizeCardSurface(
 ): TapCardSection {
   return {
     ...section,
-    surfaceMinHeightPx: Math.max(120, Math.round(heightPx)),
+    surfaceMinHeightPx: Math.max(32, Math.min(2400, Math.round(heightPx))),
     surfaceHeightMode: "fixed",
   };
 }
@@ -136,7 +145,7 @@ export function fitCardSurfaceToContent(section: TapCardSection): TapCardSection
   );
   return {
     ...section,
-    surfaceMinHeightPx: Math.max(120, Math.ceil(bottom + padding * 2)),
+    surfaceMinHeightPx: Math.max(32, Math.ceil(bottom + padding * 2)),
     surfaceHeightMode: "auto",
   };
 }
@@ -197,6 +206,116 @@ export function addElementToSurface(section: TapCardSection, kind: CardElementKi
   return {
     ...section,
     composition: { ...composition, nodes: [...composition.nodes, createCardElement(kind, composition.nodes.length)] },
+  };
+}
+
+export function ensureRootComposition(config: TapConnectCardConfig) {
+  return config.rootComposition ?? {
+    ...createEmptyCreativeComposition("card-root-composition"),
+    label: "Card root Elements",
+    mobileFallback: "scale" as const,
+    safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
+  };
+}
+
+export function addElementToCardRoot(
+  config: TapConnectCardConfig,
+  kind: CardElementKind
+): TapConnectCardConfig {
+  const root = ensureRootComposition(config);
+  return {
+    ...config,
+    rootComposition: {
+      ...root,
+      nodes: [...root.nodes, createCardElement(kind, root.nodes.length)],
+    },
+  };
+}
+
+export type ElementContainerId = string | null;
+
+export function moveCardElements(
+  config: TapConnectCardConfig,
+  elementIds: string[],
+  fromSectionId: ElementContainerId,
+  toSectionId: ElementContainerId
+): TapConnectCardConfig {
+  if (fromSectionId === toSectionId || !elementIds.length) return config;
+  const source = fromSectionId
+    ? config.sections.find((section) => section.id === fromSectionId)?.composition
+    : ensureRootComposition(config);
+  const target = toSectionId
+    ? config.sections.find((section) => section.id === toSectionId)?.composition
+    : ensureRootComposition(config);
+  if (!source || !target) return config;
+  const ids = new Set(elementIds);
+  const moving = source.nodes.filter((node) => ids.has(node.id) && !node.locked);
+  if (!moving.length) return config;
+  const movedIds = new Set(moving.map((node) => node.id));
+  const sourceNodes = source.nodes.filter((node) => !movedIds.has(node.id));
+  const maxZ = target.nodes.reduce((value, node) => Math.max(value, node.zIndex), 0);
+  const targetNodes = [
+    ...target.nodes,
+    ...moving.map((node, index) => ({ ...node, zIndex: maxZ + index + 1 })),
+  ];
+  const sections = config.sections.map((section) => {
+    if (section.id === fromSectionId) return { ...section, composition: { ...source, nodes: sourceNodes } };
+    if (section.id === toSectionId) return { ...section, composition: { ...target, nodes: targetNodes } };
+    return section;
+  });
+  return {
+    ...config,
+    sections,
+    rootComposition:
+      fromSectionId === null
+        ? { ...source, nodes: sourceNodes }
+        : toSectionId === null
+          ? { ...target, nodes: targetNodes }
+          : config.rootComposition,
+  };
+}
+
+export function wrapCardElementsInSection(
+  config: TapConnectCardConfig,
+  elementIds: string[],
+  fromSectionId: ElementContainerId,
+  kind: CardSurfaceKind = "blank"
+): { config: TapConnectCardConfig; sectionId: string } {
+  const sourceSection = fromSectionId
+    ? config.sections.find((candidate) => candidate.id === fromSectionId)
+    : null;
+  const sourcePlane = sourceSection
+    ? sourceSection.surfaceCoordinateHeightPx
+      ?? Math.max(32, (sourceSection.surfaceMinHeightPx ?? 260) - (sourceSection.surfacePaddingPx ?? 24) * 2)
+    : Math.max(120, (config.rootCanvasMinHeightPx ?? 520) - (config.rootCanvasPaddingPx ?? 12) * 2);
+  const created = createCardSurface(kind, config.sections.length);
+  const section: TapCardSection = {
+    ...created,
+    surfaceLayout: "free",
+    surfaceCoordinateHeightPx: sourcePlane,
+    surfaceMinHeightPx: Math.min(2400, sourcePlane + (created.surfacePaddingPx ?? 0) * 2),
+  };
+  const withSection = { ...config, sections: [...config.sections, section] };
+  return {
+    config: moveCardElements(withSection, elementIds, fromSectionId, section.id),
+    sectionId: section.id,
+  };
+}
+
+export function removeSectionKeepElements(
+  config: TapConnectCardConfig,
+  sectionId: string,
+  targetSectionId: ElementContainerId = null
+): TapConnectCardConfig {
+  const section = config.sections.find((candidate) => candidate.id === sectionId);
+  if (!section || section.locked) return config;
+  const ids = section.composition?.nodes.map((node) => node.id) ?? [];
+  const moved = moveCardElements(config, ids, sectionId, targetSectionId);
+  return {
+    ...moved,
+    sections: moved.sections
+      .filter((candidate) => candidate.id !== sectionId)
+      .map((candidate, order) => ({ ...candidate, order })),
   };
 }
 

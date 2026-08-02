@@ -386,6 +386,15 @@ export type TapConnectCardConfig = {
   titleFormat?: TextFormat;
   bodyFormat?: TextFormat;
   compactActionsOnly?: boolean;
+  /** First-class positioning plane for Elements placed directly on the Card. */
+  rootComposition?: CreativeCompositionBlock;
+  rootCanvasMinHeightPx?: number;
+  rootCanvasPaddingPx?: number;
+  rootBackgroundImageUrl?: string;
+  rootBackgroundFit?: "cover" | "contain" | "fill";
+  rootBackgroundPosition?: string;
+  rootOverlayColor?: string;
+  rootOverlayOpacity?: number;
   sections: TapCardSection[];
   /** Soft-retire without deleting Brand Kit card content (J1 lifecycle). */
   lifecycleStatus?: "active" | "retired";
@@ -642,6 +651,13 @@ export function defaultTapConnectCard(params: {
     titleFormat: { fontFamily: "sans", fontWeight: "bold", align: "center", fontSize: "xl" },
     bodyFormat: { fontFamily: "sans", fontSize: "sm", align: "center" },
     compactActionsOnly: false,
+    rootComposition: undefined,
+    rootCanvasMinHeightPx: 520,
+    rootCanvasPaddingPx: 12,
+    rootBackgroundFit: "cover",
+    rootBackgroundPosition: "50% 50%",
+    rootOverlayColor: "#000000",
+    rootOverlayOpacity: 0,
     sections,
     utilityLayer: {
       enabled: true,
@@ -725,6 +741,32 @@ export function parseTapConnectCard(
     titleFormat: (o.titleFormat as TextFormat) || base.titleFormat,
     bodyFormat: (o.bodyFormat as TextFormat) || base.bodyFormat,
     compactActionsOnly: o.compactActionsOnly === true,
+    rootComposition:
+      o.rootComposition && typeof o.rootComposition === "object"
+        ? (o.rootComposition as CreativeCompositionBlock)
+        : undefined,
+    rootCanvasMinHeightPx:
+      typeof o.rootCanvasMinHeightPx === "number"
+        ? Math.max(120, Math.min(2400, o.rootCanvasMinHeightPx))
+        : 520,
+    rootCanvasPaddingPx:
+      typeof o.rootCanvasPaddingPx === "number"
+        ? Math.max(0, Math.min(120, o.rootCanvasPaddingPx))
+        : 12,
+    rootBackgroundImageUrl:
+      typeof o.rootBackgroundImageUrl === "string" ? o.rootBackgroundImageUrl : undefined,
+    rootBackgroundFit:
+      o.rootBackgroundFit === "contain" || o.rootBackgroundFit === "fill"
+        ? o.rootBackgroundFit
+        : "cover",
+    rootBackgroundPosition:
+      typeof o.rootBackgroundPosition === "string" ? o.rootBackgroundPosition : "50% 50%",
+    rootOverlayColor:
+      typeof o.rootOverlayColor === "string" ? o.rootOverlayColor : "#000000",
+    rootOverlayOpacity:
+      typeof o.rootOverlayOpacity === "number"
+        ? Math.max(0, Math.min(1, o.rootOverlayOpacity))
+        : 0,
     lifecycleStatus: o.lifecycleStatus === "retired" ? "retired" : "active",
     retiredAt: typeof o.retiredAt === "string" ? o.retiredAt : undefined,
     utilityLayer: parseUtilityLayer(o.utilityLayer, base.utilityLayer),

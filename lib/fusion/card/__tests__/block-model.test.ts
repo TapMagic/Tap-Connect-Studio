@@ -33,6 +33,7 @@ describe("block-first Card model", () => {
   it("creates a real blank editable Card without mutating the source", () => {
     const blank = createBlankCard(config);
     assert.deepEqual(blank.sections, []);
+    assert.equal(blank.rootComposition, undefined);
     assert.equal(config.sections.length, 1);
     assert.equal(blank.version, 3);
     const reloaded = parseTapConnectCard(blank, { businessName: "Tap House" });

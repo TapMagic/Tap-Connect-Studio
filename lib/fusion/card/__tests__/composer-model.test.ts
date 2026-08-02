@@ -89,7 +89,7 @@ test("fit to content changes Section bounds only", () => {
   const before = structuredClone(section.composition!.nodes);
   const fitted = fitCardSurfaceToContent(section);
   assert.equal(fitted.surfaceHeightMode, "auto");
-  assert.ok((fitted.surfaceMinHeightPx ?? 0) >= 120);
+  assert.ok((fitted.surfaceMinHeightPx ?? 0) >= 32);
   assert.deepEqual(fitted.composition!.nodes, before);
 });
 

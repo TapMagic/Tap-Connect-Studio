@@ -78,7 +78,7 @@ export function cardBlockSourceLabel(section: TapCardSection): string {
 }
 
 export function createBlankCard(config: TapConnectCardConfig): TapConnectCardConfig {
-  return { ...structuredClone(config), sections: [] };
+  return { ...structuredClone(config), sections: [], rootComposition: undefined };
 }
 
 export function createCardBlock(
