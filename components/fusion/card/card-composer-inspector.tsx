@@ -9,6 +9,8 @@ import { composerBreadcrumb, composerWarnings } from "@/lib/fusion/card/composer
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import { alignNodes, bringForward, bringToFront, distributeNodes, groupNodes, sendBackward, sendToBack, ungroupNodes } from "@/lib/fusion/creative-studio/composition";
 import { BUTTON_PRESENTATIONS, MAP_DISPLAY_MODES, buildMapHref, type ButtonActionType, type ButtonPresentation, type MapDisplayMode, type MapOpenApp, type MapSourceMode } from "@/lib/fusion/card/designer-elements";
+import { BADGE_SHAPES, BADGE_WORDING, ICON_LIBRARY, MATERIAL_PRESETS, MOTION_PRESETS } from "@/lib/fusion/creative-studio/card-creative-system";
+import { cn } from "@/lib/utils";
 
 const UTILITY_OPTIONS: Array<{ kind: CardUtilityKind; label: string; reason: (model: CardEditorLiveModel) => string | null }> = [
   { kind: "call", label: "Call", reason: (model) => model.profile.phone ? null : "Add a phone number to make Call eligible." },
@@ -211,13 +213,17 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
   const kind = String(element.props.elementKind || element.primitive);
   const isButton = element.primitive === "button";
   const isMap = kind === "map";
+  const isBadge = kind === "badge";
+  const isIcon = kind === "icon";
+  const isText = element.primitive === "text";
   return (
     <div className="space-y-4">
       {selectedNodes.length > 1 ? <div className="rounded-lg border border-[#b8ff2c]/25 bg-[#b8ff2c]/5 p-3 text-xs" data-testid="composer-multi-selection">{selectedNodes.length} Elements selected</div> : null}
       {isMap ? <MapInspector model={model} element={element} patchProps={patchProps} /> : null}
       {isButton ? <ButtonInspector model={model} element={element} patch={patch} patchProps={patchProps} /> : null}
       <InspectorGroup title="Content">
-        {(element.primitive === "text" || (element.primitive === "button" && !isButton)) ? <TextControl label={element.primitive === "button" ? "Label" : "Text"} multiline value={String(element.props[textKey] || "")} onChange={(value) => patchProps({ [textKey]: value }, "Edited Element content")} /> : null}
+        {(isText || isBadge || (element.primitive === "button" && !isButton)) ? <TextControl label={element.primitive === "button" ? "Label" : isBadge ? "Badge wording" : "Text"} multiline={!isBadge} value={String(element.props[textKey] || element.props.text || "")} onChange={(value) => patchProps({ [isBadge ? "text" : textKey]: value }, "Edited Element content")} /> : null}
+        {isBadge ? <div className="grid grid-cols-2 gap-1" data-testid="badge-wording-library">{BADGE_WORDING.map((word) => <button key={word} type="button" className="min-h-9 rounded border border-white/10 px-1 text-[9px]" onClick={() => patchProps({ text: word, accessibleLabel: word }, `Selected ${word} Badge`)}>{word}</button>)}</div> : null}
         <p className="text-[10px] text-white/70">{element.props.sourceMode === "BRAND" ? "From Brand" : "Custom on this Card"}</p>
       </InspectorGroup>
       <InspectorGroup title={element.primitive === "image" ? "Crop & fit" : element.primitive === "button" ? "Typography" : "Typography / color"}>
@@ -238,6 +244,29 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
           <label className="flex items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={element.props.aspectLocked !== false} onChange={(event) => patch({ props: { ...element.props, aspectLocked: event.target.checked } }, "Changed image aspect lock")} />Maintain aspect ratio</label>
         </> : null}
       </InspectorGroup>
+      {isIcon ? <InspectorGroup title="Icon browser">
+        <IconBrowser value={String(element.props.icon || "sparkles")} onChange={(icon) => patchProps({ icon }, `Selected ${icon} Icon`)} />
+        <ColorControl label="Icon color" value={String(element.props.fill || "#b8ff2c")} onChange={(value) => patchProps({ fill: value, sourceMode: "LOCAL" }, "Recolored Icon")} />
+        <RangeControl label="Icon size" value={Number(element.props.iconSize || 48)} min={12} max={128} suffix="px" onChange={(value) => patchProps({ iconSize: value }, "Resized Icon")} />
+        <ColorControl label="Stroke" value={String(element.props.stroke || "#07100a")} onChange={(value) => patchProps({ stroke: value }, "Changed Icon stroke")} />
+        <RangeControl label="Stroke width" value={Number(element.props.strokeWidth || 1)} min={0} max={8} onChange={(value) => patchProps({ strokeWidth: value }, "Changed Icon stroke width")} />
+        <TextControl label="Accessibility label" value={String(element.props.accessibleLabel || "")} onChange={(value) => patchProps({ accessibleLabel: value, decorative: false }, "Changed Icon accessibility label")} />
+        <label className="flex items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={element.props.decorative === true} onChange={(event) => patchProps({ decorative: event.target.checked }, "Changed Icon decorative behavior")} />Decorative</label>
+      </InspectorGroup> : null}
+      {isBadge ? <InspectorGroup title="Badge · Shape and fill">
+        <SelectControl label="Shape" value={String(element.props.badgeShape || "pill")} options={[...BADGE_SHAPES]} onChange={(value) => patchProps({ badgeShape: value }, "Changed Badge shape")} />
+        <ColorControl label="Fill" value={String(element.props.fill || "#ef4444")} onChange={(value) => patchProps({ fill: value, gradientFill: undefined, sourceMode: "LOCAL" }, "Changed Badge fill")} />
+        <ColorControl label="Text color" value={String(element.props.color || "#ffffff")} onChange={(value) => patchProps({ color: value, sourceMode: "LOCAL" }, "Changed Badge text color")} />
+      </InspectorGroup> : null}
+      {(isText || isBadge) ? <InspectorGroup title="Text effects">
+        <SelectControl label="Text path" value={String(element.props.textCurve || "none")} options={["none", "arch_up", "arch_down", "circle"]} onChange={(value) => patchProps({ textCurve: value }, "Changed curved text")} />
+        <TextControl label="Gradient text (CSS gradient)" value={String(element.props.gradientFill || "")} onChange={(value) => patchProps({ gradientFill: value || undefined }, "Changed text gradient")} />
+        <RangeControl label="Outline" value={Number(element.props.outlineWidth || 0)} min={0} max={8} suffix="px" onChange={(value) => patchProps({ outlineWidth: value }, "Changed text outline")} />
+        <RangeControl label="Shadow" value={Number(element.props.shadow || 0)} min={0} max={40} suffix="px" onChange={(value) => patchProps({ shadow: value }, "Changed text shadow")} />
+        <RangeControl label="Glow" value={Number(element.props.glow || 0)} min={0} max={40} suffix="px" onChange={(value) => patchProps({ glow: value }, "Changed text glow")} />
+        <div className="grid grid-cols-2 gap-1" data-testid="material-preset-library">{MATERIAL_PRESETS.map((preset) => <button key={preset.id} type="button" className="min-h-10 rounded border border-white/10 px-2 text-left text-[10px]" style={{ background: preset.gradient, color: preset.id === "gunmetal" ? "white" : "#10131a" }} onClick={() => patchProps({ materialPreset: preset.id, gradientFill: preset.gradient, shadow: preset.shadow }, `Applied ${preset.label} approximation`)}>{preset.label}</button>)}</div>
+        <button type="button" className="min-h-9 w-full rounded border border-white/10 text-[10px]" onClick={() => patchProps({ materialPreset: undefined, gradientFill: undefined, shadow: 0, glow: 0, outlineWidth: 0 }, "Removed text effects")}>Remove effects</button>
+      </InspectorGroup> : null}
       <InspectorGroup title="Size / position">
         <div className="grid grid-cols-2 gap-2">
           <NumberControl label="X %" value={Math.round(element.x * 100)} onChange={(value) => patch({ x: value / 100 }, "Moved Element")} />
@@ -297,6 +326,14 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
           replaceComposition({ ...composition!, nodes: composition!.nodes.filter((node) => !selectionIds.includes(node.id) || node.locked) }, selectionIds.length > 1 ? "Deleted selected Elements" : "Deleted Element");
           model.setSelectedCompositionNodeIds?.([]);
         }} />
+      </InspectorGroup>
+      <InspectorGroup title="Motion">
+        <SelectControl label="Motion preset" value={String(element.props.motionPreset || "none")} options={MOTION_PRESETS.map((preset) => preset.id)} onChange={(value) => patchProps({ motionPreset: value }, "Changed motion preset")} />
+        <RangeControl label="Intensity" value={Number(element.props.motionIntensity || 50)} min={0} max={100} suffix="%" onChange={(value) => patchProps({ motionIntensity: value }, "Changed motion intensity")} />
+        <RangeControl label="Speed" value={Number(element.props.motionSpeedSeconds || 2.4) * 10} min={4} max={80} onChange={(value) => patchProps({ motionSpeedSeconds: value / 10 }, "Changed motion speed")} />
+        <RangeControl label="Delay" value={Number(element.props.motionDelaySeconds || 0) * 10} min={0} max={50} onChange={(value) => patchProps({ motionDelaySeconds: value / 10 }, "Changed motion delay")} />
+        <SelectControl label="Playback" value={String(element.props.motionPlay || "gentle_repeat")} options={["once", "gentle_repeat", "interaction"]} onChange={(value) => patchProps({ motionPlay: value }, "Changed motion playback")} />
+        <p className="text-[10px] text-white/55">Motion is dormant while editing and runs in Preview draft. Reduced-motion preferences remove it.</p>
       </InspectorGroup>
     </div>
   );
@@ -440,11 +477,13 @@ function InspectorGroup({ title, children }: { title: string; children: ReactNod
 }
 function TextControl({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean }) { const C = multiline ? "textarea" : "input"; return <label className="block text-[10px] text-white/70"><span>{label}</span><C className="mt-1 min-h-9 w-full rounded border border-white/10 bg-black/20 px-2 py-1 text-xs text-white" value={value} onChange={(event) => onChange(event.target.value)} /></label>; }
 function ColorControl({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="flex items-center justify-between gap-2 text-[10px] text-white/70"><span>{label}</span><input type="color" value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"} onChange={(event) => onChange(event.target.value)} className="h-8 w-14 rounded border border-white/10 bg-transparent" /></label>; }
-function ColorTruth({ property, value, source, overlayColor, overlayOpacity }: { property: string; value: string; source: string; overlayColor?: string; overlayOpacity?: number }) { return <div className="rounded border border-white/10 bg-black/20 p-2 text-[10px] text-white/70" data-testid="color-truth" data-property={property} data-value={value}><p className="font-semibold text-white/85">{property}</p><p>Current visible value: <code>{value}</code></p><p>Source: {source}</p><p>Overlay: {(overlayOpacity ?? 0) > 0 ? `${overlayColor || "#000000"} at ${Math.round((overlayOpacity ?? 0) * 100)}%` : "None at 0%"}</p></div>; }
+function renderedColor(value: string, overlayColor?: string, overlayOpacity = 0) { const parse = (color: string) => /^#[0-9a-f]{6}$/i.test(color) ? [1, 3, 5].map((start) => Number.parseInt(color.slice(start, start + 2), 16)) : null; const base = parse(value); const overlay = parse(overlayColor || "#000000"); if (!base || !overlay || overlayOpacity <= 0) return value; const alpha = Math.max(0, Math.min(1, overlayOpacity)); return `#${base.map((channel, index) => Math.round(channel * (1 - alpha) + overlay[index]! * alpha).toString(16).padStart(2, "0")).join("")}`; }
+function ColorTruth({ property, value, source, overlayColor, overlayOpacity }: { property: string; value: string; source: string; overlayColor?: string; overlayOpacity?: number }) { const rendered = renderedColor(value, overlayColor, overlayOpacity); return <div className="rounded border border-white/10 bg-black/20 p-2 text-[10px] text-white/70" data-testid="color-truth" data-property={property} data-value={value} data-rendered-value={rendered}><p className="font-semibold text-white/85">{property}</p><p>Document value: <code>{value}</code></p><p>Rendered value: <code>{rendered}</code></p><p>Source: {source}</p><p>Overlay: {(overlayOpacity ?? 0) > 0 ? `${overlayColor || "#000000"} at ${Math.round((overlayOpacity ?? 0) * 100)}%` : "None at 0%"}</p><p>Opacity influence: {(overlayOpacity ?? 0) > 0 ? "Overlay changes the rendered value" : "None"}</p></div>; }
 function RangeControl({ label, value, min, max, suffix = "", onChange }: { label: string; value: number; min: number; max: number; suffix?: string; onChange: (value: number) => void }) { return <label className="block text-[10px] text-white/70"><span className="flex justify-between"><span>{label}</span><span>{Math.round(value)}{suffix}</span></span><input className="mt-1 w-full accent-[#b8ff2c]" type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
 function NumberControl({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) { return <label className="block text-[10px] text-white/70"><span>{label}</span><input className="mt-1 h-8 w-full rounded border border-white/10 bg-black/20 px-2 text-xs text-white" type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
 function SelectControl({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) { return <label className="block text-[10px] text-white/70"><span>{label}</span><select className="mt-1 h-9 w-full rounded border border-white/10 bg-[#0b1019] px-2 text-xs text-white" value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option} value={option}>{option.replaceAll("_", " ")}</option>)}</select></label>; }
 function OptionSelectControl({ label, value, options, onChange }: { label: string; value: string; options: ReadonlyArray<{ value: string; label: string }>; onChange: (value: string) => void }) { return <label className="block text-[10px] text-white/70"><span>{label}</span><select className="mt-1 h-9 w-full rounded border border-white/10 bg-[#0b1019] px-2 text-xs text-white" value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>; }
+function IconBrowser({ value, onChange }: { value: string; onChange: (value: string) => void }) { const [query, setQuery] = useState(""); const visible = ICON_LIBRARY.filter((icon) => `${icon.label} ${icon.category}`.toLowerCase().includes(query.toLowerCase())); return <div className="space-y-2" data-testid="visual-icon-browser"><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search icons" aria-label="Search icons" className="h-9 w-full rounded border border-white/10 bg-black/20 px-2 text-xs" /><div className="grid grid-cols-3 gap-1">{visible.map((icon) => <button key={icon.id} type="button" aria-pressed={value === icon.id} className={cn("min-h-14 rounded border px-1 text-[9px]", value === icon.id ? "border-[#b8ff2c] bg-[#b8ff2c]/10" : "border-white/10")} onClick={() => onChange(icon.id)} data-testid={`icon-option-${icon.id}`}><span className="block text-sm">{icon.id === "map-pin" ? "⌖" : icon.id === "phone" ? "☎" : icon.id === "mail" ? "✉" : icon.id === "heart" ? "♥" : icon.id === "star" ? "★" : icon.id === "ticket" ? "▰" : icon.id === "tag" ? "◇" : "✦"}</span>{icon.label}</button>)}</div></div>; }
 function ObjectActions({ visible, locked, onVisible, onLocked, onDuplicate, onDelete }: { visible: boolean; locked: boolean; onVisible: () => void; onLocked: () => void; onDuplicate: () => void; onDelete: () => void }) { return <div className="grid grid-cols-4 gap-1"><IconButton label={visible ? "Hide" : "Show"} onClick={onVisible}>{visible ? <Eye /> : <EyeOff />}</IconButton><IconButton label={locked ? "Unlock" : "Lock"} onClick={onLocked}>{locked ? <Unlock /> : <Lock />}</IconButton><IconButton label="Duplicate" onClick={onDuplicate}><Copy /></IconButton><IconButton label="Delete" onClick={onDelete}><Trash2 /></IconButton></div>; }
 function IconButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactElement }) { return <button type="button" className="flex min-h-11 flex-col items-center justify-center gap-1 rounded border border-white/10 text-[9px] text-white/70 hover:bg-white/5" onClick={onClick} title={label}>{children && <span className="[&>svg]:h-3.5 [&>svg]:w-3.5">{children}</span>}{label}</button>; }
 function Warnings({ warnings }: { warnings: string[] }) { return <div className="rounded-lg border border-amber-300/25 bg-amber-300/5 p-3" role="status" data-testid="composer-responsive-warnings"><p className="text-xs font-semibold text-amber-100">Responsive checks</p><ul className="mt-2 list-disc space-y-1 pl-4 text-[10px] text-amber-100/75">{warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul></div>; }

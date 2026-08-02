@@ -89,6 +89,9 @@ type TapConnectCardProps = {
   onElementWrap?: (elementId: string, fromSectionId: string | null) => void;
   /** Force composition phone fallback (narrow preview) */
   compositionForceMobile?: boolean;
+  previewMotion?: boolean;
+  reducedMotionSimulation?: boolean;
+  motionRevision?: number;
   /** Public/runtime context for platform-bound actions (e.g. Ask a Question) */
   supportContext?: Omit<CardSupportContext, "sectionId" | "businessName"> | null;
   /** Public/runtime context for Offer fuse claim path */
@@ -129,6 +132,9 @@ export function TapConnectCard({
   onElementMove,
   onElementWrap,
   compositionForceMobile = false,
+  previewMotion = false,
+  reducedMotionSimulation = false,
+  motionRevision = 0,
   supportContext = null,
   offerContext = null,
   offerFuseEnabled = false,
@@ -1105,12 +1111,15 @@ export function TapConnectCard({
       >
         {editSelects ? (
           <CreativeCompositionCanvas
+            key={`${section.id}-motion-${motionRevision}`}
             block={block}
             editMode
             selectedNodeIds={
               selectedSectionId === section.id ? selectedCompositionNodeIds : []
             }
             forceMobileFallback={compositionForceMobile}
+            previewMotion={previewMotion}
+            reducedMotionSimulation={reducedMotionSimulation}
             onSelectNodes={(ids) => {
               onSectionSelect?.(section.id);
               onCompositionNodeSelect?.(section.id, ids);
@@ -1289,10 +1298,13 @@ export function TapConnectCard({
           </details>
         ) : null}
         <CreativeCompositionCanvas
+          key={`${section.id}-surface-motion-${motionRevision}`}
           block={{ ...block, background: { kind: "none" } }}
           editMode={editSelects}
           selectedNodeIds={selectedSectionId === section.id ? selectedCompositionNodeIds : []}
           forceMobileFallback={compositionForceMobile}
+          previewMotion={previewMotion}
+          reducedMotionSimulation={reducedMotionSimulation}
           layoutMode={section.surfaceLayout || "stack"}
           gapPx={section.surfaceGapPx ?? 12}
           align={section.surfaceAlign || "stretch"}
@@ -1659,6 +1671,7 @@ export function TapConnectCard({
             }}
           >
             <CreativeCompositionCanvas
+              key={`card-root-motion-${motionRevision}`}
               block={parseCreativeComposition(config.rootComposition) || {
                 version: 1,
                 id: "card-root-composition",
@@ -1671,6 +1684,8 @@ export function TapConnectCard({
               editMode={editSelects}
               selectedNodeIds={!selectedSectionId ? selectedCompositionNodeIds : []}
               forceMobileFallback={compositionForceMobile}
+              previewMotion={previewMotion}
+              reducedMotionSimulation={reducedMotionSimulation}
               layoutMode="free"
               minHeightPx={config.rootCanvasMinHeightPx ?? 520}
               className="!rounded-none !border-0"

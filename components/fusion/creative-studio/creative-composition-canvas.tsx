@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
-import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ArrowUpRight, Heart, Mail, MapPin, Phone, Sparkles, Star, Tag, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   FRAME_MASK_CATALOG,
@@ -42,6 +42,8 @@ export type CreativeCompositionCanvasProps = {
   onChangeBlock?: (next: CreativeCompositionBlock, label?: string) => void;
   /** Force mobile fallback layout (narrow preview). */
   forceMobileFallback?: boolean;
+  previewMotion?: boolean;
+  reducedMotionSimulation?: boolean;
   className?: string;
   aspectRatio?: number;
   layoutMode?: "stack" | "row" | "grid" | "free";
@@ -80,7 +82,34 @@ function ElementIcon({ name, size = 20 }: { name: string; size?: number }) {
   if (name.includes("phone")) return <Phone {...props} />;
   if (name.includes("mail")) return <Mail {...props} />;
   if (name.includes("map") || name.includes("pin")) return <MapPin {...props} />;
+  if (name.includes("heart")) return <Heart {...props} />;
+  if (name.includes("star")) return <Star {...props} />;
+  if (name.includes("ticket")) return <Ticket {...props} />;
+  if (name.includes("tag")) return <Tag {...props} />;
+  if (name.includes("spark")) return <Sparkles {...props} />;
   return <ArrowUpRight {...props} />;
+}
+
+function MotionVisual({ node, active, children }: { node: CreativeCompositionNode; active: boolean; children: ReactNode }) {
+  const preset = str(node.props.motionPreset, "none");
+  const enabled = active && preset !== "none";
+  return (
+    <div
+      className={cn("h-full w-full", enabled && "tc-card-motion")}
+      data-motion-preset={preset}
+      data-motion-active={enabled ? "true" : "false"}
+      style={enabled ? {
+        animationName: `tc-motion-${preset.replaceAll("_", "-")}`,
+        animationDuration: `${Math.max(.4, num(node.props.motionSpeedSeconds, 2.4))}s`,
+        animationDelay: `${Math.max(0, num(node.props.motionDelaySeconds, 0))}s`,
+        animationIterationCount: str(node.props.motionPlay, "gentle_repeat") === "once" ? 1 : "infinite",
+        animationTimingFunction: "ease-in-out",
+        animationFillMode: "both",
+      } : undefined}
+    >
+      {children}
+    </div>
+  );
 }
 
 function NodeVisual({
@@ -140,6 +169,28 @@ function NodeVisual({
   }
 
   if (node.primitive === "text") {
+    const text = str(node.props.text, "Text");
+    const curve = str(node.props.textCurve, "none");
+    if (curve !== "none") {
+      const path = curve === "circle"
+        ? "M 50,50 m -38,0 a 38,38 0 1,1 76,0 a 38,38 0 1,1 -76,0"
+        : curve === "arch_down" ? "M 8 38 Q 50 88 92 38" : "M 8 72 Q 50 18 92 72";
+      return (
+        <svg viewBox="0 0 100 100" className="h-full w-full overflow-visible" role="img" aria-label={text} data-text-curve={curve}>
+          <path id={`curve-${node.id}`} d={path} fill="none" />
+          <text
+            fill={str(node.props.color, "#f8fafc")}
+            fontFamily={str(node.props.fontFamily, "Inter, system-ui, sans-serif")}
+            fontSize={Math.max(6, num(node.props.fontSize, 18) / 3)}
+            fontWeight={num(node.props.fontWeight, 600)}
+            letterSpacing={`${num(node.props.letterSpacingEm, 0)}em`}
+            style={node.props.gradientFill ? { fill: str(node.props.color, "#f8fafc"), filter: `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")})` } : undefined}
+          >
+            <textPath href={`#curve-${node.id}`} startOffset="50%" textAnchor="middle">{text}</textPath>
+          </text>
+        </svg>
+      );
+    }
     return (
       <div
         className="flex h-full w-full items-center overflow-hidden px-1"
@@ -173,6 +224,12 @@ function NodeVisual({
               : str(node.props.align, "center") === "right"
                 ? "flex-end"
                 : "center",
+          background: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
+          backgroundClip: node.props.gradientFill ? "text" : undefined,
+          WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
+          WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
+          WebkitTextStroke: num(node.props.outlineWidth, 0) > 0 ? `${num(node.props.outlineWidth, 0)}px ${str(node.props.outlineColor, str(node.props.color, "#f8fafc"))}` : undefined,
+          textShadow: num(node.props.glow, 0) > 0 ? `0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")}` : undefined,
         }}
       >
         <span
@@ -434,6 +491,45 @@ function NodeVisual({
   }
 
   if (node.primitive === "shape") {
+    const elementKind = str(node.props.elementKind);
+    if (elementKind === "icon") {
+      return (
+        <div
+          className="flex h-full w-full items-center justify-center"
+          style={{ color: str(node.props.fill, "#b8ff2c"), filter: num(node.props.glow, 0) ? `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${str(node.props.fill, "#b8ff2c")})` : undefined }}
+          role={node.props.decorative === true ? undefined : "img"}
+          aria-hidden={node.props.decorative === true ? true : undefined}
+          aria-label={node.props.decorative === true ? undefined : str(node.props.accessibleLabel, "Icon")}
+          data-icon-id={str(node.props.icon, "sparkles")}
+        >
+          <ElementIcon name={str(node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />
+        </div>
+      );
+    }
+    if (elementKind === "badge") {
+      const badgeShape = str(node.props.badgeShape, "pill");
+      const badgeClip = badgeShape === "burst" || badgeShape === "starburst"
+        ? "polygon(50% 0,61% 20%,82% 10%,80% 35%,100% 50%,80% 65%,82% 90%,61% 80%,50% 100%,39% 80%,18% 90%,20% 65%,0 50%,20% 35%,18% 10%,39% 20%)"
+        : badgeShape === "ticket" ? "polygon(8% 0,92% 0,92% 12%,100% 20%,92% 28%,92% 72%,100% 80%,92% 88%,92% 100%,8% 100%,8% 88%,0 80%,8% 72%,8% 28%,0 20%,8% 12%)" : undefined;
+      return (
+        <div
+          className="flex h-full w-full items-center justify-center px-2 text-center"
+          style={{
+            background: str(node.props.gradientFill, str(node.props.fill, "#ef4444")),
+            color: str(node.props.color, "#ffffff"),
+            borderRadius: badgeShape === "circle" ? "50%" : badgeShape === "square" ? 0 : num(node.props.radius, 999),
+            clipPath: badgeClip,
+            border: num(node.props.borderWidth, 0) ? `${num(node.props.borderWidth, 0)}px solid ${str(node.props.borderColor, "#fff")}` : undefined,
+            boxShadow: num(node.props.shadow, 0) ? `0 8px ${num(node.props.shadow, 18)}px rgba(0,0,0,.4)` : undefined,
+            fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
+            fontSize: num(node.props.fontSize, 18),
+            fontWeight: num(node.props.fontWeight, 800),
+            letterSpacing: `${num(node.props.letterSpacingEm, .04)}em`,
+          }}
+          data-badge-shape={badgeShape}
+        >{str(node.props.text, "SALE")}</div>
+      );
+    }
     const shape = str(node.props.shape, "rounded");
     const fillKind = str(node.props.fillKind, "solid");
     const radius =
@@ -456,7 +552,7 @@ function NodeVisual({
         ? gradientToCss(node.props.gradient as typeof DEFAULT_GRADIENT)
         : fillKind === "image" && str(node.props.imageSrc)
           ? `url("${str(node.props.imageSrc).replaceAll('"', "%22")}") center / cover no-repeat`
-          : str(node.props.fill, "#22c55e");
+          : str(node.props.gradientFill, str(node.props.fill, "#22c55e"));
     const shadow = num(node.props.shadow, 0);
     const glow = num(node.props.glow, 0);
     return (
@@ -612,7 +708,7 @@ function NodeVisual({
           width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           minHeight: 44,
-          background: str(node.props.fill, "#22c55e"),
+          background: str(node.props.gradientFill, str(node.props.fill, "#22c55e")),
           color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
           borderRadius: radius,
           borderWidth: num(node.props.borderWidth, 0),
@@ -663,6 +759,8 @@ export function CreativeCompositionCanvas({
   onSelectNodes,
   onChangeBlock,
   forceMobileFallback = false,
+  previewMotion = false,
+  reducedMotionSimulation = false,
   className,
   aspectRatio = 4 / 5,
   layoutMode = "free",
@@ -1032,6 +1130,7 @@ export function CreativeCompositionCanvas({
           justifyContent: distribute === "between" ? "space-between" : distribute === "around" ? "space-around" : distribute === "start" ? "flex-start" : distribute === "end" ? "flex-end" : distribute,
         }}
         data-testid="creative-composition-canvas"
+        data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
         data-edit-mode={editMode ? "true" : "false"}
         data-mobile-fallback="stack"
         role="group"
@@ -1101,12 +1200,14 @@ export function CreativeCompositionCanvas({
               commitNodes(current.map((candidate, index) => ({ ...candidate, zIndex: index + 1 })), "Reordered Elements");
             }}
           >
-            <NodeVisual
-              node={node}
-              editMode={editMode}
-              textEditing={selectedSet.has(node.id)}
-              onEditText={(value) => onEditNodeText?.(node.id, value)}
-            />
+            <MotionVisual node={node} active={!editMode || previewMotion}>
+              <NodeVisual
+                node={node}
+                editMode={editMode}
+                textEditing={selectedSet.has(node.id)}
+                onEditText={(value) => onEditNodeText?.(node.id, value)}
+              />
+            </MotionVisual>
           </div>
         ))}
       </div>
@@ -1127,6 +1228,7 @@ export function CreativeCompositionCanvas({
         padding: block.safeAreaPaddingPx ?? 12,
       }}
       data-testid="creative-composition-canvas"
+      data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
       data-edit-mode={editMode ? "true" : "false"}
       data-mobile-fallback={
         applyFallback ? block.mobileFallback : "freeform"
@@ -1299,12 +1401,14 @@ export function CreativeCompositionCanvas({
             tabIndex={editMode ? 0 : undefined}
             aria-label={`${node.primitive}${node.locked ? " locked" : ""}`}
           >
-            <NodeVisual
-              node={node}
-              editMode={editMode}
-              textEditing={selected}
-              onEditText={(value) => onEditNodeText?.(node.id, value)}
-            />
+            <MotionVisual node={node} active={!editMode || previewMotion}>
+              <NodeVisual
+                node={node}
+                editMode={editMode}
+                textEditing={selected}
+                onEditText={(value) => onEditNodeText?.(node.id, value)}
+              />
+            </MotionVisual>
           </div>
         );
       })}

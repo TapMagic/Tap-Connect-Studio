@@ -574,3 +574,28 @@
   box-shadow: none;
   border: none;
 }
+
+/* Governed Card motion presets. They render only when the canvas marks motion active. */
+.tc-card-motion { will-change: transform, opacity, filter; }
+@keyframes tc-motion-subtle-pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.035) } }
+@keyframes tc-motion-glow-pulse { 0%,100% { filter: drop-shadow(0 0 0 currentColor) } 50% { filter: drop-shadow(0 0 12px currentColor) } }
+@keyframes tc-motion-soft-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+@keyframes tc-motion-gentle-bounce { 0%,100% { transform: translateY(0) } 45% { transform: translateY(-8px) } 65% { transform: translateY(-2px) } }
+@keyframes tc-motion-shimmer { 0%,100% { filter: brightness(1) } 50% { filter: brightness(1.35) } }
+@keyframes tc-motion-highlight-sweep { 0%,100% { filter: brightness(.95) } 50% { filter: brightness(1.4) } }
+@keyframes tc-motion-fade-in { from { opacity: 0 } to { opacity: 1 } }
+@keyframes tc-motion-slide-in { from { opacity: 0; transform: translateY(14px) } to { opacity: 1; transform: translateY(0) } }
+@keyframes tc-motion-scale-in { from { opacity: 0; transform: scale(.88) } to { opacity: 1; transform: scale(1) } }
+@keyframes tc-motion-badge-pop { 0% { opacity: 0; transform: scale(.55) rotate(-8deg) } 70% { transform: scale(1.08) rotate(2deg) } 100% { opacity: 1; transform: scale(1) } }
+@keyframes tc-motion-icon-ring { 0%,100% { transform: rotate(0) } 20% { transform: rotate(12deg) } 40% { transform: rotate(-10deg) } 60% { transform: rotate(6deg) } }
+@keyframes tc-motion-neon-flicker { 0%,18%,22%,62%,66%,100% { opacity: 1; filter: brightness(1.35) } 20%,64% { opacity: .72; filter: brightness(.8) } }
+@keyframes tc-motion-slow-rotation { from { transform: rotate(0) } to { transform: rotate(360deg) } }
+
+@media (prefers-reduced-motion: reduce) {
+  .tc-card-motion { animation: none !important; transform: none !important; }
+}
+
+[data-reduced-motion-simulation="true"] .tc-card-motion {
+  animation: none !important;
+  transform: none !important;
+}
