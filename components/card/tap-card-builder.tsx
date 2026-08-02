@@ -204,6 +204,9 @@ type Props = {
   /** Creative Studio Edit vs Preview — defaults to edit when hosted */
   interactionMode?: "edit" | "preview";
   compositionForceMobile?: boolean;
+  previewMotion?: boolean;
+  reducedMotionSimulation?: boolean;
+  motionRevision?: number;
 };
 
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
@@ -313,6 +316,9 @@ export function TapCardBuilder({
   onRequestTool,
   interactionMode = "edit",
   compositionForceMobile = false,
+  previewMotion = false,
+  reducedMotionSimulation = false,
+  motionRevision = 0,
 }: Props) {
   const router = useRouter();
   const {
@@ -944,21 +950,31 @@ export function TapCardBuilder({
     onRequestTool?.("content");
   }
 
-  function addComposerElement(kind: CardElementKind, targetSectionId?: string) {
+  function addComposerElement(kind: CardElementKind, targetSectionId?: string, initialProps?: Record<string, unknown>) {
     const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface")
       ?? sorted.find((section) => section.id === selectedId && section.type === "surface");
     if (!target) {
       let nextConfig = addElementToCardRoot(config, kind);
       const root = ensureRootComposition(nextConfig);
       const addedId = root.nodes.at(-1)?.id;
+      if (addedId && initialProps) {
+        nextConfig = {
+          ...nextConfig,
+          rootComposition: {
+            ...root,
+            nodes: root.nodes.map((node) => node.id === addedId ? { ...node, props: { ...node.props, ...initialProps } } : node),
+          },
+        };
+      }
       if (kind === "map" && addedId) {
         const location = locations.find((item) => item.isDefault) || locations[0];
         if (location) {
+          const activeRoot = ensureRootComposition(nextConfig);
           nextConfig = {
             ...nextConfig,
             rootComposition: {
-              ...root,
-              nodes: root.nodes.map((node) => node.id === addedId ? {
+              ...activeRoot,
+              nodes: activeRoot.nodes.map((node) => node.id === addedId ? {
                 ...node,
                 props: { ...node.props, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" },
               } : node),
@@ -974,6 +990,16 @@ export function TapCardBuilder({
       return;
     }
     let next = addElementToSurface(target, kind);
+    if (initialProps && next.composition) {
+      const addedId = next.composition.nodes.at(-1)?.id;
+      next = {
+        ...next,
+        composition: {
+          ...next.composition,
+          nodes: next.composition.nodes.map((node) => node.id === addedId ? { ...node, props: { ...node.props, ...initialProps } } : node),
+        },
+      };
+    }
     if (kind === "map") {
       const location = locations.find((item) => item.isDefault) || locations[0];
       if (location && next.composition) {
@@ -2622,6 +2648,9 @@ export function TapCardBuilder({
                   interactionMode={interactionMode}
                   previewSafe={interactionMode === "preview"}
                   compositionForceMobile={compositionForceMobile}
+                  previewMotion={previewMotion}
+                  reducedMotionSimulation={reducedMotionSimulation}
+                  motionRevision={motionRevision}
                   selectedSectionId={interactionMode === "edit" ? selectedId : null}
                   selectedCompositionNodeIds={
                     interactionMode === "edit" ? selectedCompositionNodeIds : []

@@ -75,7 +75,7 @@ export type CardEditorLiveModel = {
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
   onAddSurface?: (kind: CardSurfaceKind) => void;
-  onAddElement?: (kind: CardElementKind, targetSectionId?: string) => void;
+  onAddElement?: (kind: CardElementKind, targetSectionId?: string, initialProps?: Record<string, unknown>) => void;
   moveElementsTo?: (
     ids: string[],
     fromSectionId: string | null,

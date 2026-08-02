@@ -10,9 +10,10 @@ import { buttonElementDefaults, mapElementDefaults } from "@/lib/fusion/card/des
 
 export type CardSurfaceKind = NonNullable<TapCardSection["surfaceKind"]>;
 export type CardElementKind =
-  | "text" | "heading" | "business_name" | "address" | "hours" | "logo"
-  | "image" | "image_gallery" | "video" | "icon" | "button" | "map"
+  | "text" | "heading" | "subheading" | "business_name" | "address" | "hours" | "logo"
+  | "secondary_logo" | "image" | "thumbnail" | "image_gallery" | "video" | "icon" | "badge" | "button" | "map"
   | "divider" | "offer_code" | "terms" | "coupon_artwork" | "ticket_artwork"
+  | "decorative_graphic" | "qr_image"
   | "tapsave" | "contact_form" | "campaign" | "campaign_group" | "experience"
   | "composition";
 
@@ -59,14 +60,17 @@ export const CARD_SURFACE_LIBRARY: readonly ComposerLibraryItem[] = [
 
 export const CARD_ELEMENT_LIBRARY: readonly ComposerLibraryItem[] = [
   ["text", "Text", "Paragraph text"], ["heading", "Heading", "Section heading"],
+  ["subheading", "Subheading", "Supporting headline"],
   ["business_name", "Business name", "Brand business name"], ["address", "Address", "Business address"],
   ["hours", "Hours", "Opening hours"], ["logo", "Logo", "Brand or custom logo"],
-  ["image", "Image", "Foreground image"], ["image_gallery", "Image gallery", "Responsive gallery"],
-  ["video", "Video", "Embedded video"], ["icon", "Icon", "Decorative or action icon"],
+  ["secondary_logo", "Secondary logo", "Partner, sponsor, or alternate logo"],
+  ["image", "Image", "Foreground image"], ["thumbnail", "Product thumbnail", "Compact product image"], ["image_gallery", "Image gallery", "Responsive gallery"],
+  ["video", "Video", "Embedded video"], ["icon", "Icon", "Decorative or action icon"], ["badge", "Badge", "Editable promotional badge"],
   ["button", "Button", "Linked customer action"], ["map", "Map", "Location map"],
   ["divider", "Divider", "Visual separator"], ["offer_code", "Offer code", "Redeemable code"],
   ["terms", "Terms", "Offer terms"], ["coupon_artwork", "Coupon artwork", "Coupon visual"],
-  ["ticket_artwork", "Ticket artwork", "Ticket visual"], ["tapsave", "TapSave prompt", "Keep this Card"],
+  ["ticket_artwork", "Ticket artwork", "Ticket visual"], ["decorative_graphic", "Decorative graphic", "Free-floating visual accent"],
+  ["qr_image", "QR image", "QR artwork with accessible context"], ["tapsave", "TapSave prompt", "Keep this Card"],
   ["contact_form", "Contact form", "Consent-aware form"], ["campaign", "Campaign link", "Optional Campaign link"],
   ["campaign_group", "Campaign Group link", "Optional Campaign Group link"], ["experience", "Experience link", "Reusable Experience link"],
   ["composition", "Reusable composition", "Canonical reusable composition"],
@@ -151,11 +155,11 @@ export function fitCardSurfaceToContent(section: TapCardSection): TapCardSection
 }
 
 function primitiveFor(kind: CardElementKind): CreativeCompositionPrimitive {
-  if (["logo", "image", "image_gallery", "video", "map"].includes(kind)) return "image";
+  if (["logo", "secondary_logo", "image", "thumbnail", "image_gallery", "video", "map", "qr_image"].includes(kind)) return "image";
   if (["button", "tapsave", "campaign", "campaign_group", "experience", "contact_form"].includes(kind)) return "button";
   if (kind === "divider") return "border";
   if (["coupon_artwork", "ticket_artwork"].includes(kind)) return "frame";
-  if (kind === "icon") return "shape";
+  if (["icon", "badge", "decorative_graphic"].includes(kind)) return "shape";
   return "text";
 }
 
@@ -170,7 +174,7 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   });
   const text: Partial<Record<CardElementKind, string>> = {
     text: "Type here", heading: "Your heading", business_name: "Business name",
-    address: "123 Main Street\nOcala, Florida", hours: "Open 10–5", offer_code: "SAVE20",
+    subheading: "Your supporting message", address: "123 Main Street\nOcala, Florida", hours: "Open 10–5", offer_code: "SAVE20",
     terms: "Terms and conditions apply.",
   };
   const semanticProps: Record<string, unknown> = {
@@ -186,6 +190,11 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "button") semanticProps.label = "Learn more";
   if (kind === "tapsave") semanticProps.label = "Save this Card";
   if (kind === "logo") semanticProps.alt = "Business logo";
+  if (kind === "secondary_logo") semanticProps.alt = "Partner logo";
+  if (kind === "thumbnail") semanticProps.alt = "Product thumbnail";
+  if (kind === "qr_image") semanticProps.alt = "QR code";
+  if (kind === "icon") Object.assign(semanticProps, { icon: "sparkles", fill: "#b8ff2c", stroke: "#07100a", strokeWidth: 1.5, accessibleLabel: "Decorative icon", decorative: true });
+  if (kind === "badge") Object.assign(semanticProps, { text: "SALE", badgeShape: "pill", fill: "#ef4444", color: "#ffffff", fontSize: 18, fontWeight: 800, radius: 999, accessibleLabel: "Sale" });
   if (kind === "button") Object.assign(semanticProps, buttonElementDefaults());
   if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
   const isCompactAction = kind === "button" || kind === "tapsave";

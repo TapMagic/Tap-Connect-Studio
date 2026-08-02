@@ -19,7 +19,10 @@ test("composer library exposes every promised Section and Element as a real muta
   assert.deepEqual(CARD_SURFACE_LIBRARY.map((item) => item.kind), [
     "blank", "identity", "hero", "content", "actions", "offer", "contact", "location", "gallery",
   ]);
-  assert.equal(CARD_ELEMENT_LIBRARY.length, 23);
+  assert.ok(CARD_ELEMENT_LIBRARY.length >= 29);
+  assert.ok(CARD_ELEMENT_LIBRARY.some((item) => item.kind === "badge"));
+  assert.ok(CARD_ELEMENT_LIBRARY.some((item) => item.kind === "thumbnail"));
+  assert.ok(CARD_ELEMENT_LIBRARY.some((item) => item.kind === "secondary_logo"));
   for (const [order, item] of CARD_SURFACE_LIBRARY.entries()) {
     const section = createCardSurface(item.kind as Parameters<typeof createCardSurface>[0], order);
     assert.equal(section.type, "surface");

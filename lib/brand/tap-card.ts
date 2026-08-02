@@ -395,6 +395,8 @@ export type TapConnectCardConfig = {
   rootBackgroundPosition?: string;
   rootOverlayColor?: string;
   rootOverlayOpacity?: number;
+  /** Card-scoped editable resources. Instances are cloned into canonical compositions. */
+  reusableCompositions?: CreativeCompositionBlock[];
   sections: TapCardSection[];
   /** Soft-retire without deleting Brand Kit card content (J1 lifecycle). */
   lifecycleStatus?: "active" | "retired";
@@ -767,6 +769,18 @@ export function parseTapConnectCard(
       typeof o.rootOverlayOpacity === "number"
         ? Math.max(0, Math.min(1, o.rootOverlayOpacity))
         : 0,
+    reusableCompositions: Array.isArray(o.reusableCompositions)
+      ? o.reusableCompositions.filter(
+          (value): value is CreativeCompositionBlock =>
+            Boolean(
+              value &&
+              typeof value === "object" &&
+              !Array.isArray(value) &&
+              (value as Record<string, unknown>).version === 1 &&
+              Array.isArray((value as Record<string, unknown>).nodes)
+            )
+        )
+      : undefined,
     lifecycleStatus: o.lifecycleStatus === "retired" ? "retired" : "active",
     retiredAt: typeof o.retiredAt === "string" ? o.retiredAt : undefined,
     utilityLayer: parseUtilityLayer(o.utilityLayer, base.utilityLayer),
