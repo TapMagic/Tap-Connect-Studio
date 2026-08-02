@@ -173,14 +173,16 @@ test.describe("canvas-first Card composer visible acceptance", () => {
     await business.click();
     await expect(business).toHaveAttribute("data-selected", "true");
     await page.screenshot({ path: path.join(evidence, "10-reselected-after-click-away.png") });
-    await page.getByLabel("Font family").fill("Georgia, serif");
+    await page.getByTestId("visual-font-picker").getByRole("button").first().click();
+    await page.getByRole("option", { name: /Georgia/ }).click();
     await page.getByTestId("card-contextual-inspector").getByRole("slider", { name: /Size/ }).fill("28");
     await page.getByTestId("card-contextual-inspector").locator('input[type="color"]').first().fill("#facc15");
     await page.screenshot({ path: path.join(evidence, "11-typography-controls.png") });
     await page.getByTestId("composer-selection-breadcrumb").getByRole("button").nth(1).click();
     await page.getByLabel("Layout mode").selectOption("free");
     await business.click();
-    const handle = business.locator('[data-testid*="composition-resize-"]').first();
+    const businessId = await business.getAttribute("data-composition-node");
+    const handle = identity.locator(`[data-testid^="composition-resize-${businessId}-"]`).first();
     await expect(handle).toBeVisible();
     const handleMetrics = await handle.evaluate((element) => ({
       hit: element.getBoundingClientRect().width,
