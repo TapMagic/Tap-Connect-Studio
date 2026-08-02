@@ -72,6 +72,8 @@ export function createCardSurface(kind: CardSurfaceKind, order: number): TapCard
     surfaceLayout: kind === "actions" ? "row" : "stack",
     surfaceWidthPercent: 100,
     surfaceMinHeightPx: defaults.minHeight,
+    surfaceCoordinateHeightPx: defaults.minHeight - 48,
+    surfaceHeightMode: "fixed",
     surfacePaddingPx: 24,
     surfaceGapPx: 12,
     surfaceAlign: "stretch",
@@ -92,6 +94,32 @@ export function createCardSurface(kind: CardSurfaceKind, order: number): TapCard
       label: defaults.label,
       mobileFallback: "stack",
     },
+  };
+}
+
+/** Section-bound resize: never rewrites Element transforms or structured spacing. */
+export function resizeCardSurface(
+  section: TapCardSection,
+  heightPx: number
+): TapCardSection {
+  return {
+    ...section,
+    surfaceMinHeightPx: Math.max(120, Math.round(heightPx)),
+    surfaceHeightMode: "fixed",
+  };
+}
+
+export function fitCardSurfaceToContent(section: TapCardSection): TapCardSection {
+  const padding = section.surfacePaddingPx ?? 24;
+  const plane = section.surfaceCoordinateHeightPx ?? Math.max(80, (section.surfaceMinHeightPx ?? 260) - padding * 2);
+  const bottom = (section.composition?.nodes ?? []).reduce(
+    (max, node) => Math.max(max, (node.y + node.height) * plane),
+    0
+  );
+  return {
+    ...section,
+    surfaceMinHeightPx: Math.max(120, Math.ceil(bottom + padding * 2)),
+    surfaceHeightMode: "auto",
   };
 }
 

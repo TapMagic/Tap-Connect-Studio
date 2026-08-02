@@ -5,7 +5,7 @@ import {
   CardOfferClaimForm,
   type CardOfferContext,
 } from "@/components/fusion/card/card-offer-claim-form";
-import { useMemo, useState, type CSSProperties, type DragEvent, type MouseEvent, type ReactNode } from "react";
+import { useMemo, useState, type CSSProperties, type DragEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Link2 } from "lucide-react";
 import {
@@ -83,6 +83,7 @@ type TapConnectCardProps = {
   ) => void;
   onComposerDrop?: (payload: { level: "section" | "element"; kind: string }, sectionId?: string) => void;
   onSectionReorder?: (fromSectionId: string, toSectionId: string) => void;
+  onSectionResize?: (sectionId: string, heightPx: number) => void;
   onElementMove?: (elementId: string, toSectionId: string) => void;
   /** Force composition phone fallback (narrow preview) */
   compositionForceMobile?: boolean;
@@ -122,6 +123,7 @@ export function TapConnectCard({
   onCompositionChange,
   onComposerDrop,
   onSectionReorder,
+  onSectionResize,
   onElementMove,
   compositionForceMobile = false,
   supportContext = null,
@@ -141,6 +143,7 @@ export function TapConnectCard({
   const [openOffers, setOpenOffers] = useState<Record<string, boolean>>({});
   const [supportSectionId, setSupportSectionId] = useState<string | null>(null);
   const [claimSectionId, setClaimSectionId] = useState<string | null>(null);
+  const [sectionDropTargetId, setSectionDropTargetId] = useState<string | null>(null);
 
   const sections = useMemo(
     () => sortTapCardSections(config.sections).filter((s) => s.enabled),
@@ -1132,14 +1135,43 @@ export function TapConnectCard({
         : section.surfaceShadow === "soft"
           ? "0 6px 18px rgba(0,0,0,.2)"
           : undefined;
+    const padding = section.surfacePaddingPx ?? 24;
+    const minHeight = section.surfaceMinHeightPx ?? 260;
+    const coordinateHeight = section.surfaceCoordinateHeightPx ?? Math.max(80, minHeight - padding * 2);
+    const beginSectionResize = (event: PointerEvent<HTMLButtonElement>) => {
+      if (!editSelects || section.locked) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const startY = event.clientY;
+      const startHeight = minHeight;
+      const move = (moveEvent: globalThis.PointerEvent) =>
+        onSectionResize?.(section.id, Math.max(120, Math.round(startHeight + moveEvent.clientY - startY)));
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up, { once: true });
+    };
+    const beginSectionReorder = (event: PointerEvent<HTMLButtonElement>) => {
+      if (!editSelects || section.locked) return;
+      event.stopPropagation();
+      const up = (upEvent: globalThis.PointerEvent) => {
+        const target = document.elementFromPoint(upEvent.clientX, upEvent.clientY)?.closest<HTMLElement>("[data-section-id]");
+        const targetId = target?.dataset.sectionId;
+        if (targetId && targetId !== section.id) onSectionReorder?.(section.id, targetId);
+        window.removeEventListener("pointerup", up);
+      };
+      window.addEventListener("pointerup", up, { once: true });
+    };
     return (
       <section
         key={section.id}
         className={cn("tcc-composer-surface relative my-2 overflow-hidden", selectedSectionId === section.id && "tcc-section-selected")}
         style={{
           width: `${section.surfaceWidthPercent ?? 100}%`,
-          minHeight: section.surfaceMinHeightPx ?? 260,
-          padding: section.surfacePaddingPx ?? 24,
+          minHeight,
+          padding,
           backgroundColor: section.backgroundColor || "transparent",
           backgroundImage: image ? `linear-gradient(${overlay}${overlayAlpha}, ${overlay}${overlayAlpha}), url("${image.replaceAll('"', "%22")}")` : undefined,
           backgroundSize: section.backgroundFit || "cover",
@@ -1159,12 +1191,14 @@ export function TapConnectCard({
           event.dataTransfer.setData("application/x-tap-card-section", section.id);
         }}
         onDragOver={(event) => {
-          if (editSelects) event.preventDefault();
+          if (editSelects) { event.preventDefault(); setSectionDropTargetId(section.id); }
         }}
+        onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSectionDropTargetId(null); }}
         onDrop={(event) => {
           if (!editSelects) return;
           event.preventDefault();
           event.stopPropagation();
+          setSectionDropTargetId(null);
           const fromSectionId = event.dataTransfer.getData("application/x-tap-card-section");
           if (fromSectionId) {
             onSectionReorder?.(fromSectionId, section.id);
@@ -1184,6 +1218,30 @@ export function TapConnectCard({
           }
         }}
       >
+        {editSelects && sectionDropTargetId === section.id ? <div className="pointer-events-none absolute -top-1 left-0 right-0 z-30 h-1 rounded-full bg-[#b8ff2c]" data-testid="section-drop-indicator" aria-hidden /> : null}
+        {editSelects ? (
+          <button
+            type="button"
+            draggable
+            className="absolute left-1/2 top-1 z-20 flex h-6 w-12 -translate-x-1/2 cursor-grab items-center justify-center rounded bg-black/55 text-xs text-white/75"
+            aria-label={`Reorder ${section.label || "Section"}`}
+            data-testid={`section-reorder-grip-${section.id}`}
+            onPointerDown={beginSectionReorder}
+            onClick={() => { onSectionSelect?.(section.id); onCompositionNodeSelect?.(section.id, []); }}
+            onDragStart={(event) => {
+              event.dataTransfer.effectAllowed = "move";
+              event.dataTransfer.setData("application/x-tap-card-section", section.id);
+            }}
+            onKeyDown={(event) => {
+              if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+                event.preventDefault();
+                const index = sections.findIndex((item) => item.id === section.id);
+                const target = sections[index + (event.key === "ArrowUp" ? -1 : 1)];
+                if (target) onSectionReorder?.(section.id, target.id);
+              }
+            }}
+          >⋮⋮</button>
+        ) : null}
         <CreativeCompositionCanvas
           block={{ ...block, background: { kind: "none" } }}
           editMode={editSelects}
@@ -1191,8 +1249,8 @@ export function TapConnectCard({
           forceMobileFallback={compositionForceMobile}
           layoutMode={section.surfaceLayout || "stack"}
           gapPx={section.surfaceGapPx ?? 12}
-          minHeightPx={Math.max(80, (section.surfaceMinHeightPx ?? 260) - (section.surfacePaddingPx ?? 24) * 2)}
-          aspectRatio={390 / Math.max(120, (section.surfaceMinHeightPx ?? 260) - (section.surfacePaddingPx ?? 24) * 2)}
+          minHeightPx={section.surfaceLayout === "free" ? coordinateHeight : Math.max(80, minHeight - padding * 2)}
+          aspectRatio={section.surfaceLayout === "free" ? undefined : 390 / Math.max(120, minHeight - padding * 2)}
           className="!rounded-none !border-0"
           onSelectNodes={(ids) => {
             onSectionSelect?.(section.id);
@@ -1206,6 +1264,15 @@ export function TapConnectCard({
             onCompositionChange?.(section.id, { ...block, nodes }, "Edited text on canvas");
           }}
         />
+        {editSelects && selectedSectionId === section.id ? (
+          <button
+            type="button"
+            className="absolute -bottom-1 left-1/2 z-20 h-6 w-20 -translate-x-1/2 cursor-ns-resize rounded bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-10 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white/90"
+            aria-label="Resize Section height"
+            data-testid={`section-resize-handle-${section.id}`}
+            onPointerDown={beginSectionResize}
+          />
+        ) : null}
       </section>
     );
   }
@@ -1441,6 +1508,7 @@ export function TapConnectCard({
       data-edit-selects={editSelects ? "true" : "false"}
       onClickCapture={(e) => {
         if (!editSelects) return;
+        if ((e.target as HTMLElement | null)?.closest?.("[data-composition-node], [data-testid=creative-composition-canvas], button, input, textarea, select")) return;
         const el = (e.target as HTMLElement | null)?.closest?.(
           "[data-section-id]"
         ) as HTMLElement | null;

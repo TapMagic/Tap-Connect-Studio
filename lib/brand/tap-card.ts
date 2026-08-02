@@ -270,6 +270,9 @@ export type TapCardSection = {
   surfaceLayout?: "stack" | "row" | "grid" | "free";
   surfaceWidthPercent?: number;
   surfaceMinHeightPx?: number;
+  /** Stable free-layout coordinate plane. Growing the Section must not scale its Elements. */
+  surfaceCoordinateHeightPx?: number;
+  surfaceHeightMode?: "auto" | "fixed";
   surfacePaddingPx?: number;
   surfaceGapPx?: number;
   surfaceAlign?: "start" | "center" | "end" | "stretch";

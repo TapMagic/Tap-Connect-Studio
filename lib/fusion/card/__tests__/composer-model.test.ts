@@ -9,6 +9,8 @@ import {
   composerWarnings,
   createCardElement,
   createCardSurface,
+  fitCardSurfaceToContent,
+  resizeCardSurface,
 } from "../composer-model";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 
@@ -65,4 +67,27 @@ test("responsive warnings identify unsafe Element bounds and sizes", () => {
   assert.match(warnings, /off canvas/);
   assert.match(warnings, /touch target/);
   assert.match(warnings, /unreadable/);
+});
+
+test("free Section resize changes bounds without changing child transforms", () => {
+  let section = addElementToSurface(createCardSurface("identity", 0), "business_name");
+  section = addElementToSurface(section, "address");
+  section.surfaceLayout = "free";
+  const before = structuredClone(section.composition!.nodes);
+  const coordinateHeight = section.surfaceCoordinateHeightPx;
+  const resized = resizeCardSurface(section, 520);
+  assert.equal(resized.surfaceMinHeightPx, 520);
+  assert.equal(resized.surfaceCoordinateHeightPx, coordinateHeight);
+  assert.deepEqual(resized.composition!.nodes, before);
+  assert.equal(resized.surfacePaddingPx, section.surfacePaddingPx);
+  assert.equal(resized.surfaceGapPx, section.surfaceGapPx);
+});
+
+test("fit to content changes Section bounds only", () => {
+  const section = addElementToSurface(createCardSurface("content", 0), "text");
+  const before = structuredClone(section.composition!.nodes);
+  const fitted = fitCardSurfaceToContent(section);
+  assert.equal(fitted.surfaceHeightMode, "auto");
+  assert.ok((fitted.surfaceMinHeightPx ?? 0) >= 120);
+  assert.deepEqual(fitted.composition!.nodes, before);
 });
