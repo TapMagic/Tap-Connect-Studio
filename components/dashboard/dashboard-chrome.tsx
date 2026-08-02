@@ -44,6 +44,7 @@ export function DashboardChrome({
   const pathname = usePathname();
   const router = useRouter();
   const escapeDefault = isAuthoringEscapePath(pathname);
+  const cardEditorEscape = Boolean(pathname?.startsWith("/dashboard/card/edit"));
   const [restoredForPath, setRestoredForPath] = useState<string | null>(null);
   const escapeActive = escapeDefault && restoredForPath !== pathname;
 
@@ -92,11 +93,11 @@ export function DashboardChrome({
       >
         Skip to main content
       </a>
-      {banner}
+      {!escapeActive ? banner : null}
       {!escapeActive ? mobileNav : null}
       {!escapeActive ? topBar : null}
 
-      {escapeActive ? (
+      {escapeActive && !cardEditorEscape ? (
         <div
           className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 bg-[#050814] px-3 py-1.5"
           data-testid="authoring-escape-bar"

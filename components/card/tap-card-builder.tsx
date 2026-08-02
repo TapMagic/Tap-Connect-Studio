@@ -332,6 +332,7 @@ export function TapCardBuilder({
   const [formatOpen, setFormatOpen] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
   const [previewZoom, setPreviewZoom] = useState<"fit" | number>(workspaceMode ? "fit" : 1);
+  const [previewPan, setPreviewPan] = useState(false);
   const [designChromeCollapsed, setDesignChromeCollapsed] = useState(true);
   const [outlineCollapsed, setOutlineCollapsed] = useState(false);
   const [inspectorCollapsed, setInspectorCollapsed] = useState(false);
@@ -385,8 +386,21 @@ export function TapCardBuilder({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (e.key === "Escape" && !target?.closest("input, textarea, select, [contenteditable=true]")) {
+        if (selectedCompositionNodeIds.length) {
+          e.preventDefault();
+          setSelectedCompositionNodeIds([]);
+          return;
+        }
+        if (selectedId) {
+          e.preventDefault();
+          setSelectedId(null);
+          return;
+        }
+      }
       if (!(e.metaKey || e.ctrlKey)) return;
-      const tag = (e.target as HTMLElement | null)?.tagName;
+      const tag = target?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
       if (e.key === "z" && !e.shiftKey) {
         e.preventDefault();
@@ -398,7 +412,7 @@ export function TapCardBuilder({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undoEditor, redoEditor]);
+  }, [undoEditor, redoEditor, selectedCompositionNodeIds.length, selectedId]);
 
   useEffect(() => {
     if (!selectedId || !previewScrollRef.current) return;
@@ -2367,8 +2381,8 @@ export function TapCardBuilder({
           data-testid="card-preview-canvas"
         >
           <div className="sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur">
-            <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Preview zoom
+            <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-muted-foreground" data-testid="card-zoom-percent">
+              {previewZoom === "fit" ? "Fit" : `${Math.round(previewZoom * 100)}%`}
             </span>
             <Button
               type="button"
@@ -2426,6 +2440,31 @@ export function TapCardBuilder({
             >
               +
             </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className="h-7 text-xs"
+              data-testid="card-zoom-fit-selection"
+              disabled={!selectedId}
+              onClick={() => {
+                setPreviewZoom(1);
+                document.getElementById(`tap-section-${selectedId}`)?.scrollIntoView({ block: "center" });
+              }}
+            >
+              Fit selection
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="outline"
+              className={cn("h-7 text-xs", previewPan && "border-primary/50 bg-primary/10 text-primary")}
+              aria-pressed={previewPan}
+              data-testid="card-pan-tool"
+              onClick={() => setPreviewPan((active) => !active)}
+            >
+              Pan
+            </Button>
             {!shellHosted ? (
             <Button
               type="button"
@@ -2453,7 +2492,7 @@ export function TapCardBuilder({
             </Button>
             )}
           </div>
-          <div className="flex justify-center p-4 pb-12">
+          <div className={cn("flex justify-center p-4 pb-12", previewPan && "cursor-grab overflow-auto")}>
             <div
               className={cn(
                 "builder-phone builder-phone-natural origin-top",
@@ -2520,12 +2559,13 @@ export function TapCardBuilder({
                       : undefined
                   }
                   onSectionReorder={interactionMode === "edit" ? reorder : undefined}
+                  onSectionResize={interactionMode === "edit" ? (sectionId, heightPx) => patchSection(sectionId, { surfaceMinHeightPx: heightPx, surfaceHeightMode: "fixed" }, "Resized Section height") : undefined}
                   onElementMove={interactionMode === "edit" ? moveComposerElement : undefined}
                   onSectionSelect={
                     interactionMode === "edit"
                       ? (id) => {
                           setSelectedId(id);
-                          if (!id) setSelectedCompositionNodeIds([]);
+                          setSelectedCompositionNodeIds([]);
                           if (id && onRequestTool) {
                             const section = sectionsHistory.find((s) => s.id === id);
                             if (section?.type === "action") onRequestTool("buttons");

@@ -17,7 +17,7 @@ test.describe("authoring escape + preview + inbox humanization", () => {
       "true",
       { timeout: 60_000 }
     );
-    await expect(page.getByTestId("authoring-escape-bar")).toBeVisible();
+    await expect(page.getByTestId("authoring-escape-bar")).toHaveCount(0);
     await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible();
     await expect(page.getByTestId("authoring-workspace-shell")).toBeVisible();
     await expect(page.getByTestId("authoring-canvas")).toBeVisible();

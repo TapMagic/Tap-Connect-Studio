@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
-import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, Lock, Unlock } from "lucide-react";
+import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, HelpCircle, Lock, Unlock } from "lucide-react";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
 import { CARD_ELEMENT_LIBRARY, CARD_SURFACE_LIBRARY, type CardElementKind, type CardSurfaceKind } from "@/lib/fusion/card/composer-model";
 import { cn } from "@/lib/utils";
@@ -11,12 +11,13 @@ const MIME = "application/x-tap-card-composer";
 export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | null }) {
   const [query, setQuery] = useState("");
   const [outlineOpen, setOutlineOpen] = useState(false);
+  const [guideOpen, setGuideOpen] = useState(true);
   const match = (label: string) => !query.trim() || label.toLowerCase().includes(query.toLowerCase());
 
   return (
     <div className="space-y-4" data-testid="card-composer-library">
       <div>
-        <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/45">Build library</p>
+        <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/70">Build library</p>
         <input
           type="search"
           value={query}
@@ -26,6 +27,21 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
           aria-label="Search build library"
         />
       </div>
+      {guideOpen ? (
+        <section className="rounded-lg border border-[#b8ff2c]/20 bg-[#b8ff2c]/5 p-3" data-testid="composer-help-guide">
+          <div className="flex items-start justify-between gap-2">
+            <div><h2 className="text-xs font-semibold text-white/85">One clear next step</h2><p className="mt-1 text-[10px] text-white/70">Build the essentials, then review the whole Card.</p></div>
+            <button type="button" className="text-[10px] text-white/70" onClick={() => setGuideOpen(false)} aria-label="Dismiss build guide">Dismiss</button>
+          </div>
+          <div className="mt-3 grid gap-1.5">
+            <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => model?.onAddSurface?.("identity")}>1. Add identity</button>
+            <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => model?.onAddSurface?.("actions")}>2. Add a primary action</button>
+            <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => { model?.setSelectedId(null); model?.setSelectedCompositionNodeIds?.([]); }}>3. Review Card</button>
+          </div>
+        </section>
+      ) : (
+        <button type="button" className="flex min-h-9 w-full items-center gap-2 rounded border border-white/10 px-2 text-xs text-white/65" onClick={() => setGuideOpen(true)} data-testid="composer-reopen-help"><HelpCircle className="h-3.5 w-3.5" />Help</button>
+      )}
       <LibraryGroup title="Sections" testId="composer-section-library">
         {CARD_SURFACE_LIBRARY.filter((item) => match(item.label)).map((item) => (
           <LibraryButton
@@ -90,25 +106,33 @@ function LibraryButton({ label, description, level, kind, onAdd }: { label: stri
       data-testid={`composer-add-${level}-${kind}`}
       title={description}
     >
-      <GripVertical className="h-3.5 w-3.5 shrink-0 text-white/25 group-hover:text-white/55" />
+      <GripVertical className="h-3.5 w-3.5 shrink-0 text-white/25 group-hover:text-white/70" />
       <span className="min-w-0">
         <span className="block text-xs text-white/80">{label}</span>
-        <span className="block truncate text-[10px] text-white/35">{description}</span>
+        <span className="block truncate text-[10px] text-white/70">{description}</span>
       </span>
     </button>
   );
 }
 
 function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
-  if (!model) return <p className="p-2 text-xs text-white/40">Loading layers…</p>;
+  const [dragId, setDragId] = useState<string | null>(null);
+  if (!model) return <p className="p-2 text-xs text-white/70">Loading layers…</p>;
   return (
     <div className="mt-2 space-y-1" data-testid="composer-nested-outline" role="tree" aria-label="Card layers">
       <button type="button" className="min-h-9 w-full rounded px-2 text-left text-xs text-white/70" onClick={() => model.setSelectedId(null)} role="treeitem" aria-selected={!model.selected}>
         Card
       </button>
-      {model.sorted.map((section) => (
-        <div key={section.id} className="rounded-md border border-white/5 bg-black/10" role="treeitem" aria-expanded aria-selected={model.selected?.id === section.id && !model.selectedCompositionNodeIds?.length}>
+      {model.sorted.map((section, index) => (
+        <div key={section.id} className={cn("rounded-md border border-white/5 bg-black/10", dragId === section.id && "opacity-50")} role="treeitem" aria-expanded aria-selected={model.selected?.id === section.id && !model.selectedCompositionNodeIds?.length}
+          onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
+          onDrop={(event) => { event.preventDefault(); if (dragId && dragId !== section.id) model.reorderSections(dragId, section.id); setDragId(null); }}>
           <div className="flex items-center gap-1">
+            <button type="button" draggable className="grid min-h-9 w-7 place-items-center text-white/70" aria-label={`Reorder ${section.label || "Section"}`} onDragStart={() => setDragId(section.id)} onDragEnd={() => setDragId(null)} onKeyDown={(event) => {
+              if (event.key === "ArrowUp" || event.key === "ArrowDown") { event.preventDefault(); model.moveSectionBy(section.id, event.key === "ArrowUp" ? -1 : 1); }
+              if (event.key === "Home") { event.preventDefault(); model.moveSectionTo(section.id, "top"); }
+              if (event.key === "End") { event.preventDefault(); model.moveSectionTo(section.id, "bottom"); }
+            }} data-testid={`outline-reorder-${section.id}`}><GripVertical className="h-3.5 w-3.5" /></button>
             <button
               type="button"
               className={cn("min-h-9 min-w-0 flex-1 truncate px-2 text-left text-xs", model.selected?.id === section.id ? "text-[#b8ff2c]" : "text-white/70")}
@@ -117,12 +141,14 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
             >
               {section.label || section.type}
             </button>
-            <button type="button" className="p-1 text-white/45" aria-label={section.enabled ? "Hide Section" : "Show Section"} onClick={() => model.toggleSectionVisible(section.id)}>
+            <button type="button" className="p-1 text-white/70" aria-label={section.enabled ? "Hide Section" : "Show Section"} onClick={() => model.toggleSectionVisible(section.id)}>
               {section.enabled ? <Eye className="h-3.5 w-3.5" /> : <EyeOff className="h-3.5 w-3.5" />}
             </button>
-            <button type="button" className="p-1 text-white/45" aria-label={section.locked ? "Unlock Section" : "Lock Section"} onClick={() => model.toggleSectionLocked(section.id)}>
+            <button type="button" className="p-1 text-white/70" aria-label={section.locked ? "Unlock Section" : "Lock Section"} onClick={() => model.toggleSectionLocked(section.id)}>
               {section.locked ? <Lock className="h-3.5 w-3.5" /> : <Unlock className="h-3.5 w-3.5" />}
             </button>
+            <button type="button" className="p-1 text-white/70 disabled:opacity-20" aria-label="Move Section up" disabled={index === 0} onClick={() => model.moveSectionBy(section.id, -1)}>↑</button>
+            <button type="button" className="p-1 text-white/70 disabled:opacity-20" aria-label="Move Section down" disabled={index === model.sorted.length - 1} onClick={() => model.moveSectionBy(section.id, 1)}>↓</button>
           </div>
           {(section.composition?.nodes ?? []).map((node) => (
             <button
@@ -130,7 +156,7 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
               type="button"
               role="treeitem"
               aria-selected={Boolean(model.selectedCompositionNodeIds?.includes(node.id))}
-              className={cn("flex min-h-8 w-full items-center gap-2 border-t border-white/5 pl-5 pr-2 text-left text-[11px]", model.selectedCompositionNodeIds?.includes(node.id) ? "text-[#b8ff2c]" : "text-white/55")}
+              className={cn("flex min-h-8 w-full items-center gap-2 border-t border-white/5 pl-5 pr-2 text-left text-[11px]", model.selectedCompositionNodeIds?.includes(node.id) ? "text-[#b8ff2c]" : "text-white/70")}
               onClick={() => { model.setSelectedId(section.id); model.setSelectedCompositionNodeIds?.([node.id]); }}
               data-testid={`outline-element-${node.id}`}
             >

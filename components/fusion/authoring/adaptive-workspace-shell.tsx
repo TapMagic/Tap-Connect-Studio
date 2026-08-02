@@ -99,6 +99,7 @@ export type AdaptiveWorkspaceShellProps = {
   drawerRootTestId?: string;
   /** NestedPanelShell owns Back/Close — hide Adaptive drawer title row. */
   suppressDrawerHeader?: boolean;
+  compactHeader?: boolean;
 };
 
 export function AdaptiveWorkspaceShell({
@@ -127,6 +128,7 @@ export function AdaptiveWorkspaceShell({
   mobileSheetTestId,
   drawerRootTestId = "adaptive-task-drawer",
   suppressDrawerHeader = false,
+  compactHeader = false,
 }: AdaptiveWorkspaceShellProps) {
   const isPhone = useIsPhoneLayout();
   const reducedMotion = usePrefersReducedMotion();
@@ -284,6 +286,7 @@ export function AdaptiveWorkspaceShell({
       data-maturity="implemented-not-owner-ready"
     >
       <CommandShade
+        compact={compactHeader}
         identityLabel={identity.label}
         objectLabel={identity.objectLabel}
         display={resolved.display}

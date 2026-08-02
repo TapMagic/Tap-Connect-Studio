@@ -224,7 +224,7 @@ export function CardAuthoringWorkspace({
   });
   const [chromeState, setChromeState] = useState<
     "expanded" | "compact" | "collapsed" | "pinned" | "focus"
-  >("expanded");
+  >("compact");
   const apiRef = useRef<CardBuilderShellApi | null>(null);
 
   useEffect(() => {
@@ -286,56 +286,6 @@ export function CardAuthoringWorkspace({
       apiRef.current?.selectSection?.(editSelectionMemory);
     }
   }, [editSelectionMemory]);
-
-  const applyChromeState = useCallback(
-    (next: "expanded" | "compact" | "collapsed" | "pinned" | "focus") => {
-      setChromeState(next);
-      if (next === "focus") {
-        setShell((s) => ({
-          ...s,
-          focusMode: true,
-          drawerOpen: false,
-          shadePreference: "auto",
-          priorShadeDisplay: "collapsed",
-        }));
-        return;
-      }
-      if (next === "pinned") {
-        setShell((s) => ({
-          ...s,
-          focusMode: false,
-          shadePreference: "pinned_open",
-          priorShadeDisplay: "open",
-        }));
-        return;
-      }
-      if (next === "collapsed") {
-        setShell((s) => ({
-          ...s,
-          focusMode: false,
-          shadePreference: "pinned_collapsed",
-          priorShadeDisplay: "collapsed",
-        }));
-        return;
-      }
-      if (next === "compact") {
-        setShell((s) => ({
-          ...s,
-          focusMode: false,
-          shadePreference: "auto",
-          priorShadeDisplay: "peek",
-        }));
-        return;
-      }
-      setShell((s) => ({
-        ...s,
-        focusMode: false,
-        shadePreference: "auto",
-        priorShadeDisplay: "open",
-      }));
-    },
-    []
-  );
 
   // Keep builder focus in sync with shell Focus.
   useEffect(() => {
@@ -515,7 +465,7 @@ export function CardAuthoringWorkspace({
   const shadeExtras = (
     <div className="flex flex-wrap items-center gap-2" data-testid="card-shade-extras">
       <span
-        className="rounded-md border border-white/10 px-2 py-1 text-[10px] text-white/55"
+        className="rounded-md border border-white/10 px-2 py-1 text-[10px] text-white/70"
         data-testid="studio-save-state"
         data-saved={status.dirty ? "false" : "true"}
       >
@@ -540,7 +490,7 @@ export function CardAuthoringWorkspace({
       >
         Publish
       </Button>
-      <span className="text-[10px] text-white/55" data-testid="card-publication-state">{status.publicationLabel}</span>
+      <span className="text-[10px] text-white/70" data-testid="card-publication-state">{status.publicationLabel}</span>
       <Button
         type="button"
         variant="outline"
@@ -596,6 +546,8 @@ export function CardAuthoringWorkspace({
       <span className="sr-only" data-testid="card-focus-mode" aria-hidden>
         Focus lives on command-shade-focus
       </span>
+      <button type="button" className="min-h-9 rounded-md border border-white/15 px-2 text-xs text-white/80" onClick={() => openCardTool("history")}>History</button>
+      <Link href="/control" className="inline-flex min-h-9 items-center rounded-md border border-white/15 px-2 text-xs text-white/80">Control Room</Link>
     </div>
   );
 
@@ -622,51 +574,6 @@ export function CardAuthoringWorkspace({
       <div className="sr-only" data-testid="card-edit-compact-toolbar" aria-hidden>
         Command Shade owns Card chrome
       </div>
-
-      {studioMode === "edit" ? (
-        <div
-          className="pointer-events-none absolute left-2 right-2 top-2 z-40 flex flex-wrap items-center gap-1.5"
-          data-testid="studio-chrome-controls"
-          role="toolbar"
-          aria-label="Workspace chrome"
-        >
-          <div className="pointer-events-auto flex max-w-full flex-wrap items-center gap-1.5 rounded-lg border border-white/15 bg-[#0a0e16]/95 px-2 py-1.5 shadow-lg backdrop-blur-sm">
-            {(
-              [
-                ["expanded", "Expanded"],
-                ["compact", "Compact"],
-                ["collapsed", "Collapsed"],
-                ["pinned", "Pinned"],
-                ["focus", "Focus on canvas"],
-              ] as const
-            ).map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={chromeState === id}
-                data-testid={`chrome-state-${id}`}
-                onClick={() => applyChromeState(id)}
-                className={cn(
-                  "min-h-8 rounded-md border px-2 text-[10px]",
-                  chromeState === id
-                    ? "border-white/35 bg-white/10 text-white"
-                    : "border-white/10 text-white/60"
-                )}
-              >
-                {label}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="min-h-8 rounded-md border border-white/10 px-2 text-[10px] text-white/60"
-              data-testid="open-history-panel"
-              onClick={() => openCardTool("history")}
-            >
-              History
-            </button>
-          </div>
-        </div>
-      ) : null}
 
       {studioMode === "preview" ? (
         <PreviewToolbar
@@ -710,6 +617,7 @@ export function CardAuthoringWorkspace({
       ) : null}
 
       <AdaptiveWorkspaceShell
+        compactHeader
         identity={{
           id: WORKSPACE_ID,
           label: status.cardName || "Card",
@@ -886,7 +794,7 @@ export function CardAuthoringWorkspace({
               </a>
             ) : (
               <span
-                className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-white/40"
+                className="rounded-md border border-white/10 px-2.5 py-1 text-xs text-white/70"
                 title="No Tap Point device code available"
                 data-testid="card-edit-preview-public-unavailable"
               >
@@ -917,7 +825,7 @@ export function CardAuthoringWorkspace({
                     "inline-flex min-h-9 min-w-9 items-center justify-center rounded",
                     previewViewport === id
                       ? "bg-white/12 text-white"
-                      : "text-white/55 hover:text-white/80"
+                      : "text-white/70 hover:text-white/80"
                   )}
                 >
                   <Icon className="h-4 w-4" aria-hidden />

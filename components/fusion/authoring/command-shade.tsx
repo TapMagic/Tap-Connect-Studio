@@ -43,6 +43,7 @@ export type CommandShadeProps = {
   onAuto?: () => void;
   onFocusToggle?: () => void;
   className?: string;
+  compact?: boolean;
 };
 
 export function CommandShade({
@@ -68,6 +69,7 @@ export function CommandShade({
   onAuto,
   onFocusToggle,
   className,
+  compact = false,
 }: CommandShadeProps) {
   const showWarning =
     Boolean(blockingWarning) || resolved?.showWarningInStrip === true;
@@ -79,7 +81,7 @@ export function CommandShade({
       className={cn(
         "relative z-20 shrink-0 border-b border-white/10 bg-[#050814]/95 backdrop-blur-sm",
         !reducedMotion && "transition-[min-height,padding] duration-200 ease-out",
-        isCollapsed ? "min-h-11" : isPeek ? "min-h-14" : "min-h-[4.5rem]",
+        compact ? "min-h-14" : isCollapsed ? "min-h-11" : isPeek ? "min-h-14" : "min-h-[4.5rem]",
         className
       )}
       data-testid="command-shade"
@@ -89,12 +91,12 @@ export function CommandShade({
       aria-label={`Workspace command shade (${display})`}
     >
       {/* Pull handle */}
-      <div className="flex justify-center pt-0.5">
+      <div className={cn("flex justify-center pt-0.5", compact && "hidden")}>
         <button
           type="button"
           data-testid="command-shade-handle"
           aria-label={isCollapsed ? "Expand command shade" : "Collapse command shade"}
-          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-white/45 hover:bg-white/5 hover:text-white/80"
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-white/70 hover:bg-white/5 hover:text-white/80"
           onClick={() => (isCollapsed ? onExpand?.() : onCollapse?.())}
         >
           {isCollapsed ? (
@@ -112,10 +114,11 @@ export function CommandShade({
       <div
         className={cn(
           "flex flex-wrap items-center gap-2 px-3 pb-2",
-          isCollapsed && "pb-1.5 pt-0"
+          isCollapsed && "pb-1.5 pt-0",
+          compact && "h-[55px] min-h-[55px] flex-nowrap overflow-hidden py-1 [&_a]:min-h-9 [&_button]:min-h-9"
         )}
       >
-        <div className="min-w-0 flex-1">
+        <div className={cn("min-w-0 flex-1", compact && "w-40 flex-none")}>
           <p
             className={cn(
               "truncate font-semibold uppercase tracking-[0.14em] text-primary",
@@ -124,8 +127,8 @@ export function CommandShade({
           >
             {identityLabel}
           </p>
-          {!isCollapsed && objectLabel ? (
-            <p className="truncate text-xs text-white/55">{objectLabel}</p>
+          {!isCollapsed && !compact && objectLabel ? (
+            <p className="truncate text-xs text-white/70">{objectLabel}</p>
           ) : null}
           {showWarning ? (
             <p
@@ -164,20 +167,20 @@ export function CommandShade({
           ) : null}
         </div>
 
-        <div className="flex flex-wrap items-center gap-1.5">
-          {!isCollapsed ? previewControls : null}
+        <div className={cn("flex flex-wrap items-center gap-1.5", compact && "min-w-0 flex-1 flex-nowrap justify-end overflow-x-auto")}>
+          {!isCollapsed || compact ? previewControls : null}
           {extras}
-          {!isCollapsed && openInNewTab}
+          {(!isCollapsed || compact) && openInNewTab}
           {returnAction}
           {primaryAction}
 
           <div
-            className="flex items-center gap-1"
+            className={cn("flex items-center gap-1", compact && "hidden")}
             role="group"
             aria-label="Shade pin controls"
             data-testid="command-shade-pin-controls"
           >
-            {!isCollapsed ? (
+            {!isCollapsed && !compact ? (
               <>
                 <button
                   type="button"
