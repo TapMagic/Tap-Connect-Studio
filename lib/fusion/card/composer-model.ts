@@ -6,6 +6,7 @@ import {
   type CreativeCompositionNode,
   type CreativeCompositionPrimitive,
 } from "@/lib/fusion/creative-studio/composition";
+import { buttonElementDefaults, mapElementDefaults } from "@/lib/fusion/card/designer-elements";
 
 export type CardSurfaceKind = NonNullable<TapCardSection["surfaceKind"]>;
 export type CardElementKind =
@@ -20,6 +21,23 @@ export type ComposerLibraryItem = {
   label: string;
   description: string;
 };
+
+export type ComposerSelectedObject =
+  | { type: "card"; id: "card"; sectionId: null; elementId: null }
+  | { type: "section"; id: string; sectionId: string; elementId: null }
+  | { type: "element"; id: string; sectionId: string; elementId: string };
+
+export function resolveComposerSelectedObject(
+  config: TapConnectCardConfig,
+  sectionId: string | null,
+  elementIds: string[] = []
+): ComposerSelectedObject {
+  const section = config.sections.find((candidate) => candidate.id === sectionId);
+  if (!section) return { type: "card", id: "card", sectionId: null, elementId: null };
+  const element = section.composition?.nodes.find((candidate) => candidate.id === elementIds[0]);
+  if (!element) return { type: "section", id: section.id, sectionId: section.id, elementId: null };
+  return { type: "element", id: element.id, sectionId: section.id, elementId: element.id };
+}
 
 export const CARD_SURFACE_LIBRARY: readonly ComposerLibraryItem[] = [
   ["blank", "Blank Section", "An empty, cohesive visual surface"],
@@ -159,8 +177,14 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "button") semanticProps.label = "Learn more";
   if (kind === "tapsave") semanticProps.label = "Save this Card";
   if (kind === "logo") semanticProps.alt = "Business logo";
+  if (kind === "button") Object.assign(semanticProps, buttonElementDefaults());
+  if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
+  const isCompactAction = kind === "button" || kind === "tapsave";
+  const isMap = kind === "map";
   return {
     ...node,
+    width: isMap ? 0.84 : isCompactAction ? 0.42 : node.width,
+    height: isMap ? 0.34 : isCompactAction ? 0.16 : node.height,
     props: {
       ...node.props,
       ...semanticProps,

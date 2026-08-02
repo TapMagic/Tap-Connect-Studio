@@ -11,6 +11,7 @@ import {
   createCardSurface,
   fitCardSurfaceToContent,
   resizeCardSurface,
+  resolveComposerSelectedObject,
 } from "../composer-model";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 
@@ -90,4 +91,17 @@ test("fit to content changes Section bounds only", () => {
   assert.equal(fitted.surfaceHeightMode, "auto");
   assert.ok((fitted.surfaceMinHeightPx ?? 0) >= 120);
   assert.deepEqual(fitted.composition!.nodes, before);
+});
+
+test("one canonical selection identity resolves Card, Section, and Element without stale inference", () => {
+  const section = addElementToSurface(createCardSurface("location", 0), "map");
+  const config = {
+    version: 3, accentColor: "#84cc16", surfaceColor: "#111827", textColor: "#ffffff",
+    headerEnergy: 50, collapsible: false, defaultCollapsed: false, actionsLayout: "stack",
+    defaultFinish: "soft", cardFinish: "soft", defaultShape: "pill", sections: [section],
+  } satisfies TapConnectCardConfig;
+  const elementId = section.composition!.nodes[0]!.id;
+  assert.deepEqual(resolveComposerSelectedObject(config, null, [elementId]), { type: "card", id: "card", sectionId: null, elementId: null });
+  assert.deepEqual(resolveComposerSelectedObject(config, section.id, ["stale-id"]), { type: "section", id: section.id, sectionId: section.id, elementId: null });
+  assert.deepEqual(resolveComposerSelectedObject(config, section.id, [elementId]), { type: "element", id: elementId, sectionId: section.id, elementId });
 });
