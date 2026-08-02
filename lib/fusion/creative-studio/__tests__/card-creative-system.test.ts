@@ -1,0 +1,77 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { createCardElement } from "@/lib/fusion/card/composer-model";
+import { parseTapConnectCard } from "@/lib/brand/tap-card";
+import {
+  BADGE_SHAPES,
+  BADGE_WORDING,
+  ICON_LIBRARY,
+  MATERIAL_PRESETS,
+  MOTION_PRESETS,
+  applyMaterialPreset,
+  defaultMotionSettings,
+  instantiateReusableComposition,
+  saveReusableComposition,
+} from "@/lib/fusion/creative-studio/card-creative-system";
+import { createEmptyCreativeComposition } from "@/lib/fusion/creative-studio/composition";
+
+test("creative libraries expose editable badge, icon, material, and governed motion choices", () => {
+  assert.ok(BADGE_WORDING.includes("SALE"));
+  assert.ok(BADGE_SHAPES.includes("burst"));
+  assert.ok(ICON_LIBRARY.some((icon) => icon.id === "map-pin"));
+  assert.ok(MATERIAL_PRESETS.some((preset) => preset.id === "gold_foil"));
+  assert.ok(MOTION_PRESETS.some((preset) => preset.id === "glow_pulse"));
+  assert.deepEqual(defaultMotionSettings("glow_pulse"), {
+    preset: "glow_pulse",
+    intensity: 50,
+    speedSeconds: 2.4,
+    delaySeconds: 0,
+    play: "gentle_repeat",
+  });
+});
+
+test("Badge and Icon remain canonical editable Elements", () => {
+  const badge = createCardElement("badge");
+  const icon = createCardElement("icon");
+  assert.equal(badge.primitive, "shape");
+  assert.equal(badge.props.text, "SALE");
+  assert.equal(badge.props.badgeShape, "pill");
+  assert.equal(icon.primitive, "shape");
+  assert.equal(icon.props.icon, "sparkles");
+  assert.equal(icon.props.decorative, true);
+});
+
+test("material presets expand to supported editable properties", () => {
+  const text = createCardElement("heading");
+  const styled = applyMaterialPreset(text, "brushed_silver");
+  assert.equal(styled.props.materialPreset, "brushed_silver");
+  assert.match(String(styled.props.gradientFill), /linear-gradient/);
+  assert.equal(typeof styled.props.shadow, "number");
+});
+
+test("reusable composition instances retain source revision but never share node identity", () => {
+  const block = createEmptyCreativeComposition("offer-composition");
+  block.nodes = [createCardElement("badge"), createCardElement("heading"), createCardElement("button")];
+  const resource = saveReusableComposition({ block, name: "Free Fries Tonight" });
+  const first = instantiateReusableComposition(resource);
+  const second = instantiateReusableComposition(resource);
+  assert.equal(resource.label, "Free Fries Tonight");
+  assert.equal(first.resourceRef?.resourceId, resource.resourceRef?.resourceId);
+  assert.equal(second.resourceRef?.revisionId, resource.resourceRef?.revisionId);
+  assert.notEqual(first.id, second.id);
+  const firstIds = new Set(first.nodes.map((node) => node.id));
+  assert.equal(second.nodes.some((node) => firstIds.has(node.id)), false);
+  first.nodes[0]!.props.text = "FIRST ONLY";
+  assert.equal(second.nodes[0]!.props.text, "SALE");
+  assert.equal(resource.nodes[0]!.props.text, "SALE");
+
+  const parsed = parseTapConnectCard({
+    version: 3,
+    accentColor: "#b8ff2c",
+    surfaceColor: "#10131a",
+    textColor: "#ffffff",
+    sections: [],
+    reusableCompositions: [resource],
+  }, { businessName: "Parser proof" });
+  assert.equal(parsed.reusableCompositions?.[0]?.resourceRef?.resourceId, resource.resourceRef?.resourceId);
+});
