@@ -25,6 +25,7 @@ import {
 import { cn } from "@/lib/utils";
 import type { TapCardSection } from "@/lib/brand/tap-card";
 import { sectionDisplayName } from "@/lib/fusion/creative-studio/history-labels";
+import { cardBlockSourceLabel } from "@/lib/fusion/card/block-model";
 
 function BlockIcon({ section }: { section: TapCardSection }) {
   switch (section.type) {
@@ -145,16 +146,21 @@ export function CardOutlineRow({
 
         <BlockIcon section={section} />
 
-        <button
-          type="button"
-          className="min-w-0 flex-1 truncate rounded px-1 py-1.5 text-left text-[13px] font-medium text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-          aria-pressed={selected}
-          aria-label={`Select ${name}`}
-          data-testid={`card-outline-select-${section.id}`}
-          onClick={onSelect}
-        >
-          {name}
-        </button>
+        <div className="min-w-0 flex-1">
+          <button
+            type="button"
+            className="block w-full truncate rounded px-1 pt-1 text-left text-[13px] font-medium text-white/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+            aria-pressed={selected}
+            aria-label={`Select ${name}`}
+            data-testid={`card-outline-select-${section.id}`}
+            onClick={onSelect}
+          >
+            {name}
+          </button>
+          <p className="truncate px-1 pb-1 text-[9px] text-white/40" data-testid={`card-outline-source-${section.id}`}>
+            {cardBlockSourceLabel(section)}
+          </p>
+        </div>
 
         <button
           type="button"

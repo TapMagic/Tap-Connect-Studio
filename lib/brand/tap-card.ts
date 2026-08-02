@@ -37,9 +37,27 @@ export type TapCardSectionType =
   | "action"
   | "action_row"
   | "image"
+  | "image_gallery"
+  | "video"
+  | "hours"
+  | "map"
+  | "divider"
   | "logo_block"
   | "special_offer"
+  | "coupon"
+  | "ticket"
+  | "announcement"
+  | "special_event"
   | "text"
+  | "business_name"
+  | "tagline"
+  | "contact_form"
+  | "newsletter_signup"
+  | "tapsave_prompt"
+  | "campaign"
+  | "campaign_group"
+  | "experience"
+  | "location"
   | "spacer"
   | "footer_cta"
   /** Bounded freeform Creative Composition Block inside the Card section stack. */
@@ -102,11 +120,29 @@ export type TapCardSection = {
   order: number;
   /** When true, content edits are blocked until unlocked (reorder still allowed unless UI opts out). */
   locked?: boolean;
+  /** Visible authorship contract for this block. Missing on legacy blocks means local. */
+  sourceMode?: "LOCAL" | "BRAND" | "LINKED";
+  brandResourceId?: string;
+  brandResourceName?: string;
+  linkedObjectType?: "CAMPAIGN" | "CAMPAIGN_GROUP" | "EXPERIENCE" | "LOCATION" | "ASSET" | "AUDIENCE_FORM" | "TAPSAVE";
+  linkedObjectId?: string;
+  linkedObjectName?: string;
+  linkedObjectStatus?: string;
+  linkedStartsAt?: string;
+  linkedEndsAt?: string;
+  fallbackMode?: "HIDE" | "LOCAL" | "GROUP_DEFAULT" | "LINKED_CAMPAIGN";
+  fallbackText?: string;
   label?: string;
   text?: string;
   textRight?: string;
   href?: string;
   imageUrl?: string;
+  mediaAssetId?: string;
+  imageUrls?: string[];
+  mediaAssetIds?: string[];
+  videoUrl?: string;
+  hoursLines?: string[];
+  address?: string;
   logoUrl?: string;
   showLogoWindow?: boolean;
   /** Opt-in hero logo overlay (replaces legacy showLogoWindow default-on) */
@@ -140,13 +176,20 @@ export type TapCardSection = {
   offerTitle?: string;
   offerDescription?: string;
   offerCode?: string;
+  offerType?: "OFFER" | "COUPON" | "TICKET" | "ANNOUNCEMENT" | "EVENT";
+  offerValue?: string;
+  offerStart?: string;
   offerCta?: string;
   offerExpires?: string;
+  offerTerms?: string;
+  redemptionInstructions?: string;
   /** When expand mode: start with offer panel open */
   offerDefaultOpen?: boolean;
   /** Linked campaign (contact capture / offer page opened via tap URL) */
   linkedCampaignId?: string;
   linkedCampaignTitle?: string;
+  linkedCampaignGroupId?: string;
+  linkedCampaignGroupTitle?: string;
   linkedDeviceCode?: string;
   /** Campaign-owned offer_coupon block id (authoritative offer bind) */
   offerBlockId?: string;
@@ -204,6 +247,8 @@ export type TapCardSection = {
   height?: "sm" | "md" | "lg";
   buttonLabel?: string;
   description?: string;
+  fields?: Array<{ id: string; label: string; type: "text" | "email" | "phone"; required?: boolean }>;
+  consentText?: string;
   backgroundColor?: string;
   textColor?: string;
   accentColor?: string;
@@ -577,7 +622,9 @@ export function parseTapConnectCard(
   const base = defaultTapConnectCard(fallback);
   if (!raw || typeof raw !== "object" || Array.isArray(raw)) return base;
   const o = raw as Record<string, unknown>;
-  if (!Array.isArray(o.sections) || o.sections.length === 0) return base;
+  // An explicit empty array is a real blank Card. Only a missing/malformed
+  // sections value falls back to the legacy seeded document.
+  if (!Array.isArray(o.sections)) return base;
 
   const sections = (o.sections as TapCardSection[]).map((s) => ({
     ...s,

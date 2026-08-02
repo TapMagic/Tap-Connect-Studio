@@ -39,7 +39,6 @@ import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-sugg
 import { BrandInheritanceBar } from "@/components/fusion/authoring/brand-inheritance-bar";
 import { publishCardEditorLive } from "@/components/fusion/card/card-editor-live";
 import { CardOutlineRow } from "@/components/fusion/card/card-outline-row";
-import { createStarterCreativeComposition } from "@/lib/fusion/creative-studio/composition";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
 import {
@@ -85,6 +84,10 @@ import {
   type CardPropertySources,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
+import {
+  createCardBlock,
+  type CardBlockKind,
+} from "@/lib/fusion/card/block-model";
 
 type CampaignLinkOption = {
   id: string;
@@ -93,10 +96,22 @@ type CampaignLinkOption = {
   campaignType: string;
   features: string[];
   devices: { code: string; label: string }[];
+  scheduledStart?: string | null;
+  scheduledEnd?: string | null;
+  group?: { id: string; title: string } | null;
+};
+
+type CampaignGroupLinkOption = {
+  id: string;
+  title: string;
+  status: string;
+  defaultCampaignTitle?: string | null;
+  slotCount: number;
 };
 
 export type CardBuilderShellApi = {
   save: () => Promise<void>;
+  publish: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   setFocusMode: (next: boolean) => void;
@@ -123,6 +138,8 @@ export type CardBuilderShellStatus = {
   cardName: string;
   pastLabels: string[];
   futureLabels: string[];
+  canPublish: boolean;
+  publicationLabel: string;
 };
 
 type Props = {
@@ -138,6 +155,7 @@ type Props = {
   isLandingDemo?: boolean;
   devices?: { id: string; nickname: string | null; deviceCode: string }[];
   campaigns?: CampaignLinkOption[];
+  campaignGroups?: CampaignGroupLinkOption[];
   /** Platform feature: card.builder.freeform */
   freeformEnabled?: boolean;
   /** BrandKit id for publication snapshots / rollback */
@@ -257,6 +275,7 @@ export function TapCardBuilder({
   isLandingDemo = false,
   devices = [],
   campaigns = [],
+  campaignGroups = [],
   freeformEnabled = false,
   brandKitId = null,
   brandColors = null,
@@ -659,6 +678,15 @@ export function TapCardBuilder({
         if (!res.ok || !data.ok) {
           // Fallback: metadata link without authoritative sync
           patchSection(sectionId, {
+            sourceMode: "LINKED",
+            linkedObjectType: "CAMPAIGN",
+            linkedObjectId: campaign.id,
+            linkedObjectName: campaign.title,
+            linkedObjectStatus: campaign.status,
+            linkedStartsAt: campaign.scheduledStart || undefined,
+            linkedEndsAt: campaign.scheduledEnd || undefined,
+            fallbackMode: current?.fallbackMode || "LOCAL",
+            fallbackText: current?.fallbackText || current?.headline || current?.offerTitle,
             offerMode: "campaign",
             linkedCampaignId: campaign.id,
             linkedCampaignTitle: campaign.title,
@@ -675,6 +703,15 @@ export function TapCardBuilder({
           return;
         }
         patchSection(sectionId, {
+          sourceMode: "LINKED",
+          linkedObjectType: "CAMPAIGN",
+          linkedObjectId: campaign.id,
+          linkedObjectName: campaign.title,
+          linkedObjectStatus: campaign.status,
+          linkedStartsAt: campaign.scheduledStart || undefined,
+          linkedEndsAt: campaign.scheduledEnd || undefined,
+          fallbackMode: current?.fallbackMode || "LOCAL",
+          fallbackText: current?.fallbackText || current?.headline || current?.offerTitle,
           offerMode: "campaign",
           linkedCampaignId: campaign.id,
           linkedCampaignTitle: campaign.title,
@@ -699,6 +736,15 @@ export function TapCardBuilder({
       })
       .catch(() => {
         patchSection(sectionId, {
+          sourceMode: "LINKED",
+          linkedObjectType: "CAMPAIGN",
+          linkedObjectId: campaign.id,
+          linkedObjectName: campaign.title,
+          linkedObjectStatus: campaign.status,
+          linkedStartsAt: campaign.scheduledStart || undefined,
+          linkedEndsAt: campaign.scheduledEnd || undefined,
+          fallbackMode: current?.fallbackMode || "LOCAL",
+          fallbackText: current?.fallbackText || current?.headline || current?.offerTitle,
           offerMode: "campaign",
           linkedCampaignId: campaign.id,
           linkedCampaignTitle: campaign.title,
@@ -713,6 +759,13 @@ export function TapCardBuilder({
   function unlinkCampaignFromSection(sectionId: string) {
     patchSection(sectionId, {
       offerMode: "link",
+      sourceMode: "LOCAL",
+      linkedObjectType: undefined,
+      linkedObjectId: undefined,
+      linkedObjectName: undefined,
+      linkedObjectStatus: undefined,
+      linkedStartsAt: undefined,
+      linkedEndsAt: undefined,
       linkedCampaignId: undefined,
       linkedCampaignTitle: undefined,
       linkedDeviceCode: undefined,
@@ -812,76 +865,20 @@ export function TapCardBuilder({
     );
   }
 
-  function addSection(type: Exclude<TapCardSectionType, "action_row">) {
-    const id = nanoid(8);
-    const base: TapCardSection = {
-      id,
-      type,
-      enabled: true,
+  function addSection(type: Exclude<TapCardSectionType, "action_row"> | CardBlockKind) {
+    const block = createCardBlock(type as CardBlockKind, {
       order: sorted.length,
-      label:
-        type === "image"
-          ? "Image block"
-          : type === "logo_block"
-            ? "Logo block"
-            : type === "special_offer"
-              ? "Special offer"
-              : type === "promo_header"
-                ? "Hottest Deal banner"
-                : type === "text"
-                  ? "Text box"
-                  : type === "creative_composition"
-                    ? "Creative Composition"
-                  : type === "spacer"
-                    ? "Spacer"
-                    : type,
-    };
-    if (type === "image") {
-      base.imageWidthPercent = 100;
-      base.imageRadius = "rounded_md";
-      base.opacity = 100;
-    }
-    if (type === "creative_composition") {
-      base.composition = createStarterCreativeComposition(`comp-${id}`);
-    }
-    if (type === "logo_block") {
-      base.logoBlockLayout = "columns";
-      base.columnLeft = "logo";
-      base.columnRight = "text";
-      base.logoUrl = logoUrl || undefined;
-      base.columnRightText = businessName;
-      base.logoScale = 100;
-      base.href = "";
-      base.columnRightHref = "";
-    }
-    if (type === "special_offer") {
-      base.specialStyle = "banner";
-      base.offerMode = "expand";
-      base.text = "Limited time";
-      base.headline = "Hottest Deal";
-      base.description = "Tap to reveal today's offer";
-      base.offerTitle = "Featured offer";
-      base.offerDescription = "Mention this card when you visit.";
-      base.offerCode = "TAPSAVE";
-      base.offerCta = "Claim offer";
-      base.href = devices[0]?.deviceCode ? `/t/${devices[0].deviceCode}` : "";
-      base.finish = "neon";
-      base.offerDefaultOpen = false;
-    }
-    if (type === "promo_header") {
-      base.text = "Click Here to";
-      base.textRight = "Hottest Deal!!!";
-      base.href = "";
-      base.pinTop = false;
-      base.format = { fontFamily: "script", italic: true, fontSize: "base" };
-    }
-    if (type === "text") {
-      base.text = "Your message here";
-      base.format = { fontFamily: "sans", fontSize: "lg", align: "center" };
-    }
-    if (type === "spacer") base.height = "md";
-    setSections([...sorted, base]);
-    setSelectedId(id);
+      businessName,
+      logoUrl,
+      defaultFinish: config.defaultFinish,
+      defaultShape: config.defaultShape,
+      pillColor: config.pillColor,
+      pillTextColor: config.pillTextColor,
+      neonColor: config.neonColor,
+    });
+    setSections([...sorted, block]);
+    setSelectedId(block.id);
+    onRequestTool?.("content");
   }
 
   function addAction() {
@@ -889,29 +886,52 @@ export function TapCardBuilder({
   }
 
   function addActionOfKind(kind: TapCardActionKind) {
-    const catalog = TAP_CARD_ACTION_CATALOG.find((c) => c.kind === kind);
-    const id = nanoid(8);
-    setSections([
-      ...sorted,
-      {
-        id,
-        type: "action",
-        enabled: true,
-        order: sorted.length,
-        actionKind: kind,
-        label: catalog?.label ?? kind,
-        icon: catalog?.icon ?? kind,
-        finish: kind === "review" ? "soft" : config.defaultFinish,
-        style: kind === "review" ? "soft" : config.defaultFinish,
-        shape: config.defaultShape,
-        backgroundColor: config.pillColor,
-        textColor: config.pillTextColor,
+    addSection(`action:${kind}` as CardBlockKind);
+  }
+
+  function startCardFrom(kind: "blank" | "brand" | "template" | "clone") {
+    if (kind === "blank") {
+      setSections([], true, "Started a blank Card");
+      setSelectedId(null);
+      setMessage("Your Card is ready to build.");
+      return;
+    }
+    if (kind === "clone") {
+      const cloned = initialConfig.sections.map((section, order) => ({
+        ...structuredClone(section),
+        id: nanoid(8),
+        order,
+        locked: false,
+      }));
+      setSections(cloned, true, "Cloned existing Card");
+      setSelectedId(cloned[0]?.id ?? null);
+      setMessage("Cloned into this draft. The published Card is unchanged until Publish.");
+      return;
+    }
+    const kinds: CardBlockKind[] = kind === "brand"
+      ? ["logo_block", "identity", "action:call", "action:website"]
+      : ["identity", "text", "image", "action:call", "action:website"];
+    const next = kinds.map((blockKind, order) => {
+      const block = createCardBlock(blockKind, {
+        order,
+        businessName,
+        logoUrl,
+        defaultFinish: config.defaultFinish,
+        defaultShape: config.defaultShape,
+        pillColor: config.pillColor,
+        pillTextColor: config.pillTextColor,
         neonColor: config.neonColor,
-        opacity: 100,
-        href: "",
-      },
-    ]);
-    setSelectedId(id);
+      });
+      if (kind === "brand" && (block.type === "logo_block" || block.type === "identity")) {
+        block.sourceMode = "BRAND";
+        block.brandResourceId = block.type === "logo_block" ? "brand-primary-logo" : "brand-business-identity";
+        block.brandResourceName = block.type === "logo_block" ? "Primary logo" : "Business identity";
+      }
+      return block;
+    });
+    setSections(next, true, kind === "brand" ? "Started with Brand defaults" : "Started from Card template");
+    setSelectedId(next[0]?.id ?? null);
+    setMessage(kind === "brand" ? "Brand defaults added. Every block can still be made custom." : "Starter template added to this draft.");
   }
 
   async function refreshVersions() {
@@ -1061,6 +1081,7 @@ export function TapCardBuilder({
     if (!shellHosted || !onShellApi) return;
     onShellApi({
       save,
+      publish: publishSavedDraft,
       undo: undoEditor,
       redo: redoEditor,
       setFocusMode: (next) => {
@@ -1072,7 +1093,7 @@ export function TapCardBuilder({
       selectSection: (id) => setSelectedId(id),
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- API bridge refresh on undo capability
-  }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode]);
+  }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode, config, dirty, saving, draftRevision, currentPublicationId, versions]);
 
   useEffect(() => {
     if (!shellHosted || !onShellStatus) return;
@@ -1090,6 +1111,8 @@ export function TapCardBuilder({
       cardName: businessName || "Card",
       pastLabels,
       futureLabels,
+      canPublish: !dirty && !saving && draftRevision >= 1,
+      publicationLabel: currentPublicationId ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}` : "Not published",
     });
   }, [
     shellHosted,
@@ -1107,6 +1130,9 @@ export function TapCardBuilder({
     businessName,
     pastLabels,
     futureLabels,
+    draftRevision,
+    currentPublicationId,
+    versions,
   ]);
 
   const outlineHashRef = useRef("");
@@ -1227,6 +1253,8 @@ export function TapCardBuilder({
       profile,
       reviewUrl,
       businessName,
+      campaigns,
+      campaignGroups,
       pastLabels,
       futureLabels,
       canUndo: canUndoEditor,
@@ -1243,6 +1271,7 @@ export function TapCardBuilder({
         setAddKind(kind as TapCardActionKind);
         addActionOfKind(kind as TapCardActionKind);
       },
+      onStartPoint: startCardFrom,
       setSelectedId,
       setShowFreeform,
       onRetireToggle: retireToggle,

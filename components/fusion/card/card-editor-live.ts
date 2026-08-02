@@ -38,6 +38,8 @@ export type CardEditorLiveModel = {
   profile: import("@/lib/brand/contact-profile").BrandContactProfile;
   reviewUrl?: string | null;
   businessName: string;
+  campaigns?: Array<{ id: string; title: string; status: string; campaignType: string; features: string[]; devices: { code: string; label: string }[]; scheduledStart?: string | null; scheduledEnd?: string | null; group?: { id: string; title: string } | null }>;
+  campaignGroups?: Array<{ id: string; title: string; status: string; defaultCampaignTitle?: string | null; slotCount: number }>;
   pastLabels: string[];
   futureLabels: string[];
   canUndo: boolean;
@@ -67,6 +69,7 @@ export type CardEditorLiveModel = {
   ) => void;
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
+  onStartPoint?: (kind: "blank" | "brand" | "template" | "clone") => void;
   setSelectedId: (id: string | null) => void;
   setShowFreeform: (v: boolean) => void;
   onRetireToggle: () => void;

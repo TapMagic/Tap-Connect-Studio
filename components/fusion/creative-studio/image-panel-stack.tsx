@@ -82,7 +82,12 @@ export function ImagePanelStack({
   const isImage =
     selected?.type === "image" ||
     selected?.type === "logo_block" ||
-    selected?.type === "hero";
+    selected?.type === "hero" ||
+    selected?.type === "special_offer" ||
+    selected?.type === "coupon" ||
+    selected?.type === "ticket" ||
+    selected?.type === "announcement" ||
+    selected?.type === "special_event";
 
   if (!isImage && !onPatchHeaderLogo) {
     return (
@@ -179,6 +184,7 @@ export function ImagePanelStack({
           <Label className="text-xs text-white/70">Media</Label>
           <MediaPicker
             value={String(src || "")}
+            valueAssetId={selected?.mediaAssetId}
             label={
               selected?.type === "logo_block" || !selected
                 ? "Brand logo"
@@ -187,6 +193,22 @@ export function ImagePanelStack({
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
             onChange={setMediaUrl}
+            onAssetChange={(asset) => {
+              if (!selected) return;
+              patchSelected(asset ? {
+                mediaAssetId: asset.mediaAssetId || asset.id,
+                sourceMode: "LINKED",
+                linkedObjectType: "ASSET",
+                linkedObjectId: asset.mediaAssetId || asset.id,
+                linkedObjectName: asset.label,
+              } : {
+                mediaAssetId: undefined,
+                sourceMode: "LOCAL",
+                linkedObjectType: undefined,
+                linkedObjectId: undefined,
+                linkedObjectName: undefined,
+              }, asset ? "Selected Asset Studio media" : "Cleared Asset Studio media");
+            }}
           />
           <div className="flex flex-wrap gap-1.5">
             <Button

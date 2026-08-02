@@ -78,6 +78,9 @@ export default async function TapCardEditPage({
       status: true,
       campaignType: true,
       contentBlocks: true,
+      scheduledStart: true,
+      scheduledEnd: true,
+      group: { select: { id: true, title: true } },
       assignments: {
         where: { status: "ACTIVE" },
         take: 3,
@@ -122,6 +125,29 @@ export default async function TapCardEditPage({
       code: a.deviceSlot.deviceCode,
       label: a.deviceSlot.nickname || a.deviceSlot.deviceCode,
     })),
+    scheduledStart: c.scheduledStart?.toISOString() ?? null,
+    scheduledEnd: c.scheduledEnd?.toISOString() ?? null,
+    group: c.group,
+  }));
+
+  const groupRows = await prisma.campaignGroup.findMany({
+    where: { businessId: business.id, status: { notIn: ["ARCHIVED", "CLOSED"] } },
+    orderBy: { updatedAt: "desc" },
+    take: 80,
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      defaultCampaign: { select: { title: true } },
+      _count: { select: { slots: true } },
+    },
+  });
+  const campaignGroups = groupRows.map((group) => ({
+    id: group.id,
+    title: group.title,
+    status: group.status,
+    defaultCampaignTitle: group.defaultCampaign?.title ?? null,
+    slotCount: group._count.slots,
   }));
 
   const publicCode =
@@ -148,6 +174,7 @@ export default async function TapCardEditPage({
     isLandingDemo: Boolean(landingDemo),
     devices,
     campaigns,
+    campaignGroups,
     freeformEnabled,
     brandKitId: brandKit?.id ?? null,
     brandColors: brandKit

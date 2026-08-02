@@ -116,6 +116,16 @@ export type CardAuthoringWorkspaceProps = {
     campaignType: string;
     features: string[];
     devices: { code: string; label: string }[];
+    scheduledStart?: string | null;
+    scheduledEnd?: string | null;
+    group?: { id: string; title: string } | null;
+  }[];
+  campaignGroups?: {
+    id: string;
+    title: string;
+    status: string;
+    defaultCampaignTitle?: string | null;
+    slotCount: number;
   }[];
   freeformEnabled?: boolean;
   brandKitId?: string | null;
@@ -208,6 +218,8 @@ export function CardAuthoringWorkspace({
     cardName: builderProps.businessName || "Card",
     pastLabels: [],
     futureLabels: [],
+    canPublish: false,
+    publicationLabel: "Not published",
   });
   const [chromeState, setChromeState] = useState<
     "expanded" | "compact" | "collapsed" | "pinned" | "focus"
@@ -539,6 +551,17 @@ export function CardAuthoringWorkspace({
           Freeform off
         </span>
       ) : null}
+      <Button
+        type="button"
+        variant="outline"
+        className="inline-flex min-h-11 items-center"
+        data-testid="card-publish"
+        disabled={!status.canPublish || studioMode === "preview"}
+        onClick={() => void apiRef.current?.publish()}
+      >
+        Publish
+      </Button>
+      <span className="text-[10px] text-white/55" data-testid="card-publication-state">{status.publicationLabel}</span>
       <Button
         type="button"
         variant="outline"

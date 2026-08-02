@@ -52,6 +52,7 @@ import {
   parseCreativeComposition,
   type CreativeCompositionBlock,
 } from "@/lib/fusion/creative-studio/composition";
+import { isCardBlockLinkEligible } from "@/lib/fusion/card/block-model";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -340,7 +341,8 @@ export function TapConnectCard({
 
   function renderSpecialOffer(section: TapCardSection) {
     const styleKind = section.specialStyle || "banner";
-    const rawMode = section.offerMode || "link";
+    const linkedEligible = !section.linkedCampaignId || isCardBlockLinkEligible(section);
+    const rawMode = section.offerMode === "campaign" && !linkedEligible ? "expand" : section.offerMode || "link";
     const fuseCampaign =
       offerFuseEnabled &&
       rawMode === "campaign" &&
@@ -385,6 +387,10 @@ export function TapConnectCard({
 
     const teaser = (
       <>
+        {section.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={section.imageUrl} alt={section.altText || ""} className="mr-3 h-16 w-16 shrink-0 rounded-lg object-cover" />
+        ) : null}
         <div className="tcc-special-copy">
           {builderChrome && campaignLinked ? (
             <span className="tcc-special-linked" title={section.linkedCampaignTitle || "Campaign"}>
@@ -444,6 +450,9 @@ export function TapConnectCard({
           {section.offerExpires ? (
             <p className="tcc-special-offer-exp">Expires {section.offerExpires}</p>
           ) : null}
+          {section.offerValue ? <p className="tcc-special-offer-body">Value: {section.offerValue}</p> : null}
+          {section.offerTerms ? <p className="tcc-special-offer-body">Terms: {section.offerTerms}</p> : null}
+          {section.redemptionInstructions ? <p className="tcc-special-offer-body">How to redeem: {section.redemptionInstructions}</p> : null}
           {href && href !== "#" ? (
             <a
               href={href}
@@ -805,7 +814,20 @@ export function TapConnectCard({
   }
 
   function renderImage(section: TapCardSection) {
-    if (!section.imageUrl) return null;
+    if (!section.imageUrl) {
+      if (!builderChrome) return null;
+      return (
+        <button
+          key={section.id}
+          type="button"
+          className={cn("mx-3 flex min-h-28 w-[calc(100%-1.5rem)] items-center justify-center rounded-xl border border-dashed border-black/20 bg-black/5 text-sm opacity-60", selectedSectionId === section.id && "tcc-section-selected")}
+          {...sectionDomProps(section.id, selectedSectionId)}
+          onClick={(event) => selectSection(section.id, event)}
+        >
+          Choose an image
+        </button>
+      );
+    }
     const width = `${section.imageWidthPercent ?? 100}%`;
     const radius = shapeRadius(section.imageRadius, "rounded_md");
     const opacity = (section.opacity ?? 100) / 100;
@@ -845,6 +867,70 @@ export function TapConnectCard({
         {...sectionDomProps(section.id, selectedSectionId)}
       >
         {img}
+      </div>
+    );
+  }
+
+  function renderGallery(section: TapCardSection) {
+    const images = (section.imageUrls || []).filter(Boolean);
+    if (!images.length && !builderChrome) return null;
+    return (
+      <div key={section.id} className={cn("mx-3 grid grid-cols-2 gap-2", selectedSectionId === section.id && "tcc-section-selected")} {...sectionDomProps(section.id, selectedSectionId)}>
+        {images.length ? images.map((url, index) => (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img key={`${url}-${index}`} src={url} alt={`${section.altText || "Gallery image"} ${index + 1}`} className="aspect-square w-full rounded-lg object-cover" />
+        )) : <button type="button" className="col-span-2 min-h-28 rounded-xl border border-dashed border-black/20 bg-black/5 text-sm opacity-60" onClick={(event) => selectSection(section.id, event)}>Add gallery images</button>}
+      </div>
+    );
+  }
+
+  function renderVideo(section: TapCardSection) {
+    const url = section.videoUrl?.trim();
+    return (
+      <div key={section.id} className={cn("mx-3 overflow-hidden rounded-xl border border-black/10 bg-black/5", selectedSectionId === section.id && "tcc-section-selected")} {...sectionDomProps(section.id, selectedSectionId)}>
+        {url ? <video className="aspect-video w-full bg-black" src={url} controls preload="metadata" /> : builderChrome ? <button type="button" className="flex aspect-video w-full items-center justify-center text-sm opacity-60" onClick={(event) => selectSection(section.id, event)}>Add a video URL</button> : null}
+        {section.text ? <p className="px-3 py-2 text-sm font-medium">{section.text}</p> : null}
+      </div>
+    );
+  }
+
+  function renderInfoBlock(section: TapCardSection) {
+    const isMap = section.type === "map" || section.type === "location";
+    const href = isMap && section.address ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(section.address)}` : section.href;
+    const title = section.text || section.headline || section.label;
+    return (
+      <div key={section.id} className={cn("mx-3 rounded-xl border border-black/10 bg-white/55 p-4", selectedSectionId === section.id && "tcc-section-selected")} {...sectionDomProps(section.id, selectedSectionId)}>
+        {title ? <p className="font-semibold">{title}</p> : null}
+        {section.description ? <p className="mt-1 text-sm opacity-70">{section.description}</p> : null}
+        {section.hoursLines?.length ? <ul className="mt-2 space-y-1 text-sm">{section.hoursLines.map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}</ul> : null}
+        {section.address ? <p className="mt-2 text-sm">{section.address}</p> : null}
+        {href ? <a href={href} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex rounded-full bg-black px-4 py-2 text-xs font-semibold text-white" onClick={(event) => { if (selectSection(section.id, event)) return; onAction?.(section.type, section.id); }}>{section.buttonLabel || "Open"}</a> : null}
+      </div>
+    );
+  }
+
+  function renderRelationship(section: TapCardSection) {
+    return (
+      <div key={section.id} className={cn("mx-3 rounded-xl border border-black/10 bg-white/55 p-4", selectedSectionId === section.id && "tcc-section-selected")} {...sectionDomProps(section.id, selectedSectionId)}>
+        <p className="font-semibold">{section.text || section.label}</p>
+        {section.description ? <p className="mt-1 text-sm opacity-70">{section.description}</p> : null}
+        {section.fields?.map((field) => <label key={field.id} className="mt-3 block text-xs font-medium">{field.label}{field.required ? " *" : ""}<input type={field.type} disabled={mode !== "public" || previewSafe} className="mt-1 block min-h-10 w-full rounded-lg border border-black/15 bg-white px-3" /></label>)}
+        {section.consentText ? <p className="mt-3 text-[11px] opacity-60">{section.consentText}</p> : null}
+        <button type="button" disabled={mode !== "public" || previewSafe} className="mt-3 rounded-full bg-black px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">{section.buttonLabel || (section.type === "tapsave_prompt" ? "Save this Card" : "Submit")}</button>
+      </div>
+    );
+  }
+
+  function renderConnected(section: TapCardSection) {
+    const linked = Boolean(section.linkedObjectId || section.linkedCampaignId || section.linkedCampaignGroupId);
+    const eligible = linked && isCardBlockLinkEligible(section);
+    if (!eligible && section.fallbackMode === "HIDE" && !builderChrome) return null;
+    return (
+      <div key={section.id} className={cn("mx-3 rounded-xl border border-black/10 bg-white/55 p-4", selectedSectionId === section.id && "tcc-section-selected")} {...sectionDomProps(section.id, selectedSectionId)}>
+        {builderChrome ? <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide opacity-50">{eligible ? `Linked to ${section.linkedObjectType?.replace(/_/g, " ")} — ${section.linkedObjectName || section.linkedCampaignTitle || section.linkedCampaignGroupTitle}` : `Fallback · ${section.fallbackMode || "LOCAL"}${section.linkedObjectStatus ? ` · linked ${section.linkedObjectStatus}` : ""}`}</p> : null}
+        <p className="font-semibold">{eligible ? section.headline || section.linkedObjectName || section.label : section.fallbackText || section.headline || section.label}</p>
+        {eligible && section.description ? <p className="mt-1 text-sm opacity-70">{section.description}</p> : null}
+        {eligible && section.href ? <a href={section.href} className="mt-3 inline-flex rounded-full bg-black px-4 py-2 text-xs font-semibold text-white">{section.buttonLabel || "Open"}</a> : null}
       </div>
     );
   }
@@ -1182,14 +1268,44 @@ export function TapConnectCard({
       case "image":
         bodyNodes.push(renderImage(s));
         break;
+      case "image_gallery":
+        bodyNodes.push(renderGallery(s));
+        break;
+      case "video":
+        bodyNodes.push(renderVideo(s));
+        break;
+      case "hours":
+      case "map":
+      case "location":
+        bodyNodes.push(renderInfoBlock(s));
+        break;
+      case "divider":
+        bodyNodes.push(<hr key={s.id} className={cn("mx-4 border-0 border-t border-current opacity-20", selectedSectionId === s.id && "tcc-section-selected")} {...sectionDomProps(s.id, selectedSectionId)} />);
+        break;
       case "logo_block":
         bodyNodes.push(renderLogoBlock(s));
         break;
       case "special_offer":
+      case "coupon":
+      case "ticket":
+      case "announcement":
+      case "special_event":
         bodyNodes.push(renderSpecialOffer(s));
         break;
       case "text":
+      case "business_name":
+      case "tagline":
         bodyNodes.push(renderText(s));
+        break;
+      case "contact_form":
+      case "newsletter_signup":
+      case "tapsave_prompt":
+        bodyNodes.push(renderRelationship(s));
+        break;
+      case "campaign":
+      case "campaign_group":
+      case "experience":
+        bodyNodes.push(renderConnected(s));
         break;
       case "creative_composition":
         bodyNodes.push(renderCreativeComposition(s));

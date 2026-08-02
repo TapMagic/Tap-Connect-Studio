@@ -29,12 +29,15 @@ import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import { KeywordsSuggestPanel } from "@/components/fusion/keywords/keywords-suggest-panel";
 import { cn } from "@/lib/utils";
 import {
-  TAP_CARD_ACTION_CATALOG,
   TAP_CARD_LAYOUT_OPTIONS,
   type TapCardSection,
   type TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 import type { BrandInheritanceState } from "@/lib/fusion/authoring/brand-inheritance";
+import {
+  CARD_BLOCK_CATEGORIES,
+  CARD_BLOCK_LIBRARY,
+} from "@/lib/fusion/card/block-model";
 
 export type CardShellToolDrawerProps = {
   toolId: string;
@@ -63,6 +66,8 @@ export type CardShellToolDrawerProps = {
   profile: BrandContactProfile;
   reviewUrl?: string | null;
   businessName: string;
+  campaigns?: Array<{ id: string; title: string; status: string; campaignType: string; features: string[]; devices: { code: string; label: string }[]; scheduledStart?: string | null; scheduledEnd?: string | null; group?: { id: string; title: string } | null }>;
+  campaignGroups?: Array<{ id: string; title: string; status: string; defaultCampaignTitle?: string | null; slotCount: number }>;
   pastLabels: string[];
   futureLabels: string[];
   canUndo: boolean;
@@ -92,6 +97,7 @@ export type CardShellToolDrawerProps = {
   ) => void;
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
+  onStartPoint?: (kind: "blank" | "brand" | "template" | "clone") => void;
   setSelectedId: (id: string | null) => void;
   setShowFreeform: (v: boolean) => void;
   onRetireToggle: () => void;
@@ -146,6 +152,7 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
     patchSection,
     onAddSection,
     onAddAction,
+    onStartPoint,
     setSelectedId,
     setShowFreeform,
     onBrandStateChange,
@@ -294,12 +301,27 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
           Document structure for this Card. Drag to reorder. Hide, lock, duplicate,
           or delete from each row.
         </p>
+        <div className="grid grid-cols-2 gap-1.5" data-testid="card-starting-points">
+          {([
+            ["blank", "Start blank"],
+            ["brand", "Use Brand defaults"],
+            ["template", "Choose a template"],
+            ["clone", "Clone existing Card"],
+          ] as const).map(([kind, label]) => (
+            <Button key={kind} type="button" size="sm" variant="outline" className="h-auto min-h-10 whitespace-normal text-xs" onClick={() => onStartPoint?.(kind)} data-testid={`card-start-${kind}`}>
+              {label}
+            </Button>
+          ))}
+        </div>
         <div className="space-y-2">
           <Label className="text-[11px] text-white/60">Blocks</Label>
           {blocks.length > 0 ? (
             renderOutlineList(blocks, "card-outline-blocks")
           ) : (
-            <p className="text-xs text-white/40">No blocks yet.</p>
+            <div className="rounded-lg border border-dashed border-primary/30 bg-primary/5 p-3" data-testid="card-empty-builder-state">
+              <p className="text-sm font-medium text-white">Your Card is ready to build.</p>
+              <p className="mt-1 text-[11px] text-white/50">Choose Start blank, Brand defaults, a template, or clone — then add only what you need.</p>
+            </div>
           )}
         </div>
         <div className="space-y-2">
@@ -310,59 +332,35 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
             <p className="text-xs text-white/40">No action buttons yet.</p>
           )}
         </div>
-        <div className="space-y-2 border-t border-white/10 pt-3" data-testid="card-drawer-add">
-          <Label className="text-[10px] text-white/55">Add block</Label>
-          <div className="flex flex-wrap gap-1.5">
-            {(
-              [
-                ["special_offer", "Offer"],
-                ["promo_header", "Promo"],
-                ["image", "Image"],
-                ["logo_block", "Logo"],
-                ["text", "Text"],
-                ["spacer", "Spacer"],
-              ] as const
-            ).map(([type, label]) => (
-              <Button
-                key={type}
-                type="button"
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs"
-                data-testid={`card-drawer-add-${type}`}
-                onClick={() => onAddSection(type)}
-              >
-                {label}
-              </Button>
-            ))}
+        <div className="space-y-3 border-t border-white/10 pt-3" data-testid="card-drawer-add">
+          <div>
+            <Label className="text-xs font-semibold text-white">Add block</Label>
+            <p className="mt-1 text-[11px] text-white/45">All choices create a usable block directly on this Card.</p>
           </div>
-          <Label className="text-[10px] text-white/55">Add action</Label>
-          <select
-            aria-label="Action kind to add"
-            className="flex h-9 w-full rounded-lg border border-white/15 bg-black/40 px-2 text-sm"
-            defaultValue="vcard"
-            data-testid="card-drawer-add-action-kind"
-          >
-            {TAP_CARD_ACTION_CATALOG.map((c) => (
-              <option key={c.kind} value={c.kind}>
-                {c.label}
-              </option>
-            ))}
-          </select>
-          <Button
-            type="button"
-            size="sm"
-            className="w-full"
-            data-testid="card-drawer-add-action"
-            onClick={(e) => {
-              const select = (e.currentTarget.parentElement?.querySelector(
-                "select[aria-label='Action kind to add']"
-              ) ?? null) as HTMLSelectElement | null;
-              onAddAction(select?.value || "vcard");
-            }}
-          >
-            Add action
-          </Button>
+          {CARD_BLOCK_CATEGORIES.map((category) => (
+            <div key={category} className="space-y-1.5" data-testid={`card-block-category-${category.toLowerCase()}`}>
+              <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/40">{category}</p>
+              <div className="grid grid-cols-2 gap-1.5">
+                {CARD_BLOCK_LIBRARY.filter((item) => item.category === category).map((item) => (
+                  <Button
+                    key={item.kind}
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="h-auto min-h-10 justify-start whitespace-normal px-2 py-2 text-left text-xs"
+                    title={item.description}
+                    data-testid={`card-drawer-add-${item.kind.replace(":", "-")}`}
+                    onClick={() => {
+                      if (item.kind.startsWith("action:")) onAddAction(item.kind.slice(7));
+                      else onAddSection(item.kind);
+                    }}
+                  >
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -755,6 +753,8 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
       <SelectionPanelStack
         selected={selected}
         patchSection={patchSection}
+        campaigns={props.campaigns ?? []}
+        campaignGroups={props.campaignGroups ?? []}
         onOpenTool={(id) => props.onRequestTool?.(id)}
         onClose={props.onCloseTool}
       />
