@@ -8,8 +8,10 @@ const evidence = path.join("tmp", "card-canvas-first-composer");
 async function openComposer(page: Page) {
   await page.goto("/dashboard/card/edit", { waitUntil: "domcontentloaded" });
   await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({ timeout: 60_000 });
-  await expect(page.getByTestId("card-composer-library")).toBeVisible();
-  await expect(page.getByTestId("card-contextual-inspector")).toBeVisible();
+  if ((page.viewportSize()?.width ?? 1440) >= 1024) {
+    await expect(page.getByTestId("card-composer-library")).toBeVisible();
+    await expect(page.getByTestId("card-contextual-inspector")).toBeVisible();
+  }
 }
 
 async function dragCenter(page: Page, source: Locator, target: Locator) {
@@ -25,7 +27,7 @@ async function dragCenter(page: Page, source: Locator, target: Locator) {
 
 test.describe("canvas-first Card composer visible acceptance", () => {
   test.skip(!enabled, "Set CARD_CANVAS_COMPOSER_ACCEPTANCE=1 with an authenticated local fixture");
-  test.describe.configure({ timeout: 360_000 });
+  test.describe.configure({ timeout: 120_000 });
 
   test("builds nested Sections and Elements through pointer and keyboard interaction", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
@@ -57,6 +59,8 @@ test.describe("canvas-first Card composer visible acceptance", () => {
     await expect(identity).toContainText("The Monkey Cage");
     await page.screenshot({ path: path.join(evidence, "03-direct-text-edit.png") });
 
+    await page.getByTestId("composer-selection-breadcrumb").getByRole("button").nth(1).click();
+    await expect(page.getByTestId("card-contextual-inspector")).toHaveAttribute("data-selection-level", "section");
     await page.getByLabel("Layout mode").selectOption("free");
     const movable = identity.locator("[data-composition-node]").nth(1);
     const before = await movable.boundingBox();
@@ -76,9 +80,10 @@ test.describe("canvas-first Card composer visible acceptance", () => {
     await page.mouse.up();
     await page.screenshot({ path: path.join(evidence, "04-element-resize-guides.png") });
 
+    await page.getByTestId("composer-selection-breadcrumb").getByRole("button").nth(1).click();
     await page.getByLabel("Background color").fill("#24324a");
     await page.getByLabel("Padding").fill("32");
-    await page.getByLabel("Minimum height").fill("380");
+    await page.getByLabel("Exact minimum height (px)").fill("380");
     await page.getByLabel("Overlay opacity").fill("35");
     await page.getByTestId("composer-open-brand").click();
     await expect(page.getByTestId("composer-brand-panel")).toBeVisible();
@@ -138,5 +143,92 @@ test.describe("canvas-first Card composer visible acceptance", () => {
     await page.keyboard.press("Tab");
     expect(await page.evaluate(() => document.activeElement?.tagName)).not.toBe("BODY");
     await page.screenshot({ path: path.join(evidence, "07-mobile-390.png") });
+  });
+
+  test("proves reselection, Section resize law, direct reorder, compact chrome and Guide retrieval", async ({ page }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await openComposer(page);
+
+    const shade = page.getByTestId("command-shade");
+    expect((await shade.boundingBox())!.height).toBeLessThanOrEqual(56);
+    await expect(page.getByTestId("composition-zoom-controls")).toHaveCount(0);
+    const toolbar = page.getByTestId("card-zoom-fit").locator("..");
+    const phone = page.getByTestId("card-preview-phone");
+    expect((await toolbar.boundingBox())!.y + (await toolbar.boundingBox())!.height).toBeLessThanOrEqual((await phone.boundingBox())!.y);
+    await page.screenshot({ path: path.join(evidence, "08-compact-header-external-zoom.png") });
+
+    await page.getByTestId("composer-selection-breadcrumb").getByRole("button", { name: "Card" }).click();
+    await page.getByTestId("composer-replace-blank").click();
+    await page.getByTestId("composer-add-section-identity").click();
+    const identity = page.locator('[data-surface-kind="identity"]');
+    await page.getByTestId("composer-add-element-business_name").dragTo(identity);
+    await page.getByTestId("composer-add-element-address").dragTo(identity);
+    const business = identity.locator('[data-composition-node]').first();
+    const address = identity.locator('[data-composition-node]').nth(1);
+
+    await business.click();
+    await expect(business).toHaveAttribute("data-selected", "true");
+    await page.screenshot({ path: path.join(evidence, "09-selected-business-name.png") });
+    await page.getByTestId("composer-selection-breadcrumb").getByRole("button").nth(1).click();
+    await business.click();
+    await expect(business).toHaveAttribute("data-selected", "true");
+    await page.screenshot({ path: path.join(evidence, "10-reselected-after-click-away.png") });
+    await page.getByLabel("Font family").fill("Georgia, serif");
+    await page.getByTestId("card-contextual-inspector").getByRole("slider", { name: /Size/ }).fill("28");
+    await page.getByTestId("card-contextual-inspector").locator('input[type="color"]').first().fill("#facc15");
+    await page.screenshot({ path: path.join(evidence, "11-typography-controls.png") });
+    await page.getByTestId("composer-selection-breadcrumb").getByRole("button").nth(1).click();
+    await page.getByLabel("Layout mode").selectOption("free");
+    await business.click();
+    const handle = business.locator('[data-testid*="composition-resize-"]').first();
+    await expect(handle).toBeVisible();
+    const handleMetrics = await handle.evaluate((element) => ({
+      hit: element.getBoundingClientRect().width,
+      visible: Number.parseFloat(getComputedStyle(element, "::after").width),
+    }));
+    expect(handleMetrics.visible).toBeGreaterThanOrEqual(8);
+    expect(handleMetrics.visible).toBeLessThanOrEqual(12);
+    expect(handleMetrics.hit).toBeGreaterThan(handleMetrics.visible);
+    await page.screenshot({ path: path.join(evidence, "12-small-proportional-handles.png") });
+    await page.getByTestId("composer-selection-breadcrumb").getByRole("button").nth(1).click();
+    const before = await Promise.all([business, address].map((node) => node.evaluate((element) => ({ left: (element as HTMLElement).style.left, top: (element as HTMLElement).style.top, width: (element as HTMLElement).style.width, height: (element as HTMLElement).style.height }))));
+    const canvas = identity.getByTestId("creative-composition-canvas");
+    const canvasBox = await canvas.boundingBox();
+    await page.mouse.click(canvasBox!.x + canvasBox!.width - 6, canvasBox!.y + canvasBox!.height - 6);
+    await expect(page.getByTestId("card-contextual-inspector")).toHaveAttribute("data-selection-level", "section");
+    await page.screenshot({ path: path.join(evidence, "13-section-selected-by-background.png") });
+    await page.screenshot({ path: path.join(evidence, "14-section-before-height.png") });
+    await page.getByLabel("Exact minimum height (px)").fill("520");
+    const after = await Promise.all([business, address].map((node) => node.evaluate((element) => ({ left: (element as HTMLElement).style.left, top: (element as HTMLElement).style.top, width: (element as HTMLElement).style.width, height: (element as HTMLElement).style.height }))));
+    expect(after).toEqual(before);
+    await page.screenshot({ path: path.join(evidence, "15-section-after-height-children-stable.png") });
+    await page.getByRole("button", { name: "Fit content" }).click();
+
+    await page.getByTestId("composer-add-section-offer").click();
+    const offer = page.locator('[data-surface-kind="offer"]');
+    await dragCenter(page, offer.getByTestId(/section-reorder-grip-/), identity.getByTestId(/section-reorder-grip-/));
+    await expect(page.locator('[data-surface-kind]').first()).toHaveAttribute("data-surface-kind", "offer");
+    await page.screenshot({ path: path.join(evidence, "16-direct-section-reorder.png") });
+    await page.getByTestId("composer-outline-toggle").click();
+    await page.getByRole("button", { name: "Move Section down" }).first().click();
+    await expect(page.locator('[data-surface-kind]').nth(1)).toHaveAttribute("data-surface-kind", "offer");
+    await page.screenshot({ path: path.join(evidence, "17-outline-reorder-synchronized.png") });
+
+    await page.getByRole("button", { name: "Dismiss build guide" }).click();
+    await expect(page.getByTestId("composer-help-guide")).toHaveCount(0);
+    await page.getByTestId("composer-reopen-help").click();
+    await expect(page.getByTestId("composer-help-guide")).toBeVisible();
+    await page.screenshot({ path: path.join(evidence, "18-guide-retrieved.png") });
+
+    await page.getByTestId("composer-selection-breadcrumb").getByRole("button", { name: "Card" }).click();
+    await expect(page.getByTestId("persistent-card-actions")).toBeVisible();
+    await page.screenshot({ path: path.join(evidence, "19-utility-action-controls.png") });
+    await page.getByTestId("card-save").first().click();
+    await expect(page.getByTestId("studio-save-state")).toHaveAttribute("data-saved", "true", { timeout: 30_000 });
+    await page.screenshot({ path: path.join(evidence, "20-saved-state.png") });
+    for (const [viewport, number] of [["phone", 21], ["tablet", 22], ["desktop", 23]] as const) {
+      await page.getByTestId("card-viewport-toggle").getByRole("button", { name: new RegExp(viewport, "i") }).click();
+      await page.screenshot({ path: path.join(evidence, `${number}-${viewport}-final.png`) });
+    }
   });
 });
