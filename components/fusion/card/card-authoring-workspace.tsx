@@ -618,6 +618,7 @@ export function CardAuthoringWorkspace({
 
       <AdaptiveWorkspaceShell
         compactHeader
+        hideHeader={studioMode === "preview"}
         identity={{
           id: WORKSPACE_ID,
           label: status.cardName || "Card",

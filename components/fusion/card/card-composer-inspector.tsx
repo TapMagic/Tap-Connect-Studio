@@ -7,7 +7,7 @@ import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-l
 import type { CardUtilityKind, CardUtilityToggle, TapCardSection } from "@/lib/brand/tap-card";
 import { composerBreadcrumb, composerWarnings } from "@/lib/fusion/card/composer-model";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
-import { alignNodes, bringForward, bringToFront, distributeNodes, sendBackward, sendToBack } from "@/lib/fusion/creative-studio/composition";
+import { alignNodes, bringForward, bringToFront, distributeNodes, groupNodes, sendBackward, sendToBack, ungroupNodes } from "@/lib/fusion/creative-studio/composition";
 import { BUTTON_PRESENTATIONS, MAP_DISPLAY_MODES, buildMapHref, type ButtonActionType, type ButtonPresentation, type MapDisplayMode, type MapOpenApp, type MapSourceMode } from "@/lib/fusion/card/designer-elements";
 
 const UTILITY_OPTIONS: Array<{ kind: CardUtilityKind; label: string; reason: (model: CardEditorLiveModel) => string | null }> = [
@@ -25,7 +25,11 @@ export function CardComposerInspector({ model, onRequestTool }: { model: CardEdi
   const [assetsOpen, setAssetsOpen] = useState(false);
   const selectedElement = useMemo(() => {
     const id = model?.selectedObject?.type === "element" ? model.selectedObject.elementId : model?.selectedCompositionNodeIds?.[0];
-    return id ? model?.selected?.composition?.nodes.find((node) => node.id === id) ?? null : null;
+    return id
+      ? model?.selected?.composition?.nodes.find((node) => node.id === id)
+        ?? model?.config.rootComposition?.nodes.find((node) => node.id === id)
+        ?? null
+      : null;
   }, [model]);
 
   if (!model) return <p className="p-4 text-xs text-white/70">Loading inspector…</p>;
@@ -39,7 +43,10 @@ export function CardComposerInspector({ model, onRequestTool }: { model: CardEdi
             type="button"
             className="rounded px-1 py-0.5 hover:bg-white/5 hover:text-white"
             onClick={() => {
-              if (index === 0) model.setSelectedId(null);
+              if (index === 0) {
+                model.setSelectedId(null);
+                model.setSelectedCompositionNodeIds?.([]);
+              }
               else if (index === 1) model.setSelectedCompositionNodeIds?.([]);
             }}
           >
@@ -52,7 +59,7 @@ export function CardComposerInspector({ model, onRequestTool }: { model: CardEdi
         <h2 className="mt-1 text-base font-semibold">{selectedElement?.name || model.selected?.label || model.businessName}</h2>
       </div>
 
-      {selectedElement && model.selected ? (
+      {selectedElement ? (
         <ElementInspector model={model} section={model.selected} element={selectedElement} />
       ) : model.selected ? (
         <SectionInspector model={model} section={model.selected} />
@@ -82,9 +89,26 @@ function CardInspector({ model }: { model: CardEditorLiveModel }) {
         </div>
       </InspectorGroup>
       <InspectorGroup title="Canvas">
-        <ColorControl label="Background" value={model.config.surfaceColor} onChange={(value) => model.patchConfigColor("surfaceColor", value)} />
+        <ColorTruth
+          property="Card background"
+          value={model.config.surfaceColor}
+          source={model.config.propertySources?.surfaceColor?.mode === "BRAND" ? "Brand value" : "Custom on this Card"}
+          overlayColor={model.config.rootOverlayColor}
+          overlayOpacity={model.config.rootOverlayOpacity}
+        />
+        <ColorControl label="Use selected background color" value={model.config.surfaceColor} onChange={(value) => model.patchConfigColor("surfaceColor", value)} />
         <ColorControl label="Text" value={model.config.textColor} onChange={(value) => model.patchConfigColor("textColor", value)} />
-        <RangeControl label="Page spacing" value={model.config.headerEnergy} min={0} max={100} onChange={(value) => model.patchConfig({ headerEnergy: value }, "Changed Card spacing", true)} />
+        <NumberControl label="Minimum Card height (px)" value={model.config.rootCanvasMinHeightPx ?? 520} onChange={(value) => model.patchConfig({ rootCanvasMinHeightPx: Math.max(120, Math.min(2400, value)) }, "Changed Card root height")} />
+        <RangeControl label="Card padding" value={model.config.rootCanvasPaddingPx ?? 12} min={0} max={120} suffix="px" onChange={(value) => model.patchConfig({ rootCanvasPaddingPx: value, rootComposition: model.config.rootComposition ? { ...model.config.rootComposition, safeAreaPaddingPx: value } : undefined }, "Changed Card root padding")} />
+        <MediaPicker value={model.config.rootBackgroundImageUrl} label="Card background image" mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(value) => model.patchConfig({ rootBackgroundImageUrl: value }, "Changed Card background image")} />
+        <SelectControl label="Background fit" value={model.config.rootBackgroundFit || "cover"} options={["cover", "contain", "fill"]} onChange={(value) => model.patchConfig({ rootBackgroundFit: value as TapCardSection["backgroundFit"] }, "Changed Card background fit")} />
+        <TextControl label="Background position" value={model.config.rootBackgroundPosition || "50% 50%"} onChange={(value) => model.patchConfig({ rootBackgroundPosition: value }, "Changed Card background position")} />
+        <ColorControl label="Overlay color" value={model.config.rootOverlayColor || "#000000"} onChange={(value) => model.patchConfig({ rootOverlayColor: value }, "Changed Card overlay color")} />
+        <RangeControl label="Overlay opacity" value={Math.round((model.config.rootOverlayOpacity ?? 0) * 100)} min={0} max={100} suffix="%" onChange={(value) => model.patchConfig({ rootOverlayOpacity: value / 100 }, "Changed Card overlay")} />
+        <div className="grid grid-cols-2 gap-1">
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => model.patchConfig({ rootOverlayOpacity: 0 }, "Removed Card overlay")}>Remove overlay</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => model.patchConfigColor("surfaceColor", model.config.propertySources?.surfaceColor?.sourceValue || model.config.accentColor)}>Use Brand value</button>
+        </div>
         <RangeControl label="Surface opacity" value={model.config.surfaceOpacity ?? 100} min={35} max={100} suffix="%" onChange={(value) => model.patchConfig({ surfaceOpacity: value }, "Changed Card opacity")} />
       </InspectorGroup>
       <InspectorGroup title="Global style">
@@ -110,21 +134,23 @@ function SectionInspector({ model, section }: { model: CardEditorLiveModel; sect
     const padding = section.surfacePaddingPx ?? 24;
     const coordinateHeight = section.surfaceCoordinateHeightPx ?? Math.max(80, (section.surfaceMinHeightPx ?? 260) - padding * 2);
     const bottom = (section.composition?.nodes ?? []).reduce((max, node) => Math.max(max, (node.y + node.height) * coordinateHeight), 0);
-    patch({ surfaceMinHeightPx: Math.max(120, Math.ceil(bottom + padding * 2)), surfaceHeightMode: "auto" }, "Fit Section to content");
+    patch({ surfaceMinHeightPx: Math.max(32, Math.ceil(bottom + padding * 2)), surfaceHeightMode: "auto" }, "Fit Section to content");
   };
   return (
     <div className="space-y-4">
       <InspectorGroup title="Section · Layout">
         <TextControl label="Name" value={section.label || ""} onChange={(value) => patch({ label: value }, "Renamed Section")} />
+        <RangeControl label="Width" value={section.surfaceWidthPercent ?? 100} min={10} max={100} suffix="%" onChange={(value) => patch({ surfaceWidthPercent: value }, "Changed Section width")} />
         <SelectControl label="Layout mode" value={section.surfaceLayout || "stack"} options={["stack", "row", "grid", "free"]} onChange={(value) => patch({ surfaceLayout: value as TapCardSection["surfaceLayout"] }, "Changed Section layout")} />
         <div className="grid grid-cols-2 gap-2">
           <SelectControl label="Alignment" value={section.surfaceAlign || "stretch"} options={["start", "center", "end", "stretch"]} onChange={(value) => patch({ surfaceAlign: value as TapCardSection["surfaceAlign"] }, "Changed Section alignment")} />
           <SelectControl label="Distribution" value={section.surfaceDistribute || "start"} options={["start", "center", "end", "between", "around"]} onChange={(value) => patch({ surfaceDistribute: value as TapCardSection["surfaceDistribute"] }, "Changed Section distribution")} />
         </div>
         <SelectControl label="Height behavior" value={section.surfaceHeightMode || "fixed"} options={["auto", "fixed"]} onChange={(value) => patch({ surfaceHeightMode: value as TapCardSection["surfaceHeightMode"] }, "Changed Section height behavior")} />
-        <NumberControl label="Exact minimum height (px)" value={section.surfaceMinHeightPx ?? 260} onChange={(value) => patch({ surfaceMinHeightPx: Math.max(120, value), surfaceHeightMode: "fixed" }, "Resized Section height")} />
-        <div className="grid grid-cols-3 gap-1">
+        <NumberControl label="Exact minimum height (px)" value={section.surfaceMinHeightPx ?? 260} onChange={(value) => patch({ surfaceMinHeightPx: Math.max(32, Math.min(2400, value)), surfaceHeightMode: "fixed" }, "Resized Section height")} />
+        <div className="grid grid-cols-2 gap-1">
           <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={fitHeight}>Fit content</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patch({ surfaceMinHeightPx: section.surfaceKind === "blank" ? 64 : 260, surfaceHeightMode: "fixed" }, "Reset Section height")}>Reset height</button>
           <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patch({ surfaceMinHeightPx: (section.surfaceMinHeightPx ?? 260) + 24 }, "Added space below")}>+ below</button>
           <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patch({ surfaceMinHeightPx: (section.surfaceMinHeightPx ?? 260) + 24, surfacePaddingPx: (section.surfacePaddingPx ?? 24) + 12 }, "Added space above")}>+ above</button>
         </div>
@@ -132,8 +158,12 @@ function SectionInspector({ model, section }: { model: CardEditorLiveModel; sect
         <RangeControl label="Element gap" value={section.surfaceGapPx ?? 12} min={0} max={64} suffix="px" onChange={(value) => patch({ surfaceGapPx: value }, "Changed Element spacing")} />
       </InspectorGroup>
       <InspectorGroup title="Background · Surface">
-        <p className="text-[10px] text-white/70">{section.sourceMode === "BRAND" ? "From Brand" : "Custom on this Card"}</p>
-        <ColorControl label="Background color" value={section.backgroundColor || "#171b24"} onChange={(value) => patch({ backgroundColor: value, sourceMode: "LOCAL" }, "Changed Section background")} />
+        <ColorTruth property="Section background" value={section.backgroundColor || "transparent"} source={section.sourceMode === "BRAND" ? "Brand value" : "Custom on this Card"} overlayColor={section.overlayColor} overlayOpacity={section.overlayOpacity} />
+        <ColorControl label="Use selected background color" value={section.backgroundColor || "#000000"} onChange={(value) => patch({ backgroundColor: value, sourceMode: "LOCAL" }, "Changed Section background")} />
+        <div className="grid grid-cols-2 gap-1">
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patch({ backgroundColor: "transparent", sourceMode: "LOCAL" }, "Removed Section background")}>Remove fill</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patch({ overlayOpacity: 0 }, "Removed Section overlay")}>Remove overlay</button>
+        </div>
         <MediaPicker value={section.backgroundImageUrl} valueAssetId={section.backgroundMediaAssetId} label="Section background image" mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(value) => patch({ backgroundImageUrl: value }, "Changed Section background image")} onAssetChange={(asset) => patch({ backgroundMediaAssetId: asset?.id }, "Selected Section background Asset")} />
         <SelectControl label="Background fit" value={section.backgroundFit || "cover"} options={["cover", "contain", "fill"]} onChange={(value) => patch({ backgroundFit: value as TapCardSection["backgroundFit"] }, "Changed Section background fit")} />
         <TextControl label="Background position" value={section.backgroundPosition || "50% 50%"} onChange={(value) => patch({ backgroundPosition: value }, "Changed Section background position")} />
@@ -145,27 +175,36 @@ function SectionInspector({ model, section }: { model: CardEditorLiveModel; sect
         </div>
         <SelectControl label="Shadow" value={section.surfaceShadow || "none"} options={["none", "soft", "medium", "strong"]} onChange={(value) => patch({ surfaceShadow: value as TapCardSection["surfaceShadow"] }, "Changed Section shadow")} />
         <RangeControl label="Overall opacity" value={section.opacity ?? 100} min={0} max={100} suffix="%" onChange={(value) => patch({ opacity: value }, "Changed Section opacity")} />
+        <div className="grid grid-cols-2 gap-1">
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patch({ backgroundColor: model.config.accentColor, sourceMode: "BRAND" }, "Used Brand Section color")}>Use Brand value</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patch({ backgroundColor: "transparent", backgroundImageUrl: undefined, overlayOpacity: 0, surfacePaddingPx: 0, surfaceGapPx: 0, surfaceBorderWidthPx: 0, surfaceRadiusPx: 0, surfaceShadow: "none", opacity: 100, sourceMode: "LOCAL" }, "Reset Section style")}>Reset Section style</button>
+        </div>
       </InspectorGroup>
       <InspectorGroup title="Responsive · Behavior">
         <SelectControl label="Small screens" value={section.responsiveBehavior || "stack"} options={["stack", "scale", "hide_decorative"]} onChange={(value) => patch({ responsiveBehavior: value as TapCardSection["responsiveBehavior"] }, "Changed responsive behavior")} />
         <ObjectActions visible={section.enabled} locked={Boolean(section.locked)} onVisible={() => model.toggleSectionVisible(section.id)} onLocked={() => model.toggleSectionLocked(section.id)} onDuplicate={() => model.duplicateSection(section.id)} onDelete={() => model.deleteSection(section.id)} />
+        <button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" disabled={Boolean(section.locked)} onClick={() => model.removeSectionKeepElements?.(section.id)} data-testid="remove-section-keep-elements">Remove Section, keep Elements</button>
       </InspectorGroup>
       {warnings.length ? <Warnings warnings={warnings} /> : null}
     </div>
   );
 }
 
-function ElementInspector({ model, section, element }: { model: CardEditorLiveModel; section: TapCardSection; element: CreativeCompositionNode }) {
+function ElementInspector({ model, section, element }: { model: CardEditorLiveModel; section: TapCardSection | null; element: CreativeCompositionNode }) {
   const selectionIds = model.selectedCompositionNodeIds?.length ? model.selectedCompositionNodeIds : [element.id];
-  const selectedNodes = section.composition?.nodes.filter((node) => selectionIds.includes(node.id)) ?? [element];
+  const composition = section?.composition ?? model.config.rootComposition;
+  const selectedNodes = composition?.nodes.filter((node) => selectionIds.includes(node.id)) ?? [element];
+  const replaceComposition = (next: typeof composition, label: string) => {
+    if (!next) return;
+    if (section) model.patchSection(section.id, { composition: next }, label);
+    else model.patchConfig({ rootComposition: next }, label);
+  };
   const patch = (next: Partial<CreativeCompositionNode>, label: string) => {
-    const composition = section.composition;
     if (!composition) return;
-    model.patchSection(section.id, { composition: { ...composition, nodes: composition.nodes.map((node) => node.id === element.id ? { ...node, ...next, props: { ...node.props, ...(next.props || {}) } } : node) } }, label);
+    replaceComposition({ ...composition, nodes: composition.nodes.map((node) => node.id === element.id ? { ...node, ...next, props: { ...node.props, ...(next.props || {}) } } : node) }, label);
   };
   const replaceNodes = (nodes: CreativeCompositionNode[], label: string) => {
-    const composition = section.composition;
-    if (composition) model.patchSection(section.id, { composition: { ...composition, nodes } }, label);
+    if (composition) replaceComposition({ ...composition, nodes }, label);
   };
   const patchProps = (props: Record<string, unknown>, label: string) => patch({ props: { ...element.props, ...props } }, label);
   const textKey = element.primitive === "button" ? "label" : "text";
@@ -211,16 +250,31 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
       </InspectorGroup>
       <InspectorGroup title="Alignment · layers">
         <div className="grid grid-cols-3 gap-1" data-testid="composer-alignment-controls">
-          {(["left", "center", "right", "top", "middle", "bottom"] as const).map((mode) => <button key={mode} type="button" className="min-h-9 rounded border border-white/10 text-[10px] capitalize disabled:opacity-35" disabled={selectedNodes.length < 2} onClick={() => replaceNodes(alignNodes(section.composition!.nodes, selectionIds, mode), `Aligned Elements ${mode}`)}>{mode === "middle" ? "Center V" : mode}</button>)}
-          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px] disabled:opacity-35" disabled={selectedNodes.length < 3} onClick={() => replaceNodes(distributeNodes(section.composition!.nodes, selectionIds, "horizontal"), "Distributed Elements horizontally")}>Distribute H</button>
-          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px] disabled:opacity-35" disabled={selectedNodes.length < 3} onClick={() => replaceNodes(distributeNodes(section.composition!.nodes, selectionIds, "vertical"), "Distributed Elements vertically")}>Distribute V</button>
+          {(["left", "center", "right", "top", "middle", "bottom"] as const).map((mode) => <button key={mode} type="button" className="min-h-9 rounded border border-white/10 text-[10px] capitalize disabled:opacity-35" disabled={selectedNodes.length < 2} onClick={() => replaceNodes(alignNodes(composition!.nodes, selectionIds, mode), `Aligned Elements ${mode}`)}>{mode === "middle" ? "Center V" : mode}</button>)}
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px] disabled:opacity-35" disabled={selectedNodes.length < 3} onClick={() => replaceNodes(distributeNodes(composition!.nodes, selectionIds, "horizontal"), "Distributed Elements horizontally")}>Distribute H</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px] disabled:opacity-35" disabled={selectedNodes.length < 3} onClick={() => replaceNodes(distributeNodes(composition!.nodes, selectionIds, "vertical"), "Distributed Elements vertically")}>Distribute V</button>
         </div>
-        {section.surfaceLayout === "free" && selectedNodes.length === 1 ? <div className="grid grid-cols-2 gap-1" data-testid="composer-layer-controls">
-          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(bringForward(section.composition!.nodes, element.id), "Brought Element forward")}>Bring forward</button>
-          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(sendBackward(section.composition!.nodes, element.id), "Sent Element backward")}>Send backward</button>
-          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(bringToFront(section.composition!.nodes, element.id), "Brought Element to front")}>Bring to front</button>
-          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(sendToBack(section.composition!.nodes, element.id), "Sent Element to back")}>Send to back</button>
+        {(!section || section.surfaceLayout === "free") && selectedNodes.length === 1 ? <div className="grid grid-cols-2 gap-1" data-testid="composer-layer-controls">
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(bringForward(composition!.nodes, element.id), "Brought Element forward")}>Bring forward</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(sendBackward(composition!.nodes, element.id), "Sent Element backward")}>Send backward</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(bringToFront(composition!.nodes, element.id), "Brought Element to front")}>Bring to front</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => replaceNodes(sendToBack(composition!.nodes, element.id), "Sent Element to back")}>Send to back</button>
         </div> : null}
+        <div className="grid grid-cols-2 gap-1" data-testid="composer-group-controls">
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px] disabled:opacity-35" disabled={selectedNodes.length < 2} onClick={() => replaceNodes(groupNodes(composition!.nodes, selectionIds), "Grouped Elements")}>Group</button>
+          <button type="button" className="min-h-9 rounded border border-white/10 text-[10px] disabled:opacity-35" disabled={!element.groupId} onClick={() => element.groupId && replaceNodes(ungroupNodes(composition!.nodes, element.groupId), "Ungrouped Elements")}>Ungroup</button>
+        </div>
+      </InspectorGroup>
+      <InspectorGroup title="Container">
+        <p className="text-[10px] text-white/70">Current: {section?.label || "Card root"}</p>
+        {section ? <button type="button" className="min-h-9 w-full rounded border border-white/10 text-xs" onClick={() => model.moveElementsTo?.(selectionIds, section.id, null)}>Move to Card root</button> : null}
+        <div className="grid gap-1">
+          {model.sorted.filter((candidate) => candidate.type === "surface" && candidate.id !== section?.id).map((candidate) => <button key={candidate.id} type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-[10px]" onClick={() => model.moveElementsTo?.(selectionIds, section?.id ?? null, candidate.id)}>Move to {candidate.label}</button>)}
+        </div>
+        <p className="pt-1 text-[10px] text-white/55">Wrap selected Elements without changing their visual styling:</p>
+        <div className="grid grid-cols-2 gap-1">
+          {(["blank", "identity", "content", "offer"] as const).map((kind) => <button key={kind} type="button" className="min-h-9 rounded border border-white/10 text-[10px] capitalize" onClick={() => model.wrapElements?.(selectionIds, section?.id ?? null, kind)}>Wrap · {kind}</button>)}
+        </div>
       </InspectorGroup>
       <InspectorGroup title={element.primitive === "button" ? "Shape & fill" : element.primitive === "image" ? "Frame" : "Appearance"}>
         {element.primitive === "button" ? <ColorControl label="Fill" value={String(element.props.fill || "#22c55e")} onChange={(value) => patch({ props: { ...element.props, fill: value, sourceMode: "LOCAL" } }, "Changed button fill")} /> : null}
@@ -234,15 +288,13 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
         <SelectControl label="Width rule" value={String(element.props.responsiveWidth || "percentage")} options={["fixed", "percentage", "stretch"]} onChange={(value) => patch({ props: { ...element.props, responsiveWidth: value } }, "Changed Element responsive rule")} />
         <SelectControl label="Anchor" value={element.anchor || "top-left"} options={["top-left", "top", "top-right", "left", "center", "right", "bottom-left", "bottom", "bottom-right"]} onChange={(value) => patch({ anchor: value as CreativeCompositionNode["anchor"] }, "Changed Element anchor")} />
         <ObjectActions visible={element.visible !== false} locked={Boolean(element.locked)} onVisible={() => patch({ visible: element.visible === false }, "Changed Element visibility")} onLocked={() => patch({ locked: !element.locked }, "Changed Element lock")} onDuplicate={() => {
-          const composition = section.composition!;
-          model.patchSection(section.id, { composition: { ...composition, nodes: [...composition.nodes, { ...structuredClone(element), id: `${element.id}-copy-${Date.now()}`, x: Math.min(.9, element.x + .03), y: Math.min(.9, element.y + .03) }] } }, "Duplicated Element");
+          replaceComposition({ ...composition!, nodes: [...composition!.nodes, { ...structuredClone(element), id: `${element.id}-copy-${Date.now()}`, x: Math.min(.9, element.x + .03), y: Math.min(.9, element.y + .03) }] }, "Duplicated Element");
         }} onDelete={() => {
           if (element.locked) {
             model.notify?.("This Element is locked. Unlock it before deleting it.");
             return;
           }
-          const composition = section.composition!;
-          model.patchSection(section.id, { composition: { ...composition, nodes: composition.nodes.filter((node) => !selectionIds.includes(node.id) || node.locked) } }, selectionIds.length > 1 ? "Deleted selected Elements" : "Deleted Element");
+          replaceComposition({ ...composition!, nodes: composition!.nodes.filter((node) => !selectionIds.includes(node.id) || node.locked) }, selectionIds.length > 1 ? "Deleted selected Elements" : "Deleted Element");
           model.setSelectedCompositionNodeIds?.([]);
         }} />
       </InspectorGroup>
@@ -388,6 +440,7 @@ function InspectorGroup({ title, children }: { title: string; children: ReactNod
 }
 function TextControl({ label, value, onChange, multiline = false }: { label: string; value: string; onChange: (value: string) => void; multiline?: boolean }) { const C = multiline ? "textarea" : "input"; return <label className="block text-[10px] text-white/70"><span>{label}</span><C className="mt-1 min-h-9 w-full rounded border border-white/10 bg-black/20 px-2 py-1 text-xs text-white" value={value} onChange={(event) => onChange(event.target.value)} /></label>; }
 function ColorControl({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) { return <label className="flex items-center justify-between gap-2 text-[10px] text-white/70"><span>{label}</span><input type="color" value={/^#[0-9a-f]{6}$/i.test(value) ? value : "#000000"} onChange={(event) => onChange(event.target.value)} className="h-8 w-14 rounded border border-white/10 bg-transparent" /></label>; }
+function ColorTruth({ property, value, source, overlayColor, overlayOpacity }: { property: string; value: string; source: string; overlayColor?: string; overlayOpacity?: number }) { return <div className="rounded border border-white/10 bg-black/20 p-2 text-[10px] text-white/70" data-testid="color-truth" data-property={property} data-value={value}><p className="font-semibold text-white/85">{property}</p><p>Current visible value: <code>{value}</code></p><p>Source: {source}</p><p>Overlay: {(overlayOpacity ?? 0) > 0 ? `${overlayColor || "#000000"} at ${Math.round((overlayOpacity ?? 0) * 100)}%` : "None at 0%"}</p></div>; }
 function RangeControl({ label, value, min, max, suffix = "", onChange }: { label: string; value: number; min: number; max: number; suffix?: string; onChange: (value: number) => void }) { return <label className="block text-[10px] text-white/70"><span className="flex justify-between"><span>{label}</span><span>{Math.round(value)}{suffix}</span></span><input className="mt-1 w-full accent-[#b8ff2c]" type="range" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
 function NumberControl({ label, value, onChange }: { label: string; value: number; onChange: (value: number) => void }) { return <label className="block text-[10px] text-white/70"><span>{label}</span><input className="mt-1 h-8 w-full rounded border border-white/10 bg-black/20 px-2 text-xs text-white" type="number" value={value} onChange={(event) => onChange(Number(event.target.value))} /></label>; }
 function SelectControl({ label, value, options, onChange }: { label: string; value: string; options: string[]; onChange: (value: string) => void }) { return <label className="block text-[10px] text-white/70"><span>{label}</span><select className="mt-1 h-9 w-full rounded border border-white/10 bg-[#0b1019] px-2 text-xs text-white" value={value} onChange={(event) => onChange(event.target.value)}>{options.map((option) => <option key={option} value={option}>{option.replaceAll("_", " ")}</option>)}</select></label>; }

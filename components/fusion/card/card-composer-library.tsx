@@ -44,7 +44,7 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
       ) : (
         <button type="button" className="flex min-h-9 w-full items-center gap-2 rounded border border-white/10 px-2 text-xs text-white/65" onClick={() => setGuideOpen(true)} data-testid="composer-reopen-help"><HelpCircle className="h-3.5 w-3.5" />Help</button>
       )}
-      <LibraryGroup title="Sections" testId="composer-section-library">
+      <LibraryGroup title="Surfaces" testId="composer-section-library">
         {CARD_SURFACE_LIBRARY.filter((item) => match(item.label)).map((item) => (
           <LibraryButton
             key={item.kind}
@@ -56,7 +56,7 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
           />
         ))}
       </LibraryGroup>
-      <LibraryGroup title="Elements" testId="composer-element-library">
+      <LibraryGroup title="Root or Section Elements" testId="composer-element-library">
         {CARD_ELEMENT_LIBRARY.filter((item) => match(item.label)).map((item) => (
           <LibraryButton
             key={item.kind}
@@ -125,9 +125,27 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
   if (!model) return <p className="p-2 text-xs text-white/70">Loading layers…</p>;
   return (
     <div className="mt-2 space-y-1" data-testid="composer-nested-outline" role="tree" aria-label="Card layers" onDragOver={(event) => autoScrollForPointer(event.currentTarget, event.clientX, event.clientY)}>
-      <button type="button" className="min-h-9 w-full rounded px-2 text-left text-xs text-white/70" onClick={() => model.setSelectedId(null)} role="treeitem" aria-selected={!model.selected}>
+      <button type="button" className="min-h-9 w-full rounded px-2 text-left text-xs text-white/70" onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); }} role="treeitem" aria-selected={!model.selected && !model.selectedCompositionNodeIds?.length}>
         Card
       </button>
+      {[...(model.config.rootComposition?.nodes ?? [])].sort((left, right) => right.zIndex - left.zIndex).map((node) => {
+        const selected = !model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id));
+        const patchRoot = (nodes: CreativeCompositionNode[], label: string) => model.patchConfig({ rootComposition: { ...model.config.rootComposition!, nodes } }, label);
+        return <div key={node.id} role="treeitem" aria-selected={selected} className={cn("flex min-h-9 items-center border-t border-white/5 pl-5 pr-1 text-[11px]", selected ? "text-[#b8ff2c]" : "text-white/70")} data-testid={`outline-element-${node.id}`} data-root-element="true">
+          <button type="button" className="flex min-h-9 min-w-0 flex-1 items-center gap-2 text-left" onClick={(event) => {
+            model.setSelectedId(null);
+            const current = !model.selected ? model.selectedCompositionNodeIds || [] : [];
+            model.setSelectedCompositionNodeIds?.(event.shiftKey ? (current.includes(node.id) ? current.filter((id) => id !== node.id) : [...current, node.id]) : [node.id]);
+          }}><span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" /><span className="truncate">{node.name || String(node.props.elementKind || node.primitive)}</span></button>
+          <button type="button" className="grid h-8 w-7 place-items-center" aria-label={node.visible === false ? `Show ${node.name}` : `Hide ${node.name}`} onClick={() => patchRoot(model.config.rootComposition!.nodes.map((item) => item.id === node.id ? { ...item, visible: item.visible === false } : item), "Changed root Element visibility")}>{node.visible === false ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}</button>
+          <button type="button" className="grid h-8 w-7 place-items-center" aria-label={node.locked ? `Unlock ${node.name}` : `Lock ${node.name}`} onClick={() => patchRoot(model.config.rootComposition!.nodes.map((item) => item.id === node.id ? { ...item, locked: !item.locked } : item), "Changed root Element lock")}>{node.locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}</button>
+          <button type="button" className="grid h-8 w-7 place-items-center text-red-300" aria-label={`Delete ${node.name}`} onClick={() => {
+            if (node.locked) { model.notify?.("This Element is locked. Unlock it before deleting it."); return; }
+            patchRoot(model.config.rootComposition!.nodes.filter((item) => item.id !== node.id), "Deleted root Element through Outline");
+            model.setSelectedCompositionNodeIds?.((model.selectedCompositionNodeIds || []).filter((id) => id !== node.id));
+          }}>×</button>
+        </div>;
+      })}
       {model.sorted.map((section, index) => (
         <div key={section.id} className={cn("rounded-md border border-white/5 bg-black/10", dragId === section.id && "opacity-50")} role="treeitem" aria-expanded aria-selected={model.selected?.id === section.id && !model.selectedCompositionNodeIds?.length}
           onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}

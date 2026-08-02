@@ -9,7 +9,7 @@ export type PreviewViewport = "desktop" | "tablet" | "phone";
 
 export const CREATIVE_STUDIO_MODE_LABELS: Record<CreativeStudioMode, string> = {
   edit: "Edit",
-  preview: "Preview as customer",
+  preview: "Preview draft",
   public: "Published Card",
 };
 

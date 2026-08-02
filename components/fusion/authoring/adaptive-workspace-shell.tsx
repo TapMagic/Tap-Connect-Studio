@@ -100,6 +100,8 @@ export type AdaptiveWorkspaceShellProps = {
   /** NestedPanelShell owns Back/Close — hide Adaptive drawer title row. */
   suppressDrawerHeader?: boolean;
   compactHeader?: boolean;
+  /** Dedicated preview surfaces provide their own toolbar and omit authoring chrome. */
+  hideHeader?: boolean;
 };
 
 export function AdaptiveWorkspaceShell({
@@ -129,6 +131,7 @@ export function AdaptiveWorkspaceShell({
   drawerRootTestId = "adaptive-task-drawer",
   suppressDrawerHeader = false,
   compactHeader = false,
+  hideHeader = false,
 }: AdaptiveWorkspaceShellProps) {
   const isPhone = useIsPhoneLayout();
   const reducedMotion = usePrefersReducedMotion();
@@ -285,7 +288,7 @@ export function AdaptiveWorkspaceShell({
       data-focus-mode={snapshot.focusMode ? "true" : "false"}
       data-maturity="implemented-not-owner-ready"
     >
-      <CommandShade
+      {!hideHeader ? <CommandShade
         compact={compactHeader}
         identityLabel={identity.label}
         objectLabel={identity.objectLabel}
@@ -314,7 +317,7 @@ export function AdaptiveWorkspaceShell({
             })
           )
         }
-      />
+      /> : null}
 
       <div
         className={cn(
