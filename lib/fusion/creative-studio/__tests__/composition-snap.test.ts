@@ -71,5 +71,23 @@ describe("composition precision snapping", () => {
     assert.equal(result.nodes[0].x, moving.x);
     assert.equal(result.nodes[0].y, moving.y);
   });
-});
 
+  it("emits Section center, safe-margin, and equal-spacing guides", () => {
+    const centered = createCompositionNode("text", { id: "centered", x: 0.399, y: 0.4, width: 0.2, height: 0.1 });
+    const centerResult = snapCompositionNodes({ nodes: [centered], movingIds: ["centered"], threshold: 0.003 });
+    assert.equal(centerResult.nodes[0].x, 0.4);
+    assert.ok(centerResult.guides.some((guide) => guide.kind === "center"));
+
+    const safe = createCompositionNode("text", { id: "safe", x: 0.031, y: 0.031, width: 0.1, height: 0.1 });
+    const safeResult = snapCompositionNodes({ nodes: [safe], movingIds: ["safe"], threshold: 0.003 });
+    assert.equal(safeResult.nodes[0].x, 0.03);
+    assert.ok(safeResult.guides.some((guide) => guide.kind === "safe-margin"));
+
+    const left = createCompositionNode("shape", { id: "left", x: 0.05, y: 0.2, width: 0.1, height: 0.1 });
+    const middle = createCompositionNode("shape", { id: "middle", x: 0.25, y: 0.2, width: 0.1, height: 0.1 });
+    const moving = createCompositionNode("shape", { id: "moving-spacing", x: 0.449, y: 0.2, width: 0.1, height: 0.1 });
+    const spacingResult = snapCompositionNodes({ nodes: [left, middle, moving], movingIds: ["moving-spacing"], threshold: 0.003 });
+    assert.ok(Math.abs(spacingResult.nodes[2].x - 0.45) < 1e-9);
+    assert.ok(spacingResult.guides.some((guide) => guide.kind === "equal-spacing"));
+  });
+});

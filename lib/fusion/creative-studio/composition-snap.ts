@@ -3,7 +3,7 @@ import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/compo
 export type CompositionGuide = {
   axis: "x" | "y";
   value: number;
-  kind: "edge" | "center" | "grid";
+  kind: "edge" | "center" | "grid" | "safe-margin" | "equal-spacing";
 };
 
 function nearest(
@@ -35,20 +35,37 @@ export function snapCompositionNodes(input: {
   const movingX = [minX, (minX + maxX) / 2, maxX];
   const movingY = [minY, (minY + maxY) / 2, maxY];
   const fixedX = fixed.flatMap((node) => [
-    node.x,
-    node.x + node.width / 2,
-    node.x + node.width,
+    { value: node.x, kind: "edge" as const },
+    { value: node.x + node.width / 2, kind: "center" as const },
+    { value: node.x + node.width, kind: "edge" as const },
   ]);
   const fixedY = fixed.flatMap((node) => [
-    node.y,
-    node.y + node.height / 2,
-    node.y + node.height,
+    { value: node.y, kind: "edge" as const },
+    { value: node.y + node.height / 2, kind: "center" as const },
+    { value: node.y + node.height, kind: "edge" as const },
   ]);
+  const canvasX = [
+    { value: 0, kind: "edge" as const },
+    { value: 0.03, kind: "safe-margin" as const },
+    { value: 0.5, kind: "center" as const },
+    { value: 0.97, kind: "safe-margin" as const },
+    { value: 1, kind: "edge" as const },
+  ];
+  const canvasY = canvasX;
+  const xSpacing = fixed.flatMap((left) => fixed.filter((right) => right.x > left.x + left.width).flatMap((right) => {
+    const gap = right.x - (left.x + left.width);
+    return [right.x + right.width + gap, left.x - gap - (maxX - minX)];
+  })).filter((value) => value >= 0 && value <= 1 - (maxX - minX));
+  const ySpacing = fixed.flatMap((top) => fixed.filter((bottom) => bottom.y > top.y + top.height).flatMap((bottom) => {
+    const gap = bottom.y - (top.y + top.height);
+    return [bottom.y + bottom.height + gap, top.y - gap - (maxY - minY)];
+  })).filter((value) => value >= 0 && value <= 1 - (maxY - minY));
   const xMatch = nearest(
     [
       ...movingX.flatMap((source) =>
-        fixedX.map((target) => ({ source, target, kind: "edge" as const }))
+        [...fixedX, ...canvasX].map((target) => ({ source, target: target.value, kind: target.kind }))
       ),
+      ...xSpacing.map((target) => ({ source: minX, target, kind: "equal-spacing" as const })),
       {
         source: minX,
         target: Math.round(minX / grid) * grid,
@@ -60,8 +77,9 @@ export function snapCompositionNodes(input: {
   const yMatch = nearest(
     [
       ...movingY.flatMap((source) =>
-        fixedY.map((target) => ({ source, target, kind: "edge" as const }))
+        [...fixedY, ...canvasY].map((target) => ({ source, target: target.value, kind: target.kind }))
       ),
+      ...ySpacing.map((target) => ({ source: minY, target, kind: "equal-spacing" as const })),
       {
         source: minY,
         target: Math.round(minY / grid) * grid,
@@ -92,4 +110,3 @@ export function snapCompositionNodes(input: {
     ],
   };
 }
-

@@ -1,16 +1,21 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { ArrowUpRight, Mail, MapPin, Phone } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   FRAME_MASK_CATALOG,
   accessibleReadingOrder,
+  bringForward,
+  bringToFront,
   compositionAppliesMobileFallback,
   deleteNodes,
   duplicateNodes,
   expandSelectionToGroups,
   frameMaskPath,
   resolveNodeBox,
+  sendBackward,
+  sendToBack,
   sortCompositionNodes,
   translateNodes,
   type CreativeCompositionBlock,
@@ -26,6 +31,8 @@ import {
   snapCompositionNodes,
   type CompositionGuide,
 } from "@/lib/fusion/creative-studio/composition-snap";
+import { buildButtonHref, buildMapHref, type MapElementProps } from "@/lib/fusion/card/designer-elements";
+import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -61,6 +68,14 @@ function colorWithOpacity(color: string, opacity: number): string {
   return `${color}${alpha}`;
 }
 
+function ElementIcon({ name, size = 20 }: { name: string; size?: number }) {
+  const props = { width: size, height: size, "aria-hidden": true } as const;
+  if (name.includes("phone")) return <Phone {...props} />;
+  if (name.includes("mail")) return <Mail {...props} />;
+  if (name.includes("map") || name.includes("pin")) return <MapPin {...props} />;
+  return <ArrowUpRight {...props} />;
+}
+
 function NodeVisual({
   node,
   editMode,
@@ -72,6 +87,51 @@ function NodeVisual({
   textEditing?: boolean;
   onEditText?: (value: string) => void;
 }) {
+  const elementKind = str(node.props.elementKind);
+
+  if (elementKind === "map") {
+    const props = node.props as MapElementProps;
+    const mode = str(props.mapDisplayMode, "location_card");
+    const name = str(props.locationName, "Choose a location");
+    const address = str(props.address, "Select a Workspace Location or enter an address");
+    const href = buildMapHref(props);
+    const directions = (
+      <a
+        href={href || undefined}
+        aria-disabled={!href}
+        aria-label={str(props.accessibleLabel, "Open directions")}
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
+        onClick={(event) => { if (editMode || !href) event.preventDefault(); }}
+      >
+        <MapPin className="h-4 w-4" aria-hidden /> Directions
+      </a>
+    );
+    if (mode === "directions_only") return <div className="flex h-full w-full items-center justify-center" data-map-presentation={mode}>{directions}</div>;
+    if (mode === "pin_only") return <div className="flex h-full w-full items-center justify-center" data-map-presentation={mode}><MapPin className="h-8 w-8" aria-label={name} /></div>;
+    if (mode === "text_link") return <div className="flex h-full w-full items-center justify-center" data-map-presentation={mode}><a href={href || undefined} aria-disabled={!href} onClick={(event) => { if (editMode || !href) event.preventDefault(); }} className="text-sm font-semibold underline underline-offset-4">Get directions to {name}</a></div>;
+    const mapLike = mode === "interactive" || mode === "static" || mode === "map_directions";
+    return (
+      <div
+        className="relative flex h-full w-full overflow-hidden border border-white/15 bg-[#17231d]"
+        style={{ borderRadius: num(props.radius, 14), opacity: num(props.opacity, 1) }}
+        data-map-presentation={mode}
+      >
+        {mapLike ? (
+          <div className="relative min-w-[46%] flex-1 overflow-hidden bg-[#dce8d8]" aria-label={`${mode === "interactive" ? "Interactive" : "Static"} map preview`}>
+            <div className="absolute inset-0 opacity-60" style={{ backgroundImage: "linear-gradient(28deg, transparent 46%, #afc5aa 47%, #afc5aa 52%, transparent 53%), linear-gradient(112deg, transparent 42%, #c2d2bd 43%, #c2d2bd 48%, transparent 49%)", backgroundSize: "58px 58px, 76px 76px" }} />
+            <MapPin className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 fill-[#14241a] text-[#b8ff2c] drop-shadow" aria-hidden />
+            <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[8px] text-white">Map preview</span>
+          </div>
+        ) : null}
+        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 p-3">
+          <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#b8ff2c]" aria-hidden /><div className="min-w-0"><strong className="block truncate text-xs text-white">{name}</strong><span className="block text-[10px] leading-snug text-white/70">{address}</span></div></div>
+          {(mode === "map_directions" || mode === "location_card") ? directions : null}
+          {!href ? <span className="text-[9px] text-amber-200">Complete Map setup in the inspector</span> : null}
+        </div>
+      </div>
+    );
+  }
+
   if (node.primitive === "text") {
     return (
       <div
@@ -530,27 +590,59 @@ function NodeVisual({
   }
 
   if (node.primitive === "button") {
-    return (
-      <div
-        className="flex h-full w-full items-center justify-center"
+    const presentation = str(node.props.presentation, "rounded");
+    const showLabel = node.props.showLabel !== false && presentation !== "icon_circle";
+    const showDescription = node.props.showDescription === true || presentation === "icon_description";
+    const icon = str(node.props.icon, "arrow-up-right");
+    const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
+    const labelBelow = presentation === "icon_label" || presentation === "icon_description";
+    const actionHref = buildButtonHref(node.props);
+    const radius = presentation === "rectangle" ? 0 : presentation === "square" ? num(node.props.radius, 6) : (circle || presentation === "pill") ? 999 : num(node.props.radius, 14);
+    const surface = (
+      <span
+        className="inline-flex shrink-0 items-center justify-center gap-2"
         style={{
+          width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
+          height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
+          minHeight: 44,
           background: str(node.props.fill, "#22c55e"),
+          color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
+          borderRadius: radius,
+          borderWidth: num(node.props.borderWidth, 0),
+          borderStyle: "solid",
+          borderColor: str(node.props.borderColor, "transparent"),
+          boxShadow: num(node.props.shadow, 0) ? `0 8px ${num(node.props.shadow, 18)}px rgba(0,0,0,.35)` : undefined,
+        }}
+      >
+        <ElementIcon name={icon} size={num(node.props.iconSize, 20)} />
+        {!labelBelow && showLabel ? <span>{str(node.props.label, "Button")}</span> : null}
+      </span>
+    );
+    return (
+      <a
+        href={editMode ? undefined : actionHref}
+        aria-disabled={!actionHref}
+        onClick={(event) => { if (editMode || !actionHref) event.preventDefault(); }}
+        className="flex h-full w-full flex-col items-center justify-center text-center"
+        style={{
           color: str(node.props.textColor, "#0b0f19"),
           fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
           fontSize: num(node.props.fontSize, 14),
           fontWeight: num(node.props.fontWeight, 600),
           letterSpacing: `${num(node.props.letterSpacingEm, 0)}em`,
           textTransform: str(node.props.textTransform, "none") as CSSProperties["textTransform"],
-          padding: num(node.props.padding, 8),
-          borderWidth: num(node.props.borderWidth, 0),
-          borderStyle: "solid",
-          borderColor: str(node.props.borderColor, "transparent"),
-          borderRadius: num(node.props.radius, 999),
+          padding: labelBelow ? 2 : num(node.props.padding, 8),
           opacity: num(node.props.opacity, 1),
+          gap: num(node.props.spacing, 6),
         }}
+        tabIndex={editMode ? undefined : 0}
+        aria-label={str(node.props.accessibleLabel, str(node.props.label, "Button"))}
+        data-button-presentation={presentation}
       >
-        {str(node.props.label, "Button")}
-      </div>
+        {surface}
+        {labelBelow && showLabel ? <strong className="block" style={{ color: str(node.props.labelColor, str(node.props.textColor, "#f8fafc")) }}>{str(node.props.label, "Button")}</strong> : null}
+        {showDescription && str(node.props.description) ? <span className="block leading-snug" style={{ color: str(node.props.descriptionColor, "#cbd5e1"), fontSize: num(node.props.descriptionSize, 11) }}>{str(node.props.description)}</span> : null}
+      </a>
     );
   }
 
@@ -575,10 +667,12 @@ export function CreativeCompositionCanvas({
 }: CreativeCompositionCanvasProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
+  const [surfaceSize, setSurfaceSize] = useState({ width: 180, height: 220 });
   const [draftNodes, setDraftNodes] = useState<CreativeCompositionNode[] | null>(
     null
   );
   const [guides, setGuides] = useState<CompositionGuide[]>([]);
+  const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   const [drag, setDrag] = useState<{
     id: string;
     mode: "move" | "resize" | "rotate";
@@ -597,6 +691,7 @@ export function CreativeCompositionCanvas({
     const ro = new ResizeObserver((entries) => {
       const w = entries[0]?.contentRect.width ?? 0;
       setNarrow(w > 0 && w < 420);
+      setSurfaceSize({ width: w || 180, height: entries[0]?.contentRect.height || 220 });
     });
     ro.observe(el);
     return () => ro.disconnect();
@@ -714,7 +809,7 @@ export function CreativeCompositionCanvas({
       nextIds = selectedSet.has(node.id)
         ? selectedNodeIds.filter((id) => id !== node.id)
         : [...selectedNodeIds, node.id];
-    } else if (!selectedSet.has(node.id)) {
+    } else if (!selectedSet.has(node.id) || selectedNodeIds.length > 1) {
       nextIds = expandSelectionToGroups(block.nodes, [node.id]);
     } else {
       nextIds = expandSelectionToGroups(block.nodes, selectedNodeIds);
@@ -738,6 +833,7 @@ export function CreativeCompositionCanvas({
 
   const onPointerMove = (e: React.PointerEvent) => {
     if (!drag || !surfaceRef.current || !editMode) return;
+    autoScrollForPointer(surfaceRef.current, e.clientX, e.clientY);
     const rect = surfaceRef.current.getBoundingClientRect();
     const dx = (e.clientX - drag.startX) / rect.width;
     const dy = (e.clientY - drag.startY) / rect.height;
@@ -783,7 +879,13 @@ export function CreativeCompositionCanvas({
         : south
           ? Math.min(1 - n.y, Math.max(0.02, n.height + dy))
           : n.height;
-      if (n.props.aspectLocked === true && (east || west) && (north || south)) {
+      if (e.altKey) {
+        if (east) { x = n.x - dx; width = n.width + dx * 2; }
+        if (west) { x = n.x + dx; width = n.width - dx * 2; }
+        if (south) { y = n.y - dy; height = n.height + dy * 2; }
+        if (north) { y = n.y + dy; height = n.height - dy * 2; }
+      }
+      if ((e.shiftKey || n.props.aspectLocked === true) && (east || west) && (north || south)) {
         const aspect = drag.orig.width / drag.orig.height;
         if (Math.abs(dx) >= Math.abs(dy)) height = width / aspect;
         else width = height * aspect;
@@ -1000,8 +1102,9 @@ export function CreativeCompositionCanvas({
       aria-label={block.label}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerLeave={onPointerUp}
+      onPointerCancel={onPointerUp}
       onPointerDown={(event) => {
+        setContextMenu(null);
         if (editMode && event.target === event.currentTarget) onSelectNodes?.([]);
       }}
     >
@@ -1058,24 +1161,12 @@ export function CreativeCompositionCanvas({
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);
         const box = resolveNodeBox(node);
-        const beneath = selected
-          ? [...visibleNodes]
-              .filter((candidate) => candidate.id !== node.id)
-              .filter((candidate) => {
-                const candidateBox = resolveNodeBox(candidate);
-                const cx = box.left + box.width / 2;
-                const cy = box.top + box.height / 2;
-                return cx >= candidateBox.left && cx <= candidateBox.left + candidateBox.width && cy >= candidateBox.top && cy <= candidateBox.top + candidateBox.height;
-              })
-              .sort((a, b) => b.zIndex - a.zIndex)[0]
-          : undefined;
         return (
           <div
             key={node.id}
             className={cn(
               "absolute",
-              editMode && !node.locked && "cursor-move",
-              selected && editMode && "outline outline-1 outline-white/80"
+              editMode && !node.locked && "cursor-move"
             )}
             style={{
               left: `${box.left * 100}%`,
@@ -1097,7 +1188,29 @@ export function CreativeCompositionCanvas({
             data-group={node.groupId || undefined}
             data-anchor={node.anchor || "top-left"}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
+            onContextMenu={(event) => {
+              if (!editMode) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const rect = surfaceRef.current?.getBoundingClientRect();
+              if (!rect) return;
+              onSelectNodes?.([node.id]);
+              setContextMenu({ id: node.id, x: event.clientX - rect.left, y: event.clientY - rect.top });
+            }}
             onKeyDown={(event) => {
+              if (editMode && event.key === "Tab") {
+                event.preventDefault();
+                event.stopPropagation();
+                const ordered = [...visibleNodes].sort((left, right) => right.zIndex - left.zIndex);
+                const current = ordered.findIndex((candidate) => candidate.id === node.id);
+                const nextIndex = (current + (event.shiftKey ? -1 : 1) + ordered.length) % ordered.length;
+                const next = ordered[nextIndex];
+                if (next) {
+                  onSelectNodes?.([next.id]);
+                  requestAnimationFrame(() => surfaceRef.current?.querySelector<HTMLElement>(`[data-composition-node="${next.id}"]`)?.focus());
+                }
+                return;
+              }
               if (
                 !editMode ||
                 !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
@@ -1141,56 +1254,48 @@ export function CreativeCompositionCanvas({
               textEditing={selected}
               onEditText={(value) => onEditNodeText?.(node.id, value)}
             />
-            {editMode && selected && !node.locked ? (
-              <>
-                {beneath ? (
-                  <button
-                    type="button"
-                    className="absolute -top-7 right-0 z-[3] min-h-6 rounded bg-black/80 px-1.5 text-[9px] text-white"
-                    data-testid={`composition-select-beneath-${node.id}`}
-                    onPointerDown={(event) => event.stopPropagation()}
-                    onClick={(event) => { event.stopPropagation(); onSelectNodes?.([beneath.id]); }}
-                  >
-                    Select beneath
-                  </button>
-                ) : null}
-                {(
-                  [
-                    ["nw", "-left-1.5 -top-1.5 cursor-nwse-resize"],
-                    ["n", "left-1/2 -top-1.5 -translate-x-1/2 cursor-ns-resize"],
-                    ["ne", "-right-1.5 -top-1.5 cursor-nesw-resize"],
-                    ["e", "-right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"],
-                    ["se", "-bottom-1.5 -right-1.5 cursor-nwse-resize"],
-                    ["s", "left-1/2 -bottom-1.5 -translate-x-1/2 cursor-ns-resize"],
-                    ["sw", "-bottom-1.5 -left-1.5 cursor-nesw-resize"],
-                    ["w", "-left-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"],
-                  ] as const
-                ).map(([handle, position]) => (
-                  <button
-                    key={handle}
-                    type="button"
-                    className={`absolute z-[2] h-6 w-6 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[2px] after:border after:border-white/90 after:bg-white ${position}`}
-                    data-testid={`composition-resize-${node.id}-${handle}`}
-                    aria-label={`Resize ${handle}`}
-                    onPointerDown={(event) =>
-                      onPointerDownNode(event, node, "resize", handle)
-                    }
-                  />
-                ))}
-                <button
-                  type="button"
-                  className="absolute -top-8 left-1/2 z-[2] h-6 w-6 -translate-x-1/2 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/90 after:bg-[#9cff57]"
-                  data-testid={`composition-rotate-${node.id}`}
-                  aria-label="Rotate"
-                  onPointerDown={(event) =>
-                    onPointerDownNode(event, node, "rotate")
-                  }
-                />
-              </>
-            ) : null}
           </div>
         );
       })}
+      {editMode ? visibleNodes.filter((node) => selectedSet.has(node.id) && !node.locked).map((node) => {
+        const box = resolveNodeBox(node);
+        const beneath = [...visibleNodes]
+          .filter((candidate) => candidate.id !== node.id)
+          .filter((candidate) => {
+            const candidateBox = resolveNodeBox(candidate);
+            const cx = box.left + box.width / 2;
+            const cy = box.top + box.height / 2;
+            return cx >= candidateBox.left && cx <= candidateBox.left + candidateBox.width && cy >= candidateBox.top && cy <= candidateBox.top + candidateBox.height;
+          })
+          .sort((left, right) => right.zIndex - left.zIndex)[0];
+        return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1000] outline outline-1 outline-white/80" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`}>
+          {drag?.id === node.id && drag.mode === "resize" ? <span className="absolute left-0 top-0 -translate-y-full rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" data-testid="composition-size-feedback">{Math.round(box.width * 100)}% × {Math.round(box.height * 100)}%</span> : null}
+          <button type="button" className="pointer-events-auto absolute -top-7 left-0 min-h-6 rounded bg-black/80 px-2 text-[10px] text-white" aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} onClick={() => setContextMenu({ id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height })}>•••</button>
+          {beneath ? <button type="button" className="pointer-events-auto absolute bottom-1 right-1 min-h-6 rounded bg-black/80 px-1.5 text-[9px] text-white" data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
+          {([ ["nw", "-left-1.5 -top-1.5 cursor-nwse-resize"], ["n", "left-1/2 -top-1.5 -translate-x-1/2 cursor-ns-resize"], ["ne", "-right-1.5 -top-1.5 cursor-nesw-resize"], ["e", "-right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"], ["se", "-bottom-1.5 -right-1.5 cursor-nwse-resize"], ["s", "left-1/2 -bottom-1.5 -translate-x-1/2 cursor-ns-resize"], ["sw", "-bottom-1.5 -left-1.5 cursor-nesw-resize"], ["w", "-left-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"] ] as const).map(([handle, position]) => <button key={handle} type="button" className={`pointer-events-auto absolute h-6 w-6 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[2px] after:border after:border-white/90 after:bg-white ${position}`} data-testid={`composition-resize-${node.id}-${handle}`} aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
+          <button type="button" className="pointer-events-auto absolute -top-8 left-1/2 h-6 w-6 -translate-x-1/2 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/90 after:bg-[#9cff57]" data-testid={`composition-rotate-${node.id}`} aria-label="Rotate" onPointerDown={(event) => onPointerDownNode(event, node, "rotate")} />
+        </div>;
+      }) : null}
+      {editMode && contextMenu ? (() => {
+        const node = block.nodes.find((candidate) => candidate.id === contextMenu.id);
+        if (!node) return null;
+        const action = (nodes: CreativeCompositionNode[], label: string) => {
+          commitNodes(nodes, label);
+          setContextMenu(null);
+        };
+        return <div role="menu" aria-label={`Actions for ${node.name || node.primitive}`} className="absolute z-[1200] min-w-40 rounded-lg border border-white/15 bg-[#0b1019] p-1 text-[10px] text-white shadow-2xl" style={{ left: Math.min(contextMenu.x, Math.max(0, surfaceSize.width - 170)), top: Math.min(contextMenu.y, Math.max(0, surfaceSize.height - 245)) }} data-testid="composition-context-menu">
+          {!node.locked ? <>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { const duplicated = duplicateNodes(block.nodes, [node.id]); action(duplicated.nodes, "Duplicated Element"); onSelectNodes?.(duplicated.newIds); }}>Duplicate</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringForward(block.nodes, node.id), "Brought Element forward")}>Bring forward</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(sendBackward(block.nodes, node.id), "Sent Element backward")}>Send backward</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringToFront(block.nodes, node.id), "Brought Element to front")}>Bring to front</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(sendToBack(block.nodes, node.id), "Sent Element to back")}>Send to back</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(block.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, visible: false } : candidate), "Hid Element")}>Hide</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(block.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, locked: true } : candidate), "Locked Element")}>Lock</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left text-red-300 hover:bg-white/5" onClick={() => { action(deleteNodes(block.nodes, [node.id]), "Deleted Element"); onSelectNodes?.([]); }}>Delete</button>
+          </> : <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(block.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, locked: false } : candidate), "Unlocked Element")}>Unlock to edit or delete</button>}
+        </div>;
+      })() : null}
     </div>
   );
 }

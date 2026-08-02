@@ -53,6 +53,7 @@ import {
   type CreativeCompositionBlock,
 } from "@/lib/fusion/creative-studio/composition";
 import { isCardBlockLinkEligible } from "@/lib/fusion/card/block-model";
+import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -1191,7 +1192,7 @@ export function TapConnectCard({
           event.dataTransfer.setData("application/x-tap-card-section", section.id);
         }}
         onDragOver={(event) => {
-          if (editSelects) { event.preventDefault(); setSectionDropTargetId(section.id); }
+          if (editSelects) { event.preventDefault(); setSectionDropTargetId(section.id); autoScrollForPointer(event.currentTarget, event.clientX, event.clientY); }
         }}
         onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setSectionDropTargetId(null); }}
         onDrop={(event) => {
@@ -1231,6 +1232,9 @@ export function TapConnectCard({
             onDragStart={(event) => {
               event.dataTransfer.effectAllowed = "move";
               event.dataTransfer.setData("application/x-tap-card-section", section.id);
+            }}
+            onDrag={(event) => {
+              if (event.clientX || event.clientY) autoScrollForPointer(event.currentTarget, event.clientX, event.clientY);
             }}
             onKeyDown={(event) => {
               if (event.key === "ArrowUp" || event.key === "ArrowDown") {
@@ -1538,7 +1542,10 @@ export function TapConnectCard({
         onSectionSelect?.(id);
       }}
       onDragOver={(event: DragEvent<HTMLDivElement>) => {
-        if (editSelects && onComposerDrop) event.preventDefault();
+        if (editSelects && onComposerDrop) {
+          event.preventDefault();
+          autoScrollForPointer(event.currentTarget, event.clientX, event.clientY);
+        }
       }}
       onDrop={(event: DragEvent<HTMLDivElement>) => {
         if (!editSelects || !onComposerDrop) return;
