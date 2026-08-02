@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { cn } from "@/lib/utils";
 import {
   FRAME_MASK_CATALOG,
@@ -215,7 +215,7 @@ function NodeVisual({
             draggable={false}
           />
         ) : (
-          <div className="flex h-full items-center justify-center text-[10px] text-white/40">
+          <div className="flex h-full items-center justify-center text-[10px] text-white/80">
             {editMode ? "Add image URL in inspector" : "Image"}
           </div>
         )}
@@ -530,10 +530,21 @@ function NodeVisual({
   if (node.primitive === "button") {
     return (
       <div
-        className="flex h-full w-full items-center justify-center rounded-full px-2 text-sm font-semibold"
+        className="flex h-full w-full items-center justify-center"
         style={{
           background: str(node.props.fill, "#22c55e"),
           color: str(node.props.textColor, "#0b0f19"),
+          fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
+          fontSize: num(node.props.fontSize, 14),
+          fontWeight: num(node.props.fontWeight, 600),
+          letterSpacing: `${num(node.props.letterSpacingEm, 0)}em`,
+          textTransform: str(node.props.textTransform, "none") as CSSProperties["textTransform"],
+          padding: num(node.props.padding, 8),
+          borderWidth: num(node.props.borderWidth, 0),
+          borderStyle: "solid",
+          borderColor: str(node.props.borderColor, "transparent"),
+          borderRadius: num(node.props.radius, 999),
+          opacity: num(node.props.opacity, 1),
         }}
       >
         {str(node.props.label, "Button")}
@@ -560,7 +571,6 @@ export function CreativeCompositionCanvas({
 }: CreativeCompositionCanvasProps) {
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
-  const [zoom, setZoom] = useState(1);
   const [draftNodes, setDraftNodes] = useState<CreativeCompositionNode[] | null>(
     null
   );
@@ -612,40 +622,6 @@ export function CreativeCompositionCanvas({
     () => accessibleReadingOrder(visibleNodes),
     [visibleNodes]
   );
-  const zoomControls = editMode ? (
-    <div
-      className="absolute right-2 top-2 z-[1001] flex items-center gap-1 rounded-lg border border-white/15 bg-black/80 p-1"
-      data-testid="composition-zoom-controls"
-      onClick={(event) => event.stopPropagation()}
-    >
-      <button
-        type="button"
-        className="min-h-8 min-w-8 rounded border border-white/10 text-xs"
-        onClick={() => setZoom((current) => Math.max(0.25, current - 0.25))}
-        aria-label="Zoom out"
-      >
-        −
-      </button>
-      <span className="min-w-12 text-center text-[10px]">{Math.round(zoom * 100)}%</span>
-      <button
-        type="button"
-        className="min-h-8 min-w-8 rounded border border-white/10 text-xs"
-        onClick={() => setZoom((current) => Math.min(4, current + 0.25))}
-        aria-label="Zoom in"
-      >
-        +
-      </button>
-      <button
-        type="button"
-        className="min-h-8 rounded border border-white/10 px-2 text-[10px]"
-        onClick={() => setZoom(1)}
-        data-testid="composition-fit-canvas"
-      >
-        Fit
-      </button>
-    </div>
-  ) : null;
-
   const commitNodes = useCallback(
     (nodes: CreativeCompositionNode[], label: string) => {
       onChangeBlock?.({ ...block, nodes }, label);
@@ -658,6 +634,12 @@ export function CreativeCompositionCanvas({
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (target?.closest?.("input, textarea, select, [contenteditable=true]")) {
+        return;
+      }
+      if (e.key === "Escape" && selectedNodeIds.length) {
+        e.preventDefault();
+        e.stopPropagation();
+        onSelectNodes?.([]);
         return;
       }
       if (!selectedNodeIds.length) return;
@@ -903,14 +885,16 @@ export function CreativeCompositionCanvas({
           structuredMode === "row" ? "flex-row flex-wrap" : structuredMode !== "grid" ? "flex-col" : "",
           className
         )}
-        style={{ zoom: editMode ? zoom : undefined, gap: gapPx, minHeight: minHeightPx }}
+        style={{ gap: gapPx, minHeight: minHeightPx }}
         data-testid="creative-composition-canvas"
         data-edit-mode={editMode ? "true" : "false"}
         data-mobile-fallback="stack"
         role="group"
         aria-label={block.label}
+        onPointerDown={(event) => {
+          if (editMode && event.target === event.currentTarget) onSelectNodes?.([]);
+        }}
       >
-        {zoomControls}
         <div
           className="pointer-events-none absolute inset-0"
           style={{ ...backgroundStyle, ...backgroundTreatmentStyle }}
@@ -993,10 +977,9 @@ export function CreativeCompositionCanvas({
         className
       )}
       style={{
-        aspectRatio: String(aspectRatio),
+        aspectRatio: minHeightPx == null ? String(aspectRatio) : undefined,
+        height: minHeightPx,
         padding: block.safeAreaPaddingPx ?? 12,
-        minHeight: minHeightPx,
-        zoom: editMode ? zoom : undefined,
       }}
       data-testid="creative-composition-canvas"
       data-edit-mode={editMode ? "true" : "false"}
@@ -1009,11 +992,10 @@ export function CreativeCompositionCanvas({
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerLeave={onPointerUp}
-      onClick={() => {
-        if (editMode) onSelectNodes?.([]);
+      onPointerDown={(event) => {
+        if (editMode && event.target === event.currentTarget) onSelectNodes?.([]);
       }}
     >
-      {zoomControls}
       <div
         className="pointer-events-none absolute inset-0"
         style={{ ...backgroundStyle, ...backgroundTreatmentStyle }}
@@ -1073,7 +1055,7 @@ export function CreativeCompositionCanvas({
             className={cn(
               "absolute",
               editMode && !node.locked && "cursor-move",
-              selected && editMode && "ring-2 ring-white/70 ring-offset-1 ring-offset-transparent"
+              selected && editMode && "outline outline-1 outline-white/80"
             )}
             style={{
               left: `${box.left * 100}%`,
@@ -1156,7 +1138,7 @@ export function CreativeCompositionCanvas({
                   <button
                     key={handle}
                     type="button"
-                    className={`absolute z-[2] h-3.5 w-3.5 rounded-sm border border-white/80 bg-white/90 ${position}`}
+                    className={`absolute z-[2] h-6 w-6 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[2px] after:border after:border-white/90 after:bg-white ${position}`}
                     data-testid={`composition-resize-${node.id}-${handle}`}
                     aria-label={`Resize ${handle}`}
                     onPointerDown={(event) =>
@@ -1166,7 +1148,7 @@ export function CreativeCompositionCanvas({
                 ))}
                 <button
                   type="button"
-                  className="absolute -top-9 left-1/2 z-[2] h-5 w-5 -translate-x-1/2 cursor-grab rounded-full border border-white/80 bg-[#9cff57]"
+                  className="absolute -top-8 left-1/2 z-[2] h-6 w-6 -translate-x-1/2 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/90 after:bg-[#9cff57]"
                   data-testid={`composition-rotate-${node.id}`}
                   aria-label="Rotate"
                   onPointerDown={(event) =>
