@@ -5,6 +5,8 @@ import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, HelpCircle, Lock,
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
 import { CARD_ELEMENT_LIBRARY, CARD_SURFACE_LIBRARY, type CardElementKind, type CardSurfaceKind } from "@/lib/fusion/card/composer-model";
 import { cn } from "@/lib/utils";
+import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
+import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 
 const MIME = "application/x-tap-card-composer";
 
@@ -15,7 +17,7 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
   const match = (label: string) => !query.trim() || label.toLowerCase().includes(query.toLowerCase());
 
   return (
-    <div className="space-y-4" data-testid="card-composer-library">
+    <div className="space-y-4" data-testid="card-composer-library" onDragOver={(event) => autoScrollForPointer(event.currentTarget, event.clientX, event.clientY)}>
       <div>
         <p className="text-[10px] font-semibold uppercase tracking-[.18em] text-white/70">Build library</p>
         <input
@@ -101,6 +103,9 @@ function LibraryButton({ label, description, level, kind, onAdd }: { label: stri
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData(MIME, JSON.stringify({ level, kind }));
       }}
+      onDrag={(event) => {
+        if (event.clientX || event.clientY) autoScrollForPointer(event.currentTarget, event.clientX, event.clientY);
+      }}
       onClick={onAdd}
       className="group flex min-h-11 w-full items-center gap-2 rounded-md border border-transparent px-2 text-left hover:border-white/10 hover:bg-white/5"
       data-testid={`composer-add-${level}-${kind}`}
@@ -119,7 +124,7 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
   const [dragId, setDragId] = useState<string | null>(null);
   if (!model) return <p className="p-2 text-xs text-white/70">Loading layers…</p>;
   return (
-    <div className="mt-2 space-y-1" data-testid="composer-nested-outline" role="tree" aria-label="Card layers">
+    <div className="mt-2 space-y-1" data-testid="composer-nested-outline" role="tree" aria-label="Card layers" onDragOver={(event) => autoScrollForPointer(event.currentTarget, event.clientX, event.clientY)}>
       <button type="button" className="min-h-9 w-full rounded px-2 text-left text-xs text-white/70" onClick={() => model.setSelectedId(null)} role="treeitem" aria-selected={!model.selected}>
         Card
       </button>
@@ -128,7 +133,7 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
           onDragOver={(event) => { event.preventDefault(); event.dataTransfer.dropEffect = "move"; }}
           onDrop={(event) => { event.preventDefault(); if (dragId && dragId !== section.id) model.reorderSections(dragId, section.id); setDragId(null); }}>
           <div className="flex items-center gap-1">
-            <button type="button" draggable className="grid min-h-9 w-7 place-items-center text-white/70" aria-label={`Reorder ${section.label || "Section"}`} onDragStart={() => setDragId(section.id)} onDragEnd={() => setDragId(null)} onKeyDown={(event) => {
+            <button type="button" draggable className="grid min-h-9 w-7 place-items-center text-white/70" aria-label={`Reorder ${section.label || "Section"}`} onDragStart={() => setDragId(section.id)} onDrag={(event) => { if (event.clientX || event.clientY) autoScrollForPointer(event.currentTarget, event.clientX, event.clientY); }} onDragEnd={() => setDragId(null)} onKeyDown={(event) => {
               if (event.key === "ArrowUp" || event.key === "ArrowDown") { event.preventDefault(); model.moveSectionBy(section.id, event.key === "ArrowUp" ? -1 : 1); }
               if (event.key === "Home") { event.preventDefault(); model.moveSectionTo(section.id, "top"); }
               if (event.key === "End") { event.preventDefault(); model.moveSectionTo(section.id, "bottom"); }
@@ -150,20 +155,24 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
             <button type="button" className="p-1 text-white/70 disabled:opacity-20" aria-label="Move Section up" disabled={index === 0} onClick={() => model.moveSectionBy(section.id, -1)}>↑</button>
             <button type="button" className="p-1 text-white/70 disabled:opacity-20" aria-label="Move Section down" disabled={index === model.sorted.length - 1} onClick={() => model.moveSectionBy(section.id, 1)}>↓</button>
           </div>
-          {(section.composition?.nodes ?? []).map((node) => (
-            <button
-              key={node.id}
-              type="button"
-              role="treeitem"
-              aria-selected={Boolean(model.selectedCompositionNodeIds?.includes(node.id))}
-              className={cn("flex min-h-8 w-full items-center gap-2 border-t border-white/5 pl-5 pr-2 text-left text-[11px]", model.selectedCompositionNodeIds?.includes(node.id) ? "text-[#b8ff2c]" : "text-white/70")}
-              onClick={() => { model.setSelectedId(section.id); model.setSelectedCompositionNodeIds?.([node.id]); }}
-              data-testid={`outline-element-${node.id}`}
-            >
-              <span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" />
-              {node.name || String(node.props.elementKind || node.primitive)}
-            </button>
-          ))}
+          {[...(section.composition?.nodes ?? [])].sort((left, right) => right.zIndex - left.zIndex).map((node) => {
+            const selected = Boolean(model.selectedCompositionNodeIds?.includes(node.id));
+            const patchNodes = (nodes: CreativeCompositionNode[], label: string) => model.patchSection(section.id, { composition: { ...section.composition!, nodes } }, label);
+            return <div key={node.id} role="treeitem" aria-selected={selected} className={cn("flex min-h-9 items-center border-t border-white/5 pl-5 pr-1 text-[11px]", selected ? "text-[#b8ff2c]" : "text-white/70")} data-testid={`outline-element-${node.id}`}>
+              <button type="button" className="flex min-h-9 min-w-0 flex-1 items-center gap-2 text-left" onClick={(event) => {
+                model.setSelectedId(section.id);
+                const current = model.selected?.id === section.id ? model.selectedCompositionNodeIds || [] : [];
+                model.setSelectedCompositionNodeIds?.(event.shiftKey ? (current.includes(node.id) ? current.filter((id) => id !== node.id) : [...current, node.id]) : [node.id]);
+              }}><span className="h-1.5 w-1.5 rounded-full bg-current opacity-50" /><span className="truncate">{node.name || String(node.props.elementKind || node.primitive)}</span></button>
+              <button type="button" className="grid h-8 w-7 place-items-center" aria-label={node.visible === false ? `Show ${node.name}` : `Hide ${node.name}`} onClick={() => patchNodes(section.composition!.nodes.map((item) => item.id === node.id ? { ...item, visible: item.visible === false } : item), "Changed Element visibility")}>{node.visible === false ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}</button>
+              <button type="button" className="grid h-8 w-7 place-items-center" aria-label={node.locked ? `Unlock ${node.name}` : `Lock ${node.name}`} onClick={() => patchNodes(section.composition!.nodes.map((item) => item.id === node.id ? { ...item, locked: !item.locked } : item), "Changed Element lock")}>{node.locked ? <Lock className="h-3 w-3" /> : <Unlock className="h-3 w-3" />}</button>
+              <button type="button" className="grid h-8 w-7 place-items-center text-red-300" aria-label={`Delete ${node.name}`} onClick={() => {
+                if (node.locked) { model.notify?.("This Element is locked. Unlock it before deleting it."); return; }
+                patchNodes(section.composition!.nodes.filter((item) => item.id !== node.id), "Deleted Element through Outline");
+                model.setSelectedCompositionNodeIds?.((model.selectedCompositionNodeIds || []).filter((id) => id !== node.id));
+              }}>×</button>
+            </div>;
+          })}
         </div>
       ))}
     </div>

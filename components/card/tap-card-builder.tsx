@@ -93,6 +93,7 @@ import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import {
   addElementToSurface,
   createCardSurface,
+  resolveComposerSelectedObject,
   type CardElementKind,
   type CardSurfaceKind,
 } from "@/lib/fusion/card/composer-model";
@@ -346,6 +347,7 @@ export function TapCardBuilder({
   const [saving, setSaving] = useState(false);
   const [draftRevision, setDraftRevision] = useState(initialDraftRevision);
   const [message, setMessage] = useState<string | null>(null);
+  const [pendingSectionDelete, setPendingSectionDelete] = useState<TapCardSection | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
   const [versions, setVersions] = useState<
@@ -376,6 +378,7 @@ export function TapCardBuilder({
 
   const sorted = [...sectionsHistory].sort((a, b) => a.order - b.order);
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
+  const selectedObject = resolveComposerSelectedObject(config, selectedId, selectedCompositionNodeIds);
   const cardEmptyReason = tapCardPreviewEmptyReason(sorted);
   const previewUtilityLayer = resolveCardUtilityLayer({
     card: config,
@@ -860,19 +863,28 @@ export function TapCardBuilder({
     }
   }
 
+  function performSectionDelete(section: TapCardSection) {
+    setSections(
+      sorted.filter((s) => s.id !== section.id),
+      true,
+      `Deleted ${sectionDisplayName(section)}`
+    );
+    if (selectedId === section.id) setSelectedId(null);
+    setPendingSectionDelete(null);
+  }
+
   function deleteSection(id: string) {
     const section = sorted.find((s) => s.id === id);
     if (!section) return;
     if (section.locked) {
-      setMessage("Unlock this block before deleting it.");
+      setMessage("This Section is locked. Unlock it before deleting it.");
       return;
     }
-    setSections(
-      sorted.filter((s) => s.id !== id),
-      true,
-      `Deleted ${sectionDisplayName(section)}`
-    );
-    if (selectedId === id) setSelectedId(null);
+    if ((section.composition?.nodes.length ?? 0) > 0) {
+      setPendingSectionDelete(section);
+      return;
+    }
+    performSectionDelete(section);
   }
 
   function toggleSectionVisible(id: string) {
@@ -929,13 +941,17 @@ export function TapCardBuilder({
     const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface")
       ?? sorted.find((section) => section.id === selectedId && section.type === "surface");
     if (!target) {
-      const surface = addElementToSurface(createCardSurface("blank", sorted.length), kind);
-      setSections([...sorted, surface], true, `Added ${kind} in a new Section`);
-      setSelectedId(surface.id);
-      setSelectedCompositionNodeIds([surface.composition!.nodes.at(-1)!.id]);
+      setMessage(`Select a compatible Section before adding ${kind}. You can add a Blank, Content, Identity, or other Section from the Build library.`);
       return;
     }
-    const next = addElementToSurface(target, kind);
+    let next = addElementToSurface(target, kind);
+    if (kind === "map") {
+      const location = locations.find((item) => item.isDefault) || locations[0];
+      if (location && next.composition) {
+        const addedId = next.composition.nodes.at(-1)?.id;
+        next = { ...next, composition: { ...next.composition, nodes: next.composition.nodes.map((node) => node.id === addedId ? { ...node, props: { ...node.props, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" } } : node) } };
+      }
+    }
     setSections(sorted.map((section) => section.id === target.id ? next : section), true, `Added ${kind} to ${target.label}`);
     setSelectedId(target.id);
     setSelectedCompositionNodeIds([next.composition!.nodes.at(-1)!.id]);
@@ -1166,7 +1182,10 @@ export function TapCardBuilder({
         toggleFocusMode();
       },
       retireToggle,
-      selectSection: (id) => setSelectedId(id),
+      selectSection: (id) => {
+        setSelectedId(id);
+        setSelectedCompositionNodeIds([]);
+      },
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- API bridge refresh on undo capability
   }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode, config, dirty, saving, draftRevision, currentPublicationId, versions]);
@@ -1314,6 +1333,7 @@ export function TapCardBuilder({
     publishCardEditorLive({
       config,
       selected,
+      selectedObject,
       sorted,
       brandState,
       mediaUploadReady,
@@ -1326,6 +1346,7 @@ export function TapCardBuilder({
       logoUrl,
       brandKitId,
       message,
+      notify: setMessage,
       profile,
       reviewUrl,
       businessName,
@@ -1352,7 +1373,10 @@ export function TapCardBuilder({
       onAddSurface: addComposerSurface,
       onAddElement: addComposerElement,
       onStartPoint: startCardFrom,
-      setSelectedId,
+      setSelectedId: (id) => {
+        setSelectedId(id);
+        if (id !== selectedId) setSelectedCompositionNodeIds([]);
+      },
       setShowFreeform,
       onRetireToggle: retireToggle,
       onPublishDemo: (p) => void publishDemo(p),
@@ -1435,6 +1459,19 @@ export function TapCardBuilder({
       data-dirty={dirty ? "true" : "false"}
       data-active-tool={activeToolId ?? ""}
     >
+
+      {pendingSectionDelete ? (
+        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/65 p-4" role="presentation" data-testid="section-delete-confirmation">
+          <section className="w-full max-w-sm rounded-xl border border-white/15 bg-[#0c1220] p-5 text-white shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="section-delete-title" aria-describedby="section-delete-description">
+            <h2 id="section-delete-title" className="text-base font-semibold">Delete {sectionDisplayName(pendingSectionDelete)} and its {pendingSectionDelete.composition?.nodes.length ?? 0} Elements?</h2>
+            <p id="section-delete-description" className="mt-2 text-xs text-white/65">The Section and all nested Elements will be removed from this draft. You can Undo afterward.</p>
+            <div className="mt-5 flex justify-end gap-2">
+              <Button type="button" variant="outline" onClick={() => setPendingSectionDelete(null)}>Cancel</Button>
+              <Button type="button" variant="destructive" onClick={() => performSectionDelete(pendingSectionDelete)}>Delete Section</Button>
+            </div>
+          </section>
+        </div>
+      ) : null}
 
       {!shellHosted ? (
       <div className="builder-studio-toolbar z-30 flex shrink-0 flex-wrap items-center justify-between gap-3 px-4 py-2.5">

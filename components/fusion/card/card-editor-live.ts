@@ -11,11 +11,12 @@ import type {
   TapCardSection,
   TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
-import type { CardElementKind, CardSurfaceKind } from "@/lib/fusion/card/composer-model";
+import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject } from "@/lib/fusion/card/composer-model";
 
 export type CardEditorLiveModel = {
   config: TapConnectCardConfig;
   selected: TapCardSection | null;
+  selectedObject?: ComposerSelectedObject;
   sorted: TapCardSection[];
   brandState: BrandInheritanceState;
   mediaUploadReady: boolean;
@@ -36,6 +37,7 @@ export type CardEditorLiveModel = {
   logoUrl?: string | null;
   brandKitId?: string | null;
   message: string | null;
+  notify?: (message: string) => void;
   profile: import("@/lib/brand/contact-profile").BrandContactProfile;
   reviewUrl?: string | null;
   businessName: string;
@@ -109,6 +111,7 @@ export function cardEditorLiveMaterialSignature(
   return JSON.stringify({
     config: model.config,
     selectedId: model.selected?.id ?? null,
+    selectedObject: model.selectedObject,
     sortedIds: model.sorted.map((s) => s.id),
     brandState: model.brandState,
     mediaUploadReady: model.mediaUploadReady,
