@@ -71,6 +71,7 @@ function useIsPhoneLayout() {
 export type AdaptiveWorkspaceShellProps = {
   identity: WorkspaceIdentity;
   outline?: ReactNode;
+  outlineClassName?: string;
   canvas: ReactNode;
   /** Drawer body for the selected tool — replaced on topic change, never stacked. */
   drawerContent?: ReactNode;
@@ -107,6 +108,7 @@ export type AdaptiveWorkspaceShellProps = {
 export function AdaptiveWorkspaceShell({
   identity,
   outline,
+  outlineClassName,
   canvas,
   drawerContent,
   drawerTitle,
@@ -328,7 +330,7 @@ export function AdaptiveWorkspaceShell({
       >
         {showOutline && !isPhone ? (
           <aside
-            className="hidden min-h-0 w-[min(16rem,22%)] shrink-0 overflow-y-auto border-r border-white/8 p-3 lg:block"
+            className={cn("hidden min-h-0 w-[min(16rem,22%)] shrink-0 overflow-y-auto border-r border-white/8 p-3 lg:block", outlineClassName)}
             data-testid="authoring-outline"
           >
             {outline}

@@ -28,7 +28,7 @@ import {
   type CardBuilderShellStatus,
 } from "@/components/card/tap-card-builder";
 import { CardLiveToolDrawer } from "@/components/fusion/card/card-live-tool-drawer";
-import { CardComposerLibrary } from "@/components/fusion/card/card-composer-library";
+import { CardCreativeToolRail } from "@/components/fusion/card/card-creative-tool-rail";
 import { CardComposerInspector } from "@/components/fusion/card/card-composer-inspector";
 import { PreviewToolbar } from "@/components/fusion/creative-studio/preview-toolbar";
 import { LiveDeviceQrPanel } from "@/components/fusion/creative-studio/live-device-qr-panel";
@@ -199,6 +199,9 @@ export function CardAuthoringWorkspace({
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>("desktop");
   const [liveDeviceOpen, setLiveDeviceOpen] = useState(false);
   const [previewRevision, setPreviewRevision] = useState(1);
+  const [previewMotion, setPreviewMotion] = useState(false);
+  const [reducedMotionSimulation, setReducedMotionSimulation] = useState(false);
+  const [motionRevision, setMotionRevision] = useState(0);
   const [appearanceEntryLevel, setAppearanceEntryLevel] = useState<
     "root" | "colors" | "brand" | "layout" | "segment"
   >("root");
@@ -414,7 +417,7 @@ export function CardAuthoringWorkspace({
   const activeToolId = shell.selectedToolId;
   const recommendedDrawerMode = CARD_INSPECTOR_DEFAULT_MODE;
 
-  const outline = <CardComposerLibrary model={liveModel} />;
+  const outline = <CardCreativeToolRail model={liveModel} />;
 
   const mobileToolRail = (
     <div
@@ -546,8 +549,17 @@ export function CardAuthoringWorkspace({
       <span className="sr-only" data-testid="card-focus-mode" aria-hidden>
         Focus lives on command-shade-focus
       </span>
-      <button type="button" className="min-h-9 rounded-md border border-white/15 px-2 text-xs text-white/80" onClick={() => openCardTool("history")}>History</button>
-      <Link href="/control" className="inline-flex min-h-9 items-center rounded-md border border-white/15 px-2 text-xs text-white/80">Control Room</Link>
+      <details className="relative" data-testid="card-overflow-menu">
+        <summary className="grid min-h-9 min-w-9 cursor-pointer list-none place-items-center rounded-md border border-white/15 px-2 text-xs text-white/80" aria-label="More Card actions">•••</summary>
+        <div className="absolute right-0 top-full z-[1300] mt-1 grid min-w-52 gap-1 rounded-lg border border-white/15 bg-[#090e18] p-2 shadow-2xl">
+          <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" onClick={() => openCardTool("history")}>History</button>
+          <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" aria-pressed={previewMotion} data-testid="card-preview-motion" onClick={() => setPreviewMotion((active) => !active)}>{previewMotion ? "Stop motion preview" : "Preview motion"}</button>
+          <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" data-testid="card-restart-motion" onClick={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }}>Restart animation</button>
+          <label className="flex min-h-9 items-center gap-2 rounded-md px-2 text-xs text-white/80 hover:bg-white/5"><input type="checkbox" checked={reducedMotionSimulation} onChange={(event) => setReducedMotionSimulation(event.target.checked)} data-testid="card-reduced-motion-simulation" />Simulate reduced motion</label>
+          <Link href="/dashboard/card" className="flex min-h-9 items-center rounded-md px-2 text-xs text-white/80 hover:bg-white/5">Card overview</Link>
+          <Link href="/control" className="flex min-h-9 items-center rounded-md px-2 text-xs text-white/80 hover:bg-white/5">Control Room</Link>
+        </div>
+      </details>
     </div>
   );
 
@@ -562,6 +574,7 @@ export function CardAuthoringWorkspace({
       data-chrome-state={chromeState}
       data-drawer-open={shell.drawerOpen ? "true" : "false"}
       data-selected-tool={shell.selectedToolId ?? ""}
+      data-reusable-composition-count={liveModel?.config.reusableCompositions?.length ?? 0}
       data-maturity="implementation-in-progress"
     >
       {sessionRestored ? (
@@ -637,6 +650,7 @@ export function CardAuthoringWorkspace({
           zone: "card",
         }}
         outline={shell.focusMode || studioMode === "preview" ? undefined : outline}
+        outlineClassName="!w-[min(22rem,32%)] !overflow-hidden !p-0"
         canvas={
           <div
             className={cn(
@@ -668,6 +682,9 @@ export function CardAuthoringWorkspace({
                 shellHosted
                 interactionMode={studioMode === "preview" ? "preview" : "edit"}
                 compositionForceMobile={previewViewport === "phone"}
+                previewMotion={studioMode === "preview" || previewMotion}
+                reducedMotionSimulation={reducedMotionSimulation}
+                motionRevision={motionRevision}
                 activeToolId={studioMode === "preview" ? null : activeToolId}
                 shellFocusMode={shell.focusMode || studioMode === "preview"}
                 doneHref={doneHref}
