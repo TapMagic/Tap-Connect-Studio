@@ -22,7 +22,7 @@ export function pasteCompositionNodes(nodes: CreativeCompositionNode[]): { nodes
 }
 
 export function copyCompositionNodeStyle(node: CreativeCompositionNode): void {
-  const excluded = new Set(["text", "label", "description", "href", "src", "alt", "accessibleLabel", "actionType", "locationId", "address"]);
+  const excluded = new Set(["text", "label", "description", "showLabel", "showDescription", "icon", "href", "src", "alt", "accessibleLabel", "trackingName", "actionType", "locationId", "address"]);
   styleClipboard = Object.fromEntries(Object.entries(structuredClone(node.props)).filter(([key]) => !excluded.has(key)));
 }
 

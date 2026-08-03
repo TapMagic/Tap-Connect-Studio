@@ -693,7 +693,7 @@ export function CardAuthoringWorkspace({
       data-maturity="implementation-in-progress"
     >
       {studioMode === "edit" ? editTopBar : null}
-      {studioMode === "edit" ? <CardContextualObjectToolbar model={liveModel} onAdvanced={() => openCardTool("content")} /> : null}
+      {studioMode === "edit" ? <CardContextualObjectToolbar model={liveModel} onAdvanced={() => openCardTool("content")} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} onPreviewMotion={() => setPreviewMotion((active) => !active)} onRestartMotion={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }} onReducedMotionSimulation={setReducedMotionSimulation} /> : null}
       {status.recoveryState !== "none" && studioMode === "edit" ? (
         <section className="absolute left-1/2 top-28 z-[1500] w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-amber-300/35 bg-[#111827] p-4 text-white shadow-2xl" role="alert" data-testid="card-recovery-prompt">
           <h2 className="text-sm font-semibold">{status.recoveryState === "conflict" ? "Recovered changes need review" : "Recovered changes are available"}</h2>
@@ -855,7 +855,7 @@ export function CardAuthoringWorkspace({
         drawerTitle={
           activeToolId === "history" || activeToolId === "lifecycle" || activeToolId === "appearance"
             ? getWorkspaceTool(WORKSPACE_ID, activeToolId)?.label || "Tools"
-            : "Inspector"
+            : "Advanced settings"
         }
         toolMemory={toolMemory}
         onToolMemoryChange={setToolMemory}

@@ -270,6 +270,7 @@ export type TapCardSection = {
   surfaceLayout?: "stack" | "row" | "grid" | "free";
   surfaceWidthPercent?: number;
   surfaceMinHeightPx?: number;
+  surfaceExactHeightPx?: number;
   /** Stable free-layout coordinate plane. Growing the Section must not scale its Elements. */
   surfaceCoordinateHeightPx?: number;
   surfaceHeightMode?: "auto" | "fixed";
@@ -281,6 +282,13 @@ export type TapCardSection = {
   surfaceBorderColor?: string;
   surfaceRadiusPx?: number;
   surfaceShadow?: "none" | "soft" | "medium" | "strong";
+  surfaceGlow?: "none" | "soft" | "medium" | "strong";
+  surfaceBackgroundKind?: "transparent" | "solid" | "gradient" | "image" | "pattern" | "texture";
+  surfaceGradientStart?: string;
+  surfaceGradientEnd?: string;
+  surfaceGradientAngle?: number;
+  surfacePattern?: "diagonal" | "dots" | "grid";
+  surfaceTexture?: "paper" | "noise" | "fabric";
   backgroundImageUrl?: string;
   backgroundMediaAssetId?: string;
   backgroundFit?: "cover" | "contain" | "fill";
@@ -397,6 +405,12 @@ export type TapConnectCardConfig = {
   rootBackgroundPosition?: string;
   rootOverlayColor?: string;
   rootOverlayOpacity?: number;
+  /** Owner-scoped Button appearance resources. Action and content are excluded. */
+  buttonStylePresets?: Array<{
+    id: string;
+    name: string;
+    props: Record<string, unknown>;
+  }>;
   /** Card-scoped editable resources. Instances are cloned into canonical compositions. */
   reusableCompositions?: CreativeCompositionBlock[];
   sections: TapCardSection[];
@@ -776,6 +790,14 @@ export function parseTapConnectCard(
       typeof o.rootOverlayOpacity === "number"
         ? Math.max(0, Math.min(1, o.rootOverlayOpacity))
         : 0,
+    buttonStylePresets: Array.isArray(o.buttonStylePresets)
+      ? o.buttonStylePresets.filter((preset): preset is { id: string; name: string; props: Record<string, unknown> } => Boolean(
+          preset && typeof preset === "object" &&
+          typeof (preset as { id?: unknown }).id === "string" &&
+          typeof (preset as { name?: unknown }).name === "string" &&
+          (preset as { props?: unknown }).props && typeof (preset as { props?: unknown }).props === "object"
+        ))
+      : [],
     reusableCompositions: Array.isArray(o.reusableCompositions)
       ? o.reusableCompositions.filter(
           (value): value is CreativeCompositionBlock =>

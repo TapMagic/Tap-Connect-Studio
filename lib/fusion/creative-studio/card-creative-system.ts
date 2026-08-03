@@ -28,8 +28,9 @@ export const ICON_LIBRARY = [
 
 export type MotionPreset =
   | "none" | "subtle_pulse" | "glow_pulse" | "soft_float" | "gentle_bounce"
-  | "shimmer" | "highlight_sweep" | "fade_in" | "slide_in" | "scale_in"
-  | "badge_pop" | "icon_ring" | "neon_flicker" | "slow_rotation";
+  | "wiggle" | "ripple" | "entrance_pop" | "shimmer" | "highlight_sweep" | "shine_sweep"
+  | "fade_in" | "slide_in" | "scale_in" | "badge_pop" | "icon_ring"
+  | "neon_flicker" | "slow_rotation";
 
 export type MotionSettings = {
   preset: MotionPreset;
@@ -40,9 +41,11 @@ export type MotionSettings = {
 };
 
 export const MOTION_PRESETS: ReadonlyArray<{ id: MotionPreset; label: string }> = [
-  { id: "none", label: "None" }, { id: "subtle_pulse", label: "Subtle pulse" },
+  { id: "none", label: "None" }, { id: "subtle_pulse", label: "Pulse" },
   { id: "glow_pulse", label: "Glow pulse" }, { id: "soft_float", label: "Soft float" },
-  { id: "gentle_bounce", label: "Gentle bounce" }, { id: "shimmer", label: "Shimmer" },
+  { id: "gentle_bounce", label: "Bounce" }, { id: "wiggle", label: "Wiggle" },
+  { id: "shimmer", label: "Shimmer" }, { id: "shine_sweep", label: "Shine sweep" },
+  { id: "ripple", label: "Ripple" }, { id: "entrance_pop", label: "Entrance pop" },
   { id: "highlight_sweep", label: "Highlight sweep" }, { id: "fade_in", label: "Fade in" },
   { id: "slide_in", label: "Slide in" }, { id: "scale_in", label: "Scale in" },
   { id: "badge_pop", label: "Badge pop" }, { id: "icon_ring", label: "Icon ring" },

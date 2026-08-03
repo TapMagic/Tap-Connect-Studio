@@ -23,6 +23,11 @@ test("designer button defaults are universal, accessible, and presentation-ready
   assert.equal(directions.showDescription, false);
   assert.ok(Number(directions.touchTargetPx) >= 44);
   assert.match(String(directions.accessibleLabel), /directions/i);
+  assert.equal(directions.buttonSurfaceKind, "solid");
+  assert.equal(directions.cornersLinked, true);
+  assert.equal(directions.contentEditing, false);
+  assert.equal(directions.motionPreset, "none");
+  assert.equal(directions.reducedMotionFallback, "none");
 });
 
 test("Map defaults never create an unexplained empty provider rectangle", () => {

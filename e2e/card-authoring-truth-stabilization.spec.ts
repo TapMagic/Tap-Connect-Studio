@@ -195,7 +195,8 @@ test.describe("Card creative editor authoring-truth stabilization", () => {
       height: (element as HTMLElement).style.height,
     }));
     expect(wrappedGeometry).toEqual(geometryBeforeWrap);
-    await page.getByRole("spinbutton", { name: "Section height" }).fill(String(Math.round(sectionBefore!.height + 160)));
+    await page.getByRole("button", { name: "Height", exact: true }).click();
+    await page.getByRole("spinbutton", { name: "Exact Section height" }).fill(String(Math.round(sectionBefore!.height + 160)));
     await expect.poll(async () => (await selectedSection.boundingBox())?.height ?? 0).toBeGreaterThan(sectionBefore!.height + 100);
     const resizedGeometry = await wrappedLogo.evaluate((element) => ({
       left: (element as HTMLElement).style.left,
@@ -206,9 +207,116 @@ test.describe("Card creative editor authoring-truth stabilization", () => {
     expect(resizedGeometry).toEqual(geometryBeforeWrap);
     await page.screenshot({ path: path.join(evidence, "08-section-resize-preserves-child.png") });
 
-    await page.getByRole("button", { name: "More Section controls" }).click();
+    await page.getByRole("button", { name: "More, Advanced settings" }).click();
     await page.getByTestId("remove-section-keep-elements").click();
     await expect(page.locator(`[data-composition-node="${logoId}"]`)).toBeVisible();
     await expect(page.locator('[data-section-id][data-selected="true"]')).toHaveCount(0);
+  });
+
+  test("keeps ordinary Section and Button editing contextual while persisting composition truth", async ({ page }) => {
+    await page.setViewportSize({ width: 1680, height: 1050 });
+    await page.goto("/dashboard/card/edit", { waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("card-document-name")).toBeEnabled({ timeout: 60_000 });
+    const legacyInspector = page.getByTestId("card-contextual-drawer");
+    await expect(legacyInspector).toHaveCount(0);
+
+    await page.getByTestId("card-creative-tool-build").click();
+    await page.getByTestId("card-creative-context-drawer").getByRole("button", { name: /Location Section/i }).click();
+    await expect(legacyInspector).toHaveCount(0);
+    const selectedSection = page.locator('[data-section-id][data-selected="true"]');
+    await expect(selectedSection).toHaveAttribute("data-surface-kind", "location");
+    const sectionId = await selectedSection.getAttribute("data-section-id");
+    expect(sectionId).toBeTruthy();
+    await expect(page.getByTestId("card-contextual-object-tools")).toHaveAttribute("data-contextual-object", "section");
+
+    const sectionBefore = await selectedSection.boundingBox();
+    expect(sectionBefore).toBeTruthy();
+    const bottomHandle = page.getByTestId(`section-resize-handle-${sectionId}`);
+    await bottomHandle.scrollIntoViewIfNeeded();
+    const handleBox = await bottomHandle.boundingBox();
+    expect(handleBox).toBeTruthy();
+    await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(handleBox!.x + handleBox!.width / 2, handleBox!.y + handleBox!.height / 2 + 120, { steps: 6 });
+    await page.mouse.up();
+    await expect.poll(async () => (await selectedSection.boundingBox())?.height ?? 0).toBeGreaterThan(sectionBefore!.height + 80);
+
+    const otherSectionBackgrounds = await page.locator(`[data-section-id]:not([data-section-id="${sectionId}"])`).evaluateAll((elements) => elements.map((element) => ({ id: (element as HTMLElement).dataset.sectionId, background: (element as HTMLElement).style.backgroundImage })));
+    await page.getByTestId("card-contextual-object-tools").getByRole("button", { name: "Background" }).click();
+    await expect(page.getByTestId("contextual-section-surface-drawer")).toBeVisible();
+    await expect(legacyInspector).toHaveCount(0);
+    await page.getByTestId("section-surface-controls").getByRole("button", { name: "gradient", exact: true }).click();
+    await page.getByLabel("Section gradient start").fill("#112244");
+    await page.getByLabel("Section gradient end").fill("#44aa88");
+    await expect(selectedSection).toHaveCSS("background-image", /linear-gradient/);
+    const otherSectionBackgroundsAfter = await page.locator(`[data-section-id]:not([data-section-id="${sectionId}"])`).evaluateAll((elements) => elements.map((element) => ({ id: (element as HTMLElement).dataset.sectionId, background: (element as HTMLElement).style.backgroundImage })));
+    expect(otherSectionBackgroundsAfter).toEqual(otherSectionBackgrounds);
+    await page.screenshot({ path: path.join(evidence, "09-location-section-contextual-gradient.png") });
+
+    await page.getByTestId("card-creative-tool-elements").click();
+    await page.getByTestId("card-elements-library").getByRole("button", { name: /^Button/i }).click();
+    await expect(legacyInspector).toHaveCount(0);
+    const selectedButton = page.locator('[data-composition-node][data-primitive="button"][data-selected="true"]');
+    await expect(selectedButton).toBeVisible();
+    const buttonId = await selectedButton.getAttribute("data-composition-node");
+    expect(buttonId).toBeTruthy();
+
+    await page.getByTestId("contextual-button-surface").click();
+    const surfaceControls = page.getByTestId("button-surface-controls");
+    await page.getByLabel("Button fill").fill("#2244aa");
+    await surfaceControls.getByTestId("button-shape-square").click();
+    await surfaceControls.getByTestId("button-shape-rounded-rectangle").click();
+    await surfaceControls.getByTestId("button-shape-pill").click();
+    await page.getByLabel("Button corner radius").fill("27");
+    await page.getByLabel("Button border width").fill("3");
+    await page.getByLabel("Button border color").fill("#fef08a");
+    await page.getByLabel("Button shadow").fill("22");
+    await page.getByRole("slider", { name: "Button glow", exact: true }).fill("18");
+    await surfaceControls.getByText("High-gloss shine").getByRole("checkbox").check();
+    const renderedSurface = selectedButton.locator('[data-button-surface-kind]');
+    await expect(renderedSurface).toHaveAttribute("data-button-radius", "27");
+    await expect(renderedSurface).toHaveAttribute("data-button-high-gloss", "true");
+
+    await page.getByTestId("contextual-button-content").click();
+    await expect(page.getByTestId("button-content-controls")).toBeVisible();
+    await selectedButton.dblclick();
+    const inlineLabel = page.getByTestId(`composition-inline-text-${buttonId}`);
+    await expect(inlineLabel).toHaveAttribute("data-inline-editing", "true");
+    await inlineLabel.fill("Claim Friday Deal");
+    await inlineLabel.blur();
+    await page.getByLabel("Button label font size").fill("19");
+    await page.getByLabel("Button label color").fill("#ffffff");
+    await page.getByLabel("Button label X").fill("8");
+    await page.getByLabel("Button label Y").fill("-3");
+    await page.getByLabel("Button icon", { exact: true }).selectOption("phone");
+    await page.getByLabel("Button icon to text spacing", { exact: true }).fill("12");
+    await page.getByTestId("contextual-button-content").click();
+    await expect(page.getByTestId("button-content-controls")).toHaveCount(0);
+
+    await page.getByTestId("contextual-button-motion").click();
+    const motionControls = page.getByTestId("button-motion-controls");
+    await motionControls.getByRole("button", { name: "Bounce", exact: true }).click();
+    await motionControls.getByRole("button", { name: "Preview motion", exact: true }).click();
+    const motionWrapper = selectedButton.locator('[data-motion-preset="gentle_bounce"]');
+    await expect(motionWrapper).toHaveAttribute("data-motion-active", "true");
+    await motionControls.getByRole("button", { name: "Pulse", exact: true }).click();
+    await page.mouse.move(1500, 900);
+    await expect(motionControls.getByRole("button", { name: "Pulse", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await expect(selectedButton.locator('[data-motion-preset="subtle_pulse"]')).toHaveAttribute("data-motion-active", "true");
+    await page.getByLabel("Button reduced motion fallback").selectOption("static_glow");
+    await motionControls.getByText("Simulate reduced motion").getByRole("checkbox").check();
+    await expect(selectedButton.locator('[data-motion-preset="subtle_pulse"]')).toHaveAttribute("data-motion-active", "false");
+    await expect(selectedButton.locator('[data-motion-preset="subtle_pulse"]')).toHaveAttribute("data-reduced-motion-fallback", "static_glow");
+    await page.screenshot({ path: path.join(evidence, "10-button-contextual-composition-motion.png") });
+
+    await page.getByTestId("card-save").first().click();
+    await expect(page.getByTestId("studio-save-state").first()).toHaveAttribute("data-saved", "true", { timeout: 45_000 });
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("card-document-name")).toBeEnabled({ timeout: 60_000 });
+    await expect(legacyInspector).toHaveCount(0);
+    const persistedButton = page.locator(`[data-composition-node="${buttonId}"]`);
+    await expect(persistedButton).toContainText("Claim Friday Deal");
+    await expect(persistedButton.locator('[data-button-radius="27"]')).toHaveAttribute("data-button-high-gloss", "true");
+    await expect(persistedButton.locator('[data-motion-preset="subtle_pulse"]')).toHaveAttribute("data-reduced-motion-fallback", "static_glow");
   });
 });

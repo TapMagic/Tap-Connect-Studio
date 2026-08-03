@@ -2,6 +2,8 @@
 
 Required starting SHA: `ebae54c625e64a5ac2b6801aec75cadca04b9434`
 
+Contextual-authoring addendum starting SHA: `52d663d8ed92594bfeb7afe2c83ddfcdf558ffb5`
+
 This audit treats the earlier Canva references as interaction evidence (dominant pasteboard, narrow rail, one focused drawer, compact contextual controls, direct manipulation, zoom/pan, and off-canvas work area) and the attached TapConnect captures as defect evidence. TapConnect retains its own visual language and immutable draft/publication lifecycle.
 
 ## Canonical path
@@ -16,13 +18,14 @@ The selected-object contract is one tuple: active document ID, container ID (`nu
 | --- | --- | --- | --- | --- |
 | Canvas inline text — **MISWIRED** | `Chad Test` becomes `tseT dahC`/`dahC`; curved content inherits the damaged value. | selected node → `contentEditable.onInput` → parent config replacement on every key → autosave → composition renderer | Keep an uncontrolled DOM draft while editing; commit natural-order text on blur/debounce; never reverse data; preserve node identity/caret. | Natural-order Latin, punctuation, multiline, emoji; caret survives save; reload/clone/copy/Preview parity. |
 | Curved text — **PARTIAL** | Natural order is unreliable and bounds are much larger than glyph arc. | same node text plus SVG `textPath`; generic rectangular transform | Same logical content as ordinary text; deterministic forward paths; tighter default geometry; radius/arc/rotation controls through the canonical node mutation. | `Friday Night`, curve controls, rotation, tight bounds, reload/Preview. |
-| Contextual toolbar — **PARTIAL** | Useful compact controls exist, but Content is absent and Section selection falls back to Advanced. | external live-model snapshot → direct block replacement | Route every action through named canonical node/Section mutation functions; add Content and Section controls; keep drawer state local only. | Toolbar/Advanced immediate parity; same visible and saved node ID. |
-| Advanced Inspector — **LEGACY / RECONNECT** | Opens as a large separate system and Section controls require it. | same config in most cases, but independently assembled patch helpers and permanent dock sizing | Closed by default; deliberate Advanced action only; same selected-object mutation API; safe bounded width; no stale field state. | Close/reopen values; selection retained; canvas width reclaimed. |
+| Contextual toolbar — **CANONICAL** | Ordinary Section and Button editing previously depended on the large Inspector. | selected object → focused contextual drawer → canonical Section/node patch → history/autosave → shared renderer | The selected object owns the compact toolbar and focused drawer. Section Background/Size/Layout/Position and Button Surface/Contents/Action/Motion/Styles/Position are all available without leaving the canvas. | Add Location Section, resize directly, apply a Section gradient, compose a Button, preview motion, reload, and verify the same IDs and rendered state. |
+| Advanced settings — **OPTIONAL / CANONICAL** | The former Inspector competed with the contextual editor for ordinary tasks. | explicit `More` → Advanced settings → same canonical patch functions | Closed by default and never automatic. It is an optional expert surface reached only through `More → Advanced settings`; ordinary Section and Button completion does not require it. | Full addendum path completes while Advanced settings remains absent. |
 | Glyph effects — **MISWIRED** | Metallic/gradient effects paint the entire rectangular text box. | preset writes `gradientFill`; renderer applies CSS background clip to wrapper while glyph is a child | Normalize one glyph-effect preset patch, clear incompatible glyph fields, apply gradient/clip to glyph span only; wrapper remains transparent. | Neon → Gold → Chrome → None; transparent wrapper in Edit/Preview/reload. |
 | Text-box appearance — **PARTIAL** | Glyph color/effect and box background are conflated. | loose `props` keys | Explicit `boxFill`, `boxGradient`, border/radius/padding/shadow fields under More/Advanced only. | Glyph changes never mutate box fields; box changes are explicit. |
 | Autosave — **PARTIAL** | Captures show bright duplicated status rows and perceived flicker/remount risk. | local history → dirty → recovery journal → 1400 ms PUT → acknowledgement; publication actions alone call `router.refresh()` | Keep ordinary save route-stable; quiet fixed-size top-bar status only; server acknowledgement updates revision metadata without replacing config identity. | Persistent shell/pasteboard/Card/node/drawer/tab IDs before/after typing, move, resize, effect, background. |
 | Transform handles — **PARTIAL** | Rotation is hard to discover; logo ratio protection is unclear; generic corner behavior is shared. | canvas draft nodes → one settled block commit | Visible rotation handle and numeric reset/snap; text corner scales font, side reflows; media corner locks ratio by default with explicit unlock/reset. | Corner/side/rotate tests and save/clone/Preview parity. |
-| Wrapped Section — **PARTIAL** | Section only becomes practical through the large Inspector and resizes unnaturally. | selected Section → `patchSection`; child composition is embedded | Contextual Section size/layout/background actions call `patchSection`; free-mode Section bounds change without rewriting child nodes. | Wrap logo; resize Section; compare child coordinates/size; fit/remove keep Elements. |
+| Wrapped Section — **CANONICAL** | Section formerly became practical only through the large Inspector and resized unnaturally. | selected Section → contextual mutation → `patchSection`; child composition is embedded | Contextual size/layout/background/position controls and direct top/bottom resize update the Section while preserving child nodes. | Add Location Section; direct bottom resize; selected-only gradient; reload persistence. |
+| Button composition — **CANONICAL** | A Button previously behaved like one opaque action row and exposed too little creative control without the Inspector. | selected Button → contextual surface/content/action/motion/style patch → canonical composition → autosave/shared renderer | Model a Button as surface + editable content + action + optional motion. Style copy/presets exclude destination, tracking, accessibility, and content identity. | Surface fill/gradient/image/pattern/texture, shapes and corners, border/shadow/glow/gloss, inline label/icon, separate action, Bounce/Pulse preview, reduced-motion fallback, reload. |
 | Background library — **MISWIRED / PARTIAL** | Selection can report success while the visible surface remains plain. | some controls write root legacy fields; composition renderer reads `rootComposition.background`; Section legacy fields use another renderer path | One canonical background object per Card/Section composition; adapters update both only at legacy boundary; visual state reflects the rendered field. | Library resource → document value → computed Edit/Preview/reload/clone style. |
 | Color drawer — **PARTIAL** | Oversized bubbles consume the drawer and do not distinguish glyph/surface/box roles. | contextual hard-coded colors or broad Appearance controls | Compact swatches grouped by current/recent/document/Brand/solid/gradient; role label; exact picker under Advanced. | One-click selection, retained drawer/scroll, selected state, correct property. |
 | Font drawer — **CANONICAL / PARTIAL UX** | 70+ previewable fonts exist but are presented as an ungrouped grid. | contextual font catalog → node `fontFamily` → font loader → renderer | Retain canonical path; add compact category/source grouping and selected/loading state. | Selection survives autosave/reload/clone/copy/Preview. |
@@ -54,6 +57,12 @@ Browser evidence is recorded under `tmp/card-authoring-truth-stabilization/`, `t
 - Wrapping moves the existing canonical node into a free-layout Section without rewriting its coordinates or dimensions. Section height uses Section state and does not mutate child geometry; remove-keep-elements returns the same node to the Card root.
 - Card root backgrounds now write the composition background consumed by the renderer for solid, gradient, pattern/texture, and image choices. The image choice uses the same governed media picker plus a visible Brand-image shortcut.
 
+## Contextual-authoring addendum
+
+The governing interaction law is now: contextual editing owns ordinary work; Advanced settings is optional. Selecting a Section or Button never opens a competing dock. The toolbar opens one focused drawer at a time, and `More → Advanced settings` is the only route to the expert surface.
+
+A Button is persisted and rendered as four separable concerns: its surface, editable internal content, functional action, and optional motion. Surface/style operations do not overwrite the label, icon, destination, accessibility label, or tracking metadata. Motion preview is view-only, supports restart, and exposes an explicit reduced-motion fallback and simulator.
+
 ## Executed acceptance matrix
 
 | Area | Automated visible proof | Outcome |
@@ -64,6 +73,8 @@ Browser evidence is recorded under `tmp/card-authoring-truth-stabilization/`, `t
 | Text transform | Corner increases font size; side changes box without changing font size; explicit stretch controls available in Advanced | Pass |
 | Image transform | Default ratio-locked corner resize, unlocked side stretch, visible rotation handle, numeric rotate/reset | Pass |
 | Section wrap | Visible Brand logo → Wrap blank → direct Section selection → height resize → unchanged child style geometry → remove Section, keep Element | Pass |
+| Contextual Section authoring | Visible Location Section placement without Advanced settings, direct bottom-edge resize, selected-only gradient, and reload persistence | Pass |
+| Contextual Button composition | Visible Button placement without Advanced settings; surface, corners, border, shadow, glow, gloss, internal label/icon, separate action, Bounce/Pulse preview, reduced-motion fallback, and reload persistence | Pass |
 | Backgrounds | Solid, gradient, pattern, and Brand image render immediately; image survives save/reload; Preview uses the same renderer | Pass |
 | Clone / tabs / exit | Two visible clones, independent rename, cross-tab copy/paste, distinguishable accessible document controls, force-save exit confirmation, return to Operations | Pass |
 | Preview | Phone 390, Tablet 768, Desktop 1280: centered within 3px, no horizontal overflow or clipping, no Edit chrome | Pass |
@@ -73,15 +84,15 @@ Human verification remains required for subjective feel: caret placement at arbi
 
 ## Verification record
 
-- Authoring-truth Playwright: 2 passed.
+- Authoring-truth Playwright: 3 passed, including the 25-step contextual Section/Button addendum path.
 - Full-screen Edit Mode: 4 passed, including 390px, tablet, recovery/save-failure, exit, and serious/critical axe gates.
 - Creative reconciliation Playwright: 1 passed, including serious/critical axe gate.
-- Focused model/store tests: 14 passed.
-- Full repository suite on isolated PostgreSQL: 949 passed, 0 failed, 0 cancelled.
+- Focused model/store tests: 15 passed.
+- Full repository suite on isolated PostgreSQL: 950 passed, 0 failed, 0 cancelled.
 - TypeScript and changed-file ESLint: passed.
 - Prisma format, validate, and generate: passed.
 - Isolated database: 22 migrations, no pending migrations, status current, no schema drift.
-- Next.js 16.2.10 production Webpack build: passed; 89 static pages generated and dynamic route collection completed.
+- Next.js 16.2.10 production Turbopack build: passed; 89 static pages generated and dynamic route collection completed.
 - Credential-pattern scan of the patch: no matches.
 - `git diff --check`: passed.
 

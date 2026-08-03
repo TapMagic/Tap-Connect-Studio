@@ -1158,13 +1158,37 @@ export function TapConnectCard({
           : undefined;
     const padding = section.surfacePaddingPx ?? 24;
     const minHeight = section.surfaceMinHeightPx ?? 260;
+    const exactHeight = section.surfaceExactHeightPx ?? minHeight;
     const coordinateHeight = section.surfaceCoordinateHeightPx ?? Math.max(80, minHeight - padding * 2);
+    const backgroundKind = section.surfaceBackgroundKind || (image ? "image" : section.backgroundColor === "transparent" ? "transparent" : "solid");
+    const surfaceBackgroundImage = backgroundKind === "image" && image
+      ? `linear-gradient(${overlay}${overlayAlpha}, ${overlay}${overlayAlpha}), url("${image.replaceAll('"', "%22")}")`
+      : backgroundKind === "gradient"
+        ? `linear-gradient(${section.surfaceGradientAngle ?? 145}deg, ${section.surfaceGradientStart || section.backgroundColor || "#171b24"}, ${section.surfaceGradientEnd || "#0b0f19"})`
+        : backgroundKind === "pattern"
+          ? section.surfacePattern === "dots"
+            ? `radial-gradient(circle, ${section.surfaceBorderColor || "#ffffff33"} 1.5px, transparent 1.5px)`
+            : section.surfacePattern === "grid"
+              ? `linear-gradient(${section.surfaceBorderColor || "#ffffff22"} 1px, transparent 1px), linear-gradient(90deg, ${section.surfaceBorderColor || "#ffffff22"} 1px, transparent 1px)`
+              : `repeating-linear-gradient(135deg, ${section.backgroundColor || "#171b24"} 0 12px, ${section.surfaceGradientEnd || "#0b0f19"} 12px 24px)`
+          : backgroundKind === "texture"
+            ? section.surfaceTexture === "fabric"
+              ? `repeating-linear-gradient(0deg, #ffffff08 0 1px, transparent 1px 4px), repeating-linear-gradient(90deg, #ffffff06 0 1px, transparent 1px 5px)`
+              : section.surfaceTexture === "paper"
+                ? `radial-gradient(circle at 20% 30%, #ffffff10 0 1px, transparent 2px), radial-gradient(circle at 70% 60%, #00000018 0 1px, transparent 2px)`
+                : `repeating-radial-gradient(circle at 30% 40%, #ffffff08 0 1px, transparent 1px 3px)`
+            : undefined;
+    const glow = section.surfaceGlow === "strong" ? `0 0 34px ${section.surfaceBorderColor || "#b8ff2c"}` : section.surfaceGlow === "medium" ? `0 0 22px ${section.surfaceBorderColor || "#b8ff2c"}` : section.surfaceGlow === "soft" ? `0 0 12px ${section.surfaceBorderColor || "#b8ff2c"}` : undefined;
+    const renderedBackgroundImage = (section.overlayOpacity ?? 0) > 0 && backgroundKind !== "image"
+      ? [`linear-gradient(${overlay}${overlayAlpha}, ${overlay}${overlayAlpha})`, surfaceBackgroundImage].filter(Boolean).join(", ")
+      : surfaceBackgroundImage;
     const beginSectionResize = (event: PointerEvent<HTMLButtonElement>, edge: "top" | "bottom" = "bottom") => {
       if (!editSelects || section.locked) return;
       event.preventDefault();
       event.stopPropagation();
+      event.currentTarget.setPointerCapture?.(event.pointerId);
       const startY = event.clientY;
-      const startHeight = minHeight;
+      const startHeight = section.surfaceHeightMode === "fixed" ? exactHeight : minHeight;
       const move = (moveEvent: globalThis.PointerEvent) => {
         const delta = moveEvent.clientY - startY;
         onSectionResize?.(section.id, Math.max(32, Math.min(2400, Math.round(startHeight + (edge === "bottom" ? delta : -delta)))));
@@ -1206,22 +1230,24 @@ export function TapConnectCard({
         style={{
           width: `${section.surfaceWidthPercent ?? 100}%`,
           minHeight,
+          height: section.surfaceHeightMode === "fixed" ? exactHeight : undefined,
           padding,
-          backgroundColor: section.backgroundColor || "transparent",
-          backgroundImage: image ? `linear-gradient(${overlay}${overlayAlpha}, ${overlay}${overlayAlpha}), url("${image.replaceAll('"', "%22")}")` : undefined,
-          backgroundSize: section.backgroundFit || "cover",
+          backgroundColor: backgroundKind === "transparent" ? "transparent" : section.backgroundColor || "transparent",
+          backgroundImage: renderedBackgroundImage,
+          backgroundRepeat: backgroundKind === "pattern" || backgroundKind === "texture" ? "repeat" : undefined,
+          backgroundSize: backgroundKind === "pattern" ? "24px 24px" : backgroundKind === "texture" ? "8px 8px" : section.backgroundFit || "cover",
           backgroundPosition: section.backgroundPosition || "50% 50%",
           border: `${section.surfaceBorderWidthPx ?? 0}px solid ${section.surfaceBorderColor || "transparent"}`,
           borderRadius: section.surfaceRadiusPx ?? 18,
-          boxShadow: shadow,
+          boxShadow: [shadow, glow].filter(Boolean).join(", ") || undefined,
           opacity: (section.opacity ?? 100) / 100,
         }}
         {...sectionDomProps(section.id, selectedSectionId)}
         data-surface-kind={section.surfaceKind || "blank"}
         data-surface-layout={section.surfaceLayout || "stack"}
-        draggable={editSelects && !section.locked}
+        draggable={editSelects && !section.locked && selectedSectionId !== section.id}
         onDragStart={(event) => {
-          if (event.target !== event.currentTarget) return;
+          if (event.target !== event.currentTarget) { event.preventDefault(); return; }
           event.dataTransfer.effectAllowed = "move";
           event.dataTransfer.setData("application/x-tap-card-section", section.id);
           setSectionDragId(section.id);
@@ -1319,9 +1345,9 @@ export function TapConnectCard({
           onChangeBlock={(next, label) => onCompositionChange?.(section.id, next, label)}
           onEditNodeText={(nodeId, value) => {
             const nodes = block.nodes.map((node) => node.id === nodeId
-              ? { ...node, props: { ...node.props, text: value } }
+              ? { ...node, props: { ...node.props, [node.primitive === "button" ? "label" : "text"]: value } }
               : node);
-            onCompositionChange?.(section.id, { ...block, nodes }, "Edited text on canvas");
+            onCompositionChange?.(section.id, { ...block, nodes }, nodeId && block.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited text on canvas");
           }}
           containerActions={{
             current: "section",
@@ -1334,17 +1360,20 @@ export function TapConnectCard({
         {editSelects && selectedSectionId === section.id ? <>
           <button
             type="button"
-            className="absolute -top-1 left-2 z-20 h-6 w-14 cursor-ns-resize rounded bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-10 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white/90"
+            className="absolute left-2 top-0 z-[1100] h-6 w-14 cursor-ns-resize rounded bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-10 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white/90"
             aria-label="Resize Section from top edge"
             data-testid={`section-resize-top-handle-${section.id}`}
             onPointerDown={(event) => beginSectionResize(event, "top")}
+            onDragStart={(event) => event.preventDefault()}
           />
           <button
             type="button"
-            className="absolute -bottom-1 left-1/2 z-20 h-6 w-20 -translate-x-1/2 cursor-ns-resize rounded bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-10 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white/90"
+            draggable={false}
+            className="absolute bottom-0 left-1/2 z-[1100] h-6 w-20 -translate-x-1/2 cursor-ns-resize rounded bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-10 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white/90"
             aria-label="Resize Section height"
             data-testid={`section-resize-handle-${section.id}`}
             onPointerDown={(event) => beginSectionResize(event, "bottom")}
+            onDragStart={(event) => event.preventDefault()}
           />
         </> : null}
       </section>
@@ -1700,9 +1729,9 @@ export function TapConnectCard({
                 onCompositionChange?.(null, {
                   ...root,
                   nodes: root.nodes.map((node) => node.id === nodeId
-                    ? { ...node, props: { ...node.props, text: value } }
+                    ? { ...node, props: { ...node.props, [node.primitive === "button" ? "label" : "text"]: value } }
                     : node),
-                }, "Edited root text on canvas");
+                }, root.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited root text on canvas");
               }}
               containerActions={{
                 current: "card",

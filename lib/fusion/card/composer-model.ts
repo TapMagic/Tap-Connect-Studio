@@ -103,6 +103,7 @@ export function createCardSurface(kind: CardSurfaceKind, order: number): TapCard
     surfaceLayout: kind === "actions" ? "row" : "stack",
     surfaceWidthPercent: 100,
     surfaceMinHeightPx: defaults.minHeight,
+    surfaceExactHeightPx: defaults.minHeight,
     surfaceCoordinateHeightPx: defaults.minHeight - 48,
     surfaceHeightMode: "fixed",
     surfacePaddingPx: kind === "blank" ? 4 : 24,
@@ -113,6 +114,13 @@ export function createCardSurface(kind: CardSurfaceKind, order: number): TapCard
     surfaceBorderColor: "#ffffff33",
     surfaceRadiusPx: kind === "blank" ? 0 : 18,
     surfaceShadow: "none",
+    surfaceGlow: "none",
+    surfaceBackgroundKind: kind === "blank" ? "transparent" : "solid",
+    surfaceGradientStart: kind === "hero" ? "#111827" : "#171b24",
+    surfaceGradientEnd: "#0b0f19",
+    surfaceGradientAngle: 145,
+    surfacePattern: "diagonal",
+    surfaceTexture: "noise",
     backgroundColor: kind === "blank" ? "transparent" : kind === "hero" ? "#111827" : "#171b24",
     opacity: 100,
     overlayColor: "#000000",
@@ -136,6 +144,7 @@ export function resizeCardSurface(
   return {
     ...section,
     surfaceMinHeightPx: Math.max(32, Math.min(2400, Math.round(heightPx))),
+    surfaceExactHeightPx: Math.max(32, Math.min(2400, Math.round(heightPx))),
     surfaceHeightMode: "fixed",
   };
 }

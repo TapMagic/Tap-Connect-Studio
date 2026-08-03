@@ -106,6 +106,8 @@ function MotionVisual({ node, active, children }: { node: CreativeCompositionNod
       className={cn("h-full w-full", enabled && "tc-card-motion")}
       data-motion-preset={preset}
       data-motion-active={enabled ? "true" : "false"}
+      data-motion-intensity={String(num(node.props.motionIntensity, 50))}
+      data-reduced-motion-fallback={str(node.props.reducedMotionFallback, "none")}
       style={enabled ? {
         animationName: `tc-motion-${preset.replaceAll("_", "-")}`,
         animationDuration: `${Math.max(.4, num(node.props.motionSpeedSeconds, 2.4))}s`,
@@ -825,25 +827,68 @@ function NodeVisual({
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
-    const radius = presentation === "rectangle" ? 0 : presentation === "square" ? num(node.props.radius, 6) : (circle || presentation === "pill") ? 999 : num(node.props.radius, 14);
+    const linkedRadius = presentation === "rectangle" ? 0 : presentation === "square" ? num(node.props.radius, 0) : (circle || presentation === "pill") ? 999 : num(node.props.radius, 14);
+    const radius = node.props.cornersLinked === false && presentation === "custom"
+      ? `${num(node.props.radiusTopLeft, linkedRadius)}px ${num(node.props.radiusTopRight, linkedRadius)}px ${num(node.props.radiusBottomRight, linkedRadius)}px ${num(node.props.radiusBottomLeft, linkedRadius)}px`
+      : linkedRadius;
+    const surfaceKind = str(node.props.buttonSurfaceKind, "solid");
+    const surfaceBackground = surfaceKind === "transparent"
+      ? "transparent"
+      : surfaceKind === "gradient"
+        ? `linear-gradient(${num(node.props.gradientAngle, 120)}deg, ${str(node.props.gradientStart, "#22c55e")}, ${str(node.props.gradientEnd, "#a3e635")})`
+        : surfaceKind === "image" && str(node.props.backgroundImageUrl)
+          ? `url("${str(node.props.backgroundImageUrl).replaceAll('"', "%22")}") center / cover no-repeat`
+          : surfaceKind === "pattern"
+            ? `repeating-linear-gradient(135deg, ${str(node.props.fill, "#22c55e")} 0 10px, ${str(node.props.gradientEnd, "#a3e635")} 10px 20px)`
+            : surfaceKind === "texture"
+              ? `radial-gradient(circle at 25% 25%, #ffffff28 0 1px, transparent 2px), ${str(node.props.fill, "#22c55e")}`
+              : str(node.props.fill, "#22c55e");
+    const shadowParts = [
+      num(node.props.boxShadow, 0) ? `0 8px ${num(node.props.boxShadow, 18)}px rgba(0,0,0,.4)` : "",
+      num(node.props.boxGlow, 0) ? `0 0 ${num(node.props.boxGlow, 18)}px ${str(node.props.glowColor, "#b8ff2c")}` : "",
+    ].filter(Boolean).join(", ") || undefined;
+    const labelStyle: CSSProperties = {
+      color: str(node.props.labelColor, str(node.props.textColor, "#0b0f19")),
+      fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
+      fontSize: num(node.props.fontSize, 14),
+      fontWeight: num(node.props.fontWeight, 600),
+      letterSpacing: `${num(node.props.letterSpacingEm, 0)}em`,
+      textTransform: str(node.props.textTransform, "none") as CSSProperties["textTransform"],
+      transform: `translate(${num(node.props.labelOffsetX, 0)}px, ${num(node.props.labelOffsetY, 0)}px)`,
+      textAlign: str(node.props.textAlign, "center") as CSSProperties["textAlign"],
+      background: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
+      backgroundClip: node.props.gradientFill ? "text" : undefined,
+      WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
+      WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
+      textShadow: num(node.props.glow, 0) ? `0 0 ${num(node.props.glow, 12)}px ${str(node.props.glowColor, "currentColor")}` : num(node.props.shadow, 0) ? `0 3px ${num(node.props.shadow, 12)}px rgba(0,0,0,.45)` : undefined,
+    };
     const surface = (
       <span
-        className="inline-flex shrink-0 items-center justify-center gap-2"
+        className="relative inline-flex shrink-0 items-center justify-center overflow-hidden"
         style={{
           width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           minHeight: 44,
-          background: str(node.props.gradientFill, str(node.props.fill, "#22c55e")),
+          background: surfaceBackground,
+          backgroundSize: surfaceKind === "texture" ? "8px 8px" : undefined,
           color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
           borderRadius: radius,
           borderWidth: num(node.props.borderWidth, 0),
           borderStyle: "solid",
           borderColor: str(node.props.borderColor, "transparent"),
-          boxShadow: num(node.props.shadow, 0) ? `0 8px ${num(node.props.shadow, 18)}px rgba(0,0,0,.35)` : undefined,
+          boxShadow: shadowParts,
+          opacity: num(node.props.surfaceOpacity, 1),
+          padding: num(node.props.padding, 8),
+          gap: num(node.props.spacing, 6),
         }}
+        data-button-surface-kind={surfaceKind}
+        data-button-radius={String(linkedRadius)}
+        data-button-high-gloss={node.props.shine === true ? "true" : "false"}
       >
-        <ElementIcon name={icon} size={num(node.props.iconSize, 20)} />
-        {!labelBelow && showLabel ? <span>{str(node.props.label, "Button")}</span> : null}
+        {node.props.shine === true ? <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent" aria-hidden data-testid={`button-shine-${node.id}`} /> : null}
+        {str(node.props.iconPosition, "before") === "before" ? <span style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
+        {!labelBelow && showLabel ? (node.props.contentEditing === true ? <InlineEditableText nodeId={node.id} value={str(node.props.label, "Button")} editing={Boolean(editMode && textEditing)} style={labelStyle} onCommit={onEditText} onFinish={onFinishTextEdit} /> : <span style={labelStyle}>{str(node.props.label, "Button")}</span>) : null}
+        {str(node.props.iconPosition, "before") === "after" ? <span style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
       </span>
     );
     return (
@@ -859,7 +904,7 @@ function NodeVisual({
           fontWeight: num(node.props.fontWeight, 600),
           letterSpacing: `${num(node.props.letterSpacingEm, 0)}em`,
           textTransform: str(node.props.textTransform, "none") as CSSProperties["textTransform"],
-          padding: labelBelow ? 2 : num(node.props.padding, 8),
+          padding: labelBelow ? 2 : 0,
           opacity: num(node.props.opacity, 1),
           gap: num(node.props.spacing, 6),
         }}
@@ -868,7 +913,7 @@ function NodeVisual({
         data-button-presentation={presentation}
       >
         {surface}
-        {labelBelow && showLabel ? <strong className="block" style={{ color: str(node.props.labelColor, str(node.props.textColor, "#f8fafc")) }}>{str(node.props.label, "Button")}</strong> : null}
+        {labelBelow && showLabel ? <strong className="block" style={labelStyle}>{str(node.props.label, "Button")}</strong> : null}
         {showDescription && str(node.props.description) ? <span className="block leading-snug" style={{ color: str(node.props.descriptionColor, "#cbd5e1"), fontSize: num(node.props.descriptionSize, 11) }}>{str(node.props.description)}</span> : null}
       </a>
     );
@@ -981,7 +1026,7 @@ export function CreativeCompositionCanvas({
       }
       if (e.key === "Enter" && selectedNodeIds.length === 1) {
         const selectedNode = block.nodes.find((node) => node.id === selectedNodeIds[0]);
-        if (selectedNode?.primitive === "text" && str(selectedNode.props.textCurve, "none") === "none") {
+        if ((selectedNode?.primitive === "text" && str(selectedNode.props.textCurve, "none") === "none") || (selectedNode?.primitive === "button" && selectedNode.props.contentEditing === true)) {
           e.preventDefault();
           setEditingNodeId(selectedNode.id);
           return;
@@ -1357,6 +1402,13 @@ export function CreativeCompositionCanvas({
               e.stopPropagation();
               onSelectNodes?.([node.id]);
             }}
+            onDoubleClick={(event) => {
+              if (!editMode || !((node.primitive === "text" && str(node.props.textCurve, "none") === "none") || (node.primitive === "button" && node.props.contentEditing === true))) return;
+              event.preventDefault();
+              event.stopPropagation();
+              onSelectNodes?.([node.id]);
+              setEditingNodeId(node.id);
+            }}
             onPointerDown={(event) => {
               if (!editMode) return;
               event.stopPropagation();
@@ -1384,7 +1436,7 @@ export function CreativeCompositionCanvas({
               commitNodes(current.map((candidate, index) => ({ ...candidate, zIndex: index + 1 })), "Reordered Elements");
             }}
           >
-            <MotionVisual node={node} active={!editMode || previewMotion}>
+            <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
               <NodeVisual
                 node={node}
                 editMode={editMode}
@@ -1528,7 +1580,7 @@ export function CreativeCompositionCanvas({
             data-anchor={node.anchor || "top-left"}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
             onDoubleClick={(event) => {
-              if (!editMode || node.primitive !== "text" || str(node.props.textCurve, "none") !== "none") return;
+              if (!editMode || !((node.primitive === "text" && str(node.props.textCurve, "none") === "none") || (node.primitive === "button" && node.props.contentEditing === true))) return;
               event.preventDefault();
               event.stopPropagation();
               onSelectNodes?.([node.id]);
@@ -1594,7 +1646,7 @@ export function CreativeCompositionCanvas({
             tabIndex={editMode ? 0 : undefined}
             aria-label={`${node.primitive}${node.locked ? " locked" : ""}`}
           >
-            <MotionVisual node={node} active={!editMode || previewMotion}>
+            <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
               <NodeVisual
                 node={node}
                 editMode={editMode}

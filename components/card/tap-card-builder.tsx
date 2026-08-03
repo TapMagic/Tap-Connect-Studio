@@ -1066,7 +1066,6 @@ export function TapCardBuilder({
     });
     setSections([...sorted, block]);
     setSelectedId(block.id);
-    onRequestTool?.("content");
   }
 
   function addComposerSurface(kind: CardSurfaceKind) {
@@ -1074,7 +1073,6 @@ export function TapCardBuilder({
     setSections([...sorted, surface], true, `Added ${surface.label}`);
     setSelectedId(surface.id);
     setSelectedCompositionNodeIds([]);
-    onRequestTool?.("content");
   }
 
   function addComposerElement(kind: CardElementKind, targetSectionId?: string, initialProps?: Record<string, unknown>) {
@@ -1600,7 +1598,6 @@ export function TapCardBuilder({
                     dropTarget={Boolean(dragId && dragOverId === section.id && dragId !== section.id)}
                     onSelect={() => {
                       setSelectedId(section.id);
-                      onRequestTool?.("content");
                     }}
                     onDragStart={() => setDragId(section.id)}
                     onDragOver={(event) => {
@@ -2952,7 +2949,7 @@ export function TapCardBuilder({
                       : undefined
                   }
                   onSectionReorder={interactionMode === "edit" ? reorder : undefined}
-                  onSectionResize={interactionMode === "edit" ? (sectionId, heightPx) => patchSection(sectionId, { surfaceMinHeightPx: heightPx, surfaceHeightMode: "fixed" }, "Resized Section height") : undefined}
+                  onSectionResize={interactionMode === "edit" ? (sectionId, heightPx) => patchSection(sectionId, { surfaceMinHeightPx: heightPx, surfaceExactHeightPx: heightPx, surfaceHeightMode: "fixed" }, "Resized Section height") : undefined}
                   onElementMove={interactionMode === "edit" ? moveComposerElement : undefined}
                   onElementWrap={interactionMode === "edit" ? (elementId, fromSectionId) => {
                     const wrapped = wrapCardElementsInSection(config, [elementId], fromSectionId, "blank");
