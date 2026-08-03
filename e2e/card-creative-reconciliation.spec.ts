@@ -14,7 +14,9 @@ test.describe("Card creative-system reconciliation", () => {
     await page.setViewportSize({ width: 1600, height: 1000 });
     await page.goto("/dashboard/card/edit", { waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByRole("textbox", { name: "Card name" })).toBeEnabled();
     await expect(page.getByTestId("card-creative-tool-rail")).toBeVisible();
+    await page.getByTestId("card-preview-focus").click();
     await expect(page.getByTestId("card-contextual-inspector")).toBeVisible();
     await page.screenshot({ path: path.join(evidence, "01-clean-editor-left-rail.png") });
 
@@ -24,12 +26,17 @@ test.describe("Card creative-system reconciliation", () => {
 
     await page.getByTestId("card-creative-tool-backgrounds").click();
     await expect(page.getByTestId("card-background-library")).toBeVisible();
+    await page.getByRole("button", { name: "Background #020617" }).click();
+    await expect(root.getByTestId("composition-background-renderer")).toHaveCSS("background-color", "rgb(2, 6, 23)");
     await page.getByRole("button", { name: "TapConnect Night" }).click();
     await expect(root.getByTestId("composition-background-renderer")).toHaveCSS("background-image", /linear-gradient/);
     await page.screenshot({ path: path.join(evidence, "02-gradient-card-background.png") });
     await page.getByRole("button", { name: "Dots" }).click();
     await expect(root.getByTestId("composition-background-renderer")).toHaveCSS("background-image", /radial-gradient/);
     await page.screenshot({ path: path.join(evidence, "03-pattern-background-library.png") });
+    await page.getByRole("button", { name: "Use primary Brand image as background" }).click();
+    await expect(root.getByTestId("composition-background-renderer")).toHaveCSS("background-image", /url\(/);
+    await page.screenshot({ path: path.join(evidence, "03b-image-background-library.png") });
 
     await page.getByTestId("card-creative-tool-brand").click();
     await expect(page.getByTestId("card-brand-drawer")).toBeVisible();
@@ -112,6 +119,7 @@ test.describe("Card creative-system reconciliation", () => {
     const savedCount = await root.locator("[data-composition-node]").count();
     await page.reload({ waitUntil: "domcontentloaded" });
     await expect(page.getByTestId("card-root-canvas").locator("[data-composition-node]")).toHaveCount(savedCount, { timeout: 60_000 });
+    await expect(page.getByTestId("card-root-canvas").getByTestId("composition-background-renderer")).toHaveCSS("background-image", /url\(/);
     await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute("data-reusable-composition-count", String(initialResourceCount + 1));
     await page.screenshot({ path: path.join(evidence, "14-saved-reloaded-state.png") });
 
