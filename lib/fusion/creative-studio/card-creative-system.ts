@@ -60,6 +60,37 @@ export const MATERIAL_PRESETS = [
   { id: "neon_tube", label: "Neon tube", gradient: "linear-gradient(90deg,#67e8f9,#a7f3d0)", shadow: 32 },
 ] as const;
 
+const GLYPH_EFFECT_KEYS = [
+  "materialPreset",
+  "gradientFill",
+  "shadow",
+  "glow",
+  "outlineWidth",
+  "outlineColor",
+] as const;
+
+/**
+ * Glyph presets are replacements, not incremental merges. Keeping this law in
+ * one pure function prevents an older Neon/Gold field from leaking into the
+ * next preset and deliberately leaves text-box appearance untouched.
+ */
+export function applyGlyphEffect(
+  props: Record<string, unknown>,
+  presetId: string | null
+): Record<string, unknown> {
+  const next = { ...props };
+  for (const key of GLYPH_EFFECT_KEYS) next[key] = undefined;
+  if (!presetId || presetId === "none") return next;
+  const preset = MATERIAL_PRESETS.find((candidate) => candidate.id === presetId);
+  if (!preset) return next;
+  return {
+    ...next,
+    materialPreset: preset.id,
+    gradientFill: preset.gradient,
+    shadow: preset.shadow,
+  };
+}
+
 export function defaultMotionSettings(preset: MotionPreset = "none"): MotionSettings {
   return { preset, intensity: 50, speedSeconds: 2.4, delaySeconds: 0, play: "gentle_repeat" };
 }
@@ -102,11 +133,6 @@ export function applyMaterialPreset(
   if (!preset) return node;
   return {
     ...node,
-    props: {
-      ...node.props,
-      materialPreset: preset.id,
-      gradientFill: preset.gradient,
-      shadow: preset.shadow,
-    },
+    props: applyGlyphEffect(node.props, preset.id),
   };
 }

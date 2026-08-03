@@ -8,6 +8,7 @@ import {
   ICON_LIBRARY,
   MATERIAL_PRESETS,
   MOTION_PRESETS,
+  applyGlyphEffect,
   applyMaterialPreset,
   defaultMotionSettings,
   instantiateReusableComposition,
@@ -47,6 +48,36 @@ test("material presets expand to supported editable properties", () => {
   assert.equal(styled.props.materialPreset, "brushed_silver");
   assert.match(String(styled.props.gradientFill), /linear-gradient/);
   assert.equal(typeof styled.props.shadow, "number");
+});
+
+test("glyph effects replace incompatible fields without touching the text box", () => {
+  const base = {
+    text: "Chad Test",
+    color: "#ffffff",
+    boxFill: "transparent",
+    boxRadius: 12,
+    glow: 36,
+    outlineWidth: 4,
+    materialPreset: "neon_tube",
+  };
+  const gold = applyGlyphEffect(base, "gold_foil");
+  assert.equal(gold.text, "Chad Test");
+  assert.equal(gold.materialPreset, "gold_foil");
+  assert.equal(gold.glow, undefined);
+  assert.equal(gold.outlineWidth, undefined);
+  assert.equal(gold.boxFill, "transparent");
+  assert.equal(gold.boxRadius, 12);
+
+  const chrome = applyGlyphEffect(gold, "polished_chrome");
+  assert.equal(chrome.materialPreset, "polished_chrome");
+  assert.notEqual(chrome.gradientFill, gold.gradientFill);
+  assert.equal(chrome.boxFill, "transparent");
+
+  const plain = applyGlyphEffect(chrome, null);
+  assert.equal(plain.materialPreset, undefined);
+  assert.equal(plain.gradientFill, undefined);
+  assert.equal(plain.shadow, undefined);
+  assert.equal(plain.text, "Chad Test");
 });
 
 test("reusable composition instances retain source revision but never share node identity", () => {

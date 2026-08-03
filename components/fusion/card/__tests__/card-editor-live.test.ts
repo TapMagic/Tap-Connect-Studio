@@ -52,6 +52,7 @@ function stubModel(
     patchConfig: noop,
     patchConfigColor: noop,
     patchSection: noop,
+    patchCompositionNode: noop,
     onAddSection: noop,
     onAddAction: noop,
     setSelectedId: noop,

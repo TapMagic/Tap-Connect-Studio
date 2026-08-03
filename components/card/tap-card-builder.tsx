@@ -110,6 +110,7 @@ import {
   type CardElementKind,
   type CardSurfaceKind,
 } from "@/lib/fusion/card/composer-model";
+import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 
 type CampaignLinkOption = {
   id: string;
@@ -422,6 +423,7 @@ export function TapCardBuilder({
   );
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
+  const editorInstanceIdRef = useRef(`editor-${nanoid(8)}`);
   const configRef = useRef(config);
   const draftRevisionRef = useRef(draftRevision);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
@@ -775,6 +777,51 @@ export function TapCardBuilder({
       true,
       label || describeSectionsChange(sorted, next)
     );
+  }
+
+  function patchCompositionNode(
+    nodeId: string,
+    patch: Partial<CreativeCompositionNode>,
+    label: string
+  ) {
+    setConfigHistory((current) => {
+      const patchNodes = (nodes: CreativeCompositionNode[]) =>
+        nodes.map((node) =>
+          node.id === nodeId
+            ? {
+                ...node,
+                ...patch,
+                props: patch.props
+                  ? { ...node.props, ...patch.props }
+                  : node.props,
+              }
+            : node
+        );
+      if (current.rootComposition?.nodes.some((node) => node.id === nodeId)) {
+        return {
+          ...current,
+          rootComposition: {
+            ...current.rootComposition,
+            nodes: patchNodes(current.rootComposition.nodes),
+          },
+        };
+      }
+      return {
+        ...current,
+        sections: current.sections.map((section) =>
+          section.composition?.nodes.some((node) => node.id === nodeId)
+            ? {
+                ...section,
+                composition: {
+                  ...section.composition,
+                  nodes: patchNodes(section.composition.nodes),
+                },
+              }
+            : section
+        ),
+      };
+    }, { label });
+    setDirty(true);
   }
 
   function linkCampaignToSection(sectionId: string, campaignId: string) {
@@ -1638,6 +1685,7 @@ export function TapCardBuilder({
       patchConfig,
       patchConfigColor,
       patchSection,
+      patchCompositionNode,
       onAddSection: (type) =>
         addSection(type as Exclude<TapCardSectionType, "action_row">),
       onAddAction: (kind) => {
@@ -1749,6 +1797,7 @@ export function TapCardBuilder({
             : "max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto"
       )}
       data-testid="tap-card-builder"
+      data-instance-id={editorInstanceIdRef.current}
       data-workspace-mode={workspaceMode ? "true" : "false"}
       data-escape-mode={escapeMode ? "true" : "false"}
       data-shell-hosted={shellHosted ? "true" : "false"}
@@ -1944,7 +1993,7 @@ export function TapCardBuilder({
 
       {shellHosted && interactionMode === "edit" ? (
         <div
-          className="shrink-0 border-b border-white/10 px-4 py-2"
+          className="sr-only"
           data-testid="card-relationship-status"
         >
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-white/60">
@@ -2335,7 +2384,7 @@ export function TapCardBuilder({
       ) : null}
 
       {message && interactionMode === "edit" ? (
-        <p className="shrink-0 border-b border-border/40 px-4 py-2 text-sm text-primary" role="status">
+        <p className="pointer-events-none absolute right-4 top-4 z-[1550] max-w-sm rounded-lg border border-white/10 bg-[#0b1019]/95 px-3 py-2 text-xs text-primary shadow-xl" role="status" data-testid="card-editor-notice">
           {message}
         </p>
       ) : null}
@@ -2830,7 +2879,7 @@ export function TapCardBuilder({
               {zoomToolbarCollapsed ? "View controls" : "Hide"}
             </Button>
           </div> : null}
-          <div className={cn("flex min-h-full min-w-[760px] justify-center px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => { if (!previewPan && !spacePan) return; const viewport = previewScrollRef.current; if (!viewport) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId }; }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
+          <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceIdRef.current}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => { if (!previewPan && !spacePan) return; const viewport = previewScrollRef.current; if (!viewport) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId }; }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
             <div
               className={cn(
                 "builder-phone builder-phone-natural origin-top",
@@ -2842,6 +2891,7 @@ export function TapCardBuilder({
                   : { transform: `scale(${renderedPreviewZoom})`, marginBottom: `${(Number(renderedPreviewZoom) - 1) * 40}%` }
               }
               data-testid="card-preview-phone"
+              data-instance-id={`${editorInstanceIdRef.current}-card`}
               data-zoom={renderedPreviewZoom === "fit" ? "fit" : String(renderedPreviewZoom)}
             >
               <div className="builder-phone-notch" />

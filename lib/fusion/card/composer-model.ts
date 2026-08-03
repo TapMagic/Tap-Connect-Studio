@@ -185,6 +185,7 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
     opacity: 1,
     borderWidth: 0,
   };
+  if (primitive === "image") semanticProps.aspectLocked = true;
   const semanticText = text[kind];
   if (semanticText !== undefined) semanticProps.text = semanticText;
   if (kind === "button") semanticProps.label = "Learn more";

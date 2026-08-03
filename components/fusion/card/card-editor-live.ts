@@ -12,6 +12,7 @@ import type {
   TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
 import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject } from "@/lib/fusion/card/composer-model";
+import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 
 export type CardEditorLiveModel = {
   config: TapConnectCardConfig;
@@ -71,6 +72,11 @@ export type CardEditorLiveModel = {
     id: string,
     patch: Partial<TapCardSection>,
     label?: string
+  ) => void;
+  patchCompositionNode: (
+    nodeId: string,
+    patch: Partial<CreativeCompositionNode>,
+    label: string
   ) => void;
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;

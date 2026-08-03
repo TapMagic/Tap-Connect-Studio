@@ -9,7 +9,7 @@ import { composerBreadcrumb, composerWarnings } from "@/lib/fusion/card/composer
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import { alignNodes, bringForward, bringToFront, distributeNodes, groupNodes, sendBackward, sendToBack, ungroupNodes } from "@/lib/fusion/creative-studio/composition";
 import { BUTTON_PRESENTATIONS, MAP_DISPLAY_MODES, buildMapHref, type ButtonActionType, type ButtonPresentation, type MapDisplayMode, type MapOpenApp, type MapSourceMode } from "@/lib/fusion/card/designer-elements";
-import { BADGE_SHAPES, BADGE_WORDING, ICON_LIBRARY, MATERIAL_PRESETS, MOTION_PRESETS } from "@/lib/fusion/creative-studio/card-creative-system";
+import { applyGlyphEffect, BADGE_SHAPES, BADGE_WORDING, ICON_LIBRARY, MATERIAL_PRESETS, MOTION_PRESETS } from "@/lib/fusion/creative-studio/card-creative-system";
 import { FONT_CATALOG, FONT_CATEGORY_LABELS, fontCssStack, type FontCategory } from "@/lib/fusion/creative-studio/fonts/catalog";
 import { ensureFontLoaded, pushRecentFont, readFavoriteFonts, readRecentFonts, toggleFavoriteFont } from "@/lib/fusion/creative-studio/fonts/load";
 import { cn } from "@/lib/utils";
@@ -204,8 +204,7 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
     else model.patchConfig({ rootComposition: next }, label);
   };
   const patch = (next: Partial<CreativeCompositionNode>, label: string) => {
-    if (!composition) return;
-    replaceComposition({ ...composition, nodes: composition.nodes.map((node) => node.id === element.id ? { ...node, ...next, props: { ...node.props, ...(next.props || {}) } } : node) }, label);
+    model.patchCompositionNode(element.id, next, label);
   };
   const replaceNodes = (nodes: CreativeCompositionNode[], label: string) => {
     if (composition) replaceComposition({ ...composition, nodes }, label);
@@ -274,10 +273,11 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
         <RangeControl label="Outline" value={Number(element.props.outlineWidth || 0)} min={0} max={8} suffix="px" onChange={(value) => patchProps({ outlineWidth: value }, "Changed text outline")} />
         <RangeControl label="Shadow" value={Number(element.props.shadow || 0)} min={0} max={40} suffix="px" onChange={(value) => patchProps({ shadow: value }, "Changed text shadow")} />
         <RangeControl label="Glow" value={Number(element.props.glow || 0)} min={0} max={40} suffix="px" onChange={(value) => patchProps({ glow: value }, "Changed text glow")} />
-        <div className="grid grid-cols-2 gap-1" data-testid="material-preset-library">{MATERIAL_PRESETS.map((preset) => <button key={preset.id} type="button" className="min-h-10 rounded border border-white/10 px-2 text-left text-[10px]" style={{ background: preset.gradient, color: preset.id === "gunmetal" ? "white" : "#10131a" }} onClick={() => patchProps({ materialPreset: preset.id, gradientFill: preset.gradient, shadow: preset.shadow }, `Applied ${preset.label} approximation`)}>{preset.label}</button>)}</div>
-        <button type="button" className="min-h-9 w-full rounded border border-white/10 text-[10px]" onClick={() => patchProps({ materialPreset: undefined, gradientFill: undefined, shadow: 0, glow: 0, outlineWidth: 0 }, "Removed text effects")}>Remove effects</button>
+        <div className="grid grid-cols-2 gap-1" data-testid="material-preset-library">{MATERIAL_PRESETS.map((preset) => <button key={preset.id} type="button" aria-pressed={element.props.materialPreset === preset.id} className="min-h-12 rounded border border-white/10 bg-transparent px-2 text-left text-[10px]" onClick={() => patch({ props: applyGlyphEffect(element.props, preset.id) }, `Applied ${preset.label}`)}><span className="block font-bold" style={{ background: preset.gradient, backgroundClip: "text", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>Tap</span>{preset.label}</button>)}</div>
+        <button type="button" className="min-h-9 w-full rounded border border-white/10 text-[10px]" onClick={() => patch({ props: applyGlyphEffect(element.props, null) }, "Removed text effects")}>Remove effects</button>
       </InspectorGroup> : null}
       <InspectorGroup title="Size / position">
+        {isText ? <><SelectControl label="Text transform mode" value={String(element.props.transformMode || "proportional_scale")} options={["proportional_scale", "reflow_box", "stretch_glyphs"]} onChange={(value) => patchProps({ transformMode: value }, "Changed text transform mode")} />{element.props.transformMode === "stretch_glyphs" ? <div className="grid grid-cols-2 gap-2"><NumberControl label="Glyph width %" value={Number(element.props.glyphScaleX || 100)} onChange={(value) => patchProps({ glyphScaleX: value }, "Stretched text width")} /><NumberControl label="Glyph height %" value={Number(element.props.glyphScaleY || 100)} onChange={(value) => patchProps({ glyphScaleY: value }, "Stretched text height")} /><button type="button" className="col-span-2 min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patchProps({ glyphScaleX: 100, glyphScaleY: 100 }, "Reset glyph stretch")}>Reset glyph stretch</button></div> : null}</> : null}
         <div className="grid grid-cols-2 gap-2">
           <NumberControl label="X %" value={Math.round(element.x * 100)} onChange={(value) => patch({ x: value / 100 }, "Moved Element")} />
           <NumberControl label="Y %" value={Math.round(element.y * 100)} onChange={(value) => patch({ y: value / 100 }, "Moved Element")} />

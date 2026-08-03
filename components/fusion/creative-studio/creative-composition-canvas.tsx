@@ -120,16 +120,107 @@ function MotionVisual({ node, active, children }: { node: CreativeCompositionNod
   );
 }
 
+function InlineEditableText({
+  nodeId,
+  value,
+  editing,
+  style,
+  onCommit,
+  onFinish,
+}: {
+  nodeId: string;
+  value: string;
+  editing: boolean;
+  style: CSSProperties;
+  onCommit?: (value: string) => void;
+  onFinish?: () => void;
+}) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const valueAtEditStart = useRef(value);
+  const lastSentValue = useRef(value);
+  const settledTimer = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!ref.current || editing) return;
+    if (ref.current.innerText !== value) ref.current.innerText = value;
+    valueAtEditStart.current = value;
+    lastSentValue.current = value;
+  }, [editing, value]);
+
+  useEffect(() => {
+    if (!editing) return;
+    lastSentValue.current = valueAtEditStart.current;
+    const element = ref.current;
+    if (!element) return;
+    element.focus({ preventScroll: true });
+    const selection = window.getSelection();
+    const range = document.createRange();
+    range.selectNodeContents(element);
+    range.collapse(false);
+    selection?.removeAllRanges();
+    selection?.addRange(range);
+  }, [editing]);
+
+  useEffect(() => () => {
+    if (settledTimer.current != null) window.clearTimeout(settledTimer.current);
+  }, []);
+
+  const commit = () => {
+    const next = ref.current?.innerText ?? value;
+    if (settledTimer.current != null) window.clearTimeout(settledTimer.current);
+    settledTimer.current = null;
+    if (next !== lastSentValue.current) {
+      lastSentValue.current = next;
+      onCommit?.(next);
+    }
+    onFinish?.();
+  };
+
+  return (
+    <span
+      ref={ref}
+      className="w-full whitespace-pre-wrap leading-tight outline-none"
+      style={style}
+      dir="ltr"
+      contentEditable={editing}
+      suppressContentEditableWarning
+      data-testid={`composition-inline-text-${nodeId}`}
+      data-inline-editing={editing ? "true" : "false"}
+      onPointerDown={(event) => {
+        if (editing) event.stopPropagation();
+      }}
+      onInput={(event) => {
+        if (settledTimer.current != null) window.clearTimeout(settledTimer.current);
+        const next = event.currentTarget.innerText;
+        settledTimer.current = window.setTimeout(() => {
+          if (next === lastSentValue.current) return;
+          lastSentValue.current = next;
+          onCommit?.(next);
+        }, 900);
+      }}
+      onBlur={commit}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        if (ref.current) ref.current.innerText = valueAtEditStart.current;
+        ref.current?.blur();
+      }}
+    />
+  );
+}
+
 function NodeVisual({
   node,
   editMode,
   textEditing,
   onEditText,
+  onFinishTextEdit,
 }: {
   node: CreativeCompositionNode;
   editMode?: boolean;
   textEditing?: boolean;
   onEditText?: (value: string) => void;
+  onFinishTextEdit?: () => void;
 }) {
   const elementKind = str(node.props.elementKind);
 
@@ -179,6 +270,21 @@ function NodeVisual({
   if (node.primitive === "text") {
     const text = str(node.props.text, "Text");
     const curve = str(node.props.textCurve, "none");
+    const glyphStyle: CSSProperties = {
+      background: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
+      backgroundClip: node.props.gradientFill ? "text" : undefined,
+      WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
+      WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
+      WebkitTextStroke: num(node.props.outlineWidth, 0) > 0 ? `${num(node.props.outlineWidth, 0)}px ${str(node.props.outlineColor, str(node.props.color, "#f8fafc"))}` : undefined,
+      textShadow: [
+        num(node.props.glow, 0) > 0 ? `0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")}` : "",
+        num(node.props.shadow, 0) > 0 ? `0 ${Math.max(1, num(node.props.shadow, 0) / 3)}px ${num(node.props.shadow, 0)}px rgba(0,0,0,.7)` : "",
+      ].filter(Boolean).join(", ") || undefined,
+      transform: node.props.transformMode === "stretch_glyphs"
+        ? `scale(${num(node.props.glyphScaleX, 100) / 100}, ${num(node.props.glyphScaleY, 100) / 100})`
+        : undefined,
+      transformOrigin: "center",
+    };
     if (curve !== "none") {
       const radius = Math.max(8, Math.min(48, num(node.props.curveRadius, 38)));
       const arcWidth = Math.max(30, Math.min(96, num(node.props.curveArcWidth, 84)));
@@ -248,29 +354,21 @@ function NodeVisual({
               : str(node.props.align, "center") === "right"
                 ? "flex-end"
                 : "center",
-          background: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
-          backgroundClip: node.props.gradientFill ? "text" : undefined,
-          WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
-          WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
-          WebkitTextStroke: num(node.props.outlineWidth, 0) > 0 ? `${num(node.props.outlineWidth, 0)}px ${str(node.props.outlineColor, str(node.props.color, "#f8fafc"))}` : undefined,
-          textShadow: [
-            num(node.props.glow, 0) > 0 ? `0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")}` : "",
-            num(node.props.shadow, 0) > 0 ? `0 ${Math.max(1, num(node.props.shadow, 0) / 3)}px ${num(node.props.shadow, 0)}px rgba(0,0,0,.7)` : "",
-          ].filter(Boolean).join(", ") || undefined,
+          background: node.props.boxGradient ? str(node.props.boxGradient) : node.props.boxFill ? str(node.props.boxFill) : "transparent",
+          border: node.props.boxBorder ? str(node.props.boxBorder) : undefined,
+          borderRadius: node.props.boxRadius ? num(node.props.boxRadius, 0) : undefined,
+          padding: node.props.boxPadding ? num(node.props.boxPadding, 0) : undefined,
+          boxShadow: node.props.boxShadow ? str(node.props.boxShadow) : undefined,
         }}
       >
-        <span
-          className="w-full whitespace-pre-wrap leading-tight outline-none"
-          contentEditable={Boolean(editMode && textEditing)}
-          suppressContentEditableWarning
-          data-testid={`composition-inline-text-${node.id}`}
-          onPointerDown={(event) => {
-            if (textEditing) event.stopPropagation();
-          }}
-          onInput={(event) => onEditText?.(event.currentTarget.innerText)}
-        >
-          {str(node.props.text, "Text")}
-        </span>
+        <InlineEditableText
+          nodeId={node.id}
+          value={str(node.props.text, "Text")}
+          editing={Boolean(editMode && textEditing)}
+          style={glyphStyle}
+          onCommit={onEditText}
+          onFinish={onFinishTextEdit}
+        />
       </div>
     );
   }
@@ -806,6 +904,7 @@ export function CreativeCompositionCanvas({
   );
   const [guides, setGuides] = useState<CompositionGuide[]>([]);
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [marquee, setMarquee] = useState<{
     startX: number;
     startY: number;
@@ -879,6 +978,14 @@ export function CreativeCompositionCanvas({
         e.stopPropagation();
         onSelectNodes?.([]);
         return;
+      }
+      if (e.key === "Enter" && selectedNodeIds.length === 1) {
+        const selectedNode = block.nodes.find((node) => node.id === selectedNodeIds[0]);
+        if (selectedNode?.primitive === "text" && str(selectedNode.props.textCurve, "none") === "none") {
+          e.preventDefault();
+          setEditingNodeId(selectedNode.id);
+          return;
+        }
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v" && hasCompositionClipboard()) {
         e.preventDefault();
@@ -1008,9 +1115,10 @@ export function CreativeCompositionCanvas({
       const angle =
         (Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180) / Math.PI +
         90;
+      const resolvedAngle = e.shiftKey ? Math.round(angle / 15) * 15 : Math.round(angle);
       setDraftNodes(
         drag.origNodes.map((node) =>
-          node.id === drag.id ? { ...node, rotationDeg: Math.round(angle) } : node
+          node.id === drag.id ? { ...node, rotationDeg: resolvedAngle } : node
         )
       );
       return;
@@ -1040,7 +1148,14 @@ export function CreativeCompositionCanvas({
         if (south) { y = n.y - dy; height = n.height + dy * 2; }
         if (north) { y = n.y + dy; height = n.height - dy * 2; }
       }
-      if ((e.shiftKey || n.props.aspectLocked === true) && (east || west) && (north || south)) {
+      const cornerResize = (east || west) && (north || south);
+      const preservesAspect =
+        n.primitive === "image"
+          ? n.props.aspectLocked !== false
+          : n.primitive === "text"
+            ? n.props.transformMode !== "stretch_glyphs"
+            : n.props.aspectLocked === true;
+      if ((e.shiftKey || preservesAspect) && cornerResize) {
         const aspect = drag.orig.width / drag.orig.height;
         if (Math.abs(dx) >= Math.abs(dy)) height = width / aspect;
         else width = height * aspect;
@@ -1273,8 +1388,9 @@ export function CreativeCompositionCanvas({
               <NodeVisual
                 node={node}
                 editMode={editMode}
-                textEditing={selectedSet.has(node.id)}
+                textEditing={editingNodeId === node.id}
                 onEditText={(value) => onEditNodeText?.(node.id, value)}
+                onFinishTextEdit={() => setEditingNodeId(null)}
               />
             </MotionVisual>
           </div>
@@ -1411,6 +1527,13 @@ export function CreativeCompositionCanvas({
             data-group={node.groupId || undefined}
             data-anchor={node.anchor || "top-left"}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
+            onDoubleClick={(event) => {
+              if (!editMode || node.primitive !== "text" || str(node.props.textCurve, "none") !== "none") return;
+              event.preventDefault();
+              event.stopPropagation();
+              onSelectNodes?.([node.id]);
+              setEditingNodeId(node.id);
+            }}
             onContextMenu={(event) => {
               if (!editMode) return;
               event.preventDefault();
@@ -1475,8 +1598,9 @@ export function CreativeCompositionCanvas({
               <NodeVisual
                 node={node}
                 editMode={editMode}
-                textEditing={selected}
+                textEditing={editingNodeId === node.id}
                 onEditText={(value) => onEditNodeText?.(node.id, value)}
+                onFinishTextEdit={() => setEditingNodeId(null)}
               />
             </MotionVisual>
           </div>
