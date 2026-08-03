@@ -503,7 +503,7 @@
   }
 }
 
-/* Contextual Inspector — horizontal Sliding Panel Stack */
+/* Contextual object tools — horizontal sliding panel stack */
 @keyframes tc-panel-slide-forward {
   from {
     transform: translateX(36%);
@@ -602,4 +602,41 @@
 [data-reduced-motion-simulation="true"] .tc-card-motion {
   animation: none !important;
   transform: none !important;
+}
+/* Creative Studio editor preferences are view-only. They never alter document colors. */
+.creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-edit-mode-topbar"],
+.creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-creative-left-workspace"],
+.creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-creative-tool-rail"],
+.creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-creative-context-drawer"] {
+  background-color: #fff !important;
+  color: #111827 !important;
+  border-color: rgb(17 24 39 / .14) !important;
+}
+
+.creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-creative-left-workspace"] .text-white,
+.creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-creative-left-workspace"] [class*="text-white/"] {
+  color: rgb(17 24 39 / .75) !important;
+}
+
+.creative-studio-editor[data-editor-density="compact"] [data-testid="card-creative-tool-rail"] button {
+  min-height: 48px;
+}
+
+.creative-studio-editor[data-larger-controls="true"] button,
+.creative-studio-editor[data-larger-controls="true"] input,
+.creative-studio-editor[data-larger-controls="true"] select {
+  min-height: 44px;
+}
+
+.creative-studio-editor[data-high-contrast="true"] :focus-visible {
+  outline: 3px solid #facc15 !important;
+  outline-offset: 3px !important;
+}
+
+.creative-studio-editor[data-reduced-motion="true"] *,
+.creative-studio-editor[data-reduced-motion="true"] *::before,
+.creative-studio-editor[data-reduced-motion="true"] *::after {
+  animation-duration: .001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: .001ms !important;
 }

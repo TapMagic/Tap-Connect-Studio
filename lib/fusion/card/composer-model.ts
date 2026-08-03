@@ -205,7 +205,7 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "qr_image") semanticProps.alt = "QR code";
   if (kind === "icon") Object.assign(semanticProps, { icon: "sparkles", fill: "#b8ff2c", stroke: "#07100a", strokeWidth: 1.5, accessibleLabel: "Decorative icon", decorative: true });
   if (kind === "badge") Object.assign(semanticProps, { text: "SALE", badgeShape: "pill", fill: "#ef4444", color: "#ffffff", fontSize: 18, fontWeight: 800, radius: 999, accessibleLabel: "Sale" });
-  if (kind === "button") Object.assign(semanticProps, buttonElementDefaults());
+  if (kind === "button") Object.assign(semanticProps, buttonElementDefaults("website", node.id));
   if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
   const isCompactAction = kind === "button" || kind === "tapsave";
   const isMap = kind === "map";

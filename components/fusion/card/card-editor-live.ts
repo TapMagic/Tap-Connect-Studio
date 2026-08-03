@@ -13,8 +13,15 @@ import type {
 } from "@/lib/brand/tap-card";
 import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject } from "@/lib/fusion/card/composer-model";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import type { SelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
 
 export type CardEditorLiveModel = {
+  documentId: string;
+  pageId: string;
+  revision: number;
+  selectionRef: SelectionRef;
+  activeDocumentId: string;
+  documents: Array<{ id: string; name: string; type: "MAIN_CARD" | "CARD_VARIATION" }>;
   config: TapConnectCardConfig;
   selected: TapCardSection | null;
   selectedObject?: ComposerSelectedObject;
@@ -52,6 +59,7 @@ export type CardEditorLiveModel = {
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  openDocument: (id: string) => Promise<boolean>;
   onBrandStateChange: (next: BrandInheritanceState) => void;
   patchConfig: (
     patch: Partial<TapConnectCardConfig>,
@@ -78,6 +86,11 @@ export type CardEditorLiveModel = {
     patch: Partial<CreativeCompositionNode>,
     label: string
   ) => void;
+  patchSelection: (
+    selection: SelectionRef,
+    patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>,
+    label: string
+  ) => boolean;
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
   onAddSurface?: (kind: CardSurfaceKind) => void;
@@ -126,6 +139,12 @@ export function cardEditorLiveMaterialSignature(
 ): string {
   if (!model) return "null";
   return JSON.stringify({
+    documentId: model.documentId,
+    pageId: model.pageId,
+    revision: model.revision,
+    selectionRef: model.selectionRef,
+    activeDocumentId: model.activeDocumentId,
+    documents: model.documents,
     config: model.config,
     selectedId: model.selected?.id ?? null,
     selectedObject: model.selectedObject,

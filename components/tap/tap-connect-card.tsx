@@ -33,6 +33,7 @@ import {
   normalizeIconPlacement,
 } from "@/lib/design/button-layout";
 import { socialBrandStyle } from "@/components/tap/social-icons";
+import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { cn, firstImageUrl } from "@/lib/utils";
 import {
@@ -1345,7 +1346,7 @@ export function TapConnectCard({
           onChangeBlock={(next, label) => onCompositionChange?.(section.id, next, label)}
           onEditNodeText={(nodeId, value) => {
             const nodes = block.nodes.map((node) => node.id === nodeId
-              ? { ...node, props: { ...node.props, [node.primitive === "button" ? "label" : "text"]: value } }
+              ? { ...node, props: node.primitive === "button" ? updateButtonLabel(node.props, value, node.id) : { ...node.props, text: value } }
               : node);
             onCompositionChange?.(section.id, { ...block, nodes }, nodeId && block.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited text on canvas");
           }}
@@ -1729,7 +1730,7 @@ export function TapConnectCard({
                 onCompositionChange?.(null, {
                   ...root,
                   nodes: root.nodes.map((node) => node.id === nodeId
-                    ? { ...node, props: { ...node.props, [node.primitive === "button" ? "label" : "text"]: value } }
+                    ? { ...node, props: node.primitive === "button" ? updateButtonLabel(node.props, value, node.id) : { ...node.props, text: value } }
                     : node),
                 }, root.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited root text on canvas");
               }}

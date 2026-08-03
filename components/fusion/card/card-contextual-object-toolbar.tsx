@@ -9,6 +9,7 @@ import { applyGlyphEffect, ICON_LIBRARY, MATERIAL_PRESETS, MOTION_PRESETS } from
 import { copyCompositionNodeStyle, hasCompositionStyleClipboard, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
 import { FONT_CATALOG, fontCssStack } from "@/lib/fusion/creative-studio/fonts/catalog";
 import { ensureFontLoaded } from "@/lib/fusion/creative-studio/fonts/load";
+import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 import { bringForward, bringToFront, duplicateNodes, sendBackward, sendToBack, type CreativeCompositionBlock, type CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 
 type Focus = "content" | "font" | "color" | "effects" | "animate" | "position" | "button-surface" | "button-content" | "button-action" | "button-styles" | null;
@@ -31,7 +32,8 @@ function SectionContextualToolbar({ model, onAdvanced }: { model: CardEditorLive
   const sectionId = model.selectedObject?.type === "section" ? model.selectedObject.sectionId : null;
   const section = sectionId ? model.sorted.find((candidate) => candidate.id === sectionId) : null;
   if (!section) return null;
-  const patch = (next: Partial<typeof section>, label: string) => model.patchSection(section.id, next, label);
+  const selection = model.selectionRef;
+  const patch = (next: Partial<typeof section>, label: string) => model.patchSelection(selection, next, label);
   const open = (next: Exclude<SectionFocus, null>) => setFocus((current) => current === next ? null : next);
   const fit = () => {
     const padding = section.surfacePaddingPx ?? 24;
@@ -51,7 +53,7 @@ function SectionContextualToolbar({ model, onAdvanced }: { model: CardEditorLive
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("position")}>Position/order</button>
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => model.duplicateSection(section.id)}>Duplicate</button>
       <button type="button" className="min-h-9 rounded px-2 text-xs text-red-200 hover:bg-white/10" onClick={() => model.deleteSection(section.id)}>Delete</button>
-      <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={onAdvanced} aria-label="More, Advanced settings"><MoreHorizontal className="h-4 w-4" /></button>
+      <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={() => { setFocus(null); onAdvanced(); }} aria-label="More, Advanced settings"><MoreHorizontal className="h-4 w-4" /></button>
     </div>
     {focus ? <section className="pointer-events-auto mx-auto mt-2 max-h-[min(34rem,62vh)] w-[min(24rem,calc(100vw-2rem))] overflow-auto rounded-xl border border-white/15 bg-[#0b1019] p-3 text-white shadow-2xl" data-testid={`contextual-section-${focus}-drawer`}>
       <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">Section {focus}</h2><button type="button" className="grid h-8 w-8 place-items-center rounded hover:bg-white/10" onClick={() => setFocus(null)} aria-label={`Close Section ${focus}`}><X className="h-4 w-4" /></button></div>
@@ -91,16 +93,29 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   if (!model) return null;
   if (!selected) return <SectionContextualToolbar model={model} onAdvanced={onAdvanced} />;
   const { node, block, section } = selected;
+  const isText = node.primitive === "text";
+  const isButton = node.primitive === "button";
   const replace = (next: CreativeCompositionBlock, label: string) => {
     if (section) model.patchSection(section.id, { composition: next }, label);
     else model.patchConfig({ rootComposition: next }, label);
   };
-  const patch = (next: Partial<CreativeCompositionNode>, label: string) => model.patchCompositionNode(node.id, next, label);
-  const patchProps = (next: Record<string, unknown>, label: string) => patch({ props: { ...node.props, ...next } }, label);
+  const selection = model.selectionRef;
+  const patch = (next: Partial<CreativeCompositionNode>, label: string) => model.patchSelection(selection, next, label);
+  const patchProps = (next: Record<string, unknown>, label: string) => {
+    let props = { ...node.props, ...next };
+    if (isButton && typeof next.label === "string") props = updateButtonLabel(props, next.label, node.id);
+    if (isButton) {
+      const textPatch: Record<string, unknown> = {};
+      for (const key of ["fontFamily", "fontSize", "fontWeight", "letterSpacingEm", "textTransform", "textAlign"] as const) {
+        if (next[key] !== undefined) textPatch[key] = next[key];
+      }
+      if (next.labelColor !== undefined || next.textColor !== undefined) textPatch.color = next.labelColor ?? next.textColor;
+      if (Object.keys(textPatch).length) props = updateButtonContentNode(props, "label", { props: textPatch }, node.id);
+    }
+    patch({ props }, label);
+  };
   const duplicate = () => { const result = duplicateNodes(block.nodes, [node.id]); replace({ ...block, nodes: result.nodes }, "Duplicated Element"); model.setSelectedCompositionNodeIds?.(result.newIds); };
   const remove = () => { if (node.locked) return model.notify?.("Unlock this Element before deleting it."); replace({ ...block, nodes: block.nodes.filter((candidate) => candidate.id !== node.id) }, "Deleted Element"); model.setSelectedCompositionNodeIds?.([]); };
-  const isText = node.primitive === "text";
-  const isButton = node.primitive === "button";
   const open = (next: Exclude<Focus, null>) => setFocus((current) => current === next ? null : next);
   const colors = [model.config.textColor, model.config.accentColor, model.config.surfaceColor, "#ffffff", "#111827", "#f43f5e", "#22d3ee", "#b8ff2c"].filter(Boolean);
   const fonts = FONT_CATALOG.filter((font) => `${font.family} ${font.category}`.toLowerCase().includes(fontQuery.toLowerCase()));
@@ -133,7 +148,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("position")} data-testid="contextual-position">Position</button>
       <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={duplicate} aria-label="Duplicate"><Copy className="h-4 w-4" /></button>
       <button type="button" className="grid h-9 w-9 place-items-center rounded text-red-200 hover:bg-white/10" onClick={remove} aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
-      <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={onAdvanced} aria-label="More, Advanced settings"><MoreHorizontal className="h-4 w-4" /></button>
+      <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={() => { setFocus(null); onAdvanced(); }} aria-label="More, Advanced settings"><MoreHorizontal className="h-4 w-4" /></button>
     </div>
     {focus ? <section className="pointer-events-auto mx-auto mt-2 max-h-[min(32rem,60vh)] w-[min(22rem,calc(100vw-2rem))] overflow-auto rounded-xl border border-white/15 bg-[#0b1019] p-3 text-white shadow-2xl" data-testid={`contextual-${focus}-drawer`}>
       <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold capitalize">{focus}</h2><button type="button" className="grid h-8 w-8 place-items-center rounded hover:bg-white/10" onClick={() => setFocus(null)} aria-label={`Close ${focus}`}><X className="h-4 w-4" /></button></div>

@@ -13,10 +13,11 @@ import {
   useRef,
   useState,
   useSyncExternalStore,
+  type CSSProperties,
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Copy, Monitor, Redo2, Save, Smartphone, Tablet, Undo2, X } from "lucide-react";
+import { Copy, Monitor, Redo2, Save, SlidersHorizontal, Smartphone, Tablet, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdaptiveWorkspaceShell,
@@ -30,8 +31,8 @@ import {
 } from "@/components/card/tap-card-builder";
 import { CardLiveToolDrawer } from "@/components/fusion/card/card-live-tool-drawer";
 import { CardCreativeToolRail, type CardCreativeTool } from "@/components/fusion/card/card-creative-tool-rail";
-import { CardComposerInspector } from "@/components/fusion/card/card-composer-inspector";
 import { CardContextualObjectToolbar } from "@/components/fusion/card/card-contextual-object-toolbar";
+import { CardAdvancedSettingsOverlay } from "@/components/fusion/card/card-advanced-settings-overlay";
 import { PreviewToolbar } from "@/components/fusion/creative-studio/preview-toolbar";
 import { LiveDeviceQrPanel } from "@/components/fusion/creative-studio/live-device-qr-panel";
 import {
@@ -57,21 +58,27 @@ import {
   SESSION_RESTORE_LABEL,
 } from "@/lib/fusion/authoring/workspace-shell-persist";
 import {
-  CARD_AUTHORING_TOOLS,
   ensureDefaultToolRegistries,
   getWorkspaceTool,
 } from "@/lib/fusion/authoring/workspace-tools";
 import { cn } from "@/lib/utils";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
+import {
+  DEFAULT_EDITOR_PREFERENCES,
+  readEditorPreferences,
+  writeEditorPreferences,
+  type EditorPreferences,
+} from "@/lib/fusion/creative-studio/editor-preferences";
+import { OUTPUT_PROFILES, type OutputProfile } from "@/lib/fusion/creative-studio/output-profiles";
 
 ensureDefaultToolRegistries();
 
 const WORKSPACE_ID = "card-authoring";
-/** Shared inspector dock size — every tool opens to the same place. */
-const CARD_INSPECTOR_SIZE_KEY = "card-inspector";
+/** Shared adaptive drawer size — every operational tool opens to the same place. */
+const CARD_DRAWER_SIZE_KEY = "card-tool-drawer";
 /** Default dock width when no personal resize has been saved yet. */
-const CARD_INSPECTOR_DEFAULT_MODE = "balanced" as const;
+const CARD_DRAWER_DEFAULT_MODE = "balanced" as const;
 
 function readLifecycleIntent(): boolean {
   if (typeof window === "undefined") return false;
@@ -85,20 +92,16 @@ function readLifecycleIntent(): boolean {
   );
 }
 
-/**
- * Compact primary rail — shallow one-topic panes consolidated into
- * Inspector / Appearance hubs. Aliases stay registered for deep-links.
- */
-const CARD_RAIL_HIDDEN = new Set([
-  "format",
-  "inspector",
-  "brand",
-  "colors",
-  "layout",
-]);
-const CARD_RAIL_TOOLS = CARD_AUTHORING_TOOLS.filter(
-  (t) => !CARD_RAIL_HIDDEN.has(t.id)
-);
+const MOBILE_CREATIVE_TOOLS: Array<{ id: CardCreativeTool; label: string }> = [
+  { id: "build", label: "Build" },
+  { id: "elements", label: "Elements" },
+  { id: "buttons", label: "Buttons" },
+  { id: "text", label: "Text" },
+  { id: "assets", label: "Assets" },
+  { id: "layers", label: "Layers" },
+  { id: "ai", label: "AI Assist" },
+  { id: "tools", label: "Tools" },
+];
 
 export type CardAuthoringWorkspaceProps = {
   initialConfig: TapConnectCardConfig;
@@ -211,6 +214,33 @@ export function CardAuthoringWorkspace({
   >("root");
   const [creativeTool, setCreativeTool] = useState<CardCreativeTool>("build");
   const [creativeDrawerOpen, setCreativeDrawerOpen] = useState(true);
+  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
+  const [resizeAdaptOpen, setResizeAdaptOpen] = useState(false);
+  const [editorPreferences, setEditorPreferences] = useState<EditorPreferences>(DEFAULT_EDITOR_PREFERENCES);
+  const [systemDark, setSystemDark] = useState(true);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-color-scheme: dark)");
+    const timer = window.setTimeout(() => {
+      setEditorPreferences(readEditorPreferences(window.localStorage));
+      setSystemDark(query.matches);
+    }, 0);
+    const onChange = (event: MediaQueryListEvent) => setSystemDark(event.matches);
+    query.addEventListener("change", onChange);
+    return () => {
+      window.clearTimeout(timer);
+      query.removeEventListener("change", onChange);
+    };
+  }, []);
+  const resolvedEditorAppearance = editorPreferences.appearance === "system"
+    ? systemDark ? "dark" : "light"
+    : editorPreferences.appearance;
+  const updateEditorPreferences = useCallback((patch: Partial<EditorPreferences>) => {
+    setEditorPreferences((current) => {
+      const next = { ...current, ...patch };
+      writeEditorPreferences(window.localStorage, next);
+      return next;
+    });
+  }, []);
   const [editSelectionMemory, setEditSelectionMemory] = useState<string | null>(
     null
   );
@@ -381,19 +411,19 @@ export function CardAuthoringWorkspace({
         resolved,
         toolMemory
       );
-      const shared = toolMemory[CARD_INSPECTOR_SIZE_KEY];
+      const shared = toolMemory[CARD_DRAWER_SIZE_KEY];
       // Same dock every time: keep current width when switching tools;
       // when opening from closed, use the shared personal size (or default).
       const sizeMode = shell.drawerOpen
         ? shell.drawerSizeMode
-        : shared?.sizeMode || CARD_INSPECTOR_DEFAULT_MODE;
+        : shared?.sizeMode || CARD_DRAWER_DEFAULT_MODE;
       const customDrawerWidthPct = shell.drawerOpen
         ? shell.customDrawerWidthPct
         : sizeMode === "custom"
           ? shared?.customWidthPct ?? null
           : null;
       const nextMemory = rememberToolDrawer(
-        rememberToolDrawer(memory, CARD_INSPECTOR_SIZE_KEY, {
+        rememberToolDrawer(memory, CARD_DRAWER_SIZE_KEY, {
           sizeMode,
           customWidthPct: customDrawerWidthPct,
         }),
@@ -425,7 +455,7 @@ export function CardAuthoringWorkspace({
     setShell(next);
     if (next.drawerOpen) {
       setToolMemory((m) =>
-        rememberToolDrawer(m, CARD_INSPECTOR_SIZE_KEY, {
+        rememberToolDrawer(m, CARD_DRAWER_SIZE_KEY, {
           sizeMode: next.drawerSizeMode,
           customWidthPct: next.customDrawerWidthPct,
         })
@@ -472,7 +502,7 @@ export function CardAuthoringWorkspace({
   }, []);
 
   const activeToolId = shell.selectedToolId;
-  const recommendedDrawerMode = CARD_INSPECTOR_DEFAULT_MODE;
+  const recommendedDrawerMode = CARD_DRAWER_DEFAULT_MODE;
 
   const outline = <CardCreativeToolRail model={liveModel} activeTool={creativeTool} drawerOpen={creativeDrawerOpen} onActiveToolChange={setCreativeTool} onDrawerOpenChange={setCreativeDrawerOpen} />;
 
@@ -481,15 +511,15 @@ export function CardAuthoringWorkspace({
       className="flex shrink-0 gap-1 overflow-x-auto border-t border-white/10 bg-[#070b14] px-2 py-2"
       data-testid="card-mobile-tool-rail"
     >
-      {CARD_RAIL_TOOLS.map((tool) => (
+      {MOBILE_CREATIVE_TOOLS.map((tool) => (
         <button
           key={tool.id}
           type="button"
           data-testid={`card-mobile-tool-${tool.id}`}
-          onClick={() => openCardTool(tool.id)}
+          onClick={() => { setCreativeTool(tool.id); setCreativeDrawerOpen(true); }}
           className={cn(
             "min-h-11 shrink-0 rounded-md px-3 text-xs",
-            activeToolId === tool.id && shell.drawerOpen
+            creativeTool === tool.id && creativeDrawerOpen
               ? "border border-white/30 bg-white/10 text-white"
               : "border border-white/10 text-white/70"
           )}
@@ -656,7 +686,18 @@ export function CardAuthoringWorkspace({
         <button type="button" className="min-h-10 rounded-md bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a]" onClick={enterPreview} data-testid="card-preview-as-customer">Preview draft</button>
         <button type="button" className="hidden min-h-10 items-center rounded-md border border-white/15 px-3 text-xs sm:inline-flex" onClick={() => void apiRef.current?.save()} disabled={status.saving} data-testid="card-save"><Save className="mr-1 h-4 w-4" />Save now</button>
         <button type="button" className="hidden min-h-10 items-center rounded-md border border-white/15 px-3 text-xs lg:inline-flex" onClick={() => void apiRef.current?.cloneDocument()} data-testid="card-clone"><Copy className="mr-1 h-4 w-4" />Clone</button>
+        <button type="button" className="hidden min-h-10 rounded-md border border-white/15 px-3 text-xs lg:block" onClick={() => { setAdvancedSettingsOpen(false); setResizeAdaptOpen(true); }} data-testid="card-resize-adapt">Resize / Adapt</button>
         <button type="button" className="hidden min-h-10 rounded-md border border-white/15 px-3 text-xs lg:block" disabled={!status.canPublish} onClick={() => void apiRef.current?.publish()} data-testid="card-publish">{status.publicationLabel === "Not published" ? "Publish" : "Update"}</button>
+        <details className="relative" data-testid="editor-preferences-menu">
+          <summary className="grid min-h-10 min-w-10 cursor-pointer list-none place-items-center rounded-md border border-white/15 px-2" aria-label="Editor appearance and canvas assistance"><SlidersHorizontal className="h-4 w-4" /></summary>
+          <div className="absolute right-0 top-full z-[1750] mt-1 w-72 space-y-3 rounded-xl border border-white/15 bg-[var(--studio-panel)] p-3 text-xs text-[var(--studio-text)] shadow-2xl">
+            <PreferenceChoices label="Appearance" value={editorPreferences.appearance} choices={["system", "light", "dark"]} onChange={(appearance) => updateEditorPreferences({ appearance: appearance as EditorPreferences["appearance"] })} />
+            <PreferenceChoices label="Pasteboard" value={editorPreferences.pasteboard} choices={["light", "dark", "neutral", "checkerboard"]} onChange={(pasteboard) => updateEditorPreferences({ pasteboard: pasteboard as EditorPreferences["pasteboard"] })} />
+            <PreferenceChoices label="Density" value={editorPreferences.density} choices={["comfortable", "compact"]} onChange={(density) => updateEditorPreferences({ density: density as EditorPreferences["density"] })} />
+            <div><p className="mb-1 font-semibold">Canvas assistance</p>{([ ["rulers", "Rulers"], ["grid", "Grid"], ["safeMargins", "Safe margins"], ["alignmentGuides", "Alignment guides"], ["publicationBoundary", "Publication boundary"], ["dimOutsideDocument", "Dim outside document"] ] as const).map(([key, label]) => <label key={key} className="flex min-h-8 items-center gap-2"><input type="checkbox" checked={editorPreferences[key]} onChange={(event) => updateEditorPreferences({ [key]: event.target.checked })} />{label}</label>)}</div>
+            <div><p className="mb-1 font-semibold">Accessibility</p>{([ ["reducedMotion", "Reduced motion"], ["highContrast", "High contrast"], ["largerControls", "Larger controls"] ] as const).map(([key, label]) => <label key={key} className="flex min-h-8 items-center gap-2"><input type="checkbox" checked={editorPreferences[key]} onChange={(event) => updateEditorPreferences({ [key]: event.target.checked })} />{label}</label>)}</div>
+          </div>
+        </details>
         <button type="button" className="inline-flex min-h-10 items-center justify-center rounded-md border border-white/15 px-3 text-xs" onClick={() => void requestExit()} aria-label="Exit Edit Mode" title="Exit Edit Mode" data-testid="card-exit-edit-mode"><X className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Exit Edit Mode</span></button>
         <details className="relative hidden xl:block" data-testid="card-overflow-menu">
           <summary className="grid min-h-10 min-w-10 cursor-pointer list-none place-items-center rounded-md border border-white/15 px-2 text-xs text-white/80" aria-label="More Card actions">•••</summary>
@@ -680,7 +721,7 @@ export function CardAuthoringWorkspace({
 
   return (
     <div
-      className="relative flex h-full min-h-0 flex-col overflow-hidden"
+      className="creative-studio-editor relative flex h-full min-h-0 flex-col overflow-hidden bg-[var(--studio-chrome)] text-[var(--studio-text)]"
       data-testid="card-edit-workspace-host"
       data-escape-authoring="true"
       data-adaptive-shell="v1"
@@ -691,9 +732,23 @@ export function CardAuthoringWorkspace({
       data-selected-tool={shell.selectedToolId ?? ""}
       data-reusable-composition-count={liveModel?.config.reusableCompositions?.length ?? 0}
       data-maturity="implementation-in-progress"
+      data-editor-appearance={editorPreferences.appearance}
+      data-resolved-appearance={resolvedEditorAppearance}
+      data-pasteboard-theme={editorPreferences.pasteboard}
+      data-editor-density={editorPreferences.density}
+      data-reduced-motion={editorPreferences.reducedMotion ? "true" : "false"}
+      data-high-contrast={editorPreferences.highContrast ? "true" : "false"}
+      data-larger-controls={editorPreferences.largerControls ? "true" : "false"}
+      style={{
+        "--studio-chrome": resolvedEditorAppearance === "light" ? "#f8fafc" : "#070b14",
+        "--studio-panel": resolvedEditorAppearance === "light" ? "#ffffff" : "#090e18",
+        "--studio-text": resolvedEditorAppearance === "light" ? "#111827" : "#ffffff",
+      } as CSSProperties}
     >
       {studioMode === "edit" ? editTopBar : null}
-      {studioMode === "edit" ? <CardContextualObjectToolbar model={liveModel} onAdvanced={() => openCardTool("content")} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} onPreviewMotion={() => setPreviewMotion((active) => !active)} onRestartMotion={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }} onReducedMotionSimulation={setReducedMotionSimulation} /> : null}
+      {studioMode === "edit" ? <CardContextualObjectToolbar key={`${creativeTool}:${resizeAdaptOpen ? "adapt" : "canvas"}:${liveModel?.selectionRef.selectionGeneration ?? 0}`} model={liveModel} onAdvanced={() => { setResizeAdaptOpen(false); setAdvancedSettingsOpen(true); }} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} onPreviewMotion={() => setPreviewMotion((active) => !active)} onRestartMotion={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }} onReducedMotionSimulation={setReducedMotionSimulation} /> : null}
+      {studioMode === "edit" && advancedSettingsOpen ? <CardAdvancedSettingsOverlay model={liveModel} onClose={() => setAdvancedSettingsOpen(false)} /> : null}
+      {studioMode === "edit" && resizeAdaptOpen ? <ResizeAdaptOverlay onClose={() => setResizeAdaptOpen(false)} onAdapt={async (profile) => { const ok = await apiRef.current?.adaptDocument(profile.id); if (ok) setResizeAdaptOpen(false); }} /> : null}
       {status.recoveryState !== "none" && studioMode === "edit" ? (
         <section className="absolute left-1/2 top-28 z-[1500] w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-amber-300/35 bg-[#111827] p-4 text-white shadow-2xl" role="alert" data-testid="card-recovery-prompt">
           <h2 className="text-sm font-semibold">{status.recoveryState === "conflict" ? "Recovered changes need review" : "Recovered changes are available"}</h2>
@@ -783,11 +838,11 @@ export function CardAuthoringWorkspace({
           zone: "card",
         }}
         outline={shell.focusMode || studioMode === "preview" ? undefined : outline}
-        outlineClassName="!w-[min(20rem,28%)] !overflow-hidden !p-0"
+        outlineClassName={cn(creativeDrawerOpen ? "!w-[min(20rem,28%)]" : "!w-[68px]", "!overflow-hidden !p-0 transition-[width] duration-150 motion-reduce:transition-none")}
         canvas={
           <div
             className={cn(
-              "card-edit-pasteboard mx-auto flex h-full min-h-0 w-full justify-center overflow-auto bg-[#151a22]",
+              "card-edit-pasteboard mx-auto flex h-full min-h-0 w-full justify-center overflow-auto",
               previewViewport !== "desktop" && "overflow-y-auto py-4"
             )}
             data-testid="card-canvas-viewport"
@@ -796,8 +851,8 @@ export function CardAuthoringWorkspace({
             data-studio-mode={studioMode}
             style={
               previewViewport !== "desktop"
-                ? { maxWidth: PREVIEW_VIEWPORT_WIDTHS[previewViewport] }
-                : undefined
+                ? { maxWidth: PREVIEW_VIEWPORT_WIDTHS[previewViewport], ...pasteboardStyle(editorPreferences.pasteboard) }
+                : pasteboardStyle(editorPreferences.pasteboard)
             }
           >
             <div
@@ -840,22 +895,18 @@ export function CardAuthoringWorkspace({
           !shell.focusMode &&
           studioMode === "edit" &&
           activeToolId ? (
-            activeToolId === "history" || activeToolId === "lifecycle" || activeToolId === "appearance" ? (
-              <CardLiveToolDrawer
-                toolId={activeToolId}
-                onCloseTool={closeCardTool}
-                onRequestTool={openCardTool}
-                appearanceInitialLevel={appearanceEntryLevel}
-              />
-            ) : (
-              <CardComposerInspector model={liveModel} onRequestTool={openCardTool} />
-            )
+            <CardLiveToolDrawer
+              toolId={activeToolId}
+              onCloseTool={closeCardTool}
+              onRequestTool={openCardTool}
+              appearanceInitialLevel={appearanceEntryLevel}
+            />
           ) : undefined
         }
         drawerTitle={
           activeToolId === "history" || activeToolId === "lifecycle" || activeToolId === "appearance"
             ? getWorkspaceTool(WORKSPACE_ID, activeToolId)?.label || "Tools"
-            : "Advanced settings"
+            : getWorkspaceTool(WORKSPACE_ID, activeToolId || "")?.label || "Tools"
         }
         toolMemory={toolMemory}
         onToolMemoryChange={setToolMemory}
@@ -1002,4 +1053,45 @@ export function CardAuthoringWorkspace({
       />
     </div>
   );
+}
+
+function PreferenceChoices({
+  label,
+  value,
+  choices,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  choices: readonly string[];
+  onChange: (value: string) => void;
+}) {
+  return <fieldset><legend className="mb-1 font-semibold">{label}</legend><div className="grid grid-cols-2 gap-1">{choices.map((choice) => <label key={choice} className="flex min-h-9 items-center gap-2 rounded-md border border-current/10 px-2 capitalize"><input type="radio" name={`editor-${label}`} value={choice} checked={value === choice} onChange={() => onChange(choice)} />{choice}</label>)}</div></fieldset>;
+}
+
+function pasteboardStyle(theme: EditorPreferences["pasteboard"]): CSSProperties {
+  if (theme === "checkerboard") {
+    return {
+      backgroundColor: "#d1d5db",
+      backgroundImage: "linear-gradient(45deg,#9ca3af 25%,transparent 25%),linear-gradient(-45deg,#9ca3af 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#9ca3af 75%),linear-gradient(-45deg,transparent 75%,#9ca3af 75%)",
+      backgroundPosition: "0 0,0 10px,10px -10px,-10px 0",
+      backgroundSize: "20px 20px",
+    };
+  }
+  return { backgroundColor: theme === "light" ? "#eef2f7" : theme === "dark" ? "#090d14" : "#2b3039" };
+}
+
+function ResizeAdaptOverlay({
+  onClose,
+  onAdapt,
+}: {
+  onClose: () => void;
+  onAdapt: (profile: OutputProfile) => Promise<void>;
+}) {
+  const [query, setQuery] = useState("");
+  const [selectedId, setSelectedId] = useState("social-story");
+  const [working, setWorking] = useState(false);
+  const profiles = OUTPUT_PROFILES.filter((profile) => profile.id !== "tap-card-responsive" && (!query.trim() || `${profile.label} ${profile.class}`.toLowerCase().includes(query.toLowerCase())));
+  const selected = OUTPUT_PROFILES.find((profile) => profile.id === selectedId) || profiles[0];
+  return <div className="absolute inset-0 z-[1725] bg-black/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }} data-testid="resize-adapt-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="resize-adapt-title" className="ml-auto max-h-full w-[min(34rem,100%)] overflow-y-auto rounded-2xl border border-white/15 bg-[var(--studio-panel)] p-4 text-[var(--studio-text)] shadow-2xl" data-testid="resize-adapt-panel"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#74a800]">Related outputs</p><h2 id="resize-adapt-title" className="mt-1 text-lg font-semibold">Resize / Adapt</h2><p className="mt-1 text-xs opacity-60">Tap Card is governed and cannot be resized into a poster or social graphic. Copy & Adapt creates an editable related variation.</p></div><button type="button" className="grid h-10 w-10 place-items-center rounded border border-current/15" onClick={onClose} aria-label="Close Resize and Adapt"><X className="h-4 w-4" /></button></div><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search output profiles" className="mt-4 h-11 w-full rounded-lg border border-current/15 bg-transparent px-3 text-sm" /><div className="mt-4 space-y-4">{(["tapconnect", "social", "print", "screen"] as const).map((profileClass) => { const choices = profiles.filter((profile) => profile.class === profileClass); if (!choices.length) return null; return <section key={profileClass}><h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider opacity-55">{profileClass}</h3><div className="grid grid-cols-2 gap-2">{choices.map((profile) => <button type="button" key={profile.id} aria-pressed={selectedId === profile.id} className="min-h-20 rounded-lg border border-current/15 p-2 text-left aria-pressed:border-[#74a800] aria-pressed:bg-[#b8ff2c]/10" onClick={() => setSelectedId(profile.id)}><span className="block text-xs font-semibold">{profile.label}</span><span className="mt-1 block text-[9px] opacity-55">Registry {profile.version}{profile.dpi ? ` · ${profile.dpi} DPI` : ""}</span></button>)}</div></section>; })}</div><div className="sticky bottom-0 mt-5 rounded-xl border border-current/15 bg-[var(--studio-panel)] p-3"><p className="text-xs font-semibold">Page scope</p><p className="mt-1 text-[10px] opacity-60">Current governed Card page → one related output variation. Multi-page scopes become available in flyer, carousel, ticket-sheet, and other compatible document types.</p><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled className="min-h-11 rounded-lg border border-current/15 text-xs opacity-45" title="Tap Card current-document resize is prohibited">Resize current document</button><button type="button" disabled={!selected || working} className="min-h-11 rounded-lg bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a] disabled:opacity-45" onClick={async () => { if (!selected) return; setWorking(true); try { await onAdapt(selected); } finally { setWorking(false); } }} data-testid="copy-adapt-action">{working ? "Creating variation…" : "Copy & Adapt"}</button></div></div></section></div>;
 }

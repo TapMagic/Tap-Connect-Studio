@@ -369,6 +369,11 @@ export type TapConnectCardConfig = {
   version: 1 | 2 | 3;
   /** Human-readable creative-document label. Identity and public URLs remain ID-based. */
   documentName?: string;
+  /** View/output metadata for a related editable creative variation. Tap Card source stays governed. */
+  outputProfileId?: string;
+  relatedSourceDocumentId?: string;
+  adaptationMode?: "copy_adapt";
+  outputProfileRegistryVersion?: string;
   accentColor: string;
   surfaceColor: string;
   textColor: string;

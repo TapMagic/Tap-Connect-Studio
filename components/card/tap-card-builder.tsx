@@ -111,6 +111,15 @@ import {
   type CardSurfaceKind,
 } from "@/lib/fusion/card/composer-model";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import {
+  createSelectionRef,
+  type SelectionRef,
+} from "@/lib/fusion/creative-studio/selection-ref";
+import {
+  OUTPUT_PROFILES,
+  OUTPUT_PROFILE_REGISTRY_VERSION,
+} from "@/lib/fusion/creative-studio/output-profiles";
+import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 
 type CampaignLinkOption = {
   id: string;
@@ -144,6 +153,7 @@ export type CardBuilderShellApi = {
   restoreRecovery: () => void;
   discardRecovery: () => void;
   cloneDocument: () => Promise<boolean>;
+  adaptDocument: (profileId: string) => Promise<boolean>;
   switchDocument: (id: string) => Promise<boolean>;
   closeDocument: (id: string) => Promise<boolean>;
 };
@@ -390,6 +400,8 @@ export function TapCardBuilder({
   const [saving, setSaving] = useState(false);
   const [draftRevision, setDraftRevision] = useState(initialDraftRevision);
   const [activeDocumentId, setActiveDocumentId] = useState("main-card");
+  const selectionIdentityRef = useRef("");
+  const selectionGenerationRef = useRef(0);
   const [openDocuments, setOpenDocuments] = useState(initialOpenDocuments);
   const mainDocumentRef = useRef({ draft: initialConfig, revision: initialDraftRevision });
   const [message, setMessage] = useState<string | null>(null);
@@ -435,6 +447,31 @@ export function TapCardBuilder({
   const renderedPreviewZoom = interactionMode === "preview" ? "fit" : previewZoom;
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
   const selectedObject = resolveComposerSelectedObject(config, selectedId, selectedCompositionNodeIds);
+  const selectionIdentity = `${activeDocumentId}:${selectedObject.type}:${selectedObject.sectionId || "root"}:${selectedObject.id}`;
+  if (selectionIdentityRef.current !== selectionIdentity) {
+    selectionIdentityRef.current = selectionIdentity;
+    selectionGenerationRef.current += 1;
+  }
+  const selectionGeneration = selectionGenerationRef.current;
+  const selectionRef = createSelectionRef({
+    documentId: activeDocumentId,
+    pageId: "card-page",
+    revision: draftRevision,
+    objectKind:
+      selectedObject.type === "card"
+        ? "root_surface"
+        : selectedObject.type === "section"
+          ? "section"
+          : "element",
+    objectId: selectedObject.type === "card" ? "card-page" : selectedObject.id,
+    parentId:
+      selectedObject.type === "card"
+        ? null
+        : selectedObject.type === "section"
+          ? "card-page"
+          : selectedObject.sectionId || "card-page",
+    selectionGeneration,
+  });
   const cardEmptyReason = config.rootComposition?.nodes.length
     ? null
     : tapCardPreviewEmptyReason(sorted);
@@ -824,6 +861,36 @@ export function TapCardBuilder({
     setDirty(true);
   }
 
+  function patchSelection(
+    target: SelectionRef,
+    patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>,
+    label: string
+  ): boolean {
+    const current = selectionRef;
+    const matches =
+      target.documentId === current.documentId &&
+      target.pageId === current.pageId &&
+      target.revision === current.revision &&
+      target.objectKind === current.objectKind &&
+      target.objectId === current.objectId &&
+      target.parentId === current.parentId &&
+      target.selectionGeneration === current.selectionGeneration;
+    if (!matches) {
+      setMessage("That object is no longer selected. Reselect it and try again.");
+      return false;
+    }
+    if (current.objectKind === "element") {
+      patchCompositionNode(current.objectId, patch as Partial<CreativeCompositionNode>, label);
+      return true;
+    }
+    if (current.objectKind === "section") {
+      patchSection(current.objectId, patch as Partial<TapCardSection>, label);
+      return true;
+    }
+    setMessage("Select a Section or Element before changing object settings.");
+    return false;
+  }
+
   function linkCampaignToSection(sectionId: string, campaignId: string) {
     const campaign = campaigns.find((c) => c.id === campaignId);
     if (!campaign) return;
@@ -1076,6 +1143,12 @@ export function TapCardBuilder({
   }
 
   function addComposerElement(kind: CardElementKind, targetSectionId?: string, initialProps?: Record<string, unknown>) {
+    const mergeInitialProps = (node: CreativeCompositionNode) => {
+      let props = { ...node.props, ...initialProps };
+      if (kind === "button" && typeof initialProps?.label === "string") props = updateButtonLabel(props, initialProps.label, node.id);
+      if (kind === "button" && typeof initialProps?.icon === "string") props = updateButtonContentNode(props, "icon", { props: { icon: initialProps.icon } }, node.id);
+      return { ...node, props };
+    };
     const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface")
       ?? sorted.find((section) => section.id === selectedId && section.type === "surface");
     if (!target) {
@@ -1087,7 +1160,7 @@ export function TapCardBuilder({
           ...nextConfig,
           rootComposition: {
             ...root,
-            nodes: root.nodes.map((node) => node.id === addedId ? { ...node, props: { ...node.props, ...initialProps } } : node),
+            nodes: root.nodes.map((node) => node.id === addedId ? mergeInitialProps(node) : node),
           },
         };
       }
@@ -1121,7 +1194,7 @@ export function TapCardBuilder({
         ...next,
         composition: {
           ...next.composition,
-          nodes: next.composition.nodes.map((node) => node.id === addedId ? { ...node, props: { ...node.props, ...initialProps } } : node),
+          nodes: next.composition.nodes.map((node) => node.id === addedId ? mergeInitialProps(node) : node),
         },
       };
     }
@@ -1416,12 +1489,26 @@ export function TapCardBuilder({
     return true;
   }
 
-  async function cloneDocument(): Promise<boolean> {
+  async function cloneDocument(adaptProfileId?: string): Promise<boolean> {
     if (!(await save())) return false;
+    const profile = adaptProfileId
+      ? OUTPUT_PROFILES.find((candidate) => candidate.id === adaptProfileId)
+      : null;
+    const sourceName = configRef.current.documentName || `${businessName} Card`;
+    const draft = profile
+      ? {
+          ...structuredClone(configRef.current),
+          documentName: `${sourceName} — ${profile.label.split(" — ")[0]}`,
+          outputProfileId: profile.id,
+          relatedSourceDocumentId: activeDocumentId,
+          adaptationMode: "copy_adapt" as const,
+          outputProfileRegistryVersion: OUTPUT_PROFILE_REGISTRY_VERSION,
+        }
+      : configRef.current;
     const response = await fetch("/api/card/documents", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ draft: configRef.current }),
+      body: JSON.stringify({ ...(profile ? { name: draft.documentName } : {}), draft }),
     });
     if (!response.ok) {
       const data = await response.json().catch(() => ({}));
@@ -1439,7 +1526,9 @@ export function TapCardBuilder({
     setDirty(false);
     setSelectedId(null);
     setSelectedCompositionNodeIds([]);
-    setMessage(`${document.name} opened as an independent saved Card document.`);
+    setMessage(profile
+      ? `${document.name} opened as a related editable ${profile.label} variation. The Tap Card source is unchanged.`
+      : `${document.name} opened as an independent saved Card document.`);
     return true;
   }
 
@@ -1489,6 +1578,7 @@ export function TapCardBuilder({
         setRecovery({ state: "none" });
       },
       cloneDocument,
+      adaptDocument: (profileId) => cloneDocument(profileId),
       switchDocument,
       closeDocument,
     });
@@ -1649,6 +1739,15 @@ export function TapCardBuilder({
       return () => publishCardEditorLive(null);
     }
     publishCardEditorLive({
+      documentId: activeDocumentId,
+      pageId: "card-page",
+      revision: draftRevision,
+      selectionRef,
+      activeDocumentId,
+      documents: [
+        { id: "main-card", name: activeDocumentId === "main-card" ? (config.documentName || `${businessName} Card`) : (mainDocumentRef.current.draft.documentName || `${businessName} Card`), type: "MAIN_CARD" as const },
+        ...openDocuments.map((document) => ({ id: document.id, name: document.id === activeDocumentId ? (config.documentName || document.name) : document.name, type: "CARD_VARIATION" as const })),
+      ],
       config,
       selected,
       selectedObject,
@@ -1678,11 +1777,13 @@ export function TapCardBuilder({
       canRedo: canRedoEditor,
       onUndo: undoEditor,
       onRedo: redoEditor,
+      openDocument: switchDocument,
       onBrandStateChange: handleBrandStateChange,
       patchConfig,
       patchConfigColor,
       patchSection,
       patchCompositionNode,
+      patchSelection,
       onAddSection: (type) =>
         addSection(type as Exclude<TapCardSectionType, "action_row">),
       onAddAction: (kind) => {
@@ -1781,6 +1882,9 @@ export function TapCardBuilder({
     canUndoEditor,
     canRedoEditor,
     selectedCompositionNodeIds,
+    activeDocumentId,
+    draftRevision,
+    selectionGeneration,
   ]);
 
   return (

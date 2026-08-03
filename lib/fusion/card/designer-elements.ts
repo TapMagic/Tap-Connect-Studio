@@ -1,3 +1,5 @@
+import { createButtonContentComposition } from "@/lib/fusion/creative-studio/button-composition";
+
 export type ButtonPresentation =
   | "rectangle"
   | "rounded"
@@ -85,14 +87,16 @@ export const MAP_DISPLAY_MODES: ReadonlyArray<{ value: MapDisplayMode; label: st
   { value: "text_link", label: "Text link only" },
 ];
 
-export function buttonElementDefaults(actionType: ButtonActionType = "website"): Record<string, unknown> {
+export function buttonElementDefaults(actionType: ButtonActionType = "website", buttonId = "button"): Record<string, unknown> {
+  const label = actionType === "directions" ? "Get directions" : actionType === "call" ? "Call" : "Learn more";
+  const icon = actionType === "directions" ? "map-pin" : actionType === "call" ? "phone" : "arrow-up-right";
   return {
     elementKind: "button",
-    label: actionType === "directions" ? "Get directions" : actionType === "call" ? "Call" : "Learn more",
+    label,
     description: "",
     showLabel: true,
     showDescription: false,
-    icon: actionType === "directions" ? "map-pin" : actionType === "call" ? "phone" : "arrow-up-right",
+    icon,
     iconPosition: "before",
     iconSize: 22,
     iconColor: "#0b0f19",
@@ -133,6 +137,7 @@ export function buttonElementDefaults(actionType: ButtonActionType = "website"):
     motionPlay: "gentle_repeat",
     motionTrigger: "load",
     reducedMotionFallback: "none",
+    contentComposition: createButtonContentComposition({ buttonId, label, icon }),
   };
 }
 

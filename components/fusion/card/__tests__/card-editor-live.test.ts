@@ -10,6 +10,7 @@ import {
   type CardEditorLiveModel,
 } from "@/components/fusion/card/card-editor-live";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
+import { createSelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
 
 function baseConfig(): TapConnectCardConfig {
   return {
@@ -25,6 +26,12 @@ function stubModel(
 ): CardEditorLiveModel {
   const noop = () => undefined;
   return {
+    documentId: "card-1",
+    pageId: "card-page",
+    revision: 1,
+    selectionRef: createSelectionRef({ documentId: "card-1", pageId: "card-page", revision: 1, objectKind: "root_surface", objectId: "card-page", parentId: null, selectionGeneration: 1 }),
+    activeDocumentId: "card-1",
+    documents: [{ id: "card-1", name: "Demo Card", type: "MAIN_CARD" }],
     config: baseConfig(),
     selected: null,
     sorted: [],
@@ -48,11 +55,13 @@ function stubModel(
     canRedo: false,
     onUndo: noop,
     onRedo: noop,
+    openDocument: async () => true,
     onBrandStateChange: noop,
     patchConfig: noop,
     patchConfigColor: noop,
     patchSection: noop,
     patchCompositionNode: noop,
+    patchSelection: () => true,
     onAddSection: noop,
     onAddAction: noop,
     setSelectedId: noop,

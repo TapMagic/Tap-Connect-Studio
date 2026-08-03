@@ -36,6 +36,7 @@ import {
 import { buildButtonHref, buildMapHref, type MapElementProps } from "@/lib/fusion/card/designer-elements";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 import { copyCompositionNodes, copyCompositionNodeStyle, hasCompositionClipboard, hasCompositionStyleClipboard, pasteCompositionNodes, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
+import { buttonContent, buttonContentNode } from "@/lib/fusion/creative-studio/button-composition";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -820,6 +821,9 @@ function NodeVisual({
   }
 
   if (node.primitive === "button") {
+    const nestedLabel = buttonContentNode(node.props, "label", node.id);
+    const labelProps = nestedLabel?.props ?? node.props;
+    const labelValue = str(labelProps.text, str(node.props.label, "Button"));
     const presentation = str(node.props.presentation, "rounded");
     const showLabel = node.props.showLabel !== false && presentation !== "icon_circle";
     const showDescription = node.props.showDescription === true || presentation === "icon_description";
@@ -848,12 +852,12 @@ function NodeVisual({
       num(node.props.boxGlow, 0) ? `0 0 ${num(node.props.boxGlow, 18)}px ${str(node.props.glowColor, "#b8ff2c")}` : "",
     ].filter(Boolean).join(", ") || undefined;
     const labelStyle: CSSProperties = {
-      color: str(node.props.labelColor, str(node.props.textColor, "#0b0f19")),
-      fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
-      fontSize: num(node.props.fontSize, 14),
-      fontWeight: num(node.props.fontWeight, 600),
-      letterSpacing: `${num(node.props.letterSpacingEm, 0)}em`,
-      textTransform: str(node.props.textTransform, "none") as CSSProperties["textTransform"],
+      color: str(labelProps.color, str(node.props.labelColor, str(node.props.textColor, "#0b0f19"))),
+      fontFamily: str(labelProps.fontFamily, str(node.props.fontFamily, "Inter, system-ui, sans-serif")),
+      fontSize: num(labelProps.fontSize, num(node.props.fontSize, 14)),
+      fontWeight: num(labelProps.fontWeight, num(node.props.fontWeight, 600)),
+      letterSpacing: `${num(labelProps.letterSpacingEm, num(node.props.letterSpacingEm, 0))}em`,
+      textTransform: str(labelProps.textTransform, str(node.props.textTransform, "none")) as CSSProperties["textTransform"],
       transform: `translate(${num(node.props.labelOffsetX, 0)}px, ${num(node.props.labelOffsetY, 0)}px)`,
       textAlign: str(node.props.textAlign, "center") as CSSProperties["textAlign"],
       background: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
@@ -887,7 +891,7 @@ function NodeVisual({
       >
         {node.props.shine === true ? <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent" aria-hidden data-testid={`button-shine-${node.id}`} /> : null}
         {str(node.props.iconPosition, "before") === "before" ? <span style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
-        {!labelBelow && showLabel ? (node.props.contentEditing === true ? <InlineEditableText nodeId={node.id} value={str(node.props.label, "Button")} editing={Boolean(editMode && textEditing)} style={labelStyle} onCommit={onEditText} onFinish={onFinishTextEdit} /> : <span style={labelStyle}>{str(node.props.label, "Button")}</span>) : null}
+        {!labelBelow && showLabel ? (node.props.contentEditing === true ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={labelStyle} onCommit={onEditText} onFinish={onFinishTextEdit} /> : <span style={labelStyle}>{labelValue}</span>) : null}
         {str(node.props.iconPosition, "before") === "after" ? <span style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
       </span>
     );
@@ -909,11 +913,12 @@ function NodeVisual({
           gap: num(node.props.spacing, 6),
         }}
         tabIndex={editMode ? undefined : 0}
-        aria-label={str(node.props.accessibleLabel, str(node.props.label, "Button"))}
+        aria-label={str(node.props.accessibleLabel, labelValue)}
         data-button-presentation={presentation}
+        data-button-content-count={buttonContent(node.props, node.id).nodes.length}
       >
         {surface}
-        {labelBelow && showLabel ? <strong className="block" style={labelStyle}>{str(node.props.label, "Button")}</strong> : null}
+        {labelBelow && showLabel ? <strong className="block" style={labelStyle}>{labelValue}</strong> : null}
         {showDescription && str(node.props.description) ? <span className="block leading-snug" style={{ color: str(node.props.descriptionColor, "#cbd5e1"), fontSize: num(node.props.descriptionSize, 11) }}>{str(node.props.description)}</span> : null}
       </a>
     );
