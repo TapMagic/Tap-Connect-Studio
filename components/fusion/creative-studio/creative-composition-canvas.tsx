@@ -470,7 +470,7 @@ function NodeVisual({
           />
         ) : (
           <div className="flex h-full items-center justify-center text-[10px] text-white/80">
-            {editMode ? "Add image URL in inspector" : "Image"}
+            {editMode ? "Choose media from Assets" : "Image"}
           </div>
         )}
         {src && duotoneStrength > 0 ? (

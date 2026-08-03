@@ -145,7 +145,8 @@ export function AssetsLibrary({
 
   // Keep grid in sync when parent smart-view / collection filters change.
   useEffect(() => {
-    setAssets(initialAssets);
+    const timer = window.setTimeout(() => setAssets(initialAssets), 0);
+    return () => window.clearTimeout(timer);
   }, [initialAssets]);
 
   function toggleSelectedId(id: string) {

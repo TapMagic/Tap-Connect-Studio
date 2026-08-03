@@ -58,7 +58,7 @@ export function CardAdvancedSettingsOverlay({
         role="dialog"
         aria-modal="true"
         aria-labelledby="card-advanced-settings-title"
-        className="absolute left-[clamp(.75rem,22vw,22rem)] top-4 max-h-[calc(100%-2rem)] w-[min(28rem,calc(100%-1.5rem))] overflow-y-auto rounded-2xl border border-white/15 bg-[#0b1019] p-4 text-white shadow-2xl"
+        className="absolute inset-x-2 bottom-2 max-h-[72vh] overflow-y-auto rounded-2xl border border-white/15 bg-[#0b1019] p-4 text-white shadow-2xl md:inset-x-auto md:bottom-auto md:right-4 md:top-4 md:max-h-[calc(100%-2rem)] md:w-96"
         data-testid="card-advanced-settings"
         data-selection-document={selection.documentId}
         data-selection-page={selection.pageId}
@@ -135,4 +135,3 @@ function NumberField({
 }) {
   return <label className="text-[10px] text-white/65">{label}<input aria-label={label} type="number" min={min} max={max} value={value} onChange={(event) => onChange(Number(event.target.value))} className={fieldClass} /></label>;
 }
-

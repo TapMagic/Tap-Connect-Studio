@@ -204,15 +204,18 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "thumbnail") semanticProps.alt = "Product thumbnail";
   if (kind === "qr_image") semanticProps.alt = "QR code";
   if (kind === "icon") Object.assign(semanticProps, { icon: "sparkles", fill: "#b8ff2c", stroke: "#07100a", strokeWidth: 1.5, accessibleLabel: "Decorative icon", decorative: true });
-  if (kind === "badge") Object.assign(semanticProps, { text: "SALE", badgeShape: "pill", fill: "#ef4444", color: "#ffffff", fontSize: 18, fontWeight: 800, radius: 999, accessibleLabel: "Sale" });
+  if (kind === "badge") Object.assign(semanticProps, { text: "SALE", badgeShape: "pill", fill: "#b91c1c", color: "#ffffff", fontSize: 18, fontWeight: 800, radius: 999, accessibleLabel: "Sale" });
   if (kind === "button") Object.assign(semanticProps, buttonElementDefaults("website", node.id));
   if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
   const isCompactAction = kind === "button" || kind === "tapsave";
   const isMap = kind === "map";
+  const isBadge = kind === "badge";
+  const isLogo = kind === "logo" || kind === "secondary_logo";
+  const isThumbnail = kind === "thumbnail";
   return {
     ...node,
-    width: isMap ? 0.84 : isCompactAction ? 0.42 : node.width,
-    height: isMap ? 0.34 : isCompactAction ? 0.16 : node.height,
+    width: isMap ? 0.84 : isBadge ? 0.84 : isLogo || isThumbnail ? 0.42 : isCompactAction ? 0.42 : node.width,
+    height: isMap ? 0.34 : isBadge ? 0.12 : isLogo ? 0.18 : isThumbnail ? 0.3 : isCompactAction ? 0.16 : node.height,
     props: {
       ...node.props,
       ...semanticProps,

@@ -87,15 +87,10 @@ export function AdaptiveTaskDrawer({
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
-    if (!open) {
-      setEntered(false);
-      return;
-    }
-    // Enter once when the dock opens — keep position when switching tools.
-    setEntered(false);
     let raf2 = 0;
     const raf1 = requestAnimationFrame(() => {
-      raf2 = requestAnimationFrame(() => setEntered(true));
+      setEntered(false);
+      if (open) raf2 = requestAnimationFrame(() => setEntered(true));
     });
     return () => {
       cancelAnimationFrame(raf1);

@@ -98,9 +98,6 @@ export default async function PreviewCardPage({
   const updatedLabel = (() => {
     try {
       const d = new Date(record.updatedAt);
-      const mins = Math.round((Date.now() - d.getTime()) / 60_000);
-      if (mins < 1) return "Updated just now";
-      if (mins < 60) return `Updated ${mins} min ago`;
       return `Updated ${d.toLocaleString()}`;
     } catch {
       return "Updated recently";

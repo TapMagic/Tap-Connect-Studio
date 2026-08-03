@@ -3,8 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import {
-  BadgeCheck, Bot, Brush, FolderKanban, HelpCircle, Image as ImageIcon, Layers3,
-  LayoutTemplate, Library, MousePointer2, PanelLeft, Shapes, Type, Wrench,
+  ArrowDown, ArrowUp, BadgeCheck, Bot, Brush, Copy, Eye, EyeOff, FolderKanban, HelpCircle, Image as ImageIcon, Layers3,
+  LayoutTemplate, Library, Lock, MousePointer2, PanelLeft, Pencil, Shapes, Trash2, Type, Unlock, Wrench,
 } from "lucide-react";
 import { MediaPicker } from "@/components/media/media-picker";
 import { CardComposerLibrary } from "./card-composer-library";
@@ -25,6 +25,8 @@ import {
   saveReusableComposition,
 } from "@/lib/fusion/creative-studio/card-creative-system";
 import { cn } from "@/lib/utils";
+import { buttonContent } from "@/lib/fusion/creative-studio/button-composition";
+import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 
 export type CardCreativeTool = "templates" | "build" | "elements" | "buttons" | "text" | "brand" | "assets" | "backgrounds" | "projects" | "reusable" | "layers" | "ai" | "tools" | "help";
 
@@ -46,9 +48,9 @@ const TOOLS: Array<{ id: CardCreativeTool; label: string; icon: typeof PanelLeft
 ];
 
 export function CardCreativeToolRail({ model, activeTool, drawerOpen: controlledDrawerOpen, onActiveToolChange, onDrawerOpenChange }: { model: CardEditorLiveModel | null; activeTool?: CardCreativeTool; drawerOpen?: boolean; onActiveToolChange?: (tool: CardCreativeTool) => void; onDrawerOpenChange?: (open: boolean) => void }) {
-  const [localActive, setLocalActive] = useState<CardCreativeTool>("build");
+  const [localActive, setLocalActive] = useState<CardCreativeTool>(activeTool ?? "build");
   const [query, setQuery] = useState("");
-  const [localDrawerOpen, setLocalDrawerOpen] = useState(true);
+  const [localDrawerOpen, setLocalDrawerOpen] = useState(controlledDrawerOpen ?? true);
   const active = activeTool ?? localActive;
   const drawerOpen = controlledDrawerOpen ?? localDrawerOpen;
   const setActive = (tool: CardCreativeTool) => { setLocalActive(tool); onActiveToolChange?.(tool); };
@@ -74,20 +76,20 @@ export function CardCreativeToolRail({ model, activeTool, drawerOpen: controlled
           {!(["build", "help"] as CardCreativeTool[]).includes(active) ? <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeDefinition.label.toLowerCase()}`} className="mt-2 h-9 w-full rounded border border-white/10 bg-black/20 px-2 text-xs text-white" /> : null}
           <p className="mt-1 text-[9px] text-white/55">Card › {activeDefinition.label}</p>
         </header>
-        <div className="p-3"><CreativeDrawer tool={active} query={query} model={model} /></div>
+        <div className="p-3"><CreativeDrawer tool={active} query={query} model={model} onSelectTool={(tool) => { setActive(tool); setDrawerOpen(true); }} /></div>
       </section> : null}
     </div>
   );
 }
 
-function CreativeDrawer({ tool, query, model }: { tool: CardCreativeTool; query: string; model: CardEditorLiveModel | null }) {
+function CreativeDrawer({ tool, query, model, onSelectTool }: { tool: CardCreativeTool; query: string; model: CardEditorLiveModel | null; onSelectTool: (tool: CardCreativeTool) => void }) {
   if (!model) return <p className="text-xs text-white/55">Loading Card tools…</p>;
   const matches = (value: string) => !query.trim() || value.toLowerCase().includes(query.toLowerCase());
-  const targetSectionId = model.selected?.type === "surface" ? model.selected.id : undefined;
+  const targetSectionId = model.selected?.type === "surface" ? model.selected.id : null;
   const add = (kind: CardElementKind, props?: Record<string, unknown>) => model.onAddElement?.(kind, targetSectionId, props);
   if (tool === "build") return <CardComposerLibrary model={model} />;
   if (tool === "templates") return <div className="space-y-2" data-testid="card-template-library">{([ ["blank", "Blank Card", "Start with an empty root canvas"], ["brand", "Brand starter", "Use available Brand defaults"], ["template", "Essential Card", "Identity and customer actions"], ["clone", "Clone current Card", "Editable independent copy"] ] as const).filter((item) => matches(item[1])).map(([id, label, description]) => <LibraryAction key={id} label={label} description={description} onClick={() => model.onStartPoint?.(id)} />)}<h3 className="pt-3 text-[10px] font-semibold uppercase text-white/45">Section templates</h3>{CARD_SURFACE_LIBRARY.filter((item) => matches(item.label)).map((item) => <LibraryAction key={item.kind} label={item.label} description={item.description} onClick={() => model.onAddSurface?.(item.kind as CardSurfaceKind)} />)}</div>;
-  if (tool === "elements") return <div className="space-y-1" data-testid="card-elements-library">{CARD_ELEMENT_LIBRARY.filter((item) => !["text", "heading", "subheading", "business_name", "address", "hours", "terms"].includes(item.kind) && matches(item.label)).map((item) => <LibraryAction key={item.kind} label={item.label} description={item.description} onClick={() => add(item.kind as CardElementKind)} />)}<h3 className="pt-3 text-[10px] font-semibold uppercase text-white/45">Badges</h3><div className="grid grid-cols-2 gap-1" data-testid="card-badge-library">{BADGE_WORDING.filter(matches).map((word) => <button key={word} type="button" className="min-h-10 rounded-full border border-white/15 bg-red-500 px-2 text-[9px] font-black text-white" onClick={() => add("badge", { text: word, accessibleLabel: word })}>{word}</button>)}</div><h3 className="pt-3 text-[10px] font-semibold uppercase text-white/45">Icons</h3><div className="grid grid-cols-2 gap-1">{ICON_LIBRARY.filter((icon) => matches(`${icon.label} ${icon.category}`)).map((icon) => <button key={icon.id} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-[10px] text-white/75" onClick={() => add("icon", { icon: icon.id, accessibleLabel: icon.label, decorative: false })}>✦ {icon.label}<span className="block text-[8px] text-white/40">{icon.category}</span></button>)}</div></div>;
+  if (tool === "elements") return <div className="space-y-1" data-testid="card-elements-library">{CARD_ELEMENT_LIBRARY.filter((item) => !["text", "heading", "subheading", "business_name", "address", "hours", "terms"].includes(item.kind) && matches(item.label)).map((item) => <LibraryAction key={item.kind} label={item.label} description={item.kind === "image" ? "Open the shared visual media browser" : item.description} onClick={() => item.kind === "image" ? onSelectTool("assets") : add(item.kind as CardElementKind)} />)}<h3 className="pt-3 text-[10px] font-semibold uppercase text-white/45">Badges</h3><div className="grid grid-cols-2 gap-1" data-testid="card-badge-library">{BADGE_WORDING.filter(matches).map((word) => <button key={word} type="button" className="min-h-10 rounded-full border border-white/15 bg-[#b91c1c] px-2 text-[9px] font-black text-white" onClick={() => add("badge", { text: word, accessibleLabel: word })}>{word}</button>)}</div><h3 className="pt-3 text-[10px] font-semibold uppercase text-white/45">Icons</h3><div className="grid grid-cols-2 gap-1">{ICON_LIBRARY.filter((icon) => matches(`${icon.label} ${icon.category}`)).map((icon) => <button key={icon.id} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-[10px] text-white/75" onClick={() => add("icon", { icon: icon.id, accessibleLabel: icon.label, decorative: false })}>✦ {icon.label}<span className="block text-[8px] text-white/40">{icon.category}</span></button>)}</div></div>;
   if (tool === "buttons") return <ButtonLibrary add={add} matches={matches} />;
   if (tool === "text") return <div className="space-y-2" data-testid="card-text-library">{([ ["heading", "Add heading", { text: "Your headline", fontSize: 34, fontWeight: 800 }], ["subheading", "Add subheading", { text: "Supporting message", fontSize: 24, fontWeight: 700 }], ["text", "Add body text", { text: "Type your message", fontSize: 17, fontWeight: 400 }], ["text", "Curved text", { text: "CURVED HEADLINE", textCurve: "arch_up", fontSize: 26, fontWeight: 800 }], ["text", "Metallic text", { text: "METALLIC", gradientFill: "linear-gradient(120deg,#737b84,#f8fafc 45%,#8b949e)", materialPreset: "brushed_silver", fontSize: 28, fontWeight: 800 }] ] as const).filter((item) => matches(item[1])).map(([kind, label, props]) => <LibraryAction key={label} label={label} description="Editable text placed without a visible container" onClick={() => add(kind, props)} />)}<p className="pt-2 text-[10px] text-white/50">Select text to open the visual font picker, typography, curve, outline, shadow, glow, material, and motion controls.</p></div>;
   if (tool === "brand") return <BrandDrawer model={model} add={add} matches={matches} />;
@@ -95,7 +97,7 @@ function CreativeDrawer({ tool, query, model }: { tool: CardCreativeTool; query:
   if (tool === "backgrounds") return <BackgroundDrawer model={model} matches={matches} />;
   if (tool === "projects") return <ProjectsDrawer model={model} matches={matches} />;
   if (tool === "reusable") return <ReusableDrawer model={model} matches={matches} />;
-  if (tool === "layers") return <div className="space-y-1" data-testid="card-layers-drawer"><LayerButton active={!model.selected} label="Card root" onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); }} />{[...(model.config.rootComposition?.nodes ?? [])].sort((a, b) => b.zIndex - a.zIndex).map((node) => <LayerButton key={node.id} active={!model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id))} label={`↳ ${node.name || node.props.elementKind || node.primitive}`} onClick={(additive) => { model.setSelectedId(null); const current = !model.selected ? model.selectedCompositionNodeIds ?? [] : []; model.setSelectedCompositionNodeIds?.(additive ? (current.includes(node.id) ? current.filter((id) => id !== node.id) : [...current, node.id]) : [node.id]); }} />)}{model.sorted.map((section) => <div key={section.id}><LayerButton active={model.selected?.id === section.id && !model.selectedCompositionNodeIds?.length} label={section.label || section.type} onClick={() => { model.setSelectedId(section.id); model.setSelectedCompositionNodeIds?.([]); }} />{[...(section.composition?.nodes ?? [])].sort((a, b) => b.zIndex - a.zIndex).map((node) => <LayerButton key={node.id} active={Boolean(model.selectedCompositionNodeIds?.includes(node.id))} label={`↳ ${node.name || node.props.elementKind || node.primitive}`} onClick={(additive) => { const current = model.selected?.id === section.id ? model.selectedCompositionNodeIds ?? [] : []; model.setSelectedId(section.id); model.setSelectedCompositionNodeIds?.(additive ? (current.includes(node.id) ? current.filter((id) => id !== node.id) : [...current, node.id]) : [node.id]); }} />)}</div>)}</div>;
+  if (tool === "layers") return <LayersDrawer model={model} />;
   if (tool === "ai") return <AiAssistDrawer model={model} />;
   if (tool === "tools") return <QuickToolsDrawer model={model} add={add} />;
   return <div className="space-y-3 text-xs text-white/65" data-testid="card-creative-help"><p>The Card is the canvas. Add text, logos, media, icons, badges, and Buttons directly, or add a Section only when you want a shared surface or layout.</p><ol className="list-decimal space-y-2 pl-4"><li>Choose a tool and click an item to place it.</li><li>Select the object on canvas or in Layers.</li><li>Use its compact contextual toolbar and one focused drawer at a time. More → Advanced settings is optional.</li><li>Preview draft before Save and Publish.</li></ol><p>Keyboard: arrows nudge 1px; Shift+arrow nudges 10px; Shift-click selects multiple; Tab selects beneath in layer order.</p></div>;
@@ -173,4 +175,65 @@ function ReusableDrawer({ model, matches }: { model: CardEditorLiveModel; matche
 }
 
 function LibraryAction({ label, description, onClick }: { label: string; description: string; onClick: () => void }) { return <button type="button" onClick={onClick} className="block min-h-12 w-full rounded border border-white/10 px-2 py-2 text-left hover:bg-white/5"><span className="block text-xs text-white/80">{label}</span><span className="block text-[9px] text-white/45">{description}</span></button>; }
+function LayersDrawer({ model }: { model: CardEditorLiveModel }) {
+  const selectNode = (parentId: string | null, nodeId: string, additive: boolean) => {
+    const sameParent = (parentId === null && !model.selected) || model.selected?.id === parentId;
+    const current = sameParent ? model.selectedCompositionNodeIds ?? [] : [];
+    model.setSelectedId(parentId);
+    model.setSelectedCompositionNodeIds?.(
+      additive
+        ? (current.includes(nodeId) ? current.filter((id) => id !== nodeId) : [...current, nodeId])
+        : [nodeId]
+    );
+  };
+  const rootNodes = [...ensureRootComposition(model.config).nodes].sort((a, b) => b.zIndex - a.zIndex);
+  return <div className="space-y-2" data-testid="card-layers-drawer">
+    <p className="text-[9px] text-white/45">Authoritative object tree · topmost layer first · Shift-click for multi-select</p>
+    <div className="rounded-md border border-white/10 p-1" data-layer-container="card-root">
+      <LayerButton active={!model.selected && !(model.selectedCompositionNodeIds?.length)} label="Card root" onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); }} />
+      {rootNodes.map((node) => <LayerObjectRow key={node.id} model={model} node={node} parentId={null} active={!model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id))} onSelect={selectNode} />)}
+    </div>
+    {model.sorted.map((section) => <div key={section.id} className="rounded-md border border-white/10 p-1" data-layer-container={section.id}>
+      <div className="flex items-center gap-1">
+        <LayerButton active={model.selected?.id === section.id && !model.selectedCompositionNodeIds?.length} label={section.label || section.type} onClick={() => { model.setSelectedId(section.id); model.setSelectedCompositionNodeIds?.([]); }} />
+        <LayerIconButton label={section.enabled === false ? "Show Section" : "Hide Section"} onClick={() => model.toggleSectionVisible(section.id)}>{section.enabled === false ? <EyeOff /> : <Eye />}</LayerIconButton>
+        <LayerIconButton label={section.locked ? "Unlock Section" : "Lock Section"} onClick={() => model.toggleSectionLocked(section.id)}>{section.locked ? <Lock /> : <Unlock />}</LayerIconButton>
+        <LayerIconButton label="Duplicate Section" onClick={() => model.duplicateSection(section.id)}><Copy /></LayerIconButton>
+        <LayerIconButton label="Delete Section" onClick={() => model.deleteSection(section.id)} danger><Trash2 /></LayerIconButton>
+      </div>
+      {[...(section.composition?.nodes ?? [])].sort((a, b) => b.zIndex - a.zIndex).map((node) => <LayerObjectRow key={node.id} model={model} node={node} parentId={section.id} active={model.selected?.id === section.id && Boolean(model.selectedCompositionNodeIds?.includes(node.id))} onSelect={selectNode} />)}
+    </div>)}
+  </div>;
+}
+
+function LayerObjectRow({ model, node, parentId, active, onSelect }: { model: CardEditorLiveModel; node: CreativeCompositionNode; parentId: string | null; active: boolean; onSelect: (parentId: string | null, nodeId: string, additive: boolean) => void }) {
+  const nested = node.primitive === "button" ? buttonContent(node.props, node.id).nodes : [];
+  const label = node.name || String(node.props.elementKind || node.primitive);
+  const [renaming, setRenaming] = useState(false);
+  const [draftName, setDraftName] = useState(label);
+  const commitName = () => {
+    const next = draftName.trim();
+    if (next && next !== label) model.patchCompositionNode(node.id, { name: next }, `Renamed ${label}`);
+    else setDraftName(label);
+    setRenaming(false);
+  };
+  return <div className="ml-2" data-layer-object-id={node.id}>
+    <div className={cn("flex items-center gap-0.5 rounded", active ? "bg-[#b8ff2c]/10 text-[#b8ff2c]" : "text-white/65 hover:bg-white/5")}>
+      {renaming ? <input autoFocus aria-label={`Rename ${label}`} value={draftName} className="h-8 min-w-0 flex-1 rounded border border-[#b8ff2c]/50 bg-black/30 px-2 text-[10px]" onChange={(event) => setDraftName(event.target.value)} onBlur={commitName} onKeyDown={(event) => { if (event.key === "Enter") commitName(); if (event.key === "Escape") { setDraftName(label); setRenaming(false); } }} /> : <button type="button" aria-pressed={active} className="min-h-9 min-w-0 flex-1 truncate px-2 text-left text-[10px]" onDoubleClick={() => setRenaming(true)} onClick={(event) => onSelect(parentId, node.id, event.shiftKey || event.metaKey || event.ctrlKey)}>{label}</button>}
+      <LayerIconButton label={node.visible === false ? `Show ${label}` : `Hide ${label}`} onClick={() => model.patchCompositionNode(node.id, { visible: node.visible === false }, `${node.visible === false ? "Showed" : "Hid"} ${label}`)}>{node.visible === false ? <EyeOff /> : <Eye />}</LayerIconButton>
+      <LayerIconButton label={node.locked ? `Unlock ${label}` : `Lock ${label}`} onClick={() => model.patchCompositionNode(node.id, { locked: !node.locked }, `${node.locked ? "Unlocked" : "Locked"} ${label}`)}>{node.locked ? <Lock /> : <Unlock />}</LayerIconButton>
+      <LayerIconButton label={`Rename ${label}`} onClick={() => setRenaming(true)}><Pencil /></LayerIconButton>
+      <LayerIconButton label={`Move ${label} forward`} onClick={() => model.patchCompositionNode(node.id, { zIndex: node.zIndex + 1 }, `Moved ${label} forward`)}><ArrowUp /></LayerIconButton>
+      <LayerIconButton label={`Move ${label} backward`} onClick={() => model.patchCompositionNode(node.id, { zIndex: Math.max(0, node.zIndex - 1) }, `Moved ${label} backward`)}><ArrowDown /></LayerIconButton>
+      <LayerIconButton label={`Duplicate ${label}`} onClick={() => model.duplicateElements?.([node.id], parentId)}><Copy /></LayerIconButton>
+      <LayerIconButton label={`Delete ${label}`} onClick={() => model.deleteElements?.([node.id], parentId)} danger><Trash2 /></LayerIconButton>
+    </div>
+    {nested.length ? <div className="mb-1 ml-3 border-l border-white/10 pl-1" data-nested-composition={node.id}>{nested.map((child) => <button key={child.id} type="button" className="block min-h-7 w-full truncate rounded px-2 text-left text-[9px] text-white/45 hover:bg-white/5 hover:text-white/75" data-nested-object-id={child.id} onClick={() => { onSelect(parentId, node.id, false); model.patchCompositionNode(node.id, { props: { ...node.props, contentEditing: true, activeButtonContentNodeId: child.id } }, `Selected ${child.name || child.props.buttonContentRole || "Button content"}`); }}>↳ {child.name || String(child.props.buttonContentRole || child.primitive)}</button>)}</div> : null}
+  </div>;
+}
+
+function LayerIconButton({ label, onClick, danger = false, children }: { label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }) {
+  return <button type="button" aria-label={label} title={label} className={cn("grid h-8 w-7 shrink-0 place-items-center rounded hover:bg-white/10 [&_svg]:h-3 [&_svg]:w-3", danger && "text-red-300")} onClick={(event) => { event.stopPropagation(); onClick(); }}>{children}</button>;
+}
+
 function LayerButton({ label, active, onClick }: { label: string; active: boolean; onClick: (additive: boolean) => void }) { return <button type="button" aria-pressed={active} className={cn("min-h-9 w-full truncate rounded px-2 text-left text-[10px]", active ? "bg-[#b8ff2c]/10 text-[#b8ff2c]" : "text-white/65 hover:bg-white/5")} onClick={(event) => onClick(event.shiftKey || event.metaKey || event.ctrlKey)}>{String(label)}</button>; }

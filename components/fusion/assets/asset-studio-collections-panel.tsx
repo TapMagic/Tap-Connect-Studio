@@ -71,7 +71,8 @@ export function AssetStudioCollectionsPanel({
   }, []);
 
   useEffect(() => {
-    void reload();
+    const timer = window.setTimeout(() => void reload(), 0);
+    return () => window.clearTimeout(timer);
   }, [reload]);
 
   async function create() {

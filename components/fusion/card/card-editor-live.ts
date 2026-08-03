@@ -94,12 +94,14 @@ export type CardEditorLiveModel = {
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
   onAddSurface?: (kind: CardSurfaceKind) => void;
-  onAddElement?: (kind: CardElementKind, targetSectionId?: string, initialProps?: Record<string, unknown>) => void;
+  onAddElement?: (kind: CardElementKind, targetSectionId: string | null, initialProps?: Record<string, unknown>) => void;
   moveElementsTo?: (
     ids: string[],
     fromSectionId: string | null,
     toSectionId: string | null
   ) => void;
+  duplicateElements?: (ids: string[], parentId: string | null) => void;
+  deleteElements?: (ids: string[], parentId: string | null) => void;
   wrapElements?: (
     ids: string[],
     fromSectionId: string | null,

@@ -214,7 +214,10 @@ export function CardAuthoringWorkspace({
   >("root");
   const [creativeTool, setCreativeTool] = useState<CardCreativeTool>("build");
   const [creativeDrawerOpen, setCreativeDrawerOpen] = useState(true);
-  const [advancedSettingsOpen, setAdvancedSettingsOpen] = useState(false);
+  const [advancedSettingsContext, setAdvancedSettingsContext] = useState<{
+    creativeTool: CardCreativeTool;
+    selectionGeneration: number;
+  } | null>(null);
   const [resizeAdaptOpen, setResizeAdaptOpen] = useState(false);
   const [editorPreferences, setEditorPreferences] = useState<EditorPreferences>(DEFAULT_EDITOR_PREFERENCES);
   const [systemDark, setSystemDark] = useState(true);
@@ -348,8 +351,19 @@ export function CardAuthoringWorkspace({
     getCardEditorLive,
     getCardEditorLive
   );
+  const selectionGeneration = liveModel?.selectionRef.selectionGeneration ?? 0;
+  const advancedSettingsOpen =
+    studioMode === "edit" &&
+    advancedSettingsContext?.creativeTool === creativeTool &&
+    advancedSettingsContext.selectionGeneration === selectionGeneration;
+  const setAdvancedSettingsOpen = (open: boolean) => {
+    setAdvancedSettingsContext(
+      open ? { creativeTool, selectionGeneration } : null
+    );
+  };
 
   const enterPreview = useCallback(() => {
+    setAdvancedSettingsContext(null);
     setEditSelectionMemory(status.selectedId);
     setStudioMode("preview");
     setShell((s) => ({ ...s, drawerOpen: false, focusMode: true }));
@@ -504,7 +518,11 @@ export function CardAuthoringWorkspace({
   const activeToolId = shell.selectedToolId;
   const recommendedDrawerMode = CARD_DRAWER_DEFAULT_MODE;
 
-  const outline = <CardCreativeToolRail model={liveModel} activeTool={creativeTool} drawerOpen={creativeDrawerOpen} onActiveToolChange={setCreativeTool} onDrawerOpenChange={setCreativeDrawerOpen} />;
+  const selectCreativeTool = (tool: CardCreativeTool) => {
+    setAdvancedSettingsContext(null);
+    setCreativeTool(tool);
+  };
+  const outline = <CardCreativeToolRail model={liveModel} activeTool={creativeTool} drawerOpen={creativeDrawerOpen} onActiveToolChange={selectCreativeTool} onDrawerOpenChange={setCreativeDrawerOpen} />;
 
   const mobileToolRail = (
     <div
@@ -516,7 +534,7 @@ export function CardAuthoringWorkspace({
           key={tool.id}
           type="button"
           data-testid={`card-mobile-tool-${tool.id}`}
-          onClick={() => { setCreativeTool(tool.id); setCreativeDrawerOpen(true); }}
+          onClick={() => { selectCreativeTool(tool.id); setCreativeDrawerOpen(true); }}
           className={cn(
             "min-h-11 shrink-0 rounded-md px-3 text-xs",
             creativeTool === tool.id && creativeDrawerOpen
@@ -723,6 +741,7 @@ export function CardAuthoringWorkspace({
     <div
       className="creative-studio-editor relative flex h-full min-h-0 flex-col overflow-hidden bg-[var(--studio-chrome)] text-[var(--studio-text)]"
       data-testid="card-edit-workspace-host"
+      data-builder-ready={builderReady ? "true" : "false"}
       data-escape-authoring="true"
       data-adaptive-shell="v1"
       data-shell-consumer="card-authoring"

@@ -12,7 +12,7 @@ import { ensureFontLoaded } from "@/lib/fusion/creative-studio/fonts/load";
 import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 import { bringForward, bringToFront, duplicateNodes, sendBackward, sendToBack, type CreativeCompositionBlock, type CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 
-type Focus = "content" | "font" | "color" | "effects" | "animate" | "position" | "button-surface" | "button-content" | "button-action" | "button-styles" | null;
+type Focus = "content" | "font" | "color" | "surface" | "media" | "effects" | "animate" | "position" | "button-surface" | "button-content" | "button-action" | "button-styles" | null;
 type SectionFocus = "size" | "surface" | "layout" | "position" | null;
 
 const fieldClass = "mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2 text-xs text-white";
@@ -41,7 +41,7 @@ function SectionContextualToolbar({ model, onAdvanced }: { model: CardEditorLive
     const bottom = (section.composition?.nodes ?? []).reduce((max, node) => Math.max(max, (node.y + node.height) * plane), 0);
     patch({ surfaceMinHeightPx: Math.max(32, Math.ceil(bottom + padding * 2)), surfaceExactHeightPx: undefined, surfaceHeightMode: "auto" }, "Fit Section to content");
   };
-  return <div className="pointer-events-none absolute left-1/2 top-[9.5rem] z-[1550] -translate-x-1/2" data-testid="card-contextual-object-tools" data-contextual-object="section">
+  return <div className="pointer-events-none absolute inset-x-0 top-[9.5rem] z-[1550] flex flex-col items-center" data-testid="card-contextual-object-tools" data-contextual-object="section">
     <div className="pointer-events-auto flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-[#0b1019]/95 p-1.5 text-white shadow-2xl backdrop-blur">
       <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#b8ff2c]">Section</span>
       <input aria-label="Section name" value={section.label || ""} onChange={(event) => patch({ label: event.target.value }, "Renamed Section")} className="h-9 w-32 rounded border border-white/15 bg-transparent px-2 text-xs" />
@@ -55,7 +55,7 @@ function SectionContextualToolbar({ model, onAdvanced }: { model: CardEditorLive
       <button type="button" className="min-h-9 rounded px-2 text-xs text-red-200 hover:bg-white/10" onClick={() => model.deleteSection(section.id)}>Delete</button>
       <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={() => { setFocus(null); onAdvanced(); }} aria-label="More, Advanced settings"><MoreHorizontal className="h-4 w-4" /></button>
     </div>
-    {focus ? <section className="pointer-events-auto mx-auto mt-2 max-h-[min(34rem,62vh)] w-[min(24rem,calc(100vw-2rem))] overflow-auto rounded-xl border border-white/15 bg-[#0b1019] p-3 text-white shadow-2xl" data-testid={`contextual-section-${focus}-drawer`}>
+    {focus ? <section className="pointer-events-auto fixed inset-x-2 bottom-2 max-h-[68vh] overflow-auto rounded-xl border border-white/15 bg-[#0b1019] p-3 text-white shadow-2xl md:inset-x-auto md:bottom-auto md:right-4 md:top-[13rem] md:max-h-[calc(100vh-14rem)] md:w-96" data-testid={`contextual-section-${focus}-drawer`}>
       <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold">Section {focus}</h2><button type="button" className="grid h-8 w-8 place-items-center rounded hover:bg-white/10" onClick={() => setFocus(null)} aria-label={`Close Section ${focus}`}><X className="h-4 w-4" /></button></div>
       {focus === "size" ? <div className="grid grid-cols-2 gap-2">
         <label className="text-[10px] text-white/65">Height behavior<select aria-label="Section height behavior" value={section.surfaceHeightMode || "fixed"} onChange={(event) => patch({ surfaceHeightMode: event.target.value as typeof section.surfaceHeightMode, surfaceExactHeightPx: event.target.value === "fixed" ? section.surfaceExactHeightPx ?? section.surfaceMinHeightPx ?? 260 : undefined }, "Changed Section height behavior")} className={fieldClass}><option value="auto">Auto</option><option value="fixed">Fixed</option></select></label>
@@ -95,6 +95,9 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const { node, block, section } = selected;
   const isText = node.primitive === "text";
   const isButton = node.primitive === "button";
+  const isImage = node.primitive === "image" || node.primitive === "frame";
+  const isBadge = String(node.props.elementKind || "") === "badge";
+  const isTextLike = isText || isBadge;
   const replace = (next: CreativeCompositionBlock, label: string) => {
     if (section) model.patchSection(section.id, { composition: next }, label);
     else model.patchConfig({ rootComposition: next }, label);
@@ -126,7 +129,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
     model.patchConfig({ buttonStylePresets: [...(model.config.buttonStylePresets ?? []), preset] }, `Saved Button style ${preset.name}`);
   };
 
-  return <div className="pointer-events-none absolute left-1/2 top-[9.5rem] z-[1550] -translate-x-1/2" data-testid="card-contextual-object-tools">
+  return <div className="pointer-events-none absolute inset-x-0 top-[9.5rem] z-[1550] flex flex-col items-center" data-testid="card-contextual-object-tools">
     <div className="pointer-events-auto flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-[#0b1019]/95 p-1.5 text-white shadow-2xl backdrop-blur">
       {isButton ? <>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-surface")} data-testid="contextual-button-surface">Button surface</button>
@@ -134,7 +137,8 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-action")} data-testid="contextual-button-action">Action</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-button-motion">Motion</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-styles")} data-testid="contextual-button-styles">Styles</button>
-      </> : isText ? <>
+      </> : isTextLike ? <>
+        {isBadge ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("surface")} data-testid="contextual-surface">Surface</button> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("content")} data-testid="contextual-content">Content</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("font")} data-testid="contextual-font">{String(node.props.fontFamily || "Font").split(",")[0]}</button>
         <input aria-label="Font size" type="number" min={6} max={320} value={Number(node.props.fontSize || 18)} onChange={(event) => patchProps({ fontSize: Number(event.target.value) }, "Changed text size")} className="h-9 w-16 rounded border border-white/15 bg-transparent px-2 text-xs" data-testid="contextual-font-size" />
@@ -143,6 +147,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         <button type="button" aria-pressed={node.props.underline === true} className="h-9 w-9 rounded underline hover:bg-white/10" onClick={() => patchProps({ underline: node.props.underline !== true }, "Changed text underline")}>U</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("color")} data-testid="contextual-color">Color</button>
       </> : null}
+      {isImage ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace media" : "Choose media"}</button> : null}
       {!isButton ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("effects")} data-testid="contextual-effects">Effects</button>
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Animate</button></> : null}
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("position")} data-testid="contextual-position">Position</button>
@@ -150,9 +155,11 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       <button type="button" className="grid h-9 w-9 place-items-center rounded text-red-200 hover:bg-white/10" onClick={remove} aria-label="Delete"><Trash2 className="h-4 w-4" /></button>
       <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={() => { setFocus(null); onAdvanced(); }} aria-label="More, Advanced settings"><MoreHorizontal className="h-4 w-4" /></button>
     </div>
-    {focus ? <section className="pointer-events-auto mx-auto mt-2 max-h-[min(32rem,60vh)] w-[min(22rem,calc(100vw-2rem))] overflow-auto rounded-xl border border-white/15 bg-[#0b1019] p-3 text-white shadow-2xl" data-testid={`contextual-${focus}-drawer`}>
+    {focus ? <section className="pointer-events-auto fixed inset-x-2 bottom-2 max-h-[68vh] overflow-auto rounded-xl border border-white/15 bg-[#0b1019] p-3 text-white shadow-2xl md:inset-x-auto md:bottom-auto md:right-4 md:top-[13rem] md:max-h-[calc(100vh-14rem)] md:w-[22rem]" data-testid={`contextual-${focus}-drawer`}>
       <div className="mb-3 flex items-center justify-between"><h2 className="text-sm font-semibold capitalize">{focus}</h2><button type="button" className="grid h-8 w-8 place-items-center rounded hover:bg-white/10" onClick={() => setFocus(null)} aria-label={`Close ${focus}`}><X className="h-4 w-4" /></button></div>
       {focus === "content" ? <label className="block text-xs text-white/70">Text<textarea autoFocus value={String(node.props.text || "")} onChange={(event) => patchProps({ text: event.target.value }, "Edited Element content")} className="mt-2 min-h-24 w-full resize-y rounded border border-white/15 bg-transparent p-3 text-sm text-white" data-testid="contextual-content-input" /></label> : null}
+      {focus === "surface" ? <div className="grid grid-cols-2 gap-2" data-testid="element-surface-controls"><label className="text-[10px] text-white/65">Fill<input aria-label="Element fill" type="color" value={String(node.props.fill || "#ef4444")} onChange={(event) => patchProps({ fill: event.target.value }, "Changed Element fill")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Stroke<input aria-label="Element stroke" type="color" value={String(node.props.stroke || "#ffffff")} onChange={(event) => patchProps({ stroke: event.target.value }, "Changed Element stroke")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Stroke width<input aria-label="Element stroke width" type="number" min={0} max={24} value={Number(node.props.strokeWidth || 0)} onChange={(event) => patchProps({ strokeWidth: Number(event.target.value) }, "Changed Element stroke width")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Corner radius<input aria-label="Element corner radius" type="number" min={0} max={999} value={Number(node.props.radius || 999)} onChange={(event) => patchProps({ radius: Number(event.target.value) }, "Changed Element corner radius")} className={fieldClass} /></label><label className="col-span-2 text-[10px] text-white/65">Opacity<input aria-label="Element opacity" type="range" min={0} max={100} value={Math.round(Number(node.props.opacity ?? 1) * 100)} onChange={(event) => patchProps({ opacity: Number(event.target.value) / 100 }, "Changed Element opacity")} className={fieldClass} /></label></div> : null}
+      {focus === "media" ? <div className="space-y-3" data-testid="element-media-controls"><p className="text-[10px] text-white/55">Choose from Uploads, Brand, Recent, Favorites, Pexels, Logo.dev, or an Advanced URL in the shared media browser.</p><MediaPicker label={String(node.props.src || node.props.mediaSrc || "") ? "Replace selected media" : "Choose media"} value={String(node.primitive === "frame" ? node.props.mediaSrc || "" : node.props.src || "")} mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(value) => patchProps(node.primitive === "frame" ? { mediaSrc: value, sourceMode: "ASSET" } : { src: value, sourceMode: "ASSET" }, node.primitive === "frame" ? "Changed Frame media" : "Changed Image media")} /><label className="block text-[10px] text-white/65">Alternative text<input aria-label="Image alternative text" value={String(node.props.alt || "")} onChange={(event) => patchProps({ alt: event.target.value, decorative: false }, "Changed image alternative text")} className={fieldClass} /></label><label className="flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={node.props.decorative === true} onChange={(event) => patchProps({ decorative: event.target.checked, alt: event.target.checked ? "" : node.props.alt }, event.target.checked ? "Marked image decorative" : "Marked image informative")} />Decorative image</label></div> : null}
       {focus === "font" ? <><input value={fontQuery} onChange={(event) => setFontQuery(event.target.value)} placeholder="Search 70+ fonts" className="mb-2 h-10 w-full rounded border border-white/15 bg-transparent px-3 text-xs" data-testid="contextual-font-search" /><div className="grid grid-cols-2 gap-1">{fonts.map((font) => <button key={font.id} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-sm hover:border-[#b8ff2c]/50" style={{ fontFamily: fontCssStack(font) }} onPointerEnter={() => void ensureFontLoaded(font.id)} onFocus={() => void ensureFontLoaded(font.id)} onClick={() => { void ensureFontLoaded(font.id); patchProps({ fontFamily: fontCssStack(font) }, `Changed font to ${font.family}`); }}>{font.family}<span className="block text-[9px] opacity-55">{font.category}</span></button>)}</div></> : null}
       {focus === "button-surface" ? <div className="space-y-3" data-testid="button-surface-controls">
         <div><p className="mb-1 text-[10px] font-semibold uppercase text-white/50">Surface</p><div className="grid grid-cols-3 gap-1">{(["transparent", "solid", "gradient", "image", "pattern", "texture"] as const).map((kind) => <button key={kind} type="button" aria-pressed={String(node.props.buttonSurfaceKind || "solid") === kind} className={buttonClass} onClick={() => patchProps({ buttonSurfaceKind: kind }, `Changed Button surface to ${kind}`)}>{kind}</button>)}</div></div>

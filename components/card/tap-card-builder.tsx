@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Columns2,
@@ -99,10 +99,7 @@ import {
 } from "@/lib/fusion/card/block-model";
 import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import {
-  addElementToCardRoot,
-  addElementToSurface,
   createCardSurface,
-  ensureRootComposition,
   moveCardElements,
   removeSectionKeepElements,
   resolveComposerSelectedObject,
@@ -110,6 +107,7 @@ import {
   type CardElementKind,
   type CardSurfaceKind,
 } from "@/lib/fusion/card/composer-model";
+import { deleteObject, duplicateObject, insertObject } from "@/lib/fusion/card/object-kernel";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import {
   createSelectionRef,
@@ -119,7 +117,6 @@ import {
   OUTPUT_PROFILES,
   OUTPUT_PROFILE_REGISTRY_VERSION,
 } from "@/lib/fusion/creative-studio/output-profiles";
-import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 
 type CampaignLinkOption = {
   id: string;
@@ -435,7 +432,7 @@ export function TapCardBuilder({
   );
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
-  const editorInstanceIdRef = useRef(`editor-${nanoid(8)}`);
+  const editorInstanceId = `editor-${useId().replaceAll(":", "")}`;
   const configRef = useRef(config);
   const draftRevisionRef = useRef(draftRevision);
   const savePromiseRef = useRef<Promise<boolean> | null>(null);
@@ -447,7 +444,16 @@ export function TapCardBuilder({
   const renderedPreviewZoom = interactionMode === "preview" ? "fit" : previewZoom;
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
   const selectedObject = resolveComposerSelectedObject(config, selectedId, selectedCompositionNodeIds);
-  const selectionIdentity = `${activeDocumentId}:${selectedObject.type}:${selectedObject.sectionId || "root"}:${selectedObject.id}`;
+  const selectedCompositionNode = selectedObject.type === "element"
+    ? (selectedObject.sectionId
+        ? sorted.find((section) => section.id === selectedObject.sectionId)?.composition?.nodes
+        : config.rootComposition?.nodes
+      )?.find((node) => node.id === selectedObject.id) ?? null
+    : null;
+  const activeChildId = typeof selectedCompositionNode?.props.activeButtonContentNodeId === "string"
+    ? selectedCompositionNode.props.activeButtonContentNodeId
+    : null;
+  const selectionIdentity = `${activeDocumentId}:${selectedObject.type}:${selectedObject.sectionId || "root"}:${selectedObject.id}:${activeChildId || "self"}`;
   if (selectionIdentityRef.current !== selectionIdentity) {
     selectionIdentityRef.current = selectionIdentity;
     selectionGenerationRef.current += 1;
@@ -470,6 +476,7 @@ export function TapCardBuilder({
         : selectedObject.type === "section"
           ? "card-page"
           : selectedObject.sectionId || "card-page",
+    childPath: activeChildId ? [activeChildId] : [],
     selectionGeneration,
   });
   const cardEmptyReason = config.rootComposition?.nodes.length
@@ -1142,72 +1149,17 @@ export function TapCardBuilder({
     setSelectedCompositionNodeIds([]);
   }
 
-  function addComposerElement(kind: CardElementKind, targetSectionId?: string, initialProps?: Record<string, unknown>) {
-    const mergeInitialProps = (node: CreativeCompositionNode) => {
-      let props = { ...node.props, ...initialProps };
-      if (kind === "button" && typeof initialProps?.label === "string") props = updateButtonLabel(props, initialProps.label, node.id);
-      if (kind === "button" && typeof initialProps?.icon === "string") props = updateButtonContentNode(props, "icon", { props: { icon: initialProps.icon } }, node.id);
-      return { ...node, props };
-    };
-    const target = sorted.find((section) => section.id === targetSectionId && section.type === "surface")
-      ?? sorted.find((section) => section.id === selectedId && section.type === "surface");
-    if (!target) {
-      let nextConfig = addElementToCardRoot(config, kind);
-      const root = ensureRootComposition(nextConfig);
-      const addedId = root.nodes.at(-1)?.id;
-      if (addedId && initialProps) {
-        nextConfig = {
-          ...nextConfig,
-          rootComposition: {
-            ...root,
-            nodes: root.nodes.map((node) => node.id === addedId ? mergeInitialProps(node) : node),
-          },
-        };
-      }
-      if (kind === "map" && addedId) {
-        const location = locations.find((item) => item.isDefault) || locations[0];
-        if (location) {
-          const activeRoot = ensureRootComposition(nextConfig);
-          nextConfig = {
-            ...nextConfig,
-            rootComposition: {
-              ...activeRoot,
-              nodes: activeRoot.nodes.map((node) => node.id === addedId ? {
-                ...node,
-                props: { ...node.props, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" },
-              } : node),
-            },
-          };
-        }
-      }
-      setConfigHistory(nextConfig, { label: `Added ${kind} to Card root` });
-      setDirty(true);
-      setSelectedId(null);
-      if (addedId) setSelectedCompositionNodeIds([addedId]);
-      setMessage(`Added ${kind} directly to the Card root. No Section was created.`);
-      return;
-    }
-    let next = addElementToSurface(target, kind);
-    if (initialProps && next.composition) {
-      const addedId = next.composition.nodes.at(-1)?.id;
-      next = {
-        ...next,
-        composition: {
-          ...next.composition,
-          nodes: next.composition.nodes.map((node) => node.id === addedId ? mergeInitialProps(node) : node),
-        },
-      };
-    }
-    if (kind === "map") {
-      const location = locations.find((item) => item.isDefault) || locations[0];
-      if (location && next.composition) {
-        const addedId = next.composition.nodes.at(-1)?.id;
-        next = { ...next, composition: { ...next.composition, nodes: next.composition.nodes.map((node) => node.id === addedId ? { ...node, props: { ...node.props, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" } } : node) } };
-      }
-    }
-    setSections(sorted.map((section) => section.id === target.id ? next : section), true, `Added ${kind} to ${target.label}`);
-    setSelectedId(target.id);
-    setSelectedCompositionNodeIds([next.composition!.nodes.at(-1)!.id]);
+  function addComposerElement(kind: CardElementKind, targetSectionId: string | null, initialProps?: Record<string, unknown>) {
+    const location = kind === "map" ? (locations.find((item) => item.isDefault) || locations[0]) : null;
+    const props = location
+      ? { ...initialProps, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" }
+      : initialProps;
+    const result = insertObject({ config, parentId: targetSectionId, kind, initialProps: props });
+    const addedId = result.objectIds[0];
+    setConfigHistory(result.config, { label: `Added ${kind} to ${targetSectionId ? "Section" : "Card root"}` });
+    setDirty(true);
+    setSelectedId(targetSectionId);
+    setSelectedCompositionNodeIds(addedId ? [addedId] : []);
   }
 
   function moveComposerElement(elementId: string, targetSectionId: string | null) {
@@ -1220,6 +1172,24 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(targetSectionId);
     setSelectedCompositionNodeIds([elementId]);
+  }
+
+  function duplicateComposerElements(elementIds: string[], parentId: string | null) {
+    const result = duplicateObject(config, parentId, elementIds);
+    if (!result.objectIds.length) return;
+    setConfigHistory(result.config, { label: `Duplicated ${result.objectIds.length} Element${result.objectIds.length === 1 ? "" : "s"}` });
+    setDirty(true);
+    setSelectedId(parentId);
+    setSelectedCompositionNodeIds(result.objectIds);
+  }
+
+  function deleteComposerElements(elementIds: string[], parentId: string | null) {
+    const result = deleteObject(config, parentId, elementIds);
+    if (result.config === config) return;
+    setConfigHistory(result.config, { label: `Deleted ${elementIds.length} Element${elementIds.length === 1 ? "" : "s"}` });
+    setDirty(true);
+    setSelectedId(parentId);
+    setSelectedCompositionNodeIds([]);
   }
 
   function addAction() {
@@ -1799,6 +1769,8 @@ export function TapCardBuilder({
         setSelectedId(toSectionId);
         setSelectedCompositionNodeIds(ids);
       },
+      duplicateElements: duplicateComposerElements,
+      deleteElements: deleteComposerElements,
       wrapElements: (ids, fromSectionId, kind) => {
         const wrapped = wrapCardElementsInSection(config, ids, fromSectionId, kind);
         setConfigHistory(wrapped.config, { label: "Wrapped Elements in Section" });
@@ -1898,7 +1870,7 @@ export function TapCardBuilder({
             : "max-lg:h-auto max-lg:min-h-[100dvh] max-lg:overflow-y-auto"
       )}
       data-testid="tap-card-builder"
-      data-instance-id={editorInstanceIdRef.current}
+      data-instance-id={editorInstanceId}
       data-workspace-mode={workspaceMode ? "true" : "false"}
       data-escape-mode={escapeMode ? "true" : "false"}
       data-shell-hosted={shellHosted ? "true" : "false"}
@@ -2980,7 +2952,7 @@ export function TapCardBuilder({
               {zoomToolbarCollapsed ? "View controls" : "Hide"}
             </Button>
           </div> : null}
-          <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceIdRef.current}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => { if (!previewPan && !spacePan) return; const viewport = previewScrollRef.current; if (!viewport) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId }; }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
+          <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceId}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => { if (!previewPan && !spacePan) return; const viewport = previewScrollRef.current; if (!viewport) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId }; }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
             <div
               className={cn(
                 "builder-phone builder-phone-natural origin-top",
@@ -2992,7 +2964,7 @@ export function TapCardBuilder({
                   : { transform: `scale(${renderedPreviewZoom})`, marginBottom: `${(Number(renderedPreviewZoom) - 1) * 40}%` }
               }
               data-testid="card-preview-phone"
-              data-instance-id={`${editorInstanceIdRef.current}-card`}
+              data-instance-id={`${editorInstanceId}-card`}
               data-zoom={renderedPreviewZoom === "fit" ? "fit" : String(renderedPreviewZoom)}
             >
               <div className="builder-phone-notch" />
@@ -3048,7 +3020,7 @@ export function TapCardBuilder({
                     interactionMode === "edit"
                       ? (payload, sectionId) => {
                           if (payload.level === "section") addComposerSurface(payload.kind as CardSurfaceKind);
-                          else addComposerElement(payload.kind as CardElementKind, sectionId);
+                          else addComposerElement(payload.kind as CardElementKind, sectionId ?? null);
                         }
                       : undefined
                   }

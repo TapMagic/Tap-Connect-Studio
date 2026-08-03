@@ -33,8 +33,8 @@ export function AssetStudioWorkspace({
 
   useEffect(() => {
     if (!collectionId) {
-      setCollectionMemberIds(new Set());
-      return;
+      const timer = window.setTimeout(() => setCollectionMemberIds(new Set()), 0);
+      return () => window.clearTimeout(timer);
     }
     void fetch(`/api/media/collections/${collectionId}/members`)
       .then((r) => r.json())

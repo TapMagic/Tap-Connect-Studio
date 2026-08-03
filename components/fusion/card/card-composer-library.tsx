@@ -64,7 +64,7 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
             description={item.description}
             level="element"
             kind={item.kind}
-            onAdd={() => model?.onAddElement?.(item.kind as CardElementKind, model.selected?.type === "surface" ? model.selected.id : undefined)}
+            onAdd={() => model?.onAddElement?.(item.kind as CardElementKind, model.selected?.type === "surface" ? model.selected.id : null)}
           />
         ))}
       </LibraryGroup>
