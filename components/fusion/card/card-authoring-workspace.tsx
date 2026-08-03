@@ -29,7 +29,7 @@ import {
   type OpenCardCreativeDocument,
 } from "@/components/card/tap-card-builder";
 import { CardLiveToolDrawer } from "@/components/fusion/card/card-live-tool-drawer";
-import { CardCreativeToolRail } from "@/components/fusion/card/card-creative-tool-rail";
+import { CardCreativeToolRail, type CardCreativeTool } from "@/components/fusion/card/card-creative-tool-rail";
 import { CardComposerInspector } from "@/components/fusion/card/card-composer-inspector";
 import { CardContextualObjectToolbar } from "@/components/fusion/card/card-contextual-object-toolbar";
 import { PreviewToolbar } from "@/components/fusion/creative-studio/preview-toolbar";
@@ -209,6 +209,8 @@ export function CardAuthoringWorkspace({
   const [appearanceEntryLevel, setAppearanceEntryLevel] = useState<
     "root" | "colors" | "brand" | "layout" | "segment"
   >("root");
+  const [creativeTool, setCreativeTool] = useState<CardCreativeTool>("build");
+  const [creativeDrawerOpen, setCreativeDrawerOpen] = useState(true);
   const [editSelectionMemory, setEditSelectionMemory] = useState<string | null>(
     null
   );
@@ -472,7 +474,7 @@ export function CardAuthoringWorkspace({
   const activeToolId = shell.selectedToolId;
   const recommendedDrawerMode = CARD_INSPECTOR_DEFAULT_MODE;
 
-  const outline = <CardCreativeToolRail model={liveModel} />;
+  const outline = <CardCreativeToolRail model={liveModel} activeTool={creativeTool} drawerOpen={creativeDrawerOpen} onActiveToolChange={setCreativeTool} onDrawerOpenChange={setCreativeDrawerOpen} />;
 
   const mobileToolRail = (
     <div
@@ -655,11 +657,20 @@ export function CardAuthoringWorkspace({
         <button type="button" className="hidden min-h-10 items-center rounded-md border border-white/15 px-3 text-xs sm:inline-flex" onClick={() => void apiRef.current?.save()} disabled={status.saving} data-testid="card-save"><Save className="mr-1 h-4 w-4" />Save now</button>
         <button type="button" className="hidden min-h-10 items-center rounded-md border border-white/15 px-3 text-xs lg:inline-flex" onClick={() => void apiRef.current?.cloneDocument()} data-testid="card-clone"><Copy className="mr-1 h-4 w-4" />Clone</button>
         <button type="button" className="hidden min-h-10 rounded-md border border-white/15 px-3 text-xs lg:block" disabled={!status.canPublish} onClick={() => void apiRef.current?.publish()} data-testid="card-publish">{status.publicationLabel === "Not published" ? "Publish" : "Update"}</button>
-        <button type="button" className="grid min-h-10 min-w-10 place-items-center rounded-md border border-white/15" onClick={() => void requestExit()} aria-label="Exit Edit Mode" data-testid="card-exit-edit-mode"><X className="h-4 w-4" /></button>
+        <button type="button" className="inline-flex min-h-10 items-center justify-center rounded-md border border-white/15 px-3 text-xs" onClick={() => void requestExit()} aria-label="Exit Edit Mode" title="Exit Edit Mode" data-testid="card-exit-edit-mode"><X className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Exit Edit Mode</span></button>
+        <details className="relative hidden xl:block" data-testid="card-overflow-menu">
+          <summary className="grid min-h-10 min-w-10 cursor-pointer list-none place-items-center rounded-md border border-white/15 px-2 text-xs text-white/80" aria-label="More Card actions">•••</summary>
+          <div className="absolute right-0 top-full z-[1600] mt-1 grid min-w-52 gap-1 rounded-lg border border-white/15 bg-[#090e18] p-2 shadow-2xl">
+            <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" onClick={() => openCardTool("history")}>History</button>
+            <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" aria-pressed={previewMotion} data-testid="card-preview-motion" onClick={() => setPreviewMotion((active) => !active)}>{previewMotion ? "Stop motion preview" : "Preview motion"}</button>
+            <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" data-testid="card-restart-motion" onClick={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }}>Restart animation</button>
+            <label className="flex min-h-9 items-center gap-2 rounded-md px-2 text-xs text-white/80 hover:bg-white/5"><input type="checkbox" checked={reducedMotionSimulation} onChange={(event) => setReducedMotionSimulation(event.target.checked)} data-testid="card-reduced-motion-simulation" />Simulate reduced motion</label>
+          </div>
+        </details>
       </div>
-      <div className="flex h-9 items-end gap-1 overflow-x-auto border-t border-white/5 px-3" role="tablist" aria-label="Open creative documents" data-testid="creative-document-tabs">
+      <div className="flex h-9 items-end gap-1 overflow-x-auto border-t border-white/5 px-3" role="toolbar" aria-label="Open creative documents" data-testid="creative-document-tabs">
         {status.openDocuments.map((document) => <div key={document.id} className="group relative flex h-8 min-w-40 items-center rounded-t-md border border-b-0 border-white/15" data-testid={`creative-document-tab-${document.id}`} onContextMenu={(event) => { event.preventDefault(); setTabMenuId(document.id); }}>
-          <button type="button" role="tab" aria-selected={document.id === status.activeDocumentId} className={cn("flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-xs", document.id === status.activeDocumentId ? "bg-[#111827] text-white" : "text-white/55 hover:bg-white/5")} onClick={() => { setTabMenuId(null); void apiRef.current?.switchDocument(document.id); }}><span className="max-w-36 truncate">{document.name}</span><span className="text-[8px] uppercase opacity-45">{document.type === "MAIN_CARD" ? "Card" : "Variation"}</span>{document.dirty ? <span className="h-1.5 w-1.5 rounded-full bg-amber-300" aria-label="Unsaved" /> : null}</button>
+          <button type="button" aria-pressed={document.id === status.activeDocumentId} aria-label={`${document.name}, ${document.type === "MAIN_CARD" ? "Card" : "Variation"}${document.dirty ? ", unsaved" : ", saved"}`} title={document.name} className={cn("flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-xs", document.id === status.activeDocumentId ? "min-w-56 bg-[#111827] text-white" : "text-white/70 hover:bg-white/5")} onClick={() => { setTabMenuId(null); void apiRef.current?.switchDocument(document.id); }}><span className={cn("truncate", document.id === status.activeDocumentId ? "max-w-52" : "max-w-36")}>{document.name}</span><span className="text-[8px] uppercase text-white/70">{document.type === "MAIN_CARD" ? "Card" : "Variation"}</span>{document.dirty ? <span className="h-1.5 w-1.5 rounded-full bg-amber-300" aria-label="Unsaved" /> : null}</button>
           {document.id !== "main-card" ? <button type="button" className="grid h-full w-8 place-items-center text-white/45 hover:text-white" onClick={() => void apiRef.current?.closeDocument(document.id)} aria-label={`Close ${document.name}`}>×</button> : null}
           {tabMenuId === document.id ? <div role="menu" className="absolute left-2 top-full z-[1600] mt-1 grid min-w-40 rounded-lg border border-white/15 bg-[#0b1019] p-1 shadow-2xl" data-testid="creative-document-tab-menu"><button role="menuitem" type="button" className="rounded px-2 py-2 text-left text-xs hover:bg-white/5" onClick={async () => { await apiRef.current?.switchDocument(document.id); setTabMenuId(null); window.setTimeout(() => window.document.getElementById("card-document-name")?.focus(), 0); }}>Rename</button><button role="menuitem" type="button" className="rounded px-2 py-2 text-left text-xs hover:bg-white/5" onClick={async () => { await apiRef.current?.switchDocument(document.id); await apiRef.current?.cloneDocument(); setTabMenuId(null); }}>Duplicate</button>{document.id !== "main-card" ? <button role="menuitem" type="button" className="rounded px-2 py-2 text-left text-xs hover:bg-white/5" onClick={() => { void apiRef.current?.closeDocument(document.id); setTabMenuId(null); }}>Close tab</button> : null}</div> : null}
         </div>)}
@@ -776,7 +787,7 @@ export function CardAuthoringWorkspace({
         canvas={
           <div
             className={cn(
-              "card-edit-pasteboard flex h-full min-h-0 w-full justify-center overflow-auto bg-[#151a22]",
+              "card-edit-pasteboard mx-auto flex h-full min-h-0 w-full justify-center overflow-auto bg-[#151a22]",
               previewViewport !== "desktop" && "overflow-y-auto py-4"
             )}
             data-testid="card-canvas-viewport"

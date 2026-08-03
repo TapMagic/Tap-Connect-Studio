@@ -26,9 +26,9 @@ import {
 } from "@/lib/fusion/creative-studio/card-creative-system";
 import { cn } from "@/lib/utils";
 
-type CreativeTool = "templates" | "build" | "elements" | "text" | "brand" | "assets" | "backgrounds" | "reusable" | "layers" | "help";
+export type CardCreativeTool = "templates" | "build" | "elements" | "text" | "brand" | "assets" | "backgrounds" | "reusable" | "layers" | "help";
 
-const TOOLS: Array<{ id: CreativeTool; label: string; icon: typeof PanelLeft }> = [
+const TOOLS: Array<{ id: CardCreativeTool; label: string; icon: typeof PanelLeft }> = [
   { id: "templates", label: "Templates", icon: LayoutTemplate },
   { id: "build", label: "Build", icon: PanelLeft },
   { id: "elements", label: "Elements", icon: Shapes },
@@ -41,10 +41,18 @@ const TOOLS: Array<{ id: CreativeTool; label: string; icon: typeof PanelLeft }> 
   { id: "help", label: "Help", icon: HelpCircle },
 ];
 
-export function CardCreativeToolRail({ model }: { model: CardEditorLiveModel | null }) {
-  const [active, setActive] = useState<CreativeTool>("build");
+export function CardCreativeToolRail({ model, activeTool, drawerOpen: controlledDrawerOpen, onActiveToolChange, onDrawerOpenChange }: { model: CardEditorLiveModel | null; activeTool?: CardCreativeTool; drawerOpen?: boolean; onActiveToolChange?: (tool: CardCreativeTool) => void; onDrawerOpenChange?: (open: boolean) => void }) {
+  const [localActive, setLocalActive] = useState<CardCreativeTool>("build");
   const [query, setQuery] = useState("");
-  const [drawerOpen, setDrawerOpen] = useState(true);
+  const [localDrawerOpen, setLocalDrawerOpen] = useState(true);
+  const active = activeTool ?? localActive;
+  const drawerOpen = controlledDrawerOpen ?? localDrawerOpen;
+  const setActive = (tool: CardCreativeTool) => { setLocalActive(tool); onActiveToolChange?.(tool); };
+  const setDrawerOpen = (open: boolean | ((current: boolean) => boolean)) => {
+    const next = typeof open === "function" ? open(drawerOpen) : open;
+    setLocalDrawerOpen(next);
+    onDrawerOpenChange?.(next);
+  };
   const activeDefinition = TOOLS.find((tool) => tool.id === active)!;
   const Icon = activeDefinition.icon;
   return (
@@ -53,13 +61,13 @@ export function CardCreativeToolRail({ model }: { model: CardEditorLiveModel | n
         {TOOLS.map((tool) => {
           const ToolIcon = tool.icon;
           const selected = drawerOpen && active === tool.id;
-          return <button key={tool.id} type="button" aria-pressed={selected} aria-label={tool.label} data-testid={`card-creative-tool-${tool.id}`} className={cn("flex min-h-[58px] w-full flex-col items-center justify-center gap-1 px-1 text-[9px]", selected ? "bg-white/10 text-[#b8ff2c]" : "text-white/60 hover:bg-white/5 hover:text-white")} onClick={() => { if (active === tool.id) setDrawerOpen((open) => !open); else { setActive(tool.id); setDrawerOpen(true); } }}><ToolIcon className="h-4 w-4" aria-hidden /><span>{tool.label}</span></button>;
+          return <button key={tool.id} type="button" aria-pressed={selected} aria-label={tool.label} data-testid={`card-creative-tool-${tool.id}`} className={cn("flex min-h-[58px] w-full flex-col items-center justify-center gap-1 px-1 text-[9px]", selected ? "bg-white/10 text-[#b8ff2c]" : "text-white/60 hover:bg-white/5 hover:text-white")} onClick={() => { setActive(tool.id); setDrawerOpen(true); }}><ToolIcon className="h-4 w-4" aria-hidden /><span>{tool.label}</span></button>;
         })}
       </nav>
       {drawerOpen ? <section className="min-w-0 flex-1 overflow-y-auto" aria-label={`${activeDefinition.label} drawer`} data-testid="card-creative-context-drawer" data-creative-tool={active}>
         <header className="sticky top-0 z-10 border-b border-white/10 bg-[#090e18]/95 p-3 backdrop-blur">
           <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Icon className="h-4 w-4 text-[#b8ff2c]" /><h2 className="text-xs font-semibold text-white">{activeDefinition.label}</h2></div><button type="button" aria-label="Close creative drawer" className="h-8 w-8 rounded text-white/60 hover:bg-white/5" onClick={() => setDrawerOpen(false)}>×</button></div>
-          {!(["build", "help"] as CreativeTool[]).includes(active) ? <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeDefinition.label.toLowerCase()}`} className="mt-2 h-9 w-full rounded border border-white/10 bg-black/20 px-2 text-xs text-white" /> : null}
+          {!(["build", "help"] as CardCreativeTool[]).includes(active) ? <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeDefinition.label.toLowerCase()}`} className="mt-2 h-9 w-full rounded border border-white/10 bg-black/20 px-2 text-xs text-white" /> : null}
           <p className="mt-1 text-[9px] text-white/55">Card › {activeDefinition.label}</p>
         </header>
         <div className="p-3"><CreativeDrawer tool={active} query={query} model={model} /></div>
@@ -68,7 +76,7 @@ export function CardCreativeToolRail({ model }: { model: CardEditorLiveModel | n
   );
 }
 
-function CreativeDrawer({ tool, query, model }: { tool: CreativeTool; query: string; model: CardEditorLiveModel | null }) {
+function CreativeDrawer({ tool, query, model }: { tool: CardCreativeTool; query: string; model: CardEditorLiveModel | null }) {
   if (!model) return <p className="text-xs text-white/55">Loading Card tools…</p>;
   const matches = (value: string) => !query.trim() || value.toLowerCase().includes(query.toLowerCase());
   const targetSectionId = model.selected?.type === "surface" ? model.selected.id : undefined;
@@ -94,7 +102,11 @@ function BrandDrawer({ model, add, matches }: { model: CardEditorLiveModel; add:
 function BackgroundDrawer({ model, matches }: { model: CardEditorLiveModel; matches: (value: string) => boolean }) {
   const root = ensureRootComposition(model.config);
   const setBackground = (background: typeof root.background, label: string) => model.patchConfig({ rootComposition: { ...root, background } }, label);
-  return <div className="space-y-3" data-testid="card-background-library"><h3 className="text-[10px] font-semibold uppercase text-white/45">Solid</h3><div className="grid grid-cols-4 gap-1">{[model.config.surfaceColor, model.config.accentColor, "#020617", "#f8fafc"].map((color) => <button key={color} type="button" className="aspect-square rounded border border-white/15" style={{ background: color }} aria-label={`Background ${color}`} onClick={() => setBackground({ kind: "solid", value: color }, "Changed Card root solid background")} />)}</div><h3 className="text-[10px] font-semibold uppercase text-white/45">Gradients</h3>{GRADIENT_PRESETS.filter((preset) => matches(preset.label)).map((preset) => <LibraryAction key={preset.id} label={preset.label} description="Editable gradient" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(preset.gradient) }, `Applied ${preset.label} gradient`)} />)}<h3 className="text-[10px] font-semibold uppercase text-white/45">Patterns and textures</h3>{SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).slice(0, 12).map((pattern) => <LibraryAction key={pattern.id} label={pattern.label} description={pattern.category} onClick={() => setBackground({ kind: pattern.kind, pattern: { version: 1, id: pattern.id, kind: pattern.kind, scale: 1, rotation: 45, opacity: .18, foreground: model.config.accentColor, background: model.config.surfaceColor, blendMode: "normal" } }, `Applied ${pattern.label} ${pattern.kind}`)} />)}<button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setBackground({ kind: "none" }, "Removed Card root background")}>Transparent</button><button type="button" className="sr-only" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(DEFAULT_GRADIENT) }, "Applied default gradient")}>Default gradient</button></div>;
+  const setImageBackground = (src: string) => {
+    if (!src) return;
+    setBackground({ kind: "image", image: { src, fallbackUrl: src, fit: "cover", focalX: .5, focalY: .5, scale: 1, repeat: "no-repeat", blur: 0, brightness: 1, contrast: 1, overlayColor: "#000000", overlayOpacity: .2, blendMode: "normal", decorative: true } }, "Changed Card root image background");
+  };
+  return <div className="space-y-3" data-testid="card-background-library"><h3 className="text-[10px] font-semibold uppercase text-white/45">Solid</h3><div className="grid grid-cols-4 gap-1">{[model.config.surfaceColor, model.config.accentColor, "#020617", "#f8fafc"].map((color) => <button key={color} type="button" className="aspect-square rounded border border-white/15" style={{ background: color }} aria-label={`Background ${color}`} onClick={() => setBackground({ kind: "solid", value: color }, "Changed Card root solid background")} />)}</div><h3 className="text-[10px] font-semibold uppercase text-white/45">Gradients</h3>{GRADIENT_PRESETS.filter((preset) => matches(preset.label)).map((preset) => <LibraryAction key={preset.id} label={preset.label} description="Editable gradient" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(preset.gradient) }, `Applied ${preset.label} gradient`)} />)}<h3 className="text-[10px] font-semibold uppercase text-white/45">Image</h3><MediaPicker label="Choose background image" value={root.background?.kind === "image" ? root.background.image?.src || "" : ""} mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={setImageBackground} /><button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setImageBackground(model.strInherited("logoUrl") || model.logoUrl || "/tap-connect-logo.png")}>Use primary Brand image as background</button><h3 className="text-[10px] font-semibold uppercase text-white/45">Patterns and textures</h3>{SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).slice(0, 12).map((pattern) => <LibraryAction key={pattern.id} label={pattern.label} description={pattern.category} onClick={() => setBackground({ kind: pattern.kind, pattern: { version: 1, id: pattern.id, kind: pattern.kind, scale: 1, rotation: 45, opacity: .18, foreground: model.config.accentColor, background: model.config.surfaceColor, blendMode: "normal" } }, `Applied ${pattern.label} ${pattern.kind}`)} />)}<button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setBackground({ kind: "none" }, "Removed Card root background")}>Transparent</button><button type="button" className="sr-only" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(DEFAULT_GRADIENT) }, "Applied default gradient")}>Default gradient</button></div>;
 }
 
 function ReusableDrawer({ model, matches }: { model: CardEditorLiveModel; matches: (value: string) => boolean }) {

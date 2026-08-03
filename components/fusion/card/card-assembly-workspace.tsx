@@ -298,7 +298,7 @@ export function CardAssemblyWorkspace({
               Open editor ↗
             </Link>
           </div>
-          <div className="mx-auto max-h-[min(70vh,640px)] max-w-[360px] overflow-y-auto rounded-[1.5rem] border border-white/10 bg-[#1a1a1a] p-3">
+          <div className="mx-auto max-h-[min(70vh,640px)] max-w-[360px] overflow-y-auto rounded-[1.5rem] border border-white/10 bg-[#1a1a1a] p-3" role="region" aria-label="Card preview" tabIndex={0}>
             <TapConnectCard
               config={config}
               profile={profile}
