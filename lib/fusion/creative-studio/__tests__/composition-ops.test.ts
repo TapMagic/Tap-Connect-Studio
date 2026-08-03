@@ -109,6 +109,16 @@ describe("creative composition operations", () => {
     assert.deepEqual(order, ["top", "bottom"]);
   });
 
+  it("preserves off-Card geometry so edit can expose it and preview can clip it", () => {
+    const node = createCompositionNode("text", { id: "off-card", x: -0.25, y: 1.1, width: 0.3, height: 0.12 });
+    const preview = resolveNodeBox(node);
+    const edit = resolveNodeBox(node, true);
+    assert.equal(preview.left, -0.25);
+    assert.equal(preview.top, 1.1);
+    assert.equal(edit.left, -0.25);
+    assert.equal(edit.top, 1.1);
+  });
+
   it("applies mobile fallback only when explicitly forced", () => {
     assert.equal(
       compositionAppliesMobileFallback({ editMode: true, forceMobileFallback: true }),
