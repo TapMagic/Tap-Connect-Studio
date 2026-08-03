@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import Link from "next/link";
 import {
   ExternalLink,
@@ -22,9 +24,11 @@ import type { CampaignWhereUsedHit } from "@/lib/fusion/studio/where-used";
 import type { OfferCampaignCandidate } from "@/components/fusion/card/card-offer-wire-panel";
 import type { KnowledgeFact } from "@/lib/fusion/autopilot/knowledge-fact";
 import { cn } from "@/lib/utils";
+import { normalizeCreativeDocumentName } from "@/lib/fusion/creative-studio/document-naming";
 
 export type CardAssemblyWorkspaceProps = {
   config: TapConnectCardConfig;
+  draftRevision: number;
   profile: BrandContactProfile;
   businessName: string;
   logoUrl?: string | null;
@@ -61,7 +65,8 @@ export type CardAssemblyWorkspaceProps = {
  * what needs attention. Editing happens on /dashboard/card/edit.
  */
 export function CardAssemblyWorkspace({
-  config,
+  config: initialConfig,
+  draftRevision: initialDraftRevision,
   profile,
   businessName,
   logoUrl,
@@ -90,7 +95,28 @@ export function CardAssemblyWorkspace({
   keepCardAvailable = true,
   autopilotFacts = [],
 }: CardAssemblyWorkspaceProps) {
+  const [config, setConfig] = useState(initialConfig);
+  const [draftRevision, setDraftRevision] = useState(initialDraftRevision);
+  const [nameDraft, setNameDraft] = useState(initialConfig.documentName || `${businessName} Card`);
+  const [nameState, setNameState] = useState<"saved" | "saving" | "failed">("saved");
   const retired = config.lifecycleStatus === "retired";
+  const saveName = async () => {
+    const documentName = normalizeCreativeDocumentName(nameDraft) || config.documentName || `${businessName} Card`;
+    setNameDraft(documentName);
+    if (documentName === config.documentName) return;
+    setNameState("saving");
+    const next = { ...config, documentName };
+    try {
+      const response = await fetch("/api/card/draft", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ draft: next, expectedRevision: draftRevision }) });
+      if (!response.ok) throw new Error("rename failed");
+      const result = await response.json() as { revision: number };
+      setConfig(next);
+      setDraftRevision(result.revision);
+      setNameState("saved");
+    } catch {
+      setNameState("failed");
+    }
+  };
 
   return (
     <div
@@ -110,9 +136,10 @@ export function CardAssemblyWorkspace({
           >
             {showAutopilotOutcome ? "Autopilot · Card offer" : "Card assembly"}
           </p>
-          <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white">
-            Your Tap Card hub
-          </h1>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <input value={nameDraft} maxLength={120} onChange={(event) => setNameDraft(event.target.value)} onBlur={() => void saveName()} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} aria-label="Card name" className="min-w-[16rem] rounded-md border border-transparent bg-transparent px-1 text-2xl font-semibold tracking-tight text-white outline-none hover:border-white/15 focus:border-primary/60" data-testid="card-operations-name" />
+            <span className="text-[10px] text-white/50" role="status" data-testid="card-operations-name-state">{nameState === "saving" ? "Saving…" : nameState === "failed" ? "Rename failed — try again" : "Tap Card"}</span>
+          </div>
           <p className="mt-1 max-w-xl text-sm text-white/60">
             See what customers see, what is connected, and what needs attention. Edit the Card
             in the full-screen workspace — this page stays the assembly view.

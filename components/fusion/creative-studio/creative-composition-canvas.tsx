@@ -13,11 +13,13 @@ import {
   duplicateNodes,
   expandSelectionToGroups,
   frameMaskPath,
+  groupNodes,
   resolveNodeBox,
   sendBackward,
   sendToBack,
   sortCompositionNodes,
-  translateNodes,
+  translateNodesOnPasteboard,
+  ungroupNodes,
   type CreativeCompositionBlock,
   type CreativeCompositionNode,
   type FrameMaskId,
@@ -33,6 +35,7 @@ import {
 } from "@/lib/fusion/creative-studio/composition-snap";
 import { buildButtonHref, buildMapHref, type MapElementProps } from "@/lib/fusion/card/designer-elements";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
+import { copyCompositionNodes, copyCompositionNodeStyle, hasCompositionClipboard, hasCompositionStyleClipboard, pasteCompositionNodes, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -67,6 +70,11 @@ function str(v: unknown, fallback = ""): string {
 
 function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+}
+
+function gradientStops(value: unknown, fallback: string): [string, string, string] {
+  const colors = typeof value === "string" ? value.match(/#[0-9a-f]{3,8}/gi) ?? [] : [];
+  return [colors[0] || fallback, colors[1] || colors[0] || fallback, colors[2] || colors.at(-1) || fallback];
 }
 
 function colorWithOpacity(color: string, opacity: number): string {
@@ -172,19 +180,33 @@ function NodeVisual({
     const text = str(node.props.text, "Text");
     const curve = str(node.props.textCurve, "none");
     if (curve !== "none") {
+      const radius = Math.max(8, Math.min(48, num(node.props.curveRadius, 38)));
+      const arcWidth = Math.max(30, Math.min(96, num(node.props.curveArcWidth, 84)));
+      const left = (100 - arcWidth) / 2;
+      const right = 100 - left;
+      const inside = node.props.curveInside === true;
+      const down = (curve === "arch_down") !== inside;
       const path = curve === "circle"
-        ? "M 50,50 m -38,0 a 38,38 0 1,1 76,0 a 38,38 0 1,1 -76,0"
-        : curve === "arch_down" ? "M 8 38 Q 50 88 92 38" : "M 8 72 Q 50 18 92 72";
+        ? `M 50,50 m -${radius},0 a ${radius},${radius} 0 1,1 ${radius * 2},0 a ${radius},${radius} 0 1,1 -${radius * 2},0`
+        : down
+          ? `M ${left} 18 Q 50 ${18 + radius} ${right} 18`
+          : `M ${left} 82 Q 50 ${82 - radius} ${right} 82`;
+      const color = str(node.props.color, "#f8fafc");
+      const [start, middle, end] = gradientStops(node.props.gradientFill, color);
+      const gradientId = `curve-gradient-${node.id}`;
       return (
-        <svg viewBox="0 0 100 100" className="h-full w-full overflow-visible" role="img" aria-label={text} data-text-curve={curve}>
+        <svg viewBox={curve === "circle" ? "0 0 100 100" : "0 14 100 72"} className="h-full w-full overflow-visible bg-transparent" role="img" aria-label={text} data-text-curve={curve} data-text-box-background="transparent">
+          <defs><linearGradient id={gradientId} x1="0" x2="1"><stop offset="0" stopColor={start} /><stop offset=".5" stopColor={middle} /><stop offset="1" stopColor={end} /></linearGradient></defs>
           <path id={`curve-${node.id}`} d={path} fill="none" />
           <text
-            fill={str(node.props.color, "#f8fafc")}
+            fill={node.props.gradientFill ? `url(#${gradientId})` : color}
             fontFamily={str(node.props.fontFamily, "Inter, system-ui, sans-serif")}
-            fontSize={Math.max(6, num(node.props.fontSize, 18) / 3)}
+            fontSize={Math.max(6, num(node.props.fontSize, 18) / 2.5)}
             fontWeight={num(node.props.fontWeight, 600)}
             letterSpacing={`${num(node.props.letterSpacingEm, 0)}em`}
-            style={node.props.gradientFill ? { fill: str(node.props.color, "#f8fafc"), filter: `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")})` } : undefined}
+            stroke={num(node.props.outlineWidth, 0) > 0 ? str(node.props.outlineColor, color) : undefined}
+            strokeWidth={num(node.props.outlineWidth, 0)}
+            style={{ filter: num(node.props.glow, 0) > 0 ? `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${color})` : undefined }}
           >
             <textPath href={`#curve-${node.id}`} startOffset="50%" textAnchor="middle">{text}</textPath>
           </text>
@@ -194,6 +216,8 @@ function NodeVisual({
     return (
       <div
         className="flex h-full w-full items-center overflow-hidden px-1"
+        data-text-box-background="transparent"
+        data-glyph-effect={node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"}
         style={{
           color: str(node.props.color, "#f8fafc"),
           fontSize: num(node.props.fontSize, 18),
@@ -229,7 +253,10 @@ function NodeVisual({
           WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
           WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
           WebkitTextStroke: num(node.props.outlineWidth, 0) > 0 ? `${num(node.props.outlineWidth, 0)}px ${str(node.props.outlineColor, str(node.props.color, "#f8fafc"))}` : undefined,
-          textShadow: num(node.props.glow, 0) > 0 ? `0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")}` : undefined,
+          textShadow: [
+            num(node.props.glow, 0) > 0 ? `0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")}` : "",
+            num(node.props.shadow, 0) > 0 ? `0 ${Math.max(1, num(node.props.shadow, 0) / 3)}px ${num(node.props.shadow, 0)}px rgba(0,0,0,.7)` : "",
+          ].filter(Boolean).join(", ") || undefined,
         }}
       >
         <span
@@ -853,7 +880,19 @@ export function CreativeCompositionCanvas({
         onSelectNodes?.([]);
         return;
       }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v" && hasCompositionClipboard()) {
+        e.preventDefault();
+        const result = pasteCompositionNodes(block.nodes);
+        commitNodes(result.nodes, "Pasted composition items");
+        onSelectNodes?.(result.newIds);
+        return;
+      }
       if (!selectedNodeIds.length) return;
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
+        e.preventDefault();
+        copyCompositionNodes(block.nodes, selectedNodeIds);
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         commitNodes(
@@ -896,7 +935,7 @@ export function CreativeCompositionCanvas({
         }
         const ids = expandSelectionToGroups(block.nodes, selectedNodeIds);
         commitNodes(
-          translateNodes(block.nodes, ids, dx, dy),
+          translateNodesOnPasteboard(block.nodes, ids, dx, dy),
           "Nudged composition items"
         );
       }
@@ -954,7 +993,7 @@ export function CreativeCompositionCanvas({
     const dx = (e.clientX - drag.startX) / rect.width;
     const dy = (e.clientY - drag.startY) / rect.height;
     if (drag.mode === "move") {
-      const translated = translateNodes(drag.origNodes, drag.moveIds, dx, dy);
+      const translated = translateNodesOnPasteboard(drag.origNodes, drag.moveIds, dx, dy);
       const snapped = snapCompositionNodes({
         nodes: translated,
         movingIds: drag.moveIds,
@@ -983,17 +1022,17 @@ export function CreativeCompositionCanvas({
       const east = handle.includes("e");
       const north = handle.includes("n");
       const south = handle.includes("s");
-      let x = west ? Math.min(n.x + n.width - 0.02, Math.max(0, n.x + dx)) : n.x;
-      let y = north ? Math.min(n.y + n.height - 0.02, Math.max(0, n.y + dy)) : n.y;
+      let x = west ? Math.min(n.x + n.width - 0.02, Math.max(-1, n.x + dx)) : n.x;
+      let y = north ? Math.min(n.y + n.height - 0.02, Math.max(-1, n.y + dy)) : n.y;
       let width = west
         ? n.width + (n.x - x)
         : east
-          ? Math.min(1 - n.x, Math.max(0.02, n.width + dx))
+          ? Math.min(2, Math.max(0.02, n.width + dx))
           : n.width;
       let height = north
         ? n.height + (n.y - y)
         : south
-          ? Math.min(1 - n.y, Math.max(0.02, n.height + dy))
+          ? Math.min(2, Math.max(0.02, n.height + dy))
           : n.height;
       if (e.altKey) {
         if (east) { x = n.x - dx; width = n.width + dx * 2; }
@@ -1008,12 +1047,42 @@ export function CreativeCompositionCanvas({
         if (west) x = drag.orig.x + drag.orig.width - width;
         if (north) y = drag.orig.y + drag.orig.height - height;
       }
+      const isTextCorner = n.primitive === "text" && (east || west) && (north || south);
+      const scale = isTextCorner
+        ? Math.max(
+            0.2,
+            Math.min(
+              8,
+              Math.sqrt(
+                (width / Math.max(drag.orig.width, 0.02)) *
+                  (height / Math.max(drag.orig.height, 0.02))
+              )
+            )
+          )
+        : 1;
       return {
         ...n,
-        x: Math.max(0, x),
-        y: Math.max(0, y),
-        width: Math.min(1 - x, Math.max(0.02, width)),
-        height: Math.min(1 - y, Math.max(0.02, height)),
+        x: Math.max(-1, Math.min(2, x)),
+        y: Math.max(-1, Math.min(2, y)),
+        width: Math.min(2, Math.max(0.02, width)),
+        height: Math.min(2, Math.max(0.02, height)),
+        props: isTextCorner
+          ? {
+              ...n.props,
+              fontSize: Math.max(
+                6,
+                Math.min(320, num(drag.orig.props.fontSize, 18) * scale)
+              ),
+              lineHeight: Math.max(
+                0.7,
+                Math.min(3, num(drag.orig.props.lineHeight, 1.2) * scale)
+              ),
+              curveRadius: Math.max(
+                8,
+                Math.min(80, num(drag.orig.props.curveRadius, 38) * scale)
+              ),
+            }
+          : n.props,
       };
     });
     setDraftNodes(nodes);
@@ -1029,7 +1098,7 @@ export function CreativeCompositionCanvas({
         const top = (Math.min(marquee.startY, marquee.currentY) - rect.top) / Math.max(rect.height, 1);
         const bottom = (Math.max(marquee.startY, marquee.currentY) - rect.top) / Math.max(rect.height, 1);
         onSelectNodes?.(visibleNodes.filter((node) => {
-          const box = resolveNodeBox(node);
+          const box = resolveNodeBox(node, editMode);
           return box.left < right && box.left + box.width > left && box.top < bottom && box.top + box.height > top;
         }).map((node) => node.id));
       }
@@ -1218,7 +1287,8 @@ export function CreativeCompositionCanvas({
     <div
       ref={surfaceRef}
       className={cn(
-        "relative w-full overflow-hidden rounded-xl border border-white/10",
+        "relative w-full rounded-xl border border-white/10",
+        editMode ? "overflow-visible" : "overflow-hidden",
         editMode && "touch-none",
         className
       )}
@@ -1313,7 +1383,7 @@ export function CreativeCompositionCanvas({
 
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);
-        const box = resolveNodeBox(node);
+        const box = resolveNodeBox(node, editMode);
         return (
           <div
             key={node.id}
@@ -1391,7 +1461,7 @@ export function CreativeCompositionCanvas({
                     : 0;
               const ids = expandSelectionToGroups(block.nodes, selectedNodeIds);
               commitNodes(
-                translateNodes(block.nodes, ids, dx, dy),
+                translateNodesOnPasteboard(block.nodes, ids, dx, dy),
                 event.shiftKey
                   ? "Nudged composition items 10 pixels"
                   : "Nudged composition items 1 pixel"
@@ -1413,11 +1483,11 @@ export function CreativeCompositionCanvas({
         );
       })}
       {editMode ? visibleNodes.filter((node) => selectedSet.has(node.id) && !node.locked).map((node) => {
-        const box = resolveNodeBox(node);
+        const box = resolveNodeBox(node, editMode);
         const beneath = [...visibleNodes]
           .filter((candidate) => candidate.id !== node.id)
           .filter((candidate) => {
-            const candidateBox = resolveNodeBox(candidate);
+            const candidateBox = resolveNodeBox(candidate, editMode);
             const cx = box.left + box.width / 2;
             const cy = box.top + box.height / 2;
             return cx >= candidateBox.left && cx <= candidateBox.left + candidateBox.width && cy >= candidateBox.top && cy <= candidateBox.top + candidateBox.height;
@@ -1440,7 +1510,13 @@ export function CreativeCompositionCanvas({
         };
         return <div role="menu" aria-label={`Actions for ${node.name || node.primitive}`} className="absolute z-[1200] min-w-44 rounded-lg border border-white/15 bg-[#0b1019] p-1 text-[10px] text-white shadow-2xl" style={{ left: Math.min(contextMenu.x, Math.max(0, surfaceSize.width - 185)), top: Math.min(contextMenu.y, Math.max(0, surfaceSize.height - 390)) }} data-testid="composition-context-menu" onPointerDown={(event) => event.stopPropagation()}>
           {!node.locked ? <>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { copyCompositionNodes(block.nodes, [node.id]); setContextMenu(null); }}>Copy</button>
+            <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { copyCompositionNodeStyle(node); setContextMenu(null); }}>Copy style</button>
+            <button role="menuitem" type="button" disabled={!hasCompositionClipboard()} className="block w-full rounded px-2 py-2 text-left hover:bg-white/5 disabled:opacity-35" onClick={() => { const result = pasteCompositionNodes(block.nodes); action(result.nodes, "Pasted Element"); onSelectNodes?.(result.newIds); }}>Paste</button>
+            <button role="menuitem" type="button" disabled={!hasCompositionStyleClipboard()} className="block w-full rounded px-2 py-2 text-left hover:bg-white/5 disabled:opacity-35" onClick={() => action(pasteCompositionNodeStyle(block.nodes, node.id), "Pasted Element style")}>Paste style</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { const duplicated = duplicateNodes(block.nodes, [node.id]); action(duplicated.nodes, "Duplicated Element"); onSelectNodes?.(duplicated.newIds); }}>Duplicate</button>
+            {selectedNodeIds.length > 1 ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(groupNodes(block.nodes, selectedNodeIds), "Grouped Elements")}>Group</button> : null}
+            {node.groupId ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(ungroupNodes(block.nodes, node.groupId!), "Ungrouped Elements")}>Ungroup</button> : null}
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringForward(block.nodes, node.id), "Brought Element forward")}>Bring forward</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(sendBackward(block.nodes, node.id), "Sent Element backward")}>Send backward</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringToFront(block.nodes, node.id), "Brought Element to front")}>Bring to front</button>

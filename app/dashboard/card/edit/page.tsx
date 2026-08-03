@@ -34,6 +34,7 @@ export default async function TapCardEditPage({
     internalOperator: isPlatformAdmin(user),
   });
   const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
+  const cardCreativeDocuments = await prisma.cardCreativeDocument.findMany({ where: { businessId: business.id }, orderBy: { updatedAt: "desc" } });
   const profile = parseBrandContactProfile(brandKit?.socialLinks);
   const safeFallback = buildFirstCardDraft({
     businessName: business.name,
@@ -165,6 +166,19 @@ export default async function TapCardEditPage({
   const builderProps = {
     initialConfig: config,
     initialDraftRevision: draftState.tapCardDraftRevision,
+    initialOpenDocuments: cardCreativeDocuments.map((document) => ({
+      id: document.id,
+      name: document.name,
+      documentType: "CARD_VARIATION" as const,
+      draft: parseTapConnectCard(document.draft, {
+        businessName: business.name,
+        profile,
+        logoUrl: business.logoUrl,
+        accentColor: brandKit?.accentColor || "#d4af37",
+        reviewUrl: business.googleReviewUrl,
+      }),
+      revision: document.draftRevision,
+    })),
     profile: {
       ...profile,
       phone: profile.phone || business.phone || undefined,

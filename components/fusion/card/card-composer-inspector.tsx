@@ -10,6 +10,8 @@ import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/compo
 import { alignNodes, bringForward, bringToFront, distributeNodes, groupNodes, sendBackward, sendToBack, ungroupNodes } from "@/lib/fusion/creative-studio/composition";
 import { BUTTON_PRESENTATIONS, MAP_DISPLAY_MODES, buildMapHref, type ButtonActionType, type ButtonPresentation, type MapDisplayMode, type MapOpenApp, type MapSourceMode } from "@/lib/fusion/card/designer-elements";
 import { BADGE_SHAPES, BADGE_WORDING, ICON_LIBRARY, MATERIAL_PRESETS, MOTION_PRESETS } from "@/lib/fusion/creative-studio/card-creative-system";
+import { FONT_CATALOG, FONT_CATEGORY_LABELS, fontCssStack, type FontCategory } from "@/lib/fusion/creative-studio/fonts/catalog";
+import { ensureFontLoaded, pushRecentFont, readFavoriteFonts, readRecentFonts, toggleFavoriteFont } from "@/lib/fusion/creative-studio/fonts/load";
 import { cn } from "@/lib/utils";
 
 const UTILITY_OPTIONS: Array<{ kind: CardUtilityKind; label: string; reason: (model: CardEditorLiveModel) => string | null }> = [
@@ -260,6 +262,14 @@ function ElementInspector({ model, section, element }: { model: CardEditorLiveMo
       </InspectorGroup> : null}
       {(isText || isBadge) ? <InspectorGroup title="Text effects">
         <SelectControl label="Text path" value={String(element.props.textCurve || "none")} options={["none", "arch_up", "arch_down", "circle"]} onChange={(value) => patchProps({ textCurve: value }, "Changed curved text")} />
+        {element.props.textCurve && element.props.textCurve !== "none" ? <>
+          <RangeControl label="Curve radius" value={Number(element.props.curveRadius || 38)} min={8} max={48} suffix="%" onChange={(value) => patchProps({ curveRadius: value }, "Changed curved-text radius")} />
+          <RangeControl label="Arc width" value={Number(element.props.curveArcWidth || 84)} min={30} max={96} suffix="%" onChange={(value) => patchProps({ curveArcWidth: value }, "Changed curved-text arc width")} />
+          <div className="grid grid-cols-2 gap-1">
+            <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patchProps({ curveInside: !element.props.curveInside }, "Flipped curved text path")}>{element.props.curveInside ? "Outside path" : "Inside path"}</button>
+            <button type="button" className="min-h-9 rounded border border-white/10 text-[10px]" onClick={() => patchProps({ textCurve: "none", curveRadius: undefined, curveArcWidth: undefined, curveInside: undefined }, "Reset curved text")}>Reset curve</button>
+          </div>
+        </> : null}
         <TextControl label="Gradient text (CSS gradient)" value={String(element.props.gradientFill || "")} onChange={(value) => patchProps({ gradientFill: value || undefined }, "Changed text gradient")} />
         <RangeControl label="Outline" value={Number(element.props.outlineWidth || 0)} min={0} max={8} suffix="px" onChange={(value) => patchProps({ outlineWidth: value }, "Changed text outline")} />
         <RangeControl label="Shadow" value={Number(element.props.shadow || 0)} min={0} max={40} suffix="px" onChange={(value) => patchProps({ shadow: value }, "Changed text shadow")} />
@@ -392,21 +402,28 @@ function MapInspector({ model, element, patchProps }: { model: CardEditorLiveMod
   </div>;
 }
 
-const SYSTEM_FONTS = [
-  { name: "Inter", value: "Inter, system-ui, sans-serif", group: "Recommended" },
-  { name: "Arial", value: "Arial, sans-serif", group: "System fonts" },
-  { name: "Georgia", value: "Georgia, serif", group: "System fonts" },
-  { name: "Trebuchet", value: "Trebuchet MS, sans-serif", group: "System fonts" },
-  { name: "Courier", value: "Courier New, monospace", group: "System fonts" },
-  { name: "Verdana", value: "Verdana, sans-serif", group: "System fonts" },
-];
-
 function VisualFontPicker({ value, brandFont, onChange }: { value: string; brandFont?: string; onChange: (value: string) => void }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
-  const [favorites, setFavorites] = useState<string[]>([]);
-  const options = [{ name: "Brand font", value: brandFont || "Inter, system-ui, sans-serif", group: "Brand fonts" }, ...SYSTEM_FONTS].filter((font, index, all) => all.findIndex((candidate) => candidate.value === font.value) === index).filter((font) => font.name.toLowerCase().includes(query.toLowerCase()));
-  return <div data-testid="visual-font-picker"><button type="button" className="flex min-h-10 w-full items-center justify-between rounded border border-white/10 px-2 text-left text-xs" onClick={() => setOpen((current) => !current)} aria-expanded={open}><span><span className="block text-[9px] text-white/55">Font</span><span style={{ fontFamily: value }}>Business name · Aa Bb Cc 123</span></span><span>⌄</span></button>{open ? <div className="mt-2 rounded-lg border border-white/15 bg-[#0b1019] p-2 shadow-xl"><label className="flex items-center gap-2 rounded border border-white/10 px-2"><Search className="h-3.5 w-3.5" /><input autoFocus className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search fonts" /></label><div className="mt-2 max-h-52 space-y-1 overflow-y-auto" role="listbox" aria-label="Available fonts">{options.length ? options.map((font) => <div key={`${font.group}-${font.value}`} className="flex items-stretch"><button type="button" role="option" aria-selected={font.value === value} className="min-h-12 min-w-0 flex-1 rounded px-2 text-left hover:bg-white/5 aria-selected:bg-[#b8ff2c]/10" style={{ fontFamily: font.value }} onClick={() => { onChange(font.value); setOpen(false); }}><span className="block text-[9px] font-sans text-white/45">{font.group} · {font.name}</span><span className="block truncate text-sm">Business name · Aa Bb Cc 123</span></button><button type="button" className="w-8" aria-label={`${favorites.includes(font.value) ? "Remove" : "Add"} ${font.name} favorite`} onClick={() => setFavorites((current) => current.includes(font.value) ? current.filter((item) => item !== font.value) : [...current, font.value])}><Star className={favorites.includes(font.value) ? "h-3.5 w-3.5 fill-[#b8ff2c] text-[#b8ff2c]" : "h-3.5 w-3.5"} /></button></div>) : <p className="p-3 text-xs text-white/55">No fonts match “{query}”.</p>}</div><details className="mt-2"><summary className="cursor-pointer text-[10px] text-white/55">Advanced / technical</summary><TextControl label="Exact font-family string" value={value} onChange={onChange} /></details></div> : null}</div>;
+  const [category, setCategory] = useState<FontCategory | "all" | "recent" | "favorites">("all");
+  const [favorites, setFavorites] = useState<string[]>(() => readFavoriteFonts());
+  const [recent, setRecent] = useState<string[]>(() => readRecentFonts());
+  const options = FONT_CATALOG.filter((font) => {
+    if (category === "favorites" && !favorites.includes(font.id)) return false;
+    if (category === "recent" && !recent.includes(font.id)) return false;
+    if (category !== "all" && category !== "favorites" && category !== "recent" && font.category !== category) return false;
+    const haystack = `${font.family} ${font.category} ${(font.tags || []).join(" ")}`.toLowerCase();
+    return !query.trim() || haystack.includes(query.trim().toLowerCase());
+  });
+  const apply = async (fontId: string) => {
+    const font = FONT_CATALOG.find((candidate) => candidate.id === fontId);
+    if (!font) return;
+    await ensureFontLoaded(font.id).catch(() => undefined);
+    onChange(fontCssStack(font));
+    setRecent(pushRecentFont(font.id));
+    setOpen(false);
+  };
+  return <div data-testid="visual-font-picker" data-font-count={FONT_CATALOG.length}><button type="button" className="flex min-h-10 w-full items-center justify-between rounded border border-white/10 px-2 text-left text-xs" onClick={() => setOpen((current) => !current)} aria-expanded={open}><span><span className="block text-[9px] text-white/55">Font</span><span style={{ fontFamily: value }}>Business name · Aa Bb Cc 123</span></span><span>⌄</span></button>{open ? <div className="mt-2 rounded-lg border border-white/15 bg-[#0b1019] p-2 shadow-xl" data-testid="large-font-library"><label className="flex items-center gap-2 rounded border border-white/10 px-2"><Search className="h-3.5 w-3.5" /><input autoFocus className="h-9 min-w-0 flex-1 bg-transparent text-xs outline-none" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search 70+ open-source fonts" /></label>{brandFont ? <button type="button" className="mt-2 min-h-11 w-full rounded border border-[#b8ff2c]/25 px-2 text-left text-xs" style={{ fontFamily: brandFont }} onClick={() => { onChange(brandFont); setOpen(false); }}><span className="block font-sans text-[9px] text-white/45">Brand font</span>Business name · Aa Bb Cc 123</button> : null}<div className="mt-2 flex gap-1 overflow-x-auto pb-1">{(["all", "recent", "favorites", "sans-serif", "serif", "display", "handwriting", "condensed", "monospace", "editorial", "headline"] as const).map((id) => <button key={id} type="button" aria-pressed={category === id} className="shrink-0 rounded-full border border-white/10 px-2 py-1 text-[9px] aria-pressed:border-[#b8ff2c]/50 aria-pressed:text-[#b8ff2c]" onClick={() => setCategory(id)}>{id === "all" ? "All" : id === "recent" ? "Recent" : id === "favorites" ? "Favorites" : FONT_CATEGORY_LABELS[id]}</button>)}</div><div className="mt-2 max-h-72 space-y-1 overflow-y-auto" role="listbox" aria-label="Available fonts">{options.length ? options.map((font) => <div key={font.id} className="flex items-stretch"><button type="button" role="option" aria-selected={value.includes(font.family)} className="min-h-14 min-w-0 flex-1 rounded px-2 text-left hover:bg-white/5 aria-selected:bg-[#b8ff2c]/10" style={{ fontFamily: fontCssStack(font) }} onPointerEnter={() => { void ensureFontLoaded(font.id).catch(() => undefined); }} onFocus={() => { void ensureFontLoaded(font.id).catch(() => undefined); }} onClick={() => void apply(font.id)}><span className="block text-[9px] font-sans text-white/45">{FONT_CATEGORY_LABELS[font.category]} · {font.license}</span><span className="block truncate text-base">{font.family} · Aa Bb Cc 123</span></button><button type="button" className="w-8" aria-label={`${favorites.includes(font.id) ? "Remove" : "Add"} ${font.family} favorite`} onClick={() => setFavorites(toggleFavoriteFont(font.id))}><Star className={favorites.includes(font.id) ? "h-3.5 w-3.5 fill-[#b8ff2c] text-[#b8ff2c]" : "h-3.5 w-3.5"} /></button></div>) : <p className="p-3 text-xs text-white/55">No fonts match “{query}”.</p>}</div><p className="mt-2 text-[9px] text-white/45">Open-source OFL/Apache fonts load on demand. If unavailable, the documented category fallback is retained.</p><details className="mt-2"><summary className="cursor-pointer text-[10px] text-white/55">Advanced / technical</summary><TextControl label="Exact font-family string" value={value} onChange={onChange} /></details></div> : null}</div>;
 }
 
 function PersistentActions({ model }: { model: CardEditorLiveModel }) {

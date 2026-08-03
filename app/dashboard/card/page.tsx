@@ -42,7 +42,7 @@ export default async function TapCardAssemblyPage({
 
   const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
   const profile = parseBrandContactProfile(brandKit?.socialLinks);
-  const config = parseTapConnectCard(brandKit?.tapCard, {
+  const config = parseTapConnectCard(brandKit?.tapCardDraft ?? brandKit?.tapCard, {
     businessName: business.name,
     profile: {
       ...profile,
@@ -294,6 +294,7 @@ export default async function TapCardAssemblyPage({
   return (
     <CardAssemblyWorkspace
       config={config}
+      draftRevision={brandKit?.tapCardDraftRevision ?? 0}
       profile={contactProfile}
       businessName={business.name}
       logoUrl={business.logoUrl}

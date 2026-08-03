@@ -359,6 +359,8 @@ export type CardPropertySources = Partial<
 
 export type TapConnectCardConfig = {
   version: 1 | 2 | 3;
+  /** Human-readable creative-document label. Identity and public URLs remain ID-based. */
+  documentName?: string;
   accentColor: string;
   surfaceColor: string;
   textColor: string;
@@ -628,6 +630,7 @@ export function defaultTapConnectCard(params: {
 
   return {
     version: 3,
+    documentName: `${params.businessName} Card`,
     accentColor: accent,
     surfaceColor: "#f4f1ea",
     textColor: "#0b0f19",
@@ -701,6 +704,10 @@ export function parseTapConnectCard(
 
   return {
     version: 3,
+    documentName:
+      typeof o.documentName === "string" && o.documentName.trim()
+        ? o.documentName.trim().slice(0, 120)
+        : base.documentName,
     accentColor: typeof o.accentColor === "string" ? o.accentColor : base.accentColor,
     surfaceColor: typeof o.surfaceColor === "string" ? o.surfaceColor : base.surfaceColor,
     textColor: typeof o.textColor === "string" ? o.textColor : base.textColor,

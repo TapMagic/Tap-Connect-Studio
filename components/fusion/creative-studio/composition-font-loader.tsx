@@ -17,8 +17,11 @@ export function CompositionFontLoader({
 }) {
   useEffect(() => {
     const families = new Set<string>();
+    for (const node of config.rootComposition?.nodes || []) {
+      const ff = node.props.fontFamily;
+      if (typeof ff === "string" && ff.trim()) families.add(ff);
+    }
     for (const section of config.sections || []) {
-      if (section.type !== "creative_composition") continue;
       const block = parseCreativeComposition(section.composition);
       if (!block) continue;
       for (const node of block.nodes) {

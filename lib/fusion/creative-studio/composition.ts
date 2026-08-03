@@ -976,6 +976,26 @@ export function translateNodes(
   });
 }
 
+/** Edit-mode pasteboard translation. Keeps generous finite staging bounds without
+ * changing the Card/publication boundary. Preview renderers clip at the Card. */
+export function translateNodesOnPasteboard(
+  nodes: CreativeCompositionNode[],
+  ids: string[],
+  dx: number,
+  dy: number,
+  limit = 1
+): CreativeCompositionNode[] {
+  const set = new Set(ids);
+  return nodes.map((node) => {
+    if (!set.has(node.id) || node.locked) return node;
+    return {
+      ...node,
+      x: Math.max(-limit, Math.min(1 + limit, node.x + dx)),
+      y: Math.max(-limit, Math.min(1 + limit, node.y + dy)),
+    };
+  });
+}
+
 export type ResolvedNodeBox = {
   left: number;
   top: number;
@@ -987,13 +1007,17 @@ export type ResolvedNodeBox = {
  * Resolve proportional box + optional anchor for responsive placement.
  * Storage remains relative 0–1; anchors reinterpret x/y as the anchor point.
  */
-export function resolveNodeBox(node: CreativeCompositionNode): ResolvedNodeBox {
+export function resolveNodeBox(
+  node: CreativeCompositionNode,
+  allowPasteboardOverflow = false
+): ResolvedNodeBox {
+  const extent = allowPasteboardOverflow ? 2 : 1;
   const width = Math.min(
-    1,
+    extent,
     Math.max(0.04, node.widthPct != null ? node.widthPct : node.width)
   );
   const height = Math.min(
-    1,
+    extent,
     Math.max(0.04, node.heightPct != null ? node.heightPct : node.height)
   );
   const anchor = node.anchor || "top-left";
@@ -1022,8 +1046,10 @@ export function resolveNodeBox(node: CreativeCompositionNode): ResolvedNodeBox {
     top = node.y - height / 2;
   }
   return {
-    left: Math.min(1 - width, Math.max(0, left)),
-    top: Math.min(1 - height, Math.max(0, top)),
+    // Preserve authored coordinates in every renderer. Edit surfaces expose the
+    // overflow on the pasteboard; preview/public surfaces clip it at the Card edge.
+    left,
+    top,
     width,
     height,
   };

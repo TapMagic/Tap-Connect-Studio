@@ -48,6 +48,14 @@ import {
 } from "@/components/workbench/builder-preview-empty";
 import { useLabeledUndoRedo } from "@/lib/hooks/use-labeled-undo-redo";
 import {
+  clearRecoveryJournal,
+  evaluateRecoveryJournal,
+  readRecoveryJournal,
+  writeRecoveryJournal,
+  type RecoveryDecision,
+} from "@/lib/fusion/creative-studio/recovery-journal";
+import { normalizeCreativeDocumentName } from "@/lib/fusion/creative-studio/document-naming";
+import {
   describeConfigChange,
   describeSectionsChange,
   describeSectionReorder,
@@ -124,13 +132,27 @@ type CampaignGroupLinkOption = {
 };
 
 export type CardBuilderShellApi = {
-  save: () => Promise<void>;
+  save: () => Promise<boolean>;
   publish: () => Promise<void>;
   undo: () => void;
   redo: () => void;
   setFocusMode: (next: boolean) => void;
   retireToggle: () => void;
   selectSection: (id: string | null) => void;
+  renameDocument: (name: string) => void;
+  restoreRecovery: () => void;
+  discardRecovery: () => void;
+  cloneDocument: () => Promise<boolean>;
+  switchDocument: (id: string) => Promise<boolean>;
+  closeDocument: (id: string) => Promise<boolean>;
+};
+
+export type OpenCardCreativeDocument = {
+  id: string;
+  name: string;
+  documentType: "CARD_VARIATION";
+  draft: TapConnectCardConfig;
+  revision: number;
 };
 
 export type CardBuilderShellPanels = {
@@ -154,11 +176,17 @@ export type CardBuilderShellStatus = {
   futureLabels: string[];
   canPublish: boolean;
   publicationLabel: string;
+  saveState: "saved" | "saving" | "unsaved" | "failed" | "conflict";
+  savedAt: string | null;
+  recoveryState: "none" | "recoverable" | "stale" | "conflict";
+  activeDocumentId: string;
+  openDocuments: Array<{ id: string; name: string; type: "MAIN_CARD" | "CARD_VARIATION"; dirty: boolean }>;
 };
 
 type Props = {
   initialConfig: TapConnectCardConfig;
   initialDraftRevision?: number;
+  initialOpenDocuments?: OpenCardCreativeDocument[];
   profile: BrandContactProfile;
   businessName: string;
   logoUrl?: string | null;
@@ -285,6 +313,7 @@ function strInherited(
 export function TapCardBuilder({
   initialConfig,
   initialDraftRevision = 0,
+  initialOpenDocuments = [],
   profile,
   businessName,
   logoUrl,
@@ -345,6 +374,8 @@ export function TapCardBuilder({
   const [focusMode, setFocusMode] = useState(false);
   const [previewZoom, setPreviewZoom] = useState<"fit" | number>(workspaceMode ? "fit" : 1);
   const [previewPan, setPreviewPan] = useState(false);
+  const [spacePan, setSpacePan] = useState(false);
+  const panStartRef = useRef<{ x: number; y: number; left: number; top: number; pointerId: number } | null>(null);
   const [zoomToolbarCollapsed, setZoomToolbarCollapsed] = useState(false);
   const [designChromeCollapsed, setDesignChromeCollapsed] = useState(true);
   const [outlineCollapsed, setOutlineCollapsed] = useState(false);
@@ -357,9 +388,14 @@ export function TapCardBuilder({
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [draftRevision, setDraftRevision] = useState(initialDraftRevision);
+  const [activeDocumentId, setActiveDocumentId] = useState("main-card");
+  const [openDocuments, setOpenDocuments] = useState(initialOpenDocuments);
+  const mainDocumentRef = useRef({ draft: initialConfig, revision: initialDraftRevision });
   const [message, setMessage] = useState<string | null>(null);
   const [pendingSectionDelete, setPendingSectionDelete] = useState<TapCardSection | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+  const [recovery, setRecovery] = useState<RecoveryDecision<TapConnectCardConfig>>({ state: "none" });
   const [demoPublished, setDemoPublished] = useState(isLandingDemo);
   const [versions, setVersions] = useState<
     {
@@ -386,8 +422,15 @@ export function TapCardBuilder({
   );
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
+  const configRef = useRef(config);
+  const draftRevisionRef = useRef(draftRevision);
+  const savePromiseRef = useRef<Promise<boolean> | null>(null);
+  configRef.current = config;
+  draftRevisionRef.current = draftRevision;
+  const recoveryDocumentId = activeDocumentId === "main-card" ? (brandKitId || "workspace-card") : activeDocumentId;
 
   const sorted = [...sectionsHistory].sort((a, b) => a.order - b.order);
+  const renderedPreviewZoom = interactionMode === "preview" ? "fit" : previewZoom;
   const selected = sorted.find((s) => s.id === selectedId) ?? null;
   const selectedObject = resolveComposerSelectedObject(config, selectedId, selectedCompositionNodeIds);
   const cardEmptyReason = config.rootComposition?.nodes.length
@@ -456,6 +499,43 @@ export function TapCardBuilder({
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [escapeMode, dirty]);
+
+  useEffect(() => {
+    if (interactionMode !== "edit") return;
+    const down = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (event.code === "Space" && !target?.closest("input,textarea,select,[contenteditable=true]")) {
+        event.preventDefault();
+        setSpacePan(true);
+      }
+    };
+    const up = (event: KeyboardEvent) => { if (event.code === "Space") setSpacePan(false); };
+    window.addEventListener("keydown", down);
+    window.addEventListener("keyup", up);
+    return () => { window.removeEventListener("keydown", down); window.removeEventListener("keyup", up); };
+  }, [interactionMode]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const timer = window.setTimeout(() => setRecovery(evaluateRecoveryJournal({
+      entry: readRecoveryJournal<TapConnectCardConfig>(window.localStorage, recoveryDocumentId),
+      serverRevision: draftRevisionRef.current,
+    })), 0);
+    return () => window.clearTimeout(timer);
+  }, [initialDraftRevision, recoveryDocumentId]);
+
+  useEffect(() => {
+    if (!dirty || typeof window === "undefined") return;
+    const timer = window.setTimeout(() => {
+      writeRecoveryJournal(window.localStorage, {
+        documentId: recoveryDocumentId,
+        serverRevision: draftRevisionRef.current,
+        pending: true,
+        document: configRef.current,
+      });
+    }, 120);
+    return () => window.clearTimeout(timer);
+  }, [config, dirty, recoveryDocumentId]);
 
   function toggleFocusMode() {
     setFocusMode((wasFocused) => {
@@ -1129,6 +1209,10 @@ export function TapCardBuilder({
   }
 
   async function publishSavedDraft() {
+    if (activeDocumentId !== "main-card") {
+      setMessage("Card variations remain drafts. Switch to the Main Tap Card to publish.");
+      return;
+    }
     if (dirty) {
       setMessage("Save this draft before publishing.");
       return;
@@ -1158,28 +1242,77 @@ export function TapCardBuilder({
     router.refresh();
   }
 
-  async function save() {
-    setSaving(true);
-    setMessage(null);
-    setSaveFailed(false);
-    const res = await fetch("/api/card/draft", {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ draft: config, expectedRevision: draftRevision }),
-    });
-    setSaving(false);
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}));
-      setMessage(data.error || "Save failed");
-      setSaveFailed(true);
-      return;
-    }
-    const data = (await res.json()) as { revision?: number };
-    if (typeof data.revision === "number") setDraftRevision(data.revision);
-    setDirty(false);
-    setMessage("Saved draft · Draft changes not published");
-    router.refresh();
+  function save(): Promise<boolean> {
+    if (savePromiseRef.current) return savePromiseRef.current;
+    const request = (async () => {
+      setSaving(true);
+      setMessage(null);
+      setSaveFailed(false);
+      try {
+        while (true) {
+          const sentConfig = configRef.current;
+          const sentSignature = JSON.stringify(sentConfig);
+          const expectedRevision = draftRevisionRef.current;
+          const res = await fetch(activeDocumentId === "main-card" ? "/api/card/draft" : `/api/card/documents/${activeDocumentId}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ draft: sentConfig, expectedRevision }),
+          });
+          if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            setMessage(data.error || "Save failed");
+            setSaveFailed(true);
+            if (res.status === 409) {
+              const entry = typeof window === "undefined"
+                ? null
+                : readRecoveryJournal<TapConnectCardConfig>(window.localStorage, recoveryDocumentId);
+              setRecovery(entry ? { state: "conflict", entry } : { state: "none" });
+            }
+            return false;
+          }
+          const data = (await res.json()) as { revision?: number; updatedAt?: string };
+          if (typeof data.revision === "number") {
+            draftRevisionRef.current = data.revision;
+            setDraftRevision(data.revision);
+          }
+          if (activeDocumentId === "main-card") {
+            mainDocumentRef.current = { draft: sentConfig, revision: data.revision ?? expectedRevision };
+          } else {
+            setOpenDocuments((documents) => documents.map((document) => document.id === activeDocumentId ? { ...document, name: sentConfig.documentName || document.name, draft: sentConfig, revision: data.revision ?? document.revision } : document));
+          }
+          setLastSavedAt(data.updatedAt || new Date().toISOString());
+          if (JSON.stringify(configRef.current) !== sentSignature) {
+            setMessage("Saved checkpoint · Newer changes pending");
+            continue;
+          }
+          setDirty(false);
+          setRecovery({ state: "none" });
+          if (typeof window !== "undefined") clearRecoveryJournal(window.localStorage, recoveryDocumentId);
+          setMessage("Saved draft · Draft changes not published");
+          return true;
+        }
+      } catch {
+        setMessage(typeof navigator !== "undefined" && !navigator.onLine
+          ? "Offline — changes stored locally"
+          : "Save failed — retrying");
+        setSaveFailed(true);
+        return false;
+      } finally {
+        setSaving(false);
+        savePromiseRef.current = null;
+      }
+    })();
+    savePromiseRef.current = request;
+    return request;
   }
+
+  useEffect(() => {
+    if (!dirty || saving || saveFailed) return;
+    const timer = window.setTimeout(() => { void save(); }, 1400);
+    return () => window.clearTimeout(timer);
+    // Config changes restart the settled-mutation debounce. save reads refs.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [config, dirty, saving, saveFailed]);
 
   async function publishDemo(publish: boolean) {
     setMessage(null);
@@ -1216,6 +1349,62 @@ export function TapCardBuilder({
     );
   }
 
+  async function switchDocument(id: string): Promise<boolean> {
+    if (id === activeDocumentId) return true;
+    if (!(await save())) return false;
+    const target = id === "main-card"
+      ? mainDocumentRef.current
+      : (() => {
+          const document = openDocuments.find((candidate) => candidate.id === id);
+          return document ? { draft: document.draft, revision: document.revision } : null;
+        })();
+    if (!target) return false;
+    setActiveDocumentId(id);
+    setConfigHistory(structuredClone(target.draft), { label: `Opened ${target.draft.documentName || "Card document"}` });
+    configRef.current = structuredClone(target.draft);
+    draftRevisionRef.current = target.revision;
+    setDraftRevision(target.revision);
+    setDirty(false);
+    setSaveFailed(false);
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([]);
+    return true;
+  }
+
+  async function cloneDocument(): Promise<boolean> {
+    if (!(await save())) return false;
+    const response = await fetch("/api/card/documents", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ draft: configRef.current }),
+    });
+    if (!response.ok) {
+      const data = await response.json().catch(() => ({}));
+      setMessage(data.error || "Clone failed");
+      return false;
+    }
+    const data = await response.json() as { document: { id: string; name: string; documentType: "CARD_VARIATION"; draft: TapConnectCardConfig; draftRevision: number } };
+    const document: OpenCardCreativeDocument = { id: data.document.id, name: data.document.name, documentType: "CARD_VARIATION", draft: data.document.draft, revision: data.document.draftRevision };
+    setOpenDocuments((documents) => [...documents, document]);
+    setActiveDocumentId(document.id);
+    setConfigHistory(structuredClone(document.draft), { label: `Cloned ${document.name}` });
+    configRef.current = structuredClone(document.draft);
+    draftRevisionRef.current = document.revision;
+    setDraftRevision(document.revision);
+    setDirty(false);
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([]);
+    setMessage(`${document.name} opened as an independent saved Card document.`);
+    return true;
+  }
+
+  async function closeDocument(id: string): Promise<boolean> {
+    if (id === "main-card") return false;
+    if (id === activeDocumentId && !(await switchDocument("main-card"))) return false;
+    setOpenDocuments((documents) => documents.filter((document) => document.id !== id));
+    return true;
+  }
+
   // Adaptive shell: focus is owned by Command Shade when hosted.
   const effectiveFocus = shellHosted
     ? Boolean(shellFocusMode)
@@ -1238,9 +1427,28 @@ export function TapCardBuilder({
         setSelectedId(id);
         setSelectedCompositionNodeIds([]);
       },
+      renameDocument: (name) => {
+        const normalized = normalizeCreativeDocumentName(name);
+        if (!normalized || normalized === configRef.current.documentName) return;
+        patchConfig({ documentName: normalized }, "Renamed Card");
+      },
+      restoreRecovery: () => {
+        if (recovery.state !== "recoverable" && recovery.state !== "conflict") return;
+        setConfigHistory(recovery.entry.document, { label: "Restored recovered Card changes" });
+        setDirty(true);
+        setRecovery({ state: "none" });
+        setMessage(`Recovered changes from ${new Date(recovery.entry.checkpointedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`);
+      },
+      discardRecovery: () => {
+        if (typeof window !== "undefined") clearRecoveryJournal(window.localStorage, recoveryDocumentId);
+        setRecovery({ state: "none" });
+      },
+      cloneDocument,
+      switchDocument,
+      closeDocument,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- API bridge refresh on undo capability
-  }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode, config, dirty, saving, draftRevision, currentPublicationId, versions]);
+  }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode, config, dirty, saving, draftRevision, currentPublicationId, versions, recovery, recoveryDocumentId, activeDocumentId, openDocuments]);
 
   useEffect(() => {
     if (!shellHosted || !onShellStatus) return;
@@ -1255,11 +1463,19 @@ export function TapCardBuilder({
       brandSource: brandState.useBrandKit ? "Brand Kit" : "Custom Card",
       selectedId,
       sectionCount: sorted.length,
-      cardName: businessName || "Card",
+      cardName: config.documentName || `${businessName || "Untitled"} Card`,
       pastLabels,
       futureLabels,
-      canPublish: !dirty && !saving && draftRevision >= 1,
-      publicationLabel: currentPublicationId ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}` : "Not published",
+      canPublish: activeDocumentId === "main-card" && !dirty && !saving && draftRevision >= 1,
+      publicationLabel: activeDocumentId !== "main-card" ? "Draft variation" : currentPublicationId ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}` : "Not published",
+      saveState: saving ? "saving" : recovery.state === "conflict" ? "conflict" : saveFailed ? "failed" : dirty ? "unsaved" : "saved",
+      savedAt: lastSavedAt,
+      recoveryState: recovery.state,
+      activeDocumentId,
+      openDocuments: [
+        { id: "main-card", name: activeDocumentId === "main-card" ? (config.documentName || `${businessName} Card`) : (mainDocumentRef.current.draft.documentName || `${businessName} Card`), type: "MAIN_CARD", dirty: activeDocumentId === "main-card" && dirty },
+        ...openDocuments.map((document) => ({ id: document.id, name: document.id === activeDocumentId ? (config.documentName || document.name) : document.name, type: "CARD_VARIATION" as const, dirty: document.id === activeDocumentId && dirty })),
+      ],
     });
   }, [
     shellHosted,
@@ -1275,11 +1491,17 @@ export function TapCardBuilder({
     selectedId,
     sorted.length,
     businessName,
+    config.documentName,
     pastLabels,
     futureLabels,
     draftRevision,
     currentPublicationId,
     versions,
+    saveFailed,
+    lastSavedAt,
+    recovery.state,
+    activeDocumentId,
+    openDocuments,
   ]);
 
   const outlineHashRef = useRef("");
@@ -2486,14 +2708,14 @@ export function TapCardBuilder({
         <div
           ref={previewScrollRef}
           className={cn(
-            "builder-studio-canvas min-w-0 overflow-y-auto overscroll-contain border-x border-border/40",
+            "builder-studio-canvas min-w-0 overflow-auto overscroll-contain border-x border-border/40",
             shellHosted
               ? "min-h-0 flex-1 lg:h-auto"
               : "min-h-[min(55vh,420px)] lg:min-h-0 lg:h-auto"
           )}
           data-testid="card-preview-canvas"
         >
-          {interactionMode === "edit" ? <div className={cn("sticky top-0 z-10 flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur", zoomToolbarCollapsed && "[&>*:not(:last-child)]:hidden")}>
+          {interactionMode === "edit" ? <div className={cn("sticky top-0 z-[1500] flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur", zoomToolbarCollapsed && "[&>*:not(:last-child)]:hidden")}>
             <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-muted-foreground" data-testid="card-zoom-percent">
               {previewZoom === "fit" ? "Fit" : `${Math.round(previewZoom * 100)}%`}
             </span>
@@ -2510,19 +2732,19 @@ export function TapCardBuilder({
             >
               Fit Card
             </Button>
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className={cn(
-                "h-7 text-xs",
-                previewZoom === 1 && "border-primary/50 bg-primary/10 text-primary"
-              )}
-              data-testid="card-zoom-100"
-              onClick={() => setPreviewZoom(1)}
-            >
-              100%
-            </Button>
+            {[0.25, 0.5, 0.75, 1, 1.5, 2].map((zoom) => (
+              <Button
+                key={zoom}
+                type="button"
+                size="sm"
+                variant="outline"
+                className={cn("h-7 px-2 text-xs", previewZoom === zoom && "border-primary/50 bg-primary/10 text-primary")}
+                data-testid={`card-zoom-${Math.round(zoom * 100)}`}
+                onClick={() => setPreviewZoom(zoom)}
+              >
+                {Math.round(zoom * 100)}%
+              </Button>
+            ))}
             <Button
               type="button"
               size="sm"
@@ -2532,7 +2754,7 @@ export function TapCardBuilder({
               aria-label="Zoom out"
               onClick={() =>
                 setPreviewZoom((z) =>
-                  z === "fit" ? 0.85 : Math.max(0.6, Math.round((Number(z) - 0.15) * 100) / 100)
+                  z === "fit" ? 0.75 : Math.max(0.25, Math.round((Number(z) - 0.25) * 100) / 100)
                 )
               }
             >
@@ -2547,7 +2769,7 @@ export function TapCardBuilder({
               aria-label="Zoom in"
               onClick={() =>
                 setPreviewZoom((z) =>
-                  z === "fit" ? 1.15 : Math.min(1.6, Math.round((Number(z) + 0.15) * 100) / 100)
+                  z === "fit" ? 1.25 : Math.min(2, Math.round((Number(z) + 0.25) * 100) / 100)
                 )
               }
             >
@@ -2559,7 +2781,7 @@ export function TapCardBuilder({
               variant="outline"
               className="h-7 text-xs"
               data-testid="card-zoom-fit-selection"
-              disabled={!selectedId}
+              disabled={!selectedId && selectedCompositionNodeIds.length === 0}
               onClick={() => {
                 setPreviewZoom(1);
                 document.getElementById(`tap-section-${selectedId}`)?.scrollIntoView({ block: "center" });
@@ -2608,19 +2830,19 @@ export function TapCardBuilder({
               {zoomToolbarCollapsed ? "View controls" : "Hide"}
             </Button>
           </div> : null}
-          <div className={cn("flex justify-center p-4 pb-12", previewPan && "cursor-grab overflow-auto")}>
+          <div className={cn("flex min-h-full min-w-[760px] justify-center px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => { if (!previewPan && !spacePan) return; const viewport = previewScrollRef.current; if (!viewport) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId }; }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
             <div
               className={cn(
                 "builder-phone builder-phone-natural origin-top",
-                previewZoom === "fit" ? "w-full max-w-[min(390px,100%)]" : "w-[390px]"
+                renderedPreviewZoom === "fit" ? "w-full max-w-[min(390px,100%)]" : "w-[390px]"
               )}
               style={
-                previewZoom === "fit"
+                renderedPreviewZoom === "fit"
                   ? undefined
-                  : { transform: `scale(${previewZoom})`, marginBottom: `${(Number(previewZoom) - 1) * 40}%` }
+                  : { transform: `scale(${renderedPreviewZoom})`, marginBottom: `${(Number(renderedPreviewZoom) - 1) * 40}%` }
               }
               data-testid="card-preview-phone"
-              data-zoom={previewZoom === "fit" ? "fit" : String(previewZoom)}
+              data-zoom={renderedPreviewZoom === "fit" ? "fit" : String(renderedPreviewZoom)}
             >
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
@@ -2694,7 +2916,7 @@ export function TapCardBuilder({
                       ? (id) => {
                           setSelectedId(id);
                           if (id !== selectedId) setSelectedCompositionNodeIds([]);
-                          if (id && onRequestTool) {
+                          if (id && onRequestTool && !shellHosted) {
                             const section = sectionsHistory.find((s) => s.id === id);
                             if (section?.type === "action") onRequestTool("buttons");
                             else if (

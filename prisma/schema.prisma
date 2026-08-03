@@ -572,6 +572,7 @@ model Business {
   campaignLifecycleEvents   CampaignLifecycleEvent[]
   emailDocuments            EmailDocument[]
   emailLifecycleEvents      EmailLifecycleEvent[]
+  cardCreativeDocuments     CardCreativeDocument[]
 
   @@index([workspaceKind, lifecycleState])
   @@index([lifecycleState, deletionScheduledAt])
@@ -1195,6 +1196,21 @@ model BrandKit {
  * Canonical Card publication lifecycle. The immutable document remains in the
  * retained PublicationSnapshot; BrandKit.tapCard is a compatibility projection.
  */
+model CardCreativeDocument {
+  id            String   @id @default(cuid())
+  businessId    String
+  name          String
+  documentType  String   @default("CARD_VARIATION")
+  draft         Json
+  draftRevision Int      @default(1)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, updatedAt])
+}
+
 model CardPublication {
   id                    String                @id @default(cuid())
   businessId            String

@@ -58,14 +58,15 @@ export function KeepCardCta({
   } | null>(null);
 
   useEffect(() => {
-    if (!enabled) return;
+    // Authoring and view-only previews must never contaminate public engagement analytics.
+    if (!enabled || previewMode) return;
     void trackRetentionEvent({
       eventType: RETENTION_EVENTS.ctaViewed,
       businessId,
       campaignId,
       deviceSlotId,
     });
-  }, [enabled, businessId, campaignId, deviceSlotId]);
+  }, [enabled, previewMode, businessId, campaignId, deviceSlotId]);
 
   if (!enabled) return null;
 

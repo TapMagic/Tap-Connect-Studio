@@ -16,7 +16,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Monitor, Redo2, Save, Smartphone, Tablet, Undo2 } from "lucide-react";
+import { Copy, Monitor, Redo2, Save, Smartphone, Tablet, Undo2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   AdaptiveWorkspaceShell,
@@ -26,10 +26,12 @@ import {
   TapCardBuilder,
   type CardBuilderShellApi,
   type CardBuilderShellStatus,
+  type OpenCardCreativeDocument,
 } from "@/components/card/tap-card-builder";
 import { CardLiveToolDrawer } from "@/components/fusion/card/card-live-tool-drawer";
 import { CardCreativeToolRail } from "@/components/fusion/card/card-creative-tool-rail";
 import { CardComposerInspector } from "@/components/fusion/card/card-composer-inspector";
+import { CardContextualObjectToolbar } from "@/components/fusion/card/card-contextual-object-toolbar";
 import { PreviewToolbar } from "@/components/fusion/creative-studio/preview-toolbar";
 import { LiveDeviceQrPanel } from "@/components/fusion/creative-studio/live-device-qr-panel";
 import {
@@ -101,6 +103,7 @@ const CARD_RAIL_TOOLS = CARD_AUTHORING_TOOLS.filter(
 export type CardAuthoringWorkspaceProps = {
   initialConfig: TapConnectCardConfig;
   initialDraftRevision?: number;
+  initialOpenDocuments?: OpenCardCreativeDocument[];
   profile: BrandContactProfile;
   businessName: string;
   logoUrl?: string | null;
@@ -163,8 +166,8 @@ export function CardAuthoringWorkspace({
       shadePreference: restored.shadePreference,
       priorShadeDisplay: restored.priorShadeDisplay || "open",
       focusMode: restored.focusMode,
-      selectedToolId: "content",
-      drawerOpen: true,
+      selectedToolId: null,
+      drawerOpen: false,
       drawerSizeMode:
         (restored.selectedToolId &&
           restored.toolMemory?.[restored.selectedToolId]?.sizeMode) ||
@@ -194,7 +197,8 @@ export function CardAuthoringWorkspace({
   const [shell, setShell] = useState<WorkspaceShellSnapshot>(
     () => initialShell.snapshot
   );
-  const [sessionRestored] = useState(() => Boolean(restored.sessionDraftRestored));
+  // Keep the server and first client render identical; sessionStorage is client-only.
+  const [sessionRestored, setSessionRestored] = useState(false);
   const [studioMode, setStudioMode] = useState<CreativeStudioMode>("edit");
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>("desktop");
   const [liveDeviceOpen, setLiveDeviceOpen] = useState(false);
@@ -224,11 +228,51 @@ export function CardAuthoringWorkspace({
     futureLabels: [],
     canPublish: false,
     publicationLabel: "Not published",
+    saveState: "saved",
+    savedAt: null,
+    recoveryState: "none",
+    activeDocumentId: "main-card",
+    openDocuments: [],
   });
   const [chromeState, setChromeState] = useState<
     "expanded" | "compact" | "collapsed" | "pinned" | "focus"
   >("compact");
   const apiRef = useRef<CardBuilderShellApi | null>(null);
+  const [builderReady, setBuilderReady] = useState(false);
+  const [nameDraft, setNameDraft] = useState(status.cardName);
+  const lastReportedNameRef = useRef(status.cardName);
+  const [tabMenuId, setTabMenuId] = useState<string | null>(null);
+  const [exitState, setExitState] = useState<"closed" | "saving" | "ready" | "blocked">("closed");
+
+  useEffect(() => {
+    const timer = window.setTimeout(
+      () => setSessionRestored(Boolean(restored.sessionDraftRestored)),
+      0
+    );
+    return () => window.clearTimeout(timer);
+  }, [restored.sessionDraftRestored]);
+
+  const requestExit = useCallback(async () => {
+    setExitState("saving");
+    const saved = apiRef.current ? await apiRef.current.save() : false;
+    setExitState(saved ? "ready" : "blocked");
+  }, []);
+
+  const confirmExit = useCallback(() => {
+    setExitState("closed");
+    router.push(doneHref);
+  }, [doneHref, router]);
+
+  useEffect(() => {
+    const marker = { tapconnectEditGuard: true };
+    window.history.pushState(marker, "", window.location.href);
+    const onPopState = () => {
+      window.history.pushState(marker, "", window.location.href);
+      void requestExit();
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  }, [requestExit]);
 
   useEffect(() => {
     saveWorkspaceShellState(
@@ -388,6 +432,10 @@ export function CardAuthoringWorkspace({
   }, []);
 
   const onStatusChange = useCallback((next: CardBuilderShellStatus) => {
+    if (next.cardName !== lastReportedNameRef.current) {
+      lastReportedNameRef.current = next.cardName;
+      setNameDraft(next.cardName);
+    }
     setStatus((prev) => {
       if (
         prev.dirty === next.dirty &&
@@ -401,6 +449,13 @@ export function CardAuthoringWorkspace({
         prev.selectedId === next.selectedId &&
         prev.sectionCount === next.sectionCount &&
         prev.cardName === next.cardName &&
+        prev.saveState === next.saveState &&
+        prev.savedAt === next.savedAt &&
+        prev.recoveryState === next.recoveryState &&
+        prev.canPublish === next.canPublish &&
+        prev.publicationLabel === next.publicationLabel &&
+        prev.activeDocumentId === next.activeDocumentId &&
+        JSON.stringify(prev.openDocuments) === JSON.stringify(next.openDocuments) &&
         prev.pastLabels.join("|") === next.pastLabels.join("|") &&
         prev.futureLabels.join("|") === next.futureLabels.join("|")
       ) {
@@ -563,6 +618,55 @@ export function CardAuthoringWorkspace({
     </div>
   );
 
+  const saveStateLabel = status.saveState === "saving"
+    ? "Saving…"
+    : status.saveState === "failed"
+      ? "Save failed — action required"
+      : status.saveState === "conflict"
+        ? "Conflict detected"
+        : status.saveState === "unsaved"
+          ? "Unsaved changes"
+          : status.savedAt
+            ? `Saved at ${new Date(status.savedAt).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })}`
+            : "Saved";
+
+  const editTopBar = (
+    <header className="shrink-0 border-b border-white/10 bg-[#070b14] text-white" data-testid="card-edit-mode-topbar">
+      <div className="flex min-h-14 items-center gap-2 px-3">
+        <div className="min-w-0 flex-1 sm:max-w-[320px]">
+          <label className="sr-only" htmlFor="card-document-name">Card name</label>
+          <input
+            id="card-document-name"
+            value={nameDraft}
+            maxLength={120}
+            disabled={!builderReady}
+            onChange={(event) => setNameDraft(event.target.value)}
+            onBlur={() => apiRef.current?.renameDocument(nameDraft)}
+            onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }}
+            className="h-9 w-full rounded-md border border-transparent bg-white/5 px-2 text-sm font-semibold outline-none hover:border-white/15 focus:border-[#b8ff2c]/60"
+            data-testid="card-document-name"
+          />
+          <span className="block px-2 text-[9px] uppercase tracking-[.14em] text-white/45">Tap Card</span>
+        </div>
+        <span className="hidden rounded-full border border-white/10 px-2 py-1 text-[10px] text-white/65 md:inline" data-testid="studio-save-state" data-saved={status.saveState === "saved" ? "true" : "false"}>{saveStateLabel}</span>
+        <button type="button" className="grid min-h-10 min-w-10 place-items-center rounded-md border border-white/10 disabled:opacity-40" onClick={() => apiRef.current?.undo()} disabled={!status.canUndo} aria-label="Undo" data-testid="card-undo"><Undo2 className="h-4 w-4" /></button>
+        <button type="button" className="grid min-h-10 min-w-10 place-items-center rounded-md border border-white/10 disabled:opacity-40" onClick={() => apiRef.current?.redo()} disabled={!status.canRedo} aria-label="Redo" data-testid="card-redo"><Redo2 className="h-4 w-4" /></button>
+        <button type="button" className="min-h-10 rounded-md bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a]" onClick={enterPreview} data-testid="card-preview-as-customer">Preview draft</button>
+        <button type="button" className="hidden min-h-10 items-center rounded-md border border-white/15 px-3 text-xs sm:inline-flex" onClick={() => void apiRef.current?.save()} disabled={status.saving} data-testid="card-save"><Save className="mr-1 h-4 w-4" />Save now</button>
+        <button type="button" className="hidden min-h-10 items-center rounded-md border border-white/15 px-3 text-xs lg:inline-flex" onClick={() => void apiRef.current?.cloneDocument()} data-testid="card-clone"><Copy className="mr-1 h-4 w-4" />Clone</button>
+        <button type="button" className="hidden min-h-10 rounded-md border border-white/15 px-3 text-xs lg:block" disabled={!status.canPublish} onClick={() => void apiRef.current?.publish()} data-testid="card-publish">{status.publicationLabel === "Not published" ? "Publish" : "Update"}</button>
+        <button type="button" className="grid min-h-10 min-w-10 place-items-center rounded-md border border-white/15" onClick={() => void requestExit()} aria-label="Exit Edit Mode" data-testid="card-exit-edit-mode"><X className="h-4 w-4" /></button>
+      </div>
+      <div className="flex h-9 items-end gap-1 overflow-x-auto border-t border-white/5 px-3" role="tablist" aria-label="Open creative documents" data-testid="creative-document-tabs">
+        {status.openDocuments.map((document) => <div key={document.id} className="group relative flex h-8 min-w-40 items-center rounded-t-md border border-b-0 border-white/15" data-testid={`creative-document-tab-${document.id}`} onContextMenu={(event) => { event.preventDefault(); setTabMenuId(document.id); }}>
+          <button type="button" role="tab" aria-selected={document.id === status.activeDocumentId} className={cn("flex h-full min-w-0 flex-1 items-center gap-2 px-3 text-xs", document.id === status.activeDocumentId ? "bg-[#111827] text-white" : "text-white/55 hover:bg-white/5")} onClick={() => { setTabMenuId(null); void apiRef.current?.switchDocument(document.id); }}><span className="max-w-36 truncate">{document.name}</span><span className="text-[8px] uppercase opacity-45">{document.type === "MAIN_CARD" ? "Card" : "Variation"}</span>{document.dirty ? <span className="h-1.5 w-1.5 rounded-full bg-amber-300" aria-label="Unsaved" /> : null}</button>
+          {document.id !== "main-card" ? <button type="button" className="grid h-full w-8 place-items-center text-white/45 hover:text-white" onClick={() => void apiRef.current?.closeDocument(document.id)} aria-label={`Close ${document.name}`}>×</button> : null}
+          {tabMenuId === document.id ? <div role="menu" className="absolute left-2 top-full z-[1600] mt-1 grid min-w-40 rounded-lg border border-white/15 bg-[#0b1019] p-1 shadow-2xl" data-testid="creative-document-tab-menu"><button role="menuitem" type="button" className="rounded px-2 py-2 text-left text-xs hover:bg-white/5" onClick={async () => { await apiRef.current?.switchDocument(document.id); setTabMenuId(null); window.setTimeout(() => window.document.getElementById("card-document-name")?.focus(), 0); }}>Rename</button><button role="menuitem" type="button" className="rounded px-2 py-2 text-left text-xs hover:bg-white/5" onClick={async () => { await apiRef.current?.switchDocument(document.id); await apiRef.current?.cloneDocument(); setTabMenuId(null); }}>Duplicate</button>{document.id !== "main-card" ? <button role="menuitem" type="button" className="rounded px-2 py-2 text-left text-xs hover:bg-white/5" onClick={() => { void apiRef.current?.closeDocument(document.id); setTabMenuId(null); }}>Close tab</button> : null}</div> : null}
+        </div>)}
+      </div>
+    </header>
+  );
+
   return (
     <div
       className="relative flex h-full min-h-0 flex-col overflow-hidden"
@@ -577,6 +681,24 @@ export function CardAuthoringWorkspace({
       data-reusable-composition-count={liveModel?.config.reusableCompositions?.length ?? 0}
       data-maturity="implementation-in-progress"
     >
+      {studioMode === "edit" ? editTopBar : null}
+      {studioMode === "edit" ? <CardContextualObjectToolbar model={liveModel} onAdvanced={() => openCardTool("content")} /> : null}
+      {status.recoveryState !== "none" && studioMode === "edit" ? (
+        <section className="absolute left-1/2 top-28 z-[1500] w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-amber-300/35 bg-[#111827] p-4 text-white shadow-2xl" role="alert" data-testid="card-recovery-prompt">
+          <h2 className="text-sm font-semibold">{status.recoveryState === "conflict" ? "Recovered changes need review" : "Recovered changes are available"}</h2>
+          <p className="mt-1 text-xs text-white/65">A browser-local checkpoint was found. A newer server draft will never be overwritten silently.</p>
+          <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="min-h-9 rounded bg-[#b8ff2c] px-3 text-xs font-semibold text-black" onClick={() => apiRef.current?.restoreRecovery()} disabled={status.recoveryState === "stale"}>Restore recovered version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => openCardTool("content")}>Review server version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => apiRef.current?.discardRecovery()}>Keep server version</button></div>
+        </section>
+      ) : null}
+      {exitState !== "closed" ? (
+        <div className="fixed inset-0 z-[1800] grid place-items-center bg-black/70 p-4" data-testid="card-exit-save-dialog">
+          <section className="w-full max-w-sm rounded-xl border border-white/15 bg-[#0b1019] p-5 text-white" role="alertdialog" aria-modal="true" aria-labelledby="exit-edit-title">
+            <h2 id="exit-edit-title" className="text-base font-semibold">{exitState === "saving" ? "Saving changes…" : exitState === "ready" ? "All changes saved." : "Save failed — exit blocked"}</h2>
+            <p className="mt-2 text-xs text-white/65">{exitState === "saving" ? "Waiting for the server draft acknowledgement." : exitState === "ready" ? "Exit Edit Mode?" : "Your recovery journal remains available. Retry or stay in Edit Mode."}</p>
+            <div className="mt-5 flex justify-end gap-2">{exitState === "ready" ? <button type="button" className="min-h-10 rounded bg-[#b8ff2c] px-4 text-xs font-semibold text-black" onClick={confirmExit} data-testid="card-exit-confirm">Exit</button> : null}{exitState === "blocked" ? <button type="button" className="min-h-10 rounded bg-[#b8ff2c] px-4 text-xs font-semibold text-black" onClick={() => void requestExit()} data-testid="card-exit-retry">Retry</button> : null}{exitState !== "saving" ? <button type="button" className="min-h-10 rounded border border-white/15 px-4 text-xs" onClick={() => setExitState("closed")}>Keep editing</button> : null}</div>
+          </section>
+        </div>
+      ) : null}
       {sessionRestored ? (
         <p className="sr-only" role="status" data-testid="card-session-restore-notice">
           {SESSION_RESTORE_LABEL}
@@ -631,7 +753,7 @@ export function CardAuthoringWorkspace({
 
       <AdaptiveWorkspaceShell
         compactHeader
-        hideHeader={studioMode === "preview"}
+        hideHeader
         identity={{
           id: WORKSPACE_ID,
           label: status.cardName || "Card",
@@ -650,14 +772,15 @@ export function CardAuthoringWorkspace({
           zone: "card",
         }}
         outline={shell.focusMode || studioMode === "preview" ? undefined : outline}
-        outlineClassName="!w-[min(22rem,32%)] !overflow-hidden !p-0"
+        outlineClassName="!w-[min(20rem,28%)] !overflow-hidden !p-0"
         canvas={
           <div
             className={cn(
-              "flex h-full min-h-0 w-full justify-center",
+              "card-edit-pasteboard flex h-full min-h-0 w-full justify-center overflow-auto bg-[#151a22]",
               previewViewport !== "desktop" && "overflow-y-auto py-4"
             )}
             data-testid="card-canvas-viewport"
+            data-pasteboard="true"
             data-preview-viewport={previewViewport}
             data-studio-mode={studioMode}
             style={
@@ -693,6 +816,7 @@ export function CardAuthoringWorkspace({
                 activeSpotlightTitle={activeSpotlightTitle}
                 onShellApi={(api) => {
                   apiRef.current = api;
+                  setBuilderReady(true);
                 }}
                 onShellStatus={onStatusChange}
                 onRequestTool={openCardTool}
@@ -738,15 +862,10 @@ export function CardAuthoringWorkspace({
           activeToolId &&
             [
               "appearance",
-              "content",
-              "composition",
-              "typography",
-              "buttons",
-              "media",
               "history",
             ].includes(activeToolId)
         )}
-        onExitWorkspace={() => router.push(doneHref)}
+        onExitWorkspace={() => { void requestExit(); }}
         primaryAction={primaryAction}
         returnAction={
           <Link
