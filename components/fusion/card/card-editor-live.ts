@@ -11,7 +11,7 @@ import type {
   TapCardSection,
   TapConnectCardConfig,
 } from "@/lib/brand/tap-card";
-import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject } from "@/lib/fusion/card/composer-model";
+import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject, SectionPresetId } from "@/lib/fusion/card/composer-model";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import type { SelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
 
@@ -94,7 +94,9 @@ export type CardEditorLiveModel = {
   onAddSection: (type: string) => void;
   onAddAction: (kind: string) => void;
   onAddSurface?: (kind: CardSurfaceKind) => void;
+  onAddSectionPreset?: (presetId: SectionPresetId) => void;
   onAddElement?: (kind: CardElementKind, targetSectionId: string | null, initialProps?: Record<string, unknown>) => void;
+  onAddObjects?: (objects: Array<{ kind: CardElementKind; initialProps?: Record<string, unknown> }>, targetSectionId: string | null, label: string) => void;
   moveElementsTo?: (
     ids: string[],
     fromSectionId: string | null,

@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown, ChevronRight, Eye, EyeOff, GripVertical, HelpCircle, Lock, Unlock } from "lucide-react";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
-import { CARD_ELEMENT_LIBRARY, CARD_SURFACE_LIBRARY, type CardElementKind, type CardSurfaceKind } from "@/lib/fusion/card/composer-model";
+import { CARD_ELEMENT_LIBRARY, SECTION_PRESET_LIBRARY, type CardElementKind, type SectionPresetId } from "@/lib/fusion/card/composer-model";
 import { cn } from "@/lib/utils";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
@@ -14,6 +14,9 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
   const [query, setQuery] = useState("");
   const [outlineOpen, setOutlineOpen] = useState(false);
   const [guideOpen, setGuideOpen] = useState(true);
+  const [targetSectionChoice, setTargetSectionChoice] = useState<string | null>(null);
+  const selectedSectionId = model?.selected?.type === "surface" ? model.selected.id : null;
+  const insertionTarget = selectedSectionId && targetSectionChoice === selectedSectionId ? "section" : "card";
   const match = (label: string) => !query.trim() || label.toLowerCase().includes(query.toLowerCase());
 
   return (
@@ -36,27 +39,28 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
             <button type="button" className="text-[10px] text-white/70" onClick={() => setGuideOpen(false)} aria-label="Dismiss build guide">Dismiss</button>
           </div>
           <div className="mt-3 grid gap-1.5">
-            <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => model?.onAddSurface?.("identity")}>1. Add identity</button>
-            <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => model?.onAddSurface?.("actions")}>2. Add a primary action</button>
+            <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => model?.onAddSectionPreset?.("identity")}>1. Add Premium Identity</button>
+            <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => model?.onAddElement?.("button", null, { label: "Learn more" })}>2. Add a root Button</button>
             <button type="button" className="min-h-9 rounded border border-white/10 px-2 text-left text-xs" onClick={() => { model?.setSelectedId(null); model?.setSelectedCompositionNodeIds?.([]); }}>3. Review Card</button>
           </div>
         </section>
       ) : (
         <button type="button" className="flex min-h-9 w-full items-center gap-2 rounded border border-white/10 px-2 text-xs text-white/65" onClick={() => setGuideOpen(true)} data-testid="composer-reopen-help"><HelpCircle className="h-3.5 w-3.5" />Help</button>
       )}
-      <LibraryGroup title="Surfaces" testId="composer-section-library">
-        {CARD_SURFACE_LIBRARY.filter((item) => match(item.label)).map((item) => (
+      <LibraryGroup title="Optional Sections and presets" testId="composer-section-library">
+        {SECTION_PRESET_LIBRARY.filter((item) => match(`${item.label} ${item.style}`)).map((item) => (
           <LibraryButton
-            key={item.kind}
+            key={item.id}
             label={item.label}
-            description={item.description}
+            description={`${item.description} · ${item.style}`}
             level="section"
-            kind={item.kind}
-            onAdd={() => model?.onAddSurface?.(item.kind as CardSurfaceKind)}
+            kind={item.id}
+            onAdd={() => model?.onAddSectionPreset?.(item.id as SectionPresetId)}
           />
         ))}
       </LibraryGroup>
-      <LibraryGroup title="Root or Section Elements" testId="composer-element-library">
+      {selectedSectionId ? <fieldset className="rounded-lg border border-[#b8ff2c]/25 bg-[#b8ff2c]/5 p-2" data-testid="build-insertion-target"><legend className="px-1 text-[9px] font-semibold uppercase text-[#b8ff2c]">Insert Elements into</legend><div className="grid grid-cols-2 gap-1"><button type="button" aria-pressed={insertionTarget === "card"} className="min-h-9 rounded border border-white/10 text-[10px] aria-pressed:border-[#b8ff2c]" onClick={() => setTargetSectionChoice(null)}>Add to Card</button><button type="button" aria-pressed={insertionTarget === "section"} className="min-h-9 rounded border border-white/10 text-[10px] aria-pressed:border-[#b8ff2c]" onClick={() => setTargetSectionChoice(selectedSectionId)}>Add to selected Section</button></div></fieldset> : null}
+      <LibraryGroup title="Elements and Components" testId="composer-element-library">
         {CARD_ELEMENT_LIBRARY.filter((item) => match(item.label)).map((item) => (
           <LibraryButton
             key={item.kind}
@@ -64,7 +68,7 @@ export function CardComposerLibrary({ model }: { model: CardEditorLiveModel | nu
             description={item.description}
             level="element"
             kind={item.kind}
-            onAdd={() => model?.onAddElement?.(item.kind as CardElementKind, model.selected?.type === "surface" ? model.selected.id : null)}
+            onAdd={() => model?.onAddElement?.(item.kind as CardElementKind, insertionTarget === "section" ? selectedSectionId : null)}
           />
         ))}
       </LibraryGroup>
@@ -126,7 +130,7 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
   return (
     <div className="mt-2 space-y-1" data-testid="composer-nested-outline" role="tree" aria-label="Card layers" onDragOver={(event) => autoScrollForPointer(event.currentTarget, event.clientX, event.clientY)}>
       <button type="button" className="min-h-9 w-full rounded px-2 text-left text-xs text-white/70" onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); }} role="treeitem" aria-selected={!model.selected && !model.selectedCompositionNodeIds?.length}>
-        Card
+        Card root
       </button>
       {[...(model.config.rootComposition?.nodes ?? [])].sort((left, right) => right.zIndex - left.zIndex).map((node) => {
         const selected = !model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id));
@@ -193,6 +197,7 @@ function ComposerOutline({ model }: { model: CardEditorLiveModel | null }) {
           })}
         </div>
       ))}
+      <div role="treeitem" aria-selected="false" aria-disabled="true" className="rounded-md border border-white/10 bg-white/[.03] p-2 text-[11px] text-white/70" data-testid="outline-utility-layer"><div className="flex items-center gap-2"><Lock className="h-3.5 w-3.5" /><strong>Utility Layer</strong><span className="ml-auto text-[9px] uppercase text-white/40">Governed</span></div><p className="mt-1 pl-5 text-[9px] text-white/45">Keep this Card · Ask a Question · Save to contacts</p></div>
     </div>
   );
 }

@@ -7,6 +7,7 @@ import {
   type CreativeCompositionPrimitive,
 } from "@/lib/fusion/creative-studio/composition";
 import { buttonElementDefaults, mapElementDefaults } from "@/lib/fusion/card/designer-elements";
+import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 
 export type CardSurfaceKind = NonNullable<TapCardSection["surfaceKind"]>;
 export type CardElementKind =
@@ -15,7 +16,11 @@ export type CardElementKind =
   | "divider" | "offer_code" | "terms" | "coupon_artwork" | "ticket_artwork"
   | "decorative_graphic" | "qr_image"
   | "tapsave" | "contact_form" | "campaign" | "campaign_group" | "experience"
-  | "composition";
+  | "composition" | "gallery" | "coupon" | "ticket" | "form" | "wallet_cta" | "event_rsvp";
+
+export type SectionPresetId =
+  | "blank" | "identity" | "hero" | "offer" | "location" | "contact"
+  | "social_proof" | "product" | "event" | "gallery_presentation";
 
 export type ComposerLibraryItem = {
   kind: CardSurfaceKind | CardElementKind;
@@ -46,17 +51,23 @@ export function resolveComposerSelectedObject(
   return { type: "element", id: element.id, sectionId: section.id, elementId: element.id };
 }
 
+/** Compatibility catalog. New Owner-facing discovery uses SECTION_PRESET_LIBRARY below. */
 export const CARD_SURFACE_LIBRARY: readonly ComposerLibraryItem[] = [
-  ["blank", "Blank Section", "An empty, cohesive visual surface"],
-  ["identity", "Identity Section", "Logo, business details and hours"],
-  ["hero", "Hero Section", "A prominent opening surface"],
-  ["content", "Content Section", "Text, images and supporting media"],
-  ["actions", "Actions Section", "A group of customer actions"],
-  ["offer", "Offer Section", "A local visual offer or linked offer"],
-  ["contact", "Contact Section", "Contact details and forms"],
-  ["location", "Location Section", "Address, map and directions"],
-  ["gallery", "Gallery Section", "A visual media collection"],
+  ["blank", "Blank Section", "An empty generic Section"],
 ].map(([kind, label, description]) => ({ kind: kind as CardSurfaceKind, label, description }));
+
+export const SECTION_PRESET_LIBRARY: ReadonlyArray<{ id: SectionPresetId; label: string; description: string; style: string }> = [
+  { id: "blank", label: "Blank Section", description: "An optional generic layout and local appearance surface", style: "Blank" },
+  { id: "identity", label: "Premium Identity", description: "Logo, business name, supporting text, and badge", style: "Brand-derived" },
+  { id: "hero", label: "Premium Hero", description: "Image, headline, subheadline, and primary Button", style: "Editorial" },
+  { id: "offer", label: "Premium Offer", description: "Badge, offer value, supporting copy, media, terms, and Claim Button", style: "High gloss" },
+  { id: "location", label: "Premium Location", description: "Location, address, hours, Map, and Directions Button", style: "Clean professional" },
+  { id: "contact", label: "Premium Contact", description: "Heading, contact methods, Form, and Save contact Button", style: "Glass" },
+  { id: "social_proof", label: "Premium Social Proof", description: "Review quote, proof point, and CTA", style: "Luxury dark" },
+  { id: "product", label: "Premium Product Spotlight", description: "Product image, name, value, description, and Button", style: "Warm retail" },
+  { id: "event", label: "Premium Event", description: "Title, date, location, RSVP, calendar, and Ticket", style: "Bold promotional" },
+  { id: "gallery_presentation", label: "Premium Gallery Presentation", description: "Gallery Component, caption, and optional CTA", style: "Minimal" },
+];
 
 export const CARD_ELEMENT_LIBRARY: readonly ComposerLibraryItem[] = [
   ["text", "Text", "Paragraph text"], ["heading", "Heading", "Section heading"],
@@ -74,6 +85,12 @@ export const CARD_ELEMENT_LIBRARY: readonly ComposerLibraryItem[] = [
   ["contact_form", "Contact form", "Consent-aware form"], ["campaign", "Campaign link", "Optional Campaign link"],
   ["campaign_group", "Campaign Group link", "Optional Campaign Group link"], ["experience", "Experience link", "Reusable Experience link"],
   ["composition", "Reusable composition", "Canonical reusable composition"],
+  ["gallery", "Gallery", "Responsive editable media Component"],
+  ["coupon", "Coupon", "Editable offer, code, QR, terms, and actions"],
+  ["ticket", "Ticket", "Editable admission identity, QR, terms, and Wallet action"],
+  ["form", "Form", "Editable fields, consent, and Submit Button"],
+  ["wallet_cta", "Wallet CTA", "Governed add-to-wallet action"],
+  ["event_rsvp", "Event / RSVP", "Event details and RSVP action"],
 ].map(([kind, label, description]) => ({ kind: kind as CardElementKind, label, description }));
 
 function surfaceDefaults(kind: CardSurfaceKind) {
@@ -136,6 +153,66 @@ export function createCardSurface(kind: CardSurfaceKind, order: number): TapCard
   };
 }
 
+function presetElement(kind: CardElementKind, index: number, props: Record<string, unknown> = {}) {
+  const node = createCardElement(kind, index);
+  const nextProps = kind === "button" && typeof props.label === "string"
+    ? updateButtonLabel({ ...node.props, ...props }, props.label, node.id)
+    : { ...node.props, ...props };
+  return { ...node, props: nextProps };
+}
+
+const PRESET_CHILDREN: Record<Exclude<SectionPresetId, "blank">, Array<[CardElementKind, Record<string, unknown>?]>> = {
+  identity: [["logo"], ["business_name", { fontSize: 30, fontWeight: 800 }], ["text", { text: "What we make memorable", fontSize: 16 }], ["badge", { text: "EST. HERE", accessibleLabel: "Established here" }]],
+  hero: [["image", { alt: "Hero image" }], ["heading", { text: "A remarkable first impression", fontSize: 38, fontWeight: 850 }], ["subheading", { text: "Tell people why this matters in one clear sentence." }], ["button", { label: "Learn more", actionType: "website" }]],
+  offer: [["badge", { text: "LIMITED", accessibleLabel: "Limited offer" }], ["heading", { text: "An offer worth tapping", fontSize: 34, fontWeight: 850 }], ["text", { text: "Add the value and a concise reason to act now." }], ["image", { alt: "Offer product" }], ["button", { label: "Claim offer", actionType: "claim_offer" }], ["terms", { text: "Draft terms — review before publishing.", ownerReviewRequired: true }]],
+  location: [["heading", { text: "Come see us" }], ["address"], ["hours"], ["map"], ["button", { label: "Get directions", actionType: "directions", icon: "map-pin" }]],
+  contact: [["heading", { text: "Let’s connect" }], ["text", { text: "Choose the easiest way to reach us." }], ["form"], ["button", { label: "Save to contacts", actionType: "save_contact" }]],
+  social_proof: [["badge", { text: "★★★★★", accessibleLabel: "Five star rating" }], ["heading", { text: "Loved by local customers" }], ["text", { text: "“A short customer quote can live here.”" }], ["button", { label: "Read reviews", actionType: "reviews" }]],
+  product: [["image", { alt: "Featured product" }], ["heading", { text: "Featured favorite" }], ["subheading", { text: "$49 · Exceptional value" }], ["text", { text: "Describe the detail that makes this product special." }], ["button", { label: "Shop now", actionType: "website" }]],
+  event: [["badge", { text: "FRI 7PM", accessibleLabel: "Friday at 7 PM" }], ["heading", { text: "A night to remember" }], ["text", { text: "Date · time · location" }], ["button", { label: "RSVP", actionType: "custom" }], ["ticket"]],
+  gallery_presentation: [["gallery"], ["text", { text: "A curated look at our latest work." }], ["button", { label: "See more", actionType: "website" }]],
+};
+
+/** Insert a named starting point over the one generic Section implementation. */
+export function createSectionPreset(presetId: SectionPresetId, order: number): TapCardSection {
+  const definition = SECTION_PRESET_LIBRARY.find((item) => item.id === presetId)!;
+  const base = createCardSurface("blank", order);
+  const nodes = presetId === "blank"
+    ? []
+    : PRESET_CHILDREN[presetId].map(([kind, props], index) => presetElement(kind, index, props));
+  const section: TapCardSection = {
+    ...base,
+    label: definition.label,
+    sectionPresetId: presetId,
+    surfaceKind: "blank",
+    surfaceLayout: presetId === "blank" ? "free" : "stack",
+    surfaceMinHeightPx: presetId === "hero" ? 560 : presetId === "offer" ? 680 : 420,
+    surfaceExactHeightPx: presetId === "hero" ? 560 : presetId === "offer" ? 680 : 420,
+    surfaceRadiusPx: presetId === "blank" ? 0 : 24,
+    surfaceBackgroundKind: presetId === "blank" ? "transparent" : "gradient",
+    surfaceGradientStart: presetId === "offer" ? "#27104f" : "#171b24",
+    surfaceGradientEnd: presetId === "offer" ? "#0b132b" : "#0b0f19",
+    composition: { ...base.composition!, label: definition.label, nodes },
+  };
+  return {
+    ...section,
+    insertedPreset: {
+      id: presetId,
+      label: definition.label,
+      section: {
+        surfaceLayout: section.surfaceLayout,
+        surfacePaddingPx: section.surfacePaddingPx,
+        surfaceGapPx: section.surfaceGapPx,
+        surfaceRadiusPx: section.surfaceRadiusPx,
+        surfaceBackgroundKind: section.surfaceBackgroundKind,
+        surfaceGradientStart: section.surfaceGradientStart,
+        surfaceGradientEnd: section.surfaceGradientEnd,
+      },
+      nodes: structuredClone(nodes),
+    },
+  };
+}
+
 /** Section-bound resize: never rewrites Element transforms or structured spacing. */
 export function resizeCardSurface(
   section: TapCardSection,
@@ -165,11 +242,33 @@ export function fitCardSurfaceToContent(section: TapCardSection): TapCardSection
 
 function primitiveFor(kind: CardElementKind): CreativeCompositionPrimitive {
   if (["logo", "secondary_logo", "image", "thumbnail", "image_gallery", "video", "map", "qr_image"].includes(kind)) return "image";
-  if (["button", "tapsave", "campaign", "campaign_group", "experience", "contact_form"].includes(kind)) return "button";
+  if (["button", "tapsave", "campaign", "campaign_group", "experience", "contact_form", "wallet_cta", "event_rsvp"].includes(kind)) return "button";
+  if (["coupon", "ticket"].includes(kind)) return "frame";
+  if (["gallery", "form"].includes(kind)) return "group";
   if (kind === "divider") return "border";
   if (["coupon_artwork", "ticket_artwork"].includes(kind)) return "frame";
   if (["icon", "badge", "decorative_graphic"].includes(kind)) return "shape";
   return "text";
+}
+
+function componentContent(kind: "gallery" | "coupon" | "ticket" | "form", parentId: string) {
+  const child = (primitive: CreativeCompositionPrimitive, name: string, props: Record<string, unknown>, index: number) => createCompositionNode(primitive, {
+    name,
+    x: 0.08,
+    y: 0.08 + index * 0.2,
+    width: 0.84,
+    height: primitive === "text" ? 0.14 : 0.2,
+    zIndex: index + 1,
+    props: { ...props, componentContentRole: name.toLowerCase().replaceAll(" ", "_") },
+  });
+  const nodes = kind === "coupon"
+    ? [child("text", "Offer headline", { text: "SPECIAL OFFER" }, 0), child("text", "Offer value", { text: "20% OFF" }, 1), child("text", "Offer code", { text: "SAVE20" }, 2), child("text", "Terms", { text: "Draft terms — review before publishing." }, 3), child("button", "Claim action", buttonElementDefaults("website", `${parentId}-claim`), 4)]
+    : kind === "ticket"
+      ? [child("text", "Ticket title", { text: "ADMIT ONE" }, 0), child("text", "Ticket identity", { text: "TICKET-001" }, 1), child("image", "QR artwork", { src: "", alt: "Ticket QR setup required", qrManagementState: "setup_required" }, 2), child("text", "Terms", { text: "Draft terms — review before publishing." }, 3), child("button", "Wallet action", { ...buttonElementDefaults("website", `${parentId}-wallet`), label: "Add to Wallet", actionType: "wallet" }, 4)]
+      : kind === "form"
+        ? [child("text", "Form heading", { text: "Stay in touch" }, 0), child("text", "Email field", { text: "Email", formFieldType: "email", required: true }, 1), child("text", "Consent", { text: "I agree to be contacted." }, 2), child("button", "Submit action", { ...buttonElementDefaults("website", `${parentId}-submit`), label: "Submit", actionType: "form", liveSubmission: false }, 3)]
+        : [child("image", "Gallery item", { src: "", alt: "Empty gallery item" }, 0)];
+  return { ...createEmptyCreativeComposition(`${parentId}-content`), label: `${kind} content`, nodes };
 }
 
 export function createCardElement(kind: CardElementKind, index = 0): CreativeCompositionNode {
@@ -206,6 +305,12 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "icon") Object.assign(semanticProps, { icon: "sparkles", fill: "#b8ff2c", stroke: "#07100a", strokeWidth: 1.5, accessibleLabel: "Decorative icon", decorative: true });
   if (kind === "badge") Object.assign(semanticProps, { text: "SALE", badgeShape: "pill", fill: "#b91c1c", color: "#ffffff", fontSize: 18, fontWeight: 800, radius: 999, accessibleLabel: "Sale" });
   if (kind === "button") Object.assign(semanticProps, buttonElementDefaults("website", node.id));
+  if (kind === "wallet_cta") Object.assign(semanticProps, buttonElementDefaults("website", node.id), { elementKind: kind, label: "Add to Wallet", actionType: "wallet" });
+  if (kind === "event_rsvp") Object.assign(semanticProps, buttonElementDefaults("website", node.id), { elementKind: kind, label: "RSVP", actionType: "custom" });
+  if (kind === "gallery") Object.assign(semanticProps, { componentKind: "gallery", media: [], layout: "grid", gap: 12, accessibleLabel: "Image gallery", contentComposition: componentContent("gallery", node.id) });
+  if (kind === "coupon") Object.assign(semanticProps, { componentKind: "coupon", mask: "coupon", headline: "SPECIAL OFFER", offerValue: "20% OFF", code: "SAVE20", terms: "Draft terms — review before publishing.", ownerReviewRequired: true, accessibleLabel: "Coupon", contentComposition: componentContent("coupon", node.id) });
+  if (kind === "ticket") Object.assign(semanticProps, { componentKind: "ticket", mask: "ticket", title: "ADMIT ONE", ticketId: "TICKET-001", terms: "Draft terms — review before publishing.", ownerReviewRequired: true, accessibleLabel: "Ticket", contentComposition: componentContent("ticket", node.id) });
+  if (kind === "form") Object.assign(semanticProps, { componentKind: "form", heading: "Stay in touch", fields: [{ id: "email", label: "Email", type: "email", required: true }], consent: "I agree to be contacted.", liveSubmission: false, accessibleLabel: "Contact form", contentComposition: componentContent("form", node.id) });
   if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
   const isCompactAction = kind === "button" || kind === "tapsave";
   const isMap = kind === "map";
@@ -238,6 +343,13 @@ export function ensureRootComposition(config: TapConnectCardConfig) {
     mobileFallback: "scale" as const,
     safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
   };
+}
+
+/** Grow the published root plane when authored objects extend below its current minimum. */
+export function rootCanvasAutoHeight(config: TapConnectCardConfig): number {
+  const base = config.rootCanvasMinHeightPx ?? 520;
+  const bottom = ensureRootComposition(config).nodes.reduce((value, node) => node.visible === false ? value : Math.max(value, node.y + node.height), 1);
+  return Math.min(2400, Math.max(base, Math.ceil(base * bottom)));
 }
 
 export function addElementToCardRoot(

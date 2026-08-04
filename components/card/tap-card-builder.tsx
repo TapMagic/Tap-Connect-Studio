@@ -100,12 +100,14 @@ import {
 import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import {
   createCardSurface,
+  createSectionPreset,
   moveCardElements,
   removeSectionKeepElements,
   resolveComposerSelectedObject,
   wrapCardElementsInSection,
   type CardElementKind,
   type CardSurfaceKind,
+  type SectionPresetId,
 } from "@/lib/fusion/card/composer-model";
 import { deleteObject, duplicateObject, insertObject } from "@/lib/fusion/card/object-kernel";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
@@ -1149,6 +1151,13 @@ export function TapCardBuilder({
     setSelectedCompositionNodeIds([]);
   }
 
+  function addComposerSectionPreset(presetId: SectionPresetId) {
+    const section = createSectionPreset(presetId, sorted.length);
+    setSections([...sorted, section], true, `Added ${section.label}`);
+    setSelectedId(section.id);
+    setSelectedCompositionNodeIds([]);
+  }
+
   function addComposerElement(kind: CardElementKind, targetSectionId: string | null, initialProps?: Record<string, unknown>) {
     const location = kind === "map" ? (locations.find((item) => item.isDefault) || locations[0]) : null;
     const props = location
@@ -1160,6 +1169,21 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(targetSectionId);
     setSelectedCompositionNodeIds(addedId ? [addedId] : []);
+  }
+
+  function addComposerObjects(objects: Array<{ kind: CardElementKind; initialProps?: Record<string, unknown> }>, targetSectionId: string | null, label: string) {
+    let nextConfig = config;
+    const addedIds: string[] = [];
+    for (const object of objects) {
+      const result = insertObject({ config: nextConfig, parentId: targetSectionId, kind: object.kind, initialProps: object.initialProps });
+      nextConfig = result.config;
+      addedIds.push(...result.objectIds);
+    }
+    if (!addedIds.length) return;
+    setConfigHistory(nextConfig, { label });
+    setDirty(true);
+    setSelectedId(targetSectionId);
+    setSelectedCompositionNodeIds(addedIds);
   }
 
   function moveComposerElement(elementId: string, targetSectionId: string | null) {
@@ -1215,33 +1239,16 @@ export function TapCardBuilder({
         order,
         locked: false,
       }));
-      setSections(cloned, true, "Cloned existing Card");
+      const clonedRoot = initialConfig.rootComposition ? { ...structuredClone(initialConfig.rootComposition), id: `card-root-composition-${nanoid(7)}`, nodes: initialConfig.rootComposition.nodes.map((node) => ({ ...structuredClone(node), id: nanoid(8), locked: false })) } : undefined;
+      setConfigHistory({ ...config, sections: cloned, rootComposition: clonedRoot }, { label: "Cloned existing Card" });
+      setDirty(true);
       setSelectedId(cloned[0]?.id ?? null);
       setMessage("Cloned into this draft. The published Card is unchanged until Publish.");
       return;
     }
-    const kinds: CardBlockKind[] = kind === "brand"
-      ? ["logo_block", "identity", "action:call", "action:website"]
-      : ["identity", "text", "image", "action:call", "action:website"];
-    const next = kinds.map((blockKind, order) => {
-      const block = createCardBlock(blockKind, {
-        order,
-        businessName,
-        logoUrl,
-        defaultFinish: config.defaultFinish,
-        defaultShape: config.defaultShape,
-        pillColor: config.pillColor,
-        pillTextColor: config.pillTextColor,
-        neonColor: config.neonColor,
-      });
-      if (kind === "brand" && (block.type === "logo_block" || block.type === "identity")) {
-        block.sourceMode = "BRAND";
-        block.brandResourceId = block.type === "logo_block" ? "brand-primary-logo" : "brand-business-identity";
-        block.brandResourceName = block.type === "logo_block" ? "Primary logo" : "Business identity";
-      }
-      return block;
-    });
-    setSections(next, true, kind === "brand" ? "Started with Brand defaults" : "Started from Card template");
+    const presetIds: SectionPresetId[] = kind === "brand" ? ["identity"] : ["identity", "hero"];
+    const next = presetIds.map((presetId, order) => createSectionPreset(presetId, order));
+    setSections(next, true, kind === "brand" ? "Started with Brand defaults" : "Started from premium Card presets");
     setSelectedId(next[0]?.id ?? null);
     setMessage(kind === "brand" ? "Brand defaults added. Every block can still be made custom." : "Starter template added to this draft.");
   }
@@ -1376,7 +1383,7 @@ export function TapCardBuilder({
           setDirty(false);
           setRecovery({ state: "none" });
           if (typeof window !== "undefined") clearRecoveryJournal(window.localStorage, recoveryDocumentId);
-          setMessage("Saved draft · Draft changes not published");
+          setMessage(null);
           return true;
         }
       } catch {
@@ -1761,7 +1768,9 @@ export function TapCardBuilder({
         addActionOfKind(kind as TapCardActionKind);
       },
       onAddSurface: addComposerSurface,
+      onAddSectionPreset: addComposerSectionPreset,
       onAddElement: addComposerElement,
+      onAddObjects: addComposerObjects,
       moveElementsTo: (ids, fromSectionId, toSectionId) => {
         const next = moveCardElements(config, ids, fromSectionId, toSectionId);
         setConfigHistory(next, { label: toSectionId ? "Moved Elements into Section" : "Moved Elements to Card root" });
@@ -2456,8 +2465,8 @@ export function TapCardBuilder({
       </div>
       ) : null}
 
-      {message && interactionMode === "edit" ? (
-        <p className="pointer-events-none absolute right-4 top-4 z-[1550] max-w-sm rounded-lg border border-white/10 bg-[#0b1019]/95 px-3 py-2 text-xs text-primary shadow-xl" role="status" data-testid="card-editor-notice">
+      {message && interactionMode === "edit" && !/^Saved(?: draft| at|$)/i.test(message) ? (
+        <p className="pointer-events-none absolute bottom-4 left-4 z-[1550] max-w-sm rounded-lg border border-white/10 bg-[#0b1019]/95 px-3 py-2 text-xs text-primary shadow-xl" role="status" data-testid="card-editor-notice">
           {message}
         </p>
       ) : null}
@@ -2975,7 +2984,10 @@ export function TapCardBuilder({
                     <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-4 text-center">
                       <p className="text-sm font-semibold text-white">Your Card is ready to build.</p>
                       <div className="mt-3 grid gap-2">
-                        <Button type="button" size="sm" onClick={() => addComposerSurface("blank")}>Add a Section</Button>
+                        <Button type="button" size="sm" onClick={() => addComposerElement("text", null, { text: "Type here", fontSize: 20 })}>Add text box</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => addComposerElement("button", null, { label: "Learn more" })}>Add Button</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => addComposerElement("badge", null, { text: "NEW", accessibleLabel: "New" })}>Add Badge</Button>
+                        <Button type="button" size="sm" variant="outline" onClick={() => addComposerSectionPreset("blank")}>Add optional Section</Button>
                         <Button type="button" size="sm" variant="outline" onClick={() => startCardFrom("template")}>Choose a template</Button>
                         <Button type="button" size="sm" variant="outline" onClick={() => startCardFrom("brand")}>Use Brand defaults</Button>
                       </div>

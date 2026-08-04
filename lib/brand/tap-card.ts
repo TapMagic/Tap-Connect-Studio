@@ -267,6 +267,15 @@ export type TapCardSection = {
     | "contact"
     | "location"
     | "gallery";
+  /** New authoring uses one generic Section; this identifies its inserted starting point. */
+  sectionPresetId?: string;
+  /** Snapshot used by Reset to inserted preset without creating another Section species. */
+  insertedPreset?: {
+    id: string;
+    label: string;
+    section: Record<string, unknown>;
+    nodes: CreativeCompositionBlock["nodes"];
+  };
   surfaceLayout?: "stack" | "row" | "grid" | "free";
   surfaceWidthPercent?: number;
   surfaceMinHeightPx?: number;

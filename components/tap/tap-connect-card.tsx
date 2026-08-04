@@ -54,6 +54,7 @@ import {
   type CreativeCompositionBlock,
 } from "@/lib/fusion/creative-studio/composition";
 import { isCardBlockLinkEligible } from "@/lib/fusion/card/block-model";
+import { rootCanvasAutoHeight } from "@/lib/fusion/card/composer-model";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 
 type TapConnectCardProps = {
@@ -1245,6 +1246,7 @@ export function TapConnectCard({
         }}
         {...sectionDomProps(section.id, selectedSectionId)}
         data-surface-kind={section.surfaceKind || "blank"}
+        data-section-preset={section.sectionPresetId || undefined}
         data-surface-layout={section.surfaceLayout || "stack"}
         draggable={editSelects && !section.locked && selectedSectionId !== section.id}
         onDragStart={(event) => {
@@ -1717,7 +1719,7 @@ export function TapConnectCard({
               previewMotion={previewMotion}
               reducedMotionSimulation={reducedMotionSimulation}
               layoutMode="free"
-              minHeightPx={config.rootCanvasMinHeightPx ?? 520}
+              minHeightPx={rootCanvasAutoHeight(config)}
               className="!rounded-none !border-0"
               onSelectNodes={(ids) => {
                 onSectionSelect?.(null);
