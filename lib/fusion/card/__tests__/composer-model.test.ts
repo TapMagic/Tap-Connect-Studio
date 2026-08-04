@@ -3,22 +3,23 @@ import test from "node:test";
 import {
   CARD_ELEMENT_LIBRARY,
   CARD_SURFACE_LIBRARY,
+  SECTION_PRESET_LIBRARY,
   addElementToSurface,
   composerBreadcrumb,
   composerSelection,
   composerWarnings,
   createCardElement,
   createCardSurface,
+  createSectionPreset,
   fitCardSurfaceToContent,
   resizeCardSurface,
   resolveComposerSelectedObject,
 } from "../composer-model";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 
-test("composer library exposes every promised Section and Element as a real mutation", () => {
-  assert.deepEqual(CARD_SURFACE_LIBRARY.map((item) => item.kind), [
-    "blank", "identity", "hero", "content", "actions", "offer", "contact", "location", "gallery",
-  ]);
+test("composer library exposes one blank generic Section plus populated Section presets", () => {
+  assert.deepEqual(CARD_SURFACE_LIBRARY.map((item) => item.kind), ["blank"]);
+  assert.ok(SECTION_PRESET_LIBRARY.length >= 10);
   assert.ok(CARD_ELEMENT_LIBRARY.length >= 29);
   assert.ok(CARD_ELEMENT_LIBRARY.some((item) => item.kind === "badge"));
   assert.ok(CARD_ELEMENT_LIBRARY.some((item) => item.kind === "thumbnail"));
@@ -29,6 +30,14 @@ test("composer library exposes every promised Section and Element as a real muta
     assert.equal(section.order, order);
     assert.deepEqual(section.composition?.nodes, []);
   }
+  for (const [order, preset] of SECTION_PRESET_LIBRARY.entries()) {
+    const section = createSectionPreset(preset.id, order);
+    assert.equal(section.type, "surface");
+    assert.equal(section.surfaceKind, "blank");
+    assert.equal(section.sectionPresetId, preset.id);
+    if (preset.id === "blank") assert.deepEqual(section.composition?.nodes, []);
+    else assert.ok((section.composition?.nodes.length ?? 0) >= 3, `${preset.label} should contain editable children`);
+  }
   for (const item of CARD_ELEMENT_LIBRARY) {
     const element = createCardElement(item.kind as Parameters<typeof createCardElement>[0]);
     assert.equal(element.props.elementKind, item.kind);
@@ -37,7 +46,7 @@ test("composer library exposes every promised Section and Element as a real muta
 });
 
 test("identity content lives as Elements inside one cohesive Section", () => {
-  let section = createCardSurface("identity", 0);
+  let section = createCardSurface("blank", 0);
   section = addElementToSurface(section, "logo");
   section = addElementToSurface(section, "business_name");
   section = addElementToSurface(section, "address");
@@ -48,7 +57,7 @@ test("identity content lives as Elements inside one cohesive Section", () => {
 });
 
 test("structured and free placement serialize deterministically on the canonical Card", () => {
-  const section = addElementToSurface(createCardSurface("content", 0), "heading");
+  const section = addElementToSurface(createCardSurface("blank", 0), "heading");
   const config = {
     version: 3, accentColor: "#84cc16", surfaceColor: "#111827", textColor: "#ffffff",
     headerEnergy: 50, collapsible: false, defaultCollapsed: false, actionsLayout: "stack",
@@ -57,12 +66,12 @@ test("structured and free placement serialize deterministically on the canonical
   const copy = JSON.parse(JSON.stringify(config)) as TapConnectCardConfig;
   assert.deepEqual(copy, config);
   assert.equal(composerSelection(copy, section.id, section.composition!.nodes[0]!.id).element?.props.elementKind, "heading");
-  assert.deepEqual(composerBreadcrumb(section, section.composition!.nodes[0]!), ["Card", "Content Section", "Heading"]);
+  assert.deepEqual(composerBreadcrumb(section, section.composition!.nodes[0]!), ["Card", "Blank Section", "Heading"]);
   assert.deepEqual(composerWarnings(section), []);
 });
 
 test("responsive warnings identify unsafe Element bounds and sizes", () => {
-  const section = createCardSurface("actions", 0);
+  const section = createCardSurface("blank", 0);
   section.composition!.nodes = [
     { ...createCardElement("button"), x: .9, width: .3, height: .05 },
     { ...createCardElement("text"), props: { ...createCardElement("text").props, fontSize: 9 } },
@@ -74,7 +83,7 @@ test("responsive warnings identify unsafe Element bounds and sizes", () => {
 });
 
 test("free Section resize changes bounds without changing child transforms", () => {
-  let section = addElementToSurface(createCardSurface("identity", 0), "business_name");
+  let section = addElementToSurface(createCardSurface("blank", 0), "business_name");
   section = addElementToSurface(section, "address");
   section.surfaceLayout = "free";
   const before = structuredClone(section.composition!.nodes);
@@ -88,7 +97,7 @@ test("free Section resize changes bounds without changing child transforms", () 
 });
 
 test("fit to content changes Section bounds only", () => {
-  const section = addElementToSurface(createCardSurface("content", 0), "text");
+  const section = addElementToSurface(createCardSurface("blank", 0), "text");
   const before = structuredClone(section.composition!.nodes);
   const fitted = fitCardSurfaceToContent(section);
   assert.equal(fitted.surfaceHeightMode, "auto");
@@ -97,7 +106,7 @@ test("fit to content changes Section bounds only", () => {
 });
 
 test("one canonical selection identity resolves Card, Section, and Element without stale inference", () => {
-  const section = addElementToSurface(createCardSurface("location", 0), "map");
+  const section = addElementToSurface(createCardSurface("blank", 0), "map");
   const config = {
     version: 3, accentColor: "#84cc16", surfaceColor: "#111827", textColor: "#ffffff",
     headerEnergy: 50, collapsible: false, defaultCollapsed: false, actionsLayout: "stack",
