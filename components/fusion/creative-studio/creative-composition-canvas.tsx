@@ -229,6 +229,8 @@ function NodeVisual({
 
   if (elementKind === "map") {
     const props = node.props as MapElementProps;
+    const hasSetup = Boolean(props.locationId || props.address || props.mapUrl || (Number.isFinite(props.latitude) && Number.isFinite(props.longitude)));
+    if (!editMode && !hasSetup) return null;
     const mode = str(props.mapDisplayMode, "location_card");
     const name = str(props.locationName, "Choose a location");
     const address = str(props.address, "Select a Workspace Location or enter an address");
@@ -264,10 +266,28 @@ function NodeVisual({
         <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 p-3">
           <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#b8ff2c]" aria-hidden /><div className="min-w-0"><strong className="block truncate text-xs text-white">{name}</strong><span className="block text-[10px] leading-snug text-white/70">{address}</span></div></div>
           {(mode === "map_directions" || mode === "location_card") ? directions : null}
-          {!href ? <span className="text-[9px] text-amber-200">Complete Map setup in the inspector</span> : null}
+          {editMode && !href ? <span className="text-[9px] text-amber-200">Choose a location in Setup</span> : null}
         </div>
       </div>
     );
+  }
+
+  const componentKind = str(node.props.componentKind);
+  if (componentKind === "gallery") {
+    const media = Array.isArray(node.props.media) ? node.props.media.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
+    if (!media.length && !editMode) return null;
+    return <div className="grid h-full w-full overflow-hidden rounded-xl border border-white/15 bg-white/5 p-2" style={{ gridTemplateColumns: `repeat(${Math.min(3, Math.max(1, media.length))},minmax(0,1fr))`, gap: num(node.props.gap, 10), opacity: num(node.props.opacity, 1) }} data-component-kind="gallery">{media.length ? media.map((src, index) => <img /* eslint-disable-line @next/next/no-img-element */ key={`${src}-${index}`} src={src} alt={`Gallery image ${index + 1}`} className="h-full min-h-0 w-full rounded-lg object-cover" />) : <div className="col-span-full grid h-full place-items-center rounded-lg border border-dashed border-white/25 text-[10px] text-white/55" data-editor-placeholder="media">Add gallery media</div>}</div>;
+  }
+
+  if (componentKind === "coupon" || componentKind === "ticket") {
+    const coupon = componentKind === "coupon";
+    const artwork = str(node.props.artworkSrc);
+    return <div className="flex h-full w-full flex-col justify-between overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-amber-300 via-orange-400 to-rose-500 p-4 text-[#17100a] shadow-xl" style={artwork ? { backgroundImage: `linear-gradient(rgba(255,255,255,.2),rgba(255,255,255,.2)),url("${artwork.replaceAll('"', "%22")}")`, backgroundPosition: "center", backgroundSize: "cover" } : undefined} data-component-kind={componentKind} data-surface-mode={artwork ? "uploaded_artwork" : "preset"}><div><span className="text-[9px] font-black uppercase tracking-[.22em]">{coupon ? "TapConnect Coupon" : "TapConnect Ticket"}</span><strong className="mt-1 block text-xl leading-none">{str(node.props.headline, str(node.props.title, coupon ? "SPECIAL OFFER" : "ADMIT ONE"))}</strong>{coupon ? <span className="mt-2 block text-2xl font-black">{str(node.props.offerValue, "20% OFF")}</span> : null}</div><div className="flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.code, str(node.props.ticketId, coupon ? "SAVE20" : "TICKET-001"))}</span><span className="grid h-10 w-10 place-items-center rounded bg-white text-[8px] font-black" aria-label="QR context">QR</span></div><p className="mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
+  }
+
+  if (componentKind === "form") {
+    const fields = Array.isArray(node.props.fields) ? node.props.fields as Array<{ id?: string; label?: string; type?: string }> : [];
+    return <form className="flex h-full w-full flex-col gap-2 rounded-xl border border-white/15 bg-white/5 p-3" aria-label={str(node.props.accessibleLabel, "Contact form")} onSubmit={(event) => event.preventDefault()} data-component-kind="form" data-live-submission="false"><strong className="text-sm">{str(node.props.heading, "Stay in touch")}</strong>{fields.map((field, index) => <label key={field.id || index} className="text-[9px]">{field.label || "Field"}<input type={field.type || "text"} disabled={!editMode} className="mt-1 h-8 w-full rounded border border-white/15 bg-black/20 px-2" /></label>)}<label className="flex items-start gap-2 text-[8px]"><input type="checkbox" disabled={!editMode} />{str(node.props.consent, "I agree to be contacted.")}</label><button type="button" className="min-h-9 rounded bg-[#b8ff2c] text-xs font-semibold text-black">Submit</button></form>;
   }
 
   if (node.primitive === "text") {
@@ -468,11 +488,11 @@ function NodeVisual({
             }}
             draggable={false}
           />
-        ) : (
+        ) : editMode ? (
           <div className="flex h-full items-center justify-center text-[10px] text-white/80">
-            {editMode ? "Choose media from Assets" : "Image"}
+            <span data-editor-placeholder="media">Add media</span>
           </div>
-        )}
+        ) : null}
         {src && duotoneStrength > 0 ? (
           <div
             className="pointer-events-none absolute inset-0"
@@ -552,12 +572,12 @@ function NodeVisual({
               }}
               draggable={false}
             />
-          ) : (
+          ) : editMode ? (
             <div className="flex h-full flex-col items-center justify-center gap-1 text-[10px] text-white/45">
               <span>{FRAME_MASK_CATALOG.find((m) => m.id === mask)?.label || "Frame"}</span>
-              {editMode ? <span>Set media in inspector</span> : null}
+              <span data-editor-placeholder="media">Add media</span>
             </div>
-          )}
+          ) : null}
         </div>
         {borderW > 0 ? (
           <svg
@@ -638,7 +658,11 @@ function NodeVisual({
       const badgeShape = str(node.props.badgeShape, "pill");
       const badgeClip = badgeShape === "burst" || badgeShape === "starburst"
         ? "polygon(50% 0,61% 20%,82% 10%,80% 35%,100% 50%,80% 65%,82% 90%,61% 80%,50% 100%,39% 80%,18% 90%,20% 65%,0 50%,20% 35%,18% 10%,39% 20%)"
-        : badgeShape === "ticket" ? "polygon(8% 0,92% 0,92% 12%,100% 20%,92% 28%,92% 72%,100% 80%,92% 88%,92% 100%,8% 100%,8% 88%,0 80%,8% 72%,8% 28%,0 20%,8% 12%)" : undefined;
+        : badgeShape === "ticket" ? "polygon(8% 0,92% 0,92% 12%,100% 20%,92% 28%,92% 72%,100% 80%,92% 88%,92% 100%,8% 100%,8% 88%,0 80%,8% 72%,8% 28%,0 20%,8% 12%)"
+          : badgeShape === "ribbon" || badgeShape === "corner-ribbon" ? "polygon(8% 0,92% 0,82% 50%,92% 100%,8% 100%,18% 50%)"
+            : badgeShape === "tag" ? "polygon(0 0,82% 0,100% 50%,82% 100%,0 100%,10% 50%)"
+              : badgeShape === "shield" ? "polygon(50% 0,94% 16%,88% 65%,50% 100%,12% 65%,6% 16%)"
+                : badgeShape === "hexagon" ? "polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)" : undefined;
       return (
         <div
           className="flex h-full w-full items-center justify-center px-2 text-center"
@@ -999,11 +1023,19 @@ export function CreativeCompositionCanvas({
 
   const visibleNodes = useMemo(() => {
     let nodes = sortCompositionNodes(workingNodes).filter((n) => n.visible !== false);
+    if (!editMode) {
+      nodes = nodes.filter((node) => {
+        if (node.props.componentKind === "gallery") return Array.isArray(node.props.media) && node.props.media.some(Boolean);
+        if (node.primitive === "image") return Boolean(node.props.src);
+        if (node.primitive === "frame" && !node.props.componentKind) return Boolean(node.props.mediaSrc || node.props.src);
+        return true;
+      });
+    }
     if (hideDecorative) {
       nodes = nodes.filter((n) => n.primitive === "text" || n.primitive === "button");
     }
     return nodes;
-  }, [workingNodes, hideDecorative]);
+  }, [workingNodes, hideDecorative, editMode]);
 
   const readingOrder = useMemo(
     () => accessibleReadingOrder(visibleNodes),
@@ -1401,6 +1433,7 @@ export function CreativeCompositionCanvas({
             )}
             data-composition-node={node.id}
             data-primitive={node.primitive}
+            data-element-kind={String(node.props.elementKind || node.primitive)}
             data-selected={selectedSet.has(node.id) ? "true" : "false"}
             onClick={(e) => {
               if (!editMode) return;
@@ -1579,6 +1612,7 @@ export function CreativeCompositionCanvas({
             }}
             data-composition-node={node.id}
             data-primitive={node.primitive}
+            data-element-kind={String(node.props.elementKind || node.primitive)}
             data-selected={selected ? "true" : "false"}
             data-locked={node.locked ? "true" : "false"}
             data-group={node.groupId || undefined}
