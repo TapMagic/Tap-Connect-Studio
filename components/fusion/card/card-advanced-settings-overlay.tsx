@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 import type { CardEditorLiveModel } from "./card-editor-live";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
-import { capabilitiesForNode } from "@/lib/fusion/creative-studio/capabilities";
 
 const fieldClass = "mt-1 h-10 w-full rounded-md border border-white/15 bg-[#090e18] px-2 text-sm text-white";
 
@@ -95,10 +94,6 @@ export function CardAdvancedSettingsOverlay({
               <h3 className="text-xs font-semibold">Technical accessibility</h3>
               <label className="mt-2 block text-[10px] text-white/65">Accessible label<input value={String(node.props.accessibleLabel || "")} onChange={(event) => patchNode({ props: { ...node.props, accessibleLabel: event.target.value } }, "Changed accessible label")} className={fieldClass} /></label>
               <label className="mt-2 block text-[10px] text-white/65">Tracking name<input value={String(node.props.trackingName || "")} onChange={(event) => patchNode({ props: { ...node.props, trackingName: event.target.value } }, "Changed tracking name")} className={fieldClass} /></label>
-            </section>
-            <section>
-              <h3 className="text-xs font-semibold">Available capabilities</h3>
-              <div className="mt-2 flex flex-wrap gap-1" data-testid="advanced-capability-list">{[...capabilitiesForNode(node)].map((capability) => <span key={capability} className="rounded-full border border-white/10 px-2 py-1 text-[9px] text-white/60">{capability.replaceAll("_", " ")}</span>)}</div>
             </section>
           </div>
         ) : section ? (
