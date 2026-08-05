@@ -17,7 +17,6 @@ import { TextPanelStack } from "@/components/fusion/creative-studio/text-panel-s
 import { ImagePanelStack } from "@/components/fusion/creative-studio/image-panel-stack";
 import { CompositionPanelStack } from "@/components/fusion/creative-studio/composition-panel-stack";
 import { AppearancePanelStack } from "@/components/fusion/creative-studio/appearance-panel-stack";
-import { SelectionPanelStack } from "@/components/fusion/creative-studio/selection-panel-stack";
 import { HistoryPanel } from "@/components/fusion/creative-studio/history-panel";
 import { CardOutlineRow } from "@/components/fusion/card/card-outline-row";
 import { AskTapConnectDrawer } from "@/components/fusion/ask/ask-tapconnect-drawer";
@@ -179,8 +178,8 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
   const resolved =
     toolId === "format" || toolId === "colors" || toolId === "brand" || toolId === "layout"
       ? "appearance"
-      : toolId === "inspector"
-        ? "content"
+      : toolId === "inspector" || toolId === "content"
+        ? "outline"
         : toolId;
 
   const appearanceInitial =
@@ -749,19 +748,5 @@ export function CardShellToolDrawer(props: CardShellToolDrawerProps) {
     );
   }
 
-  // content (default) — Selection Hub with horizontal drill-ins
-  return (
-    <div className="min-h-0" data-testid="card-drawer-content">
-      <SelectionPanelStack
-        selected={selected}
-        patchSection={patchSection}
-        campaigns={props.campaigns ?? []}
-        campaignGroups={props.campaignGroups ?? []}
-        experiences={props.experiences ?? []}
-        locations={props.locations ?? []}
-        onOpenTool={(id) => props.onRequestTool?.(id)}
-        onClose={props.onCloseTool}
-      />
-    </div>
-  );
+  return <HonestNote>Select an Element on the Card or in Layers, then use its contextual toolbar. Unsupported tools stay hidden.</HonestNote>;
 }

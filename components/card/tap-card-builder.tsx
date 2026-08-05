@@ -42,10 +42,6 @@ import { publishCardEditorLive } from "@/components/fusion/card/card-editor-live
 import { CardOutlineRow } from "@/components/fusion/card/card-outline-row";
 import { QrPanel } from "@/components/campaign/qr-panel";
 import { FreeformCanvasPanel } from "@/components/fusion/builder/freeform-canvas-panel";
-import {
-  BuilderPreviewEmpty,
-  tapCardPreviewEmptyReason,
-} from "@/components/workbench/builder-preview-empty";
 import { useLabeledUndoRedo } from "@/lib/hooks/use-labeled-undo-redo";
 import {
   clearRecoveryJournal,
@@ -481,9 +477,6 @@ export function TapCardBuilder({
     childPath: activeChildId ? [activeChildId] : [],
     selectionGeneration,
   });
-  const cardEmptyReason = config.rootComposition?.nodes.length
-    ? null
-    : tapCardPreviewEmptyReason(sorted);
   const previewUtilityLayer = resolveCardUtilityLayer({
     card: config,
     profile,
@@ -1226,7 +1219,7 @@ export function TapCardBuilder({
 
   function startCardFrom(kind: "blank" | "brand" | "template" | "clone") {
     if (kind === "blank") {
-      setConfigHistory({ ...config, sections: [], rootComposition: undefined }, { label: "Started a blank Card" });
+      setConfigHistory({ ...config, sections: [], rootComposition: undefined, rootCanvasMinHeightPx: 420 }, { label: "Started a blank Card" });
       setDirty(true);
       setSelectedId(null);
       setMessage("Your Card is ready to build.");
@@ -2846,7 +2839,13 @@ export function TapCardBuilder({
           )}
           data-testid="card-preview-canvas"
         >
-          {interactionMode === "edit" ? <div className={cn("sticky top-0 z-[1500] flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur", zoomToolbarCollapsed && "[&>*:not(:last-child)]:hidden")}>
+          {interactionMode === "edit" && zoomToolbarCollapsed ? (
+            <div className="sticky top-0 z-[1500] flex h-9 items-center justify-center bg-transparent" data-testid="card-view-toolbar-collapsed">
+              <Button type="button" size="sm" variant="outline" className="h-7 bg-background/95 text-xs shadow-lg" aria-expanded="false" data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed(false)}>
+                Show view controls
+              </Button>
+            </div>
+          ) : interactionMode === "edit" ? <div className="sticky top-0 z-[1500] flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur" data-testid="card-view-toolbar">
             <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-muted-foreground" data-testid="card-zoom-percent">
               {previewZoom === "fit" ? "Fit" : `${Math.round(previewZoom * 100)}%`}
             </span>
@@ -2945,20 +2944,9 @@ export function TapCardBuilder({
             >
               {focusMode ? "Full overview" : "Focus preview"}
             </Button>
-            ) : (
-            <Button
-              type="button"
-              size="sm"
-              variant="outline"
-              className="h-7 text-xs"
-              data-testid="card-preview-focus"
-              onClick={() => onRequestTool?.("content")}
-            >
-              Edit selection
-            </Button>
-            )}
-            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" aria-expanded={!zoomToolbarCollapsed} data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed((collapsed) => !collapsed)}>
-              {zoomToolbarCollapsed ? "View controls" : "Hide"}
+            ) : null}
+            <Button type="button" size="sm" variant="outline" className="h-7 text-xs" aria-expanded="true" data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed(true)}>
+              Collapse toolbar
             </Button>
           </div> : null}
           <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceId}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => { if (!previewPan && !spacePan) return; const viewport = previewScrollRef.current; if (!viewport) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId }; }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
@@ -2978,22 +2966,6 @@ export function TapCardBuilder({
             >
               <div className="builder-phone-notch" />
               <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
-                {cardEmptyReason && interactionMode === "edit" ? (
-                  <div className="space-y-3" data-testid="blank-card-composer">
-                    <BuilderPreviewEmpty reason={cardEmptyReason} variant="card" />
-                    <div className="rounded-xl border border-dashed border-white/20 bg-white/5 p-4 text-center">
-                      <p className="text-sm font-semibold text-white">Your Card is ready to build.</p>
-                      <div className="mt-3 grid gap-2">
-                        <Button type="button" size="sm" onClick={() => addComposerElement("text", null, { text: "Type here", fontSize: 20 })}>Add text box</Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => addComposerElement("button", null, { label: "Learn more" })}>Add Button</Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => addComposerElement("badge", null, { text: "NEW", accessibleLabel: "New" })}>Add Badge</Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => addComposerSectionPreset("blank")}>Add optional Section</Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => startCardFrom("template")}>Choose a template</Button>
-                        <Button type="button" size="sm" variant="outline" onClick={() => startCardFrom("brand")}>Use Brand defaults</Button>
-                      </div>
-                    </div>
-                  </div>
-                ) : null}
                 <TapConnectCard
                   config={{ ...config, sections: sectionsHistory }}
                   profile={profile}

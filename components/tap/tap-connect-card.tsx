@@ -5,7 +5,7 @@ import {
   CardOfferClaimForm,
   type CardOfferContext,
 } from "@/components/fusion/card/card-offer-claim-form";
-import { useMemo, useState, type CSSProperties, type DragEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
+import { useMemo, useRef, useState, type CSSProperties, type DragEvent, type MouseEvent, type PointerEvent, type ReactNode } from "react";
 import Link from "next/link";
 import { ChevronDown, ChevronRight, Link2 } from "lucide-react";
 import {
@@ -54,7 +54,7 @@ import {
   type CreativeCompositionBlock,
 } from "@/lib/fusion/creative-studio/composition";
 import { isCardBlockLinkEligible } from "@/lib/fusion/card/block-model";
-import { rootCanvasAutoHeight } from "@/lib/fusion/card/composer-model";
+import { fitRootCanvasToContent, rootCanvasAutoHeight } from "@/lib/fusion/card/composer-model";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 
 type TapConnectCardProps = {
@@ -156,6 +156,9 @@ export function TapConnectCard({
   const [claimSectionId, setClaimSectionId] = useState<string | null>(null);
   const [sectionDropTargetId, setSectionDropTargetId] = useState<string | null>(null);
   const [sectionDragId, setSectionDragId] = useState<string | null>(null);
+  const [rootHeightDraft, setRootHeightDraft] = useState<number | null>(null);
+  const rootResizeRef = useRef<{ startY: number; startHeight: number; nextHeight: number; scale: number; moved: boolean } | null>(null);
+  const suppressRootResizeClickRef = useRef(false);
 
   const sections = useMemo(
     () => sortTapCardSections(config.sections).filter((s) => s.enabled),
@@ -184,6 +187,19 @@ export function TapConnectCard({
   const rootBackground = rootImage
     ? `linear-gradient(${rootOverlay}${rootOverlayAlpha}, ${rootOverlay}${rootOverlayAlpha}), url("${rootImage.replaceAll('"', "%22")}")`
     : shellBackground;
+
+  function commitRootCanvasHeight(heightPx: number, label: string) {
+    const root = parseCreativeComposition(config.rootComposition) || {
+      version: 1 as const,
+      id: "card-root-composition",
+      label: "Card root Elements",
+      nodes: [],
+      background: { kind: "none" as const },
+      mobileFallback: "scale" as const,
+      safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
+    };
+    onCompositionChange?.(null, { ...root, pageHeightPx: Math.max(240, Math.min(2400, Math.round(heightPx))) }, label);
+  }
 
   const style = {
     "--tcc-accent": config.accentColor,
@@ -1719,7 +1735,7 @@ export function TapConnectCard({
               previewMotion={previewMotion}
               reducedMotionSimulation={reducedMotionSimulation}
               layoutMode="free"
-              minHeightPx={rootCanvasAutoHeight(config)}
+              minHeightPx={rootHeightDraft ?? rootCanvasAutoHeight(config)}
               className="!rounded-none !border-0"
               onSelectNodes={(ids) => {
                 onSectionSelect?.(null);
@@ -1743,6 +1759,69 @@ export function TapConnectCard({
                 onWrap: (nodeId) => onElementWrap?.(nodeId, null),
               }}
             />
+            {editSelects ? (
+              <div className="relative z-40 flex h-9 items-center justify-center gap-2 border-t border-dashed border-[#b8ff2c]/45 bg-[#07100a]/90 text-[10px] text-white/70" data-testid="card-page-extension-controls">
+                <button
+                  type="button"
+                  className="flex h-7 min-w-32 touch-none items-center justify-center rounded-md border border-[#b8ff2c]/55 bg-[#b8ff2c]/10 px-3 font-semibold text-[#dfff9a] cursor-ns-resize"
+                  aria-label="Drag to extend Card page"
+                  data-testid="card-page-extension-handle"
+                  onClick={() => {
+                    if (suppressRootResizeClickRef.current) {
+                      suppressRootResizeClickRef.current = false;
+                      return;
+                    }
+                    rootResizeRef.current = null;
+                    const next = Math.min(2400, rootCanvasAutoHeight(config) + 96);
+                    commitRootCanvasHeight(next, "Extended Card page");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+                    event.preventDefault();
+                    const delta = (event.shiftKey ? 96 : 24) * (event.key === "ArrowDown" ? 1 : -1);
+                    commitRootCanvasHeight(Math.max(240, Math.min(2400, rootCanvasAutoHeight(config) + delta)), event.key === "ArrowDown" ? "Extended Card page" : "Shortened Card page");
+                  }}
+                  onPointerDown={(event) => {
+                    const root = event.currentTarget.closest<HTMLElement>('[data-card-root="true"]');
+                    const renderedHeight = rootHeightDraft ?? rootCanvasAutoHeight(config);
+                    const scale = root ? Math.max(0.01, root.getBoundingClientRect().height / Math.max(1, root.offsetHeight)) : 1;
+                    rootResizeRef.current = { startY: event.clientY, startHeight: renderedHeight, nextHeight: renderedHeight, scale, moved: false };
+                    event.currentTarget.setPointerCapture(event.pointerId);
+                  }}
+                  onPointerMove={(event) => {
+                    const drag = rootResizeRef.current;
+                    if (!drag || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+                    const delta = (event.clientY - drag.startY) / drag.scale;
+                    if (Math.abs(delta) < 2) return;
+                    const next = Math.max(240, Math.min(2400, Math.round(drag.startHeight + delta)));
+                    drag.nextHeight = next;
+                    drag.moved = true;
+                    setRootHeightDraft(next);
+                  }}
+                  onPointerUp={(event) => {
+                    const drag = rootResizeRef.current;
+                    if (!drag) return;
+                    if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                    rootResizeRef.current = null;
+                    if (!drag.moved) return;
+                    suppressRootResizeClickRef.current = true;
+                    setRootHeightDraft(null);
+                    commitRootCanvasHeight(drag.nextHeight, drag.nextHeight >= drag.startHeight ? "Extended Card page" : "Shortened Card page");
+                  }}
+                >
+                  ↕ Extend page
+                </button>
+                <span className="min-w-12 tabular-nums" data-testid="card-page-height">{rootHeightDraft ?? rootCanvasAutoHeight(config)}px</span>
+                <button
+                  type="button"
+                  className="h-7 rounded-md border border-white/15 px-2 hover:border-[#b8ff2c]/55"
+                  onClick={() => commitRootCanvasHeight(fitRootCanvasToContent(config), "Fit Card page to content")}
+                  data-testid="card-page-fit-content"
+                >
+                  Fit to content
+                </button>
+              </div>
+            ) : null}
           </div>
         ) : null}
         {bodyNodes}

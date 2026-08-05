@@ -86,6 +86,24 @@ function colorWithOpacity(color: string, opacity: number): string {
   return `${color}${alpha}`;
 }
 
+function ActionVisual({ node, editMode, children }: { node: CreativeCompositionNode; editMode: boolean; children: ReactNode }) {
+  if (node.primitive === "button" || str(node.props.elementKind) === "map") return children;
+  const href = buildButtonHref(node.props);
+  if (!href) return children;
+  return (
+    <a
+      href={editMode ? undefined : href}
+      aria-disabled={editMode || undefined}
+      aria-label={str(node.props.accessibleLabel, str(node.props.text, str(node.props.alt, node.name || "Open")))}
+      className="block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8ff2c]"
+      data-element-action={str(node.props.actionType)}
+      onClick={(event) => { if (editMode) event.preventDefault(); }}
+    >
+      {children}
+    </a>
+  );
+}
+
 function ElementIcon({ name, size = 20 }: { name: string; size?: number }) {
   const props = { width: size, height: size, "aria-hidden": true } as const;
   if (name.includes("phone")) return <Phone {...props} />;
@@ -440,6 +458,10 @@ function NodeVisual({
             num(node.props.outlineOpacity, 1)
           ),
           borderRadius: num(node.props.outlineRadius, 6),
+          boxShadow: [
+            num(node.props.boxShadow, 0) ? `0 8px ${num(node.props.boxShadow, 18)}px rgba(0,0,0,.4)` : "",
+            num(node.props.boxGlow, 0) ? `0 0 ${num(node.props.boxGlow, 18)}px ${str(node.props.glowColor, "#b8ff2c")}` : "",
+          ].filter(Boolean).join(", ") || undefined,
           outline:
             str(node.props.outlinePlacement, "center") === "outside" &&
             num(node.props.outlineWidth, 0) > 0
@@ -1474,15 +1496,17 @@ export function CreativeCompositionCanvas({
               commitNodes(current.map((candidate, index) => ({ ...candidate, zIndex: index + 1 })), "Reordered Elements");
             }}
           >
-            <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
-              <NodeVisual
-                node={node}
-                editMode={editMode}
-                textEditing={editingNodeId === node.id}
-                onEditText={(value) => onEditNodeText?.(node.id, value)}
-                onFinishTextEdit={() => setEditingNodeId(null)}
-              />
-            </MotionVisual>
+            <ActionVisual node={node} editMode={editMode}>
+              <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
+                <NodeVisual
+                  node={node}
+                  editMode={editMode}
+                  textEditing={editingNodeId === node.id}
+                  onEditText={(value) => onEditNodeText?.(node.id, value)}
+                  onFinishTextEdit={() => setEditingNodeId(null)}
+                />
+              </MotionVisual>
+            </ActionVisual>
           </div>
         ))}
       </div>
@@ -1685,15 +1709,17 @@ export function CreativeCompositionCanvas({
             tabIndex={editMode ? 0 : undefined}
             aria-label={`${node.primitive}${node.locked ? " locked" : ""}`}
           >
-            <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
-              <NodeVisual
-                node={node}
-                editMode={editMode}
-                textEditing={editingNodeId === node.id}
-                onEditText={(value) => onEditNodeText?.(node.id, value)}
-                onFinishTextEdit={() => setEditingNodeId(null)}
-              />
-            </MotionVisual>
+            <ActionVisual node={node} editMode={editMode}>
+              <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
+                <NodeVisual
+                  node={node}
+                  editMode={editMode}
+                  textEditing={editingNodeId === node.id}
+                  onEditText={(value) => onEditNodeText?.(node.id, value)}
+                  onFinishTextEdit={() => setEditingNodeId(null)}
+                />
+              </MotionVisual>
+            </ActionVisual>
           </div>
         );
       })}

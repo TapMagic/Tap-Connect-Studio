@@ -308,6 +308,8 @@ export type CreativeCompositionBlock = {
   };
   mobileFallback: "stack" | "scale" | "hide_decorative";
   safeAreaPaddingPx?: number;
+  /** Published height authority when this composition is the Card root. */
+  pageHeightPx?: number;
   resourceRef?: {
     resourceId: string;
     revisionId: string;
@@ -440,6 +442,10 @@ export function parseCreativeComposition(
         : "scale",
     safeAreaPaddingPx:
       typeof o.safeAreaPaddingPx === "number" ? o.safeAreaPaddingPx : 12,
+    pageHeightPx:
+      typeof o.pageHeightPx === "number"
+        ? Math.max(240, Math.min(2400, Math.round(o.pageHeightPx)))
+        : undefined,
     resourceRef:
       o.resourceRef && typeof o.resourceRef === "object"
         ? (o.resourceRef as CreativeCompositionBlock["resourceRef"])

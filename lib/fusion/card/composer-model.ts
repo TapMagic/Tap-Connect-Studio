@@ -347,9 +347,23 @@ export function ensureRootComposition(config: TapConnectCardConfig) {
 
 /** Grow the published root plane when authored objects extend below its current minimum. */
 export function rootCanvasAutoHeight(config: TapConnectCardConfig): number {
-  const base = config.rootCanvasMinHeightPx ?? 520;
+  const base = config.rootComposition?.pageHeightPx ?? config.rootCanvasMinHeightPx ?? 520;
   const bottom = ensureRootComposition(config).nodes.reduce((value, node) => node.visible === false ? value : Math.max(value, node.y + node.height), 1);
   return Math.min(2400, Math.max(base, Math.ceil(base * bottom)));
+}
+
+/**
+ * Smallest safe Card-root height that contains every visible root Element.
+ * The calculation intentionally ignores Sections, pasteboard chrome, drawers,
+ * and the Utility Layer: none of those owns the published root plane.
+ */
+export function fitRootCanvasToContent(config: TapConnectCardConfig): number {
+  const current = config.rootComposition?.pageHeightPx ?? config.rootCanvasMinHeightPx ?? 520;
+  const padding = config.rootCanvasPaddingPx ?? 12;
+  const visible = ensureRootComposition(config).nodes.filter((node) => node.visible !== false);
+  if (!visible.length) return 320;
+  const bottom = visible.reduce((value, node) => Math.max(value, node.y + node.height), 0);
+  return Math.max(240, Math.min(2400, Math.ceil(current * bottom + padding * 2)));
 }
 
 export function addElementToCardRoot(

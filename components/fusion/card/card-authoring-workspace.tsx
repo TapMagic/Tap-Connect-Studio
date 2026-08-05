@@ -416,8 +416,8 @@ export function CardAuthoringWorkspace({
         toolId === "brand" ||
         toolId === "layout"
           ? "appearance"
-          : toolId === "inspector"
-            ? "content"
+          : toolId === "inspector" || toolId === "content"
+            ? "outline"
             : toolId;
       const { snapshot, memory } = openAdaptiveTool(
         shell,
@@ -772,7 +772,7 @@ export function CardAuthoringWorkspace({
         <section className="absolute left-1/2 top-28 z-[1500] w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-amber-300/35 bg-[#111827] p-4 text-white shadow-2xl" role="alert" data-testid="card-recovery-prompt">
           <h2 className="text-sm font-semibold">{status.recoveryState === "conflict" ? "Recovered changes need review" : "Recovered changes are available"}</h2>
           <p className="mt-1 text-xs text-white/65">A browser-local checkpoint was found. A newer server draft will never be overwritten silently.</p>
-          <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="min-h-9 rounded bg-[#b8ff2c] px-3 text-xs font-semibold text-black" onClick={() => apiRef.current?.restoreRecovery()} disabled={status.recoveryState === "stale"}>Restore recovered version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => openCardTool("content")}>Review server version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => apiRef.current?.discardRecovery()}>Keep server version</button></div>
+          <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="min-h-9 rounded bg-[#b8ff2c] px-3 text-xs font-semibold text-black" onClick={() => apiRef.current?.restoreRecovery()} disabled={status.recoveryState === "stale"}>Restore recovered version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => openCardTool("outline")}>Review server version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => apiRef.current?.discardRecovery()}>Keep server version</button></div>
         </section>
       ) : null}
       {exitState !== "closed" ? (

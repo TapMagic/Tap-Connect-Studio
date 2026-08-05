@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 import type { CardEditorLiveModel } from "./card-editor-live";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import { ensureRootComposition, fitRootCanvasToContent, rootCanvasAutoHeight } from "@/lib/fusion/card/composer-model";
 
 const fieldClass = "mt-1 h-10 w-full rounded-md border border-white/15 bg-[#090e18] px-2 text-sm text-white";
 
@@ -108,7 +109,12 @@ export function CardAdvancedSettingsOverlay({
             </div>
           </div>
         ) : (
-          <p className="rounded-lg border border-white/10 bg-white/5 p-3 text-xs text-white/60">Select a Section or Element for exact settings. Card appearance remains in the Appearance drawer.</p>
+          <div className="space-y-3" data-testid="card-root-size-controls">
+            <h3 className="text-xs font-semibold">Card page size</h3>
+            <NumberField label="Page height px" value={rootCanvasAutoHeight(model.config)} min={240} max={2400} onChange={(value) => model.patchConfig({ rootComposition: { ...ensureRootComposition(model.config), pageHeightPx: value } }, "Changed exact Card page height")} />
+            <button type="button" className="min-h-10 w-full rounded-md border border-white/15 px-2 text-xs" onClick={() => model.patchConfig({ rootComposition: { ...ensureRootComposition(model.config), pageHeightPx: fitRootCanvasToContent(model.config) } }, "Fit Card page to content")}>Fit to content</button>
+            <p className="text-[10px] text-white/50">Page size is published. Pasteboard, drawers, the toolbar, and Utility Layer never change it.</p>
+          </div>
         )}
       </section>
     </div>

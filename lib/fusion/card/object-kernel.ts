@@ -62,6 +62,31 @@ function clamp(value: number, minimum: number, maximum: number) {
   return Math.min(maximum, Math.max(minimum, value));
 }
 
+function hexLuminance(color: string): number | null {
+  const match = /^#([0-9a-f]{6})$/i.exec(color.trim());
+  if (!match) return null;
+  const channels = [0, 2, 4].map((offset) => parseInt(match[1].slice(offset, offset + 2), 16) / 255);
+  const linear = channels.map((value) => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4);
+  return .2126 * linear[0] + .7152 * linear[1] + .0722 * linear[2];
+}
+
+export function readableTextColor(background: string | undefined): "#111827" | "#f8fafc" {
+  const luminance = background ? hexLuminance(background) : null;
+  return luminance !== null && luminance > .46 ? "#111827" : "#f8fafc";
+}
+
+function insertionBackground(config: TapConnectCardConfig, parentId: ObjectParentId): string | undefined {
+  if (parentId === null) {
+    const root = ensureRootComposition(config).background;
+    if (root?.kind === "solid" && root.value) return root.value;
+    return config.surfaceColor;
+  }
+  const section = config.sections.find((candidate) => candidate.id === parentId);
+  if (!section) return config.surfaceColor;
+  if (section.surfaceBackgroundKind === "gradient") return section.surfaceGradientStart;
+  return section.backgroundColor || config.surfaceColor;
+}
+
 function intersects(
   candidate: Pick<CreativeCompositionNode, "x" | "y" | "width" | "height">,
   occupied: CreativeCompositionNode[],
@@ -114,6 +139,9 @@ export function insertObject(input: InsertObjectInput): ObjectMutationResult {
   if (!existing) throw new Error(`Cannot insert into unknown or non-surface parent: ${input.parentId}`);
   const node = createCardElement(input.kind, existing.length);
   let props = { ...node.props, ...input.initialProps };
+  if (node.primitive === "text" && input.initialProps?.color === undefined) {
+    props.color = readableTextColor(insertionBackground(input.config, input.parentId));
+  }
   if (input.kind === "button" && typeof input.initialProps?.label === "string") {
     props = updateButtonLabel(props, input.initialProps.label, node.id);
   }
