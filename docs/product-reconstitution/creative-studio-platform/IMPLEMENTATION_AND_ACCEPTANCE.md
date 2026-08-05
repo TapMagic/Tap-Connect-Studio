@@ -5,7 +5,7 @@ Starting revision: `afdcaa0b89e8c1b085f7cf19990f65cc7e33afd9`
 
 ## Implemented platform spine
 
-- Ordinary Card Edit Mode no longer mounts `CardComposerInspector` or reserves its right column. The file remains only as unmounted compatibility code while older non-ordinary routes are retired separately.
+- Ordinary Card Edit Mode no longer mounts `CardComposerInspector` or reserves its right column. The retired Inspector implementation has been deleted; ordinary selection is served by contextual capabilities and Layers.
 - `SelectionRef` names document, page, revision, object kind, object, parent path, and selection generation. Canonical mutations reject stale, moved, missing, or wrong-kind targets; there is no first-Section or last-selection fallback.
 - A versioned capability registry describes Content, Text, Surface, Media, Transform, Layout, Motion, Action, States, Responsive, Visibility, Accessibility, Tracking, AI context, data binding, and reusable-composition support.
 - The narrow creative rail now exposes Templates, Build, Elements, Buttons, Text, Brand, Assets, Backgrounds, Projects, Reusable, Layers, AI Assist, Tools, and Help through one left drawer.
@@ -83,7 +83,7 @@ These are candidate states, not claims of completed human verification.
 3. Nested Button Text/Icon nodes need direct child selection and shared focused Text toolbar parity, not only Button content-mode controls.
 4. Shared Surface UI needs one visibly identical panel across Card, Section, Button, and Badge, with complete target-isolation browser proof.
 5. The full 33-view evidence inventory in the brief is not complete; the committed browser proof captures the highest-risk new flows and must not be represented as the entire human acceptance set.
-6. `CardComposerInspector` remains in the repository as unmounted compatibility code; ordinary Edit Mode no longer imports or mounts it, but full file deletion depends on retiring remaining legacy consumers.
+6. `CardComposerInspector` and `SelectionPanelStack` have been deleted. Legacy selection entry points alias to Layers during compatibility reads and no ordinary command mounts an Inspector.
 
 No deployment, production-data access, live publication/send, payment, Tap Point assignment, schema push, migration rewrite, force-push, merge, or destructive database cleanup occurred.
 
