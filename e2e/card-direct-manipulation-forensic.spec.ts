@@ -90,7 +90,7 @@ test.describe("Card direct-manipulation forensic completion", () => {
     await page.getByRole("button", { name: "Place product thumbnail" }).click();
     const selectedImage = root.locator('[data-composition-node][data-primitive="image"]').last();
     await selectedImage.click();
-    await expect(page.getByTestId("contextual-replace-media")).toContainText("Replace media");
+    await expect(page.getByTestId("contextual-replace-media")).toHaveText("Replace");
     await page.getByTestId("contextual-replace-media").click();
     await expect(page.getByTestId("element-media-controls")).toBeVisible();
     await page.screenshot({ path: path.join(evidence, "05-image-shared-media-browser.png") });
@@ -102,9 +102,9 @@ test.describe("Card direct-manipulation forensic completion", () => {
     await expect(logo).toHaveAttribute("data-selected", "true");
 
     await page.getByTestId("card-creative-tool-build").click();
-    await page.getByTestId("composer-add-section-content").click();
+    await page.getByTestId("composer-add-section-blank").click();
     await expect(page.getByTestId("card-contextual-object-tools")).toHaveAttribute("data-contextual-object", "section");
-    await page.getByRole("button", { name: "Background", exact: true }).click();
+    await page.getByRole("button", { name: "Appearance", exact: true }).click();
     const panel = page.getByTestId("contextual-section-surface-drawer");
     const card = page.getByTestId("card-preview-phone");
     const [panelBox, cardBox] = await Promise.all([panel.boundingBox(), card.boundingBox()]);

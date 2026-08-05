@@ -75,6 +75,8 @@ test("one capability registry serves Text, Button labels, Badges, Maps, and inte
   const badge = capabilitiesForNode({ primitive: "image", props: { elementKind: "badge" } });
   const map = capabilitiesForNode({ primitive: "image", props: { elementKind: "map" } });
   assert(text.has("text"));
+  assert(text.has("action"));
+  assert(text.has("appearance"));
   assert(button.has("text"));
   assert(button.has("surface"));
   assert(button.has("action"));
@@ -83,6 +85,16 @@ test("one capability registry serves Text, Button labels, Badges, Maps, and inte
   assert(map.has("media"));
   assert(map.has("action"));
   assert([...text].filter((capability) => capability === "motion").length === 1);
+});
+
+test("structured Components expose only parent-relevant capability groups", () => {
+  const gallery = capabilitiesForNode({ primitive: "group", props: { componentKind: "gallery" } });
+  const coupon = capabilitiesForNode({ primitive: "frame", props: { componentKind: "coupon" } });
+  assert.equal(gallery.has("text"), false);
+  assert.equal(gallery.has("media"), true);
+  assert.equal(gallery.has("layout"), true);
+  assert.equal(coupon.has("text"), true);
+  assert.equal(coupon.has("action"), true);
 });
 
 test("output profiles are versioned and Tap Card current resize is prohibited", () => {
@@ -132,4 +144,3 @@ test("AI applies through current SelectionRef and preserves functional bindings 
     /protected field: href/
   );
 });
-

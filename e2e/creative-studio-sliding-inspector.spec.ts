@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 /**
- * Route-level proof: /dashboard/card/edit Contextual Inspector
- * uses a visibly horizontal Sliding Panel Stack (NestedPanelShell).
+ * Route-level proof for the remaining canonical sliding capability panels.
+ * Ordinary editing must not expose the removed Inspector / Selection Hub.
  */
-test.describe("creative studio sliding inspector", () => {
+test.describe("creative studio focused capability panels", () => {
   test("Appearance hub slides L0 → L1 and Back reverses", async ({ page }) => {
     await page.goto("/dashboard/card/edit", { waitUntil: "networkidle" });
     await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({
@@ -55,22 +55,16 @@ test.describe("creative studio sliding inspector", () => {
     });
   });
 
-  test("Inspector Selection Hub opens and Close collapses drawer", async ({
-    page,
-  }) => {
+  test("legacy Inspector entry is absent and Layers remains the selection authority", async ({ page }) => {
     await page.goto("/dashboard/card/edit", { waitUntil: "networkidle" });
     await expect(page.getByTestId("card-edit-workspace-host")).toBeVisible({
       timeout: 60_000,
     });
 
-    await page.getByTestId("card-tool-content").click();
-    const stack = page.getByTestId("selection-panel-stack");
-    await expect(stack).toBeVisible({ timeout: 20_000 });
-    await expect(stack).toHaveAttribute("data-sliding-panel-stack", "true");
-    await expect(page.getByTestId("selection-panel-hub")).toBeVisible();
-
-    await page.getByTestId("panel-stack-close").click();
-    await expect(page.getByTestId("card-contextual-drawer")).toHaveCount(0);
+    await expect(page.getByText("Inspector", { exact: true })).toHaveCount(0);
+    await expect(page.getByTestId("selection-panel-stack")).toHaveCount(0);
+    await page.getByTestId("card-creative-tool-layers").click();
+    await expect(page.getByTestId("card-layers-drawer")).toBeVisible();
   });
 
   test("Composition stack slides to L1 and L2 with Back", async ({ page }) => {
