@@ -21,8 +21,8 @@ test.describe("Creative Studio simplified platform", () => {
     await page.getByRole("button", { name: "Add text box", exact: true }).click();
     await page.getByTestId("card-creative-tool-buttons").click();
     await page.getByTestId("button-preset-website-outline").click();
-    await page.getByTestId("card-creative-tool-elements").click();
-    await page.getByTestId("card-badge-library").getByRole("button", { name: "SALE" }).click();
+    await page.getByTestId("card-creative-tool-badges").click();
+    await page.getByTestId("polished-badge-library").getByRole("button", { name: "SALE" }).click();
     await expect(root.locator('[data-element-kind="text"]')).toHaveCount(1);
     await expect(root.locator('[data-element-kind="button"]')).toHaveCount(1);
     await expect(root.locator('[data-element-kind="badge"]')).toHaveCount(1);
@@ -30,13 +30,13 @@ test.describe("Creative Studio simplified platform", () => {
 
     await page.getByTestId("card-creative-tool-templates").click();
     await page.getByRole("button", { name: /Premium Offer/ }).click();
-    const offer = page.locator('[data-section-preset="offer"]');
+    const offer = root.locator('[data-composition-node]').filter({ has: page.locator('[data-component-kind="container"]') });
     await expect(offer).toHaveCount(1);
-    await expect(offer).toHaveAttribute("data-surface-kind", "blank");
-    await expect(offer.locator('[data-element-kind="badge"]')).toHaveCount(1);
-    await expect(offer.locator('[data-element-kind="heading"]')).toHaveCount(1);
-    await expect(offer.locator('[data-element-kind="image"]')).toHaveCount(1);
-    await expect(offer.locator('[data-element-kind="button"]')).toHaveCount(1);
+    await expect(root.locator('[data-element-kind="badge"]')).toHaveCount(2);
+    await expect(root.locator('[data-element-kind="heading"]')).toHaveCount(1);
+    await expect(root.locator('[data-element-kind="image"]')).toHaveCount(1);
+    await expect(root.locator('[data-element-kind="button"]')).toHaveCount(2);
+    await expect(page.locator("[data-section-id]")).toHaveCount(0);
 
     await page.getByTestId("card-creative-tool-build").click();
     await page.getByTestId("composer-outline-toggle").click();
@@ -57,23 +57,22 @@ test.describe("Creative Studio simplified platform", () => {
     await page.getByTestId("card-creative-tool-templates").click();
     await page.getByRole("button", { name: /Blank Card/ }).click();
     await page.getByRole("button", { name: /Blank Section/ }).last().click();
-    const section = page.locator('[data-section-preset="blank"]').last();
+    const section = page.getByTestId("card-root-canvas").locator('[data-composition-node]').filter({ has: page.locator('[data-component-kind="container"]') }).last();
 
     await page.getByTestId("card-creative-tool-text").click();
-    await expect(page.getByTestId("insertion-target-choice").getByRole("button", { name: "Add to Card" })).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("insertion-target-choice")).toHaveCount(0);
     await page.getByTestId("text-combination-neon").click();
     await expect(page.getByTestId("card-root-canvas").locator('[data-element-kind="text"]')).toHaveCount(2);
-    await expect(section.locator('[data-element-kind="text"]')).toHaveCount(0);
-    await page.getByTestId("insertion-target-choice").getByRole("button", { name: /Add to Premium|Add to Blank/ }).click();
+    await expect(section).toBeVisible();
     await page.getByRole("button", { name: "Add text box", exact: true }).click();
-    await expect(section.locator('[data-element-kind="text"]')).toHaveCount(1);
+    await expect(page.getByTestId("card-root-canvas").locator('[data-element-kind="text"]')).toHaveCount(3);
 
     await page.getByRole("button", { name: /Magic Write/ }).click();
     await page.getByPlaceholder(/free fries/).fill("Present an offer for free fries with a $20 purchase.");
     await page.getByRole("button", { name: "Review result" }).click();
     await expect(page.getByTestId("magic-write-result")).toContainText("FREE FRIES");
     await page.getByRole("button", { name: "Insert", exact: true }).click();
-    await expect(section.locator('[data-element-kind="text"]')).toHaveCount(2);
+    await expect(page.getByTestId("card-root-canvas").locator('[data-element-kind="text"]')).toHaveCount(4);
 
     await page.getByTestId("card-creative-tool-coupons").click();
     await page.getByTestId("coupon-preset-percentage").click();
