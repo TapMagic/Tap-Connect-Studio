@@ -286,6 +286,12 @@ export type CreativeCompositionBlock = {
     value?: string;
     gradient?: GradientModel;
     pattern?: SurfacePatternModel;
+    /** Applies to the root fill only; never changes Element or utility opacity. */
+    opacity?: number;
+    tint?: string;
+    saturation?: number;
+    brightness?: number;
+    contrast?: number;
     image?: {
       src: string;
       /** Durable reference for new edits; src remains the version-1 fallback URL. */

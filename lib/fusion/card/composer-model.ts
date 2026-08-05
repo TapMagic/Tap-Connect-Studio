@@ -213,6 +213,79 @@ export function createSectionPreset(presetId: SectionPresetId, order: number): T
   };
 }
 
+/**
+ * New authoring authority for premium presets. The Container and every child are
+ * peers on the root coordinate plane, tied by groupId for hierarchy and Layers.
+ * Legacy createSectionPreset remains exclusively as the old-draft adapter.
+ */
+export function insertRootContainerPreset(
+  config: TapConnectCardConfig,
+  presetId: SectionPresetId,
+): { config: TapConnectCardConfig; containerId: string; objectIds: string[] } {
+  const root = ensureRootComposition(config);
+  const definition = SECTION_PRESET_LIBRARY.find((item) => item.id === presetId)!;
+  const containerId = `container-${nanoid(7)}`;
+  const groupId = `container-group-${nanoid(7)}`;
+  const existingContainers = root.nodes.filter((node) => node.props.componentKind === "container").length;
+  const x = Math.min(.12, .04 + (existingContainers % 4) * .025);
+  const y = Math.min(.46, .04 + (existingContainers % 8) * .055);
+  const width = .88;
+  const height = presetId === "blank" ? .3 : presetId === "offer" || presetId === "hero" ? .64 : .52;
+  const maxZ = root.nodes.reduce((maximum, node) => Math.max(maximum, node.zIndex), 0);
+  const container: CreativeCompositionNode = {
+    id: containerId,
+    primitive: "frame",
+    x, y, width, height,
+    zIndex: maxZ + 1,
+    name: `${definition.label} Container`,
+    groupId,
+    props: {
+      componentKind: "container",
+      elementKind: "container",
+      presetId,
+      layout: presetId === "blank" ? "free" : "stack",
+      resizePolicy: "reflow",
+      fill: presetId === "blank" ? "transparent" : presetId === "offer" ? "#27104f" : "#171b24",
+      gradientStart: presetId === "offer" ? "#27104f" : "#171b24",
+      gradientEnd: presetId === "offer" ? "#0b132b" : "#0b0f19",
+      gradientAngle: 145,
+      radius: presetId === "blank" ? 0 : 24,
+      padding: 18,
+      gap: 12,
+      opacity: 1,
+      childIds: [] as string[],
+    },
+  };
+  const source = presetId === "blank" ? [] : PRESET_CHILDREN[presetId];
+  const gap = .018;
+  const innerX = x + width * .06;
+  const innerWidth = width * .88;
+  const childHeight = source.length ? Math.max(.055, (height * .82 - gap * (source.length - 1)) / source.length) : 0;
+  const children = source.map(([kind, props], index) => {
+    const child = presetElement(kind, root.nodes.length + index, props);
+    return {
+      ...child,
+      x: innerX,
+      y: y + height * .09 + index * (childHeight + gap),
+      width: innerWidth,
+      height: childHeight,
+      zIndex: maxZ + 2 + index,
+      groupId,
+      props: { ...child.props, containerId, presetChildRole: kind },
+    };
+  });
+  container.props.childIds = children.map((node) => node.id);
+  const nodes = [...root.nodes, container, ...children];
+  const lowest = nodes.reduce((bottom, node) => node.visible === false ? bottom : Math.max(bottom, node.y + node.height), 1);
+  const currentHeight = root.pageHeightPx ?? config.rootCanvasMinHeightPx ?? 520;
+  const pageHeightPx = lowest > 1 ? Math.min(2400, Math.ceil(currentHeight * lowest + 24)) : currentHeight;
+  return {
+    config: { ...config, rootComposition: { ...root, nodes, pageHeightPx } },
+    containerId,
+    objectIds: [containerId, ...children.map((node) => node.id)],
+  };
+}
+
 /** Section-bound resize: never rewrites Element transforms or structured spacing. */
 export function resizeCardSurface(
   section: TapCardSection,

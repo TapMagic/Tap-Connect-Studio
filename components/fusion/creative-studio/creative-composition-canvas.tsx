@@ -291,6 +291,24 @@ function NodeVisual({
   }
 
   const componentKind = str(node.props.componentKind);
+  if (componentKind === "container") {
+    const fill = str(node.props.fill, "transparent");
+    const gradientStart = str(node.props.gradientStart);
+    const gradientEnd = str(node.props.gradientEnd);
+    return <div
+      className="h-full w-full"
+      data-component-kind="container"
+      data-container-layout={str(node.props.layout, "free")}
+      data-container-resize-policy={str(node.props.resizePolicy, "reflow")}
+      style={{
+        background: gradientStart && gradientEnd ? `linear-gradient(${num(node.props.gradientAngle, 145)}deg,${gradientStart},${gradientEnd})` : fill,
+        border: `${num(node.props.borderWidth, 0)}px ${str(node.props.borderStyle, "solid")} ${str(node.props.borderColor, "transparent")}`,
+        borderRadius: num(node.props.radius, 0),
+        boxShadow: num(node.props.boxShadow, 0) ? `0 10px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)` : undefined,
+        opacity: num(node.props.opacity, 1),
+      }}
+    />;
+  }
   if (componentKind === "gallery") {
     const media = Array.isArray(node.props.media) ? node.props.media.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
     if (!media.length && !editMode) return null;
@@ -672,7 +690,12 @@ function NodeVisual({
           aria-label={node.props.decorative === true ? undefined : str(node.props.accessibleLabel, "Icon")}
           data-icon-id={str(node.props.icon, "sparkles")}
         >
-          <ElementIcon name={str(node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />
+          {node.props.iconProvider === "iconify" && node.props.iconCollection && node.props.iconName ? <img /* eslint-disable-line @next/next/no-img-element */
+            src={`https://api.iconify.design/${encodeURIComponent(str(node.props.iconCollection))}/${encodeURIComponent(str(node.props.iconName))}.svg?color=${encodeURIComponent(str(node.props.fill, "#b8ff2c"))}`}
+            alt={node.props.decorative === true ? "" : str(node.props.accessibleLabel, "Icon")}
+            className="h-full w-full object-contain"
+            data-icon-provider="iconify"
+          /> : <ElementIcon name={str(node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />}
         </div>
       );
     }
@@ -1429,7 +1452,7 @@ export function CreativeCompositionCanvas({
       >
         <div
           className="pointer-events-none absolute inset-0"
-          style={{ ...backgroundStyle, ...backgroundTreatmentStyle }}
+          style={{ ...backgroundStyle, ...backgroundTreatmentStyle, opacity: block.background?.opacity ?? 1, filter: [backgroundTreatmentStyle?.filter, `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`].filter(Boolean).join(" ") }}
           data-testid="composition-background-renderer"
           aria-hidden
         />

@@ -64,6 +64,25 @@ export function ensureFontLoaded(
   return promise;
 }
 
+/** Lazy-load a provider family discovered after build time. No provider key is used client-side. */
+export function ensureGoogleFontFamilyLoaded(family: string, weights: number[] = [400, 600, 700]): Promise<void> {
+  const id = `provider:${family.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+  if (loaded.has(id) || typeof document === "undefined") return Promise.resolve();
+  const existing = loading.get(id);
+  if (existing) return existing;
+  const promise = new Promise<void>((resolve, reject) => {
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family).replace(/%20/g, "+")}:wght@${weights.join(";")}&display=swap`;
+    link.dataset.fontId = id;
+    link.onload = () => { loaded.add(id); loading.delete(id); resolve(); };
+    link.onerror = () => { loading.delete(id); reject(new Error(`Font failed to load: ${family}`)); };
+    document.head.appendChild(link);
+  });
+  loading.set(id, promise);
+  return promise;
+}
+
 export function preloadBrandFonts(brandFontIds: string[]): void {
   for (const id of brandFontIds.slice(0, 6)) {
     void ensureFontLoaded(id).catch(() => undefined);

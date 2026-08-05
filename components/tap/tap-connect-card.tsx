@@ -1772,10 +1772,18 @@ export function TapConnectCard({
                       return;
                     }
                     rootResizeRef.current = null;
-                    const next = Math.min(2400, rootCanvasAutoHeight(config) + 96);
+                    const next = Math.min(2400, rootCanvasAutoHeight(config) + 240);
                     commitRootCanvasHeight(next, "Extended Card page");
                   }}
                   onKeyDown={(event) => {
+                    if (event.key === "Escape" && rootResizeRef.current) {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      rootResizeRef.current = null;
+                      setRootHeightDraft(null);
+                      try { event.currentTarget.releasePointerCapture(Number(event.currentTarget.dataset.pointerId)); } catch { /* capture may already be released */ }
+                      return;
+                    }
                     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
                     event.preventDefault();
                     const delta = (event.shiftKey ? 96 : 24) * (event.key === "ArrowDown" ? 1 : -1);
@@ -1786,6 +1794,8 @@ export function TapConnectCard({
                     const renderedHeight = rootHeightDraft ?? rootCanvasAutoHeight(config);
                     const scale = root ? Math.max(0.01, root.getBoundingClientRect().height / Math.max(1, root.offsetHeight)) : 1;
                     rootResizeRef.current = { startY: event.clientY, startHeight: renderedHeight, nextHeight: renderedHeight, scale, moved: false };
+                    event.currentTarget.dataset.pointerId = String(event.pointerId);
+                    event.currentTarget.focus();
                     event.currentTarget.setPointerCapture(event.pointerId);
                   }}
                   onPointerMove={(event) => {
@@ -1793,7 +1803,8 @@ export function TapConnectCard({
                     if (!drag || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
                     const delta = (event.clientY - drag.startY) / drag.scale;
                     if (Math.abs(delta) < 2) return;
-                    const next = Math.max(240, Math.min(2400, Math.round(drag.startHeight + delta)));
+                    const raw = Math.max(240, Math.min(2400, drag.startHeight + delta));
+                    const next = Math.round(event.altKey ? raw : raw / 8) * (event.altKey ? 1 : 8);
                     drag.nextHeight = next;
                     drag.moved = true;
                     setRootHeightDraft(next);
@@ -1808,10 +1819,27 @@ export function TapConnectCard({
                     setRootHeightDraft(null);
                     commitRootCanvasHeight(drag.nextHeight, drag.nextHeight >= drag.startHeight ? "Extended Card page" : "Shortened Card page");
                   }}
+                  onPointerCancel={() => {
+                    rootResizeRef.current = null;
+                    setRootHeightDraft(null);
+                  }}
                 >
-                  ↕ Extend page
+                  ↕ Drag page edge · click +240
                 </button>
                 <span className="min-w-12 tabular-nums" data-testid="card-page-height">{rootHeightDraft ?? rootCanvasAutoHeight(config)}px</span>
+                <label className="sr-only" htmlFor="card-page-exact-height">Exact page height</label>
+                <input
+                  id="card-page-exact-height"
+                  aria-label="Exact Card page height"
+                  type="number"
+                  min={240}
+                  max={2400}
+                  step={8}
+                  value={rootHeightDraft ?? rootCanvasAutoHeight(config)}
+                  onChange={(event) => commitRootCanvasHeight(Number(event.target.value), "Changed exact Card page height")}
+                  className="h-7 w-16 rounded border border-white/15 bg-transparent px-1 tabular-nums"
+                  data-testid="card-page-exact-height"
+                />
                 <button
                   type="button"
                   className="h-7 rounded-md border border-white/15 px-2 hover:border-[#b8ff2c]/55"

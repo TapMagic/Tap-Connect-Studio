@@ -97,6 +97,8 @@ import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import {
   createCardSurface,
   createSectionPreset,
+  insertRootContainerPreset,
+  SECTION_PRESET_LIBRARY,
   moveCardElements,
   removeSectionKeepElements,
   resolveComposerSelectedObject,
@@ -1145,10 +1147,11 @@ export function TapCardBuilder({
   }
 
   function addComposerSectionPreset(presetId: SectionPresetId) {
-    const section = createSectionPreset(presetId, sorted.length);
-    setSections([...sorted, section], true, `Added ${section.label}`);
-    setSelectedId(section.id);
-    setSelectedCompositionNodeIds([]);
+    const result = insertRootContainerPreset(config, presetId);
+    setConfigHistory(result.config, { label: `Added ${SECTION_PRESET_LIBRARY.find((item) => item.id === presetId)?.label || "Container"} to Card root` });
+    setDirty(true);
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([result.containerId]);
   }
 
   function addComposerElement(kind: CardElementKind, targetSectionId: string | null, initialProps?: Record<string, unknown>) {
