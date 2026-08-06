@@ -18,10 +18,17 @@ function trimSlash(url: string): string {
 }
 
 export function detectLanBaseUrl(port = 3050): string | null {
-  const nets = networkInterfaces();
+  let nets: ReturnType<typeof networkInterfaces>;
+  try {
+    nets = networkInterfaces();
+  } catch {
+    return null;
+  }
   for (const entries of Object.values(nets)) {
     for (const entry of entries || []) {
-      if (!entry || entry.internal || entry.family !== "IPv4") continue;
+      if (!entry || entry.internal) continue;
+      const family = String(entry.family);
+      if (family !== "IPv4" && family !== "4") continue;
       const ip = entry.address;
       if (
         ip.startsWith("10.") ||

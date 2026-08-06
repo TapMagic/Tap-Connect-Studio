@@ -24,7 +24,7 @@ function blankConfig(): TapConnectCardConfig {
       mobileFallback: "scale",
       pageHeightPx: 520,
     },
-  } as TapConnectCardConfig;
+  } as unknown as TapConnectCardConfig;
 }
 
 test("page height extend/contract preserves absolute object bounds", () => {

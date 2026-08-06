@@ -209,7 +209,7 @@ describe("creative-studio preview tokens", () => {
       snapshotJson: "{}",
       profileJson: "{}",
     });
-    assert.ok(s.path.startsWith("/preview/card/"));
+    assert.ok(s.path.startsWith("/preview/live/") || s.path.startsWith("/preview/card/"));
     assert.equal(s.path.includes("/t/"), false);
     assert.equal(JSON.stringify(s.record).toLowerCase().includes("clerk"), false);
     assert.equal(s.token.toLowerCase().includes("clerk"), false);

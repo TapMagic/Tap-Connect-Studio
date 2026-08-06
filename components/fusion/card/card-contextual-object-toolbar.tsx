@@ -114,11 +114,10 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const [fontQuery, setFontQuery] = useState("");
   const [providerFonts, setProviderFonts] = useState<Array<{ family: string; category: string; variants: string[] }>>([]);
   const [fontProviderFallback, setFontProviderFallback] = useState(false);
-  const [recentFonts, setRecentFonts] = useState<string[]>([]);
+  const [recentFonts, setRecentFonts] = useState<string[]>(() => readRecentFonts());
   const [iconQuery, setIconQuery] = useState("");
   const [providerIcons, setProviderIcons] = useState<Array<{ collection: string; name: string; canonicalId: string; source: string }>>([]);
   useEffect(() => {
-    if (focus === "font") setRecentFonts(readRecentFonts());
     if (focus !== "font" || providerFonts.length) return;
     let active = true;
     void fetch("/api/creative/fonts").then((response) => response.json()).then((value: { items?: Array<{ family: string; category: string; variants: string[] }>; fallback?: boolean }) => {
@@ -169,7 +168,12 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       window.removeEventListener("pointerdown", onPointer, true);
     };
   }, [focus]);
-  useEffect(() => { setFocus(null); }, [selected?.node?.id]);
+  const selectedNodeId = selected?.node?.id;
+  useEffect(() => {
+    // Contextual drawers must dismiss when the selected target changes.
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- selection-change dismissal is intentional UI sync
+    setFocus(null);
+  }, [selectedNodeId]);
   if (!model) return null;
   if (!selected) return <SectionContextualToolbar model={model} onAdvanced={onAdvanced} />;
   const { node, block, section } = selected;
@@ -202,7 +206,10 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   };
   const duplicate = () => { const result = duplicateNodes(block.nodes, [node.id]); replace({ ...block, nodes: result.nodes }, "Duplicated Element"); model.setSelectedCompositionNodeIds?.(result.newIds); };
   const remove = () => { if (node.locked) return model.notify?.("Unlock this Element before deleting it."); replace({ ...block, nodes: block.nodes.filter((candidate) => candidate.id !== node.id) }, "Deleted Element"); model.setSelectedCompositionNodeIds?.([]); };
-  const open = (next: Exclude<Focus, null>) => setFocus((current) => current === next ? null : next);
+  const open = (next: Exclude<Focus, null>) => {
+    if (next === "font") setRecentFonts(readRecentFonts());
+    setFocus((current) => current === next ? null : next);
+  };
   const openCommand = (commandId: string, preferred?: Exclude<Focus, null>) => dispatchEditorCommand(commandId, objectFamily, (section: EditorDrawerSection) => {
     const mapped = preferred || focusForDrawerSection(section, objectFamily);
     open(mapped as Exclude<Focus, null>);
@@ -296,7 +303,28 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       {focus === "icon-fill" ? <div className="space-y-3" data-testid="icon-fill-controls" data-icon-render-mode={iconRenderMode}><p className="text-[10px] text-white/55">Fill applies to fill-capable Icons only.</p>{iconRenderMode === "stroke" ? <p className="rounded border border-amber-300/30 p-2 text-[10px] text-amber-100">This Icon is stroke-first. Use Stroke for color and width.</p> : <label className="block text-[10px] text-white/65">Fill color<input type="color" value={String(node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ fill: event.target.value, iconRenderMode: "fill" }, "Changed Icon fill")} className={fieldClass} data-testid="icon-fill-color" /></label>}</div> : null}
       {focus === "icon-stroke" ? <div className="space-y-3" data-testid="icon-stroke-controls" data-icon-render-mode={iconRenderMode}><label className="block text-[10px] text-white/65">Stroke color<input type="color" value={String(node.props.stroke || node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ stroke: event.target.value, iconRenderMode: "stroke" }, "Changed Icon stroke")} className={fieldClass} data-testid="icon-stroke-color" /></label><label className="block text-[10px] text-white/65">Stroke width<input type="number" min={0} max={24} step={0.5} value={Number(node.props.strokeWidth || 2)} onChange={(event) => patchProps({ strokeWidth: Number(event.target.value) }, "Changed Icon stroke width")} className={fieldClass} data-testid="icon-stroke-width" /></label></div> : null}
       {focus === "icon-appearance" ? <div className="space-y-3" data-testid="icon-appearance-controls"><p className="text-[10px] text-white/55">Backing Surface for the Icon — separate from Icon choice, Fill, and Stroke.</p><div className="grid grid-cols-3 gap-1">{(["transparent", "solid"] as const).map((kind) => <button key={kind} type="button" className={buttonClass} data-testid={`icon-backing-${kind}`} onClick={() => patchProps(kind === "transparent" ? { boxFill: "transparent" } : { boxFill: String(node.props.boxFill === "transparent" ? "#111827" : node.props.boxFill || "#111827") }, `Changed Icon backing to ${kind}`)}>{kind === "transparent" ? "None" : "Solid"}</button>)}</div><div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Backing fill<input type="color" value={String(node.props.boxFill || "#111827").slice(0, 7)} onChange={(event) => patchProps({ boxFill: event.target.value }, "Changed Icon backing fill")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Radius<input type="number" min={0} max={999} value={Number(node.props.radius || 0)} onChange={(event) => patchProps({ radius: Number(event.target.value) }, "Changed Icon radius")} className={fieldClass} data-testid="icon-radius" /></label><label className="text-[10px] text-white/65">Opacity<input type="range" min={0} max={100} value={Math.round(Number(node.props.opacity ?? 1) * 100)} onChange={(event) => patchProps({ opacity: Number(event.target.value) / 100 }, "Changed Icon opacity")} className={fieldClass} data-testid="icon-opacity" /></label><label className="text-[10px] text-white/65">Shadow<input type="range" min={0} max={48} value={Number(node.props.boxShadow || 0)} onChange={(event) => patchProps({ boxShadow: Number(event.target.value) }, "Changed Icon shadow")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Glow<input type="range" min={0} max={48} value={Number(node.props.boxGlow || 0)} onChange={(event) => patchProps({ boxGlow: Number(event.target.value) }, "Changed Icon glow")} className={fieldClass} /></label></div></div> : null}
-      {focus === "divider-style" ? <div className="space-y-3" data-testid="divider-style-controls"><p className="text-[10px] text-white/55">Divider Style — structural line treatment only.</p><div className="grid grid-cols-2 gap-1">{(["solid", "dashed", "dotted", "double", "ornamental", "gradient", "short_accent", "full_width", "centered_flourish", "icon_centered", "labelled"].map((style) => <button key={style} type="button" aria-pressed={String(node.props.dividerStyle || "solid") === style} className={buttonClass} data-testid={`divider-style-${style}`} onClick={() => patchProps({ dividerStyle: style, borderStyle: style === "dashed" || style === "dotted" ? style : "solid" }, `Changed Divider style to ${style}`)}>{style.replaceAll("_", " ")}</button>)}</div></div> : null}
+      {focus === "divider-style" ? (
+        <div className="space-y-3" data-testid="divider-style-controls">
+          <p className="text-[10px] text-white/55">Divider Style — structural line treatment only.</p>
+          <div className="grid grid-cols-2 gap-1">
+            {(["solid", "dashed", "dotted", "double", "ornamental", "gradient", "short_accent", "full_width", "centered_flourish", "icon_centered", "labelled"] as const).map((style) => (
+              <button
+                key={style}
+                type="button"
+                aria-pressed={String(node.props.dividerStyle || "solid") === style}
+                className={buttonClass}
+                data-testid={`divider-style-${style}`}
+                onClick={() => patchProps({
+                  dividerStyle: style,
+                  borderStyle: style === "dashed" || style === "dotted" ? style : "solid",
+                }, `Changed Divider style to ${style}`)}
+              >
+                {style.replaceAll("_", " ")}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
       {focus === "divider-thickness" ? <div className="space-y-3" data-testid="divider-thickness-controls"><label className="block text-[10px] text-white/65">Thickness<input type="number" min={1} max={48} value={Number(node.props.strokeWidth || node.props.thickness || 2)} onChange={(event) => patchProps({ strokeWidth: Number(event.target.value), thickness: Number(event.target.value) }, "Changed Divider thickness")} className={fieldClass} data-testid="divider-thickness-input" /></label><label className="block text-[10px] text-white/65">Length %<input type="number" min={10} max={100} value={Math.round(node.width * 100)} onChange={(event) => patch({ width: Number(event.target.value) / 100 }, "Changed Divider length")} className={fieldClass} /></label></div> : null}
       {focus === "divider-color" ? <div className="space-y-3" data-testid="divider-color-controls"><div className="grid grid-cols-2 gap-1"><button type="button" className={buttonClass} onClick={() => patchProps({ fill: "transparent", gradientFill: undefined }, "Cleared Divider color")}>None</button><button type="button" className={buttonClass} onClick={() => patchProps({ fill: String(node.props.fill === "transparent" ? "#b8ff2c" : node.props.fill || "#b8ff2c"), gradientFill: undefined }, "Set solid Divider color")}>Solid</button></div><label className="block text-[10px] text-white/65">Color<input type="color" value={String(node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ fill: event.target.value, stroke: event.target.value, gradientFill: undefined }, "Changed Divider color")} className={fieldClass} data-testid="divider-color-input" /></label><label className="block text-[10px] text-white/65">Gradient CSS<input value={String(node.props.gradientFill || "")} onChange={(event) => patchProps({ gradientFill: event.target.value || undefined }, "Changed Divider gradient")} className={fieldClass} /></label></div> : null}
       {focus === "divider-appearance" ? <div className="space-y-3" data-testid="divider-appearance-controls"><p className="text-[10px] text-white/55">Divider Appearance — opacity, shadow, and glow only.</p><label className="block text-[10px] text-white/65">Opacity<input type="range" min={0} max={100} value={Math.round(Number(node.props.opacity ?? 1) * 100)} onChange={(event) => patchProps({ opacity: Number(event.target.value) / 100 }, "Changed Divider opacity")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Shadow<input type="range" min={0} max={48} value={Number(node.props.boxShadow || 0)} onChange={(event) => patchProps({ boxShadow: Number(event.target.value) }, "Changed Divider shadow")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Glow<input type="range" min={0} max={48} value={Number(node.props.boxGlow || node.props.glow || 0)} onChange={(event) => patchProps({ boxGlow: Number(event.target.value), glow: Number(event.target.value) }, "Changed Divider glow")} className={fieldClass} /></label></div> : null}
