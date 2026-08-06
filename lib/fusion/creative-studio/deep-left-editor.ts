@@ -109,6 +109,21 @@ export function openDeepLeftEdit(
     page?: DeepLeftNestedPage;
   }
 ): DeepLeftEditorSession {
+  // Same section already open — retarget labels/ref without wiping nested routes.
+  if (current.mode === "edit" && current.section === input.section && !input.page) {
+    return {
+      ...current,
+      previousLibraryTool: current.previousLibraryTool || input.previousLibraryTool,
+      targetLabel: input.targetLabel,
+      capabilityLabel: input.capabilityLabel,
+      selectionGeneration: input.selectionGeneration,
+      selectionRef: input.selectionRef ?? current.selectionRef,
+      routeStack: current.routeStack.map((route) => ({
+        ...route,
+        target: input.selectionRef ?? route.target,
+      })),
+    };
+  }
   const page = input.page || "home";
   const rootRoute: DeepEditorRoute = {
     routeId: routeIdFor(input.section, page, input.selectionGeneration),

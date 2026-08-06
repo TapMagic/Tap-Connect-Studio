@@ -97,6 +97,28 @@ test("pushDeepLeftRoute preserves SelectionRef on the stack", () => {
   assert.equal(metallic.routeStack[1]?.target?.objectId, "text-1");
 });
 
+test("reopening the same section preserves nested route stack", () => {
+  const edit = openDeepLeftEdit(INITIAL_DEEP_LEFT_SESSION, {
+    section: "color",
+    targetLabel: "Text",
+    capabilityLabel: "Color",
+    previousLibraryTool: "text",
+    selectionGeneration: 1,
+    selectionRef: sampleRef,
+  });
+  const nested = setDeepLeftNestedPage(edit, "solid-colors");
+  const retarget = openDeepLeftEdit(nested, {
+    section: "color",
+    targetLabel: "Text",
+    capabilityLabel: "Color",
+    previousLibraryTool: "text",
+    selectionGeneration: 1,
+    selectionRef: sampleRef,
+  });
+  assert.equal(retarget.nestedPage, "solid-colors");
+  assert.equal(retarget.routeStack.length, 2);
+});
+
 test("closeDeepLeftEdit restores library mode", () => {
   const edit = openDeepLeftEdit(INITIAL_DEEP_LEFT_SESSION, {
     section: "button-surface",
