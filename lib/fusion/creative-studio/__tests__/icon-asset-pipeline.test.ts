@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  bareIconDefaults,
   createIconAsset,
+  iconAssetToNodeProps,
   nativeIconAsset,
   replaceIconContentProps,
   sanitizeSvg,
@@ -44,6 +46,27 @@ describe("Iconify canonical asset pipeline", () => {
     }
   });
 
+  it("bare icon defaults have no backing surface chrome", () => {
+    const bare = bareIconDefaults("stroke");
+    assert.equal(bare.backingSurfaceEnabled, false);
+    assert.equal(bare.boxFill, "transparent");
+    assert.equal(bare.borderWidth, 0);
+    assert.equal(bare.borderStyle, "none");
+    assert.equal(bare.radius, 0);
+    assert.equal(bare.boxShadow, 0);
+    assert.equal(bare.boxGlow, 0);
+    assert.equal(bare.glow, 0);
+  });
+
+  it("iconAssetToNodeProps writes bare defaults plus SVG body", () => {
+    const asset = nativeIconAsset("ticket")!;
+    const props = iconAssetToNodeProps(asset);
+    assert.equal(props.backingSurfaceEnabled, false);
+    assert.equal(props.boxFill, "transparent");
+    assert.ok(String(props.iconSvg).includes("<svg"));
+    assert.equal(props.iconRenderMode, "stroke");
+  });
+
   it("replaceIconContentProps preserves identity geometry action and a11y", () => {
     const asset = nativeIconAsset("phone")!;
     const next = replaceIconContentProps(
@@ -54,6 +77,7 @@ describe("Iconify canonical asset pipeline", () => {
         href: "tel:+15551212",
         trackingName: "icon-call",
         motionPreset: "subtle_pulse",
+        backingSurfaceEnabled: true,
         boxFill: "#111827",
         fill: "#b8ff2c",
         xKeep: true,
@@ -67,6 +91,7 @@ describe("Iconify canonical asset pipeline", () => {
     assert.equal(next.href, "tel:+15551212");
     assert.equal(next.trackingName, "icon-call");
     assert.equal(next.motionPreset, "subtle_pulse");
+    assert.equal(next.backingSurfaceEnabled, true);
     assert.equal(next.boxFill, "#111827");
     assert.equal(next.fill, "#b8ff2c");
   });

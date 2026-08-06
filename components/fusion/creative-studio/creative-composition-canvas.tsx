@@ -346,10 +346,12 @@ function NodeVisual({
     const text = str(node.props.text, "Text");
     const curve = str(node.props.textCurve, "none");
     const glyphStyle: CSSProperties = {
-      background: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
+      display: "inline-block",
+      backgroundImage: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
       backgroundClip: node.props.gradientFill ? "text" : undefined,
       WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
       WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
+      color: node.props.gradientFill ? "transparent" : undefined,
       WebkitTextStroke: num(node.props.outlineWidth, 0) > 0 ? `${num(node.props.outlineWidth, 0)}px ${str(node.props.outlineColor, str(node.props.color, "#f8fafc"))}` : undefined,
       textShadow: [
         str(node.props.textShadowLayers),
@@ -398,8 +400,9 @@ function NodeVisual({
     return (
       <div
         className="flex h-full w-full items-center overflow-hidden px-1"
-        data-text-box-background="transparent"
+        data-text-box-background={node.props.boxGradient || (node.props.boxFill && str(node.props.boxFill) !== "transparent") ? "filled" : "transparent"}
         data-glyph-effect={node.props.glyphEffect ? String(node.props.glyphEffect) : node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"}
+        data-glyph-gradient={node.props.gradientFill ? "true" : "false"}
         data-text-box={node.props.boxFill || node.props.boxGradient || node.props.boxBorder ? "true" : "false"}
         style={{
           color: str(node.props.color, "#f8fafc"),
@@ -431,6 +434,7 @@ function NodeVisual({
               : str(node.props.align, "center") === "right"
                 ? "flex-end"
                 : "center",
+          // Text Box fill only — never glyph gradientFill.
           background: node.props.boxGradient ? str(node.props.boxGradient) : node.props.boxFill ? str(node.props.boxFill) : "transparent",
           border: node.props.boxBorder ? `1px solid ${str(node.props.boxBorder)}` : undefined,
           borderRadius: node.props.boxRadius != null ? num(node.props.boxRadius, 0) : undefined,
@@ -707,22 +711,67 @@ function NodeVisual({
       const stroke = str(node.props.stroke, fill);
       const strokeWidth = num(node.props.strokeWidth, 0);
       const opacity = num(node.props.opacity, 1);
-      const radius = num(node.props.radius, 0);
-      const backing = str(node.props.boxFill, "transparent");
+      const glow = num(node.props.glow, 0);
+      const shadow = num(node.props.shadow, 0);
+      const blur = num(node.props.blur, 0);
+      const backingEnabled = node.props.backingSurfaceEnabled === true;
+      const radius = backingEnabled ? num(node.props.radius, 0) : 0;
+      const backingFill = backingEnabled
+        ? (node.props.boxGradient ? str(node.props.boxGradient) : str(node.props.boxFill, "transparent"))
+        : "transparent";
+      const borderWidth = backingEnabled ? num(node.props.borderWidth, 0) : 0;
+      const borderStyle = borderWidth > 0 ? str(node.props.borderStyle, "solid") : "none";
+      const borderColor = str(node.props.borderColor, "#ffffff");
+      const backingShadow = backingEnabled ? num(node.props.boxShadow, 0) : 0;
+      const backingGlow = backingEnabled ? num(node.props.boxGlow, 0) : 0;
+      // Path-aware artwork effects — never box-shadow on the Icon Element wrapper.
+      const artworkFilter = [
+        glow > 0 ? `drop-shadow(0 0 ${glow}px ${fill})` : "",
+        shadow > 0 ? `drop-shadow(0 ${Math.max(1, shadow / 3)}px ${shadow}px rgba(0,0,0,.55))` : "",
+        blur > 0 ? `blur(${blur}px)` : "",
+      ].filter(Boolean).join(" ") || undefined;
+      const artwork = typeof node.props.iconSvg === "string" && node.props.iconSvg.includes("<svg") ? (
+        <span
+          className="grid h-full w-full place-items-center overflow-visible [&_svg]:h-full [&_svg]:w-full [&_svg]:overflow-visible"
+          data-icon-provider={str(node.props.iconProvider, "native")}
+          data-icon-svg="true"
+          data-icon-canonical={str(node.props.icon, "")}
+          data-icon-artwork="true"
+          style={{ color: fill, filter: artworkFilter }}
+          aria-hidden
+          dangerouslySetInnerHTML={{ __html: String(node.props.iconSvg) }}
+        />
+      ) : node.props.iconProvider === "iconify" && node.props.iconCollection && node.props.iconName ? (
+        <img /* eslint-disable-line @next/next/no-img-element */
+          src={`https://api.iconify.design/${encodeURIComponent(str(node.props.iconCollection))}/${encodeURIComponent(str(node.props.iconName))}.svg?color=${encodeURIComponent(fill)}`}
+          alt={node.props.decorative === true ? "" : str(node.props.accessibleLabel, "Icon")}
+          className="h-full w-full object-contain"
+          data-icon-provider="iconify"
+          data-icon-artwork="true"
+          style={{ filter: artworkFilter }}
+        />
+      ) : (
+        <span data-icon-artwork="true" style={{ filter: artworkFilter }} className="grid h-full w-full place-items-center">
+          <ElementIcon name={str(node.props.iconName || node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />
+        </span>
+      );
       return (
         <div
-          className="flex h-full w-full items-center justify-center"
+          className="relative flex h-full w-full items-center justify-center overflow-visible bg-transparent"
           style={{
             color: fill,
             opacity,
             borderRadius: radius,
-            background: backing === "transparent" ? undefined : backing,
-            boxShadow: num(node.props.boxShadow, 0)
-              ? `0 8px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)`
-              : num(node.props.boxGlow, 0) || num(node.props.glow, 0)
-                ? `0 0 ${num(node.props.boxGlow, num(node.props.glow, 0))}px ${fill}`
-                : undefined,
-            filter: num(node.props.glow, 0) ? `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${fill})` : undefined,
+            background: backingEnabled && backingFill !== "transparent" ? backingFill : "transparent",
+            border: backingEnabled && borderWidth > 0 && borderStyle !== "none"
+              ? `${borderWidth}px ${borderStyle} ${borderColor}`
+              : "none",
+            boxShadow: backingEnabled && (backingShadow > 0 || backingGlow > 0)
+              ? [
+                  backingShadow > 0 ? `0 8px ${backingShadow}px rgba(0,0,0,.35)` : "",
+                  backingGlow > 0 ? `0 0 ${backingGlow}px ${fill}` : "",
+                ].filter(Boolean).join(", ") || undefined
+              : undefined,
           }}
           role={node.props.decorative === true ? undefined : "img"}
           aria-hidden={node.props.decorative === true ? true : undefined}
@@ -733,24 +782,11 @@ function NodeVisual({
           data-icon-stroke-width={String(strokeWidth)}
           data-icon-opacity={String(opacity)}
           data-icon-radius={String(radius)}
+          data-icon-backing={backingEnabled ? "on" : "off"}
+          data-icon-glow={String(glow)}
+          data-icon-effect-target="artwork"
         >
-          {typeof node.props.iconSvg === "string" && node.props.iconSvg.includes("<svg") ? (
-            <span
-              className="grid h-full w-full place-items-center [&_svg]:h-full [&_svg]:w-full"
-              data-icon-provider={str(node.props.iconProvider, "native")}
-              data-icon-svg="true"
-              data-icon-canonical={str(node.props.icon, "")}
-              style={{ color: fill }}
-              aria-hidden
-              dangerouslySetInnerHTML={{ __html: String(node.props.iconSvg) }}
-            />
-          ) : node.props.iconProvider === "iconify" && node.props.iconCollection && node.props.iconName ? <img /* eslint-disable-line @next/next/no-img-element */
-            src={`https://api.iconify.design/${encodeURIComponent(str(node.props.iconCollection))}/${encodeURIComponent(str(node.props.iconName))}.svg?color=${encodeURIComponent(fill)}`}
-            alt={node.props.decorative === true ? "" : str(node.props.accessibleLabel, "Icon")}
-            className="h-full w-full object-contain"
-            data-icon-provider="iconify"
-            style={strokeWidth > 0 ? { filter: `drop-shadow(0 0 0 ${stroke})` } : undefined}
-          /> : <ElementIcon name={str(node.props.iconName || node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />}
+          {artwork}
         </div>
       );
     }
@@ -1942,16 +1978,16 @@ export function CreativeCompositionCanvas({
           <button type="button" className="pointer-events-auto absolute left-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ top: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} onClick={() => setContextMenu({ id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height })}>•••</button>
           {beneath ? <button type="button" className="pointer-events-auto absolute right-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top right" }} data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
           {([
-            ["nw", "left-0 top-0 cursor-nwse-resize", "top left", ""],
-            ["n", "left-1/2 top-0 cursor-ns-resize", "top center", "translateX(-50%) "],
-            ["ne", "right-0 top-0 cursor-nesw-resize", "top right", ""],
-            ["e", "right-0 top-1/2 cursor-ew-resize", "center right", "translateY(-50%) "],
-            ["se", "bottom-0 right-0 cursor-nwse-resize", "bottom right", ""],
-            ["s", "left-1/2 bottom-0 cursor-ns-resize", "bottom center", "translateX(-50%) "],
-            ["sw", "bottom-0 left-0 cursor-nesw-resize", "bottom left", ""],
-            ["w", "left-0 top-1/2 cursor-ew-resize", "center left", "translateY(-50%) "],
-          ] as const).map(([handle, position, origin, translate]) => <button key={handle} type="button" className={`pointer-events-auto absolute h-5 w-5 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/90 after:bg-white ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-resize-${node.id}-${handle}`} data-handle-screen-px="8" aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
-          <button type="button" className="pointer-events-auto absolute left-1/2 h-5 w-5 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/90 after:bg-[#9cff57]" style={{ top: `calc(-1.85rem * ${chromeScale})`, transform: `translateX(-50%) scale(${chromeScale})`, transformOrigin: "bottom center" }} data-testid={`composition-rotate-${node.id}`} aria-label="Rotate" onPointerDown={(event) => onPointerDownNode(event, node, "rotate")} />
+            ["nw", "left-0 top-0 cursor-nwse-resize", "top left", "", "corner"],
+            ["n", "left-1/2 top-0 cursor-ns-resize", "top center", "translateX(-50%) ", "edge"],
+            ["ne", "right-0 top-0 cursor-nesw-resize", "top right", "", "corner"],
+            ["e", "right-0 top-1/2 cursor-ew-resize", "center right", "translateY(-50%) ", "edge"],
+            ["se", "bottom-0 right-0 cursor-nwse-resize", "bottom right", "", "corner"],
+            ["s", "left-1/2 bottom-0 cursor-ns-resize", "bottom center", "translateX(-50%) ", "edge"],
+            ["sw", "bottom-0 left-0 cursor-nesw-resize", "bottom left", "", "corner"],
+            ["w", "left-0 top-1/2 cursor-ew-resize", "center left", "translateY(-50%) ", "edge"],
+          ] as const).map(([handle, position, origin, translate, kind]) => <button key={handle} type="button" className={`pointer-events-auto absolute h-5 w-5 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-resize-${node.id}-${handle}`} data-handle-kind={kind} data-handle-screen-px={kind === "corner" ? "6" : "5"} aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
+          <button type="button" className="pointer-events-auto absolute left-1/2 h-5 w-5 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/85 after:bg-[#9cff57]" style={{ top: `calc(-1.85rem * ${chromeScale})`, transform: `translateX(-50%) scale(${chromeScale})`, transformOrigin: "bottom center" }} data-testid={`composition-rotate-${node.id}`} data-handle-kind="rotate" data-handle-screen-px="8" aria-label="Rotate" onPointerDown={(event) => onPointerDownNode(event, node, "rotate")} />
         </div>;
       }) : null}
       {editMode && contextMenu ? (() => {

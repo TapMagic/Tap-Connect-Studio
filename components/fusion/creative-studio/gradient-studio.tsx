@@ -37,7 +37,7 @@ export function GradientStudio({
   onSuggestedTextColor,
 }: GradientStudioProps) {
   const gradient = useMemo(() => normalizeGradient(value), [value]);
-  const [advanced, setAdvanced] = useState(false);
+  const [advanced, setAdvanced] = useState(true);
   const [selectedStopId, setSelectedStopId] = useState(
     gradient.stops[0]?.id || "start"
   );
@@ -97,6 +97,24 @@ export function GradientStudio({
         data-testid="gradient-preview"
       />
 
+      <div className="flex gap-2" data-testid="gradient-type-controls">
+        {(["linear", "radial", "conic"] as const).map((kind) => (
+          <button
+            key={kind}
+            type="button"
+            className={`min-h-10 flex-1 rounded-lg border px-3 text-xs capitalize ${
+              gradient.kind === kind
+                ? "border-white/40 bg-white/10"
+                : "border-white/10"
+            }`}
+            onClick={() => patch({ kind }, `Changed gradient to ${kind}`)}
+            data-testid={`gradient-kind-${kind}`}
+          >
+            {kind}
+          </button>
+        ))}
+      </div>
+
       <div className="grid grid-cols-2 gap-2">
         <div className="space-y-1">
           <Label htmlFor="gradient-start">Start</Label>
@@ -149,6 +167,164 @@ export function GradientStudio({
         />
       </div>
 
+      {(gradient.kind === "radial" || gradient.kind === "conic") ? (
+        <div className="grid grid-cols-2 gap-3" data-testid="gradient-center-controls">
+          <label className="space-y-1 text-xs">
+            <span>Center X {gradient.centerX}%</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={gradient.centerX}
+              onChange={(event) =>
+                patch({ centerX: Number(event.target.value) }, "Changed gradient center")
+              }
+              data-testid="gradient-center-x"
+            />
+          </label>
+          <label className="space-y-1 text-xs">
+            <span>Center Y {gradient.centerY}%</span>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              value={gradient.centerY}
+              onChange={(event) =>
+                patch({ centerY: Number(event.target.value) }, "Changed gradient center")
+              }
+              data-testid="gradient-center-y"
+            />
+          </label>
+        </div>
+      ) : null}
+
+      <div className="space-y-2" data-testid="gradient-stops-editor">
+        <div className="flex items-center justify-between">
+          <p className="text-xs font-medium">Color stops</p>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            onClick={() => {
+              const next = addGradientStop(gradient);
+              onChange(next, "Added gradient stop");
+              setSelectedStopId(next.stops[next.stops.length - 2].id);
+            }}
+            disabled={gradient.stops.length >= 8}
+            data-testid="gradient-add-stop"
+          >
+            <Plus className="mr-1 h-3.5 w-3.5" />
+            Add stop
+          </Button>
+        </div>
+        <div
+          className="relative h-10 rounded-lg border border-white/15"
+          style={{ background: gradientToCss(gradient) }}
+          data-testid="gradient-stop-track"
+        >
+          {gradient.stops.map((stop) => (
+            <button
+              key={stop.id}
+              type="button"
+              aria-label={`Select gradient stop at ${Math.round(stop.position)} percent`}
+              className={`absolute top-1/2 h-5 w-5 -translate-x-1/2 -translate-y-1/2 rounded-full border-2 ${
+                selected?.id === stop.id ? "border-white" : "border-white/40"
+              }`}
+              style={{ left: `${stop.position}%`, backgroundColor: stop.color }}
+              onClick={() => setSelectedStopId(stop.id)}
+              onPointerDown={(event) => {
+                if (event.button !== 0) return;
+                event.preventDefault();
+                setSelectedStopId(stop.id);
+                const track = event.currentTarget.parentElement;
+                if (!track) return;
+                const move = (moveEvent: PointerEvent) => {
+                  const rect = track.getBoundingClientRect();
+                  const position = Math.max(0, Math.min(100, ((moveEvent.clientX - rect.left) / rect.width) * 100));
+                  patchStop(stop.id, { position }, "Moved gradient stop");
+                };
+                const up = () => {
+                  window.removeEventListener("pointermove", move);
+                  window.removeEventListener("pointerup", up);
+                };
+                window.addEventListener("pointermove", move);
+                window.addEventListener("pointerup", up);
+              }}
+              data-testid={`gradient-stop-${stop.id}`}
+            />
+          ))}
+        </div>
+        {selected ? (
+          <div className="grid grid-cols-[64px_1fr_72px] items-end gap-2">
+            <label className="space-y-1 text-xs">
+              <span>Color</span>
+              <Input
+                type="color"
+                value={selected.color}
+                onChange={(event) =>
+                  patchStop(selected.id, { color: event.target.value }, "Changed gradient stop color")
+                }
+                data-testid="gradient-stop-color"
+              />
+            </label>
+            <label className="space-y-1 text-xs">
+              <span>Position {Math.round(selected.position)}%</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={selected.position}
+                className="w-full"
+                onChange={(event) =>
+                  patchStop(selected.id, { position: Number(event.target.value) }, "Moved gradient stop")
+                }
+                data-testid="gradient-stop-position"
+              />
+            </label>
+            <Input
+              type="number"
+              min={0}
+              max={100}
+              value={Math.round(selected.position)}
+              aria-label="Exact gradient stop percentage"
+              onChange={(event) =>
+                patchStop(selected.id, { position: Number(event.target.value) }, "Set exact gradient stop position")
+              }
+              data-testid="gradient-stop-position-numeric"
+            />
+            <label className="col-span-2 space-y-1 text-xs">
+              <span>Opacity {Math.round(selected.opacity * 100)}%</span>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={Math.round(selected.opacity * 100)}
+                className="w-full"
+                onChange={(event) =>
+                  patchStop(selected.id, { opacity: Number(event.target.value) / 100 }, "Changed gradient stop opacity")
+                }
+                data-testid="gradient-stop-opacity"
+              />
+            </label>
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={gradient.stops.length <= 2}
+              onClick={() => {
+                const next = removeGradientStop(gradient, selected.id);
+                onChange(next, "Removed gradient stop");
+                setSelectedStopId(next.stops[0].id);
+              }}
+              data-testid="gradient-remove-stop"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" />
+              Remove
+            </Button>
+          </div>
+        ) : null}
+      </div>
+
       <div className="flex flex-wrap gap-2">
         <Button
           type="button"
@@ -164,11 +340,20 @@ export function GradientStudio({
           type="button"
           size="sm"
           variant="outline"
+          onClick={() => patch({ angle: (gradient.angle + 90) % 360 }, "Rotated gradient")}
+          data-testid="gradient-rotate"
+        >
+          Rotate
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
           onClick={() => setAdvanced((current) => !current)}
           aria-expanded={advanced}
           data-testid="gradient-advanced-toggle"
         >
-          {advanced ? "Quick controls" : "Advanced Gradient Studio"}
+          {advanced ? "Hide presets" : "Show presets"}
         </Button>
         <Button
           type="button"
@@ -180,7 +365,7 @@ export function GradientStudio({
           data-testid="gradient-reset-brand"
         >
           <RotateCcw className="mr-1 h-3.5 w-3.5" />
-          Reset to Brand
+          Reset
         </Button>
       </div>
 
@@ -213,194 +398,20 @@ export function GradientStudio({
 
       {advanced ? (
         <div className="space-y-4 border-t border-white/10 pt-4" data-testid="gradient-advanced">
-          <div className="flex gap-2">
-            {(["linear", "radial", "conic"] as const).map((kind) => (
-              <button
-                key={kind}
-                type="button"
-                className={`min-h-10 flex-1 rounded-lg border px-3 text-xs capitalize ${
-                  gradient.kind === kind
-                    ? "border-white/40 bg-white/10"
-                    : "border-white/10"
-                }`}
-                onClick={() => patch({ kind }, `Changed gradient to ${kind}`)}
-                data-testid={`gradient-kind-${kind}`}
-              >
-                {kind}
-              </button>
-            ))}
-          </div>
-
-          {gradient.kind === "radial" || gradient.kind === "conic" ? (
-            <div className="grid grid-cols-2 gap-3">
-              <label className="space-y-1 text-xs">
-                <span>Center X {gradient.centerX}%</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={gradient.centerX}
-                  onChange={(event) =>
-                    patch(
-                      { centerX: Number(event.target.value) },
-                      "Changed gradient center"
-                    )
-                  }
-                />
-              </label>
-              <label className="space-y-1 text-xs">
-                <span>Center Y {gradient.centerY}%</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={gradient.centerY}
-                  onChange={(event) =>
-                    patch(
-                      { centerY: Number(event.target.value) },
-                      "Changed gradient center"
-                    )
-                  }
-                />
-              </label>
-              {gradient.kind === "radial" ? (
-                <label className="col-span-2 space-y-1 text-xs">
-                  <span>Size {gradient.size ?? 50}%</span>
-                  <input
-                    type="range"
-                    min={10}
-                    max={100}
-                    value={gradient.size ?? 50}
-                    onChange={(event) =>
-                      patch(
-                        { size: Number(event.target.value) },
-                        "Changed radial gradient size"
-                      )
-                    }
-                    data-testid="gradient-radial-size"
-                  />
-                </label>
-              ) : null}
-            </div>
-          ) : null}
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-xs font-medium">Color stops</p>
-              <Button
-                type="button"
-                size="sm"
-                variant="outline"
-                onClick={() => {
-                  const next = addGradientStop(gradient);
-                  onChange(next, "Added gradient stop");
-                  setSelectedStopId(next.stops[next.stops.length - 2].id);
-                }}
-                disabled={gradient.stops.length >= 8}
-                data-testid="gradient-add-stop"
-              >
-                <Plus className="mr-1 h-3.5 w-3.5" />
-                Add stop
-              </Button>
-            </div>
-            <div className="flex h-12 items-center gap-1 rounded-lg border border-white/10 px-2">
-              {gradient.stops.map((stop) => (
-                <button
-                  key={stop.id}
-                  type="button"
-                  aria-label={`Select gradient stop at ${Math.round(stop.position)} percent`}
-                  className={`h-8 w-8 rounded-full border-2 ${
-                    selected?.id === stop.id ? "border-white" : "border-white/25"
-                  }`}
-                  style={{ backgroundColor: stop.color }}
-                  onClick={() => setSelectedStopId(stop.id)}
-                />
-              ))}
-            </div>
-          </div>
-
-          {selected ? (
-            <div className="space-y-3 rounded-xl border border-white/10 bg-white/[0.03] p-3">
-              <div className="grid grid-cols-[64px_1fr_80px] items-end gap-2">
-                <label className="space-y-1 text-xs">
-                  <span>Color</span>
-                  <Input
-                    type="color"
-                    value={selected.color}
-                    onChange={(event) =>
-                      patchStop(
-                        selected.id,
-                        { color: event.target.value },
-                        "Changed gradient stop color"
-                      )
-                    }
-                  />
-                </label>
-                <label className="space-y-1 text-xs">
-                  <span>Position {Math.round(selected.position)}%</span>
-                  <input
-                    type="range"
-                    min={0}
-                    max={100}
-                    value={selected.position}
-                    className="w-full"
-                    onChange={(event) =>
-                      patchStop(
-                        selected.id,
-                        { position: Number(event.target.value) },
-                        "Moved gradient stop"
-                      )
-                    }
-                    data-testid="gradient-stop-position"
-                  />
-                </label>
-                <Input
-                  type="number"
-                  min={0}
-                  max={100}
-                  value={Math.round(selected.position)}
-                  aria-label="Exact gradient stop percentage"
-                  onChange={(event) =>
-                    patchStop(
-                      selected.id,
-                      { position: Number(event.target.value) },
-                      "Set exact gradient stop position"
-                    )
-                  }
-                />
-              </div>
-              <label className="space-y-1 text-xs">
-                <span>Opacity {Math.round(selected.opacity * 100)}%</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={Math.round(selected.opacity * 100)}
-                  className="w-full"
-                  onChange={(event) =>
-                    patchStop(
-                      selected.id,
-                      { opacity: Number(event.target.value) / 100 },
-                      "Changed gradient stop opacity"
-                    )
-                  }
-                />
-              </label>
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                disabled={gradient.stops.length <= 2}
-                onClick={() => {
-                  const next = removeGradientStop(gradient, selected.id);
-                  onChange(next, "Removed gradient stop");
-                  setSelectedStopId(next.stops[0].id);
-                }}
-              >
-                <Trash2 className="mr-1 h-3.5 w-3.5" />
-                Remove stop
-              </Button>
-            </div>
+          {gradient.kind === "radial" ? (
+            <label className="block space-y-1 text-xs">
+              <span>Size {gradient.size ?? 50}%</span>
+              <input
+                type="range"
+                min={10}
+                max={100}
+                value={gradient.size ?? 50}
+                onChange={(event) =>
+                  patch({ size: Number(event.target.value) }, "Changed radial gradient size")
+                }
+                data-testid="gradient-radial-size"
+              />
+            </label>
           ) : null}
 
           <div className="space-y-2">
@@ -411,6 +422,7 @@ export function GradientStudio({
                   key={preset.id}
                   type="button"
                   className="overflow-hidden rounded-lg border border-white/10 text-left"
+                  data-testid={`gradient-preset-${preset.id}`}
                   onClick={() =>
                     onChange(structuredClone(preset.gradient), `Applied ${preset.label} gradient`)
                   }

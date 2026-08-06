@@ -9,6 +9,7 @@ import {
 import { buttonElementDefaults, mapElementDefaults } from "@/lib/fusion/card/designer-elements";
 import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 import { layoutStackChildren } from "@/lib/fusion/creative-studio/container-resize";
+import { iconAssetToNodeProps, nativeIconAsset } from "@/lib/fusion/creative-studio/icon-asset";
 
 export type CardSurfaceKind = NonNullable<TapCardSection["surfaceKind"]>;
 export type CardElementKind =
@@ -382,7 +383,26 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "secondary_logo") semanticProps.alt = "Partner logo";
   if (kind === "thumbnail") semanticProps.alt = "Product thumbnail";
   if (kind === "qr_image") semanticProps.alt = "QR code";
-  if (kind === "icon") Object.assign(semanticProps, { icon: "sparkles", fill: "#b8ff2c", stroke: "#07100a", strokeWidth: 1.5, accessibleLabel: "Decorative icon", decorative: true });
+  if (kind === "icon") {
+    const sparkles = nativeIconAsset("sparkles");
+    Object.assign(
+      semanticProps,
+      sparkles
+        ? iconAssetToNodeProps(sparkles)
+        : {
+            icon: "sparkles",
+            fill: "#b8ff2c",
+            stroke: "#b8ff2c",
+            strokeWidth: 2,
+            backingSurfaceEnabled: false,
+            boxFill: "transparent",
+            borderWidth: 0,
+            borderStyle: "none",
+            radius: 0,
+          },
+      { accessibleLabel: "Decorative icon", decorative: true }
+    );
+  }
   if (kind === "badge") Object.assign(semanticProps, { text: "SALE", badgeShape: "pill", fill: "#b91c1c", color: "#ffffff", fontSize: 18, fontWeight: 800, radius: 999, accessibleLabel: "Sale" });
   if (kind === "button") Object.assign(semanticProps, buttonElementDefaults("website", node.id));
   if (kind === "wallet_cta") Object.assign(semanticProps, buttonElementDefaults("website", node.id), { elementKind: kind, label: "Add to Wallet", actionType: "wallet" });

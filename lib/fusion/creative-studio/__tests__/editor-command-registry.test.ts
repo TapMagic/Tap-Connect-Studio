@@ -24,8 +24,7 @@ test("divider and icon commands open distinct drawer sections", () => {
   dispatchEditorCommand("divider.thickness", "divider", (section) => opened.push(section));
   dispatchEditorCommand("divider.color", "divider", (section) => opened.push(section));
   dispatchEditorCommand("divider.appearance", "divider", (section) => opened.push(section));
-  dispatchEditorCommand("fill.open", "icon", (section) => opened.push(section));
-  dispatchEditorCommand("stroke.open", "icon", (section) => opened.push(section));
+  dispatchEditorCommand("icon.open", "icon", (section) => opened.push(section));
   dispatchEditorCommand("icon.appearance", "icon", (section) => opened.push(section));
   dispatchEditorCommand("map.action", "map", (section) => opened.push(section));
   assert.deepEqual(opened, [
@@ -33,8 +32,7 @@ test("divider and icon commands open distinct drawer sections", () => {
     "divider-thickness",
     "divider-color",
     "divider-appearance",
-    "icon-fill",
-    "icon-stroke",
+    "content",
     "icon-appearance",
     "map-action",
   ]);

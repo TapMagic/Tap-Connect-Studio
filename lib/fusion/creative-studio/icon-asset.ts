@@ -140,9 +140,32 @@ export function nativeIconAsset(iconId: string): IconAsset | null {
   });
 }
 
+/** Default bare Icon Element — SVG only; no backing Surface chrome. */
+export function bareIconDefaults(renderMode: IconRenderMode = "stroke"): Record<string, unknown> {
+  return {
+    fill: "#b8ff2c",
+    stroke: "#b8ff2c",
+    strokeWidth: renderMode === "stroke" ? 2 : 0,
+    opacity: 1,
+    glow: 0,
+    shadow: 0,
+    blur: 0,
+    backingSurfaceEnabled: false,
+    boxFill: "transparent",
+    boxGradient: undefined,
+    boxShadow: 0,
+    boxGlow: 0,
+    borderWidth: 0,
+    borderStyle: "none",
+    borderColor: "transparent",
+    radius: 0,
+  };
+}
+
 /** Props written onto a composition Icon node from an IconAsset (replace-safe). */
 export function iconAssetToNodeProps(asset: IconAsset): Record<string, unknown> {
   return {
+    ...bareIconDefaults(asset.renderMode),
     icon: asset.canonicalId,
     iconProvider: asset.provider,
     iconCollection: asset.collection,
@@ -176,14 +199,22 @@ export function replaceIconContentProps(
     "motionPlay",
     "motionTrigger",
     "reducedMotionFallback",
+    "backingSurfaceEnabled",
     "boxFill",
+    "boxGradient",
     "boxShadow",
     "boxGlow",
+    "borderWidth",
+    "borderStyle",
+    "borderColor",
     "radius",
     "opacity",
     "fill",
     "stroke",
     "strokeWidth",
+    "glow",
+    "shadow",
+    "blur",
     "containerId",
     "aspectLocked",
   ] as const;
