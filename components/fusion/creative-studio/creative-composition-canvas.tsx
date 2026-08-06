@@ -942,6 +942,7 @@ function NodeVisual({
     const showLabel = node.props.showLabel !== false && presentation !== "icon_circle";
     const showDescription = node.props.showDescription === true || presentation === "icon_description";
     const icon = str(node.props.icon, "arrow-up-right");
+    const showIcon = node.props.showIcon !== false && icon !== "none" && icon !== "";
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
@@ -1004,9 +1005,9 @@ function NodeVisual({
         data-button-high-gloss={node.props.shine === true ? "true" : "false"}
       >
         {node.props.shine === true ? <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent" aria-hidden data-testid={`button-shine-${node.id}`} /> : null}
-        {str(node.props.iconPosition, "before") === "before" ? <span style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
+        {showIcon && str(node.props.iconPosition, "before") === "before" ? <span data-testid={`button-icon-${node.id}`} style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
         {!labelBelow && showLabel ? (node.props.contentEditing === true ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={labelStyle} onCommit={onEditText} onFinish={onFinishTextEdit} /> : <span style={labelStyle}>{labelValue}</span>) : null}
-        {str(node.props.iconPosition, "before") === "after" ? <span style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
+        {showIcon && str(node.props.iconPosition, "before") === "after" ? <span data-testid={`button-icon-${node.id}`} style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
       </span>
     );
     return (

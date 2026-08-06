@@ -157,14 +157,18 @@ export const STARTER_TEXT_COMBINATIONS: readonly StarterTextCombination[] = [
 ] as const;
 
 export const STARTER_BUTTON_PRESETS = [
-  { id: "minimal", label: "Minimal", props: { presentation: "rounded", radius: 8, fill: "transparent", borderWidth: 1, borderColor: "#e2e8f0", labelColor: "#f8fafc", label: "Continue" } },
-  { id: "outlined", label: "Outlined", props: { presentation: "rounded", radius: 12, fill: "transparent", borderWidth: 2, borderColor: "#b8ff2c", labelColor: "#b8ff2c", label: "Visit website", actionType: "website" } },
-  { id: "pill", label: "Pill", props: { presentation: "pill", radius: 999, fill: "#b8ff2c", labelColor: "#07100a", label: "Claim offer", actionType: "coupon" } },
-  { id: "round-icon", label: "Round Icon", props: { presentation: "circle", radius: 999, fill: "#111827", borderWidth: 2, borderColor: "#b8ff2c", icon: "phone", iconPosition: "before", label: "Call", labelColor: "#b8ff2c", actionType: "call" } },
-  { id: "glass", label: "Glass", props: { presentation: "rounded", radius: 20, buttonSurfaceKind: "gradient", gradientStart: "#ffffff3d", gradientEnd: "#ffffff0a", borderWidth: 1, borderColor: "#ffffff80", label: "Directions", actionType: "directions" } },
-  { id: "high-gloss", label: "High gloss", props: { presentation: "pill", radius: 999, buttonSurfaceKind: "gradient", gradientStart: "#f97316", gradientEnd: "#dc2626", shine: true, label: "Shop now", actionType: "website" } },
-  { id: "metallic", label: "Metallic", props: { presentation: "rounded", radius: 10, buttonSurfaceKind: "gradient", gradientStart: "#e5e7eb", gradientEnd: "#64748b", labelColor: "#0f172a", label: "Add to wallet", actionType: "wallet" } },
-  { id: "neon", label: "Neon", props: { presentation: "pill", radius: 999, fill: "#111827", borderWidth: 2, borderColor: "#67e8f9", labelColor: "#67e8f9", boxGlow: 18, glowColor: "#67e8f9", label: "RSVP now", actionType: "rsvp" } },
+  { id: "minimal", label: "Minimal", props: { presentation: "rounded", radius: 8, fill: "transparent", borderWidth: 1, borderColor: "#e2e8f0", labelColor: "#f8fafc", label: "Continue", icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "outlined", label: "Outlined", props: { presentation: "rounded", radius: 12, fill: "transparent", borderWidth: 2, borderColor: "#b8ff2c", labelColor: "#b8ff2c", label: "Visit website", actionType: "website", icon: "none", showIcon: false } },
+  { id: "pill", label: "Pill", props: { presentation: "pill", radius: 999, fill: "#b8ff2c", labelColor: "#07100a", label: "Claim offer", actionType: "coupon", icon: "none", showIcon: false } },
+  { id: "round-icon", label: "Round Icon", props: { presentation: "circle", radius: 999, fill: "#111827", borderWidth: 2, borderColor: "#b8ff2c", icon: "phone", showIcon: true, iconPosition: "before", label: "Call", labelColor: "#b8ff2c", actionType: "call" } },
+  { id: "soft-raised", label: "Soft raised", props: { presentation: "rounded", radius: 16, fill: "#b8ff2c", labelColor: "#07100a", label: "Get started", boxShadow: 18, materialPreset: "soft_raised", pressOffsetY: 2 } },
+  { id: "hard-raised", label: "Hard raised", props: { presentation: "rounded", radius: 12, fill: "#22c55e", labelColor: "#04120a", label: "Press me", boxShadow: 28, borderWidth: 1, borderColor: "#86efac", materialPreset: "hard_raised", pressOffsetY: 3 } },
+  { id: "glass", label: "Glass", props: { presentation: "rounded", radius: 20, buttonSurfaceKind: "gradient", gradientStart: "#ffffff3d", gradientEnd: "#ffffff0a", borderWidth: 1, borderColor: "#ffffff80", label: "Directions", actionType: "directions", materialPreset: "glass" } },
+  { id: "high-gloss", label: "High gloss", props: { presentation: "pill", radius: 999, buttonSurfaceKind: "gradient", gradientStart: "#f97316", gradientEnd: "#dc2626", shine: true, label: "Shop now", actionType: "website", materialPreset: "glossy" } },
+  { id: "metallic", label: "Metallic", props: { presentation: "rounded", radius: 10, buttonSurfaceKind: "gradient", gradientStart: "#e5e7eb", gradientEnd: "#64748b", labelColor: "#0f172a", label: "Add to wallet", actionType: "wallet", materialPreset: "metallic" } },
+  { id: "neon", label: "Neon", props: { presentation: "pill", radius: 999, fill: "#111827", borderWidth: 2, borderColor: "#67e8f9", labelColor: "#67e8f9", boxGlow: 18, glowColor: "#67e8f9", label: "RSVP now", actionType: "rsvp", materialPreset: "neon" } },
+  { id: "beveled", label: "Beveled", props: { presentation: "rounded", radius: 10, fill: "#334155", labelColor: "#f8fafc", label: "Confirm", borderWidth: 2, borderColor: "#94a3b8", boxShadow: 12, materialPreset: "beveled" } },
+  { id: "embossed", label: "Embossed", props: { presentation: "rounded", radius: 14, fill: "#1e293b", labelColor: "#e2e8f0", label: "Membership", boxShadow: 8, materialPreset: "embossed" } },
 ] as const;
 
 export const STARTER_BADGE_PRESETS = [
