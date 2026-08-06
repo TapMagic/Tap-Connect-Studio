@@ -5,6 +5,8 @@
 
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
+export type PreviewFollowMode = "follow" | "freeze";
+
 export type PreviewSessionPayload = {
   sid: string;
   businessId: string;
@@ -14,6 +16,8 @@ export type PreviewSessionPayload = {
   exp: number;
   /** ISO created */
   createdAt: string;
+  /** follow = phone sees latest saved draft; freeze = locked snapshot */
+  mode: PreviewFollowMode;
 };
 
 export type PreviewSessionRecord = PreviewSessionPayload & {
@@ -26,6 +30,7 @@ export type PreviewSessionRecord = PreviewSessionPayload & {
   logoUrl?: string | null;
   reviewUrl?: string | null;
   updatedAt: string;
+  lastSaveTime?: string;
 };
 
 const globalStore = globalThis as typeof globalThis & {
@@ -93,7 +98,13 @@ export function verifyPreviewToken(
     if (Date.now() > payload.exp) {
       return { ok: false, reason: "preview_expired" };
     }
-    return { ok: true, payload };
+    return {
+      ok: true,
+      payload: {
+        ...payload,
+        mode: payload.mode === "freeze" ? "freeze" : "follow",
+      },
+    };
   } catch {
     return { ok: false, reason: "preview_token_malformed" };
   }
@@ -109,6 +120,7 @@ export function createPreviewSession(input: {
   logoUrl?: string | null;
   reviewUrl?: string | null;
   revision?: number;
+  mode?: PreviewFollowMode;
 }): { token: string; record: PreviewSessionRecord; path: string } {
   const sid = randomBytes(24).toString("base64url");
   const now = new Date();
@@ -121,6 +133,7 @@ export function createPreviewSession(input: {
     revision: input.revision ?? 1,
     exp,
     createdAt: now.toISOString(),
+    mode: input.mode ?? "follow",
   };
   const token = createPreviewToken(payload);
   const record: PreviewSessionRecord = {
@@ -133,9 +146,10 @@ export function createPreviewSession(input: {
     logoUrl: input.logoUrl ?? null,
     reviewUrl: input.reviewUrl ?? null,
     updatedAt: now.toISOString(),
+    lastSaveTime: now.toISOString(),
   };
   store().set(sid, record);
-  return { token, record, path: `/preview/card/${token}` };
+  return { token, record, path: `/preview/live/${token}` };
 }
 
 export function getPreviewSession(
@@ -167,24 +181,38 @@ export function getPreviewSession(
 export function updatePreviewSession(
   token: string,
   patch: {
-    snapshotJson: string;
+    snapshotJson?: string;
     profileJson?: string;
-    revision: number;
+    revision?: number;
     cardName?: string;
+    mode?: PreviewFollowMode;
   }
-): { ok: true; revision: number } | { ok: false; reason: string } {
+): { ok: true; revision: number; mode: PreviewFollowMode } | { ok: false; reason: string } {
   const got = getPreviewSession(token);
   if (!got.ok) return got;
+  if (got.record.mode === "freeze" && patch.snapshotJson && patch.mode !== "follow") {
+    // Freeze keeps the selected snapshot; mode/metadata may still update.
+    const nextFrozen: PreviewSessionRecord = {
+      ...got.record,
+      mode: patch.mode ?? got.record.mode,
+      cardName: patch.cardName ?? got.record.cardName,
+      updatedAt: new Date().toISOString(),
+    };
+    store().set(got.payload.sid, nextFrozen);
+    return { ok: true, revision: nextFrozen.revision, mode: nextFrozen.mode };
+  }
   const next: PreviewSessionRecord = {
     ...got.record,
-    snapshotJson: patch.snapshotJson,
+    snapshotJson: patch.snapshotJson ?? got.record.snapshotJson,
     profileJson: patch.profileJson ?? got.record.profileJson,
-    revision: patch.revision,
+    revision: patch.revision ?? got.record.revision,
     cardName: patch.cardName ?? got.record.cardName,
+    mode: patch.mode ?? got.record.mode,
     updatedAt: new Date().toISOString(),
+    lastSaveTime: patch.snapshotJson ? new Date().toISOString() : got.record.lastSaveTime,
   };
   store().set(got.payload.sid, next);
-  return { ok: true, revision: next.revision };
+  return { ok: true, revision: next.revision, mode: next.mode };
 }
 
 export function revokePreviewSession(

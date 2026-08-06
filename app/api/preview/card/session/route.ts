@@ -51,6 +51,7 @@ export async function POST(req: Request) {
     logoUrl?: string | null;
     reviewUrl?: string | null;
     revision?: number;
+    mode?: "follow" | "freeze";
   };
   try {
     body = await req.json();
@@ -72,6 +73,7 @@ export async function POST(req: Request) {
 
   const assessment = resolvePreviewBaseUrl({
     requestOrigin: new URL(req.url).origin,
+    preferLanPort: 3050,
   });
   const session = createPreviewSession({
     businessId,
@@ -83,19 +85,25 @@ export async function POST(req: Request) {
     logoUrl: body.logoUrl,
     reviewUrl: body.reviewUrl,
     revision: body.revision ?? 1,
+    mode: body.mode === "freeze" ? "freeze" : "follow",
   });
   const { url } = buildPreviewAbsoluteUrl(session.path, assessment);
+  const phoneSafeUrl =
+    assessment.reachableForPhone && !/localhost|127\.0\.0\.1/.test(url) ? url : null;
 
   return NextResponse.json({
     ok: true,
     token: session.token,
     path: session.path,
-    url,
+    url: phoneSafeUrl || url,
+    qrUrl: phoneSafeUrl,
     revision: session.record.revision,
-    reachableForPhone: assessment.reachableForPhone,
-    isLocalhost: assessment.isLocalhost,
+    mode: session.record.mode,
+    reachableForPhone: Boolean(phoneSafeUrl),
+    isLocalhost: assessment.isLocalhost || !phoneSafeUrl,
     guidance: assessment.guidance,
     expiresAt: new Date(session.record.exp).toISOString(),
+    lastSaveTime: session.record.lastSaveTime,
   });
 }
 
@@ -117,6 +125,7 @@ export async function PATCH(req: Request) {
     profile?: unknown;
     revision?: number;
     cardName?: string;
+    mode?: "follow" | "freeze";
   };
   try {
     body = await req.json();
@@ -144,10 +153,11 @@ export async function PATCH(req: Request) {
     );
   }
   const result = updatePreviewSession(body.token, {
-    snapshotJson: JSON.stringify(body.snapshot),
+    snapshotJson: body.snapshot ? JSON.stringify(body.snapshot) : undefined,
     profileJson: body.profile ? JSON.stringify(body.profile) : undefined,
     revision: body.revision ?? Date.now(),
     cardName: body.cardName,
+    mode: body.mode,
   });
   if (!result.ok) {
     const map: Record<string, [string, string, string]> = {
@@ -176,10 +186,12 @@ export async function PATCH(req: Request) {
   }
   const assessment = resolvePreviewBaseUrl({
     requestOrigin: new URL(req.url).origin,
+    preferLanPort: 3050,
   });
   return NextResponse.json({
     ok: true,
     revision: result.revision,
+    mode: result.mode,
     reachableForPhone: assessment.reachableForPhone,
     guidance: assessment.guidance,
   });

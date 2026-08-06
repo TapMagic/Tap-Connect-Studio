@@ -59,6 +59,7 @@ export function LiveDeviceQrPanel({
   const [error, setError] = useState<string | null>(null);
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState(() => new Date().toISOString());
+  const [followMode, setFollowMode] = useState<"follow" | "freeze">("follow");
   const autoStarted = useRef(false);
   const stale = revision > sessionRevision;
 
@@ -72,8 +73,9 @@ export function LiveDeviceQrPanel({
       logoUrl,
       reviewUrl,
       revision,
+      mode: followMode,
     }),
-    [config, profile, businessName, cardName, brandKitId, logoUrl, reviewUrl, revision]
+    [config, profile, businessName, cardName, brandKitId, logoUrl, reviewUrl, revision, followMode]
   );
 
   const createOrUpdate = useCallback(
@@ -97,8 +99,9 @@ export function LiveDeviceQrPanel({
           return;
         }
         if (data.token) setToken(data.token);
-        setPreviewUrl(data.url || null);
+        setPreviewUrl((data as SessionResponse & { qrUrl?: string }).qrUrl || data.url || null);
         setReachable(Boolean(data.reachableForPhone));
+        if ((data as { mode?: "follow" | "freeze" }).mode) setFollowMode((data as { mode: "follow" | "freeze" }).mode);
         setGuidance(data.guidance || null);
         setSessionRevision(data.revision ?? revision);
         setUpdatedAt(new Date().toISOString());
@@ -154,7 +157,7 @@ export function LiveDeviceQrPanel({
           <p className="text-[10px] text-white/35" data-testid="preview-qr-meta">
             Updated {new Date(updatedAt).toLocaleString()}
             {expiresAt ? ` · Expires ${new Date(expiresAt).toLocaleString()}` : ""}
-            {` · rev ${sessionRevision}`}
+            {` · rev ${sessionRevision} · ${followMode}`}
           </p>
           <p
             className="text-[10px] text-white/40"
@@ -268,6 +271,34 @@ export function LiveDeviceQrPanel({
             >
               <RefreshCw className="mr-1 h-3.5 w-3.5" />
               {STUDIO_WORDING.updatePhonePreview}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10"
+              data-testid="preview-follow-draft"
+              aria-pressed={followMode === "follow"}
+              disabled={busy || !token}
+              onClick={() => {
+                setFollowMode("follow");
+                void createOrUpdate(token ? "update" : "create");
+              }}
+            >
+              Follow saved draft
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10"
+              data-testid="preview-freeze-revision"
+              aria-pressed={followMode === "freeze"}
+              disabled={busy || !token}
+              onClick={() => {
+                setFollowMode("freeze");
+                void createOrUpdate(token ? "update" : "create");
+              }}
+            >
+              Freeze current revision
             </Button>
             <Button
               type="button"
