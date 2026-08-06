@@ -91,6 +91,8 @@ type TapConnectCardProps = {
   onElementWrap?: (elementId: string, fromSectionId: string | null) => void;
   /** Force composition phone fallback (narrow preview) */
   compositionForceMobile?: boolean;
+  /** Phone wrapper zoom — used to keep selection chrome screen-constant. */
+  editorZoom?: number;
   previewMotion?: boolean;
   reducedMotionSimulation?: boolean;
   motionRevision?: number;
@@ -134,6 +136,7 @@ export function TapConnectCard({
   onElementMove,
   onElementWrap,
   compositionForceMobile = false,
+  editorZoom = 1,
   previewMotion = false,
   reducedMotionSimulation = false,
   motionRevision = 0,
@@ -1140,6 +1143,7 @@ export function TapConnectCard({
               selectedSectionId === section.id ? selectedCompositionNodeIds : []
             }
             forceMobileFallback={compositionForceMobile}
+            editorZoom={editorZoom}
             previewMotion={previewMotion}
             reducedMotionSimulation={reducedMotionSimulation}
             onSelectNodes={(ids) => {
@@ -1352,6 +1356,7 @@ export function TapConnectCard({
           editMode={editSelects}
           selectedNodeIds={selectedSectionId === section.id ? selectedCompositionNodeIds : []}
           forceMobileFallback={compositionForceMobile}
+          editorZoom={editorZoom}
           previewMotion={previewMotion}
           reducedMotionSimulation={reducedMotionSimulation}
           layoutMode={section.surfaceLayout || "stack"}
@@ -1751,6 +1756,7 @@ export function TapConnectCard({
               editMode={editSelects}
               selectedNodeIds={!selectedSectionId ? selectedCompositionNodeIds : []}
               forceMobileFallback={compositionForceMobile}
+              editorZoom={editorZoom}
               previewMotion={previewMotion}
               reducedMotionSimulation={reducedMotionSimulation}
               layoutMode="free"

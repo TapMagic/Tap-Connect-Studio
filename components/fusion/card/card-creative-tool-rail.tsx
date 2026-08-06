@@ -4,10 +4,12 @@ import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import {
   ArrowDown, ArrowUp, BadgeCheck, Bot, Brush, Copy, Eye, EyeOff, FolderKanban, HelpCircle, Image as ImageIcon, Layers3,
-  LayoutTemplate, Library, Lock, MousePointer2, PanelLeft, Pencil, Shapes, Sparkles, Ticket, BadgePercent, Trash2, Type, Unlock, Wrench,
+  LayoutTemplate, Library, Lock, MousePointer2, Pencil, Shapes, Sparkles, Ticket, BadgePercent, Trash2, Type, Unlock, Wrench,
 } from "lucide-react";
 import { MediaPicker } from "@/components/media/media-picker";
 import { CardComposerLibrary } from "./card-composer-library";
+import { DEEP_LEFT_EDIT_PORTAL_ID, useDeepLeftEditorOptional } from "@/components/fusion/creative-studio/deep-left-editor-context";
+import { deepLeftHeader } from "@/lib/fusion/creative-studio/deep-left-editor";
 import type { CardEditorLiveModel } from "./card-editor-live";
 import {
   CARD_ELEMENT_LIBRARY,
@@ -41,57 +43,82 @@ import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/compo
 
 export type CardCreativeTool = "templates" | "build" | "elements" | "icons" | "buttons" | "badges" | "text" | "coupons" | "tickets" | "brand" | "assets" | "backgrounds" | "projects" | "reusable" | "layers" | "ai" | "tools" | "help";
 
-const TOOLS: Array<{ id: CardCreativeTool; label: string; icon: typeof PanelLeft }> = [
+const TOOLS: Array<{ id: CardCreativeTool; label: string; icon: typeof LayoutTemplate }> = [
   { id: "templates", label: "Templates", icon: LayoutTemplate },
-  { id: "build", label: "Build", icon: PanelLeft },
   { id: "elements", label: "Elements", icon: Shapes },
+  { id: "text", label: "Text", icon: Type },
   { id: "icons", label: "Icons", icon: Sparkles },
   { id: "buttons", label: "Buttons", icon: MousePointer2 },
   { id: "badges", label: "Badges", icon: BadgeCheck },
-  { id: "text", label: "Text", icon: Type },
   { id: "coupons", label: "Coupons", icon: BadgePercent },
   { id: "tickets", label: "Tickets", icon: Ticket },
   { id: "brand", label: "Brand", icon: BadgeCheck },
   { id: "assets", label: "Assets", icon: ImageIcon },
-  { id: "backgrounds", label: "Backgrounds", icon: Brush },
+  { id: "backgrounds", label: "Background", icon: Brush },
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "reusable", label: "Reusable", icon: Library },
   { id: "layers", label: "Layers", icon: Layers3 },
   { id: "ai", label: "AI Assist", icon: Bot },
   { id: "tools", label: "Tools", icon: Wrench },
   { id: "help", label: "Help", icon: HelpCircle },
+  // Build remains available as an optional guided checklist only — not a duplicate catalog.
+  { id: "build", label: "Guide", icon: HelpCircle },
 ];
 
 export function CardCreativeToolRail({ model, activeTool, drawerOpen: controlledDrawerOpen, onActiveToolChange, onDrawerOpenChange }: { model: CardEditorLiveModel | null; activeTool?: CardCreativeTool; drawerOpen?: boolean; onActiveToolChange?: (tool: CardCreativeTool) => void; onDrawerOpenChange?: (open: boolean) => void }) {
-  const [localActive, setLocalActive] = useState<CardCreativeTool>(activeTool ?? "build");
+  const [localActive, setLocalActive] = useState<CardCreativeTool>(activeTool ?? "templates");
   const [query, setQuery] = useState("");
   const [localDrawerOpen, setLocalDrawerOpen] = useState(controlledDrawerOpen ?? true);
+  const deepLeft = useDeepLeftEditorOptional();
   const active = activeTool ?? localActive;
   const drawerOpen = controlledDrawerOpen ?? localDrawerOpen;
-  const setActive = (tool: CardCreativeTool) => { setLocalActive(tool); onActiveToolChange?.(tool); };
+  const editMode = deepLeft?.session.mode === "edit";
+  const setActive = (tool: CardCreativeTool) => {
+    deepLeft?.closeEdit();
+    setLocalActive(tool);
+    onActiveToolChange?.(tool);
+  };
   const setDrawerOpen = (open: boolean | ((current: boolean) => boolean)) => {
     const next = typeof open === "function" ? open(drawerOpen) : open;
     setLocalDrawerOpen(next);
     onDrawerOpenChange?.(next);
   };
-  const activeDefinition = TOOLS.find((tool) => tool.id === active)!;
+  const activeDefinition = TOOLS.find((tool) => tool.id === active) ?? TOOLS[0]!;
   const Icon = activeDefinition.icon;
   return (
     <div className="flex h-full min-h-0 bg-[#070b14]" data-testid="card-creative-left-workspace">
       <nav className="w-[68px] shrink-0 overflow-y-auto border-r border-white/10 py-2" aria-label="Card creative tools" data-testid="card-creative-tool-rail">
         {TOOLS.map((tool) => {
           const ToolIcon = tool.icon;
-          const selected = drawerOpen && active === tool.id;
+          const selected = drawerOpen && !editMode && active === tool.id;
           return <button key={tool.id} type="button" aria-pressed={selected} aria-label={tool.label} data-testid={`card-creative-tool-${tool.id}`} className={cn("flex min-h-[58px] w-full flex-col items-center justify-center gap-1 px-1 text-[9px]", selected ? "bg-white/10 text-[#b8ff2c]" : "text-white/60 hover:bg-white/5 hover:text-white")} onClick={() => { setActive(tool.id); setDrawerOpen(true); }}><ToolIcon className="h-4 w-4" aria-hidden /><span>{tool.label}</span></button>;
         })}
       </nav>
-      {drawerOpen ? <section className="min-w-0 flex-1 overflow-y-auto" aria-label={`${activeDefinition.label} drawer`} data-testid="card-creative-context-drawer" data-creative-tool={active}>
-        <header className="sticky top-0 z-10 border-b border-white/10 bg-[#090e18]/95 p-3 backdrop-blur">
-          <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Icon className="h-4 w-4 text-[#b8ff2c]" /><h2 className="text-xs font-semibold text-white">{activeDefinition.label}</h2></div><button type="button" aria-label="Close creative drawer" className="h-8 w-8 rounded text-white/60 hover:bg-white/5" onClick={() => setDrawerOpen(false)}>×</button></div>
-          {!(["build", "help"] as CardCreativeTool[]).includes(active) ? <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeDefinition.label.toLowerCase()}`} className="mt-2 h-9 w-full rounded border border-white/10 bg-black/20 px-2 text-xs text-white" /> : null}
-          <p className="mt-1 text-[9px] text-white/55">Card › {activeDefinition.label}</p>
-        </header>
-        <div className="p-3"><CreativeDrawer tool={active} query={query} model={model} onSelectTool={(tool) => { setActive(tool); setDrawerOpen(true); }} /></div>
+      {(drawerOpen || editMode) ? <section className="min-w-0 flex-1 overflow-y-auto" aria-label={editMode ? "Deep left editor" : `${activeDefinition.label} drawer`} data-testid="card-creative-context-drawer" data-creative-tool={active} data-drawer-mode={editMode ? "edit" : "library"}>
+        {editMode && deepLeft ? (
+          <>
+            <header className="sticky top-0 z-10 border-b border-white/10 bg-[#090e18]/95 p-3 backdrop-blur" data-testid="deep-left-edit-header">
+              <div className="flex items-center justify-between gap-2">
+                <div className="min-w-0">
+                  <button type="button" className="text-[10px] text-[#b8ff2c] hover:underline" data-testid="deep-left-back" onClick={() => deepLeft.goBack()}>← Back</button>
+                  <h2 className="truncate text-xs font-semibold text-white">{deepLeftHeader(deepLeft.session) || "Editor"}</h2>
+                  <p className="text-[9px] text-white/55">{deepLeft.session.targetLabel || "Selected object"} · {deepLeft.session.capabilityLabel || deepLeft.session.section}</p>
+                </div>
+                <button type="button" aria-label="Close editor" className="h-8 w-8 rounded text-white/60 hover:bg-white/5" onClick={() => deepLeft.closeEdit()}>×</button>
+              </div>
+            </header>
+            <div className="min-h-[12rem] p-3" data-testid="deep-left-edit-drawer" id={DEEP_LEFT_EDIT_PORTAL_ID} />
+          </>
+        ) : (
+          <>
+            <header className="sticky top-0 z-10 border-b border-white/10 bg-[#090e18]/95 p-3 backdrop-blur">
+              <div className="flex items-center justify-between gap-2"><div className="flex items-center gap-2"><Icon className="h-4 w-4 text-[#b8ff2c]" /><h2 className="text-xs font-semibold text-white">{activeDefinition.label}</h2></div><button type="button" aria-label="Close creative drawer" className="h-8 w-8 rounded text-white/60 hover:bg-white/5" onClick={() => setDrawerOpen(false)}>×</button></div>
+              {!(["build", "help"] as CardCreativeTool[]).includes(active) ? <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={`Search ${activeDefinition.label.toLowerCase()}`} className="mt-2 h-9 w-full rounded border border-white/10 bg-black/20 px-2 text-xs text-white" /> : null}
+              <p className="mt-1 text-[9px] text-white/55">Card › {activeDefinition.label}</p>
+            </header>
+            <div className="p-3"><CreativeDrawer tool={active} query={query} model={model} onSelectTool={(tool) => { setActive(tool); setDrawerOpen(true); }} /></div>
+          </>
+        )}
       </section> : null}
     </div>
   );
@@ -129,7 +156,7 @@ function CreativeDrawer({ tool, query, model, onSelectTool }: { tool: CardCreati
 
 function IconLibraryDrawer({ add, matches, targetChoice }: { model: CardEditorLiveModel; add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean; targetChoice: ReactNode }) {
   const [query, setQuery] = useState("");
-  const [providerIcons, setProviderIcons] = useState<Array<{ collection: string; name: string; canonicalId: string; source: string }>>([]);
+  const [providerIcons, setProviderIcons] = useState<Array<{ collection: string; name: string; canonicalId: string; source: string; svg?: string }>>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
   useEffect(() => {
     if (query.trim().length < 2) return;
@@ -137,7 +164,7 @@ function IconLibraryDrawer({ add, matches, targetChoice }: { model: CardEditorLi
     const timer = window.setTimeout(() => {
       void fetch(`/api/creative/icons?q=${encodeURIComponent(query)}`, { signal: controller.signal })
         .then((response) => response.json())
-        .then((value: { icons?: Array<{ collection: string; name: string; canonicalId: string; source: string }>; fallback?: boolean }) => {
+        .then((value: { icons?: Array<{ collection: string; name: string; canonicalId: string; source: string; svg?: string }>; fallback?: boolean }) => {
           setProviderIcons(value.icons || []);
           setStatus(value.fallback ? "fallback" : "ready");
         })
@@ -149,7 +176,7 @@ function IconLibraryDrawer({ add, matches, targetChoice }: { model: CardEditorLi
   const results = searching ? providerIcons : [];
   const resultStatus = searching ? status : "idle";
   const place = (props: Record<string, unknown>) => add("icon", props);
-  return <div className="space-y-3" data-testid="card-icon-library">{targetChoice}<p className="text-[10px] text-white/55">Choosing an Icon creates a normal TapConnect Icon Element. Quick Add Sparkles lives under Tools.</p><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); if (event.target.value.trim().length >= 2) setStatus("loading"); }} placeholder="Search Lucide · Tabler · Phosphor · Remix · Material Symbols" className="h-10 w-full rounded border border-white/15 bg-black/20 px-3 text-xs" data-testid="icon-library-search" /><div className="flex flex-wrap gap-1">{["star", "heart", "map", "ticket", "gift", "phone", "mail", "sparkles"].map((term) => <button key={term} type="button" className="min-h-8 rounded border border-white/10 px-2 text-[10px]" onClick={() => { setQuery(term); setStatus("loading"); }}>{term}</button>)}</div><p className="text-[9px] text-white/40" data-testid="icon-library-status">{resultStatus === "loading" ? "Searching Iconify…" : resultStatus === "fallback" ? "Provider unavailable — showing built-in fallback icons" : resultStatus === "ready" ? `${results.length} Iconify results` : "Type at least 2 characters to search"}</p><h3 className="text-[10px] font-semibold uppercase text-white/45">TapConnect Recommended</h3><div className="grid grid-cols-2 gap-1" data-testid="icon-library-recommended">{ICON_LIBRARY.filter((icon) => matches(`${icon.label} ${icon.category}`) && (!query.trim() || `${icon.label} ${icon.category}`.toLowerCase().includes(query.toLowerCase()))).map((icon) => <button key={icon.id} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-[10px]" onClick={() => place({ icon: icon.id, iconProvider: "native", iconCollection: "lucide", iconName: icon.id, accessibleLabel: icon.label, decorative: false })}>✦ {icon.label}<span className="block text-[8px] text-white/40">{icon.category}</span></button>)}</div><h3 className="text-[10px] font-semibold uppercase text-white/45">Iconify results</h3><div className="grid grid-cols-2 gap-1" data-testid="icon-library-iconify-results">{results.map((icon) => <button key={icon.canonicalId} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-[10px]" onClick={() => place({ icon: icon.canonicalId, iconProvider: "iconify", iconCollection: icon.collection, iconName: icon.name, iconSource: icon.source, accessibleLabel: icon.name, decorative: false })}>{icon.name}<span className="block text-[8px] text-white/40">{icon.collection}</span></button>)}</div></div>;
+  return <div className="space-y-3" data-testid="card-icon-library">{targetChoice}<p className="text-[10px] text-white/55">Opening Icons never places a default Icon. Choose a visual result to place or replace.</p><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); if (event.target.value.trim().length >= 2) setStatus("loading"); }} placeholder="Search Lucide · Tabler · Phosphor · Remix · Material Symbols" className="h-10 w-full rounded border border-white/15 bg-black/20 px-3 text-xs" data-testid="icon-library-search" /><div className="flex flex-wrap gap-1">{["star", "heart", "map", "ticket", "gift", "phone", "mail", "sparkles"].map((term) => <button key={term} type="button" className="min-h-8 rounded border border-white/10 px-2 text-[10px]" onClick={() => { setQuery(term); setStatus("loading"); }}>{term}</button>)}</div><p className="text-[9px] text-white/40" data-testid="icon-library-status">{resultStatus === "loading" ? "Searching Iconify…" : resultStatus === "fallback" ? "Provider unavailable — showing built-in fallback icons" : resultStatus === "ready" ? `${results.length} Iconify results` : "Type at least 2 characters to search"}</p><h3 className="text-[10px] font-semibold uppercase text-white/45">TapConnect Recommended</h3><div className="grid grid-cols-3 gap-1" data-testid="icon-library-recommended">{ICON_LIBRARY.filter((icon) => matches(`${icon.label} ${icon.category}`) && (!query.trim() || `${icon.label} ${icon.category}`.toLowerCase().includes(query.toLowerCase()))).map((icon) => <button key={icon.id} type="button" className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-center text-[9px]" onClick={() => place({ icon: icon.id, iconProvider: "native", iconCollection: "lucide", iconName: icon.id, accessibleLabel: icon.label, decorative: false })}><span className="grid h-8 w-8 place-items-center rounded bg-white/5 text-base text-[#b8ff2c]" aria-hidden>✦</span>{icon.label}<span className="text-[8px] text-white/40">{icon.category}</span></button>)}</div><h3 className="text-[10px] font-semibold uppercase text-white/45">Iconify results</h3><div className="grid grid-cols-3 gap-1" data-testid="icon-library-iconify-results">{results.map((icon) => <button key={icon.canonicalId} type="button" className="flex min-h-20 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-center text-[9px] hover:border-[#b8ff2c]/50" data-testid={`iconify-result-${icon.canonicalId}`} onClick={() => place({ icon: icon.canonicalId, iconProvider: "iconify", iconCollection: icon.collection, iconName: icon.name, iconSource: icon.source, iconSvg: icon.svg, accessibleLabel: icon.name, decorative: false })}>{icon.svg ? <span className="grid h-9 w-9 place-items-center text-white [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: icon.svg }} /> : <span className="grid h-9 w-9 place-items-center rounded bg-white/5 text-[#b8ff2c]" aria-hidden>◇</span>}<span className="line-clamp-2 px-0.5">{icon.name}</span><span className="text-[8px] text-white/40">{icon.collection}</span></button>)}{resultStatus === "ready" && results.length === 0 ? <p className="col-span-3 text-[10px] text-white/45">No visual results for this search.</p> : null}</div></div>;
 }
 
 function InsertionTargetChoice({ value, sectionName, onChange }: { value: "card" | "section"; sectionName: string; onChange: (value: "card" | "section") => void }) {
@@ -287,7 +314,7 @@ function LayersDrawer({ model }: { model: CardEditorLiveModel }) {
   return <div className="space-y-2" data-testid="card-layers-drawer">
     <p className="text-[9px] text-white/45">Authoritative object tree · topmost layer first · Shift-click for multi-select</p>
     <div className="rounded-md border border-white/10 p-1" data-layer-container="card-root">
-      <LayerButton active={!model.selected && !(model.selectedCompositionNodeIds?.length)} label="Card root" onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); }} />
+      <LayerButton active={Boolean(model.explicitCardRootSelected)} label="Card root" onClick={() => { if (model.selectCardRoot) model.selectCardRoot(); else { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); } }} />
       {rootTopLevel.map((node) => <LayerObjectRow key={node.id} model={model} node={node} parentId={null} siblings={rootNodes} active={!model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id))} onSelect={selectNode} />)}
     </div>
     {model.sorted.map((section) => <div key={section.id} className="rounded-md border border-white/10 p-1" data-layer-container={section.id}>

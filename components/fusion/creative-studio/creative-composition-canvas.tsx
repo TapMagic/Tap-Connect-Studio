@@ -59,6 +59,11 @@ export type CreativeCompositionCanvasProps = {
   forceMobileFallback?: boolean;
   previewMotion?: boolean;
   reducedMotionSimulation?: boolean;
+  /**
+   * Canvas zoom factor used by the phone wrapper. Selection chrome is
+   * inverse-scaled so handles stay ~8–10 screen pixels at any zoom.
+   */
+  editorZoom?: number;
   className?: string;
   aspectRatio?: number;
   layoutMode?: "stack" | "row" | "grid" | "free";
@@ -1045,6 +1050,7 @@ export function CreativeCompositionCanvas({
   forceMobileFallback = false,
   previewMotion = false,
   reducedMotionSimulation = false,
+  editorZoom = 1,
   className,
   aspectRatio = 4 / 5,
   layoutMode = "free",
@@ -1055,6 +1061,7 @@ export function CreativeCompositionCanvas({
   onEditNodeText,
   containerActions,
 }: CreativeCompositionCanvasProps) {
+  const chromeScale = 1 / Math.max(0.25, Math.min(4, editorZoom || 1));
   const surfaceRef = useRef<HTMLDivElement>(null);
   const [narrow, setNarrow] = useState(false);
   const [surfaceSize, setSurfaceSize] = useState({ width: 180, height: 220 });
@@ -1919,12 +1926,21 @@ export function CreativeCompositionCanvas({
             return cx >= candidateBox.left && cx <= candidateBox.left + candidateBox.width && cy >= candidateBox.top && cy <= candidateBox.top + candidateBox.height;
           })
           .sort((left, right) => right.zIndex - left.zIndex)[0];
-        return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1000] outline outline-1 outline-white/80" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`}>
-          {drag?.id === node.id && drag.mode === "resize" ? <span className="absolute left-0 top-0 -translate-y-full rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" data-testid="composition-size-feedback">{Math.round(box.width * 100)}% × {Math.round(box.height * 100)}%</span> : null}
-          <button type="button" className="pointer-events-auto absolute -top-7 left-0 min-h-6 rounded bg-black/80 px-2 text-[10px] text-white" aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} onClick={() => setContextMenu({ id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height })}>•••</button>
-          {beneath ? <button type="button" className="pointer-events-auto absolute bottom-1 right-1 min-h-6 rounded bg-black/80 px-1.5 text-[9px] text-white" data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
-          {([ ["nw", "-left-1.5 -top-1.5 cursor-nwse-resize"], ["n", "left-1/2 -top-1.5 -translate-x-1/2 cursor-ns-resize"], ["ne", "-right-1.5 -top-1.5 cursor-nesw-resize"], ["e", "-right-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"], ["se", "-bottom-1.5 -right-1.5 cursor-nwse-resize"], ["s", "left-1/2 -bottom-1.5 -translate-x-1/2 cursor-ns-resize"], ["sw", "-bottom-1.5 -left-1.5 cursor-nesw-resize"], ["w", "-left-1.5 top-1/2 -translate-y-1/2 cursor-ew-resize"] ] as const).map(([handle, position]) => <button key={handle} type="button" className={`pointer-events-auto absolute h-6 w-6 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[2px] after:border after:border-white/90 after:bg-white ${position}`} data-testid={`composition-resize-${node.id}-${handle}`} aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
-          <button type="button" className="pointer-events-auto absolute -top-8 left-1/2 h-6 w-6 -translate-x-1/2 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2.5 after:w-2.5 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/90 after:bg-[#9cff57]" data-testid={`composition-rotate-${node.id}`} aria-label="Rotate" onPointerDown={(event) => onPointerDownNode(event, node, "rotate")} />
+        return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1000] outline outline-1 outline-white/70" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`} data-chrome-scale={String(chromeScale)}>
+          {drag?.id === node.id && drag.mode === "resize" ? <span className="absolute left-0 top-0 -translate-y-full rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" style={{ transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} data-testid="composition-size-feedback">{Math.round(box.width * 100)}% × {Math.round(box.height * 100)}%</span> : null}
+          <button type="button" className="pointer-events-auto absolute left-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ top: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} onClick={() => setContextMenu({ id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height })}>•••</button>
+          {beneath ? <button type="button" className="pointer-events-auto absolute right-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top right" }} data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
+          {([
+            ["nw", "left-0 top-0 cursor-nwse-resize", "top left", ""],
+            ["n", "left-1/2 top-0 cursor-ns-resize", "top center", "translateX(-50%) "],
+            ["ne", "right-0 top-0 cursor-nesw-resize", "top right", ""],
+            ["e", "right-0 top-1/2 cursor-ew-resize", "center right", "translateY(-50%) "],
+            ["se", "bottom-0 right-0 cursor-nwse-resize", "bottom right", ""],
+            ["s", "left-1/2 bottom-0 cursor-ns-resize", "bottom center", "translateX(-50%) "],
+            ["sw", "bottom-0 left-0 cursor-nesw-resize", "bottom left", ""],
+            ["w", "left-0 top-1/2 cursor-ew-resize", "center left", "translateY(-50%) "],
+          ] as const).map(([handle, position, origin, translate]) => <button key={handle} type="button" className={`pointer-events-auto absolute h-5 w-5 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/90 after:bg-white ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-resize-${node.id}-${handle}`} data-handle-screen-px="8" aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
+          <button type="button" className="pointer-events-auto absolute left-1/2 h-5 w-5 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/90 after:bg-[#9cff57]" style={{ top: `calc(-1.85rem * ${chromeScale})`, transform: `translateX(-50%) scale(${chromeScale})`, transformOrigin: "bottom center" }} data-testid={`composition-rotate-${node.id}`} aria-label="Rotate" onPointerDown={(event) => onPointerDownNode(event, node, "rotate")} />
         </div>;
       }) : null}
       {editMode && contextMenu ? (() => {

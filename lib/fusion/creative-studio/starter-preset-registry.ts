@@ -103,6 +103,57 @@ export const STARTER_TEXT_COMBINATIONS: readonly StarterTextCombination[] = [
       { text: "FUN!", fontSize: 40, fontWeight: 900, fontFamily: '"Fredoka", sans-serif', yOffset: 0.04 },
     ],
   },
+  {
+    id: "retro-layered",
+    label: "Retro layered shadow",
+    structure: "retro display with layered drop shadow stack",
+    style: "linear-gradient(135deg,#fb7185,#fbbf24)",
+    lines: [
+      { text: "RETRO", fontSize: 18, fontWeight: 700, fontFamily: '"Righteous", sans-serif', letterSpacingEm: 0.2 },
+      { text: "NIGHTS", fontSize: 40, fontWeight: 900, fontFamily: '"Righteous", sans-serif' },
+    ],
+    effects: { shadow: 10, layeredShadow: true },
+  },
+  {
+    id: "wedding-elegant",
+    label: "Wedding elegant",
+    structure: "delicate script names over thin serif date",
+    style: "linear-gradient(135deg,#fdf2f8,#e7e5e4)",
+    lines: [
+      { text: "Ava & Noah", fontSize: 34, fontWeight: 500, fontFamily: '"Great Vibes", cursive' },
+      { text: "celebrate with us", fontSize: 14, fontWeight: 400, fontFamily: '"Cormorant Garamond", serif', letterSpacingEm: 0.22 },
+    ],
+  },
+  {
+    id: "professional-business",
+    label: "Professional business",
+    structure: "tight sans kicker + confident business headline",
+    style: "linear-gradient(135deg,#e2e8f0,#94a3b8)",
+    lines: [
+      { text: "CONSULTING", fontSize: 12, fontWeight: 700, fontFamily: '"Inter", sans-serif', letterSpacingEm: 0.28 },
+      { text: "Clarity that converts", fontSize: 26, fontWeight: 650, fontFamily: '"Source Sans 3", sans-serif' },
+    ],
+  },
+  {
+    id: "restaurant-promo",
+    label: "Restaurant promotion",
+    structure: "menu-style serif dish + sans price callout",
+    style: "linear-gradient(135deg,#fde68a,#b45309)",
+    lines: [
+      { text: "Tonight's Special", fontSize: 16, fontWeight: 600, fontFamily: '"Playfair Display", Georgia, serif' },
+      { text: "Chef's tasting · $48", fontSize: 22, fontWeight: 700, fontFamily: '"Montserrat", sans-serif' },
+    ],
+  },
+  {
+    id: "event-announcement",
+    label: "Event announcement",
+    structure: "date block + condensed event title",
+    style: "linear-gradient(135deg,#38bdf8,#6366f1)",
+    lines: [
+      { text: "SAT · 8PM", fontSize: 14, fontWeight: 800, fontFamily: '"Oswald", sans-serif', letterSpacingEm: 0.16 },
+      { text: "OPEN HOUSE", fontSize: 34, fontWeight: 900, fontFamily: '"Oswald", sans-serif' },
+    ],
+  },
 ] as const;
 
 export const STARTER_BUTTON_PRESETS = [

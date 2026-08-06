@@ -121,6 +121,10 @@ export type CardEditorLiveModel = {
   onCloseTool?: () => void;
   selectedCompositionNodeIds?: string[];
   setSelectedCompositionNodeIds?: (ids: string[]) => void;
+  /** True only after an explicit Card Root selection — never inferred from deselection. */
+  explicitCardRootSelected?: boolean;
+  selectCardRoot?: () => void;
+  clearStudioSelection?: () => void;
   /** Outline document-structure ops */
   reorderSections: (fromId: string, toId: string) => void;
   moveSectionBy: (id: string, delta: number) => void;
@@ -171,6 +175,7 @@ export function cardEditorLiveMaterialSignature(
     canRedo: model.canRedo,
     reviewUrl: model.reviewUrl ?? null,
     selectedCompositionNodeIds: model.selectedCompositionNodeIds ?? [],
+    explicitCardRootSelected: Boolean(model.explicitCardRootSelected),
   });
 }
 

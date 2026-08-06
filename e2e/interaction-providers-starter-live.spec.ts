@@ -70,21 +70,16 @@ test.describe("interaction truth providers starter live device", () => {
     await expect(page.getByTestId("ticket-preset-wallet-pass")).toBeVisible();
     await page.screenshot({ path: path.join(evidenceDir, "04-starter-commerce.png"), fullPage: false });
 
-    const liveDock = page.getByTestId("live-device-dock");
-    if (await liveDock.count()) {
-      await liveDock.getByRole("button").first().click().catch(() => undefined);
-    }
+    // Live Device is a required Preview product surface — never optional.
+    await page.getByTestId("card-preview-as-customer").click();
+    await page.getByTestId("preview-live-device").click();
     const panel = page.getByTestId("live-device-qr-panel");
-    if (await panel.count()) {
-      await expect(panel).toBeVisible({ timeout: 30_000 });
-      const urlText = page.getByTestId("preview-url-text");
-      if (await urlText.count()) {
-        const url = await urlText.innerText();
-        expect(url).not.toMatch(/localhost|127\.0\.0\.1/);
-        expect(url).toMatch(/\/preview\/live\//);
-      }
-      await page.screenshot({ path: path.join(evidenceDir, "05-live-device.png"), fullPage: false });
-    }
+    await expect(panel).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId("preview-url-text")).toBeVisible({ timeout: 30_000 });
+    const url = await page.getByTestId("preview-url-text").innerText();
+    expect(url).not.toMatch(/localhost|127\.0\.0\.1/);
+    expect(url).toMatch(/\/preview\/live\//);
+    await page.screenshot({ path: path.join(evidenceDir, "05-live-device.png"), fullPage: false });
 
     await page.setViewportSize({ width: 390, height: 844 });
     const axe = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa"]).analyze();

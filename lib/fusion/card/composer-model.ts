@@ -281,9 +281,13 @@ export function insertRootContainerPreset(
   const nodes = [...root.nodes, container, ...children];
   const lowest = nodes.reduce((bottom, node) => node.visible === false ? bottom : Math.max(bottom, node.y + node.height), 1);
   const currentHeight = root.pageHeightPx ?? config.rootCanvasMinHeightPx ?? 520;
-  const pageHeightPx = lowest > 1 ? Math.min(2400, Math.ceil(currentHeight * lowest + 24)) : currentHeight;
+  const neededHeight = lowest > 1 ? Math.min(2400, Math.ceil(currentHeight * lowest + 24)) : currentHeight;
+  // Grow the page through the isolation helper so prior objects keep pixel bounds.
+  const grown = neededHeight > currentHeight
+    ? setRootPageHeightPreservingBounds({ ...root, nodes }, neededHeight, currentHeight)
+    : { ...root, nodes, pageHeightPx: currentHeight };
   return {
-    config: { ...config, rootComposition: { ...root, nodes, pageHeightPx } },
+    config: { ...config, rootComposition: grown },
     containerId,
     objectIds: [containerId, ...children.map((node) => node.id)],
   };

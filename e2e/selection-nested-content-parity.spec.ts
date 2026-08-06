@@ -75,6 +75,11 @@ test.describe("selection, nested content, and appearance parity", () => {
 
     await root.locator('[data-testid="creative-composition-canvas"]').click({ position: { x: 4, y: 4 } });
     await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible();
+    // Pasteboard clears selection — Card Root is never a silent fallback.
+    await page.getByTestId("card-pasteboard").click({ position: { x: 20, y: 20 } });
+    await expect(page.getByTestId("card-contextual-object-tools")).toHaveCount(0);
+    await root.locator('[data-testid="creative-composition-canvas"]').click({ position: { x: 4, y: 4 } });
+    await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible();
     await page.locator('[data-contextual-object="card-root"]').getByRole("button", { name: "Background" }).click();
     await page.getByTestId("root-background-editor").getByRole("button", { name: "solid", exact: true }).click();
     const opacity = page.getByTestId("root-background-opacity");

@@ -33,6 +33,7 @@ import { CardLiveToolDrawer } from "@/components/fusion/card/card-live-tool-draw
 import { CardCreativeToolRail, type CardCreativeTool } from "@/components/fusion/card/card-creative-tool-rail";
 import { CardContextualObjectToolbar } from "@/components/fusion/card/card-contextual-object-toolbar";
 import { CardAdvancedSettingsOverlay } from "@/components/fusion/card/card-advanced-settings-overlay";
+import { DeepLeftEditorProvider } from "@/components/fusion/creative-studio/deep-left-editor-context";
 import { PreviewToolbar } from "@/components/fusion/creative-studio/preview-toolbar";
 import { LiveDeviceQrPanel } from "@/components/fusion/creative-studio/live-device-qr-panel";
 import {
@@ -212,7 +213,7 @@ export function CardAuthoringWorkspace({
   const [appearanceEntryLevel, setAppearanceEntryLevel] = useState<
     "root" | "colors" | "brand" | "layout" | "segment"
   >("root");
-  const [creativeTool, setCreativeTool] = useState<CardCreativeTool>("build");
+  const [creativeTool, setCreativeTool] = useState<CardCreativeTool>("templates");
   const [creativeDrawerOpen, setCreativeDrawerOpen] = useState(true);
   const [advancedSettingsContext, setAdvancedSettingsContext] = useState<{
     creativeTool: CardCreativeTool;
@@ -738,6 +739,7 @@ export function CardAuthoringWorkspace({
   );
 
   return (
+    <DeepLeftEditorProvider>
     <div
       className="creative-studio-editor relative flex h-full min-h-0 flex-col overflow-hidden bg-[var(--studio-chrome)] text-[var(--studio-text)]"
       data-testid="card-edit-workspace-host"
@@ -1071,6 +1073,7 @@ export function CardAuthoringWorkspace({
         className="h-full"
       />
     </div>
+    </DeepLeftEditorProvider>
   );
 }
 

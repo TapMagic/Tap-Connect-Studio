@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Columns2,
@@ -373,6 +373,23 @@ export function TapCardBuilder({
   const [selectedCompositionNodeIds, setSelectedCompositionNodeIds] = useState<
     string[]
   >([]);
+  const [explicitCardRootSelected, setExplicitCardRootSelected] = useState(false);
+  const selectCardRoot = useCallback(() => {
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([]);
+    setExplicitCardRootSelected(true);
+  }, []);
+  const clearStudioSelection = useCallback(() => {
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([]);
+    setExplicitCardRootSelected(false);
+  }, []);
+  const assignCompositionSelection = useCallback((sectionId: string | null, ids: string[]) => {
+    setSelectedId(sectionId);
+    setSelectedCompositionNodeIds(ids);
+    // Empty ids on the Card canvas means explicit Card Root — never a silent fallback.
+    setExplicitCardRootSelected(sectionId === null && ids.length === 0);
+  }, []);
   const [dragId, setDragId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const [addKind, setAddKind] = useState<TapCardActionKind>("instagram");
@@ -491,14 +508,9 @@ export function TapCardBuilder({
     function onKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
       if (e.key === "Escape" && !target?.closest("input, textarea, select, [contenteditable=true]")) {
-        if (selectedCompositionNodeIds.length) {
+        if (selectedCompositionNodeIds.length || selectedId || explicitCardRootSelected) {
           e.preventDefault();
-          setSelectedCompositionNodeIds([]);
-          return;
-        }
-        if (selectedId) {
-          e.preventDefault();
-          setSelectedId(null);
+          clearStudioSelection();
           return;
         }
       }
@@ -515,7 +527,7 @@ export function TapCardBuilder({
     }
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [undoEditor, redoEditor, selectedCompositionNodeIds.length, selectedId]);
+  }, [undoEditor, redoEditor, selectedCompositionNodeIds.length, selectedId, explicitCardRootSelected, clearStudioSelection]);
 
   useEffect(() => {
     if (!selectedId || !previewScrollRef.current) return;
@@ -1825,7 +1837,14 @@ export function TapCardBuilder({
         setMessage("Test Action opened the destination safely (Edit mode does not activate Card taps).");
       },
       selectedCompositionNodeIds,
-      setSelectedCompositionNodeIds,
+      setSelectedCompositionNodeIds: (ids: string[]) => {
+        setSelectedCompositionNodeIds(ids);
+        if (ids.length > 0) setExplicitCardRootSelected(false);
+        else if (!explicitCardRootSelected) setExplicitCardRootSelected(false);
+      },
+      explicitCardRootSelected,
+      selectCardRoot,
+      clearStudioSelection,
       reorderSections: reorder,
       moveSectionBy,
       moveSectionTo,
@@ -1859,6 +1878,7 @@ export function TapCardBuilder({
     canUndoEditor,
     canRedoEditor,
     selectedCompositionNodeIds,
+    explicitCardRootSelected,
     activeDocumentId,
     draftRevision,
     selectionGeneration,
@@ -2952,7 +2972,18 @@ export function TapCardBuilder({
               Collapse toolbar
             </Button>
           </div> : null}
-          <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceId}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => { if (!previewPan && !spacePan) return; const viewport = previewScrollRef.current; if (!viewport) return; event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId }; }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
+          <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceId}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => {
+            const target = event.target as HTMLElement | null;
+            if (interactionMode === "edit" && !previewPan && !spacePan && target && !target.closest(".builder-phone")) {
+              clearStudioSelection();
+            }
+            if (!previewPan && !spacePan) return;
+            const viewport = previewScrollRef.current;
+            if (!viewport) return;
+            event.preventDefault();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId };
+          }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
             <div
               className={cn(
                 "builder-phone builder-phone-natural origin-top",
@@ -2980,6 +3011,7 @@ export function TapCardBuilder({
                   interactionMode={interactionMode}
                   previewSafe={interactionMode === "preview"}
                   compositionForceMobile={compositionForceMobile}
+                  editorZoom={typeof renderedPreviewZoom === "number" ? renderedPreviewZoom : 1}
                   previewMotion={previewMotion}
                   reducedMotionSimulation={reducedMotionSimulation}
                   motionRevision={motionRevision}
@@ -2988,12 +3020,7 @@ export function TapCardBuilder({
                     interactionMode === "edit" ? selectedCompositionNodeIds : []
                   }
                   onCompositionNodeSelect={
-                    interactionMode === "edit"
-                      ? (sectionId, ids) => {
-                          setSelectedId(sectionId);
-                          setSelectedCompositionNodeIds(ids);
-                        }
-                      : undefined
+                    interactionMode === "edit" ? assignCompositionSelection : undefined
                   }
                   onCompositionChange={
                     interactionMode === "edit"
@@ -3025,6 +3052,7 @@ export function TapCardBuilder({
                     interactionMode === "edit"
                       ? (id) => {
                           setSelectedId(id);
+                          setExplicitCardRootSelected(false);
                           if (id !== selectedId) setSelectedCompositionNodeIds([]);
                           if (id && onRequestTool && !shellHosted) {
                             const section = sectionsHistory.find((s) => s.id === id);
