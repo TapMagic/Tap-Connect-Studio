@@ -15,11 +15,15 @@ import {
 } from "@/lib/fusion/creative-studio/patterns";
 
 describe("typed Creative Studio gradients", () => {
-  it("renders linear and radial gradients without raw Owner CSS", () => {
+  it("renders linear, radial, and conic gradients without raw Owner CSS", () => {
     assert.match(gradientToCss(DEFAULT_GRADIENT), /^linear-gradient\(135deg/);
     assert.match(
       gradientToCss({ ...DEFAULT_GRADIENT, kind: "radial", centerX: 35, centerY: 60 }),
-      /^radial-gradient\(circle at 35% 60%/
+      /^radial-gradient\(circle 50% at 35% 60%/
+    );
+    assert.match(
+      gradientToCss({ ...DEFAULT_GRADIENT, kind: "conic", angle: 40, centerX: 50, centerY: 50 }),
+      /^conic-gradient\(from 40deg at 50% 50%/
     );
   });
 

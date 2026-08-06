@@ -1688,6 +1688,13 @@ export function TapConnectCard({
       {outerNodes}
       <div
         className="tcc-shell"
+        data-composition-background={
+          config.rootComposition?.background &&
+          config.rootComposition.background.kind &&
+          config.rootComposition.background.kind !== "none"
+            ? "true"
+            : "false"
+        }
         style={
           rootBackground
             ? {
@@ -1695,7 +1702,15 @@ export function TapConnectCard({
                 backgroundSize: config.rootBackgroundFit || "cover",
                 backgroundPosition: config.rootBackgroundPosition || "50% 50%",
               }
-            : undefined
+            : config.rootComposition?.background &&
+                config.rootComposition.background.kind &&
+                config.rootComposition.background.kind !== "none"
+              ? {
+                  // Composition background renderer owns fill + opacity. Keep the
+                  // shell underlay transparent so Background opacity is visible.
+                  background: "transparent",
+                }
+              : undefined
         }
       >
         {(config.rootComposition || (editSelects && sections.length === 0)) ? (

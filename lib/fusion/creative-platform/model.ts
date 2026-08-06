@@ -21,10 +21,12 @@ export const gradientStopSchema = z.object({
 
 export const gradientModelSchema = z.object({
   version: z.literal(1),
-  kind: z.enum(["linear", "radial"]),
+  kind: z.enum(["linear", "radial", "conic"]),
   angle: z.number().min(0).max(359),
   centerX: z.number().min(0).max(100),
   centerY: z.number().min(0).max(100),
+  size: z.number().min(10).max(100).optional(),
+  shape: z.enum(["circle", "ellipse"]).optional(),
   stops: z.array(gradientStopSchema).min(2).max(8),
 });
 export type GradientModel = z.infer<typeof gradientModelSchema>;

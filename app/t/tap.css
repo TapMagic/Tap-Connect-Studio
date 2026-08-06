@@ -1171,6 +1171,12 @@
   box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
 }
 
+/* When the composition owns the Card fill, do not paint a matching shell
+   underlay — otherwise Background opacity appears to do nothing. */
+.tcc-shell[data-composition-background="true"] {
+  background: transparent;
+}
+
 .tcc-view-3d {
   /* reserved — raised buttons via .tcc-pill-raised */
 }

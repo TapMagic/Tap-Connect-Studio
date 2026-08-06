@@ -141,7 +141,7 @@ export function GradientStudio({
           max={359}
           value={gradient.angle}
           className="w-full"
-          disabled={gradient.kind === "radial"}
+          disabled={false}
           onChange={(event) =>
             patch({ angle: Number(event.target.value) }, "Changed gradient angle")
           }
@@ -214,7 +214,7 @@ export function GradientStudio({
       {advanced ? (
         <div className="space-y-4 border-t border-white/10 pt-4" data-testid="gradient-advanced">
           <div className="flex gap-2">
-            {(["linear", "radial"] as const).map((kind) => (
+            {(["linear", "radial", "conic"] as const).map((kind) => (
               <button
                 key={kind}
                 type="button"
@@ -231,7 +231,7 @@ export function GradientStudio({
             ))}
           </div>
 
-          {gradient.kind === "radial" ? (
+          {gradient.kind === "radial" || gradient.kind === "conic" ? (
             <div className="grid grid-cols-2 gap-3">
               <label className="space-y-1 text-xs">
                 <span>Center X {gradient.centerX}%</span>
@@ -243,7 +243,7 @@ export function GradientStudio({
                   onChange={(event) =>
                     patch(
                       { centerX: Number(event.target.value) },
-                      "Changed radial gradient center"
+                      "Changed gradient center"
                     )
                   }
                 />
@@ -258,11 +258,29 @@ export function GradientStudio({
                   onChange={(event) =>
                     patch(
                       { centerY: Number(event.target.value) },
-                      "Changed radial gradient center"
+                      "Changed gradient center"
                     )
                   }
                 />
               </label>
+              {gradient.kind === "radial" ? (
+                <label className="col-span-2 space-y-1 text-xs">
+                  <span>Size {gradient.size ?? 50}%</span>
+                  <input
+                    type="range"
+                    min={10}
+                    max={100}
+                    value={gradient.size ?? 50}
+                    onChange={(event) =>
+                      patch(
+                        { size: Number(event.target.value) },
+                        "Changed radial gradient size"
+                      )
+                    }
+                    data-testid="gradient-radial-size"
+                  />
+                </label>
+              ) : null}
             </div>
           ) : null}
 
