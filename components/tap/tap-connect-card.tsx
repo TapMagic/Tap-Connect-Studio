@@ -54,7 +54,7 @@ import {
   type CreativeCompositionBlock,
 } from "@/lib/fusion/creative-studio/composition";
 import { isCardBlockLinkEligible } from "@/lib/fusion/card/block-model";
-import { fitRootCanvasToContent, rootCanvasAutoHeight } from "@/lib/fusion/card/composer-model";
+import { fitRootCanvasToContent, rootCanvasAutoHeight, setRootPageHeightPreservingBounds } from "@/lib/fusion/card/composer-model";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 
 type TapConnectCardProps = {
@@ -198,7 +198,11 @@ export function TapConnectCard({
       mobileFallback: "scale" as const,
       safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
     };
-    onCompositionChange?.(null, { ...root, pageHeightPx: Math.max(240, Math.min(2400, Math.round(heightPx))) }, label);
+    onCompositionChange?.(
+      null,
+      setRootPageHeightPreservingBounds(root, heightPx, config.rootCanvasMinHeightPx ?? 520),
+      label
+    );
   }
 
   const style = {

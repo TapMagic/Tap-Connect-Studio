@@ -421,6 +421,44 @@ export function ensureRootComposition(config: TapConnectCardConfig) {
   };
 }
 
+/**
+ * Change Card page height while preserving absolute pixel bounds of every root
+ * Element. Normalized y/height are rescaled so Text, Image, Icon, Button, Map,
+ * Coupon, Ticket, Form, Gallery, Container, and Group boxes stay put.
+ */
+export function setRootPageHeightPreservingBounds(
+  root: NonNullable<TapConnectCardConfig["rootComposition"]>,
+  nextHeightPx: number,
+  fallbackHeightPx = 520
+): NonNullable<TapConnectCardConfig["rootComposition"]> {
+  const pageHeightPx = Math.max(240, Math.min(2400, Math.round(nextHeightPx)));
+  const previous = Math.max(1, root.pageHeightPx ?? fallbackHeightPx);
+  if (previous === pageHeightPx) return { ...root, pageHeightPx };
+  const scale = previous / pageHeightPx;
+  const nodes = root.nodes.map((node) => ({
+    ...node,
+    y: Math.max(0, Math.min(2, node.y * scale)),
+    height: Math.max(0.01, Math.min(2, node.height * scale)),
+  }));
+  return { ...root, nodes, pageHeightPx };
+}
+
+/** Absolute pixel bounds for geometry-isolation proofs. */
+export function rootObjectPixelBounds(
+  root: NonNullable<TapConnectCardConfig["rootComposition"]>,
+  fallbackHeightPx = 520
+): Array<{ id: string; x: number; y: number; width: number; height: number }> {
+  const pageHeightPx = root.pageHeightPx ?? fallbackHeightPx;
+  const pageWidthPx = 390;
+  return root.nodes.map((node) => ({
+    id: node.id,
+    x: Math.round(node.x * pageWidthPx),
+    y: Math.round(node.y * pageHeightPx),
+    width: Math.round(node.width * pageWidthPx),
+    height: Math.round(node.height * pageHeightPx),
+  }));
+}
+
 /** Grow the published root plane when authored objects extend below its current minimum. */
 export function rootCanvasAutoHeight(config: TapConnectCardConfig): number {
   const base = config.rootComposition?.pageHeightPx ?? config.rootCanvasMinHeightPx ?? 520;

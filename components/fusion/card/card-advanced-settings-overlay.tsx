@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { X } from "lucide-react";
 import type { CardEditorLiveModel } from "./card-editor-live";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
-import { ensureRootComposition, fitRootCanvasToContent, rootCanvasAutoHeight } from "@/lib/fusion/card/composer-model";
+import { ensureRootComposition, fitRootCanvasToContent, rootCanvasAutoHeight, setRootPageHeightPreservingBounds } from "@/lib/fusion/card/composer-model";
 
 const fieldClass = "mt-1 h-10 w-full rounded-md border border-white/15 bg-[#090e18] px-2 text-sm text-white";
 
@@ -111,8 +111,8 @@ export function CardAdvancedSettingsOverlay({
         ) : (
           <div className="space-y-3" data-testid="card-root-size-controls">
             <h3 className="text-xs font-semibold">Card page size</h3>
-            <NumberField label="Page height px" value={rootCanvasAutoHeight(model.config)} min={240} max={2400} onChange={(value) => model.patchConfig({ rootComposition: { ...ensureRootComposition(model.config), pageHeightPx: value } }, "Changed exact Card page height")} />
-            <button type="button" className="min-h-10 w-full rounded-md border border-white/15 px-2 text-xs" onClick={() => model.patchConfig({ rootComposition: { ...ensureRootComposition(model.config), pageHeightPx: fitRootCanvasToContent(model.config) } }, "Fit Card page to content")}>Fit to content</button>
+            <NumberField label="Page height px" value={rootCanvasAutoHeight(model.config)} min={240} max={2400} onChange={(value) => model.patchConfig({ rootComposition: setRootPageHeightPreservingBounds(ensureRootComposition(model.config), value, model.config.rootCanvasMinHeightPx ?? 520) }, "Changed exact Card page height")} />
+            <button type="button" className="min-h-10 w-full rounded-md border border-white/15 px-2 text-xs" onClick={() => model.patchConfig({ rootComposition: setRootPageHeightPreservingBounds(ensureRootComposition(model.config), fitRootCanvasToContent(model.config), model.config.rootCanvasMinHeightPx ?? 520) }, "Fit Card page to content")}>Fit to content</button>
             <p className="text-[10px] text-white/50">Page size is published. Pasteboard, drawers, the toolbar, and Utility Layer never change it.</p>
           </div>
         )}
