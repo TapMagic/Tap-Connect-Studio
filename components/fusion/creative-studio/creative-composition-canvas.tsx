@@ -734,13 +734,23 @@ function NodeVisual({
           data-icon-opacity={String(opacity)}
           data-icon-radius={String(radius)}
         >
-          {node.props.iconProvider === "iconify" && node.props.iconCollection && node.props.iconName ? <img /* eslint-disable-line @next/next/no-img-element */
+          {typeof node.props.iconSvg === "string" && node.props.iconSvg.includes("<svg") ? (
+            <span
+              className="grid h-full w-full place-items-center [&_svg]:h-full [&_svg]:w-full"
+              data-icon-provider={str(node.props.iconProvider, "native")}
+              data-icon-svg="true"
+              data-icon-canonical={str(node.props.icon, "")}
+              style={{ color: fill }}
+              aria-hidden
+              dangerouslySetInnerHTML={{ __html: String(node.props.iconSvg) }}
+            />
+          ) : node.props.iconProvider === "iconify" && node.props.iconCollection && node.props.iconName ? <img /* eslint-disable-line @next/next/no-img-element */
             src={`https://api.iconify.design/${encodeURIComponent(str(node.props.iconCollection))}/${encodeURIComponent(str(node.props.iconName))}.svg?color=${encodeURIComponent(fill)}`}
             alt={node.props.decorative === true ? "" : str(node.props.accessibleLabel, "Icon")}
             className="h-full w-full object-contain"
             data-icon-provider="iconify"
             style={strokeWidth > 0 ? { filter: `drop-shadow(0 0 0 ${stroke})` } : undefined}
-          /> : <ElementIcon name={str(node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />}
+          /> : <ElementIcon name={str(node.props.iconName || node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />}
         </div>
       );
     }

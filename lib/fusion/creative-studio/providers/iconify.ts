@@ -1,4 +1,9 @@
 import "server-only";
+import { createIconAsset, type IconAsset } from "@/lib/fusion/creative-studio/icon-asset";
+import {
+  ICONIFY_APPROVED_PREFIXES,
+  normalizeIconifySearch,
+} from "@/lib/fusion/creative-studio/iconify-normalize";
 
 export type CanonicalIconProviderResult = {
   provider: "iconify";
@@ -8,21 +13,15 @@ export type CanonicalIconProviderResult = {
   license?: { title?: string; spdx?: string; url?: string };
   author?: { name?: string; url?: string };
   source: string;
-  /** Inline SVG markup for visual library tiles. */
+  /** Sanitized inline SVG markup for visual library tiles. */
   svg?: string;
+  viewBox?: string;
+  renderMode?: IconAsset["renderMode"];
+  width?: number;
+  height?: number;
 };
 
-const APPROVED_PREFIXES = new Set(["lucide", "tabler", "ph", "material-symbols", "ri"]);
-
-export function normalizeIconifySearch(value: unknown): CanonicalIconProviderResult[] {
-  const icons = value && typeof value === "object" && Array.isArray((value as { icons?: unknown }).icons) ? (value as { icons: unknown[] }).icons : [];
-  return icons.flatMap((entry) => {
-    if (typeof entry !== "string" || !entry.includes(":")) return [];
-    const [collection, name] = entry.split(":", 2);
-    if (!collection || !name) return [];
-    return [{ provider: "iconify" as const, collection, name, canonicalId: `${collection}:${name}`, source: `https://icon-sets.iconify.design/${collection}/${name}/` }];
-  });
-}
+export { normalizeIconifySearch };
 
 async function fetchIconSvg(collection: string, name: string): Promise<string | undefined> {
   try {
@@ -32,21 +31,46 @@ async function fetchIconSvg(collection: string, name: string): Promise<string | 
     );
     if (!response.ok) return undefined;
     const svg = await response.text();
-    return svg.includes("<svg") ? svg : undefined;
+    const asset = createIconAsset({
+      provider: "iconify",
+      collection,
+      iconName: name,
+      svg,
+    });
+    return asset?.body;
   } catch {
     return undefined;
   }
 }
 
 export async function searchIconify(query: string): Promise<CanonicalIconProviderResult[]> {
-  const response = await fetch(`https://api.iconify.design/search?query=${encodeURIComponent(query)}&limit=96&prefixes=${encodeURIComponent([...APPROVED_PREFIXES].join(","))}`, { signal: AbortSignal.timeout(7000), next: { revalidate: 3600 } });
+  const response = await fetch(
+    `https://api.iconify.design/search?query=${encodeURIComponent(query)}&limit=96&prefixes=${encodeURIComponent(ICONIFY_APPROVED_PREFIXES.join(","))}`,
+    { signal: AbortSignal.timeout(7000), next: { revalidate: 3600 } }
+  );
   if (!response.ok) throw new Error(`Iconify search failed: ${response.status}`);
   const icons = normalizeIconifySearch(await response.json()).slice(0, 48);
   const withSvg = await Promise.all(
-    icons.map(async (icon) => ({
-      ...icon,
-      svg: await fetchIconSvg(icon.collection, icon.name),
-    }))
+    icons.map(async (icon) => {
+      const svg = await fetchIconSvg(icon.collection, icon.name);
+      if (!svg) return { ...icon };
+      const asset = createIconAsset({
+        provider: "iconify",
+        collection: icon.collection,
+        iconName: icon.name,
+        svg,
+        source: icon.source,
+      });
+      if (!asset) return { ...icon };
+      return {
+        ...icon,
+        svg: asset.body,
+        viewBox: asset.viewBox,
+        renderMode: asset.renderMode,
+        width: asset.width,
+        height: asset.height,
+      };
+    })
   );
-  return withSvg;
+  return withSvg.sort((a, b) => Number(Boolean(b.svg)) - Number(Boolean(a.svg)));
 }
