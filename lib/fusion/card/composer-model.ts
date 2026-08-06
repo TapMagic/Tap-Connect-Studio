@@ -8,6 +8,7 @@ import {
 } from "@/lib/fusion/creative-studio/composition";
 import { buttonElementDefaults, mapElementDefaults } from "@/lib/fusion/card/designer-elements";
 import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
+import { layoutStackChildren } from "@/lib/fusion/creative-studio/container-resize";
 
 export type CardSurfaceKind = NonNullable<TapCardSection["surfaceKind"]>;
 export type CardElementKind =
@@ -238,11 +239,13 @@ export function insertRootContainerPreset(
     x, y, width, height,
     zIndex: maxZ + 1,
     name: `${definition.label} Container`,
-    groupId,
+    // Hierarchy identity for Layers only — not a true Group selection set.
+    groupId: null,
     props: {
       componentKind: "container",
       elementKind: "container",
       presetId,
+      containerGroupId: groupId,
       layout: presetId === "blank" ? "free" : "stack",
       resizePolicy: "reflow",
       fill: presetId === "blank" ? "transparent" : presetId === "offer" ? "#27104f" : "#171b24",
@@ -253,26 +256,26 @@ export function insertRootContainerPreset(
       padding: 18,
       gap: 12,
       opacity: 1,
+      contentEditing: false,
+      selectionMode: "parent",
       childIds: [] as string[],
     },
   };
   const source = presetId === "blank" ? [] : PRESET_CHILDREN[presetId];
-  const gap = .018;
-  const innerX = x + width * .06;
-  const innerWidth = width * .88;
-  const childHeight = source.length ? Math.max(.055, (height * .82 - gap * (source.length - 1)) / source.length) : 0;
-  const children = source.map(([kind, props], index) => {
+  const staged = source.map(([kind, props], index) => {
     const child = presetElement(kind, root.nodes.length + index, props);
     return {
       ...child,
-      x: innerX,
-      y: y + height * .09 + index * (childHeight + gap),
-      width: innerWidth,
-      height: childHeight,
       zIndex: maxZ + 2 + index,
-      groupId,
-      props: { ...child.props, containerId, presetChildRole: kind },
+      groupId: null,
+      props: { ...child.props, containerId, containerGroupId: groupId, presetChildRole: kind },
     };
+  });
+  const children = layoutStackChildren({
+    container: { x, y, width, height },
+    children: staged,
+    padding: 0.06,
+    gap: 0.016,
   });
   container.props.childIds = children.map((node) => node.id);
   const nodes = [...root.nodes, container, ...children];
