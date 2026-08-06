@@ -53,10 +53,11 @@ const BUTTON_STYLE_KEYS = ["presentation", "radius", "cornersLinked", "radiusTop
 
 function useDeepLeftPanelHost(section: string | null, targetLabel: string, capabilityLabel: string) {
   const deepLeft = useDeepLeftEditorOptional();
-  const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
+  const [portalGeneration, setPortalGeneration] = useState(0);
   useEffect(() => {
-    if (!deepLeft || !section) {
-      setPortalEl(null);
+    if (!deepLeft) return;
+    if (!section) {
+      if (deepLeft.session.mode === "edit") deepLeft.closeEdit();
       return;
     }
     deepLeft.openEdit({
@@ -66,15 +67,19 @@ function useDeepLeftPanelHost(section: string | null, targetLabel: string, capab
       previousLibraryTool: deepLeft.session.previousLibraryTool || "templates",
       selectionGeneration: deepLeft.session.selectionGeneration,
     });
-    const sync = () => setPortalEl(document.getElementById(deepLeft.portalId));
-    sync();
-    const timer = window.setInterval(sync, 50);
+    // Poll for the left-drawer portal mount after Edit mode swaps library content.
+    const timer = window.setInterval(() => {
+      if (document.getElementById(deepLeft.portalId)) {
+        setPortalGeneration((value) => value + 1);
+        window.clearInterval(timer);
+      }
+    }, 32);
     return () => window.clearInterval(timer);
   }, [deepLeft, section, targetLabel, capabilityLabel]);
-  useEffect(() => {
-    if (!deepLeft || section) return;
-    if (deepLeft.session.mode === "edit") deepLeft.closeEdit();
-  }, [deepLeft, section]);
+  const portalEl = deepLeft && section && typeof document !== "undefined"
+    ? document.getElementById(deepLeft.portalId)
+    : null;
+  void portalGeneration;
   return { deepLeft, portalEl };
 }
 
