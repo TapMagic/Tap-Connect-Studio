@@ -14,7 +14,7 @@ export type StarterTextCombination = {
   label: string;
   structure: string;
   style: string;
-  lines: Array<{ text: string; fontSize: number; fontWeight: number; fontFamily?: string; letterSpacingEm?: number; yOffset?: number }>;
+  lines: Array<{ text: string; fontSize: number; fontWeight: number; fontFamily?: string; letterSpacingEm?: number; yOffset?: number; color?: string }>;
   effects?: Record<string, unknown>;
 };
 
@@ -95,12 +95,12 @@ export const STARTER_TEXT_COMBINATIONS: readonly StarterTextCombination[] = [
   },
   {
     id: "playful-offset",
-    label: "Playful offset composition",
+    label: "Super Fun",
     structure: "offset staggered playful pair",
     style: "linear-gradient(135deg,#fde047,#f472b6)",
     lines: [
-      { text: "SUPER", fontSize: 22, fontWeight: 900, fontFamily: '"Fredoka", sans-serif', yOffset: -0.02 },
-      { text: "FUN!", fontSize: 40, fontWeight: 900, fontFamily: '"Fredoka", sans-serif', yOffset: 0.04 },
+      { text: "SUPER", fontSize: 22, fontWeight: 900, fontFamily: '"Fredoka", sans-serif', yOffset: -0.02, color: "#fde047" },
+      { text: "FUN!", fontSize: 40, fontWeight: 900, fontFamily: '"Fredoka", sans-serif', yOffset: 0.06, color: "#f472b6" },
     ],
   },
   {
