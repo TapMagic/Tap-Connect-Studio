@@ -150,11 +150,11 @@ export function LiveDeviceQrPanel({
           <p className="text-sm font-medium text-white">
             {STUDIO_WORDING.openLiveDevice}
           </p>
-          <p className="text-[11px] text-white/45" data-testid="preview-qr-card-name">
+          <p className="text-[11px] text-white/75" data-testid="preview-qr-card-name">
             {cardName} · {STUDIO_WORDING.draftPreview} ·{" "}
             {STUDIO_WORDING.previewOnlyNotPublished}
           </p>
-          <p className="text-[10px] text-white/35" data-testid="preview-qr-meta">
+          <p className="text-[10px] text-white/75" data-testid="preview-qr-meta">
             Updated {new Date(updatedAt).toLocaleString()}
             {expiresAt ? ` · Expires ${new Date(expiresAt).toLocaleString()}` : ""}
             {` · rev ${sessionRevision} · ${followMode}`}
