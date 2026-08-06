@@ -1713,8 +1713,19 @@ export function CreativeCompositionCanvas({
     >
       <div
         className="pointer-events-none absolute inset-0"
-        style={{ ...backgroundStyle, ...backgroundTreatmentStyle }}
+        style={{
+          ...backgroundStyle,
+          ...backgroundTreatmentStyle,
+          opacity: block.background?.opacity ?? 1,
+          filter: [
+            backgroundTreatmentStyle?.filter,
+            `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`,
+          ]
+            .filter(Boolean)
+            .join(" "),
+        }}
         data-testid="composition-background-renderer"
+        data-background-opacity={String(block.background?.opacity ?? 1)}
         aria-hidden
       />
       {editMode && (block.safeAreaPaddingPx || 0) > 0 ? (
