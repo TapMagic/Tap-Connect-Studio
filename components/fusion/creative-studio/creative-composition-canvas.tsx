@@ -37,6 +37,17 @@ import { buildButtonHref, buildMapHref, type MapElementProps } from "@/lib/fusio
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 import { copyCompositionNodes, copyCompositionNodeStyle, hasCompositionClipboard, hasCompositionStyleClipboard, pasteCompositionNodes, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
 import { buttonContent, buttonContentNode } from "@/lib/fusion/creative-studio/button-composition";
+import {
+  applyContainerResize,
+  moveContainerWithChildren,
+  normalizeResizePolicy,
+} from "@/lib/fusion/creative-studio/container-resize";
+import {
+  containerChildIds,
+  isContainerNode,
+  resolveContainerParent,
+  selectionModeForNode,
+} from "@/lib/fusion/creative-studio/selection-mode";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -336,6 +347,7 @@ function NodeVisual({
       WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
       WebkitTextStroke: num(node.props.outlineWidth, 0) > 0 ? `${num(node.props.outlineWidth, 0)}px ${str(node.props.outlineColor, str(node.props.color, "#f8fafc"))}` : undefined,
       textShadow: [
+        str(node.props.textShadowLayers),
         num(node.props.glow, 0) > 0 ? `0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")}` : "",
         num(node.props.shadow, 0) > 0 ? `0 ${Math.max(1, num(node.props.shadow, 0) / 3)}px ${num(node.props.shadow, 0)}px rgba(0,0,0,.7)` : "",
       ].filter(Boolean).join(", ") || undefined,
@@ -382,7 +394,8 @@ function NodeVisual({
       <div
         className="flex h-full w-full items-center overflow-hidden px-1"
         data-text-box-background="transparent"
-        data-glyph-effect={node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"}
+        data-glyph-effect={node.props.glyphEffect ? String(node.props.glyphEffect) : node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"}
+        data-text-box={node.props.boxFill || node.props.boxGradient || node.props.boxBorder ? "true" : "false"}
         style={{
           color: str(node.props.color, "#f8fafc"),
           fontSize: num(node.props.fontSize, 18),
@@ -414,10 +427,14 @@ function NodeVisual({
                 ? "flex-end"
                 : "center",
           background: node.props.boxGradient ? str(node.props.boxGradient) : node.props.boxFill ? str(node.props.boxFill) : "transparent",
-          border: node.props.boxBorder ? str(node.props.boxBorder) : undefined,
-          borderRadius: node.props.boxRadius ? num(node.props.boxRadius, 0) : undefined,
-          padding: node.props.boxPadding ? num(node.props.boxPadding, 0) : undefined,
-          boxShadow: node.props.boxShadow ? str(node.props.boxShadow) : undefined,
+          border: node.props.boxBorder ? `1px solid ${str(node.props.boxBorder)}` : undefined,
+          borderRadius: node.props.boxRadius != null ? num(node.props.boxRadius, 0) : undefined,
+          padding: node.props.boxPadding != null ? num(node.props.boxPadding, 0) : undefined,
+          boxShadow: num(node.props.boxShadow, 0)
+            ? `0 8px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)`
+            : num(node.props.boxGlow, 0)
+              ? `0 0 ${num(node.props.boxGlow, 0)}px ${str(node.props.color, "#b8ff2c")}`
+              : undefined,
         }}
       >
         <InlineEditableText
@@ -681,20 +698,43 @@ function NodeVisual({
   if (node.primitive === "shape") {
     const elementKind = str(node.props.elementKind);
     if (elementKind === "icon") {
+      const fill = str(node.props.fill, "#b8ff2c");
+      const stroke = str(node.props.stroke, fill);
+      const strokeWidth = num(node.props.strokeWidth, 0);
+      const opacity = num(node.props.opacity, 1);
+      const radius = num(node.props.radius, 0);
+      const backing = str(node.props.boxFill, "transparent");
       return (
         <div
           className="flex h-full w-full items-center justify-center"
-          style={{ color: str(node.props.fill, "#b8ff2c"), filter: num(node.props.glow, 0) ? `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${str(node.props.fill, "#b8ff2c")})` : undefined }}
+          style={{
+            color: fill,
+            opacity,
+            borderRadius: radius,
+            background: backing === "transparent" ? undefined : backing,
+            boxShadow: num(node.props.boxShadow, 0)
+              ? `0 8px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)`
+              : num(node.props.boxGlow, 0) || num(node.props.glow, 0)
+                ? `0 0 ${num(node.props.boxGlow, num(node.props.glow, 0))}px ${fill}`
+                : undefined,
+            filter: num(node.props.glow, 0) ? `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${fill})` : undefined,
+          }}
           role={node.props.decorative === true ? undefined : "img"}
           aria-hidden={node.props.decorative === true ? true : undefined}
           aria-label={node.props.decorative === true ? undefined : str(node.props.accessibleLabel, "Icon")}
           data-icon-id={str(node.props.icon, "sparkles")}
+          data-icon-fill={fill}
+          data-icon-stroke={stroke}
+          data-icon-stroke-width={String(strokeWidth)}
+          data-icon-opacity={String(opacity)}
+          data-icon-radius={String(radius)}
         >
           {node.props.iconProvider === "iconify" && node.props.iconCollection && node.props.iconName ? <img /* eslint-disable-line @next/next/no-img-element */
-            src={`https://api.iconify.design/${encodeURIComponent(str(node.props.iconCollection))}/${encodeURIComponent(str(node.props.iconName))}.svg?color=${encodeURIComponent(str(node.props.fill, "#b8ff2c"))}`}
+            src={`https://api.iconify.design/${encodeURIComponent(str(node.props.iconCollection))}/${encodeURIComponent(str(node.props.iconName))}.svg?color=${encodeURIComponent(fill)}`}
             alt={node.props.decorative === true ? "" : str(node.props.accessibleLabel, "Icon")}
             className="h-full w-full object-contain"
             data-icon-provider="iconify"
+            style={strokeWidth > 0 ? { filter: `drop-shadow(0 0 0 ${stroke})` } : undefined}
           /> : <ElementIcon name={str(node.props.icon, "sparkles")} size={num(node.props.iconSize, 48)} />}
         </div>
       );
@@ -1103,6 +1143,62 @@ export function CreativeCompositionCanvas({
       if (e.key === "Escape" && selectedNodeIds.length) {
         e.preventDefault();
         e.stopPropagation();
+        // Content mode exit: Escape returns to the parent Container/Button
+        // instead of clearing selection entirely.
+        const selectedNode = block.nodes.find((node) => node.id === selectedNodeIds[0]);
+        const contentParent =
+          selectedNode && selectedNode.props.contentEditing === true
+            ? selectedNode
+            : selectedNode
+              ? resolveContainerParent(block.nodes, selectedNode.id)
+              : null;
+        if (
+          contentParent &&
+          contentParent.props.contentEditing === true &&
+          selectedNode &&
+          selectedNode.id !== contentParent.id
+        ) {
+          commitNodes(
+            block.nodes.map((node) =>
+              node.id === contentParent.id
+                ? {
+                    ...node,
+                    props: {
+                      ...node.props,
+                      contentEditing: false,
+                      selectionMode: "parent",
+                      activeButtonContentNodeId: undefined,
+                      activeComponentContentNodeId: undefined,
+                    },
+                  }
+                : node
+            ),
+            "Finished editing contents"
+          );
+          onSelectNodes?.([contentParent.id]);
+          return;
+        }
+        if (selectedNode?.props.contentEditing === true) {
+          commitNodes(
+            block.nodes.map((node) =>
+              node.id === selectedNode.id
+                ? {
+                    ...node,
+                    props: {
+                      ...node.props,
+                      contentEditing: false,
+                      selectionMode: "parent",
+                      activeButtonContentNodeId: undefined,
+                      activeComponentContentNodeId: undefined,
+                    },
+                  }
+                : node
+            ),
+            "Finished editing contents"
+          );
+          onSelectNodes?.([selectedNode.id]);
+          return;
+        }
         onSelectNodes?.([]);
         return;
       }
@@ -1188,29 +1284,51 @@ export function CreativeCompositionCanvas({
     e.stopPropagation();
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
+
+    // Parent vs content law: children of a Container are only directly
+    // selectable while the parent is in content mode.
+    let target = node;
+    const containerParent = resolveContainerParent(block.nodes, node.id);
+    if (containerParent && containerParent.id !== node.id) {
+      const parentMode = selectionModeForNode(containerParent);
+      if (parentMode !== "content") {
+        target = containerParent;
+      }
+    }
+
     const multi = e.metaKey || e.ctrlKey || e.shiftKey;
     let nextIds: string[];
     if (multi) {
-      nextIds = selectedSet.has(node.id)
-        ? selectedNodeIds.filter((id) => id !== node.id)
-        : [...selectedNodeIds, node.id];
-    } else if (!selectedSet.has(node.id) || selectedNodeIds.length > 1) {
-      nextIds = expandSelectionToGroups(block.nodes, [node.id]);
+      nextIds = selectedSet.has(target.id)
+        ? selectedNodeIds.filter((id) => id !== target.id)
+        : [...selectedNodeIds, target.id];
+    } else if (!selectedSet.has(target.id) || selectedNodeIds.length > 1) {
+      nextIds = expandSelectionToGroups(block.nodes, [target.id]);
     } else {
       nextIds = expandSelectionToGroups(block.nodes, selectedNodeIds);
     }
+    // Never paint child selection chrome when a Container parent is selected.
+    if (nextIds.length === 1) {
+      const only = block.nodes.find((candidate) => candidate.id === nextIds[0]);
+      if (only && isContainerNode(only) && selectionModeForNode(only) !== "content") {
+        nextIds = [only.id];
+      }
+    }
     onSelectNodes?.(nextIds);
+
     const moveIds =
       mode === "move"
-        ? expandSelectionToGroups(block.nodes, nextIds)
-        : [node.id];
+        ? isContainerNode(target)
+          ? [target.id, ...containerChildIds(block.nodes, target.id)]
+          : expandSelectionToGroups(block.nodes, nextIds)
+        : [target.id];
     setDrag({
-      id: node.id,
+      id: target.id,
       mode,
       handle,
       startX: e.clientX,
       startY: e.clientY,
-      orig: { ...node },
+      orig: { ...target },
       origNodes: block.nodes.map((n) => ({ ...n, props: { ...n.props } })),
       moveIds,
     });
@@ -1227,7 +1345,11 @@ export function CreativeCompositionCanvas({
     const dx = (e.clientX - drag.startX) / rect.width;
     const dy = (e.clientY - drag.startY) / rect.height;
     if (drag.mode === "move") {
-      const translated = translateNodesOnPasteboard(drag.origNodes, drag.moveIds, dx, dy);
+      const primary = drag.origNodes.find((node) => node.id === drag.id);
+      const translated =
+        primary && isContainerNode(primary)
+          ? moveContainerWithChildren(drag.origNodes, drag.id, dx, dy)
+          : translateNodesOnPasteboard(drag.origNodes, drag.moveIds, dx, dy);
       const snapped = snapCompositionNodes({
         nodes: translated,
         movingIds: drag.moveIds,
@@ -1250,84 +1372,101 @@ export function CreativeCompositionCanvas({
       );
       return;
     }
-    const nodes = drag.origNodes.map((n) => {
-      if (n.id !== drag.id) return n;
-      const handle = drag.handle || "se";
-      const west = handle.includes("w");
-      const east = handle.includes("e");
-      const north = handle.includes("n");
-      const south = handle.includes("s");
-      let x = west ? Math.min(n.x + n.width - 0.02, Math.max(-1, n.x + dx)) : n.x;
-      let y = north ? Math.min(n.y + n.height - 0.02, Math.max(-1, n.y + dy)) : n.y;
-      let width = west
-        ? n.width + (n.x - x)
-        : east
-          ? Math.min(2, Math.max(0.02, n.width + dx))
-          : n.width;
-      let height = north
-        ? n.height + (n.y - y)
-        : south
-          ? Math.min(2, Math.max(0.02, n.height + dy))
-          : n.height;
-      if (e.altKey) {
-        if (east) { x = n.x - dx; width = n.width + dx * 2; }
-        if (west) { x = n.x + dx; width = n.width - dx * 2; }
-        if (south) { y = n.y - dy; height = n.height + dy * 2; }
-        if (north) { y = n.y + dy; height = n.height - dy * 2; }
-      }
-      const cornerResize = (east || west) && (north || south);
-      const preservesAspect =
-        n.primitive === "image"
-          ? n.props.aspectLocked !== false
-          : n.primitive === "text"
-            ? n.props.transformMode !== "stretch_glyphs"
-            : n.props.aspectLocked === true;
-      if ((e.shiftKey || preservesAspect) && cornerResize) {
-        const aspect = drag.orig.width / drag.orig.height;
-        if (Math.abs(dx) >= Math.abs(dy)) height = width / aspect;
-        else width = height * aspect;
-        if (west) x = drag.orig.x + drag.orig.width - width;
-        if (north) y = drag.orig.y + drag.orig.height - height;
-      }
-      const isTextCorner = n.primitive === "text" && (east || west) && (north || south);
-      const scale = isTextCorner
-        ? Math.max(
-            0.2,
-            Math.min(
-              8,
-              Math.sqrt(
-                (width / Math.max(drag.orig.width, 0.02)) *
-                  (height / Math.max(drag.orig.height, 0.02))
-              )
+    const handle = drag.handle || "se";
+    const west = handle.includes("w");
+    const east = handle.includes("e");
+    const north = handle.includes("n");
+    const south = handle.includes("s");
+    const n = drag.orig;
+    let x = west ? Math.min(n.x + n.width - 0.02, Math.max(-1, n.x + dx)) : n.x;
+    let y = north ? Math.min(n.y + n.height - 0.02, Math.max(-1, n.y + dy)) : n.y;
+    let width = west
+      ? n.width + (n.x - x)
+      : east
+        ? Math.min(2, Math.max(0.02, n.width + dx))
+        : n.width;
+    let height = north
+      ? n.height + (n.y - y)
+      : south
+        ? Math.min(2, Math.max(0.02, n.height + dy))
+        : n.height;
+    if (e.altKey) {
+      if (east) { x = n.x - dx; width = n.width + dx * 2; }
+      if (west) { x = n.x + dx; width = n.width - dx * 2; }
+      if (south) { y = n.y - dy; height = n.height + dy * 2; }
+      if (north) { y = n.y + dy; height = n.height - dy * 2; }
+    }
+    const cornerResize = (east || west) && (north || south);
+    const preservesAspect =
+      n.primitive === "image"
+        ? n.props.aspectLocked !== false
+        : n.primitive === "text"
+          ? n.props.transformMode !== "stretch_glyphs"
+          : n.props.aspectLocked === true;
+    if ((e.shiftKey || preservesAspect) && cornerResize && !isContainerNode(n)) {
+      const aspect = drag.orig.width / drag.orig.height;
+      if (Math.abs(dx) >= Math.abs(dy)) height = width / aspect;
+      else width = height * aspect;
+      if (west) x = drag.orig.x + drag.orig.width - width;
+      if (north) y = drag.orig.y + drag.orig.height - height;
+    }
+    const frame = {
+      x: Math.max(-1, Math.min(2, x)),
+      y: Math.max(-1, Math.min(2, y)),
+      width: Math.min(2, Math.max(0.02, width)),
+      height: Math.min(2, Math.max(0.02, height)),
+    };
+    if (isContainerNode(n)) {
+      setDraftNodes(
+        applyContainerResize(
+          drag.origNodes,
+          n.id,
+          frame,
+          normalizeResizePolicy(n.props.resizePolicy)
+        )
+      );
+      return;
+    }
+    const isTextCorner = n.primitive === "text" && (east || west) && (north || south);
+    const scale = isTextCorner
+      ? Math.max(
+          0.2,
+          Math.min(
+            8,
+            Math.sqrt(
+              (frame.width / Math.max(drag.orig.width, 0.02)) *
+                (frame.height / Math.max(drag.orig.height, 0.02))
             )
           )
-        : 1;
-      return {
-        ...n,
-        x: Math.max(-1, Math.min(2, x)),
-        y: Math.max(-1, Math.min(2, y)),
-        width: Math.min(2, Math.max(0.02, width)),
-        height: Math.min(2, Math.max(0.02, height)),
-        props: isTextCorner
-          ? {
-              ...n.props,
-              fontSize: Math.max(
-                6,
-                Math.min(320, num(drag.orig.props.fontSize, 18) * scale)
-              ),
-              lineHeight: Math.max(
-                0.7,
-                Math.min(3, num(drag.orig.props.lineHeight, 1.2) * scale)
-              ),
-              curveRadius: Math.max(
-                8,
-                Math.min(80, num(drag.orig.props.curveRadius, 38) * scale)
-              ),
+        )
+      : 1;
+    setDraftNodes(
+      drag.origNodes.map((candidate) =>
+        candidate.id !== drag.id
+          ? candidate
+          : {
+              ...candidate,
+              ...frame,
+              props: isTextCorner
+                ? {
+                    ...candidate.props,
+                    fontSize: Math.max(
+                      6,
+                      Math.min(320, num(drag.orig.props.fontSize, 18) * scale)
+                    ),
+                    lineHeight: Math.max(
+                      0.7,
+                      Math.min(3, num(drag.orig.props.lineHeight, 1.2) * scale)
+                    ),
+                    curveRadius: Math.max(
+                      8,
+                      Math.min(80, num(drag.orig.props.curveRadius, 38) * scale)
+                    ),
+                  }
+                : candidate.props,
             }
-          : n.props,
-      };
-    });
-    setDraftNodes(nodes);
+      )
+    );
   };
 
   const onPointerUp = () => {
@@ -1454,6 +1593,7 @@ export function CreativeCompositionCanvas({
           className="pointer-events-none absolute inset-0"
           style={{ ...backgroundStyle, ...backgroundTreatmentStyle, opacity: block.background?.opacity ?? 1, filter: [backgroundTreatmentStyle?.filter, `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`].filter(Boolean).join(" ") }}
           data-testid="composition-background-renderer"
+          data-background-opacity={String(block.background?.opacity ?? 1)}
           aria-hidden
         />
         <ol className="sr-only" data-testid="composition-reading-order">
@@ -1637,12 +1777,21 @@ export function CreativeCompositionCanvas({
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);
         const box = resolveNodeBox(node, editMode);
+        const contentParentActive =
+          isContainerNode(node) &&
+          selectionModeForNode(node) === "content" &&
+          !selected &&
+          selectedNodeIds.some((id) => {
+            const child = block.nodes.find((candidate) => candidate.id === id);
+            return child && String(child.props.containerId || "") === node.id;
+          });
         return (
           <div
             key={node.id}
             className={cn(
               "absolute",
-              editMode && !node.locked && "cursor-move"
+              editMode && !node.locked && "cursor-move",
+              contentParentActive && "outline outline-1 outline-dashed outline-[#b8ff2c]/45"
             )}
             style={{
               left: `${box.left * 100}%`,
@@ -1661,6 +1810,8 @@ export function CreativeCompositionCanvas({
             data-primitive={node.primitive}
             data-element-kind={String(node.props.elementKind || node.primitive)}
             data-selected={selected ? "true" : "false"}
+            data-selection-mode={selectionModeForNode(node)}
+            data-content-parent={contentParentActive ? "true" : undefined}
             data-locked={node.locked ? "true" : "false"}
             data-group={node.groupId || undefined}
             data-anchor={node.anchor || "top-left"}

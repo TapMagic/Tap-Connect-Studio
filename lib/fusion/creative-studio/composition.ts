@@ -942,7 +942,11 @@ export function deleteNodes(
   return nodes.filter((n) => !set.has(n.id) || n.locked);
 }
 
-/** Expand selection so grouped members move/select together. */
+/**
+ * Expand selection so true Group members move/select together.
+ * Container trees must NOT expand here — Containers use containerId/childIds
+ * and explicit parent/content selection modes.
+ */
 export function expandSelectionToGroups(
   nodes: CreativeCompositionNode[],
   ids: string[]
@@ -950,12 +954,18 @@ export function expandSelectionToGroups(
   const seed = new Set(ids);
   const groupIds = new Set<string>();
   for (const n of nodes) {
-    if (seed.has(n.id) && n.groupId) groupIds.add(n.groupId);
+    if (!seed.has(n.id) || !n.groupId) continue;
+    // Containers and their children share a durable hierarchy id for Layers,
+    // but must not participate in Group selection expansion.
+    if (n.props.componentKind === "container" || n.props.containerId) continue;
+    groupIds.add(n.groupId);
   }
   if (!groupIds.size) return [...ids];
   const out = new Set(ids);
   for (const n of nodes) {
-    if (n.groupId && groupIds.has(n.groupId)) out.add(n.id);
+    if (!n.groupId || !groupIds.has(n.groupId)) continue;
+    if (n.props.componentKind === "container" || n.props.containerId) continue;
+    out.add(n.id);
   }
   return [...out];
 }

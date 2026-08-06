@@ -293,11 +293,12 @@ function LayersDrawer({ model }: { model: CardEditorLiveModel }) {
     );
   };
   const rootNodes = [...ensureRootComposition(model.config).nodes].sort((a, b) => b.zIndex - a.zIndex);
+  const rootTopLevel = rootNodes.filter((node) => !node.props.containerId);
   return <div className="space-y-2" data-testid="card-layers-drawer">
     <p className="text-[9px] text-white/45">Authoritative object tree · topmost layer first · Shift-click for multi-select</p>
     <div className="rounded-md border border-white/10 p-1" data-layer-container="card-root">
       <LayerButton active={!model.selected && !(model.selectedCompositionNodeIds?.length)} label="Card root" onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); }} />
-      {rootNodes.map((node) => <LayerObjectRow key={node.id} model={model} node={node} parentId={null} active={!model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id))} onSelect={selectNode} />)}
+      {rootTopLevel.map((node) => <LayerObjectRow key={node.id} model={model} node={node} parentId={null} siblings={rootNodes} active={!model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id))} onSelect={selectNode} />)}
     </div>
     {model.sorted.map((section) => <div key={section.id} className="rounded-md border border-white/10 p-1" data-layer-container={section.id}>
       <div className="flex items-center gap-1">
@@ -312,9 +313,12 @@ function LayersDrawer({ model }: { model: CardEditorLiveModel }) {
   </div>;
 }
 
-function LayerObjectRow({ model, node, parentId, active, onSelect }: { model: CardEditorLiveModel; node: CreativeCompositionNode; parentId: string | null; active: boolean; onSelect: (parentId: string | null, nodeId: string, additive: boolean) => void }) {
+function LayerObjectRow({ model, node, parentId, siblings, active, onSelect }: { model: CardEditorLiveModel; node: CreativeCompositionNode; parentId: string | null; siblings?: CreativeCompositionNode[]; active: boolean; onSelect: (parentId: string | null, nodeId: string, additive: boolean) => void }) {
   const storedContent = node.props.contentComposition as { nodes?: CreativeCompositionNode[] } | undefined;
   const nested = node.primitive === "button" ? buttonContent(node.props, node.id).nodes : Array.isArray(storedContent?.nodes) ? storedContent.nodes : [];
+  const containerChildren = (siblings || [])
+    .filter((candidate) => String(candidate.props.containerId || "") === node.id)
+    .sort((left, right) => right.zIndex - left.zIndex);
   const label = node.name || String(node.props.elementKind || node.primitive);
   const [renaming, setRenaming] = useState(false);
   const [draftName, setDraftName] = useState(label);
@@ -324,7 +328,19 @@ function LayerObjectRow({ model, node, parentId, active, onSelect }: { model: Ca
     else setDraftName(label);
     setRenaming(false);
   };
-  return <div className="ml-2" data-layer-object-id={node.id}>
+  const enterContentAndSelectChild = (childId: string, childLabel: string, selectChildOnCanvas: boolean) => {
+    onSelect(parentId, selectChildOnCanvas ? childId : node.id, false);
+    model.patchCompositionNode(node.id, {
+      props: {
+        ...node.props,
+        contentEditing: true,
+        selectionMode: "content",
+        activeButtonContentNodeId: childId,
+        activeComponentContentNodeId: childId,
+      },
+    }, `Selected ${childLabel}`);
+  };
+  return <div className="ml-2" data-layer-object-id={node.id} data-component-kind={String(node.props.componentKind || "") || undefined}>
     <div className={cn("flex items-center gap-0.5 rounded", active ? "bg-[#b8ff2c]/10 text-[#b8ff2c]" : "text-white/65 hover:bg-white/5")}>
       {renaming ? <input autoFocus aria-label={`Rename ${label}`} value={draftName} className="h-8 min-w-0 flex-1 rounded border border-[#b8ff2c]/50 bg-black/30 px-2 text-[10px]" onChange={(event) => setDraftName(event.target.value)} onBlur={commitName} onKeyDown={(event) => { if (event.key === "Enter") commitName(); if (event.key === "Escape") { setDraftName(label); setRenaming(false); } }} /> : <button type="button" aria-pressed={active} className="min-h-9 min-w-0 flex-1 truncate px-2 text-left text-[10px]" onDoubleClick={() => setRenaming(true)} onClick={(event) => onSelect(parentId, node.id, event.shiftKey || event.metaKey || event.ctrlKey)}>{label}</button>}
       <LayerIconButton label={node.visible === false ? `Show ${label}` : `Hide ${label}`} onClick={() => model.patchCompositionNode(node.id, { visible: node.visible === false }, `${node.visible === false ? "Showed" : "Hid"} ${label}`)}>{node.visible === false ? <EyeOff /> : <Eye />}</LayerIconButton>
@@ -335,7 +351,12 @@ function LayerObjectRow({ model, node, parentId, active, onSelect }: { model: Ca
       <LayerIconButton label={`Duplicate ${label}`} onClick={() => model.duplicateElements?.([node.id], parentId)}><Copy /></LayerIconButton>
       <LayerIconButton label={`Delete ${label}`} onClick={() => model.deleteElements?.([node.id], parentId)} danger><Trash2 /></LayerIconButton>
     </div>
-    {nested.length ? <div className="mb-1 ml-3 border-l border-white/10 pl-1" data-nested-composition={node.id}>{nested.map((child) => <button key={child.id} type="button" className="block min-h-7 w-full truncate rounded px-2 text-left text-[9px] text-white/45 hover:bg-white/5 hover:text-white/75" data-nested-object-id={child.id} onClick={() => { onSelect(parentId, node.id, false); model.patchCompositionNode(node.id, { props: { ...node.props, contentEditing: true, activeButtonContentNodeId: child.id, activeComponentContentNodeId: child.id } }, `Selected ${child.name || child.props.buttonContentRole || child.props.componentContentRole || "component content"}`); }}>↳ {child.name || String(child.props.buttonContentRole || child.props.componentContentRole || child.primitive)}</button>)}</div> : null}
+    {containerChildren.length ? <div className="mb-1 ml-3 border-l border-white/10 pl-1" data-container-children={node.id}>{containerChildren.map((child) => {
+      const childLabel = child.name || String(child.props.presetChildRole || child.props.elementKind || child.primitive);
+      const childActive = !model.selected && Boolean(model.selectedCompositionNodeIds?.includes(child.id));
+      return <button key={child.id} type="button" aria-pressed={childActive} className={cn("block min-h-7 w-full truncate rounded px-2 text-left text-[9px]", childActive ? "bg-[#b8ff2c]/10 text-[#b8ff2c]" : "text-white/45 hover:bg-white/5 hover:text-white/75")} data-nested-object-id={child.id} onClick={() => enterContentAndSelectChild(child.id, childLabel, true)}>↳ {childLabel}</button>;
+    })}</div> : null}
+    {nested.length ? <div className="mb-1 ml-3 border-l border-white/10 pl-1" data-nested-composition={node.id}>{nested.map((child) => <button key={child.id} type="button" className="block min-h-7 w-full truncate rounded px-2 text-left text-[9px] text-white/45 hover:bg-white/5 hover:text-white/75" data-nested-object-id={child.id} onClick={() => enterContentAndSelectChild(child.id, String(child.name || child.props.buttonContentRole || child.props.componentContentRole || child.primitive), false)}>↳ {child.name || String(child.props.buttonContentRole || child.props.componentContentRole || child.primitive)}</button>)}</div> : null}
   </div>;
 }
 
