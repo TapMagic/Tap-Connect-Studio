@@ -13,9 +13,11 @@ import {
   closeDeepLeftEdit,
   deepLeftGoBack,
   openDeepLeftEdit,
+  setDeepLeftNestedPage,
   type DeepLeftEditorSession,
   type DeepLeftNestedPage,
 } from "@/lib/fusion/creative-studio/deep-left-editor";
+import type { SelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
 
 type DeepLeftEditorApi = {
   session: DeepLeftEditorSession;
@@ -25,6 +27,8 @@ type DeepLeftEditorApi = {
     capabilityLabel: string;
     previousLibraryTool: string;
     selectionGeneration: number;
+    selectionRef?: SelectionRef | null;
+    page?: DeepLeftNestedPage;
   }) => void;
   setNestedPage: (page: DeepLeftNestedPage) => void;
   goBack: () => void;
@@ -45,11 +49,13 @@ export function DeepLeftEditorProvider({ children }: { children: ReactNode }) {
     capabilityLabel: string;
     previousLibraryTool: string;
     selectionGeneration: number;
+    selectionRef?: SelectionRef | null;
+    page?: DeepLeftNestedPage;
   }) => {
     setSession((current) => openDeepLeftEdit(current, input));
   }, []);
   const setNestedPage = useCallback((page: DeepLeftNestedPage) => {
-    setSession((current) => (current.mode === "edit" ? { ...current, nestedPage: page } : current));
+    setSession((current) => setDeepLeftNestedPage(current, page));
   }, []);
   const goBack = useCallback(() => {
     setSession((current) => deepLeftGoBack(current));
