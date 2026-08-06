@@ -159,11 +159,11 @@ export function LiveDeviceQrPanel({
             {expiresAt ? ` · Expires ${new Date(expiresAt).toLocaleString()}` : ""}
             {` · rev ${sessionRevision} · ${followMode}`}
           </p>
-          <p className="text-[10px] text-white/40" data-testid="preview-lan-status">
+          <p className="text-[10px] text-white/75" data-testid="preview-lan-status">
             {reachable ? "LAN reachable — same Wi-Fi required for phone scan" : "LAN unreachable — configure a phone-reachable preview URL"}
           </p>
           <p
-            className="text-[10px] text-white/40"
+            className="text-[10px] text-white/75"
             data-testid="preview-status-label"
             data-status={status}
           >
