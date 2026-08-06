@@ -113,6 +113,7 @@ import {
   createSelectionRef,
   type SelectionRef,
 } from "@/lib/fusion/creative-studio/selection-ref";
+import { buildObjectSelectionRef } from "@/lib/fusion/creative-studio/selection-mode";
 import {
   OUTPUT_PROFILES,
   OUTPUT_PROFILE_REGISTRY_VERSION,
@@ -476,26 +477,66 @@ export function TapCardBuilder({
     selectionGenerationRef.current += 1;
   }
   const selectionGeneration = selectionGenerationRef.current;
-  const selectionRef = createSelectionRef({
-    documentId: activeDocumentId,
-    pageId: "card-page",
-    revision: draftRevision,
-    objectKind:
-      selectedObject.type === "card"
-        ? "root_surface"
-        : selectedObject.type === "section"
-          ? "section"
-          : "element",
-    objectId: selectedObject.type === "card" ? "card-page" : selectedObject.id,
-    parentId:
-      selectedObject.type === "card"
-        ? null
-        : selectedObject.type === "section"
-          ? "card-page"
-          : selectedObject.sectionId || "card-page",
-    childPath: activeChildId ? [activeChildId] : [],
-    selectionGeneration,
-  });
+  const selectionRef = (() => {
+    // No silent Card Root — empty selection uses targetLevel "none".
+    if (!explicitCardRootSelected && selectedObject.type === "card" && selectedCompositionNodeIds.length === 0 && !selectedId) {
+      return createSelectionRef({
+        documentId: activeDocumentId,
+        pageId: "card-page",
+        revision: draftRevision,
+        objectKind: "none",
+        objectId: "none",
+        parentId: null,
+        childPath: [],
+        selectionGeneration,
+        targetLevel: "none",
+      });
+    }
+    if (selectedCompositionNode) {
+      const parentNode =
+        selectedCompositionNode.props.containerId
+          ? (selectedObject.sectionId
+              ? sorted.find((section) => section.id === selectedObject.sectionId)?.composition?.nodes
+              : config.rootComposition?.nodes
+            )?.find((candidate) => candidate.id === String(selectedCompositionNode.props.containerId)) || null
+          : null;
+      return buildObjectSelectionRef({
+        documentId: activeDocumentId,
+        pageId: "card-page",
+        revision: draftRevision,
+        selectionGeneration,
+        node: selectedCompositionNode,
+        parent: parentNode,
+        childPath: activeChildId ? [activeChildId] : undefined,
+      });
+    }
+    return createSelectionRef({
+      documentId: activeDocumentId,
+      pageId: "card-page",
+      revision: draftRevision,
+      objectKind:
+        explicitCardRootSelected || selectedObject.type === "card"
+          ? "root_surface"
+          : selectedObject.type === "section"
+            ? "section"
+            : "element",
+      objectId: selectedObject.type === "card" || explicitCardRootSelected ? "card-page" : selectedObject.id,
+      parentId:
+        selectedObject.type === "card" || explicitCardRootSelected
+          ? null
+          : selectedObject.type === "section"
+            ? "card-page"
+            : selectedObject.sectionId || "card-page",
+      childPath: activeChildId ? [activeChildId] : [],
+      selectionGeneration,
+      targetLevel:
+        explicitCardRootSelected || selectedObject.type === "card"
+          ? "card-root"
+          : selectedObject.type === "section"
+            ? "surface"
+            : "component-parent",
+    });
+  })();
   const previewUtilityLayer = resolveCardUtilityLayer({
     card: config,
     profile,

@@ -1,5 +1,5 @@
 import type { CreativeCompositionNode } from "./composition";
-import type { CreativeObjectKind, SelectionRef } from "./selection-ref";
+import type { CreativeObjectKind, SelectionRef, SelectionTargetLevel } from "./selection-ref";
 import { createSelectionRef } from "./selection-ref";
 import { objectFamilyForNode, type ObjectFamily } from "./capabilities";
 
@@ -117,7 +117,6 @@ export function childRoleLabel(node: Pick<CreativeCompositionNode, "name" | "pro
 
 export function parentDisplayLabel(node: Pick<CreativeCompositionNode, "name" | "props" | "primitive">): string {
   const family = objectFamilyForNode(node);
-  if (node.name?.trim() && !node.name.includes("Container")) return node.name.trim();
   const labels: Partial<Record<ObjectFamily, string>> = {
     container: "Container",
     button: "Button",
@@ -131,16 +130,24 @@ export function parentDisplayLabel(node: Pick<CreativeCompositionNode, "name" | 
     text: "Text",
     icon: "Icon",
     image: "Image",
+    shape: "Shape",
+    divider: "Divider",
   };
-  return labels[family] || "Element";
+  // Canonical family labels win for toolbar authority (Icon never becomes Card Root
+  // or a free-form name that obscures the selected capability target).
+  if (labels[family]) return labels[family]!;
+  if (node.name?.trim() && !node.name.includes("Container")) return node.name.trim();
+  return "Element";
 }
 
 export function nestedTargetLabel(
   parent: Pick<CreativeCompositionNode, "id" | "name" | "props" | "primitive"> | null,
   child: Pick<CreativeCompositionNode, "id" | "name" | "props" | "primitive"> | null
 ): NestedTargetLabel {
+  // Never invent Card Root from a missing node pair — callers must pass an
+  // explicit card-root sentinel when Root is intentionally selected.
   if (!parent && !child) {
-    return { family: "card_root", parentLabel: "Card root", childLabel: null, display: "Card root" };
+    return { family: "card_root", parentLabel: "None", childLabel: null, display: "None" };
   }
   if (parent && child && parent.id !== child.id) {
     const parentLabel = parentDisplayLabel(parent);
@@ -162,6 +169,34 @@ export function nestedTargetLabel(
   };
 }
 
+/** Explicit Card Root label — only when Root was intentionally selected. */
+export function cardRootTargetLabel(): NestedTargetLabel {
+  return { family: "card_root", parentLabel: "Card root", childLabel: null, display: "Card root" };
+}
+
+/**
+ * Resolve toolbar / drawer breadcrumb for a selected composition node.
+ * Standalone Icon/Text/Shape use the node itself — never Card Root.
+ */
+export function selectionTargetLabelForNode(
+  nodes: readonly CreativeCompositionNode[],
+  node: CreativeCompositionNode
+): NestedTargetLabel {
+  const containerParent = resolveContainerParent(nodes, node.id);
+  if (containerParent && containerParent.id !== node.id) {
+    return nestedTargetLabel(containerParent, node);
+  }
+  if (isComponentParent(node)) {
+    const childRole = String(node.props.activeButtonContentNodeId || node.props.activeComponentContentNodeId || "");
+    if (childRole) {
+      const child = nodes.find((candidate) => candidate.id === childRole) || null;
+      if (child) return nestedTargetLabel(node, child);
+    }
+    return nestedTargetLabel(node, null);
+  }
+  return nestedTargetLabel(node, null);
+}
+
 export function resolveContainerParent(
   nodes: readonly CreativeCompositionNode[],
   nodeId: string
@@ -174,6 +209,25 @@ export function resolveContainerParent(
   return nodes.find((candidate) => candidate.id === containerId) || null;
 }
 
+export function resolveTargetLevel(
+  node: Pick<CreativeCompositionNode, "primitive" | "props">,
+  parent: Pick<CreativeCompositionNode, "id" | "primitive" | "props"> | null
+): SelectionTargetLevel {
+  const family = objectFamilyForNode(node);
+  const isChild = Boolean(parent && parent.id);
+  if (family === "icon" || node.props.buttonContentRole === "icon" || node.props.componentContentRole === "icon") {
+    return "icon-content";
+  }
+  if (family === "text" || node.props.buttonContentRole === "label" || node.props.componentContentRole === "wording") {
+    return "text-content";
+  }
+  if (node.primitive === "frame" || node.primitive === "image") return "frame";
+  if (isChild) return "component-child";
+  if (isComponentParent(node)) return "component-parent";
+  if (family === "shape" || family === "container") return "surface";
+  return "component-parent";
+}
+
 export function buildObjectSelectionRef(input: {
   documentId: string;
   pageId: string;
@@ -182,6 +236,7 @@ export function buildObjectSelectionRef(input: {
   node: CreativeCompositionNode;
   parent: CreativeCompositionNode | null;
   childPath?: readonly string[];
+  selectedCapability?: string | null;
 }): SelectionRef {
   const isChild = Boolean(input.parent && input.parent.id !== input.node.id);
   const objectKind: CreativeObjectKind = isChild
@@ -202,5 +257,7 @@ export function buildObjectSelectionRef(input: {
     parentId: input.parent?.id ?? null,
     childPath: input.childPath ?? (isChild ? [input.parent!.id, input.node.id] : [input.node.id]),
     selectionGeneration: input.selectionGeneration,
+    targetLevel: resolveTargetLevel(input.node, input.parent),
+    selectedCapability: input.selectedCapability ?? null,
   });
 }

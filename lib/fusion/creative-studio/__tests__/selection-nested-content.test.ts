@@ -18,6 +18,7 @@ import {
   exitContentMode,
   nestedTargetLabel,
   selectionModeForNode,
+  selectionTargetLabelForNode,
 } from "@/lib/fusion/creative-studio/selection-mode";
 import {
   createSelectionRef,
@@ -73,6 +74,25 @@ describe("parent/child selection and nested content", () => {
     const child = nodes.find((node) => node.props.containerId === containerId && node.props.presetChildRole === "heading")!;
     assert.equal(nestedTargetLabel(parent, null).display, "Container");
     assert.match(nestedTargetLabel(parent, child).display, /Container › /);
+  });
+
+  it("labels standalone Icon as Icon — never Card Root", () => {
+    const icon = {
+      id: "icon-1",
+      name: "Phone",
+      primitive: "shape" as const,
+      x: 0.1,
+      y: 0.1,
+      width: 0.2,
+      height: 0.2,
+      rotationDeg: 0,
+      zIndex: 1,
+      props: { elementKind: "icon", icon: "phone", iconName: "phone" },
+    };
+    assert.equal(nestedTargetLabel(icon, null).display, "Icon");
+    assert.notEqual(nestedTargetLabel(icon, null).display.toLowerCase(), "card root");
+    assert.equal(selectionTargetLabelForNode([icon], icon).display, "Icon");
+    assert.equal(nestedTargetLabel(null, null).display, "None");
   });
 
   it("rejects stale SelectionRef mutations", () => {

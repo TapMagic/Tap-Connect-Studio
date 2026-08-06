@@ -7,7 +7,20 @@ export type CreativeObjectKind =
   | "group"
   | "nested_composition"
   | "button_content"
-  | "reusable_instance";
+  | "reusable_instance"
+  | "none";
+
+/** Exact target level — Card Root is never inferred from missing selection. */
+export type SelectionTargetLevel =
+  | "document"
+  | "card-root"
+  | "component-parent"
+  | "component-child"
+  | "text-content"
+  | "icon-content"
+  | "surface"
+  | "frame"
+  | "none";
 
 export type SelectionRef = Readonly<{
   documentId: string;
@@ -17,7 +30,10 @@ export type SelectionRef = Readonly<{
   objectId: string;
   parentId: string | null;
   childPath: readonly string[];
+  /** Generation — reject mutations when selection changed. */
   selectionGeneration: number;
+  targetLevel: SelectionTargetLevel;
+  selectedCapability?: string | null;
 }>;
 
 export type SelectionAuthority = Readonly<{
@@ -94,7 +110,11 @@ function failure(
 }
 
 export function createSelectionRef(
-  input: Omit<SelectionRef, "childPath"> & { childPath?: readonly string[] }
+  input: Omit<SelectionRef, "childPath" | "targetLevel" | "selectedCapability"> & {
+    childPath?: readonly string[];
+    targetLevel?: SelectionTargetLevel;
+    selectedCapability?: string | null;
+  }
 ): SelectionRef {
   if (!input.documentId || !input.pageId || !input.objectId) {
     throw new TypeError("SelectionRef requires document, page, and object identity.");
@@ -105,6 +125,39 @@ export function createSelectionRef(
   if (!Number.isInteger(input.selectionGeneration) || input.selectionGeneration < 0) {
     throw new TypeError("SelectionRef generation must be a non-negative integer.");
   }
-  return Object.freeze({ ...input, childPath: Object.freeze([...(input.childPath ?? [])]) });
+  const targetLevel =
+    input.targetLevel ||
+    (input.objectKind === "root_surface"
+      ? "card-root"
+      : input.objectKind === "none"
+        ? "none"
+        : input.objectKind === "document"
+          ? "document"
+          : "component-parent");
+  return Object.freeze({
+    ...input,
+    targetLevel,
+    selectedCapability: input.selectedCapability ?? null,
+    childPath: Object.freeze([...(input.childPath ?? [])]),
+  });
+}
+
+export function createEmptySelectionRef(input: {
+  documentId: string;
+  pageId: string;
+  revision: number;
+  selectionGeneration: number;
+}): SelectionRef {
+  return createSelectionRef({
+    documentId: input.documentId,
+    pageId: input.pageId,
+    revision: input.revision,
+    objectKind: "none",
+    objectId: "none",
+    parentId: null,
+    childPath: [],
+    selectionGeneration: input.selectionGeneration,
+    targetLevel: "none",
+  });
 }
 
