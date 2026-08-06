@@ -256,13 +256,13 @@ function NodeVisual({
 }) {
   const elementKind = str(node.props.elementKind);
 
-  if (elementKind === "map") {
+  if (elementKind === "map" || str(node.props.componentKind) === "map") {
     const props = node.props as MapElementProps;
     const hasSetup = Boolean(props.locationId || props.address || props.mapUrl || (Number.isFinite(props.latitude) && Number.isFinite(props.longitude)));
-    if (!editMode && !hasSetup) return null;
-    const mode = str(props.mapDisplayMode, "location_card");
-    const name = str(props.locationName, "Choose a location");
-    const address = str(props.address, "Select a Workspace Location or enter an address");
+    // Preview must never make the Map disappear — show a location-card fallback.
+    const mode = str(props.mapDisplayMode, hasSetup ? "location_card" : "location_card");
+    const name = str(props.locationName, hasSetup ? "Location" : "Location setup required");
+    const address = str(props.address, hasSetup ? "" : "Add an address in Map Setup");
     const href = buildMapHref(props);
     const directions = (
       <a
