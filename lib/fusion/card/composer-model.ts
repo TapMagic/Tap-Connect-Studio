@@ -325,7 +325,7 @@ function primitiveFor(kind: CardElementKind): CreativeCompositionPrimitive {
   if (["logo", "secondary_logo", "image", "thumbnail", "image_gallery", "video", "map", "qr_image"].includes(kind)) return "image";
   if (["button", "tapsave", "campaign", "campaign_group", "experience", "contact_form", "wallet_cta", "event_rsvp"].includes(kind)) return "button";
   if (["coupon", "ticket"].includes(kind)) return "frame";
-  if (["gallery", "form"].includes(kind)) return "group";
+  if (["gallery", "form", "composition"].includes(kind)) return "group";
   if (kind === "divider") return "border";
   if (["coupon_artwork", "ticket_artwork"].includes(kind)) return "frame";
   if (["icon", "badge", "decorative_graphic"].includes(kind)) return "shape";
@@ -412,6 +412,7 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "ticket") Object.assign(semanticProps, { componentKind: "ticket", mask: "ticket", title: "ADMIT ONE", ticketId: "TICKET-001", terms: "Draft terms — review before publishing.", ownerReviewRequired: true, accessibleLabel: "Ticket", contentComposition: componentContent("ticket", node.id) });
   if (kind === "form") Object.assign(semanticProps, { componentKind: "form", heading: "Stay in touch", fields: [{ id: "email", label: "Email", type: "email", required: true }], consent: "I agree to be contacted.", liveSubmission: false, accessibleLabel: "Contact form", contentComposition: componentContent("form", node.id) });
   if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
+  if (kind === "composition") Object.assign(semanticProps, { componentKind: "container", elementKind: "composition", layout: "stack", resizePolicy: "reflow" });
   const isCompactAction = kind === "button" || kind === "tapsave";
   const isMap = kind === "map";
   const isBadge = kind === "badge";

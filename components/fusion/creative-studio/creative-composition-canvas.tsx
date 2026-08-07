@@ -725,8 +725,11 @@ function NodeVisual({
       const backingShadow = backingEnabled ? num(node.props.boxShadow, 0) : 0;
       const backingGlow = backingEnabled ? num(node.props.boxGlow, 0) : 0;
       // Path-aware artwork effects — never box-shadow on the Icon Element wrapper.
+      const glowColor = str(node.props.glowColor, fill);
+      const secondaryGlow = num(node.props.secondaryGlow, 0);
       const artworkFilter = [
-        glow > 0 ? `drop-shadow(0 0 ${glow}px ${fill})` : "",
+        glow > 0 ? `drop-shadow(0 0 ${glow}px ${glowColor})` : "",
+        secondaryGlow > 0 ? `drop-shadow(0 0 ${secondaryGlow}px ${glowColor})` : "",
         shadow > 0 ? `drop-shadow(0 ${Math.max(1, shadow / 3)}px ${shadow}px rgba(0,0,0,.55))` : "",
         blur > 0 ? `blur(${blur}px)` : "",
       ].filter(Boolean).join(" ") || undefined;
@@ -799,23 +802,44 @@ function NodeVisual({
             : badgeShape === "tag" ? "polygon(0 0,82% 0,100% 50%,82% 100%,0 100%,10% 50%)"
               : badgeShape === "shield" ? "polygon(50% 0,94% 16%,88% 65%,50% 100%,12% 65%,6% 16%)"
                 : badgeShape === "hexagon" ? "polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)" : undefined;
+      const shadow = num(node.props.boxShadow, num(node.props.shadow, 0));
+      const glow = num(node.props.boxGlow, num(node.props.glow, 0));
+      const secondaryGlow = num(node.props.secondaryGlow, 0);
+      const glowColor = str(node.props.glowColor, "#67e8f9");
+      const badgeShadow = [
+        shadow > 0 ? `0 8px ${shadow}px rgba(0,0,0,.4)` : "",
+        glow > 0 ? `0 0 ${glow}px ${glowColor}` : "",
+        secondaryGlow > 0 ? `0 0 ${secondaryGlow}px ${glowColor}` : "",
+        typeof node.props.innerShadow === "string" ? node.props.innerShadow : "",
+      ].filter(Boolean).join(", ") || undefined;
       return (
         <div
-          className="flex h-full w-full items-center justify-center px-2 text-center"
+          className="relative flex h-full w-full items-center justify-center overflow-hidden px-2 text-center"
           style={{
             background: str(node.props.gradientFill, str(node.props.fill, "#ef4444")),
             color: str(node.props.color, "#ffffff"),
             borderRadius: badgeShape === "circle" ? "50%" : badgeShape === "square" ? 0 : num(node.props.radius, 999),
             clipPath: badgeClip,
             border: num(node.props.borderWidth, 0) ? `${num(node.props.borderWidth, 0)}px solid ${str(node.props.borderColor, "#fff")}` : undefined,
-            boxShadow: num(node.props.shadow, 0) ? `0 8px ${num(node.props.shadow, 18)}px rgba(0,0,0,.4)` : undefined,
+            boxShadow: badgeShadow,
             fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
             fontSize: num(node.props.fontSize, 18),
             fontWeight: num(node.props.fontWeight, 800),
             letterSpacing: `${num(node.props.letterSpacingEm, .04)}em`,
+            opacity: num(node.props.opacity, 1),
           }}
           data-badge-shape={badgeShape}
-        >{str(node.props.text, "SALE")}</div>
+          data-material={str(node.props.materialPreset, "")}
+        >
+          {node.props.shine === true || node.props.highlight ? (
+            <span
+              aria-hidden
+              className="pointer-events-none absolute inset-0"
+              style={{ background: str(node.props.highlight, "linear-gradient(180deg,#ffffff55,#0000 45%)") }}
+            />
+          ) : null}
+          <span className="relative z-[1]">{str(node.props.text, "SALE")}</span>
+        </div>
       );
     }
     const shape = str(node.props.shape, "rounded");
