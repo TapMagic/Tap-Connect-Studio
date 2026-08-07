@@ -171,15 +171,20 @@ export const STARTER_BUTTON_PRESETS = [
   { id: "embossed", label: "Embossed", props: { presentation: "rounded", radius: 14, fill: "#1e293b", labelColor: "#e2e8f0", label: "Membership", boxShadow: 8, materialPreset: "embossed" } },
 ] as const;
 
+/** Badge library starters are shapes/designs — materials are applied separately and remain editable. */
 export const STARTER_BADGE_PRESETS = [
-  { id: "pill", label: "Pill", props: { text: "SALE", badgeShape: "pill", radius: 999, fill: "#dc2626", color: "#ffffff" } },
-  { id: "burst", label: "Burst", props: { text: "NEW", badgeShape: "burst", radius: 0, fill: "#f59e0b", color: "#111827" } },
-  { id: "ribbon", label: "Ribbon", props: { text: "FEATURED", badgeShape: "ribbon", radius: 0, fill: "#7c3aed", color: "#ffffff" } },
-  { id: "seal", label: "Seal", props: { text: "APPROVED", badgeShape: "seal", radius: 999, fill: "linear-gradient(120deg,#8a5a00,#ffe169,#b77900)", color: "#17100a" } },
-  { id: "shield", label: "Shield", props: { text: "TRUSTED", badgeShape: "shield", radius: 0, fill: "#0f766e", color: "#ecfdf5" } },
-  { id: "neon", label: "Neon", props: { text: "LIVE", badgeShape: "pill", radius: 999, fill: "#111827", color: "#67e8f9", borderWidth: 2, borderColor: "#67e8f9", boxGlow: 16 } },
-  { id: "metallic", label: "Metallic", props: { text: "VIP", badgeShape: "rounded", radius: 14, fill: "linear-gradient(120deg,#64748b,#ffffff 50%,#64748b)", color: "#111827" } },
-  { id: "glass", label: "Glass", props: { text: "OPEN", badgeShape: "rounded", radius: 16, fill: "#ffffff24", color: "#ffffff", borderWidth: 1, borderColor: "#ffffff66" } },
+  { id: "pill", label: "Pill", props: { text: "SALE", badgeShape: "pill", radius: 999, materialPreset: "flat", fill: "#dc2626", color: "#ffffff" } },
+  { id: "round", label: "Round", props: { text: "NEW", badgeShape: "circle", radius: 999, materialPreset: "soft_raised", fill: "#2563eb", color: "#ffffff" } },
+  { id: "burst", label: "Burst", props: { text: "HOT", badgeShape: "burst", radius: 0, materialPreset: "glossy", fill: "#f59e0b", color: "#111827" } },
+  { id: "starburst", label: "Starburst", props: { text: "DEAL", badgeShape: "starburst", radius: 0, materialPreset: "hard_raised", fill: "#ea580c", color: "#ffffff" } },
+  { id: "ribbon", label: "Ribbon", props: { text: "FEATURED", badgeShape: "ribbon", radius: 0, materialPreset: "flat", fill: "#7c3aed", color: "#ffffff" } },
+  { id: "corner-ribbon", label: "Corner ribbon", props: { text: "NEW", badgeShape: "corner-ribbon", radius: 0, materialPreset: "soft_raised", fill: "#db2777", color: "#ffffff" } },
+  { id: "seal", label: "Award seal", props: { text: "APPROVED", badgeShape: "seal", radius: 999, materialPreset: "gold", color: "#17100a" } },
+  { id: "shield", label: "Shield", props: { text: "VERIFIED", badgeShape: "shield", radius: 0, materialPreset: "chrome", color: "#111827" } },
+  { id: "tag", label: "Tag", props: { text: "LIMITED", badgeShape: "tag", radius: 4, materialPreset: "flat", fill: "#0f766e", color: "#ecfdf5" } },
+  { id: "vip", label: "VIP marker", props: { text: "VIP", badgeShape: "rounded", radius: 14, materialPreset: "gold", color: "#17100a" } },
+  { id: "sale", label: "Sale marker", props: { text: "SALE", badgeShape: "pill", radius: 999, materialPreset: "glossy", fill: "#dc2626", color: "#ffffff" } },
+  { id: "custom", label: "Custom", props: { text: "CUSTOM", badgeShape: "rounded", radius: 12, materialPreset: "flat", fill: "#334155", color: "#ffffff" } },
 ] as const;
 
 export type StarterCommerceLayout = {

@@ -258,7 +258,46 @@ function BadgeLibrary({ add, matches }: { add: (kind: CardElementKind, props?: R
     const materialProps = applySurfaceMaterial({ text, accessibleLabel: text, badgeShape: shape[0], radius: shape[2] }, normalizeMaterialId(materialId));
     add("badge", materialProps);
   };
-  return <div className="space-y-3" data-testid="polished-badge-library"><label className="block text-[10px] text-white/55">Wording<input value={wording} onChange={(event) => setWording(event.target.value)} className="mt-1 h-10 w-full rounded border border-white/15 bg-black/20 px-3 text-xs" /></label><button type="button" disabled={!wording.trim()} className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black disabled:opacity-40" onClick={() => place()}>Add editable Badge</button><h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Wording presets</h3><div className="grid grid-cols-2 gap-1">{BADGE_WORDING.filter(matches).map((word) => <button key={word} type="button" className="min-h-9 rounded border border-white/10 text-[9px]" onClick={() => { setWording(word); place(word); }}>{word}</button>)}</div><h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Shapes</h3><div className="grid grid-cols-2 gap-1">{BADGE_SHAPES.filter((item) => matches(item[1])).map((item) => <button key={item[0]} type="button" aria-pressed={shape[0] === item[0]} className="min-h-10 border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c]" style={{ borderRadius: item[2] }} onClick={() => setShape(item)}>{item[1]}</button>)}</div><h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Materials</h3><div className="grid grid-cols-2 gap-2" data-testid="badge-material-catalog">{MATERIAL_CATALOG.filter((item) => matches(item.label)).map((item) => <button key={item.id} type="button" aria-pressed={materialId === item.id} className="min-h-16 rounded-lg border border-white/10 p-2 text-[10px] aria-pressed:ring-2 aria-pressed:ring-[#b8ff2c]" style={{ background: materialPreviewCss(item), color: item.textColor || "#fff" }} data-testid={`badge-material-${item.id}`} onClick={() => setMaterialId(item.id)}>{item.label}</button>)}</div><h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Starter Badges</h3><div className="grid grid-cols-2 gap-2">{STARTER_BADGE_PRESETS.filter((item) => matches(item.label)).map((item) => <button key={item.id} type="button" className="min-h-16 rounded-lg border border-white/10 p-2 text-[10px]" data-testid={`starter-badge-${item.id}`} style={{ background: String(item.props.fill || item.props.gradientFill || "#334155"), color: String(item.props.color || "#fff") }} onClick={() => add("badge", applySurfaceMaterial({ ...item.props, accessibleLabel: String(item.props.text) }, normalizeMaterialId(String(item.props.materialPreset || "flat"))))}>{item.label}</button>)}</div><p className="text-[9px] text-white/45">Shape and Material are independent. After insert, both remain fully editable.</p></div>;
+  return (
+    <div className="space-y-3" data-testid="polished-badge-library" data-badge-catalog="shapes">
+      <label className="block text-[10px] text-white/55">Wording<input value={wording} onChange={(event) => setWording(event.target.value)} className="mt-1 h-10 w-full rounded border border-white/15 bg-black/20 px-3 text-xs" /></label>
+      <button type="button" disabled={!wording.trim()} className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black disabled:opacity-40" onClick={() => place()}>Add editable Badge</button>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Badge designs</h3>
+      <div className="grid grid-cols-2 gap-2" data-testid="badge-shape-catalog">
+        {STARTER_BADGE_PRESETS.filter((item) => matches(item.label)).map((item) => {
+          const preview = applySurfaceMaterial({ ...item.props }, normalizeMaterialId(String(item.props.materialPreset || "flat")));
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className="min-h-16 rounded-lg border border-white/10 p-2 text-[10px]"
+              data-testid={`starter-badge-${item.id}`}
+              data-badge-species={item.id}
+              style={{ background: String(preview.gradientFill || preview.fill || "#334155"), color: String(preview.color || item.props.color || "#fff") }}
+              onClick={() => add("badge", applySurfaceMaterial({ ...item.props, text: wording.trim() || String(item.props.text), accessibleLabel: wording.trim() || String(item.props.text) }, normalizeMaterialId(String(item.props.materialPreset || "flat"))))}
+            >
+              <span className="block font-semibold">{item.label}</span>
+              <span className="block text-[9px] opacity-70">{String(item.props.badgeShape)}</span>
+            </button>
+          );
+        })}
+      </div>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Wording presets</h3>
+      <div className="grid grid-cols-2 gap-1">{BADGE_WORDING.filter(matches).map((word) => <button key={word} type="button" className="min-h-9 rounded border border-white/10 text-[9px]" onClick={() => { setWording(word); place(word); }}>{word}</button>)}</div>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Shapes</h3>
+      <div className="grid grid-cols-2 gap-1">{BADGE_SHAPES.filter((item) => matches(item[1])).map((item) => <button key={item[0]} type="button" aria-pressed={shape[0] === item[0]} className="min-h-10 border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c]" style={{ borderRadius: item[2] }} onClick={() => setShape(item)}>{item[1]}</button>)}</div>
+      <details className="rounded-lg border border-white/10 p-2" data-testid="badge-initial-material">
+        <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-white/55">Initial material · editable after insert</summary>
+        <p className="mt-1 text-[9px] text-white/40">Gold / Glass / Chrome are Appearance recipes — not Badge types.</p>
+        <div className="mt-2 grid grid-cols-2 gap-2" data-testid="badge-material-catalog">
+          {MATERIAL_CATALOG.filter((item) => matches(item.label)).map((item) => (
+            <button key={item.id} type="button" aria-pressed={materialId === item.id} className="min-h-14 rounded-lg border border-white/10 p-2 text-[10px] aria-pressed:ring-2 aria-pressed:ring-[#b8ff2c]" style={{ background: materialPreviewCss(item), color: item.textColor || "#fff" }} data-testid={`badge-material-${item.id}`} onClick={() => setMaterialId(item.id)}>{item.label}</button>
+          ))}
+        </div>
+      </details>
+      <p className="text-[9px] text-white/45">Shape and Material stay independent. After insert, change Material without losing wording or Shape.</p>
+    </div>
+  );
 }
 
 function ProjectsDrawer({ model, matches }: { model: CardEditorLiveModel; matches: (value: string) => boolean }) {
