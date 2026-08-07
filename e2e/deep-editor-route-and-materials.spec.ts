@@ -93,9 +93,10 @@ test.describe("deep editor route, Iconify SVG, materials", () => {
 
     // Badge seal + gold, then ribbon + glass.
     await page.getByTestId("card-creative-tool-badges").click();
-    await page.getByRole("button", { name: /^Seal$/i }).click().catch(async () => {
-      await page.locator("button", { hasText: "Seal" }).first().click();
+    await page.getByRole("button", { name: /^Seal$|Award seal/i }).click().catch(async () => {
+      await page.locator("button", { hasText: /Seal/i }).first().click();
     });
+    await page.getByTestId("badge-initial-material").locator("summary").click();
     await page.getByTestId("badge-material-gold").click();
     await page.getByRole("button", { name: /Add editable Badge/i }).click();
     await expect(page.getByTestId("contextual-target-label")).toHaveText(/Badge/i);

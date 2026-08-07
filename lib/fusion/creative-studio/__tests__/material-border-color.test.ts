@@ -19,7 +19,7 @@ describe("shared material / border / color contracts", () => {
     for (const id of ["gold", "glass", "chrome", "frosted_glass", "neon"]) {
       assert.ok(getMaterialRecipe(id), id);
     }
-    assert.ok(MATERIAL_CATALOG.length >= 20);
+    assert.ok(MATERIAL_CATALOG.length >= 40);
     const gold = applySurfaceMaterial({ text: "VIP", badgeShape: "seal" }, "gold");
     assert.equal(gold.materialPreset, "gold");
     assert.ok(String(gold.gradientFill || "").includes("gradient"));

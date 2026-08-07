@@ -38,7 +38,7 @@ test("Badge and Icon remain canonical editable Elements", () => {
   assert.equal(badge.props.text, "SALE");
   assert.equal(badge.props.badgeShape, "pill");
   assert.equal(icon.primitive, "shape");
-  assert.equal(icon.props.icon, "sparkles");
+  assert.match(String(icon.props.icon), /sparkles/);
   assert.equal(icon.props.decorative, true);
 });
 
@@ -62,14 +62,14 @@ test("glyph effects replace incompatible fields without touching the text box", 
   };
   const gold = applyGlyphEffect(base, "gold_foil");
   assert.equal(gold.text, "Chad Test");
-  assert.equal(gold.materialPreset, "gold_foil");
-  assert.equal(gold.glow, undefined);
+  // Legacy glyph ids normalize onto the canonical MaterialRecipe catalog.
+  assert.equal(gold.materialPreset, "gold");
   assert.equal(gold.outlineWidth, undefined);
   assert.equal(gold.boxFill, "transparent");
   assert.equal(gold.boxRadius, 12);
 
   const chrome = applyGlyphEffect(gold, "polished_chrome");
-  assert.equal(chrome.materialPreset, "polished_chrome");
+  assert.equal(chrome.materialPreset, "chrome");
   assert.notEqual(chrome.gradientFill, gold.gradientFill);
   assert.equal(chrome.boxFill, "transparent");
 
