@@ -3,6 +3,7 @@ import type {
   CreativeCompositionBlock,
   CreativeCompositionNode,
 } from "./composition";
+import { applyGlyphMaterial, getMaterialRecipe, normalizeMaterialId } from "./material-engine";
 
 export const BADGE_WORDING = [
   "SALE", "NEW", "DISCOUNT", "LIMITED", "TONIGHT ONLY", "VIP",
@@ -82,17 +83,21 @@ const GLYPH_EFFECT_KEYS = [
 ] as const;
 
 /**
- * Glyph presets are replacements, not incremental merges. Keeping this law in
- * one pure function prevents an older Neon/Gold field from leaking into the
- * next preset and deliberately leaves text-box appearance untouched.
+ * Glyph presets are replacements, not incremental merges. Routes through the
+ * universal MaterialRecipe glyph adapter when the id normalizes to the catalog;
+ * legacy-only effect ids keep the historical shadow-layer behavior.
  */
 export function applyGlyphEffect(
   props: Record<string, unknown>,
   presetId: string | null
 ): Record<string, unknown> {
+  if (!presetId || presetId === "none") return applyGlyphMaterial(props, null);
+  const normalized = normalizeMaterialId(presetId);
+  if (getMaterialRecipe(normalized)) {
+    return applyGlyphMaterial(props, normalized);
+  }
   const next = { ...props };
   for (const key of GLYPH_EFFECT_KEYS) next[key] = undefined;
-  if (!presetId || presetId === "none") return next;
   const preset = MATERIAL_PRESETS.find((candidate) => candidate.id === presetId);
   if (!preset) return next;
   return {
