@@ -415,6 +415,20 @@ export function CardAuthoringWorkspace({
         event.stopPropagation();
         return;
       }
+      // Blur focused fields/menus before Exit — Escape in the document name must not strand Exit dialog.
+      const active = document.activeElement as HTMLElement | null;
+      if (
+        active &&
+        (active.tagName === "INPUT" ||
+          active.tagName === "TEXTAREA" ||
+          active.tagName === "SELECT" ||
+          active.isContentEditable)
+      ) {
+        active.blur();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const retentionClose = document
         .querySelector<HTMLElement>('[data-testid="retention-chooser"] button[aria-label="Close"]');
       if (retentionClose) {

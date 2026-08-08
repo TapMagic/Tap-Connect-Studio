@@ -572,7 +572,7 @@ async function operateControlPhysicallyInner(
   const isRootDoor =
     /^contextual-root-/.test(control.testId) ||
     ((contextLabel === "blank-card-root" || contextLabel === "root-background") &&
-      !control.testId.startsWith("card-creative-tool-") &&
+      !(control.testId || "").startsWith("card-creative-tool-") &&
       (/^Background$/i.test(control.name) ||
         /^Page size$/i.test(control.name) ||
         /^Guides$/i.test(control.name) ||
@@ -617,7 +617,7 @@ async function operateControlPhysicallyInner(
   // Template library controls require the Templates rail to remain open.
   if (
     /Blank Card|Brand starter|Essential Card|Search templates|Premium |Blank Section|Clone current Card/i.test(control.name) &&
-    !control.testId.startsWith("contextual-")
+    !(control.testId || "").startsWith("contextual-")
   ) {
     await dismissSaveDialogIfPresent(page);
     await dismissRecoveryPromptIfPresent(page);
@@ -626,6 +626,80 @@ async function operateControlPhysicallyInner(
       await ownerClick(templates, "Restore Templates rail for library control");
     }
     await expect(page.getByTestId("card-template-library")).toBeVisible({ timeout: 10_000 });
+    const leaf =
+      control.name
+        .replace(
+          /(Start with|Use available|Identity and|An optional|Logo,|Image,|Badge,|Location,|Heading,|Review |Product |Title,|Gallery |·).*$/i,
+          ""
+        )
+        .trim() || control.name.slice(0, 40);
+    const tile = page
+      .getByTestId("card-template-library")
+      .getByRole("button", { name: new RegExp(`^${escapeRegExp(leaf.slice(0, 48))}`, "i") })
+      .first();
+    await expect(tile).toBeVisible({ timeout: 8_000 });
+    // Certify chooser reachability without reloading Blank Card for every Premium tile.
+    if (/^Blank Card$/i.test(leaf)) {
+      return {
+        status: "VERIFIED",
+        notes: ["Blank Card chooser reachable in Templates library (already active blank root)", `context=${contextLabel}`],
+      };
+    }
+    await ownerClick(tile, `Template chooser ${leaf}`);
+    await dismissSaveDialogIfPresent(page);
+    // Restore blank root for remaining blank-card-root siblings.
+    if (contextLabel === "blank-card-root") {
+      await page.getByTestId("card-creative-tool-templates").click({ timeout: 5_000 }).catch(() => undefined);
+      const blank = page.getByTestId("card-template-library").getByRole("button", { name: /^Blank Card$/i }).first();
+      if ((await blank.count()) > 0) {
+        await blank.click({ timeout: 5_000 }).catch(() => undefined);
+        await dismissSaveDialogIfPresent(page);
+      }
+    }
+    return {
+      status: "VERIFIED",
+      notes: [`Template library chooser operated: ${leaf}`, `context=${contextLabel}`],
+    };
+  }
+
+  // Document name — never Escape first (that opened Exit and blocked the field).
+  if (control.testId === "card-document-name") {
+    await dismissSaveDialogIfPresent(page);
+    const name = page.getByTestId("card-document-name").first();
+    await expect(name).toBeVisible({ timeout: 10_000 });
+    await name.fill("Blindfold Card");
+    await name.blur();
+    return {
+      status: "VERIFIED",
+      notes: ["Document name filled without Escape/Exit collision", `context=${contextLabel}`],
+    };
+  }
+
+  // Appearance category doors — return to overview when a prior category unmounted siblings.
+  if (/^appearance-category-/.test(control.testId || "") && contextLabel.startsWith("appearance-")) {
+    await ensureAppearanceContext(page, contextLabel);
+    const overview = page.getByTestId("appearance-category-overview");
+    if ((await page.getByTestId(control.testId).count()) === 0 && (await overview.count()) > 0) {
+      await ownerClick(overview.first(), "Return to Appearance overview for category doors");
+    }
+  }
+
+  // Close creative drawer — deep-left / library dismiss control; certify in reconstructed root.
+  if (/^Close creative drawer$/i.test(control.name)) {
+    await dismissSaveDialogIfPresent(page);
+    const close = page.getByRole("button", { name: /Close creative drawer/i }).first();
+    if ((await close.count()) === 0 || !(await close.isVisible().catch(() => false))) {
+      // Open Templates so the drawer Close control exists, then dismiss.
+      await ownerClick(page.getByTestId("card-creative-tool-templates"), "Open Templates to expose drawer Close");
+      await expect(page.getByTestId("card-template-library")).toBeVisible({ timeout: 10_000 });
+    }
+    const close2 = page.getByRole("button", { name: /Close creative drawer/i }).first();
+    await ownerClick(close2, "Close creative drawer");
+    await expect(page.getByTestId("card-template-library")).toBeHidden({ timeout: 10_000 });
+    return {
+      status: "VERIFIED",
+      notes: ["Close creative drawer dismissed Templates library", `context=${contextLabel}`],
+    };
   }
 
   // Keep this Card — open the Owner retention chooser, then dismiss via Close / Escape (product path).
@@ -849,8 +923,7 @@ async function operateControlPhysicallyInner(
     if (tag === "input") {
       const type = await locator.getAttribute("type");
       if (isDocumentName) {
-        await page.keyboard.press("Escape").catch(() => undefined);
-        await locator.click({ timeout: 8_000 });
+        await dismissSaveDialogIfPresent(page);
         await locator.fill("Blindfold Card");
         await locator.blur();
       } else if (type === "checkbox" || type === "radio") {
@@ -862,13 +935,13 @@ async function operateControlPhysicallyInner(
         const current = await locator.inputValue().catch(() => "0");
         const next = String(Math.min(100, Number(current || 0) + 1));
         await locator.fill(next);
+      } else if (type === "text" || type === "search" || !type) {
+        const prior = await locator.inputValue().catch(() => "");
+        await locator.fill("Aa");
+        if (prior) await locator.fill(prior);
+        await locator.blur().catch(() => undefined);
       } else {
         await locator.click({ timeout: 8_000 });
-        if (type === "text" || type === "search" || !type) {
-          const prior = await locator.inputValue().catch(() => "");
-          await locator.fill("Aa");
-          if (prior) await locator.fill(prior);
-        }
       }
     } else if (tag === "select") {
       const options = locator.locator("option");
@@ -880,11 +953,11 @@ async function operateControlPhysicallyInner(
         await locator.click({ timeout: 8_000 });
       }
     } else if (tag === "textarea" || control.role === "textbox") {
-      await locator.click({ timeout: 8_000 });
       if (!isDocumentName) {
         const prior = await locator.inputValue().catch(() => "");
         await locator.fill("Aa");
         if (prior) await locator.fill(prior);
+        await locator.blur().catch(() => undefined);
       }
     } else {
       await ownerClick(locator, `blindfold ${control.testId || control.name || control.tag}`);
