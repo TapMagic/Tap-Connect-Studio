@@ -416,9 +416,9 @@ export async function openAppearanceOverview(page: Page) {
     const drawer = page.getByTestId("card-creative-context-drawer");
     await expect(drawer).toHaveAttribute("data-drawer-mode", "edit", { timeout: 10_000 });
     // Nested page from a prior visit — return to overview.
-    const back = page.getByTestId("appearance-back").first();
-    if ((await back.count()) > 0 && (await back.isVisible().catch(() => false))) {
-      await back.click({ timeout: 3_000 }).catch(() => undefined);
+    const appearanceBack = page.getByTestId("appearance-back").first();
+    if ((await appearanceBack.count()) > 0 && (await appearanceBack.isVisible().catch(() => false))) {
+      await appearanceBack.click({ timeout: 3_000 }).catch(() => undefined);
     }
     if ((await appearanceContent().count()) > 0 && (await appearanceContent().isVisible().catch(() => false))) {
       return;
@@ -426,13 +426,13 @@ export async function openAppearanceOverview(page: Page) {
     // Fill shortcut may land on solid-colors — that is still Appearance authority.
     const fill = page.getByTestId("appearance-fill-controls");
     if ((await fill.count()) > 0 && (await fill.isVisible().catch(() => false))) {
-      const back = page.getByTestId("appearance-back").first();
-      if ((await back.count()) > 0) await ownerClick(back, "Back from Fill to Appearance overview");
+      const fillBack = page.getByTestId("appearance-back").first();
+      if ((await fillBack.count()) > 0) await ownerClick(fillBack, "Back from Fill to Appearance overview");
       if ((await appearanceContent().count()) > 0) return;
     }
     // Stale nested page / empty portal — close via Back then reopen.
-    const back = page.getByTestId("deep-left-back").or(page.getByTestId("appearance-back")).first();
-    if ((await back.count()) > 0) await ownerClick(back, "Deep left back before Appearance retry");
+    const deepBack = page.getByTestId("deep-left-back").or(page.getByTestId("appearance-back")).first();
+    if ((await deepBack.count()) > 0) await ownerClick(deepBack, "Deep left back before Appearance retry");
   }
   await expect(appearanceContent()).toBeVisible({ timeout: 15_000 });
 }
