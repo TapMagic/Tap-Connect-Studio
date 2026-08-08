@@ -44,22 +44,25 @@ test.describe("universal appearance materials system", () => {
     await expect(page.getByTestId("badge-shape-catalog")).toBeVisible();
     await expect(page.getByTestId("starter-badge-pill")).toBeVisible();
     await expect(page.getByTestId("starter-badge-seal")).toBeVisible();
-    await expect(page.getByTestId("starter-badge-vip")).toBeVisible();
+    await expect(page.getByTestId("starter-badge-composition-vip")).toBeVisible();
     await expect(page.locator('[data-testid="starter-badge-neon"]')).toHaveCount(0);
     await expect(page.locator('[data-testid="starter-badge-metallic"]')).toHaveCount(0);
     await expect(page.locator('[data-testid="starter-badge-glass"]')).toHaveCount(0);
+    await expect(page.getByTestId("badge-initial-material")).toHaveCount(0);
+    await expect(page.getByText("Badge designs")).toHaveCount(0);
     await page.screenshot({ path: path.join(evidenceDir, "01-badge-library-shapes.png"), fullPage: false });
-
-    await page.getByTestId("badge-initial-material").locator("summary").click();
-    await expect(page.getByTestId("badge-material-catalog")).toBeVisible();
-    await page.getByTestId("badge-material-gold").click();
-    await page.screenshot({ path: path.join(evidenceDir, "02-appearance-material-library.png"), fullPage: false });
 
     await page.getByTestId("polished-badge-library").locator("input").first().fill("SALE");
     await page.getByRole("button", { name: /Add editable Badge/i }).click();
     await expect(page.getByTestId("contextual-target-label")).toHaveText(/Badge/i);
 
     await page.getByTestId("contextual-badge-material").click();
+    await expect(page.getByTestId("appearance-category-overview").or(page.getByTestId("material-engine-controls"))).toBeVisible();
+    // Navigate Material category when overview is shown.
+    const overview = page.getByTestId("appearance-category-overview");
+    if (await overview.count()) {
+      await page.getByTestId("appearance-category-material").click();
+    }
     await expect(page.getByTestId("material-engine-controls")).toBeVisible();
     await page.getByTestId("material-gold").click();
     await expect(page.locator("[data-badge-shape][data-material='gold']").first()).toBeVisible();

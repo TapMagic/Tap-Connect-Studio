@@ -171,20 +171,42 @@ export const STARTER_BUTTON_PRESETS = [
   { id: "embossed", label: "Embossed", props: { presentation: "rounded", radius: 14, fill: "#1e293b", labelColor: "#e2e8f0", label: "Membership", boxShadow: 8, materialPreset: "embossed" } },
 ] as const;
 
-/** Badge library starters are shapes/designs — materials are applied separately and remain editable. */
+/**
+ * Badge library starters are shapes / useful compositions.
+ * Materials (Gold/Glass/etc.) are NOT badge species — Hosts apply them via Appearance.
+ * Defaults may include an attractive starter fill, but Appearance remains authoritative.
+ */
+export const STARTER_BADGE_SHAPES = [
+  { id: "pill", label: "Pill", props: { text: "SALE", badgeShape: "pill", radius: 999, fill: "#dc2626", color: "#ffffff" } },
+  { id: "round", label: "Round", props: { text: "NEW", badgeShape: "circle", radius: 999, fill: "#2563eb", color: "#ffffff" } },
+  { id: "seal", label: "Seal", props: { text: "APPROVED", badgeShape: "seal", radius: 999, fill: "#b45309", color: "#fffbeb" } },
+  { id: "ribbon", label: "Ribbon", props: { text: "FEATURED", badgeShape: "ribbon", radius: 0, fill: "#7c3aed", color: "#ffffff" } },
+  { id: "corner-ribbon", label: "Corner ribbon", props: { text: "NEW", badgeShape: "corner-ribbon", radius: 0, fill: "#db2777", color: "#ffffff" } },
+  { id: "shield", label: "Shield", props: { text: "VERIFIED", badgeShape: "shield", radius: 0, fill: "#0f766e", color: "#ecfdf5" } },
+  { id: "burst", label: "Burst", props: { text: "HOT", badgeShape: "burst", radius: 0, fill: "#f59e0b", color: "#111827" } },
+  { id: "starburst", label: "Starburst", props: { text: "DEAL", badgeShape: "starburst", radius: 0, fill: "#ea580c", color: "#ffffff" } },
+  { id: "tag", label: "Tag", props: { text: "LIMITED", badgeShape: "tag", radius: 4, fill: "#0f766e", color: "#ecfdf5" } },
+] as const;
+
+/** Useful composition starters (wording + shape). Not material species. */
+export const STARTER_BADGE_COMPOSITIONS = [
+  { id: "sale", label: "Sale", props: { text: "SALE", badgeShape: "pill", radius: 999, fill: "#dc2626", color: "#ffffff" } },
+  { id: "new", label: "New", props: { text: "NEW", badgeShape: "circle", radius: 999, fill: "#2563eb", color: "#ffffff" } },
+  { id: "vip", label: "VIP", props: { text: "VIP", badgeShape: "rounded", radius: 14, fill: "#b45309", color: "#fffbeb" } },
+  { id: "verified", label: "Verified", props: { text: "VERIFIED", badgeShape: "shield", radius: 0, fill: "#0f766e", color: "#ecfdf5" } },
+  { id: "limited", label: "Limited", props: { text: "LIMITED", badgeShape: "tag", radius: 4, fill: "#7c3aed", color: "#ffffff" } },
+  { id: "award", label: "Award", props: { text: "AWARD", badgeShape: "seal", radius: 999, fill: "#b45309", color: "#fffbeb" } },
+  { id: "special", label: "Special", props: { text: "SPECIAL", badgeShape: "burst", radius: 0, fill: "#f59e0b", color: "#111827" } },
+  { id: "member", label: "Member", props: { text: "MEMBER", badgeShape: "rounded", radius: 12, fill: "#334155", color: "#ffffff" } },
+  { id: "featured", label: "Featured", props: { text: "FEATURED", badgeShape: "ribbon", radius: 0, fill: "#7c3aed", color: "#ffffff" } },
+] as const;
+
+/** @deprecated Use STARTER_BADGE_SHAPES + STARTER_BADGE_COMPOSITIONS. Kept for import compatibility. */
 export const STARTER_BADGE_PRESETS = [
-  { id: "pill", label: "Pill", props: { text: "SALE", badgeShape: "pill", radius: 999, materialPreset: "flat", fill: "#dc2626", color: "#ffffff" } },
-  { id: "round", label: "Round", props: { text: "NEW", badgeShape: "circle", radius: 999, materialPreset: "soft_raised", fill: "#2563eb", color: "#ffffff" } },
-  { id: "burst", label: "Burst", props: { text: "HOT", badgeShape: "burst", radius: 0, materialPreset: "glossy", fill: "#f59e0b", color: "#111827" } },
-  { id: "starburst", label: "Starburst", props: { text: "DEAL", badgeShape: "starburst", radius: 0, materialPreset: "hard_raised", fill: "#ea580c", color: "#ffffff" } },
-  { id: "ribbon", label: "Ribbon", props: { text: "FEATURED", badgeShape: "ribbon", radius: 0, materialPreset: "flat", fill: "#7c3aed", color: "#ffffff" } },
-  { id: "corner-ribbon", label: "Corner ribbon", props: { text: "NEW", badgeShape: "corner-ribbon", radius: 0, materialPreset: "soft_raised", fill: "#db2777", color: "#ffffff" } },
-  { id: "seal", label: "Award seal", props: { text: "APPROVED", badgeShape: "seal", radius: 999, materialPreset: "gold", color: "#17100a" } },
-  { id: "shield", label: "Shield", props: { text: "VERIFIED", badgeShape: "shield", radius: 0, materialPreset: "chrome", color: "#111827" } },
-  { id: "tag", label: "Tag", props: { text: "LIMITED", badgeShape: "tag", radius: 4, materialPreset: "flat", fill: "#0f766e", color: "#ecfdf5" } },
-  { id: "vip", label: "VIP marker", props: { text: "VIP", badgeShape: "rounded", radius: 14, materialPreset: "gold", color: "#17100a" } },
-  { id: "sale", label: "Sale marker", props: { text: "SALE", badgeShape: "pill", radius: 999, materialPreset: "glossy", fill: "#dc2626", color: "#ffffff" } },
-  { id: "custom", label: "Custom", props: { text: "CUSTOM", badgeShape: "rounded", radius: 12, materialPreset: "flat", fill: "#334155", color: "#ffffff" } },
+  ...STARTER_BADGE_SHAPES,
+  ...STARTER_BADGE_COMPOSITIONS.filter(
+    (item) => !(STARTER_BADGE_SHAPES as readonly { id: string }[]).some((shape) => shape.id === item.id)
+  ),
 ] as const;
 
 export type StarterCommerceLayout = {
@@ -196,10 +218,88 @@ export type StarterCommerceLayout = {
 };
 
 export const STARTER_COUPON_LAYOUTS: readonly StarterCommerceLayout[] = [
-  { id: "clean-retail", label: "Clean retail card", layout: "stack", geometry: "retail_card", props: { presetId: "clean-retail", headline: "SPECIAL OFFER", offerValue: "20% OFF", code: "SAVE20", visualStyle: "clean retail", mask: "coupon", layoutVariant: "retail_card", width: 0.84, height: 0.28 } },
-  { id: "perforated-stub", label: "Perforated coupon stub", layout: "row", geometry: "perforated_stub", props: { presetId: "perforated-stub", headline: "TEAR HERE", offerValue: "$10 OFF", code: "TEAR10", visualStyle: "ticket stub", mask: "coupon", layoutVariant: "perforated_stub", perforated: true, width: 0.88, height: 0.22 } },
-  { id: "split-image", label: "Split-image promotion", layout: "row", geometry: "split_image", props: { presetId: "split-image", headline: "LOOK BOOK", offerValue: "BUY 1 GET 1", code: "LOOKBOGO", visualStyle: "split promotion", mask: "coupon", layoutVariant: "split_image", showArtwork: true, width: 0.9, height: 0.32 } },
-  { id: "qr-first", label: "QR-first claim card", layout: "stack", geometry: "qr_first", props: { presetId: "qr-first", headline: "SCAN TO CLAIM", offerValue: "FREE GIFT", code: "SCANME", visualStyle: "qr claim", mask: "coupon", layoutVariant: "qr_first", qrFirst: true, width: 0.72, height: 0.36 } },
+  {
+    id: "clean-retail",
+    label: "Clean retail card",
+    layout: "stack",
+    geometry: "retail_card",
+    props: {
+      presetId: "clean-retail",
+      headline: "Your next visit",
+      offerValue: "25% OFF",
+      description: "Thank you for visiting — enjoy this offer on us.",
+      code: "WELCOME25",
+      terms: "One use per customer. Draft terms — review before publishing.",
+      expiration: "Expires in 30 days",
+      ctaLabel: "Use offer",
+      visualStyle: "clean retail",
+      mask: "coupon",
+      layoutVariant: "retail_card",
+      width: 0.84,
+      height: 0.32,
+    },
+  },
+  {
+    id: "perforated-stub",
+    label: "Perforated coupon stub",
+    layout: "row",
+    geometry: "perforated_stub",
+    props: {
+      presetId: "perforated-stub",
+      headline: "TEAR HERE",
+      offerValue: "$10 OFF",
+      code: "TEAR10",
+      terms: "Present stub at checkout. Draft terms — review before publishing.",
+      expiration: "Valid this month",
+      visualStyle: "ticket stub",
+      mask: "coupon",
+      layoutVariant: "perforated_stub",
+      perforated: true,
+      width: 0.88,
+      height: 0.26,
+    },
+  },
+  {
+    id: "split-image",
+    label: "Split-image promotion",
+    layout: "row",
+    geometry: "split_image",
+    props: {
+      presetId: "split-image",
+      headline: "LOOK BOOK",
+      offerValue: "BUY 1 GET 1",
+      description: "Pair any featured item — image side showcases the offer.",
+      code: "LOOKBOGO",
+      terms: "While supplies last. Draft terms — review before publishing.",
+      ctaLabel: "Claim",
+      visualStyle: "split promotion",
+      mask: "coupon",
+      layoutVariant: "split_image",
+      showArtwork: true,
+      width: 0.9,
+      height: 0.34,
+    },
+  },
+  {
+    id: "qr-first",
+    label: "QR-first claim card",
+    layout: "stack",
+    geometry: "qr_first",
+    props: {
+      presetId: "qr-first",
+      headline: "SCAN TO CLAIM",
+      offerValue: "FREE GIFT",
+      code: "SCANME",
+      description: "Scan the code or enter the offer code to claim.",
+      terms: "One scan per guest. Draft terms — review before publishing.",
+      visualStyle: "qr claim",
+      mask: "coupon",
+      layoutVariant: "qr_first",
+      qrFirst: true,
+      width: 0.72,
+      height: 0.4,
+    },
+  },
 ] as const;
 
 export const STARTER_TICKET_LAYOUTS: readonly StarterCommerceLayout[] = [
