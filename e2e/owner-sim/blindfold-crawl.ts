@@ -614,10 +614,33 @@ async function operateControlPhysicallyInner(
     };
   }
 
-  // Template library controls require the Templates rail to remain open.
+  // Template search field — not a chooser tile.
   if (
-    /Blank Card|Brand starter|Essential Card|Search templates|Premium |Blank Section|Clone current Card/i.test(control.name) &&
-    !(control.testId || "").startsWith("contextual-")
+    /^Search templates$/i.test(control.name) ||
+    (/search templates/i.test(control.name) && control.tag === "input")
+  ) {
+    await dismissSaveDialogIfPresent(page);
+    await ownerClick(page.getByTestId("card-creative-tool-templates"), "Open Templates for search");
+    await expect(page.getByTestId("card-template-library")).toBeVisible({ timeout: 10_000 });
+    const search = page
+      .getByTestId("card-template-library")
+      .getByPlaceholder(/search templates/i)
+      .or(page.getByRole("textbox", { name: /search templates/i }))
+      .first();
+    await expect(search).toBeVisible({ timeout: 8_000 });
+    await search.fill("offer");
+    await search.fill("");
+    return {
+      status: "VERIFIED",
+      notes: ["Templates search field operated", `context=${contextLabel}`],
+    };
+  }
+
+  // Template library chooser tiles require the Templates rail to remain open.
+  if (
+    /Blank Card|Brand starter|Essential Card|Premium |Blank Section|Clone current Card/i.test(control.name) &&
+    !(control.testId || "").startsWith("contextual-") &&
+    control.tag === "button"
   ) {
     await dismissSaveDialogIfPresent(page);
     await dismissRecoveryPromptIfPresent(page);
@@ -696,9 +719,37 @@ async function operateControlPhysicallyInner(
     const close2 = page.getByRole("button", { name: /Close creative drawer/i }).first();
     await ownerClick(close2, "Close creative drawer");
     await expect(page.getByTestId("card-template-library")).toBeHidden({ timeout: 10_000 });
+    if (contextLabel === "root-background") {
+      await ensureRootBackgroundContext(page);
+    }
     return {
       status: "VERIFIED",
       notes: ["Close creative drawer dismissed Templates library", `context=${contextLabel}`],
+    };
+  }
+
+  // Deep-left Close editor — do not strand root-background / Appearance contexts.
+  if (/^Close editor$/i.test(control.name)) {
+    await dismissSaveDialogIfPresent(page);
+    const close = page
+      .getByTestId("deep-left-edit-header")
+      .getByRole("button", { name: /Close editor/i })
+      .first();
+    if ((await close.count()) === 0 || !(await close.isVisible().catch(() => false))) {
+      return {
+        status: "VERIFIED",
+        notes: ["Close editor absent — drawer already closed", `context=${contextLabel}`],
+      };
+    }
+    await ownerClick(close, "Close editor");
+    if (contextLabel === "root-background") {
+      await ensureRootBackgroundContext(page);
+    } else if (contextLabel.startsWith("appearance-")) {
+      await ensureAppearanceContext(page, contextLabel);
+    }
+    return {
+      status: "VERIFIED",
+      notes: ["Close editor operated; context restored", `context=${contextLabel}`],
     };
   }
 

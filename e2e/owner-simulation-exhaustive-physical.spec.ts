@@ -794,6 +794,7 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
           }
           // Operating a control can dismiss drawers — re-establish context when Appearance/chrome collapses.
           if (contextLabel === "root-background") {
+            // Materials / mode clicks can collapse the editor — always restore before the next control.
             await ensureRootBackgroundContext(page);
           } else if (contextLabel.startsWith("appearance-")) {
             await ensureAppearanceContext(page, contextLabel);
