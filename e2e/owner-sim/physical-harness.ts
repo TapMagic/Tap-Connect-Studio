@@ -98,9 +98,12 @@ export function writeVerdictReport() {
 
 /** Physical click — never force. Failure is a product defect. */
 export async function ownerClick(locator: Locator, label: string) {
-  await expect(locator, `Owner cannot see/reach: ${label}`).toBeVisible({ timeout: 15_000 });
-  await locator.scrollIntoViewIfNeeded().catch(() => undefined);
-  await locator.click({ timeout: 10_000 });
+  // Prefer a visible match when duplicate testids exist (e.g. shade + topbar Save).
+  const visible = locator.filter({ visible: true }).first();
+  const target = (await visible.count().catch(() => 0)) > 0 ? visible : locator.first();
+  await expect(target, `Owner cannot see/reach: ${label}`).toBeVisible({ timeout: 15_000 });
+  await target.scrollIntoViewIfNeeded().catch(() => undefined);
+  await target.click({ timeout: 10_000 });
 }
 
 export async function ownerFill(locator: Locator, value: string, label: string) {
@@ -113,9 +116,15 @@ export async function ownerFill(locator: Locator, value: string, label: string) 
 export async function dismissSaveDialogIfPresent(page: Page) {
   const dialog = page.getByTestId("card-exit-save-dialog");
   if ((await dialog.count()) === 0) return;
-  const keep = dialog.getByRole("button", { name: /Keep editing|Cancel|Stay/i }).first();
+  if (!(await dialog.isVisible().catch(() => false))) return;
+  const keep = dialog
+    .getByTestId("card-exit-keep-editing")
+    .or(dialog.getByRole("button", { name: /Keep editing|Cancel|Stay/i }))
+    .first();
   if (await keep.count()) {
     await ownerClick(keep, "Keep editing in save dialog");
+  } else {
+    await page.keyboard.press("Escape").catch(() => undefined);
   }
 }
 
@@ -131,19 +140,19 @@ export async function closeExtraDocumentTabs(page: Page) {
 
 export async function dismissTransientStudioChrome(page: Page) {
   await dismissSaveDialogIfPresent(page);
-  const keepClose = page.getByRole("button", { name: /^Close$/i }).first();
-  const keepCard = page.getByTestId("keep-this-card");
-  // Prefer dismissing chooser overlay if it traps the canvas.
-  if ((await page.getByText("One clear next step").count()) > 0) {
+  const retention = page.getByTestId("retention-chooser");
+  if ((await retention.count()) > 0 && (await retention.isVisible().catch(() => false))) {
+    const keepClose = retention.getByRole("button", { name: /^Close$/i }).first();
     if ((await keepClose.count()) > 0 && (await keepClose.isVisible().catch(() => false))) {
       await keepClose.click({ timeout: 2_000 }).catch(() => undefined);
+    } else {
+      await page.keyboard.press("Escape").catch(() => undefined);
     }
   }
   const issues = page.getByRole("button", { name: /Collapse issues badge/i }).first();
   if ((await issues.count()) > 0 && (await issues.isVisible().catch(() => false))) {
     await issues.click({ timeout: 1_500 }).catch(() => undefined);
   }
-  void keepCard;
 }
 
 export async function openBlankStudio(page: Page, viewport = { width: 1440, height: 960 }) {

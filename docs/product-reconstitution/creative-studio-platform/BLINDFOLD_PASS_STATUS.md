@@ -2,7 +2,8 @@
 
 **Status:** INCOMPLETE — not yet a dual Physical + Product-Steward candidate  
 **Branch:** `tapconnect-operational-spine-restoration`  
-**Start checkpoint:** `3c5e357ac288f49bea0c79dce727db55ca763077`
+**Start checkpoint:** `3c5e357ac288f49bea0c79dce727db55ca763077`  
+**Preserved Blindfold checkpoint:** `d6792892ca261913d6880624addf929cfb24d5c3` (pushed; clean tree at push)
 
 ## What landed (product steward)
 
@@ -48,6 +49,17 @@ Until the harness finishes all contexts with:
 - progress log covering every context  
 
 …this pass must not be declared a dual candidate.
+
+## Product findings after checkpoint (Owner-encounterable)
+
+| Trap | Finding | Repair |
+| --- | --- | --- |
+| Resize / Adapt | Modal used `absolute` coverage + no Escape / weak Done path — Owners can strand pointer events | `fixed` backdrop, Escape ownership, Done + focus close |
+| Preview draft | Exit lived on a secondary control; Escape did not leave Preview | Lime Exit Preview CTA; Escape exits Preview |
+| Keep this Card | Chooser lacked Escape; dismiss path ambiguous vs Exit-Edit “Keep editing” | Escape closes chooser; Exit dialog gets `card-exit-keep-editing` |
+| Exit Edit dialog | Escape did not dismiss | Escape → Keep editing |
+| Escape in Studio | DashboardChrome silently `router.push(/dashboard/card)` on Escape, abandoning deep-left / overlays | Card editor Escape owned by shell layers + Exit dialog; chrome no longer silent-navigates |
+| Exit while saving | “Keep editing” hidden during `saving`, so Escape/dismiss could leave a full-screen blocker | Keep editing always available; Escape aborts Exit even while save acknowledges |
 
 ## Next engineering steps
 

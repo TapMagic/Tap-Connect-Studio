@@ -65,7 +65,9 @@ export function DashboardChrome({
   }, [pathname, router]);
 
   useEffect(() => {
-    if (!escapeActive) return;
+    // Card editor owns Escape via AdaptiveWorkspaceShell layers + Exit Edit dialog.
+    // Silent router.push here abandoned overlays and skipped the save boundary.
+    if (!escapeActive || cardEditorEscape) return;
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") {
         e.preventDefault();
@@ -74,7 +76,7 @@ export function DashboardChrome({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [escapeActive, exitEscape]);
+  }, [escapeActive, cardEditorEscape, exitEscape]);
 
   return (
     <div

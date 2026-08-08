@@ -200,6 +200,18 @@ export function RetentionChooser({
     }
   }, [businessId, campaignId, deviceSlotId, livingCardUrl]);
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape" && !busy) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [busy, onClose]);
+
   function persistSetup(partial: Partial<RetentionSetupSnapshot>) {
     try {
       const key = retentionSetupStorageKey(businessId);

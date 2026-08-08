@@ -183,6 +183,18 @@ export function AdaptiveWorkspaceShell({
     function onKey(e: KeyboardEvent) {
       if (e.key !== "Escape") return;
       if (document.querySelector('[data-testid="shared-media-browser"]')) return;
+      // Host-owned Studio layers (not always mirrored into shell.modalOpen yet).
+      // Let those listeners dismiss first — never jump to Exit Workspace over them.
+      if (
+        document.querySelector('[data-testid="deep-left-edit-drawer"]') ||
+        document.querySelector('[data-testid="resize-adapt-backdrop"]') ||
+        document.querySelector('[data-testid="card-advanced-settings"]') ||
+        document.querySelector('[data-testid="card-exit-save-dialog"]') ||
+        document.querySelector('[data-testid="retention-chooser"]') ||
+        document.querySelector('[data-testid="editor-preferences-menu"][open]')
+      ) {
+        return;
+      }
       const layer = nextEscLayer({
         modalOpen: snapshot.modalOpen,
         drawerOpen: snapshot.drawerOpen,
@@ -190,7 +202,10 @@ export function AdaptiveWorkspaceShell({
         focusMode: snapshot.focusMode,
       });
       if (layer === "exit_workspace") {
-        // Let DashboardChrome handle exit; optionally notify host.
+        // Studio hosts must own the exit boundary (save dialog). Never fall through to
+        // DashboardChrome silent navigation while Creative Studio is mounted.
+        e.preventDefault();
+        e.stopPropagation();
         onExitWorkspace?.();
         return;
       }

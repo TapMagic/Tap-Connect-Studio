@@ -370,6 +370,7 @@ export function CardAuthoringWorkspace({
 
   const enterPreview = useCallback(() => {
     setAdvancedSettingsContext(null);
+    setResizeAdaptOpen(false);
     setEditSelectionMemory(status.selectedId);
     setStudioMode("preview");
     setShell((s) => ({ ...s, drawerOpen: false, focusMode: true }));
@@ -385,6 +386,71 @@ export function CardAuthoringWorkspace({
       apiRef.current?.selectSection?.(editSelectionMemory);
     }
   }, [editSelectionMemory]);
+
+  // Keep shell Esc layering honest: deep-left / Resize / exit dialog are modal layers.
+  useEffect(() => {
+    const deepLeftOpen =
+      typeof document !== "undefined" &&
+      Boolean(document.querySelector('[data-testid="deep-left-edit-drawer"]'));
+    const blocking =
+      exitState !== "closed" || resizeAdaptOpen || advancedSettingsOpen || deepLeftOpen;
+    setShell((current) => (current.modalOpen === blocking ? current : { ...current, modalOpen: blocking }));
+  }, [exitState, resizeAdaptOpen, advancedSettingsOpen, liveModel?.selectionRef.selectionGeneration, creativeTool]);
+
+  // Owner-facing Escape ownership: dismiss Studio overlays / Preview before trapping the crawl or the keyboard.
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      if (exitState !== "closed") {
+        // Always allow Escape to abort Exit — including while save acknowledgement is in flight.
+        setExitState("closed");
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      const retentionClose = document
+        .querySelector<HTMLElement>('[data-testid="retention-chooser"] button[aria-label="Close"]');
+      if (retentionClose) {
+        retentionClose.click();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (resizeAdaptOpen) {
+        setResizeAdaptOpen(false);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (advancedSettingsOpen) {
+        setAdvancedSettingsOpen(false);
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      const prefs = editorPreferencesRef.current;
+      if (prefs?.open) {
+        prefs.open = false;
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      const overflow = document.querySelector<HTMLDetailsElement>('[data-testid="card-overflow-menu"]');
+      if (overflow?.open) {
+        overflow.open = false;
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      if (studioMode === "preview") {
+        exitPreview();
+        event.preventDefault();
+        event.stopPropagation();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [exitState, resizeAdaptOpen, advancedSettingsOpen, studioMode, exitPreview]);
 
   // Keep builder focus in sync with shell Focus.
   useEffect(() => {
@@ -787,7 +853,26 @@ export function CardAuthoringWorkspace({
           <section className="w-full max-w-sm rounded-xl border border-white/15 bg-[#0b1019] p-5 text-white" role="alertdialog" aria-modal="true" aria-labelledby="exit-edit-title">
             <h2 id="exit-edit-title" className="text-base font-semibold">{exitState === "saving" ? "Saving changes…" : exitState === "ready" ? "All changes saved." : "Save failed — exit blocked"}</h2>
             <p className="mt-2 text-xs text-white/65">{exitState === "saving" ? "Waiting for the server draft acknowledgement." : exitState === "ready" ? "Exit Edit Mode?" : "Your recovery journal remains available. Retry or stay in Edit Mode."}</p>
-            <div className="mt-5 flex justify-end gap-2">{exitState === "ready" ? <button type="button" className="min-h-10 rounded bg-[#b8ff2c] px-4 text-xs font-semibold text-black" onClick={confirmExit} data-testid="card-exit-confirm">Exit</button> : null}{exitState === "blocked" ? <button type="button" className="min-h-10 rounded bg-[#b8ff2c] px-4 text-xs font-semibold text-black" onClick={() => void requestExit()} data-testid="card-exit-retry">Retry</button> : null}{exitState !== "saving" ? <button type="button" className="min-h-10 rounded border border-white/15 px-4 text-xs" onClick={() => setExitState("closed")}>Keep editing</button> : null}</div>
+            <div className="mt-5 flex justify-end gap-2">
+              {exitState === "ready" ? (
+                <button type="button" className="min-h-10 rounded bg-[#b8ff2c] px-4 text-xs font-semibold text-black" onClick={confirmExit} data-testid="card-exit-confirm">
+                  Exit
+                </button>
+              ) : null}
+              {exitState === "blocked" ? (
+                <button type="button" className="min-h-10 rounded bg-[#b8ff2c] px-4 text-xs font-semibold text-black" onClick={() => void requestExit()} data-testid="card-exit-retry">
+                  Retry
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="min-h-10 rounded border border-white/15 px-4 text-xs"
+                onClick={() => setExitState("closed")}
+                data-testid="card-exit-keep-editing"
+              >
+                Keep editing
+              </button>
+            </div>
           </section>
         </div>
       ) : null}
@@ -1137,7 +1222,135 @@ function ResizeAdaptOverlay({
   const [query, setQuery] = useState("");
   const [selectedId, setSelectedId] = useState("social-story");
   const [working, setWorking] = useState(false);
-  const profiles = OUTPUT_PROFILES.filter((profile) => profile.id !== "tap-card-responsive" && (!query.trim() || `${profile.label} ${profile.class}`.toLowerCase().includes(query.toLowerCase())));
+  const closeRef = useRef<HTMLButtonElement>(null);
+  const profiles = OUTPUT_PROFILES.filter(
+    (profile) =>
+      profile.id !== "tap-card-responsive" &&
+      (!query.trim() || `${profile.label} ${profile.class}`.toLowerCase().includes(query.toLowerCase()))
+  );
   const selected = OUTPUT_PROFILES.find((profile) => profile.id === selectedId) || profiles[0];
-  return <div className="absolute inset-0 z-[1725] bg-black/45 p-4" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }} data-testid="resize-adapt-backdrop"><section role="dialog" aria-modal="true" aria-labelledby="resize-adapt-title" className="ml-auto max-h-full w-[min(34rem,100%)] overflow-y-auto rounded-2xl border border-white/15 bg-[var(--studio-panel)] p-4 text-[var(--studio-text)] shadow-2xl" data-testid="resize-adapt-panel"><div className="flex items-start justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#74a800]">Related outputs</p><h2 id="resize-adapt-title" className="mt-1 text-lg font-semibold">Resize / Adapt</h2><p className="mt-1 text-xs opacity-60">Tap Card is governed and cannot be resized into a poster or social graphic. Copy & Adapt creates an editable related variation.</p></div><button type="button" className="grid h-10 w-10 place-items-center rounded border border-current/15" onClick={onClose} aria-label="Close Resize and Adapt"><X className="h-4 w-4" /></button></div><input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search output profiles" className="mt-4 h-11 w-full rounded-lg border border-current/15 bg-transparent px-3 text-sm" /><div className="mt-4 space-y-4">{(["tapconnect", "social", "print", "screen"] as const).map((profileClass) => { const choices = profiles.filter((profile) => profile.class === profileClass); if (!choices.length) return null; return <section key={profileClass}><h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider opacity-55">{profileClass}</h3><div className="grid grid-cols-2 gap-2">{choices.map((profile) => <button type="button" key={profile.id} aria-pressed={selectedId === profile.id} className="min-h-20 rounded-lg border border-current/15 p-2 text-left aria-pressed:border-[#74a800] aria-pressed:bg-[#b8ff2c]/10" onClick={() => setSelectedId(profile.id)}><span className="block text-xs font-semibold">{profile.label}</span><span className="mt-1 block text-[9px] opacity-55">Registry {profile.version}{profile.dpi ? ` · ${profile.dpi} DPI` : ""}</span></button>)}</div></section>; })}</div><div className="sticky bottom-0 mt-5 rounded-xl border border-current/15 bg-[var(--studio-panel)] p-3"><p className="text-xs font-semibold">Page scope</p><p className="mt-1 text-[10px] opacity-60">Current governed Card page → one related output variation. Multi-page scopes become available in flyer, carousel, ticket-sheet, and other compatible document types.</p><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled className="min-h-11 rounded-lg border border-current/15 text-xs opacity-45" title="Tap Card current-document resize is prohibited">Resize current document</button><button type="button" disabled={!selected || working} className="min-h-11 rounded-lg bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a] disabled:opacity-45" onClick={async () => { if (!selected) return; setWorking(true); try { await onAdapt(selected); } finally { setWorking(false); } }} data-testid="copy-adapt-action">{working ? "Creating variation…" : "Copy & Adapt"}</button></div></div></section></div>;
+
+  useEffect(() => {
+    closeRef.current?.focus();
+  }, []);
+
+  return (
+    <div
+      className="fixed inset-0 z-[1725] bg-black/45 p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+      data-testid="resize-adapt-backdrop"
+    >
+      <section
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="resize-adapt-title"
+        className="ml-auto max-h-full w-[min(34rem,100%)] overflow-y-auto rounded-2xl border border-white/15 bg-[var(--studio-panel)] p-4 text-[var(--studio-text)] shadow-2xl"
+        data-testid="resize-adapt-panel"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#74a800]">Related outputs</p>
+            <h2 id="resize-adapt-title" className="mt-1 text-lg font-semibold">
+              Resize / Adapt
+            </h2>
+            <p className="mt-1 text-xs opacity-60">
+              Tap Card is governed and cannot be resized into a poster or social graphic. Copy & Adapt creates an
+              editable related variation.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2">
+            <button
+              type="button"
+              className="min-h-10 rounded border border-current/15 px-3 text-xs"
+              onClick={onClose}
+              data-testid="resize-adapt-done"
+            >
+              Done
+            </button>
+            <button
+              ref={closeRef}
+              type="button"
+              className="grid h-10 w-10 place-items-center rounded border border-current/15"
+              onClick={onClose}
+              aria-label="Close Resize and Adapt"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder="Search output profiles"
+          aria-label="Search output profiles"
+          className="mt-4 h-11 w-full rounded-lg border border-current/15 bg-transparent px-3 text-sm"
+        />
+        <div className="mt-4 space-y-4">
+          {(["tapconnect", "social", "print", "screen"] as const).map((profileClass) => {
+            const choices = profiles.filter((profile) => profile.class === profileClass);
+            if (!choices.length) return null;
+            return (
+              <section key={profileClass}>
+                <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-wider opacity-55">{profileClass}</h3>
+                <div className="grid grid-cols-2 gap-2">
+                  {choices.map((profile) => (
+                    <button
+                      type="button"
+                      key={profile.id}
+                      aria-pressed={selectedId === profile.id}
+                      className="min-h-20 rounded-lg border border-current/15 p-2 text-left aria-pressed:border-[#74a800] aria-pressed:bg-[#b8ff2c]/10"
+                      onClick={() => setSelectedId(profile.id)}
+                    >
+                      <span className="block text-xs font-semibold">{profile.label}</span>
+                      <span className="mt-1 block text-[9px] opacity-55">
+                        Registry {profile.version}
+                        {profile.dpi ? ` · ${profile.dpi} DPI` : ""}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            );
+          })}
+        </div>
+        <div className="sticky bottom-0 mt-5 rounded-xl border border-current/15 bg-[var(--studio-panel)] p-3">
+          <p className="text-xs font-semibold">Page scope</p>
+          <p className="mt-1 text-[10px] opacity-60">
+            Current governed Card page → one related output variation. Multi-page scopes become available in flyer,
+            carousel, ticket-sheet, and other compatible document types.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled
+              className="min-h-11 rounded-lg border border-current/15 text-xs opacity-45"
+              title="Tap Card current-document resize is prohibited"
+            >
+              Resize current document
+            </button>
+            <button
+              type="button"
+              disabled={!selected || working}
+              className="min-h-11 rounded-lg bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a] disabled:opacity-45"
+              onClick={async () => {
+                if (!selected) return;
+                setWorking(true);
+                try {
+                  await onAdapt(selected);
+                } finally {
+                  setWorking(false);
+                }
+              }}
+              data-testid="copy-adapt-action"
+            >
+              {working ? "Creating variation…" : "Copy & Adapt"}
+            </button>
+          </div>
+        </div>
+      </section>
+    </div>
+  );
 }

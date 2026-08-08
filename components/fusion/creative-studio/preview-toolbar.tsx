@@ -141,7 +141,8 @@ export function PreviewToolbar({
       <button
         type="button"
         data-testid="preview-exit"
-        className="ml-auto min-h-10 rounded-md border border-white/20 px-3 text-xs text-white"
+        data-exit-preview="true"
+        className="ml-auto min-h-10 rounded-md bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a]"
         onClick={onExit}
       >
         {STUDIO_WORDING.exitPreview}
