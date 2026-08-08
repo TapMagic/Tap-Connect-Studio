@@ -216,26 +216,30 @@ export async function ensureRootBackgroundContext(page: Page) {
   await expect(page.getByTestId("root-background-editor")).toBeVisible({ timeout: 10_000 });
 }
 
-/** Re-open Appearance without a full Blank Studio reload when the drawer collapsed. */
+/** Re-open Appearance overview (not a nested category page) without a full reload when possible. */
 export async function ensureAppearanceContext(page: Page, label: string) {
-  const stillOpen =
-    (await page
-      .getByTestId("appearance-category-overview")
-      .or(page.getByTestId("material-engine-controls"))
-      .or(page.getByTestId("appearance-fill-controls"))
-      .or(page.getByTestId("appearance-effects-list"))
-      .count()) > 0;
-  if (stillOpen) return;
   const tools = page.getByTestId("card-contextual-object-tools");
   if ((await tools.count()) === 0 || !(await tools.isVisible().catch(() => false))) {
     await reconstructContext(page, label);
-    return;
+  } else {
+    try {
+      await openAppearanceOverview(page);
+    } catch {
+      await reconstructContext(page, label);
+    }
   }
-  try {
-    await openAppearanceOverview(page);
-  } catch {
-    await reconstructContext(page, label);
+  // Always land on the category overview — nested pages hide sibling category doors.
+  for (let i = 0; i < 4; i += 1) {
+    const overview = page.getByTestId("appearance-category-overview");
+    if ((await overview.count()) > 0 && (await overview.isVisible().catch(() => false))) return;
+    const back = page.getByTestId("appearance-back").or(page.getByTestId("deep-left-back")).first();
+    if ((await back.count()) > 0 && (await back.isVisible().catch(() => false))) {
+      await back.click({ timeout: 3_000 }).catch(() => undefined);
+      continue;
+    }
+    break;
   }
+  await expect(page.getByTestId("appearance-category-overview")).toBeVisible({ timeout: 10_000 });
 }
 
 /** Genuine product/external boundaries only — not convenience skips. */
