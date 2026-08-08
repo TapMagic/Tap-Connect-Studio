@@ -1308,6 +1308,15 @@ export function CreativeCompositionCanvas({
       if (target?.closest?.("input, textarea, select, [contenteditable=true]")) {
         return;
       }
+      if (e.key === "Escape") {
+        // Composition More menu owns Escape before selection-clear / Exit layering.
+        if (contextMenu) {
+          e.preventDefault();
+          e.stopPropagation();
+          setContextMenu(null);
+          return;
+        }
+      }
       if (e.key === "Escape" && selectedNodeIds.length) {
         e.preventDefault();
         e.stopPropagation();
@@ -1464,7 +1473,7 @@ export function CreativeCompositionCanvas({
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [editMode, selectedNodeIds, block.nodes, commitNodes, onSelectNodes]);
+  }, [editMode, selectedNodeIds, block.nodes, commitNodes, onSelectNodes, contextMenu]);
 
   const onPointerDownNode = (
     e: React.PointerEvent,
@@ -2250,7 +2259,7 @@ export function CreativeCompositionCanvas({
         const moreBelow = box.top * surfaceSize.height < 56;
         return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1600] outline outline-1 outline-white/70" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`} data-chrome-scale={String(chromeScale)} data-compact-handles={compactHandles ? "true" : "false"} data-more-placement={moreBelow ? "below" : "above"}>
           {drag?.id === node.id && drag.mode === "resize" ? <span className="absolute left-0 top-0 -translate-y-full rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" style={{ transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} data-testid="composition-size-feedback">{Math.round(box.width * 100)}% × {Math.round(box.height * 100)}%</span> : null}
-          <button type="button" className="pointer-events-auto absolute left-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={moreBelow ? { bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top left" } : { top: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} onClick={() => setContextMenu({ id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height })}>•••</button>
+          <button type="button" className="pointer-events-auto absolute left-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={moreBelow ? { bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top left" } : { top: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} aria-expanded={contextMenu?.id === node.id ? "true" : "false"} onClick={() => setContextMenu((prev) => (prev?.id === node.id ? null : { id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height }))}>•••</button>
           {beneath ? <button type="button" className="pointer-events-auto absolute right-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top right" }} data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
           {([
             // Half-outside placement keeps body clicks usable on badges/icons and other small frames.
