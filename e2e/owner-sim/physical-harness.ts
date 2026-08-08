@@ -259,12 +259,12 @@ export async function selectCanvasNode(page: Page, selector: string, index = 0) 
 }
 
 function familySelectionTarget(family: InsertSurface["family"]): RegExp {
-  if (family === "text") return /^Text$/i;
-  if (family === "icon") return /^Icon$/i;
-  if (family === "button") return /^Button$/i;
-  if (family === "badge") return /^Badge$/i;
-  if (family === "coupon") return /^Coupon$/i;
-  if (family === "ticket") return /^Ticket$/i;
+  if (family === "text") return /text/i;
+  if (family === "icon") return /icon/i;
+  if (family === "button") return /button/i;
+  if (family === "badge") return /badge/i;
+  if (family === "coupon") return /coupon/i;
+  if (family === "ticket") return /ticket/i;
   return new RegExp(family, "i");
 }
 
@@ -316,20 +316,27 @@ export async function insertFromSurface(page: Page, surface: InsertSurface) {
   const node = page.locator(familyCompositionNodeSelector(surface.family)).last();
   await expect(node).toBeVisible({ timeout: 10_000 });
   const tools = page.getByTestId("card-contextual-object-tools");
-  const alreadySelected = familySelectionTarget(surface.family).test(
-    (await tools.getAttribute("data-selection-target").catch(() => "")) || ""
-  );
+  const readTarget = async () =>
+    (await tools.getAttribute("data-selection-target").catch(() => "")) || "";
+  let alreadySelected = familySelectionTarget(surface.family).test(await readTarget());
   if (!alreadySelected) {
-    // Click near the center so edge resize handles from a prior selection cannot intercept.
+    // Click interior away from edge/corner resize chrome (short badges make center ≈ south handle).
     const box = await node.boundingBox();
     if (box) {
-      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      const x = box.x + Math.max(12, box.width * 0.5);
+      const y = box.y + Math.max(10, Math.min(box.height * 0.35, box.height - 14));
+      await page.mouse.click(x, y);
     } else {
-      await node.click({ timeout: 10_000, position: { x: 8, y: 8 } });
+      await node.click({ timeout: 10_000, position: { x: 12, y: 10 } });
     }
+    alreadySelected = familySelectionTarget(surface.family).test(await readTarget());
   }
   await expect(tools).toBeVisible({ timeout: 10_000 });
-  await expect(tools).toHaveAttribute("data-selection-target", familySelectionTarget(surface.family));
+  if (!alreadySelected) {
+    throw new Error(
+      `Inserted ${surface.family} but selection target is "${await readTarget()}" — select failed`
+    );
+  }
   return { node, before: beforeNodes, after: await page.locator("[data-composition-node]").count() };
 }
 

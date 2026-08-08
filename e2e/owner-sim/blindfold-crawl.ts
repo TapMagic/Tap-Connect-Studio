@@ -175,15 +175,21 @@ export async function reconstructContext(page: Page, label: string): Promise<Bli
     appendBlindfoldProgress(`reconstruct insert ${ctx.family} ${label}`);
     const inserted = await insertFamily(page, ctx.family);
     appendBlindfoldProgress(`reconstruct select ${ctx.family} ${label}`);
-    await inserted.node.click({ timeout: 10_000 });
+    // insertFamily already selects the node — do not re-click (own resize chrome intercepts).
     await expect(page.getByTestId("card-contextual-object-tools")).toBeVisible({ timeout: 10_000 });
     if (ctx.kind === "appearance") {
       appendBlindfoldProgress(`reconstruct appearance ${ctx.family} ${label}`);
       try {
         await openAppearanceOverview(page);
       } catch {
-        // Selection can be stolen by polluted chrome — reselect and retry once.
-        await inserted.node.click({ timeout: 10_000 });
+        // Reselect via interior mouse click if Appearance door missed.
+        const box = await inserted.node.boundingBox();
+        if (box) {
+          await page.mouse.click(
+            box.x + Math.max(12, box.width * 0.5),
+            box.y + Math.max(10, Math.min(box.height * 0.35, box.height - 14))
+          );
+        }
         await page.waitForTimeout(120);
         await openAppearanceOverview(page);
       }
@@ -274,6 +280,7 @@ export function isObjectLocalControl(control: ProvenancedControl & { inToolbar?:
   const name = control.name || "";
   // Creative library / insert catalog is blank-card-root (or rail) work — not selected/appearance.
   if (control.inRail || isSharedWorkspaceChrome(control)) return false;
+  if (/^card-zoom-/.test(id) || /^Zoom |^Fit /i.test(name)) return false;
   if (
     /^(starter-|button-preset-|coupon-preset-|ticket-preset-|text-combination-|badge-preset-|icon-recommended-)/.test(id)
   ) {
@@ -723,19 +730,25 @@ async function operateControlPhysicallyInner(
       return { status: "VERIFIED", notes: ["Live rotate handle dragged", `context=${contextLabel}`] };
     }
     if (/^composition-more-node-/.test(control.testId)) {
-      const more = page
-        .locator('[data-testid^="composition-more-node-"]')
-        .or(page.getByRole("button", { name: /More|Object menu/i }))
-        .first();
+      const more = page.locator('[data-testid^="composition-more-node-"]').first();
       await expect(more).toBeVisible({ timeout: 8_000 });
       await ownerClick(more, "Live composition More menu");
-      await page.keyboard.press("Escape").catch(() => undefined);
+      // Prefer clicking the pasteboard — bare Escape can open the Exit dialog.
+      await page.locator('[data-testid="creative-composition-canvas"]').click({ position: { x: 8, y: 8 }, timeout: 2_000 }).catch(() => undefined);
       await dismissSaveDialogIfPresent(page);
       return { status: "VERIFIED", notes: ["Live composition More opened/dismissed", `context=${contextLabel}`] };
     }
     if (edge) {
-      const handle = page.getByRole("button", { name: new RegExp(`^Resize ${edge}$`, "i") }).first();
-      await expect(handle).toBeVisible({ timeout: 8_000 });
+      const handle = page
+        .locator(`[data-testid^="composition-resize-"][data-testid$="-${edge}"]`)
+        .or(page.getByRole("button", { name: new RegExp(`^Resize ${edge}$`, "i") }))
+        .first();
+      if ((await handle.count()) === 0 || !(await handle.isVisible().catch(() => false))) {
+        return {
+          status: "BROKEN",
+          notes: [`Live resize ${edge} handle not visible on current selection`, `context=${contextLabel}`],
+        };
+      }
       const box = await handle.boundingBox();
       if (!box) {
         return { status: "BROKEN", notes: [`Resize ${edge} handle has no box`, `context=${contextLabel}`] };
