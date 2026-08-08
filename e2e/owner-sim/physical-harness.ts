@@ -406,12 +406,20 @@ export async function openAppearanceOverview(page: Page) {
       .or(page.getByTestId("appearance-effects-list"))
       .or(page.getByTestId("material-engine-controls"))
       .or(page.getByTestId("appearance-fill-controls"))
+      .or(page.getByTestId("appearance-category-artwork"))
+      .or(page.getByTestId("appearance-category-fill"))
       .first();
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
+    await dismissTransientStudioChrome(page);
     await clickToolbarByTestId(page, ids, "Appearance");
     const drawer = page.getByTestId("card-creative-context-drawer");
     await expect(drawer).toHaveAttribute("data-drawer-mode", "edit", { timeout: 10_000 });
+    // Nested page from a prior visit — return to overview.
+    const back = page.getByTestId("appearance-back").first();
+    if ((await back.count()) > 0 && (await back.isVisible().catch(() => false))) {
+      await back.click({ timeout: 3_000 }).catch(() => undefined);
+    }
     if ((await appearanceContent().count()) > 0 && (await appearanceContent().isVisible().catch(() => false))) {
       return;
     }

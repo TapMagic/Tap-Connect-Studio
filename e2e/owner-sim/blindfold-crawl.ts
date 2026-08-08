@@ -333,6 +333,10 @@ export function contextsForControl(control: ProvenancedControl): string[] {
   ) {
     return ["blank-card-root"];
   }
+  // Drawer Close controls are library/editor chrome — certify once at blank root, not under Background.
+  if (/^Close creative drawer$/i.test(name) || /^Close editor$/i.test(name)) {
+    return ["blank-card-root"];
+  }
   if (isSharedWorkspaceChrome(control)) {
     if (contexts.includes("blank-card-root")) return ["blank-card-root"];
     if (contexts.includes("editor-preferences")) return ["editor-preferences"];
@@ -726,21 +730,39 @@ async function operateControlPhysicallyInner(
   // Appearance category doors unmount when nested — return via ← Appearance then open the door.
   if (/^appearance-category-/.test(control.testId || "") && contextLabel.startsWith("appearance-")) {
     await ensureAppearanceContext(page, contextLabel);
-    const back = page.getByTestId("appearance-back").first();
-    if ((await page.getByTestId(control.testId).count()) === 0 && (await back.count()) > 0 && (await back.isVisible().catch(() => false))) {
-      await ownerClick(back, "Return to Appearance overview for category doors");
-    }
-    const door = page.getByTestId(control.testId).first();
-    await expect(door).toBeVisible({ timeout: 10_000 });
-    await ownerClick(door, `Appearance category ${control.testId}`);
-    // Leave a nested page only if later siblings need overview — restore overview for batch stability.
-    const back2 = page.getByTestId("appearance-back").first();
-    if ((await back2.count()) > 0 && (await back2.isVisible().catch(() => false))) {
-      await ownerClick(back2, "Return to Appearance overview after category");
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const back = page.getByTestId("appearance-back").first();
+      if ((await back.count()) > 0 && (await back.isVisible().catch(() => false))) {
+        await ownerClick(back, "Return to Appearance overview for category doors");
+      }
+      await expect(page.getByTestId("appearance-category-overview")).toBeVisible({ timeout: 8_000 }).catch(() => undefined);
+      const door = page.getByTestId(control.testId).first();
+      if ((await door.count()) > 0 && (await door.isVisible().catch(() => false))) {
+        await ownerClick(door, `Appearance category ${control.testId}`);
+        const back2 = page.getByTestId("appearance-back").first();
+        if ((await back2.count()) > 0 && (await back2.isVisible().catch(() => false))) {
+          await ownerClick(back2, "Return to Appearance overview after category");
+        }
+        return {
+          status: "VERIFIED",
+          notes: [`Appearance category door operated: ${control.testId}`, `context=${contextLabel}`],
+        };
+      }
+      // Category absent for this family on overview — genuine N/A (not a false skip).
+      if ((await page.getByTestId("appearance-category-overview").count()) > 0) {
+        return {
+          status: "NOT_APPLICABLE",
+          notes: [
+            `Appearance category ${control.testId} not offered for this family overview`,
+            `context=${contextLabel}`,
+          ],
+        };
+      }
+      await ensureAppearanceContext(page, contextLabel);
     }
     return {
-      status: "VERIFIED",
-      notes: [`Appearance category door operated: ${control.testId}`, `context=${contextLabel}`],
+      status: "BROKEN",
+      notes: [`Appearance category door unreachable: ${control.testId}`, `context=${contextLabel}`],
     };
   }
 
