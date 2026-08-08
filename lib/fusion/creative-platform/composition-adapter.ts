@@ -24,15 +24,12 @@ export function compositionBackgroundToFill(
   ) {
     return { kind: background.kind, pattern: background.pattern };
   }
-  if (
-    background.kind === "image" &&
-    background.image?.src &&
-    background.image.mediaAssetId
-  ) {
+  if (background.kind === "image" && background.image?.src) {
     return {
       kind: "image",
       media: {
-        mediaAssetId: background.image.mediaAssetId,
+        // Prefer durable Studio identity; fall back to URL so Owners never lose a visible image silently.
+        mediaAssetId: background.image.mediaAssetId || background.image.src,
         fallbackUrl: background.image.fallbackUrl || background.image.src,
       },
       treatment: {

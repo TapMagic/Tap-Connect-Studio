@@ -157,13 +157,14 @@ export async function scrapeRuntimeControls(
     return out;
   }, { selector: INTERACTIVE_SELECTOR, withinSelector: options?.withinSelector || "" });
 
+  const typedControls = controls as unknown as RuntimeControl[];
   const snapshot: RuntimeInventorySnapshot = {
     capturedAt: new Date().toISOString(),
     contextLabel,
-    totalDiscovered: controls.length,
-    enabledVisible: controls.filter((c) => c.enabled).length,
-    disabledOrHidden: controls.filter((c) => !c.enabled).length,
-    controls: controls.map((control) => ({ ...control, discoveryContext: contextLabel })),
+    totalDiscovered: typedControls.length,
+    enabledVisible: typedControls.filter((c) => c.enabled).length,
+    disabledOrHidden: typedControls.filter((c) => !c.enabled).length,
+    controls: typedControls.map((control) => ({ ...control, discoveryContext: contextLabel })),
   };
   return snapshot;
 }

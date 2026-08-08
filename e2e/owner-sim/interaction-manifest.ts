@@ -213,7 +213,7 @@ export function deriveTicketPresetIds(): string[] {
 }
 
 /** Exhaustive button preset ids. */
-export function deriveButtonPresetSampleIds(count = STARTER_BUTTON_PRESETS.length): string[] {
+export function deriveButtonPresetSampleIds(count: number = STARTER_BUTTON_PRESETS.length): string[] {
   return STARTER_BUTTON_PRESETS.slice(0, count).map((item) => item.id);
 }
 
