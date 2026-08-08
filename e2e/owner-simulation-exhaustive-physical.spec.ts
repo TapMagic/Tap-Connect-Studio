@@ -579,20 +579,21 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
     markLedger("group.group.move", moved ? "VERIFIED" : "BROKEN");
     if (!moved) throw new Error("Group move failed");
 
-    const resize = page.getByTestId(/^composition-resize-/).first();
-    if ((await resize.count()) > 0) {
-      await dragHandle(page, resize, 16, 12);
-      markLedger("group.group.resize", "VERIFIED");
-    } else {
-      markLedger("group.group.resize", "NOT_APPLICABLE", { notes: ["no resize handle"] });
-    }
-    const rotate = page.getByTestId(/^composition-rotate-/).first();
-    if ((await rotate.count()) > 0) {
-      await dragHandle(page, rotate, 20, 0);
-      markLedger("group.group.rotate", "VERIFIED");
-    } else {
-      markLedger("group.group.rotate", "NOT_APPLICABLE", { notes: ["no rotate handle"] });
-    }
+    // Group parent chrome uses composition-group-* handles (not per-node composition-resize-*).
+    const resize = page
+      .locator('[data-testid^="composition-group-resize-"]')
+      .or(page.getByTestId(/^composition-resize-/))
+      .first();
+    await expect(resize).toBeVisible({ timeout: 10_000 });
+    await dragHandle(page, resize, 16, 12);
+    markLedger("group.group.resize", "VERIFIED");
+    const rotate = page
+      .getByTestId("composition-group-rotate")
+      .or(page.getByTestId(/^composition-rotate-/))
+      .first();
+    await expect(rotate).toBeVisible({ timeout: 10_000 });
+    await dragHandle(page, rotate, 20, 0);
+    markLedger("group.group.rotate", "VERIFIED");
 
     await openAppearanceOverview(page);
     markLedger("group.group.appearance", "VERIFIED");
