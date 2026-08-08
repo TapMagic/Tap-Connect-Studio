@@ -25,7 +25,11 @@ One pointer gesture = one commit / Undo entry.
 
 ## Edit contents
 
-`enterGroupContentEditing` / `exitGroupContentEditing` set `groupContentEditing` on the active child. Finish / Escape returns to full Group selection without destroying `groupId`.
+`enterGroupContentMode` marks `groupContentScope` on all members **without** selecting a child.  
+Owner clicks a child → `activateGroupContentChild`.  
+Finish / Escape → `exitGroupContentEditing` returns to full Group selection without destroying `groupId`.
+
+See also: `EDITOR_TARGET_SCOPE_CONTRACT.md`, `GROUP_BATCH_EDITING_CONTRACT.md`.
 
 ## Capability fan-out
 

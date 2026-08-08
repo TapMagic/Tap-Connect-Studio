@@ -45,18 +45,22 @@ import {
 import {
   containerChildIds,
   isContainerNode,
+  isTrueGroupMember,
   resolveContainerParent,
   selectionModeForNode,
 } from "@/lib/fusion/creative-studio/selection-mode";
 import {
+  activateGroupContentChild,
   computeGroupUnionBounds,
   exitGroupContentEditing,
   isGroupContentEditing,
+  isGroupContentScope,
   isGroupParentSelection,
   resolveActiveGroupId,
   resizeGroupComposition,
   rotateGroupComposition,
 } from "@/lib/fusion/creative-studio/group-authority";
+import { badgeShapeBorderRadius, badgeShapeClipPath } from "@/lib/fusion/creative-studio/badge-shape";
 import { effectLayersCss } from "@/lib/fusion/creative-studio/effect-render";
 import { surfaceShadowCss } from "@/lib/fusion/creative-studio/material-engine";
 
@@ -870,13 +874,7 @@ function NodeVisual({
     }
     if (elementKind === "badge") {
       const badgeShape = str(node.props.badgeShape, "pill");
-      const badgeClip = badgeShape === "burst" || badgeShape === "starburst"
-        ? "polygon(50% 0,61% 20%,82% 10%,80% 35%,100% 50%,80% 65%,82% 90%,61% 80%,50% 100%,39% 80%,18% 90%,20% 65%,0 50%,20% 35%,18% 10%,39% 20%)"
-        : badgeShape === "ticket" ? "polygon(8% 0,92% 0,92% 12%,100% 20%,92% 28%,92% 72%,100% 80%,92% 88%,92% 100%,8% 100%,8% 88%,0 80%,8% 72%,8% 28%,0 20%,8% 12%)"
-          : badgeShape === "ribbon" || badgeShape === "corner-ribbon" ? "polygon(8% 0,92% 0,82% 50%,92% 100%,8% 100%,18% 50%)"
-            : badgeShape === "tag" ? "polygon(0 0,82% 0,100% 50%,82% 100%,0 100%,10% 50%)"
-              : badgeShape === "shield" ? "polygon(50% 0,94% 16%,88% 65%,50% 100%,12% 65%,6% 16%)"
-                : badgeShape === "hexagon" ? "polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)" : undefined;
+      const badgeClip = badgeShapeClipPath(badgeShape);
       const badgeShadow = surfaceShadowCss(node.props);
       return (
         <div
@@ -884,7 +882,7 @@ function NodeVisual({
           style={{
             background: str(node.props.gradientFill, str(node.props.fill, "#ef4444")),
             color: str(node.props.color, "#ffffff"),
-            borderRadius: badgeShape === "circle" ? "50%" : badgeShape === "square" ? 0 : num(node.props.radius, 999),
+            borderRadius: badgeShapeBorderRadius(badgeShape, num(node.props.radius, 999)),
             clipPath: badgeClip,
             border: num(node.props.borderWidth, 0) ? `${num(node.props.borderWidth, 0)}px solid ${str(node.props.borderColor, "#fff")}` : undefined,
             boxShadow: badgeShadow,
@@ -1109,10 +1107,11 @@ function NodeVisual({
       textTransform: str(labelProps.textTransform, str(node.props.textTransform, "none")) as CSSProperties["textTransform"],
       transform: `translate(${num(node.props.labelOffsetX, 0)}px, ${num(node.props.labelOffsetY, 0)}px)`,
       textAlign: str(node.props.textAlign, "center") as CSSProperties["textAlign"],
-      background: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
-      backgroundClip: node.props.gradientFill ? "text" : undefined,
-      WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
-      WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
+      // Label glyph gradient only — never Button Surface gradientFill.
+      background: (labelProps.gradientFill || node.props.labelGradientFill) ? str(labelProps.gradientFill || node.props.labelGradientFill) : undefined,
+      backgroundClip: (labelProps.gradientFill || node.props.labelGradientFill) ? "text" : undefined,
+      WebkitBackgroundClip: (labelProps.gradientFill || node.props.labelGradientFill) ? "text" : undefined,
+      WebkitTextFillColor: (labelProps.gradientFill || node.props.labelGradientFill) ? "transparent" : undefined,
       textShadow: effectLayersCss("glyph", {
         effectPreset: str(labelProps.effectPreset, str(node.props.effectPreset, "")),
         glow: num(labelProps.glow, num(node.props.glow, 0)),
@@ -1236,7 +1235,13 @@ export function CreativeCompositionCanvas({
     groupBounds?: { left: number; top: number; width: number; height: number; rotationDeg: number } | null;
   } | null>(null);
   const groupParentSelection = isGroupParentSelection(block.nodes, selectedNodeIds);
-  const activeGroupId = resolveActiveGroupId(block.nodes, selectedNodeIds);
+  const activeGroupId =
+    resolveActiveGroupId(block.nodes, selectedNodeIds) ||
+    (() => {
+      const first = block.nodes.find((node) => selectedNodeIds.includes(node.id));
+      return first?.groupId && isGroupContentScope(block.nodes, first.groupId) ? first.groupId : null;
+    })();
+  const groupContentScopeActive = Boolean(activeGroupId && isGroupContentScope(block.nodes, activeGroupId));
   const groupBounds = activeGroupId ? computeGroupUnionBounds(block.nodes, activeGroupId, true) : null;
 
   useEffect(() => {
@@ -1478,8 +1483,17 @@ export function CreativeCompositionCanvas({
     }
 
     const multi = e.metaKey || e.ctrlKey || e.shiftKey;
+    // Group content scope: Owner chooses a single child — do not re-expand to the full Group.
+    const targetGroupId = target.groupId && isTrueGroupMember(target) ? target.groupId : null;
+    const inGroupContentScope = Boolean(targetGroupId && isGroupContentScope(block.nodes, targetGroupId));
     let nextIds: string[];
-    if (multi) {
+    if (inGroupContentScope && !multi) {
+      commitNodes(
+        activateGroupContentChild(block.nodes, targetGroupId!, target.id),
+        "Selected Group child"
+      );
+      nextIds = [target.id];
+    } else if (multi) {
       nextIds = selectedSet.has(target.id)
         ? selectedNodeIds.filter((id) => id !== target.id)
         : [...selectedNodeIds, target.id];
@@ -2126,6 +2140,22 @@ export function CreativeCompositionCanvas({
           </div>
         );
       })}
+      {editMode && groupContentScopeActive && groupBounds && activeGroupId && !groupParentSelection ? (
+        <div
+          key={`group-content-scope-${activeGroupId}`}
+          className="pointer-events-none absolute z-[999] outline outline-1 outline-dashed outline-white/35"
+          style={{
+            left: `${groupBounds.left * 100}%`,
+            top: `${groupBounds.top * 100}%`,
+            width: `${groupBounds.width * 100}%`,
+            height: `${groupBounds.height * 100}%`,
+          }}
+          data-testid="composition-group-content-scope-overlay"
+          data-group-id={activeGroupId}
+        >
+          <span className="pointer-events-none absolute left-0 rounded bg-black/60 px-1.5 py-0.5 text-[9px] text-white/70" style={{ top: `calc(-1.35rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }}>Group · editing contents</span>
+        </div>
+      ) : null}
       {editMode && groupParentSelection && groupBounds && activeGroupId ? (
         <div
           key={`group-selection-${activeGroupId}`}
@@ -2162,7 +2192,7 @@ export function CreativeCompositionCanvas({
           })()}
         </div>
       ) : null}
-      {editMode ? visibleNodes.filter((node) => selectedSet.has(node.id) && !node.locked && !(groupParentSelection && node.groupId && node.groupId === activeGroupId)).map((node) => {
+      {editMode ? visibleNodes.filter((node) => selectedSet.has(node.id) && !node.locked && !(groupParentSelection && node.groupId && node.groupId === activeGroupId) && !(groupContentScopeActive && !isGroupContentEditing(block.nodes, selectedNodeIds) && node.groupId === activeGroupId)).map((node) => {
         const box = resolveNodeBox(node, editMode);
         const beneath = [...visibleNodes]
           .filter((candidate) => candidate.id !== node.id)

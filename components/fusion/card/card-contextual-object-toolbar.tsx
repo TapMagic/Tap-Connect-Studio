@@ -20,15 +20,21 @@ import {
   fanOutProps,
   fanOutScopeLabel,
   fanOutWithAdapter,
+  groupAppearanceScopes,
   groupMembers,
   inferFanOutCapability,
-  isGroupParentSelection,
   mixedValueForCapability,
   resolveActiveGroupId,
-  enterGroupContentEditing,
+  enterGroupContentMode,
   exitGroupContentEditing,
+  scaleFontSizes,
+  setAllFontSizes,
   textDescendantsInScope,
+  triStateForCapability,
 } from "@/lib/fusion/creative-studio/group-authority";
+import { resolveEditorContext, toolbarChromeForContext } from "@/lib/fusion/creative-studio/editor-context";
+import { BADGE_SHAPE_DEFS, badgeShapePreviewStyle, badgeShapeProps } from "@/lib/fusion/creative-studio/badge-shape";
+import { effectLayersCss } from "@/lib/fusion/creative-studio/effect-render";
 import { type CouponChildRole } from "@/lib/fusion/creative-studio/coupon-composition";
 import { ICON_BROWSE_CATEGORIES, ICON_COLLECTION_BROWSE } from "@/lib/fusion/creative-studio/icon-browse";
 import { dispatchEditorCommand, focusForDrawerSection, type EditorDrawerSection } from "@/lib/fusion/creative-studio/editor-command-registry";
@@ -456,10 +462,25 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const selection = model.selectionRef;
   const patch = (next: Partial<CreativeCompositionNode>, label: string) => model.patchSelection(selection, next, label);
   const selectedIds = model.selectedCompositionNodeIds ?? [node.id];
-  const groupParent = isGroupParentSelection(block.nodes, selectedIds);
-  const activeGroupId = resolveActiveGroupId(block.nodes, selectedIds);
+  const editorContext = resolveEditorContext({
+    nodes: block.nodes,
+    selectedIds,
+    explicitCardRootSelected: model.explicitCardRootSelected,
+    selectedCapability: focus,
+  });
+  const toolbarChrome = toolbarChromeForContext(editorContext);
+  const groupParent = editorContext.selectionMode === "GROUP_PARENT";
+  const groupContentAwaiting = toolbarChrome === "group_content_awaiting";
+  const activeGroupId = editorContext.groupId || resolveActiveGroupId(block.nodes, selectedIds);
   const colorMixed = mixedValueForCapability(block.nodes, selectedIds, "text_color");
   const fillMixed = groupParent ? mixedValueForCapability(block.nodes, selectedIds, "fill") : { kind: "empty" as const };
+  const fontMixed = groupParent ? mixedValueForCapability(block.nodes, selectedIds, "font") : { kind: "empty" as const };
+  const fontSizeMixed = groupParent ? mixedValueForCapability(block.nodes, selectedIds, "font_size") : { kind: "empty" as const };
+  const boldState = groupParent ? triStateForCapability(block.nodes, selectedIds, "font_weight") : "empty";
+  const italicState = groupParent ? triStateForCapability(block.nodes, selectedIds, "italic") : "empty";
+  const underlineState = groupParent ? triStateForCapability(block.nodes, selectedIds, "underline") : "empty";
+  const groupHasText = groupParent && textDescendantsInScope(block.nodes, selectedIds).length > 0;
+  const appearanceScopes = groupParent ? groupAppearanceScopes(block.nodes, selectedIds) : [];
   const patchProps = (next: Record<string, unknown>, label: string) => {
     // Group capability fan-out — per-descendant adapters, never primary-node clone.
     if (groupParent) {
@@ -577,10 +598,10 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           : "fill")
   );
 
-  return <div className="pointer-events-none absolute inset-x-0 top-[9.5rem] z-[1550] flex flex-col items-center" data-testid="card-contextual-object-tools" data-selection-target={targetLabel.display} data-selection-mode={String(node.props.selectionMode || (node.props.contentEditing === true ? "content" : "parent"))}>
+  return <div className="pointer-events-none absolute inset-x-0 top-[9.5rem] z-[1550] flex flex-col items-center" data-testid="card-contextual-object-tools" data-selection-target={groupParent ? "Group" : groupContentAwaiting ? "Group › contents" : targetLabel.display} data-selection-mode={editorContext.selectionMode} data-toolbar-chrome={toolbarChrome}>
     <div className="pointer-events-auto flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-[#0b1019]/95 p-1.5 text-white shadow-2xl backdrop-blur">
-      <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#b8ff2c]" data-testid="contextual-target-label">{groupParent ? "Group" : selectedIds.length > 1 ? "Multi" : targetLabel.display}</span>
-      {!groupParent && selectedIds.length > 1 ? (
+      <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#b8ff2c]" data-testid="contextual-target-label">{groupParent ? "Group" : groupContentAwaiting ? "Group" : selectedIds.length > 1 ? "Multi" : targetLabel.display}</span>
+      {toolbarChrome === "multi" ? (
         <button
           type="button"
           className="min-h-9 rounded px-2 text-xs hover:bg-white/10"
@@ -594,16 +615,14 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           Group
         </button>
       ) : null}
-      {groupParent ? <>
+      {toolbarChrome === "group_parent" ? <>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-edit-contents" onClick={() => {
           if (!activeGroupId) return;
-          // Enter content mode on the first member — do not force first Text. Host picks the child.
+          // Enter content scope with NO child selected — Owner chooses the child.
           const members = groupMembers(block.nodes, activeGroupId);
-          const child = members[0];
-          if (!child) return;
-          replace({ ...block, nodes: enterGroupContentEditing(block.nodes, activeGroupId, child.id) }, "Entered Group Edit contents");
-          model.setSelectedCompositionNodeIds?.([child.id]);
-          model.notify?.("Select a Group child to edit. Finish returns to the Group.");
+          replace({ ...block, nodes: enterGroupContentMode(block.nodes, activeGroupId) }, "Entered Group Edit contents");
+          model.setSelectedCompositionNodeIds?.(members.map((member) => member.id));
+          model.notify?.("Click a Group child to edit. Finish returns to the Group.");
         }}>Edit contents</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-appearance" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}>Appearance</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-ungroup" onClick={() => {
@@ -612,32 +631,60 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           replace({ ...block, nodes: ungroupNodes(block.nodes, activeGroupId) }, "Ungrouped Elements");
           model.setSelectedCompositionNodeIds?.(memberIds);
         }}>Ungroup</button>
-        {textDescendantsInScope(block.nodes, selectedIds).length ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-magic-write" onClick={() => {
-          // Shared Text › Magic Write surface; scope resolves from current Group selection.
-          // Command remains registered for registry parity; UI opens the shared library host.
+        {groupHasText ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-magic-write" onClick={() => {
           document.querySelector<HTMLElement>('[data-testid="card-creative-tool-text"]')?.click();
           window.setTimeout(() => {
             document.querySelector<HTMLElement>('[data-testid="magic-write-open"]')?.click();
           }, 0);
         }}>Magic Write</button> : null}
+        {groupHasText ? <>
+          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("font")} data-testid="contextual-group-font">{fontMixed.kind === "mixed" ? "Mixed" : String((fontMixed.kind === "uniform" ? fontMixed.value : node.props.fontFamily) || "Font").split(",")[0]}</button>
+          <span className="inline-flex items-center gap-0.5" data-testid="contextual-group-font-size-controls">
+            <input
+              aria-label="Set all font sizes"
+              type="text"
+              inputMode="numeric"
+              placeholder="Mixed"
+              value={fontSizeMixed.kind === "mixed" ? "" : String(fontSizeMixed.kind === "uniform" ? fontSizeMixed.value : node.props.fontSize || 18)}
+              onChange={(event) => {
+                const raw = event.target.value.trim();
+                if (!raw || raw.toLowerCase() === "mixed") return;
+                const size = Number(raw);
+                if (!Number.isFinite(size)) return;
+                const result = setAllFontSizes(block.nodes, selectedIds, size);
+                replace({ ...block, nodes: result.nodes }, "Set all Group text sizes");
+              }}
+              className="h-9 w-14 rounded border border-white/15 bg-transparent px-1 text-xs"
+              data-testid="contextual-group-font-size"
+              title="Set all — enters one size for every compatible Text"
+            />
+            {fontSizeMixed.kind === "mixed" ? <span className="px-1 text-[9px] text-white/50" data-testid="contextual-group-font-size-mixed">Mixed</span> : null}
+            <button type="button" className="h-9 rounded px-1.5 text-[10px] hover:bg-white/10" data-testid="contextual-group-font-scale-down" title="Scale sizes −10% (preserves hierarchy)" onClick={() => { const result = scaleFontSizes(block.nodes, selectedIds, 0.9); replace({ ...block, nodes: result.nodes }, "Scaled Group text sizes −10%"); }}>−10%</button>
+            <button type="button" className="h-9 rounded px-1.5 text-[10px] hover:bg-white/10" data-testid="contextual-group-font-scale-up" title="Scale sizes +10% (preserves hierarchy)" onClick={() => { const result = scaleFontSizes(block.nodes, selectedIds, 1.1); replace({ ...block, nodes: result.nodes }, "Scaled Group text sizes +10%"); }}>+10%</button>
+          </span>
+          <button type="button" aria-pressed={boldState === "on"} data-state={boldState} className="h-9 w-9 rounded font-bold hover:bg-white/10 data-[state=mixed]:bg-white/10" data-testid="contextual-group-bold" onClick={() => patchProps({ fontWeight: boldState === "on" ? 400 : 800 }, "Changed Group text weight")}>B</button>
+          <button type="button" aria-pressed={italicState === "on"} data-state={italicState} className="h-9 w-9 rounded italic hover:bg-white/10 data-[state=mixed]:bg-white/10" data-testid="contextual-group-italic" onClick={() => patchProps({ italic: italicState !== "on" }, "Changed Group text italic")}>I</button>
+          <button type="button" aria-pressed={underlineState === "on"} data-state={underlineState} className="h-9 w-9 rounded underline hover:bg-white/10 data-[state=mixed]:bg-white/10" data-testid="contextual-group-underline" onClick={() => patchProps({ underline: underlineState !== "on" }, "Changed Group text underline")}>U</button>
+          <button type="button" className="grid h-9 min-w-[2rem] place-items-center rounded border border-white/20 px-1.5 text-[13px] font-bold" data-testid="contextual-group-color" title="Group text color" onClick={() => open("color")}>Aa</button>
+        </> : null}
       </> : null}
-      {node.props.groupContentEditing === true && node.groupId ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-finish" onClick={() => { const gid = String(node.groupId); replace({ ...block, nodes: exitGroupContentEditing(block.nodes, gid) }, "Finished editing Group contents"); model.setSelectedCompositionNodeIds?.(expandSelectionToGroups(block.nodes, [node.id])); }}>Finish editing</button> : null}
-      {isButton ? <>
+      {(toolbarChrome === "group_content_awaiting" || editorContext.selectionMode === "GROUP_CONTENT") && activeGroupId ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-finish" onClick={() => { replace({ ...block, nodes: exitGroupContentEditing(block.nodes, activeGroupId) }, "Finished editing Group contents"); model.setSelectedCompositionNodeIds?.(groupMembers(block.nodes, activeGroupId).map((member) => member.id)); }}>Finish editing</button> : null}
+      {groupContentAwaiting ? <span className="px-2 text-[10px] text-white/55" data-testid="contextual-group-awaiting-child">Click a child to edit</span> : null}
+      {toolbarChrome === "object" && isButton ? <>
         <button type="button" aria-pressed={node.props.contentEditing === true} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents"); open("button-content"); }} data-testid="contextual-button-content">{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button>
         <button
           type="button"
           className="grid h-9 w-9 place-items-center overflow-hidden rounded border border-white/20"
-          style={{ background: materialPreviewCss({ id: "swatch", label: "", category: "basic", gradient: String(node.props.gradientFill || ""), fill: String(node.props.fill || "#22c55e") }) }}
-          title="Button surface appearance"
-          aria-label="Button surface appearance"
+          style={{ background: materialPreviewCss({ id: "swatch", label: "", category: "basic", gradient: String(node.props.buttonSurfaceKind === "gradient" ? `linear-gradient(${Number(node.props.gradientAngle || 90)}deg,${node.props.gradientStart || "#22c55e"},${node.props.gradientEnd || "#06b6d4"})` : node.props.gradientFill || ""), fill: String(node.props.fill || "#22c55e") }) }}
+          title="Button Appearance → Fill"
+          aria-label="Button Appearance Fill"
           data-testid="contextual-button-surface-swatch"
           onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}
         />
-        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-surface")} data-testid="contextual-button-surface">Surface</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-button-appearance">Appearance</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-action")} data-testid="contextual-button-action">Action</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-button-motion">Animate</button>
-      </> : isTextLike ? <>
+      </> : toolbarChrome === "object" && isTextLike ? <>
         {isBadge ? <>
           <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("surface")} data-testid="contextual-badge-shape">Shape</button>
           <button
@@ -700,7 +747,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         })()}
         {!isBadge ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-text-material">Appearance</button> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button>
-      </> : objectFamily === "icon" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.open")} data-testid="contextual-icon-picker">Change Icon</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.appearance")} data-testid="contextual-icon-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button></> : objectFamily === "divider" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.style")} data-testid="contextual-divider-style">Style</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.thickness")} data-testid="contextual-divider-thickness">Thickness</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.color")} data-testid="contextual-divider-color">Color</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.appearance")} data-testid="contextual-divider-appearance">Appearance</button></> : objectFamily === "map" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.setup")} data-testid="contextual-map-setup">Setup</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.action")} data-testid="contextual-map-action">Action</button></> : objectFamily === "gallery" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("gallery.edit")}>Edit gallery</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button></> : objectFamily === "form" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("form.editFields")}>Edit fields</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("behavior.open")}>Behavior</button></> : objectFamily === "coupon" || objectFamily === "ticket" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("component.editChildren")}>Edit contents</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("resizePolicy.open")}>Resize behavior</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("setup.open")}>Setup / Behavior</button></> : objectFamily === "container" ? <><button type="button" aria-pressed={node.props.contentEditing === true} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents"); open("content"); }} data-testid="contextual-container-content">{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("size.open")}>Size</button><button
+      </> : toolbarChrome === "object" && objectFamily === "icon" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.open")} data-testid="contextual-icon-picker">Change Icon</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.appearance")} data-testid="contextual-icon-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button></> : toolbarChrome === "object" && objectFamily === "divider" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.style")} data-testid="contextual-divider-style">Style</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.thickness")} data-testid="contextual-divider-thickness">Thickness</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.color")} data-testid="contextual-divider-color">Color</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.appearance")} data-testid="contextual-divider-appearance">Appearance</button></> : toolbarChrome === "object" && objectFamily === "map" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.setup")} data-testid="contextual-map-setup">Setup</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.action")} data-testid="contextual-map-action">Action</button></> : toolbarChrome === "object" && objectFamily === "gallery" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("gallery.edit")}>Edit gallery</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button></> : toolbarChrome === "object" && objectFamily === "form" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("form.editFields")}>Edit fields</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("behavior.open")}>Behavior</button></> : toolbarChrome === "object" && (objectFamily === "coupon" || objectFamily === "ticket") ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("component.editChildren")}>Edit contents</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("setup.open")}>Setup / Behavior</button></> : toolbarChrome === "object" && objectFamily === "container" ? <><button type="button" aria-pressed={node.props.contentEditing === true} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents"); open("content"); }} data-testid="contextual-container-content">{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("size.open")}>Size</button><button
           type="button"
           className="grid h-9 w-9 place-items-center overflow-hidden rounded border border-white/20"
           style={{ background: materialPreviewCss({ id: "swatch", label: "", category: "basic", gradient: String(node.props.gradientFill || ""), fill: String(node.props.fill || "#111827") }) }}
@@ -709,14 +756,14 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           data-testid="contextual-container-surface-swatch"
           onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}
         /><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("resizePolicy.open")} data-testid="contextual-container-resize-policy">Resize behavior</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("responsive.open")}>Responsive</button></> : null}
-      {isImage ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace" : "Choose media"}</button> : null}
-      {!isButton && !isImage && objectFamily !== "icon" && objectFamily !== "divider" && !isTextLike ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openCommand("appearance.open"); }} data-testid="contextual-appearance">Appearance</button>
+      {toolbarChrome === "object" && isImage ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace" : "Choose media"}</button> : null}
+      {toolbarChrome === "object" && !isButton && !isImage && objectFamily !== "icon" && objectFamily !== "divider" && !isTextLike ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openCommand("appearance.open"); }} data-testid="contextual-appearance">Appearance</button>
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Animate</button></> : null}
-      {objectFamily === "divider" || isTextLike ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Animate</button> : null}
-      {objectFamily === "icon" ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Animate</button> : null}
-      {isImage ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("crop")} data-testid="contextual-crop-fit">Crop / Fit</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("adjust")} data-testid="contextual-adjust">Adjust</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("frame-appearance")} data-testid="contextual-frame-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")}>Motion</button></> : null}
-      <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("position")} data-testid="contextual-position">Position</button>
-      <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={() => open("more")} aria-label="More actions"><MoreHorizontal className="h-4 w-4" /></button>
+      {toolbarChrome === "object" && (objectFamily === "divider" || isTextLike) ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Animate</button> : null}
+      {toolbarChrome === "object" && objectFamily === "icon" ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Animate</button> : null}
+      {toolbarChrome === "object" && isImage ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("crop")} data-testid="contextual-crop-fit">Crop / Fit</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("adjust")} data-testid="contextual-adjust">Adjust</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("frame-appearance")} data-testid="contextual-frame-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")}>Motion</button></> : null}
+      {toolbarChrome === "group_parent" || toolbarChrome === "object" || toolbarChrome === "multi" ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("position")} data-testid="contextual-position">Position</button> : null}
+      {toolbarChrome === "group_parent" || toolbarChrome === "object" || toolbarChrome === "multi" ? <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={() => open("more")} aria-label="More actions"><MoreHorizontal className="h-4 w-4" /></button> : null}
     </div>
     {focus ? <EditorPanelShell testId={`contextual-${focus}-drawer`} title={`${targetLabel.display} / ${focus === "color" ? "Color" : focus === "text-box" ? "Text Box" : focus}`} targetLabel={targetLabel.display} onClose={closeFocus} portalEl={portalEl}>
       <p className="mb-2 text-[9px] text-white/45" data-testid="drawer-target-label">{targetLabel.display}{node.locked ? " · Locked" : ""}{node.visible === false ? " · Hidden" : ""}</p>
@@ -734,19 +781,20 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         {isBadge ? (
           <div data-testid="badge-shape-controls">
             <p className="mb-1 text-[10px] font-semibold uppercase text-white/50">Shape</p>
-            <div className="grid grid-cols-3 gap-1">
-              {(["pill", "circle", "rounded", "burst", "starburst", "ribbon", "seal", "ticket", "tag", "shield", "hexagon"] as const).map((shape) => {
-                const nextRadius = shape === "pill" || shape === "circle" || shape === "seal" ? 999 : shape === "rounded" ? 14 : 0;
+            <div className="grid grid-cols-3 gap-2">
+              {BADGE_SHAPE_DEFS.filter((def) => def.id !== "square").map((def) => {
+                const preview = badgeShapePreviewStyle(def.id, "#94a3b8");
                 return (
                   <button
-                    key={shape}
+                    key={def.id}
                     type="button"
-                    aria-pressed={String(node.props.badgeShape || "") === shape}
-                    className={buttonClass}
-                    data-testid={`badge-shape-${shape}`}
-                    onClick={() => patchProps({ badgeShape: shape, radius: nextRadius }, `Changed Badge shape to ${shape}`)}
+                    aria-pressed={String(node.props.badgeShape || "") === def.id}
+                    className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/15 px-1 text-[9px] hover:border-[#b8ff2c]/60 aria-pressed:border-[#b8ff2c]"
+                    data-testid={`badge-shape-${def.id}`}
+                    onClick={() => patchProps(badgeShapeProps(def.id), `Changed Badge shape to ${def.label}`)}
                   >
-                    {shape}
+                    <span aria-hidden style={{ ...preview, display: "block" }} />
+                    {def.label}
                   </button>
                 );
               })}
@@ -800,25 +848,100 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/55">Artwork</p>
           {iconRenderMode === "multicolor" ? <p className="rounded border border-amber-300/30 p-2 text-[10px] text-amber-100" data-testid="icon-multicolor-note">Multicolor Icons keep baked path colors. Fill/Stroke recolor is unavailable.</p> : null}
           {iconRenderMode !== "multicolor" && iconRenderMode !== "stroke" ? <label className="block text-[10px] text-white/65">Fill<input type="color" value={String(node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ fill: event.target.value }, "Changed Icon fill")} className={fieldClass} data-testid="icon-fill-color" /></label> : null}
-          {iconRenderMode !== "multicolor" && iconRenderMode !== "fill" ? <><label className="block text-[10px] text-white/65">Stroke<input type="color" value={String(node.props.stroke || node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ stroke: event.target.value, fill: event.target.value }, "Changed Icon stroke")} className={fieldClass} data-testid="icon-stroke-color" /></label><label className="block text-[10px] text-white/65">Stroke width<input type="number" min={0} max={24} step={0.5} value={Number(node.props.strokeWidth || 2)} onChange={(event) => patchProps({ strokeWidth: Number(event.target.value) }, "Changed Icon stroke width")} className={fieldClass} data-testid="icon-stroke-width" /></label></> : null}
+          {iconRenderMode !== "multicolor" && iconRenderMode !== "fill" ? (
+            <div className="space-y-2" data-testid="icon-stroke-controls">
+              <label className="block text-[10px] text-white/65">Stroke color<input type="color" value={String(node.props.stroke || node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ stroke: event.target.value }, "Changed Icon stroke")} className={fieldClass} data-testid="icon-stroke-color" /></label>
+              <label className="block text-[10px] text-white/65">
+                Stroke width
+                <span className="mt-1 flex items-center gap-2">
+                  <input
+                    type="range"
+                    min={0}
+                    max={12}
+                    step={0.25}
+                    value={Number(node.props.strokeWidth || 2)}
+                    onChange={(event) => patchProps({ strokeWidth: Number(event.target.value) }, "Changed Icon stroke width")}
+                    className="h-9 flex-1"
+                    data-testid="icon-stroke-width-slider"
+                  />
+                  <input
+                    type="number"
+                    min={0}
+                    max={24}
+                    step={0.25}
+                    value={Number(node.props.strokeWidth || 2)}
+                    onChange={(event) => patchProps({ strokeWidth: Number(event.target.value) }, "Changed Icon stroke width")}
+                    className="h-9 w-16 rounded border border-white/15 bg-transparent px-2 text-xs"
+                    data-testid="icon-stroke-width"
+                  />
+                </span>
+              </label>
+            </div>
+          ) : iconRenderMode === "fill" || iconRenderMode === "multicolor" ? (
+            <p className="text-[9px] text-white/40" data-testid="icon-stroke-unavailable">Stroke width is unavailable for this Icon render mode.</p>
+          ) : null}
           <div data-testid="icon-artwork-treatments">
-            <p className="mb-1 text-[9px] font-semibold uppercase text-white/45">Material / Treatment</p>
-            <div className="grid grid-cols-2 gap-1">
-              {["gold", "chrome", "neon_edge", "double_neon", "soft_glow", "tube_neon"].map((id) => {
-                const recipe = materialsByCategory("neon").concat(materialsByCategory("metallic")).find((item) => item.id === id);
+            <p className="mb-1 text-[9px] font-semibold uppercase text-white/45">Material</p>
+            <div className="grid grid-cols-3 gap-1.5">
+              {["gold", "chrome", "neon", "tube_neon", "halo"].map((id) => {
+                const recipe = getMaterialRecipe(id);
                 if (!recipe) return null;
+                const preview = applyMaterialRecipe("icon_artwork", id, { ...node.props });
+                const layers = effectLayersCss("icon_artwork", { glow: Number(preview.glow || 0), glowColor: String(preview.glowColor || preview.fill || "#b8ff2c"), color: String(preview.fill || "#b8ff2c") });
                 return (
-                  <button key={id} type="button" className={buttonClass} data-testid={`icon-treatment-${id}`} onClick={() => patchProps(applyMaterialRecipe("icon_artwork", id, node.props), `Applied ${recipe.label} Icon treatment`)}>{recipe.label}</button>
+                  <button
+                    key={id}
+                    type="button"
+                    className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/15 px-1 text-[9px] hover:border-[#b8ff2c]/60"
+                    data-testid={`icon-treatment-${id}`}
+                    onClick={() => patchProps(applyMaterialRecipe("icon_artwork", id, node.props), `Applied ${recipe.label} Icon material`)}
+                  >
+                    <span
+                      aria-hidden
+                      className="grid h-8 w-8 place-items-center text-[16px] font-bold"
+                      style={{ color: String(preview.fill || preview.artworkFill || "#b8ff2c"), filter: layers.filter, textShadow: layers.textShadow }}
+                    >
+                      ◆
+                    </span>
+                    {recipe.label}
+                  </button>
                 );
               })}
             </div>
           </div>
           <div data-testid="icon-effect-recipes">
             <p className="mb-1 text-[9px] font-semibold uppercase text-white/45">Effects</p>
-            <div className="grid grid-cols-2 gap-1">
-              {EFFECT_RECIPES.filter((item) => item.supportedTargets.includes("icon_artwork")).map((effect) => (
-                <button key={effect.id} type="button" className={buttonClass} data-testid={`icon-effect-${effect.id}`} onClick={() => patchProps(applyEffectRecipe("icon_artwork", effect.id, node.props), `Applied ${effect.label}`)}>{effect.label}</button>
-              ))}
+            <div className="grid grid-cols-3 gap-1.5">
+              {EFFECT_RECIPES.filter((item) => item.supportedTargets.includes("icon_artwork")).map((effect) => {
+                const preview = applyEffectRecipe("icon_artwork", effect.id, { ...node.props, fill: node.props.fill || "#b8ff2c" });
+                const layers = effectLayersCss("icon_artwork", {
+                  effectPreset: effect.id,
+                  glow: Number(preview.glow || effect.glow || 0),
+                  shadow: Number(preview.shadow || effect.shadow || 0),
+                  secondaryGlow: Number(preview.secondaryGlow || effect.secondaryGlow || 0),
+                  glowColor: String(preview.glowColor || effect.glowColor || node.props.fill || "#22d3ee"),
+                  color: String(node.props.fill || "#b8ff2c"),
+                });
+                return (
+                  <button
+                    key={effect.id}
+                    type="button"
+                    className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/15 px-1 text-[9px] hover:border-[#b8ff2c]/60"
+                    data-testid={`icon-effect-${effect.id}`}
+                    onClick={() => patchProps(applyEffectRecipe("icon_artwork", effect.id, node.props), `Applied ${effect.label}`)}
+                  >
+                    <span
+                      aria-hidden
+                      className="grid h-8 w-8 place-items-center text-[16px] font-bold"
+                      style={{ color: String(node.props.fill || "#b8ff2c"), filter: layers.filter, textShadow: layers.textShadow }}
+                      data-effect-preview={effect.id}
+                    >
+                      ◆
+                    </span>
+                    {effect.label}
+                  </button>
+                );
+              })}
             </div>
           </div>
           <details className="rounded border border-white/10 p-2" data-testid="icon-artwork-advanced">
@@ -932,6 +1055,15 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         if (appearancePage === "home" || appearancePage === "overview" || appearancePage === "custom") {
           return <div className="space-y-3" data-testid="appearance-category-overview">
             <p className="text-[10px] text-white/55">Appearance — pick a category. Click always works; hover is never required.</p>
+            {groupParent && appearanceScopes.length ? (
+              <div className="flex flex-wrap gap-1" data-testid="group-appearance-scopes">
+                {appearanceScopes.map((scope) => (
+                  <span key={scope.scope} className="rounded border border-white/15 px-2 py-1 text-[9px] text-white/70">
+                    {scope.scope === "text" ? "Text" : scope.scope === "surfaces" ? "Surfaces" : "Icons"} · {scope.count}
+                  </span>
+                ))}
+              </div>
+            ) : null}
             {scopeNote ? <p className="text-[9px] text-[#b8ff2c]" data-testid="appearance-scope-note">{scopeNote}</p> : null}
             <div className="grid grid-cols-1 gap-2">
               {categories.map((category) => (
@@ -1017,7 +1149,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             <p className="text-[10px] font-semibold uppercase text-white/55">Fill</p>
             {colorMixed.kind === "mixed" || fillMixed.kind === "mixed" ? <p className="text-[10px] text-amber-100" data-testid="appearance-mixed-value">Mixed</p> : null}
             <div className="grid grid-cols-2 gap-2">
-              <label className="text-[10px] text-white/65">Solid<input type="color" value={toColorInputValue(isTextLike ? node.props.color : (node.props.fill || node.props.color), "#fbbf24")} onChange={(event) => patchProps(isTextLike ? { color: event.target.value, gradientFill: undefined } : { fill: event.target.value, gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined }, "Changed fill")} className={fieldClass} /></label>
+              <label className="text-[10px] text-white/65">Solid<input type="color" value={toColorInputValue(isTextLike ? node.props.color : (node.props.fill || node.props.color), "#fbbf24")} onChange={(event) => patchProps(isTextLike ? { color: event.target.value, gradientFill: undefined } : isButton ? { fill: event.target.value, buttonSurfaceKind: "solid", gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined, surfaceFillKind: "solid" } : { fill: event.target.value, gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined, surfaceFillKind: "solid" }, "Changed fill")} className={fieldClass} /></label>
               <button type="button" className={buttonClass} onClick={() => deepLeft?.setNestedPage("gradient-colors")}>GradientStudio</button>
             </div>
           </div>;
@@ -1038,6 +1170,20 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
               value={surfaceGradient}
               onChange={(next) => {
                 const css = gradientToCss(next);
+                // Button parent Surface owns gradientStart/End — never label glyph gradientFill.
+                if (isButton) {
+                  patchProps({
+                    buttonSurfaceKind: "gradient",
+                    gradientStart: next.stops[0]?.color,
+                    gradientEnd: next.stops[next.stops.length - 1]?.color,
+                    gradientAngle: next.angle,
+                    gradientModel: next,
+                    gradientFill: undefined,
+                    labelGradientFill: undefined,
+                    surfaceFillKind: "gradient",
+                  }, "Changed Button Surface gradient");
+                  return;
+                }
                 patchProps({
                   gradientFill: css,
                   gradientModel: next,

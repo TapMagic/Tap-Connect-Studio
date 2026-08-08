@@ -29,6 +29,11 @@ export type FanOutCapability =
   | "font"
   | "font_size"
   | "font_weight"
+  | "italic"
+  | "underline"
+  | "alignment"
+  | "line_height"
+  | "letter_spacing"
   | "effect"
   | "material"
   | "motion"
@@ -36,7 +41,11 @@ export type FanOutCapability =
   | "text_content"
   | "fill"
   | "gradient"
-  | "border";
+  | "border"
+  | "visibility"
+  | "accessibility";
+
+export type TriState = "on" | "off" | "mixed" | "empty";
 
 /** Map a family to the Material/Effect adapter target used for fan-out. */
 export function appearanceAdapterTargetForFamily(
@@ -84,6 +93,8 @@ export function isGroupParentSelection(
 ): boolean {
   const groupId = resolveActiveGroupId(nodes, selectedIds);
   if (!groupId) return false;
+  // Content scope (awaiting child or editing one) is never Group parent chrome.
+  if (isGroupContentScope(nodes, groupId)) return false;
   // Content editing of a group child: only one member selected and flagged.
   if (selectedIds.length === 1) {
     const only = nodes.find((node) => node.id === selectedIds[0]);
@@ -99,6 +110,58 @@ export function isGroupContentEditing(
   if (selectedIds.length !== 1) return false;
   const only = nodes.find((node) => node.id === selectedIds[0]);
   return Boolean(only?.groupId && only.props.groupContentEditing === true);
+}
+
+/** Group is in Edit Contents scope — Owner may or may not have chosen a child yet. */
+export function isGroupContentScope(
+  nodes: readonly CreativeCompositionNode[],
+  groupId: string | null | undefined
+): boolean {
+  if (!groupId) return false;
+  return groupMembers(nodes, groupId).some((node) => node.props.groupContentScope === true);
+}
+
+/**
+ * Enter Group content mode WITHOUT selecting a child.
+ * Group boundary stays subdued; Owner clicks the child they want.
+ */
+export function enterGroupContentMode(
+  nodes: CreativeCompositionNode[],
+  groupId: string
+): CreativeCompositionNode[] {
+  return nodes.map((node) => {
+    if (node.groupId !== groupId || !isTrueGroupMember(node)) return node;
+    const props: Record<string, unknown> = { ...node.props, groupContentScope: true };
+    delete props.groupContentEditing;
+    delete props.contentEditing;
+    return { ...node, props };
+  });
+}
+
+/** Activate one Group child after Owner click inside content scope. */
+export function activateGroupContentChild(
+  nodes: CreativeCompositionNode[],
+  groupId: string,
+  childId: string
+): CreativeCompositionNode[] {
+  return nodes.map((node) => {
+    if (node.groupId !== groupId || !isTrueGroupMember(node)) return node;
+    if (node.id === childId) {
+      return {
+        ...node,
+        props: {
+          ...node.props,
+          groupContentScope: true,
+          groupContentEditing: true,
+          contentEditing: true,
+        },
+      };
+    }
+    const props: Record<string, unknown> = { ...node.props, groupContentScope: true };
+    delete props.groupContentEditing;
+    delete props.contentEditing;
+    return { ...node, props };
+  });
 }
 
 /** Axis-aligned union of member boxes (relative 0–1, pasteboard-aware). */
@@ -142,24 +205,13 @@ export function computeGroupUnionBounds(
   };
 }
 
+/** @deprecated Prefer enterGroupContentMode + activateGroupContentChild. Kept for callers that already chose a child. */
 export function enterGroupContentEditing(
   nodes: CreativeCompositionNode[],
   groupId: string,
   childId: string
 ): CreativeCompositionNode[] {
-  return nodes.map((node) => {
-    if (node.groupId !== groupId || !isTrueGroupMember(node)) return node;
-    if (node.id === childId) {
-      return {
-        ...node,
-        props: { ...node.props, groupContentEditing: true, contentEditing: true },
-      };
-    }
-    const props = { ...node.props };
-    delete props.groupContentEditing;
-    delete props.contentEditing;
-    return { ...node, props };
-  });
+  return activateGroupContentChild(enterGroupContentMode(nodes, groupId), groupId, childId);
 }
 
 export function exitGroupContentEditing(
@@ -170,6 +222,7 @@ export function exitGroupContentEditing(
     if (node.groupId !== groupId) return node;
     const props = { ...node.props };
     delete props.groupContentEditing;
+    delete props.groupContentScope;
     delete props.contentEditing;
     return { ...node, props };
   });
@@ -297,6 +350,11 @@ export function compatibleDescendants(
       case "font":
       case "font_size":
       case "font_weight":
+      case "italic":
+      case "underline":
+      case "alignment":
+      case "line_height":
+      case "letter_spacing":
       case "text_content":
         return family === "text" || family === "badge" || family === "button";
       case "effect":
@@ -341,6 +399,8 @@ export function compatibleDescendants(
       case "motion":
         return family !== "group" && family !== "card_root" && family !== "utility";
       case "opacity":
+      case "visibility":
+      case "accessibility":
         return family !== "group" && family !== "card_root";
       default:
         return false;
@@ -363,6 +423,16 @@ export function readCapabilityValue(
       return node.props.fontSize ?? null;
     case "font_weight":
       return node.props.fontWeight ?? null;
+    case "italic":
+      return node.props.italic === true;
+    case "underline":
+      return node.props.underline === true;
+    case "alignment":
+      return node.props.textAlign ?? node.props.align ?? null;
+    case "line_height":
+      return node.props.lineHeight ?? null;
+    case "letter_spacing":
+      return node.props.letterSpacingEm ?? node.props.letterSpacing ?? null;
     case "effect":
       return node.props.effectPreset ?? node.props.glyphEffect ?? null;
     case "material":
@@ -379,9 +449,110 @@ export function readCapabilityValue(
       return node.props.gradientFill ?? node.props.gradientModel ?? null;
     case "border":
       return `${node.props.borderStyle ?? "none"}|${node.props.borderWidth ?? 0}|${node.props.borderColor ?? ""}`;
+    case "visibility":
+      return node.visible !== false;
+    case "accessibility":
+      return node.props.accessibleLabel ?? node.props.ariaLabel ?? null;
     default:
       return null;
   }
+}
+
+/** Tri-state for boolean formatting (Bold / Italic / Underline). */
+export function triStateForCapability(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  capability: "italic" | "underline" | "font_weight"
+): TriState {
+  const targets = compatibleDescendants([...nodes], selectedIds, capability);
+  if (!targets.length) return "empty";
+  if (capability === "font_weight") {
+    const bold = targets.map((node) => Number(node.props.fontWeight || 600) >= 700);
+    if (bold.every(Boolean)) return "on";
+    if (bold.every((value) => !value)) return "off";
+    return "mixed";
+  }
+  const flags = targets.map((node) => Boolean(readCapabilityValue(node, capability)));
+  if (flags.every(Boolean)) return "on";
+  if (flags.every((value) => !value)) return "off";
+  return "mixed";
+}
+
+/**
+ * Absolute set-all font size — intentionally normalizes hierarchy.
+ * Prefer scaleFontSizes when preserving relative sizes.
+ */
+export function setAllFontSizes(
+  nodes: CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  fontSize: number
+): { nodes: CreativeCompositionNode[]; appliedIds: string[] } {
+  const size = Math.max(6, Math.min(320, fontSize));
+  return fanOutProps(nodes, selectedIds, "font_size", { fontSize: size });
+}
+
+/**
+ * Proportional font-size scale — preserves hierarchy (20/30/40 → +10% → 22/33/44).
+ */
+export function scaleFontSizes(
+  nodes: CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  factor: number
+): { nodes: CreativeCompositionNode[]; appliedIds: string[] } {
+  const scale = Number.isFinite(factor) && factor > 0 ? factor : 1;
+  return fanOutWithAdapter(nodes, selectedIds, "font_size", (node) => {
+    const current = Number(node.props.fontSize ?? 18);
+    if (!Number.isFinite(current)) return null;
+    return {
+      ...node.props,
+      fontSize: Math.max(6, Math.min(320, Math.round(current * scale * 100) / 100)),
+    };
+  });
+}
+
+/** Appearance scopes present in a Group — Text / Surfaces / Icons only when they exist. */
+export function groupAppearanceScopes(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[]
+): Array<{ scope: "text" | "surfaces" | "icons"; count: number }> {
+  const expanded = new Set(
+    compatibleDescendants(nodes, selectedIds, "opacity").map((node) => node.id)
+  );
+  let text = 0;
+  let surfaces = 0;
+  let icons = 0;
+  for (const node of nodes) {
+    if (!expanded.has(node.id) && !selectedIds.includes(node.id)) {
+      // Also count expanded group members from selection.
+    }
+  }
+  const members = nodes.filter((node) => {
+    const ids = compatibleDescendants(nodes, selectedIds, "effect").map((n) => n.id);
+    return ids.includes(node.id) || selectedIds.includes(node.id);
+  });
+  // Prefer full group member set when parent-selected.
+  const groupId = resolveActiveGroupId(nodes, selectedIds);
+  const pool = groupId ? groupMembers(nodes, groupId) : members;
+  for (const node of pool) {
+    const family = objectFamilyForNode(node);
+    if (family === "text" || family === "badge") text += 1;
+    else if (family === "icon") icons += 1;
+    else if (
+      family === "button" ||
+      family === "shape" ||
+      family === "coupon" ||
+      family === "ticket" ||
+      family === "container" ||
+      family === "image"
+    ) {
+      surfaces += 1;
+    }
+  }
+  const scopes: Array<{ scope: "text" | "surfaces" | "icons"; count: number }> = [];
+  if (text) scopes.push({ scope: "text", count: text });
+  if (surfaces) scopes.push({ scope: "surfaces", count: surfaces });
+  if (icons) scopes.push({ scope: "icons", count: icons });
+  return scopes;
 }
 
 export function mixedValueForCapability(
@@ -409,11 +580,23 @@ export function fanOutProps(
 ): { nodes: CreativeCompositionNode[]; appliedIds: string[]; skipped: number } {
   return fanOutWithAdapter(nodes, selectedIds, capability, (node) => {
     const props = { ...node.props, ...patch };
-    if (capability === "text_color" && objectFamilyForNode(node) === "button" && patch.color != null) {
+    const family = objectFamilyForNode(node);
+    if (capability === "text_color" && family === "button" && patch.color != null) {
       props.labelColor = patch.color;
     }
+    // Solid color must replace visible glyph gradient — otherwise color appears inert.
+    if (
+      (capability === "text_color" || capability === "fill") &&
+      (family === "text" || family === "badge" || family === "button") &&
+      (patch.color != null || patch.fill != null || patch.labelColor != null)
+    ) {
+      if (patch.gradientFill === undefined) {
+        delete props.gradientFill;
+        delete props.gradientModel;
+      }
+    }
     // Text fill/gradient maps onto glyph color/gradientFill rather than surface fill.
-    if (capability === "fill" && objectFamilyForNode(node) === "text" && patch.fill != null && patch.color == null) {
+    if (capability === "fill" && family === "text" && patch.fill != null && patch.color == null) {
       props.color = patch.fill;
       delete props.fill;
     }
@@ -467,6 +650,11 @@ export function inferFanOutCapability(patch: Record<string, unknown>): FanOutCap
   if (patch.fontFamily !== undefined) return "font";
   if (patch.fontSize !== undefined) return "font_size";
   if (patch.fontWeight !== undefined) return "font_weight";
+  if (patch.italic !== undefined) return "italic";
+  if (patch.underline !== undefined) return "underline";
+  if (patch.textAlign !== undefined || patch.align !== undefined) return "alignment";
+  if (patch.lineHeight !== undefined) return "line_height";
+  if (patch.letterSpacingEm !== undefined || patch.letterSpacing !== undefined) return "letter_spacing";
   if (patch.color !== undefined || patch.labelColor !== undefined || patch.textColor !== undefined) {
     return "text_color";
   }
@@ -482,6 +670,8 @@ export function inferFanOutCapability(patch: Record<string, unknown>): FanOutCap
   }
   if (patch.opacity !== undefined || patch.surfaceOpacity !== undefined) return "opacity";
   if (patch.motionPreset !== undefined || patch.animation !== undefined) return "motion";
+  if (patch.visible !== undefined) return "visibility";
+  if (patch.accessibleLabel !== undefined || patch.ariaLabel !== undefined) return "accessibility";
   return null;
 }
 

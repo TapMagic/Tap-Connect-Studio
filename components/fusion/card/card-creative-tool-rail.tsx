@@ -37,7 +37,9 @@ import {
   STARTER_FORM_PRESETS,
   STARTER_TEXT_COMBINATIONS,
   STARTER_TICKET_LAYOUTS,
+  buttonPresetThumbnailStyle,
 } from "@/lib/fusion/creative-studio/starter-preset-registry";
+import { BADGE_SHAPE_DEFS, badgeShapePreviewStyle, badgeShapeProps } from "@/lib/fusion/creative-studio/badge-shape";
 import {
   ICON_BROWSE_CATEGORIES,
   ICON_COLLECTION_BROWSE,
@@ -515,23 +517,46 @@ function CommerceComponentLibrary({ kind, model, add, matches }: { kind: "coupon
 }
 
 function ButtonLibrary({ add, matches }: { add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean }) {
-  return <div className="space-y-3" data-testid="card-button-library"><p className="text-[10px] text-white/55">Starter Buttons — structurally varied Surfaces. Every tile creates the same canonical Button composition.</p><div className="grid grid-cols-2 gap-2">{STARTER_BUTTON_PRESETS.filter((preset) => matches(preset.label)).map((preset) => { const props = preset.props as Record<string, unknown>; return <button key={preset.id} type="button" className="group min-h-24 rounded-lg border border-white/10 p-2 text-left hover:border-[#b8ff2c]/50" data-testid={`button-preset-${preset.id}`} onClick={() => add("button", { ...props, accessibleLabel: String(props.label || preset.label), trackingName: `button-${preset.id}` })}><span className="flex min-h-12 items-center justify-center border border-white/10 px-2 text-center text-[10px] font-semibold" style={{ borderRadius: Number(props.radius || 0), background: String(props.gradientStart ? `linear-gradient(120deg,${props.gradientStart},${props.gradientEnd})` : props.fill || "#334155"), color: String(props.labelColor || "#fff"), borderWidth: Number(props.borderWidth || 0), borderColor: String(props.borderColor || "transparent") }}>{String(props.label || preset.label)}</span><span className="mt-2 block text-[10px] text-white/75">{preset.label}</span></button>; })}</div></div>;
+  return (
+    <div className="space-y-3" data-testid="card-button-library">
+      <p className="text-[10px] text-white/55">Structure and action starters. Glass, Neon, Metallic, and Raised live under Appearance after insertion.</p>
+      <div className="grid grid-cols-2 gap-2">
+        {STARTER_BUTTON_PRESETS.filter((preset) => matches(preset.label)).map((preset) => {
+          const props = preset.props as Record<string, unknown>;
+          const thumb = buttonPresetThumbnailStyle(props);
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              className="group min-h-24 rounded-lg border border-white/10 p-2 text-left hover:border-[#b8ff2c]/50"
+              data-testid={`button-preset-${preset.id}`}
+              data-button-structure={preset.id}
+              onClick={() => add("button", { ...props, accessibleLabel: String(props.label || preset.label), trackingName: `button-${preset.id}` })}
+            >
+              <span
+                className="flex min-h-12 items-center justify-center px-2 text-center text-[10px] font-semibold"
+                style={thumb}
+                data-testid={`button-preset-thumb-${preset.id}`}
+              >
+                {String(props.label || preset.label) || "·"}
+              </span>
+              <span className="mt-2 block text-[10px] text-white/75">{preset.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
-const BADGE_SHAPES = [
-  ["pill", "Pill", 999], ["circle", "Round", 999], ["rounded", "Rounded", 14], ["burst", "Burst", 0],
-  ["starburst", "Starburst", 0], ["ribbon", "Ribbon", 0], ["corner-ribbon", "Corner ribbon", 0], ["seal", "Seal", 999],
-  ["tag", "Tag", 4], ["shield", "Shield", 0],
-] as const;
 function BadgeLibrary({ add, matches }: { add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean }) {
   const [wording, setWording] = useState("SALE");
-  const [shape, setShape] = useState<(typeof BADGE_SHAPES)[number]>(BADGE_SHAPES[0]);
+  const [shapeId, setShapeId] = useState<string>("pill");
   const place = (text = wording, props: Record<string, unknown> = {}) => {
     add("badge", {
       text,
       accessibleLabel: text,
-      badgeShape: shape[0],
-      radius: shape[2],
+      ...badgeShapeProps(shapeId as "pill"),
       fill: "#dc2626",
       color: "#ffffff",
       ...props,
@@ -543,41 +568,68 @@ function BadgeLibrary({ add, matches }: { add: (kind: CardElementKind, props?: R
       <button type="button" disabled={!wording.trim()} className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black disabled:opacity-40" onClick={() => place()}>Add editable Badge</button>
       <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Shapes</h3>
       <div className="grid grid-cols-2 gap-2" data-testid="badge-shape-catalog">
-        {STARTER_BADGE_SHAPES.filter((item) => matches(item.label)).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className="min-h-16 rounded-lg border border-white/10 p-2 text-[10px]"
-            data-testid={`starter-badge-${item.id}`}
-            data-badge-shape={String(item.props.badgeShape)}
-            style={{ background: String(item.props.fill || "#334155"), color: String(item.props.color || "#fff") }}
-            onClick={() => add("badge", { ...item.props, text: wording.trim() || String(item.props.text), accessibleLabel: wording.trim() || String(item.props.text) })}
-          >
-            <span className="block font-semibold">{item.label}</span>
-            <span className="block text-[9px] opacity-70">{String(item.props.badgeShape)}</span>
-          </button>
-        ))}
+        {STARTER_BADGE_SHAPES.filter((item) => matches(item.label)).map((item) => {
+          const preview = badgeShapePreviewStyle(String(item.props.badgeShape), String(item.props.fill || "#94a3b8"));
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-lg border border-white/10 p-2 text-[10px]"
+              data-testid={`starter-badge-${item.id}`}
+              data-badge-shape={String(item.props.badgeShape)}
+              onClick={() => add("badge", { ...item.props, text: wording.trim() || String(item.props.text), accessibleLabel: wording.trim() || String(item.props.text) })}
+            >
+              <span aria-hidden style={{ ...preview, display: "block" }} />
+              <span className="font-semibold text-white/85">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
       <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Useful starters</h3>
       <div className="grid grid-cols-2 gap-2" data-testid="badge-composition-catalog">
-        {STARTER_BADGE_COMPOSITIONS.filter((item) => matches(item.label)).map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className="min-h-14 rounded-lg border border-white/10 p-2 text-[10px]"
-            data-testid={`starter-badge-composition-${item.id}`}
-            style={{ background: String(item.props.fill || "#334155"), color: String(item.props.color || "#fff") }}
-            onClick={() => add("badge", { ...item.props, accessibleLabel: String(item.props.text) })}
-          >
-            <span className="block font-semibold">{item.label}</span>
-            <span className="block text-[9px] opacity-70">{String(item.props.text)}</span>
-          </button>
-        ))}
+        {STARTER_BADGE_COMPOSITIONS.filter((item) => matches(item.label)).map((item) => {
+          const preview = badgeShapePreviewStyle(String(item.props.badgeShape), String(item.props.fill || "#94a3b8"));
+          return (
+            <button
+              key={item.id}
+              type="button"
+              className="flex min-h-20 flex-col items-center justify-center gap-1 rounded-lg border border-white/10 p-2 text-[10px]"
+              data-testid={`starter-badge-composition-${item.id}`}
+              onClick={() => add("badge", { ...item.props, accessibleLabel: String(item.props.text) })}
+            >
+              <span
+                aria-hidden
+                className="grid place-items-center px-2 text-[9px] font-bold"
+                style={{ ...preview, color: String(item.props.color || "#fff"), width: 72, height: 32 }}
+              >
+                {String(item.props.text)}
+              </span>
+              <span className="font-semibold text-white/85">{item.label}</span>
+            </button>
+          );
+        })}
       </div>
       <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Wording presets</h3>
       <div className="grid grid-cols-2 gap-1">{BADGE_WORDING.filter(matches).map((word) => <button key={word} type="button" className="min-h-9 rounded border border-white/10 text-[9px]" onClick={() => { setWording(word); place(word); }}>{word}</button>)}</div>
       <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Shape picker</h3>
-      <div className="grid grid-cols-2 gap-1">{BADGE_SHAPES.filter((item) => matches(item[1])).map((item) => <button key={item[0]} type="button" aria-pressed={shape[0] === item[0]} className="min-h-10 border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c]" style={{ borderRadius: item[2] }} onClick={() => setShape(item)}>{item[1]}</button>)}</div>
+      <div className="grid grid-cols-3 gap-2">
+        {BADGE_SHAPE_DEFS.filter((def) => def.id !== "square" && matches(def.label)).map((def) => {
+          const preview = badgeShapePreviewStyle(def.id, "#94a3b8");
+          return (
+            <button
+              key={def.id}
+              type="button"
+              aria-pressed={shapeId === def.id}
+              className="flex min-h-14 flex-col items-center justify-center gap-1 border border-white/10 px-1 text-[9px] aria-pressed:border-[#b8ff2c]"
+              data-testid={`badge-library-shape-${def.id}`}
+              onClick={() => setShapeId(def.id)}
+            >
+              <span aria-hidden style={{ ...preview, display: "block", width: 36, height: 22 }} />
+              {def.label}
+            </button>
+          );
+        })}
+      </div>
       <p className="text-[9px] text-white/45">Gold, Glass, and Metal live under Appearance after insertion — not as insertion species.</p>
     </div>
   );

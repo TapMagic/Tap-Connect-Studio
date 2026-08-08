@@ -156,20 +156,55 @@ export const STARTER_TEXT_COMBINATIONS: readonly StarterTextCombination[] = [
   },
 ] as const;
 
+/**
+ * Button library = structure / function starters.
+ * Surface treatments (Glass, Neon, Metallic, Raised…) are Appearance recipes — not species.
+ */
 export const STARTER_BUTTON_PRESETS = [
-  { id: "minimal", label: "Minimal", props: { presentation: "rounded", radius: 8, fill: "transparent", borderWidth: 1, borderColor: "#e2e8f0", labelColor: "#f8fafc", label: "Continue", icon: "none", showIcon: false, materialPreset: "flat" } },
-  { id: "outlined", label: "Outlined", props: { presentation: "rounded", radius: 12, fill: "transparent", borderWidth: 2, borderColor: "#b8ff2c", labelColor: "#b8ff2c", label: "Visit website", actionType: "website", icon: "none", showIcon: false } },
-  { id: "pill", label: "Pill", props: { presentation: "pill", radius: 999, fill: "#b8ff2c", labelColor: "#07100a", label: "Claim offer", actionType: "coupon", icon: "none", showIcon: false } },
-  { id: "round-icon", label: "Round Icon", props: { presentation: "circle", radius: 999, fill: "#111827", borderWidth: 2, borderColor: "#b8ff2c", icon: "phone", showIcon: true, iconPosition: "before", label: "Call", labelColor: "#b8ff2c", actionType: "call" } },
-  { id: "soft-raised", label: "Soft raised", props: { presentation: "rounded", radius: 16, fill: "#b8ff2c", labelColor: "#07100a", label: "Get started", boxShadow: 18, materialPreset: "soft_raised", pressOffsetY: 2 } },
-  { id: "hard-raised", label: "Hard raised", props: { presentation: "rounded", radius: 12, fill: "#22c55e", labelColor: "#04120a", label: "Press me", boxShadow: 28, borderWidth: 1, borderColor: "#86efac", materialPreset: "hard_raised", pressOffsetY: 3 } },
-  { id: "glass", label: "Glass", props: { presentation: "rounded", radius: 20, buttonSurfaceKind: "gradient", gradientStart: "#ffffff3d", gradientEnd: "#ffffff0a", borderWidth: 1, borderColor: "#ffffff80", label: "Directions", actionType: "directions", materialPreset: "glass" } },
-  { id: "high-gloss", label: "High gloss", props: { presentation: "pill", radius: 999, buttonSurfaceKind: "gradient", gradientStart: "#f97316", gradientEnd: "#dc2626", shine: true, label: "Shop now", actionType: "website", materialPreset: "glossy" } },
-  { id: "metallic", label: "Metallic", props: { presentation: "rounded", radius: 10, buttonSurfaceKind: "gradient", gradientStart: "#e5e7eb", gradientEnd: "#64748b", labelColor: "#0f172a", label: "Add to wallet", actionType: "wallet", materialPreset: "metallic" } },
-  { id: "neon", label: "Neon", props: { presentation: "pill", radius: 999, fill: "#111827", borderWidth: 2, borderColor: "#67e8f9", labelColor: "#67e8f9", boxGlow: 18, glowColor: "#67e8f9", label: "RSVP now", actionType: "rsvp", materialPreset: "neon" } },
-  { id: "beveled", label: "Beveled", props: { presentation: "rounded", radius: 10, fill: "#334155", labelColor: "#f8fafc", label: "Confirm", borderWidth: 2, borderColor: "#94a3b8", boxShadow: 12, materialPreset: "beveled" } },
-  { id: "embossed", label: "Embossed", props: { presentation: "rounded", radius: 14, fill: "#1e293b", labelColor: "#e2e8f0", label: "Membership", boxShadow: 8, materialPreset: "embossed" } },
+  { id: "primary-cta", label: "Primary CTA", props: { presentation: "rounded", radius: 14, buttonSurfaceKind: "solid", fill: "#b8ff2c", labelColor: "#07100a", label: "Get started", icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "secondary-outline", label: "Secondary / Outline", props: { presentation: "rounded", radius: 12, buttonSurfaceKind: "solid", fill: "transparent", borderWidth: 2, borderColor: "#b8ff2c", labelColor: "#b8ff2c", label: "Visit website", actionType: "website", icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "pill", label: "Pill", props: { presentation: "pill", radius: 999, buttonSurfaceKind: "solid", fill: "#b8ff2c", labelColor: "#07100a", label: "Claim offer", actionType: "coupon", icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "full-width", label: "Full width", props: { presentation: "rounded", radius: 12, buttonSurfaceKind: "solid", fill: "#22c55e", labelColor: "#04120a", label: "Continue", width: 0.88, icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "icon-label", label: "Icon + Label", props: { presentation: "rounded", radius: 14, buttonSurfaceKind: "solid", fill: "#111827", borderWidth: 1, borderColor: "#b8ff2c", icon: "phone", showIcon: true, iconPosition: "before", label: "Call", labelColor: "#b8ff2c", actionType: "call", materialPreset: "flat" } },
+  { id: "icon-only", label: "Icon only", props: { presentation: "circle", radius: 999, buttonSurfaceKind: "solid", fill: "#111827", borderWidth: 2, borderColor: "#b8ff2c", icon: "phone", showIcon: true, iconPosition: "before", label: "", labelColor: "#b8ff2c", actionType: "call", materialPreset: "flat" } },
+  { id: "compact", label: "Compact", props: { presentation: "rounded", radius: 8, buttonSurfaceKind: "solid", fill: "#334155", labelColor: "#f8fafc", label: "OK", fontSize: 12, padding: 6, icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "action-directions", label: "Directions", props: { presentation: "rounded", radius: 16, buttonSurfaceKind: "solid", fill: "#0f172a", borderWidth: 1, borderColor: "#ffffff66", label: "Directions", actionType: "directions", labelColor: "#ffffff", icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "action-rsvp", label: "RSVP", props: { presentation: "pill", radius: 999, buttonSurfaceKind: "solid", fill: "#111827", borderWidth: 2, borderColor: "#67e8f9", labelColor: "#67e8f9", label: "RSVP now", actionType: "rsvp", icon: "none", showIcon: false, materialPreset: "flat" } },
+  { id: "action-wallet", label: "Add to Wallet", props: { presentation: "rounded", radius: 12, buttonSurfaceKind: "solid", fill: "#e5e7eb", labelColor: "#0f172a", label: "Add to wallet", actionType: "wallet", icon: "none", showIcon: false, materialPreset: "flat" } },
 ] as const;
+
+/** Canonical thumbnail style from the same props the insert path uses. */
+export function buttonPresetThumbnailStyle(props: Record<string, unknown>): {
+  background: string;
+  color: string;
+  borderRadius: number | string;
+  border: string;
+  boxShadow?: string;
+} {
+  const kind = String(props.buttonSurfaceKind || "solid");
+  const radius = Number(props.radius ?? 12);
+  const fill = String(props.fill || "#b8ff2c");
+  const background =
+    kind === "gradient"
+      ? `linear-gradient(${Number(props.gradientAngle || 90)}deg, ${String(props.gradientStart || fill)}, ${String(props.gradientEnd || "#06b6d4")})`
+      : fill === "transparent"
+        ? "transparent"
+        : fill;
+  const borderWidth = Number(props.borderWidth || 0);
+  const glow = Number(props.boxGlow || 0);
+  const shadow = Number(props.boxShadow || 0);
+  const glowColor = String(props.glowColor || "#67e8f9");
+  const shadows: string[] = [];
+  if (shadow > 0) shadows.push(`0 ${Math.max(2, shadow / 4)}px ${shadow}px rgba(0,0,0,0.35)`);
+  if (glow > 0) shadows.push(`0 0 ${glow}px ${glowColor}`);
+  return {
+    background,
+    color: String(props.labelColor || props.textColor || "#07100a"),
+    borderRadius: props.presentation === "circle" ? "50%" : radius,
+    border: borderWidth ? `${borderWidth}px solid ${String(props.borderColor || "#fff")}` : "1px solid transparent",
+    boxShadow: shadows.length ? shadows.join(",") : undefined,
+  };
+}
 
 /**
  * Badge library starters are shapes / useful compositions.
@@ -179,7 +214,7 @@ export const STARTER_BUTTON_PRESETS = [
 export const STARTER_BADGE_SHAPES = [
   { id: "pill", label: "Pill", props: { text: "SALE", badgeShape: "pill", radius: 999, fill: "#dc2626", color: "#ffffff" } },
   { id: "round", label: "Round", props: { text: "NEW", badgeShape: "circle", radius: 999, fill: "#2563eb", color: "#ffffff" } },
-  { id: "seal", label: "Seal", props: { text: "APPROVED", badgeShape: "seal", radius: 999, fill: "#b45309", color: "#fffbeb" } },
+  { id: "seal", label: "Seal", props: { text: "APPROVED", badgeShape: "seal", radius: 0, fill: "#b45309", color: "#fffbeb" } },
   { id: "ribbon", label: "Ribbon", props: { text: "FEATURED", badgeShape: "ribbon", radius: 0, fill: "#7c3aed", color: "#ffffff" } },
   { id: "corner-ribbon", label: "Corner ribbon", props: { text: "NEW", badgeShape: "corner-ribbon", radius: 0, fill: "#db2777", color: "#ffffff" } },
   { id: "shield", label: "Shield", props: { text: "VERIFIED", badgeShape: "shield", radius: 0, fill: "#0f766e", color: "#ecfdf5" } },
@@ -195,7 +230,7 @@ export const STARTER_BADGE_COMPOSITIONS = [
   { id: "vip", label: "VIP", props: { text: "VIP", badgeShape: "rounded", radius: 14, fill: "#b45309", color: "#fffbeb" } },
   { id: "verified", label: "Verified", props: { text: "VERIFIED", badgeShape: "shield", radius: 0, fill: "#0f766e", color: "#ecfdf5" } },
   { id: "limited", label: "Limited", props: { text: "LIMITED", badgeShape: "tag", radius: 4, fill: "#7c3aed", color: "#ffffff" } },
-  { id: "award", label: "Award", props: { text: "AWARD", badgeShape: "seal", radius: 999, fill: "#b45309", color: "#fffbeb" } },
+  { id: "award", label: "Award", props: { text: "AWARD", badgeShape: "seal", radius: 0, fill: "#b45309", color: "#fffbeb" } },
   { id: "special", label: "Special", props: { text: "SPECIAL", badgeShape: "burst", radius: 0, fill: "#f59e0b", color: "#111827" } },
   { id: "member", label: "Member", props: { text: "MEMBER", badgeShape: "rounded", radius: 12, fill: "#334155", color: "#ffffff" } },
   { id: "featured", label: "Featured", props: { text: "FEATURED", badgeShape: "ribbon", radius: 0, fill: "#7c3aed", color: "#ffffff" } },

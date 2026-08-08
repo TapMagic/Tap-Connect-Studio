@@ -23,11 +23,13 @@ describe("universal appearance / MaterialRecipe adapters", () => {
   it("catalog covers required categories and substantial recipes", () => {
     assert.ok(MATERIAL_CATALOG.length >= 40);
     assert.equal(MATERIAL_UI_CATEGORIES.length, 6);
-    for (const id of ["flat", "gold", "glass", "chrome", "neon_edge", "frosted_glass", "brushed_metal", "leather", "double_neon"]) {
+    for (const id of ["flat", "gold", "glass", "chrome", "neon", "frosted_glass", "brushed_metal", "leather", "tube_neon"]) {
       assert.ok(getMaterialRecipe(id), id);
     }
+    // Neon Edge / Soft Glow / Double Neon are Effects — material aliases collapse to Neon/Halo.
+    assert.equal(getMaterialRecipe("neon_edge")?.id, "neon");
     assert.ok(materialsByCategory("metallic").length >= 6);
-    assert.ok(materialsByCategory("neon").length >= 5);
+    assert.ok(materialsByCategory("neon").length >= 3);
   });
 
   it("surface Gold → Glass preserves badge identity fields", () => {
@@ -63,9 +65,9 @@ describe("universal appearance / MaterialRecipe adapters", () => {
     assert.equal(next.boxFill, "#123456");
   });
 
-  it("icon artwork Neon Edge uses path glow and clears box glow", () => {
-    const next = applyMaterialRecipe("icon_artwork", "neon_edge", { fill: "#fff", boxGlow: 22 });
-    assert.equal(next.materialPreset, "neon_edge");
+  it("icon artwork Neon material uses path glow and clears box glow", () => {
+    const next = applyMaterialRecipe("icon_artwork", "neon", { fill: "#fff", boxGlow: 22 });
+    assert.equal(next.materialPreset, "neon");
     assert.ok(Number(next.glow) > 0);
     assert.equal(next.boxGlow, 0);
     assert.ok(String(next.fill).length > 0);
