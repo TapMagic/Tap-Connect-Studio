@@ -10,7 +10,7 @@
 | --- | --- |
 | Preserved HEAD before Owner-sim work | `cf87c1325b73617d9ff58354b6ed79518a71d528` |
 | Foundation checkpoint | `3eb5151309491503473e846986bb41cdf6538816` |
-| Exhaustive completion (this closeout) | *(commit after this doc)* |
+| Exhaustive completion (this closeout) | `6824229e97700da890d76f1b970885511754eadd` |
 
 ## Verified runtime (final evidence)
 
