@@ -1,0 +1,435 @@
+/**
+ * Group authority — selection chrome, transform, and capability fan-out.
+ * Groups remain a peer `groupId` relationship; this module makes them a real
+ * editing target without inventing a second Group species.
+ */
+
+import type { CreativeCompositionNode } from "./composition";
+import {
+  expandSelectionToGroups,
+  resolveNodeBox,
+  translateNodesOnPasteboard,
+} from "./composition";
+import { objectFamilyForNode, type ObjectFamily } from "./capabilities";
+import { isTrueGroupMember } from "./selection-mode";
+
+export type GroupUnionBounds = {
+  groupId: string;
+  memberIds: string[];
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  /** Average rotation of members (degrees). */
+  rotationDeg: number;
+};
+
+export type FanOutCapability =
+  | "text_color"
+  | "font"
+  | "font_size"
+  | "font_weight"
+  | "effect"
+  | "material"
+  | "motion"
+  | "opacity"
+  | "text_content";
+
+export type MixedValue<T> =
+  | { kind: "uniform"; value: T }
+  | { kind: "mixed" }
+  | { kind: "empty" };
+
+export function groupMembers(
+  nodes: readonly CreativeCompositionNode[],
+  groupId: string
+): CreativeCompositionNode[] {
+  return nodes.filter((node) => node.groupId === groupId && isTrueGroupMember(node));
+}
+
+export function resolveActiveGroupId(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[]
+): string | null {
+  const expanded = expandSelectionToGroups([...nodes], [...selectedIds]);
+  const members = nodes.filter((node) => expanded.includes(node.id) && isTrueGroupMember(node));
+  if (members.length < 2) return null;
+  const groupId = members[0]?.groupId;
+  if (!groupId) return null;
+  const same = members.every((node) => node.groupId === groupId);
+  if (!same) return null;
+  // Parent mode: selection must cover the full group (or be expandable to it).
+  const full = groupMembers(nodes, groupId);
+  if (full.length < 2) return null;
+  const selectedSet = new Set(expanded);
+  if (!full.every((node) => selectedSet.has(node.id))) return null;
+  return groupId;
+}
+
+export function isGroupParentSelection(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[]
+): boolean {
+  const groupId = resolveActiveGroupId(nodes, selectedIds);
+  if (!groupId) return false;
+  // Content editing of a group child: only one member selected and flagged.
+  if (selectedIds.length === 1) {
+    const only = nodes.find((node) => node.id === selectedIds[0]);
+    if (only?.props.groupContentEditing === true) return false;
+  }
+  return true;
+}
+
+export function isGroupContentEditing(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[]
+): boolean {
+  if (selectedIds.length !== 1) return false;
+  const only = nodes.find((node) => node.id === selectedIds[0]);
+  return Boolean(only?.groupId && only.props.groupContentEditing === true);
+}
+
+/** Axis-aligned union of member boxes (relative 0–1, pasteboard-aware). */
+export function computeGroupUnionBounds(
+  nodes: readonly CreativeCompositionNode[],
+  groupId: string,
+  allowPasteboardOverflow = true
+): GroupUnionBounds | null {
+  const members = groupMembers(nodes, groupId).filter((node) => node.visible !== false);
+  if (!members.length) return null;
+  let left = Infinity;
+  let top = Infinity;
+  let right = -Infinity;
+  let bottom = -Infinity;
+  let rotationSum = 0;
+  for (const member of members) {
+    const box = resolveNodeBox(member, allowPasteboardOverflow);
+    const rot = ((member.rotationDeg || 0) * Math.PI) / 180;
+    // Approximate transformed AABB from center + half extents.
+    const cx = box.left + box.width / 2;
+    const cy = box.top + box.height / 2;
+    const cos = Math.abs(Math.cos(rot));
+    const sin = Math.abs(Math.sin(rot));
+    const hw = (box.width * cos + box.height * sin) / 2;
+    const hh = (box.width * sin + box.height * cos) / 2;
+    left = Math.min(left, cx - hw);
+    top = Math.min(top, cy - hh);
+    right = Math.max(right, cx + hw);
+    bottom = Math.max(bottom, cy + hh);
+    rotationSum += member.rotationDeg || 0;
+  }
+  if (!Number.isFinite(left) || !Number.isFinite(top)) return null;
+  return {
+    groupId,
+    memberIds: members.map((node) => node.id),
+    left,
+    top,
+    width: Math.max(0.02, right - left),
+    height: Math.max(0.02, bottom - top),
+    rotationDeg: rotationSum / members.length,
+  };
+}
+
+export function enterGroupContentEditing(
+  nodes: CreativeCompositionNode[],
+  groupId: string,
+  childId: string
+): CreativeCompositionNode[] {
+  return nodes.map((node) => {
+    if (node.groupId !== groupId || !isTrueGroupMember(node)) return node;
+    if (node.id === childId) {
+      return {
+        ...node,
+        props: { ...node.props, groupContentEditing: true, contentEditing: true },
+      };
+    }
+    const props = { ...node.props };
+    delete props.groupContentEditing;
+    delete props.contentEditing;
+    return { ...node, props };
+  });
+}
+
+export function exitGroupContentEditing(
+  nodes: CreativeCompositionNode[],
+  groupId: string
+): CreativeCompositionNode[] {
+  return nodes.map((node) => {
+    if (node.groupId !== groupId) return node;
+    const props = { ...node.props };
+    delete props.groupContentEditing;
+    delete props.contentEditing;
+    return { ...node, props };
+  });
+}
+
+/** Scale all group members relative to union origin. One undo-friendly transaction. */
+export function resizeGroupComposition(
+  nodes: CreativeCompositionNode[],
+  groupId: string,
+  next: { left: number; top: number; width: number; height: number },
+  options?: { minChildWidth?: number; minChildHeight?: number }
+): CreativeCompositionNode[] {
+  const bounds = computeGroupUnionBounds(nodes, groupId, true);
+  if (!bounds || bounds.width <= 0 || bounds.height <= 0) return nodes;
+  const sx = next.width / bounds.width;
+  const sy = next.height / bounds.height;
+  const minW = options?.minChildWidth ?? 0.02;
+  const minH = options?.minChildHeight ?? 0.02;
+  const memberSet = new Set(bounds.memberIds);
+
+  return nodes.map((node) => {
+    if (!memberSet.has(node.id)) return node;
+    const relX = (node.x - bounds.left) / bounds.width;
+    const relY = (node.y - bounds.top) / bounds.height;
+    const width = Math.max(minW, node.width * sx);
+    const height = Math.max(minH, node.height * sy);
+    const x = next.left + relX * next.width;
+    const y = next.top + relY * next.height;
+    const nextProps = { ...node.props };
+    if (node.primitive === "text") {
+      const fontSize = Number(node.props.fontSize ?? 18);
+      if (Number.isFinite(fontSize)) {
+        nextProps.fontSize = Math.max(6, Math.min(320, fontSize * Math.sqrt(sx * sy)));
+      }
+    }
+    return { ...node, x, y, width, height, props: nextProps };
+  });
+}
+
+/** Rotate group members around the union center. */
+export function rotateGroupComposition(
+  nodes: CreativeCompositionNode[],
+  groupId: string,
+  absoluteDeg: number
+): CreativeCompositionNode[] {
+  const bounds = computeGroupUnionBounds(nodes, groupId, true);
+  if (!bounds) return nodes;
+  const memberSet = new Set(bounds.memberIds);
+  const cx = bounds.left + bounds.width / 2;
+  const cy = bounds.top + bounds.height / 2;
+  const baseAvg = bounds.rotationDeg;
+  const delta = ((absoluteDeg - baseAvg) * Math.PI) / 180;
+  const cos = Math.cos(delta);
+  const sin = Math.sin(delta);
+
+  return nodes.map((node) => {
+    if (!memberSet.has(node.id)) return node;
+    const ncx = node.x + node.width / 2;
+    const ncy = node.y + node.height / 2;
+    const dx = ncx - cx;
+    const dy = ncy - cy;
+    const rx = dx * cos - dy * sin;
+    const ry = dx * sin + dy * cos;
+    return {
+      ...node,
+      x: rx + cx - node.width / 2,
+      y: ry + cy - node.height / 2,
+      rotationDeg: (node.rotationDeg || 0) + (absoluteDeg - baseAvg),
+    };
+  });
+}
+
+export function moveGroupComposition(
+  nodes: CreativeCompositionNode[],
+  groupId: string,
+  dx: number,
+  dy: number
+): CreativeCompositionNode[] {
+  const members = groupMembers(nodes, groupId);
+  return translateNodesOnPasteboard(
+    nodes,
+    members.map((node) => node.id),
+    dx,
+    dy
+  );
+}
+
+export function textDescendantsInScope(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  options?: { includeNestedComponentText?: boolean }
+): CreativeCompositionNode[] {
+  const expanded = expandSelectionToGroups([...nodes], [...selectedIds]);
+  const includeNested = options?.includeNestedComponentText === true;
+  const out: CreativeCompositionNode[] = [];
+  for (const node of nodes) {
+    if (!expanded.includes(node.id)) continue;
+    const family = objectFamilyForNode(node);
+    if (family === "text") {
+      out.push(node);
+      continue;
+    }
+    if (!includeNested) continue;
+    if (family === "button" || family === "badge" || family === "coupon" || family === "ticket") {
+      // Nested text lives in contentComposition for components — surface parent text props too.
+      if (typeof node.props.text === "string" || typeof node.props.label === "string") {
+        out.push(node);
+      }
+    }
+  }
+  return out;
+}
+
+export function compatibleDescendants(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  capability: FanOutCapability
+): CreativeCompositionNode[] {
+  const expanded = expandSelectionToGroups([...nodes], [...selectedIds]);
+  const selected = nodes.filter((node) => expanded.includes(node.id));
+
+  const familyOk = (family: ObjectFamily): boolean => {
+    switch (capability) {
+      case "text_color":
+      case "font":
+      case "font_size":
+      case "font_weight":
+      case "text_content":
+        return family === "text" || family === "badge" || family === "button";
+      case "effect":
+        return (
+          family === "text" ||
+          family === "icon" ||
+          family === "badge" ||
+          family === "button" ||
+          family === "shape" ||
+          family === "coupon" ||
+          family === "ticket" ||
+          family === "container" ||
+          family === "image"
+        );
+      case "material":
+        return (
+          family === "text" ||
+          family === "icon" ||
+          family === "badge" ||
+          family === "button" ||
+          family === "shape" ||
+          family === "coupon" ||
+          family === "ticket" ||
+          family === "container"
+        );
+      case "motion":
+        return family !== "group" && family !== "card_root" && family !== "utility";
+      case "opacity":
+        return family !== "group" && family !== "card_root";
+      default:
+        return false;
+    }
+  };
+
+  return selected.filter((node) => familyOk(objectFamilyForNode(node)));
+}
+
+export function readCapabilityValue(
+  node: CreativeCompositionNode,
+  capability: FanOutCapability
+): unknown {
+  switch (capability) {
+    case "text_color":
+      return node.props.color ?? node.props.labelColor ?? null;
+    case "font":
+      return node.props.fontFamily ?? null;
+    case "font_size":
+      return node.props.fontSize ?? null;
+    case "font_weight":
+      return node.props.fontWeight ?? null;
+    case "effect":
+      return node.props.effectPreset ?? node.props.glyphEffect ?? null;
+    case "material":
+      return node.props.materialPreset ?? null;
+    case "motion":
+      return node.props.motionPreset ?? node.props.animation ?? null;
+    case "opacity":
+      return node.props.opacity ?? 1;
+    case "text_content":
+      return node.props.text ?? node.props.label ?? null;
+    default:
+      return null;
+  }
+}
+
+export function mixedValueForCapability(
+  nodes: readonly CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  capability: FanOutCapability
+): MixedValue<unknown> {
+  const targets = compatibleDescendants([...nodes], selectedIds, capability);
+  if (!targets.length) return { kind: "empty" };
+  const first = readCapabilityValue(targets[0], capability);
+  for (let i = 1; i < targets.length; i += 1) {
+    if (readCapabilityValue(targets[i], capability) !== first) {
+      return { kind: "mixed" };
+    }
+  }
+  return { kind: "uniform", value: first };
+}
+
+/** Apply a prop patch to all compatible descendants. Returns patched nodes. */
+export function fanOutProps(
+  nodes: CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  capability: FanOutCapability,
+  patch: Record<string, unknown>
+): { nodes: CreativeCompositionNode[]; appliedIds: string[]; skipped: number } {
+  const targets = compatibleDescendants(nodes, selectedIds, capability);
+  const targetIds = new Set(targets.map((node) => node.id));
+  const next = nodes.map((node) => {
+    if (!targetIds.has(node.id)) return node;
+    const props = { ...node.props, ...patch };
+    // Text color on buttons uses labelColor when present.
+    if (capability === "text_color" && objectFamilyForNode(node) === "button" && patch.color != null) {
+      props.labelColor = patch.color;
+    }
+    return { ...node, props };
+  });
+  return {
+    nodes: next,
+    appliedIds: [...targetIds],
+    skipped: expandSelectionToGroups(nodes, [...selectedIds]).length - targetIds.size,
+  };
+}
+
+export function fanOutScopeLabel(applied: number, total: number): string | null {
+  if (total <= 1 || applied <= 0) return null;
+  if (applied === total) return null;
+  return `Applies to ${applied} of ${total} selected elements`;
+}
+
+export function duplicateGroupPreservingMembership(
+  nodes: CreativeCompositionNode[],
+  ids: string[],
+  createId: () => string,
+  createGroupId: () => string
+): { nodes: CreativeCompositionNode[]; newIds: string[] } {
+  const expanded = expandSelectionToGroups(nodes, ids);
+  const set = new Set(expanded);
+  const maxZ = nodes.reduce((m, n) => Math.max(m, n.zIndex), 0);
+  const groupMap = new Map<string, string>();
+  const newIds: string[] = [];
+  const clones: CreativeCompositionNode[] = [];
+  let z = maxZ;
+  for (const n of nodes) {
+    if (!set.has(n.id) || n.locked) continue;
+    z += 1;
+    const id = createId();
+    newIds.push(id);
+    let groupId = n.groupId ?? null;
+    if (groupId && isTrueGroupMember(n)) {
+      if (!groupMap.has(groupId)) groupMap.set(groupId, createGroupId());
+      groupId = groupMap.get(groupId)!;
+    }
+    clones.push({
+      ...n,
+      id,
+      x: Math.min(0.92, n.x + 0.04),
+      y: Math.min(0.92, n.y + 0.04),
+      zIndex: z,
+      locked: false,
+      groupId,
+      props: { ...n.props },
+    });
+  }
+  return { nodes: [...nodes, ...clones], newIds };
+}

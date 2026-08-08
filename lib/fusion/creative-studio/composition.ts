@@ -800,8 +800,10 @@ export function duplicateNodes(
   nodes: CreativeCompositionNode[],
   ids: string[]
 ): { nodes: CreativeCompositionNode[]; newIds: string[] } {
-  const set = new Set(ids);
+  const expanded = expandSelectionToGroups(nodes, ids);
+  const set = new Set(expanded);
   const maxZ = nodes.reduce((m, n) => Math.max(m, n.zIndex), 0);
+  const groupMap = new Map<string, string>();
   const newIds: string[] = [];
   const clones: CreativeCompositionNode[] = [];
   let z = maxZ;
@@ -810,6 +812,11 @@ export function duplicateNodes(
     z += 1;
     const id = `node-${nanoid(6)}`;
     newIds.push(id);
+    let groupId = n.groupId ?? null;
+    if (groupId && !n.props.componentKind && !n.props.containerId) {
+      if (!groupMap.has(groupId)) groupMap.set(groupId, `group-${nanoid(6)}`);
+      groupId = groupMap.get(groupId)!;
+    }
     clones.push({
       ...n,
       id,
@@ -817,6 +824,7 @@ export function duplicateNodes(
       y: Math.min(0.92, n.y + 0.04),
       zIndex: z,
       locked: false,
+      groupId,
       props: { ...n.props },
     });
   }

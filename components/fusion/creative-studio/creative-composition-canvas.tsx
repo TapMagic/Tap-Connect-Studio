@@ -48,6 +48,17 @@ import {
   resolveContainerParent,
   selectionModeForNode,
 } from "@/lib/fusion/creative-studio/selection-mode";
+import {
+  computeGroupUnionBounds,
+  exitGroupContentEditing,
+  isGroupContentEditing,
+  isGroupParentSelection,
+  resolveActiveGroupId,
+  resizeGroupComposition,
+  rotateGroupComposition,
+} from "@/lib/fusion/creative-studio/group-authority";
+import { effectLayersCss } from "@/lib/fusion/creative-studio/effect-render";
+import { surfaceShadowCss } from "@/lib/fusion/creative-studio/material-engine";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -334,7 +345,39 @@ function NodeVisual({
   if (componentKind === "coupon" || componentKind === "ticket") {
     const coupon = componentKind === "coupon";
     const artwork = str(node.props.artworkSrc);
-    return <div className="flex h-full w-full flex-col justify-between overflow-hidden rounded-2xl border border-white/20 bg-gradient-to-br from-amber-300 via-orange-400 to-rose-500 p-4 text-[#17100a] shadow-xl" style={artwork ? { backgroundImage: `linear-gradient(rgba(255,255,255,.2),rgba(255,255,255,.2)),url("${artwork.replaceAll('"', "%22")}")`, backgroundPosition: "center", backgroundSize: "cover" } : undefined} data-component-kind={componentKind} data-surface-mode={artwork ? "uploaded_artwork" : "preset"}><div><span className="text-[9px] font-black uppercase tracking-[.22em]">{coupon ? "TapConnect Coupon" : "TapConnect Ticket"}</span><strong className="mt-1 block text-xl leading-none">{str(node.props.headline, str(node.props.title, coupon ? "SPECIAL OFFER" : "ADMIT ONE"))}</strong>{coupon ? <span className="mt-2 block text-2xl font-black">{str(node.props.offerValue, "20% OFF")}</span> : null}</div><div className="flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.code, str(node.props.ticketId, coupon ? "SAVE20" : "TICKET-001"))}</span><span className="grid h-10 w-10 place-items-center rounded bg-white text-[8px] font-black" aria-label="QR context">QR</span></div><p className="mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
+    const variant = str(node.props.layoutVariant, coupon ? "retail_card" : "admission_stub");
+    const fill = str(node.props.gradientFill) || (str(node.props.gradientStart) && str(node.props.gradientEnd) ? `linear-gradient(${num(node.props.gradientAngle, 135)}deg,${str(node.props.gradientStart)},${str(node.props.gradientEnd)})` : str(node.props.fill, "linear-gradient(135deg,#fcd34d,#f97316,#f43f5e)"));
+    const borderWidth = num(node.props.borderWidth, 1);
+    const borderColor = str(node.props.borderColor, "rgba(255,255,255,0.35)");
+    const borderStyle = str(node.props.borderStyle, "solid");
+    const radius = num(node.props.radius, 18);
+    const shadow = surfaceShadowCss(node.props);
+    const surfaceStyle: CSSProperties = {
+      background: artwork ? undefined : fill,
+      backgroundImage: artwork ? `linear-gradient(rgba(255,255,255,.18),rgba(255,255,255,.18)),url("${artwork.replaceAll('"', "%22")}")` : undefined,
+      backgroundPosition: "center",
+      backgroundSize: "cover",
+      borderWidth,
+      borderStyle: borderStyle as CSSProperties["borderStyle"],
+      borderColor,
+      borderRadius: radius,
+      boxShadow: shadow,
+      opacity: num(node.props.opacity, 1),
+      color: str(node.props.color, "#17100a"),
+    };
+    if (!coupon) {
+      return <div className="flex h-full w-full flex-col justify-between overflow-hidden p-4 shadow-xl" style={surfaceStyle} data-component-kind="ticket" data-layout-variant={variant} data-surface-mode={artwork ? "uploaded_artwork" : "preset"}><div><span className="text-[9px] font-black uppercase tracking-[.22em]">TapConnect Ticket</span><strong className="mt-1 block text-xl leading-none">{str(node.props.title, "ADMIT ONE")}</strong></div><div className="flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.ticketId, "TICKET-001")}</span><span className="grid h-10 w-10 place-items-center rounded bg-white text-[8px] font-black" aria-label="QR context">QR</span></div><p className="mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
+    }
+    if (variant === "perforated_stub" || node.props.perforated === true) {
+      return <div className="relative flex h-full w-full overflow-hidden text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="perforated_stub" data-coupon-perforation="true"><div className="flex w-[62%] flex-col justify-between p-3"><span className="text-[8px] font-black uppercase tracking-widest">Coupon</span><strong className="text-xl font-black leading-none">{str(node.props.offerValue, "20% OFF")}</strong><span className="text-[11px] font-bold">{str(node.props.headline, "TEAR HERE")}</span><p className="text-[7px] leading-tight opacity-80">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div><div className="absolute inset-y-2 left-[62%] w-0 border-l-2 border-dashed border-black/45" data-testid="coupon-perforation" aria-hidden /><div className="flex w-[38%] flex-col items-center justify-between border-l border-transparent p-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[9px] text-white">{str(node.props.code, "TEAR10")}</span><span className="grid h-14 w-14 place-items-center rounded bg-white text-[8px] font-black shadow" aria-label="QR placeholder">QR</span><span className="text-[7px] opacity-70">{str(node.props.expiration, "Expires soon")}</span></div></div>;
+    }
+    if (variant === "split_image" || node.props.showArtwork === true) {
+      return <div className="flex h-full w-full overflow-hidden text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="split_image" data-coupon-split="true"><div className="h-full w-[42%] bg-black/20" data-coupon-split="image" style={artwork ? { backgroundImage: `url("${artwork.replaceAll('"', "%22")}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined} /><div className="flex w-[58%] flex-col justify-between p-3" data-coupon-split="content"><strong className="text-xl font-black leading-none">{str(node.props.offerValue, "BUY 1 GET 1")}</strong><span className="text-[11px] font-bold">{str(node.props.headline, "LOOK BOOK")}</span><p className="text-[8px] leading-tight opacity-80">{str(node.props.description, str(node.props.terms, ""))}</p><div className="flex items-center gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[9px] text-white">{str(node.props.code, "LOOKBOGO")}</span><span className="rounded-full bg-black px-2 py-1 text-[8px] font-semibold text-white">{str(node.props.ctaLabel, "Claim")}</span></div></div></div>;
+    }
+    if (variant === "qr_first" || node.props.qrFirst === true) {
+      return <div className="flex h-full w-full flex-col items-center justify-between overflow-hidden p-3 text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="qr_first" data-coupon-qr-first="true"><span className="grid h-[42%] aspect-square max-h-28 place-items-center rounded-lg bg-white text-[10px] font-black shadow" aria-label="QR placeholder">QR</span><strong className="text-center text-xl font-black leading-none">{str(node.props.offerValue, "FREE GIFT")}</strong><span className="text-center text-[11px] font-bold">{str(node.props.headline, "SCAN TO CLAIM")}</span><span className="font-mono text-[11px] font-bold">{str(node.props.code, "SCANME")}</span><p className="text-center text-[7px] leading-tight opacity-80">{str(node.props.description, "Scan the code or enter the offer code to claim.")}</p></div>;
+    }
+    return <div className="flex h-full w-full flex-col justify-between overflow-hidden p-4 text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="retail_card" data-surface-mode={artwork ? "uploaded_artwork" : "preset"}><div><span className="text-[9px] font-black uppercase tracking-[.22em]">TapConnect Coupon</span><strong className="mt-1 block text-2xl font-black leading-none">{str(node.props.offerValue, "20% OFF")}</strong><span className="mt-1 block text-sm font-bold">{str(node.props.headline, "SPECIAL OFFER")}</span><p className="mt-1 text-[8px] leading-tight opacity-80">{str(node.props.description, "")}</p></div><div className="flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.code, "SAVE20")}</span><span className="rounded-full bg-black px-3 py-1 text-[9px] font-semibold text-white">{str(node.props.ctaLabel, "Use offer")}</span></div><p className="mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
   }
 
   if (componentKind === "form") {
@@ -353,11 +396,18 @@ function NodeVisual({
       WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
       color: node.props.gradientFill ? "transparent" : undefined,
       WebkitTextStroke: num(node.props.outlineWidth, 0) > 0 ? `${num(node.props.outlineWidth, 0)}px ${str(node.props.outlineColor, str(node.props.color, "#f8fafc"))}` : undefined,
-      textShadow: [
-        str(node.props.textShadowLayers),
-        num(node.props.glow, 0) > 0 ? `0 0 ${num(node.props.glow, 0)}px ${str(node.props.color, "#f8fafc")}` : "",
-        num(node.props.shadow, 0) > 0 ? `0 ${Math.max(1, num(node.props.shadow, 0) / 3)}px ${num(node.props.shadow, 0)}px rgba(0,0,0,.7)` : "",
-      ].filter(Boolean).join(", ") || undefined,
+      textShadow: effectLayersCss("glyph", {
+        effectPreset: str(node.props.effectPreset, str(node.props.glyphEffect, "")),
+        glow: num(node.props.glow, 0),
+        shadow: num(node.props.shadow, 0),
+        glowColor: str(node.props.glowColor, str(node.props.color, "#f8fafc")),
+        secondaryGlow: num(node.props.secondaryGlow, 0),
+        coreBrightness: num(node.props.coreBrightness, 1),
+        edgeWidth: num(node.props.edgeWidth, 1.25),
+        auraIntensity: num(node.props.auraIntensity, 0.45),
+        textShadowLayers: str(node.props.textShadowLayers) || null,
+        color: str(node.props.color, "#f8fafc"),
+      }).textShadow,
       transform: node.props.transformMode === "stretch_glyphs"
         ? `scale(${num(node.props.glyphScaleX, 100) / 100}, ${num(node.props.glyphScaleY, 100) / 100})`
         : undefined,
@@ -1158,7 +1208,12 @@ export function CreativeCompositionCanvas({
     /** Snapshot of all nodes at drag start (for group/multi move). */
     origNodes: CreativeCompositionNode[];
     moveIds: string[];
+    groupId?: string | null;
+    groupBounds?: { left: number; top: number; width: number; height: number; rotationDeg: number } | null;
   } | null>(null);
+  const groupParentSelection = isGroupParentSelection(block.nodes, selectedNodeIds);
+  const activeGroupId = resolveActiveGroupId(block.nodes, selectedNodeIds);
+  const groupBounds = activeGroupId ? computeGroupUnionBounds(block.nodes, activeGroupId, true) : null;
 
   useEffect(() => {
     const el = surfaceRef.current;
@@ -1254,6 +1309,12 @@ export function CreativeCompositionCanvas({
             "Finished editing contents"
           );
           onSelectNodes?.([contentParent.id]);
+          return;
+        }
+        if (selectedNode?.props.groupContentEditing === true && selectedNode.groupId) {
+          const gid = selectedNode.groupId;
+          commitNodes(exitGroupContentEditing(block.nodes, gid), "Finished editing Group contents");
+          onSelectNodes?.(expandSelectionToGroups(block.nodes, [selectedNode.id]));
           return;
         }
         if (selectedNode?.props.contentEditing === true) {
@@ -1394,12 +1455,19 @@ export function CreativeCompositionCanvas({
     }
     onSelectNodes?.(nextIds);
 
+    const groupIdForTransform = resolveActiveGroupId(block.nodes, nextIds);
+    const groupParent = Boolean(groupIdForTransform) && !isGroupContentEditing(block.nodes, nextIds);
     const moveIds =
       mode === "move"
         ? isContainerNode(target)
           ? [target.id, ...containerChildIds(block.nodes, target.id)]
           : expandSelectionToGroups(block.nodes, nextIds)
-        : [target.id];
+        : groupParent && groupIdForTransform
+          ? expandSelectionToGroups(block.nodes, nextIds)
+          : [target.id];
+    const bounds = groupParent && groupIdForTransform
+      ? computeGroupUnionBounds(block.nodes, groupIdForTransform, true)
+      : null;
     setDrag({
       id: target.id,
       mode,
@@ -1409,6 +1477,10 @@ export function CreativeCompositionCanvas({
       orig: { ...target },
       origNodes: block.nodes.map((n) => ({ ...n, props: { ...n.props } })),
       moveIds,
+      groupId: groupParent ? groupIdForTransform : null,
+      groupBounds: bounds
+        ? { left: bounds.left, top: bounds.top, width: bounds.width, height: bounds.height, rotationDeg: bounds.rotationDeg }
+        : null,
     });
   };
 
@@ -1437,12 +1509,17 @@ export function CreativeCompositionCanvas({
       return;
     }
     if (drag.mode === "rotate") {
-      const centerX = rect.left + (drag.orig.x + drag.orig.width / 2) * rect.width;
-      const centerY = rect.top + (drag.orig.y + drag.orig.height / 2) * rect.height;
+      const bounds = drag.groupBounds;
+      const centerX = rect.left + ((bounds ? bounds.left + bounds.width / 2 : drag.orig.x + drag.orig.width / 2)) * rect.width;
+      const centerY = rect.top + ((bounds ? bounds.top + bounds.height / 2 : drag.orig.y + drag.orig.height / 2)) * rect.height;
       const angle =
         (Math.atan2(e.clientY - centerY, e.clientX - centerX) * 180) / Math.PI +
         90;
       const resolvedAngle = e.shiftKey ? Math.round(angle / 15) * 15 : Math.round(angle);
+      if (drag.groupId) {
+        setDraftNodes(rotateGroupComposition(drag.origNodes, drag.groupId, resolvedAngle));
+        return;
+      }
       setDraftNodes(
         drag.origNodes.map((node) =>
           node.id === drag.id ? { ...node, rotationDeg: resolvedAngle } : node
@@ -1494,6 +1571,22 @@ export function CreativeCompositionCanvas({
       width: Math.min(2, Math.max(0.02, width)),
       height: Math.min(2, Math.max(0.02, height)),
     };
+    if (drag.groupId && drag.groupBounds) {
+      const gb = drag.groupBounds;
+      let gx = west ? Math.min(gb.left + gb.width - 0.04, Math.max(-1, gb.left + dx)) : gb.left;
+      let gy = north ? Math.min(gb.top + gb.height - 0.04, Math.max(-1, gb.top + dy)) : gb.top;
+      let gw = west ? gb.width + (gb.left - gx) : east ? Math.min(2, Math.max(0.04, gb.width + dx)) : gb.width;
+      let gh = north ? gb.height + (gb.top - gy) : south ? Math.min(2, Math.max(0.04, gb.height + dy)) : gb.height;
+      setDraftNodes(
+        resizeGroupComposition(drag.origNodes, drag.groupId, {
+          left: gx,
+          top: gy,
+          width: Math.max(0.04, gw),
+          height: Math.max(0.04, gh),
+        })
+      );
+      return;
+    }
     if (isContainerNode(n)) {
       setDraftNodes(
         applyContainerResize(
@@ -1556,10 +1649,11 @@ export function CreativeCompositionCanvas({
         const right = (Math.max(marquee.startX, marquee.currentX) - rect.left) / Math.max(rect.width, 1);
         const top = (Math.min(marquee.startY, marquee.currentY) - rect.top) / Math.max(rect.height, 1);
         const bottom = (Math.max(marquee.startY, marquee.currentY) - rect.top) / Math.max(rect.height, 1);
-        onSelectNodes?.(visibleNodes.filter((node) => {
+        const hit = visibleNodes.filter((node) => {
           const box = resolveNodeBox(node, editMode);
           return box.left < right && box.left + box.width > left && box.top < bottom && box.top + box.height > top;
-        }).map((node) => node.id));
+        }).map((node) => node.id);
+        onSelectNodes?.(expandSelectionToGroups(block.nodes, hit));
       }
       setMarquee(null);
       return;
@@ -1918,7 +2012,7 @@ export function CreativeCompositionCanvas({
               event.stopPropagation();
               const rect = surfaceRef.current?.getBoundingClientRect();
               if (!rect) return;
-              onSelectNodes?.([node.id]);
+              onSelectNodes?.(expandSelectionToGroups(block.nodes, [node.id]));
               setContextMenu({ id: node.id, x: event.clientX - rect.left, y: event.clientY - rect.top });
             }}
             onKeyDown={(event) => {
@@ -1986,7 +2080,43 @@ export function CreativeCompositionCanvas({
           </div>
         );
       })}
-      {editMode ? visibleNodes.filter((node) => selectedSet.has(node.id) && !node.locked).map((node) => {
+      {editMode && groupParentSelection && groupBounds && activeGroupId ? (
+        <div
+          key={`group-selection-${activeGroupId}`}
+          className="pointer-events-none absolute z-[1000] outline outline-1 outline-white/80"
+          style={{
+            left: `${groupBounds.left * 100}%`,
+            top: `${groupBounds.top * 100}%`,
+            width: `${groupBounds.width * 100}%`,
+            height: `${groupBounds.height * 100}%`,
+          }}
+          data-testid="composition-group-selection-overlay"
+          data-group-id={activeGroupId}
+          data-chrome-scale={String(chromeScale)}
+        >
+          <span className="pointer-events-none absolute left-0 rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" style={{ top: `calc(-1.35rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} data-testid="composition-group-label">Group</span>
+          {([
+            ["nw", "left-0 top-0 cursor-nwse-resize", "top left", "", "corner"],
+            ["n", "left-1/2 top-0 cursor-ns-resize", "top center", "translateX(-50%) ", "edge"],
+            ["ne", "right-0 top-0 cursor-nesw-resize", "top right", "", "corner"],
+            ["e", "right-0 top-1/2 cursor-ew-resize", "center right", "translateY(-50%) ", "edge"],
+            ["se", "bottom-0 right-0 cursor-nwse-resize", "bottom right", "", "corner"],
+            ["s", "left-1/2 bottom-0 cursor-ns-resize", "bottom center", "translateX(-50%) ", "edge"],
+            ["sw", "bottom-0 left-0 cursor-nesw-resize", "bottom left", "", "corner"],
+            ["w", "left-0 top-1/2 cursor-ew-resize", "center left", "translateY(-50%) ", "edge"],
+          ] as const).map(([handle, position, origin, translate, kind]) => {
+            const seed = block.nodes.find((node) => node.id === groupBounds.memberIds[0]);
+            if (!seed) return null;
+            return <button key={handle} type="button" className={`pointer-events-auto absolute h-5 w-5 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-group-resize-${handle}`} data-handle-kind={kind} aria-label={`Resize group ${handle}`} onPointerDown={(event) => onPointerDownNode(event, seed, "resize", handle)} />;
+          })}
+          {(() => {
+            const seed = block.nodes.find((node) => node.id === groupBounds.memberIds[0]);
+            if (!seed) return null;
+            return <button type="button" className="pointer-events-auto absolute left-1/2 h-5 w-5 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/85 after:bg-[#9cff57]" style={{ top: `calc(-1.85rem * ${chromeScale})`, transform: `translateX(-50%) scale(${chromeScale})`, transformOrigin: "bottom center" }} data-testid="composition-group-rotate" data-handle-kind="rotate" aria-label="Rotate group" onPointerDown={(event) => onPointerDownNode(event, seed, "rotate")} />;
+          })()}
+        </div>
+      ) : null}
+      {editMode ? visibleNodes.filter((node) => selectedSet.has(node.id) && !node.locked && !(groupParentSelection && node.groupId && node.groupId === activeGroupId)).map((node) => {
         const box = resolveNodeBox(node, editMode);
         const beneath = [...visibleNodes]
           .filter((candidate) => candidate.id !== node.id)
