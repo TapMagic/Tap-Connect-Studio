@@ -2210,18 +2210,19 @@ export function CreativeCompositionCanvas({
             Group
           </button>
           {([
-            ["nw", "left-0 top-0 cursor-nwse-resize", "top left", "", "corner"],
-            ["n", "left-1/2 top-0 cursor-ns-resize", "top center", "translateX(-50%) ", "edge"],
-            ["ne", "right-0 top-0 cursor-nesw-resize", "top right", "", "corner"],
-            ["e", "right-0 top-1/2 cursor-ew-resize", "center right", "translateY(-50%) ", "edge"],
-            ["se", "bottom-0 right-0 cursor-nwse-resize", "bottom right", "", "corner"],
-            ["s", "left-1/2 bottom-0 cursor-ns-resize", "bottom center", "translateX(-50%) ", "edge"],
-            ["sw", "bottom-0 left-0 cursor-nesw-resize", "bottom left", "", "corner"],
-            ["w", "left-0 top-1/2 cursor-ew-resize", "center left", "translateY(-50%) ", "edge"],
+            // Handles sit half-outside the frame so small Groups keep a body hit target.
+            ["nw", "left-0 top-0 cursor-nwse-resize", "center", "translate(-50%, -50%) ", "corner"],
+            ["n", "left-1/2 top-0 cursor-ns-resize", "center", "translate(-50%, -50%) ", "edge"],
+            ["ne", "right-0 top-0 cursor-nesw-resize", "center", "translate(50%, -50%) ", "corner"],
+            ["e", "right-0 top-1/2 cursor-ew-resize", "center", "translate(50%, -50%) ", "edge"],
+            ["se", "bottom-0 right-0 cursor-nwse-resize", "center", "translate(50%, 50%) ", "corner"],
+            ["s", "left-1/2 bottom-0 cursor-ns-resize", "center", "translate(-50%, 50%) ", "edge"],
+            ["sw", "bottom-0 left-0 cursor-nesw-resize", "center", "translate(-50%, 50%) ", "corner"],
+            ["w", "left-0 top-1/2 cursor-ew-resize", "center", "translate(-50%, -50%) ", "edge"],
           ] as const).map(([handle, position, origin, translate, kind]) => {
             const seed = block.nodes.find((node) => node.id === groupBounds.memberIds[0]);
             if (!seed) return null;
-            return <button key={handle} type="button" className={`pointer-events-auto absolute h-5 w-5 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-group-resize-${handle}`} data-handle-kind={kind} aria-label={`Resize group ${handle}`} onPointerDown={(event) => onPointerDownNode(event, seed, "resize", handle)} />;
+            return <button key={handle} type="button" className={`pointer-events-auto absolute h-5 w-5 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-group-resize-${handle}`} data-handle-kind={kind} data-handle-placement="outside" aria-label={`Resize group ${handle}`} onPointerDown={(event) => onPointerDownNode(event, seed, "resize", handle)} />;
           })}
           {(() => {
             const seed = block.nodes.find((node) => node.id === groupBounds.memberIds[0]);
@@ -2241,20 +2242,24 @@ export function CreativeCompositionCanvas({
             return cx >= candidateBox.left && cx <= candidateBox.left + candidateBox.width && cy >= candidateBox.top && cy <= candidateBox.top + candidateBox.height;
           })
           .sort((left, right) => right.zIndex - left.zIndex)[0];
-        return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1000] outline outline-1 outline-white/70" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`} data-chrome-scale={String(chromeScale)}>
+        const boxPx = Math.min(box.width * surfaceSize.width, box.height * surfaceSize.height);
+        const compactHandles = boxPx < 56;
+        const handleHit = compactHandles ? "h-3 w-3" : "h-5 w-5";
+        return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1000] outline outline-1 outline-white/70" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`} data-chrome-scale={String(chromeScale)} data-compact-handles={compactHandles ? "true" : "false"}>
           {drag?.id === node.id && drag.mode === "resize" ? <span className="absolute left-0 top-0 -translate-y-full rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" style={{ transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} data-testid="composition-size-feedback">{Math.round(box.width * 100)}% × {Math.round(box.height * 100)}%</span> : null}
           <button type="button" className="pointer-events-auto absolute left-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ top: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} onClick={() => setContextMenu({ id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height })}>•••</button>
           {beneath ? <button type="button" className="pointer-events-auto absolute right-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top right" }} data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
           {([
-            ["nw", "left-0 top-0 cursor-nwse-resize", "top left", "", "corner"],
-            ["n", "left-1/2 top-0 cursor-ns-resize", "top center", "translateX(-50%) ", "edge"],
-            ["ne", "right-0 top-0 cursor-nesw-resize", "top right", "", "corner"],
-            ["e", "right-0 top-1/2 cursor-ew-resize", "center right", "translateY(-50%) ", "edge"],
-            ["se", "bottom-0 right-0 cursor-nwse-resize", "bottom right", "", "corner"],
-            ["s", "left-1/2 bottom-0 cursor-ns-resize", "bottom center", "translateX(-50%) ", "edge"],
-            ["sw", "bottom-0 left-0 cursor-nesw-resize", "bottom left", "", "corner"],
-            ["w", "left-0 top-1/2 cursor-ew-resize", "center left", "translateY(-50%) ", "edge"],
-          ] as const).map(([handle, position, origin, translate, kind]) => <button key={handle} type="button" className={`pointer-events-auto absolute h-5 w-5 rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-resize-${node.id}-${handle}`} data-handle-kind={kind} data-handle-screen-px={kind === "corner" ? "6" : "5"} aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
+            // Half-outside placement keeps body clicks usable on badges/icons and other small frames.
+            ["nw", "left-0 top-0 cursor-nwse-resize", "center", "translate(-50%, -50%) ", "corner"],
+            ["n", "left-1/2 top-0 cursor-ns-resize", "center", "translate(-50%, -50%) ", "edge"],
+            ["ne", "right-0 top-0 cursor-nesw-resize", "center", "translate(50%, -50%) ", "corner"],
+            ["e", "right-0 top-1/2 cursor-ew-resize", "center", "translate(50%, -50%) ", "edge"],
+            ["se", "bottom-0 right-0 cursor-nwse-resize", "center", "translate(50%, 50%) ", "corner"],
+            ["s", "left-1/2 bottom-0 cursor-ns-resize", "center", "translate(-50%, 50%) ", "edge"],
+            ["sw", "bottom-0 left-0 cursor-nesw-resize", "center", "translate(-50%, 50%) ", "corner"],
+            ["w", "left-0 top-1/2 cursor-ew-resize", "center", "translate(-50%, -50%) ", "edge"],
+          ] as const).map(([handle, position, origin, translate, kind]) => <button key={handle} type="button" className={`pointer-events-auto absolute ${handleHit} rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-resize-${node.id}-${handle}`} data-handle-kind={kind} data-handle-placement="outside" data-handle-screen-px={kind === "corner" ? (compactHandles ? "4" : "6") : (compactHandles ? "3" : "5")} aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
           <button type="button" className="pointer-events-auto absolute left-1/2 h-5 w-5 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/85 after:bg-[#9cff57]" style={{ top: `calc(-1.85rem * ${chromeScale})`, transform: `translateX(-50%) scale(${chromeScale})`, transformOrigin: "bottom center" }} data-testid={`composition-rotate-${node.id}`} data-handle-kind="rotate" data-handle-screen-px="8" aria-label="Rotate" onPointerDown={(event) => onPointerDownNode(event, node, "rotate")} />
         </div>;
       }) : null}
