@@ -81,10 +81,14 @@ export async function dismissBlockingOverlays(
   await dismissTransientStudioChrome(page);
   await dismissRecoveryPromptIfPresent(page);
   await dismissSaveDialogIfPresent(page);
-  // Composition More menu is a real overlay — dismiss via Escape (product-owned) before other clicks.
+  // Composition More menu is a real overlay — dismiss via Escape / More toggle before other clicks.
   const compositionMenu = page.getByTestId("composition-context-menu");
   if ((await compositionMenu.count()) > 0 && (await compositionMenu.isVisible().catch(() => false))) {
     await page.keyboard.press("Escape").catch(() => undefined);
+    if (await compositionMenu.isVisible().catch(() => false)) {
+      const openMore = page.locator('[data-testid^="composition-more-"][aria-expanded="true"]').first();
+      if ((await openMore.count()) > 0) await openMore.click({ timeout: 2_000 }).catch(() => undefined);
+    }
     await compositionMenu.waitFor({ state: "hidden", timeout: 2_000 }).catch(() => undefined);
   }
   for (let i = 0; i < 3; i += 1) {
@@ -995,8 +999,11 @@ async function operateControlPhysicallyInner(
       }
       await ownerClick(more, "Live composition More menu");
       await expect(page.getByTestId("composition-context-menu")).toBeVisible({ timeout: 5_000 });
-      // Escape owns menu dismissal (product) — do not pasteboard-click (that clears selection).
+      // Owner close path: Escape (shell closes expanded More) or toggle More chip.
       await page.keyboard.press("Escape");
+      if (await page.getByTestId("composition-context-menu").isVisible().catch(() => false)) {
+        await more.click({ timeout: 2_000 });
+      }
       await expect(page.getByTestId("composition-context-menu")).toHaveCount(0, { timeout: 5_000 });
       await dismissSaveDialogIfPresent(page);
       // Ensure selection chrome remains for sibling resize/rotate inventory remaps.

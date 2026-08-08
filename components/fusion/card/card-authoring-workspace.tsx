@@ -463,6 +463,17 @@ export function CardAuthoringWorkspace({
         event.stopPropagation();
         return;
       }
+      // Composition More menu sits above the canvas — Escape closes it before Exit / deselect.
+      const compositionMoreOpen = document.querySelector<HTMLElement>(
+        '[data-testid^="composition-more-"][aria-expanded="true"]'
+      );
+      if (compositionMoreOpen || document.querySelector('[data-testid="composition-context-menu"]')) {
+        if (compositionMoreOpen) compositionMoreOpen.click();
+        else window.dispatchEvent(new CustomEvent("studio:dismiss-composition-menu"));
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       if (studioMode === "preview") {
         exitPreview();
         event.preventDefault();

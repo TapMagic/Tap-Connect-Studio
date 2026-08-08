@@ -1220,6 +1220,11 @@ export function CreativeCompositionCanvas({
   );
   const [guides, setGuides] = useState<CompositionGuide[]>([]);
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
+  useEffect(() => {
+    const dismiss = () => setContextMenu(null);
+    window.addEventListener("studio:dismiss-composition-menu", dismiss as EventListener);
+    return () => window.removeEventListener("studio:dismiss-composition-menu", dismiss as EventListener);
+  }, []);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
   const [marquee, setMarquee] = useState<{
     startX: number;
