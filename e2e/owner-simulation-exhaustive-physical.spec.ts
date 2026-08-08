@@ -728,6 +728,18 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
           return score(a) - score(b);
         });
       }
+      // Composition More can dismiss selection chrome — exercise resize/rotate first.
+      if (contextLabel.startsWith("selected-") || contextLabel.startsWith("appearance-")) {
+        controls.sort((a, b) => {
+          const score = (c: ProvenancedControl) => {
+            if (/^composition-more-node-/.test(c.testId || "")) return 3;
+            if (/^composition-rotate-node-/.test(c.testId || "")) return 2;
+            if (/^composition-resize-node-/.test(c.testId || "")) return 1;
+            return 0;
+          };
+          return score(a) - score(b);
+        });
+      }
       try {
         await reconstructContext(page, contextLabel);
       } catch (error) {
