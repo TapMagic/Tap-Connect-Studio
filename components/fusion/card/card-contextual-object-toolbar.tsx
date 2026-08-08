@@ -12,8 +12,21 @@ import { copyCompositionNodeStyle, hasCompositionStyleClipboard, pasteCompositio
 import { FONT_CATALOG, fontCssStack } from "@/lib/fusion/creative-studio/fonts/catalog";
 import { ensureFontLoaded, ensureGoogleFontFamilyLoaded } from "@/lib/fusion/creative-studio/fonts/load";
 import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
-import { bringForward, bringToFront, duplicateNodes, sendBackward, sendToBack, type CreativeCompositionBlock, type CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import { bringForward, bringToFront, duplicateNodes, expandSelectionToGroups, sendBackward, sendToBack, type CreativeCompositionBlock, type CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import { objectFamilyForNode } from "@/lib/fusion/creative-studio/capabilities";
+import { appearanceCategoriesForFamily, tuningFieldsForEffect } from "@/lib/fusion/creative-studio/appearance-ia";
+import {
+  fanOutProps,
+  fanOutScopeLabel,
+  isGroupParentSelection,
+  mixedValueForCapability,
+  resolveActiveGroupId,
+  enterGroupContentEditing,
+  exitGroupContentEditing,
+  textDescendantsInScope,
+} from "@/lib/fusion/creative-studio/group-authority";
+import { type CouponChildRole } from "@/lib/fusion/creative-studio/coupon-composition";
+import { ICON_BROWSE_CATEGORIES, ICON_COLLECTION_BROWSE } from "@/lib/fusion/creative-studio/icon-browse";
 import { dispatchEditorCommand, focusForDrawerSection, type EditorDrawerSection } from "@/lib/fusion/creative-studio/editor-command-registry";
 import { addGradientStop, DEFAULT_GRADIENT, GRADIENT_PRESETS, gradientToCss, normalizeGradient, removeGradientStop, reverseGradient, rotateGradient, mirrorGradient } from "@/lib/fusion/creative-studio/gradient";
 import { setRootPageHeightPreservingBounds } from "@/lib/fusion/card/composer-model";
@@ -33,11 +46,11 @@ import {
   materialsByCategory,
 } from "@/lib/fusion/creative-studio/material-engine";
 import { applyBorderProps, clearBorderProps } from "@/lib/fusion/creative-studio/border";
-import { createIconAsset, nativeIconAsset, replaceIconContentProps } from "@/lib/fusion/creative-studio/icon-asset";
+import { createIconAsset, iconAssetToNodeProps, nativeIconAsset, replaceIconContentProps } from "@/lib/fusion/creative-studio/icon-asset";
 import { GradientStudio } from "@/components/fusion/creative-studio/gradient-studio";
 import type { GradientModel } from "@/lib/fusion/creative-studio/gradient";
 
-type Focus = "content" | "font" | "color" | "surface" | "media" | "crop" | "adjust" | "frame-appearance" | "action" | "effects" | "animate" | "position" | "layout" | "setup" | "fields" | "gallery" | "resize-policy" | "responsive" | "button-surface" | "button-content" | "button-action" | "button-styles" | "icon-appearance" | "divider-style" | "divider-thickness" | "divider-color" | "divider-appearance" | "map-action" | "text-box" | "more" | null;
+type Focus = "content" | "font" | "color" | "surface" | "media" | "crop" | "adjust" | "frame-appearance" | "action" | "effects" | "appearance" | "animate" | "position" | "layout" | "setup" | "fields" | "gallery" | "resize-policy" | "responsive" | "button-surface" | "button-content" | "button-action" | "button-styles" | "icon-appearance" | "divider-style" | "divider-thickness" | "divider-color" | "divider-appearance" | "map-action" | "text-box" | "more" | "coupon-content" | null;
 type SectionFocus = "size" | "surface" | "layout" | "position" | "more" | null;
 type RootFocus = "background" | "page-size" | "guides" | "surface" | "more" | null;
 
@@ -70,33 +83,47 @@ const BUTTON_STYLE_KEYS = ["presentation", "radius", "cornersLinked", "radiusTop
 
 function useDeepLeftPanelHost(section: string | null, targetLabel: string, capabilityLabel: string) {
   const deepLeft = useDeepLeftEditorOptional();
-  const [portalGeneration, setPortalGeneration] = useState(0);
+  const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
+  const openKeyRef = useRef<string>("");
   useEffect(() => {
     if (!deepLeft) return;
     if (!section) {
-      if (deepLeft.session.mode === "edit") deepLeft.closeEdit();
+      // Closing ownership: only close if THIS host opened the current edit section.
+      if (deepLeft.session.mode === "edit" && openKeyRef.current) {
+        deepLeft.closeEdit();
+      }
+      openKeyRef.current = "";
+      setPortalEl(null);
       return;
     }
-    deepLeft.openEdit({
-      section,
-      targetLabel,
-      capabilityLabel,
-      previousLibraryTool: deepLeft.session.previousLibraryTool || "templates",
-      selectionGeneration: deepLeft.session.selectionGeneration,
-    });
-    // Poll for the left-drawer portal mount after Edit mode swaps library content.
-    const timer = window.setInterval(() => {
-      if (document.getElementById(deepLeft.portalId)) {
-        setPortalGeneration((value) => value + 1);
-        window.clearInterval(timer);
+    const key = `${section}|${targetLabel}|${capabilityLabel}`;
+    // One authoritative transition — do not re-open / thrash when already owning this edit.
+    if (openKeyRef.current !== key) {
+      openKeyRef.current = key;
+      deepLeft.openEdit({
+        section,
+        targetLabel,
+        capabilityLabel,
+        previousLibraryTool: deepLeft.session.previousLibraryTool || "templates",
+        selectionGeneration: deepLeft.session.selectionGeneration,
+      });
+    }
+    // Resolve portal mount without a timer loop — observe once until present.
+    const existing = document.getElementById(deepLeft.portalId);
+    if (existing) {
+      setPortalEl(existing);
+      return;
+    }
+    const observer = new MutationObserver(() => {
+      const el = document.getElementById(deepLeft.portalId);
+      if (el) {
+        setPortalEl(el);
+        observer.disconnect();
       }
-    }, 32);
-    return () => window.clearInterval(timer);
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
   }, [deepLeft, section, targetLabel, capabilityLabel]);
-  const portalEl = deepLeft && section && typeof document !== "undefined"
-    ? document.getElementById(deepLeft.portalId)
-    : null;
-  void portalGeneration;
   return { deepLeft, portalEl };
 }
 
@@ -275,7 +302,12 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
     return node && block ? { node, block, section } : null;
   }, [model]);
   useEffect(() => {
-    if (focus !== "content" || objectFamilyForNode(selected?.node || { primitive: "shape", props: {} }) !== "icon") {
+    const family = objectFamilyForNode(selected?.node || { primitive: "shape", props: {} });
+    const iconPickerOpen =
+      (focus === "content" && family === "icon") ||
+      (focus === "button-content" && family === "button") ||
+      (focus === "content" && family === "button");
+    if (!iconPickerOpen) {
       return;
     }
     if (iconQuery.trim().length < 2) {
@@ -401,7 +433,24 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   };
   const selection = model.selectionRef;
   const patch = (next: Partial<CreativeCompositionNode>, label: string) => model.patchSelection(selection, next, label);
+  const selectedIds = model.selectedCompositionNodeIds ?? [node.id];
+  const groupParent = isGroupParentSelection(block.nodes, selectedIds);
+  const activeGroupId = resolveActiveGroupId(block.nodes, selectedIds);
+  const colorMixed = mixedValueForCapability(block.nodes, selectedIds, "text_color");
+  const fontMixed = mixedValueForCapability(block.nodes, selectedIds, "font");
   const patchProps = (next: Record<string, unknown>, label: string) => {
+    // Group capability fan-out for compatible descendants.
+    if (groupParent && (next.color !== undefined || next.fontFamily !== undefined || next.fontSize !== undefined || next.fontWeight !== undefined || next.effectPreset !== undefined || next.materialPreset !== undefined || next.glow !== undefined || next.glowColor !== undefined)) {
+      let capability: "text_color" | "font" | "font_size" | "font_weight" | "effect" | "material" = "text_color";
+      if (next.materialPreset !== undefined) capability = "material";
+      else if (next.effectPreset !== undefined || next.glow !== undefined || next.glowColor !== undefined) capability = "effect";
+      else if (next.fontFamily !== undefined) capability = "font";
+      else if (next.fontSize !== undefined) capability = "font_size";
+      else if (next.fontWeight !== undefined) capability = "font_weight";
+      const result = fanOutProps(block.nodes, selectedIds, capability, next);
+      replace({ ...block, nodes: result.nodes }, label);
+      return;
+    }
     let props = { ...node.props, ...next };
     if (isButton && typeof next.label === "string") props = updateButtonLabel(props, next.label, node.id);
     if (isButton) {
@@ -411,6 +460,31 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       }
       if (next.labelColor !== undefined || next.textColor !== undefined) textPatch.color = next.labelColor ?? next.textColor;
       if (Object.keys(textPatch).length) props = updateButtonContentNode(props, "label", { props: textPatch }, node.id);
+    }
+    // Coupon contentComposition child sync when editing coupon parent text mirrors
+    if (objectFamily === "coupon" && props.contentComposition && typeof props.contentComposition === "object") {
+      const content = props.contentComposition as { nodes?: typeof block.nodes };
+      if (Array.isArray(content.nodes)) {
+        const roleMap: Record<string, string> = {
+          offerValue: "offer",
+          headline: "headline",
+          code: "code",
+          terms: "terms",
+          description: "description",
+          artworkSrc: "image",
+        };
+        let nodes = content.nodes;
+        for (const [propKey, role] of Object.entries(roleMap)) {
+          if (next[propKey] === undefined) continue;
+          nodes = nodes.map((child) => {
+            const childRole = String(child.props.componentContentRole || child.props.presetChildRole || "");
+            if (childRole !== role && !(role === "code" && childRole === "stub_code")) return child;
+            if (role === "image") return { ...child, props: { ...child.props, src: next[propKey] } };
+            return { ...child, props: { ...child.props, text: next[propKey] } };
+          });
+        }
+        props = { ...props, contentComposition: { ...content, nodes } };
+      }
     }
     patch({ props }, label);
   };
@@ -455,7 +529,20 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
 
   return <div className="pointer-events-none absolute inset-x-0 top-[9.5rem] z-[1550] flex flex-col items-center" data-testid="card-contextual-object-tools" data-selection-target={targetLabel.display} data-selection-mode={String(node.props.selectionMode || (node.props.contentEditing === true ? "content" : "parent"))}>
     <div className="pointer-events-auto flex max-w-[calc(100vw-2rem)] items-center gap-1 overflow-x-auto rounded-xl border border-white/15 bg-[#0b1019]/95 p-1.5 text-white shadow-2xl backdrop-blur">
-      <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#b8ff2c]" data-testid="contextual-target-label">{targetLabel.display}</span>
+      <span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#b8ff2c]" data-testid="contextual-target-label">{groupParent ? "Group" : targetLabel.display}</span>
+      {groupParent ? <>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-edit-contents" onClick={() => {
+          if (!activeGroupId) return;
+          const texts = textDescendantsInScope(block.nodes, selectedIds);
+          const child = texts[0] || block.nodes.find((n) => n.groupId === activeGroupId);
+          if (!child) return;
+          replace({ ...block, nodes: enterGroupContentEditing(block.nodes, activeGroupId, child.id) }, "Entered Group Edit contents");
+          model.setSelectedCompositionNodeIds?.([child.id]);
+        }}>Edit contents</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-appearance" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}>Appearance</button>
+        {textDescendantsInScope(block.nodes, selectedIds).length ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-magic-write" onClick={() => model.notify?.("Open Text › Magic Write for the selected Group text scope")}>Magic Write</button> : null}
+      </> : null}
+      {node.props.groupContentEditing === true && node.groupId ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-finish" onClick={() => { const gid = String(node.groupId); replace({ ...block, nodes: exitGroupContentEditing(block.nodes, gid) }, "Finished editing Group contents"); model.setSelectedCompositionNodeIds?.(expandSelectionToGroups(block.nodes, [node.id])); }}>Finish editing</button> : null}
       {isButton ? <>
         <button type="button" aria-pressed={node.props.contentEditing === true} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents"); open("button-content"); }} data-testid="contextual-button-content">{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button>
         <button
@@ -465,10 +552,10 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           title="Button surface appearance"
           aria-label="Button surface appearance"
           data-testid="contextual-button-surface-swatch"
-          onClick={() => open("effects")}
+          onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}
         />
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-surface")} data-testid="contextual-button-surface">Surface</button>
-        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("effects")} data-testid="contextual-button-material">Material</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-button-material">Material</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-action")} data-testid="contextual-button-action">Action</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-button-motion">Animate</button>
       </> : isTextLike ? <>
@@ -481,9 +568,9 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             title="Badge surface appearance"
             aria-label="Badge surface appearance"
             data-testid="contextual-badge-surface-swatch"
-            onClick={() => open("effects")}
+            onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}
           />
-          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("effects")} data-testid="contextual-badge-material">Material</button>
+          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-badge-material">Material</button>
           <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("surface")} data-testid="contextual-surface">Appearance</button>
         </> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("content")} data-testid="contextual-content">{isBadge ? "Wording" : "Edit"}</button>
@@ -533,7 +620,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             </span>
           );
         })()}
-        {!isBadge ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("effects")} data-testid="contextual-text-material">Appearance</button> : null}
+        {!isBadge ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-text-material">Appearance</button> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button>
       </> : objectFamily === "icon" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.open")} data-testid="contextual-icon-picker">Change Icon</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.appearance")} data-testid="contextual-icon-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button></> : objectFamily === "divider" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.style")} data-testid="contextual-divider-style">Style</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.thickness")} data-testid="contextual-divider-thickness">Thickness</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.color")} data-testid="contextual-divider-color">Color</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.appearance")} data-testid="contextual-divider-appearance">Appearance</button></> : objectFamily === "map" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.setup")} data-testid="contextual-map-setup">Setup</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.action")} data-testid="contextual-map-action">Action</button></> : objectFamily === "gallery" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("gallery.edit")}>Edit gallery</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button></> : objectFamily === "form" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("form.editFields")}>Edit fields</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("behavior.open")}>Behavior</button></> : objectFamily === "coupon" || objectFamily === "ticket" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("component.editChildren")}>Edit contents</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("resizePolicy.open")}>Resize behavior</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("setup.open")}>Setup / Behavior</button></> : objectFamily === "container" ? <><button type="button" aria-pressed={node.props.contentEditing === true} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents"); open("content"); }} data-testid="contextual-container-content">{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("size.open")}>Size</button><button
           type="button"
@@ -542,7 +629,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           title="Container surface appearance"
           aria-label="Container surface appearance"
           data-testid="contextual-container-surface-swatch"
-          onClick={() => open("effects")}
+          onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}
         /><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("resizePolicy.open")} data-testid="contextual-container-resize-policy">Resize behavior</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("responsive.open")}>Responsive</button></> : null}
       {isImage ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace" : "Choose media"}</button> : null}
       {!isButton && !isImage && objectFamily !== "icon" && objectFamily !== "divider" && !isTextLike ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("appearance.open")} data-testid="contextual-appearance">Appearance</button>
@@ -610,7 +697,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         <label className="flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={node.props.shine === true} onChange={(event) => patchProps({ shine: event.target.checked }, event.target.checked ? "Added high-gloss Button treatment" : "Removed high-gloss Button treatment")} />High-gloss shine</label>
         <button type="button" className={buttonClass} onClick={() => patchProps({ presentation: "rounded", radius: 14, cornersLinked: true, radiusTopLeft: 14, radiusTopRight: 14, radiusBottomRight: 14, radiusBottomLeft: 14 }, "Reset Button corners")}>Reset corners</button>
       </div> : null}
-      {focus === "button-content" ? <div className="space-y-3" data-testid="button-content-controls"><p className="rounded border border-[#b8ff2c]/30 bg-[#b8ff2c]/5 p-2 text-[10px] text-white/70">Double-click the label on canvas to edit it directly. Internal content remains inside the clickable Button boundary.</p><label className="block text-[10px] text-white/65">Label<input aria-label="Button label" value={String(node.props.label || "")} onChange={(event) => patchProps({ label: event.target.value }, "Changed Button label")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Description<textarea aria-label="Button description" value={String(node.props.description || "")} onChange={(event) => patchProps({ description: event.target.value, showDescription: Boolean(event.target.value) }, "Changed Button description")} className="mt-1 min-h-20 w-full rounded border border-white/15 bg-transparent p-2 text-xs" /></label><div className="grid grid-cols-3 gap-1" data-testid="button-icon-choices"><button type="button" className={buttonClass} data-testid="button-no-icon" aria-pressed={!node.props.icon || node.props.icon === "none"} onClick={() => patchProps({ icon: "none", showIcon: false }, "Removed Button Icon")}>No Icon</button><button type="button" className={buttonClass} data-testid="button-add-icon" onClick={() => patchProps({ icon: node.props.icon && node.props.icon !== "none" ? node.props.icon : "sparkles", showIcon: true }, "Added Button Icon")}>Add Icon</button><button type="button" className={buttonClass} data-testid="button-remove-icon" onClick={() => patchProps({ icon: "none", showIcon: false }, "Removed Button Icon")}>Remove Icon</button></div><div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Icon<select aria-label="Button icon" value={String(node.props.icon || "none")} onChange={(event) => patchProps({ icon: event.target.value, showIcon: event.target.value !== "none" }, event.target.value === "none" ? "Removed Button Icon" : "Changed Button icon")} className={fieldClass}><option value="none">No Icon</option>{ICON_LIBRARY.map((icon) => <option key={icon.id} value={icon.id}>{icon.label}</option>)}</select></label><label className="text-[10px] text-white/65">Icon position<select aria-label="Button icon position" value={String(node.props.iconPosition || "before")} onChange={(event) => patchProps({ iconPosition: event.target.value }, "Changed Button icon position")} className={fieldClass}><option value="before">Before</option><option value="after">After</option></select></label><label className="text-[10px] text-white/65">Icon size<input aria-label="Button icon size" type="number" min={8} max={96} value={Number(node.props.iconSize || 20)} onChange={(event) => patchProps({ iconSize: Number(event.target.value) }, "Changed Button icon size")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Icon-to-text spacing<input aria-label="Button icon to text spacing" type="number" min={0} max={64} value={Number(node.props.spacing || 6)} onChange={(event) => patchProps({ spacing: Number(event.target.value) }, "Changed Button icon spacing")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Font size<input aria-label="Button label font size" type="number" min={6} max={120} value={Number(node.props.fontSize || 14)} onChange={(event) => patchProps({ fontSize: Number(event.target.value) }, "Changed Button label size")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Weight<input aria-label="Button label weight" type="number" min={100} max={900} step={100} value={Number(node.props.fontWeight || 600)} onChange={(event) => patchProps({ fontWeight: Number(event.target.value) }, "Changed Button label weight")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Color<input aria-label="Button label color" type="color" value={String(node.props.labelColor || node.props.textColor || "#0b0f19")} onChange={(event) => patchProps({ labelColor: event.target.value, textColor: event.target.value }, "Changed Button label color")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Alignment<select aria-label="Button label alignment" value={String(node.props.textAlign || "center")} onChange={(event) => patchProps({ textAlign: event.target.value }, "Changed Button label alignment")} className={fieldClass}><option>left</option><option>center</option><option>right</option></select></label><label className="text-[10px] text-white/65">Label X<input aria-label="Button label X" type="number" min={-120} max={120} value={Number(node.props.labelOffsetX || 0)} onChange={(event) => patchProps({ labelOffsetX: Number(event.target.value) }, "Moved Button label horizontally")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Label Y<input aria-label="Button label Y" type="number" min={-120} max={120} value={Number(node.props.labelOffsetY || 0)} onChange={(event) => patchProps({ labelOffsetY: Number(event.target.value) }, "Moved Button label vertically")} className={fieldClass} /></label></div><div><p className="mb-1 text-[10px] text-white/65">Label effects</p><div className="grid grid-cols-2 gap-1">{MATERIAL_PRESETS.slice(0, 6).map((preset) => <button key={preset.id} type="button" className={buttonClass} onClick={() => patch({ props: applyGlyphEffect(node.props, preset.id) }, `Applied ${preset.label} to Button label`)}>{preset.label}</button>)}</div></div></div> : null}
+      {focus === "button-content" ? <div className="space-y-3" data-testid="button-content-controls"><p className="rounded border border-[#b8ff2c]/30 bg-[#b8ff2c]/5 p-2 text-[10px] text-white/70">Double-click the label on canvas to edit it directly. Internal content remains inside the clickable Button boundary.</p><label className="block text-[10px] text-white/65">Label<input aria-label="Button label" value={String(node.props.label || "")} onChange={(event) => patchProps({ label: event.target.value }, "Changed Button label")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Description<textarea aria-label="Button description" value={String(node.props.description || "")} onChange={(event) => patchProps({ description: event.target.value, showDescription: Boolean(event.target.value) }, "Changed Button description")} className="mt-1 min-h-20 w-full rounded border border-white/15 bg-transparent p-2 text-xs" /></label><div className="grid grid-cols-3 gap-1" data-testid="button-icon-choices"><button type="button" className={buttonClass} data-testid="button-no-icon" aria-pressed={!node.props.icon || node.props.icon === "none"} onClick={() => patchProps({ icon: "none", showIcon: false }, "Removed Button Icon")}>No Icon</button><button type="button" className={buttonClass} data-testid="button-add-icon" onClick={() => { patchProps({ showIcon: true, icon: node.props.icon && node.props.icon !== "none" ? node.props.icon : "sparkles" }, "Opened Button Icon picker"); open("content"); setIconQuery(""); }}>Add Icon</button><button type="button" className={buttonClass} data-testid="button-change-icon" onClick={() => { open("content"); setIconQuery(""); }}>Change Icon</button><button type="button" className={buttonClass} data-testid="button-remove-icon" onClick={() => patchProps({ icon: "none", showIcon: false }, "Removed Button Icon")}>Remove Icon</button></div><div className="rounded border border-white/10 p-2" data-testid="shared-icon-picker"><p className="text-[10px] text-white/55">Shared Icon library — same authority as root Icons.</p><input value={iconQuery} onChange={(event) => { setIconQuery(event.target.value); if (event.target.value.trim().length >= 2) setIconSearchStatus("loading"); }} placeholder="Search Iconify…" className={fieldClass} data-testid="button-iconify-search" /><div className="mt-2 flex flex-wrap gap-1" data-testid="icon-browse-categories">{ICON_BROWSE_CATEGORIES.slice(3, 9).map((cat) => <button key={cat.id} type="button" className="min-h-7 rounded border border-white/10 px-2 text-[9px]" onClick={() => { setIconQuery(cat.query.split(" ")[0] || "star"); setIconSearchStatus("loading"); }}>{cat.label}</button>)}</div><div className="mt-2 flex flex-wrap gap-1" data-testid="icon-browse-collections">{ICON_COLLECTION_BROWSE.map((col) => <button key={col.id} type="button" className="min-h-7 rounded border border-white/10 px-2 text-[9px]" onClick={() => { void fetch(`/api/creative/icons?collection=${col.id}`).then((r) => r.json()).then((value: { icons?: typeof providerIcons }) => setProviderIcons(value.icons || [])); }}>{col.label}</button>)}</div><div className="mt-2 grid grid-cols-3 gap-1">{providerIcons.slice(0, 12).map((icon) => { const asset = icon.svg ? createIconAsset({ provider: "iconify", collection: icon.collection, iconName: icon.name, svg: icon.svg, source: icon.source }) : null; return <button key={icon.canonicalId} type="button" disabled={!asset} className="min-h-14 rounded border border-white/10 text-[9px]" onClick={() => { if (!asset) return; patchProps({ ...iconAssetToNodeProps(asset), icon: icon.name, showIcon: true }, "Changed Button Icon"); }}>{asset ? <span className="mx-auto grid h-7 w-7 place-items-center [&_svg]:h-6 [&_svg]:w-6" dangerouslySetInnerHTML={{ __html: asset.body }} /> : null}{icon.name}</button>; })}</div></div><div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Icon position<select aria-label="Button icon position" value={String(node.props.iconPosition || "before")} onChange={(event) => patchProps({ iconPosition: event.target.value }, "Changed Button icon position")} className={fieldClass}><option value="before">Before</option><option value="after">After</option></select></label><label className="text-[10px] text-white/65">Icon size<input aria-label="Button icon size" type="number" min={8} max={96} value={Number(node.props.iconSize || 20)} onChange={(event) => patchProps({ iconSize: Number(event.target.value) }, "Changed Button icon size")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Icon-to-text spacing<input aria-label="Button icon to text spacing" type="number" min={0} max={64} value={Number(node.props.spacing || 6)} onChange={(event) => patchProps({ spacing: Number(event.target.value) }, "Changed Button icon spacing")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Font size<input aria-label="Button label font size" type="number" min={6} max={120} value={Number(node.props.fontSize || 14)} onChange={(event) => patchProps({ fontSize: Number(event.target.value) }, "Changed Button label size")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Weight<input aria-label="Button label weight" type="number" min={100} max={900} step={100} value={Number(node.props.fontWeight || 600)} onChange={(event) => patchProps({ fontWeight: Number(event.target.value) }, "Changed Button label weight")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Color<input aria-label="Button label color" type="color" value={String(node.props.labelColor || node.props.textColor || "#0b0f19")} onChange={(event) => patchProps({ labelColor: event.target.value, textColor: event.target.value }, "Changed Button label color")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Alignment<select aria-label="Button label alignment" value={String(node.props.textAlign || "center")} onChange={(event) => patchProps({ textAlign: event.target.value }, "Changed Button label alignment")} className={fieldClass}><option>left</option><option>center</option><option>right</option></select></label><label className="text-[10px] text-white/65">Label X<input aria-label="Button label X" type="number" min={-120} max={120} value={Number(node.props.labelOffsetX || 0)} onChange={(event) => patchProps({ labelOffsetX: Number(event.target.value) }, "Moved Button label horizontally")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Label Y<input aria-label="Button label Y" type="number" min={-120} max={120} value={Number(node.props.labelOffsetY || 0)} onChange={(event) => patchProps({ labelOffsetY: Number(event.target.value) }, "Moved Button label vertically")} className={fieldClass} /></label></div><div><p className="mb-1 text-[10px] text-white/65">Label effects</p><div className="grid grid-cols-2 gap-1">{MATERIAL_PRESETS.slice(0, 6).map((preset) => <button key={preset.id} type="button" className={buttonClass} onClick={() => patch({ props: applyGlyphEffect(node.props, preset.id) }, `Applied ${preset.label} to Button label`)}>{preset.label}</button>)}</div></div></div> : null}
       {focus === "button-action" ? <div className="space-y-3" data-testid="button-action-controls"><p className="text-[10px] text-white/55">Action binding is independent from Button appearance, content, and motion.</p><div className="grid grid-cols-3 gap-1"><button type="button" className={buttonClass} onClick={() => patchProps({ actionType: "website" }, "Added Button action")}>Add action</button><button type="button" className={buttonClass} onClick={() => patchProps({ actionType: "website" }, "Changed Button action")}>Change action</button><button type="button" className={buttonClass} onClick={() => patchProps({ actionType: undefined, href: undefined }, "Removed Button action")}>Remove action</button></div><label className="block text-[10px] text-white/65">Action type<select aria-label="Button action type" value={String(node.props.actionType || "website")} onChange={(event) => patchProps({ actionType: event.target.value }, "Changed Button action type")} className={fieldClass}>{["call", "text", "email", "website", "directions", "map", "save_contact", "form", "coupon", "ticket", "wallet", "tapsave", "campaign", "custom"].map((value) => <option key={value}>{value}</option>)}</select></label><label className="block text-[10px] text-white/65">Destination<input aria-label="Button destination" value={String(node.props.href || "")} onChange={(event) => patchProps({ href: event.target.value }, "Changed Button destination")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Accessible label<input aria-label="Button accessible label" value={String(node.props.accessibleLabel || node.props.label || "")} onChange={(event) => patchProps({ accessibleLabel: event.target.value }, "Changed Button accessible label")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Tracking name<input aria-label="Button tracking name" value={String(node.props.trackingName || "")} onChange={(event) => patchProps({ trackingName: event.target.value }, "Changed Button tracking name")} className={fieldClass} /></label><button type="button" className={`${buttonClass} w-full`} onClick={() => model.notify?.(`Test action: ${String(node.props.actionType || "none")} ${String(node.props.href || "")}`.trim())}>Test action</button></div> : null}
       {focus === "button-styles" ? <div className="space-y-2" data-testid="button-style-controls"><p className="text-[10px] text-white/55">Styles never overwrite action, destination, tracking identity, accessible label, or custom content.</p>{[...BUILT_IN_BUTTON_STYLES, ...(model.config.buttonStylePresets ?? [])].map((preset) => <button key={("id" in preset && preset.id) || preset.name} type="button" className={`${buttonClass} w-full text-left`} onClick={() => applyButtonStyle(preset.props, preset.name)}>{preset.name}</button>)}<div className="grid grid-cols-2 gap-2"><button type="button" className={buttonClass} onClick={() => copyCompositionNodeStyle(node)}>Copy style</button><button type="button" disabled={!hasCompositionStyleClipboard()} className={buttonClass} onClick={() => { const pasted = pasteCompositionNodeStyle(block.nodes, node.id).find((candidate) => candidate.id === node.id); if (pasted) patch({ props: pasted.props }, "Pasted Button style"); }}>Paste style</button><button type="button" className={`${buttonClass} col-span-2`} onClick={saveButtonStyle}>Save as style preset</button></div></div> : null}
       {focus === "color" ? <div className="space-y-3" data-color-role="glyph" data-testid="text-appearance-controls">
@@ -649,7 +736,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             </div>
           </div>
           <div data-testid="icon-effect-recipes">
-            <p className="mb-1 text-[9px] font-semibold uppercase text-white/45">Quick effects</p>
+            <p className="mb-1 text-[9px] font-semibold uppercase text-white/45">Effects</p>
             <div className="grid grid-cols-2 gap-1">
               {EFFECT_RECIPES.filter((item) => item.supportedTargets.includes("icon_artwork")).map((effect) => (
                 <button key={effect.id} type="button" className={buttonClass} data-testid={`icon-effect-${effect.id}`} onClick={() => patchProps(applyEffectRecipe("icon_artwork", effect.id, node.props), `Applied ${effect.label}`)}>{effect.label}</button>
@@ -716,64 +803,172 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       {focus === "divider-color" ? <div className="space-y-3" data-testid="divider-color-controls"><div className="grid grid-cols-2 gap-1"><button type="button" className={buttonClass} onClick={() => patchProps({ fill: "transparent", gradientFill: undefined }, "Cleared Divider color")}>None</button><button type="button" className={buttonClass} onClick={() => patchProps({ fill: String(node.props.fill === "transparent" ? "#b8ff2c" : node.props.fill || "#b8ff2c"), gradientFill: undefined }, "Set solid Divider color")}>Solid</button></div><label className="block text-[10px] text-white/65">Color<input type="color" value={String(node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ fill: event.target.value, stroke: event.target.value, gradientFill: undefined }, "Changed Divider color")} className={fieldClass} data-testid="divider-color-input" /></label><label className="block text-[10px] text-white/65">Gradient CSS<input value={String(node.props.gradientFill || "")} onChange={(event) => patchProps({ gradientFill: event.target.value || undefined }, "Changed Divider gradient")} className={fieldClass} /></label></div> : null}
       {focus === "divider-appearance" ? <div className="space-y-3" data-testid="divider-appearance-controls"><p className="text-[10px] text-white/55">Divider Appearance — opacity, shadow, and glow only.</p><label className="block text-[10px] text-white/65">Opacity<input type="range" min={0} max={100} value={Math.round(Number(node.props.opacity ?? 1) * 100)} onChange={(event) => patchProps({ opacity: Number(event.target.value) / 100 }, "Changed Divider opacity")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Shadow<input type="range" min={0} max={48} value={Number(node.props.boxShadow || 0)} onChange={(event) => patchProps({ boxShadow: Number(event.target.value) }, "Changed Divider shadow")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Glow<input type="range" min={0} max={48} value={Number(node.props.boxGlow || node.props.glow || 0)} onChange={(event) => patchProps({ boxGlow: Number(event.target.value), glow: Number(event.target.value) }, "Changed Divider glow")} className={fieldClass} /></label></div> : null}
       {focus === "map-action" ? <div className="space-y-3" data-testid="map-action-controls"><p className="text-[10px] text-white/55">Directions behavior — separate from Map Setup and Appearance.</p><label className="block text-[10px] text-white/65">Directions destination<input value={String(node.props.directionsDestination || node.props.address || "")} onChange={(event) => patchProps({ directionsDestination: event.target.value, href: event.target.value, actionType: "directions" }, "Changed Map directions destination")} className={fieldClass} data-testid="map-directions-destination" /></label><label className="block text-[10px] text-white/65">Preferred map app<select value={String(node.props.mapAppPreference || "system")} onChange={(event) => patchProps({ mapAppPreference: event.target.value }, "Changed preferred map app")} className={fieldClass}><option value="system">System default</option><option value="apple">Apple Maps</option><option value="google">Google Maps</option><option value="waze">Waze</option></select></label><label className="block text-[10px] text-white/65">Open behavior<select value={String(node.props.openBehavior || "external")} onChange={(event) => patchProps({ openBehavior: event.target.value }, "Changed Map open behavior")} className={fieldClass}><option value="external">External app / tab</option><option value="same_tab">Same tab</option></select></label><label className="block text-[10px] text-white/65">Accessible label<input value={String(node.props.accessibleLabel || "Get directions")} onChange={(event) => patchProps({ accessibleLabel: event.target.value }, "Changed Map accessible label")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Tracking name<input value={String(node.props.trackingName || "")} onChange={(event) => patchProps({ trackingName: event.target.value }, "Changed Map tracking name")} className={fieldClass} /></label><button type="button" className={`${buttonClass} w-full`} data-testid="map-test-action" onClick={() => model.notify?.(`Test Action: directions → ${String(node.props.directionsDestination || node.props.address || "setup required")} (${String(node.props.mapAppPreference || "system")})`)}>Test Action</button></div> : null}
-      {focus === "effects" ? <div className="space-y-3" data-testid="material-engine-controls">
-        <p className="text-[10px] text-white/55">{isText && !isBadge ? "Text Appearance — Material applies to glyphs only. Text Box stays independent." : "Material is independent of Shape. Applying replaces the previous material recipe."}</p>
-        {MATERIAL_UI_CATEGORIES.map((category) => {
-          const items = materialsByCategory(category.id);
-          if (!items.length) return null;
-          return (
-            <div key={category.id} data-testid={`material-category-${category.id}`}>
-              <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">{category.label}</p>
-              <div className="grid grid-cols-2 gap-2">
-                {items.map((preset) => (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    aria-pressed={String(node.props.materialPreset || "") === preset.id}
-                    className="min-h-14 rounded border border-white/15 bg-transparent px-2 text-xs hover:border-[#b8ff2c]/60"
-                    data-testid={`material-${preset.id}`}
-                    onClick={() => {
-                      if (isText && !isBadge) patchProps(applyGlyphMaterial(node.props, preset.id), `Applied ${preset.label} text material`);
-                      else if (isBadge) patchProps(applySurfaceMaterial(node.props, preset.id), `Applied ${preset.label} material`);
-                      else patchProps(applySurfaceMaterial(node.props, preset.id, { asButtonSurface: isButton, preserveTextColor: isButton }), `Applied ${preset.label} material`);
-                    }}
-                  >
-                    <span className="mx-auto mb-1 block h-6 w-full rounded" style={{ background: materialPreviewCss(preset) }} />
-                    <span>{preset.label}</span>
-                  </button>
-                ))}
-              </div>
+            {focus === "content" && objectFamily === "coupon" ? (() => {
+        const content = (node.props.contentComposition && typeof node.props.contentComposition === "object" ? node.props.contentComposition : null) as { nodes?: typeof block.nodes } | null;
+        const roles: Array<{ role: CouponChildRole; label: string; prop?: string }> = [
+          { role: "offer", label: "Offer", prop: "offerValue" },
+          { role: "headline", label: "Headline", prop: "headline" },
+          { role: "description", label: "Description", prop: "description" },
+          { role: "code", label: "Code", prop: "code" },
+          { role: "expiration", label: "Expiration", prop: "expiration" },
+          { role: "terms", label: "Terms", prop: "terms" },
+          { role: "cta", label: "CTA", prop: "ctaLabel" },
+        ];
+        const childText = (role: string) => {
+          const child = content?.nodes?.find((n) => String(n.props.componentContentRole || n.props.presetChildRole) === role || (role === "code" && String(n.props.componentContentRole) === "stub_code"));
+          return child ? String(child.props.text || child.props.label || "") : String(node.props[roles.find((r) => r.role === role)?.prop || ""] || "");
+        };
+        return <div className="space-y-3" data-testid="coupon-content-editor">
+          <p className="text-[10px] font-semibold uppercase text-white/55">Coupon Content</p>
+          <p className="text-[10px] text-white/50">Edits mutate real child Elements. Appearance stays on the Coupon Surface.</p>
+          {roles.map((item) => (
+            <label key={item.role} className="block text-[10px] text-white/65">{item.label}
+              <input
+                aria-label={`Coupon ${item.label}`}
+                value={childText(item.role)}
+                data-testid={`coupon-content-${item.role}`}
+                onChange={(event) => {
+                  const value = event.target.value;
+                  const propKey = item.prop || item.role;
+                  patchProps({ [propKey]: value }, `Changed Coupon ${item.label}`);
+                }}
+                className={fieldClass}
+              />
+            </label>
+          ))}
+          <label className="block text-[10px] text-white/65">Image
+            <MediaPicker label="Replace Coupon image" value={String(node.props.artworkSrc || "")} mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(url) => patchProps({ artworkSrc: url || "" }, "Replaced Coupon image")} />
+          </label>
+          <button type="button" className={`${buttonClass} w-full`} onClick={() => patchProps({ contentEditing: true, selectionMode: "content" }, "Entered Coupon canvas content mode")}>Edit individual elements on canvas</button>
+        </div>;
+      })() : null}
+{focus === "effects" || focus === "appearance" ? (() => {
+        const categories = appearanceCategoriesForFamily(groupParent ? "group" : objectFamily);
+        const appearancePage = String(deepLeft?.session.nestedPage || "overview");
+        const selectedEffect = String(node.props.effectPreset || "");
+        const effectTarget = isText && !isBadge ? "glyph" as const : "surface" as const;
+        const scopeNote = groupParent ? fanOutScopeLabel(
+          fanOutProps(block.nodes, selectedIds, "effect", {}).appliedIds.length,
+          selectedIds.length
+        ) : null;
+        if (appearancePage === "home" || appearancePage === "overview" || appearancePage === "custom") {
+          return <div className="space-y-3" data-testid="appearance-category-overview">
+            <p className="text-[10px] text-white/55">Appearance — pick a category. Click always works; hover is never required.</p>
+            {scopeNote ? <p className="text-[9px] text-[#b8ff2c]" data-testid="appearance-scope-note">{scopeNote}</p> : null}
+            <div className="grid grid-cols-1 gap-2">
+              {categories.map((category) => (
+                <button key={category.id} type="button" className="min-h-14 rounded-xl border border-white/12 bg-white/[.03] px-3 py-2 text-left hover:border-[#b8ff2c]/50" data-testid={`appearance-category-${category.id}`} onClick={() => deepLeft?.setNestedPage(category.id === "effects" ? "neon" : category.id === "material" ? "metallic" : category.id === "fill" || category.id === "color" ? "solid-colors" : category.id === "border" ? "style" : category.id === "text_box" ? "home" : category.id === "artwork" ? "change-icon" : category.id === "backing_surface" ? "raised" : "overview")}>
+                  <span className="block text-sm font-semibold text-white">{category.label}</span>
+                  <span className="block text-[10px] text-white/50">{category.description}</span>
+                </button>
+              ))}
             </div>
-          );
-        })}
-        <div data-testid="effect-recipe-controls">
-          <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">Quick effects</p>
-          <div className="grid grid-cols-2 gap-1">
-            {EFFECT_RECIPES.map((effect) => (
-              <button
-                key={effect.id}
-                type="button"
-                aria-pressed={String(node.props.effectPreset || "") === effect.id}
-                className={buttonClass}
-                data-testid={`effect-${effect.id}`}
-                onClick={() => patchProps(applyEffectRecipe(isText && !isBadge ? "glyph" : "surface", effect.id, node.props), `Applied ${effect.label} effect`)}
-              >
-                {effect.label}
-              </button>
+          </div>;
+        }
+        if (appearancePage === "neon" || categories.some((c) => c.id === "effects") && (appearancePage === "style" && false)) {
+          return null;
+        }
+        // Effects page
+        if (appearancePage === "neon") {
+          const fields = tuningFieldsForEffect(selectedEffect);
+          return <div className="space-y-3" data-testid="material-engine-controls">
+            <button type="button" className="text-[10px] text-[#b8ff2c]" onClick={() => deepLeft?.setNestedPage("overview")}>← Appearance</button>
+            <p className="text-[10px] font-semibold uppercase text-white/55">Effects</p>
+            <div className="grid grid-cols-2 gap-1" data-testid="appearance-effects-list">
+              {EFFECT_RECIPES.map((effect) => (
+                <button key={effect.id} type="button" aria-pressed={selectedEffect === effect.id} className={buttonClass} data-testid={`effect-${effect.id}`} onClick={() => patchProps(applyEffectRecipe(effectTarget, effect.id, node.props), `Applied ${effect.label} effect`)}>{effect.label}</button>
+              ))}
+            </div>
+            {selectedEffect && selectedEffect !== "none" ? (
+              <div className="space-y-2 rounded-xl border border-white/10 p-2" data-testid="appearance-effect-tuning" data-effect-id={selectedEffect}>
+                <p className="text-[10px] font-semibold text-white/70">Tune {selectedEffect.replaceAll("_", " ")}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {fields.map((field) => field.key === "glowColor" ? (
+                    <label key={field.key} className="text-[10px] text-white/65">{field.label}<input type="color" value={String(node.props.glowColor || "#22d3ee").slice(0, 7)} onChange={(event) => patchProps({ glowColor: event.target.value }, `Tuned ${field.label}`)} className={fieldClass} /></label>
+                  ) : (
+                    <label key={field.key} className="text-[10px] text-white/65">{field.label}<input type="range" min={field.min} max={field.max} step={field.step || 1} value={Number(node.props[field.key] ?? (field.key === "glow" ? node.props.boxGlow : field.key === "shadow" ? node.props.boxShadow : field.key === "opacity" ? 1 : 0))} onChange={(event) => {
+                      const value = Number(event.target.value);
+                      if (field.key === "opacity") patchProps({ opacity: value }, `Tuned ${field.label}`);
+                      else if (field.key === "glow") patchProps({ glow: value, boxGlow: value }, `Tuned ${field.label}`);
+                      else if (field.key === "shadow") patchProps({ shadow: value, boxShadow: value }, `Tuned ${field.label}`);
+                      else patchProps({ [field.key]: value }, `Tuned ${field.label}`);
+                    }} className={fieldClass} /></label>
+                  ))}
+                </div>
+                <details className="rounded border border-white/10 p-2">
+                  <summary className="cursor-pointer text-[10px] font-semibold uppercase text-white/45">Fine tune</summary>
+                  <div className="mt-2 grid grid-cols-2 gap-2">
+                    <label className="text-[10px] text-white/65">Secondary glow<input type="range" min={0} max={72} value={Number(node.props.secondaryGlow || 0)} onChange={(event) => patchProps({ secondaryGlow: Number(event.target.value) }, "Tuned secondary glow")} className={fieldClass} /></label>
+                    <label className="text-[10px] text-white/65">Edge width<input type="range" min={0.5} max={4} step={0.1} value={Number(node.props.edgeWidth || 1.25)} onChange={(event) => patchProps({ edgeWidth: Number(event.target.value) }, "Tuned edge width")} className={fieldClass} /></label>
+                  </div>
+                </details>
+              </div>
+            ) : null}
+          </div>;
+        }
+        // Material page
+        if (appearancePage === "metallic" || appearancePage === "raised" || appearancePage === "glass" || appearancePage === "texture" || appearancePage === "flat" || appearancePage === "recessed" || appearancePage === "enamel") {
+          return <div className="space-y-3" data-testid="material-engine-controls">
+            <button type="button" className="text-[10px] text-[#b8ff2c]" onClick={() => deepLeft?.setNestedPage("overview")}>← Appearance</button>
+            <p className="text-[10px] text-white/55">Material recipes — Appearance authority. Not insertion species.</p>
+            {MATERIAL_UI_CATEGORIES.map((category) => {
+              const items = materialsByCategory(category.id);
+              if (!items.length) return null;
+              return (
+                <div key={category.id} data-testid={`material-category-${category.id}`}>
+                  <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">{category.label}</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {items.map((preset) => (
+                      <button key={preset.id} type="button" aria-pressed={String(node.props.materialPreset || "") === preset.id} className="min-h-14 rounded border border-white/15 bg-transparent px-2 text-xs hover:border-[#b8ff2c]/60" data-testid={`material-${preset.id}`} onClick={() => {
+                        if (isText && !isBadge) patchProps(applyGlyphMaterial(node.props, preset.id), `Applied ${preset.label} text material`);
+                        else if (isBadge) patchProps(applySurfaceMaterial(node.props, preset.id), `Applied ${preset.label} material`);
+                        else patchProps(applySurfaceMaterial(node.props, preset.id, { asButtonSurface: isButton, preserveTextColor: isButton }), `Applied ${preset.label} material`);
+                      }}>
+                        <span className="mx-auto mb-1 block h-6 w-full rounded" style={{ background: materialPreviewCss(preset) }} />
+                        <span>{preset.label}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+            <button type="button" className="min-h-10 w-full rounded border border-white/15 text-xs" data-testid="material-remove" onClick={() => patchProps(isText && !isBadge ? applyGlyphMaterial(node.props, null) : applySurfaceMaterial(node.props, null, { asButtonSurface: isButton }), "Removed material")}>Reset Material</button>
+          </div>;
+        }
+        // Fill / Border pages reuse solid colors + border helpers
+        if (appearancePage === "solid-colors") {
+          return <div className="space-y-3" data-testid="appearance-fill-controls">
+            <button type="button" className="text-[10px] text-[#b8ff2c]" onClick={() => deepLeft?.setNestedPage("overview")}>← Appearance</button>
+            <p className="text-[10px] font-semibold uppercase text-white/55">Fill</p>
+            {colorMixed.kind === "mixed" ? <p className="text-[10px] text-amber-100" data-testid="appearance-mixed-value">Mixed</p> : null}
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-[10px] text-white/65">Solid<input type="color" value={String(node.props.fill || node.props.color || "#fbbf24").slice(0, 7)} onChange={(event) => patchProps(isTextLike ? { color: event.target.value, gradientFill: undefined } : { fill: event.target.value, gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined }, "Changed fill")} className={fieldClass} /></label>
+              <button type="button" className={buttonClass} onClick={() => deepLeft?.setNestedPage("gradient-colors")}>GradientStudio</button>
+            </div>
+          </div>;
+        }
+        if (appearancePage === "style" || appearancePage === "width" || appearancePage === "color" || appearancePage === "radius") {
+          return <div className="space-y-3" data-testid="appearance-border-controls">
+            <button type="button" className="text-[10px] text-[#b8ff2c]" onClick={() => deepLeft?.setNestedPage("overview")}>← Appearance</button>
+            <p className="text-[10px] font-semibold uppercase text-white/55">Border</p>
+            <div className="grid grid-cols-5 gap-1">{(["none", "solid", "dashed", "dotted", "double"] as const).map((style) => <button key={style} type="button" className={buttonClass} data-testid={`border-style-${style}`} onClick={() => patchProps(style === "none" ? { ...clearBorderProps(node.props), borderStyle: "none", borderWidth: 0 } : applyBorderProps(node.props, { style, width: Math.max(1, Number(node.props.borderWidth || 1)) }), style === "none" ? "Removed border" : `Changed border to ${style}`)}>{style === "none" ? "None" : style}</button>)}</div>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="text-[10px] text-white/65">Width<input type="number" min={0} max={24} value={Number(node.props.borderWidth || 0)} onChange={(event) => patchProps({ borderWidth: Number(event.target.value), borderStyle: Number(event.target.value) > 0 ? String(node.props.borderStyle || "solid") : "none" }, "Changed border width")} className={fieldClass} /></label>
+              <label className="text-[10px] text-white/65">Color<input type="color" value={String(node.props.borderColor || "#ffffff").slice(0, 7)} onChange={(event) => patchProps({ borderColor: event.target.value }, "Changed border color")} className={fieldClass} /></label>
+              <label className="text-[10px] text-white/65">Radius<input type="number" min={0} max={999} value={Number(node.props.radius || 0)} onChange={(event) => patchProps({ radius: Number(event.target.value) }, "Changed corner radius")} className={fieldClass} /></label>
+            </div>
+          </div>;
+        }
+        // Fallback overview
+        return <div className="space-y-3" data-testid="appearance-category-overview">
+          <button type="button" className="text-[10px] text-[#b8ff2c]" onClick={() => deepLeft?.setNestedPage("overview")}>← Appearance</button>
+          <div className="grid grid-cols-1 gap-2">
+            {categories.map((category) => (
+              <button key={category.id} type="button" className="min-h-12 rounded-xl border border-white/12 px-3 text-left" data-testid={`appearance-category-${category.id}`} onClick={() => deepLeft?.setNestedPage(category.id === "effects" ? "neon" : category.id === "material" ? "metallic" : "solid-colors")}>{category.label}</button>
             ))}
           </div>
-        </div>
-        <details className="rounded border border-white/10 p-2" data-testid="material-advanced">
-          <summary className="cursor-pointer text-[10px] font-semibold uppercase text-white/55">Advanced</summary>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <label className="text-[10px] text-white/65">Shadow<input type="range" min={0} max={64} value={Number(node.props.boxShadow ?? node.props.shadow ?? 0)} onChange={(event) => patchProps({ boxShadow: Number(event.target.value), shadow: Number(event.target.value) }, "Tuned shadow")} className={fieldClass} /></label>
-            <label className="text-[10px] text-white/65">Glow<input type="range" min={0} max={64} value={Number(node.props.boxGlow ?? node.props.glow ?? 0)} onChange={(event) => patchProps({ boxGlow: Number(event.target.value), glow: Number(event.target.value) }, "Tuned glow")} className={fieldClass} /></label>
-            <label className="text-[10px] text-white/65">Glow color<input type="color" value={String(node.props.glowColor || "#67e8f9").slice(0, 7)} onChange={(event) => patchProps({ glowColor: event.target.value }, "Tuned glow color")} className={fieldClass} /></label>
-            <label className="text-[10px] text-white/65">Opacity<input type="range" min={0} max={100} value={Math.round(Number(node.props.opacity ?? 1) * 100)} onChange={(event) => patchProps({ opacity: Number(event.target.value) / 100 }, "Tuned opacity")} className={fieldClass} /></label>
-          </div>
-        </details>
-        <button type="button" className="min-h-10 w-full rounded border border-white/15 text-xs" data-testid="material-remove" onClick={() => patchProps(isText && !isBadge ? applyGlyphMaterial(node.props, null) : applySurfaceMaterial(node.props, null, { asButtonSurface: isButton }), "Removed material")}>Reset Material</button>
-      </div> : null}
+        </div>;
+      })() : null}
       {focus === "animate" ? <div className="space-y-3" data-testid={isButton ? "button-motion-controls" : undefined}><div className="grid grid-cols-2 gap-2">{MOTION_PRESETS.map((preset) => <button key={preset.id} type="button" aria-pressed={node.props.motionPreset === preset.id} className="min-h-12 rounded border border-white/15 text-xs hover:border-[#b8ff2c]/50 aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10" onClick={() => patchProps({ motionPreset: preset.id }, `Changed animation to ${preset.label}`)}>{preset.label}</button>)}</div>{isButton ? <><div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Intensity<input aria-label="Button motion intensity" type="range" min={0} max={100} value={Number(node.props.motionIntensity || 50)} onChange={(event) => patchProps({ motionIntensity: Number(event.target.value) }, "Changed Button motion intensity")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Speed (seconds)<input aria-label="Button motion speed" type="number" min={0.4} max={12} step={0.1} value={Number(node.props.motionSpeedSeconds || 2.4)} onChange={(event) => patchProps({ motionSpeedSeconds: Number(event.target.value) }, "Changed Button motion speed")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Delay (seconds)<input aria-label="Button motion delay" type="number" min={0} max={12} step={0.1} value={Number(node.props.motionDelaySeconds || 0)} onChange={(event) => patchProps({ motionDelaySeconds: Number(event.target.value) }, "Changed Button motion delay")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Repeat<select aria-label="Button motion repeat" value={String(node.props.motionPlay || "gentle_repeat")} onChange={(event) => patchProps({ motionPlay: event.target.value }, "Changed Button motion repeat")} className={fieldClass}><option value="once">Once</option><option value="gentle_repeat">Gentle repeat</option><option value="interaction">On interaction</option></select></label><label className="text-[10px] text-white/65">Trigger<select aria-label="Button motion trigger" value={String(node.props.motionTrigger || "load")} onChange={(event) => patchProps({ motionTrigger: event.target.value }, "Changed Button motion trigger")} className={fieldClass}><option value="load">On enter</option><option value="hover">Hover</option><option value="tap">Tap</option><option value="attention">Attention cycle</option></select></label><label className="text-[10px] text-white/65">Reduced-motion fallback<select aria-label="Button reduced motion fallback" value={String(node.props.reducedMotionFallback || "none")} onChange={(event) => patchProps({ reducedMotionFallback: event.target.value }, "Changed Button reduced-motion fallback")} className={fieldClass}><option value="none">None</option><option value="static_glow">Static glow</option><option value="static_highlight">Static highlight</option></select></label></div><div className="grid grid-cols-2 gap-2"><button type="button" aria-pressed={previewMotion} className={buttonClass} onClick={onPreviewMotion}>{previewMotion ? "Stop motion preview" : "Preview motion"}</button><button type="button" className={buttonClass} onClick={onRestartMotion}>Restart</button><label className="col-span-2 flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={reducedMotionSimulation} onChange={(event) => onReducedMotionSimulation?.(event.target.checked)} />Simulate reduced motion</label></div></> : null}</div> : null}
       {focus === "position" ? <div className="space-y-3 text-xs" data-testid="element-position-controls"><div className="grid grid-cols-2 gap-2">{[["Forward", bringForward], ["Backward", sendBackward], ["To front", bringToFront], ["To back", sendToBack]].map(([label, operation]) => <button key={String(label)} type="button" className="min-h-10 rounded border border-white/15" onClick={() => replace({ ...block, nodes: (operation as typeof bringForward)(block.nodes, node.id) }, `${label} Element`)}>{String(label)}</button>)}</div><div className="grid grid-cols-2 gap-2">{(["x", "y", "width", "height"] as const).map((key) => <label key={key} className="capitalize">{key}<input type="number" step="1" value={Math.round(node[key] * 100)} onChange={(event) => patch({ [key]: Number(event.target.value) / 100 }, `Changed Element ${key}`)} className="mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2" /></label>)}<label className="col-span-2">Rotation<input type="number" value={Math.round(node.rotationDeg || 0)} onChange={(event) => patch({ rotationDeg: Number(event.target.value) }, "Rotated Element")} className="mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2" /></label></div><label className="flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={node.props.aspectLocked === true} onChange={(event) => patchProps({ aspectLocked: event.target.checked }, event.target.checked ? "Locked aspect ratio" : "Unlocked aspect ratio")} />Ratio lock</label><div><p className="mb-1 text-[10px] font-semibold uppercase text-white/45">Align</p><div className="grid grid-cols-3 gap-1">{([["Left", { x: 0 }], ["Center", { x: Math.max(0, (1 - node.width) / 2) }], ["Right", { x: Math.max(0, 1 - node.width) }], ["Top", { y: 0 }], ["Middle", { y: Math.max(0, (1 - node.height) / 2) }], ["Bottom", { y: Math.max(0, 1 - node.height) }]] as const).map(([label, next]) => <button key={label} type="button" className={buttonClass} data-testid={`align-${label.toLowerCase()}`} onClick={() => patch(next, `Aligned ${label.toLowerCase()}`)}>{label}</button>)}</div></div><div><p className="mb-1 text-[10px] font-semibold uppercase text-white/45">Nudge</p><div className="grid grid-cols-4 gap-1">{([["←", { x: Math.max(0, node.x - 0.01) }], ["→", { x: Math.min(1 - node.width, node.x + 0.01) }], ["↑", { y: Math.max(0, node.y - 0.01) }], ["↓", { y: Math.min(1 - node.height, node.y + 0.01) }]] as const).map(([label, next]) => <button key={label} type="button" className={buttonClass} onClick={() => patch(next, "Nudged Element")}>{label}</button>)}</div></div>{section ? <button type="button" className={`${buttonClass} w-full`} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{objectFamily !== "container" ? <button type="button" className={`${buttonClass} w-full`} onClick={() => { const host = block.nodes.find((candidate) => String(candidate.props.componentKind || "") === "container"); if (!host) return model.notify?.("Add a Container first, then use Layers to nest this object"); patchProps({ containerId: host.id }, "Moved Element into Container"); }}>Move to Container</button> : null}</div> : null}
       {focus === "more" ? <div className="grid grid-cols-2 gap-2" data-testid="common-more-menu"><button type="button" className={buttonClass} onClick={() => navigator.clipboard?.writeText(JSON.stringify(node))}>Copy</button><button type="button" className={buttonClass} onClick={() => copyCompositionNodeStyle(node)}>Copy style</button><button type="button" disabled={!hasCompositionStyleClipboard()} className={buttonClass} onClick={() => { const pasted = pasteCompositionNodeStyle(block.nodes, node.id).find((candidate) => candidate.id === node.id); if (pasted) patch({ props: pasted.props }, "Pasted object style"); }}>Paste style</button><button type="button" className={buttonClass} onClick={duplicate}>Duplicate</button><button type="button" className={buttonClass} onClick={() => patch({ locked: !node.locked }, node.locked ? "Unlocked Element" : "Locked Element")}>{node.locked ? "Unlock" : "Lock"}</button><button type="button" className={buttonClass} onClick={() => patch({ visible: node.visible === false }, node.visible === false ? "Showed Element" : "Hid Element")}>{node.visible === false ? "Show" : "Hide"}</button><button type="button" className={buttonClass} onClick={() => patch({ rotationDeg: 0, x: .1, y: .1 }, "Reset transform")}>Reset transform</button><button type="button" className={buttonClass} onClick={() => patchProps({ materialPreset: undefined, gradientFill: undefined, glow: 0, shadow: 0, boxGlow: 0, boxShadow: 0, opacity: 1, surfaceOpacity: 1 }, "Reset Appearance")}>Reset Appearance</button>{section ? <button type="button" className={buttonClass} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{containerParent && containerParent.id !== node.id ? <button type="button" className={buttonClass} onClick={() => { model.setSelectedCompositionNodeIds?.([containerParent.id]); }}>Select parent</button> : null}{objectFamily === "container" && node.props.contentEditing === true ? <button type="button" className={buttonClass} onClick={() => patchProps({ contentEditing: false, selectionMode: "parent" }, "Finished editing contents")}>Finish editing contents</button> : null}<button type="button" className={`${buttonClass} text-red-200`} onClick={remove}>Delete</button><button type="button" className={buttonClass} onClick={() => { closeFocus(); onAdvanced(); }}>Advanced</button></div> : null}

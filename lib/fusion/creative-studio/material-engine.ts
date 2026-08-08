@@ -3,6 +3,8 @@
  * Object identity / Shape / wording / Action are never mutated here.
  */
 
+import { dimensionalSurfaceCss, effectLayersCss } from "./effect-render";
+
 export type MaterialCategory =
   | "basic"
   | "dimensional"
@@ -182,11 +184,16 @@ export const EFFECT_RECIPES: readonly EffectRecipe[] = [
   { id: "soft_shadow", label: "Soft Shadow", supportedTargets: SURFACE_AND_GLYPH, shadow: 14 },
   { id: "deep_shadow", label: "Deep Shadow", supportedTargets: SURFACE_AND_GLYPH, shadow: 28 },
   { id: "floating", label: "Floating", supportedTargets: ALL_SURFACE, shadow: 36 },
-  { id: "soft_glow", label: "Soft Glow", supportedTargets: SURFACE_AND_GLYPH, glow: 16 },
-  { id: "neon_edge", label: "Neon Edge", supportedTargets: SURFACE_AND_GLYPH, glow: 18, glowColor: "#22d3ee" },
-  { id: "double_neon", label: "Double Neon", supportedTargets: SURFACE_AND_GLYPH, glow: 16, secondaryGlow: 32, glowColor: "#f0abfc" },
-  { id: "aura", label: "Aura", supportedTargets: SURFACE_AND_GLYPH, glow: 36, secondaryGlow: 48, glowColor: "#c4b5fd" },
-  { id: "electric", label: "Electric", supportedTargets: SURFACE_AND_GLYPH, glow: 22, secondaryGlow: 40, glowColor: "#38bdf8" },
+  /** Soft ambient halo — no hard electrical core. */
+  { id: "soft_glow", label: "Soft Glow", supportedTargets: SURFACE_AND_GLYPH, glow: 16, glowColor: "#a5b4fc" },
+  /** Crisp electrified edge — narrow core + tight glow (not fog). */
+  { id: "neon_edge", label: "Neon Edge", supportedTargets: SURFACE_AND_GLYPH, glow: 10, glowColor: "#22d3ee" },
+  /** Defined core + near glow + secondary outer layer. */
+  { id: "double_neon", label: "Double Neon", supportedTargets: SURFACE_AND_GLYPH, glow: 12, secondaryGlow: 28, glowColor: "#f0abfc" },
+  /** Broad diffuse atmospheric halo. */
+  { id: "aura", label: "Aura", supportedTargets: SURFACE_AND_GLYPH, glow: 28, secondaryGlow: 48, glowColor: "#c4b5fd" },
+  /** High-energy sharp edge — tighter contrast than Neon. */
+  { id: "electric", label: "Electric", supportedTargets: SURFACE_AND_GLYPH, glow: 10, secondaryGlow: 22, glowColor: "#38bdf8" },
   { id: "inner_glow", label: "Inner Glow", supportedTargets: ALL_SURFACE, glow: 12, innerShadow: "inset 0 0 18px rgba(103,232,249,.55)" },
   { id: "outline_glow", label: "Outline Glow", supportedTargets: SURFACE_AND_GLYPH, glow: 14, glowColor: "#fde68a" },
   { id: "gloss_highlight", label: "Gloss Highlight", supportedTargets: ALL_SURFACE, shadow: 12 },
@@ -525,6 +532,26 @@ export function applyEffectRecipe(
     next.glowColor = recipe.glowColor;
     if (recipe.innerShadow) next.innerShadow = recipe.innerShadow;
   }
+  // Target-aware neon defaults so Neon Edge is crisp without Fine tune.
+  if (recipe.id === "neon_edge") {
+    next.coreBrightness = 1.15;
+    next.edgeWidth = 1.25;
+    next.auraIntensity = 0.4;
+  } else if (recipe.id === "double_neon") {
+    next.coreBrightness = 1.1;
+    next.edgeWidth = 1.35;
+    next.auraIntensity = 0.55;
+  } else if (recipe.id === "electric") {
+    next.coreBrightness = 1.25;
+    next.edgeWidth = 0.9;
+    next.auraIntensity = 0.35;
+  } else if (recipe.id === "aura") {
+    next.auraIntensity = 0.7;
+    next.coreBrightness = 0.6;
+  } else if (recipe.id === "soft_glow") {
+    next.auraIntensity = 0.45;
+    next.coreBrightness = 0.5;
+  }
   if (recipe.opacity !== undefined) next.opacity = recipe.opacity;
   return next;
 }
@@ -534,13 +561,34 @@ export function materialPreviewCss(recipe: MaterialRecipe): string {
 }
 
 export function surfaceShadowCss(props: Record<string, unknown>): string | undefined {
+  // Prefer target-aware effect layers when an effect preset is present.
+  const effectPreset = typeof props.effectPreset === "string" ? props.effectPreset : null;
+  if (effectPreset && effectPreset !== "none") {
+    const layers = effectLayersCss("surface", {
+      effectPreset,
+      glow: Number(props.boxGlow ?? props.glow ?? 0),
+      shadow: Number(props.boxShadow ?? props.shadow ?? 0),
+      glowColor: typeof props.glowColor === "string" ? props.glowColor : null,
+      secondaryGlow: Number(props.secondaryGlow ?? 0),
+      innerShadow: typeof props.innerShadow === "string" ? props.innerShadow : null,
+      coreBrightness: Number(props.coreBrightness ?? 1),
+      edgeWidth: Number(props.edgeWidth ?? 1.25),
+      auraIntensity: Number(props.auraIntensity ?? 0.45),
+      opacity: Number(props.opacity ?? 1),
+      color: typeof props.color === "string" ? props.color : null,
+    });
+    if (layers.boxShadow) return layers.boxShadow;
+  }
   const shadow = Number(props.boxShadow ?? props.shadow ?? 0);
   const glow = Number(props.boxGlow ?? props.glow ?? 0);
   const secondary = Number(props.secondaryGlow ?? 0);
   const glowColor = String(props.glowColor || "#67e8f9");
   const inner = typeof props.innerShadow === "string" ? props.innerShadow : "";
+  const material = String(props.materialPreset || "");
+  const dimensional = dimensionalSurfaceCss(material);
   const parts = [
-    shadow > 0 ? `0 8px ${shadow}px rgba(0,0,0,.4)` : "",
+    dimensional.boxShadow || "",
+    shadow > 0 && !dimensional.boxShadow ? `0 8px ${shadow}px rgba(0,0,0,.4)` : "",
     glow > 0 ? `0 0 ${glow}px ${glowColor}` : "",
     secondary > 0 ? `0 0 ${secondary}px ${glowColor}` : "",
     inner,

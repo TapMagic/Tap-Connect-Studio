@@ -17,7 +17,7 @@ describe("glyph vs Text Box gradient targeting", () => {
       ],
       angle: 120,
     });
-    const next = {
+    const next: Record<string, unknown> = {
       ...props,
       gradientFill: gradientToCss(gradient),
       gradientModel: gradient,
@@ -36,7 +36,7 @@ describe("glyph vs Text Box gradient targeting", () => {
       boxFill: "transparent",
     };
     const box = addGradientStop(normalizeGradient(DEFAULT_GRADIENT));
-    const next = {
+    const next: Record<string, unknown> = {
       ...props,
       boxGradient: gradientToCss(box),
       boxGradientModel: box,
