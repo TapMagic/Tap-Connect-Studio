@@ -13,8 +13,9 @@ const evidenceDir = path.join(process.cwd(), "tmp/group-appearance-completion-ev
 async function dismissBlockingChrome(page: Page) {
   await page.evaluate(() => {
     document.querySelectorAll("nextjs-portal").forEach((node) => node.remove());
-    const dialog = document.querySelector('[data-testid="card-exit-save-dialog"]');
-    dialog?.parentElement?.removeChild(dialog);
+    document.querySelectorAll('[data-testid="card-exit-save-dialog"]').forEach((dialog) => {
+      dialog.parentElement?.removeChild(dialog);
+    });
   }).catch(() => undefined);
 }
 
@@ -48,28 +49,14 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     const textNodes = page.locator('[data-primitive="text"]');
     await expect(textNodes).toHaveCount(2, { timeout: 15_000 });
 
-    // Select both via Layers if available, else shift-click
-    await page.getByTestId("card-creative-tool-layers").click();
-    const layerButtons = page.locator('[data-testid^="layer-object-"]');
-    const layerCount = await layerButtons.count();
-    if (layerCount >= 2) {
-      await layerButtons.nth(0).click({ modifiers: ["Shift"] });
-      await layerButtons.nth(1).click({ modifiers: ["Shift"] });
-    }
-
-    // Group via context menu on canvas
-    await textNodes.first().click({ button: "right", force: true });
-    const groupBtn = page.getByRole("menuitem", { name: /^Group$/i });
-    if (await groupBtn.count()) {
-      await groupBtn.click();
-    } else {
-      await page.keyboard.press("Meta+g").catch(() => undefined);
-    }
-
-    // Re-select a group member to expand
-    await textNodes.first().click({ force: true });
+    // Multi-select on canvas, then Group via contextual toolbar
+    await textNodes.nth(0).click({ force: true });
+    await textNodes.nth(1).click({ modifiers: ["Shift"], force: true });
+    await expect(page.getByTestId("contextual-multi-group")).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId("contextual-multi-group").click();
     await expect(page.getByTestId("composition-group-selection-overlay")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId("composition-group-label")).toHaveText(/Group/i);
+    await expect(page.getByTestId("contextual-target-label")).toHaveText(/Group/i);
     // No independent child handles in parent mode
     await expect(page.locator('[data-testid^="composition-selection-overlay-"]')).toHaveCount(0);
     await page.screenshot({ path: path.join(evidenceDir, "01-group-parent-selection.png") });
@@ -102,7 +89,7 @@ test.describe("group appearance shared libraries coupon magic write", () => {
 
     // Button shared icon picker
     await page.getByTestId("card-creative-tool-buttons").click();
-    await page.getByTestId("button-preset-pill").or(page.locator('[data-testid^="button-preset-"]').first()).click();
+    await page.getByTestId("button-preset-pill").click();
     await page.getByTestId("contextual-button-content").click();
     await page.getByTestId("button-add-icon").click();
     await expect(page.getByTestId("shared-icon-picker")).toBeVisible();
@@ -114,21 +101,17 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     await expect(page.getByText("Badge designs")).toHaveCount(0);
     await page.screenshot({ path: path.join(evidenceDir, "12-badge-library-clean.png") });
     await page.getByTestId("starter-badge-pill").click();
-    // Explicit Card Root + Background while badges tool is the previous library
+    await dismissBlockingChrome(page);
+    // Keep Badge library open, then explicitly select Card Root and open Background once
     await page.getByTestId("card-creative-tool-badges").click();
-    await page.locator('[data-testid="composition-surface"], [data-card-root="true"], [data-testid="card-root-canvas"]').first().click({ position: { x: 8, y: 8 }, force: true }).catch(() => undefined);
-    // Force explicit root selection via pasteboard if available
-    await page.keyboard.press("Escape");
-    await page.evaluate(() => {
-      const root = document.querySelector('[data-testid="card-contextual-root-tools"], [data-testid="card-creative-context-drawer"]');
-      void root;
-    });
-    const rootBg = page.getByRole("button", { name: /Background/i }).first();
-    if (await rootBg.count()) {
-      await rootBg.click();
-      await expect(page.getByTestId("deep-left-edit-drawer")).toBeVisible();
-      await page.screenshot({ path: path.join(evidenceDir, "13-badge-card-root-no-flicker.png") });
-    }
+    await expect(page.getByTestId("polished-badge-library")).toBeVisible();
+    await page.getByTestId("card-creative-tool-layers").click();
+    await page.getByTestId("card-layers-drawer").getByRole("button", { name: "Card root", exact: true }).click();
+    await expect(page.getByTestId("card-contextual-object-tools")).toContainText(/Card root/i);
+    await page.getByTestId("card-contextual-object-tools").getByRole("button", { name: "Background", exact: true }).click();
+    await expect(page.getByTestId("root-background-editor").or(page.getByTestId("deep-left-edit-drawer"))).toBeVisible();
+    await page.screenshot({ path: path.join(evidenceDir, "13-badge-card-root-no-flicker.png") });
+    await dismissBlockingChrome(page);
 
     // Coupons
     await page.getByTestId("card-creative-tool-coupons").click();
@@ -139,7 +122,7 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     await page.getByTestId("coupon-preset-perforated-stub").click();
     await expect(page.locator('[data-component-kind="coupon"][data-coupon-perforation="true"]').first()).toBeVisible();
     await page.screenshot({ path: path.join(evidenceDir, "15-coupon-perforated.png") });
-    await page.getByRole("button", { name: /Edit contents/i }).first().click();
+    await page.getByTestId("contextual-content").or(page.getByRole("button", { name: /Edit contents/i }).first()).click();
     await expect(page.getByTestId("coupon-content-editor")).toBeVisible();
     await page.getByTestId("coupon-content-offer").fill("40% OFF");
     await page.screenshot({ path: path.join(evidenceDir, "17-coupon-edit-contents.png") });
@@ -149,20 +132,25 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     await expect(page.locator('[data-component-kind="coupon"][data-coupon-split="true"]').first()).toBeVisible();
     await page.screenshot({ path: path.join(evidenceDir, "16-coupon-split-image.png") });
 
-    // Appearance on coupon — gradient / border via category overview
-    await page.getByRole("button", { name: /Appearance/i }).first().click();
-    if (await page.getByTestId("appearance-category-fill").count()) {
-      await page.getByTestId("appearance-category-fill").click();
-      await page.getByRole("button", { name: /GradientStudio/i }).click();
-    }
+    // Appearance on coupon — gradient / border via shared category overview (required)
+    await page.locator('[data-component-kind="coupon"]').first().click({ force: true });
+    await page.getByTestId("contextual-appearance").click();
+    await expect(page.getByTestId("appearance-category-overview")).toBeVisible();
+    await page.getByTestId("appearance-category-fill").click();
+    await expect(page.getByTestId("appearance-fill-controls")).toBeVisible();
+    await page.getByRole("button", { name: /GradientStudio/i }).click();
+    await expect(page.getByTestId("appearance-gradient-controls")).toBeVisible();
     await page.screenshot({ path: path.join(evidenceDir, "18-coupon-gradient.png") });
-    if (await page.getByTestId("appearance-category-border").count()) {
-      await page.getByTestId("deep-left-back").click().catch(() => undefined);
-      await page.getByTestId("appearance-category-border").click();
-      await page.getByTestId("border-style-solid").click();
-      await page.screenshot({ path: path.join(evidenceDir, "19-coupon-border.png") });
-      await page.getByTestId("border-style-none").click();
-    }
+    // Gradient → Fill → Appearance overview
+    await page.getByTestId("appearance-back").click();
+    await expect(page.getByTestId("appearance-fill-controls")).toBeVisible();
+    await page.getByTestId("appearance-back").click();
+    await expect(page.getByTestId("appearance-category-overview")).toBeVisible();
+    await page.getByTestId("appearance-category-border").click();
+    await expect(page.getByTestId("appearance-border-controls")).toBeVisible();
+    await page.getByTestId("border-style-solid").click();
+    await page.screenshot({ path: path.join(evidenceDir, "19-coupon-border.png") });
+    await page.getByTestId("border-style-none").click();
 
     // Magic Write — mock provider
     await page.route("**/api/creative/magic-write", async (route) => {
@@ -182,6 +170,7 @@ test.describe("group appearance shared libraries coupon magic write", () => {
         }),
       });
     });
+    await page.locator('[data-primitive="text"]').first().click({ force: true });
     await page.getByTestId("card-creative-tool-text").click();
     await page.getByTestId("magic-write-open").click();
     await expect(page.getByTestId("magic-write-panel")).toBeVisible();
@@ -191,9 +180,14 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     await page.screenshot({ path: path.join(evidenceDir, "20-magic-write.png") });
     await page.getByTestId("magic-write-apply").click();
 
-    // Preview / 390
-    await page.getByRole("button", { name: /Preview/i }).first().click().catch(() => undefined);
+    // Preview / reload / 390
+    await page.getByRole("button", { name: /Preview draft/i }).click();
     await page.screenshot({ path: path.join(evidenceDir, "21-preview.png") });
+    await page.goBack({ waitUntil: "domcontentloaded" }).catch(() => undefined);
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute("data-builder-ready", "true", { timeout: 60_000 });
+    await dismissBlockingChrome(page);
+    await page.screenshot({ path: path.join(evidenceDir, "22-reload.png") });
     await page.setViewportSize({ width: 390, height: 844 });
     await page.screenshot({ path: path.join(evidenceDir, "23-390px.png") });
 
