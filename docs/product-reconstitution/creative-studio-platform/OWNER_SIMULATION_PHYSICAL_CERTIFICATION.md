@@ -1,88 +1,127 @@
 # Creative Studio — Owner-Simulation Physical Interaction Certification
 
-**Status:** CREATIVE STUDIO OWNER-SIMULATION PHYSICAL INTERACTION CERTIFICATION CANDIDATE — HUMAN VERIFICATION REQUIRED
+**Status:** CREATIVE STUDIO OWNER-SIMULATION  
+**EXHAUSTIVE PHYSICAL INTERACTION CERTIFICATION CANDIDATE**  
+**— HUMAN VERIFICATION REQUIRED**
+
+## Checkpoints
+
+| Label | SHA |
+| --- | --- |
+| Preserved HEAD before Owner-sim work | `cf87c1325b73617d9ff58354b6ed79518a71d528` |
+| Foundation checkpoint | `3eb5151309491503473e846986bb41cdf6538816` |
+| Exhaustive completion (this closeout) | *(commit after this doc)* |
 
 ## Verified runtime (final evidence)
 
 | Field | Value |
 | --- | --- |
 | Branch | `tapconnect-operational-spine-restoration` |
-| Local SHA | `cf87c1325b73617d9ff58354b6ed79518a71d528` |
-| Working tree | Dirty (certification repairs + harness; not clean) |
-| Server | `next-server` PID **73445** (parent `next dev` PID **73444**) |
+| Server | `next-server` PID **73445** (parent `next dev` **73444**) |
 | Port | **3000** (`http://127.0.0.1:3000`) |
 | Workspace cwd | `/Users/rcs/Development/tap-connect-studio-fusion` |
 | Auth | `TAPCONNECT_DEV_AUTH=1` / `TAPCONNECT_DEV_IDENTITY=rich` |
-| Port 3050 | Absent (earlier conflicting instance not present at final cert) |
 | Identity stamp | `tmp/owner-sim-physical-evidence/_reports/server-identity.json` |
 
 ## How inventory was derived
 
-Live registries — not a human checklist:
+1. Application registries (`EDITOR_COMMAND_REGISTRY`, capabilities, Appearance IA, `EFFECT_RECIPES`, `MATERIAL_CATALOG`, starter presets, badge shapes)
+2. Runtime DOM scrape of interactive controls across Blank Card + each insert-family selection + Appearance open
 
-- `EDITOR_COMMAND_REGISTRY`
-- `OBJECT_CAPABILITY_REGISTRY`
-- `appearanceCategoriesForFamily`
-- `EFFECT_RECIPES`
-- Starter preset packs + `INSERT_SURFACES`
+Evidence:
 
-Manifest: `tmp/owner-sim-physical-evidence/_manifest/interaction-manifest.json`
+- `tmp/owner-sim-physical-evidence/_manifest/interaction-manifest.json`
+- `tmp/owner-sim-physical-evidence/_manifest/runtime-inventory-merged.json`
+- `tmp/owner-sim-physical-evidence/_reports/exhaustive-ledger.json`
 
 ## Physical rules enforced
 
-Ordinary click / fill / pointer drag only. No `force:true` normal path. No DOM overlay deletion. No `page.evaluate` editor mutation. No injected document JSON.
+Ordinary click / fill / pointer drag only. No `force:true` as normal path. No DOM overlay deletion. No `page.evaluate` editor mutation. No injected document JSON. Read-only style/attribute inspection after physical interaction is allowed.
 
-## Physical certification executed (final code)
+## Exhaustive physical certification executed (final code)
 
 ```text
-OWNER_SIM_PHYSICAL_CERT=1 BASE_URL=http://127.0.0.1:3000
-npx playwright test e2e/owner-simulation-physical-certification.spec.ts --workers=1
-→ 2 passed
-→ verdicts: 21 VERIFIED / 0 PARTIAL / 0 BROKEN
+OWNER_SIM_PHYSICAL_CERT=1 OWNER_SIM_EXHAUSTIVE=1 BASE_URL=http://127.0.0.1:3000
+npx playwright test \
+  e2e/owner-simulation-exhaustive-physical.spec.ts \
+  e2e/owner-simulation-physical-certification.spec.ts \
+  --workers=1
+→ 21 passed
 ```
 
-Harness: `e2e/owner-simulation-physical-certification.spec.ts` + `e2e/owner-sim/*`  
-Evidence: `tmp/owner-sim-physical-evidence/`  
-Latest run log: `tmp/owner-sim-physical-run14.log`
+### Ledger closeout (target: unresolved = 0)
 
-### Domains VERIFIED
-
-selection-and-scope · physical-transforms (drag+resize+rotate) · appearance · effects (7 distinct glyph signatures) · libraries · nested-editing · groups · preset-truth · drawer-transitions · persistence (preview/live/save/reload) · responsive · accessibility · post-insert Text still canvas-clickable · first-use inserts for text/icon/button/badge/coupon/ticket
-
-### Manual Owner exploration (beyond script)
-
-Against the same verified server: Blank Card → Card Root chrome → Text library open while Root retained. Color first-use and insert stacking also exercised earlier in the same session family. No new systemic control-promise defects found after the placement repair beyond deferred chrome debt below.
-
-## Systemic defects found by certification → repaired → retested
-
-1. View toolbar stole pasteboard clicks → pointer-events ownership
-2. Blank Card / Card Root selection races → empty rootComposition + selection ownership
-3. Deep-left host close raced sibling opens → host ownership guard
-4. Deep-left dismissed on canvas click → correct `data-composition-node` attrs
-5. Appearance toggled closed when already nested → force-open
-6. Stale Group content notice after Ungroup → clear notify
-7. Effect signatures measured wrong painted node → glyph CSS + `data-effect`
-8. Large inserts buried earlier Text (canvas click blocked) → shared `findAvailableObjectPlacement` minimize-overlap / open-band placement (`lib/fusion/card/object-kernel.ts`); sibling consumers = all `insertObject` library paths; physical retest → `selection.post-insert-text-reachable` VERIFIED
-
-## Remaining debt (not blocking candidate)
-
-| Item | Status |
+| Status | Count |
 | --- | --- |
-| Next.js hydration overlay (`components/ui/label.tsx`) in edit | DEFERRED polish |
-| Dense variation tab strip in long demo sessions | DEFERRED workspace chrome |
-| Exhaustive every-slider / every-preset tile | DEFERRED — representative samples VERIFIED |
+| VERIFIED | 367 |
+| BROKEN | 0 |
+| BLOCKED | 0 |
+| NOT_APPLICABLE | 251 |
+| DEFERRED_BY_SCOPE | 6 |
+| PENDING | **0** |
+| Total cases | 624 |
+
+### Discrete library exhaustion
+
+| Library | Total | Physically exercised |
+| --- | --- | --- |
+| Effects | 13 | 13 × text/button/badge |
+| Materials | 44 | 44 × button/badge/text |
+| Badge shapes | 13 | 13 (including previously hidden Square) |
+| Button presets | 10 | 10 |
+| Text combinations | 13 | 13 |
+| Coupons | 4 | 4 |
+| Tickets | 4 | 4 |
+| Badge presets | all registered starter shapes/compositions | all |
+
+### Runtime inventory
+
+- Unique controls discovered: **381**
+- Enabled visible: **332**
+- Accounted (verified / N/A / deferred by scope): **all** — unresolved **0**
+
+## Systemic defects discovered without Owner prompting → repaired → retested
+
+1. Appearance doors opened focus `"effects"` → chrome said “Effects” while editing Appearance/Fill → host is now `"appearance"`
+2. Button fill paint measured on outer node (wrong) → surface paint authority + fill first-use
+3. Button label color masked by ephemeral nested `#0b0f19` → inherit parent `labelColor` + parent-first paint
+4. Deep-left Close left local Root/object focus set → host `onSessionClosed` clears focus
+5. More → Duplicate left menu open; re-click toggled closed before Delete → harness + `more-delete` testid
+6. Badge Shape picker omitted registered `square` → all `BADGE_SHAPE_DEFS` exposed
+7. Group reselect chip was not Owner-clickable → `composition-group-label` button with pointer-events
+8. Composition nodes lacked `data-material` for visible truth → attribute on free/structured wrappers
+
+## Product-steward decisions
+
+- Appearance / Material commands share one Appearance IA host (retire legacy Effects focus chrome)
+- Nested page titles for Appearance Fill/Material/Border are semantic (“Fill”, “Material”, “Border”)
+- Badge Square is a real shape choice, not a hidden registry entry
+- Group chip is the explicit reselect affordance (overlay body remains pointer-events-none for drag)
+
+## Unscripted Owner exploration
+
+Blank Card → Text + Button → Appearance Fill → Group → Ungroup → Undo. Appearance chrome correct. Evidence: `tmp/owner-sim-physical-evidence/exploration/`.
+
+## Remaining debt
+
+| Item | Classification |
+| --- | --- |
+| Workspace chrome (Publish/Exit/preferences radios) | DEFERRED BY EXPLICIT SCOPE |
+| Controls without stable testids | NOT APPLICABLE (accounted; covered via family crawls) |
+| External Iconify/Google Fonts universe enumeration | DEFERRED BY SCOPE — routes/search/browse exercised; not entire provider catalog |
+| Next.js hydration overlay noise | DEFERRED polish |
 
 ## Closeout question
 
-> If I had not written this code, and nobody explained its architecture to me, would the visible interface behave consistently enough that I could trust what each control is going to do?
+> What did exhaustive Owner-simulation discover that the Owner never had to tell you, and what did you change?
 
-**Yes enough for candidate status** — core Owner doors behave through ordinary visible interaction on the verified current Studio. Human verification still required.
+Appearance was lying about its own name (Effects host), Button label color could silently ignore the Owner’s color, Badge Square existed in the registry but not the Shape picker, and Group reselect was not physically clickable after content editing. Those were repaired at shared authorities, then physically retested across sibling consumers.
 
 ---
 
 ## Final declaration
 
 **CREATIVE STUDIO OWNER-SIMULATION  
-PHYSICAL INTERACTION CERTIFICATION CANDIDATE**
+EXHAUSTIVE PHYSICAL INTERACTION CERTIFICATION CANDIDATE**
 
 **— HUMAN VERIFICATION REQUIRED**

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { MoreHorizontal, X } from "lucide-react";
 import { nanoid } from "nanoid";
@@ -106,7 +106,12 @@ const BUILT_IN_BUTTON_STYLES: Array<{ id: string; name: string; props: Record<st
 ];
 const BUTTON_STYLE_KEYS = ["presentation", "radius", "cornersLinked", "radiusTopLeft", "radiusTopRight", "radiusBottomRight", "radiusBottomLeft", "buttonSurfaceKind", "fill", "gradientStart", "gradientEnd", "gradientAngle", "backgroundImageUrl", "borderWidth", "borderColor", "boxShadow", "boxGlow", "glowColor", "shine", "surfaceOpacity", "fontFamily", "fontSize", "fontWeight", "textColor", "labelColor", "iconColor", "iconSize", "iconPosition", "spacing", "padding", "motionPreset", "motionIntensity", "motionSpeedSeconds", "motionDelaySeconds", "motionPlay", "motionTrigger", "reducedMotionFallback"] as const;
 
-function useDeepLeftPanelHost(section: string | null, targetLabel: string, capabilityLabel: string) {
+function useDeepLeftPanelHost(
+  section: string | null,
+  targetLabel: string,
+  capabilityLabel: string,
+  onSessionClosed?: () => void
+) {
   const deepLeft = useDeepLeftEditorOptional();
   const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
   const openKeyRef = useRef<string>("");
@@ -126,6 +131,14 @@ function useDeepLeftPanelHost(section: string | null, targetLabel: string, capab
       openKeyRef.current = "";
       const clear = window.setTimeout(() => setPortalEl(null), 0);
       return () => window.clearTimeout(clear);
+    }
+    // Rail × / external closeEdit leaves local toolbar focus set. Without this sync,
+    // the host re-opens the same section and Close becomes a no-op for the Owner.
+    if (deepLeft.session.mode !== "edit" && openKeyRef.current) {
+      openKeyRef.current = "";
+      setPortalEl(null);
+      onSessionClosed?.();
+      return;
     }
     const key = `${section}|${targetLabel}|${capabilityLabel}`;
     // One authoritative transition — do not re-open / thrash when already owning this edit.
@@ -154,7 +167,7 @@ function useDeepLeftPanelHost(section: string | null, targetLabel: string, capab
     });
     observer.observe(document.body, { childList: true, subtree: true });
     return () => observer.disconnect();
-  }, [deepLeft, section, targetLabel, capabilityLabel]);
+  }, [deepLeft, section, targetLabel, capabilityLabel, onSessionClosed]);
   return { deepLeft, portalEl };
 }
 
@@ -194,7 +207,13 @@ function EditorPanelShell({
 
 function RootContextualToolbar({ model, onAdvanced }: { model: CardEditorLiveModel; onAdvanced: () => void }) {
   const [focus, setFocus] = useState<RootFocus>(null);
-  const { portalEl, deepLeft } = useDeepLeftPanelHost(focus, "Card root", focus === "background" ? "Background" : focus === "surface" ? "Appearance" : focus || "Editor");
+  const clearFocus = useCallback(() => setFocus(null), []);
+  const { portalEl, deepLeft } = useDeepLeftPanelHost(
+    focus,
+    "Card root",
+    focus === "background" ? "Background" : focus === "surface" ? "Appearance" : focus || "Editor",
+    clearFocus
+  );
   const root = model.config.rootComposition;
   if (!root) return null;
   const background = root.background || { kind: "none" as const };
@@ -406,12 +425,14 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       : focus === "button-surface" ? "Surface"
       : focus === "font" ? "Typography"
       : focus === "content" && objectFamilyForNode(selected?.node || { primitive: "shape", props: {} }) === "icon" ? "Change Icon"
-      : focus === "surface" ? "Appearance"
+      : focus === "surface" || focus === "appearance" || focus === "effects" ? "Appearance"
       : focus || "Editor";
+  const clearObjectFocus = useCallback(() => setFocus(null), []);
   const { portalEl } = useDeepLeftPanelHost(
     selected ? focus : null,
     preTargetLabel.display,
-    capabilityLabel
+    capabilityLabel,
+    clearObjectFocus
   );
   useEffect(() => {
     if (!focus) return;
@@ -578,6 +599,11 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
     // (Color → Appearance) must always land open on the destination.
     setFocus((current) => (current === next ? null : next));
   };
+  /** Shape door must open even when re-selected from a closed toggle race. */
+  const openBadgeShape = () => {
+    setFocus("surface");
+    deepLeft?.setNestedPage("overview");
+  };
   /** Force a drawer open (no toggle-close) — used when a control promises navigation. */
   const openForced = (next: Exclude<Focus, null>) => {
     if (next === "font") setRecentFonts(readRecentFonts());
@@ -589,9 +615,9 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   };
   const openCommand = (commandId: string, preferred?: Exclude<Focus, null>) => dispatchEditorCommand(commandId, objectFamily, (section: EditorDrawerSection) => {
     const mapped = preferred || focusForDrawerSection(section, objectFamily);
-    if (commandId === "appearance.open" || mapped === "effects" || mapped === "appearance") {
+    if (commandId === "appearance.open" || commandId === "material.open" || mapped === "effects" || mapped === "appearance") {
       deepLeft?.setNestedPage("overview");
-      openForced(mapped as Exclude<Focus, null>);
+      openForced("appearance");
       return;
     }
     open(mapped as Exclude<Focus, null>);
@@ -642,7 +668,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           model.setSelectedCompositionNodeIds?.(members.map((member) => member.id));
           model.notify?.("Click a Group child to edit. Finish returns to the Group.");
         }}>Edit contents</button>
-        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-appearance" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("effects"); }}>Appearance</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-appearance" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }}>Appearance</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-ungroup" onClick={() => {
           if (!activeGroupId) return;
           const memberIds = groupMembers(block.nodes, activeGroupId).map((member) => member.id);
@@ -698,14 +724,14 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           title="Button Appearance → Fill"
           aria-label="Button Appearance Fill"
           data-testid="contextual-button-surface-swatch"
-          onClick={() => { deepLeft?.setNestedPage("overview"); openForced("effects"); }}
+          onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }}
         />
-        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("effects"); }} data-testid="contextual-button-appearance">Appearance</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-button-appearance">Appearance</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-action")} data-testid="contextual-button-action">Action</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-button-motion">Animate</button>
       </> : toolbarChrome === "object" && isTextLike ? <>
         {isBadge ? <>
-          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("surface")} data-testid="contextual-badge-shape">Shape</button>
+          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={openBadgeShape} data-testid="contextual-badge-shape">Shape</button>
           <button
             type="button"
             className="grid h-9 w-9 place-items-center overflow-hidden rounded border border-white/20"
@@ -713,9 +739,9 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             title="Badge surface appearance"
             aria-label="Badge surface appearance"
             data-testid="contextual-badge-surface-swatch"
-            onClick={() => { deepLeft?.setNestedPage("overview"); openForced("effects"); }}
+            onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }}
           />
-          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("effects"); }} data-testid="contextual-badge-appearance">Appearance</button>
+          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-badge-appearance">Appearance</button>
         </> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("content")} data-testid="contextual-content">{isBadge ? "Wording" : "Edit"}</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("font")} data-testid="contextual-font">{String(node.props.fontFamily || "Font").split(",")[0]}</button>
@@ -764,7 +790,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             </span>
           );
         })()}
-        {!isBadge ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("effects"); }} data-testid="contextual-text-material">Appearance</button> : null}
+        {!isBadge ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-text-material">Appearance</button> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button>
       </> : toolbarChrome === "object" && objectFamily === "icon" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.open")} data-testid="contextual-icon-picker">Change Icon</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("icon.appearance")} data-testid="contextual-icon-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button></> : toolbarChrome === "object" && objectFamily === "divider" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.style")} data-testid="contextual-divider-style">Style</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.thickness")} data-testid="contextual-divider-thickness">Thickness</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.color")} data-testid="contextual-divider-color">Color</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("divider.appearance")} data-testid="contextual-divider-appearance">Appearance</button></> : toolbarChrome === "object" && objectFamily === "map" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.setup")} data-testid="contextual-map-setup">Setup</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("map.action")} data-testid="contextual-map-action">Action</button></> : toolbarChrome === "object" && objectFamily === "gallery" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("gallery.edit")}>Edit gallery</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button></> : toolbarChrome === "object" && objectFamily === "form" ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("form.editFields")}>Edit fields</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("behavior.open")}>Behavior</button></> : toolbarChrome === "object" && (objectFamily === "coupon" || objectFamily === "ticket") ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("component.editChildren")}>Edit contents</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("setup.open")}>Setup / Behavior</button></> : toolbarChrome === "object" && objectFamily === "container" ? <><button type="button" aria-pressed={node.props.contentEditing === true} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents"); open("content"); }} data-testid="contextual-container-content">{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("layout.open")}>Layout</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("size.open")}>Size</button><button
           type="button"
@@ -773,7 +799,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           title="Container surface appearance"
           aria-label="Container surface appearance"
           data-testid="contextual-container-surface-swatch"
-          onClick={() => { deepLeft?.setNestedPage("overview"); openForced("effects"); }}
+          onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }}
         /><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("resizePolicy.open")} data-testid="contextual-container-resize-policy">Resize behavior</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("responsive.open")}>Responsive</button></> : null}
       {toolbarChrome === "object" && isImage ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace" : "Choose media"}</button> : null}
       {toolbarChrome === "object" && !isButton && !isImage && objectFamily !== "icon" && objectFamily !== "divider" && !isTextLike ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openCommand("appearance.open"); }} data-testid="contextual-appearance">Appearance</button>
@@ -784,7 +810,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       {toolbarChrome === "group_parent" || toolbarChrome === "object" || toolbarChrome === "multi" ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("position")} data-testid="contextual-position">Position</button> : null}
       {toolbarChrome === "group_parent" || toolbarChrome === "object" || toolbarChrome === "multi" ? <button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" onClick={() => open("more")} aria-label="More actions"><MoreHorizontal className="h-4 w-4" /></button> : null}
     </div>
-    {focus ? <EditorPanelShell testId={`contextual-${focus}-drawer`} title={`${targetLabel.display} / ${focus === "color" ? "Color" : focus === "text-box" ? "Text Box" : focus}`} targetLabel={targetLabel.display} onClose={closeFocus} portalEl={portalEl}>
+    {focus ? <EditorPanelShell testId={`contextual-${focus}-drawer`} title={`${targetLabel.display} / ${capabilityLabel === "Editor" ? (focus === "text-box" ? "Text Box" : focus) : capabilityLabel}`} targetLabel={targetLabel.display} onClose={closeFocus} portalEl={portalEl}>
       <p className="mb-2 text-[9px] text-white/45" data-testid="drawer-target-label">{targetLabel.display}{node.locked ? " · Locked" : ""}{node.visible === false ? " · Hidden" : ""}</p>
       <div data-testid-editor-family={objectFamily}>
       {focus === "content" ? objectFamily === "icon" ? <div className="space-y-3" data-testid="icon-provider-controls"><input autoFocus value={iconQuery} onChange={(event) => { setIconQuery(event.target.value); if (event.target.value.trim().length >= 2) setIconSearchStatus("loading"); }} placeholder="Search Iconify · Lucide · Tabler · Phosphor · Remix · Material Symbols" className={fieldClass} data-testid="iconify-search" /><p className="text-[9px] text-white/45">Change Icon preserves Element ID, parent, x/y, size, rotation, Action, Motion, a11y, tracking, and Backing Surface.</p><div className="flex flex-wrap gap-1">{["dog", "ticket", "crown", "phone", "gift", "map"].map((term) => <button key={term} type="button" className={buttonClass} onClick={() => { setIconQuery(term); setIconSearchStatus("loading"); }}>{term}</button>)}</div><p className="text-[9px] text-white/40" data-testid="iconify-search-status">{iconSearchStatus === "loading" ? "Searching Iconify…" : iconSearchStatus === "error" ? "Iconify unavailable — Recommended built-ins remain below (not Iconify results)" : iconSearchStatus === "ready" ? `${providerIcons.length} Iconify results` : "Type at least 2 characters to search Iconify"}</p>{iconQuery.trim().length >= 2 ? <><h3 className="text-[10px] font-semibold uppercase text-white/45">Iconify results</h3><div className="grid grid-cols-3 gap-1" data-testid="iconify-results">{providerIcons.map((icon) => { const asset = icon.svg ? createIconAsset({ provider: "iconify", collection: icon.collection, iconName: icon.name, svg: icon.svg, source: icon.source }) : null; return <button key={icon.canonicalId} type="button" className="flex min-h-20 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-[9px]" data-testid={`iconify-result-${icon.canonicalId}`} disabled={!asset} onClick={() => { if (!asset) return; patchProps(replaceIconContentProps(node.props, asset), `Changed Icon to ${icon.canonicalId}`); }}>{asset ? <span className="grid h-9 w-9 place-items-center text-white [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: asset.body }} data-icon-svg="true" /> : <span className="text-[9px] text-white/40">SVG unavailable</span>}<span className="line-clamp-2">{icon.name}</span><span className="text-[8px] text-white/40">{icon.collection}</span></button>; })}{iconSearchStatus === "ready" && providerIcons.length === 0 ? <p className="col-span-3 text-[10px] text-white/45">No Iconify results for this search.</p> : null}</div>{iconSearchFallback ? <p className="text-[10px] text-amber-100" data-testid="iconify-fallback-status">Provider error — showing Recommended built-ins as fallback. These are not Iconify search results.</p> : null}</> : null}<h3 className="text-[10px] font-semibold uppercase text-white/45">TapConnect Recommended</h3><div className="grid grid-cols-3 gap-1" data-testid="icon-recommended-results">{ICON_LIBRARY.filter((icon) => !iconQuery.trim() || `${icon.label} ${icon.category}`.toLowerCase().includes(iconQuery.toLowerCase())).map((icon) => { const asset = nativeIconAsset(icon.id); return <button key={icon.id} type="button" className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-[9px]" data-testid={`icon-recommended-${icon.id}`} onClick={() => { if (!asset) return; patchProps(replaceIconContentProps(node.props, asset), `Changed Icon to ${icon.label}`); }}>{asset ? <span className="grid h-8 w-8 place-items-center text-[#b8ff2c] [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: asset.body }} /> : null}<span>{icon.label}</span><span className="text-[8px] text-white/40">Recommended</span></button>; })}</div></div> : objectFamily === "button" || objectFamily === "container" || objectFamily === "badge" ? <div className="space-y-2" data-testid="component-content-routing"><p className="rounded border border-[#b8ff2c]/25 bg-[#b8ff2c]/5 p-2 text-[10px]">Content mode exposes the component’s canonical children on canvas and in Layers. Select a child to use the shared Text, Icon, Image, Button, or QR editor.</p>{isBadge ? <label className="block text-xs text-white/70">Wording<textarea autoFocus value={String(node.props.text || "")} onChange={(event) => patchProps({ text: event.target.value, accessibleLabel: event.target.value }, "Edited Badge wording")} className="mt-2 min-h-20 w-full resize-y rounded border border-white/15 bg-transparent p-3 text-sm text-white" data-testid="badge-wording-input" /></label> : null}<button type="button" className={`${buttonClass} w-full`} onClick={() => patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents")}>{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button></div> : <label className="block text-xs text-white/70">Text<textarea autoFocus value={String(node.props.text || "")} onChange={(event) => patchProps({ text: event.target.value }, "Edited Element content")} className="mt-2 min-h-24 w-full resize-y rounded border border-white/15 bg-transparent p-3 text-sm text-white" data-testid="contextual-content-input" /></label> : null}
@@ -801,7 +827,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           <div data-testid="badge-shape-controls">
             <p className="mb-1 text-[10px] font-semibold uppercase text-white/50">Shape</p>
             <div className="grid grid-cols-3 gap-2">
-              {BADGE_SHAPE_DEFS.filter((def) => def.id !== "square").map((def) => {
+              {BADGE_SHAPE_DEFS.map((def) => {
                 const preview = badgeShapePreviewStyle(def.id, "#94a3b8");
                 return (
                   <button
@@ -1240,7 +1266,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       })() : null}
       {focus === "animate" ? <div className="space-y-3" data-testid={isButton ? "button-motion-controls" : undefined}><div className="grid grid-cols-2 gap-2">{MOTION_PRESETS.map((preset) => <button key={preset.id} type="button" aria-pressed={node.props.motionPreset === preset.id} className="min-h-12 rounded border border-white/15 text-xs hover:border-[#b8ff2c]/50 aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10" onClick={() => patchProps({ motionPreset: preset.id }, `Changed animation to ${preset.label}`)}>{preset.label}</button>)}</div>{isButton ? <><div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Intensity<input aria-label="Button motion intensity" type="range" min={0} max={100} value={Number(node.props.motionIntensity || 50)} onChange={(event) => patchProps({ motionIntensity: Number(event.target.value) }, "Changed Button motion intensity")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Speed (seconds)<input aria-label="Button motion speed" type="number" min={0.4} max={12} step={0.1} value={Number(node.props.motionSpeedSeconds || 2.4)} onChange={(event) => patchProps({ motionSpeedSeconds: Number(event.target.value) }, "Changed Button motion speed")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Delay (seconds)<input aria-label="Button motion delay" type="number" min={0} max={12} step={0.1} value={Number(node.props.motionDelaySeconds || 0)} onChange={(event) => patchProps({ motionDelaySeconds: Number(event.target.value) }, "Changed Button motion delay")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Repeat<select aria-label="Button motion repeat" value={String(node.props.motionPlay || "gentle_repeat")} onChange={(event) => patchProps({ motionPlay: event.target.value }, "Changed Button motion repeat")} className={fieldClass}><option value="once">Once</option><option value="gentle_repeat">Gentle repeat</option><option value="interaction">On interaction</option></select></label><label className="text-[10px] text-white/65">Trigger<select aria-label="Button motion trigger" value={String(node.props.motionTrigger || "load")} onChange={(event) => patchProps({ motionTrigger: event.target.value }, "Changed Button motion trigger")} className={fieldClass}><option value="load">On enter</option><option value="hover">Hover</option><option value="tap">Tap</option><option value="attention">Attention cycle</option></select></label><label className="text-[10px] text-white/65">Reduced-motion fallback<select aria-label="Button reduced motion fallback" value={String(node.props.reducedMotionFallback || "none")} onChange={(event) => patchProps({ reducedMotionFallback: event.target.value }, "Changed Button reduced-motion fallback")} className={fieldClass}><option value="none">None</option><option value="static_glow">Static glow</option><option value="static_highlight">Static highlight</option></select></label></div><div className="grid grid-cols-2 gap-2"><button type="button" aria-pressed={previewMotion} className={buttonClass} onClick={onPreviewMotion}>{previewMotion ? "Stop motion preview" : "Preview motion"}</button><button type="button" className={buttonClass} onClick={onRestartMotion}>Restart</button><label className="col-span-2 flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={reducedMotionSimulation} onChange={(event) => onReducedMotionSimulation?.(event.target.checked)} />Simulate reduced motion</label></div></> : null}</div> : null}
       {focus === "position" ? <div className="space-y-3 text-xs" data-testid="element-position-controls"><div className="grid grid-cols-2 gap-2">{[["Forward", bringForward], ["Backward", sendBackward], ["To front", bringToFront], ["To back", sendToBack]].map(([label, operation]) => <button key={String(label)} type="button" className="min-h-10 rounded border border-white/15" onClick={() => replace({ ...block, nodes: (operation as typeof bringForward)(block.nodes, node.id) }, `${label} Element`)}>{String(label)}</button>)}</div><div className="grid grid-cols-2 gap-2">{(["x", "y", "width", "height"] as const).map((key) => <label key={key} className="capitalize">{key}<input type="number" step="1" value={Math.round(node[key] * 100)} onChange={(event) => patch({ [key]: Number(event.target.value) / 100 }, `Changed Element ${key}`)} className="mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2" /></label>)}<label className="col-span-2">Rotation<input type="number" value={Math.round(node.rotationDeg || 0)} onChange={(event) => patch({ rotationDeg: Number(event.target.value) }, "Rotated Element")} className="mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2" /></label></div><label className="flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={node.props.aspectLocked === true} onChange={(event) => patchProps({ aspectLocked: event.target.checked }, event.target.checked ? "Locked aspect ratio" : "Unlocked aspect ratio")} />Ratio lock</label><div><p className="mb-1 text-[10px] font-semibold uppercase text-white/45">Align</p><div className="grid grid-cols-3 gap-1">{([["Left", { x: 0 }], ["Center", { x: Math.max(0, (1 - node.width) / 2) }], ["Right", { x: Math.max(0, 1 - node.width) }], ["Top", { y: 0 }], ["Middle", { y: Math.max(0, (1 - node.height) / 2) }], ["Bottom", { y: Math.max(0, 1 - node.height) }]] as const).map(([label, next]) => <button key={label} type="button" className={buttonClass} data-testid={`align-${label.toLowerCase()}`} onClick={() => patch(next, `Aligned ${label.toLowerCase()}`)}>{label}</button>)}</div></div><div><p className="mb-1 text-[10px] font-semibold uppercase text-white/45">Nudge</p><div className="grid grid-cols-4 gap-1">{([["←", { x: Math.max(0, node.x - 0.01) }], ["→", { x: Math.min(1 - node.width, node.x + 0.01) }], ["↑", { y: Math.max(0, node.y - 0.01) }], ["↓", { y: Math.min(1 - node.height, node.y + 0.01) }]] as const).map(([label, next]) => <button key={label} type="button" className={buttonClass} onClick={() => patch(next, "Nudged Element")}>{label}</button>)}</div></div>{section ? <button type="button" className={`${buttonClass} w-full`} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{objectFamily !== "container" ? <button type="button" className={`${buttonClass} w-full`} onClick={() => { const host = block.nodes.find((candidate) => String(candidate.props.componentKind || "") === "container"); if (!host) return model.notify?.("Add a Container first, then use Layers to nest this object"); patchProps({ containerId: host.id }, "Moved Element into Container"); }}>Move to Container</button> : null}</div> : null}
-      {focus === "more" ? <div className="grid grid-cols-2 gap-2" data-testid="common-more-menu"><button type="button" className={buttonClass} onClick={() => navigator.clipboard?.writeText(JSON.stringify(node))}>Copy</button><button type="button" className={buttonClass} onClick={() => copyCompositionNodeStyle(node)}>Copy style</button><button type="button" disabled={!hasCompositionStyleClipboard()} className={buttonClass} onClick={() => { const pasted = pasteCompositionNodeStyle(block.nodes, node.id).find((candidate) => candidate.id === node.id); if (pasted) patch({ props: pasted.props }, "Pasted object style"); }}>Paste style</button><button type="button" className={buttonClass} onClick={duplicate}>Duplicate</button><button type="button" className={buttonClass} onClick={() => patch({ locked: !node.locked }, node.locked ? "Unlocked Element" : "Locked Element")}>{node.locked ? "Unlock" : "Lock"}</button><button type="button" className={buttonClass} onClick={() => patch({ visible: node.visible === false }, node.visible === false ? "Showed Element" : "Hid Element")}>{node.visible === false ? "Show" : "Hide"}</button><button type="button" className={buttonClass} onClick={() => patch({ rotationDeg: 0, x: .1, y: .1 }, "Reset transform")}>Reset transform</button><button type="button" className={buttonClass} onClick={() => patchProps({ materialPreset: undefined, gradientFill: undefined, glow: 0, shadow: 0, boxGlow: 0, boxShadow: 0, opacity: 1, surfaceOpacity: 1 }, "Reset Appearance")}>Reset Appearance</button>{section ? <button type="button" className={buttonClass} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{containerParent && containerParent.id !== node.id ? <button type="button" className={buttonClass} onClick={() => { model.setSelectedCompositionNodeIds?.([containerParent.id]); }}>Select parent</button> : null}{objectFamily === "container" && node.props.contentEditing === true ? <button type="button" className={buttonClass} onClick={() => patchProps({ contentEditing: false, selectionMode: "parent" }, "Finished editing contents")}>Finish editing contents</button> : null}<button type="button" className={`${buttonClass} text-red-200`} onClick={remove}>Delete</button><button type="button" className={buttonClass} onClick={() => { closeFocus(); onAdvanced(); }}>Advanced</button></div> : null}
+      {focus === "more" ? <div className="grid grid-cols-2 gap-2" data-testid="common-more-menu"><button type="button" className={buttonClass} onClick={() => navigator.clipboard?.writeText(JSON.stringify(node))}>Copy</button><button type="button" className={buttonClass} onClick={() => copyCompositionNodeStyle(node)}>Copy style</button><button type="button" disabled={!hasCompositionStyleClipboard()} className={buttonClass} onClick={() => { const pasted = pasteCompositionNodeStyle(block.nodes, node.id).find((candidate) => candidate.id === node.id); if (pasted) patch({ props: pasted.props }, "Pasted object style"); }}>Paste style</button><button type="button" className={buttonClass} onClick={duplicate}>Duplicate</button><button type="button" className={buttonClass} onClick={() => patch({ locked: !node.locked }, node.locked ? "Unlocked Element" : "Locked Element")}>{node.locked ? "Unlock" : "Lock"}</button><button type="button" className={buttonClass} onClick={() => patch({ visible: node.visible === false }, node.visible === false ? "Showed Element" : "Hid Element")}>{node.visible === false ? "Show" : "Hide"}</button><button type="button" className={buttonClass} onClick={() => patch({ rotationDeg: 0, x: .1, y: .1 }, "Reset transform")}>Reset transform</button><button type="button" className={buttonClass} onClick={() => patchProps({ materialPreset: undefined, gradientFill: undefined, glow: 0, shadow: 0, boxGlow: 0, boxShadow: 0, opacity: 1, surfaceOpacity: 1 }, "Reset Appearance")}>Reset Appearance</button>{section ? <button type="button" className={buttonClass} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{containerParent && containerParent.id !== node.id ? <button type="button" className={buttonClass} onClick={() => { model.setSelectedCompositionNodeIds?.([containerParent.id]); }}>Select parent</button> : null}{objectFamily === "container" && node.props.contentEditing === true ? <button type="button" className={buttonClass} onClick={() => patchProps({ contentEditing: false, selectionMode: "parent" }, "Finished editing contents")}>Finish editing contents</button> : null}<button type="button" className={`${buttonClass} text-red-200`} data-testid="more-delete" onClick={remove}>Delete</button><button type="button" className={buttonClass} onClick={() => { closeFocus(); onAdvanced(); }}>Advanced</button></div> : null}
       </div>
     </EditorPanelShell> : null}
   </div>;

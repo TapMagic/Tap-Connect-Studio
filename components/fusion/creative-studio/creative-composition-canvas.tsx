@@ -1098,8 +1098,14 @@ function NodeVisual({
               ? `radial-gradient(circle at 25% 25%, #ffffff28 0 1px, transparent 2px), ${str(node.props.fill, "#22c55e")}`
               : str(node.props.fill, "#22c55e");
     const shadowParts = surfaceShadowCss(node.props);
+    // Button content door writes parent labelColor/textColor AND syncs nested label.color.
+    // Parent mirrors must win over a stale ephemeral nested default (#0b0f19).
+    const resolvedLabelColor = str(
+      node.props.labelColor,
+      str(node.props.textColor, str(labelProps.color, "#0b0f19"))
+    );
     const labelStyle: CSSProperties = {
-      color: str(labelProps.color, str(node.props.labelColor, str(node.props.textColor, "#0b0f19"))),
+      color: resolvedLabelColor,
       fontFamily: str(labelProps.fontFamily, str(node.props.fontFamily, "Inter, system-ui, sans-serif")),
       fontSize: num(labelProps.fontSize, num(node.props.fontSize, 14)),
       fontWeight: num(labelProps.fontWeight, num(node.props.fontWeight, 600)),
@@ -1853,6 +1859,7 @@ export function CreativeCompositionCanvas({
             data-element-kind={String(node.props.elementKind || node.primitive)}
             data-selected={selectedSet.has(node.id) ? "true" : "false"}
             data-effect={String(node.props.effectPreset || "") || undefined}
+            data-material={String(node.props.materialPreset || "") || undefined}
             onClick={(e) => {
               if (!editMode) return;
               e.stopPropagation();
@@ -2070,6 +2077,7 @@ export function CreativeCompositionCanvas({
             data-group={node.groupId || undefined}
             data-anchor={node.anchor || "top-left"}
             data-effect={String(node.props.effectPreset || "") || undefined}
+            data-material={String(node.props.materialPreset || "") || undefined}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
             onDoubleClick={(event) => {
               if (!editMode || !((node.primitive === "text" && str(node.props.textCurve, "none") === "none") || (node.primitive === "button" && node.props.contentEditing === true))) return;
@@ -2175,6 +2183,8 @@ export function CreativeCompositionCanvas({
       {editMode && groupParentSelection && groupBounds && activeGroupId ? (
         <div
           key={`group-selection-${activeGroupId}`}
+          // Overlay body stays pointer-events-none so Group drag/resize still hits members + handles.
+          // The Group chip is the Owner-visible reselect target.
           className="pointer-events-none absolute z-[1000] outline outline-1 outline-white/80"
           style={{
             left: `${groupBounds.left * 100}%`,
@@ -2186,7 +2196,19 @@ export function CreativeCompositionCanvas({
           data-group-id={activeGroupId}
           data-chrome-scale={String(chromeScale)}
         >
-          <span className="pointer-events-none absolute left-0 rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" style={{ top: `calc(-1.35rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} data-testid="composition-group-label">Group</span>
+          <button
+            type="button"
+            className="pointer-events-auto absolute left-0 rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white"
+            style={{ top: `calc(-1.35rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }}
+            data-testid="composition-group-label"
+            aria-label="Select Group"
+            onPointerDown={(event) => {
+              event.stopPropagation();
+              onSelectNodes?.(groupBounds.memberIds);
+            }}
+          >
+            Group
+          </button>
           {([
             ["nw", "left-0 top-0 cursor-nwse-resize", "top left", "", "corner"],
             ["n", "left-1/2 top-0 cursor-ns-resize", "top center", "translateX(-50%) ", "edge"],

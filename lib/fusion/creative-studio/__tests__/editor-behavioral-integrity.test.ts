@@ -390,5 +390,5 @@ test("inferFanOutCapability + gradient normalize are first-use safe", () => {
   dispatchEditorCommand("appearance.open", "text", (section) => {
     opened = section;
   });
-  assert.equal(opened, "effects");
+  assert.equal(opened, "appearance");
 });

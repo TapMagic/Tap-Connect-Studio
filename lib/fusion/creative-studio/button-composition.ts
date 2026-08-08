@@ -11,10 +11,19 @@ export function createButtonContentComposition({
   buttonId,
   label,
   icon,
+  labelColor,
+  fontSize,
+  fontWeight,
+  textAlign,
 }: {
   buttonId: string;
   label: string;
   icon: string;
+  /** Parent Button label/text color — must not hardcode a masking default. */
+  labelColor?: string;
+  fontSize?: number;
+  fontWeight?: number;
+  textAlign?: string;
 }): CreativeCompositionBlock {
   const block = createEmptyCreativeComposition(`button-content-${buttonId}`);
   const labelNode = createCompositionNode("text", {
@@ -28,10 +37,11 @@ export function createButtonContentComposition({
       elementKind: "text",
       buttonContentRole: "label" satisfies ButtonContentRole,
       text: label,
-      fontSize: 14,
-      fontWeight: 600,
-      color: "#0b0f19",
-      textAlign: "center",
+      fontSize: fontSize ?? 14,
+      fontWeight: fontWeight ?? 600,
+      // Prefer parent surface mirrors so ephemeral content does not mask labelColor.
+      color: labelColor || "#0b0f19",
+      textAlign: textAlign || "center",
     },
   });
   const iconNode = createCompositionNode("shape", {
@@ -63,6 +73,10 @@ export function buttonContent(
     buttonId,
     label: String(props.label || "Button"),
     icon: String(props.icon || "arrow-up-right"),
+    labelColor: String(props.labelColor || props.textColor || ""),
+    fontSize: typeof props.fontSize === "number" ? props.fontSize : undefined,
+    fontWeight: typeof props.fontWeight === "number" ? props.fontWeight : undefined,
+    textAlign: typeof props.textAlign === "string" ? props.textAlign : undefined,
   });
 }
 

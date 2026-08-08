@@ -14,7 +14,8 @@ import {
   type ObjectFamily,
 } from "@/lib/fusion/creative-studio/capabilities";
 import { appearanceCategoriesForFamily } from "@/lib/fusion/creative-studio/appearance-ia";
-import { EFFECT_RECIPES } from "@/lib/fusion/creative-studio/material-engine";
+import { EFFECT_RECIPES, MATERIAL_CATALOG } from "@/lib/fusion/creative-studio/material-engine";
+import { BADGE_SHAPE_DEFS } from "@/lib/fusion/creative-studio/badge-shape";
 import {
   STARTER_BADGE_COMPOSITIONS,
   STARTER_BADGE_SHAPES,
@@ -29,7 +30,14 @@ import {
   listStarterPresetFamilies,
 } from "@/lib/fusion/creative-studio/starter-preset-registry";
 
-export type CertStatus = "VERIFIED" | "PARTIAL" | "BROKEN" | "NOT_APPLICABLE" | "DEFERRED";
+export type CertStatus =
+  | "VERIFIED"
+  | "PARTIAL"
+  | "BROKEN"
+  | "BLOCKED"
+  | "NOT_APPLICABLE"
+  | "DEFERRED"
+  | "DEFERRED_BY_SCOPE";
 
 export type InsertSurface = {
   family: ObjectFamily;
@@ -165,6 +173,78 @@ export function deriveCrossFamilyCapabilityComparisons(capability: string) {
 
 export function deriveMajorEffectIds(): string[] {
   return EFFECT_RECIPES.filter((recipe) => recipe.id !== "none").map((recipe) => recipe.id);
+}
+
+/** Effects exercised in the main crawl's 7-sample text set. */
+export const TEXT_EFFECT_BASELINE_IDS = [
+  "soft_glow",
+  "neon_edge",
+  "double_neon",
+  "aura",
+  "electric",
+  "soft_shadow",
+  "deep_shadow",
+] as const;
+
+/** Remaining major text-target effects for expansion certification. */
+export const TEXT_EFFECT_EXPANSION_IDS = [
+  "floating",
+  "inner_glow",
+  "outline_glow",
+  "gloss_highlight",
+  "dimensional_edge",
+] as const;
+
+/** Exhaustive surface-target effects for Button / Badge certification. */
+export const BUTTON_SURFACE_EFFECT_IDS = EFFECT_RECIPES.map((recipe) => recipe.id);
+
+export function deriveCouponPresetIds(): string[] {
+  return STARTER_COUPON_LAYOUTS.map((item) => item.id);
+}
+
+export function deriveTicketPresetIds(): string[] {
+  return STARTER_TICKET_LAYOUTS.map((item) => item.id);
+}
+
+/** Exhaustive button preset ids. */
+export function deriveButtonPresetSampleIds(count = STARTER_BUTTON_PRESETS.length): string[] {
+  return STARTER_BUTTON_PRESETS.slice(0, count).map((item) => item.id);
+}
+
+/** Exhaustive badge shape + composition ids (deduped). */
+export function deriveBadgePresetSampleIds(count = 10_000): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const item of [...STARTER_BADGE_SHAPES, ...STARTER_BADGE_COMPOSITIONS]) {
+    if (seen.has(item.id)) continue;
+    seen.add(item.id);
+    out.push(item.id);
+    if (out.length >= count) break;
+  }
+  return out;
+}
+
+export function deriveAllTextCombinationIds(): string[] {
+  return STARTER_TEXT_COMBINATIONS.map((item) => item.id);
+}
+
+export function deriveAllMaterialIds(): string[] {
+  return MATERIAL_CATALOG.map((item) => item.id);
+}
+
+export function deriveAllBadgeShapeIds(): string[] {
+  return BADGE_SHAPE_DEFS.map((item) => item.id);
+}
+
+/** All registered effects including "none". */
+export function deriveAllEffectIds(): string[] {
+  return EFFECT_RECIPES.map((recipe) => recipe.id);
+}
+
+export function badgePresetInsertTestId(id: string): string {
+  return STARTER_BADGE_COMPOSITIONS.some((item) => item.id === id)
+    ? `starter-badge-composition-${id}`
+    : `starter-badge-${id}`;
 }
 
 export function derivePresetInventory() {

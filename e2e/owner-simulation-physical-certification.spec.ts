@@ -14,32 +14,54 @@ import path from "node:path";
 import {
   buildInteractionManifest,
   deriveMajorEffectIds,
+  deriveBadgePresetSampleIds,
+  deriveButtonPresetSampleIds,
+  deriveCouponPresetIds,
+  deriveTicketPresetIds,
+  BUTTON_SURFACE_EFFECT_IDS,
   INSERT_SURFACES,
+  TEXT_EFFECT_EXPANSION_IDS,
 } from "./owner-sim/interaction-manifest";
 import {
   applyEffectById,
+  applyButtonLabelColor,
+  applyGlyphColor,
   bringSelectedToFront,
   clearSelection,
+  crawlToolbarDoors,
+  deleteSelectedViaMore,
   dragHandle,
   dragSelectedNode,
+  duplicateSelectedViaMore,
   ensureEvidenceDirs,
   evidenceShot,
   geometryChanged,
+  insertBadgePreset,
+  insertButtonPreset,
+  insertCouponPreset,
   insertFamily,
   insertFromSurface,
+  insertTicketPreset,
   openAppearanceOverview,
   openBlankStudio,
+  openButtonFillOrMaterial,
+  readButtonSurfacePaint,
+  readButtonLabelPaint,
+  openCardRootAppearance,
   ownerClick,
   ownerFill,
   readCompositionInventory,
   readEffectSignature,
   readGeometry,
+  readGroupMemberGeometries,
+  readNodeCount,
   recordVerdict,
   redo,
   saveDraft,
   selectObjectViaLayers,
   toolbarLabels,
   undo,
+  writeServerIdentity,
   writeVerdictReport,
   EVIDENCE_ROOT,
 } from "./owner-sim/physical-harness";
@@ -51,22 +73,6 @@ async function writeManifest() {
   const file = path.join(EVIDENCE_ROOT, "_manifest", "interaction-manifest.json");
   fs.writeFileSync(file, JSON.stringify(manifest, null, 2));
   return manifest;
-}
-
-function writeServerIdentity() {
-  const identity = {
-    generatedAt: new Date().toISOString(),
-    branch: process.env.OWNER_SIM_BRANCH || "",
-    sha: process.env.OWNER_SIM_SHA || "",
-    baseUrl: process.env.BASE_URL || "http://127.0.0.1:3000",
-    workspace: process.cwd(),
-    serverPid: process.env.OWNER_SIM_SERVER_PID || "",
-    serverPort: process.env.OWNER_SIM_SERVER_PORT || "3000",
-    dirtyCount: process.env.OWNER_SIM_DIRTY_COUNT || "",
-  };
-  fs.mkdirSync(path.join(EVIDENCE_ROOT, "_reports"), { recursive: true });
-  fs.writeFileSync(path.join(EVIDENCE_ROOT, "_reports", "server-identity.json"), JSON.stringify(identity, null, 2));
-  return identity;
 }
 
 test.describe("Owner-simulation physical interaction certification", () => {
@@ -594,5 +600,332 @@ test.describe("Owner-simulation physical interaction certification", () => {
         throw error;
       }
     }
+  });
+
+  test("toolbar door no-op crawl for text, button, badge, icon", async ({ page }) => {
+    writeServerIdentity();
+    const families = ["text", "button", "badge", "icon"] as const;
+    for (const family of families) {
+      const { broken } = await crawlToolbarDoors(page, family, `door-${family}`);
+      expect(broken, `${family} toolbar doors`).toHaveLength(0);
+    }
+  });
+
+  test("cross-family color: badge wording + button label", async ({ page }) => {
+    writeServerIdentity();
+    await openBlankStudio(page);
+
+    const badgeInsert = await insertFamily(page, "badge");
+    const badge = badgeInsert.node;
+    const beforeBadge = await readGeometry(badge);
+    await applyGlyphColor(page, "#00ccff");
+    const afterBadge = await readGeometry(badge);
+    const badgeChanged = geometryChanged(beforeBadge, afterBadge, ["color"]);
+    await evidenceShot(page, "appearance", "05-badge-wording-color");
+    if (badgeChanged) await undo(page);
+    recordVerdict({
+      id: "appearance.cross-family-badge-color",
+      domain: "appearance",
+      label: "Badge wording color via Color/Aa door",
+      status: badgeChanged ? "VERIFIED" : "BROKEN",
+      notes: [`before=${beforeBadge.color}`, `after=${afterBadge.color}`],
+      evidence: ["appearance/05-badge-wording-color.png"],
+    });
+    if (!badgeChanged) throw new Error("Badge wording color produced no visible mutation");
+
+    await insertFamily(page, "button");
+    const button = page.locator('[data-primitive="button"]').last();
+    await button.click();
+    const beforeButton = await readButtonLabelPaint(button);
+    await applyButtonLabelColor(page, "#ff00aa");
+    const afterButton = await readButtonLabelPaint(button);
+    const buttonChanged = beforeButton.color !== afterButton.color;
+    await evidenceShot(page, "appearance", "06-button-label-color");
+    if (buttonChanged) await undo(page);
+    recordVerdict({
+      id: "appearance.cross-family-button-label-color",
+      domain: "appearance",
+      label: "Button label color via Edit contents color control",
+      status: buttonChanged ? "VERIFIED" : "BROKEN",
+      notes: [
+        `before=${beforeButton.color}`,
+        `after=${afterButton.color}`,
+        `text=${afterButton.text}`,
+        "Button has no Aa door — label color lives in Edit contents",
+      ],
+      evidence: ["appearance/06-button-label-color.png"],
+    });
+    if (!buttonChanged) throw new Error("Button label color produced no visible mutation");
+  });
+
+  test("effects expansion: remaining text effects + button surface effects", async ({ page }) => {
+    writeServerIdentity();
+    await openBlankStudio(page);
+    const textInsert = await insertFamily(page, "text");
+    const textNode = textInsert.node;
+
+    const textSignatures = new Map<string, string>();
+    for (const effectId of TEXT_EFFECT_EXPANSION_IDS) {
+      await applyEffectById(page, effectId);
+      await page.waitForTimeout(250);
+      textSignatures.set(effectId, await readEffectSignature(textNode));
+      await evidenceShot(page, "effects", `text-expansion-${effectId}`);
+    }
+    const textUnique = new Set(textSignatures.values());
+    const textStatus =
+      textUnique.size >= Math.min(4, TEXT_EFFECT_EXPANSION_IDS.length)
+        ? "VERIFIED"
+        : textUnique.size >= 2
+          ? "PARTIAL"
+          : "BROKEN";
+    recordVerdict({
+      id: "effects.text-expansion-set",
+      domain: "effects",
+      label: "Expansion text effects produce distinct visual signatures",
+      status: textStatus,
+      notes: [`unique=${textUnique.size}/${TEXT_EFFECT_EXPANSION_IDS.length}`],
+      evidence: TEXT_EFFECT_EXPANSION_IDS.map((id) => `effects/text-expansion-${id}.png`),
+    });
+    if (textStatus === "BROKEN") {
+      throw new Error(`Text expansion effects not distinct: ${textUnique.size}/${TEXT_EFFECT_EXPANSION_IDS.length}`);
+    }
+
+    await insertFamily(page, "button");
+    const button = page.locator('[data-primitive="button"]').last();
+    await button.click();
+    const buttonSignatures = new Map<string, string>();
+    for (const effectId of BUTTON_SURFACE_EFFECT_IDS) {
+      await applyEffectById(page, effectId);
+      await page.waitForTimeout(250);
+      const signature = await readEffectSignature(button);
+      buttonSignatures.set(effectId, signature);
+      const effectAttr = await button.getAttribute("data-effect-preset");
+      await evidenceShot(page, "effects", `button-surface-${effectId}`);
+      expect(effectAttr || signature).toBeTruthy();
+    }
+    const buttonUnique = new Set(buttonSignatures.values());
+    const buttonStatus = buttonUnique.size >= 2 ? "VERIFIED" : "BROKEN";
+    recordVerdict({
+      id: "effects.button-surface-set",
+      domain: "effects",
+      label: "Button neon_edge + soft_shadow produce distinct signatures",
+      status: buttonStatus,
+      notes: [`unique=${buttonUnique.size}/${BUTTON_SURFACE_EFFECT_IDS.length}`],
+      evidence: BUTTON_SURFACE_EFFECT_IDS.map((id) => `effects/button-surface-${id}.png`),
+    });
+    if (buttonStatus === "BROKEN") {
+      throw new Error("Button surface effects not visually distinct");
+    }
+  });
+
+  test("button appearance fill/material with undo", async ({ page }) => {
+    writeServerIdentity();
+    await openBlankStudio(page);
+    await insertFamily(page, "button");
+    const button = page.locator('[data-primitive="button"]').last();
+    await button.click();
+    const beforePaint = await readButtonSurfacePaint(button);
+    const category = await openButtonFillOrMaterial(page);
+    if (category === "fill") {
+      const fillInput = page.getByTestId("appearance-fill-controls").locator('input[type="color"]').first();
+      await expect(fillInput).toBeVisible({ timeout: 10_000 });
+      await fillInput.fill("#3366ff");
+    } else {
+      const material = page.locator('[data-testid^="material-"]').filter({ hasNot: page.locator('[data-testid="material-remove"]') }).first();
+      await ownerClick(material, "Apply button material preset");
+    }
+    await page.waitForTimeout(400);
+    const afterPaint = await readButtonSurfacePaint(button);
+    const changed =
+      beforePaint.backgroundColor !== afterPaint.backgroundColor ||
+      beforePaint.backgroundImage !== afterPaint.backgroundImage ||
+      beforePaint.boxShadow !== afterPaint.boxShadow ||
+      beforePaint.filter !== afterPaint.filter;
+    await evidenceShot(page, "appearance", "07-button-fill-material");
+    expect(changed).toBeTruthy();
+    await undo(page);
+    const restoredPaint = await readButtonSurfacePaint(button);
+    recordVerdict({
+      id: "appearance.button-fill-material",
+      domain: "appearance",
+      label: `Button Appearance ${category} mutates surface + undo`,
+      status: changed ? "VERIFIED" : "BROKEN",
+      notes: [
+        `category=${category}`,
+        `before=${beforePaint.backgroundColor}`,
+        `after=${afterPaint.backgroundColor}`,
+        `restored=${restoredPaint.backgroundColor}`,
+        "chrome=Appearance (not Effects)",
+      ],
+      evidence: ["appearance/07-button-fill-material.png"],
+    });
+    if (!changed) throw new Error("Button fill/material produced no visible delta");
+  });
+
+  test("duplicate and delete via visible More menu", async ({ page }) => {
+    writeServerIdentity();
+    await openBlankStudio(page);
+    await insertFamily(page, "text");
+    const before = await readNodeCount(page);
+    await duplicateSelectedViaMore(page);
+    await expect.poll(async () => readNodeCount(page), { timeout: 10_000 }).toBe(before + 1);
+    await evidenceShot(page, "libraries", "03-after-duplicate");
+
+    await deleteSelectedViaMore(page);
+    await expect.poll(async () => readNodeCount(page), { timeout: 10_000 }).toBe(before);
+    await evidenceShot(page, "libraries", "04-after-delete");
+
+    await undo(page);
+    await expect.poll(async () => readNodeCount(page), { timeout: 10_000 }).toBe(before + 1);
+    recordVerdict({
+      id: "libraries.duplicate-delete-undo",
+      domain: "libraries",
+      label: "Duplicate + Delete via More menu + undo delete",
+      status: "VERIFIED",
+      notes: [`baseline=${before}`],
+      evidence: ["libraries/03-after-duplicate.png", "libraries/04-after-delete.png"],
+    });
+  });
+
+  test("group physical drag moves both members", async ({ page }) => {
+    writeServerIdentity();
+    await openBlankStudio(page);
+    await insertFamily(page, "text");
+    await insertFamily(page, "text");
+    const texts = page.locator('[data-primitive="text"]');
+    await texts.nth(0).click();
+    await texts.nth(1).click({ modifiers: ["Shift"] });
+    await ownerClick(page.getByTestId("contextual-multi-group"), "Group");
+    await expect(page.getByTestId("contextual-target-label")).toHaveText(/Group/i);
+    const member = texts.first();
+    const groupId = await member.getAttribute("data-group");
+    expect(groupId).toBeTruthy();
+    const beforeMembers = await readGroupMemberGeometries(page, groupId!);
+    const beforeOverlay = await page.getByTestId("composition-group-selection-overlay").boundingBox();
+    await dragSelectedNode(page, member, 50, 40);
+    await page.waitForTimeout(200);
+    const afterMembers = await readGroupMemberGeometries(page, groupId!);
+    const afterOverlay = await page.getByTestId("composition-group-selection-overlay").boundingBox();
+    const overlayMoved =
+      beforeOverlay &&
+      afterOverlay &&
+      Math.hypot(afterOverlay.x - beforeOverlay.x, afterOverlay.y - beforeOverlay.y) > 8;
+    const membersMoved =
+      beforeMembers.length >= 2 &&
+      afterMembers.length >= 2 &&
+      beforeMembers.some((before, index) => {
+        const after = afterMembers[index];
+        if (!after) return false;
+        return Math.hypot(after.x - before.x, after.y - before.y) > 6;
+      });
+    await evidenceShot(page, "groups", "06-group-drag");
+    const status = overlayMoved && membersMoved ? "VERIFIED" : overlayMoved || membersMoved ? "PARTIAL" : "BROKEN";
+    recordVerdict({
+      id: "groups.physical-drag",
+      domain: "groups",
+      label: "Group body drag moves group bounds and members",
+      status,
+      notes: [`overlayMoved=${overlayMoved}`, `membersMoved=${membersMoved}`, `members=${beforeMembers.length}`],
+      evidence: ["groups/06-group-drag.png"],
+    });
+    if (!overlayMoved && !membersMoved) throw new Error("Group drag produced no geometry change");
+  });
+
+  test("preset truth: all coupons, all tickets, button and badge samples", async ({ page }) => {
+    writeServerIdentity();
+    const manifest = buildInteractionManifest();
+    await openBlankStudio(page);
+
+    const couponIds = deriveCouponPresetIds();
+    const couponKinds = new Set<string>();
+    for (const presetId of couponIds) {
+      const node = await insertCouponPreset(page, presetId);
+      await expect(node).toHaveAttribute("data-component-kind", "coupon");
+      const kind = (await node.getAttribute("data-layout-variant")) || presetId;
+      couponKinds.add(kind);
+      await evidenceShot(page, "preset-truth", `coupon-all-${presetId}`);
+    }
+
+    const ticketIds = deriveTicketPresetIds();
+    const ticketKinds = new Set<string>();
+    for (const presetId of ticketIds) {
+      const node = await insertTicketPreset(page, presetId);
+      await expect(node).toHaveAttribute("data-component-kind", "ticket");
+      const kind = (await node.getAttribute("data-layout-variant")) || presetId;
+      ticketKinds.add(kind);
+      await evidenceShot(page, "preset-truth", `ticket-all-${presetId}`);
+    }
+
+    await openBlankStudio(page);
+    const buttonIds = deriveButtonPresetSampleIds(5);
+    for (const presetId of buttonIds) {
+      const node = await insertButtonPreset(page, presetId);
+      await expect(node).toHaveAttribute("data-primitive", "button");
+      await evidenceShot(page, "preset-truth", `button-sample-${presetId}`);
+    }
+
+    const badgeIds = deriveBadgePresetSampleIds(5);
+    for (const presetId of badgeIds) {
+      const node = await insertBadgePreset(page, presetId);
+      const shape = await node.getAttribute("data-badge-shape");
+      expect(shape).toBeTruthy();
+      await evidenceShot(page, "preset-truth", `badge-sample-${presetId}`);
+    }
+
+    recordVerdict({
+      id: "presets.full-commerce-and-samples",
+      domain: "preset-truth",
+      label: "All coupon/ticket presets + button/badge samples insert visible nodes",
+      status: "VERIFIED",
+      notes: [
+        `coupons=${couponIds.length}`,
+        `tickets=${ticketIds.length}`,
+        `couponKinds=${couponKinds.size}`,
+        `ticketKinds=${ticketKinds.size}`,
+        `buttons=${buttonIds.length}`,
+        `badges=${badgeIds.length}`,
+        `pack=${manifest.presets.pack.id}@${manifest.presets.pack.version}`,
+      ],
+      evidence: [
+        `preset-truth/coupon-all-${couponIds[0]}.png`,
+        `preset-truth/ticket-all-${ticketIds[0]}.png`,
+        `preset-truth/button-sample-${buttonIds[0]}.png`,
+        `preset-truth/badge-sample-${badgeIds[0]}.png`,
+      ],
+    });
+  });
+
+  test("card root appearance door opens overview/fill and closes coherently", async ({ page }) => {
+    writeServerIdentity();
+    await openBlankStudio(page);
+    await openCardRootAppearance(page);
+    await expect(
+      page.getByTestId("root-background-editor").or(page.getByTestId("contextual-root-surface-drawer")).first()
+    ).toBeVisible();
+    await evidenceShot(page, "drawer-transitions", "03-card-root-appearance");
+
+    const solid = page.getByTestId("root-background-editor").getByRole("button", { name: /^solid$/i }).first();
+    if ((await solid.count()) > 0) await ownerClick(solid, "Card root solid background");
+    const colorInput = page.getByTestId("root-background-editor").locator('input[type="color"]').first();
+    if ((await colorInput.count()) > 0) await colorInput.fill("#1a2b3c");
+
+    // Prefer the panel Close (clears Root focus). Rail × must also clear via host sync.
+    const panelClose = page.getByTestId("contextual-root-surface-drawer").getByRole("button", { name: /Close editor/i });
+    if ((await panelClose.count()) > 0) {
+      await ownerClick(panelClose.first(), "Close Card root Appearance panel");
+    } else {
+      await ownerClick(page.getByRole("button", { name: /Close editor/i }).first(), "Close Card root Appearance");
+    }
+    await expect(page.getByTestId("contextual-root-surface-drawer")).toHaveCount(0, { timeout: 10_000 });
+    await evidenceShot(page, "drawer-transitions", "04-card-root-appearance-closed");
+
+    recordVerdict({
+      id: "drawers.card-root-appearance",
+      domain: "drawer-transitions",
+      label: "Card Root Appearance opens fill controls and closes cleanly",
+      status: "VERIFIED",
+      notes: [],
+      evidence: ["drawer-transitions/03-card-root-appearance.png", "drawer-transitions/04-card-root-appearance-closed.png"],
+    });
   });
 });

@@ -191,8 +191,13 @@ export function setDeepLeftNestedPage(
     };
   }
   const titles: Partial<Record<DeepLeftNestedPage, string>> = {
-    "solid-colors": "Default solid colors",
-    "gradient-colors": "Default gradient colors",
+    // Appearance Fill uses solid-colors; Color library uses the same page via explicit push titles.
+    "solid-colors": current.capabilityLabel === "Appearance" || current.section === "appearance" || current.section === "effects"
+      ? "Fill"
+      : "Default solid colors",
+    "gradient-colors": current.capabilityLabel === "Appearance" || current.section === "appearance" || current.section === "effects"
+      ? "Gradient"
+      : "Default gradient colors",
     "photo-colors": "Photo colors",
     "custom-color": "Custom color",
     "design-colors": "Colors in this design",
@@ -202,6 +207,17 @@ export function setDeepLeftNestedPage(
     "change-icon": "Change Icon",
     effects: "Effects",
     neon: "Effects",
+    metallic: "Material",
+    raised: "Material",
+    glass: "Material",
+    texture: "Material",
+    flat: "Material",
+    recessed: "Material",
+    enamel: "Material",
+    style: "Border",
+    width: "Border",
+    color: "Border",
+    radius: "Border",
     recommended: "Recommended",
     "search-results": "Search results",
   };
