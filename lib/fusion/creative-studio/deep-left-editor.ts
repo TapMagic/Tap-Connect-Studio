@@ -33,6 +33,7 @@ export type DeepLeftNestedPage =
   | "metallic"
   | "enamel"
   | "neon"
+  | "effects"
   | "texture"
   | "custom"
   | "style"
@@ -199,6 +200,8 @@ export function setDeepLeftNestedPage(
     "recent-colors": "Recent colors",
     "all-gradients": "All gradients",
     "change-icon": "Change Icon",
+    effects: "Effects",
+    neon: "Effects",
     recommended: "Recommended",
     "search-results": "Search results",
   };

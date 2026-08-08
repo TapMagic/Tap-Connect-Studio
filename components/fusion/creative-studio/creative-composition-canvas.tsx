@@ -1376,6 +1376,24 @@ export function CreativeCompositionCanvas({
         const { nodes, newIds } = duplicateNodes(block.nodes, selectedNodeIds);
         commitNodes(nodes, "Duplicated composition items");
         if (newIds.length) onSelectNodes?.(newIds);
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g" && !e.shiftKey) {
+        if (selectedNodeIds.length < 2) return;
+        e.preventDefault();
+        const next = groupNodes(block.nodes, selectedNodeIds);
+        commitNodes(next, "Grouped Elements");
+        onSelectNodes?.(expandSelectionToGroups(next, selectedNodeIds));
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "g") {
+        const gid = resolveActiveGroupId(block.nodes, selectedNodeIds);
+        if (!gid) return;
+        e.preventDefault();
+        const next = ungroupNodes(block.nodes, gid);
+        commitNodes(next, "Ungrouped Elements");
+        onSelectNodes?.(selectedNodeIds);
+        return;
       }
       // Arrow nudge — responsive relative units
       const rect = surfaceRef.current?.getBoundingClientRect();
@@ -2012,7 +2030,11 @@ export function CreativeCompositionCanvas({
               event.stopPropagation();
               const rect = surfaceRef.current?.getBoundingClientRect();
               if (!rect) return;
-              onSelectNodes?.(expandSelectionToGroups(block.nodes, [node.id]));
+              // Preserve multi-selection when right-clicking an already-selected node
+              // so Group / arrange commands remain available.
+              if (!selectedSet.has(node.id) || selectedNodeIds.length <= 1) {
+                onSelectNodes?.(expandSelectionToGroups(block.nodes, [node.id]));
+              }
               setContextMenu({ id: node.id, x: event.clientX - rect.left, y: event.clientY - rect.top });
             }}
             onKeyDown={(event) => {
@@ -2158,8 +2180,8 @@ export function CreativeCompositionCanvas({
             <button role="menuitem" type="button" disabled={!hasCompositionClipboard()} className="block w-full rounded px-2 py-2 text-left hover:bg-white/5 disabled:opacity-35" onClick={() => { const result = pasteCompositionNodes(block.nodes); action(result.nodes, "Pasted Element"); onSelectNodes?.(result.newIds); }}>Paste</button>
             <button role="menuitem" type="button" disabled={!hasCompositionStyleClipboard()} className="block w-full rounded px-2 py-2 text-left hover:bg-white/5 disabled:opacity-35" onClick={() => action(pasteCompositionNodeStyle(block.nodes, node.id), "Pasted Element style")}>Paste style</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { const duplicated = duplicateNodes(block.nodes, [node.id]); action(duplicated.nodes, "Duplicated Element"); onSelectNodes?.(duplicated.newIds); }}>Duplicate</button>
-            {selectedNodeIds.length > 1 ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(groupNodes(block.nodes, selectedNodeIds), "Grouped Elements")}>Group</button> : null}
-            {node.groupId ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(ungroupNodes(block.nodes, node.groupId!), "Ungrouped Elements")}>Ungroup</button> : null}
+            {selectedNodeIds.length > 1 ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" data-testid="composition-context-group" onClick={() => { const next = groupNodes(block.nodes, selectedNodeIds); action(next, "Grouped Elements"); onSelectNodes?.(expandSelectionToGroups(next, selectedNodeIds)); }}>Group</button> : null}
+            {node.groupId ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" data-testid="composition-context-ungroup" onClick={() => { action(ungroupNodes(block.nodes, node.groupId!), "Ungrouped Elements"); onSelectNodes?.(selectedNodeIds); }}>Ungroup</button> : null}
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringForward(block.nodes, node.id), "Brought Element forward")}>Bring forward</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(sendBackward(block.nodes, node.id), "Sent Element backward")}>Send backward</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringToFront(block.nodes, node.id), "Brought Element to front")}>Bring to front</button>

@@ -57,7 +57,8 @@ const command = (id: string, label: string, drawerSection: EditorDrawerSection |
 
 const entries = [
   command("background.open", "Background", "background", ["card_root"]), command("pageSize.open", "Page size", "page-size", ["card_root"]), command("guides.open", "Guides", "guides", ["card_root"]),
-  command("appearance.open", "Appearance", "surface"), command("content.edit", "Edit", "content", ["text", "badge"]), command("font.open", "Font", "font", ["text"]),
+  // Appearance opens the shared category overview (effects focus hosts Appearance IA).
+  command("appearance.open", "Appearance", "effects"), command("content.edit", "Edit", "content", ["text", "badge"]), command("font.open", "Font", "font", ["text"]),
   command("fontSize.quick", "Font size", null, ["text"], 20, "quick-mutation"), command("bold.toggle", "Bold", null, ["text"], 21, "quick-mutation"), command("italic.toggle", "Italic", null, ["text"], 22, "quick-mutation"), command("underline.toggle", "Underline", null, ["text"], 23, "quick-mutation"),
   command("color.open", "Color", "color", ["text", "divider"]), command("material.open", "Material", "effects", ["text", "badge", "button", "container", "coupon", "ticket", "form", "shape"]), command("icon.open", "Change Icon", "content", ["icon"]), command("icon.appearance", "Appearance", "icon-appearance", ["icon"]),
   command("media.replace", "Replace", "media", ["image", "logo", "video"]), command("media.cropFit", "Crop / Fit", "crop", ["image", "logo", "video"]), command("media.adjust", "Adjust", "adjust", ["image", "logo"]),
