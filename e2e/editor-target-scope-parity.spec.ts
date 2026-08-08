@@ -43,7 +43,7 @@ test.describe("Editor target/scope + library parity", () => {
     await expect(tools).toHaveAttribute("data-selection-mode", "GROUP_PARENT");
     await expect(tools).toHaveAttribute("data-toolbar-chrome", "group_parent");
     await expect(page.getByTestId("contextual-group-appearance")).toHaveCount(1);
-    await expect(page.getByTestId("contextual-text-material")).toHaveCount(0);
+    await expect(page.getByTestId("contextual-text-appearance")).toHaveCount(0);
     await expect(page.getByTestId("contextual-font-size")).toHaveCount(0);
 
     await page.getByTestId("contextual-group-edit-contents").click();

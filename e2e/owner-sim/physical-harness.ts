@@ -119,13 +119,41 @@ export async function dismissSaveDialogIfPresent(page: Page) {
   }
 }
 
+export async function closeExtraDocumentTabs(page: Page) {
+  // Prior Clone pollution can leave dozens of tabs — close a bounded batch only.
+  for (let i = 0; i < 12; i += 1) {
+    const close = page.locator('[data-testid^="creative-document-tab-"] button[aria-label^="Close"]').first();
+    if ((await close.count()) === 0 || !(await close.isVisible().catch(() => false))) break;
+    await close.click({ timeout: 1_500 }).catch(() => undefined);
+    await page.waitForTimeout(40);
+  }
+}
+
+export async function dismissTransientStudioChrome(page: Page) {
+  await dismissSaveDialogIfPresent(page);
+  const keepClose = page.getByRole("button", { name: /^Close$/i }).first();
+  const keepCard = page.getByTestId("keep-this-card");
+  // Prefer dismissing chooser overlay if it traps the canvas.
+  if ((await page.getByText("One clear next step").count()) > 0) {
+    if ((await keepClose.count()) > 0 && (await keepClose.isVisible().catch(() => false))) {
+      await keepClose.click({ timeout: 2_000 }).catch(() => undefined);
+    }
+  }
+  const issues = page.getByRole("button", { name: /Collapse issues badge/i }).first();
+  if ((await issues.count()) > 0 && (await issues.isVisible().catch(() => false))) {
+    await issues.click({ timeout: 1_500 }).catch(() => undefined);
+  }
+  void keepCard;
+}
+
 export async function openBlankStudio(page: Page, viewport = { width: 1440, height: 960 }) {
   await page.setViewportSize(viewport);
-  await page.goto("/dashboard/card/edit", { waitUntil: "domcontentloaded" });
+  await page.goto("/dashboard/card/edit", { waitUntil: "domcontentloaded", timeout: 45_000 });
   await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute("data-builder-ready", "true", {
     timeout: 60_000,
   });
-  await dismissSaveDialogIfPresent(page);
+  await dismissTransientStudioChrome(page);
+  await closeExtraDocumentTabs(page);
   await ownerClick(page.getByTestId("card-creative-tool-templates"), "Templates rail");
   await ownerClick(
     page.getByTestId("card-template-library").getByRole("button", { name: "Blank Card" }),
@@ -276,7 +304,7 @@ export async function openAppearanceOverview(page: Page) {
           : /icon/i.test(label)
             ? ["contextual-icon-appearance"]
             : [
-                "contextual-text-material",
+                "contextual-text-appearance",
                 "contextual-appearance",
                 "contextual-button-appearance",
                 "contextual-badge-appearance",
@@ -292,12 +320,19 @@ export async function openAppearanceOverview(page: Page) {
       .or(page.getByTestId("appearance-fill-controls"))
       .first();
 
-  for (let attempt = 0; attempt < 2; attempt += 1) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
     await clickToolbarByTestId(page, ids, "Appearance");
     const drawer = page.getByTestId("card-creative-context-drawer");
     await expect(drawer).toHaveAttribute("data-drawer-mode", "edit", { timeout: 10_000 });
     if ((await appearanceContent().count()) > 0 && (await appearanceContent().isVisible().catch(() => false))) {
-      break;
+      return;
+    }
+    // Fill shortcut may land on solid-colors — that is still Appearance authority.
+    const fill = page.getByTestId("appearance-fill-controls");
+    if ((await fill.count()) > 0 && (await fill.isVisible().catch(() => false))) {
+      const back = page.getByTestId("appearance-back").first();
+      if ((await back.count()) > 0) await ownerClick(back, "Back from Fill to Appearance overview");
+      if ((await appearanceContent().count()) > 0) return;
     }
     // Stale nested page / empty portal — close via Back then reopen.
     const back = page.getByTestId("deep-left-back").or(page.getByTestId("appearance-back")).first();
@@ -742,10 +777,10 @@ export async function insertBadgePreset(page: Page, presetId: string) {
 export async function openCardRootAppearance(page: Page) {
   await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible({ timeout: 10_000 });
   await ownerClick(
-    page.locator('[data-contextual-object="card-root"]').getByRole("button", { name: /^Appearance$/i }),
-    "Card root Appearance"
+    page.locator('[data-contextual-object="card-root"]').getByRole("button", { name: /^Background$/i }),
+    "Card root Background"
   );
-  await expect(page.getByTestId("contextual-root-surface-drawer").or(page.getByTestId("root-background-editor")).first()).toBeVisible({
+  await expect(page.getByTestId("contextual-root-background-drawer").or(page.getByTestId("root-background-editor")).first()).toBeVisible({
     timeout: 10_000,
   });
 }

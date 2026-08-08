@@ -139,7 +139,7 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     await expect(page.getByTestId("appearance-category-overview")).toBeVisible();
     await page.getByTestId("appearance-category-fill").click();
     await expect(page.getByTestId("appearance-fill-controls")).toBeVisible();
-    await page.getByRole("button", { name: /GradientStudio/i }).click();
+    await page.getByTestId("appearance-open-gradient").or(page.getByRole("button", { name: /^Gradient$/i })).first().click();
     await expect(page.getByTestId("appearance-gradient-controls")).toBeVisible();
     await page.screenshot({ path: path.join(evidenceDir, "18-coupon-gradient.png") });
     // Gradient → Fill → Appearance overview

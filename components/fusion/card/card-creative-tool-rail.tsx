@@ -3,8 +3,8 @@
 import { useEffect, useState, type ReactNode } from "react";
 import Image from "next/image";
 import {
-  ArrowDown, ArrowUp, BadgeCheck, Bot, Brush, Copy, Eye, EyeOff, FolderKanban, HelpCircle, Image as ImageIcon, Layers3,
-  LayoutTemplate, Library, Lock, MousePointer2, Pencil, Shapes, Sparkles, Ticket, BadgePercent, Trash2, Type, Unlock, Wrench,
+  ArrowDown, ArrowUp, BadgeCheck, Bot, Brush, Compass, Copy, Eye, EyeOff, FolderKanban, HelpCircle, Image as ImageIcon, Layers3,
+  LayoutTemplate, Library, Lock, MousePointer2, Palette, Pencil, Shapes, Sparkles, Ticket, BadgePercent, Trash2, Type, Unlock, Wrench,
 } from "lucide-react";
 import { MediaPicker } from "@/components/media/media-picker";
 import { CardComposerLibrary } from "./card-composer-library";
@@ -69,7 +69,7 @@ const TOOLS: Array<{ id: CardCreativeTool; label: string; icon: typeof LayoutTem
   { id: "badges", label: "Badges", icon: BadgeCheck },
   { id: "coupons", label: "Coupons", icon: BadgePercent },
   { id: "tickets", label: "Tickets", icon: Ticket },
-  { id: "brand", label: "Brand", icon: BadgeCheck },
+  { id: "brand", label: "Brand", icon: Palette },
   { id: "assets", label: "Assets", icon: ImageIcon },
   { id: "backgrounds", label: "Background", icon: Brush },
   { id: "projects", label: "Projects", icon: FolderKanban },
@@ -79,7 +79,7 @@ const TOOLS: Array<{ id: CardCreativeTool; label: string; icon: typeof LayoutTem
   { id: "tools", label: "Tools", icon: Wrench },
   { id: "help", label: "Help", icon: HelpCircle },
   // Build remains available as an optional guided checklist only — not a duplicate catalog.
-  { id: "build", label: "Guide", icon: HelpCircle },
+  { id: "build", label: "Guide", icon: Compass },
 ];
 
 export function CardCreativeToolRail({ model, activeTool, drawerOpen: controlledDrawerOpen, onActiveToolChange, onDrawerOpenChange }: { model: CardEditorLiveModel | null; activeTool?: CardCreativeTool; drawerOpen?: boolean; onActiveToolChange?: (tool: CardCreativeTool) => void; onDrawerOpenChange?: (open: boolean) => void }) {
@@ -694,7 +694,20 @@ function ReusableDrawer({ model, matches }: { model: CardEditorLiveModel; matche
   return <div className="space-y-3" data-testid="reusable-composition-library"><div className="rounded border border-white/10 p-2"><label className="text-[10px] text-white/60">Composition name<input value={name} onChange={(event) => setName(event.target.value)} className="mt-1 h-9 w-full rounded border border-white/10 bg-black/20 px-2 text-xs" /></label><button type="button" disabled={!canSave} className="mt-2 min-h-10 w-full rounded bg-[#b8ff2c] px-2 text-xs font-semibold text-[#07100a] disabled:opacity-40" onClick={save}>Save selection as reusable composition</button><p className="mt-1 text-[9px] text-white/40">No flattening: canonical Elements, background, styles, and motion are preserved.</p></div>{resources.filter((resource) => matches(resource.label)).map((resource) => <div key={resource.id} className="rounded border border-white/10 p-2" data-testid="reusable-composition-resource"><p className="text-xs font-semibold">{resource.label}</p><p className="text-[9px] text-white/45">{resource.nodes.length} editable Elements · revision {resource.resourceRef?.revisionId}</p><button type="button" className="mt-2 min-h-9 w-full rounded border border-white/10 text-[10px]" onClick={() => place(resource)}>Place independent instance</button></div>)}{resources.length === 0 ? <p className="text-xs text-white/45">Select one or more Elements, then save the first reusable composition.</p> : null}</div>;
 }
 
-function LibraryAction({ label, description, onClick }: { label: string; description: string; onClick: () => void }) { return <button type="button" onClick={onClick} className="block min-h-12 w-full rounded border border-white/10 px-2 py-2 text-left hover:bg-white/5"><span className="block text-xs text-white/80">{label}</span><span className="block text-[9px] text-white/45">{description}</span></button>; }
+function LibraryAction({ label, description, onClick }: { label: string; description: string; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      title={description}
+      className="block min-h-12 w-full rounded border border-white/10 px-2 py-2 text-left hover:bg-white/5"
+    >
+      <span className="block text-xs text-white/80">{label}</span>
+      <span className="block text-[9px] text-white/45" aria-hidden="true">{description}</span>
+    </button>
+  );
+}
 function LayersDrawer({ model }: { model: CardEditorLiveModel }) {
   const selectNode = (parentId: string | null, nodeId: string, additive: boolean) => {
     const sameParent = (parentId === null && !model.selected) || model.selected?.id === parentId;

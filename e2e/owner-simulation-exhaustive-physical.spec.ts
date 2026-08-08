@@ -59,12 +59,22 @@ import {
   seedExhaustiveCasePlan,
   ledgerSummary,
   upsertLedgerCase,
+  purgeRuntimeLedgerCases,
 } from "./owner-sim/exhaustive-ledger";
 import {
   scrapeRuntimeControls,
   writeRuntimeInventory,
   mergeRuntimeInventories,
 } from "./owner-sim/runtime-inventory";
+import {
+  contextsForControl,
+  dismissBlockingOverlays,
+  isObjectLocalControl,
+  ledgerIdFor,
+  operateControlPhysically,
+  reconstructContext,
+  type ProvenancedControl,
+} from "./owner-sim/blindfold-crawl";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -99,7 +109,53 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
     const snapshots = [await scrapeRuntimeControls(page, "blank-card-root")];
     writeRuntimeInventory(snapshots[0]!, "runtime-blank.json");
 
+    // Workspace chrome contexts — Blindfold: prefs / overflow / root Background are in scope.
+    const prefs = page.getByTestId("editor-preferences-menu");
+    await expect(prefs).toBeVisible({ timeout: 10_000 });
+    await prefs.evaluate((el) => {
+      (el as HTMLDetailsElement).open = true;
+    });
+    await expect(prefs.locator("input[type='checkbox']").first()).toBeVisible({ timeout: 5_000 });
+    snapshots.push(
+      await scrapeRuntimeControls(page, "editor-preferences", {
+        withinSelector: '[data-testid="editor-preferences-menu"]',
+      })
+    );
+    writeRuntimeInventory(snapshots[snapshots.length - 1]!, "runtime-editor-preferences.json");
+    await prefs.evaluate((el) => {
+      (el as HTMLDetailsElement).open = false;
+    });
+
+    const overflow = page.getByTestId("card-overflow-menu");
+    if ((await overflow.count()) > 0 && (await overflow.isVisible().catch(() => false))) {
+      await overflow.evaluate((el) => {
+        (el as HTMLDetailsElement).open = true;
+      });
+      snapshots.push(
+        await scrapeRuntimeControls(page, "overflow-menu", {
+          withinSelector: '[data-testid="card-overflow-menu"]',
+        })
+      );
+      writeRuntimeInventory(snapshots[snapshots.length - 1]!, "runtime-overflow-menu.json");
+      await overflow.evaluate((el) => {
+        (el as HTMLDetailsElement).open = false;
+      });
+    }
+
+    await ownerClick(
+      page.locator('[data-contextual-object="card-root"]').getByRole("button", { name: /^Background$/i }),
+      "Card root Background inventory"
+    );
+    await expect(page.getByTestId("root-background-editor")).toBeVisible({ timeout: 10_000 });
+    snapshots.push(
+      await scrapeRuntimeControls(page, "root-background", {
+        withinSelector: '[data-testid="card-contextual-object-tools"], [data-testid="deep-left-edit-drawer"], [data-testid="card-creative-context-drawer"]',
+      })
+    );
+    writeRuntimeInventory(snapshots[snapshots.length - 1]!, "runtime-root-background.json");
+
     for (const surface of INSERT_SURFACES) {
+      await openBlankStudio(page);
       const inserted = await insertFamily(page, surface.family);
       await inserted.node.click();
       const snap = await scrapeRuntimeControls(page, `selected-${surface.family}`);
@@ -109,7 +165,7 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
       const appearanceIds = [
         "contextual-button-appearance",
         "contextual-badge-appearance",
-        "contextual-text-material",
+        "contextual-text-appearance",
         "contextual-group-appearance",
         "contextual-icon-appearance",
         "contextual-appearance",
@@ -127,22 +183,30 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
 
     const merged = mergeRuntimeInventories(snapshots);
     const enabled = merged.filter((c) => c.enabled);
+    const contextControlCases = enabled.reduce((sum, c) => sum + (((c as { contexts?: string[] }).contexts?.length) || 1), 0);
     const report = {
       capturedAt: new Date().toISOString(),
       contexts: snapshots.length,
       uniqueControls: merged.length,
       enabledVisible: enabled.length,
+      contextControlCases,
       withTestId: enabled.filter((c) => c.testId).length,
       withoutTestId: enabled.filter((c) => !c.testId).length,
       controls: merged,
+      blindfold: true,
     };
     fs.writeFileSync(path.join(EVIDENCE_ROOT, "_manifest", "runtime-inventory-merged.json"), JSON.stringify(report, null, 2));
     recordVerdict({
       id: "exhaustive.runtime-inventory",
       domain: "libraries",
-      label: "Runtime interactive inventory across insert families",
+      label: "Runtime interactive inventory across insert families + chrome",
       status: "VERIFIED",
-      notes: [`unique=${merged.length}`, `enabled=${enabled.length}`, `contexts=${snapshots.length}`],
+      notes: [
+        `unique=${merged.length}`,
+        `enabled=${enabled.length}`,
+        `contextControlCases=${contextControlCases}`,
+        `contexts=${snapshots.length}`,
+      ],
       evidence: ["_manifest/runtime-inventory-merged.json"],
     });
     upsertLedgerCase({
@@ -150,7 +214,7 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
       class: "runtime-inventory",
       label: "Merged runtime inventory",
       status: "VERIFIED",
-      notes: [`unique=${merged.length}`, `enabled=${enabled.length}`],
+      notes: [`unique=${merged.length}`, `enabled=${enabled.length}`, `contextControlCases=${contextControlCases}`],
     });
     expect(enabled.length).toBeGreaterThan(40);
   });
@@ -189,18 +253,19 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
       }
       signatures.set(family, unique);
       const distinct = unique.size;
-      // Allow some visual overlap but require most effects to differ
-      const minDistinct = Math.max(6, Math.floor(effectIds.length * 0.55));
+      // Blindfold: every named Effect must earn a distinct visual identity — no percentage escape.
       recordVerdict({
         id: `exhaustive.effects.${family}`,
         domain: "effects",
         label: `All ${effectIds.length} effects on ${family}`,
-        status: distinct >= minDistinct ? "VERIFIED" : "BROKEN",
-        notes: [`distinct=${distinct}/${effectIds.length}`, `minRequired=${minDistinct}`],
+        status: distinct === effectIds.length ? "VERIFIED" : "BROKEN",
+        notes: [`distinct=${distinct}/${effectIds.length}`, "requireEveryNamedChoiceDistinct=true"],
         evidence: effectIds.map((id) => `exhaustive/effect-${family}-${id}.png`),
       });
-      if (distinct < minDistinct) {
-        throw new Error(`${family} effects not sufficiently distinct: ${distinct}/${effectIds.length}`);
+      if (distinct !== effectIds.length) {
+        throw new Error(
+          `${family} effects must each be visually distinct: ${distinct}/${effectIds.length}. Consolidate duplicates or differentiate recipes.`
+        );
       }
     }
   });
@@ -256,17 +321,24 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
         }
       }
       await evidenceShot(page, "exhaustive", `materials-${family}-final`);
-      const minDistinct = Math.max(12, Math.floor(materialIds.length * 0.35));
+      // Blindfold: every named Material must earn a distinct paint/attr identity — no percentage escape.
       recordVerdict({
         id: `exhaustive.materials.${family}`,
         domain: "appearance",
         label: `All ${materialIds.length} materials on ${family}`,
-        status: applied === materialIds.length && signatures.size >= minDistinct ? "VERIFIED" : "BROKEN",
-        notes: [`applied=${applied}`, `distinctSignatures=${signatures.size}`, `minDistinct=${minDistinct}`],
+        status: applied === materialIds.length && signatures.size === materialIds.length ? "VERIFIED" : "BROKEN",
+        notes: [
+          `applied=${applied}`,
+          `distinctSignatures=${signatures.size}/${materialIds.length}`,
+          "requireEveryNamedChoiceDistinct=true",
+        ],
         evidence: [`exhaustive/materials-${family}-final.png`],
       });
       expect(applied).toBe(materialIds.length);
-      expect(signatures.size).toBeGreaterThanOrEqual(minDistinct);
+      expect(
+        signatures.size,
+        `${family} materials must each be visually distinct: ${signatures.size}/${materialIds.length}`
+      ).toBe(materialIds.length);
     }
   });
 
@@ -589,88 +661,195 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
   });
 
   test("account every enabled runtime control from merged inventory", async ({ page }) => {
+    test.setTimeout(7_200_000);
     writeServerIdentity();
+    purgeRuntimeLedgerCases();
     const mergedPath = path.join(EVIDENCE_ROOT, "_manifest", "runtime-inventory-merged.json");
     expect(fs.existsSync(mergedPath)).toBeTruthy();
     const merged = JSON.parse(fs.readFileSync(mergedPath, "utf8")) as {
-      controls: Array<{ testId: string; name: string; enabled: boolean; tag: string; inRail: boolean; inToolbar: boolean; inDrawer: boolean }>;
+      controls: Array<ProvenancedControl & { inToolbar?: boolean; inDrawer?: boolean; inCanvasChrome?: boolean; inRail?: boolean }>;
     };
-    await openBlankStudio(page);
     let verified = 0;
     let deferred = 0;
     let na = 0;
+    let broken = 0;
+    let contextCases = 0;
+    const failures: string[] = [];
+
+    // Batch by discovery context — reconstruct once, then touch every control in that context.
+    // Shared workspace chrome is certified once (not re-cloned across every family context).
+    const byContext = new Map<string, ProvenancedControl[]>();
     for (const control of merged.controls.filter((c) => c.enabled)) {
-      const id = `runtime.${control.testId || control.tag}.${control.name}`.replace(/\s+/g, "_").slice(0, 160);
-      // Out-of-studio / non-authoring chrome
-      if (
-        /Next\.js|Dev Tools|Publish|Exit Edit|Clone|Resize \/ Adapt|Update|Open Next|Skip to main|system|checkerboard|comfortable|compact|Rulers|Grid|Safe margins|Alignment guides|Publication boundary|Dim outside|Reduced motion|High contrast|Larger controls|Simulate reduced/i.test(
-          control.name
-        )
-      ) {
-        markLedger(id, "DEFERRED_BY_SCOPE", {
-          class: "runtime-control",
-          label: control.name || control.testId,
-          notes: ["workspace chrome / preferences — outside Creative Studio authoring surface"],
-        });
-        deferred += 1;
-        continue;
-      }
-      if (!control.testId) {
-        markLedger(id, "NOT_APPLICABLE", {
-          class: "runtime-control",
-          label: control.name || control.tag,
-          notes: ["no stable test id — accounted via role/name inventory; operated through family crawls where applicable"],
-        });
-        na += 1;
-        continue;
-      }
-      // Already covered by exhaustive discrete/family matrices
-      if (/^(effect-|material-|badge-shape-|button-preset-|coupon-preset-|ticket-preset-|text-combination-|starter-badge|appearance-category-|icon-recommended-)/.test(control.testId)) {
-        markLedger(id, "VERIFIED", {
-          class: "runtime-control",
-          label: control.testId,
-          notes: ["covered by discrete exhaustion suites"],
-        });
-        verified += 1;
-        continue;
-      }
-      const locator = page.getByTestId(control.testId).first();
-      if ((await locator.count()) === 0 || !(await locator.isVisible().catch(() => false))) {
-        markLedger(id, "NOT_APPLICABLE", {
-          class: "runtime-control",
-          label: control.testId,
-          notes: ["not visible in blank-card context; discovered in other family context"],
-        });
-        na += 1;
-        continue;
-      }
-      try {
-        await ownerClick(locator, `runtime ${control.testId}`);
-        await page.waitForTimeout(80);
-        markLedger(id, "VERIFIED", {
-          class: "runtime-control",
-          label: control.testId,
-          notes: ["physically clicked in blank-card / inventory accounting pass"],
-        });
-        verified += 1;
-      } catch (error) {
-        markLedger(id, "BROKEN", {
-          class: "runtime-control",
-          label: control.testId,
-          notes: [error instanceof Error ? error.message : String(error)],
-        });
-        throw error;
+      for (const contextLabel of contextsForControl(control)) {
+        // Family/appearance contexts only operate object-local controls — rail/chrome is blank-card-root.
+        if (
+          (contextLabel.startsWith("selected-") || contextLabel.startsWith("appearance-")) &&
+          !isObjectLocalControl(control)
+        ) {
+          continue;
+        }
+        const list = byContext.get(contextLabel) || [];
+        list.push(control);
+        byContext.set(contextLabel, list);
       }
     }
+
+    // Prefer stable chrome contexts first; Preview is high-risk for stranding Edit mode.
+    const contextOrder = [
+      "blank-card-root",
+      "editor-preferences",
+      "overflow-menu",
+      "root-background",
+      ...[...byContext.keys()].filter((k) => k.startsWith("selected-")).sort(),
+      ...[...byContext.keys()].filter((k) => k.startsWith("appearance-")).sort(),
+    ].filter((k, i, arr) => byContext.has(k) && arr.indexOf(k) === i);
+
+    for (const contextLabel of contextOrder) {
+      const controls = byContext.get(contextLabel) || [];
+      // Defer Preview until the end of blank-card-root so it cannot hide the contextual toolbar.
+      if (contextLabel === "blank-card-root") {
+        controls.sort((a, b) => {
+          const score = (c: ProvenancedControl) => {
+            if (
+              c.testId === "card-preview-as-customer" ||
+              c.testId === "card-exit-edit-mode" ||
+              c.testId === "card-resize-adapt" ||
+              /preview draft|exit edit|resize \/ adapt/i.test(c.name)
+            ) {
+              return 2;
+            }
+            if (/^contextual-root-/.test(c.testId) || /^(Background|Page size|Guides|More root actions)$/i.test(c.name)) {
+              return 0;
+            }
+            return 1;
+          };
+          return score(a) - score(b);
+        });
+      }
+      try {
+        await reconstructContext(page, contextLabel);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        for (const control of controls) {
+          contextCases += 1;
+          broken += 1;
+          const id = ledgerIdFor(control, contextLabel);
+          markLedger(id, "BROKEN", {
+            class: "runtime-control",
+            label: control.testId || control.name || control.tag,
+            context: contextLabel,
+            notes: [`context reconstruct failed: ${message}`],
+          });
+          failures.push(`${id}: reconstruct ${message}`);
+        }
+        continue;
+      }
+      for (const control of controls) {
+        contextCases += 1;
+        const id = ledgerIdFor(control, contextLabel);
+        try {
+          const result = await operateControlPhysically(page, control, contextLabel);
+          markLedger(id, result.status, {
+            class: "runtime-control",
+            label: control.testId || control.name || control.tag,
+            context: contextLabel,
+            notes: result.notes,
+          });
+          if (result.status === "VERIFIED") verified += 1;
+          else if (result.status === "DEFERRED_BY_SCOPE") deferred += 1;
+          else if (result.status === "NOT_APPLICABLE") na += 1;
+          else if (result.status === "BROKEN" || result.status === "BLOCKED") {
+            broken += 1;
+            failures.push(`${id}: ${result.notes.join(" | ")}`);
+            await page.keyboard.press("Escape").catch(() => undefined);
+            await page.keyboard.press("Escape").catch(() => undefined);
+            await dismissBlockingOverlays(page).catch(() => undefined);
+          }
+          // Topbar chrome can clear Card-root selection — restore before further root doors / rail work.
+          if (contextLabel === "blank-card-root" || contextLabel === "root-background") {
+            const rootTools = page.locator('[data-contextual-object="card-root"]');
+            if ((await rootTools.count()) === 0 || !(await rootTools.isVisible().catch(() => false))) {
+              await page.getByTestId("card-creative-tool-templates").click({ timeout: 5_000 }).catch(() => undefined);
+              await page
+                .getByTestId("card-template-library")
+                .getByRole("button", { name: "Blank Card" })
+                .click({ timeout: 8_000 })
+                .catch(() => undefined);
+              await page.waitForTimeout(120);
+            }
+          }
+          // Operating a control can dismiss drawers — re-establish context when Appearance/chrome collapses.
+          if (
+            contextLabel.startsWith("appearance-") ||
+            contextLabel === "editor-preferences" ||
+            contextLabel === "overflow-menu" ||
+            contextLabel === "root-background"
+          ) {
+            const stillInContext =
+              contextLabel.startsWith("appearance-")
+                ? (await page.getByTestId("appearance-category-overview").or(page.getByTestId("material-engine-controls")).or(page.getByTestId("appearance-fill-controls")).or(page.getByTestId("appearance-effects-list")).count()) > 0
+                : contextLabel === "editor-preferences"
+                  ? await page.getByTestId("editor-preferences-menu").evaluate((el) => (el as HTMLDetailsElement).open).catch(() => false)
+                  : contextLabel === "root-background"
+                    ? (await page.getByTestId("root-background-editor").count()) > 0
+                    : await page.getByTestId("card-overflow-menu").evaluate((el) => (el as HTMLDetailsElement).open).catch(() => false);
+            if (!stillInContext) {
+              await reconstructContext(page, contextLabel);
+            }
+          }
+        } catch (error) {
+          broken += 1;
+          const message = error instanceof Error ? error.message : String(error);
+          markLedger(id, "BROKEN", {
+            class: "runtime-control",
+            label: control.testId || control.name || control.tag,
+            context: contextLabel,
+            notes: [message],
+          });
+          failures.push(`${id}: ${message}`);
+          // Recover workspace for remaining controls in this context.
+          await reconstructContext(page, contextLabel).catch(() => undefined);
+        }
+      }
+    }
+
     const summary = ledgerSummary();
+    fs.writeFileSync(
+      path.join(EVIDENCE_ROOT, "_reports", "blindfold-accounting-summary.json"),
+      JSON.stringify(
+        {
+          verified,
+          deferred,
+          na,
+          broken,
+          contextCases,
+          contexts: [...byContext.keys()],
+          unresolved: summary.unresolved,
+          failureSample: failures.slice(0, 80),
+        },
+        null,
+        2
+      )
+    );
     recordVerdict({
       id: "exhaustive.runtime-control-accounting",
       domain: "libraries",
-      label: "Every enabled runtime control accounted",
-      status: summary.unresolved === 0 ? "VERIFIED" : "BROKEN",
-      notes: [`verified=${verified}`, `deferred=${deferred}`, `na=${na}`, `unresolved=${summary.unresolved}`],
-      evidence: ["_reports/exhaustive-ledger.json"],
+      label: "Blindfold: every enabled runtime control×context physically operated",
+      status: broken === 0 && summary.unresolved === 0 ? "VERIFIED" : "BROKEN",
+      notes: [
+        `verified=${verified}`,
+        `deferred=${deferred}`,
+        `na=${na}`,
+        `broken=${broken}`,
+        `contextCases=${contextCases}`,
+        `unresolved=${summary.unresolved}`,
+        `falseNaRemoved=true`,
+      ],
+      evidence: ["_reports/exhaustive-ledger.json", "_reports/blindfold-accounting-summary.json"],
     });
+    if (failures.length) {
+      throw new Error(`Blindfold runtime accounting failures (${failures.length}):\n${failures.slice(0, 40).join("\n")}`);
+    }
     expect(summary.unresolved, `Unresolved ledger cases remain: ${summary.unresolved}`).toBe(0);
   });
 });

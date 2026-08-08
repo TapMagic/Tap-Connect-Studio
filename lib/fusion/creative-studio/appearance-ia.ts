@@ -63,7 +63,7 @@ export function appearanceCategoriesForFamily(family: ObjectFamily): AppearanceC
     case "card_root":
       return [
         { id: "fill", label: "Fill", description: "Card background color or gradient", primary: ["solid", "gradient"] },
-        { id: "texture", label: "Material / Texture", description: "Background material recipes", primary: ["materials"] },
+        { id: "texture", label: "Material", description: "Background material recipes", primary: ["materials"] },
         { id: "media", label: "Media", description: "Background photo or video", primary: ["media"] },
         { id: "effects", label: "Effects", description: "Overlay and atmospheric effects", primary: ["effects"] },
       ];

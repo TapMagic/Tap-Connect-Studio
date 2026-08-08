@@ -116,7 +116,7 @@ test.describe("universal appearance materials system", () => {
     await page.locator('input[aria-label="Custom glyph color"]').fill("#0000ff");
     await page.screenshot({ path: path.join(evidenceDir, "09-aa-blue-on-green.png"), fullPage: false });
 
-    await page.getByTestId("contextual-text-material").click();
+    await page.getByTestId("contextual-text-appearance").click();
     await expect(page.getByTestId("appearance-category-overview").or(page.getByTestId("material-engine-controls"))).toBeVisible({ timeout: 15_000 });
     if (await page.getByTestId("appearance-category-material").count()) {
       await page.getByTestId("appearance-category-material").click();

@@ -104,7 +104,7 @@ export const COMMAND_TO_TOOLBAR_TESTID: Readonly<Record<string, string | string[
   "underline.toggle": ["contextual-group-underline"],
   "content.edit": ["contextual-content"],
   "appearance.open": [
-    "contextual-text-material",
+    "contextual-text-appearance",
     "contextual-button-appearance",
     "contextual-badge-appearance",
     "contextual-group-appearance",
@@ -112,7 +112,7 @@ export const COMMAND_TO_TOOLBAR_TESTID: Readonly<Record<string, string | string[
     "contextual-appearance",
     "contextual-frame-appearance",
   ],
-  "material.open": ["contextual-text-material", "contextual-button-appearance", "contextual-badge-appearance"],
+  "material.open": ["contextual-text-appearance", "contextual-button-appearance", "contextual-badge-appearance"],
   "icon.open": ["contextual-icon-picker"],
   "icon.appearance": ["contextual-icon-appearance"],
   "component.editChildren": [

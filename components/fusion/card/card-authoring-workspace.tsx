@@ -274,6 +274,11 @@ export function CardAuthoringWorkspace({
     "expanded" | "compact" | "collapsed" | "pinned" | "focus"
   >("compact");
   const apiRef = useRef<CardBuilderShellApi | null>(null);
+  const editorPreferencesRef = useRef<HTMLDetailsElement | null>(null);
+  const openCanvasAssistance = useCallback(() => {
+    const details = editorPreferencesRef.current;
+    if (details) details.open = true;
+  }, []);
   const [builderReady, setBuilderReady] = useState(false);
   const [nameDraft, setNameDraft] = useState(status.cardName);
   const lastReportedNameRef = useRef(status.cardName);
@@ -707,21 +712,21 @@ export function CardAuthoringWorkspace({
         <button type="button" className="hidden min-h-10 items-center rounded-md border border-white/15 px-3 text-xs lg:inline-flex" onClick={() => void apiRef.current?.cloneDocument()} data-testid="card-clone"><Copy className="mr-1 h-4 w-4" />Clone</button>
         <button type="button" className="hidden min-h-10 rounded-md border border-white/15 px-3 text-xs lg:block" onClick={() => { setAdvancedSettingsOpen(false); setResizeAdaptOpen(true); }} data-testid="card-resize-adapt">Resize / Adapt</button>
         <button type="button" className="hidden min-h-10 rounded-md border border-white/15 px-3 text-xs lg:block" disabled={!status.canPublish} onClick={() => void apiRef.current?.publish()} data-testid="card-publish">{status.publicationLabel === "Not published" ? "Publish" : "Update"}</button>
-        <details className="relative" data-testid="editor-preferences-menu">
-          <summary className="grid min-h-10 min-w-10 cursor-pointer list-none place-items-center rounded-md border border-white/15 px-2" aria-label="Editor appearance and canvas assistance"><SlidersHorizontal className="h-4 w-4" /></summary>
+        <details ref={editorPreferencesRef} className="relative" data-testid="editor-preferences-menu">
+          <summary className="grid min-h-10 min-w-10 cursor-pointer list-none place-items-center rounded-md border border-white/15 px-2" aria-label="Editor theme and canvas assistance"><SlidersHorizontal className="h-4 w-4" /></summary>
           <div className="absolute right-0 top-full z-[1750] mt-1 w-72 space-y-3 rounded-xl border border-white/15 bg-[var(--studio-panel)] p-3 text-xs text-[var(--studio-text)] shadow-2xl">
-            <PreferenceChoices label="Appearance" value={editorPreferences.appearance} choices={["system", "light", "dark"]} onChange={(appearance) => updateEditorPreferences({ appearance: appearance as EditorPreferences["appearance"] })} />
+            <PreferenceChoices label="Editor theme" value={editorPreferences.appearance} choices={["system", "light", "dark"]} onChange={(appearance) => updateEditorPreferences({ appearance: appearance as EditorPreferences["appearance"] })} />
             <PreferenceChoices label="Pasteboard" value={editorPreferences.pasteboard} choices={["light", "dark", "neutral", "checkerboard"]} onChange={(pasteboard) => updateEditorPreferences({ pasteboard: pasteboard as EditorPreferences["pasteboard"] })} />
             <PreferenceChoices label="Density" value={editorPreferences.density} choices={["comfortable", "compact"]} onChange={(density) => updateEditorPreferences({ density: density as EditorPreferences["density"] })} />
-            <div><p className="mb-1 font-semibold">Canvas assistance</p>{([ ["rulers", "Rulers"], ["grid", "Grid"], ["safeMargins", "Safe margins"], ["alignmentGuides", "Alignment guides"], ["publicationBoundary", "Publication boundary"], ["dimOutsideDocument", "Dim outside document"] ] as const).map(([key, label]) => <label key={key} className="flex min-h-8 items-center gap-2"><input type="checkbox" checked={editorPreferences[key]} onChange={(event) => updateEditorPreferences({ [key]: event.target.checked })} />{label}</label>)}</div>
-            <div><p className="mb-1 font-semibold">Accessibility</p>{([ ["reducedMotion", "Reduced motion"], ["highContrast", "High contrast"], ["largerControls", "Larger controls"] ] as const).map(([key, label]) => <label key={key} className="flex min-h-8 items-center gap-2"><input type="checkbox" checked={editorPreferences[key]} onChange={(event) => updateEditorPreferences({ [key]: event.target.checked })} />{label}</label>)}</div>
+            <div><p className="mb-1 font-semibold">Canvas assistance</p>{([ ["rulers", "Rulers"], ["grid", "Grid"], ["safeMargins", "Safe margins"], ["alignmentGuides", "Alignment guides"], ["publicationBoundary", "Publication boundary"], ["dimOutsideDocument", "Dim outside document"] ] as const).map(([key, label]) => <label key={key} className="flex min-h-8 items-center gap-2"><input type="checkbox" checked={editorPreferences[key]} onChange={(event) => updateEditorPreferences({ [key]: event.target.checked })} aria-label={label} />{label}</label>)}</div>
+            <div><p className="mb-1 font-semibold">Accessibility</p>{([ ["reducedMotion", "Reduced motion"], ["highContrast", "High contrast"], ["largerControls", "Larger controls"] ] as const).map(([key, label]) => <label key={key} className="flex min-h-8 items-center gap-2"><input type="checkbox" checked={editorPreferences[key]} onChange={(event) => updateEditorPreferences({ [key]: event.target.checked })} aria-label={label} />{label}</label>)}</div>
           </div>
         </details>
         <button type="button" className="inline-flex min-h-10 items-center justify-center rounded-md border border-white/15 px-3 text-xs" onClick={() => void requestExit()} aria-label="Exit Edit Mode" title="Exit Edit Mode" data-testid="card-exit-edit-mode"><X className="h-4 w-4 sm:mr-1" /><span className="hidden sm:inline">Exit Edit Mode</span></button>
         <details className="relative hidden xl:block" data-testid="card-overflow-menu">
           <summary className="grid min-h-10 min-w-10 cursor-pointer list-none place-items-center rounded-md border border-white/15 px-2 text-xs text-white/80" aria-label="More Card actions">•••</summary>
           <div className="absolute right-0 top-full z-[1600] mt-1 grid min-w-52 gap-1 rounded-lg border border-white/15 bg-[#090e18] p-2 shadow-2xl">
-            <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" onClick={() => openCardTool("history")}>History</button>
+            <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" data-testid="card-history" onClick={() => openCardTool("history")}>History</button>
             <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" aria-pressed={previewMotion} data-testid="card-preview-motion" onClick={() => setPreviewMotion((active) => !active)}>{previewMotion ? "Stop motion preview" : "Preview motion"}</button>
             <button type="button" className="min-h-9 rounded-md px-2 text-left text-xs text-white/80 hover:bg-white/5" data-testid="card-restart-motion" onClick={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }}>Restart animation</button>
             <label className="flex min-h-9 items-center gap-2 rounded-md px-2 text-xs text-white/80 hover:bg-white/5"><input type="checkbox" checked={reducedMotionSimulation} onChange={(event) => setReducedMotionSimulation(event.target.checked)} data-testid="card-reduced-motion-simulation" />Simulate reduced motion</label>
@@ -767,7 +772,7 @@ export function CardAuthoringWorkspace({
       } as CSSProperties}
     >
       {studioMode === "edit" ? editTopBar : null}
-      {studioMode === "edit" ? <CardContextualObjectToolbar key={`${creativeTool}:${resizeAdaptOpen ? "adapt" : "canvas"}`} model={liveModel} onAdvanced={() => { setResizeAdaptOpen(false); setAdvancedSettingsOpen(true); }} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} onPreviewMotion={() => setPreviewMotion((active) => !active)} onRestartMotion={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }} onReducedMotionSimulation={setReducedMotionSimulation} /> : null}
+      {studioMode === "edit" ? <CardContextualObjectToolbar key={`${creativeTool}:${resizeAdaptOpen ? "adapt" : "canvas"}`} model={liveModel} onAdvanced={() => { setResizeAdaptOpen(false); setAdvancedSettingsOpen(true); }} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} onPreviewMotion={() => setPreviewMotion((active) => !active)} onRestartMotion={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }} onReducedMotionSimulation={setReducedMotionSimulation} onOpenCanvasAssistance={openCanvasAssistance} /> : null}
       {studioMode === "edit" && advancedSettingsOpen ? <CardAdvancedSettingsOverlay model={liveModel} onClose={() => setAdvancedSettingsOpen(false)} /> : null}
       {studioMode === "edit" && resizeAdaptOpen ? <ResizeAdaptOverlay onClose={() => setResizeAdaptOpen(false)} onAdapt={async (profile) => { const ok = await apiRef.current?.adaptDocument(profile.id); if (ok) setResizeAdaptOpen(false); }} /> : null}
       {status.recoveryState !== "none" && studioMode === "edit" ? (
@@ -1088,7 +1093,26 @@ function PreferenceChoices({
   choices: readonly string[];
   onChange: (value: string) => void;
 }) {
-  return <fieldset><legend className="mb-1 font-semibold">{label}</legend><div className="grid grid-cols-2 gap-1">{choices.map((choice) => <label key={choice} className="flex min-h-9 items-center gap-2 rounded-md border border-current/10 px-2 capitalize"><input type="radio" name={`editor-${label}`} value={choice} checked={value === choice} onChange={() => onChange(choice)} />{choice}</label>)}</div></fieldset>;
+  return (
+    <fieldset>
+      <legend className="mb-1 font-semibold">{label}</legend>
+      <div className="grid grid-cols-2 gap-1">
+        {choices.map((choice) => (
+          <label key={choice} className="flex min-h-9 items-center gap-2 rounded-md border border-current/10 px-2 capitalize">
+            <input
+              type="radio"
+              name={`editor-${label}`}
+              value={choice}
+              checked={value === choice}
+              onChange={() => onChange(choice)}
+              aria-label={`${label}: ${choice}`}
+            />
+            {choice}
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
 }
 
 function pasteboardStyle(theme: EditorPreferences["pasteboard"]): CSSProperties {

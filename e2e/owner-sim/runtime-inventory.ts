@@ -26,6 +26,8 @@ export type RuntimeControl = {
   inRail: boolean;
   inDrawer: boolean;
   inCanvasChrome: boolean;
+  /** Context label where this control instance was scraped (provenance). */
+  discoveryContext?: string;
 };
 
 export type RuntimeInventorySnapshot = {
@@ -69,9 +71,17 @@ const INTERACTIVE_SELECTOR = [
 ].join(",");
 
 /** Read-only scrape of currently rendered interactive controls. */
-export async function scrapeRuntimeControls(page: Page, contextLabel: string): Promise<RuntimeInventorySnapshot> {
-  const controls = await page.evaluate((selector) => {
-    const nodes = Array.from(document.querySelectorAll(selector)) as HTMLElement[];
+export async function scrapeRuntimeControls(
+  page: Page,
+  contextLabel: string,
+  options?: { withinSelector?: string }
+): Promise<RuntimeInventorySnapshot> {
+  const controls = await page.evaluate(({ selector, withinSelector }) => {
+    const roots: ParentNode[] = withinSelector
+      ? Array.from(document.querySelectorAll(withinSelector))
+      : [document];
+    if (!roots.length) return [] as Array<Record<string, unknown>>;
+    const nodes = roots.flatMap((root) => Array.from(root.querySelectorAll(selector)) as HTMLElement[]);
     const seen = new Set<string>();
     const out: Array<{
       key: string;
@@ -93,7 +103,9 @@ export async function scrapeRuntimeControls(page: Page, contextLabel: string): P
     for (const el of nodes) {
       const style = window.getComputedStyle(el);
       const rect = el.getBoundingClientRect();
+      const closedDetails = el.closest("details:not([open])");
       const visible =
+        !closedDetails &&
         style.display !== "none" &&
         style.visibility !== "hidden" &&
         Number(style.opacity || "1") > 0.01 &&
@@ -143,7 +155,7 @@ export async function scrapeRuntimeControls(page: Page, contextLabel: string): P
       });
     }
     return out;
-  }, INTERACTIVE_SELECTOR);
+  }, { selector: INTERACTIVE_SELECTOR, withinSelector: options?.withinSelector || "" });
 
   const snapshot: RuntimeInventorySnapshot = {
     capturedAt: new Date().toISOString(),
@@ -151,7 +163,7 @@ export async function scrapeRuntimeControls(page: Page, contextLabel: string): P
     totalDiscovered: controls.length,
     enabledVisible: controls.filter((c) => c.enabled).length,
     disabledOrHidden: controls.filter((c) => !c.enabled).length,
-    controls,
+    controls: controls.map((control) => ({ ...control, discoveryContext: contextLabel })),
   };
   return snapshot;
 }

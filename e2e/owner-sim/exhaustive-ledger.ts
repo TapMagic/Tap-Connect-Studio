@@ -289,3 +289,13 @@ export function writeExhaustiveLedger() {
 export function ledgerSummary() {
   return writeExhaustiveLedger();
 }
+
+/** Drop stale runtime.* rows so a Blindfold pass cannot inherit false N/A from prior ledgers. */
+export function purgeRuntimeLedgerCases() {
+  for (const id of [...cases.keys()]) {
+    if (id.startsWith("runtime.") || id.startsWith("inventory.runtime")) {
+      cases.delete(id);
+    }
+  }
+  return writeExhaustiveLedger();
+}
