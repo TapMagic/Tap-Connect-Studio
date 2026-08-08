@@ -138,10 +138,15 @@ export async function dismissBlockingOverlays(
 export async function reconstructContext(page: Page, label: string): Promise<BlindfoldContext> {
   appendBlindfoldProgress(`reconstruct start ${label}`);
   const ctx = parseContextLabel(label);
+  appendBlindfoldProgress(`reconstruct openBlank ${label}`);
   await openBlankStudio(page);
-  await dismissBlockingOverlays(page);
+  await dismissBlockingOverlays(page, {
+    preservePreferences: ctx.kind === "editor-preferences",
+    preserveOverflow: ctx.kind === "overflow-menu",
+  });
 
   if (ctx.kind === "editor-preferences") {
+    appendBlindfoldProgress(`reconstruct prefs ${label}`);
     const menu = page.getByTestId("editor-preferences-menu");
     await expect(menu).toBeVisible({ timeout: 10_000 });
     await menu.evaluate((el) => {
@@ -149,6 +154,7 @@ export async function reconstructContext(page: Page, label: string): Promise<Bli
     });
     await expect(menu.locator("input").first()).toBeVisible({ timeout: 5_000 });
   } else if (ctx.kind === "overflow-menu") {
+    appendBlindfoldProgress(`reconstruct overflow ${label}`);
     const menu = page.getByTestId("card-overflow-menu").first();
     await expect(menu).toBeVisible({ timeout: 10_000 });
     await menu.evaluate((el) => {
@@ -156,21 +162,25 @@ export async function reconstructContext(page: Page, label: string): Promise<Bli
     });
     await expect(menu.getByRole("button").first()).toBeVisible({ timeout: 5_000 });
   } else if (ctx.kind === "root-background") {
+    appendBlindfoldProgress(`reconstruct root-background ${label}`);
     await ownerClick(
       page.locator('[data-contextual-object="card-root"]').getByRole("button", { name: /^Background$/i }),
       "Reconstruct Card root Background"
     );
     await expect(page.getByTestId("root-background-editor")).toBeVisible({ timeout: 10_000 });
   } else if (ctx.kind === "selected" || ctx.kind === "appearance") {
+    appendBlindfoldProgress(`reconstruct insert ${ctx.family} ${label}`);
     const inserted = await insertFamily(page, ctx.family);
-    await inserted.node.click();
+    appendBlindfoldProgress(`reconstruct select ${ctx.family} ${label}`);
+    await inserted.node.click({ timeout: 10_000 });
     await expect(page.getByTestId("card-contextual-object-tools")).toBeVisible({ timeout: 10_000 });
     if (ctx.kind === "appearance") {
+      appendBlindfoldProgress(`reconstruct appearance ${ctx.family} ${label}`);
       try {
         await openAppearanceOverview(page);
       } catch {
         // Selection can be stolen by polluted chrome — reselect and retry once.
-        await inserted.node.click();
+        await inserted.node.click({ timeout: 10_000 });
         await page.waitForTimeout(120);
         await openAppearanceOverview(page);
       }
@@ -179,6 +189,21 @@ export async function reconstructContext(page: Page, label: string): Promise<Bli
 
   appendBlindfoldProgress(`reconstruct ready ${label}`);
   return ctx;
+}
+
+/** Re-open Card-root Background without a full Blank Studio reload. */
+export async function ensureRootBackgroundContext(page: Page) {
+  const editor = page.getByTestId("root-background-editor");
+  if ((await editor.count()) > 0 && (await editor.isVisible().catch(() => false))) return;
+  const rootTools = page.locator('[data-contextual-object="card-root"]');
+  if ((await rootTools.count()) === 0 || !(await rootTools.isVisible().catch(() => false))) {
+    await openBlankStudio(page);
+  }
+  await ownerClick(
+    page.locator('[data-contextual-object="card-root"]').getByRole("button", { name: /^Background$/i }),
+    "Restore Card root Background"
+  );
+  await expect(page.getByTestId("root-background-editor")).toBeVisible({ timeout: 10_000 });
 }
 
 /** Genuine product/external boundaries only — not convenience skips. */

@@ -69,6 +69,7 @@ import {
 import {
   contextsForControl,
   dismissBlockingOverlays,
+  ensureRootBackgroundContext,
   isObjectLocalControl,
   ledgerIdFor,
   operateControlPhysically,
@@ -346,7 +347,7 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
     writeServerIdentity();
     await openBlankStudio(page);
     await insertFamily(page, "badge");
-    const badge = page.locator("[data-badge-shape]").last();
+    const badge = page.locator('[data-testid="creative-composition-canvas"] [data-badge-shape]').last();
     await badge.click();
     const shapeIds = deriveAllBadgeShapeIds();
     const clips = new Map<string, string>();
@@ -785,16 +786,28 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
             contextLabel === "overflow-menu" ||
             contextLabel === "root-background"
           ) {
-            const stillInContext =
-              contextLabel.startsWith("appearance-")
-                ? (await page.getByTestId("appearance-category-overview").or(page.getByTestId("material-engine-controls")).or(page.getByTestId("appearance-fill-controls")).or(page.getByTestId("appearance-effects-list")).count()) > 0
+            if (contextLabel === "root-background") {
+              await ensureRootBackgroundContext(page);
+            } else {
+              const stillInContext = contextLabel.startsWith("appearance-")
+                ? (await page
+                    .getByTestId("appearance-category-overview")
+                    .or(page.getByTestId("material-engine-controls"))
+                    .or(page.getByTestId("appearance-fill-controls"))
+                    .or(page.getByTestId("appearance-effects-list"))
+                    .count()) > 0
                 : contextLabel === "editor-preferences"
-                  ? await page.getByTestId("editor-preferences-menu").evaluate((el) => (el as HTMLDetailsElement).open).catch(() => false)
-                  : contextLabel === "root-background"
-                    ? (await page.getByTestId("root-background-editor").count()) > 0
-                    : await page.getByTestId("card-overflow-menu").evaluate((el) => (el as HTMLDetailsElement).open).catch(() => false);
-            if (!stillInContext) {
-              await reconstructContext(page, contextLabel);
+                  ? await page
+                      .getByTestId("editor-preferences-menu")
+                      .evaluate((el) => (el as HTMLDetailsElement).open)
+                      .catch(() => false)
+                  : await page
+                      .getByTestId("card-overflow-menu")
+                      .evaluate((el) => (el as HTMLDetailsElement).open)
+                      .catch(() => false);
+              if (!stillInContext) {
+                await reconstructContext(page, contextLabel);
+              }
             }
           }
         } catch (error) {

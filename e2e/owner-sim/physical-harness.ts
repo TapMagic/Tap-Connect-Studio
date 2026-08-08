@@ -232,7 +232,8 @@ export async function selectCanvasNode(page: Page, selector: string, index = 0) 
 export async function insertFromSurface(page: Page, surface: InsertSurface) {
   await ownerClick(page.getByTestId(surface.railTool), `${surface.family} rail`);
   await expect(page.getByTestId(surface.libraryTestId)).toBeVisible({ timeout: 15_000 });
-  const before = await page.locator("[data-composition-node]").count();
+  const beforeFamily = await page.locator(surface.canvasSelector).count();
+  const beforeNodes = await page.locator("[data-composition-node]").count();
   if (surface.insert.kind === "role") {
     await ownerClick(
       page.getByTestId(surface.libraryTestId).getByRole("button", { name: surface.insert.name }).first(),
@@ -256,17 +257,16 @@ export async function insertFromSurface(page: Page, surface: InsertSurface) {
     const addToCard = choice.getByRole("button", { name: /Add to Card|Card/i }).first();
     if (await addToCard.count()) await ownerClick(addToCard, "Add to Card");
   }
+  // Compare like-for-like family selectors — never composition-node count vs badge/button count.
   await expect
     .poll(async () => page.locator(surface.canvasSelector).count(), { timeout: 15_000 })
-    .toBeGreaterThan(0);
+    .toBeGreaterThan(beforeFamily);
   const node = page.locator(surface.canvasSelector).last();
   await expect(node).toBeVisible({ timeout: 10_000 });
-  // Many inserts auto-select; if not, click.
-  if ((await page.getByTestId("card-contextual-object-tools").count()) === 0) {
-    await node.click({ timeout: 10_000 });
-  }
+  // Always click the inserted node — Card-root tools may still be mounted from Blank Card.
+  await node.click({ timeout: 10_000 });
   await expect(page.getByTestId("card-contextual-object-tools")).toBeVisible({ timeout: 10_000 });
-  return { node, before, after: await page.locator("[data-composition-node]").count() };
+  return { node, before: beforeNodes, after: await page.locator("[data-composition-node]").count() };
 }
 
 export async function insertFamily(page: Page, family: InsertSurface["family"]) {
@@ -778,7 +778,7 @@ export async function insertBadgePreset(page: Page, presetId: string) {
   await ownerClick(page.getByTestId("card-creative-tool-badges"), "Badges rail");
   const testId = badgePresetInsertTestId(presetId);
   await ownerClick(page.getByTestId(testId), `Badge preset ${presetId}`);
-  const node = page.locator("[data-badge-shape]").last();
+  const node = page.locator('[data-testid="creative-composition-canvas"] [data-badge-shape]').last();
   await expect(node).toBeVisible({ timeout: 15_000 });
   return node;
 }

@@ -49,48 +49,54 @@ export type InsertSurface = {
 };
 
 /** Families the Owner can physically insert from the rail today. */
+/** Scope to the composition canvas — library thumbnails reuse the same data attrs. */
+const onCanvas = (sel: string) => `[data-testid="creative-composition-canvas"] ${sel}`;
+
 export const INSERT_SURFACES: readonly InsertSurface[] = [
   {
     family: "text",
     railTool: "card-creative-tool-text",
     libraryTestId: "card-text-library",
     insert: { kind: "role", name: /Add text box/i },
-    canvasSelector: '[data-primitive="text"]',
+    canvasSelector: onCanvas('[data-primitive="text"]'),
   },
   {
     family: "icon",
     railTool: "card-creative-tool-icons",
     libraryTestId: "card-icon-library",
     insert: { kind: "testid", id: "icon-recommended-ticket" },
-    canvasSelector: '[data-icon-artwork="true"], [data-element-kind="icon"]',
+    canvasSelector: [
+      onCanvas('[data-icon-artwork="true"]'),
+      onCanvas('[data-element-kind="icon"]'),
+    ].join(", "),
   },
   {
     family: "button",
     railTool: "card-creative-tool-buttons",
     libraryTestId: "card-button-library",
     insert: { kind: "testid", id: "button-preset-primary-cta" },
-    canvasSelector: '[data-primitive="button"]',
+    canvasSelector: onCanvas('[data-primitive="button"]'),
   },
   {
     family: "badge",
     railTool: "card-creative-tool-badges",
     libraryTestId: "polished-badge-library",
     insert: { kind: "testid", id: "starter-badge-pill" },
-    canvasSelector: "[data-badge-shape]",
+    canvasSelector: onCanvas("[data-badge-shape]"),
   },
   {
     family: "coupon",
     railTool: "card-creative-tool-coupons",
     libraryTestId: "card-coupon-library",
     insert: { kind: "testid", id: "coupon-preset-clean-retail" },
-    canvasSelector: '[data-component-kind="coupon"]',
+    canvasSelector: onCanvas('[data-component-kind="coupon"]'),
   },
   {
     family: "ticket",
     railTool: "card-creative-tool-tickets",
     libraryTestId: "card-ticket-library",
     insert: { kind: "testid", id: "ticket-preset-admission-stub" },
-    canvasSelector: '[data-component-kind="ticket"]',
+    canvasSelector: onCanvas('[data-component-kind="ticket"]'),
   },
 ] as const;
 
