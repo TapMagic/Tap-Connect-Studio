@@ -733,9 +733,20 @@ async function operateControlPhysicallyInner(
       const more = page.locator('[data-testid^="composition-more-node-"]').first();
       await expect(more).toBeVisible({ timeout: 8_000 });
       await ownerClick(more, "Live composition More menu");
-      // Prefer clicking the pasteboard — bare Escape can open the Exit dialog.
-      await page.locator('[data-testid="creative-composition-canvas"]').click({ position: { x: 8, y: 8 }, timeout: 2_000 }).catch(() => undefined);
+      // Toggle More closed — do not click the pasteboard (that clears selection and hides handles).
+      await more.click({ timeout: 2_000 }).catch(() => undefined);
       await dismissSaveDialogIfPresent(page);
+      // Ensure selection chrome remains for sibling resize/rotate inventory remaps.
+      if ((await page.locator('[data-testid^="composition-resize-"]').count()) === 0) {
+        const selected = page.locator('[data-testid="creative-composition-canvas"] [data-composition-node][data-selected="true"]').first();
+        const box = await selected.boundingBox();
+        if (box) {
+          await page.mouse.click(
+            box.x + Math.max(12, box.width * 0.5),
+            box.y + Math.max(10, Math.min(box.height * 0.35, box.height - 14))
+          );
+        }
+      }
       return { status: "VERIFIED", notes: ["Live composition More opened/dismissed", `context=${contextLabel}`] };
     }
     if (edge) {
