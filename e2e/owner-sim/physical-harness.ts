@@ -114,32 +114,58 @@ export async function ownerFill(locator: Locator, value: string, label: string) 
 
 /** Dismiss save dialog via visible UI only (Keep editing). */
 export async function dismissSaveDialogIfPresent(page: Page) {
-  const dialog = page.getByTestId("card-exit-save-dialog");
-  if ((await dialog.count()) === 0) return;
-  if (!(await dialog.isVisible().catch(() => false))) return;
-  const keep = dialog
-    .getByTestId("card-exit-keep-editing")
-    .or(dialog.getByRole("button", { name: /Keep editing|Cancel|Stay/i }))
-    .first();
-  if (await keep.count()) {
-    await ownerClick(keep, "Keep editing in save dialog");
-  } else {
-    await page.keyboard.press("Escape").catch(() => undefined);
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const dialog = page.getByTestId("card-exit-save-dialog");
+    if ((await dialog.count()) === 0) return;
+    if (!(await dialog.isVisible().catch(() => false))) return;
+    const keep = dialog
+      .getByTestId("card-exit-keep-editing")
+      .or(dialog.getByRole("button", { name: /Keep editing|Cancel|Stay/i }))
+      .first();
+    if ((await keep.count()) > 0 && (await keep.isVisible().catch(() => false))) {
+      await keep.click({ timeout: 3_000 }).catch(() => undefined);
+    } else {
+      await page.keyboard.press("Escape").catch(() => undefined);
+    }
+    await page.waitForTimeout(80);
   }
 }
 
+/** Recovery alertdialog blocks the canvas — Keep server version is the safe Owner default. */
+export async function dismissRecoveryPromptIfPresent(page: Page) {
+  const prompt = page.getByTestId("card-recovery-prompt");
+  if ((await prompt.count()) === 0) return;
+  if (!(await prompt.isVisible().catch(() => false))) return;
+  const keepServer = prompt
+    .getByTestId("card-recovery-keep-server")
+    .or(prompt.getByRole("button", { name: /Keep server version/i }))
+    .first();
+  if ((await keepServer.count()) > 0 && (await keepServer.isVisible().catch(() => false))) {
+    await keepServer.click({ timeout: 3_000 }).catch(() => undefined);
+  } else {
+    await page.keyboard.press("Escape").catch(() => undefined);
+  }
+  await expect(prompt).toHaveCount(0, { timeout: 5_000 }).catch(() => undefined);
+}
+
 export async function closeExtraDocumentTabs(page: Page) {
-  // Prior Clone pollution can leave dozens of tabs — close a bounded batch only.
-  for (let i = 0; i < 12; i += 1) {
-    const close = page.locator('[data-testid^="creative-document-tab-"] button[aria-label^="Close"]').first();
-    if ((await close.count()) === 0 || !(await close.isVisible().catch(() => false))) break;
-    await close.click({ timeout: 1_500 }).catch(() => undefined);
+  // Prior Clone pollution can leave dozens of tabs — close until a single document remains.
+  for (let i = 0; i < 40; i += 1) {
+    const closes = page.locator('[data-testid^="creative-document-tab-"] button[aria-label^="Close"]');
+    const count = await closes.count();
+    if (count === 0) break;
+    // When only one tab remains, its Close may still exist — stop if Blank Studio needs that doc.
+    const tabs = page.locator('[data-testid^="creative-document-tab-"]');
+    if ((await tabs.count()) <= 1) break;
+    await closes.first().click({ timeout: 1_500 }).catch(() => undefined);
+    await dismissSaveDialogIfPresent(page);
     await page.waitForTimeout(40);
   }
 }
 
 export async function dismissTransientStudioChrome(page: Page) {
   await dismissSaveDialogIfPresent(page);
+  await dismissRecoveryPromptIfPresent(page);
   const retention = page.getByTestId("retention-chooser");
   if ((await retention.count()) > 0 && (await retention.isVisible().catch(() => false))) {
     const keepClose = retention.getByRole("button", { name: /^Close$/i }).first();
@@ -163,12 +189,15 @@ export async function openBlankStudio(page: Page, viewport = { width: 1440, heig
   });
   await dismissTransientStudioChrome(page);
   await closeExtraDocumentTabs(page);
+  await dismissTransientStudioChrome(page);
   await ownerClick(page.getByTestId("card-creative-tool-templates"), "Templates rail");
+  await expect(page.getByTestId("card-template-library")).toBeVisible({ timeout: 15_000 });
   await ownerClick(
     page.getByTestId("card-template-library").getByRole("button", { name: "Blank Card" }),
     "Blank Card"
   );
   await dismissSaveDialogIfPresent(page);
+  await dismissRecoveryPromptIfPresent(page);
   await expect(page.getByTestId("creative-composition-canvas")).toBeVisible({ timeout: 20_000 });
   // Blank Card selects Card Root so the Owner lands on a truthful empty plane.
   await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible({ timeout: 15_000 });
@@ -229,7 +258,29 @@ export async function selectCanvasNode(page: Page, selector: string, index = 0) 
   return node;
 }
 
+function familySelectionTarget(family: InsertSurface["family"]): RegExp {
+  if (family === "text") return /^Text$/i;
+  if (family === "icon") return /^Icon$/i;
+  if (family === "button") return /^Button$/i;
+  if (family === "badge") return /^Badge$/i;
+  if (family === "coupon") return /^Coupon$/i;
+  if (family === "ticket") return /^Ticket$/i;
+  return new RegExp(family, "i");
+}
+
+function familyCompositionNodeSelector(family: InsertSurface["family"]): string {
+  const canvas = '[data-testid="creative-composition-canvas"]';
+  if (family === "badge") return `${canvas} [data-composition-node][data-element-kind="badge"]`;
+  if (family === "icon") return `${canvas} [data-composition-node][data-element-kind="icon"]`;
+  if (family === "button") return `${canvas} [data-composition-node][data-primitive="button"]`;
+  if (family === "text") return `${canvas} [data-composition-node][data-primitive="text"]`;
+  if (family === "coupon") return `${canvas} [data-composition-node][data-component-kind="coupon"]`;
+  if (family === "ticket") return `${canvas} [data-composition-node][data-component-kind="ticket"]`;
+  return `${canvas} [data-composition-node]`;
+}
+
 export async function insertFromSurface(page: Page, surface: InsertSurface) {
+  await dismissTransientStudioChrome(page);
   await ownerClick(page.getByTestId(surface.railTool), `${surface.family} rail`);
   await expect(page.getByTestId(surface.libraryTestId)).toBeVisible({ timeout: 15_000 });
   const beforeFamily = await page.locator(surface.canvasSelector).count();
@@ -261,11 +312,24 @@ export async function insertFromSurface(page: Page, surface: InsertSurface) {
   await expect
     .poll(async () => page.locator(surface.canvasSelector).count(), { timeout: 15_000 })
     .toBeGreaterThan(beforeFamily);
-  const node = page.locator(surface.canvasSelector).last();
+  // Prefer the composition-node hit target — inner shape/content can sit under selection handles.
+  const node = page.locator(familyCompositionNodeSelector(surface.family)).last();
   await expect(node).toBeVisible({ timeout: 10_000 });
-  // Always click the inserted node — Card-root tools may still be mounted from Blank Card.
-  await node.click({ timeout: 10_000 });
-  await expect(page.getByTestId("card-contextual-object-tools")).toBeVisible({ timeout: 10_000 });
+  const tools = page.getByTestId("card-contextual-object-tools");
+  const alreadySelected = familySelectionTarget(surface.family).test(
+    (await tools.getAttribute("data-selection-target").catch(() => "")) || ""
+  );
+  if (!alreadySelected) {
+    // Click near the center so edge resize handles from a prior selection cannot intercept.
+    const box = await node.boundingBox();
+    if (box) {
+      await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+    } else {
+      await node.click({ timeout: 10_000, position: { x: 8, y: 8 } });
+    }
+  }
+  await expect(tools).toBeVisible({ timeout: 10_000 });
+  await expect(tools).toHaveAttribute("data-selection-target", familySelectionTarget(surface.family));
   return { node, before: beforeNodes, after: await page.locator("[data-composition-node]").count() };
 }
 

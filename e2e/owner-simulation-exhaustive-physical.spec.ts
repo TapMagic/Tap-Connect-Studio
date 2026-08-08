@@ -69,6 +69,7 @@ import {
 import {
   contextsForControl,
   dismissBlockingOverlays,
+  ensureAppearanceContext,
   ensureRootBackgroundContext,
   isObjectLocalControl,
   ledgerIdFor,
@@ -780,34 +781,23 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
             }
           }
           // Operating a control can dismiss drawers — re-establish context when Appearance/chrome collapses.
-          if (
-            contextLabel.startsWith("appearance-") ||
-            contextLabel === "editor-preferences" ||
-            contextLabel === "overflow-menu" ||
-            contextLabel === "root-background"
-          ) {
-            if (contextLabel === "root-background") {
-              await ensureRootBackgroundContext(page);
-            } else {
-              const stillInContext = contextLabel.startsWith("appearance-")
-                ? (await page
-                    .getByTestId("appearance-category-overview")
-                    .or(page.getByTestId("material-engine-controls"))
-                    .or(page.getByTestId("appearance-fill-controls"))
-                    .or(page.getByTestId("appearance-effects-list"))
-                    .count()) > 0
-                : contextLabel === "editor-preferences"
-                  ? await page
-                      .getByTestId("editor-preferences-menu")
-                      .evaluate((el) => (el as HTMLDetailsElement).open)
-                      .catch(() => false)
-                  : await page
-                      .getByTestId("card-overflow-menu")
-                      .evaluate((el) => (el as HTMLDetailsElement).open)
-                      .catch(() => false);
-              if (!stillInContext) {
-                await reconstructContext(page, contextLabel);
-              }
+          if (contextLabel === "root-background") {
+            await ensureRootBackgroundContext(page);
+          } else if (contextLabel.startsWith("appearance-")) {
+            await ensureAppearanceContext(page, contextLabel);
+          } else if (contextLabel === "editor-preferences" || contextLabel === "overflow-menu") {
+            const stillInContext =
+              contextLabel === "editor-preferences"
+                ? await page
+                    .getByTestId("editor-preferences-menu")
+                    .evaluate((el) => (el as HTMLDetailsElement).open)
+                    .catch(() => false)
+                : await page
+                    .getByTestId("card-overflow-menu")
+                    .evaluate((el) => (el as HTMLDetailsElement).open)
+                    .catch(() => false);
+            if (!stillInContext) {
+              await reconstructContext(page, contextLabel);
             }
           }
         } catch (error) {
@@ -820,8 +810,15 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
             notes: [message],
           });
           failures.push(`${id}: ${message}`);
-          // Recover workspace for remaining controls in this context.
-          await reconstructContext(page, contextLabel).catch(() => undefined);
+          // Recover lightly — full reconstruct on every stale handle destroys the batch.
+          await dismissBlockingOverlays(page).catch(() => undefined);
+          if (contextLabel.startsWith("appearance-")) {
+            await ensureAppearanceContext(page, contextLabel).catch(() => undefined);
+          } else if (contextLabel === "root-background") {
+            await ensureRootBackgroundContext(page).catch(() => undefined);
+          } else if (!/^composition-/.test(control.testId || "")) {
+            await reconstructContext(page, contextLabel).catch(() => undefined);
+          }
         }
       }
     }

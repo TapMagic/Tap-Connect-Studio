@@ -408,6 +408,13 @@ export function CardAuthoringWorkspace({
         event.stopPropagation();
         return;
       }
+      // Recovery is an Owner alertdialog — Escape keeps the server draft (safe default).
+      if (status.recoveryState !== "none") {
+        apiRef.current?.discardRecovery();
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
       const retentionClose = document
         .querySelector<HTMLElement>('[data-testid="retention-chooser"] button[aria-label="Close"]');
       if (retentionClose) {
@@ -450,7 +457,7 @@ export function CardAuthoringWorkspace({
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);
-  }, [exitState, resizeAdaptOpen, advancedSettingsOpen, studioMode, exitPreview]);
+  }, [exitState, resizeAdaptOpen, advancedSettingsOpen, studioMode, exitPreview, status.recoveryState]);
 
   // Keep builder focus in sync with shell Focus.
   useEffect(() => {
@@ -842,10 +849,20 @@ export function CardAuthoringWorkspace({
       {studioMode === "edit" && advancedSettingsOpen ? <CardAdvancedSettingsOverlay model={liveModel} onClose={() => setAdvancedSettingsOpen(false)} /> : null}
       {studioMode === "edit" && resizeAdaptOpen ? <ResizeAdaptOverlay onClose={() => setResizeAdaptOpen(false)} onAdapt={async (profile) => { const ok = await apiRef.current?.adaptDocument(profile.id); if (ok) setResizeAdaptOpen(false); }} /> : null}
       {status.recoveryState !== "none" && studioMode === "edit" ? (
-        <section className="absolute left-1/2 top-28 z-[1500] w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-amber-300/35 bg-[#111827] p-4 text-white shadow-2xl" role="alert" data-testid="card-recovery-prompt">
-          <h2 className="text-sm font-semibold">{status.recoveryState === "conflict" ? "Recovered changes need review" : "Recovered changes are available"}</h2>
+        <section className="absolute left-1/2 top-28 z-[1500] w-[min(92vw,32rem)] -translate-x-1/2 rounded-xl border border-amber-300/35 bg-[#111827] p-4 text-white shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="card-recovery-title" data-testid="card-recovery-prompt">
+          <h2 id="card-recovery-title" className="text-sm font-semibold">{status.recoveryState === "conflict" ? "Recovered changes need review" : "Recovered changes are available"}</h2>
           <p className="mt-1 text-xs text-white/65">A browser-local checkpoint was found. A newer server draft will never be overwritten silently.</p>
-          <div className="mt-3 flex flex-wrap gap-2"><button type="button" className="min-h-9 rounded bg-[#b8ff2c] px-3 text-xs font-semibold text-black" onClick={() => apiRef.current?.restoreRecovery()} disabled={status.recoveryState === "stale"}>Restore recovered version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => openCardTool("outline")}>Review server version</button><button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => apiRef.current?.discardRecovery()}>Keep server version</button></div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" className="min-h-9 rounded bg-[#b8ff2c] px-3 text-xs font-semibold text-black" onClick={() => apiRef.current?.restoreRecovery()} disabled={status.recoveryState === "stale"} data-testid="card-recovery-restore">
+              Restore recovered version
+            </button>
+            <button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => openCardTool("outline")} data-testid="card-recovery-review-server">
+              Review server version
+            </button>
+            <button type="button" className="min-h-9 rounded border border-white/15 px-3 text-xs" onClick={() => apiRef.current?.discardRecovery()} data-testid="card-recovery-keep-server">
+              Keep server version
+            </button>
+          </div>
         </section>
       ) : null}
       {exitState !== "closed" ? (

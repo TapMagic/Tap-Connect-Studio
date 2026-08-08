@@ -15,6 +15,7 @@ import { INSERT_SURFACES } from "./interaction-manifest";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  dismissRecoveryPromptIfPresent,
   dismissSaveDialogIfPresent,
   dismissTransientStudioChrome,
   EVIDENCE_ROOT,
@@ -77,6 +78,8 @@ export async function dismissBlockingOverlays(
   options?: { preservePreferences?: boolean; preserveOverflow?: boolean }
 ) {
   await dismissTransientStudioChrome(page);
+  await dismissRecoveryPromptIfPresent(page);
+  await dismissSaveDialogIfPresent(page);
   for (let i = 0; i < 3; i += 1) {
     const resize = page.getByTestId("resize-adapt-backdrop");
     if ((await resize.count()) > 0 && (await resize.isVisible().catch(() => false))) {
@@ -206,6 +209,28 @@ export async function ensureRootBackgroundContext(page: Page) {
   await expect(page.getByTestId("root-background-editor")).toBeVisible({ timeout: 10_000 });
 }
 
+/** Re-open Appearance without a full Blank Studio reload when the drawer collapsed. */
+export async function ensureAppearanceContext(page: Page, label: string) {
+  const stillOpen =
+    (await page
+      .getByTestId("appearance-category-overview")
+      .or(page.getByTestId("material-engine-controls"))
+      .or(page.getByTestId("appearance-fill-controls"))
+      .or(page.getByTestId("appearance-effects-list"))
+      .count()) > 0;
+  if (stillOpen) return;
+  const tools = page.getByTestId("card-contextual-object-tools");
+  if ((await tools.count()) === 0 || !(await tools.isVisible().catch(() => false))) {
+    await reconstructContext(page, label);
+    return;
+  }
+  try {
+    await openAppearanceOverview(page);
+  } catch {
+    await reconstructContext(page, label);
+  }
+}
+
 /** Genuine product/external boundaries only — not convenience skips. */
 export function genuineDeferralReason(control: ProvenancedControl): string | null {
   const blob = `${control.testId} ${control.name}`.toLowerCase();
@@ -225,7 +250,7 @@ export function isSharedWorkspaceChrome(control: ProvenancedControl): boolean {
   const id = control.testId || "";
   const name = control.name || "";
   if (
-    /^(card-save|card-undo|card-redo|card-preview-as-customer|card-publish|card-exit-edit-mode|card-clone|card-resize-adapt|editor-preferences-menu|card-overflow-menu|studio-save-state|creative-document-tabs|card-preview-motion|card-restart-motion|card-reduced-motion-simulation|card-history)$/.test(
+    /^(card-save|card-undo|card-redo|card-preview-as-customer|card-publish|card-exit-edit-mode|card-clone|card-resize-adapt|editor-preferences-menu|card-overflow-menu|studio-save-state|creative-document-tabs|card-preview-motion|card-restart-motion|card-reduced-motion-simulation|card-history|card-zoom-fit|card-zoom-fit-selection|card-zoom-in|card-zoom-out|card-document-name)$/.test(
       id
     )
   ) {
@@ -671,6 +696,62 @@ async function operateControlPhysicallyInner(
     return {
       status: "VERIFIED",
       notes: ["Publish Studio workflow entered and dismissed without production publication", `context=${contextLabel}`],
+    };
+  }
+
+  // Inventory freezes node-id handles from a prior scrape. Operate the live selection handles instead.
+  if (/^composition-(resize|rotate|more)-node-/.test(control.testId)) {
+    const tools = page.getByTestId("card-contextual-object-tools");
+    if ((await tools.count()) === 0 || !(await tools.isVisible().catch(() => false))) {
+      return {
+        status: "BROKEN",
+        notes: ["No selection for live composition handle remap", `context=${contextLabel}`, `testId=${control.testId}`],
+      };
+    }
+    const edge = control.testId.match(/-(nw|n|ne|e|se|s|sw|w)$/)?.[1];
+    if (/^composition-rotate-node-/.test(control.testId)) {
+      const rotate = page.getByRole("button", { name: /Rotate/i }).first();
+      await expect(rotate).toBeVisible({ timeout: 8_000 });
+      const box = await rotate.boundingBox();
+      if (!box) {
+        return { status: "BROKEN", notes: ["Rotate handle has no box", `context=${contextLabel}`] };
+      }
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + 18, box.y + box.height / 2, { steps: 4 });
+      await page.mouse.up();
+      return { status: "VERIFIED", notes: ["Live rotate handle dragged", `context=${contextLabel}`] };
+    }
+    if (/^composition-more-node-/.test(control.testId)) {
+      const more = page
+        .locator('[data-testid^="composition-more-node-"]')
+        .or(page.getByRole("button", { name: /More|Object menu/i }))
+        .first();
+      await expect(more).toBeVisible({ timeout: 8_000 });
+      await ownerClick(more, "Live composition More menu");
+      await page.keyboard.press("Escape").catch(() => undefined);
+      await dismissSaveDialogIfPresent(page);
+      return { status: "VERIFIED", notes: ["Live composition More opened/dismissed", `context=${contextLabel}`] };
+    }
+    if (edge) {
+      const handle = page.getByRole("button", { name: new RegExp(`^Resize ${edge}$`, "i") }).first();
+      await expect(handle).toBeVisible({ timeout: 8_000 });
+      const box = await handle.boundingBox();
+      if (!box) {
+        return { status: "BROKEN", notes: [`Resize ${edge} handle has no box`, `context=${contextLabel}`] };
+      }
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(box.x + box.width / 2 + 12, box.y + box.height / 2 + 12, { steps: 4 });
+      await page.mouse.up();
+      return {
+        status: "VERIFIED",
+        notes: [`Live resize ${edge} handle dragged (remapped from stale inventory id)`, `context=${contextLabel}`],
+      };
+    }
+    return {
+      status: "BROKEN",
+      notes: ["Could not parse live composition handle from inventory id", `context=${contextLabel}`, `testId=${control.testId}`],
     };
   }
 
