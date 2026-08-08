@@ -274,8 +274,9 @@ function familyCompositionNodeSelector(family: InsertSurface["family"]): string 
   if (family === "icon") return `${canvas} [data-composition-node][data-element-kind="icon"]`;
   if (family === "button") return `${canvas} [data-composition-node][data-primitive="button"]`;
   if (family === "text") return `${canvas} [data-composition-node][data-primitive="text"]`;
-  if (family === "coupon") return `${canvas} [data-composition-node][data-component-kind="coupon"]`;
-  if (family === "ticket") return `${canvas} [data-composition-node][data-component-kind="ticket"]`;
+  // Coupons/tickets expose element-kind on the composition node; component-kind lives on an inner shell.
+  if (family === "coupon") return `${canvas} [data-composition-node][data-element-kind="coupon"]`;
+  if (family === "ticket") return `${canvas} [data-composition-node][data-element-kind="ticket"]`;
   return `${canvas} [data-composition-node]`;
 }
 

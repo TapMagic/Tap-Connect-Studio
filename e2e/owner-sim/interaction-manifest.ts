@@ -89,14 +89,14 @@ export const INSERT_SURFACES: readonly InsertSurface[] = [
     railTool: "card-creative-tool-coupons",
     libraryTestId: "card-coupon-library",
     insert: { kind: "testid", id: "coupon-preset-clean-retail" },
-    canvasSelector: onCanvas('[data-component-kind="coupon"]'),
+    canvasSelector: onCanvas('[data-composition-node][data-element-kind="coupon"]'),
   },
   {
     family: "ticket",
     railTool: "card-creative-tool-tickets",
     libraryTestId: "card-ticket-library",
     insert: { kind: "testid", id: "ticket-preset-admission-stub" },
-    canvasSelector: onCanvas('[data-component-kind="ticket"]'),
+    canvasSelector: onCanvas('[data-composition-node][data-element-kind="ticket"]'),
   },
 ] as const;
 

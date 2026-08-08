@@ -256,7 +256,7 @@ export function isSharedWorkspaceChrome(control: ProvenancedControl): boolean {
   const id = control.testId || "";
   const name = control.name || "";
   if (
-    /^(card-save|card-undo|card-redo|card-preview-as-customer|card-publish|card-exit-edit-mode|card-clone|card-resize-adapt|editor-preferences-menu|card-overflow-menu|studio-save-state|creative-document-tabs|card-preview-motion|card-restart-motion|card-reduced-motion-simulation|card-history|card-zoom-fit|card-zoom-fit-selection|card-zoom-in|card-zoom-out|card-document-name)$/.test(
+    /^(card-save|card-undo|card-redo|card-preview-as-customer|card-publish|card-exit-edit-mode|card-clone|card-resize-adapt|editor-preferences-menu|card-overflow-menu|studio-save-state|creative-document-tabs|card-preview-motion|card-restart-motion|card-reduced-motion-simulation|card-history|card-zoom-fit|card-zoom-fit-selection|card-zoom-in|card-zoom-out|card-document-name|card-pan-tool|card-page-extension-handle|card-page-exact-height|keep-this-card)$/.test(
       id
     )
   ) {
@@ -324,6 +324,13 @@ export function contextsForControl(control: ProvenancedControl): string[] {
     )
   ) {
     return ["editor-preferences"];
+  }
+  // Template library choosers live only in Templates rail — never under root-background.
+  if (
+    /Blank Card|Brand starter|Essential Card|Search templates|Premium |Blank Section|Clone current Card/i.test(name) &&
+    !/^contextual-/.test(id)
+  ) {
+    return ["blank-card-root"];
   }
   if (isSharedWorkspaceChrome(control)) {
     if (contexts.includes("blank-card-root")) return ["blank-card-root"];
@@ -612,10 +619,13 @@ async function operateControlPhysicallyInner(
     /Blank Card|Brand starter|Essential Card|Search templates|Premium |Blank Section|Clone current Card/i.test(control.name) &&
     !control.testId.startsWith("contextual-")
   ) {
+    await dismissSaveDialogIfPresent(page);
+    await dismissRecoveryPromptIfPresent(page);
     const templates = page.getByTestId("card-creative-tool-templates");
     if ((await templates.count()) > 0) {
       await ownerClick(templates, "Restore Templates rail for library control");
     }
+    await expect(page.getByTestId("card-template-library")).toBeVisible({ timeout: 10_000 });
   }
 
   // Keep this Card — open the Owner retention chooser, then dismiss via Close / Escape (product path).
