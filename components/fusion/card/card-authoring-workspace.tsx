@@ -767,7 +767,7 @@ export function CardAuthoringWorkspace({
       } as CSSProperties}
     >
       {studioMode === "edit" ? editTopBar : null}
-      {studioMode === "edit" ? <CardContextualObjectToolbar key={`${creativeTool}:${resizeAdaptOpen ? "adapt" : "canvas"}:${liveModel?.selectionRef.selectionGeneration ?? 0}`} model={liveModel} onAdvanced={() => { setResizeAdaptOpen(false); setAdvancedSettingsOpen(true); }} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} onPreviewMotion={() => setPreviewMotion((active) => !active)} onRestartMotion={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }} onReducedMotionSimulation={setReducedMotionSimulation} /> : null}
+      {studioMode === "edit" ? <CardContextualObjectToolbar key={`${creativeTool}:${resizeAdaptOpen ? "adapt" : "canvas"}`} model={liveModel} onAdvanced={() => { setResizeAdaptOpen(false); setAdvancedSettingsOpen(true); }} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} onPreviewMotion={() => setPreviewMotion((active) => !active)} onRestartMotion={() => { setPreviewMotion(true); setMotionRevision((revision) => revision + 1); }} onReducedMotionSimulation={setReducedMotionSimulation} /> : null}
       {studioMode === "edit" && advancedSettingsOpen ? <CardAdvancedSettingsOverlay model={liveModel} onClose={() => setAdvancedSettingsOpen(false)} /> : null}
       {studioMode === "edit" && resizeAdaptOpen ? <ResizeAdaptOverlay onClose={() => setResizeAdaptOpen(false)} onAdapt={async (profile) => { const ok = await apiRef.current?.adaptDocument(profile.id); if (ok) setResizeAdaptOpen(false); }} /> : null}
       {status.recoveryState !== "none" && studioMode === "edit" ? (

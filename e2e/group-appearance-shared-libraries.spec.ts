@@ -57,6 +57,7 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     await expect(page.getByTestId("composition-group-selection-overlay")).toBeVisible({ timeout: 10_000 });
     await expect(page.getByTestId("composition-group-label")).toHaveText(/Group/i);
     await expect(page.getByTestId("contextual-target-label")).toHaveText(/Group/i);
+    await expect(page.getByTestId("contextual-group-ungroup")).toBeVisible();
     // No independent child handles in parent mode
     await expect(page.locator('[data-testid^="composition-selection-overlay-"]')).toHaveCount(0);
     await page.screenshot({ path: path.join(evidenceDir, "01-group-parent-selection.png") });

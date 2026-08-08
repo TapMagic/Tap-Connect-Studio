@@ -40,16 +40,27 @@ test.describe("deep editor route, Iconify SVG, materials", () => {
     await expect(page.getByTestId("contextual-target-label")).not.toHaveText(/Card root/i);
     await page.screenshot({ path: path.join(evidenceDir, "01-icon-selected-toolbar.png"), fullPage: false });
 
-    // Iconify search must show real SVG tiles.
-    await page.getByTestId("icon-library-search").fill("ticket");
-    await expect(page.getByTestId("icon-library-iconify-results").locator("[data-icon-svg='true']").first()).toBeVisible({ timeout: 25_000 });
+    // Iconify search via Change Icon (shared Icon authority) — library may close after insert.
+    await page.getByTestId("contextual-icon-picker").click();
+    const iconSearch = page.getByTestId("iconify-search").or(page.getByTestId("icon-library-search")).first();
+    await expect(iconSearch).toBeVisible({ timeout: 15_000 });
+    await iconSearch.fill("ticket");
+    const iconifyResults = page.getByTestId("iconify-results").or(page.getByTestId("icon-library-iconify-results")).first();
+    await expect(iconifyResults.locator("[data-icon-svg='true']").first()).toBeVisible({ timeout: 25_000 });
     await page.screenshot({ path: path.join(evidenceDir, "07-iconify-ticket.png"), fullPage: false });
-    await page.getByTestId("icon-library-iconify-results").locator("button").first().click();
+    await iconifyResults.locator("button").first().click();
     await expect(page.locator("[data-icon-svg='true']").first()).toBeVisible();
     await page.screenshot({ path: path.join(evidenceDir, "09-canvas-svg.png"), fullPage: false });
 
-    await page.getByTestId("icon-library-search").fill("phone");
-    await expect(page.getByTestId("icon-library-iconify-results").locator("[data-icon-svg='true']").first()).toBeVisible({ timeout: 25_000 });
+    // Re-open Change Icon (prior result click may close the drawer).
+    if (!(await page.getByTestId("iconify-search").count())) {
+      await page.getByTestId("contextual-icon-picker").click();
+    }
+    const iconSearchAgain = page.getByTestId("iconify-search").or(page.getByTestId("icon-library-search")).first();
+    await expect(iconSearchAgain).toBeVisible({ timeout: 15_000 });
+    await iconSearchAgain.fill("phone");
+    const iconifyResultsAgain = page.getByTestId("iconify-results").or(page.getByTestId("icon-library-iconify-results")).first();
+    await expect(iconifyResultsAgain.locator("[data-icon-svg='true']").first()).toBeVisible({ timeout: 25_000 });
     await page.screenshot({ path: path.join(evidenceDir, "08-iconify-phone.png"), fullPage: false });
 
     // Text → Color nested pages.
@@ -84,27 +95,33 @@ test.describe("deep editor route, Iconify SVG, materials", () => {
       await page.locator('[data-testid^="button-preset-"]').first().click();
     });
     await expect(page.getByTestId("card-contextual-object-tools")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("contextual-button-material").click();
-    await expect(page.getByTestId("material-engine-controls")).toBeVisible();
+    await page.getByTestId("contextual-button-appearance").click();
+    await expect(page.getByTestId("appearance-category-overview")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("appearance-category-material").click();
+    await expect(page.getByTestId("material-engine-controls")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("material-gold").click();
     await page.screenshot({ path: path.join(evidenceDir, "11-button-gold.png"), fullPage: false });
-    await page.getByTestId("material-glass").click();
+    await page.getByTestId("material-glass").or(page.getByTestId("material-frosted_glass")).first().click();
     await page.screenshot({ path: path.join(evidenceDir, "12-button-glass.png"), fullPage: false });
 
-    // Badge seal + gold, then ribbon + glass.
+    // Badge shape insert, then Material via Appearance (materials are not insertion species).
     await page.getByTestId("card-creative-tool-badges").click();
-    await page.getByRole("button", { name: /^Seal$|Award seal/i }).click().catch(async () => {
+    await page.getByTestId("starter-badge-seal").or(page.getByRole("button", { name: /^Seal$|Award seal/i })).first().click().catch(async () => {
       await page.locator("button", { hasText: /Seal/i }).first().click();
     });
-    await page.getByTestId("badge-initial-material").locator("summary").click();
-    await page.getByTestId("badge-material-gold").click();
     await page.getByRole("button", { name: /Add editable Badge/i }).click();
     await expect(page.getByTestId("contextual-target-label")).toHaveText(/Badge/i);
+    await page.getByTestId("contextual-badge-appearance").click();
+    await expect(page.getByTestId("appearance-category-overview")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("appearance-category-material").click();
+    await page.getByTestId("material-gold").click();
     await page.screenshot({ path: path.join(evidenceDir, "13-badge-gold-seal.png"), fullPage: false });
     await page.getByTestId("contextual-badge-shape").click();
     await page.getByTestId("badge-shape-ribbon").click();
-    await page.getByTestId("contextual-badge-material").click();
-    await page.getByTestId("material-glass").click();
+    await page.getByTestId("contextual-badge-appearance").click();
+    await expect(page.getByTestId("appearance-category-overview")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("appearance-category-material").click();
+    await page.getByTestId("material-glass").or(page.getByTestId("material-frosted_glass")).first().click();
     await page.screenshot({ path: path.join(evidenceDir, "14-badge-glass-ribbon.png"), fullPage: false });
 
     // Super Fun text combination.

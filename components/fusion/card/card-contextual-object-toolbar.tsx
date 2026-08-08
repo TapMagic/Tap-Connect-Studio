@@ -12,12 +12,16 @@ import { copyCompositionNodeStyle, hasCompositionStyleClipboard, pasteCompositio
 import { FONT_CATALOG, fontCssStack } from "@/lib/fusion/creative-studio/fonts/catalog";
 import { ensureFontLoaded, ensureGoogleFontFamilyLoaded } from "@/lib/fusion/creative-studio/fonts/load";
 import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
-import { bringForward, bringToFront, duplicateNodes, expandSelectionToGroups, groupNodes, sendBackward, sendToBack, type CreativeCompositionBlock, type CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import { bringForward, bringToFront, duplicateNodes, expandSelectionToGroups, groupNodes, sendBackward, sendToBack, ungroupNodes, type CreativeCompositionBlock, type CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import { objectFamilyForNode } from "@/lib/fusion/creative-studio/capabilities";
 import { appearanceCategoriesForFamily, tuningFieldsForEffect } from "@/lib/fusion/creative-studio/appearance-ia";
 import {
+  appearanceAdapterTargetForFamily,
   fanOutProps,
   fanOutScopeLabel,
+  fanOutWithAdapter,
+  groupMembers,
+  inferFanOutCapability,
   isGroupParentSelection,
   mixedValueForCapability,
   resolveActiveGroupId,
@@ -71,6 +75,21 @@ function rememberRecentFont(family: string) {
 }
 const fieldClass = "mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2 text-xs text-white";
 const buttonClass = "min-h-9 rounded border border-white/15 px-2 text-xs hover:border-[#b8ff2c]/60";
+
+/** Display-only hex for `<input type="color">` — never write this coercion into the document. */
+function toColorInputValue(raw: unknown, fallback = "#fbbf24"): string {
+  const value = String(raw || "").trim();
+  if (/^#[0-9a-fA-F]{6}$/.test(value)) return value;
+  if (/^#[0-9a-fA-F]{3}$/.test(value)) {
+    return `#${value[1]}${value[1]}${value[2]}${value[2]}${value[3]}${value[3]}`;
+  }
+  const rgb = value.match(/^rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/i);
+  if (rgb) {
+    const hex = (n: string) => Number(n).toString(16).padStart(2, "0");
+    return `#${hex(rgb[1])}${hex(rgb[2])}${hex(rgb[3])}`;
+  }
+  return fallback;
+}
 
 const BUILT_IN_BUTTON_STYLES: Array<{ id: string; name: string; props: Record<string, unknown> }> = [
   { id: "tapconnect-green-pill", name: "TapConnect Green Pill", props: { presentation: "pill", radius: 999, cornersLinked: true, buttonSurfaceKind: "solid", fill: "#b8ff2c", textColor: "#07100a", labelColor: "#07100a", borderWidth: 0, boxShadow: 14, boxGlow: 0, padding: 12, fontWeight: 750, motionPreset: "none" } },
@@ -440,18 +459,37 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const groupParent = isGroupParentSelection(block.nodes, selectedIds);
   const activeGroupId = resolveActiveGroupId(block.nodes, selectedIds);
   const colorMixed = mixedValueForCapability(block.nodes, selectedIds, "text_color");
+  const fillMixed = groupParent ? mixedValueForCapability(block.nodes, selectedIds, "fill") : { kind: "empty" as const };
   const patchProps = (next: Record<string, unknown>, label: string) => {
-    // Group capability fan-out for compatible descendants.
-    if (groupParent && (next.color !== undefined || next.fontFamily !== undefined || next.fontSize !== undefined || next.fontWeight !== undefined || next.effectPreset !== undefined || next.materialPreset !== undefined || next.glow !== undefined || next.glowColor !== undefined)) {
-      let capability: "text_color" | "font" | "font_size" | "font_weight" | "effect" | "material" = "text_color";
-      if (next.materialPreset !== undefined) capability = "material";
-      else if (next.effectPreset !== undefined || next.glow !== undefined || next.glowColor !== undefined) capability = "effect";
-      else if (next.fontFamily !== undefined) capability = "font";
-      else if (next.fontSize !== undefined) capability = "font_size";
-      else if (next.fontWeight !== undefined) capability = "font_weight";
-      const result = fanOutProps(block.nodes, selectedIds, capability, next);
-      replace({ ...block, nodes: result.nodes }, label);
-      return;
+    // Group capability fan-out — per-descendant adapters, never primary-node clone.
+    if (groupParent) {
+      const capability = inferFanOutCapability(next);
+      if (capability) {
+        if (capability === "effect" && typeof next.effectPreset === "string") {
+          const effectId = next.effectPreset;
+          const result = fanOutWithAdapter(block.nodes, selectedIds, "effect", (member, family) =>
+            applyEffectRecipe(appearanceAdapterTargetForFamily(family), effectId, member.props)
+          );
+          replace({ ...block, nodes: result.nodes }, label);
+          return;
+        }
+        if (capability === "material" && (typeof next.materialPreset === "string" || next.materialPreset === null)) {
+          const materialId = (next.materialPreset as string | null) ?? null;
+          const result = fanOutWithAdapter(block.nodes, selectedIds, "material", (member, family) => {
+            const target = appearanceAdapterTargetForFamily(family);
+            if (target === "glyph") return applyGlyphMaterial(member.props, materialId);
+            return applySurfaceMaterial(member.props, materialId, {
+              asButtonSurface: family === "button",
+              preserveTextColor: family === "button",
+            });
+          });
+          replace({ ...block, nodes: result.nodes }, label);
+          return;
+        }
+        const result = fanOutProps(block.nodes, selectedIds, capability, next);
+        replace({ ...block, nodes: result.nodes }, label);
+        return;
+      }
     }
     let props = { ...node.props, ...next };
     if (isButton && typeof next.label === "string") props = updateButtonLabel(props, next.label, node.id);
@@ -490,7 +528,14 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
     }
     patch({ props }, label);
   };
-  const duplicate = () => { const result = duplicateNodes(block.nodes, [node.id]); replace({ ...block, nodes: result.nodes }, "Duplicated Element"); model.setSelectedCompositionNodeIds?.(result.newIds); };
+  const duplicate = () => {
+    const ids = groupParent || selectedIds.length > 1
+      ? expandSelectionToGroups(block.nodes, selectedIds)
+      : [node.id];
+    const result = duplicateNodes(block.nodes, ids);
+    replace({ ...block, nodes: result.nodes }, groupParent ? "Duplicated Group" : selectedIds.length > 1 ? "Duplicated Elements" : "Duplicated Element");
+    model.setSelectedCompositionNodeIds?.(result.newIds);
+  };
   const remove = () => {
     if (node.locked) return model.notify?.("Unlock this Element before deleting it.");
     replace({ ...block, nodes: block.nodes.filter((candidate) => candidate.id !== node.id) }, "Deleted Element");
@@ -552,15 +597,24 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       {groupParent ? <>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-edit-contents" onClick={() => {
           if (!activeGroupId) return;
-          const texts = textDescendantsInScope(block.nodes, selectedIds);
-          const child = texts[0] || block.nodes.find((n) => n.groupId === activeGroupId);
+          // Enter content mode on the first member — do not force first Text. Host picks the child.
+          const members = groupMembers(block.nodes, activeGroupId);
+          const child = members[0];
           if (!child) return;
           replace({ ...block, nodes: enterGroupContentEditing(block.nodes, activeGroupId, child.id) }, "Entered Group Edit contents");
           model.setSelectedCompositionNodeIds?.([child.id]);
+          model.notify?.("Select a Group child to edit. Finish returns to the Group.");
         }}>Edit contents</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-appearance" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}>Appearance</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-ungroup" onClick={() => {
+          if (!activeGroupId) return;
+          const memberIds = groupMembers(block.nodes, activeGroupId).map((member) => member.id);
+          replace({ ...block, nodes: ungroupNodes(block.nodes, activeGroupId) }, "Ungrouped Elements");
+          model.setSelectedCompositionNodeIds?.(memberIds);
+        }}>Ungroup</button>
         {textDescendantsInScope(block.nodes, selectedIds).length ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-magic-write" onClick={() => {
-          // Open the shared Text › Magic Write surface; scope resolves from current Group selection.
+          // Shared Text › Magic Write surface; scope resolves from current Group selection.
+          // Command remains registered for registry parity; UI opens the shared library host.
           document.querySelector<HTMLElement>('[data-testid="card-creative-tool-text"]')?.click();
           window.setTimeout(() => {
             document.querySelector<HTMLElement>('[data-testid="magic-write-open"]')?.click();
@@ -580,7 +634,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}
         />
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-surface")} data-testid="contextual-button-surface">Surface</button>
-        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-button-material">Material</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-button-appearance">Appearance</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-action")} data-testid="contextual-button-action">Action</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-button-motion">Animate</button>
       </> : isTextLike ? <>
@@ -595,8 +649,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             data-testid="contextual-badge-surface-swatch"
             onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }}
           />
-          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-badge-material">Material</button>
-          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("surface")} data-testid="contextual-surface">Appearance</button>
+          <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); open("effects"); }} data-testid="contextual-badge-appearance">Appearance</button>
         </> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("content")} data-testid="contextual-content">{isBadge ? "Wording" : "Edit"}</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("font")} data-testid="contextual-font">{String(node.props.fontFamily || "Font").split(",")[0]}</button>
@@ -668,7 +721,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
     {focus ? <EditorPanelShell testId={`contextual-${focus}-drawer`} title={`${targetLabel.display} / ${focus === "color" ? "Color" : focus === "text-box" ? "Text Box" : focus}`} targetLabel={targetLabel.display} onClose={closeFocus} portalEl={portalEl}>
       <p className="mb-2 text-[9px] text-white/45" data-testid="drawer-target-label">{targetLabel.display}{node.locked ? " · Locked" : ""}{node.visible === false ? " · Hidden" : ""}</p>
       <div data-testid-editor-family={objectFamily}>
-      {focus === "content" ? objectFamily === "icon" ? <div className="space-y-3" data-testid="icon-provider-controls"><input autoFocus value={iconQuery} onChange={(event) => { setIconQuery(event.target.value); if (event.target.value.trim().length >= 2) setIconSearchStatus("loading"); }} placeholder="Search Iconify · Lucide · Tabler · Phosphor · Remix · Material Symbols" className={fieldClass} data-testid="iconify-search" /><p className="text-[9px] text-white/45">Change Icon preserves Element ID, parent, x/y, size, rotation, Action, Motion, a11y, tracking, and Backing Surface.</p><div className="flex flex-wrap gap-1">{["dog", "ticket", "crown", "phone", "gift", "map"].map((term) => <button key={term} type="button" className={buttonClass} onClick={() => { setIconQuery(term); setIconSearchStatus("loading"); }}>{term}</button>)}</div><p className="text-[9px] text-white/40" data-testid="iconify-search-status">{iconSearchStatus === "loading" ? "Searching Iconify…" : iconSearchStatus === "error" ? "Iconify unavailable — Recommended built-ins remain below (not Iconify results)" : iconSearchStatus === "ready" ? `${providerIcons.length} Iconify results` : "Type at least 2 characters to search Iconify"}</p>{iconQuery.trim().length >= 2 ? <><h3 className="text-[10px] font-semibold uppercase text-white/45">Iconify results</h3><div className="grid grid-cols-3 gap-1" data-testid="iconify-results">{providerIcons.map((icon) => { const asset = icon.svg ? createIconAsset({ provider: "iconify", collection: icon.collection, iconName: icon.name, svg: icon.svg, source: icon.source }) : null; return <button key={icon.canonicalId} type="button" className="flex min-h-20 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-[9px]" data-testid={`iconify-result-${icon.canonicalId}`} disabled={!asset} onClick={() => { if (!asset) return; patchProps(replaceIconContentProps(node.props, asset), `Changed Icon to ${icon.canonicalId}`); }}>{asset ? <span className="grid h-9 w-9 place-items-center text-white [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: asset.body }} data-icon-svg="true" /> : <span className="text-[9px] text-white/40">SVG unavailable</span>}<span className="line-clamp-2">{icon.name}</span><span className="text-[8px] text-white/40">{icon.collection}</span></button>; })}{iconSearchStatus === "ready" && providerIcons.length === 0 ? <p className="col-span-3 text-[10px] text-white/45">No Iconify results for this search.</p> : null}</div>{iconSearchFallback ? <p className="text-[10px] text-amber-100" data-testid="iconify-fallback-status">Provider error — showing Recommended built-ins as fallback. These are not Iconify search results.</p> : null}</> : null}<h3 className="text-[10px] font-semibold uppercase text-white/45">TapConnect Recommended</h3><div className="grid grid-cols-3 gap-1" data-testid="icon-recommended-results">{ICON_LIBRARY.filter((icon) => !iconQuery.trim() || `${icon.label} ${icon.category}`.toLowerCase().includes(iconQuery.toLowerCase())).map((icon) => { const asset = nativeIconAsset(icon.id); return <button key={icon.id} type="button" className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-[9px]" data-testid={`icon-recommended-${icon.id}`} onClick={() => { if (!asset) return; patchProps(replaceIconContentProps(node.props, asset), `Changed Icon to ${icon.label}`); }}>{asset ? <span className="grid h-8 w-8 place-items-center text-[#b8ff2c] [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: asset.body }} /> : null}<span>{icon.label}</span><span className="text-[8px] text-white/40">Recommended</span></button>; })}</div></div> : objectFamily === "button" || objectFamily === "coupon" || objectFamily === "ticket" || objectFamily === "container" || objectFamily === "badge" ? <div className="space-y-2" data-testid="component-content-routing"><p className="rounded border border-[#b8ff2c]/25 bg-[#b8ff2c]/5 p-2 text-[10px]">Content mode exposes the component’s canonical children on canvas and in Layers. Select a child to use the shared Text, Icon, Image, Button, or QR editor.</p>{isBadge ? <label className="block text-xs text-white/70">Wording<textarea autoFocus value={String(node.props.text || "")} onChange={(event) => patchProps({ text: event.target.value, accessibleLabel: event.target.value }, "Edited Badge wording")} className="mt-2 min-h-20 w-full resize-y rounded border border-white/15 bg-transparent p-3 text-sm text-white" data-testid="badge-wording-input" /></label> : null}<button type="button" className={`${buttonClass} w-full`} onClick={() => patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents")}>{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button></div> : <label className="block text-xs text-white/70">Text<textarea autoFocus value={String(node.props.text || "")} onChange={(event) => patchProps({ text: event.target.value }, "Edited Element content")} className="mt-2 min-h-24 w-full resize-y rounded border border-white/15 bg-transparent p-3 text-sm text-white" data-testid="contextual-content-input" /></label> : null}
+      {focus === "content" ? objectFamily === "icon" ? <div className="space-y-3" data-testid="icon-provider-controls"><input autoFocus value={iconQuery} onChange={(event) => { setIconQuery(event.target.value); if (event.target.value.trim().length >= 2) setIconSearchStatus("loading"); }} placeholder="Search Iconify · Lucide · Tabler · Phosphor · Remix · Material Symbols" className={fieldClass} data-testid="iconify-search" /><p className="text-[9px] text-white/45">Change Icon preserves Element ID, parent, x/y, size, rotation, Action, Motion, a11y, tracking, and Backing Surface.</p><div className="flex flex-wrap gap-1">{["dog", "ticket", "crown", "phone", "gift", "map"].map((term) => <button key={term} type="button" className={buttonClass} onClick={() => { setIconQuery(term); setIconSearchStatus("loading"); }}>{term}</button>)}</div><p className="text-[9px] text-white/40" data-testid="iconify-search-status">{iconSearchStatus === "loading" ? "Searching Iconify…" : iconSearchStatus === "error" ? "Iconify unavailable — Recommended built-ins remain below (not Iconify results)" : iconSearchStatus === "ready" ? `${providerIcons.length} Iconify results` : "Type at least 2 characters to search Iconify"}</p>{iconQuery.trim().length >= 2 ? <><h3 className="text-[10px] font-semibold uppercase text-white/45">Iconify results</h3><div className="grid grid-cols-3 gap-1" data-testid="iconify-results">{providerIcons.map((icon) => { const asset = icon.svg ? createIconAsset({ provider: "iconify", collection: icon.collection, iconName: icon.name, svg: icon.svg, source: icon.source }) : null; return <button key={icon.canonicalId} type="button" className="flex min-h-20 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-[9px]" data-testid={`iconify-result-${icon.canonicalId}`} disabled={!asset} onClick={() => { if (!asset) return; patchProps(replaceIconContentProps(node.props, asset), `Changed Icon to ${icon.canonicalId}`); }}>{asset ? <span className="grid h-9 w-9 place-items-center text-white [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: asset.body }} data-icon-svg="true" /> : <span className="text-[9px] text-white/40">SVG unavailable</span>}<span className="line-clamp-2">{icon.name}</span><span className="text-[8px] text-white/40">{icon.collection}</span></button>; })}{iconSearchStatus === "ready" && providerIcons.length === 0 ? <p className="col-span-3 text-[10px] text-white/45">No Iconify results for this search.</p> : null}</div>{iconSearchFallback ? <p className="text-[10px] text-amber-100" data-testid="iconify-fallback-status">Provider error — showing Recommended built-ins as fallback. These are not Iconify search results.</p> : null}</> : null}<h3 className="text-[10px] font-semibold uppercase text-white/45">TapConnect Recommended</h3><div className="grid grid-cols-3 gap-1" data-testid="icon-recommended-results">{ICON_LIBRARY.filter((icon) => !iconQuery.trim() || `${icon.label} ${icon.category}`.toLowerCase().includes(iconQuery.toLowerCase())).map((icon) => { const asset = nativeIconAsset(icon.id); return <button key={icon.id} type="button" className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-[9px]" data-testid={`icon-recommended-${icon.id}`} onClick={() => { if (!asset) return; patchProps(replaceIconContentProps(node.props, asset), `Changed Icon to ${icon.label}`); }}>{asset ? <span className="grid h-8 w-8 place-items-center text-[#b8ff2c] [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: asset.body }} /> : null}<span>{icon.label}</span><span className="text-[8px] text-white/40">Recommended</span></button>; })}</div></div> : objectFamily === "button" || objectFamily === "container" || objectFamily === "badge" ? <div className="space-y-2" data-testid="component-content-routing"><p className="rounded border border-[#b8ff2c]/25 bg-[#b8ff2c]/5 p-2 text-[10px]">Content mode exposes the component’s canonical children on canvas and in Layers. Select a child to use the shared Text, Icon, Image, Button, or QR editor.</p>{isBadge ? <label className="block text-xs text-white/70">Wording<textarea autoFocus value={String(node.props.text || "")} onChange={(event) => patchProps({ text: event.target.value, accessibleLabel: event.target.value }, "Edited Badge wording")} className="mt-2 min-h-20 w-full resize-y rounded border border-white/15 bg-transparent p-3 text-sm text-white" data-testid="badge-wording-input" /></label> : null}<button type="button" className={`${buttonClass} w-full`} onClick={() => patchProps({ contentEditing: node.props.contentEditing !== true, selectionMode: node.props.contentEditing === true ? "parent" : "content" }, node.props.contentEditing === true ? "Finished editing contents" : "Entered Edit contents")}>{node.props.contentEditing === true ? "Finish editing contents" : "Edit contents"}</button></div> : <label className="block text-xs text-white/70">Text<textarea autoFocus value={String(node.props.text || "")} onChange={(event) => patchProps({ text: event.target.value }, "Edited Element content")} className="mt-2 min-h-24 w-full resize-y rounded border border-white/15 bg-transparent p-3 text-sm text-white" data-testid="contextual-content-input" /></label> : null}
       {focus === "setup" ? <div className="space-y-3" data-testid={`${objectFamily}-setup-controls`}>
         {objectFamily === "map" ? <><label className="block text-[10px] text-white/65">Workspace location<select value={String(node.props.locationId || "custom")} onChange={(event) => { const location = model.locations?.find((item) => item.id === event.target.value); patchProps(location ? { locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" } : { locationId: undefined }, "Changed Map location source"); }} className={fieldClass}><option value="custom">Custom address</option>{model.locations?.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}</select></label><label className="block text-[10px] text-white/65">Location name<input value={String(node.props.locationName || "")} onChange={(event) => patchProps({ locationName: event.target.value }, "Changed Map location name")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Address<input value={String(node.props.address || "")} onChange={(event) => patchProps({ address: event.target.value }, "Changed Map address")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Presentation<select value={String(node.props.mapDisplayMode || "location_card")} onChange={(event) => patchProps({ mapDisplayMode: event.target.value }, "Changed Map presentation")} className={fieldClass}>{["location_card", "map_directions", "static", "interactive", "directions_only", "pin_only", "text_link"].map((value) => <option key={value} value={value}>{value.replaceAll("_", " ")}</option>)}</select></label><label className="block text-[10px] text-white/65">Parking / entrance notes<textarea value={String(node.props.locationNotes || "")} onChange={(event) => patchProps({ locationNotes: event.target.value }, "Changed Map location notes")} className="mt-1 min-h-16 w-full rounded border border-white/15 bg-transparent p-2" /></label><button type="button" className={`${buttonClass} w-full`} data-testid="map-setup-test-directions" onClick={() => model.notify?.(`Test Action: directions → ${String(node.props.address || "setup required")}`)}>Test Action</button></> : <><label className="block text-[10px] text-white/65">Behavior<select value={String(node.props.behavior || "draft_only")} onChange={(event) => patchProps({ behavior: event.target.value }, `Changed ${objectFamily} behavior`)} className={fieldClass}><option value="draft_only">Draft only</option><option value="setup_required">Setup required</option><option value="ready">Ready for review</option></select></label><p className="rounded border border-amber-300/25 p-2 text-[10px] text-amber-100">This editor configures draft behavior only. No live submission, redemption, issuance, validation, or QR operation is executed.</p></>}
       </div> : null}
@@ -733,7 +786,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           return <div className="space-y-2" data-testid="photo-colors" data-deep-route="photo-colors"><button type="button" className="text-[10px] text-[#b8ff2c]" data-testid="nested-back-color" onClick={() => deepLeft?.goBack()}>← Back</button><p className="text-[10px] font-semibold uppercase text-white/55">Photo colors</p>{sources.length === 0 ? <p className="rounded border border-white/10 p-3 text-[11px] text-white/65" data-testid="photo-colors-empty">{PHOTO_COLORS_EMPTY_MESSAGE}</p> : sources.map((source) => <div key={source.assetId} className="rounded border border-white/10 p-2" data-testid={`photo-color-source-${source.assetId}`} data-source-asset-id={source.assetId}><div className="mb-2 flex items-center gap-2"><span className="h-10 w-10 overflow-hidden rounded bg-white/5 bg-cover bg-center" style={{ backgroundImage: `url(${source.thumbnailUrl})` }} /><span className="text-[10px] text-white/70">{source.label}</span></div><div className="flex flex-wrap gap-2">{source.colors.map((color) => <button key={`${source.assetId}-${color}`} type="button" className="h-8 w-8 rounded-full border border-white/20" style={{ background: color }} onClick={() => { patchProps({ color, sourceMode: "PHOTO" }, "Applied photo color"); deepLeft?.goBack(); }} />)}</div></div>)}</div>;
         })()
         : <><div><p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">Text color</p><div className="flex items-center gap-2"><span className="block h-9 w-9 rounded-full border border-white/15" style={{ background: String(node.props.color || "#ffffff") }} data-testid="current-text-color" /><input aria-label="Search colors" placeholder='Try "blue" or "#00c4cc"' className="h-9 flex-1 rounded border border-white/15 bg-transparent px-2 text-xs" data-testid="color-search" /></div></div>
-        <div className="grid grid-cols-2 gap-1"><button type="button" className={buttonClass} data-testid="color-transparent" onClick={() => patchProps({ color: "transparent", gradientFill: undefined }, "Cleared text color")}>Transparent</button><input aria-label="Custom glyph color" type="color" value={String(node.props.color || "#ffffff").startsWith("#") ? String(node.props.color).slice(0, 7) : "#ffffff"} onChange={(event) => patchProps({ color: event.target.value, sourceMode: "LOCAL" }, "Changed custom text color")} className="h-9 w-full rounded border border-white/15 bg-transparent p-0.5" /></div>
+        <div className="grid grid-cols-2 gap-1"><button type="button" className={buttonClass} data-testid="color-transparent" onClick={() => patchProps({ color: "transparent", gradientFill: undefined }, "Cleared text color")}>Transparent</button><input aria-label="Custom glyph color" type="color" value={toColorInputValue(node.props.color, "#ffffff")} onChange={(event) => patchProps({ color: event.target.value }, "Changed custom text color")} className="h-9 w-full rounded border border-white/15 bg-transparent p-0.5" data-testid="glyph-color-input" /></div>
         <div><p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">Colors in this design</p><div className="flex flex-wrap gap-2" data-testid="colors-in-this-design">{colors.map((color, index) => <button key={`${color}-${index}`} type="button" aria-label={`Use ${color}`} aria-pressed={node.props.color === color} className="h-8 w-8 rounded-full border border-white/20 outline-none aria-pressed:ring-2 aria-pressed:ring-[#b8ff2c]" style={{ background: color }} onClick={() => patchProps({ color, sourceMode: "LOCAL" }, "Changed text color")} />)}</div></div>
         <div><p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">Brand palette</p><div className="flex flex-wrap gap-2" data-testid="brand-palette">{[model.config.accentColor, model.config.surfaceColor, model.config.textColor, model.config.pillColor].filter(Boolean).map((color, index) => <button key={`brand-${color}-${index}`} type="button" aria-label={`Brand ${color}`} className="h-8 w-8 rounded-full border border-white/20" style={{ background: String(color) }} onClick={() => patchProps({ color: String(color), sourceMode: "BRAND" }, "Applied Brand color")} />)}</div></div>
         <div className="grid grid-cols-1 gap-1"><button type="button" className={`${buttonClass} w-full text-left`} data-testid="see-all-solid-colors" onClick={() => deepLeft?.setNestedPage("solid-colors")}>See all default solid colors</button><button type="button" className={`${buttonClass} w-full text-left`} data-testid="see-all-gradient-colors" onClick={() => deepLeft?.setNestedPage("gradient-colors")}>See all default gradient colors</button><button type="button" className={`${buttonClass} w-full text-left`} data-testid="see-photo-colors" onClick={() => deepLeft?.setNestedPage("photo-colors")}>Photo colors</button></div>
@@ -898,7 +951,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             <p className="text-[10px] font-semibold uppercase text-white/55">Effects</p>
             <div className="grid grid-cols-2 gap-1" data-testid="appearance-effects-list">
               {EFFECT_RECIPES.map((effect) => (
-                <button key={effect.id} type="button" aria-pressed={selectedEffect === effect.id} className={buttonClass} data-testid={`effect-${effect.id}`} onClick={() => patchProps(applyEffectRecipe(effectTarget, effect.id, node.props), `Applied ${effect.label} effect`)}>{effect.label}</button>
+                <button key={effect.id} type="button" aria-pressed={selectedEffect === effect.id} className={buttonClass} data-testid={`effect-${effect.id}`} onClick={() => { const adapted = applyEffectRecipe(effectTarget, effect.id, node.props); patchProps({ ...adapted, effectPreset: effect.id }, `Applied ${effect.label} effect`); }}>{effect.label}</button>
               ))}
             </div>
             {selectedEffect && selectedEffect !== "none" ? (
@@ -962,9 +1015,9 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           return <div className="space-y-3" data-testid="appearance-fill-controls">
             <button type="button" className="text-[10px] text-[#b8ff2c]" data-testid="appearance-back" onClick={() => deepLeft?.setNestedPage("overview")}>← Appearance</button>
             <p className="text-[10px] font-semibold uppercase text-white/55">Fill</p>
-            {colorMixed.kind === "mixed" ? <p className="text-[10px] text-amber-100" data-testid="appearance-mixed-value">Mixed</p> : null}
+            {colorMixed.kind === "mixed" || fillMixed.kind === "mixed" ? <p className="text-[10px] text-amber-100" data-testid="appearance-mixed-value">Mixed</p> : null}
             <div className="grid grid-cols-2 gap-2">
-              <label className="text-[10px] text-white/65">Solid<input type="color" value={String(node.props.fill || node.props.color || "#fbbf24").slice(0, 7)} onChange={(event) => patchProps(isTextLike ? { color: event.target.value, gradientFill: undefined } : { fill: event.target.value, gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined }, "Changed fill")} className={fieldClass} /></label>
+              <label className="text-[10px] text-white/65">Solid<input type="color" value={toColorInputValue(isTextLike ? node.props.color : (node.props.fill || node.props.color), "#fbbf24")} onChange={(event) => patchProps(isTextLike ? { color: event.target.value, gradientFill: undefined } : { fill: event.target.value, gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined }, "Changed fill")} className={fieldClass} /></label>
               <button type="button" className={buttonClass} onClick={() => deepLeft?.setNestedPage("gradient-colors")}>GradientStudio</button>
             </div>
           </div>;

@@ -56,7 +56,7 @@ test.describe("universal appearance materials system", () => {
     await page.getByRole("button", { name: /Add editable Badge/i }).click();
     await expect(page.getByTestId("contextual-target-label")).toHaveText(/Badge/i);
 
-    await page.getByTestId("contextual-badge-material").click();
+    await page.getByTestId("contextual-badge-appearance").click();
     await expect(page.getByTestId("appearance-category-overview").or(page.getByTestId("material-engine-controls"))).toBeVisible();
     // Navigate Material category when overview is shown.
     const overview = page.getByTestId("appearance-category-overview");
@@ -88,7 +88,10 @@ test.describe("universal appearance materials system", () => {
       await page.locator('[data-testid^="button-preset-"]').first().click();
     });
     await expect(page.getByTestId("card-contextual-object-tools")).toBeVisible({ timeout: 15_000 });
-    await page.getByTestId("contextual-button-material").click();
+    await page.getByTestId("contextual-button-appearance").click();
+    await expect(page.getByTestId("appearance-category-overview")).toBeVisible({ timeout: 15_000 });
+    await page.getByTestId("appearance-category-material").click();
+    await expect(page.getByTestId("material-engine-controls")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("material-chrome").click();
     await page.screenshot({ path: path.join(evidenceDir, "06-chrome-button.png"), fullPage: false });
 
@@ -114,11 +117,15 @@ test.describe("universal appearance materials system", () => {
     await page.screenshot({ path: path.join(evidenceDir, "09-aa-blue-on-green.png"), fullPage: false });
 
     await page.getByTestId("contextual-text-material").click();
-    await expect(page.getByTestId("material-engine-controls")).toBeVisible();
+    await expect(page.getByTestId("appearance-category-overview").or(page.getByTestId("material-engine-controls"))).toBeVisible({ timeout: 15_000 });
+    if (await page.getByTestId("appearance-category-material").count()) {
+      await page.getByTestId("appearance-category-material").click();
+    }
+    await expect(page.getByTestId("material-engine-controls")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("material-gold").click();
     await page.screenshot({ path: path.join(evidenceDir, "10-gold-text.png"), fullPage: false });
     await page.getByTestId("material-chrome").click();
-    await page.getByTestId("material-neon").click();
+    await page.getByTestId("material-neon").or(page.getByTestId("material-tube_neon")).first().click();
     await page.screenshot({ path: path.join(evidenceDir, "11-neon-text.png"), fullPage: false });
   });
 
@@ -131,7 +138,11 @@ test.describe("universal appearance materials system", () => {
     await expect(page.getByTestId("contextual-target-label")).toHaveText(/Container/i, { timeout: 15_000 });
     await expect(page.getByTestId("contextual-container-surface-swatch")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("contextual-container-surface-swatch").click();
-    await expect(page.getByTestId("material-engine-controls")).toBeVisible();
+    await expect(page.getByTestId("appearance-category-overview").or(page.getByTestId("material-engine-controls"))).toBeVisible({ timeout: 15_000 });
+    if (await page.getByTestId("appearance-category-material").count()) {
+      await page.getByTestId("appearance-category-material").click();
+    }
+    await expect(page.getByTestId("material-engine-controls")).toBeVisible({ timeout: 15_000 });
     await page.getByTestId("material-frosted_glass").click();
     await page.screenshot({ path: path.join(evidenceDir, "12-frosted-container.png"), fullPage: false });
     await page.getByTestId("material-brushed_metal").click();

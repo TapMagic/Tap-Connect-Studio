@@ -34,7 +34,9 @@ export type EditorDrawerSection =
   | "button-surface"
   | "button-content"
   | "button-action"
-  | "effects";
+  | "effects"
+  | "arrange"
+  | "magic-write";
 
 export type EditorCommand = {
   id: string;
@@ -63,10 +65,14 @@ const entries = [
   command("color.open", "Color", "color", ["text", "divider"]), command("material.open", "Material", "effects", ["text", "badge", "button", "container", "coupon", "ticket", "form", "shape"]), command("icon.open", "Change Icon", "content", ["icon"]), command("icon.appearance", "Appearance", "icon-appearance", ["icon"]),
   command("media.replace", "Replace", "media", ["image", "logo", "video"]), command("media.cropFit", "Crop / Fit", "crop", ["image", "logo", "video"]), command("media.adjust", "Adjust", "adjust", ["image", "logo"]),
   command("action.open", "Action", "action"), command("motion.open", "Motion", "motion"), command("transform.position", "Position", "position"), command("layout.open", "Layout", "layout"), command("size.open", "Size", "position", ["container"]), command("responsive.open", "Responsive", "responsive"),
-  command("component.editChildren", "Edit contents", "content", ["button", "coupon", "ticket", "container", "badge", "gallery", "form"]), command("resizePolicy.open", "Resize behavior", "resize-policy", ["container", "coupon", "ticket", "gallery"]), command("setup.open", "Setup", "setup", ["coupon", "ticket", "qr", "utility"]), command("map.setup", "Setup", "setup", ["map"]), command("map.action", "Map Action", "map-action", ["map"]),
+  command("component.editChildren", "Edit contents", "content", ["button", "coupon", "ticket", "container", "badge", "gallery", "form", "group"]), command("resizePolicy.open", "Resize behavior", "resize-policy", ["container", "coupon", "ticket", "gallery"]), command("setup.open", "Setup", "setup", ["coupon", "ticket", "qr", "utility"]), command("map.setup", "Setup", "setup", ["map"]), command("map.action", "Map Action", "map-action", ["map"]),
   command("gallery.edit", "Edit gallery", "gallery", ["gallery"]), command("form.editFields", "Edit fields", "fields", ["form"]), command("behavior.open", "Behavior", "setup", ["form"]),
   command("divider.style", "Style", "divider-style", ["divider"]), command("divider.thickness", "Thickness", "divider-thickness", ["divider"]), command("divider.color", "Color", "divider-color", ["divider"]), command("divider.appearance", "Appearance", "divider-appearance", ["divider"]),
   command("badge.shape", "Shape", "surface", ["badge"]), command("visibility.open", "Visibility", "visibility"), command("more.open", "More", "more"),
+  // Group common ops — Ungroup is required wherever Group parent mode is active.
+  command("ungroup.open", "Ungroup", null, ["group"], 30, "common-operation"),
+  command("arrange.open", "Arrange", "arrange", ["group", "text", "image", "logo", "icon", "shape", "divider", "badge", "button", "coupon", "ticket", "container", "gallery", "form", "map", "qr", "video"], 40),
+  command("magicWrite.open", "Magic Write", "magic-write", ["group", "text", "badge", "button", "coupon", "ticket"], 35),
   command("reset.appearance", "Reset Appearance", null, families, 99, "common-operation"),
 ] as const;
 
@@ -94,6 +100,8 @@ export function focusForDrawerSection(section: EditorDrawerSection, family: Obje
   if (family === "divider" && section === "surface") return "divider-appearance";
   if (family === "divider" && section === "color") return "divider-color";
   if (section === "motion") return "animate";
+  if (section === "magic-write") return "content";
+  if (section === "arrange") return "more";
   if (section === "page-size" || section === "guides" || section === "visibility") return section === "page-size" ? "page-size" : section;
   return section;
 }

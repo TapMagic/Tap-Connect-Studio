@@ -440,7 +440,19 @@ function NodeVisual({
             letterSpacing={`${num(node.props.letterSpacingEm, 0)}em`}
             stroke={num(node.props.outlineWidth, 0) > 0 ? str(node.props.outlineColor, color) : undefined}
             strokeWidth={num(node.props.outlineWidth, 0)}
-            style={{ filter: num(node.props.glow, 0) > 0 ? `drop-shadow(0 0 ${num(node.props.glow, 0)}px ${color})` : undefined }}
+            style={{
+              filter: effectLayersCss("icon_artwork", {
+                effectPreset: str(node.props.effectPreset, str(node.props.glyphEffect, "")),
+                glow: num(node.props.glow, 0),
+                shadow: num(node.props.shadow, 0),
+                glowColor: str(node.props.glowColor, color),
+                secondaryGlow: num(node.props.secondaryGlow, 0),
+                coreBrightness: num(node.props.coreBrightness, 1),
+                edgeWidth: num(node.props.edgeWidth, 1.25),
+                auraIntensity: num(node.props.auraIntensity, 0.45),
+                color,
+              }).filter,
+            }}
           >
             <textPath href={`#curve-${node.id}`} startOffset="50%" textAnchor="middle">{text}</textPath>
           </text>
@@ -489,11 +501,17 @@ function NodeVisual({
           border: node.props.boxBorder ? `1px solid ${str(node.props.boxBorder)}` : undefined,
           borderRadius: node.props.boxRadius != null ? num(node.props.boxRadius, 0) : undefined,
           padding: node.props.boxPadding != null ? num(node.props.boxPadding, 0) : undefined,
-          boxShadow: num(node.props.boxShadow, 0)
-            ? `0 8px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)`
-            : num(node.props.boxGlow, 0)
-              ? `0 0 ${num(node.props.boxGlow, 0)}px ${str(node.props.color, "#b8ff2c")}`
-              : undefined,
+          boxShadow: effectLayersCss("text_box", {
+            effectPreset: str(node.props.effectPreset, ""),
+            glow: num(node.props.boxGlow, 0),
+            shadow: num(node.props.boxShadow, 0),
+            glowColor: str(node.props.glowColor, str(node.props.color, "#b8ff2c")),
+            secondaryGlow: num(node.props.secondaryGlow, 0),
+            coreBrightness: num(node.props.coreBrightness, 1),
+            edgeWidth: num(node.props.edgeWidth, 1.25),
+            auraIntensity: num(node.props.auraIntensity, 0.45),
+            color: str(node.props.color, "#b8ff2c"),
+          }).boxShadow,
         }}
       >
         <InlineEditableText
@@ -776,13 +794,18 @@ function NodeVisual({
       const backingGlow = backingEnabled ? num(node.props.boxGlow, 0) : 0;
       // Path-aware artwork effects — never box-shadow on the Icon Element wrapper.
       const glowColor = str(node.props.glowColor, fill);
-      const secondaryGlow = num(node.props.secondaryGlow, 0);
-      const artworkFilter = [
-        glow > 0 ? `drop-shadow(0 0 ${glow}px ${glowColor})` : "",
-        secondaryGlow > 0 ? `drop-shadow(0 0 ${secondaryGlow}px ${glowColor})` : "",
-        shadow > 0 ? `drop-shadow(0 ${Math.max(1, shadow / 3)}px ${shadow}px rgba(0,0,0,.55))` : "",
-        blur > 0 ? `blur(${blur}px)` : "",
-      ].filter(Boolean).join(" ") || undefined;
+      const effectFilter = effectLayersCss("icon_artwork", {
+        effectPreset: str(node.props.effectPreset, str(node.props.glyphEffect, "")),
+        glow,
+        shadow,
+        glowColor,
+        secondaryGlow: num(node.props.secondaryGlow, 0),
+        coreBrightness: num(node.props.coreBrightness, 1),
+        edgeWidth: num(node.props.edgeWidth, 1.25),
+        auraIntensity: num(node.props.auraIntensity, 0.45),
+        color: fill,
+      }).filter;
+      const artworkFilter = [effectFilter, blur > 0 ? `blur(${blur}px)` : ""].filter(Boolean).join(" ") || undefined;
       const artwork = typeof node.props.iconSvg === "string" && node.props.iconSvg.includes("<svg") ? (
         <span
           className="grid h-full w-full place-items-center overflow-visible [&_svg]:h-full [&_svg]:w-full [&_svg]:overflow-visible"
@@ -819,11 +842,13 @@ function NodeVisual({
             border: backingEnabled && borderWidth > 0 && borderStyle !== "none"
               ? `${borderWidth}px ${borderStyle} ${borderColor}`
               : "none",
-            boxShadow: backingEnabled && (backingShadow > 0 || backingGlow > 0)
-              ? [
-                  backingShadow > 0 ? `0 8px ${backingShadow}px rgba(0,0,0,.35)` : "",
-                  backingGlow > 0 ? `0 0 ${backingGlow}px ${fill}` : "",
-                ].filter(Boolean).join(", ") || undefined
+            boxShadow: backingEnabled
+              ? surfaceShadowCss({
+                  ...node.props,
+                  boxShadow: backingShadow,
+                  boxGlow: backingGlow,
+                  glowColor: str(node.props.glowColor, fill),
+                })
               : undefined,
           }}
           role={node.props.decorative === true ? undefined : "img"}
@@ -852,16 +877,7 @@ function NodeVisual({
             : badgeShape === "tag" ? "polygon(0 0,82% 0,100% 50%,82% 100%,0 100%,10% 50%)"
               : badgeShape === "shield" ? "polygon(50% 0,94% 16%,88% 65%,50% 100%,12% 65%,6% 16%)"
                 : badgeShape === "hexagon" ? "polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%)" : undefined;
-      const shadow = num(node.props.boxShadow, num(node.props.shadow, 0));
-      const glow = num(node.props.boxGlow, num(node.props.glow, 0));
-      const secondaryGlow = num(node.props.secondaryGlow, 0);
-      const glowColor = str(node.props.glowColor, "#67e8f9");
-      const badgeShadow = [
-        shadow > 0 ? `0 8px ${shadow}px rgba(0,0,0,.4)` : "",
-        glow > 0 ? `0 0 ${glow}px ${glowColor}` : "",
-        secondaryGlow > 0 ? `0 0 ${secondaryGlow}px ${glowColor}` : "",
-        typeof node.props.innerShadow === "string" ? node.props.innerShadow : "",
-      ].filter(Boolean).join(", ") || undefined;
+      const badgeShadow = surfaceShadowCss(node.props);
       return (
         <div
           className="relative flex h-full w-full items-center justify-center overflow-hidden px-2 text-center"
@@ -880,6 +896,7 @@ function NodeVisual({
           }}
           data-badge-shape={badgeShape}
           data-material={str(node.props.materialPreset, "")}
+          data-effect={str(node.props.effectPreset, "")}
         >
           {node.props.shine === true || node.props.highlight ? (
             <span
@@ -1082,10 +1099,7 @@ function NodeVisual({
             : surfaceKind === "texture"
               ? `radial-gradient(circle at 25% 25%, #ffffff28 0 1px, transparent 2px), ${str(node.props.fill, "#22c55e")}`
               : str(node.props.fill, "#22c55e");
-    const shadowParts = [
-      num(node.props.boxShadow, 0) ? `0 8px ${num(node.props.boxShadow, 18)}px rgba(0,0,0,.4)` : "",
-      num(node.props.boxGlow, 0) ? `0 0 ${num(node.props.boxGlow, 18)}px ${str(node.props.glowColor, "#b8ff2c")}` : "",
-    ].filter(Boolean).join(", ") || undefined;
+    const shadowParts = surfaceShadowCss(node.props);
     const labelStyle: CSSProperties = {
       color: str(labelProps.color, str(node.props.labelColor, str(node.props.textColor, "#0b0f19"))),
       fontFamily: str(labelProps.fontFamily, str(node.props.fontFamily, "Inter, system-ui, sans-serif")),
@@ -1099,7 +1113,17 @@ function NodeVisual({
       backgroundClip: node.props.gradientFill ? "text" : undefined,
       WebkitBackgroundClip: node.props.gradientFill ? "text" : undefined,
       WebkitTextFillColor: node.props.gradientFill ? "transparent" : undefined,
-      textShadow: num(node.props.glow, 0) ? `0 0 ${num(node.props.glow, 12)}px ${str(node.props.glowColor, "currentColor")}` : num(node.props.shadow, 0) ? `0 3px ${num(node.props.shadow, 12)}px rgba(0,0,0,.45)` : undefined,
+      textShadow: effectLayersCss("glyph", {
+        effectPreset: str(labelProps.effectPreset, str(node.props.effectPreset, "")),
+        glow: num(labelProps.glow, num(node.props.glow, 0)),
+        shadow: num(labelProps.shadow, num(node.props.shadow, 0)),
+        glowColor: str(labelProps.glowColor, str(node.props.glowColor, "currentColor")),
+        secondaryGlow: num(labelProps.secondaryGlow, num(node.props.secondaryGlow, 0)),
+        coreBrightness: num(node.props.coreBrightness, 1),
+        edgeWidth: num(node.props.edgeWidth, 1.25),
+        auraIntensity: num(node.props.auraIntensity, 0.45),
+        color: str(labelProps.color, str(node.props.labelColor, "currentColor")),
+      }).textShadow,
     };
     const surface = (
       <span

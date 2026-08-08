@@ -33,7 +33,19 @@ export type FanOutCapability =
   | "material"
   | "motion"
   | "opacity"
-  | "text_content";
+  | "text_content"
+  | "fill"
+  | "gradient"
+  | "border";
+
+/** Map a family to the Material/Effect adapter target used for fan-out. */
+export function appearanceAdapterTargetForFamily(
+  family: ObjectFamily
+): "glyph" | "icon_artwork" | "surface" {
+  if (family === "text") return "glyph";
+  if (family === "icon") return "icon_artwork";
+  return "surface";
+}
 
 export type MixedValue<T> =
   | { kind: "uniform"; value: T }
@@ -310,6 +322,22 @@ export function compatibleDescendants(
           family === "ticket" ||
           family === "container"
         );
+      case "fill":
+      case "gradient":
+      case "border":
+        return (
+          family === "badge" ||
+          family === "button" ||
+          family === "shape" ||
+          family === "coupon" ||
+          family === "ticket" ||
+          family === "container" ||
+          family === "image" ||
+          family === "logo" ||
+          // Text fill/gradient applies to glyph color/gradientFill; border is text-box.
+          family === "text" ||
+          family === "icon"
+        );
       case "motion":
         return family !== "group" && family !== "card_root" && family !== "utility";
       case "opacity":
@@ -345,6 +373,12 @@ export function readCapabilityValue(
       return node.props.opacity ?? 1;
     case "text_content":
       return node.props.text ?? node.props.label ?? null;
+    case "fill":
+      return node.props.fill ?? node.props.color ?? null;
+    case "gradient":
+      return node.props.gradientFill ?? node.props.gradientModel ?? null;
+    case "border":
+      return `${node.props.borderStyle ?? "none"}|${node.props.borderWidth ?? 0}|${node.props.borderColor ?? ""}`;
     default:
       return null;
   }
@@ -373,22 +407,82 @@ export function fanOutProps(
   capability: FanOutCapability,
   patch: Record<string, unknown>
 ): { nodes: CreativeCompositionNode[]; appliedIds: string[]; skipped: number } {
-  const targets = compatibleDescendants(nodes, selectedIds, capability);
-  const targetIds = new Set(targets.map((node) => node.id));
-  const next = nodes.map((node) => {
-    if (!targetIds.has(node.id)) return node;
+  return fanOutWithAdapter(nodes, selectedIds, capability, (node) => {
     const props = { ...node.props, ...patch };
-    // Text color on buttons uses labelColor when present.
     if (capability === "text_color" && objectFamilyForNode(node) === "button" && patch.color != null) {
       props.labelColor = patch.color;
     }
+    // Text fill/gradient maps onto glyph color/gradientFill rather than surface fill.
+    if (capability === "fill" && objectFamilyForNode(node) === "text" && patch.fill != null && patch.color == null) {
+      props.color = patch.fill;
+      delete props.fill;
+    }
+    return props;
+  });
+}
+
+/**
+ * Apply a per-descendant adapter so mixed Text+Surface groups never receive
+ * the primary node's material/effect keys blindly.
+ */
+export function fanOutWithAdapter(
+  nodes: CreativeCompositionNode[],
+  selectedIds: readonly string[],
+  capability: FanOutCapability,
+  buildProps: (node: CreativeCompositionNode, family: ObjectFamily) => Record<string, unknown> | null
+): { nodes: CreativeCompositionNode[]; appliedIds: string[]; skipped: number } {
+  const targets = compatibleDescendants(nodes, selectedIds, capability);
+  const targetIds = new Set(targets.map((node) => node.id));
+  const appliedIds: string[] = [];
+  const next = nodes.map((node) => {
+    if (!targetIds.has(node.id)) return node;
+    const family = objectFamilyForNode(node);
+    const props = buildProps(node, family);
+    if (!props) return node;
+    appliedIds.push(node.id);
     return { ...node, props };
   });
   return {
     nodes: next,
-    appliedIds: [...targetIds],
-    skipped: expandSelectionToGroups(nodes, [...selectedIds]).length - targetIds.size,
+    appliedIds,
+    skipped: expandSelectionToGroups(nodes, [...selectedIds]).length - appliedIds.length,
   };
+}
+
+/** Infer fan-out capability from a props patch produced by Appearance controls. */
+export function inferFanOutCapability(patch: Record<string, unknown>): FanOutCapability | null {
+  if (patch.materialPreset !== undefined) return "material";
+  if (
+    patch.effectPreset !== undefined ||
+    patch.glow !== undefined ||
+    patch.glowColor !== undefined ||
+    patch.boxGlow !== undefined ||
+    patch.secondaryGlow !== undefined ||
+    patch.coreBrightness !== undefined ||
+    patch.edgeWidth !== undefined ||
+    patch.auraIntensity !== undefined
+  ) {
+    return "effect";
+  }
+  if (patch.fontFamily !== undefined) return "font";
+  if (patch.fontSize !== undefined) return "font_size";
+  if (patch.fontWeight !== undefined) return "font_weight";
+  if (patch.color !== undefined || patch.labelColor !== undefined || patch.textColor !== undefined) {
+    return "text_color";
+  }
+  if (patch.gradientFill !== undefined || patch.gradientModel !== undefined) return "gradient";
+  if (patch.fill !== undefined || patch.surfaceFillKind !== undefined) return "fill";
+  if (
+    patch.borderWidth !== undefined ||
+    patch.borderStyle !== undefined ||
+    patch.borderColor !== undefined ||
+    patch.radius !== undefined
+  ) {
+    return "border";
+  }
+  if (patch.opacity !== undefined || patch.surfaceOpacity !== undefined) return "opacity";
+  if (patch.motionPreset !== undefined || patch.animation !== undefined) return "motion";
+  return null;
 }
 
 export function fanOutScopeLabel(applied: number, total: number): string | null {

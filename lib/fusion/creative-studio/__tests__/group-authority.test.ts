@@ -5,11 +5,14 @@ import {
   groupNodes,
 } from "../composition";
 import {
+  appearanceAdapterTargetForFamily,
   computeGroupUnionBounds,
   compatibleDescendants,
   enterGroupContentEditing,
   exitGroupContentEditing,
   fanOutProps,
+  fanOutWithAdapter,
+  inferFanOutCapability,
   isGroupParentSelection,
   mixedValueForCapability,
   moveGroupComposition,
@@ -17,6 +20,7 @@ import {
   resolveActiveGroupId,
   rotateGroupComposition,
 } from "../group-authority";
+import { applyEffectRecipe } from "../material-engine";
 import { effectIdentitySignature } from "../effect-render";
 import { appearanceCategoriesForFamily } from "../appearance-ia";
 import { buildCouponContentComposition, couponThumbnailSignature } from "../coupon-composition";
@@ -106,6 +110,77 @@ test("capability fan-out applies color to all text and reports mixed", () => {
   assert.equal(result.nodes.find((n) => n.id === "t1")!.props.color, "#00ff00");
   assert.equal(result.nodes.find((n) => n.id === "t2")!.props.color, "#00ff00");
   assert.equal(result.nodes.find((n) => n.id === "i1")!.props.fill, "#fff");
+});
+
+test("per-descendant effect adapter does not clone primary surface keys onto text", () => {
+  const text = createCompositionNode("text", {
+    id: "t1",
+    x: 0.1,
+    y: 0.1,
+    width: 0.3,
+    height: 0.1,
+    zIndex: 1,
+    props: { text: "A", color: "#fff" },
+  });
+  const button = createCompositionNode("button", {
+    id: "b1",
+    x: 0.5,
+    y: 0.2,
+    width: 0.3,
+    height: 0.12,
+    zIndex: 2,
+    props: { label: "Go", fill: "#111" },
+  });
+  const nodes = groupNodes([text, button], ["t1", "b1"], "g1");
+  const result = fanOutWithAdapter(nodes, ["t1", "b1"], "effect", (member, family) =>
+    applyEffectRecipe(appearanceAdapterTargetForFamily(family), "neon_edge", member.props)
+  );
+  const textProps = result.nodes.find((n) => n.id === "t1")!.props;
+  const buttonProps = result.nodes.find((n) => n.id === "b1")!.props;
+  assert.equal(textProps.effectPreset, "neon_edge");
+  assert.equal(buttonProps.effectPreset, "neon_edge");
+  // Glyph adapter uses glow; surface adapter uses boxGlow.
+  assert.ok(Number(textProps.glow) > 0);
+  assert.ok(Number(buttonProps.boxGlow) > 0);
+});
+
+test("fill and border fan-out target surface-compatible descendants", () => {
+  const text = createCompositionNode("text", {
+    id: "t1",
+    x: 0.1,
+    y: 0.1,
+    width: 0.3,
+    height: 0.1,
+    zIndex: 1,
+    props: { text: "A", color: "#fff" },
+  });
+  const badge = createCompositionNode("shape", {
+    id: "bd1",
+    x: 0.5,
+    y: 0.2,
+    width: 0.2,
+    height: 0.1,
+    zIndex: 2,
+    props: { elementKind: "badge", text: "SALE", fill: "#ef4444" },
+  });
+  const nodes = groupNodes([text, badge], ["t1", "bd1"], "g1");
+  const fillTargets = compatibleDescendants(nodes, ["t1", "bd1"], "fill");
+  assert.equal(fillTargets.length, 2);
+  const filled = fanOutProps(nodes, ["t1", "bd1"], "fill", { fill: "#00aa00" });
+  assert.equal(filled.nodes.find((n) => n.id === "t1")!.props.color, "#00aa00");
+  assert.equal(filled.nodes.find((n) => n.id === "bd1")!.props.fill, "#00aa00");
+  const bordered = fanOutProps(nodes, ["t1", "bd1"], "border", { borderWidth: 2, borderStyle: "solid", borderColor: "#fff" });
+  assert.equal(bordered.nodes.find((n) => n.id === "bd1")!.props.borderWidth, 2);
+});
+
+test("inferFanOutCapability classifies appearance patches", () => {
+  assert.equal(inferFanOutCapability({ color: "#0f0" }), "text_color");
+  assert.equal(inferFanOutCapability({ effectPreset: "neon_edge" }), "effect");
+  assert.equal(inferFanOutCapability({ materialPreset: "gold" }), "material");
+  assert.equal(inferFanOutCapability({ gradientFill: "linear-gradient(#000,#fff)" }), "gradient");
+  assert.equal(inferFanOutCapability({ borderWidth: 2 }), "border");
+  assert.equal(inferFanOutCapability({ fill: "#111" }), "fill");
+  assert.equal(inferFanOutCapability({ label: "x" }), null);
 });
 
 test("group edit contents enters and exits without destroying membership", () => {
