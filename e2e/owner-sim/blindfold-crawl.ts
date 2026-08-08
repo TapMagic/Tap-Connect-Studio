@@ -566,16 +566,36 @@ async function operateControlPhysicallyInner(
   });
 
   if (!control.testId && !String(control.name || "").trim()) {
-    // Hidden/file inputs are not Owner-addressable chrome — genuine non-applicability.
     if (control.tag === "input") {
-      const candidate = page.locator("input:not([aria-label]):not([placeholder]):not([name])").first();
-      const type = (await candidate.getAttribute("type").catch(() => "")) || "";
-      if (type === "hidden" || type === "file") {
+      const unlabeled = await page.evaluate(() =>
+        [...document.querySelectorAll("input")].filter((el) => {
+          const visible = !!(el.offsetWidth || el.offsetHeight || el.getClientRects().length);
+          const named = !!(
+            el.getAttribute("aria-label") ||
+            el.getAttribute("placeholder") ||
+            el.getAttribute("name") ||
+            el.id ||
+            el.getAttribute("data-testid")
+          );
+          return visible && el.type !== "hidden" && !named;
+        }).length
+      );
+      if (unlabeled === 0) {
         return {
           status: "NOT_APPLICABLE",
-          notes: [`Anonymous ${type} input is not an Owner-facing Studio control`, `context=${contextLabel}`],
+          notes: [
+            "Inventory anonymous input is not present in reconstructed Studio — labeled controls cover Owner-facing fields",
+            `context=${contextLabel}`,
+          ],
         };
       }
+      return {
+        status: "BROKEN",
+        notes: [
+          `Anonymous enabled input still visible (${unlabeled}) — Owner cannot address it reliably`,
+          `context=${contextLabel}`,
+        ],
+      };
     }
     return {
       status: "BROKEN",
