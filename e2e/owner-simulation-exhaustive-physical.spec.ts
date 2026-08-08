@@ -740,6 +740,17 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
           return score(a) - score(b);
         });
       }
+      // Root Background: operate materials/modes before Close controls that collapse the editor.
+      if (contextLabel === "root-background") {
+        controls.sort((a, b) => {
+          const score = (c: ProvenancedControl) => {
+            if (/^Close creative drawer$/i.test(c.name) || /^Close editor$/i.test(c.name)) return 3;
+            if (/^contextual-root-/.test(c.testId || "")) return 2;
+            return 0;
+          };
+          return score(a) - score(b);
+        });
+      }
       try {
         await reconstructContext(page, contextLabel);
       } catch (error) {

@@ -709,13 +709,39 @@ async function operateControlPhysicallyInner(
     };
   }
 
-  // Appearance category doors — return to overview when a prior category unmounted siblings.
+  // Appearance overview is a panel (div), not a clickable control.
+  if (control.testId === "appearance-category-overview" && contextLabel.startsWith("appearance-")) {
+    await ensureAppearanceContext(page, contextLabel);
+    const back = page.getByTestId("appearance-back").first();
+    if ((await back.count()) > 0 && (await back.isVisible().catch(() => false))) {
+      await ownerClick(back, "Return to Appearance overview");
+    }
+    await expect(page.getByTestId("appearance-category-overview")).toBeVisible({ timeout: 10_000 });
+    return {
+      status: "VERIFIED",
+      notes: ["Appearance overview panel visible", `context=${contextLabel}`],
+    };
+  }
+
+  // Appearance category doors unmount when nested — return via ← Appearance then open the door.
   if (/^appearance-category-/.test(control.testId || "") && contextLabel.startsWith("appearance-")) {
     await ensureAppearanceContext(page, contextLabel);
-    const overview = page.getByTestId("appearance-category-overview");
-    if ((await page.getByTestId(control.testId).count()) === 0 && (await overview.count()) > 0) {
-      await ownerClick(overview.first(), "Return to Appearance overview for category doors");
+    const back = page.getByTestId("appearance-back").first();
+    if ((await page.getByTestId(control.testId).count()) === 0 && (await back.count()) > 0 && (await back.isVisible().catch(() => false))) {
+      await ownerClick(back, "Return to Appearance overview for category doors");
     }
+    const door = page.getByTestId(control.testId).first();
+    await expect(door).toBeVisible({ timeout: 10_000 });
+    await ownerClick(door, `Appearance category ${control.testId}`);
+    // Leave a nested page only if later siblings need overview — restore overview for batch stability.
+    const back2 = page.getByTestId("appearance-back").first();
+    if ((await back2.count()) > 0 && (await back2.isVisible().catch(() => false))) {
+      await ownerClick(back2, "Return to Appearance overview after category");
+    }
+    return {
+      status: "VERIFIED",
+      notes: [`Appearance category door operated: ${control.testId}`, `context=${contextLabel}`],
+    };
   }
 
   // Close creative drawer — only mounted while a rail library is open (not during Background editor).
@@ -949,7 +975,25 @@ async function operateControlPhysicallyInner(
     };
   }
 
-  const locator = locateControl(page, control);
+  // Scope root-background ops to the Background editor — avoid colliding with tab Close buttons.
+  let locator = locateControl(page, control);
+  if (contextLabel === "root-background") {
+    const editor = page.getByTestId("root-background-editor");
+    if ((await editor.count()) > 0) {
+      if (control.testId) {
+        const scoped = editor.getByTestId(control.testId).first();
+        if ((await scoped.count()) > 0) locator = scoped;
+      } else if (control.name) {
+        const leaf = control.name.split(":")[0]!.trim().slice(0, 40);
+        const scoped = editor
+          .getByRole("button", { name: new RegExp(`^${escapeRegExp(leaf)}`, "i") })
+          .or(editor.getByRole("radio", { name: new RegExp(escapeRegExp(leaf), "i") }))
+          .or(editor.locator(`input[aria-label="${leaf.replace(/"/g, '\\"')}"]`))
+          .first();
+        if ((await scoped.count()) > 0) locator = scoped;
+      }
+    }
+  }
   if ((await locator.count()) === 0) {
     return {
       status: "BROKEN",
