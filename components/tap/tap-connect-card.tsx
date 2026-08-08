@@ -104,6 +104,9 @@ type TapConnectCardProps = {
   offerFuseEnabled?: boolean;
   /** Preview-safe: consequential actions show honest messages instead of live side effects */
   previewSafe?: boolean;
+  /** Enables OS file drop / image clipboard paste into composition canvases. */
+  mediaUploadReady?: boolean;
+  onNotify?: (message: string | null) => void;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
 };
@@ -144,6 +147,8 @@ export function TapConnectCard({
   offerContext = null,
   offerFuseEnabled = false,
   previewSafe = false,
+  mediaUploadReady = false,
+  onNotify,
   className = "",
   onAction,
 }: TapConnectCardProps) {
@@ -1153,6 +1158,8 @@ export function TapConnectCard({
             onChangeBlock={(next, label) =>
               onCompositionChange?.(section.id, next, label)
             }
+            mediaUploadReady={mediaUploadReady}
+            onNotify={onNotify}
           />
         ) : (
           <CreativeDomRenderer
@@ -1371,6 +1378,8 @@ export function TapConnectCard({
             onCompositionNodeSelect?.(section.id, ids);
           }}
           onChangeBlock={(next, label) => onCompositionChange?.(section.id, next, label)}
+              mediaUploadReady={mediaUploadReady}
+              onNotify={onNotify}
           onEditNodeText={(nodeId, value) => {
             const nodes = block.nodes.map((node) => node.id === nodeId
               ? { ...node, props: node.primitive === "button" ? updateButtonLabel(node.props, value, node.id) : { ...node.props, text: value } }
@@ -1767,6 +1776,8 @@ export function TapConnectCard({
                 onCompositionNodeSelect?.(null, ids);
               }}
               onChangeBlock={(next, label) => onCompositionChange?.(null, next, label)}
+              mediaUploadReady={mediaUploadReady}
+              onNotify={onNotify}
               onEditNodeText={(nodeId, value) => {
                 const root = parseCreativeComposition(config.rootComposition);
                 if (!root) return;

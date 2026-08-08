@@ -13,9 +13,10 @@ export default defineConfig({
   reporter: [["list"]],
   use: {
     baseURL,
-    trace: "on-first-retry",
+    // retries=0 — retain traces/screenshots/videos on the failing attempt itself
+    trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "off",
+    video: "retain-on-failure",
     // Headed when PROOF_HEADED=1
     headless: process.env.PROOF_HEADED !== "1",
   },

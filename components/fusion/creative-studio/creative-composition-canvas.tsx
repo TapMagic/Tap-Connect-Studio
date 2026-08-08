@@ -9,6 +9,7 @@ import {
   bringForward,
   bringToFront,
   compositionAppliesMobileFallback,
+  createCompositionNode,
   deleteNodes,
   duplicateNodes,
   expandSelectionToGroups,
@@ -28,7 +29,7 @@ import {
   DEFAULT_GRADIENT,
   gradientToCss,
 } from "@/lib/fusion/creative-studio/gradient";
-import { surfacePatternStyle } from "@/lib/fusion/creative-studio/patterns";
+import { surfacePatternFromTextureToken, surfacePatternStyle } from "@/lib/fusion/creative-studio/patterns";
 import {
   snapCompositionNodes,
   type CompositionGuide,
@@ -87,6 +88,9 @@ export type CreativeCompositionCanvasProps = {
   distribute?: "start" | "center" | "end" | "between" | "around";
   minHeightPx?: number;
   onEditNodeText?: (nodeId: string, value: string) => void;
+  /** When true, OS file drop / image clipboard paste may upload via /api/media/upload. */
+  mediaUploadReady?: boolean;
+  onNotify?: (message: string | null) => void;
   containerActions?: {
     current: "card" | "section";
     sections: Array<{ id: string; label: string }>;
@@ -96,12 +100,50 @@ export type CreativeCompositionCanvasProps = {
   };
 };
 
+const IMAGE_FILE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]);
+
 function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
 }
 
 function num(v: unknown, fallback: number): number {
   return typeof v === "number" && Number.isFinite(v) ? v : fallback;
+}
+
+function textureOverlayStyle(props: Record<string, unknown>): CSSProperties | null {
+  const model = surfacePatternFromTextureToken(
+    typeof props.texture === "string" ? props.texture : null,
+    {
+      foreground: str(props.textureForeground, str(props.borderColor, "#ffffff")),
+      background: "transparent",
+      opacity: num(props.textureOpacity, 0.32),
+      scale: num(props.textureScale, 1),
+    }
+  );
+  if (!model) return null;
+  const style = surfacePatternStyle(model);
+  return {
+    backgroundImage: style.backgroundImage,
+    backgroundSize: style.backgroundSize,
+    backgroundBlendMode: style.backgroundBlendMode as CSSProperties["backgroundBlendMode"],
+    opacity: 1,
+  };
+}
+
+async function uploadCanvasImageFile(file: File): Promise<{ url: string; mediaAssetId: string } | null> {
+  const form = new FormData();
+  form.append("file", file);
+  const response = await fetch("/api/media/upload", { method: "POST", body: form });
+  if (!response.ok) return null;
+  const data = (await response.json()) as {
+    asset?: { url?: string; id?: string; mediaAssetId?: string };
+    url?: string;
+    mediaAssetId?: string;
+  };
+  const url = data.asset?.url || data.url;
+  const mediaAssetId = data.asset?.mediaAssetId || data.asset?.id || data.mediaAssetId;
+  if (!url || !mediaAssetId) return null;
+  return { url, mediaAssetId };
 }
 
 function gradientStops(value: unknown, fallback: string): [string, string, string] {
@@ -326,11 +368,13 @@ function NodeVisual({
     const fill = str(node.props.fill, "transparent");
     const gradientStart = str(node.props.gradientStart);
     const gradientEnd = str(node.props.gradientEnd);
+    const texture = textureOverlayStyle(node.props);
     return <div
-      className="h-full w-full"
+      className="relative h-full w-full overflow-hidden"
       data-component-kind="container"
       data-container-layout={str(node.props.layout, "free")}
       data-container-resize-policy={str(node.props.resizePolicy, "reflow")}
+      data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
       style={{
         background: gradientStart && gradientEnd ? `linear-gradient(${num(node.props.gradientAngle, 145)}deg,${gradientStart},${gradientEnd})` : fill,
         border: `${num(node.props.borderWidth, 0)}px ${str(node.props.borderStyle, "solid")} ${str(node.props.borderColor, "transparent")}`,
@@ -338,7 +382,7 @@ function NodeVisual({
         boxShadow: num(node.props.boxShadow, 0) ? `0 10px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)` : undefined,
         opacity: num(node.props.opacity, 1),
       }}
-    />;
+    >{texture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={texture} /> : null}</div>;
   }
   if (componentKind === "gallery") {
     const media = Array.isArray(node.props.media) ? node.props.media.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
@@ -876,9 +920,11 @@ function NodeVisual({
       const badgeShape = str(node.props.badgeShape, "pill");
       const badgeClip = badgeShapeClipPath(badgeShape);
       const badgeShadow = surfaceShadowCss(node.props);
+      const badgeTexture = textureOverlayStyle(node.props);
       return (
         <div
           className="relative flex h-full w-full items-center justify-center overflow-hidden px-2 text-center"
+          data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
           style={{
             background: str(node.props.gradientFill, str(node.props.fill, "#ef4444")),
             color: str(node.props.color, "#ffffff"),
@@ -903,6 +949,7 @@ function NodeVisual({
               style={{ background: str(node.props.highlight, "linear-gradient(180deg,#ffffff55,#0000 45%)") }}
             />
           ) : null}
+          {badgeTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={badgeTexture} /> : null}
           <span className="relative z-[1]">{str(node.props.text, "SALE")}</span>
         </div>
       );
@@ -1130,6 +1177,7 @@ function NodeVisual({
         color: str(labelProps.color, str(node.props.labelColor, "currentColor")),
       }).textShadow,
     };
+    const buttonTexture = textureOverlayStyle(node.props);
     const surface = (
       <span
         className="relative inline-flex shrink-0 items-center justify-center overflow-hidden"
@@ -1152,7 +1200,9 @@ function NodeVisual({
         data-button-surface-kind={surfaceKind}
         data-button-radius={String(linkedRadius)}
         data-button-high-gloss={node.props.shine === true ? "true" : "false"}
+        data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
       >
+        {buttonTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={buttonTexture} /> : null}
         {node.props.shine === true ? <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent" aria-hidden data-testid={`button-shine-${node.id}`} /> : null}
         {showIcon && str(node.props.iconPosition, "before") === "before" ? <span data-testid={`button-icon-${node.id}`} style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
         {!labelBelow && showLabel ? (node.props.contentEditing === true ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={labelStyle} onCommit={onEditText} onFinish={onFinishTextEdit} /> : <span style={labelStyle}>{labelValue}</span>) : null}
@@ -1209,6 +1259,8 @@ export function CreativeCompositionCanvas({
   distribute = "start",
   minHeightPx,
   onEditNodeText,
+  mediaUploadReady = false,
+  onNotify,
   containerActions,
 }: CreativeCompositionCanvasProps) {
   const chromeScale = 1 / Math.max(0.25, Math.min(4, editorZoom || 1));
@@ -1306,6 +1358,74 @@ export function CreativeCompositionCanvas({
     [block, onChangeBlock]
   );
 
+  const importImageFiles = useCallback(
+    async (files: File[], point?: { x: number; y: number }, replaceNodeId?: string) => {
+      const images = files.filter((file) => IMAGE_FILE_TYPES.has(file.type) || /\.(png|jpe?g|webp|gif)$/i.test(file.name));
+      if (!images.length) return;
+      if (!mediaUploadReady) {
+        onNotify?.("Media upload is not ready — connect Studio Media storage first");
+        return;
+      }
+      onNotify?.(`Importing ${images.length} image${images.length > 1 ? "s" : ""}…`);
+      const uploaded: Array<{ url: string; mediaAssetId: string }> = [];
+      for (const file of images) {
+        const asset = await uploadCanvasImageFile(file);
+        if (asset) uploaded.push(asset);
+      }
+      if (!uploaded.length) {
+        onNotify?.("Could not import image — check upload permissions");
+        return;
+      }
+      if (replaceNodeId && uploaded[0]) {
+        const asset = uploaded[0];
+        commitNodes(
+          block.nodes.map((node) =>
+            node.id === replaceNodeId
+              ? {
+                  ...node,
+                  props: {
+                    ...node.props,
+                    src: asset.url,
+                    mediaSrc: asset.url,
+                    mediaAssetId: asset.mediaAssetId,
+                    alt: str(node.props.alt, images[0]?.name || "Image"),
+                  },
+                }
+              : node
+          ),
+          "Replaced media from drop"
+        );
+        onSelectNodes?.([replaceNodeId]);
+        onNotify?.(null);
+        return;
+      }
+      const maxZ = block.nodes.reduce((value, node) => Math.max(value, node.zIndex), 0);
+      const baseX = point ? Math.min(0.72, Math.max(0.04, point.x - 0.14)) : 0.12;
+      const baseY = point ? Math.min(0.72, Math.max(0.04, point.y - 0.12)) : 0.14;
+      const created = uploaded.map((asset, index) =>
+        createCompositionNode("image", {
+          x: Math.min(0.78, baseX + (index % 3) * 0.06),
+          y: Math.min(0.78, baseY + Math.floor(index / 3) * 0.08),
+          width: 0.28,
+          height: 0.22,
+          zIndex: maxZ + index + 1,
+          props: {
+            src: asset.url,
+            mediaAssetId: asset.mediaAssetId,
+            alt: images[index]?.name || "Image",
+            fit: "cover",
+            opacity: 1,
+            elementKind: "image",
+          },
+        })
+      );
+      commitNodes([...block.nodes, ...created], uploaded.length > 1 ? "Placed dropped images" : "Placed dropped image");
+      onSelectNodes?.(created.map((node) => node.id));
+      onNotify?.(null);
+    },
+    [block.nodes, commitNodes, mediaUploadReady, onNotify, onSelectNodes]
+  );
+
   useEffect(() => {
     if (!editMode) return;
     function onKey(e: KeyboardEvent) {
@@ -1398,13 +1518,6 @@ export function CreativeCompositionCanvas({
           return;
         }
       }
-      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "v" && hasCompositionClipboard()) {
-        e.preventDefault();
-        const result = pasteCompositionNodes(block.nodes);
-        commitNodes(result.nodes, "Pasted composition items");
-        onSelectNodes?.(result.newIds);
-        return;
-      }
       if (!selectedNodeIds.length) return;
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "c") {
         e.preventDefault();
@@ -1476,9 +1589,31 @@ export function CreativeCompositionCanvas({
         );
       }
     }
+    function onPaste(e: ClipboardEvent) {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.("input, textarea, select, [contenteditable=true]")) return;
+      const imageFiles = Array.from(e.clipboardData?.files || []).filter((file) =>
+        IMAGE_FILE_TYPES.has(file.type)
+      );
+      if (imageFiles.length) {
+        e.preventDefault();
+        void importImageFiles(imageFiles);
+        return;
+      }
+      if (hasCompositionClipboard()) {
+        e.preventDefault();
+        const result = pasteCompositionNodes(block.nodes);
+        commitNodes(result.nodes, "Pasted composition items");
+        onSelectNodes?.(result.newIds);
+      }
+    }
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [editMode, selectedNodeIds, block.nodes, commitNodes, onSelectNodes, contextMenu]);
+    window.addEventListener("paste", onPaste);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      window.removeEventListener("paste", onPaste);
+    };
+  }, [editMode, selectedNodeIds, block.nodes, commitNodes, onSelectNodes, contextMenu, importImageFiles]);
 
   const onPointerDownNode = (
     e: React.PointerEvent,
@@ -1896,10 +2031,25 @@ export function CreativeCompositionCanvas({
               event.dataTransfer.setData("application/x-composition-node", node.id);
             }}
             onDragOver={(event) => {
-              if (editMode) event.preventDefault();
+              if (!editMode) return;
+              if (event.dataTransfer.types.includes("Files") || event.dataTransfer.getData("application/x-composition-node")) {
+                event.preventDefault();
+              }
             }}
             onDrop={(event) => {
               if (!editMode) return;
+              const files = Array.from(event.dataTransfer.files || []);
+              const replaceable =
+                node.primitive === "image" ||
+                str(node.props.elementKind) === "logo" ||
+                str(node.props.elementKind) === "image" ||
+                Boolean(node.props.src || node.props.mediaSrc);
+              if (files.length && replaceable) {
+                event.preventDefault();
+                event.stopPropagation();
+                void importImageFiles(files, undefined, node.id);
+                return;
+              }
               const fromId = event.dataTransfer.getData("application/x-composition-node");
               if (!fromId || fromId === node.id) return;
               event.preventDefault();
@@ -1951,11 +2101,29 @@ export function CreativeCompositionCanvas({
         applyFallback ? block.mobileFallback : "freeform"
       }
       data-surface-narrow={narrow ? "true" : "false"}
+      data-media-drop={mediaUploadReady ? "ready" : "unavailable"}
       role="group"
       aria-label={block.label}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
       onPointerCancel={onPointerUp}
+      onDragOver={(event) => {
+        if (!editMode || !event.dataTransfer.types.includes("Files")) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "copy";
+      }}
+      onDrop={(event) => {
+        if (!editMode) return;
+        const files = Array.from(event.dataTransfer.files || []);
+        if (!files.length) return;
+        event.preventDefault();
+        const rect = event.currentTarget.getBoundingClientRect();
+        const point = {
+          x: (event.clientX - rect.left) / Math.max(1, rect.width),
+          y: (event.clientY - rect.top) / Math.max(1, rect.height),
+        };
+        void importImageFiles(files, point);
+      }}
       onPointerDown={(event) => {
         setContextMenu(null);
         if (!editMode || event.button !== 0) return;

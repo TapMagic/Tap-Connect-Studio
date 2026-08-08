@@ -10,7 +10,7 @@ import { MediaPicker } from "@/components/media/media-picker";
 import { CardComposerLibrary } from "./card-composer-library";
 import { DEEP_LEFT_EDIT_PORTAL_ID, useDeepLeftEditorOptional } from "@/components/fusion/creative-studio/deep-left-editor-context";
 import { deepLeftHeader } from "@/lib/fusion/creative-studio/deep-left-editor";
-import type { CardEditorLiveModel } from "./card-editor-live";
+import { consumeMagicWriteOpenRequest, type CardEditorLiveModel } from "./card-editor-live";
 import {
   CARD_ELEMENT_LIBRARY,
   SECTION_PRESET_LIBRARY,
@@ -100,6 +100,17 @@ export function CardCreativeToolRail({ model, activeTool, drawerOpen: controlled
     setLocalDrawerOpen(next);
     onDrawerOpenChange?.(next);
   };
+  useEffect(() => {
+    const openMagicWrite = () => {
+      deepLeft?.closeEdit();
+      setLocalActive("text");
+      onActiveToolChange?.("text");
+      setLocalDrawerOpen(true);
+      onDrawerOpenChange?.(true);
+    };
+    window.addEventListener("tapconnect:open-magic-write", openMagicWrite);
+    return () => window.removeEventListener("tapconnect:open-magic-write", openMagicWrite);
+  }, [deepLeft, onActiveToolChange, onDrawerOpenChange]);
   const activeDefinition = TOOLS.find((tool) => tool.id === active) ?? TOOLS[0]!;
   const Icon = activeDefinition.icon;
   return (
@@ -313,6 +324,17 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
   const [proposals, setProposals] = useState<Array<{ targetId: string; original: string; proposed: string }>>([]);
   const [magicError, setMagicError] = useState<string | null>(null);
   const [magicStatus, setMagicStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  useEffect(() => {
+    const openPanel = () => {
+      setMagicOpen(true);
+      setProposals([]);
+      setMagicError(null);
+      setMagicStatus("idle");
+    };
+    if (consumeMagicWriteOpenRequest()) openPanel();
+    window.addEventListener("tapconnect:open-magic-write", openPanel);
+    return () => window.removeEventListener("tapconnect:open-magic-write", openPanel);
+  }, []);
   const nodes = model.selected?.composition?.nodes ?? model.config.rootComposition?.nodes ?? [];
   const selectedIds = model.selectedCompositionNodeIds ?? [];
   const textTargets = textDescendantsInScope(nodes, selectedIds.length ? selectedIds : [], { includeNestedComponentText: false });
@@ -665,11 +687,30 @@ function BrandDrawer({ model, add, matches }: { model: CardEditorLiveModel; add:
 function BackgroundDrawer({ model, matches }: { model: CardEditorLiveModel; matches: (value: string) => boolean }) {
   const root = ensureRootComposition(model.config);
   const setBackground = (background: typeof root.background, label: string) => model.patchConfig({ rootComposition: { ...root, background } }, label);
-  const setImageBackground = (src: string) => {
+  const setImageBackground = (src: string, mediaAssetId?: string) => {
     if (!src) return;
-    setBackground({ kind: "image", image: { src, fallbackUrl: src, fit: "cover", focalX: .5, focalY: .5, scale: 1, repeat: "no-repeat", blur: 0, brightness: 1, contrast: 1, overlayColor: "#000000", overlayOpacity: .2, blendMode: "normal", decorative: true } }, "Changed Card root image background");
+    setBackground({
+      kind: "image",
+      image: {
+        src,
+        fallbackUrl: src,
+        mediaAssetId,
+        fit: "cover",
+        focalX: .5,
+        focalY: .5,
+        scale: 1,
+        repeat: "no-repeat",
+        blur: 0,
+        brightness: 1,
+        contrast: 1,
+        overlayColor: "#000000",
+        overlayOpacity: .2,
+        blendMode: "normal",
+        decorative: true,
+      },
+    }, "Changed Card root image background");
   };
-  return <div className="space-y-3" data-testid="card-background-library"><h3 className="text-[10px] font-semibold uppercase text-white/45">Solid</h3><div className="grid grid-cols-4 gap-1">{[model.config.surfaceColor, model.config.accentColor, "#020617", "#f8fafc"].map((color) => <button key={color} type="button" className="aspect-square rounded border border-white/15" style={{ background: color }} aria-label={`Background ${color}`} onClick={() => setBackground({ kind: "solid", value: color }, "Changed Card root solid background")} />)}</div><h3 className="text-[10px] font-semibold uppercase text-white/45">Gradients</h3>{GRADIENT_PRESETS.filter((preset) => matches(preset.label)).map((preset) => <LibraryAction key={preset.id} label={preset.label} description="Editable gradient" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(preset.gradient) }, `Applied ${preset.label} gradient`)} />)}<h3 className="text-[10px] font-semibold uppercase text-white/45">Image</h3><MediaPicker label="Choose background image" value={root.background?.kind === "image" ? root.background.image?.src || "" : ""} mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={setImageBackground} /><button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setImageBackground(model.strInherited("logoUrl") || model.logoUrl || "/tap-connect-logo.png")}>Use primary Brand image as background</button><h3 className="text-[10px] font-semibold uppercase text-white/45">Patterns and textures</h3>{SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).slice(0, 12).map((pattern) => <LibraryAction key={pattern.id} label={pattern.label} description={pattern.category} onClick={() => setBackground({ kind: pattern.kind, pattern: { version: 1, id: pattern.id, kind: pattern.kind, scale: 1, rotation: 45, opacity: .18, foreground: model.config.accentColor, background: model.config.surfaceColor, blendMode: "normal" } }, `Applied ${pattern.label} ${pattern.kind}`)} />)}<button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setBackground({ kind: "none" }, "Removed Card root background")}>Transparent</button><button type="button" className="sr-only" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(DEFAULT_GRADIENT) }, "Applied default gradient")}>Default gradient</button></div>;
+  return <div className="space-y-3" data-testid="card-background-library"><h3 className="text-[10px] font-semibold uppercase text-white/45">Solid</h3><div className="grid grid-cols-4 gap-1">{[model.config.surfaceColor, model.config.accentColor, "#020617", "#f8fafc"].map((color) => <button key={color} type="button" className="aspect-square rounded border border-white/15" style={{ background: color }} aria-label={`Background ${color}`} onClick={() => setBackground({ kind: "solid", value: color }, "Changed Card root solid background")} />)}</div><h3 className="text-[10px] font-semibold uppercase text-white/45">Gradients</h3>{GRADIENT_PRESETS.filter((preset) => matches(preset.label)).map((preset) => <LibraryAction key={preset.id} label={preset.label} description="Editable gradient" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(preset.gradient) }, `Applied ${preset.label} gradient`)} />)}<h3 className="text-[10px] font-semibold uppercase text-white/45">Image</h3><MediaPicker label="Choose background image" value={root.background?.kind === "image" ? root.background.image?.src || "" : ""} valueAssetId={root.background?.kind === "image" ? root.background.image?.mediaAssetId : undefined} mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(url) => setImageBackground(url)} onAssetChange={(asset) => { if (!asset) { setBackground({ kind: "none" }, "Removed Card root image background"); return; } setImageBackground(asset.url, asset.mediaAssetId); }} /><button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setImageBackground(model.strInherited("logoUrl") || model.logoUrl || "/tap-connect-logo.png")}>Use primary Brand image as background</button><h3 className="text-[10px] font-semibold uppercase text-white/45">Patterns and textures</h3>{SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).map((pattern) => <LibraryAction key={pattern.id} label={pattern.label} description={pattern.category} onClick={() => setBackground({ kind: pattern.kind, pattern: { version: 1, id: pattern.id, kind: pattern.kind, scale: 1, rotation: 45, opacity: .22, foreground: model.config.accentColor, background: model.config.surfaceColor, blendMode: "normal" } }, `Applied ${pattern.label} ${pattern.kind}`)} />)}<button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setBackground({ kind: "none" }, "Removed Card root background")}>Transparent</button><button type="button" className="sr-only" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(DEFAULT_GRADIENT) }, "Applied default gradient")}>Default gradient</button></div>;
 }
 
 function ReusableDrawer({ model, matches }: { model: CardEditorLiveModel; matches: (value: string) => boolean }) {

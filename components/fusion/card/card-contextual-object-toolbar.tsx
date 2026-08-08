@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { MoreHorizontal, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { MediaPicker } from "@/components/media/media-picker";
-import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
+import { requestMagicWriteOpen, type CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
 import { useDeepLeftEditorOptional } from "@/components/fusion/creative-studio/deep-left-editor-context";
 import type { DeepLeftNestedPage } from "@/lib/fusion/creative-studio/deep-left-editor";
 import { applyGlyphEffect, ICON_LIBRARY, MATERIAL_PRESETS, MOTION_PRESETS } from "@/lib/fusion/creative-studio/card-creative-system";
@@ -702,12 +702,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           model.setSelectedCompositionNodeIds?.(memberIds);
           model.notify?.(null);
         }}>Ungroup</button>
-        {groupHasText ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-magic-write" onClick={() => {
-          document.querySelector<HTMLElement>('[data-testid="card-creative-tool-text"]')?.click();
-          window.setTimeout(() => {
-            document.querySelector<HTMLElement>('[data-testid="magic-write-open"]')?.click();
-          }, 0);
-        }}>Magic Write</button> : null}
+        {groupHasText ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-group-magic-write" onClick={() => requestMagicWriteOpen()}>Magic Write</button> : null}
         {groupHasText ? <>
           <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("font")} data-testid="contextual-group-font">{fontMixed.kind === "mixed" ? "Mixed" : String((fontMixed.kind === "uniform" ? fontMixed.value : node.props.fontFamily) || "Font").split(",")[0]}</button>
           <span className="inline-flex items-center gap-0.5" data-testid="contextual-group-font-size-controls">
@@ -770,12 +765,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-badge-appearance">Appearance</button>
         </> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("content")} data-testid="contextual-content">{isBadge ? "Wording" : "Edit"}</button>
-        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-magic-write" onClick={() => {
-          document.querySelector<HTMLElement>('[data-testid="card-creative-tool-text"]')?.click();
-          window.setTimeout(() => {
-            document.querySelector<HTMLElement>('[data-testid="magic-write-open"]')?.click();
-          }, 0);
-        }}>Magic Write</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-magic-write" onClick={() => requestMagicWriteOpen()}>Magic Write</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("font")} data-testid="contextual-font">{String(node.props.fontFamily || "Font").split(",")[0]}</button>
         <input aria-label="Font size" type="number" min={6} max={320} value={Number(node.props.fontSize || 18)} onChange={(event) => patchProps({ fontSize: Number(event.target.value) }, "Changed text size")} className="h-9 w-16 rounded border border-white/15 bg-transparent px-2 text-xs" data-testid="contextual-font-size" />
         <button type="button" aria-pressed={Number(node.props.fontWeight || 600) >= 700} className="h-9 w-9 rounded font-bold hover:bg-white/10" onClick={() => patchProps({ fontWeight: Number(node.props.fontWeight || 600) >= 700 ? 400 : 800 }, "Changed text weight")}>B</button>
@@ -887,7 +877,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       {focus === "adjust" ? <div className="space-y-3" data-testid="element-adjust-controls">{([ ["brightness", "Brightness"], ["contrast", "Contrast"], ["saturation", "Saturation"] ] as const).map(([key, label]) => <label key={key} className="block text-[10px] text-white/65">{label}<input aria-label={label} type="range" min={0} max={200} value={Math.round(Number(node.props[key] ?? 1) * 100)} onChange={(event) => patchProps({ [key]: Number(event.target.value) / 100 }, `Changed image ${key}`)} className={fieldClass} /></label>)}<label className="block text-[10px] text-white/65">Temperature<input aria-label="Temperature" type="range" min={-1} max={1} step={.01} value={Number(node.props.temperature ?? 0)} onChange={(event) => patchProps({ temperature: Number(event.target.value) }, "Changed image temperature")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Blur<input aria-label="Blur" type="range" min={0} max={30} value={Number(node.props.blur ?? 0)} onChange={(event) => patchProps({ blur: Number(event.target.value) }, "Changed image blur")} className={fieldClass} /></label><button type="button" className={`${buttonClass} w-full`} onClick={() => patchProps({ brightness: 1, contrast: 1, saturation: 1, temperature: 0, blur: 0 }, "Reset image adjustments")}>Reset adjustments</button></div> : null}
       {focus === "frame-appearance" ? <div className="grid grid-cols-2 gap-2" data-testid="element-frame-appearance-controls"><label className="text-[10px] text-white/65">Border width<input aria-label="Image border width" type="number" min={0} max={24} value={Number(node.props.outlineWidth || 0)} onChange={(event) => patchProps({ outlineWidth: Number(event.target.value) }, "Changed image frame border")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Border color<input aria-label="Image border color" type="color" value={String(node.props.outlineColor || "#ffffff").slice(0, 7)} onChange={(event) => patchProps({ outlineColor: event.target.value }, "Changed image frame border")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Corners<input aria-label="Image corner radius" type="number" min={0} max={999} value={Number(node.props.outlineRadius || 0)} onChange={(event) => patchProps({ outlineRadius: Number(event.target.value) }, "Changed image frame corners")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Shadow<input aria-label="Image shadow" type="range" min={0} max={64} value={Number(node.props.boxShadow || 0)} onChange={(event) => patchProps({ boxShadow: Number(event.target.value) }, "Changed image frame shadow")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Glow<input aria-label="Image glow" type="range" min={0} max={64} value={Number(node.props.boxGlow || 0)} onChange={(event) => patchProps({ boxGlow: Number(event.target.value) }, "Changed image frame glow")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Opacity<input aria-label="Image opacity" type="range" min={0} max={100} value={Math.round(Number(node.props.opacity ?? 1) * 100)} onChange={(event) => patchProps({ opacity: Number(event.target.value) / 100 }, "Changed image opacity")} className={fieldClass} /></label></div> : null}
       {focus === "action" ? <div className="space-y-3" data-testid="element-action-controls"><p className="text-[10px] text-white/55">The Element stays visually unchanged. Its optional Action is stored independently from Content and Appearance.</p><label className="block text-[10px] text-white/65">Action type<select aria-label="Element action type" value={String(node.props.actionType || "none")} onChange={(event) => patchProps(event.target.value === "none" ? { actionType: undefined, href: undefined } : { actionType: event.target.value }, event.target.value === "none" ? "Removed Element action" : "Changed Element action")} className={fieldClass}><option value="none">None</option>{["website", "call", "text", "email", "directions", "save_contact", "tapsave", "coupon", "ticket", "wallet", "form", "rsvp", "campaign", "experience", "download", "share", "custom"].map((value) => <option key={value} value={value}>{value}</option>)}</select></label><label className="block text-[10px] text-white/65">Destination<input aria-label="Element action destination" value={String(node.props.href || "")} onChange={(event) => patchProps({ href: event.target.value }, "Changed Element action destination")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Accessible label<input aria-label="Element accessible label" value={String(node.props.accessibleLabel || node.props.text || node.props.alt || node.name || "")} onChange={(event) => patchProps({ accessibleLabel: event.target.value }, "Changed Element accessible label")} className={fieldClass} /></label><label className="block text-[10px] text-white/65">Tracking name<input aria-label="Element tracking name" value={String(node.props.trackingName || "")} onChange={(event) => patchProps({ trackingName: event.target.value }, "Changed Element tracking name")} className={fieldClass} /></label><div className="grid grid-cols-2 gap-2"><button type="button" className={buttonClass} onClick={() => model.notify?.(`Test action: ${String(node.props.actionType || "none")} ${String(node.props.href || "")}`.trim())}>Test action</button><button type="button" className={buttonClass} onClick={() => patchProps({ actionType: undefined, href: undefined }, "Removed Element action")}>Remove action</button></div></div> : null}
-      {focus === "font" ? <><div className="mb-2 space-y-1" data-testid="recent-fonts-menu"><p className="text-[9px] uppercase tracking-wider text-white/45">Current · Recent · Brand · Search all</p><button type="button" className={`${buttonClass} w-full text-left`} data-testid="current-font">{String(node.props.fontFamily || "Font").split(",")[0]}</button>{recentFonts.map((family) => <button key={family} type="button" className={`${buttonClass} w-full text-left`} style={{ fontFamily: `"${family}", sans-serif` }} onClick={() => { void ensureGoogleFontFamilyLoaded(family); rememberRecentFont(family); setRecentFonts(readRecentFonts()); patchProps({ fontFamily: `"${family}", sans-serif`, fontProvider: "google-fonts" }, `Changed font to ${family}`); }}>{family}<span className="block text-[8px] text-white/40">Recent</span></button>)}</div><input value={fontQuery} onChange={(event) => setFontQuery(event.target.value)} placeholder="Search Google Fonts" className="mb-2 h-10 w-full rounded border border-white/15 bg-transparent px-3 text-xs" data-testid="contextual-font-search" /><p className="mb-2 text-[9px] text-white/45">Brand · document · recent · favorites · recommended · full Google Fonts catalog{fontProviderFallback ? " · development fallback" : ""}</p><div className="grid grid-cols-2 gap-1">{fonts.map((font) => <button key={font.id} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-sm hover:border-[#b8ff2c]/50" style={{ fontFamily: fontCssStack(font) }} onPointerEnter={() => void ensureFontLoaded(font.id)} onFocus={() => void ensureFontLoaded(font.id)} onClick={() => { void ensureFontLoaded(font.id); rememberRecentFont(font.family); setRecentFonts(readRecentFonts()); patchProps({ fontFamily: fontCssStack(font), fontProvider: "google-fonts" }, `Changed font to ${font.family}`); }}>{font.family}<span className="block text-[9px] opacity-55">{font.category}</span></button>)}{remoteFonts.map((font) => <button key={font.family} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-sm hover:border-[#b8ff2c]/50" style={{ fontFamily: `"${font.family}", sans-serif` }} onPointerEnter={() => void ensureGoogleFontFamilyLoaded(font.family)} onFocus={() => void ensureGoogleFontFamilyLoaded(font.family)} onClick={() => { void ensureGoogleFontFamilyLoaded(font.family); rememberRecentFont(font.family); setRecentFonts(readRecentFonts()); patchProps({ fontFamily: `"${font.family}", sans-serif`, fontProvider: "google-fonts", fontVariants: font.variants }, `Changed font to ${font.family}`); }}>{font.family}<span className="block text-[9px] opacity-55">{font.category} · Google Fonts</span></button>)}</div></> : null}
+      {focus === "font" ? <><div className="mb-2 space-y-1" data-testid="recent-fonts-menu"><p className="text-[9px] uppercase tracking-wider text-white/45">Current · Recent · Brand · Search all</p><button type="button" className={`${buttonClass} w-full text-left`} data-testid="current-font" style={{ fontFamily: String(node.props.fontFamily || "inherit") }}>{String(node.props.fontFamily || "Font").split(",")[0]}</button>{recentFonts.map((family) => <button key={family} type="button" className={`${buttonClass} w-full text-left`} style={{ fontFamily: `"${family}", sans-serif` }} onClick={() => { void ensureGoogleFontFamilyLoaded(family); rememberRecentFont(family); setRecentFonts(readRecentFonts()); patchProps({ fontFamily: `"${family}", sans-serif`, fontProvider: "google-fonts" }, `Changed font to ${family}`); }}>{family}<span className="block text-[8px] text-white/40">Recent</span></button>)}</div><input value={fontQuery} onChange={(event) => setFontQuery(event.target.value)} placeholder="Search Google Fonts" className="mb-2 h-10 w-full rounded border border-white/15 bg-transparent px-3 text-xs" data-testid="contextual-font-search" /><p className="mb-2 text-[9px] text-white/45">Brand · document · recent · favorites · recommended · full Google Fonts catalog{fontProviderFallback ? " · development fallback" : ""}</p><div className="grid grid-cols-2 gap-1">{fonts.map((font) => <button key={font.id} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-sm hover:border-[#b8ff2c]/50" style={{ fontFamily: fontCssStack(font) }} onPointerEnter={() => void ensureFontLoaded(font.id)} onFocus={() => void ensureFontLoaded(font.id)} onClick={() => { void ensureFontLoaded(font.id); rememberRecentFont(font.family); setRecentFonts(readRecentFonts()); patchProps({ fontFamily: fontCssStack(font), fontProvider: "google-fonts" }, `Changed font to ${font.family}`); }}>{font.family}<span className="block text-[9px] opacity-55">{font.category}</span></button>)}{remoteFonts.map((font) => <button key={font.family} type="button" className="min-h-12 rounded border border-white/10 px-2 text-left text-sm hover:border-[#b8ff2c]/50" style={{ fontFamily: `"${font.family}", sans-serif` }} onPointerEnter={() => void ensureGoogleFontFamilyLoaded(font.family)} onFocus={() => void ensureGoogleFontFamilyLoaded(font.family)} onClick={() => { void ensureGoogleFontFamilyLoaded(font.family); rememberRecentFont(font.family); setRecentFonts(readRecentFonts()); patchProps({ fontFamily: `"${font.family}", sans-serif`, fontProvider: "google-fonts", fontVariants: font.variants }, `Changed font to ${font.family}`); }}>{font.family}<span className="block text-[9px] opacity-55">{font.category} · Google Fonts</span></button>)}</div></> : null}
       {focus === "button-surface" ? <div className="space-y-3" data-testid="button-surface-controls">
         <div><p className="mb-1 text-[10px] font-semibold uppercase text-white/50">Surface</p><div className="grid grid-cols-3 gap-1">{(["transparent", "solid", "gradient", "image", "pattern", "texture"] as const).map((kind) => <button key={kind} type="button" aria-pressed={String(node.props.buttonSurfaceKind || "solid") === kind} className={buttonClass} onClick={() => patchProps({ buttonSurfaceKind: kind }, `Changed Button surface to ${kind}`)}>{kind}</button>)}</div></div>
         <div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Fill<input aria-label="Button fill" type="color" value={String(node.props.fill || "#22c55e")} onChange={(event) => patchProps({ fill: event.target.value, buttonSurfaceKind: "solid" }, "Changed Button fill")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Gradient start<input aria-label="Button gradient start" type="color" value={String(node.props.gradientStart || "#22c55e")} onChange={(event) => patchProps({ gradientStart: event.target.value, buttonSurfaceKind: "gradient" }, "Changed Button gradient start")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Gradient end<input aria-label="Button gradient end" type="color" value={String(node.props.gradientEnd || "#a3e635")} onChange={(event) => patchProps({ gradientEnd: event.target.value, buttonSurfaceKind: "gradient" }, "Changed Button gradient end")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Gradient angle<input aria-label="Button gradient angle" type="number" value={Number(node.props.gradientAngle || 120)} onChange={(event) => patchProps({ gradientAngle: Number(event.target.value), buttonSurfaceKind: "gradient" }, "Changed Button gradient angle")} className={fieldClass} /></label></div>
@@ -983,6 +973,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
                 if (!recipe) return null;
                 const preview = applyMaterialRecipe("icon_artwork", id, { ...node.props });
                 const layers = effectLayersCss("icon_artwork", { glow: Number(preview.glow || 0), glowColor: String(preview.glowColor || preview.fill || "#b8ff2c"), color: String(preview.fill || "#b8ff2c") });
+                const previewSvg = typeof node.props.iconSvg === "string" && node.props.iconSvg.includes("<svg") ? String(node.props.iconSvg) : "";
                 return (
                   <button
                     key={id}
@@ -991,13 +982,23 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
                     data-testid={`icon-treatment-${id}`}
                     onClick={() => patchProps(applyMaterialRecipe("icon_artwork", id, node.props), `Applied ${recipe.label} Icon material`)}
                   >
-                    <span
-                      aria-hidden
-                      className="grid h-8 w-8 place-items-center text-[16px] font-bold"
-                      style={{ color: String(preview.fill || preview.artworkFill || "#b8ff2c"), filter: layers.filter, textShadow: layers.textShadow }}
-                    >
-                      ◆
-                    </span>
+                    {previewSvg ? (
+                      <span
+                        aria-hidden
+                        className="grid h-8 w-8 place-items-center overflow-hidden [&_svg]:h-7 [&_svg]:w-7"
+                        style={{ color: String(preview.fill || preview.artworkFill || "#b8ff2c"), filter: layers.filter }}
+                        data-icon-treatment-preview="selected"
+                        dangerouslySetInnerHTML={{ __html: previewSvg }}
+                      />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className="grid h-8 w-8 place-items-center text-[16px] font-bold"
+                        style={{ color: String(preview.fill || preview.artworkFill || "#b8ff2c"), filter: layers.filter, textShadow: layers.textShadow }}
+                      >
+                        ◆
+                      </span>
+                    )}
                     {recipe.label}
                   </button>
                 );
@@ -1017,6 +1018,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
                   glowColor: String(preview.glowColor || effect.glowColor || node.props.fill || "#22d3ee"),
                   color: String(node.props.fill || "#b8ff2c"),
                 });
+                const previewSvg = typeof node.props.iconSvg === "string" && node.props.iconSvg.includes("<svg") ? String(node.props.iconSvg) : "";
                 return (
                   <button
                     key={effect.id}
@@ -1025,14 +1027,25 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
                     data-testid={`icon-effect-${effect.id}`}
                     onClick={() => patchProps(applyEffectRecipe("icon_artwork", effect.id, node.props), `Applied ${effect.label}`)}
                   >
-                    <span
-                      aria-hidden
-                      className="grid h-8 w-8 place-items-center text-[16px] font-bold"
-                      style={{ color: String(node.props.fill || "#b8ff2c"), filter: layers.filter, textShadow: layers.textShadow }}
-                      data-effect-preview={effect.id}
-                    >
-                      ◆
-                    </span>
+                    {previewSvg ? (
+                      <span
+                        aria-hidden
+                        className="grid h-8 w-8 place-items-center overflow-hidden [&_svg]:h-7 [&_svg]:w-7"
+                        style={{ color: String(node.props.fill || "#b8ff2c"), filter: layers.filter }}
+                        data-effect-preview={effect.id}
+                        data-icon-treatment-preview="selected"
+                        dangerouslySetInnerHTML={{ __html: previewSvg }}
+                      />
+                    ) : (
+                      <span
+                        aria-hidden
+                        className="grid h-8 w-8 place-items-center text-[16px] font-bold"
+                        style={{ color: String(node.props.fill || "#b8ff2c"), filter: layers.filter, textShadow: layers.textShadow }}
+                        data-effect-preview={effect.id}
+                      >
+                        ◆
+                      </span>
+                    )}
                     {effect.label}
                   </button>
                 );

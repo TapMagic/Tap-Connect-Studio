@@ -207,6 +207,22 @@ export function subscribeCardEditorLive(listener: () => void): () => void {
   };
 }
 
+/** Open Magic Write from contextual chrome without DOM querySelector hacks. */
+let pendingMagicWriteOpen = false;
+
+export function requestMagicWriteOpen(): void {
+  pendingMagicWriteOpen = true;
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new CustomEvent("tapconnect:open-magic-write"));
+  }
+}
+
+export function consumeMagicWriteOpenRequest(): boolean {
+  const pending = pendingMagicWriteOpen;
+  pendingMagicWriteOpen = false;
+  return pending;
+}
+
 /** Test-only: reset module store between cases. */
 export function __resetCardEditorLiveForTests(): void {
   live.current = null;

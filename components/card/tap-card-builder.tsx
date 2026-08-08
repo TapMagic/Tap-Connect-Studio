@@ -3079,6 +3079,8 @@ export function TapCardBuilder({
                   builderChrome={interactionMode === "edit"}
                   interactionMode={interactionMode}
                   previewSafe={interactionMode === "preview"}
+                  mediaUploadReady={mediaUploadReady}
+                  onNotify={(message) => setMessage?.(message)}
                   compositionForceMobile={compositionForceMobile}
                   editorZoom={typeof renderedPreviewZoom === "number" ? renderedPreviewZoom : 1}
                   previewMotion={previewMotion}
