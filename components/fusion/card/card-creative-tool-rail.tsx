@@ -27,10 +27,9 @@ import {
   saveReusableComposition,
 } from "@/lib/fusion/creative-studio/card-creative-system";
 import { createIconAsset, iconAssetToNodeProps, nativeIconAsset } from "@/lib/fusion/creative-studio/icon-asset";
-import { applySurfaceMaterial, MATERIAL_CATALOG, materialPreviewCss, normalizeMaterialId } from "@/lib/fusion/creative-studio/material-engine";
-
 import {
-  STARTER_BADGE_PRESETS,
+  STARTER_BADGE_COMPOSITIONS,
+  STARTER_BADGE_SHAPES,
   STARTER_BUTTON_PRESETS,
   STARTER_CONTAINER_PRESETS,
   STARTER_COUPON_LAYOUTS,
@@ -39,6 +38,20 @@ import {
   STARTER_TEXT_COMBINATIONS,
   STARTER_TICKET_LAYOUTS,
 } from "@/lib/fusion/creative-studio/starter-preset-registry";
+import {
+  ICON_BROWSE_CATEGORIES,
+  ICON_COLLECTION_BROWSE,
+  pushIconRecent,
+  readIconFavorites,
+  readIconRecent,
+} from "@/lib/fusion/creative-studio/icon-browse";
+import {
+  buildCouponContentComposition,
+  couponSurfaceDefaults,
+  couponThumbnailSignature,
+  geometryFromStarter,
+} from "@/lib/fusion/creative-studio/coupon-composition";
+import { textDescendantsInScope } from "@/lib/fusion/creative-studio/group-authority";
 import { cn } from "@/lib/utils";
 import { buttonContent } from "@/lib/fusion/creative-studio/button-composition";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
@@ -158,18 +171,35 @@ function CreativeDrawer({ tool, query, model, onSelectTool }: { tool: CardCreati
 
 function IconLibraryDrawer({ add, matches, targetChoice }: { model: CardEditorLiveModel; add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean; targetChoice: ReactNode }) {
   const [query, setQuery] = useState("");
+  const [mode, setMode] = useState<"search" | "browse" | "collections">("browse");
+  const [category, setCategory] = useState("recommended");
+  const [collection, setCollection] = useState<string | null>(null);
   const [providerIcons, setProviderIcons] = useState<Array<{ collection: string; name: string; canonicalId: string; source: string; svg?: string }>>([]);
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "fallback">("idle");
+  const [recent, setRecent] = useState<string[]>(() => readIconRecent());
+  const [favorites] = useState<string[]>(() => readIconFavorites());
+
   useEffect(() => {
-    if (query.trim().length < 2) {
+    const controller = new AbortController();
+    const q = query.trim();
+    if (mode === "search" && q.length < 2) {
       setStatus("idle");
       setProviderIcons([]);
       return;
     }
-    const controller = new AbortController();
     setStatus("loading");
     const timer = window.setTimeout(() => {
-      void fetch(`/api/creative/icons?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+      let url = "";
+      if (mode === "search") url = `/api/creative/icons?q=${encodeURIComponent(q)}`;
+      else if (mode === "collections" && collection) url = `/api/creative/icons?collection=${encodeURIComponent(collection)}`;
+      else if (mode === "browse" && category && !["recommended", "recent", "favorites"].includes(category)) {
+        url = `/api/creative/icons?category=${encodeURIComponent(category)}`;
+      } else {
+        setStatus("idle");
+        setProviderIcons([]);
+        return;
+      }
+      void fetch(url, { signal: controller.signal })
         .then(async (response) => {
           if (!response.ok) throw new Error(`iconify ${response.status}`);
           return response.json() as Promise<{ icons?: Array<{ collection: string; name: string; canonicalId: string; source: string; svg?: string }>; fallback?: boolean }>;
@@ -183,14 +213,91 @@ function IconLibraryDrawer({ add, matches, targetChoice }: { model: CardEditorLi
           setProviderIcons([]);
           setStatus("fallback");
         });
-    }, 220);
+    }, 180);
     return () => { window.clearTimeout(timer); controller.abort(); };
-  }, [query]);
-  const searching = query.trim().length >= 2;
-  const results = searching ? providerIcons : [];
-  const resultStatus = searching ? status : "idle";
-  const place = (props: Record<string, unknown>) => add("icon", props);
-  return <div className="space-y-3" data-testid="card-icon-library">{targetChoice}<p className="text-[10px] text-white/55">Opening Icons never places a default Icon. Choose a visual result to place or replace.</p><input type="search" value={query} onChange={(event) => { setQuery(event.target.value); if (event.target.value.trim().length >= 2) setStatus("loading"); }} placeholder="Search Lucide · Tabler · Phosphor · Remix · Material Symbols" className="h-10 w-full rounded border border-white/15 bg-black/20 px-3 text-xs" data-testid="icon-library-search" /><div className="flex flex-wrap gap-1">{["dog", "ticket", "crown", "phone", "gift", "map", "star", "heart"].map((term) => <button key={term} type="button" className="min-h-8 rounded border border-white/10 px-2 text-[10px]" onClick={() => { setQuery(term); setStatus("loading"); }}>{term}</button>)}</div><p className="text-[9px] text-white/40" data-testid="icon-library-status">{resultStatus === "loading" ? "Searching Iconify…" : resultStatus === "fallback" ? "Provider unavailable — showing built-in fallback icons (not Iconify results)" : resultStatus === "ready" ? `${results.length} Iconify results` : "Type at least 2 characters to search Iconify"}</p>{searching ? <><h3 className="text-[10px] font-semibold uppercase text-white/45">Iconify results</h3><div className="grid grid-cols-3 gap-1" data-testid="icon-library-iconify-results">{results.map((icon) => { const asset = icon.svg ? createIconAsset({ provider: "iconify", collection: icon.collection, iconName: icon.name, svg: icon.svg, source: icon.source }) : null; return <button key={icon.canonicalId} type="button" disabled={!asset} className="flex min-h-20 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-center text-[9px] hover:border-[#b8ff2c]/50 disabled:opacity-40" data-testid={`iconify-result-${icon.canonicalId}`} onClick={() => { if (!asset) return; place({ ...iconAssetToNodeProps(asset), accessibleLabel: icon.name, decorative: false }); }}>{asset ? <span className="grid h-9 w-9 place-items-center text-white [&_svg]:h-7 [&_svg]:w-7" aria-hidden data-icon-svg="true" dangerouslySetInnerHTML={{ __html: asset.body }} /> : <span className="text-[8px] text-white/40">SVG unavailable</span>}<span className="line-clamp-2 px-0.5">{icon.name}</span><span className="text-[8px] text-white/40">{icon.collection}</span></button>; })}{resultStatus === "ready" && results.length === 0 ? <p className="col-span-3 text-[10px] text-white/45">No visual results for this search.</p> : null}{resultStatus === "loading" ? <p className="col-span-3 text-[10px] text-white/45">Loading Iconify…</p> : null}</div></> : null}{resultStatus === "fallback" ? <><h3 className="text-[10px] font-semibold uppercase text-white/45">Built-in fallback</h3><p className="text-[9px] text-amber-100" data-testid="icon-library-provider-error">Iconify provider unavailable. Recommended icons below are not labeled as Iconify results.</p><div className="grid grid-cols-3 gap-1" data-testid="icon-library-fallback">{ICON_LIBRARY.map((icon) => { const asset = nativeIconAsset(icon.id); return <button key={`fallback-${icon.id}`} type="button" className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-amber-300/20 px-1 text-center text-[9px]" onClick={() => { if (!asset) return; place({ ...iconAssetToNodeProps(asset), accessibleLabel: icon.label, decorative: false }); }}>{asset ? <span className="grid h-8 w-8 place-items-center text-[#b8ff2c] [&_svg]:h-7 [&_svg]:w-7" aria-hidden dangerouslySetInnerHTML={{ __html: asset.body }} /> : null}{icon.label}</button>; })}</div></> : null}{!searching || resultStatus === "fallback" ? <><h3 className="text-[10px] font-semibold uppercase text-white/45">TapConnect Recommended</h3><div className="grid grid-cols-3 gap-1" data-testid="icon-library-recommended">{ICON_LIBRARY.filter((icon) => matches(`${icon.label} ${icon.category}`)).map((icon) => { const asset = nativeIconAsset(icon.id); return <button key={icon.id} type="button" className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-center text-[9px]" data-testid={`icon-recommended-${icon.id}`} onClick={() => { if (!asset) return; place({ ...iconAssetToNodeProps(asset), accessibleLabel: icon.label, decorative: false }); }}>{asset ? <span className="grid h-8 w-8 place-items-center text-[#b8ff2c] [&_svg]:h-7 [&_svg]:w-7" aria-hidden data-icon-svg="true" dangerouslySetInnerHTML={{ __html: asset.body }} /> : null}{icon.label}<span className="text-[8px] text-white/40">Recommended</span></button>; })}</div></> : null}</div>;
+  }, [query, mode, category, collection]);
+
+  const place = (props: Record<string, unknown>, id?: string) => {
+    if (id) setRecent(pushIconRecent(id));
+    add("icon", props);
+  };
+
+  const renderProviderGrid = (testId: string) => (
+    <div className="grid grid-cols-3 gap-1" data-testid={testId}>
+      {providerIcons.map((icon) => {
+        const asset = icon.svg ? createIconAsset({ provider: "iconify", collection: icon.collection, iconName: icon.name, svg: icon.svg, source: icon.source }) : null;
+        return (
+          <button key={icon.canonicalId} type="button" disabled={!asset} className="flex min-h-20 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-center text-[9px] hover:border-[#b8ff2c]/50 disabled:opacity-40" data-testid={`iconify-result-${icon.canonicalId}`} onClick={() => { if (!asset) return; place({ ...iconAssetToNodeProps(asset), accessibleLabel: icon.name, decorative: false }, icon.canonicalId); }}>
+            {asset ? <span className="grid h-9 w-9 place-items-center text-white [&_svg]:h-7 [&_svg]:w-7" aria-hidden data-icon-svg="true" dangerouslySetInnerHTML={{ __html: asset.body }} /> : <span className="text-[8px] text-white/40">SVG unavailable</span>}
+            <span className="line-clamp-2 px-0.5">{icon.name}</span>
+            <span className="text-[8px] text-white/40">{icon.collection}</span>
+          </button>
+        );
+      })}
+      {status === "ready" && providerIcons.length === 0 ? <p className="col-span-3 text-[10px] text-white/45">No visual results.</p> : null}
+      {status === "loading" ? <p className="col-span-3 text-[10px] text-white/45">Loading…</p> : null}
+    </div>
+  );
+
+  return (
+    <div className="space-y-3" data-testid="card-icon-library" data-shared-icon-picker="true">
+      {targetChoice}
+      <p className="text-[10px] text-white/55">One Icon library for root and nested targets. Search when you know the name; browse when you do not.</p>
+      <div className="grid grid-cols-3 gap-1" data-testid="icon-library-modes">
+        {([["browse", "Browse"], ["collections", "Collections"], ["search", "Search"]] as const).map(([id, label]) => (
+          <button key={id} type="button" aria-pressed={mode === id} className="min-h-9 rounded border border-white/10 text-[10px] aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10" onClick={() => setMode(id)}>{label}</button>
+        ))}
+      </div>
+      {mode === "search" ? (
+        <>
+          <input type="search" value={query} onChange={(event) => { setQuery(event.target.value); if (event.target.value.trim().length >= 2) setStatus("loading"); }} placeholder="Search Lucide · Tabler · Phosphor · Remix · Material Symbols" className="h-10 w-full rounded border border-white/15 bg-black/20 px-3 text-xs" data-testid="icon-library-search" />
+          <div className="flex flex-wrap gap-1">{["dog", "ticket", "crown", "phone", "gift", "map", "star", "heart"].map((term) => <button key={term} type="button" className="min-h-8 rounded border border-white/10 px-2 text-[10px]" onClick={() => { setQuery(term); setStatus("loading"); }}>{term}</button>)}</div>
+          <p className="text-[9px] text-white/40" data-testid="icon-library-status">{status === "loading" ? "Searching Iconify…" : status === "fallback" ? "Provider unavailable — showing built-in fallback" : status === "ready" ? `${providerIcons.length} Iconify results` : "Type at least 2 characters"}</p>
+          {query.trim().length >= 2 ? <>
+            <h3 className="text-[10px] font-semibold uppercase text-white/45">Iconify results</h3>
+            {renderProviderGrid("icon-library-iconify-results")}
+          </> : null}
+          {status === "fallback" ? <p className="text-[9px] text-amber-100" data-testid="icon-library-provider-error">Iconify provider unavailable.</p> : null}
+        </>
+      ) : null}
+      {mode === "browse" ? (
+        <>
+          <div className="flex flex-wrap gap-1" data-testid="icon-browse-categories">
+            {ICON_BROWSE_CATEGORIES.map((item) => (
+              <button key={item.id} type="button" aria-pressed={category === item.id} className="min-h-8 rounded border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10" data-testid={`icon-browse-category-${item.id}`} onClick={() => setCategory(item.id)}>{item.label}</button>
+            ))}
+          </div>
+          {category === "recommended" ? (
+            <div className="grid grid-cols-3 gap-1" data-testid="icon-library-recommended">
+              {ICON_LIBRARY.filter((icon) => matches(`${icon.label} ${icon.category}`)).map((icon) => {
+                const asset = nativeIconAsset(icon.id);
+                return <button key={icon.id} type="button" className="flex min-h-16 flex-col items-center justify-center gap-1 rounded border border-white/10 px-1 text-center text-[9px]" data-testid={`icon-recommended-${icon.id}`} onClick={() => { if (!asset) return; place({ ...iconAssetToNodeProps(asset), accessibleLabel: icon.label, decorative: false }, `native:${icon.id}`); }}>{asset ? <span className="grid h-8 w-8 place-items-center text-[#b8ff2c] [&_svg]:h-7 [&_svg]:w-7" aria-hidden data-icon-svg="true" dangerouslySetInnerHTML={{ __html: asset.body }} /> : null}{icon.label}</button>;
+              })}
+            </div>
+          ) : category === "recent" ? (
+            <div className="grid grid-cols-3 gap-1" data-testid="icon-browse-recent">{recent.length ? recent.map((id) => <span key={id} className="rounded border border-white/10 px-1 py-2 text-center text-[9px] text-white/70">{id}</span>) : <p className="col-span-3 text-[10px] text-white/45">No recent icons yet.</p>}</div>
+          ) : category === "favorites" ? (
+            <div className="grid grid-cols-3 gap-1" data-testid="icon-browse-favorites">{favorites.length ? favorites.map((id) => <span key={id} className="rounded border border-white/10 px-1 py-2 text-center text-[9px] text-white/70">{id}</span>) : <p className="col-span-3 text-[10px] text-white/45">No favorites yet.</p>}</div>
+          ) : (
+            <>
+              <h3 className="text-[10px] font-semibold uppercase text-white/45">{ICON_BROWSE_CATEGORIES.find((item) => item.id === category)?.label || "Browse"}</h3>
+              {renderProviderGrid("icon-browse-results")}
+            </>
+          )}
+        </>
+      ) : null}
+      {mode === "collections" ? (
+        <>
+          <div className="flex flex-wrap gap-1" data-testid="icon-browse-collections">
+            {ICON_COLLECTION_BROWSE.map((item) => (
+              <button key={item.id} type="button" aria-pressed={collection === item.id} className="min-h-8 rounded border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10" data-testid={`icon-collection-${item.id}`} onClick={() => setCollection(item.id)}>{item.label}</button>
+            ))}
+          </div>
+          {collection ? renderProviderGrid("icon-collection-results") : <p className="text-[10px] text-white/45">Choose a collection to explore.</p>}
+        </>
+      ) : null}
+    </div>
+  );
 }
 
 function InsertionTargetChoice({ value, sectionName, onChange }: { value: "card" | "section"; sectionName: string; onChange: (value: "card" | "section") => void }) {
@@ -200,17 +307,83 @@ function InsertionTargetChoice({ value, sectionName, onChange }: { value: "card"
 function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { model: CardEditorLiveModel; add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean; targetChoice: ReactNode; targetSectionId: string | null }) {
   const [magicOpen, setMagicOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
-  const [result, setResult] = useState<string | null>(null);
-  const selectedNode = (model.selected?.composition?.nodes ?? model.config.rootComposition?.nodes ?? []).find((node) => model.selectedCompositionNodeIds?.includes(node.id));
-  const selectedText = selectedNode?.primitive === "text" ? selectedNode : null;
-  const propose = () => {
-    const request = prompt.trim();
-    if (!request) return;
-    if (/free fries/i.test(request)) setResult("🎉 Special Offer Alert! 🎉\n\nEnjoy FREE FRIES with any purchase of $20 or more. Visit us today and make it delicious.\n\nDraft terms: offer details and eligibility require Owner review.");
-    else if (/headline/i.test(request)) setResult("Make today remarkable\nTap into something special\nYour next favorite starts here");
-    else setResult(`A polished starting point for: ${request}\n\nReview names, dates, prices, eligibility, and terms before publishing.`);
+  const [operation, setOperation] = useState<"rewrite" | "shorten" | "expand" | "improve_clarity" | "change_tone" | "fix_grammar">("rewrite");
+  const [proposals, setProposals] = useState<Array<{ targetId: string; original: string; proposed: string }>>([]);
+  const [magicError, setMagicError] = useState<string | null>(null);
+  const [magicStatus, setMagicStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const nodes = model.selected?.composition?.nodes ?? model.config.rootComposition?.nodes ?? [];
+  const selectedIds = model.selectedCompositionNodeIds ?? [];
+  const textTargets = textDescendantsInScope(nodes, selectedIds.length ? selectedIds : [], { includeNestedComponentText: false });
+  const propose = async () => {
+    setMagicError(null);
+    const targets = textTargets.length
+      ? textTargets.map((node) => ({ id: node.id, text: String(node.props.text || ""), role: node.name || "Text" }))
+      : prompt.trim()
+        ? [{ id: "draft", text: prompt.trim(), role: "Draft" }]
+        : [];
+    if (!targets.length) {
+      setMagicError("Select text or describe what the copy should say.");
+      setMagicStatus("error");
+      return;
+    }
+    setMagicStatus("loading");
+    try {
+      const response = await fetch("/api/creative/magic-write", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          operation,
+          coordinated: textTargets.length > 1,
+          targets: targets.map((target) => ({
+            ...target,
+            text: target.id === "draft" ? target.text : (prompt.trim() ? `${prompt.trim()}\n\n${target.text}` : target.text),
+          })),
+        }),
+      });
+      const data = await response.json() as {
+        ok?: boolean;
+        message?: string;
+        code?: string;
+        proposals?: Array<{ targetId: string; original: string; proposed: string }>;
+      };
+      if (!response.ok || !data.ok) {
+        setMagicError(data.message || "Magic Write is unavailable.");
+        setMagicStatus("error");
+        setProposals([]);
+        return;
+      }
+      setProposals(data.proposals || []);
+      setMagicStatus("ready");
+    } catch {
+      setMagicError("Magic Write request failed. Retry when the provider is available.");
+      setMagicStatus("error");
+      setProposals([]);
+    }
   };
-  const insertText = (text: string, variation = false) => add("text", { text, fontSize: 18, fontWeight: 500, aiAuthored: true, ownerReviewRequired: /terms/i.test(text), variation });
+  const applyProposals = () => {
+    if (!proposals.length) return;
+    const composition = model.selected?.composition ?? model.config.rootComposition;
+    if (!composition) return;
+    const map = new Map(proposals.map((item) => [item.targetId, item.proposed]));
+    if (map.has("draft")) {
+      add("text", { text: map.get("draft"), fontSize: 18, fontWeight: 500, aiAuthored: true });
+    } else {
+      const nextNodes = composition.nodes.map((node) => {
+        const next = map.get(node.id);
+        if (!next) return node;
+        return { ...node, props: { ...node.props, text: next, aiAuthored: true } };
+      });
+      for (const proposal of proposals) {
+        model.patchCompositionNode(
+          proposal.targetId,
+          { props: { ...(composition.nodes.find((candidate) => candidate.id === proposal.targetId)?.props || {}), text: proposal.proposed, aiAuthored: true } },
+          "Applied Magic Write"
+        );
+      }
+    }
+    setProposals([]);
+    setMagicStatus("idle");
+  };
   const insertCombination = (combination: (typeof STARTER_TEXT_COMBINATIONS)[number]) => {
     model.onAddObjects?.(combination.lines.map((line, index) => ({
       kind: "text",
@@ -230,15 +403,118 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
       },
     })), targetSectionId, `Added ${combination.label} Text combination`);
   };
-  return <div className="space-y-3" data-testid="card-text-library">{targetChoice}<input type="search" aria-label="Search fonts and combinations" placeholder="Search fonts and combinations" className="h-10 w-full rounded-lg border border-white/15 bg-black/20 px-3 text-xs" /><button type="button" className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black" onClick={() => add("text", { text: "Type here", fontSize: 20 })}>Add text box</button><div className="grid grid-cols-3 gap-1">{([ ["heading", "Heading", 34, 800], ["subheading", "Subheading", 24, 700], ["text", "Body text", 17, 400] ] as const).map(([kind, label, fontSize, fontWeight]) => <button key={label} type="button" className="min-h-10 rounded border border-white/10 px-1 text-[10px]" onClick={() => add(kind, { text: `Add ${label.toLowerCase()}`, fontSize, fontWeight })}>{label}</button>)}</div><button type="button" className="min-h-11 w-full rounded-lg border border-white/15 text-sm font-semibold" onClick={() => { setMagicOpen((open) => !open); setResult(null); }}>✦ Magic Write</button>{magicOpen ? <section className="space-y-2 rounded-xl border border-[#b8ff2c]/30 bg-[#0b1019] p-3" data-testid="magic-write-panel"><label className="text-[10px] text-white/65">What should the Text say?<textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Present an offer for free fries with a $20 purchase" className="mt-1 min-h-24 w-full rounded border border-white/15 bg-black/20 p-2 text-xs" /></label><button type="button" disabled={!prompt.trim()} className="min-h-10 w-full rounded bg-[#b8ff2c] text-xs font-semibold text-black disabled:opacity-40" onClick={propose}>Review result</button>{result ? <div className="space-y-2" data-testid="magic-write-result"><textarea aria-label="Editable Magic Write result" value={result} onChange={(event) => setResult(event.target.value)} className="min-h-40 w-full rounded border border-white/15 bg-black/20 p-2 text-xs" /><p className="text-[9px] text-amber-200">AI-authored starting point. Check offer facts and legal terms before publishing.</p><div className="grid grid-cols-2 gap-1"><button type="button" className="min-h-9 rounded bg-[#b8ff2c] text-xs font-semibold text-black" onClick={() => { insertText(result); setResult(null); }}>Insert</button><button type="button" disabled={!selectedText} className="min-h-9 rounded border border-white/15 text-xs disabled:opacity-35" onClick={() => { if (selectedText) model.patchSelection(model.selectionRef, { props: { ...selectedText.props, text: result, aiAuthored: true } }, "Replaced selected Text with Magic Write"); }}>Replace selected Text</button><button type="button" className="min-h-9 rounded border border-white/15 text-xs" onClick={() => insertText(result, true)}>Add as variation</button><button type="button" className="min-h-9 rounded border border-white/15 text-xs" onClick={propose}>More like this</button><button type="button" className="min-h-9 rounded border border-white/15 text-xs" onClick={() => setResult(null)}>Refine</button><button type="button" className="min-h-9 rounded border border-white/15 text-xs" onClick={() => { setMagicOpen(false); setResult(null); }}>Cancel</button></div></div> : null}</section> : null}<div className="flex items-center justify-between"><h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/55">Text combinations</h3><span className="text-[9px] text-white/35">Editable objects</span></div><div className="grid grid-cols-2 gap-2" data-testid="text-combination-library">{STARTER_TEXT_COMBINATIONS.filter((item) => matches(item.label)).map((combination) => <button key={combination.id} type="button" className="min-h-24 rounded-xl border border-white/10 bg-white/[.03] p-2 text-center hover:border-[#b8ff2c]/50" data-testid={`text-combination-${combination.id}`} onClick={() => insertCombination(combination)}>{combination.lines.map((line) => <span key={line.text} className="block bg-clip-text text-transparent" style={{ backgroundImage: combination.style, fontSize: Math.max(10, line.fontSize / 2), fontWeight: line.fontWeight, fontFamily: line.fontFamily }}>{line.text}</span>)}<span className="mt-2 block text-[9px] text-white/50">{combination.label}</span><span className="block text-[8px] text-white/35">{combination.structure}</span></button>)}</div><p className="text-[10px] text-white/45">Brand Text styles · Saved styles · Recent · Favorites</p></div>;
+  return (
+    <div className="space-y-3" data-testid="card-text-library">
+      {targetChoice}
+      <input type="search" aria-label="Search fonts and combinations" placeholder="Search fonts and combinations" className="h-10 w-full rounded-lg border border-white/15 bg-black/20 px-3 text-xs" />
+      <button type="button" className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black" onClick={() => add("text", { text: "Type here", fontSize: 20 })}>Add text box</button>
+      <div className="grid grid-cols-3 gap-1">{([["heading", "Heading", 34, 800], ["subheading", "Subheading", 24, 700], ["text", "Body text", 17, 400]] as const).map(([kind, label, fontSize, fontWeight]) => <button key={label} type="button" className="min-h-10 rounded border border-white/10 px-1 text-[10px]" onClick={() => add(kind, { text: `Add ${label.toLowerCase()}`, fontSize, fontWeight })}>{label}</button>)}</div>
+      <button type="button" className="min-h-11 w-full rounded-lg border border-white/15 text-sm font-semibold" data-testid="magic-write-open" onClick={() => { setMagicOpen((open) => !open); setProposals([]); setMagicError(null); setMagicStatus("idle"); }}>✦ Magic Write</button>
+      {magicOpen ? (
+        <section className="space-y-2 rounded-xl border border-[#b8ff2c]/30 bg-[#0b1019] p-3" data-testid="magic-write-panel">
+          <p className="text-[10px] text-white/55" data-testid="magic-write-scope">{textTargets.length > 1 ? `${textTargets.length} text targets in selection` : textTargets.length === 1 ? "1 selected text target" : "No text selected — describe draft copy below"}</p>
+          <div className="flex flex-wrap gap-1">
+            {([["rewrite", "Rewrite"], ["shorten", "Shorten"], ["expand", "Expand"], ["improve_clarity", "Clarity"], ["change_tone", "Tone"], ["fix_grammar", "Grammar"]] as const).map(([id, label]) => (
+              <button key={id} type="button" aria-pressed={operation === id} className="min-h-8 rounded border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c]" onClick={() => setOperation(id)}>{label}</button>
+            ))}
+          </div>
+          <label className="text-[10px] text-white/65">Direction / tone<textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Present an offer for free fries with a $20 purchase" className="mt-1 min-h-20 w-full rounded border border-white/15 bg-black/20 p-2 text-xs" /></label>
+          <button type="button" disabled={magicStatus === "loading"} className="min-h-10 w-full rounded bg-[#b8ff2c] text-xs font-semibold text-black disabled:opacity-40" data-testid="magic-write-submit" onClick={() => void propose()}>{magicStatus === "loading" ? "Writing…" : "Review result"}</button>
+          {magicError ? <p className="rounded border border-amber-300/30 bg-amber-300/10 p-2 text-[10px] text-amber-100" data-testid="magic-write-error">{magicError}</p> : null}
+          {proposals.length ? (
+            <div className="space-y-2" data-testid="magic-write-result">
+              {proposals.map((item) => (
+                <div key={item.targetId} className="rounded border border-white/10 p-2" data-testid={`magic-write-proposal-${item.targetId}`}>
+                  <p className="text-[9px] uppercase text-white/40">Original</p>
+                  <p className="text-[11px] text-white/70">{item.original}</p>
+                  <p className="mt-2 text-[9px] uppercase text-[#b8ff2c]">Proposed</p>
+                  <textarea aria-label="Editable Magic Write result" value={item.proposed} onChange={(event) => setProposals((current) => current.map((row) => row.targetId === item.targetId ? { ...row, proposed: event.target.value } : row))} className="mt-1 min-h-20 w-full rounded border border-white/15 bg-black/20 p-2 text-xs" />
+                </div>
+              ))}
+              <p className="text-[9px] text-amber-200">AI-authored starting point. Check offer facts and legal terms before publishing.</p>
+              <div className="grid grid-cols-2 gap-1">
+                <button type="button" className="min-h-9 rounded bg-[#b8ff2c] text-xs font-semibold text-black" data-testid="magic-write-apply" onClick={applyProposals}>Apply</button>
+                <button type="button" className="min-h-9 rounded border border-white/15 text-xs" data-testid="magic-write-cancel" onClick={() => { setProposals([]); setMagicStatus("idle"); }}>Cancel</button>
+              </div>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
+      <div className="flex items-center justify-between"><h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/55">Text combinations</h3><span className="text-[9px] text-white/35">Editable objects</span></div>
+      <div className="grid grid-cols-2 gap-2" data-testid="text-combination-library">{STARTER_TEXT_COMBINATIONS.filter((item) => matches(item.label)).map((combination) => <button key={combination.id} type="button" className="min-h-24 rounded-xl border border-white/10 bg-white/[.03] p-2 text-center hover:border-[#b8ff2c]/50" data-testid={`text-combination-${combination.id}`} onClick={() => insertCombination(combination)}>{combination.lines.map((line) => <span key={line.text} className="block bg-clip-text text-transparent" style={{ backgroundImage: combination.style, fontSize: Math.max(10, line.fontSize / 2), fontWeight: line.fontWeight, fontFamily: line.fontFamily }}>{line.text}</span>)}<span className="mt-2 block text-[9px] text-white/50">{combination.label}</span><span className="block text-[8px] text-white/35">{combination.structure}</span></button>)}</div>
+      <p className="text-[10px] text-white/45">Brand Text styles · Saved styles · Recent · Favorites</p>
+    </div>
+  );
 }
-
 
 function CommerceComponentLibrary({ kind, model, add, matches }: { kind: "coupon" | "ticket"; model: CardEditorLiveModel; add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean }) {
   const [aiPrompt, setAiPrompt] = useState("");
   const [proposal, setProposal] = useState<Record<string, unknown> | null>(null);
   const starter = kind === "coupon" ? STARTER_COUPON_LAYOUTS : STARTER_TICKET_LAYOUTS;
-  return <div className="space-y-3" data-testid={`card-${kind}-library`}><div className="rounded-lg border border-white/10 p-2"><p className="text-[10px] font-semibold">Create with AI</p><textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder={`Create a ${kind === "coupon" ? "high-end percentage Coupon" : "playful child admission Ticket"}`} className="mt-2 min-h-16 w-full rounded border border-white/10 bg-black/20 p-2 text-[10px]" /><button type="button" disabled={!aiPrompt.trim()} className="mt-2 min-h-9 w-full rounded bg-[#b8ff2c] text-xs font-semibold text-black disabled:opacity-40" onClick={() => setProposal(kind === "coupon" ? { headline: "AI OFFER STARTING POINT", offerValue: "20% OFF", visualStyle: "high gloss", aiAuthored: true } : { title: "AI EVENT PASS", event: "Owner review required", visualStyle: "neon", aiAuthored: true })}>Preview proposal</button>{proposal ? <div className="mt-2 rounded border border-[#b8ff2c]/25 p-2" data-testid={`ai-${kind}-proposal`}><pre className="whitespace-pre-wrap text-[9px]">{JSON.stringify(proposal, null, 2)}</pre><div className="mt-2 grid grid-cols-2 gap-1"><button type="button" className="min-h-9 rounded bg-[#b8ff2c] text-xs font-semibold text-black" onClick={() => { add(kind, { ...proposal, terms: "Draft terms — review before publishing.", ownerReviewRequired: true }); setProposal(null); }}>Insert editable</button><button type="button" className="min-h-9 rounded border border-white/10 text-xs" onClick={() => setProposal(null)}>Cancel</button></div></div> : null}</div><MediaPicker label={`Use uploaded artwork as ${kind} surface`} value="" mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(url) => { if (url) add(kind, { artworkSrc: url, surfaceMode: "uploaded_artwork", ownerReviewRequired: true }); }} /><h3 className="text-[10px] font-semibold uppercase text-white/45">Starter layouts · structurally distinct</h3><div className="grid grid-cols-2 gap-2">{starter.filter((preset) => matches(`${preset.label} ${preset.geometry}`)).map((preset) => <button key={preset.id} type="button" className="min-h-28 rounded-xl border border-white/10 bg-gradient-to-br from-amber-300 via-orange-400 to-rose-500 p-2 text-left text-[#17100a] hover:ring-2 hover:ring-[#b8ff2c]" data-testid={`${kind}-preset-${preset.id}`} data-layout-geometry={preset.geometry} onClick={() => add(kind, { ...preset.props, terms: "Draft terms — review before publishing.", ownerReviewRequired: true })}><span className="text-[8px] font-black uppercase tracking-widest">{kind}</span><strong className="mt-2 block text-sm leading-none">{preset.label}</strong><span className="mt-2 block text-[8px] opacity-65">{preset.geometry.replaceAll("_", " ")}</span></button>)}</div><p className="text-[9px] text-white/45">Starter layouts remain fully editable. No redemption, issuance, or validation runs here.</p></div>;
+  return (
+    <div className="space-y-3" data-testid={`card-${kind}-library`}>
+      <div className="rounded-lg border border-white/10 p-2">
+        <p className="text-[10px] font-semibold">Create with AI</p>
+        <textarea value={aiPrompt} onChange={(event) => setAiPrompt(event.target.value)} placeholder={`Create a ${kind === "coupon" ? "high-end percentage Coupon" : "playful child admission Ticket"}`} className="mt-2 min-h-16 w-full rounded border border-white/10 bg-black/20 p-2 text-[10px]" />
+        <button type="button" disabled={!aiPrompt.trim()} className="mt-2 min-h-9 w-full rounded bg-[#b8ff2c] text-xs font-semibold text-black disabled:opacity-40" onClick={() => setProposal(kind === "coupon" ? { headline: "AI OFFER STARTING POINT", offerValue: "20% OFF", visualStyle: "high gloss", aiAuthored: true } : { title: "AI EVENT PASS", event: "Owner review required", visualStyle: "neon", aiAuthored: true })}>Preview proposal</button>
+        {proposal ? <div className="mt-2 rounded border border-[#b8ff2c]/25 p-2" data-testid={`ai-${kind}-proposal`}><pre className="whitespace-pre-wrap text-[9px]">{JSON.stringify(proposal, null, 2)}</pre><div className="mt-2 grid grid-cols-2 gap-1"><button type="button" className="min-h-9 rounded bg-[#b8ff2c] text-xs font-semibold text-black" onClick={() => { add(kind, { ...proposal, terms: "Draft terms — review before publishing.", ownerReviewRequired: true }); setProposal(null); }}>Insert editable</button><button type="button" className="min-h-9 rounded border border-white/10 text-xs" onClick={() => setProposal(null)}>Cancel</button></div></div> : null}
+      </div>
+      <MediaPicker label={`Use uploaded artwork as ${kind} surface`} value="" mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(url) => { if (url) add(kind, { artworkSrc: url, surfaceMode: "uploaded_artwork", ownerReviewRequired: true }); }} />
+      <h3 className="text-[10px] font-semibold uppercase text-white/45">Starter layouts · structurally distinct</h3>
+      <div className="grid grid-cols-2 gap-2">
+        {starter.filter((preset) => matches(`${preset.label} ${preset.geometry}`)).map((preset) => {
+          const geometry = kind === "coupon" ? geometryFromStarter(preset) : null;
+          const thumb = geometry ? couponThumbnailSignature(geometry) : { regions: [preset.geometry], label: preset.label };
+          const surface = geometry ? couponSurfaceDefaults(geometry) : {};
+          return (
+            <button
+              key={preset.id}
+              type="button"
+              className="min-h-32 overflow-hidden rounded-xl border border-white/10 p-0 text-left text-[#17100a] hover:ring-2 hover:ring-[#b8ff2c]"
+              data-testid={`${kind}-preset-${preset.id}`}
+              data-layout-geometry={preset.geometry}
+              data-thumbnail-regions={thumb.regions.join(",")}
+              onClick={() => {
+                if (kind === "coupon" && geometry) {
+                  const content = buildCouponContentComposition(geometry, `coupon-${preset.id}`, preset.props);
+                  add("coupon", {
+                    ...surface,
+                    ...preset.props,
+                    contentComposition: content,
+                    terms: String(preset.props.terms || "Draft terms — review before publishing."),
+                    ownerReviewRequired: true,
+                  });
+                  return;
+                }
+                add(kind, { ...preset.props, terms: "Draft terms — review before publishing.", ownerReviewRequired: true });
+              }}
+            >
+              <div className="relative h-20 w-full" style={{ background: String(surface.gradientFill || "linear-gradient(135deg,#fcd34d,#f97316,#f43f5e)") }} data-testid={`${kind}-thumb-${preset.id}`}>
+                {geometry === "perforated_stub" ? (
+                  <>
+                    <div className="absolute inset-y-2 left-2 right-[38%] rounded bg-black/10 p-1"><span className="text-[8px] font-black">{String(preset.props.offerValue)}</span></div>
+                    <div className="absolute inset-y-1 right-[34%] w-px border-l border-dashed border-black/50" data-coupon-perforation="true" />
+                    <div className="absolute inset-y-2 right-2 w-[30%] rounded bg-white/50 p-1 text-[7px] font-mono">{String(preset.props.code)}<div className="mt-1 grid h-6 place-items-center bg-white text-[6px] font-black">QR</div></div>
+                  </>
+                ) : geometry === "split_image" ? (
+                  <>
+                    <div className="absolute inset-y-0 left-0 w-[42%] bg-black/25" data-coupon-split="image" />
+                    <div className="absolute inset-y-0 right-0 w-[58%] p-1" data-coupon-split="content"><span className="text-[8px] font-black">{String(preset.props.offerValue)}</span></div>
+                  </>
+                ) : geometry === "qr_first" ? (
+                  <div className="flex h-full flex-col items-center justify-center gap-1" data-coupon-qr-first="true"><div className="grid h-10 w-10 place-items-center bg-white text-[7px] font-black">QR</div><span className="text-[8px] font-black">{String(preset.props.offerValue)}</span></div>
+                ) : (
+                  <div className="flex h-full flex-col justify-between p-2"><span className="text-[8px] font-black uppercase tracking-widest">{kind}</span><strong className="text-sm leading-none">{String(preset.props.offerValue || preset.props.title || preset.label)}</strong><span className="font-mono text-[8px]">{String(preset.props.code || preset.props.ticketId || "")}</span></div>
+                )}
+              </div>
+              <div className="bg-[#0b1019] p-2 text-white"><strong className="block text-[11px] leading-none">{preset.label}</strong><span className="mt-1 block text-[8px] text-white/55">{thumb.regions.join(" · ")}</span></div>
+            </button>
+          );
+        })}
+      </div>
+      <p className="text-[9px] text-white/45">Starter layouts remain fully editable. No redemption, issuance, or validation runs here.</p>
+    </div>
+  );
 }
 
 function ButtonLibrary({ add, matches }: { add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean }) {
@@ -246,56 +522,66 @@ function ButtonLibrary({ add, matches }: { add: (kind: CardElementKind, props?: 
 }
 
 const BADGE_SHAPES = [
-  ["pill", "Pill", 999], ["circle", "Circle", 999], ["rounded", "Rounded rectangle", 14], ["burst", "Burst", 0],
+  ["pill", "Pill", 999], ["circle", "Round", 999], ["rounded", "Rounded", 14], ["burst", "Burst", 0],
   ["starburst", "Starburst", 0], ["ribbon", "Ribbon", 0], ["corner-ribbon", "Corner ribbon", 0], ["seal", "Seal", 999],
-  ["ticket", "Ticket", 4], ["tag", "Tag", 4], ["shield", "Shield", 0], ["hexagon", "Hexagon", 0],
+  ["tag", "Tag", 4], ["shield", "Shield", 0],
 ] as const;
 function BadgeLibrary({ add, matches }: { add: (kind: CardElementKind, props?: Record<string, unknown>) => void; matches: (value: string) => boolean }) {
   const [wording, setWording] = useState("SALE");
   const [shape, setShape] = useState<(typeof BADGE_SHAPES)[number]>(BADGE_SHAPES[0]);
-  const [materialId, setMaterialId] = useState("gold");
-  const place = (text = wording) => {
-    const materialProps = applySurfaceMaterial({ text, accessibleLabel: text, badgeShape: shape[0], radius: shape[2] }, normalizeMaterialId(materialId));
-    add("badge", materialProps);
+  const place = (text = wording, props: Record<string, unknown> = {}) => {
+    add("badge", {
+      text,
+      accessibleLabel: text,
+      badgeShape: shape[0],
+      radius: shape[2],
+      fill: "#dc2626",
+      color: "#ffffff",
+      ...props,
+    });
   };
   return (
     <div className="space-y-3" data-testid="polished-badge-library" data-badge-catalog="shapes">
       <label className="block text-[10px] text-white/55">Wording<input value={wording} onChange={(event) => setWording(event.target.value)} className="mt-1 h-10 w-full rounded border border-white/15 bg-black/20 px-3 text-xs" /></label>
       <button type="button" disabled={!wording.trim()} className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black disabled:opacity-40" onClick={() => place()}>Add editable Badge</button>
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Badge designs</h3>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Shapes</h3>
       <div className="grid grid-cols-2 gap-2" data-testid="badge-shape-catalog">
-        {STARTER_BADGE_PRESETS.filter((item) => matches(item.label)).map((item) => {
-          const preview = applySurfaceMaterial({ ...item.props }, normalizeMaterialId(String(item.props.materialPreset || "flat")));
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className="min-h-16 rounded-lg border border-white/10 p-2 text-[10px]"
-              data-testid={`starter-badge-${item.id}`}
-              data-badge-species={item.id}
-              style={{ background: String(preview.gradientFill || preview.fill || "#334155"), color: String(preview.color || item.props.color || "#fff") }}
-              onClick={() => add("badge", applySurfaceMaterial({ ...item.props, text: wording.trim() || String(item.props.text), accessibleLabel: wording.trim() || String(item.props.text) }, normalizeMaterialId(String(item.props.materialPreset || "flat"))))}
-            >
-              <span className="block font-semibold">{item.label}</span>
-              <span className="block text-[9px] opacity-70">{String(item.props.badgeShape)}</span>
-            </button>
-          );
-        })}
+        {STARTER_BADGE_SHAPES.filter((item) => matches(item.label)).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="min-h-16 rounded-lg border border-white/10 p-2 text-[10px]"
+            data-testid={`starter-badge-${item.id}`}
+            data-badge-shape={String(item.props.badgeShape)}
+            style={{ background: String(item.props.fill || "#334155"), color: String(item.props.color || "#fff") }}
+            onClick={() => add("badge", { ...item.props, text: wording.trim() || String(item.props.text), accessibleLabel: wording.trim() || String(item.props.text) })}
+          >
+            <span className="block font-semibold">{item.label}</span>
+            <span className="block text-[9px] opacity-70">{String(item.props.badgeShape)}</span>
+          </button>
+        ))}
+      </div>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Useful starters</h3>
+      <div className="grid grid-cols-2 gap-2" data-testid="badge-composition-catalog">
+        {STARTER_BADGE_COMPOSITIONS.filter((item) => matches(item.label)).map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            className="min-h-14 rounded-lg border border-white/10 p-2 text-[10px]"
+            data-testid={`starter-badge-composition-${item.id}`}
+            style={{ background: String(item.props.fill || "#334155"), color: String(item.props.color || "#fff") }}
+            onClick={() => add("badge", { ...item.props, accessibleLabel: String(item.props.text) })}
+          >
+            <span className="block font-semibold">{item.label}</span>
+            <span className="block text-[9px] opacity-70">{String(item.props.text)}</span>
+          </button>
+        ))}
       </div>
       <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Wording presets</h3>
       <div className="grid grid-cols-2 gap-1">{BADGE_WORDING.filter(matches).map((word) => <button key={word} type="button" className="min-h-9 rounded border border-white/10 text-[9px]" onClick={() => { setWording(word); place(word); }}>{word}</button>)}</div>
-      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Shapes</h3>
+      <h3 className="text-[10px] font-semibold uppercase tracking-wide text-white/45">Shape picker</h3>
       <div className="grid grid-cols-2 gap-1">{BADGE_SHAPES.filter((item) => matches(item[1])).map((item) => <button key={item[0]} type="button" aria-pressed={shape[0] === item[0]} className="min-h-10 border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c]" style={{ borderRadius: item[2] }} onClick={() => setShape(item)}>{item[1]}</button>)}</div>
-      <details className="rounded-lg border border-white/10 p-2" data-testid="badge-initial-material">
-        <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wide text-white/55">Initial material · editable after insert</summary>
-        <p className="mt-1 text-[9px] text-white/40">Gold / Glass / Chrome are Appearance recipes — not Badge types.</p>
-        <div className="mt-2 grid grid-cols-2 gap-2" data-testid="badge-material-catalog">
-          {MATERIAL_CATALOG.filter((item) => matches(item.label)).map((item) => (
-            <button key={item.id} type="button" aria-pressed={materialId === item.id} className="min-h-14 rounded-lg border border-white/10 p-2 text-[10px] aria-pressed:ring-2 aria-pressed:ring-[#b8ff2c]" style={{ background: materialPreviewCss(item), color: item.textColor || "#fff" }} data-testid={`badge-material-${item.id}`} onClick={() => setMaterialId(item.id)}>{item.label}</button>
-          ))}
-        </div>
-      </details>
-      <p className="text-[9px] text-white/45">Shape and Material stay independent. After insert, change Material without losing wording or Shape.</p>
+      <p className="text-[9px] text-white/45">Gold, Glass, and Metal live in Appearance — not as Badge designs.</p>
     </div>
   );
 }
