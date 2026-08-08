@@ -15,6 +15,7 @@ import { INSERT_SURFACES } from "./interaction-manifest";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  closeExtraDocumentTabs,
   dismissRecoveryPromptIfPresent,
   dismissSaveDialogIfPresent,
   dismissTransientStudioChrome,
@@ -557,6 +558,17 @@ async function operateControlPhysicallyInner(
   });
 
   if (!control.testId && !String(control.name || "").trim()) {
+    // Hidden/file inputs are not Owner-addressable chrome — genuine non-applicability.
+    if (control.tag === "input") {
+      const candidate = page.locator("input:not([aria-label]):not([placeholder]):not([name])").first();
+      const type = (await candidate.getAttribute("type").catch(() => "")) || "";
+      if (type === "hidden" || type === "file") {
+        return {
+          status: "NOT_APPLICABLE",
+          notes: [`Anonymous ${type} input is not an Owner-facing Studio control`, `context=${contextLabel}`],
+        };
+      }
+    }
     return {
       status: "BROKEN",
       notes: [
@@ -614,7 +626,7 @@ async function operateControlPhysicallyInner(
     };
   }
 
-  // Template search field — not a chooser tile.
+  // Template search field lives in the creative context drawer chrome, not inside the tile list.
   if (
     /^Search templates$/i.test(control.name) ||
     (/search templates/i.test(control.name) && control.tag === "input")
@@ -623,9 +635,8 @@ async function operateControlPhysicallyInner(
     await ownerClick(page.getByTestId("card-creative-tool-templates"), "Open Templates for search");
     await expect(page.getByTestId("card-template-library")).toBeVisible({ timeout: 10_000 });
     const search = page
-      .getByTestId("card-template-library")
-      .getByPlaceholder(/search templates/i)
-      .or(page.getByRole("textbox", { name: /search templates/i }))
+      .locator('[data-testid="card-creative-context-drawer"] input[placeholder="Search templates"]')
+      .or(page.getByPlaceholder(/^Search templates$/i))
       .first();
     await expect(search).toBeVisible({ timeout: 8_000 });
     await search.fill("offer");
@@ -707,17 +718,17 @@ async function operateControlPhysicallyInner(
     }
   }
 
-  // Close creative drawer — deep-left / library dismiss control; certify in reconstructed root.
+  // Close creative drawer — only mounted while a rail library is open (not during Background editor).
   if (/^Close creative drawer$/i.test(control.name)) {
     await dismissSaveDialogIfPresent(page);
-    const close = page.getByRole("button", { name: /Close creative drawer/i }).first();
+    await closeExtraDocumentTabs(page);
+    let close = page.getByRole("button", { name: /^Close creative drawer$/i }).first();
     if ((await close.count()) === 0 || !(await close.isVisible().catch(() => false))) {
-      // Open Templates so the drawer Close control exists, then dismiss.
       await ownerClick(page.getByTestId("card-creative-tool-templates"), "Open Templates to expose drawer Close");
       await expect(page.getByTestId("card-template-library")).toBeVisible({ timeout: 10_000 });
+      close = page.getByRole("button", { name: /^Close creative drawer$/i }).first();
     }
-    const close2 = page.getByRole("button", { name: /Close creative drawer/i }).first();
-    await ownerClick(close2, "Close creative drawer");
+    await ownerClick(close, "Close creative drawer");
     await expect(page.getByTestId("card-template-library")).toBeHidden({ timeout: 10_000 });
     if (contextLabel === "root-background") {
       await ensureRootBackgroundContext(page);

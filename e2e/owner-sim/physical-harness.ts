@@ -149,17 +149,24 @@ export async function dismissRecoveryPromptIfPresent(page: Page) {
 }
 
 export async function closeExtraDocumentTabs(page: Page) {
-  // Prior Clone pollution can leave dozens of tabs — close until a single document remains.
-  for (let i = 0; i < 40; i += 1) {
-    const closes = page.locator('[data-testid^="creative-document-tab-"] button[aria-label^="Close"]');
-    const count = await closes.count();
-    if (count === 0) break;
-    // When only one tab remains, its Close may still exist — stop if Blank Studio needs that doc.
+  // Server-backed document history + Clone pollution can leave dozens of tabs that steal Close hits.
+  for (let i = 0; i < 100; i += 1) {
     const tabs = page.locator('[data-testid^="creative-document-tab-"]');
-    if ((await tabs.count()) <= 1) break;
-    await closes.first().click({ timeout: 1_500 }).catch(() => undefined);
+    const tabCount = await tabs.count();
+    if (tabCount <= 1) break;
+    // Prefer closing non-active tabs first when marked; otherwise close the last tab.
+    const inactiveClose = page.locator(
+      '[data-testid^="creative-document-tab-"]:not([data-active="true"]) button[aria-label^="Close"]'
+    ).first();
+    const close =
+      (await inactiveClose.count()) > 0
+        ? inactiveClose
+        : tabs.nth(tabCount - 1).locator('button[aria-label^="Close"]').first();
+    if ((await close.count()) === 0 || !(await close.isVisible().catch(() => false))) break;
+    await close.click({ timeout: 1_500 }).catch(() => undefined);
     await dismissSaveDialogIfPresent(page);
-    await page.waitForTimeout(40);
+    await dismissRecoveryPromptIfPresent(page);
+    await page.waitForTimeout(30);
   }
 }
 
