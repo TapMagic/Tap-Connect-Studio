@@ -33,7 +33,7 @@ test("divider and icon commands open distinct drawer sections", () => {
     "divider-color",
     "divider-appearance",
     "content",
-    "icon-appearance",
+    "appearance",
     "map-action",
   ]);
   assert.equal(new Set(opened).size, opened.length);

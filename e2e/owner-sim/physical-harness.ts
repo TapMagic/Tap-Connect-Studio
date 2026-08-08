@@ -770,6 +770,16 @@ export async function applyButtonLabelColor(page: Page, hex: string) {
   await page.waitForTimeout(250);
 }
 
+/** Badge wording paint lives on the badge surface node, not the composition wrapper. */
+export async function readBadgeWordingPaint(badge: Locator) {
+  const surface = badge.locator("[data-badge-shape]").first();
+  await expect(surface).toBeVisible({ timeout: 10_000 });
+  return surface.evaluate((el) => {
+    const style = window.getComputedStyle(el);
+    return { color: style.color, text: (el.textContent || "").trim().slice(0, 40) };
+  });
+}
+
 /** Label paint lives on the inner label span, not the composition wrapper. */
 export async function readButtonLabelPaint(button: Locator) {
   return button.evaluate((el) => {

@@ -390,12 +390,26 @@ export function locateControl(page: Page, control: ProvenancedControl): Locator 
         .getByRole(role, { name: new RegExp(`^${escapeRegExp(shortName.slice(0, 60))}`, "i") })
         .first();
     }
+    if (control.tag === "select") {
+      const ariaExact = page.locator(`select[aria-label="${shortName.replace(/"/g, '\\"')}"]`);
+      const ariaLeaf = page.locator(`select[aria-label="${leafName.replace(/"/g, '\\"')}"]`);
+      const byLabel = page.getByLabel(new RegExp(escapeRegExp(leafName.slice(0, 48)), "i"));
+      return ariaExact.or(ariaLeaf).or(byLabel).first();
+    }
     if (control.tag === "input" || control.tag === "textarea") {
       const byRadio = page.getByRole("radio", { name: new RegExp(escapeRegExp(leafName.slice(0, 60)), "i") });
       const byCheckbox = page.getByRole("checkbox", { name: new RegExp(escapeRegExp(leafName.slice(0, 60)), "i") });
       const byPlaceholder = page.getByPlaceholder(new RegExp(escapeRegExp(shortName.slice(0, 40)), "i"));
       const byAria = page.locator(`input[aria-label="${leafName.replace(/"/g, '\\"')}"]`);
-      return byRadio.or(byCheckbox).or(byPlaceholder).or(byAria).first();
+      // Gradient stop labels may include a live position % — also match stable stop-id labels.
+      const ariaPrefix = leafName.replace(/\s+\d+%$/, "");
+      const byAriaPrefix = /Gradient stop (alpha|position)/i.test(leafName)
+        ? page.locator(`input[aria-label^="${ariaPrefix.replace(/"/g, '\\"')}"]`)
+        : page.locator(`[data-blindfold-missing="no-prefix"]`);
+      const byLegacyStopColor = /^Color\s+\d+%/i.test(leafName)
+        ? page.locator(`input[aria-label^="Gradient stop color"]`)
+        : page.locator(`[data-blindfold-missing="no-legacy-color"]`);
+      return byRadio.or(byCheckbox).or(byPlaceholder).or(byAria).or(byAriaPrefix).or(byLegacyStopColor).first();
     }
     return page.getByText(shortName.slice(0, 40), { exact: false }).first();
   }
@@ -950,6 +964,29 @@ async function operateControlPhysicallyInner(
     if (/^composition-more-node-/.test(control.testId)) {
       const more = page.locator('[data-testid^="composition-more-node-"]').first();
       await expect(more).toBeVisible({ timeout: 8_000 });
+      // Prefer the canvas More chip; if contextual toolbar still occludes it, use the toolbar More door (same Owner menu).
+      const moreBox = await more.boundingBox();
+      const tools = page.getByTestId("card-contextual-object-tools").locator(".pointer-events-auto").first();
+      const toolsBox = await tools.boundingBox().catch(() => null);
+      const occluded =
+        !!moreBox &&
+        !!toolsBox &&
+        moreBox.y < toolsBox.y + toolsBox.height &&
+        moreBox.y + moreBox.height > toolsBox.y &&
+        moreBox.x < toolsBox.x + toolsBox.width &&
+        moreBox.x + moreBox.width > toolsBox.x;
+      if (occluded) {
+        const toolbarMore = page.getByTestId("card-contextual-object-tools").getByRole("button", { name: /More actions/i }).first();
+        await ownerClick(toolbarMore, "Toolbar More (canvas More occluded by object toolbar)");
+        const menu = page.getByTestId("common-more-menu").or(page.getByTestId("composition-context-menu")).first();
+        if (await menu.isVisible().catch(() => false)) {
+          await page.keyboard.press("Escape").catch(() => undefined);
+        }
+        return {
+          status: "VERIFIED",
+          notes: ["Toolbar More used because canvas More sat under object toolbar", `context=${contextLabel}`],
+        };
+      }
       await ownerClick(more, "Live composition More menu");
       // Toggle More closed — do not click the pasteboard (that clears selection and hides handles).
       await more.click({ timeout: 2_000 }).catch(() => undefined);
@@ -1030,11 +1067,15 @@ async function operateControlPhysicallyInner(
         const scoped = editor.getByTestId(control.testId).first();
         if ((await scoped.count()) > 0) locator = scoped;
       } else if (control.name) {
-        const leaf = control.name.split(":")[0]!.trim().slice(0, 40);
+        const leaf = control.name.split(":")[0]!.trim().slice(0, 48);
+        const ariaPrefix = leaf.replace(/\s+\d+%$/, "");
         const scoped = editor
           .getByRole("button", { name: new RegExp(`^${escapeRegExp(leaf)}`, "i") })
           .or(editor.getByRole("radio", { name: new RegExp(escapeRegExp(leaf), "i") }))
+          .or(editor.locator(`select[aria-label="${leaf.replace(/"/g, '\\"')}"]`))
           .or(editor.locator(`input[aria-label="${leaf.replace(/"/g, '\\"')}"]`))
+          .or(editor.locator(`input[aria-label^="${ariaPrefix.replace(/"/g, '\\"')}"]`))
+          .or(editor.getByLabel(new RegExp(escapeRegExp(leaf), "i")))
           .first();
         if ((await scoped.count()) > 0) locator = scoped;
       }

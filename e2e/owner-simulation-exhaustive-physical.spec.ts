@@ -438,27 +438,6 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
       await inserted.node.click();
       const cats = appearanceCategoriesForFamily(surface.family);
 
-      // Icon hosts a dedicated Artwork Appearance panel — not the shared category overview.
-      if (surface.family === "icon") {
-        await ownerClick(page.getByTestId("contextual-icon-appearance"), "Icon Appearance");
-        await expect(page.getByTestId("icon-appearance-controls")).toBeVisible({ timeout: 10_000 });
-        for (const cat of cats) {
-          markLedger(`appearance.${surface.family}.${cat.id}.first-use`, "VERIFIED", {
-            notes: ["Icon Appearance uses dedicated artwork/backing panel; category IA mapped via panel sections"],
-          });
-        }
-        await evidenceShot(page, "exhaustive", `appearance-icon-panel`);
-        recordVerdict({
-          id: `exhaustive.appearance-categories.icon`,
-          domain: "appearance",
-          label: "Icon Appearance panel first-use",
-          status: "VERIFIED",
-          notes: cats.map((c) => c.id),
-          evidence: ["exhaustive/appearance-icon-panel.png"],
-        });
-        continue;
-      }
-
       for (const cat of cats) {
         try {
           await openAppearanceCategory(page, cat.id);

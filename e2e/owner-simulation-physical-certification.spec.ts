@@ -26,6 +26,7 @@ import {
   applyEffectById,
   applyButtonLabelColor,
   applyGlyphColor,
+  readBadgeWordingPaint,
   bringSelectedToFront,
   clearSelection,
   crawlToolbarDoors,
@@ -617,10 +618,10 @@ test.describe("Owner-simulation physical interaction certification", () => {
 
     const badgeInsert = await insertFamily(page, "badge");
     const badge = badgeInsert.node;
-    const beforeBadge = await readGeometry(badge);
+    const beforeBadge = await readBadgeWordingPaint(badge);
     await applyGlyphColor(page, "#00ccff");
-    const afterBadge = await readGeometry(badge);
-    const badgeChanged = geometryChanged(beforeBadge, afterBadge, ["color"]);
+    const afterBadge = await readBadgeWordingPaint(badge);
+    const badgeChanged = beforeBadge.color !== afterBadge.color;
     await evidenceShot(page, "appearance", "05-badge-wording-color");
     if (badgeChanged) await undo(page);
     recordVerdict({
@@ -628,7 +629,7 @@ test.describe("Owner-simulation physical interaction certification", () => {
       domain: "appearance",
       label: "Badge wording color via Color/Aa door",
       status: badgeChanged ? "VERIFIED" : "BROKEN",
-      notes: [`before=${beforeBadge.color}`, `after=${afterBadge.color}`],
+      notes: [`before=${beforeBadge.color}`, `after=${afterBadge.color}`, `text=${afterBadge.text}`],
       evidence: ["appearance/05-badge-wording-color.png"],
     });
     if (!badgeChanged) throw new Error("Badge wording color produced no visible mutation");
