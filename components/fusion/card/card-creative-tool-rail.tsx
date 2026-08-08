@@ -182,13 +182,12 @@ function IconLibraryDrawer({ add, matches, targetChoice }: { model: CardEditorLi
   useEffect(() => {
     const controller = new AbortController();
     const q = query.trim();
-    if (mode === "search" && q.length < 2) {
-      setStatus("idle");
-      setProviderIcons([]);
-      return;
-    }
-    setStatus("loading");
     const timer = window.setTimeout(() => {
+      if (mode === "search" && q.length < 2) {
+        setStatus("idle");
+        setProviderIcons([]);
+        return;
+      }
       let url = "";
       if (mode === "search") url = `/api/creative/icons?q=${encodeURIComponent(q)}`;
       else if (mode === "collections" && collection) url = `/api/creative/icons?collection=${encodeURIComponent(collection)}`;
@@ -199,6 +198,7 @@ function IconLibraryDrawer({ add, matches, targetChoice }: { model: CardEditorLi
         setProviderIcons([]);
         return;
       }
+      setStatus("loading");
       void fetch(url, { signal: controller.signal })
         .then(async (response) => {
           if (!response.ok) throw new Error(`iconify ${response.status}`);
@@ -368,15 +368,12 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
     if (map.has("draft")) {
       add("text", { text: map.get("draft"), fontSize: 18, fontWeight: 500, aiAuthored: true });
     } else {
-      const nextNodes = composition.nodes.map((node) => {
-        const next = map.get(node.id);
-        if (!next) return node;
-        return { ...node, props: { ...node.props, text: next, aiAuthored: true } };
-      });
       for (const proposal of proposals) {
+        const node = composition.nodes.find((candidate) => candidate.id === proposal.targetId);
+        if (!node) continue;
         model.patchCompositionNode(
           proposal.targetId,
-          { props: { ...(composition.nodes.find((candidate) => candidate.id === proposal.targetId)?.props || {}), text: proposal.proposed, aiAuthored: true } },
+          { props: { ...node.props, text: proposal.proposed, aiAuthored: true } },
           "Applied Magic Write"
         );
       }

@@ -1573,10 +1573,10 @@ export function CreativeCompositionCanvas({
     };
     if (drag.groupId && drag.groupBounds) {
       const gb = drag.groupBounds;
-      let gx = west ? Math.min(gb.left + gb.width - 0.04, Math.max(-1, gb.left + dx)) : gb.left;
-      let gy = north ? Math.min(gb.top + gb.height - 0.04, Math.max(-1, gb.top + dy)) : gb.top;
-      let gw = west ? gb.width + (gb.left - gx) : east ? Math.min(2, Math.max(0.04, gb.width + dx)) : gb.width;
-      let gh = north ? gb.height + (gb.top - gy) : south ? Math.min(2, Math.max(0.04, gb.height + dy)) : gb.height;
+      const gx = west ? Math.min(gb.left + gb.width - 0.04, Math.max(-1, gb.left + dx)) : gb.left;
+      const gy = north ? Math.min(gb.top + gb.height - 0.04, Math.max(-1, gb.top + dy)) : gb.top;
+      const gw = west ? gb.width + (gb.left - gx) : east ? Math.min(2, Math.max(0.04, gb.width + dx)) : gb.width;
+      const gh = north ? gb.height + (gb.top - gy) : south ? Math.min(2, Math.max(0.04, gb.height + dy)) : gb.height;
       setDraftNodes(
         resizeGroupComposition(drag.origNodes, drag.groupId, {
           left: gx,

@@ -93,8 +93,8 @@ function useDeepLeftPanelHost(section: string | null, targetLabel: string, capab
         deepLeft.closeEdit();
       }
       openKeyRef.current = "";
-      setPortalEl(null);
-      return;
+      const clear = window.setTimeout(() => setPortalEl(null), 0);
+      return () => window.clearTimeout(clear);
     }
     const key = `${section}|${targetLabel}|${capabilityLabel}`;
     // One authoritative transition — do not re-open / thrash when already owning this edit.
@@ -111,8 +111,8 @@ function useDeepLeftPanelHost(section: string | null, targetLabel: string, capab
     // Resolve portal mount without a timer loop — observe once until present.
     const existing = document.getElementById(deepLeft.portalId);
     if (existing) {
-      setPortalEl(existing);
-      return;
+      const ready = window.setTimeout(() => setPortalEl(existing), 0);
+      return () => window.clearTimeout(ready);
     }
     const observer = new MutationObserver(() => {
       const el = document.getElementById(deepLeft.portalId);
@@ -310,15 +310,15 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
     if (!iconPickerOpen) {
       return;
     }
-    if (iconQuery.trim().length < 2) {
-      setIconSearchStatus("idle");
-      setProviderIcons([]);
-      setIconSearchFallback(false);
-      return;
-    }
     const controller = new AbortController();
-    setIconSearchStatus("loading");
     const timer = window.setTimeout(() => {
+      if (iconQuery.trim().length < 2) {
+        setIconSearchStatus("idle");
+        setProviderIcons([]);
+        setIconSearchFallback(false);
+        return;
+      }
+      setIconSearchStatus("loading");
       void fetch(`/api/creative/icons?q=${encodeURIComponent(iconQuery)}`, { signal: controller.signal })
         .then(async (response) => {
           if (!response.ok) throw new Error(`iconify ${response.status}`);
@@ -342,25 +342,28 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const previousCapabilityRef = useRef<{ nodeId: string | null; focus: Focus }>({ nodeId: null, focus: null });
   useEffect(() => {
     // Retarget same capability; otherwise dismiss. Never fall back to Card Root.
-    if (!selectedNodeId) {
-      setFocus(null);
-      previousCapabilityRef.current = { nodeId: null, focus: null };
-      return;
-    }
-    const prior = previousCapabilityRef.current;
-    if (prior.nodeId && prior.nodeId !== selectedNodeId) {
-      const family = objectFamilyForNode(selected?.node || { primitive: "shape", props: {} });
-      const stillSupports =
-        prior.focus === "position" ||
-        prior.focus === "animate" ||
-        prior.focus === "more" ||
-        (prior.focus === "color" && (family === "text" || family === "badge")) ||
-        (prior.focus === "content" && family === "icon") ||
-        (prior.focus === "button-surface" && family === "button") ||
-        (prior.focus === "surface" && (family === "badge" || family === "shape"));
-      if (!stillSupports) setFocus(null);
-    }
-    previousCapabilityRef.current = { nodeId: selectedNodeId, focus };
+    const timer = window.setTimeout(() => {
+      if (!selectedNodeId) {
+        setFocus(null);
+        previousCapabilityRef.current = { nodeId: null, focus: null };
+        return;
+      }
+      const prior = previousCapabilityRef.current;
+      if (prior.nodeId && prior.nodeId !== selectedNodeId) {
+        const family = objectFamilyForNode(selected?.node || { primitive: "shape", props: {} });
+        const stillSupports =
+          prior.focus === "position" ||
+          prior.focus === "animate" ||
+          prior.focus === "more" ||
+          (prior.focus === "color" && (family === "text" || family === "badge")) ||
+          (prior.focus === "content" && family === "icon") ||
+          (prior.focus === "button-surface" && family === "button") ||
+          (prior.focus === "surface" && (family === "badge" || family === "shape"));
+        if (!stillSupports) setFocus(null);
+      }
+      previousCapabilityRef.current = { nodeId: selectedNodeId, focus };
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, [selectedNodeId, selected?.node, focus]);
   const deepLeft = useDeepLeftEditorOptional();
   const preTargetLabel = useMemo(() => {
@@ -437,7 +440,6 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const groupParent = isGroupParentSelection(block.nodes, selectedIds);
   const activeGroupId = resolveActiveGroupId(block.nodes, selectedIds);
   const colorMixed = mixedValueForCapability(block.nodes, selectedIds, "text_color");
-  const fontMixed = mixedValueForCapability(block.nodes, selectedIds, "font");
   const patchProps = (next: Record<string, unknown>, label: string) => {
     // Group capability fan-out for compatible descendants.
     if (groupParent && (next.color !== undefined || next.fontFamily !== undefined || next.fontSize !== undefined || next.fontWeight !== undefined || next.effectPreset !== undefined || next.materialPreset !== undefined || next.glow !== undefined || next.glowColor !== undefined)) {
