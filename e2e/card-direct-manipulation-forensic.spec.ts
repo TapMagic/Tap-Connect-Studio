@@ -63,7 +63,7 @@ test.describe("Card direct-manipulation forensic completion", () => {
     await expect(page.getByTestId("contextual-surface")).toBeVisible();
     await page.screenshot({ path: path.join(evidence, "02-layers-authoritative-badge-selection.png") });
 
-    await layers.getByRole("button", { name: "Card root", exact: true }).click();
+    await layers.getByRole("button", { name: "Card", exact: true }).click();
     await page.getByTestId("card-creative-tool-buttons").click();
     for (const preset of ["website-outline", "call-round", "claim-gloss"] as const) {
       await page.getByTestId(`button-preset-${preset}`).click();
@@ -82,7 +82,7 @@ test.describe("Card direct-manipulation forensic completion", () => {
     await expect(page.getByTestId("contextual-button-content")).toHaveAttribute("aria-pressed", "true");
     await page.screenshot({ path: path.join(evidence, "04-button-nested-content-in-layers.png") });
 
-    await layers.getByRole("button", { name: "Card root", exact: true }).click();
+    await layers.getByRole("button", { name: "Card", exact: true }).click();
     await page.getByTestId("card-creative-tool-elements").click();
     await page.getByTestId("card-elements-library").getByText("Image", { exact: true }).first().click();
     await expect(page.getByTestId("card-assets-library")).toBeVisible();

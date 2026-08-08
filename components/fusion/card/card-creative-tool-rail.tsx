@@ -724,7 +724,7 @@ function LayersDrawer({ model }: { model: CardEditorLiveModel }) {
   return <div className="space-y-2" data-testid="card-layers-drawer">
     <p className="text-[9px] text-white/45">Authoritative object tree · topmost layer first · Shift-click for multi-select</p>
     <div className="rounded-md border border-white/10 p-1" data-layer-container="card-root">
-      <LayerButton active={Boolean(model.explicitCardRootSelected)} label="Card root" onClick={() => { if (model.selectCardRoot) model.selectCardRoot(); else { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); } }} />
+      <LayerButton active={Boolean(model.explicitCardRootSelected)} label="Card" onClick={() => { if (model.selectCardRoot) model.selectCardRoot(); else { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([]); } }} />
       {rootTopLevel.map((node) => <LayerObjectRow key={node.id} model={model} node={node} parentId={null} siblings={rootNodes} active={!model.selected && Boolean(model.selectedCompositionNodeIds?.includes(node.id))} onSelect={selectNode} />)}
     </div>
     {model.sorted.map((section) => <div key={section.id} className="rounded-md border border-white/10 p-1" data-layer-container={section.id}>

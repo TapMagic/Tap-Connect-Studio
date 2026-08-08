@@ -123,16 +123,16 @@ test.describe("Owner-simulation physical interaction certification", () => {
     await canvas.click({ position: { x: 40, y: 40 } });
     await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible({ timeout: 10_000 });
     await evidenceShot(page, "selection-and-scope", "03-reselect-root");
-    // Layers → Card root is also an Owner path
+    // Layers → Card is also an Owner path
     await clearSelection(page);
     await ownerClick(page.getByTestId("card-creative-tool-layers"), "Layers rail");
-    await ownerClick(page.getByRole("button", { name: /^Card root$/i }).first(), "Layers Card root");
+    await ownerClick(page.getByRole("button", { name: /^Card$/i }).first(), "Layers Card");
     await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible({ timeout: 10_000 });
     await evidenceShot(page, "selection-and-scope", "04-layers-card-root");
     recordVerdict({
       id: "selection.no-selection-and-root",
       domain: "selection-and-scope",
-      label: "Blank→Root, pasteboard clear, canvas reselect, Layers Card root",
+      label: "Blank→Root, pasteboard clear, canvas reselect, Layers Card",
       status: "VERIFIED",
       notes: ["View toolbar gutters use pointer-events-none", "Blank Card creates empty rootComposition and selects Root"],
       evidence: [

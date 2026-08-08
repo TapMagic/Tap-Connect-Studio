@@ -169,9 +169,9 @@ export function nestedTargetLabel(
   };
 }
 
-/** Explicit Card Root label — only when Root was intentionally selected. */
+/** Explicit Card selection label — only when Root was intentionally selected. */
 export function cardRootTargetLabel(): NestedTargetLabel {
-  return { family: "card_root", parentLabel: "Card root", childLabel: null, display: "Card root" };
+  return { family: "card_root", parentLabel: "Card", childLabel: null, display: "Card" };
 }
 
 /**

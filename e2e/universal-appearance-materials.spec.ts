@@ -149,8 +149,8 @@ test.describe("universal appearance materials system", () => {
     await page.screenshot({ path: path.join(evidenceDir, "13-brushed-container.png"), fullPage: false });
 
     await page.getByTestId("card-pasteboard").click({ position: { x: 12, y: 12 } });
-    await page.getByTestId("card-contextual-object-tools").getByText("Card root").waitFor({ state: "visible", timeout: 15_000 }).catch(() => undefined);
-    if (await page.getByTestId("card-contextual-object-tools").getByText("Card root").count()) {
+    await page.getByTestId("card-contextual-object-tools").getByText("Card", { exact: true }).waitFor({ state: "visible", timeout: 15_000 }).catch(() => undefined);
+    if (await page.getByTestId("card-contextual-object-tools").getByText("Card", { exact: true }).count()) {
       await page.getByTestId("card-contextual-object-tools").getByRole("button", { name: "Appearance" }).click();
       await expect(page.getByTestId("root-background-materials")).toBeVisible({ timeout: 15_000 });
       await page.getByTestId("root-material-frosted_glass").click();

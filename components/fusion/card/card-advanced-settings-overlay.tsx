@@ -44,7 +44,7 @@ export function CardAdvancedSettingsOverlay({
     ? `${String(node.props.elementKind || node.primitive)}: ${node.name || String(node.props.label || node.props.text || "Selected object")}`
     : section
       ? `Section: ${section.label || section.type}`
-      : "Card root";
+      : "Card";
   const patchNode = (patch: Partial<CreativeCompositionNode>, label: string) =>
     model.patchSelection(selection, patch, label);
 

@@ -1,14 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { MoreHorizontal, X } from "lucide-react";
 import { nanoid } from "nanoid";
 import { MediaPicker } from "@/components/media/media-picker";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
 import { useDeepLeftEditorOptional } from "@/components/fusion/creative-studio/deep-left-editor-context";
+import type { DeepLeftNestedPage } from "@/lib/fusion/creative-studio/deep-left-editor";
 import { applyGlyphEffect, ICON_LIBRARY, MATERIAL_PRESETS, MOTION_PRESETS } from "@/lib/fusion/creative-studio/card-creative-system";
-import { copyCompositionNodeStyle, hasCompositionStyleClipboard, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
+import { copyCompositionNodes, copyCompositionNodeStyle, hasCompositionStyleClipboard, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
 import { FONT_CATALOG, fontCssStack } from "@/lib/fusion/creative-studio/fonts/catalog";
 import { ensureFontLoaded, ensureGoogleFontFamilyLoaded } from "@/lib/fusion/creative-studio/fonts/load";
 import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
@@ -110,7 +111,8 @@ function useDeepLeftPanelHost(
   section: string | null,
   targetLabel: string,
   capabilityLabel: string,
-  onSessionClosed?: () => void
+  onSessionClosed?: () => void,
+  launchPageRef?: MutableRefObject<DeepLeftNestedPage | null>
 ) {
   const deepLeft = useDeepLeftEditorOptional();
   const [portalEl, setPortalEl] = useState<HTMLElement | null>(null);
@@ -144,12 +146,15 @@ function useDeepLeftPanelHost(
     // One authoritative transition — do not re-open / thrash when already owning this edit.
     if (openKeyRef.current !== key) {
       openKeyRef.current = key;
+      const launchPage = launchPageRef?.current || undefined;
+      if (launchPageRef) launchPageRef.current = null;
       deepLeft.openEdit({
         section,
         targetLabel,
         capabilityLabel,
         previousLibraryTool: deepLeft.session.previousLibraryTool || "templates",
         selectionGeneration: deepLeft.session.selectionGeneration,
+        page: launchPage,
       });
     }
     // Resolve portal mount without a timer loop — observe once until present.
@@ -218,7 +223,7 @@ function RootContextualToolbar({
   const clearFocus = useCallback(() => setFocus(null), []);
   const { portalEl, deepLeft } = useDeepLeftPanelHost(
     focus,
-    "Card root",
+    "Card",
     focus === "background" ? "Background" : focus || "Editor",
     clearFocus
   );
@@ -246,7 +251,7 @@ function RootContextualToolbar({
     return () => window.removeEventListener("keydown", onKey, true);
   }, [focus]);
   const panel = focus ? (
-    <EditorPanelShell testId={`contextual-root-${focus}-drawer`} title={`Card root / ${focus}`} targetLabel="Card root" onClose={close} portalEl={portalEl}>
+    <EditorPanelShell testId={`contextual-root-${focus}-drawer`} title={`Card / ${focus === "background" ? "Background" : focus === "page-size" ? "Page size" : focus}`} targetLabel="Card" onClose={close} portalEl={portalEl}>
       {focus === "background" ? <div className="space-y-3" data-testid="root-background-editor"><div className="grid grid-cols-3 gap-1">{(["none", "solid", "gradient"] as const).map((kind) => <button key={kind} type="button" aria-pressed={background.kind === kind} className={buttonClass} onClick={() => setBackground(kind === "gradient" ? { ...background, kind, gradient } : kind === "solid" ? { ...background, kind, value: model.config.surfaceColor } : { kind }, `Changed root background to ${kind}`)}>{kind === "none" ? "Transparent" : kind}</button>)}</div><label className="block text-[10px] text-white/65">Solid color<input aria-label="Card root solid color" type="color" value={background.kind === "solid" && background.value?.startsWith("#") ? background.value.slice(0, 7) : model.config.surfaceColor} onChange={(event) => setBackground({ ...background, kind: "solid", value: event.target.value }, "Changed root solid color")} className={fieldClass} /></label><div className="h-12 rounded border border-white/15" style={{ background: gradientToCss(gradient) }} data-testid="gradient-preview" /><div className="grid grid-cols-2 gap-2"><label className="text-[10px]">Type<select aria-label="Card root gradient type" value={gradient.kind} onChange={(event) => setGradient({ ...gradient, kind: event.target.value as "linear" | "radial" | "conic" }, "Changed gradient type")} className={fieldClass}><option value="linear">Linear</option><option value="radial">Radial</option><option value="conic">Conic</option></select></label><label className="text-[10px]">Angle<input aria-label="Card root gradient angle" type="number" min={0} max={360} value={gradient.angle} onChange={(event) => setGradient({ ...gradient, angle: Number(event.target.value) }, "Changed gradient angle")} className={fieldClass} /></label>{gradient.kind !== "linear" ? <><label className="text-[10px]">Center X<input aria-label="Card root gradient center X" type="range" min={0} max={100} value={gradient.centerX} onChange={(event) => setGradient({ ...gradient, centerX: Number(event.target.value) }, "Changed gradient center")} /></label><label className="text-[10px]">Center Y<input aria-label="Card root gradient center Y" type="range" min={0} max={100} value={gradient.centerY} onChange={(event) => setGradient({ ...gradient, centerY: Number(event.target.value) }, "Changed gradient center")} /></label></> : null}{gradient.kind === "radial" ? <label className="text-[10px]">Size<input aria-label="Card root radial gradient size" type="range" min={10} max={100} value={gradient.size ?? 50} onChange={(event) => setGradient({ ...gradient, size: Number(event.target.value) }, "Changed radial size")} /></label> : null}<label className="text-[10px]">Direction<svg viewBox="0 0 64 64" className="mt-1 h-16 w-16 cursor-crosshair rounded-full border border-white/20" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const dx = event.clientX - (rect.left + rect.width / 2); const dy = event.clientY - (rect.top + rect.height / 2); const angle = Math.round(((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360); setGradient({ ...gradient, angle }, "Changed gradient direction visually"); }} data-testid="gradient-direction-control"><circle cx="32" cy="32" r="30" fill="none" stroke="rgba(255,255,255,.25)" /><line x1="32" y1="32" x2={32 + 26 * Math.sin((gradient.angle * Math.PI) / 180)} y2={32 - 26 * Math.cos((gradient.angle * Math.PI) / 180)} stroke="#b8ff2c" strokeWidth="2" /></svg></label></div><div className="space-y-2">{gradient.stops.map((stop, stopIndex) => <div key={stop.id} className="grid grid-cols-[3rem_1fr_1fr_2rem] items-end gap-1"><input aria-label={`Gradient stop color · ${stop.id}`} type="color" value={stop.color} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, color: event.target.value } : item) }, "Changed gradient stop color")} className="h-9 w-12" data-gradient-stop-index={stopIndex} /><label className="text-[9px]">Position<input aria-label={`Gradient stop position · ${stop.id}`} type="range" min={0} max={100} value={stop.position} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, position: Number(event.target.value) } : item) }, "Moved gradient stop")} data-gradient-stop-index={stopIndex} /></label><label className="text-[9px]">Alpha<input aria-label={`Gradient stop alpha · ${stop.id}`} type="range" min={0} max={100} value={stop.opacity * 100} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, opacity: Number(event.target.value) / 100 } : item) }, "Changed gradient stop opacity")} data-gradient-stop-index={stopIndex} /></label><button type="button" disabled={gradient.stops.length <= 2} className={buttonClass} onClick={() => setGradient(removeGradientStop(gradient, stop.id), "Removed gradient stop")}>×</button></div>)}</div><div className="grid grid-cols-2 gap-2"><button type="button" className={buttonClass} onClick={() => setGradient(addGradientStop(gradient), "Added gradient stop")}>Add stop</button><button type="button" className={buttonClass} onClick={() => setGradient(reverseGradient(gradient), "Reversed gradient")}>Reverse</button><button type="button" className={buttonClass} onClick={() => setGradient(rotateGradient(gradient, 15), "Rotated gradient")}>Rotate</button><button type="button" className={buttonClass} onClick={() => setGradient(mirrorGradient(gradient), "Mirrored gradient")}>Mirror</button></div><label className="block text-[10px]">Background opacity · {Math.round((background.opacity ?? 1) * 100)}%<input aria-label="Card root background opacity" type="range" min={0} max={100} value={(background.opacity ?? 1) * 100} onChange={(event) => setBackground({ ...background, opacity: Number(event.target.value) / 100 }, "Changed Background opacity")} className="w-full" data-testid="root-background-opacity" /></label>
         <div data-testid="root-background-materials">
           <p className="mb-1 text-[9px] font-semibold uppercase text-white/45">Material</p>
@@ -287,7 +292,7 @@ function RootContextualToolbar({
       {focus === "more" ? <div className="grid grid-cols-2 gap-2" data-testid="common-more-menu"><button type="button" className={buttonClass} onClick={model.onUndo} disabled={!model.canUndo}>Undo</button><button type="button" className={buttonClass} onClick={() => setBackground({ kind: "none" }, "Reset Background")}>Reset</button><button type="button" className={buttonClass} onClick={() => { close(); onAdvanced(); }}>Advanced</button></div> : null}
     </EditorPanelShell>
   ) : null;
-  return <div className="pointer-events-none absolute inset-x-0 top-[9.5rem] z-[1550] flex flex-col items-center" data-testid="card-contextual-object-tools" data-contextual-object="card-root"><div className="pointer-events-auto flex items-center gap-1 rounded-xl border border-white/15 bg-[#0b1019]/95 p-1.5 text-white shadow-2xl"><span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#b8ff2c]">Card root</span>{([ ["background", "Background"], ["page-size", "Page size"] ] as const).map(([id, label]) => <button key={id} type="button" data-testid={`contextual-root-${id}`} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => toggle(id)}>{label}</button>)}<button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-root-guides" onClick={() => onOpenCanvasAssistance?.()}>Guides</button><button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" data-testid="contextual-root-more" onClick={() => toggle("more")} aria-label="More root actions"><MoreHorizontal className="h-4 w-4" /></button></div>{panel}</div>;
+  return <div className="pointer-events-none absolute inset-x-0 top-[9.5rem] z-[1550] flex flex-col items-center" data-testid="card-contextual-object-tools" data-contextual-object="card-root"><div className="pointer-events-auto flex items-center gap-1 rounded-xl border border-white/15 bg-[#0b1019]/95 p-1.5 text-white shadow-2xl"><span className="px-2 text-[10px] font-semibold uppercase tracking-wider text-[#b8ff2c]">Card</span>{([ ["background", "Background"], ["page-size", "Page size"] ] as const).map(([id, label]) => <button key={id} type="button" data-testid={`contextual-root-${id}`} className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => toggle(id)}>{label}</button>)}<button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-root-guides" onClick={() => onOpenCanvasAssistance?.()}>Guides</button><button type="button" className="grid h-9 w-9 place-items-center rounded hover:bg-white/10" data-testid="contextual-root-more" onClick={() => toggle("more")} aria-label="More root actions"><MoreHorizontal className="h-4 w-4" /></button></div>{panel}</div>;
 }
 
 function SectionContextualToolbar({ model, onAdvanced }: { model: CardEditorLiveModel; onAdvanced: () => void }) {
@@ -444,14 +449,16 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       : focus === "button-surface" ? "Surface"
       : focus === "font" ? "Typography"
       : focus === "content" && objectFamilyForNode(selected?.node || { primitive: "shape", props: {} }) === "icon" ? "Change Icon"
-      : focus === "surface" || focus === "appearance" || focus === "effects" ? "Appearance"
+      : focus === "surface" || focus === "appearance" || focus === "effects" || focus === "icon-appearance" ? "Appearance"
       : focus || "Editor";
   const clearObjectFocus = useCallback(() => setFocus(null), []);
+  const deepLeftLaunchPageRef = useRef<DeepLeftNestedPage | null>(null);
   const { portalEl } = useDeepLeftPanelHost(
     selected ? focus : null,
     preTargetLabel.display,
     capabilityLabel,
-    clearObjectFocus
+    clearObjectFocus,
+    deepLeftLaunchPageRef
   );
   useEffect(() => {
     if (!focus) return;
@@ -763,6 +770,12 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-badge-appearance">Appearance</button>
         </> : null}
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("content")} data-testid="contextual-content">{isBadge ? "Wording" : "Edit"}</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-magic-write" onClick={() => {
+          document.querySelector<HTMLElement>('[data-testid="card-creative-tool-text"]')?.click();
+          window.setTimeout(() => {
+            document.querySelector<HTMLElement>('[data-testid="magic-write-open"]')?.click();
+          }, 0);
+        }}>Magic Write</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("font")} data-testid="contextual-font">{String(node.props.fontFamily || "Font").split(",")[0]}</button>
         <input aria-label="Font size" type="number" min={6} max={320} value={Number(node.props.fontSize || 18)} onChange={(event) => patchProps({ fontSize: Number(event.target.value) }, "Changed text size")} className="h-9 w-16 rounded border border-white/15 bg-transparent px-2 text-xs" data-testid="contextual-font-size" />
         <button type="button" aria-pressed={Number(node.props.fontWeight || 600) >= 700} className="h-9 w-9 rounded font-bold hover:bg-white/10" onClick={() => patchProps({ fontWeight: Number(node.props.fontWeight || 600) >= 700 ? 400 : 800 }, "Changed text weight")}>B</button>
@@ -907,8 +920,26 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         <p className="text-[10px] text-white/45">Text Box fill, padding, and border are separate from glyph styling.</p></>}
       </div> : null}
       {focus === "text-box" ? <div className="space-y-3" data-testid="text-box-controls" data-gradient-target="text-box"><p className="text-[10px] font-semibold uppercase tracking-wider text-white/45">Text Box</p><div className="grid grid-cols-3 gap-1">{(["none", "solid", "gradient"] as const).map((kind) => <button key={kind} type="button" className={buttonClass} data-testid={`text-box-fill-${kind}`} onClick={() => patchProps(kind === "none" ? { boxFill: "transparent", boxGradient: undefined, boxGradientModel: undefined } : kind === "solid" ? { boxFill: String(node.props.boxFill === "transparent" ? "#111827" : node.props.boxFill || "#111827"), boxGradient: undefined, boxGradientModel: undefined } : { boxGradient: gradientToCss((node.props.boxGradientModel as GradientModel | undefined) || DEFAULT_GRADIENT), boxGradientModel: (node.props.boxGradientModel as GradientModel | undefined) || DEFAULT_GRADIENT, boxFill: undefined }, `Changed Text Box to ${kind}`)}>{kind === "none" ? "Transparent" : kind}</button>)}</div>{node.props.boxGradient || deepLeft?.session.nestedPage === "gradient-colors" ? <div data-testid="text-box-gradient-editor"><p className="mb-1 text-[9px] text-white/45">Text Box gradient — independent from glyph Color.</p><GradientStudio value={(node.props.boxGradientModel as GradientModel | undefined) || DEFAULT_GRADIENT} brandColors={[model.config.accentColor, model.config.surfaceColor, model.config.textColor, model.config.pillColor].filter((c): c is string => Boolean(c))} onChange={(gradient, label) => { patchProps({ boxGradient: gradientToCss(gradient), boxGradientModel: gradient, boxFill: undefined }, label.includes("Text Box") ? label : `${label} (Text Box)`); }} /></div> : null}<div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Fill<input type="color" value={String(node.props.boxFill || "#111827").slice(0, 7)} onChange={(event) => patchProps({ boxFill: event.target.value, boxGradient: undefined, boxGradientModel: undefined }, "Changed Text Box fill")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Border<input type="color" value={String(node.props.boxBorder || "#ffffff").slice(0, 7)} onChange={(event) => patchProps({ boxBorder: event.target.value }, "Changed Text Box border")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Corners<input type="number" min={0} max={64} value={Number(node.props.boxRadius || 0)} onChange={(event) => patchProps({ boxRadius: Number(event.target.value) }, "Changed Text Box corners")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Padding<input type="number" min={0} max={64} value={Number(node.props.boxPadding || 0)} onChange={(event) => patchProps({ boxPadding: Number(event.target.value) }, "Changed Text Box padding")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Shadow<input type="range" min={0} max={48} value={Number(node.props.boxShadow || 0)} onChange={(event) => patchProps({ boxShadow: Number(event.target.value) }, "Changed Text Box shadow")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Glow<input type="range" min={0} max={48} value={Number(node.props.boxGlow || 0)} onChange={(event) => patchProps({ boxGlow: Number(event.target.value) }, "Changed Text Box glow")} className={fieldClass} /></label></div><button type="button" className={`${buttonClass} w-full`} onClick={() => patchProps({ boxFill: undefined, boxGradient: undefined, boxGradientModel: undefined, boxBorder: undefined, boxRadius: undefined, boxPadding: undefined, boxShadow: undefined, boxGlow: undefined }, "Reset Text Box")}>Reset Text Box</button></div> : null}
-      {focus === "icon-appearance" ? <div className="space-y-4" data-testid="icon-appearance-controls" data-icon-render-mode={iconRenderMode}>
-        <section className="space-y-2" data-testid="icon-artwork-section">
+      {focus === "icon-appearance" ? (() => {
+        const iconPage = String(deepLeft?.session.nestedPage || "overview");
+        const showArtwork = iconPage !== "backing";
+        const showBacking = iconPage !== "artwork" && iconPage !== "change-icon";
+        const fromAppearance = iconPage === "artwork" || iconPage === "backing" || iconPage === "overview";
+        return <div className="space-y-4" data-testid="icon-appearance-controls" data-icon-render-mode={iconRenderMode} data-icon-appearance-page={iconPage}>
+        {fromAppearance ? (
+          <button
+            type="button"
+            className="text-[10px] text-[#b8ff2c]"
+            data-testid="icon-appearance-back"
+            onClick={() => {
+              deepLeft?.setNestedPage("overview");
+              openForced("appearance");
+            }}
+          >
+            ← Appearance
+          </button>
+        ) : null}
+        {showArtwork ? <section className="space-y-2" data-testid="icon-artwork-section">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/55">Artwork</p>
           {iconRenderMode === "multicolor" ? <p className="rounded border border-amber-300/30 p-2 text-[10px] text-amber-100" data-testid="icon-multicolor-note">Multicolor Icons keep baked path colors. Fill/Stroke recolor is unavailable.</p> : null}
           {iconRenderMode !== "multicolor" && iconRenderMode !== "stroke" ? <label className="block text-[10px] text-white/65">Fill<input type="color" value={String(node.props.fill || "#b8ff2c").slice(0, 7)} onChange={(event) => patchProps({ fill: event.target.value }, "Changed Icon fill")} className={fieldClass} data-testid="icon-fill-color" /></label> : null}
@@ -1018,8 +1049,8 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             </div>
           </details>
           <button type="button" className={`${buttonClass} w-full`} data-testid="icon-reset-artwork" onClick={() => patchProps({ fill: "#b8ff2c", stroke: "#b8ff2c", strokeWidth: iconRenderMode === "stroke" ? 2 : 0, opacity: 1, glow: 0, shadow: 0, blur: 0, secondaryGlow: 0, materialPreset: undefined, effectPreset: undefined }, "Reset artwork appearance")}>Reset artwork appearance</button>
-        </section>
-        <section className="space-y-2 border-t border-white/10 pt-3" data-testid="icon-backing-section">
+        </section> : null}
+        {showBacking ? <section className={`space-y-2 ${showArtwork ? "border-t border-white/10 pt-3" : ""}`} data-testid="icon-backing-section">
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/55">Backing Surface</p>
           <label className="flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={node.props.backingSurfaceEnabled === true} data-testid="icon-backing-enabled" onChange={(event) => patchProps(event.target.checked ? { backingSurfaceEnabled: true, boxFill: String(node.props.boxFill === "transparent" ? "#111827" : node.props.boxFill || "#111827") } : { backingSurfaceEnabled: false, boxFill: "transparent", boxGradient: undefined, boxShadow: 0, boxGlow: 0, borderWidth: 0, borderStyle: "none", borderColor: "transparent", radius: 0 }, event.target.checked ? "Enabled Icon backing Surface" : "Disabled Icon backing Surface")} />Enable backing Surface</label>
           {node.props.backingSurfaceEnabled === true ? <>
@@ -1040,8 +1071,9 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             <label className="block text-[10px] text-white/65">Gradient CSS<input value={String(node.props.boxGradient || "")} onChange={(event) => patchProps({ boxGradient: event.target.value || undefined }, "Changed Icon backing gradient")} className={fieldClass} data-testid="icon-backing-gradient" /></label>
             <button type="button" className={`${buttonClass} w-full`} data-testid="icon-reset-backing" onClick={() => patchProps({ backingSurfaceEnabled: false, boxFill: "transparent", boxGradient: undefined, boxShadow: 0, boxGlow: 0, borderWidth: 0, borderStyle: "none", borderColor: "transparent", radius: 0 }, "Reset backing Surface")}>Reset backing Surface</button>
           </> : <p className="text-[9px] text-white/40">Off by default — bare Icon shows only SVG artwork.</p>}
-        </section>
-      </div> : null}
+        </section> : null}
+      </div>;
+      })() : null}
       {focus === "divider-style" ? (
         <div className="space-y-3" data-testid="divider-style-controls">
           <p className="text-[10px] text-white/55">Divider Style — structural line treatment only.</p>
@@ -1136,13 +1168,26 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
                     openForced("text-box");
                     return;
                   }
+                  // Text Color uses the shared Aa / Color authority — not the thin Fill page.
+                  if (category.id === "color" && isText && !isBadge) {
+                    openForced("color");
+                    return;
+                  }
+                  if (category.id === "artwork") {
+                    deepLeftLaunchPageRef.current = "artwork";
+                    openForced("icon-appearance");
+                    return;
+                  }
+                  if (category.id === "backing_surface") {
+                    deepLeftLaunchPageRef.current = "backing";
+                    openForced("icon-appearance");
+                    return;
+                  }
                   deepLeft?.setNestedPage(
                     category.id === "effects" ? "effects"
                       : category.id === "material" ? "metallic"
                       : category.id === "fill" || category.id === "color" ? "solid-colors"
                       : category.id === "border" ? "style"
-                      : category.id === "artwork" ? "change-icon"
-                      : category.id === "backing_surface" ? "raised"
                       : "overview"
                   );
                 }}>
@@ -1222,9 +1267,10 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         }
         // Fill / Border pages reuse solid colors + border helpers
         if (appearancePage === "solid-colors") {
+          const fillLabel = isText && !isBadge ? "Color" : "Fill";
           return <div className="space-y-3" data-testid="appearance-fill-controls">
             <button type="button" className="text-[10px] text-[#b8ff2c]" data-testid="appearance-back" onClick={() => deepLeft?.setNestedPage("overview")}>← Appearance</button>
-            <p className="text-[10px] font-semibold uppercase text-white/55">Fill</p>
+            <p className="text-[10px] font-semibold uppercase text-white/55">{fillLabel}</p>
             {colorMixed.kind === "mixed" || fillMixed.kind === "mixed" ? <p className="text-[10px] text-amber-100" data-testid="appearance-mixed-value">Mixed</p> : null}
             <div className="grid grid-cols-2 gap-2">
               <label className="text-[10px] text-white/65">Solid<input type="color" value={toColorInputValue(isTextLike ? node.props.color : (node.props.fill || node.props.color), "#fbbf24")} onChange={(event) => patchProps(isTextLike ? { color: event.target.value, gradientFill: undefined } : isButton ? { fill: event.target.value, buttonSurfaceKind: "solid", gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined, surfaceFillKind: "solid" } : { fill: event.target.value, gradientFill: undefined, gradientStart: undefined, gradientEnd: undefined, surfaceFillKind: "solid" }, "Changed fill")} className={fieldClass} /></label>
@@ -1242,7 +1288,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
               ],
             });
           return <div className="space-y-3" data-testid="appearance-gradient-controls" data-gradient-target="surface">
-            <button type="button" className="text-[10px] text-[#b8ff2c]" data-testid="appearance-back" onClick={() => deepLeft?.setNestedPage("solid-colors")}>← Fill</button>
+            <button type="button" className="text-[10px] text-[#b8ff2c]" data-testid="appearance-back" onClick={() => deepLeft?.setNestedPage("solid-colors")}>← {isText && !isBadge ? "Color" : "Fill"}</button>
             <p className="text-[10px] font-semibold uppercase text-white/55">Gradient</p>
             <GradientStudio
               value={surfaceGradient}
@@ -1299,7 +1345,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       })() : null}
       {focus === "animate" ? <div className="space-y-3" data-testid={isButton ? "button-motion-controls" : undefined}><div className="grid grid-cols-2 gap-2">{MOTION_PRESETS.map((preset) => <button key={preset.id} type="button" aria-pressed={node.props.motionPreset === preset.id} className="min-h-12 rounded border border-white/15 text-xs hover:border-[#b8ff2c]/50 aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10" onClick={() => patchProps({ motionPreset: preset.id }, `Changed animation to ${preset.label}`)}>{preset.label}</button>)}</div>{isButton ? <><div className="grid grid-cols-2 gap-2"><label className="text-[10px] text-white/65">Intensity<input aria-label="Button motion intensity" type="range" min={0} max={100} value={Number(node.props.motionIntensity || 50)} onChange={(event) => patchProps({ motionIntensity: Number(event.target.value) }, "Changed Button motion intensity")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Speed (seconds)<input aria-label="Button motion speed" type="number" min={0.4} max={12} step={0.1} value={Number(node.props.motionSpeedSeconds || 2.4)} onChange={(event) => patchProps({ motionSpeedSeconds: Number(event.target.value) }, "Changed Button motion speed")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Delay (seconds)<input aria-label="Button motion delay" type="number" min={0} max={12} step={0.1} value={Number(node.props.motionDelaySeconds || 0)} onChange={(event) => patchProps({ motionDelaySeconds: Number(event.target.value) }, "Changed Button motion delay")} className={fieldClass} /></label><label className="text-[10px] text-white/65">Repeat<select aria-label="Button motion repeat" value={String(node.props.motionPlay || "gentle_repeat")} onChange={(event) => patchProps({ motionPlay: event.target.value }, "Changed Button motion repeat")} className={fieldClass}><option value="once">Once</option><option value="gentle_repeat">Gentle repeat</option><option value="interaction">On interaction</option></select></label><label className="text-[10px] text-white/65">Trigger<select aria-label="Button motion trigger" value={String(node.props.motionTrigger || "load")} onChange={(event) => patchProps({ motionTrigger: event.target.value }, "Changed Button motion trigger")} className={fieldClass}><option value="load">On enter</option><option value="hover">Hover</option><option value="tap">Tap</option><option value="attention">Attention cycle</option></select></label><label className="text-[10px] text-white/65">Reduced-motion fallback<select aria-label="Button reduced motion fallback" value={String(node.props.reducedMotionFallback || "none")} onChange={(event) => patchProps({ reducedMotionFallback: event.target.value }, "Changed Button reduced-motion fallback")} className={fieldClass}><option value="none">None</option><option value="static_glow">Static glow</option><option value="static_highlight">Static highlight</option></select></label></div><div className="grid grid-cols-2 gap-2"><button type="button" aria-pressed={previewMotion} className={buttonClass} onClick={onPreviewMotion}>{previewMotion ? "Stop motion preview" : "Preview motion"}</button><button type="button" className={buttonClass} onClick={onRestartMotion}>Restart</button><label className="col-span-2 flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={reducedMotionSimulation} onChange={(event) => onReducedMotionSimulation?.(event.target.checked)} />Simulate reduced motion</label></div></> : null}</div> : null}
       {focus === "position" ? <div className="space-y-3 text-xs" data-testid="element-position-controls"><div className="grid grid-cols-2 gap-2">{[["Forward", bringForward], ["Backward", sendBackward], ["To front", bringToFront], ["To back", sendToBack]].map(([label, operation]) => <button key={String(label)} type="button" className="min-h-10 rounded border border-white/15" onClick={() => replace({ ...block, nodes: (operation as typeof bringForward)(block.nodes, node.id) }, `${label} Element`)}>{String(label)}</button>)}</div><div className="grid grid-cols-2 gap-2">{(["x", "y", "width", "height"] as const).map((key) => <label key={key} className="capitalize">{key}<input type="number" step="1" value={Math.round(node[key] * 100)} onChange={(event) => patch({ [key]: Number(event.target.value) / 100 }, `Changed Element ${key}`)} className="mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2" /></label>)}<label className="col-span-2">Rotation<input type="number" value={Math.round(node.rotationDeg || 0)} onChange={(event) => patch({ rotationDeg: Number(event.target.value) }, "Rotated Element")} className="mt-1 h-9 w-full rounded border border-white/15 bg-transparent px-2" /></label></div><label className="flex min-h-9 items-center gap-2 text-[10px] text-white/70"><input type="checkbox" checked={node.props.aspectLocked === true} onChange={(event) => patchProps({ aspectLocked: event.target.checked }, event.target.checked ? "Locked aspect ratio" : "Unlocked aspect ratio")} />Ratio lock</label><div><p className="mb-1 text-[10px] font-semibold uppercase text-white/45">Align</p><div className="grid grid-cols-3 gap-1">{([["Left", { x: 0 }], ["Center", { x: Math.max(0, (1 - node.width) / 2) }], ["Right", { x: Math.max(0, 1 - node.width) }], ["Top", { y: 0 }], ["Middle", { y: Math.max(0, (1 - node.height) / 2) }], ["Bottom", { y: Math.max(0, 1 - node.height) }]] as const).map(([label, next]) => <button key={label} type="button" className={buttonClass} data-testid={`align-${label.toLowerCase()}`} onClick={() => patch(next, `Aligned ${label.toLowerCase()}`)}>{label}</button>)}</div></div><div><p className="mb-1 text-[10px] font-semibold uppercase text-white/45">Nudge</p><div className="grid grid-cols-4 gap-1">{([["←", { x: Math.max(0, node.x - 0.01) }], ["→", { x: Math.min(1 - node.width, node.x + 0.01) }], ["↑", { y: Math.max(0, node.y - 0.01) }], ["↓", { y: Math.min(1 - node.height, node.y + 0.01) }]] as const).map(([label, next]) => <button key={label} type="button" className={buttonClass} onClick={() => patch(next, "Nudged Element")}>{label}</button>)}</div></div>{section ? <button type="button" className={`${buttonClass} w-full`} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{objectFamily !== "container" ? <button type="button" className={`${buttonClass} w-full`} onClick={() => { const host = block.nodes.find((candidate) => String(candidate.props.componentKind || "") === "container"); if (!host) return model.notify?.("Add a Container first, then use Layers to nest this object"); patchProps({ containerId: host.id }, "Moved Element into Container"); }}>Move to Container</button> : null}</div> : null}
-      {focus === "more" ? <div className="grid grid-cols-2 gap-2" data-testid="common-more-menu"><button type="button" className={buttonClass} onClick={() => navigator.clipboard?.writeText(JSON.stringify(node))}>Copy</button><button type="button" className={buttonClass} onClick={() => copyCompositionNodeStyle(node)}>Copy style</button><button type="button" disabled={!hasCompositionStyleClipboard()} className={buttonClass} onClick={() => { const pasted = pasteCompositionNodeStyle(block.nodes, node.id).find((candidate) => candidate.id === node.id); if (pasted) patch({ props: pasted.props }, "Pasted object style"); }}>Paste style</button><button type="button" className={buttonClass} onClick={duplicate}>Duplicate</button><button type="button" className={buttonClass} onClick={() => patch({ locked: !node.locked }, node.locked ? "Unlocked Element" : "Locked Element")}>{node.locked ? "Unlock" : "Lock"}</button><button type="button" className={buttonClass} onClick={() => patch({ visible: node.visible === false }, node.visible === false ? "Showed Element" : "Hid Element")}>{node.visible === false ? "Show" : "Hide"}</button><button type="button" className={buttonClass} onClick={() => patch({ rotationDeg: 0, x: .1, y: .1 }, "Reset transform")}>Reset transform</button><button type="button" className={buttonClass} onClick={() => patchProps({ materialPreset: undefined, gradientFill: undefined, glow: 0, shadow: 0, boxGlow: 0, boxShadow: 0, opacity: 1, surfaceOpacity: 1 }, "Reset Appearance")}>Reset Appearance</button>{section ? <button type="button" className={buttonClass} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{containerParent && containerParent.id !== node.id ? <button type="button" className={buttonClass} onClick={() => { model.setSelectedCompositionNodeIds?.([containerParent.id]); }}>Select parent</button> : null}{objectFamily === "container" && node.props.contentEditing === true ? <button type="button" className={buttonClass} onClick={() => patchProps({ contentEditing: false, selectionMode: "parent" }, "Finished editing contents")}>Finish editing contents</button> : null}<button type="button" className={`${buttonClass} text-red-200`} data-testid="more-delete" onClick={remove}>Delete</button><button type="button" className={buttonClass} onClick={() => { closeFocus(); onAdvanced(); }}>Advanced</button></div> : null}
+      {focus === "more" ? <div className="grid grid-cols-2 gap-2" data-testid="common-more-menu"><button type="button" className={buttonClass} data-testid="more-duplicate" onClick={duplicate}>Duplicate</button><button type="button" className={buttonClass} data-testid="more-copy" onClick={() => { copyCompositionNodes(block.nodes, [node.id]); model.notify?.("Copied — paste with ⌘V / Ctrl+V, or use Duplicate"); }}>Copy</button><button type="button" className={buttonClass} onClick={() => copyCompositionNodeStyle(node)}>Copy style</button><button type="button" disabled={!hasCompositionStyleClipboard()} className={buttonClass} onClick={() => { const pasted = pasteCompositionNodeStyle(block.nodes, node.id).find((candidate) => candidate.id === node.id); if (pasted) patch({ props: pasted.props }, "Pasted object style"); }}>Paste style</button><button type="button" className={buttonClass} onClick={() => patch({ locked: !node.locked }, node.locked ? "Unlocked Element" : "Locked Element")}>{node.locked ? "Unlock" : "Lock"}</button><button type="button" className={buttonClass} onClick={() => patch({ visible: node.visible === false }, node.visible === false ? "Showed Element" : "Hid Element")}>{node.visible === false ? "Show" : "Hide"}</button><button type="button" className={buttonClass} onClick={() => patch({ rotationDeg: 0, x: .1, y: .1 }, "Reset transform")}>Reset transform</button><button type="button" className={buttonClass} onClick={() => patchProps({ materialPreset: undefined, gradientFill: undefined, glow: 0, shadow: 0, boxGlow: 0, boxShadow: 0, opacity: 1, surfaceOpacity: 1 }, "Reset Appearance")}>Reset Appearance</button>{section ? <button type="button" className={buttonClass} onClick={() => model.moveElementsTo?.([node.id], section.id, null)}>Move to Card</button> : null}{containerParent && containerParent.id !== node.id ? <button type="button" className={buttonClass} onClick={() => { model.setSelectedCompositionNodeIds?.([containerParent.id]); }}>Select parent</button> : null}{objectFamily === "container" && node.props.contentEditing === true ? <button type="button" className={buttonClass} onClick={() => patchProps({ contentEditing: false, selectionMode: "parent" }, "Finished editing contents")}>Finish editing contents</button> : null}<button type="button" className={`${buttonClass} text-red-200`} data-testid="more-delete" onClick={remove}>Delete</button><button type="button" className={buttonClass} onClick={() => { closeFocus(); onAdvanced(); }}>Advanced</button></div> : null}
       </div>
     </EditorPanelShell> : null}
   </div>;

@@ -107,8 +107,8 @@ test.describe("group appearance shared libraries coupon magic write", () => {
     await page.getByTestId("card-creative-tool-badges").click();
     await expect(page.getByTestId("polished-badge-library")).toBeVisible();
     await page.getByTestId("card-creative-tool-layers").click();
-    await page.getByTestId("card-layers-drawer").getByRole("button", { name: "Card root", exact: true }).click();
-    await expect(page.getByTestId("card-contextual-object-tools")).toContainText(/Card root/i);
+    await page.getByTestId("card-layers-drawer").getByRole("button", { name: "Card", exact: true }).click();
+    await expect(page.getByTestId("contextual-target-label")).toHaveText(/Card/i);
     await page.getByTestId("card-contextual-object-tools").getByRole("button", { name: "Background", exact: true }).click();
     await expect(page.getByTestId("root-background-editor").or(page.getByTestId("deep-left-edit-drawer"))).toBeVisible();
     await page.screenshot({ path: path.join(evidenceDir, "13-badge-card-root-no-flicker.png") });

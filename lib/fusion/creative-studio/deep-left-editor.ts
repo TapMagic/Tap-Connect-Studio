@@ -26,6 +26,8 @@ export type DeepLeftNestedPage =
   | "favorites"
   | "collection"
   | "change-icon"
+  | "artwork"
+  | "backing"
   | "flat"
   | "raised"
   | "recessed"
@@ -193,7 +195,7 @@ export function setDeepLeftNestedPage(
   const titles: Partial<Record<DeepLeftNestedPage, string>> = {
     // Appearance Fill uses solid-colors; Color library uses the same page via explicit push titles.
     "solid-colors": current.capabilityLabel === "Appearance" || current.section === "appearance" || current.section === "effects"
-      ? "Fill"
+      ? (current.targetLabel.toLowerCase().includes("text") ? "Color" : "Fill")
       : "Default solid colors",
     "gradient-colors": current.capabilityLabel === "Appearance" || current.section === "appearance" || current.section === "effects"
       ? "Gradient"
@@ -205,6 +207,8 @@ export function setDeepLeftNestedPage(
     "recent-colors": "Recent colors",
     "all-gradients": "All gradients",
     "change-icon": "Change Icon",
+    artwork: "Artwork",
+    backing: "Backing Surface",
     effects: "Effects",
     neon: "Effects",
     metallic: "Material",
