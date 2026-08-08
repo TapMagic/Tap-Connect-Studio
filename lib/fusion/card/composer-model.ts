@@ -10,6 +10,11 @@ import { buttonElementDefaults, mapElementDefaults } from "@/lib/fusion/card/des
 import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 import { layoutStackChildren } from "@/lib/fusion/creative-studio/container-resize";
 import { iconAssetToNodeProps, nativeIconAsset } from "@/lib/fusion/creative-studio/icon-asset";
+import {
+  buildCouponContentComposition,
+  couponSurfaceDefaults,
+  type CouponLayoutGeometry,
+} from "@/lib/fusion/creative-studio/coupon-composition";
 
 export type CardSurfaceKind = NonNullable<TapCardSection["surfaceKind"]>;
 export type CardElementKind =
@@ -343,7 +348,7 @@ function componentContent(kind: "gallery" | "coupon" | "ticket" | "form", parent
     props: { ...props, componentContentRole: name.toLowerCase().replaceAll(" ", "_") },
   });
   const nodes = kind === "coupon"
-    ? [child("text", "Offer headline", { text: "SPECIAL OFFER" }, 0), child("text", "Offer value", { text: "20% OFF" }, 1), child("text", "Offer code", { text: "SAVE20" }, 2), child("text", "Terms", { text: "Draft terms — review before publishing." }, 3), child("button", "Claim action", buttonElementDefaults("website", `${parentId}-claim`), 4)]
+    ? buildCouponContentComposition("retail_card", parentId).nodes
     : kind === "ticket"
       ? [child("text", "Ticket title", { text: "ADMIT ONE" }, 0), child("text", "Ticket identity", { text: "TICKET-001" }, 1), child("image", "QR artwork", { src: "", alt: "Ticket QR setup required", qrManagementState: "setup_required" }, 2), child("text", "Terms", { text: "Draft terms — review before publishing." }, 3), child("button", "Wallet action", { ...buttonElementDefaults("website", `${parentId}-wallet`), label: "Add to Wallet", actionType: "wallet" }, 4)]
       : kind === "form"
@@ -408,7 +413,26 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   if (kind === "wallet_cta") Object.assign(semanticProps, buttonElementDefaults("website", node.id), { elementKind: kind, label: "Add to Wallet", actionType: "wallet" });
   if (kind === "event_rsvp") Object.assign(semanticProps, buttonElementDefaults("website", node.id), { elementKind: kind, label: "RSVP", actionType: "custom" });
   if (kind === "gallery") Object.assign(semanticProps, { componentKind: "gallery", media: [], layout: "grid", gap: 12, accessibleLabel: "Image gallery", contentComposition: componentContent("gallery", node.id) });
-  if (kind === "coupon") Object.assign(semanticProps, { componentKind: "coupon", mask: "coupon", headline: "SPECIAL OFFER", offerValue: "20% OFF", code: "SAVE20", terms: "Draft terms — review before publishing.", ownerReviewRequired: true, accessibleLabel: "Coupon", contentComposition: componentContent("coupon", node.id) });
+  if (kind === "coupon") {
+    const geometry: CouponLayoutGeometry = "retail_card";
+    const surface = couponSurfaceDefaults(geometry);
+    const content = buildCouponContentComposition(geometry, node.id, {
+      headline: "SPECIAL OFFER",
+      offerValue: "20% OFF",
+      code: "SAVE20",
+      terms: "Draft terms — review before publishing.",
+    });
+    Object.assign(semanticProps, {
+      ...surface,
+      headline: "SPECIAL OFFER",
+      offerValue: "20% OFF",
+      code: "SAVE20",
+      terms: "Draft terms — review before publishing.",
+      ownerReviewRequired: true,
+      accessibleLabel: "Coupon",
+      contentComposition: content,
+    });
+  }
   if (kind === "ticket") Object.assign(semanticProps, { componentKind: "ticket", mask: "ticket", title: "ADMIT ONE", ticketId: "TICKET-001", terms: "Draft terms — review before publishing.", ownerReviewRequired: true, accessibleLabel: "Ticket", contentComposition: componentContent("ticket", node.id) });
   if (kind === "form") Object.assign(semanticProps, { componentKind: "form", heading: "Stay in touch", fields: [{ id: "email", label: "Email", type: "email", required: true }], consent: "I agree to be contacted.", liveSubmission: false, accessibleLabel: "Contact form", contentComposition: componentContent("form", node.id) });
   if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
