@@ -45,7 +45,7 @@ export type CardEditorLiveModel = {
   logoUrl?: string | null;
   brandKitId?: string | null;
   message: string | null;
-  notify?: (message: string) => void;
+  notify?: (message: string | null) => void;
   profile: import("@/lib/brand/contact-profile").BrandContactProfile;
   reviewUrl?: string | null;
   businessName: string;

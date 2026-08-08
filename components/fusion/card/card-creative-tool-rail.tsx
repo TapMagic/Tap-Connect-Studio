@@ -754,7 +754,7 @@ function LayerObjectRow({ model, node, parentId, siblings, active, onSelect }: {
       },
     }, `Selected ${childLabel}`);
   };
-  return <div className="ml-2" data-testid={`layer-object-${node.id}`} data-layer-object-id={node.id} data-component-kind={String(node.props.componentKind || "") || undefined}>
+  return <div className="ml-2" data-testid={`layer-object-${node.id}`} data-layer-object-id={node.id} data-layer-primitive={node.primitive} data-element-kind={String(node.props.elementKind || node.primitive)} data-component-kind={String(node.props.componentKind || "") || undefined}>
     <div className={cn("flex items-center gap-0.5 rounded", active ? "bg-[#b8ff2c]/10 text-[#b8ff2c]" : "text-white/65 hover:bg-white/5")}>
       {renaming ? <input autoFocus aria-label={`Rename ${label}`} value={draftName} className="h-8 min-w-0 flex-1 rounded border border-[#b8ff2c]/50 bg-black/30 px-2 text-[10px]" onChange={(event) => setDraftName(event.target.value)} onBlur={commitName} onKeyDown={(event) => { if (event.key === "Enter") commitName(); if (event.key === "Escape") { setDraftName(label); setRenaming(false); } }} /> : <button type="button" data-testid={`layer-object-select-${node.id}`} aria-pressed={active} className="min-h-9 min-w-0 flex-1 truncate px-2 text-left text-[10px]" onDoubleClick={() => setRenaming(true)} onClick={(event) => onSelect(parentId, node.id, event.shiftKey || event.metaKey || event.ctrlKey)}>{label}</button>}
       <LayerIconButton label={node.visible === false ? `Show ${label}` : `Hide ${label}`} onClick={() => model.patchCompositionNode(node.id, { visible: node.visible === false }, `${node.visible === false ? "Showed" : "Hid"} ${label}`)}>{node.visible === false ? <EyeOff /> : <Eye />}</LayerIconButton>

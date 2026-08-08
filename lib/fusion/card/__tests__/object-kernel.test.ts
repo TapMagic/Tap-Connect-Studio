@@ -45,6 +45,38 @@ test("insertObject is additive, preserves previous identities, and avoids exact 
   assert.deepEqual(nodes.map((node) => node.props.text), ["SALE", "VIP", "LIMITED"]);
 });
 
+test("saturated plane cascade avoids near-identical coordinates of occupied nodes", () => {
+  let config = card();
+  // Fill with large coupons so the fine grid has no open slot.
+  for (let index = 0; index < 4; index += 1) {
+    const next = insertObject({ config, parentId: null, kind: "coupon" });
+    config = next.config;
+  }
+  const before = config.rootComposition!.nodes;
+  const icon = insertObject({ config, parentId: null, kind: "icon" });
+  const placed = icon.config.rootComposition!.nodes.find((node) => node.id === icon.objectIds[0]);
+  assert.ok(placed);
+  const nearIdentical = before.some(
+    (node) => Math.abs(node.x - placed!.x) < 0.04 && Math.abs(node.y - placed!.y) < 0.04
+  );
+  assert.equal(nearIdentical, false, `icon landed too close to an occupied node at ${placed!.x},${placed!.y}`);
+});
+
+test("large coupon insert does not cover existing text when an open band exists", () => {
+  let config = card();
+  const text = insertObject({ config, parentId: null, kind: "text", initialProps: { text: "Type here" } });
+  config = text.config;
+  const textNode = config.rootComposition!.nodes[0]!;
+  const coupon = insertObject({ config, parentId: null, kind: "coupon" });
+  const couponNode = coupon.config.rootComposition!.nodes.find((node) => node.id === coupon.objectIds[0])!;
+  const coversText =
+    couponNode.x < textNode.x + textNode.width
+    && couponNode.x + couponNode.width > textNode.x
+    && couponNode.y < textNode.y + textNode.height
+    && couponNode.y + couponNode.height > textNode.y;
+  assert.equal(coversText, false, `coupon at ${couponNode.x},${couponNode.y} covered text at ${textNode.x},${textNode.y}`);
+});
+
 test("null explicitly targets Card root while a Section id explicitly targets that Section", () => {
   const initial = card();
   const root = insertObject({ config: initial, parentId: null, kind: "heading" });

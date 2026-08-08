@@ -1275,9 +1275,30 @@ export function TapCardBuilder({
 
   function startCardFrom(kind: "blank" | "brand" | "template" | "clone") {
     if (kind === "blank") {
-      setConfigHistory({ ...config, sections: [], rootComposition: undefined, rootCanvasMinHeightPx: 420 }, { label: "Started a blank Card" });
+      // Blank must be a real empty root plane — not an undefined composition —
+      // so Owners can click the canvas, select Card Root, and insert immediately.
+      setConfigHistory(
+        {
+          ...config,
+          sections: [],
+          rootComposition: {
+            version: 1,
+            id: `card-root-composition-${nanoid(7)}`,
+            label: "Card root Elements",
+            nodes: [],
+            background: { kind: "none" },
+            mobileFallback: "scale",
+            pageHeightPx: 420,
+            safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
+          },
+          rootCanvasMinHeightPx: 420,
+        },
+        { label: "Started a blank Card" }
+      );
       setDirty(true);
       setSelectedId(null);
+      setSelectedCompositionNodeIds([]);
+      setExplicitCardRootSelected(true);
       setMessage("Your Card is ready to build.");
       return;
     }
@@ -1880,8 +1901,9 @@ export function TapCardBuilder({
       selectedCompositionNodeIds,
       setSelectedCompositionNodeIds: (ids: string[]) => {
         setSelectedCompositionNodeIds(ids);
+        // Selecting a node leaves Card Root. Empty ids alone do not clear Root —
+        // assignCompositionSelection / selectCardRoot / clearStudioSelection own that.
         if (ids.length > 0) setExplicitCardRootSelected(false);
-        else if (!explicitCardRootSelected) setExplicitCardRootSelected(false);
       },
       explicitCardRootSelected,
       selectCardRoot,
@@ -2904,12 +2926,16 @@ export function TapCardBuilder({
           data-testid="card-preview-canvas"
         >
           {interactionMode === "edit" && zoomToolbarCollapsed ? (
-            <div className="sticky top-0 z-[1500] flex h-9 items-center justify-center bg-transparent" data-testid="card-view-toolbar-collapsed">
-              <Button type="button" size="sm" variant="outline" className="h-7 bg-background/95 text-xs shadow-lg" aria-expanded="false" data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed(false)}>
+            <div className="pointer-events-none sticky top-0 z-[1500] flex h-9 items-center justify-center bg-transparent" data-testid="card-view-toolbar-collapsed">
+              <Button type="button" size="sm" variant="outline" className="pointer-events-auto h-7 bg-background/95 text-xs shadow-lg" aria-expanded="false" data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed(false)}>
                 Show view controls
               </Button>
             </div>
-          ) : interactionMode === "edit" ? <div className="sticky top-0 z-[1500] flex flex-wrap items-center justify-center gap-2 border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur" data-testid="card-view-toolbar">
+          ) : interactionMode === "edit" ? (
+          // Sticky chrome must not steal pasteboard clicks in empty gutters —
+          // only the control cluster is interactive (Owner can clear selection beside the Card).
+          <div className="pointer-events-none sticky top-0 z-[1500] flex justify-center" data-testid="card-view-toolbar">
+          <div className="pointer-events-auto flex flex-wrap items-center justify-center gap-2 rounded-b-lg border-b border-border/40 bg-background/95 px-3 py-2 backdrop-blur">
             <span className="min-w-10 text-center text-[10px] font-semibold tabular-nums text-muted-foreground" data-testid="card-zoom-percent">
               {previewZoom === "fit" ? "Fit" : `${Math.round(previewZoom * 100)}%`}
             </span>
@@ -3012,7 +3038,9 @@ export function TapCardBuilder({
             <Button type="button" size="sm" variant="outline" className="h-7 text-xs" aria-expanded="true" data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed(true)}>
               Collapse toolbar
             </Button>
-          </div> : null}
+          </div>
+          </div>
+          ) : null}
           <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceId}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => {
             const target = event.target as HTMLElement | null;
             if (interactionMode === "edit" && !previewPan && !spacePan && target && !target.closest(".builder-phone")) {
@@ -3093,7 +3121,9 @@ export function TapCardBuilder({
                     interactionMode === "edit"
                       ? (id) => {
                           setSelectedId(id);
-                          setExplicitCardRootSelected(false);
+                          // null means "Card plane / composition" — do not clear Card Root.
+                          // Clearing Root here raced canvas empty-clicks that select Card Root.
+                          if (id !== null) setExplicitCardRootSelected(false);
                           if (id !== selectedId) setSelectedCompositionNodeIds([]);
                           if (id && onRequestTool && !shellHosted) {
                             const section = sectionsHistory.find((s) => s.id === id);

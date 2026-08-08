@@ -467,7 +467,7 @@ function NodeVisual({
       <div
         className="flex h-full w-full items-center overflow-hidden px-1"
         data-text-box-background={node.props.boxGradient || (node.props.boxFill && str(node.props.boxFill) !== "transparent") ? "filled" : "transparent"}
-        data-glyph-effect={node.props.glyphEffect ? String(node.props.glyphEffect) : node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"}
+        data-glyph-effect={str(node.props.effectPreset, str(node.props.glyphEffect, node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"))}
         data-glyph-gradient={node.props.gradientFill ? "true" : "false"}
         data-text-box={node.props.boxFill || node.props.boxGradient || node.props.boxBorder ? "true" : "false"}
         style={{
@@ -1814,7 +1814,11 @@ export function CreativeCompositionCanvas({
         role="group"
         aria-label={block.label}
         onPointerDown={(event) => {
-          if (editMode && event.target === event.currentTarget) onSelectNodes?.([]);
+          if (!editMode || event.button !== 0) return;
+          const target = event.target as HTMLElement | null;
+          if (!target || !event.currentTarget.contains(target)) return;
+          if (target.closest("[data-composition-node]")) return;
+          onSelectNodes?.([]);
         }}
       >
         <div
@@ -1848,6 +1852,7 @@ export function CreativeCompositionCanvas({
             data-primitive={node.primitive}
             data-element-kind={String(node.props.elementKind || node.primitive)}
             data-selected={selectedSet.has(node.id) ? "true" : "false"}
+            data-effect={String(node.props.effectPreset || "") || undefined}
             onClick={(e) => {
               if (!editMode) return;
               e.stopPropagation();
@@ -1932,11 +1937,21 @@ export function CreativeCompositionCanvas({
       onPointerCancel={onPointerUp}
       onPointerDown={(event) => {
         setContextMenu(null);
-        if (editMode && event.target === event.currentTarget && event.button === 0) {
-          onSelectNodes?.([]);
-          setMarquee({ startX: event.clientX, startY: event.clientY, currentX: event.clientX, currentY: event.clientY });
-          event.currentTarget.setPointerCapture?.(event.pointerId);
+        if (!editMode || event.button !== 0) return;
+        const target = event.target as HTMLElement | null;
+        if (!target || !event.currentTarget.contains(target)) return;
+        // Empty Card plane selects Card Root. Do not require target===currentTarget —
+        // safe-area guides / reading-order / background layers must not steal the Owner click.
+        if (
+          target.closest(
+            "[data-composition-node], [data-testid^='composition-resize-'], [data-testid^='composition-rotate-'], [data-testid^='composition-more-'], [data-testid^='composition-group-'], [data-testid='composition-context-menu']"
+          )
+        ) {
+          return;
         }
+        onSelectNodes?.([]);
+        setMarquee({ startX: event.clientX, startY: event.clientY, currentX: event.clientX, currentY: event.clientY });
+        event.currentTarget.setPointerCapture?.(event.pointerId);
       }}
     >
       <div
@@ -2054,6 +2069,7 @@ export function CreativeCompositionCanvas({
             data-locked={node.locked ? "true" : "false"}
             data-group={node.groupId || undefined}
             data-anchor={node.anchor || "top-left"}
+            data-effect={String(node.props.effectPreset || "") || undefined}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
             onDoubleClick={(event) => {
               if (!editMode || !((node.primitive === "text" && str(node.props.textCurve, "none") === "none") || (node.primitive === "button" && node.props.contentEditing === true))) return;

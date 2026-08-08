@@ -101,6 +101,29 @@ function intersects(
   );
 }
 
+function overlapArea(
+  a: Pick<CreativeCompositionNode, "x" | "y" | "width" | "height">,
+  b: Pick<CreativeCompositionNode, "x" | "y" | "width" | "height">
+) {
+  const width = Math.max(0, Math.min(a.x + a.width, b.x + b.width) - Math.max(a.x, b.x));
+  const height = Math.max(0, Math.min(a.y + a.height, b.y + b.height) - Math.max(a.y, b.y));
+  return width * height;
+}
+
+/** Cost of covering existing nodes — small earlier objects weigh more (Owner click targets). */
+function coverageCost(
+  candidate: Pick<CreativeCompositionNode, "x" | "y" | "width" | "height">,
+  occupied: CreativeCompositionNode[]
+) {
+  return occupied.reduce((total, node) => {
+    if (node.visible === false) return total;
+    const area = overlapArea(candidate, node);
+    if (area <= 0) return total;
+    const smallTarget = node.width * node.height < 0.08 || node.primitive === "text" || node.props.elementKind === "icon";
+    return total + area * (smallTarget ? 8 : 1);
+  }, 0);
+}
+
 /**
  * Find a deterministic, visible placement that does not cover an existing object.
  * The normalized scan is intentionally independent of viewport zoom.
@@ -122,16 +145,32 @@ export function findAvailableObjectPlacement(
       candidates.push({ x: Number(x.toFixed(4)), y: Number(y.toFixed(4)) });
     }
   }
+  // Also try below the current stack — critical when large coupons saturate the grid.
+  const lowestBottom = occupied.reduce(
+    (maximum, candidate) => (candidate.visible === false ? maximum : Math.max(maximum, candidate.y + candidate.height)),
+    0.04
+  );
+  if (lowestBottom + 0.02 <= maxY) {
+    candidates.push({
+      x: clamp(0.06, 0, maxX),
+      y: clamp(Number((lowestBottom + 0.03).toFixed(4)), 0, maxY),
+    });
+  }
+
   const open = candidates.find((candidate) => !intersects({ ...node, ...candidate }, occupied));
   if (open) return open;
 
-  // A saturated finite plane cannot promise a non-overlap. Cascade visibly instead of
-  // reusing the exact same coordinates, preserving selection and storage truth.
-  const cascade = Math.max(0, occupied.length);
-  return {
-    x: clamp(0.04 + (cascade % 8) * 0.025, 0, maxX),
-    y: clamp(0.04 + (cascade % 12) * 0.025, 0, maxY),
-  };
+  // Saturated plane: choose the candidate that least buries small Owner-clickable targets.
+  let best = candidates[0] || { x: 0.04, y: 0.04 };
+  let bestCost = Number.POSITIVE_INFINITY;
+  for (const candidate of candidates) {
+    const cost = coverageCost({ ...node, ...candidate }, occupied);
+    if (cost < bestCost - 1e-9) {
+      best = candidate;
+      bestCost = cost;
+    }
+  }
+  return best;
 }
 
 export function insertObject(input: InsertObjectInput): ObjectMutationResult {
