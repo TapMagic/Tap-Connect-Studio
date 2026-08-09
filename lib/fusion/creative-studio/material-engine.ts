@@ -476,9 +476,9 @@ export function applyMaterialRecipe(
   if (!recipe) return next;
 
   next.materialPreset = recipe.id;
-  // Material props become the surface authority — clear stale Visual Plane so
-  // Container cannot keep a two-stop plane that discards multi-stop Materials.
-  next.visualPlane = undefined;
+  // Material props become the surface authority — null (not undefined) so
+  // JSON history / patchProps actually clears a stale Container Visual Plane.
+  next.visualPlane = null;
   applyRecipeFill(next, recipe, { asButtonSurface: options.asButtonSurface });
   next.borderWidth = recipe.borderWidth ?? 0;
   next.borderColor = recipe.borderColor;

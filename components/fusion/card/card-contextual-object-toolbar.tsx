@@ -597,10 +597,10 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
     }
     let props = { ...node.props, ...next };
     // Explicit clears: JSON history drops `undefined`, so Visual Plane writes must null legacy rivals.
-    if (next.visualPlane !== undefined) {
+    if (next.visualPlane !== undefined || ("visualPlane" in next && next.visualPlane === null)) {
       props = {
         ...props,
-        visualPlane: next.visualPlane,
+        visualPlane: next.visualPlane ?? null,
         gradientStart: next.gradientStart ?? null,
         gradientEnd: next.gradientEnd ?? null,
         gradientFill: next.gradientFill ?? null,
@@ -609,6 +609,15 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         texture: next.texture ?? null,
         fill: next.fill ?? props.fill,
         surfaceFillKind: next.surfaceFillKind ?? null,
+      };
+    }
+    // Material application owns the Container surface — drop Visual Plane rivals.
+    if (typeof next.materialPreset === "string" && next.materialPreset && next.materialPreset !== "none") {
+      props = {
+        ...props,
+        ...next,
+        visualPlane: null,
+        materialPreset: next.materialPreset,
       };
     }
     if (isButton && typeof next.label === "string") props = updateButtonLabel(props, next.label, node.id);

@@ -277,7 +277,7 @@ export function writeSurfaceVisualPlane(plane: VisualPlane): Partial<TapCardSect
 }
 
 export function readContainerVisualPlane(node: CreativeCompositionNode): VisualPlane {
-  const stored = node.props.visualPlane as VisualPlane | undefined;
+  const stored = node.props.visualPlane as VisualPlane | null | undefined;
   if (stored && typeof stored === "object" && "kind" in stored) return stored;
   if (node.props.gradientStart && node.props.gradientEnd) {
     return {
