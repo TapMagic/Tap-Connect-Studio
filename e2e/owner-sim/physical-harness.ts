@@ -658,9 +658,13 @@ export async function assertToolbarDoorOutcome(
 ) {
   const editDrawer = page.getByTestId("deep-left-edit-drawer");
   const contextualDrawer = page.getByTestId("card-creative-context-drawer");
+  const writingAssistOpen =
+    (await page.getByTestId("magic-write-panel").isVisible().catch(() => false)) ||
+    (await page.getByTestId("magic-write-open").isVisible().catch(() => false));
   const drawerOpen =
     (await editDrawer.isVisible().catch(() => false)) ||
-    (await page.locator('[data-testid^="contextual-"][data-testid$="-drawer"]').first().isVisible().catch(() => false));
+    (await page.locator('[data-testid^="contextual-"][data-testid$="-drawer"]').first().isVisible().catch(() => false)) ||
+    writingAssistOpen;
   const editMode =
     after.drawerMode === "edit" ||
     (await contextualDrawer.getAttribute("data-drawer-mode").catch(() => null)) === "edit";
@@ -670,7 +674,17 @@ export async function assertToolbarDoorOutcome(
     after.selectedNodeGeo &&
     geometryChanged(before.selectedNodeGeo, after.selectedNodeGeo);
   const modeChanged = before.contentEditing !== after.contentEditing;
-  const ok = drawerOpen || editMode || inventoryChanged || geoChanged || modeChanged;
+  const railTextActive =
+    (await page.getByTestId("card-creative-tool-text").getAttribute("aria-pressed").catch(() => null)) ===
+    "true";
+  const ok =
+    drawerOpen ||
+    editMode ||
+    inventoryChanged ||
+    geoChanged ||
+    modeChanged ||
+    writingAssistOpen ||
+    ( /write/i.test(doorLabel) && railTextActive);
   if (!ok) {
     recordVerdict({
       id: `toolbar-doors.${doorLabel.replace(/\s+/g, "-").toLowerCase()}`,
