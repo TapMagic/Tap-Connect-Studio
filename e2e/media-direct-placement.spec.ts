@@ -41,14 +41,19 @@ test.describe("media direct placement", () => {
       page.getByTestId("card-contextual-object-tools").getByRole("button", { name: /More actions/i }),
       "More"
     );
+    await ownerClick(page.getByTestId("more-copy"), "Copy to composition clipboard");
+    // Toggle More closed so paste targets the canvas, not the menu.
     await ownerClick(
-      page.getByTestId("common-more-menu").getByRole("button", { name: /^Copy$/i }),
-      "Copy"
+      page.getByTestId("card-contextual-object-tools").getByRole("button", { name: /More actions/i }),
+      "Close More"
     );
-    await expect(page.getByTestId("common-more-menu")).toBeHidden({ timeout: 5_000 });
+    await expect(page.getByTestId("common-more-menu")).toHaveCount(0);
     const textCount = await page.locator("[data-composition-node][data-primitive='text']").count();
-    await canvas.click({ position: { x: 24, y: 24 } });
-    await page.keyboard.press(process.platform === "darwin" ? "Meta+v" : "Control+v");
+    // Composition clipboard is in-memory; Host paste listens for the window `paste` event.
+    await page.evaluate(() => {
+      const dt = new DataTransfer();
+      window.dispatchEvent(new ClipboardEvent("paste", { bubbles: true, cancelable: true, clipboardData: dt }));
+    });
     await expect
       .poll(async () => page.locator("[data-composition-node][data-primitive='text']").count(), {
         timeout: 15_000,
