@@ -83,7 +83,30 @@ export default async function PreviewCardPage({
   let config: TapConnectCardConfig;
   let profile: BrandContactProfile;
   try {
-    config = JSON.parse(record.snapshotJson) as TapConnectCardConfig;
+    const raw = JSON.parse(record.snapshotJson) as Record<string, unknown>;
+    // Editor always sends a full TapConnectCardConfig. Harden against composition-only
+    // payloads so Live Device never crashes with "sections is not iterable".
+    if (raw && typeof raw === "object" && Array.isArray(raw.nodes) && !Array.isArray(raw.sections)) {
+      config = {
+        version: 1,
+        accentColor: "#b8ff2c",
+        surfaceColor: "#0b0f19",
+        textColor: "#ffffff",
+        headerEnergy: 50,
+        collapsible: false,
+        defaultCollapsed: false,
+        actionsLayout: "stack",
+        sections: [],
+        rootComposition: raw as unknown as TapConnectCardConfig["rootComposition"],
+      } as TapConnectCardConfig;
+    } else {
+      config = {
+        ...(raw as unknown as TapConnectCardConfig),
+        sections: Array.isArray((raw as { sections?: unknown }).sections)
+          ? ((raw as TapConnectCardConfig).sections || [])
+          : [],
+      };
+    }
     profile = JSON.parse(record.profileJson) as BrandContactProfile;
   } catch {
     return (
