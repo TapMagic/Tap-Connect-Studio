@@ -162,3 +162,28 @@ export function badgeShapePreviewStyle(
     height: 28,
   };
 }
+
+/**
+ * SVG polygon points (viewBox 0 0 100 100) for clipped Badge shapes.
+ * Used so Border strokes follow the silhouette instead of a rectangular CSS box.
+ */
+export function badgeShapeSvgPoints(id: string | null | undefined): string | null {
+  const clip = getBadgeShapeDef(id).clipPath;
+  if (!clip) return null;
+  const body = clip.replace(/^polygon\(/i, "").replace(/\)$/, "").trim();
+  const points = body
+    .split(",")
+    .map((pair) => {
+      const [xRaw, yRaw] = pair.trim().split(/\s+/);
+      const x = Number(String(xRaw).replace("%", ""));
+      const y = Number(String(yRaw).replace("%", ""));
+      if (!Number.isFinite(x) || !Number.isFinite(y)) return null;
+      return `${x},${y}`;
+    })
+    .filter((p): p is string => Boolean(p));
+  return points.length >= 3 ? points.join(" ") : null;
+}
+
+export function badgeUsesPathStroke(id: string | null | undefined): boolean {
+  return Boolean(getBadgeShapeDef(id).clipPath);
+}

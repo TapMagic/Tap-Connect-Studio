@@ -1730,15 +1730,26 @@ export function TapConnectCard({
           >
             <CreativeCompositionCanvas
               key={`card-root-motion-${motionRevision}`}
-              block={parseCreativeComposition(config.rootComposition) || {
-                version: 1,
-                id: "card-root-composition",
-                label: "Card root Elements",
-                nodes: [],
-                background: { kind: "none" },
-                mobileFallback: "scale",
-                safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
-              }}
+              block={(() => {
+                const root = parseCreativeComposition(config.rootComposition) || {
+                  version: 1 as const,
+                  id: "card-root-composition",
+                  label: "Card root Elements",
+                  nodes: [],
+                  background: { kind: "none" as const },
+                  mobileFallback: "scale" as const,
+                  safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
+                  pageHeightPx: config.rootCanvasMinHeightPx ?? 520,
+                };
+                // Live drag preview must use the same page-height authority as commit —
+                // growing minHeight alone stretches %-based children and looks like artwork scale.
+                if (rootHeightDraft == null) return root;
+                return setRootPageHeightPreservingBounds(
+                  root,
+                  rootHeightDraft,
+                  config.rootCanvasMinHeightPx ?? 520
+                );
+              })()}
               editMode={editSelects}
               selectedNodeIds={!selectedSectionId ? selectedCompositionNodeIds : []}
               forceMobileFallback={compositionForceMobile}

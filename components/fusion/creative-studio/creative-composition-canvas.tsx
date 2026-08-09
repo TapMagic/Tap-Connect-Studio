@@ -65,7 +65,7 @@ import {
   resizeGroupComposition,
   rotateGroupComposition,
 } from "@/lib/fusion/creative-studio/group-authority";
-import { badgeShapeBorderRadius, badgeShapeClipPath } from "@/lib/fusion/creative-studio/badge-shape";
+import { badgeShapeBorderRadius, badgeShapeClipPath, badgeShapeSvgPoints, badgeUsesPathStroke } from "@/lib/fusion/creative-studio/badge-shape";
 import { effectLayersCss } from "@/lib/fusion/creative-studio/effect-render";
 import { surfaceShadowCss } from "@/lib/fusion/creative-studio/material-engine";
 
@@ -936,36 +936,75 @@ function NodeVisual({
       const badgeClip = badgeShapeClipPath(badgeShape);
       const badgeShadow = surfaceShadowCss(node.props);
       const badgeTexture = textureOverlayStyle(node.props);
+      const borderWidth = num(node.props.borderWidth, 0);
+      const borderStyle = str(node.props.borderStyle, borderWidth > 0 ? "solid" : "none");
+      const borderColor = str(node.props.borderColor, "#fff");
+      const pathStroke = badgeUsesPathStroke(badgeShape) && borderWidth > 0 && borderStyle !== "none";
+      const svgPoints = pathStroke ? badgeShapeSvgPoints(badgeShape) : null;
+      const dash =
+        borderStyle === "dashed" ? "6 4" : borderStyle === "dotted" ? "1.5 3" : undefined;
+      const fillBackground = str(node.props.gradientFill, str(node.props.fill, "#ef4444"));
       return (
         <div
           className="relative flex h-full w-full items-center justify-center overflow-hidden px-2 text-center"
           data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
           style={{
-            background: str(node.props.gradientFill, str(node.props.fill, "#ef4444")),
+            background: pathStroke ? "transparent" : fillBackground,
             color: str(node.props.color, "#ffffff"),
             borderRadius: badgeShapeBorderRadius(badgeShape, num(node.props.radius, 999)),
-            clipPath: badgeClip,
-            border: num(node.props.borderWidth, 0) ? `${num(node.props.borderWidth, 0)}px solid ${str(node.props.borderColor, "#fff")}` : undefined,
+            clipPath: pathStroke ? undefined : badgeClip,
+            border: !pathStroke && borderWidth > 0 && borderStyle !== "none"
+              ? `${borderWidth}px ${borderStyle} ${borderColor}`
+              : undefined,
             boxShadow: badgeShadow,
             fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
             fontSize: num(node.props.fontSize, 18),
             fontWeight: num(node.props.fontWeight, 800),
             letterSpacing: `${num(node.props.letterSpacingEm, .04)}em`,
+            lineHeight: num(node.props.lineHeight, 1.15),
             opacity: num(node.props.opacity, 1),
+            textAlign: str(node.props.textAlign, "center") as CSSProperties["textAlign"],
           }}
           data-badge-shape={badgeShape}
+          data-badge-path-stroke={pathStroke ? "true" : "false"}
           data-material={str(node.props.materialPreset, "")}
           data-effect={str(node.props.effectPreset, "")}
         >
+          {pathStroke && svgPoints ? (
+            <>
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{ background: fillBackground, clipPath: badgeClip }}
+                data-testid="badge-shape-fill"
+              />
+              <svg
+                aria-hidden
+                className="pointer-events-none absolute inset-0 h-full w-full"
+                viewBox="0 0 100 100"
+                preserveAspectRatio="none"
+                data-testid="badge-shape-stroke"
+              >
+                <polygon
+                  points={svgPoints}
+                  fill="none"
+                  stroke={borderColor}
+                  strokeWidth={borderWidth}
+                  strokeDasharray={dash}
+                  vectorEffect="non-scaling-stroke"
+                />
+              </svg>
+            </>
+          ) : null}
           {node.props.shine === true || node.props.highlight ? (
             <span
               aria-hidden
               className="pointer-events-none absolute inset-0"
-              style={{ background: str(node.props.highlight, "linear-gradient(180deg,#ffffff55,#0000 45%)") }}
+              style={{ background: str(node.props.highlight, "linear-gradient(180deg,#ffffff55,#0000 45%)"), clipPath: badgeClip }}
             />
           ) : null}
-          {badgeTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={badgeTexture} /> : null}
-          <span className="relative z-[1]">{str(node.props.text, "SALE")}</span>
+          {badgeTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={{ ...badgeTexture, clipPath: badgeClip }} /> : null}
+          <span className="relative z-[1] whitespace-pre-wrap" data-testid="badge-text">{str(node.props.text, "SALE")}</span>
         </div>
       );
     }
@@ -1193,6 +1232,38 @@ function NodeVisual({
       }).textShadow,
     };
     const buttonTexture = textureOverlayStyle(node.props);
+    const nestedIcon = buttonContentNode(node.props, "icon", node.id);
+    const iconSvg = str(node.props.iconSvg, str(nestedIcon?.props.iconSvg));
+    const iconPosition = str(node.props.iconPosition, "before");
+    const freeLayout = str(node.props.buttonContentLayout, "auto") === "free";
+    const verticalIcon = iconPosition === "above" || iconPosition === "below" || labelBelow;
+    const buttonIconEl = showIcon ? (
+      <span
+        data-testid={`button-icon-${node.id}`}
+        data-icon-canonical={icon}
+        data-icon-svg={iconSvg.includes("<svg") ? "true" : "false"}
+        style={{
+          width: num(node.props.iconSize, 20),
+          height: num(node.props.iconSize, 20),
+          color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
+          transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)`,
+          position: freeLayout ? "absolute" : undefined,
+          left: freeLayout ? `${num(node.props.iconFreeX, 12)}px` : undefined,
+          top: freeLayout ? `${num(node.props.iconFreeY, 12)}px` : undefined,
+        }}
+      >
+        {iconSvg.includes("<svg") ? (
+          <span className="grid h-full w-full place-items-center [&_svg]:h-full [&_svg]:w-full" aria-hidden dangerouslySetInnerHTML={{ __html: iconSvg }} />
+        ) : (
+          <ElementIcon name={icon} size={num(node.props.iconSize, 20)} />
+        )}
+      </span>
+    ) : null;
+    const buttonLabelEl = !labelBelow && showLabel
+      ? (node.props.contentEditing === true
+        ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={{ ...labelStyle, position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }} onCommit={onEditText} onFinish={onFinishTextEdit} />
+        : <span style={{ ...labelStyle, whiteSpace: "pre-wrap", position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }}>{labelValue}</span>)
+      : null;
     const surface = (
       <span
         className="relative inline-flex shrink-0 items-center justify-center overflow-hidden"
@@ -1205,23 +1276,25 @@ function NodeVisual({
           color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
           borderRadius: radius,
           borderWidth: num(node.props.borderWidth, 0),
-          borderStyle: "solid",
+          borderStyle: (num(node.props.borderWidth, 0) > 0 ? str(node.props.borderStyle, "solid") : "none") as CSSProperties["borderStyle"],
           borderColor: str(node.props.borderColor, "transparent"),
           boxShadow: shadowParts,
           opacity: num(node.props.surfaceOpacity, 1),
           padding: num(node.props.padding, 8),
           gap: num(node.props.spacing, 6),
+          flexDirection: verticalIcon ? "column" : "row",
         }}
         data-button-surface-kind={surfaceKind}
         data-button-radius={String(linkedRadius)}
+        data-button-content-layout={str(node.props.buttonContentLayout, "auto")}
         data-button-high-gloss={node.props.shine === true ? "true" : "false"}
         data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
       >
         {buttonTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={buttonTexture} /> : null}
         {node.props.shine === true ? <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent" aria-hidden data-testid={`button-shine-${node.id}`} /> : null}
-        {showIcon && str(node.props.iconPosition, "before") === "before" ? <span data-testid={`button-icon-${node.id}`} style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
-        {!labelBelow && showLabel ? (node.props.contentEditing === true ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={labelStyle} onCommit={onEditText} onFinish={onFinishTextEdit} /> : <span style={labelStyle}>{labelValue}</span>) : null}
-        {showIcon && str(node.props.iconPosition, "before") === "after" ? <span data-testid={`button-icon-${node.id}`} style={{ transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)` }}><ElementIcon name={icon} size={num(node.props.iconSize, 20)} /></span> : null}
+        {(iconPosition === "before" || iconPosition === "above") ? buttonIconEl : null}
+        {buttonLabelEl}
+        {(iconPosition === "after" || iconPosition === "below") ? buttonIconEl : null}
       </span>
     );
     return (

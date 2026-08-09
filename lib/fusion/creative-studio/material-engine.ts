@@ -125,11 +125,13 @@ export const MATERIAL_CATALOG: readonly MaterialRecipe[] = [
   // BASIC
   recipe("flat", "Flat", "basic", { fill: "#334155", borderWidth: 0, outerShadow: 0, opacity: 1 }),
   recipe("matte", "Matte", "basic", { fill: "#1e293b", outerShadow: 4, opacity: 1 }),
+  recipe("soft_touch", "Soft-touch", "basic", { fill: "#273449", outerShadow: 8, highlight: "linear-gradient(180deg,#ffffff14,#0000 40%)", opacity: 1 }),
   recipe("soft", "Soft", "basic", { fill: "#334155", outerShadow: 10, opacity: 0.96 }),
   recipe("clean_outline", "Clean outline", "basic", { fill: "transparent", borderWidth: 2, borderColor: "#e2e8f0", borderStyle: "solid", textColor: "#f8fafc" }),
   // DIMENSIONAL
   recipe("soft_raised", "Soft raised", "dimensional", { fill: "#334155", outerShadow: 16, highlight: "linear-gradient(180deg,#fff6,#0000 55%)", opacity: 1 }),
   recipe("hard_raised", "Hard raised", "dimensional", { fill: "#1e293b", outerShadow: 24, bevel: true, highlight: "linear-gradient(180deg,#fff8,#0000 40%)", opacity: 1 }),
+  recipe("raised_resin", "Raised resin", "dimensional", { gradient: "linear-gradient(165deg,#ffffff55 0%,#22c55e 28%,#15803d 72%,#052e16)", shine: true, outerShadow: 20, highlight: "linear-gradient(180deg,#ffffff66,#0000 42%)", borderWidth: 1, borderColor: "#ffffff33", textColor: "#ecfdf5" }),
   recipe("recessed", "Recessed", "dimensional", { fill: "#0f172a", innerShadow: "inset 0 3px 8px rgba(0,0,0,.55)", outerShadow: 0, opacity: 1 }),
   recipe("beveled", "Beveled", "dimensional", { gradient: "linear-gradient(145deg,#ffffff,#94a3b8 45%,#0f172a)", outerShadow: 10, bevel: true }),
   recipe("embossed", "Embossed", "dimensional", { gradient: "linear-gradient(160deg,#f8fafc,#64748b 55%,#0f172a)", emboss: "emboss", outerShadow: 6, glyphShadowLayers: "0 1px 0 rgba(255,255,255,.45),0 -1px 0 rgba(0,0,0,.45)" }),
@@ -138,9 +140,11 @@ export const MATERIAL_CATALOG: readonly MaterialRecipe[] = [
   recipe("padded", "Padded", "dimensional", { fill: "#1e293b", outerShadow: 12, borderWidth: 1, borderColor: "#ffffff22" }),
   // GLOSS / GLASS
   recipe("glossy", "Glossy", "glass", { gradient: "linear-gradient(180deg,#fff7,#ef4444 42%,#991b1b)", shine: true, outerShadow: 18, textColor: "#ffffff" }),
+  recipe("gloss_lacquer", "Gloss lacquer", "glass", { gradient: "linear-gradient(180deg,#ffffffcc 0%,#38bdf8 38%,#0369a1 78%,#0c4a6e)", shine: true, outerShadow: 26, highlight: "linear-gradient(180deg,#ffffff88,#0000 48%)", borderWidth: 1, borderColor: "#ffffff55", textColor: "#f0f9ff" }),
   recipe("high_gloss", "High gloss", "glass", { gradient: "linear-gradient(180deg,#ffffffaa,#f97316 40%,#9a3412)", shine: true, outerShadow: 22, textColor: "#fff7ed" }),
   recipe("glass", "Glass", "glass", { fill: "#ffffff24", borderWidth: 1, borderColor: "#ffffff80", outerShadow: 16, textColor: "#ffffff" }),
   recipe("frosted_glass", "Frosted glass", "glass", { gradient: "linear-gradient(135deg,rgba(255,255,255,.38),rgba(255,255,255,.08))", borderWidth: 1, borderColor: "#ffffff55", outerShadow: 28, textColor: "#ffffff" }),
+  recipe("acrylic", "Acrylic", "glass", { gradient: "linear-gradient(145deg,rgba(255,255,255,.55),rgba(148,163,184,.22) 42%,rgba(15,23,42,.55))", borderWidth: 1, borderColor: "#ffffff77", outerShadow: 22, highlight: "linear-gradient(110deg,#ffffff66 0 18%,#0000 40%)", textColor: "#f8fafc" }),
   recipe("clear_glass", "Clear glass", "glass", { fill: "#ffffff0f", borderWidth: 1, borderColor: "#ffffff66", outerShadow: 12, textColor: "#ffffff" }),
   recipe("smoked_glass", "Smoked glass", "glass", { fill: "#0f172a99", borderWidth: 1, borderColor: "#ffffff33", outerShadow: 18, textColor: "#f8fafc" }),
   recipe("tinted_glass", "Tinted glass", "glass", { fill: "#22d3ee33", borderWidth: 1, borderColor: "#67e8f9aa", outerShadow: 16, textColor: "#ecfeff" }),
@@ -148,6 +152,7 @@ export const MATERIAL_CATALOG: readonly MaterialRecipe[] = [
   recipe("chrome", "Chrome", "metallic", { gradient: "linear-gradient(120deg,#64748b,#ffffff 50%,#64748b)", outerShadow: 20, textColor: "#111827", artworkFill: "#e2e8f0" }),
   recipe("brushed_silver", "Brushed silver", "metallic", { gradient: "linear-gradient(120deg,#6b7280,#e5e7eb,#9ca3af)", outerShadow: 18, textColor: "#111827", artworkFill: "#cbd5e1" }),
   recipe("polished_silver", "Polished silver", "metallic", { gradient: "linear-gradient(135deg,#111827,#f8fafc 35%,#475569 52%,#fff 72%,#111827)", outerShadow: 24, textColor: "#111827" }),
+  recipe("polished_metal", "Polished metal", "metallic", { gradient: "linear-gradient(125deg,#0f172a,#e2e8f0 32%,#64748b 48%,#f8fafc 62%,#1e293b)", outerShadow: 26, shine: true, highlight: "linear-gradient(100deg,#ffffff88 0 14%,#0000 36%)", textColor: "#0f172a", artworkFill: "#e2e8f0" }),
   recipe("gold", "Gold", "metallic", { gradient: "linear-gradient(120deg,#8a5a00,#ffe169,#b77900)", outerShadow: 20, textColor: "#17100a", artworkFill: "#fbbf24" }),
   recipe("brushed_gold", "Brushed gold", "metallic", { gradient: "linear-gradient(120deg,#713f12,#fbbf24,#a16207,#fde68a)", outerShadow: 18, textColor: "#1c1917" }),
   recipe("rose_gold", "Rose gold", "metallic", { gradient: "linear-gradient(120deg,#9f5f59,#f4c2b8,#a75d56)", outerShadow: 18, textColor: "#2b1110" }),

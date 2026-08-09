@@ -12,10 +12,12 @@ import {
   expandSelectionToGroups,
   frameMaskPath,
   groupNodes,
+  matchNodeSize,
   resolveNodeBox,
   sendBackward,
   sendToBack,
   setNodeLocked,
+  stackNodes,
   translateNodes,
   compositionAppliesMobileFallback,
   ungroupNodes,
@@ -67,6 +69,29 @@ describe("creative composition operations", () => {
     assert.equal(aligned.find((n) => n.id === "t2")?.x, 0.1);
     const dist = distributeNodes(nodes, ["t1", "t2", "t3"], "horizontal");
     assert.ok(dist.find((n) => n.id === "t2")!.x > dist.find((n) => n.id === "t1")!.x);
+    const matched = matchNodeSize(
+      [
+        createCompositionNode("button", { id: "b1", width: 0.4, height: 0.1 }),
+        createCompositionNode("button", { id: "b2", width: 0.2, height: 0.2 }),
+      ],
+      ["b1", "b2"],
+      "both"
+    );
+    assert.equal(matched.find((n) => n.id === "b2")?.width, 0.4);
+    assert.equal(matched.find((n) => n.id === "b2")?.height, 0.1);
+    const stacked = stackNodes(
+      [
+        createCompositionNode("button", { id: "s1", x: 0.1, y: 0.1, width: 0.3, height: 0.1 }),
+        createCompositionNode("button", { id: "s2", x: 0.2, y: 0.4, width: 0.3, height: 0.1 }),
+      ],
+      ["s1", "s2"],
+      "vertical",
+      0.05
+    );
+    assert.equal(stacked.find((n) => n.id === "s1")?.x, stacked.find((n) => n.id === "s2")?.x);
+    assert.ok(
+      Math.abs((stacked.find((n) => n.id === "s2")!.y) - (0.1 + 0.1 + 0.05)) < 1e-9
+    );
   });
 
   it("expands group selection and translates as a unit", () => {

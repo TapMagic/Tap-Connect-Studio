@@ -94,3 +94,33 @@ test("preview URL assessment never treats localhost as phone-reachable", () => {
   assert.equal(built.url, "http://192.168.1.20:3050/preview/live/token");
   assert.doesNotMatch(built.url, /localhost|127\.0\.0\.1/);
 });
+
+test("Live Device LAN URL preserves non-default application port from request origin", () => {
+  const prevPreview = process.env.NEXT_PUBLIC_PREVIEW_BASE_URL;
+  const prevApp = process.env.NEXT_PUBLIC_APP_URL;
+  process.env.NEXT_PUBLIC_PREVIEW_BASE_URL = "";
+  process.env.NEXT_PUBLIC_APP_URL = "";
+  try {
+    const assessment = resolvePreviewBaseUrl({
+      configured: "",
+      appUrl: "",
+      requestOrigin: "http://localhost:3055",
+      preferLanPort: 3055,
+    });
+    if (!detectLanBaseUrl(3055)) {
+      assert.equal(assessment.reachableForPhone, false);
+      assert.match(assessment.guidance || "", /3055/);
+      return;
+    }
+    assert.equal(assessment.reachableForPhone, true);
+    assert.match(assessment.baseUrl, /^http:\/\/\d+\.\d+\.\d+\.\d+:3055$/);
+    assert.doesNotMatch(assessment.baseUrl, /:3050(?:\/|$)/);
+    const built = buildPreviewAbsoluteUrl("/preview/live/abc", assessment);
+    assert.match(built.url, /^http:\/\/\d+\.\d+\.\d+\.\d+:3055\/preview\/live\/abc$/);
+  } finally {
+    if (prevPreview === undefined) delete process.env.NEXT_PUBLIC_PREVIEW_BASE_URL;
+    else process.env.NEXT_PUBLIC_PREVIEW_BASE_URL = prevPreview;
+    if (prevApp === undefined) delete process.env.NEXT_PUBLIC_APP_URL;
+    else process.env.NEXT_PUBLIC_APP_URL = prevApp;
+  }
+});

@@ -115,8 +115,19 @@ export function LiveDeviceQrPanel({
           setQrDataUrl(png);
           setStatus("ready");
         } else {
+          // Fail closed: never present a normal successful QR when the phone
+          // cannot credibly reach this Studio origin (wrong port, localhost, etc.).
           setQrDataUrl(null);
-          setStatus(data.url ? "ready" : "error");
+          setError(
+            data.reachableForPhone === false
+              ? "Phone cannot reach this Studio address"
+              : "Could not create phone preview"
+          );
+          setGuidance(
+            data.guidance ||
+              "Use the same Wi-Fi, ensure the server listens on a LAN interface, and confirm the QR host uses this app's actual port — not a hardcoded default."
+          );
+          setStatus("error");
         }
       } catch {
         setError("Could not create phone preview");

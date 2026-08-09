@@ -112,3 +112,74 @@ export function updateButtonLabel(
     label: value,
   };
 }
+
+/** Icon identity props for a Button — never mutates Button Surface fill/material. */
+export function buttonIconIdentityProps(asset: {
+  canonicalId: string;
+  provider: string;
+  collection: string;
+  iconName: string;
+  source: string;
+  body: string;
+  viewBox?: string;
+  renderMode?: string;
+  license?: { spdx?: string; title?: string } | null;
+  fetchedAt?: string;
+}): Record<string, unknown> {
+  return {
+    icon: asset.canonicalId,
+    showIcon: true,
+    iconProvider: asset.provider,
+    iconCollection: asset.collection,
+    iconName: asset.iconName,
+    iconSource: asset.source,
+    iconSvg: asset.body,
+    iconViewBox: asset.viewBox,
+    iconRenderMode: asset.renderMode,
+    iconLicense: asset.license?.spdx || asset.license?.title,
+    iconFetchedAt: asset.fetchedAt,
+  };
+}
+
+/**
+ * Install an Iconify/native asset into a Button's nested Icon without mutating
+ * Button Surface (fill, material, border, corners, size).
+ */
+export function applyButtonIconAsset(
+  props: Record<string, unknown>,
+  asset: {
+    canonicalId: string;
+    provider: string;
+    collection: string;
+    iconName: string;
+    source: string;
+    body: string;
+    viewBox?: string;
+    renderMode?: string;
+    license?: { spdx?: string; title?: string } | null;
+    fetchedAt?: string;
+  },
+  buttonId = "button"
+): Record<string, unknown> {
+  const identity = buttonIconIdentityProps(asset);
+  const withNested = updateButtonContentNode(
+    props,
+    "icon",
+    {
+      props: {
+        elementKind: "icon",
+        buttonContentRole: "icon",
+        decorative: true,
+        ...identity,
+        // Nested icon artwork color — independent of Button Surface fill.
+        fill: String(props.iconColor || props.labelColor || props.textColor || "#0b0f19"),
+        stroke: String(props.iconColor || props.labelColor || props.textColor || "#0b0f19"),
+      },
+    },
+    buttonId
+  );
+  return {
+    ...withNested,
+    ...identity,
+  };
+}

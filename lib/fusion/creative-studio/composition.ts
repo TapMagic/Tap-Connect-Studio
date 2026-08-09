@@ -583,6 +583,58 @@ export function alignNodes(
   });
 }
 
+export function matchNodeSize(
+  nodes: CreativeCompositionNode[],
+  ids: string[],
+  mode: "width" | "height" | "both" = "both"
+): CreativeCompositionNode[] {
+  const set = new Set(ids);
+  const targets = nodes.filter((n) => set.has(n.id) && !n.locked);
+  if (targets.length < 2) return nodes;
+  const primary = targets[0];
+  return nodes.map((n) => {
+    if (!set.has(n.id) || n.locked || n.id === primary.id) return n;
+    return {
+      ...n,
+      width: mode === "height" ? n.width : primary.width,
+      height: mode === "width" ? n.height : primary.height,
+    };
+  });
+}
+
+export function stackNodes(
+  nodes: CreativeCompositionNode[],
+  ids: string[],
+  axis: "horizontal" | "vertical",
+  gap = 0.02
+): CreativeCompositionNode[] {
+  const set = new Set(ids);
+  const targets = [...nodes.filter((n) => set.has(n.id) && !n.locked)].sort((a, b) =>
+    axis === "horizontal" ? a.x - b.x : a.y - b.y
+  );
+  if (targets.length < 2) return nodes;
+  const positions = new Map<string, { x: number; y: number }>();
+  if (axis === "vertical") {
+    const x = targets[0].x;
+    let y = targets[0].y;
+    for (const t of targets) {
+      positions.set(t.id, { x, y });
+      y += t.height + gap;
+    }
+  } else {
+    const y = targets[0].y;
+    let x = targets[0].x;
+    for (const t of targets) {
+      positions.set(t.id, { x, y });
+      x += t.width + gap;
+    }
+  }
+  return nodes.map((n) => {
+    const next = positions.get(n.id);
+    return next ? { ...n, x: next.x, y: next.y } : n;
+  });
+}
+
 export function distributeNodes(
   nodes: CreativeCompositionNode[],
   ids: string[],

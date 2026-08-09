@@ -102,7 +102,7 @@ export function focusForDrawerSection(section: EditorDrawerSection, family: Obje
   if (family === "divider" && section === "color") return "divider-color";
   if (section === "motion") return "animate";
   if (section === "magic-write") return "content";
-  if (section === "arrange") return "more";
+  if (section === "arrange") return "arrange";
   // Legacy "effects" drawer section was the Appearance host — never surface as Effects chrome.
   if (section === "effects") return "appearance";
   if (section === "page-size" || section === "guides" || section === "visibility") return section === "page-size" ? "page-size" : section;

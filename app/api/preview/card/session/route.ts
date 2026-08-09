@@ -7,6 +7,7 @@ import {
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import {
   buildPreviewAbsoluteUrl,
+  portFromOrigin,
   resolvePreviewBaseUrl,
 } from "@/lib/fusion/creative-studio/preview/url";
 
@@ -71,9 +72,10 @@ export async function POST(req: Request) {
     );
   }
 
+  const requestOrigin = new URL(req.url).origin;
   const assessment = resolvePreviewBaseUrl({
-    requestOrigin: new URL(req.url).origin,
-    preferLanPort: 3050,
+    requestOrigin,
+    preferLanPort: portFromOrigin(requestOrigin),
   });
   const session = createPreviewSession({
     businessId,
@@ -184,9 +186,10 @@ export async function PATCH(req: Request) {
     ];
     return ownerFacingError(error, consequence, recovery, 410);
   }
+  const requestOrigin = new URL(req.url).origin;
   const assessment = resolvePreviewBaseUrl({
-    requestOrigin: new URL(req.url).origin,
-    preferLanPort: 3050,
+    requestOrigin,
+    preferLanPort: portFromOrigin(requestOrigin),
   });
   return NextResponse.json({
     ok: true,

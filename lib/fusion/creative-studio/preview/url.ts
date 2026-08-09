@@ -1,6 +1,7 @@
 /**
  * Preview base URL reachability — never silently emit localhost QR for phones.
- * Local development prefers a LAN IP on port 3050 when available.
+ * Prefer an explicit public URL; otherwise translate the actual request origin
+ * (preserving port) onto a LAN hostname when available.
  */
 
 import { networkInterfaces } from "node:os";
@@ -17,7 +18,18 @@ function trimSlash(url: string): string {
   return url.replace(/\/+$/, "");
 }
 
-export function detectLanBaseUrl(port = 3050): string | null {
+export function portFromOrigin(origin: string | null | undefined, fallback = 3000): number {
+  if (!origin) return fallback;
+  try {
+    const parsed = new URL(origin);
+    if (parsed.port) return Number(parsed.port);
+    return parsed.protocol === "https:" ? 443 : 80;
+  } catch {
+    return fallback;
+  }
+}
+
+export function detectLanBaseUrl(port: number): string | null {
   let nets: ReturnType<typeof networkInterfaces>;
   try {
     nets = networkInterfaces();
@@ -42,6 +54,19 @@ export function detectLanBaseUrl(port = 3050): string | null {
   return null;
 }
 
+function isLoopbackHost(host: string): boolean {
+  const h = host.toLowerCase();
+  return h === "localhost" || h === "127.0.0.1" || h === "::1" || h === "0.0.0.0";
+}
+
+function isPrivateLanHost(host: string): boolean {
+  return (
+    host.startsWith("192.168.") ||
+    host.startsWith("10.") ||
+    /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
+  );
+}
+
 export function resolvePreviewBaseUrl(input?: {
   configured?: string | null;
   appUrl?: string | null;
@@ -53,9 +78,31 @@ export function resolvePreviewBaseUrl(input?: {
   const appUrl =
     (input?.appUrl || process.env.NEXT_PUBLIC_APP_URL || "").trim();
   const origin = (input?.requestOrigin || "").trim();
-  const lan = detectLanBaseUrl(input?.preferLanPort ?? 3050);
+  const port =
+    input?.preferLanPort ??
+    (portFromOrigin(origin) ||
+      portFromOrigin(appUrl) ||
+      portFromOrigin(configured) ||
+      3000);
+  const lan = detectLanBaseUrl(port);
 
-  const candidate = configured || appUrl || lan || origin || "http://localhost:3050";
+  // Authority precedence: explicit preview URL → app URL → request origin
+  // translated to LAN (same port) → LAN probe → origin fallback.
+  let candidate = configured || appUrl || "";
+  if (!candidate && origin) {
+    try {
+      const parsed = new URL(origin);
+      if (isLoopbackHost(parsed.hostname) && lan) {
+        candidate = lan;
+      } else {
+        candidate = trimSlash(parsed.toString());
+      }
+    } catch {
+      candidate = origin;
+    }
+  }
+  if (!candidate) candidate = lan || `http://localhost:${port}`;
+
   let parsed: URL;
   try {
     parsed = new URL(candidate);
@@ -66,16 +113,12 @@ export function resolvePreviewBaseUrl(input?: {
       isLocalhost: true,
       reason: "preview_base_url_invalid",
       guidance:
-        "Set NEXT_PUBLIC_PREVIEW_BASE_URL to a reachable https URL or LAN address (e.g. http://192.168.x.x:3050).",
+        `Set NEXT_PUBLIC_PREVIEW_BASE_URL to a reachable https URL or LAN address (e.g. http://192.168.x.x:${port}).`,
     };
   }
 
   const host = parsed.hostname.toLowerCase();
-  const isLocalhost =
-    host === "localhost" ||
-    host === "127.0.0.1" ||
-    host === "::1" ||
-    host === "0.0.0.0";
+  const isLocalhost = isLoopbackHost(host);
 
   if (isLocalhost) {
     if (lan) {
@@ -85,7 +128,7 @@ export function resolvePreviewBaseUrl(input?: {
         isLocalhost: false,
         reason: "preview_lan_auto",
         guidance:
-          "Using your LAN address. Keep the phone on the same Wi-Fi as this computer.",
+          "Using your LAN address with this app's actual port. Keep the phone on the same Wi-Fi. A private IP does not guarantee reachability if the server is loopback-only, firewalled, or on an isolated network.",
       };
     }
     return {
@@ -94,7 +137,7 @@ export function resolvePreviewBaseUrl(input?: {
       isLocalhost: true,
       reason: "preview_localhost_unreachable",
       guidance:
-        "A phone cannot open localhost. Join the same Wi-Fi and set NEXT_PUBLIC_PREVIEW_BASE_URL to http://<your-lan-ip>:3050, or ensure this machine exposes a private IPv4 address.",
+        `A phone cannot open localhost. Join the same Wi-Fi and set NEXT_PUBLIC_PREVIEW_BASE_URL to http://<your-lan-ip>:${port}, or ensure this machine exposes a private IPv4 address while the Studio server listens on a reachable interface.`,
     };
   }
 
@@ -103,10 +146,9 @@ export function resolvePreviewBaseUrl(input?: {
     reachableForPhone: true,
     isLocalhost: false,
     reason: "preview_base_url_ok",
-    guidance:
-      host.startsWith("192.168.") || host.startsWith("10.") || /^172\.(1[6-9]|2\d|3[0-1])\./.test(host)
-        ? "Keep the phone on the same Wi-Fi as this computer."
-        : null,
+    guidance: isPrivateLanHost(host)
+      ? "Keep the phone on the same Wi-Fi. Firewall, VPN, or AP isolation can still block the phone even when a LAN IP is shown."
+      : null,
   };
 }
 

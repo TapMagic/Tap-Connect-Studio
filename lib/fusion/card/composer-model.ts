@@ -471,9 +471,12 @@ export function ensureRootComposition(config: TapConnectCardConfig) {
 }
 
 /**
- * Change Card page height while preserving absolute pixel bounds of every root
- * Element. Normalized y/height are rescaled so Text, Image, Icon, Button, Map,
- * Coupon, Ticket, Form, Gallery, Container, and Group boxes stay put.
+ * PAGE HEIGHT CHANGES PAGE HEIGHT. ONLY PAGE HEIGHT.
+ *
+ * Stored node x/y/width/height are page-relative fractions. When the page grows
+ * or shrinks, those fractions are rescaled so absolute pixel bounds, font sizes,
+ * rotation, and every other child property stay put. Hosts experience zero
+ * artwork drift; only the page canvas extent changes.
  */
 export function setRootPageHeightPreservingBounds(
   root: NonNullable<TapConnectCardConfig["rootComposition"]>,
@@ -486,6 +489,7 @@ export function setRootPageHeightPreservingBounds(
   const scale = previous / pageHeightPx;
   const nodes = root.nodes.map((node) => ({
     ...node,
+    // Vertical fractions only — never touch x/width, rotation, fonts, or props.
     y: Math.max(0, Math.min(2, node.y * scale)),
     height: Math.max(0.01, Math.min(2, node.height * scale)),
   }));
