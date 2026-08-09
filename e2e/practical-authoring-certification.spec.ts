@@ -30,9 +30,9 @@ async function dismissOverlays(page: Page) {
   }
 }
 
-/** Canvas Button icon — never the toolbar `button-icon-choices` cluster. */
+/** Canvas Button icon — never toolbar Icon controls (`button-icon-choices`, color, offsets…). */
 function canvasButtonIcon(page: Page) {
-  return page.locator('[data-testid^="button-icon-"]:not([data-testid="button-icon-choices"])').first();
+  return page.locator('[data-composition-node] [data-testid^="button-icon-"]').first();
 }
 
 async function insertButton(page: Page) {
