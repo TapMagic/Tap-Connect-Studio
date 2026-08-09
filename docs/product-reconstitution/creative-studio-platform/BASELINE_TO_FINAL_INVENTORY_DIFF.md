@@ -36,3 +36,19 @@
 ## Removals
 
 None intentional. No Host-facing capability was deleted to green tests.
+
+## Runtime inventory comparison (physical)
+
+Architectural notes above are not sufficient alone. Physical runtime inventories were captured with the same Owner-sim scrape (normal disclosures opened; disclosure state not mutated for cheat):
+
+| Field | Value |
+| --- | --- |
+| Baseline SHA | `b4d903c92884cff68d6122dc7cc8dff4942a0023` |
+| Baseline unique controls | **398** |
+| Final unique controls | **416** |
+| Unexplained drift | **0** |
+| Gate | `e2e/runtime-inventory-gate.spec.ts` (`OWNER_SIM_INVENTORY_GATE=1`) |
+| Explanations | `RUNTIME_INVENTORY_DRIFT_EXPLANATIONS.json` |
+| Diff artifact | `tmp/owner-sim-physical-evidence/_manifest/runtime-inventory-baseline-final-diff.json` |
+
+Explained drift families: Visual Plane kinds + pattern catalog, Write / Writing Assist renames (was AI Assist / Magic Write), removal of legacy background swatch/gradient starters, and transient recovery-dialog scrape variance.
