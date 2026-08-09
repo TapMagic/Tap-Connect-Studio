@@ -67,12 +67,13 @@ test.describe("visual plane independence", () => {
     await expect(
       page.getByTestId("visual-plane-studio-container").getByTestId("visual-plane-use-as-pattern-container")
     ).toBeVisible();
-    // Kind tabs + Brand pattern door prove Container shares the same Visual Plane studio.
+    await ownerClick(
+      page.getByTestId("visual-plane-studio-container").getByTestId("visual-plane-kind-pattern"),
+      "Container pattern"
+    );
     await expect(
       page.getByTestId("visual-plane-studio-container").getByTestId("visual-plane-kind-pattern")
-    ).toBeVisible();
-    await expect(
-      page.getByTestId("visual-plane-studio-container").getByTestId("visual-plane-kind-texture")
-    ).toBeVisible();
+    ).toHaveAttribute("aria-pressed", "true");
+    await expect(page.getByTestId("visual-plane-catalog-container")).toBeVisible({ timeout: 10_000 });
   });
 });

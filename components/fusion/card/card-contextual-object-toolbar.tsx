@@ -903,7 +903,33 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             stockReady={model.stockReady}
             brandLogoUrl={model.strInherited("logoUrl") || model.logoUrl || "/tap-connect-logo.png"}
             solidSwatches={[String(node.props.fill || "#171b24"), model.config.accentColor, model.config.surfaceColor, "#f8fafc"].filter(Boolean) as string[]}
-            onChange={(plane, label) => patchProps(writeContainerVisualPlane(plane), label)}
+            onChange={(plane, label) => {
+              const planeProps = writeContainerVisualPlane(plane);
+              // Bypass selection-generation soft-fail so Visual Plane kind changes always land.
+              replace(
+                {
+                  ...block,
+                  nodes: block.nodes.map((candidate) =>
+                    candidate.id === node.id
+                      ? {
+                          ...candidate,
+                          props: {
+                            ...candidate.props,
+                            ...planeProps,
+                            visualPlane: plane,
+                            gradientStart: planeProps.gradientStart ?? null,
+                            gradientEnd: planeProps.gradientEnd ?? null,
+                            gradientFill: planeProps.gradientFill ?? null,
+                            backgroundImageUrl: planeProps.backgroundImageUrl ?? null,
+                            texture: planeProps.texture ?? null,
+                          },
+                        }
+                      : candidate
+                  ),
+                },
+                label
+              );
+            }}
           />
         ) : (
           <div className="grid grid-cols-3 gap-1">{(["transparent", "solid", "gradient"] as const).map((kind) => <button key={kind} type="button" className={buttonClass} data-testid={`surface-fill-${kind}`} onClick={() => patchProps(kind === "transparent" ? { fill: "transparent", gradientFill: undefined, surfaceFillKind: "transparent" } : kind === "solid" ? { fill: String(node.props.fill === "transparent" ? "#171b24" : node.props.fill || "#171b24"), gradientFill: undefined, surfaceFillKind: "solid" } : { gradientFill: String(node.props.gradientFill || "linear-gradient(135deg,#171b24,#0b0f19)"), surfaceFillKind: "gradient" }, `Changed fill to ${kind}`)}>{kind === "transparent" ? "None" : kind}</button>)}</div>
