@@ -100,7 +100,7 @@ const MOBILE_CREATIVE_TOOLS: Array<{ id: CardCreativeTool; label: string }> = [
   { id: "text", label: "Text" },
   { id: "assets", label: "Assets" },
   { id: "layers", label: "Layers" },
-  { id: "ai", label: "AI Assist" },
+  { id: "ai", label: "Write" },
   { id: "tools", label: "Tools" },
 ];
 
