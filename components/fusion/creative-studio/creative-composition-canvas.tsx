@@ -288,6 +288,7 @@ function InlineEditableText({
       style={style}
       dir="ltr"
       contentEditable={editing}
+      spellCheck={editing}
       suppressContentEditableWarning
       data-testid={`composition-inline-text-${nodeId}`}
       data-inline-editing={editing ? "true" : "false"}

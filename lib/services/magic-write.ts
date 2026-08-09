@@ -17,7 +17,7 @@ export async function runMagicWrite(request: MagicWriteRequest): Promise<MagicWr
     return {
       ok: false,
       code: "not_configured",
-      message: "AI provider is not configured. Add OPENAI_API_KEY to enable Magic Write.",
+      message: "Writing Assist needs a server-side AI key. Add OPENAI_API_KEY to enable real suggestions.",
     };
   }
 

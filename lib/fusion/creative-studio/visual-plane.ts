@@ -170,8 +170,11 @@ export function readSurfaceVisualPlane(section: TapCardSection): VisualPlane {
     return {
       kind: "gradient",
       gradient: {
-        type: "linear",
+        version: 1,
+        kind: "linear",
         angle: section.surfaceGradientAngle ?? 135,
+        centerX: 50,
+        centerY: 50,
         stops: [
           {
             id: "a",
@@ -280,8 +283,11 @@ export function readContainerVisualPlane(node: CreativeCompositionNode): VisualP
     return {
       kind: "gradient",
       gradient: {
-        type: "linear",
+        version: 1,
+        kind: "linear",
         angle: Number(node.props.gradientAngle || 145),
+        centerX: 50,
+        centerY: 50,
         stops: [
           {
             id: "a",

@@ -181,6 +181,43 @@ export function VisualPlaneStudio({
         </div>
       ) : null}
 
+      {brandLogoUrl ? (
+        <div className="grid grid-cols-2 gap-1" data-testid={`visual-plane-brand-actions-${target}`}>
+          <button
+            type="button"
+            className="min-h-10 rounded border border-white/10 text-[10px]"
+            data-testid={`visual-plane-brand-photo-${target}`}
+            onClick={() =>
+              onChange(
+                photographyVisualPlane({
+                  url: brandLogoUrl,
+                  mediaAssetId: brandLogoAssetId,
+                }),
+                `Used Brand image as ${label}`
+              )
+            }
+          >
+            Use Brand as photo
+          </button>
+          <button
+            type="button"
+            className="min-h-10 rounded border border-[#b8ff2c]/40 text-[10px] text-[#b8ff2c]"
+            data-testid={`visual-plane-use-as-pattern-${target}`}
+            onClick={() =>
+              onChange(
+                repeatingMediaPatternPlane({
+                  url: brandLogoUrl,
+                  mediaAssetId: brandLogoAssetId,
+                }),
+                `Used Brand as repeating pattern on ${label}`
+              )
+            }
+          >
+            Use as Pattern
+          </button>
+        </div>
+      ) : null}
+
       {value.kind === "image" || kind === "image" ? (
         <div className="space-y-2" data-testid={`visual-plane-media-${target}`}>
           <MediaPicker
@@ -222,42 +259,6 @@ export function VisualPlaneStudio({
               );
             }}
           />
-          {brandLogoUrl ? (
-            <div className="grid grid-cols-2 gap-1">
-              <button
-                type="button"
-                className="min-h-10 rounded border border-white/10 text-[10px]"
-                data-testid={`visual-plane-brand-photo-${target}`}
-                onClick={() =>
-                  onChange(
-                    photographyVisualPlane({
-                      url: brandLogoUrl,
-                      mediaAssetId: brandLogoAssetId,
-                    }),
-                    `Used Brand image as ${label}`
-                  )
-                }
-              >
-                Use Brand as photo
-              </button>
-              <button
-                type="button"
-                className="min-h-10 rounded border border-[#b8ff2c]/40 text-[10px] text-[#b8ff2c]"
-                data-testid={`visual-plane-use-as-pattern-${target}`}
-                onClick={() =>
-                  onChange(
-                    repeatingMediaPatternPlane({
-                      url: brandLogoUrl,
-                      mediaAssetId: brandLogoAssetId,
-                    }),
-                    `Used Brand as repeating pattern on ${label}`
-                  )
-                }
-              >
-                Use as Pattern
-              </button>
-            </div>
-          ) : null}
           {value.kind === "image" ? (
             <div className="grid grid-cols-2 gap-2">
               <label className="text-[10px] text-white/65">

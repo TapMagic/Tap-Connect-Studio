@@ -20,7 +20,7 @@ export function sanitizeMediaSvg(bytes: Buffer): Buffer | null {
   let cleaned = raw
     .replace(/<\s*script\b[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, "")
     .replace(/<\s*foreignObject\b[^>]*>[\s\S]*?<\s*\/\s*foreignObject\s*>/gi, "")
-    .replace(/<\s*(?:iframe|object|embed|link|meta|base)\b[^>]*>[\s\S]*?(?:<\s*\/\s*\1\s*>)?/gi, "")
+    .replace(/<\s*(iframe|object|embed|link|meta|base)\b[^>]*(?:\/>|>[\s\S]*?<\s*\/\s*\1\s*>)?/gi, "")
     .replace(/\son\w+\s*=\s*(["']).*?\1/gi, "")
     .replace(/\son\w+\s*=\s*[^\s>]+/gi, "")
     .replace(/\s(?:href|xlink:href)\s*=\s*(["'])\s*javascript:[^"']*\1/gi, "")
