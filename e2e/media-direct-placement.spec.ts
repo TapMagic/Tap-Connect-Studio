@@ -128,5 +128,25 @@ test.describe("media direct placement", () => {
         expect(body.toLowerCase()).not.toContain("onclick=");
       }
     }
+
+    // Media browser must stack above the contextual object toolbar (Host can reach provider tabs).
+    await ownerClick(page.getByTestId("card-creative-tool-assets"), "Assets rail");
+    await ownerClick(page.getByRole("button", { name: /Browse media & assets/i }), "Browse media");
+    const browser = page.getByTestId("shared-media-browser");
+    await expect(browser).toBeVisible({ timeout: 10_000 });
+    const stacking = await page.evaluate(() => {
+      const overlay = document.querySelector('[data-testid="shared-media-browser-overlay"]');
+      const toolbar = document.querySelector('[data-testid="card-contextual-object-tools"]');
+      if (!overlay) return { ok: false, reason: "missing overlay" };
+      const oz = Number.parseInt(getComputedStyle(overlay).zIndex || "0", 10);
+      const tz = toolbar ? Number.parseInt(getComputedStyle(toolbar).zIndex || "0", 10) : 0;
+      return { ok: oz > tz, overlayZ: oz, toolbarZ: tz };
+    });
+    expect(stacking.ok, `media overlay z (${stacking.overlayZ}) must exceed toolbar z (${stacking.toolbarZ})`).toBe(
+      true
+    );
+    await ownerClick(page.getByRole("tab", { name: /Pexels/i }), "Pexels tab above toolbar");
+    await expect(page.getByRole("tab", { name: /Pexels/i })).toHaveAttribute("aria-selected", "true");
+    await ownerClick(page.getByRole("button", { name: /Close Media and Asset Browser/i }), "Close media");
   });
 });

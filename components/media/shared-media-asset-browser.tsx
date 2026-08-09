@@ -503,7 +503,7 @@ export function SharedMediaAssetBrowser({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[80] flex items-end justify-center bg-black/75 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[1900] flex items-end justify-center bg-black/75 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
