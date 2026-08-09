@@ -10,7 +10,6 @@ import {
 
 export { resolveMaterialSurfaceFromProps, resolveMaterialSurfaceFromRecipe, materialSurfaceParityKey } from "./material-surface";
 export type { MaterialSurfaceDescriptor, MaterialSurfaceRole } from "./material-surface";
-import { materialPreviewBackgroundFromRecipe, materialSurfaceShadowCss } from "./material-surface";
 
 export type MaterialCategory =
   | "basic"
