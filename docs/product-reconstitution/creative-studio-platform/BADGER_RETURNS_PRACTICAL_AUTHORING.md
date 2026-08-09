@@ -9,16 +9,18 @@
 |------|-----|
 | Starting HEAD | `cdcabf8a9422a2b6e999d45a4feca584af293da6` |
 | Prior Product Certification (evidence only) | `fdd7473db809b668cae1621f7273fc1f14dfdead` |
-| **New Product SHA** | `7b61ce48bceabb3fdbe41b2cb094c3a837686da9` |
-| Certification jig (practical + unit gates in same freeze) | `7b61ce48bceabb3fdbe41b2cb094c3a837686da9` |
-| Documentation | _(this commit)_ |
+| Product reconstitution freeze | `7b61ce48bceabb3fdbe41b2cb094c3a837686da9` |
+| Documentation closeout | `4d7efb4efd820fdeaaddb9c28247fa6af9ed2705` |
+| **Active Product SHA (HV candidate)** | `eb1f53f7c91dffa89fff6424c7cd23efb9679936` |
+| Certification jig | included in Product freeze + practical e2e |
 
 ## Dual green
 
 | Run | Port | Suite | Result |
 |-----|------|-------|--------|
-| Green #1 | 3066 | 23 tests (practical + owner-sim + chaos + planes + media + fonts + steward) | **23 passed**, retries 0 |
-| Green #2 | 3067 (fresh build/start) | same | **23 passed**, retries 0 |
+| Green #1 | 3066 | 23 tests on `7b61ce4` | **23 passed**, retries 0 |
+| Green #2 | 3067 (fresh build/start) | 23 tests on `7b61ce4` | **23 passed**, retries 0 |
+| HEAD re-verify | 3068 | 23 tests on `eb1f53f` | **23 passed**, retries 0 |
 
 Evidence: `tmp/owner-sim-physical-evidence/_reports/green{1,2}-*.json|log`  
 Practical evidence: `tmp/practical-authoring-evidence/`  
