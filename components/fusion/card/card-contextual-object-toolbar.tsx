@@ -581,6 +581,21 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       }
     }
     let props = { ...node.props, ...next };
+    // Explicit clears: JSON history drops `undefined`, so Visual Plane writes must null legacy rivals.
+    if (next.visualPlane !== undefined) {
+      props = {
+        ...props,
+        visualPlane: next.visualPlane,
+        gradientStart: next.gradientStart ?? null,
+        gradientEnd: next.gradientEnd ?? null,
+        gradientFill: next.gradientFill ?? null,
+        gradientAngle: next.gradientAngle ?? null,
+        backgroundImageUrl: next.backgroundImageUrl ?? null,
+        texture: next.texture ?? null,
+        fill: next.fill ?? props.fill,
+        surfaceFillKind: next.surfaceFillKind ?? null,
+      };
+    }
     if (isButton && typeof next.label === "string") props = updateButtonLabel(props, next.label, node.id);
     if (isButton) {
       const textPatch: Record<string, unknown> = {};

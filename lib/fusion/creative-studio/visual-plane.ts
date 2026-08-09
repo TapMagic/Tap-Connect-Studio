@@ -366,8 +366,13 @@ export function writeContainerVisualPlane(plane: VisualPlane): Record<string, un
   return {
     visualPlane: plane,
     fill: plane.pattern.background,
+    gradientStart: undefined,
+    gradientEnd: undefined,
+    gradientFill: undefined,
+    gradientAngle: undefined,
     texture: plane.pattern.id,
     surfaceFillKind: plane.kind,
+    backgroundImageUrl: undefined,
   };
 }
 
