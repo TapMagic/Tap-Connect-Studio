@@ -1,6 +1,6 @@
 # Badger Returns — Material Consumer Closeout + Live Device Honesty
 
-**Status:** Engineering candidate after systemic Material consumer + Live Device UI closeout.  
+**Status:** Dual-green engineering candidate ready for Product Owner Human Verification.  
 **Human Verification:** Required — physical phone Live Device + Owner authoring acceptance.  
 **Do not claim BADGER CAPTURED** until Product Owner Human Verification.
 
@@ -10,9 +10,9 @@
 |------|-----|
 | Starting HEAD (this assignment) | `5b46ce23326a36854af16c7212d14d615a037f13` |
 | Prior HV candidate (superseded) | `8d49d845f2453b92c8f1b3a4fe7467a7ed79226f` |
-| **Final Product SHA** | _(set at dual-green freeze)_ |
-| **Final Certification-Jig SHA** | _(same as Product when jig co-shipped)_ |
-| Documentation / remote tip | _(set after push)_ |
+| **Final Product SHA** | `2062a586b4023e40de37943b120f8c3529db2596` |
+| **Final Certification-Jig SHA** | `2062a586b4023e40de37943b120f8c3529db2596` |
+| Documentation / remote tip | Same as remote `tapconnect-operational-spine-restoration` HEAD after push |
 
 ## Exposed Material Consumer Inventory
 
@@ -21,7 +21,7 @@
 | Appearance → Material (Button) | Button Surface | `applySurfaceMaterial` / `asButtonSurface` | node `materialPreset` + `gradientFill` / fill + layers | `resolveMaterialSurfaceFromProps(button)` + `MaterialSurfaceLayers` | Same via `CreativeCompositionCanvas` | Yes | **PASS** |
 | Appearance → Material (Badge) | Badge Surface | `applySurfaceMaterial` | node Material props | Badge path + shared layers | Same canvas | Yes | **PASS** |
 | Appearance → Material (Shape) | Shape Surface | `applySurfaceMaterial` | node Material props | Shape fill + shared layers | Same canvas | Yes | **PASS** |
-| Appearance → Material (Container) | Container Surface | `applySurfaceMaterial` (clears stale `visualPlane`) | node Material props; Visual Plane only when no Material | Material path when `materialPreset` set; else `readContainerVisualPlane` | Same canvas | Yes (Material path) | **REPAIRED → PASS** |
+| Appearance → Material (Container) | Container Surface | `applySurfaceMaterial` via durable `replace` (clears `visualPlane` with `null`) | node Material props; Visual Plane only when no Material | Material path when `materialPreset` set; else `readContainerVisualPlane` | Same canvas | Yes (Material path) | **REPAIRED → PASS** |
 | Appearance → Material (Coupon) | Coupon Surface | `applySurfaceMaterial` | node Material props | Shared Material fill + layers; content/perforation/QR untouched | Same canvas | Yes | **REPAIRED → PASS** |
 | Appearance → Material (Ticket) | Ticket Surface | `applySurfaceMaterial` | node Material props | Shared Material fill + layers; identity/terms/QR untouched | Same canvas | Yes | **REPAIRED → PASS** |
 | Icon Appearance → Backing Surface Material | Icon Backing | `applyMaterialRecipe("icon_backing")` | `boxFill` / `boxGradient` + Material layers; artwork independent | `resolveMaterialSurfaceFromProps(icon_backing)` + layers | Same canvas | Yes | **REPAIRED → PASS** |
@@ -41,6 +41,7 @@ Universal law: Material picker preview and applied result resolve through the sa
 | `compositionBackgroundFromMaterialRecipe` | Page Background adapter into Visual Plane + `materialPreset` |
 | `materialPropsFromCompositionBackground` | Rehydrate Material props for page render |
 | Button / Badge / Shape / Container / Coupon / Ticket / Icon Backing / Page BG | Consume shared authority (geometry adapters only) |
+| `patchProps` Material/`visualPlane` path | Durable `replace` (avoids selection-generation soft-fail) |
 
 PAGE BACKGROUND ≠ SURFACE BACKGROUND ≠ CONTAINER BACKGROUND remains enforced: Material on Container never mutates Page Background.
 
@@ -62,12 +63,18 @@ UI (`LiveDeviceQrPanel`):
 
 ## Dual green
 
-| Run | Port | Suite | Result |
-|-----|------|-------|--------|
-| Green #1 | _(fresh ≠ 3072)_ | prior engineering suite + Task I | _(pending)_ |
-| Green #2 | _(fresh ≠ 3072)_ | same Product + Jig SHA, retries 0 | _(pending)_ |
+| Run | Port | PID | Suite | Result |
+|-----|------|-----|-------|--------|
+| Green #1 | **3081** | 837 | 25 tests (prior engineering + Task I) | **25 passed**, retries 0 |
+| Green #2 | **3082** | 1658 | same Product + Jig SHA | **25 passed**, retries 0 |
 
-Prior Green #2 on **3072 / PID 93101** is left undisturbed and is **not** part of this pair.
+Product SHA = Jig SHA = `2062a586b4023e40de37943b120f8c3529db2596`.
+
+Prior Green #2 on **3072 / PID 93101** was left undisturbed and is **not** part of this pair.
+
+Evidence: `tmp/owner-sim-physical-evidence/_reports/green{1,2}-material-consumers-*.json|log`  
+Materials: `tmp/practical-authoring-evidence/materials/consumer-gate.json`  
+Steward: `tmp/practical-authoring-evidence/product-steward/steward-walkthrough.json`
 
 ## External blockers
 
