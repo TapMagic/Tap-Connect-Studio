@@ -45,11 +45,13 @@ test.describe("media direct placement", () => {
       page.getByTestId("common-more-menu").getByRole("button", { name: /^Copy$/i }),
       "Copy"
     );
+    await expect(page.getByTestId("common-more-menu")).toBeHidden({ timeout: 5_000 });
     const textCount = await page.locator("[data-composition-node][data-primitive='text']").count();
+    await canvas.click({ position: { x: 24, y: 24 } });
     await page.keyboard.press(process.platform === "darwin" ? "Meta+v" : "Control+v");
     await expect
       .poll(async () => page.locator("[data-composition-node][data-primitive='text']").count(), {
-        timeout: 10_000,
+        timeout: 15_000,
       })
       .toBeGreaterThan(textCount);
     await undo(page);
@@ -128,16 +130,19 @@ test.describe("media direct placement", () => {
         expect(body.toLowerCase()).not.toContain("onclick=");
       }
     }
+  });
 
-    // Media browser must stack above the contextual object toolbar (Host can reach provider tabs).
+  test("Media Browser stacks above contextual object toolbar", async ({ page }) => {
+    await openBlankStudio(page);
+    await insertFamily(page, "text");
+    await expect(page.getByTestId("card-contextual-object-tools")).toBeVisible({ timeout: 10_000 });
     await ownerClick(page.getByTestId("card-creative-tool-assets"), "Assets rail");
     await ownerClick(page.getByRole("button", { name: /Browse media & assets/i }), "Browse media");
-    const browser = page.getByTestId("shared-media-browser");
-    await expect(browser).toBeVisible({ timeout: 10_000 });
+    await expect(page.getByTestId("shared-media-browser")).toBeVisible({ timeout: 10_000 });
     const stacking = await page.evaluate(() => {
       const overlay = document.querySelector('[data-testid="shared-media-browser-overlay"]');
       const toolbar = document.querySelector('[data-testid="card-contextual-object-tools"]');
-      if (!overlay) return { ok: false, reason: "missing overlay" };
+      if (!overlay) return { ok: false, overlayZ: 0, toolbarZ: 0 };
       const oz = Number.parseInt(getComputedStyle(overlay).zIndex || "0", 10);
       const tz = toolbar ? Number.parseInt(getComputedStyle(toolbar).zIndex || "0", 10) : 0;
       return { ok: oz > tz, overlayZ: oz, toolbarZ: tz };

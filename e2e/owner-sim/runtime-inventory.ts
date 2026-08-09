@@ -195,17 +195,19 @@ export function stableInventoryKey(control: Pick<RuntimeControl, "testId" | "rol
 }
 
 export function mergeRuntimeInventories(snapshots: RuntimeInventorySnapshot[]) {
+  // Live merge keeps instance testIds so exhaustive accounting can remap handles.
+  // Use stableInventoryKey() only for baseline↔final drift comparison.
   const byKey = new Map<string, RuntimeControl & { contexts: string[] }>();
   for (const snap of snapshots) {
     for (const control of snap.controls) {
-      const stable = stableInventoryKey(control);
+      const stable = `${control.testId || control.role}|${control.name}|${control.tag}`;
       const existing = byKey.get(stable);
       if (existing) {
         existing.contexts.push(snap.contextLabel);
         if (control.enabled) existing.enabled = true;
         if (control.visible) existing.visible = true;
       } else {
-        byKey.set(stable, { ...control, testId: control.testId?.replace(/node-[A-Za-z0-9_-]+/g, "node-<id>") || control.testId, contexts: [snap.contextLabel] });
+        byKey.set(stable, { ...control, contexts: [snap.contextLabel] });
       }
     }
   }
