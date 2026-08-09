@@ -177,18 +177,35 @@ export function writeRuntimeInventory(snapshot: RuntimeInventorySnapshot, fileNa
   return file;
 }
 
+/**
+ * Stable inventory identity for baseline↔final drift.
+ * Instance node ids on composition handles are ephemeral per insert and must not count as product drift.
+ */
+export function stableInventoryKey(control: Pick<RuntimeControl, "testId" | "role" | "name" | "tag">) {
+  let testId = control.testId || "";
+  testId = testId
+    .replace(/^composition-more-node-.+$/i, "composition-more-node-<id>")
+    .replace(/^composition-rotate-node-.+$/i, "composition-rotate-node-<id>")
+    .replace(/^composition-resize-node-.+-(nw|n|ne|e|se|s|sw|w)$/i, "composition-resize-node-<id>-$1");
+  // Prefer aria name family for More actions ("More actions for Text") over raw id.
+  const name = (control.name || "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return `${testId || control.role}|${name}|${control.tag}`;
+}
+
 export function mergeRuntimeInventories(snapshots: RuntimeInventorySnapshot[]) {
   const byKey = new Map<string, RuntimeControl & { contexts: string[] }>();
   for (const snap of snapshots) {
     for (const control of snap.controls) {
-      const stable = `${control.testId || control.role}|${control.name}|${control.tag}`;
+      const stable = stableInventoryKey(control);
       const existing = byKey.get(stable);
       if (existing) {
         existing.contexts.push(snap.contextLabel);
         if (control.enabled) existing.enabled = true;
         if (control.visible) existing.visible = true;
       } else {
-        byKey.set(stable, { ...control, contexts: [snap.contextLabel] });
+        byKey.set(stable, { ...control, testId: control.testId?.replace(/node-[A-Za-z0-9_-]+/g, "node-<id>") || control.testId, contexts: [snap.contextLabel] });
       }
     }
   }
