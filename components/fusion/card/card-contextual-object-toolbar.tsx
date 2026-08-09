@@ -654,6 +654,20 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         props = { ...props, contentComposition: { ...content, nodes } };
       }
     }
+    // Material (and Visual Plane) must not soft-fail on selection-generation drift —
+    // Host Material applies are outcome-critical and use the same durable replace path.
+    if ("materialPreset" in next || next.visualPlane !== undefined || ("visualPlane" in next && next.visualPlane === null)) {
+      replace(
+        {
+          ...block,
+          nodes: block.nodes.map((candidate) =>
+            candidate.id === node.id ? { ...candidate, props } : candidate
+          ),
+        },
+        label
+      );
+      return;
+    }
     patch({ props }, label);
   };
   const duplicate = () => {
