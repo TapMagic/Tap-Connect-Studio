@@ -2,6 +2,7 @@ import { nanoid } from "nanoid";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { PremiumFinish, TextFormat } from "@/lib/design/premium-finish";
 import type { CreativeCompositionBlock } from "@/lib/fusion/creative-studio/composition";
+import type { CreativeFill } from "@/lib/fusion/creative-platform/model";
 
 /** Action kinds — link target helpers. Any custom URL still works with kind "custom". */
 export type TapCardActionKind =
@@ -298,6 +299,8 @@ export type TapCardSection = {
   surfaceGradientAngle?: number;
   surfacePattern?: "diagonal" | "dots" | "grid";
   surfaceTexture?: "paper" | "noise" | "fabric";
+  /** Canonical Visual Plane fill for Surface / Background (shared authority). */
+  surfaceVisualPlane?: CreativeFill;
   backgroundImageUrl?: string;
   backgroundMediaAssetId?: string;
   backgroundFit?: "cover" | "contain" | "fill";

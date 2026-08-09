@@ -73,7 +73,7 @@ const entries = [
   // Group common ops — Ungroup is required wherever Group parent mode is active.
   command("ungroup.open", "Ungroup", null, ["group"], 30, "common-operation"),
   command("arrange.open", "Arrange", "arrange", ["group", "text", "image", "logo", "icon", "shape", "divider", "badge", "button", "coupon", "ticket", "container", "gallery", "form", "map", "qr", "video"], 40),
-  command("magicWrite.open", "Magic Write", "magic-write", ["group", "text", "badge", "button", "coupon", "ticket"], 35),
+  command("magicWrite.open", "Writing Assist", "magic-write", ["group", "text", "badge", "button", "coupon", "ticket"], 35),
   command("reset.appearance", "Reset Appearance", null, families, 99, "common-operation"),
 ] as const;
 

@@ -323,7 +323,7 @@ export function AssetsLibrary({
         <input
           ref={inputRef}
           type="file"
-          accept="image/png,image/jpeg,image/webp,image/gif"
+          accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.svg"
           multiple
           className="sr-only"
           aria-label="Upload asset files"

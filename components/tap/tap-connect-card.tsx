@@ -34,6 +34,10 @@ import {
 } from "@/lib/design/button-layout";
 import { socialBrandStyle } from "@/components/tap/social-icons";
 import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
+import {
+  readSurfaceVisualPlane,
+  visualPlaneToStyle,
+} from "@/lib/fusion/creative-studio/visual-plane";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { cn, firstImageUrl } from "@/lib/utils";
 import {
@@ -1177,11 +1181,8 @@ export function TapConnectCard({
       ...createStarterCreativeComposition(section.id),
       nodes: [],
     };
-    const overlay = section.overlayColor || "#000000";
-    const overlayAlpha = Math.round(Math.max(0, Math.min(1, section.overlayOpacity ?? 0)) * 255)
-      .toString(16)
-      .padStart(2, "0");
-    const image = section.backgroundImageUrl;
+    const surfacePlane = readSurfaceVisualPlane(section);
+    const surfacePlaneStyle = visualPlaneToStyle(surfacePlane);
     const shadow = section.surfaceShadow === "strong"
       ? "0 18px 45px rgba(0,0,0,.4)"
       : section.surfaceShadow === "medium"
@@ -1193,28 +1194,7 @@ export function TapConnectCard({
     const minHeight = section.surfaceMinHeightPx ?? 260;
     const exactHeight = section.surfaceExactHeightPx ?? minHeight;
     const coordinateHeight = section.surfaceCoordinateHeightPx ?? Math.max(80, minHeight - padding * 2);
-    const backgroundKind = section.surfaceBackgroundKind || (image ? "image" : section.backgroundColor === "transparent" ? "transparent" : "solid");
-    const surfaceBackgroundImage = backgroundKind === "image" && image
-      ? `linear-gradient(${overlay}${overlayAlpha}, ${overlay}${overlayAlpha}), url("${image.replaceAll('"', "%22")}")`
-      : backgroundKind === "gradient"
-        ? `linear-gradient(${section.surfaceGradientAngle ?? 145}deg, ${section.surfaceGradientStart || section.backgroundColor || "#171b24"}, ${section.surfaceGradientEnd || "#0b0f19"})`
-        : backgroundKind === "pattern"
-          ? section.surfacePattern === "dots"
-            ? `radial-gradient(circle, ${section.surfaceBorderColor || "#ffffff33"} 1.5px, transparent 1.5px)`
-            : section.surfacePattern === "grid"
-              ? `linear-gradient(${section.surfaceBorderColor || "#ffffff22"} 1px, transparent 1px), linear-gradient(90deg, ${section.surfaceBorderColor || "#ffffff22"} 1px, transparent 1px)`
-              : `repeating-linear-gradient(135deg, ${section.backgroundColor || "#171b24"} 0 12px, ${section.surfaceGradientEnd || "#0b0f19"} 12px 24px)`
-          : backgroundKind === "texture"
-            ? section.surfaceTexture === "fabric"
-              ? `repeating-linear-gradient(0deg, #ffffff08 0 1px, transparent 1px 4px), repeating-linear-gradient(90deg, #ffffff06 0 1px, transparent 1px 5px)`
-              : section.surfaceTexture === "paper"
-                ? `radial-gradient(circle at 20% 30%, #ffffff10 0 1px, transparent 2px), radial-gradient(circle at 70% 60%, #00000018 0 1px, transparent 2px)`
-                : `repeating-radial-gradient(circle at 30% 40%, #ffffff08 0 1px, transparent 1px 3px)`
-            : undefined;
     const glow = section.surfaceGlow === "strong" ? `0 0 34px ${section.surfaceBorderColor || "#b8ff2c"}` : section.surfaceGlow === "medium" ? `0 0 22px ${section.surfaceBorderColor || "#b8ff2c"}` : section.surfaceGlow === "soft" ? `0 0 12px ${section.surfaceBorderColor || "#b8ff2c"}` : undefined;
-    const renderedBackgroundImage = (section.overlayOpacity ?? 0) > 0 && backgroundKind !== "image"
-      ? [`linear-gradient(${overlay}${overlayAlpha}, ${overlay}${overlayAlpha})`, surfaceBackgroundImage].filter(Boolean).join(", ")
-      : surfaceBackgroundImage;
     const beginSectionResize = (event: PointerEvent<HTMLButtonElement>, edge: "top" | "bottom" = "bottom") => {
       if (!editSelects || section.locked) return;
       event.preventDefault();
@@ -1265,11 +1245,7 @@ export function TapConnectCard({
           minHeight,
           height: section.surfaceHeightMode === "fixed" ? exactHeight : undefined,
           padding,
-          backgroundColor: backgroundKind === "transparent" ? "transparent" : section.backgroundColor || "transparent",
-          backgroundImage: renderedBackgroundImage,
-          backgroundRepeat: backgroundKind === "pattern" || backgroundKind === "texture" ? "repeat" : undefined,
-          backgroundSize: backgroundKind === "pattern" ? "24px 24px" : backgroundKind === "texture" ? "8px 8px" : section.backgroundFit || "cover",
-          backgroundPosition: section.backgroundPosition || "50% 50%",
+          ...surfacePlaneStyle,
           border: `${section.surfaceBorderWidthPx ?? 0}px solid ${section.surfaceBorderColor || "transparent"}`,
           borderRadius: section.surfaceRadiusPx ?? 18,
           boxShadow: [shadow, glow].filter(Boolean).join(", ") || undefined,
@@ -1279,6 +1255,7 @@ export function TapConnectCard({
         data-surface-kind={section.surfaceKind || "blank"}
         data-section-preset={section.sectionPresetId || undefined}
         data-surface-layout={section.surfaceLayout || "stack"}
+        data-visual-plane={surfacePlane.kind}
         draggable={editSelects && !section.locked && selectedSectionId !== section.id}
         onDragStart={(event) => {
           if (event.target !== event.currentTarget) { event.preventDefault(); return; }

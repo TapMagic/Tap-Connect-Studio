@@ -7,10 +7,19 @@ import {
   LayoutTemplate, Library, Lock, MousePointer2, Palette, Pencil, Shapes, Sparkles, Ticket, BadgePercent, Trash2, Type, Unlock, Wrench,
 } from "lucide-react";
 import { MediaPicker } from "@/components/media/media-picker";
+import { VisualPlaneStudio } from "@/components/fusion/creative-studio/visual-plane-studio";
 import { CardComposerLibrary } from "./card-composer-library";
 import { DEEP_LEFT_EDIT_PORTAL_ID, useDeepLeftEditorOptional } from "@/components/fusion/creative-studio/deep-left-editor-context";
 import { deepLeftHeader } from "@/lib/fusion/creative-studio/deep-left-editor";
-import { consumeMagicWriteOpenRequest, type CardEditorLiveModel } from "./card-editor-live";
+import {
+  consumeMagicWriteOpenRequest,
+  requestMagicWriteOpen,
+  type CardEditorLiveModel,
+} from "./card-editor-live";
+import {
+  readPageVisualPlane,
+  writePageVisualPlane,
+} from "@/lib/fusion/creative-studio/visual-plane";
 import {
   CARD_ELEMENT_LIBRARY,
   SECTION_PRESET_LIBRARY,
@@ -54,6 +63,10 @@ import {
   geometryFromStarter,
 } from "@/lib/fusion/creative-studio/coupon-composition";
 import { textDescendantsInScope } from "@/lib/fusion/creative-studio/group-authority";
+import {
+  domainForStudioTool,
+  semanticAccentStyle,
+} from "@/lib/fusion/creative-studio/semantic-accents";
 import { cn } from "@/lib/utils";
 import { buttonContent } from "@/lib/fusion/creative-studio/button-composition";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
@@ -75,7 +88,7 @@ const TOOLS: Array<{ id: CardCreativeTool; label: string; icon: typeof LayoutTem
   { id: "projects", label: "Projects", icon: FolderKanban },
   { id: "reusable", label: "Reusable", icon: Library },
   { id: "layers", label: "Layers", icon: Layers3 },
-  { id: "ai", label: "AI Assist", icon: Bot },
+  { id: "ai", label: "Write", icon: Bot },
   { id: "tools", label: "Tools", icon: Wrench },
   { id: "help", label: "Help", icon: HelpCircle },
   // Build remains available as an optional guided checklist only — not a duplicate catalog.
@@ -119,7 +132,34 @@ export function CardCreativeToolRail({ model, activeTool, drawerOpen: controlled
         {TOOLS.map((tool) => {
           const ToolIcon = tool.icon;
           const selected = drawerOpen && !editMode && active === tool.id;
-          return <button key={tool.id} type="button" aria-pressed={selected} aria-label={tool.label} data-testid={`card-creative-tool-${tool.id}`} className={cn("flex min-h-[58px] w-full flex-col items-center justify-center gap-1 px-1 text-[9px]", selected ? "bg-white/10 text-[#b8ff2c]" : "text-white/60 hover:bg-white/5 hover:text-white")} onClick={() => { setActive(tool.id); setDrawerOpen(true); }}><ToolIcon className="h-4 w-4" aria-hidden /><span>{tool.label}</span></button>;
+          const domain = domainForStudioTool(tool.id);
+          const accent = semanticAccentStyle(domain);
+          return (
+            <button
+              key={tool.id}
+              type="button"
+              aria-pressed={selected}
+              aria-label={tool.label}
+              data-testid={`card-creative-tool-${tool.id}`}
+              data-semantic-domain={domain}
+              className={cn(
+                "flex min-h-[58px] w-full flex-col items-center justify-center gap-1 border-l-2 px-1 text-[9px]",
+                selected ? "bg-white/10" : "border-transparent text-white/60 hover:bg-white/5 hover:text-white"
+              )}
+              style={
+                selected
+                  ? { borderLeftColor: accent.color, color: accent.color }
+                  : undefined
+              }
+              onClick={() => {
+                setActive(tool.id);
+                setDrawerOpen(true);
+              }}
+            >
+              <ToolIcon className="h-4 w-4" aria-hidden />
+              <span>{tool.label}</span>
+            </button>
+          );
         })}
       </nav>
       {(drawerOpen || editMode) ? <section className="min-w-0 flex-1 overflow-y-auto" aria-label={editMode ? "Deep left editor" : `${activeDefinition.label} drawer`} data-testid="card-creative-context-drawer" data-creative-tool={active} data-drawer-mode={editMode ? "edit" : "library"}>
@@ -176,7 +216,7 @@ function CreativeDrawer({ tool, query, model, onSelectTool }: { tool: CardCreati
   if (tool === "projects") return <ProjectsDrawer model={model} matches={matches} />;
   if (tool === "reusable") return <ReusableDrawer model={model} matches={matches} />;
   if (tool === "layers") return <LayersDrawer model={model} />;
-  if (tool === "ai") return <AiAssistDrawer model={model} />;
+  if (tool === "ai") return <AiAssistDrawer model={model} onOpenTextLibrary={() => onSelectTool("text")} />;
   if (tool === "tools") return <QuickToolsDrawer model={model} add={add} />;
   return <div className="space-y-3 text-xs text-white/65" data-testid="card-creative-help"><p>The Card is the canvas. Add text, logos, media, icons, badges, and Buttons directly, or add a Section only when you want a shared surface or layout.</p><ol className="list-decimal space-y-2 pl-4"><li>Choose a tool and click an item to place it.</li><li>Select the object on canvas or in Layers.</li><li>Use its compact contextual toolbar and one focused drawer at a time. More → Advanced settings is optional.</li><li>Preview draft before Save and Publish.</li></ol><p>Keyboard: arrows nudge 1px; Shift+arrow nudges 10px; Shift-click selects multiple; Tab selects beneath in layer order.</p></div>;
 }
@@ -371,7 +411,7 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
         proposals?: Array<{ targetId: string; original: string; proposed: string }>;
       };
       if (!response.ok || !data.ok) {
-        setMagicError(data.message || "Magic Write is unavailable.");
+        setMagicError(data.message || "Writing Assist is unavailable.");
         setMagicStatus("error");
         setProposals([]);
         return;
@@ -379,7 +419,7 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
       setProposals(data.proposals || []);
       setMagicStatus("ready");
     } catch {
-      setMagicError("Magic Write request failed. Retry when the provider is available.");
+      setMagicError("Writing Assist request failed. Retry when the provider is available.");
       setMagicStatus("error");
       setProposals([]);
     }
@@ -398,7 +438,7 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
         model.patchCompositionNode(
           proposal.targetId,
           { props: { ...node.props, text: proposal.proposed, aiAuthored: true } },
-          "Applied Magic Write"
+          "Applied Writing Assist"
         );
       }
     }
@@ -430,12 +470,12 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
       <input type="search" aria-label="Search fonts and combinations" placeholder="Search fonts and combinations" className="h-10 w-full rounded-lg border border-white/15 bg-black/20 px-3 text-xs" />
       <button type="button" className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black" onClick={() => add("text", { text: "Type here", fontSize: 20 })}>Add text box</button>
       <div className="grid grid-cols-3 gap-1">{([["heading", "Heading", 34, 800], ["subheading", "Subheading", 24, 700], ["text", "Body text", 17, 400]] as const).map(([kind, label, fontSize, fontWeight]) => <button key={label} type="button" className="min-h-10 rounded border border-white/10 px-1 text-[10px]" onClick={() => add(kind, { text: `Add ${label.toLowerCase()}`, fontSize, fontWeight })}>{label}</button>)}</div>
-      <button type="button" className="min-h-11 w-full rounded-lg border border-white/15 text-sm font-semibold" data-testid="magic-write-open" onClick={() => { setMagicOpen((open) => !open); setProposals([]); setMagicError(null); setMagicStatus("idle"); }}>✦ Magic Write</button>
+      <button type="button" className="min-h-11 w-full rounded-lg border border-white/15 text-sm font-semibold" data-testid="magic-write-open" onClick={() => { setMagicOpen((open) => !open); setProposals([]); setMagicError(null); setMagicStatus("idle"); }}>✦ Writing Assist</button>
       {magicOpen ? (
         <section className="space-y-2 rounded-xl border border-[#b8ff2c]/30 bg-[#0b1019] p-3" data-testid="magic-write-panel">
           <p className="text-[10px] text-white/55" data-testid="magic-write-scope">{textTargets.length > 1 ? `${textTargets.length} text targets in selection` : textTargets.length === 1 ? "1 selected text target" : "No text selected — describe draft copy below"}</p>
           <div className="flex flex-wrap gap-1">
-            {([["rewrite", "Rewrite"], ["shorten", "Shorten"], ["expand", "Expand"], ["improve_clarity", "Clarity"], ["change_tone", "Tone"], ["fix_grammar", "Grammar"]] as const).map(([id, label]) => (
+            {([["rewrite", "Rewrite"], ["shorten", "Shorten"], ["expand", "Expand"], ["improve_clarity", "Clarity"], ["change_tone", "Tone"], ["fix_grammar", "Proofread"]] as const).map(([id, label]) => (
               <button key={id} type="button" aria-pressed={operation === id} className="min-h-8 rounded border border-white/10 px-2 text-[10px] aria-pressed:border-[#b8ff2c]" onClick={() => setOperation(id)}>{label}</button>
             ))}
           </div>
@@ -449,12 +489,13 @@ function TextLibrary({ model, add, matches, targetChoice, targetSectionId }: { m
                   <p className="text-[9px] uppercase text-white/40">Original</p>
                   <p className="text-[11px] text-white/70">{item.original}</p>
                   <p className="mt-2 text-[9px] uppercase text-[#b8ff2c]">Proposed</p>
-                  <textarea aria-label="Editable Magic Write result" value={item.proposed} onChange={(event) => setProposals((current) => current.map((row) => row.targetId === item.targetId ? { ...row, proposed: event.target.value } : row))} className="mt-1 min-h-20 w-full rounded border border-white/15 bg-black/20 p-2 text-xs" />
+                  <textarea aria-label="Editable Writing Assist result" value={item.proposed} onChange={(event) => setProposals((current) => current.map((row) => row.targetId === item.targetId ? { ...row, proposed: event.target.value } : row))} className="mt-1 min-h-20 w-full rounded border border-white/15 bg-black/20 p-2 text-xs" />
                 </div>
               ))}
-              <p className="text-[9px] text-amber-200">AI-authored starting point. Check offer facts and legal terms before publishing.</p>
-              <div className="grid grid-cols-2 gap-1">
+              <p className="text-[9px] text-amber-200">Suggested starting point. Check offer facts and legal terms before publishing.</p>
+              <div className="grid grid-cols-3 gap-1">
                 <button type="button" className="min-h-9 rounded bg-[#b8ff2c] text-xs font-semibold text-black" data-testid="magic-write-apply" onClick={applyProposals}>Apply</button>
+                <button type="button" className="min-h-9 rounded border border-white/15 text-xs" data-testid="magic-write-try-again" onClick={() => void propose()}>Try again</button>
                 <button type="button" className="min-h-9 rounded border border-white/15 text-xs" data-testid="magic-write-cancel" onClick={() => { setProposals([]); setMagicStatus("idle"); }}>Cancel</button>
               </div>
             </div>
@@ -661,17 +702,40 @@ function ProjectsDrawer({ model, matches }: { model: CardEditorLiveModel; matche
   return <div className="space-y-3" data-testid="card-projects-drawer"><p className="text-[10px] text-white/55">Creative documents and related editable variations. Assets remain in Assets.</p><div className="flex gap-1 text-[9px]"><span className="rounded-full border border-white/10 px-2 py-1">Tap Card</span><span className="rounded-full border border-white/10 px-2 py-1">Recent</span><span className="rounded-full border border-white/10 px-2 py-1">Variations</span></div>{model.documents.filter((document) => matches(document.name)).map((document) => <button type="button" key={document.id} aria-pressed={document.id === model.activeDocumentId} className="flex min-h-16 w-full items-center gap-2 rounded-lg border border-white/10 p-2 text-left aria-pressed:border-[#b8ff2c]" onClick={() => void model.openDocument(document.id)}><span className="grid h-12 w-10 shrink-0 place-items-center rounded bg-gradient-to-b from-slate-700 to-slate-950 text-[8px]">CARD</span><span className="min-w-0"><span className="block truncate text-xs">{document.name}</span><span className="text-[9px] text-white/45">{document.type === "MAIN_CARD" ? "Tap Card" : "Related variation"}</span></span></button>)}</div>;
 }
 
-function AiAssistDrawer({ model }: { model: CardEditorLiveModel }) {
-  const [prompt, setPrompt] = useState("");
-  const [proposal, setProposal] = useState<{ selection: CardEditorLiveModel["selectionRef"]; patch: Record<string, unknown> } | null>(null);
+function AiAssistDrawer({
+  model,
+  onOpenTextLibrary,
+}: {
+  model: CardEditorLiveModel;
+  onOpenTextLibrary: () => void;
+}) {
   const selection = model.selectionRef;
   const scope = selection.objectKind === "root_surface" ? "Current Tap Card" : `${selection.objectKind.replaceAll("_", " ")} · ${selection.objectId}`;
-  const propose = () => {
-    if (selection.objectKind === "element") setProposal({ selection, patch: { props: { fill: "#b8860b", boxGlow: 14, glowColor: "#facc15" } } });
-    else if (selection.objectKind === "section") setProposal({ selection, patch: { surfaceRadiusPx: 24, surfaceShadow: "soft", surfaceGapPx: 16 } });
-    else setProposal({ selection, patch: {} });
-  };
-  return <div className="space-y-3" data-testid="card-ai-assist-drawer"><div className="rounded-lg border border-[#b8ff2c]/25 bg-[#b8ff2c]/5 p-2"><p className="text-[9px] font-semibold uppercase text-[#b8ff2c]">Active scope</p><p className="mt-1 text-xs" data-testid="ai-active-scope">{scope}</p></div><textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} placeholder="Describe a visual change" className="min-h-28 w-full rounded-lg border border-white/10 bg-black/20 p-3 text-xs" /><button type="button" disabled={!prompt.trim()} className="min-h-10 w-full rounded bg-[#b8ff2c] px-2 text-xs font-semibold text-black disabled:opacity-40" onClick={propose}>Preview proposal</button>{proposal ? <section className="rounded-lg border border-white/10 p-3" data-testid="ai-proposal" data-proposal-object={proposal.selection.objectId}><h3 className="text-xs font-semibold">Proposed canonical changes</h3><p className="mt-1 text-[10px] text-white/55">Visual properties only. Action, destination, QR, Campaign, tracking, accessibility, data binding, consent, and publication are preserved.</p><pre className="mt-2 overflow-auto rounded bg-black/30 p-2 text-[9px]">{JSON.stringify(proposal.patch, null, 2)}</pre><div className="mt-2 grid grid-cols-2 gap-2"><button type="button" className="min-h-10 rounded bg-[#b8ff2c] text-xs font-semibold text-black" onClick={() => { const proposalSelection = proposal.selection; if (proposalSelection.objectKind === "element" && proposal.patch.props) { const parent = proposalSelection.parentId === "card-page" ? null : model.sorted.find((section) => section.id === proposalSelection.parentId); const node = (parent?.composition?.nodes ?? model.config.rootComposition?.nodes ?? []).find((candidate) => candidate.id === proposalSelection.objectId); if (node) model.patchSelection(proposalSelection, { props: { ...node.props, ...(proposal.patch.props as Record<string, unknown>) } }, "Applied AI visual proposal"); } else model.patchSelection(proposalSelection, proposal.patch, "Applied AI visual proposal"); setProposal(null); }}>Apply</button><button type="button" className="min-h-10 rounded border border-white/15 text-xs" onClick={() => setProposal(null)}>Cancel</button><button type="button" className="min-h-10 rounded border border-white/15 text-xs" onClick={() => setProposal(null)}>Refine</button><button type="button" className="min-h-10 rounded border border-white/15 text-xs" onClick={model.onUndo} disabled={!model.canUndo}>Undo</button></div></section> : null}<p className="text-[9px] text-white/40">Development fixture proposes deterministic edits; no content is published and no customer message is sent.</p></div>;
+  return (
+    <div className="space-y-3" data-testid="card-ai-assist-drawer">
+      <div className="rounded-lg border border-[#b8ff2c]/25 bg-[#b8ff2c]/5 p-2">
+        <p className="text-[9px] font-semibold uppercase text-[#b8ff2c]">Writing Assist</p>
+        <p className="mt-1 text-xs" data-testid="ai-active-scope">{scope}</p>
+      </div>
+      <p className="text-[11px] text-white/70">
+        Help with wording lives in the Text library Writing Assist panel — Rewrite, Shorten, Expand, Clarity, Tone, and Proofread with Apply / Try again / Cancel.
+      </p>
+      <button
+        type="button"
+        className="min-h-11 w-full rounded-lg bg-[#b8ff2c] text-sm font-semibold text-black"
+        data-testid="ai-open-writing-assist"
+        onClick={() => {
+          onOpenTextLibrary();
+          requestMagicWriteOpen();
+        }}
+      >
+        Open Writing Assist
+      </button>
+      <p className="text-[9px] text-white/40">
+        Suggestions never overwrite silently. Broader design intelligence stays on the same Assist runway after Studio stabilizes.
+      </p>
+    </div>
+  );
 }
 
 function QuickToolsDrawer({ model, add }: { model: CardEditorLiveModel; add: (kind: CardElementKind, props?: Record<string, unknown>) => void }) {
@@ -685,32 +749,65 @@ function BrandDrawer({ model, add, matches }: { model: CardEditorLiveModel; add:
 }
 
 function BackgroundDrawer({ model, matches }: { model: CardEditorLiveModel; matches: (value: string) => boolean }) {
-  const root = ensureRootComposition(model.config);
-  const setBackground = (background: typeof root.background, label: string) => model.patchConfig({ rootComposition: { ...root, background } }, label);
-  const setImageBackground = (src: string, mediaAssetId?: string) => {
-    if (!src) return;
-    setBackground({
-      kind: "image",
-      image: {
-        src,
-        fallbackUrl: src,
-        mediaAssetId,
-        fit: "cover",
-        focalX: .5,
-        focalY: .5,
-        scale: 1,
-        repeat: "no-repeat",
-        blur: 0,
-        brightness: 1,
-        contrast: 1,
-        overlayColor: "#000000",
-        overlayOpacity: .2,
-        blendMode: "normal",
-        decorative: true,
-      },
-    }, "Changed Card root image background");
-  };
-  return <div className="space-y-3" data-testid="card-background-library"><h3 className="text-[10px] font-semibold uppercase text-white/45">Solid</h3><div className="grid grid-cols-4 gap-1">{[model.config.surfaceColor, model.config.accentColor, "#020617", "#f8fafc"].map((color) => <button key={color} type="button" className="aspect-square rounded border border-white/15" style={{ background: color }} aria-label={`Background ${color}`} onClick={() => setBackground({ kind: "solid", value: color }, "Changed Card root solid background")} />)}</div><h3 className="text-[10px] font-semibold uppercase text-white/45">Gradients</h3>{GRADIENT_PRESETS.filter((preset) => matches(preset.label)).map((preset) => <LibraryAction key={preset.id} label={preset.label} description="Editable gradient" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(preset.gradient) }, `Applied ${preset.label} gradient`)} />)}<h3 className="text-[10px] font-semibold uppercase text-white/45">Image</h3><MediaPicker label="Choose background image" value={root.background?.kind === "image" ? root.background.image?.src || "" : ""} valueAssetId={root.background?.kind === "image" ? root.background.image?.mediaAssetId : undefined} mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onChange={(url) => setImageBackground(url)} onAssetChange={(asset) => { if (!asset) { setBackground({ kind: "none" }, "Removed Card root image background"); return; } setImageBackground(asset.url, asset.mediaAssetId); }} /><button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setImageBackground(model.strInherited("logoUrl") || model.logoUrl || "/tap-connect-logo.png")}>Use primary Brand image as background</button><h3 className="text-[10px] font-semibold uppercase text-white/45">Patterns and textures</h3>{SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).map((pattern) => <LibraryAction key={pattern.id} label={pattern.label} description={pattern.category} onClick={() => setBackground({ kind: pattern.kind, pattern: { version: 1, id: pattern.id, kind: pattern.kind, scale: 1, rotation: 45, opacity: .22, foreground: model.config.accentColor, background: model.config.surfaceColor, blendMode: "normal" } }, `Applied ${pattern.label} ${pattern.kind}`)} />)}<button type="button" className="min-h-10 w-full rounded border border-white/10 text-xs" onClick={() => setBackground({ kind: "none" }, "Removed Card root background")}>Transparent</button><button type="button" className="sr-only" onClick={() => setBackground({ kind: "gradient", gradient: structuredClone(DEFAULT_GRADIENT) }, "Applied default gradient")}>Default gradient</button></div>;
+  const plane = readPageVisualPlane(model.config);
+  const brandLogoUrl = model.strInherited("logoUrl") || model.logoUrl || "/tap-connect-logo.png";
+  return (
+    <div className="space-y-3" data-testid="card-background-library">
+      <VisualPlaneStudio
+        target="page"
+        value={plane}
+        mediaUploadReady={model.mediaUploadReady}
+        stockReady={model.stockReady}
+        brandLogoUrl={brandLogoUrl}
+        solidSwatches={[model.config.surfaceColor, model.config.accentColor, "#020617", "#f8fafc"].filter(Boolean) as string[]}
+        onChange={(next, label) => model.patchConfig(writePageVisualPlane(model.config, next), label)}
+      />
+      <div className="space-y-1" data-testid="card-background-quick-patterns">
+        <h3 className="text-[10px] font-semibold uppercase text-white/45">Quick patterns</h3>
+        {SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).slice(0, 12).map((pattern) => (
+          <LibraryAction
+            key={pattern.id}
+            label={pattern.label}
+            description={pattern.category}
+            onClick={() =>
+              model.patchConfig(
+                writePageVisualPlane(model.config, {
+                  kind: pattern.kind,
+                  pattern: {
+                    version: 1,
+                    id: pattern.id,
+                    kind: pattern.kind,
+                    scale: 1,
+                    rotation: 45,
+                    opacity: 0.22,
+                    foreground: model.config.accentColor,
+                    background: model.config.surfaceColor,
+                    blendMode: "normal",
+                  },
+                }),
+                `Applied ${pattern.label} ${pattern.kind}`
+              )
+            }
+          />
+        ))}
+      </div>
+      <button
+        type="button"
+        className="sr-only"
+        onClick={() =>
+          model.patchConfig(
+            writePageVisualPlane(model.config, {
+              kind: "gradient",
+              gradient: structuredClone(DEFAULT_GRADIENT),
+            }),
+            "Applied default gradient"
+          )
+        }
+      >
+        Default gradient
+      </button>
+    </div>
+  );
 }
 
 function ReusableDrawer({ model, matches }: { model: CardEditorLiveModel; matches: (value: string) => boolean }) {

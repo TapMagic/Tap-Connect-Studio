@@ -26,6 +26,8 @@ export type SurfacePatternDefinition = {
     backgroundColor: string;
     backgroundImage: string;
     backgroundSize?: string;
+    backgroundPosition?: string;
+    backgroundRepeat?: string;
   };
 };
 
@@ -210,16 +212,27 @@ export const SURFACE_PATTERN_CATALOG: SurfacePatternDefinition[] = [
     category: "Architectural",
     kind: "pattern",
     css: (m) => {
-      const mortar = withAlpha(m.foreground, m.opacity * 0.9);
-      const unitW = Math.max(16, Math.round(28 * m.scale));
-      const unitH = Math.max(10, Math.round(14 * m.scale));
+      const mortar = withAlpha(m.foreground, m.opacity * 0.95);
+      const brick = withAlpha(m.foreground, m.opacity * 0.12);
+      const unitW = Math.max(20, Math.round(32 * m.scale));
+      const unitH = Math.max(12, Math.round(16 * m.scale));
+      const joint = Math.max(1, Math.round(unitH * 0.1));
       return {
         backgroundColor: m.background,
         backgroundImage: `
-          linear-gradient(${mortar} ${Math.max(1, Math.round(unitH * 0.08))}px, transparent 0),
-          linear-gradient(90deg, ${mortar} ${Math.max(1, Math.round(unitW * 0.05))}px, transparent 0)
+          linear-gradient(${mortar} ${joint}px, transparent ${joint}px),
+          linear-gradient(90deg, ${mortar} ${joint}px, transparent ${joint}px),
+          linear-gradient(90deg, ${mortar} ${joint}px, transparent ${joint}px),
+          linear-gradient(${brick}, ${brick})
         `,
-        backgroundSize: `${unitW}px ${unitH}px, ${unitW}px ${unitH}px`,
+        backgroundSize: `
+          ${unitW}px ${unitH}px,
+          ${unitW}px ${unitH}px,
+          ${unitW}px ${unitH}px,
+          ${unitW}px ${unitH}px
+        `,
+        // Stagger alternate courses so brick reads as masonry, not a plain grid.
+        backgroundPosition: `0 0, 0 0, ${Math.round(unitW / 2)}px ${unitH}px, 0 0`,
       };
     },
   },

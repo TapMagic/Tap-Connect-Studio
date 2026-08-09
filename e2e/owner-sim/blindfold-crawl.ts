@@ -283,7 +283,7 @@ export function isSharedWorkspaceChrome(control: ProvenancedControl): boolean {
   if (/,\s*Card,|,\s*Variation,/i.test(name)) return true;
   if (/^Clone$/i.test(name)) return true;
   if (/^Resize \/ Adapt$/i.test(name)) return true;
-  if (/^(Templates|Elements|Text|Icons|Buttons|Badges|Coupons|Tickets|Brand|Assets|Background|Projects|Reusable|Layers|AI Assist|Tools|Help|Guide)$/i.test(name)) {
+  if (/^(Templates|Elements|Text|Icons|Buttons|Badges|Coupons|Tickets|Brand|Assets|Background|Projects|Reusable|Layers|AI Assist|Write|Tools|Help|Guide)$/i.test(name)) {
     return true;
   }
   return false;

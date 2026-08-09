@@ -31,6 +31,10 @@ import {
 } from "@/lib/fusion/creative-studio/gradient";
 import { surfacePatternFromTextureToken, surfacePatternStyle } from "@/lib/fusion/creative-studio/patterns";
 import {
+  readContainerVisualPlane,
+  visualPlaneToStyle,
+} from "@/lib/fusion/creative-studio/visual-plane";
+import {
   snapCompositionNodes,
   type CompositionGuide,
 } from "@/lib/fusion/creative-studio/composition-snap";
@@ -100,7 +104,14 @@ export type CreativeCompositionCanvasProps = {
   };
 };
 
-const IMAGE_FILE_TYPES = new Set(["image/png", "image/jpeg", "image/jpg", "image/webp", "image/gif"]);
+const IMAGE_FILE_TYPES = new Set([
+  "image/png",
+  "image/jpeg",
+  "image/jpg",
+  "image/webp",
+  "image/gif",
+  "image/svg+xml",
+]);
 
 function str(v: unknown, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
@@ -365,18 +376,21 @@ function NodeVisual({
 
   const componentKind = str(node.props.componentKind);
   if (componentKind === "container") {
-    const fill = str(node.props.fill, "transparent");
-    const gradientStart = str(node.props.gradientStart);
-    const gradientEnd = str(node.props.gradientEnd);
-    const texture = textureOverlayStyle(node.props);
+    const plane = readContainerVisualPlane(node);
+    const planeStyle = visualPlaneToStyle(plane);
+    const texture =
+      plane.kind === "none" || plane.kind === "pattern" || plane.kind === "texture" || plane.kind === "image"
+        ? null
+        : textureOverlayStyle(node.props);
     return <div
       className="relative h-full w-full overflow-hidden"
       data-component-kind="container"
       data-container-layout={str(node.props.layout, "free")}
       data-container-resize-policy={str(node.props.resizePolicy, "reflow")}
       data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
+      data-visual-plane={plane.kind}
       style={{
-        background: gradientStart && gradientEnd ? `linear-gradient(${num(node.props.gradientAngle, 145)}deg,${gradientStart},${gradientEnd})` : fill,
+        ...planeStyle,
         border: `${num(node.props.borderWidth, 0)}px ${str(node.props.borderStyle, "solid")} ${str(node.props.borderColor, "transparent")}`,
         borderRadius: num(node.props.radius, 0),
         boxShadow: num(node.props.boxShadow, 0) ? `0 10px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)` : undefined,
@@ -1360,13 +1374,22 @@ export function CreativeCompositionCanvas({
 
   const importImageFiles = useCallback(
     async (files: File[], point?: { x: number; y: number }, replaceNodeId?: string) => {
-      const images = files.filter((file) => IMAGE_FILE_TYPES.has(file.type) || /\.(png|jpe?g|webp|gif)$/i.test(file.name));
+      const images = files.filter(
+        (file) =>
+          IMAGE_FILE_TYPES.has(file.type) ||
+          /\.(png|jpe?g|webp|gif|svg)$/i.test(file.name)
+      );
       if (!images.length) return;
       if (!mediaUploadReady) {
         onNotify?.("Media upload is not ready — connect Studio Media storage first");
         return;
       }
-      onNotify?.(`Importing ${images.length} image${images.length > 1 ? "s" : ""}…`);
+      // V1 multi-file policy: place each image individually (offset grid), never silently keep only the first.
+      onNotify?.(
+        images.length > 1
+          ? `Placing ${images.length} images individually…`
+          : "Importing image…"
+      );
       const uploaded: Array<{ url: string; mediaAssetId: string }> = [];
       for (const file of images) {
         const asset = await uploadCanvasImageFile(file);

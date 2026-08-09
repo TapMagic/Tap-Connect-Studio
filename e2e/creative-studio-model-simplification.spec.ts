@@ -67,7 +67,7 @@ test.describe("Creative Studio simplified platform", () => {
     await page.getByRole("button", { name: "Add text box", exact: true }).click();
     await expect(page.getByTestId("card-root-canvas").locator('[data-element-kind="text"]')).toHaveCount(3);
 
-    await page.getByRole("button", { name: /Magic Write/ }).click();
+    await page.getByRole("button", { name: /Writing Assist|Magic Write/ }).click();
     await page.getByPlaceholder(/free fries/).fill("Present an offer for free fries with a $20 purchase.");
     await page.getByRole("button", { name: "Review result" }).click();
     await expect(page.getByTestId("magic-write-result")).toContainText("FREE FRIES");

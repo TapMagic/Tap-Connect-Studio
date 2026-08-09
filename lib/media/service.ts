@@ -18,6 +18,7 @@ import {
   sniffImageMime,
   type RemoteImage,
 } from "./remote-image";
+import { sanitizeMediaSvg } from "./safe-svg";
 import {
   deleteMediaObject,
   extensionForMime,
@@ -231,10 +232,19 @@ export async function storeUploadedImage(input: {
     throw new MediaServiceError("Source image exceeds 8MB", 413);
   }
   const mimeType = sniffImageMime(input.bytes);
-  if (!mimeType || (input.declaredMimeType && input.declaredMimeType !== mimeType)) {
+  const declared = input.declaredMimeType?.split(";")[0]?.trim().toLowerCase();
+  if (!mimeType || (declared && declared !== mimeType && declared !== "application/octet-stream")) {
     throw new MediaServiceError("Uploaded file is not a supported image", 415);
   }
-  const contentHash = createHash("sha256").update(input.bytes).digest("hex");
+  let bytes = input.bytes;
+  if (mimeType === "image/svg+xml") {
+    const sanitized = sanitizeMediaSvg(bytes);
+    if (!sanitized) {
+      throw new MediaServiceError("SVG failed safety sanitization", 415);
+    }
+    bytes = sanitized;
+  }
+  const contentHash = createHash("sha256").update(bytes).digest("hex");
   const existing = await prisma.mediaAsset.findFirst({
     where: { businessId: input.businessId, contentHash },
   });
@@ -244,7 +254,7 @@ export async function storeUploadedImage(input: {
   const storageKey = `${input.businessId}/uploads/${contentHash}.${extension}`;
   const url = await putMediaObject({
     storageKey,
-    bytes: input.bytes,
+    bytes,
     mimeType,
   });
   try {
@@ -256,7 +266,7 @@ export async function storeUploadedImage(input: {
         contentHash,
         filename: input.filename,
         mimeType,
-        sizeBytes: input.bytes.byteLength,
+        sizeBytes: bytes.byteLength,
         source: "upload",
         licenseCode: "OWNER_SUPPLIED",
         rightsNote: "Owner supplied this asset and is responsible for usage rights.",

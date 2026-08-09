@@ -705,7 +705,7 @@ export function SharedMediaAssetBrowser({
                   <input
                     ref={fileRef}
                     type="file"
-                    accept="image/png,image/jpeg,image/webp,image/gif"
+                    accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml,.svg"
                     className="sr-only"
                     onChange={(event) => {
                       const file = event.target.files?.[0];

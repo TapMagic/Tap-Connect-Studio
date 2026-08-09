@@ -25,7 +25,7 @@ export class RemoteMediaError extends Error {
 export type RemoteImage = {
   finalUrl: string;
   bytes: Buffer;
-  mimeType: "image/png" | "image/jpeg" | "image/webp" | "image/gif";
+  mimeType: "image/png" | "image/jpeg" | "image/webp" | "image/gif" | "image/svg+xml";
   declaredSize: number | null;
 };
 
@@ -115,6 +115,10 @@ export function sniffImageMime(bytes: Buffer): RemoteImage["mimeType"] | null {
   }
   const gif = bytes.subarray(0, 6).toString("ascii");
   if (gif === "GIF87a" || gif === "GIF89a") return "image/gif";
+  const head = bytes.subarray(0, Math.min(bytes.byteLength, 512)).toString("utf8");
+  if (/<svg[\s>]/i.test(head) || (/<\?xml/i.test(head) && /<svg[\s>]/i.test(bytes.toString("utf8").slice(0, 8192)))) {
+    return "image/svg+xml";
+  }
   return null;
 }
 
@@ -132,7 +136,7 @@ export function validateRemoteImageBytes(input: {
   const mimeType = sniffImageMime(input.bytes);
   if (!mimeType) {
     throw new RemoteMediaError(
-      "Source bytes are not a supported PNG, JPEG, WebP, or GIF image",
+      "Source bytes are not a supported PNG, JPEG, WebP, GIF, or SVG image",
       "unsupported_mime",
       415
     );
