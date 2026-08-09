@@ -3,7 +3,14 @@
  * Object identity / Shape / wording / Action are never mutated here.
  */
 
-import { dimensionalSurfaceCss, effectLayersCss } from "./effect-render";
+import {
+  materialPreviewBackgroundFromRecipe,
+  surfaceShadowCss as surfaceShadowCssImpl,
+} from "./material-surface";
+
+export { resolveMaterialSurfaceFromProps, resolveMaterialSurfaceFromRecipe, materialSurfaceParityKey } from "./material-surface";
+export type { MaterialSurfaceDescriptor, MaterialSurfaceRole } from "./material-surface";
+import { materialPreviewBackgroundFromRecipe, materialSurfaceShadowCss } from "./material-surface";
 
 export type MaterialCategory =
   | "basic"
@@ -314,13 +321,15 @@ function applyRecipeFill(
     return;
   }
   if (gradient) {
+    // Canonical fill authority: full multi-stop gradientFill.
+    // gradientStart/End are editor mirrors only — renderers must not reduce to two stops.
     next.gradientFill = gradient;
     next.fill = undefined;
     next.buttonSurfaceKind = options.asButtonSurface ? "gradient" : undefined;
     next.surfaceFillKind = "gradient";
     const stops = gradient.match(/#[0-9a-fA-F]{3,8}|rgba?\([^)]+\)/g) || [];
     if (stops[0]) next.gradientStart = stops[0];
-    if (stops[1]) next.gradientEnd = stops[1];
+    if (stops[1]) next.gradientEnd = stops[stops.length - 1] || stops[1];
   } else if (recipe.fill !== undefined) {
     next.fill = recipe.fill;
     next.gradientFill = undefined;
@@ -563,44 +572,16 @@ export function applyEffectRecipe(
   return next;
 }
 
+/**
+ * Material tile fill — identical authority to applied Button/Badge surfaces.
+ * Overlay layers (highlight/shine) are rendered by MaterialSurfaceLayers.
+ */
 export function materialPreviewCss(recipe: MaterialRecipe): string {
-  return recipe.gradient || (recipe.fill && recipe.fill !== "transparent" ? recipe.fill : recipe.borderColor || "#334155");
+  return materialPreviewBackgroundFromRecipe(recipe);
 }
 
 export function surfaceShadowCss(props: Record<string, unknown>): string | undefined {
-  // Prefer target-aware effect layers when an effect preset is present.
-  const effectPreset = typeof props.effectPreset === "string" ? props.effectPreset : null;
-  if (effectPreset && effectPreset !== "none") {
-    const layers = effectLayersCss("surface", {
-      effectPreset,
-      glow: Number(props.boxGlow ?? props.glow ?? 0),
-      shadow: Number(props.boxShadow ?? props.shadow ?? 0),
-      glowColor: typeof props.glowColor === "string" ? props.glowColor : null,
-      secondaryGlow: Number(props.secondaryGlow ?? 0),
-      innerShadow: typeof props.innerShadow === "string" ? props.innerShadow : null,
-      coreBrightness: Number(props.coreBrightness ?? 1),
-      edgeWidth: Number(props.edgeWidth ?? 1.25),
-      auraIntensity: Number(props.auraIntensity ?? 0.45),
-      opacity: Number(props.opacity ?? 1),
-      color: typeof props.color === "string" ? props.color : null,
-    });
-    if (layers.boxShadow) return layers.boxShadow;
-  }
-  const shadow = Number(props.boxShadow ?? props.shadow ?? 0);
-  const glow = Number(props.boxGlow ?? props.glow ?? 0);
-  const secondary = Number(props.secondaryGlow ?? 0);
-  const glowColor = String(props.glowColor || "#67e8f9");
-  const inner = typeof props.innerShadow === "string" ? props.innerShadow : "";
-  const material = String(props.materialPreset || "");
-  const dimensional = dimensionalSurfaceCss(material);
-  const parts = [
-    dimensional.boxShadow || "",
-    shadow > 0 && !dimensional.boxShadow ? `0 8px ${shadow}px rgba(0,0,0,.4)` : "",
-    glow > 0 ? `0 0 ${glow}px ${glowColor}` : "",
-    secondary > 0 ? `0 0 ${secondary}px ${glowColor}` : "",
-    inner,
-  ].filter(Boolean);
-  return parts.length ? parts.join(", ") : undefined;
+  return surfaceShadowCssImpl(props);
 }
 
 /** Compact Aa preview styles for toolbar (glyph + optional Text Box). */

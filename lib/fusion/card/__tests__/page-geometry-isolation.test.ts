@@ -82,3 +82,39 @@ test("page height mutation does not rewrite x/width; vertical fractions adapt to
   assert.ok(Math.abs(next.nodes[0].y - 0.1) < 0.0001);
   assert.ok(Math.abs(next.nodes[0].height - 0.05) < 0.0001);
 });
+
+test("page height preserves absolute bounds for heightPct and non-top-left anchors", () => {
+  const root = ensureRootComposition(blankConfig());
+  const a = createCardElement("button", 0);
+  const b = createCardElement("badge", 1);
+  root.nodes = [
+    {
+      ...a,
+      x: 0.5,
+      y: 0.4,
+      width: 0.3,
+      height: 0.1,
+      widthPct: 0.3,
+      heightPct: 0.1,
+      anchor: "center",
+    },
+    {
+      ...b,
+      x: 0.8,
+      y: 0.9,
+      width: 0.2,
+      height: 0.08,
+      heightPct: 0.08,
+      anchor: "bottom-right",
+    },
+  ];
+  root.pageHeightPx = 520;
+  const before = rootObjectPixelBounds(root);
+  const extended = setRootPageHeightPreservingBounds(root, 1040);
+  assert.deepEqual(rootObjectPixelBounds(extended), before);
+  assert.ok(Math.abs((extended.nodes[0].heightPct ?? 0) - 0.05) < 0.0001);
+  assert.ok(Math.abs((extended.nodes[1].heightPct ?? 0) - 0.04) < 0.0001);
+  // Horizontal pct / width authority untouched
+  assert.equal(extended.nodes[0].widthPct, 0.3);
+  assert.equal(extended.nodes[0].width, 0.3);
+});

@@ -90,9 +90,19 @@ test("preview URL assessment never treats localhost as phone-reachable", () => {
     configured: "http://192.168.1.20:3050",
   });
   assert.equal(lan.reachableForPhone, true);
+  assert.equal(lan.candidateKind, "lan_candidate");
+  assert.equal(lan.physicallyVerified, false);
   const built = buildPreviewAbsoluteUrl("/preview/live/token", lan);
   assert.equal(built.url, "http://192.168.1.20:3050/preview/live/token");
   assert.doesNotMatch(built.url, /localhost|127\.0\.0\.1/);
+
+  const publicCandidate = resolvePreviewBaseUrl({
+    configured: "https://preview.example.tunnel/app",
+  });
+  assert.equal(publicCandidate.reachableForPhone, true);
+  assert.equal(publicCandidate.candidateKind, "configured_public_candidate");
+  assert.equal(publicCandidate.physicallyVerified, false);
+  assert.match(publicCandidate.guidance || "", /does not probe remote tunnel liveness/i);
 });
 
 test("Live Device LAN URL preserves non-default application port from request origin", () => {

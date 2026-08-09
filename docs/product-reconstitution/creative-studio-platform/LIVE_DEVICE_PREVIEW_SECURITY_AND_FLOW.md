@@ -10,9 +10,22 @@ Preview draft → Live device → QR → scan from phone → read-only draft pre
 
 QR must not contain `localhost`.
 
-Generate a reachable LAN URL:
+Generate a phone-attempt LAN URL using the **actual Studio request port** (never a hardcoded default like 3050):
 
-`http://<local-ip>:3050/preview/live/<signed-token>`
+`http://<local-ip>:<runtime-port>/preview/live/<signed-token>`
+
+Example: if Studio is served on `localhost:3067`, the QR host must be `LAN-IP:3067`.
+
+### Reachability semantics (honest)
+
+| Kind | Meaning |
+| --- | --- |
+| `locally_unreachable` | Loopback / invalid — do not show a successful phone QR |
+| `lan_candidate` | Private IP + correct port — suitable to *attempt* on same Wi-Fi |
+| `configured_public_candidate` | Non-loopback configured URL (e.g. tunnel) — candidate only |
+| Physical verification | Only after a real phone opens Follow/Freeze/Refresh/Revoke |
+
+`reachableForPhone` means “phone-attempt candidate,” not “tunnel proven alive.” Studio does **not** probe arbitrary remote hosts for liveness. A stale Cloudflare tunnel may still fail on the phone until refreshed — that is fail-soft candidacy honesty, not a closed liveness proof.
 
 ## Session controls
 

@@ -170,7 +170,48 @@ test.describe("Practical authoring certification (Canva-benchmark outcomes)", ()
       const after = await readGeometry(node);
       expect(Math.abs(after.width - snap.g.width)).toBeLessThan(2);
       expect(Math.abs(after.height - snap.g.height)).toBeLessThan(2);
+      expect(Math.abs(after.x - snap.g.x)).toBeLessThan(2);
+      expect(Math.abs(after.y - snap.g.y)).toBeLessThan(2);
     }
+    // Undo/Redo of page height must not drift children.
+    await undo(page);
+    for (const snap of midBefore) {
+      const node = page.locator(`[data-composition-node="${snap.id}"]`).first();
+      if ((await node.count()) === 0) continue;
+      const after = await readGeometry(node);
+      expect(Math.abs(after.x - snap.g.x)).toBeLessThan(2);
+      expect(Math.abs(after.y - snap.g.y)).toBeLessThan(2);
+      expect(Math.abs(after.width - snap.g.width)).toBeLessThan(2);
+      expect(Math.abs(after.height - snap.g.height)).toBeLessThan(2);
+    }
+    await redo(page);
+    for (const snap of midBefore) {
+      const node = page.locator(`[data-composition-node="${snap.id}"]`).first();
+      if ((await node.count()) === 0) continue;
+      const after = await readGeometry(node);
+      expect(Math.abs(after.x - snap.g.x)).toBeLessThan(2);
+      expect(Math.abs(after.y - snap.g.y)).toBeLessThan(2);
+    }
+    // Persist + Owner reopen path.
+    await saveDraft(page);
+    const editUrl = page.url();
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute("data-builder-ready", "true", { timeout: 60_000 });
+    await dismissOverlays(page);
+    expect(page.url()).toContain("/dashboard/card/edit");
+    for (const snap of midBefore) {
+      const node = page.locator(`[data-composition-node="${snap.id}"]`).first();
+      if ((await node.count()) === 0) continue;
+      const after = await readGeometry(node);
+      expect(Math.abs(after.x - snap.g.x)).toBeLessThan(3);
+      expect(Math.abs(after.y - snap.g.y)).toBeLessThan(3);
+      expect(Math.abs(after.width - snap.g.width)).toBeLessThan(3);
+      expect(Math.abs(after.height - snap.g.height)).toBeLessThan(3);
+    }
+    fs.writeFileSync(
+      path.join(EVIDENCE, "task-d-persistence.json"),
+      JSON.stringify({ ok: true, editUrl, heightBefore, at: new Date().toISOString() }, null, 2)
+    );
     await evidenceShot(page, "practical", "task-d-page-height.png");
 
     // ——— Task E: Button content isolation ———
@@ -268,6 +309,85 @@ test.describe("Practical authoring certification (Canva-benchmark outcomes)", ()
     fs.writeFileSync(
       path.join(EVIDENCE, "task-g.json"),
       JSON.stringify({ ok: true, port, status, base, panelSnippet: panelText.slice(0, 240) }, null, 2)
+    );
+  });
+
+  test("Task H: Product-Steward Material quality gate (preview ≡ apply)", async ({ page }) => {
+    test.setTimeout(240_000);
+    ensureEvidenceDirs(["practical", "materials"]);
+    fs.mkdirSync(path.join(EVIDENCE, "materials"), { recursive: true });
+    await openBlankStudio(page);
+    await dismissOverlays(page);
+
+    const materials = [
+      { id: "flat", minStops: 0 },
+      { id: "soft_touch", minStops: 0 },
+      { id: "raised_resin", minStops: 3 },
+      { id: "gloss_lacquer", minStops: 3 },
+      { id: "acrylic", minStops: 2 },
+      { id: "polished_metal", minStops: 4 },
+    ] as const;
+
+    const signatures: Array<{ id: string; bg: string; stops: number; highlight: string; shine: string }> = [];
+    await insertButton(page);
+    const button = page.locator('[data-composition-node]').filter({ has: page.locator("[data-button-surface-kind]") }).first();
+    await ownerClick(page.getByTestId("contextual-button-action"), "Action");
+    await page.getByLabel("Button action type").selectOption("website");
+    await page.getByLabel("Button destination").fill("https://example.com/material-gate");
+    const actionHrefBefore = "https://example.com/material-gate";
+    const geom0 = await readGeometry(button);
+
+    for (const mat of materials) {
+      await button.click();
+      await ownerClick(page.getByTestId("contextual-button-appearance"), "Appearance");
+      const overview = page.getByTestId("appearance-category-overview");
+      if (await overview.isVisible().catch(() => false)) {
+        await ownerClick(page.getByTestId("appearance-category-material"), "Material category");
+      }
+      await expect(page.getByTestId("material-engine-controls")).toBeVisible({ timeout: 15_000 });
+      const swatch = page.getByTestId(`material-swatch-${mat.id}`);
+      await expect(swatch).toBeVisible();
+      const previewStops = Number(await swatch.getAttribute("data-material-stop-count"));
+      const previewAuthority = await swatch.getAttribute("data-material-fill-authority");
+      await ownerClick(page.getByTestId(`material-${mat.id}`), `Apply ${mat.id}`);
+      const surface = button.locator("[data-button-surface-kind]").first();
+      await expect(surface).toHaveAttribute("data-material-fill-authority", /.+/);
+      const appliedStops = Number(await surface.getAttribute("data-material-stop-count"));
+      const appliedAuthority = await surface.getAttribute("data-material-fill-authority");
+      expect(appliedAuthority).toBe(previewAuthority);
+      if (mat.minStops > 0) {
+        expect(appliedStops).toBeGreaterThanOrEqual(mat.minStops);
+        expect(previewStops).toBe(appliedStops);
+      }
+      if (mat.id === "raised_resin" || mat.id === "gloss_lacquer" || mat.id === "acrylic" || mat.id === "polished_metal" || mat.id === "soft_touch") {
+        const nodeId = await button.getAttribute("data-composition-node");
+        await expect(surface).toHaveAttribute("data-material-highlight", "true");
+        await expect(page.getByTestId(`button-${nodeId}-highlight`)).toBeVisible();
+      }
+      const bg = await surface.evaluate((el) => getComputedStyle(el).backgroundImage + "|" + getComputedStyle(el).backgroundColor);
+      signatures.push({
+        id: mat.id,
+        bg,
+        stops: appliedStops,
+        highlight: (await surface.getAttribute("data-material-highlight")) || "false",
+        shine: (await surface.getAttribute("data-button-high-gloss")) || "false",
+      });
+      await evidenceShot(page, "materials", `button-${mat.id}.png`);
+      const geomAfter = await readGeometry(button);
+      expect(Math.abs(geomAfter.width - geom0.width)).toBeLessThan(2);
+      expect(Math.abs(geomAfter.height - geom0.height)).toBeLessThan(2);
+      expect(Math.abs(geomAfter.x - geom0.x)).toBeLessThan(2);
+      expect(Math.abs(geomAfter.y - geom0.y)).toBeLessThan(2);
+    }
+
+    await ownerClick(page.getByTestId("contextual-button-action"), "Action");
+    await expect(page.getByLabel("Button destination")).toHaveValue(actionHrefBefore);
+
+    const uniqueBg = new Set(signatures.map((s) => s.bg));
+    expect(uniqueBg.size).toBe(signatures.length);
+    fs.writeFileSync(
+      path.join(EVIDENCE, "materials", "quality-gate.json"),
+      JSON.stringify({ ok: true, signatures, at: new Date().toISOString() }, null, 2)
     );
   });
 });

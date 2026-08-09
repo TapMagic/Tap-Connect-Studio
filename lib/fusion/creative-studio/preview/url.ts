@@ -1,15 +1,38 @@
 /**
- * Preview base URL reachability — never silently emit localhost QR for phones.
+ * Preview base URL candidacy — never silently emit localhost QR for phones.
  * Prefer an explicit public URL; otherwise translate the actual request origin
  * (preserving port) onto a LAN hostname when available.
+ *
+ * IMPORTANT semantics:
+ * - `reachableForPhone` means the URL is a *phone-attempt candidate* (not loopback).
+ *   It does NOT prove the remote tunnel/LAN path is alive or that a phone opened it.
+ * - Physical phone Follow / Freeze / Refresh / Revoke remains Product Owner Human Verification.
+ * - We do not probe arbitrary remote hosts for liveness (unsafe / inconclusive).
  */
 
 import { networkInterfaces } from "node:os";
 
+export type PreviewUrlCandidateKind =
+  /** Syntactically invalid or empty after resolution. */
+  | "invalid"
+  /** Loopback host that a phone cannot open. */
+  | "locally_unreachable"
+  /** Private LAN IP candidate — same Wi-Fi may work; not physically verified. */
+  | "lan_candidate"
+  /** Configured non-loopback public/tunnel URL — candidate only; liveness unproven. */
+  | "configured_public_candidate";
+
 export type PreviewBaseUrlAssessment = {
   baseUrl: string;
+  /**
+   * True when the URL is suitable to *offer* as a phone QR candidate (non-loopback).
+   * False for invalid/loopback. Never means “physically verified on a phone.”
+   */
   reachableForPhone: boolean;
   isLocalhost: boolean;
+  candidateKind: PreviewUrlCandidateKind;
+  /** True only after a real phone session proves open — always false at URL resolution. */
+  physicallyVerified: false;
   reason: string;
   guidance: string | null;
 };
@@ -111,6 +134,8 @@ export function resolvePreviewBaseUrl(input?: {
       baseUrl: candidate,
       reachableForPhone: false,
       isLocalhost: true,
+      candidateKind: "invalid",
+      physicallyVerified: false,
       reason: "preview_base_url_invalid",
       guidance:
         `Set NEXT_PUBLIC_PREVIEW_BASE_URL to a reachable https URL or LAN address (e.g. http://192.168.x.x:${port}).`,
@@ -126,29 +151,36 @@ export function resolvePreviewBaseUrl(input?: {
         baseUrl: trimSlash(lan),
         reachableForPhone: true,
         isLocalhost: false,
+        candidateKind: "lan_candidate",
+        physicallyVerified: false,
         reason: "preview_lan_auto",
         guidance:
-          "Using your LAN address with this app's actual port. Keep the phone on the same Wi-Fi. A private IP does not guarantee reachability if the server is loopback-only, firewalled, or on an isolated network.",
+          "Using your LAN address with this app's actual port. Keep the phone on the same Wi-Fi. This is a phone-attempt candidate — not a proof that the phone can open it (firewall, VPN, or AP isolation can still block).",
       };
     }
     return {
       baseUrl: trimSlash(parsed.toString()),
       reachableForPhone: false,
       isLocalhost: true,
+      candidateKind: "locally_unreachable",
+      physicallyVerified: false,
       reason: "preview_localhost_unreachable",
       guidance:
         `A phone cannot open localhost. Join the same Wi-Fi and set NEXT_PUBLIC_PREVIEW_BASE_URL to http://<your-lan-ip>:${port}, or ensure this machine exposes a private IPv4 address while the Studio server listens on a reachable interface.`,
     };
   }
 
+  const lanHost = isPrivateLanHost(host);
   return {
     baseUrl: trimSlash(parsed.toString()),
     reachableForPhone: true,
     isLocalhost: false,
-    reason: "preview_base_url_ok",
-    guidance: isPrivateLanHost(host)
-      ? "Keep the phone on the same Wi-Fi. Firewall, VPN, or AP isolation can still block the phone even when a LAN IP is shown."
-      : null,
+    candidateKind: lanHost ? "lan_candidate" : "configured_public_candidate",
+    physicallyVerified: false,
+    reason: lanHost ? "preview_lan_candidate" : "preview_configured_public_candidate",
+    guidance: lanHost
+      ? "LAN candidate with this app's port. Phone reachability is not proven until a real phone opens the QR. Firewall, VPN, or AP isolation can still block."
+      : "Configured public/tunnel candidate. Studio does not probe remote tunnel liveness; a stale or dead tunnel may still fail on the phone. Physical phone open remains Human Verification.",
   };
 }
 

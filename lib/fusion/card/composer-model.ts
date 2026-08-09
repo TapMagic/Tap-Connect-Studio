@@ -3,6 +3,7 @@ import type { TapCardSection, TapConnectCardConfig } from "@/lib/brand/tap-card"
 import {
   createCompositionNode,
   createEmptyCreativeComposition,
+  resolveNodeBox,
   type CreativeCompositionNode,
   type CreativeCompositionPrimitive,
 } from "@/lib/fusion/creative-studio/composition";
@@ -487,29 +488,43 @@ export function setRootPageHeightPreservingBounds(
   const previous = Math.max(1, root.pageHeightPx ?? fallbackHeightPx);
   if (previous === pageHeightPx) return { ...root, pageHeightPx };
   const scale = previous / pageHeightPx;
-  const nodes = root.nodes.map((node) => ({
-    ...node,
-    // Vertical fractions only — never touch x/width, rotation, fonts, or props.
-    y: Math.max(0, Math.min(2, node.y * scale)),
-    height: Math.max(0.01, Math.min(2, node.height * scale)),
-  }));
+  const nodes = root.nodes.map((node) => {
+    const next: typeof node = {
+      ...node,
+      // Vertical fractions only — never touch x/width, rotation, fonts, or props.
+      y: Math.max(0, Math.min(2, node.y * scale)),
+      height: Math.max(0.01, Math.min(2, node.height * scale)),
+    };
+    // Alternate sizing authority (heightPct) must rescale with page height so
+    // resolveNodeBox effective absolute geometry stays fixed.
+    if (typeof node.heightPct === "number" && Number.isFinite(node.heightPct)) {
+      next.heightPct = Math.max(0.01, Math.min(2, node.heightPct * scale));
+    }
+    return next;
+  });
   return { ...root, nodes, pageHeightPx };
 }
 
-/** Absolute pixel bounds for geometry-isolation proofs. */
+/**
+ * Absolute pixel bounds for geometry-isolation proofs.
+ * Uses resolveNodeBox so anchors / widthPct / heightPct match rendered authority.
+ */
 export function rootObjectPixelBounds(
   root: NonNullable<TapConnectCardConfig["rootComposition"]>,
   fallbackHeightPx = 520
 ): Array<{ id: string; x: number; y: number; width: number; height: number }> {
   const pageHeightPx = root.pageHeightPx ?? fallbackHeightPx;
   const pageWidthPx = 390;
-  return root.nodes.map((node) => ({
-    id: node.id,
-    x: Math.round(node.x * pageWidthPx),
-    y: Math.round(node.y * pageHeightPx),
-    width: Math.round(node.width * pageWidthPx),
-    height: Math.round(node.height * pageHeightPx),
-  }));
+  return root.nodes.map((node) => {
+    const box = resolveNodeBox(node, true);
+    return {
+      id: node.id,
+      x: Math.round(box.left * pageWidthPx),
+      y: Math.round(box.top * pageHeightPx),
+      width: Math.round(box.width * pageWidthPx),
+      height: Math.round(box.height * pageHeightPx),
+    };
+  });
 }
 
 /** Grow the published root plane when authored objects extend below its current minimum. */

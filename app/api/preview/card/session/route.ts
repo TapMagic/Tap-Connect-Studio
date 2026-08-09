@@ -102,6 +102,8 @@ export async function POST(req: Request) {
     revision: session.record.revision,
     mode: session.record.mode,
     reachableForPhone: Boolean(phoneSafeUrl),
+    candidateKind: assessment.candidateKind,
+    physicallyVerified: false,
     isLocalhost: assessment.isLocalhost || !phoneSafeUrl,
     guidance: assessment.guidance,
     expiresAt: new Date(session.record.exp).toISOString(),
@@ -196,6 +198,8 @@ export async function PATCH(req: Request) {
     revision: result.revision,
     mode: result.mode,
     reachableForPhone: assessment.reachableForPhone,
+    candidateKind: assessment.candidateKind,
+    physicallyVerified: false,
     guidance: assessment.guidance,
   });
 }

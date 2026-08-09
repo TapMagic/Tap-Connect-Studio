@@ -68,6 +68,8 @@ import {
 import { badgeShapeBorderRadius, badgeShapeClipPath, badgeShapeSvgPoints, badgeUsesPathStroke } from "@/lib/fusion/creative-studio/badge-shape";
 import { effectLayersCss } from "@/lib/fusion/creative-studio/effect-render";
 import { surfaceShadowCss } from "@/lib/fusion/creative-studio/material-engine";
+import { resolveMaterialSurfaceFromProps } from "@/lib/fusion/creative-studio/material-surface";
+import { MaterialSurfaceLayers } from "@/components/fusion/creative-studio/material-surface-layers";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -934,20 +936,30 @@ function NodeVisual({
     if (elementKind === "badge") {
       const badgeShape = str(node.props.badgeShape, "pill");
       const badgeClip = badgeShapeClipPath(badgeShape);
-      const badgeShadow = surfaceShadowCss(node.props);
+      const badgeMaterial = resolveMaterialSurfaceFromProps(
+        {
+          ...node.props,
+          // Badge defaults fill when no Material / gradient authored.
+          fill: node.props.fill ?? "#ef4444",
+          gradientFill: node.props.gradientFill,
+        },
+        "badge"
+      );
       const badgeTexture = textureOverlayStyle(node.props);
-      const borderWidth = num(node.props.borderWidth, 0);
-      const borderStyle = str(node.props.borderStyle, borderWidth > 0 ? "solid" : "none");
-      const borderColor = str(node.props.borderColor, "#fff");
+      const borderWidth = badgeMaterial.borderWidth;
+      const borderStyle = badgeMaterial.borderStyle;
+      const borderColor = badgeMaterial.borderColor === "transparent" ? str(node.props.borderColor, "#fff") : badgeMaterial.borderColor;
       const pathStroke = badgeUsesPathStroke(badgeShape) && borderWidth > 0 && borderStyle !== "none";
       const svgPoints = pathStroke ? badgeShapeSvgPoints(badgeShape) : null;
       const dash =
         borderStyle === "dashed" ? "6 4" : borderStyle === "dotted" ? "1.5 3" : undefined;
-      const fillBackground = str(node.props.gradientFill, str(node.props.fill, "#ef4444"));
+      const fillBackground = badgeMaterial.background || str(node.props.fill, "#ef4444");
       return (
         <div
           className="relative flex h-full w-full items-center justify-center overflow-hidden px-2 text-center"
-          data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
+          data-surface-texture={badgeMaterial.textureToken || undefined}
+          data-material-fill-authority={badgeMaterial.fillAuthority}
+          data-material-stop-count={String(badgeMaterial.gradientStopCount)}
           style={{
             background: pathStroke ? "transparent" : fillBackground,
             color: str(node.props.color, "#ffffff"),
@@ -956,13 +968,13 @@ function NodeVisual({
             border: !pathStroke && borderWidth > 0 && borderStyle !== "none"
               ? `${borderWidth}px ${borderStyle} ${borderColor}`
               : undefined,
-            boxShadow: badgeShadow,
+            boxShadow: badgeMaterial.boxShadow,
             fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
             fontSize: num(node.props.fontSize, 18),
             fontWeight: num(node.props.fontWeight, 800),
             letterSpacing: `${num(node.props.letterSpacingEm, .04)}em`,
             lineHeight: num(node.props.lineHeight, 1.15),
-            opacity: num(node.props.opacity, 1),
+            opacity: badgeMaterial.opacity,
             textAlign: str(node.props.textAlign, "center") as CSSProperties["textAlign"],
           }}
           data-badge-shape={badgeShape}
@@ -996,13 +1008,7 @@ function NodeVisual({
               </svg>
             </>
           ) : null}
-          {node.props.shine === true || node.props.highlight ? (
-            <span
-              aria-hidden
-              className="pointer-events-none absolute inset-0"
-              style={{ background: str(node.props.highlight, "linear-gradient(180deg,#ffffff55,#0000 45%)"), clipPath: badgeClip }}
-            />
-          ) : null}
+          <MaterialSurfaceLayers surface={badgeMaterial} clipPath={badgeClip} testIdPrefix={`badge-${node.id}`} />
           {badgeTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={{ ...badgeTexture, clipPath: badgeClip }} /> : null}
           <span className="relative z-[1] whitespace-pre-wrap" data-testid="badge-text">{str(node.props.text, "SALE")}</span>
         </div>
@@ -1025,34 +1031,45 @@ function NodeVisual({
       speech: "polygon(0 0, 100% 0, 100% 78%, 65% 78%, 50% 100%, 45% 78%, 0 78%)",
       organic: "polygon(10% 25%, 30% 5%, 60% 12%, 86% 5%, 95% 35%, 88% 70%, 65% 92%, 35% 85%, 8% 95%, 2% 55%)",
     };
+    const shapeMaterial =
+      node.props.materialPreset || node.props.gradientFill || node.props.highlight || node.props.shine
+        ? resolveMaterialSurfaceFromProps(node.props, "container")
+        : null;
     const fill =
       fillKind === "gradient" && node.props.gradient
         ? gradientToCss(node.props.gradient as typeof DEFAULT_GRADIENT)
         : fillKind === "image" && str(node.props.imageSrc)
           ? `url("${str(node.props.imageSrc).replaceAll('"', "%22")}") center / cover no-repeat`
-          : str(node.props.gradientFill, str(node.props.fill, "#22c55e"));
+          : shapeMaterial
+            ? shapeMaterial.background
+            : str(node.props.gradientFill, str(node.props.fill, "#22c55e"));
     const shadow = num(node.props.shadow, 0);
     const glow = num(node.props.glow, 0);
+    const shapeShadow =
+      shapeMaterial?.boxShadow ||
+      [
+        shadow > 0 ? `0 ${Math.max(2, shadow / 3)}px ${shadow}px rgba(0,0,0,.55)` : "",
+        glow > 0 ? `0 0 ${glow}px ${str(node.props.stroke, "#9cff57")}` : "",
+      ]
+        .filter(Boolean)
+        .join(", ") || undefined;
     return (
       <div
-        className="h-full w-full"
+        className="relative h-full w-full overflow-hidden"
+        data-material-fill-authority={shapeMaterial?.fillAuthority}
+        data-material-stop-count={shapeMaterial ? String(shapeMaterial.gradientStopCount) : undefined}
         style={{
           background: fill,
-          opacity: num(node.props.opacity, 1),
+          opacity: shapeMaterial?.opacity ?? num(node.props.opacity, 1),
           borderRadius: radius,
           clipPath: clipPaths[shape],
           border:
             num(node.props.strokeWidth, 0) > 0
               ? `${num(node.props.strokeWidth, 0)}px solid ${str(node.props.stroke, "#fff")}`
-              : undefined,
-          boxShadow: [
-            shadow > 0 ? `0 ${Math.max(2, shadow / 3)}px ${shadow}px rgba(0,0,0,.55)` : "",
-            glow > 0
-              ? `0 0 ${glow}px ${str(node.props.stroke, "#9cff57")}`
-              : "",
-          ]
-            .filter(Boolean)
-            .join(", ") || undefined,
+              : shapeMaterial && shapeMaterial.borderWidth > 0
+                ? `${shapeMaterial.borderWidth}px ${shapeMaterial.borderStyle} ${shapeMaterial.borderColor}`
+                : undefined,
+          boxShadow: shapeShadow,
           mixBlendMode: str(node.props.blendMode, "normal") as
             | "normal"
             | "multiply"
@@ -1063,7 +1080,9 @@ function NodeVisual({
             node.props.flipY === true ? -1 : 1
           })`,
         }}
-      />
+      >
+        {shapeMaterial ? <MaterialSurfaceLayers surface={shapeMaterial} testIdPrefix={`shape-${node.id}`} /> : null}
+      </div>
     );
   }
 
@@ -1186,19 +1205,10 @@ function NodeVisual({
     const radius = node.props.cornersLinked === false && presentation === "custom"
       ? `${num(node.props.radiusTopLeft, linkedRadius)}px ${num(node.props.radiusTopRight, linkedRadius)}px ${num(node.props.radiusBottomRight, linkedRadius)}px ${num(node.props.radiusBottomLeft, linkedRadius)}px`
       : linkedRadius;
+    const materialSurface = resolveMaterialSurfaceFromProps(node.props, "button");
     const surfaceKind = str(node.props.buttonSurfaceKind, "solid");
-    const surfaceBackground = surfaceKind === "transparent"
-      ? "transparent"
-      : surfaceKind === "gradient"
-        ? `linear-gradient(${num(node.props.gradientAngle, 120)}deg, ${str(node.props.gradientStart, "#22c55e")}, ${str(node.props.gradientEnd, "#a3e635")})`
-        : surfaceKind === "image" && str(node.props.backgroundImageUrl)
-          ? `url("${str(node.props.backgroundImageUrl).replaceAll('"', "%22")}") center / cover no-repeat`
-          : surfaceKind === "pattern"
-            ? `repeating-linear-gradient(135deg, ${str(node.props.fill, "#22c55e")} 0 10px, ${str(node.props.gradientEnd, "#a3e635")} 10px 20px)`
-            : surfaceKind === "texture"
-              ? `radial-gradient(circle at 25% 25%, #ffffff28 0 1px, transparent 2px), ${str(node.props.fill, "#22c55e")}`
-              : str(node.props.fill, "#22c55e");
-    const shadowParts = surfaceShadowCss(node.props);
+    const surfaceBackground = materialSurface.background;
+    const shadowParts = materialSurface.boxShadow;
     // Button content door writes parent labelColor/textColor AND syncs nested label.color.
     // Parent mirrors must win over a stale ephemeral nested default (#0b0f19).
     const resolvedLabelColor = str(
@@ -1272,14 +1282,14 @@ function NodeVisual({
           height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           minHeight: 44,
           background: surfaceBackground,
-          backgroundSize: surfaceKind === "texture" ? "8px 8px" : undefined,
+          backgroundSize: materialSurface.backgroundSize ?? (surfaceKind === "texture" ? "8px 8px" : undefined),
           color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
           borderRadius: radius,
-          borderWidth: num(node.props.borderWidth, 0),
-          borderStyle: (num(node.props.borderWidth, 0) > 0 ? str(node.props.borderStyle, "solid") : "none") as CSSProperties["borderStyle"],
-          borderColor: str(node.props.borderColor, "transparent"),
+          borderWidth: materialSurface.borderWidth,
+          borderStyle: materialSurface.borderStyle as CSSProperties["borderStyle"],
+          borderColor: materialSurface.borderColor,
           boxShadow: shadowParts,
-          opacity: num(node.props.surfaceOpacity, 1),
+          opacity: materialSurface.opacity,
           padding: num(node.props.padding, 8),
           gap: num(node.props.spacing, 6),
           flexDirection: verticalIcon ? "column" : "row",
@@ -1287,11 +1297,14 @@ function NodeVisual({
         data-button-surface-kind={surfaceKind}
         data-button-radius={String(linkedRadius)}
         data-button-content-layout={str(node.props.buttonContentLayout, "auto")}
-        data-button-high-gloss={node.props.shine === true ? "true" : "false"}
-        data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
+        data-button-high-gloss={materialSurface.shine ? "true" : "false"}
+        data-material-fill-authority={materialSurface.fillAuthority}
+        data-material-stop-count={String(materialSurface.gradientStopCount)}
+        data-material-highlight={materialSurface.highlight ? "true" : "false"}
+        data-surface-texture={materialSurface.textureToken || undefined}
       >
         {buttonTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={buttonTexture} /> : null}
-        {node.props.shine === true ? <span className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent" aria-hidden data-testid={`button-shine-${node.id}`} /> : null}
+        <MaterialSurfaceLayers surface={materialSurface} testIdPrefix={`button-${node.id}`} />
         {(iconPosition === "before" || iconPosition === "above") ? buttonIconEl : null}
         {buttonLabelEl}
         {(iconPosition === "after" || iconPosition === "below") ? buttonIconEl : null}
