@@ -121,11 +121,13 @@ function legacyTwoStopGradient(props: Record<string, unknown>): string | null {
   return `linear-gradient(${angle}deg, ${start}, ${end})`;
 }
 
-function resolveButtonBackground(props: Record<string, unknown>): {
+type ResolvedFill = {
   background: string;
   backgroundSize?: string;
   fillAuthority: MaterialFillAuthority;
-} {
+};
+
+function resolveButtonBackground(props: Record<string, unknown>): ResolvedFill {
   const kind = String(props.buttonSurfaceKind || "solid");
   if (kind === "transparent") {
     return { background: "transparent", fillAuthority: "transparent" };
@@ -166,10 +168,7 @@ function resolveButtonBackground(props: Record<string, unknown>): {
 function resolveGenericBackground(
   props: Record<string, unknown>,
   role: MaterialSurfaceRole
-): {
-  background: string;
-  fillAuthority: MaterialFillAuthority;
-} {
+): ResolvedFill {
   if (role === "icon_backing" || role === "text_box") {
     const boxGradient = typeof props.boxGradient === "string" ? props.boxGradient.trim() : "";
     if (boxGradient) return { background: boxGradient, fillAuthority: "gradientFill" };
@@ -220,7 +219,7 @@ export function resolveMaterialSurfaceFromProps(
       : resolved.background;
   return {
     background,
-    backgroundSize: "backgroundSize" in resolved ? resolved.backgroundSize : undefined,
+    backgroundSize: resolved.backgroundSize,
     borderWidth,
     borderStyle,
     borderColor,
