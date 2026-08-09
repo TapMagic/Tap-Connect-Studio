@@ -12,7 +12,7 @@
 | Prior HV candidate (superseded) | `eb1f53f7c91dffa89fff6424c7cd23efb9679936` |
 | **Final Product SHA** | `8d49d845f2453b92c8f1b3a4fe7467a7ed79226f` |
 | **Final Certification-Jig SHA** | `8d49d845f2453b92c8f1b3a4fe7467a7ed79226f` |
-| Documentation closeout | `fc56a583280bdb02aa97053c12b9b18b2d8f8816` |
+| Documentation closeout tip | `028eddf6f9d46e1c3166547b0382fa5c2a6be75a` |
 
 ## Dual green (same Product + Jig SHA)
 
