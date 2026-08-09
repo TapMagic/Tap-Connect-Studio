@@ -14,11 +14,22 @@ const LOCAL_STORAGE_ROOT = path.join(
   "creative-media-storage"
 );
 
+/**
+ * Durable disk media for local certification without R2.
+ * Allowed when fixture mode is on (dev, or prod-style start with TAPCONNECT_DEV_AUTH),
+ * or when TAPCONNECT_DEV_AUTH is set and R2 is not configured.
+ */
 export function localMediaStorageEnabled(): boolean {
-  return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture"
-  );
+  const fixture =
+    process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture";
+  const devAuth = process.env.TAPCONNECT_DEV_AUTH === "1";
+  if (fixture) {
+    return process.env.NODE_ENV !== "production" || devAuth;
+  }
+  if (devAuth && !process.env.R2_ACCOUNT_ID?.trim()) {
+    return true;
+  }
+  return false;
 }
 
 function localMediaPath(storageKey: string): string {

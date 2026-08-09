@@ -125,6 +125,7 @@ export function PatternTextureStudio({
               <button
                 type="button"
                 className="block w-full text-left"
+                data-testid={`surface-pattern-${definition.id}`}
                 onClick={() =>
                   onChange(preview, `Applied ${definition.label} ${kind}`)
                 }

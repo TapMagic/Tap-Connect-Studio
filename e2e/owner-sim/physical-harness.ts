@@ -981,3 +981,102 @@ export async function readVisualSignature(locator: Locator) {
     };
   });
 }
+
+type DropFilePayload = { name: string; mime: string; base64: string };
+
+/** OS-like file drop onto the composition canvas (application drop path). */
+export async function dropFilesOnCanvas(
+  page: Page,
+  files: DropFilePayload[],
+  point?: { x: number; y: number }
+) {
+  const canvas = page.getByTestId("creative-composition-canvas");
+  await expect(canvas).toBeVisible({ timeout: 15_000 });
+  await expect(canvas).toHaveAttribute("data-media-drop", "ready", { timeout: 15_000 });
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error("Canvas has no bounding box for drop");
+  const clientX = box.x + (point?.x ?? box.width * 0.45);
+  const clientY = box.y + (point?.y ?? box.height * 0.4);
+  await canvas.evaluate(
+    (el, args) => {
+      const dt = new DataTransfer();
+      for (const file of args.files) {
+        const bytes = Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0));
+        dt.items.add(new File([bytes], file.name, { type: file.mime }));
+      }
+      el.dispatchEvent(
+        new DragEvent("dragover", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dt,
+          clientX: args.clientX,
+          clientY: args.clientY,
+        })
+      );
+      el.dispatchEvent(
+        new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dt,
+          clientX: args.clientX,
+          clientY: args.clientY,
+        })
+      );
+    },
+    { files, clientX, clientY }
+  );
+}
+
+/** Drop files onto a specific composition node (replace path). */
+export async function dropFilesOnNode(page: Page, node: Locator, files: DropFilePayload[]) {
+  await expect(node).toBeVisible({ timeout: 15_000 });
+  const box = await node.boundingBox();
+  if (!box) throw new Error("Node has no bounding box for replace drop");
+  await node.evaluate(
+    (el, args) => {
+      const dt = new DataTransfer();
+      for (const file of args.files) {
+        const bytes = Uint8Array.from(atob(file.base64), (c) => c.charCodeAt(0));
+        dt.items.add(new File([bytes], file.name, { type: file.mime }));
+      }
+      el.dispatchEvent(
+        new DragEvent("dragover", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dt,
+          clientX: args.clientX,
+          clientY: args.clientY,
+        })
+      );
+      el.dispatchEvent(
+        new DragEvent("drop", {
+          bubbles: true,
+          cancelable: true,
+          dataTransfer: dt,
+          clientX: args.clientX,
+          clientY: args.clientY,
+        })
+      );
+    },
+    { files, clientX: box.x + box.width / 2, clientY: box.y + box.height / 2 }
+  );
+}
+
+/** Image clipboard paste through the window paste listener (canvas focus path). */
+export async function pasteImageOntoCanvas(page: Page, file: DropFilePayload) {
+  const canvas = page.getByTestId("creative-composition-canvas");
+  await expect(canvas).toHaveAttribute("data-media-drop", "ready", { timeout: 15_000 });
+  await canvas.click({ position: { x: 24, y: 24 } });
+  await page.evaluate((payload) => {
+    const dt = new DataTransfer();
+    const bytes = Uint8Array.from(atob(payload.base64), (c) => c.charCodeAt(0));
+    dt.items.add(new File([bytes], payload.name, { type: payload.mime }));
+    window.dispatchEvent(
+      new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData: dt,
+      })
+    );
+  }, file);
+}

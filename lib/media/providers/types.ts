@@ -58,8 +58,12 @@ export type ProviderFetch = typeof fetch;
 export const PROVIDER_REQUEST_TIMEOUT_MS = 8_000;
 
 export function providerFixtureModeEnabled(): boolean {
+  if (process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() !== "fixture") {
+    return false;
+  }
+  // Production-style local cert may run `next start` with TAPCONNECT_DEV_AUTH=1.
   return (
-    process.env.NODE_ENV !== "production" &&
-    process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture"
+    process.env.NODE_ENV !== "production" ||
+    process.env.TAPCONNECT_DEV_AUTH === "1"
   );
 }

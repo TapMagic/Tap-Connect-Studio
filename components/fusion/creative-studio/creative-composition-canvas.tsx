@@ -2138,8 +2138,31 @@ export function CreativeCompositionCanvas({
       }}
       onDrop={(event) => {
         if (!editMode) return;
+        if (event.defaultPrevented) return;
         const files = Array.from(event.dataTransfer.files || []);
         if (!files.length) return;
+        // Replace-on-node owns file drops on Image/Logo; do not also place a new object.
+        const hit = event.target as HTMLElement | null;
+        const overNode = hit?.closest?.("[data-composition-node]") as HTMLElement | null;
+        if (overNode) {
+          const primitive = overNode.getAttribute("data-primitive") || "";
+          const elementKind = overNode.getAttribute("data-element-kind") || "";
+          const replaceable =
+            primitive === "image" ||
+            primitive === "frame" ||
+            elementKind === "logo" ||
+            elementKind === "image" ||
+            Boolean(overNode.getAttribute("data-media-asset-id"));
+          if (replaceable) {
+            const replaceId = overNode.getAttribute("data-composition-node");
+            if (replaceId) {
+              event.preventDefault();
+              event.stopPropagation();
+              void importImageFiles(files, undefined, replaceId);
+              return;
+            }
+          }
+        }
         event.preventDefault();
         const rect = event.currentTarget.getBoundingClientRect();
         const point = {
@@ -2276,6 +2299,16 @@ export function CreativeCompositionCanvas({
             data-composition-node={node.id}
             data-primitive={node.primitive}
             data-element-kind={String(node.props.elementKind || node.primitive)}
+            data-media-asset-id={
+              typeof node.props.mediaAssetId === "string" && node.props.mediaAssetId
+                ? node.props.mediaAssetId
+                : undefined
+            }
+            data-font-family={
+              typeof node.props.fontFamily === "string" && node.props.fontFamily
+                ? node.props.fontFamily
+                : undefined
+            }
             data-selected={selected ? "true" : "false"}
             data-selection-mode={selectionModeForNode(node)}
             data-content-parent={contentParentActive ? "true" : undefined}

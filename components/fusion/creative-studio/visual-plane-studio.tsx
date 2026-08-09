@@ -203,6 +203,9 @@ export function VisualPlaneStudio({
             type="button"
             className="min-h-10 rounded border border-[#b8ff2c]/40 text-[10px] text-[#b8ff2c]"
             data-testid={`visual-plane-use-as-pattern-${target}`}
+            aria-pressed={
+              value.kind === "image" && value.treatment.repeat === "repeat"
+            }
             onClick={() =>
               onChange(
                 repeatingMediaPatternPlane({

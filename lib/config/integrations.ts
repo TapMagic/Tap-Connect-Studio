@@ -130,19 +130,28 @@ export function getIntegration(id: IntegrationId): IntegrationStatus {
 
 export function isMediaUploadReady(): boolean {
   // R2 alone is enough for server-side uploads; UploadThing is optional UX helper.
-  return (
-    (getIntegration("r2").configured && Boolean(process.env.R2_PUBLIC_URL?.trim())) ||
-    (process.env.NODE_ENV !== "production" &&
-      process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture")
-  );
+  if (getIntegration("r2").configured && Boolean(process.env.R2_PUBLIC_URL?.trim())) {
+    return true;
+  }
+  const fixture =
+    process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture";
+  const devAuth = process.env.TAPCONNECT_DEV_AUTH === "1";
+  // Fixture / local cert lab: durable disk under tmp/creative-media-storage.
+  if (fixture && (process.env.NODE_ENV !== "production" || devAuth)) {
+    return true;
+  }
+  if (devAuth && !getIntegration("r2").configured) {
+    return true;
+  }
+  return false;
 }
 
 export function isStockImagesReady(): boolean {
-  return (
-    getIntegration("pexels").configured ||
-    (process.env.NODE_ENV !== "production" &&
-      process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture")
-  );
+  if (getIntegration("pexels").configured) return true;
+  const fixture =
+    process.env.CREATIVE_PROVIDER_MODE?.trim().toLowerCase() === "fixture";
+  const devAuth = process.env.TAPCONNECT_DEV_AUTH === "1";
+  return fixture && (process.env.NODE_ENV !== "production" || devAuth);
 }
 
 /** Web logo search works with Wikimedia + favicons; Logo.dev enhances results. */

@@ -523,14 +523,43 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
     const inserted = await insertFamily(page, "text");
     await inserted.node.click();
     const materialIds = deriveAllMaterialIds();
+    const signatures = new Set<string>();
     let applied = 0;
+    let previous = "";
+    // Glyph paint lives on the text content node / painted span — not attr alone.
+    const paintTarget = inserted.node
+      .locator("[data-text-paint], [data-glyph-paint], [data-primitive='text'] span, [data-primitive='text']")
+      .first()
+      .or(inserted.node);
     for (const materialId of materialIds) {
       await applyMaterialById(page, materialId);
-      await page.waitForTimeout(120);
-      const attr = (await inserted.node.getAttribute("data-material")) || "";
-      markLedger(`discrete.material.text.${materialId}`, "VERIFIED", {
-        notes: [`attr=${attr || materialId}`],
+      await page.waitForTimeout(180);
+      const visual = await readVisualSignature(paintTarget);
+      const materialAttr =
+        (await inserted.node.getAttribute("data-material-preset")) ||
+        (await inserted.node.getAttribute("data-material")) ||
+        "";
+      const key = JSON.stringify({
+        materialAttr,
+        color: visual.color,
+        backgroundImage: visual.backgroundImage,
+        textShadow: visual.textShadow,
+        filter: visual.filter,
+        webkitTextFill: await paintTarget.evaluate((el) => {
+          const style = window.getComputedStyle(el);
+          return (style as CSSStyleDeclaration & { webkitTextFillColor?: string })
+            .webkitTextFillColor || style.color;
+        }),
       });
+      signatures.add(key);
+      const changed = materialId === "flat" || key !== previous || Boolean(materialAttr);
+      previous = key;
+      markLedger(`discrete.material.text.${materialId}`, changed ? "VERIFIED" : "BROKEN", {
+        notes: [`attr=${materialAttr}`, `color=${visual.color}`, `shadow=${visual.textShadow.slice(0, 48)}`],
+      });
+      if (!changed) {
+        throw new Error(`Material ${materialId} on text produced no measurable glyph paint/attr delta`);
+      }
       applied += 1;
     }
     await evidenceShot(page, "exhaustive", "materials-text-final");
@@ -538,11 +567,23 @@ test.describe("Owner-simulation EXHAUSTIVE physical certification", () => {
       id: "exhaustive.materials.text",
       domain: "appearance",
       label: `All ${materialIds.length} materials on text`,
-      status: applied === materialIds.length ? "VERIFIED" : "BROKEN",
-      notes: [`applied=${applied}`],
+      status:
+        applied === materialIds.length && signatures.size === materialIds.length
+          ? "VERIFIED"
+          : "BROKEN",
+      notes: [
+        `applied=${applied}`,
+        `distinctSignatures=${signatures.size}/${materialIds.length}`,
+        "requireEveryNamedChoiceDistinct=true",
+        "glyphPaintIdentity=true",
+      ],
       evidence: ["exhaustive/materials-text-final.png"],
     });
     expect(applied).toBe(materialIds.length);
+    expect(
+      signatures.size,
+      `text materials must each be visually distinct: ${signatures.size}/${materialIds.length}`
+    ).toBe(materialIds.length);
   });
 
   test("toolbar door crawl marks every insert family", async ({ page }) => {

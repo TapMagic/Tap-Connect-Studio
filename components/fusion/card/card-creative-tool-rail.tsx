@@ -763,8 +763,10 @@ function BackgroundDrawer({ model, matches }: { model: CardEditorLiveModel; matc
         onChange={(next, label) => model.patchConfig(writePageVisualPlane(model.config, next), label)}
       />
       <div className="space-y-1" data-testid="card-background-quick-patterns">
-        <h3 className="text-[10px] font-semibold uppercase text-white/45">Quick patterns</h3>
-        {SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).slice(0, 12).map((pattern) => (
+        <h3 className="text-[10px] font-semibold uppercase text-white/45">
+          Patterns ({SURFACE_PATTERN_CATALOG.length})
+        </h3>
+        {SURFACE_PATTERN_CATALOG.filter((pattern) => matches(`${pattern.label} ${pattern.category}`)).map((pattern) => (
           <LibraryAction
             key={pattern.id}
             label={pattern.label}
