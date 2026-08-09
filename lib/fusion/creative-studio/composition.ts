@@ -286,6 +286,12 @@ export type CreativeCompositionBlock = {
     value?: string;
     gradient?: GradientModel;
     pattern?: SurfacePatternModel;
+    /** Shared Material catalog id when Background was applied via Material authority. */
+    materialPreset?: string;
+    /** Specular / highlight layer CSS retained with Material application. */
+    highlight?: string;
+    /** Gloss sheen flag retained with Material application. */
+    shine?: boolean;
     /** Applies to the root fill only; never changes Element or utility opacity. */
     opacity?: number;
     tint?: string;

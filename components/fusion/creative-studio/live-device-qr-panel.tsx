@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { STUDIO_WORDING } from "@/lib/fusion/creative-studio/wording";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import type { PreviewUrlCandidateKind } from "@/lib/fusion/creative-studio/preview/url";
 
 export type LiveDeviceQrPanelProps = {
   config: TapConnectCardConfig;
@@ -25,15 +26,35 @@ type SessionResponse = {
   ok?: boolean;
   path?: string;
   url?: string;
+  qrUrl?: string;
   reachableForPhone?: boolean;
   isLocalhost?: boolean;
+  candidateKind?: PreviewUrlCandidateKind;
+  physicallyVerified?: boolean;
   guidance?: string | null;
   revision?: number;
   expiresAt?: string;
   error?: string;
   consequence?: string;
   recovery?: string;
+  mode?: "follow" | "freeze";
+  token?: string;
 };
+
+function candidacyCopy(kind: PreviewUrlCandidateKind | null | undefined): string {
+  switch (kind) {
+    case "lan_candidate":
+      return STUDIO_WORDING.lanCandidateUnverified;
+    case "configured_public_candidate":
+      return STUDIO_WORDING.publicCandidateUnverified;
+    case "locally_unreachable":
+      return STUDIO_WORDING.locallyUnreachableCandidate;
+    case "invalid":
+      return STUDIO_WORDING.invalidPreviewCandidate;
+    default:
+      return STUDIO_WORDING.creatingPhonePreview;
+  }
+}
 
 export function LiveDeviceQrPanel({
   config,
@@ -48,7 +69,9 @@ export function LiveDeviceQrPanel({
 }: LiveDeviceQrPanelProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [reachable, setReachable] = useState(true);
+  const [candidateKind, setCandidateKind] = useState<PreviewUrlCandidateKind | null>(null);
+  const [physicallyVerified, setPhysicallyVerified] = useState(false);
+  const [phoneAttemptCandidate, setPhoneAttemptCandidate] = useState(false);
   const [guidance, setGuidance] = useState<string | null>(null);
   const [sessionRevision, setSessionRevision] = useState(revision);
   const [token, setToken] = useState<string | null>(null);
@@ -83,6 +106,9 @@ export function LiveDeviceQrPanel({
       setBusy(true);
       setStatus("creating");
       setError(null);
+      setCandidateKind(null);
+      setPhysicallyVerified(false);
+      setPhoneAttemptCandidate(false);
       try {
         const res = await fetch("/api/preview/card/session", {
           method: mode === "update" && token ? "PATCH" : "POST",
@@ -91,17 +117,23 @@ export function LiveDeviceQrPanel({
             mode === "update" && token ? { token, ...payload } : payload
           ),
         });
-        const data = (await res.json()) as SessionResponse & { token?: string };
+        const data = (await res.json()) as SessionResponse;
         if (!res.ok || !data.ok) {
           setError(data.error || "Preview session unavailable");
           setGuidance(data.recovery || data.guidance || null);
+          setCandidateKind(data.candidateKind || "invalid");
+          setPhysicallyVerified(false);
           setStatus("error");
           return;
         }
         if (data.token) setToken(data.token);
-        setPreviewUrl((data as SessionResponse & { qrUrl?: string }).qrUrl || data.url || null);
-        setReachable(Boolean(data.reachableForPhone));
-        if ((data as { mode?: "follow" | "freeze" }).mode) setFollowMode((data as { mode: "follow" | "freeze" }).mode);
+        setPreviewUrl(data.qrUrl || data.url || null);
+        const kind = data.candidateKind || (data.reachableForPhone ? "lan_candidate" : "invalid");
+        setCandidateKind(kind);
+        // Session creation never physically verifies a phone open.
+        setPhysicallyVerified(data.physicallyVerified === true);
+        setPhoneAttemptCandidate(Boolean(data.reachableForPhone));
+        if (data.mode) setFollowMode(data.mode);
         setGuidance(data.guidance || null);
         setSessionRevision(data.revision ?? revision);
         setUpdatedAt(new Date().toISOString());
@@ -125,7 +157,7 @@ export function LiveDeviceQrPanel({
           );
           setGuidance(
             data.guidance ||
-              "Use the same Wi-Fi, ensure the server listens on a LAN interface, and confirm the QR host uses this app's actual port — not a hardcoded default."
+              STUDIO_WORDING.locallyUnreachableCandidate
           );
           setStatus("error");
         }
@@ -134,6 +166,7 @@ export function LiveDeviceQrPanel({
         setGuidance(
           "Try again, or copy the link after fixing NEXT_PUBLIC_PREVIEW_BASE_URL."
         );
+        setCandidateKind("invalid");
         setStatus("error");
       } finally {
         setBusy(false);
@@ -149,11 +182,18 @@ export function LiveDeviceQrPanel({
     void createOrUpdate("create");
   }, [createOrUpdate]);
 
+  const candidacyLabel =
+    status === "idle" || status === "creating"
+      ? STUDIO_WORDING.creatingPhonePreview
+      : candidacyCopy(candidateKind);
+
   return (
     <div
       className={cn("space-y-3 p-3", className)}
       data-testid="live-device-qr-panel"
       data-preview-status={status}
+      data-candidate-kind={candidateKind || "pending"}
+      data-physically-verified={physicallyVerified ? "true" : "false"}
     >
       <div className="flex items-center gap-2">
         <Smartphone className="h-4 w-4 text-white/70" aria-hidden />
@@ -170,8 +210,30 @@ export function LiveDeviceQrPanel({
             {expiresAt ? ` · Expires ${new Date(expiresAt).toLocaleString()}` : ""}
             {` · rev ${sessionRevision} · ${followMode}`}
           </p>
-          <p className="text-[10px] text-white/75" data-testid="preview-lan-status">
-            {reachable ? "LAN reachable — same Wi-Fi required for phone scan" : "LAN unreachable — configure a phone-reachable preview URL"}
+          <p
+            className="text-[10px] text-white/75"
+            data-testid="preview-candidate-status"
+            data-candidate-kind={candidateKind || "pending"}
+          >
+            {candidacyLabel}
+          </p>
+          {/* Legacy test id retained — candidacy honesty, never “LAN reachable”. */}
+          <p
+            className="text-[10px] text-white/75"
+            data-testid="preview-lan-status"
+            data-candidate-kind={candidateKind || "pending"}
+            data-phone-attempt-candidate={phoneAttemptCandidate ? "true" : "false"}
+          >
+            {candidacyLabel}
+          </p>
+          <p
+            className="text-[10px] text-white/75"
+            data-testid="preview-physical-verification"
+            data-physically-verified={physicallyVerified ? "true" : "false"}
+          >
+            {physicallyVerified
+              ? "Phone open verified"
+              : STUDIO_WORDING.phoneOpenUnverified}
           </p>
           <p
             className="text-[10px] text-white/75"
@@ -181,14 +243,14 @@ export function LiveDeviceQrPanel({
             {status === "creating"
               ? STUDIO_WORDING.creatingPhonePreview
               : status === "ready"
-                ? STUDIO_WORDING.phonePreviewReady
+                ? STUDIO_WORDING.qrReadyToScan
                 : status === "error"
                   ? "Preview unavailable"
-                  : "Preparing…"}
+                  : STUDIO_WORDING.creatingPhonePreview}
           </p>
           {status === "ready" ? (
             <span className="sr-only" data-testid="live-device-status-ready">
-              Phone preview ready
+              {STUDIO_WORDING.qrReadyToScan}
             </span>
           ) : null}
           {status === "error" ? (
@@ -229,7 +291,7 @@ export function LiveDeviceQrPanel({
         </div>
       ) : null}
 
-      {!reachable && guidance ? (
+      {!phoneAttemptCandidate && guidance && status === "error" ? (
         <p
           className="rounded-md border border-white/15 bg-white/5 px-3 py-2 text-xs text-white/75"
           data-testid="preview-localhost-warning"
@@ -239,7 +301,7 @@ export function LiveDeviceQrPanel({
         </p>
       ) : null}
 
-      {qrDataUrl && reachable ? (
+      {qrDataUrl && phoneAttemptCandidate ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
           src={qrDataUrl}
@@ -256,7 +318,7 @@ export function LiveDeviceQrPanel({
         >
           {busy
             ? STUDIO_WORDING.creatingPhonePreview
-            : "QR unavailable until a reachable preview URL is configured"}
+            : "QR unavailable until a phone-attempt candidate URL is available"}
         </div>
       )}
 
@@ -332,6 +394,9 @@ export function LiveDeviceQrPanel({
                   setPreviewUrl(null);
                   setQrDataUrl(null);
                   setToken(null);
+                  setCandidateKind(null);
+                  setPhysicallyVerified(false);
+                  setPhoneAttemptCandidate(false);
                   setStatus("idle");
                   autoStarted.current = false;
                 } finally {

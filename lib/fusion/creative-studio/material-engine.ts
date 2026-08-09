@@ -7,6 +7,9 @@ import {
   materialPreviewBackgroundFromRecipe,
   surfaceShadowCss as surfaceShadowCssImpl,
 } from "./material-surface";
+import { surfacePatternFromTextureToken } from "./patterns";
+import { DEFAULT_GRADIENT, normalizeGradient } from "./gradient";
+import type { CreativeCompositionBlock } from "./composition";
 
 export { resolveMaterialSurfaceFromProps, resolveMaterialSurfaceFromRecipe, materialSurfaceParityKey } from "./material-surface";
 export type { MaterialSurfaceDescriptor, MaterialSurfaceRole } from "./material-surface";
@@ -473,6 +476,9 @@ export function applyMaterialRecipe(
   if (!recipe) return next;
 
   next.materialPreset = recipe.id;
+  // Material props become the surface authority — clear stale Visual Plane so
+  // Container cannot keep a two-stop plane that discards multi-stop Materials.
+  next.visualPlane = undefined;
   applyRecipeFill(next, recipe, { asButtonSurface: options.asButtonSurface });
   next.borderWidth = recipe.borderWidth ?? 0;
   next.borderColor = recipe.borderColor;
@@ -577,6 +583,121 @@ export function applyEffectRecipe(
  */
 export function materialPreviewCss(recipe: MaterialRecipe): string {
   return materialPreviewBackgroundFromRecipe(recipe);
+}
+
+type CompositionBackground = NonNullable<CreativeCompositionBlock["background"]>;
+
+function expandHexColor(color: string): string | null {
+  if (/^#[0-9a-f]{6}$/i.test(color)) return color.toLowerCase();
+  if (/^#[0-9a-f]{3}$/i.test(color)) {
+    return `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`.toLowerCase();
+  }
+  return null;
+}
+
+/**
+ * Card / Page Background Material adapter — durable Visual Plane fields plus
+ * materialPreset so Edit → Save → Reload → Preview re-resolve the same recipe.
+ */
+export function compositionBackgroundFromMaterialRecipe(
+  recipe: MaterialRecipe
+): CompositionBackground {
+  const meta = {
+    materialPreset: recipe.id,
+    highlight: recipe.highlight,
+    shine: recipe.shine === true,
+  };
+
+  if (recipe.texture) {
+    const pattern = surfacePatternFromTextureToken(recipe.texture, {
+      background: recipe.fill || "#1f2937",
+      opacity: 0.32,
+    });
+    if (pattern) {
+      return {
+        kind: pattern.kind === "texture" ? "texture" : "pattern",
+        pattern,
+        value: recipe.gradient || recipe.fill,
+        ...meta,
+      };
+    }
+  }
+
+  if (recipe.gradient) {
+    const colors = recipe.gradient.match(/#[0-9a-fA-F]{3,8}/g) || [];
+    const hexStops = colors
+      .map((color) => expandHexColor(color.length <= 4 ? color : color.slice(0, 7)))
+      .filter((color): color is string => Boolean(color));
+    const stops =
+      hexStops.length >= 2
+        ? hexStops.map((color, index, arr) => ({
+            id: `m-${index}`,
+            color,
+            position: Math.round((index / Math.max(1, arr.length - 1)) * 100),
+            opacity: 1,
+          }))
+        : DEFAULT_GRADIENT.stops;
+    return {
+      kind: "gradient",
+      value: recipe.gradient,
+      gradient: normalizeGradient({
+        ...DEFAULT_GRADIENT,
+        kind: "linear",
+        angle: 135,
+        stops,
+      }),
+      ...meta,
+    };
+  }
+
+  return {
+    kind: "solid",
+    value: recipe.fill || "#0f172a",
+    ...meta,
+  };
+}
+
+/** Rehydrate Material props for page-background shared surface resolution. */
+export function materialPropsFromCompositionBackground(
+  background: CompositionBackground | undefined | null
+): Record<string, unknown> | null {
+  if (!background?.materialPreset) return null;
+  const recipe = getMaterialRecipe(background.materialPreset);
+  if (recipe) {
+    return {
+      materialPreset: recipe.id,
+      fill: recipe.fill,
+      gradientFill: recipe.gradient,
+      highlight: recipe.highlight ?? background.highlight,
+      shine: recipe.shine === true || background.shine === true,
+      texture: recipe.texture,
+      borderWidth: recipe.borderWidth ?? 0,
+      borderColor: recipe.borderColor,
+      borderStyle: recipe.borderStyle || (recipe.borderWidth ? "solid" : "none"),
+      boxShadow: recipe.outerShadow ?? 0,
+      boxGlow: recipe.glow ?? 0,
+      glowColor: recipe.glowColor,
+      innerShadow: recipe.innerShadow,
+      opacity: recipe.opacity ?? 1,
+      surfaceFillKind: recipe.gradient ? "gradient" : "solid",
+      buttonSurfaceKind: recipe.gradient ? "gradient" : "solid",
+    };
+  }
+  return {
+    materialPreset: background.materialPreset,
+    highlight: background.highlight,
+    shine: background.shine === true,
+    fill: background.kind === "solid" ? background.value : background.pattern?.background,
+    gradientFill:
+      background.kind === "gradient"
+        ? background.value || undefined
+        : undefined,
+    texture:
+      background.kind === "texture" || background.kind === "pattern"
+        ? background.pattern?.id
+        : undefined,
+    opacity: background.opacity ?? 1,
+  };
 }
 
 export function surfaceShadowCss(props: Record<string, unknown>): string | undefined {

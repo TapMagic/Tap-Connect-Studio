@@ -277,15 +277,27 @@ test.describe("Practical authoring certification (Canva-benchmark outcomes)", ()
     await expect.poll(async () => page.getByTestId("live-device-qr-panel").getAttribute("data-preview-status"), { timeout: 30_000 }).not.toBe("creating");
     const status = await page.getByTestId("live-device-qr-panel").getAttribute("data-preview-status");
     const panelText = await page.getByTestId("live-device-qr-panel").innerText();
+    const candidateKind = await page.getByTestId("live-device-qr-panel").getAttribute("data-candidate-kind");
+    const physicallyVerified = await page.getByTestId("live-device-qr-panel").getAttribute("data-physically-verified");
     expect(panelText).not.toMatch(/:3050(?:\/|$)/);
+    expect(panelText).not.toMatch(/LAN reachable/i);
+    expect(physicallyVerified).toBe("false");
     if (status === "ready") {
       await expect(page.getByTestId("live-device-status-ready")).toBeAttached();
+      await expect(page.getByTestId("preview-status-label")).toContainText(/QR ready to scan/i);
+      expect(panelText).toMatch(/has not been verified yet/i);
       if (/https?:\/\/\d+\.\d+\.\d+\.\d+/.test(panelText)) {
         expect(panelText).toMatch(new RegExp(`:${port}`));
+        expect(candidateKind).toBe("lan_candidate");
+        expect(panelText).toMatch(/LAN candidate/i);
+      } else if (candidateKind === "configured_public_candidate") {
+        expect(panelText).toMatch(/Public preview candidate/i);
+        expect(panelText).not.toMatch(/LAN candidate/i);
       }
     } else {
       expect(status).toBe("error");
       expect(panelText.length).toBeGreaterThan(20);
+      expect(["invalid", "locally_unreachable", "pending"]).toContain(candidateKind || "pending");
     }
 
     const assessmentRes = await request.post("/api/preview/card/session", {
@@ -303,12 +315,14 @@ test.describe("Practical authoring certification (Canva-benchmark outcomes)", ()
       const body = await assessmentRes.json();
       if (body.url) expect(String(body.url)).not.toMatch(/:3050(?:\/|$)/);
       if (body.qrUrl) expect(String(body.qrUrl)).not.toMatch(/:3050(?:\/|$)/);
+      expect(body.physicallyVerified).toBe(false);
+      expect(body.candidateKind).toBeTruthy();
     }
 
     await evidenceShot(page, "practical", "task-g-live-device.png");
     fs.writeFileSync(
       path.join(EVIDENCE, "task-g.json"),
-      JSON.stringify({ ok: true, port, status, base, panelSnippet: panelText.slice(0, 240) }, null, 2)
+      JSON.stringify({ ok: true, port, status, candidateKind, physicallyVerified, base, panelSnippet: panelText.slice(0, 240) }, null, 2)
     );
   });
 
@@ -389,5 +403,208 @@ test.describe("Practical authoring certification (Canva-benchmark outcomes)", ()
       path.join(EVIDENCE, "materials", "quality-gate.json"),
       JSON.stringify({ ok: true, signatures, at: new Date().toISOString() }, null, 2)
     );
+  });
+
+  test("Task I: Material consumer gate (all Host Material surfaces + Edit→Preview)", async ({ page }) => {
+    test.setTimeout(360_000);
+    ensureEvidenceDirs(["practical", "materials"]);
+    fs.mkdirSync(path.join(EVIDENCE, "materials"), { recursive: true });
+    const report: Record<string, unknown> = { ok: false, consumers: {} as Record<string, unknown> };
+
+    async function applySurfaceMaterialById(materialId: string) {
+      const overview = page.getByTestId("appearance-category-overview");
+      if (await overview.isVisible().catch(() => false)) {
+        await ownerClick(page.getByTestId("appearance-category-material"), "Material category");
+      }
+      await expect(page.getByTestId("material-engine-controls")).toBeVisible({ timeout: 15_000 });
+      await ownerClick(page.getByTestId(`material-${materialId}`), `Apply ${materialId}`);
+    }
+
+    async function enterCustomerPreview() {
+      const chromeExpanded = page.getByTestId("chrome-state-expanded");
+      if (await chromeExpanded.isVisible().catch(() => false)) await chromeExpanded.click();
+      await ownerClick(page.getByTestId("card-preview-as-customer"), "Preview as customer");
+      await expect(page.getByTestId("preview-toolbar")).toBeVisible({ timeout: 20_000 });
+    }
+
+    async function exitCustomerPreview() {
+      await page.getByTestId("preview-exit").click().catch(() => undefined);
+      await dismissOverlays(page);
+    }
+
+    // ——— Button: polished metal Edit → Preview ———
+    await openBlankStudio(page);
+    await dismissOverlays(page);
+    await insertButton(page);
+    const button = page.locator('[data-composition-node]').filter({ has: page.locator("[data-button-surface-kind]") }).first();
+    await button.click();
+    await ownerClick(page.getByTestId("contextual-button-appearance"), "Appearance");
+    await applySurfaceMaterialById("polished_metal");
+    const buttonSurface = button.locator("[data-button-surface-kind]").first();
+    await expect(buttonSurface).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    const buttonStops = Number(await buttonSurface.getAttribute("data-material-stop-count"));
+    expect(buttonStops).toBeGreaterThanOrEqual(4);
+    await expect(buttonSurface).toHaveAttribute("data-material-highlight", "true");
+    await saveDraft(page);
+    await enterCustomerPreview();
+    const previewButton = page.locator('[data-testid="creative-composition-canvas"] [data-button-surface-kind]').first();
+    await expect(previewButton).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    expect(Number(await previewButton.getAttribute("data-material-stop-count"))).toBe(buttonStops);
+    await expect(previewButton).toHaveAttribute("data-material-highlight", "true");
+    (report.consumers as Record<string, unknown>).button = { material: "polished_metal", stops: buttonStops, previewParity: true };
+    await exitCustomerPreview();
+    await evidenceShot(page, "materials", "consumer-button-polished.png");
+
+    // ——— Badge ———
+    await insertFamily(page, "badge");
+    const badge = page.locator('[data-composition-node][data-element-kind="badge"]').last();
+    await badge.click();
+    await ownerClick(page.getByTestId("contextual-badge-appearance"), "Badge Appearance");
+    await applySurfaceMaterialById("gloss_lacquer");
+    await expect(badge.locator("[data-material-fill-authority]").first()).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    await expect(badge.locator("[data-material-stop-count]").first()).toHaveAttribute("data-material-stop-count", /^[3-9]/);
+    const badgeText = await badge.getByTestId("badge-text").innerText();
+    await saveDraft(page);
+    await enterCustomerPreview();
+    const previewBadge = page.locator('[data-testid="creative-composition-canvas"] [data-element-kind="badge"]').last();
+    await expect(previewBadge.locator("[data-material-fill-authority]").first()).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    await expect(previewBadge.getByTestId("badge-text")).toHaveText(badgeText);
+    (report.consumers as Record<string, unknown>).badge = { material: "gloss_lacquer", previewParity: true };
+    await exitCustomerPreview();
+
+    // ——— Shape ———
+    await ownerClick(page.getByTestId("card-creative-tool-tools"), "Tools");
+    await expect(page.getByTestId("card-quick-tools")).toBeVisible({ timeout: 10_000 });
+    await ownerClick(page.getByTestId("card-quick-tools").getByRole("button", { name: /^Shape$/i }), "Insert Shape");
+    const shape = page.locator('[data-composition-node][data-primitive="shape"]').last();
+    await expect(shape).toBeVisible({ timeout: 15_000 });
+    await shape.click();
+    await ownerClick(
+      page.getByTestId("contextual-appearance").or(page.getByTestId("card-contextual-object-tools").getByRole("button", { name: /^Appearance$/i })).first(),
+      "Shape Appearance"
+    );
+    await applySurfaceMaterialById("acrylic");
+    await expect(shape.locator("[data-material-fill-authority]").first()).toHaveAttribute("data-material-fill-authority", /.+/);
+    (report.consumers as Record<string, unknown>).shape = { material: "acrylic", applied: true };
+    await evidenceShot(page, "materials", "consumer-shape-acrylic.png");
+
+    // ——— Container ———
+    await ownerClick(page.getByTestId("card-creative-tool-tools"), "Tools");
+    await ownerClick(page.getByTestId("starter-container-stack-card"), "Insert Container");
+    const container = page.locator('[data-composition-node]').filter({ has: page.locator('[data-component-kind="container"]') }).last();
+    await expect(container).toBeVisible({ timeout: 15_000 });
+    await container.click();
+    await ownerClick(page.getByTestId("contextual-container-appearance"), "Container Appearance");
+    await applySurfaceMaterialById("polished_metal");
+    const containerShell = container.locator('[data-component-kind="container"]').first();
+    await expect(containerShell).toHaveAttribute("data-visual-plane", "material");
+    await expect(containerShell).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    expect(Number(await containerShell.getAttribute("data-material-stop-count"))).toBeGreaterThanOrEqual(4);
+    await expect(containerShell).toHaveAttribute("data-material-highlight", "true");
+    await saveDraft(page);
+    await enterCustomerPreview();
+    const previewContainer = page.locator('[data-testid="creative-composition-canvas"] [data-component-kind="container"]').last();
+    await expect(previewContainer).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    await expect(previewContainer).toHaveAttribute("data-material-highlight", "true");
+    (report.consumers as Record<string, unknown>).container = { material: "polished_metal", previewParity: true };
+    await exitCustomerPreview();
+    await evidenceShot(page, "materials", "consumer-container-polished.png");
+
+    // ——— Coupon ———
+    await insertFamily(page, "coupon");
+    const coupon = page.locator('[data-composition-node][data-element-kind="coupon"]').last();
+    await coupon.click();
+    await ownerClick(page.getByTestId("contextual-appearance").or(page.getByTestId("card-contextual-object-tools").getByRole("button", { name: /^Appearance$/i })).first(), "Coupon Appearance");
+    await applySurfaceMaterialById("gloss_lacquer");
+    const couponShell = coupon.locator('[data-component-kind="coupon"]').first();
+    await expect(couponShell).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    const offerBefore = await couponShell.innerText();
+    await expect(couponShell).toContainText(/OFF|OFFER|Coupon|SAVE|BUY/i);
+    await saveDraft(page);
+    await enterCustomerPreview();
+    const previewCoupon = page.locator('[data-testid="creative-composition-canvas"] [data-component-kind="coupon"]').last();
+    await expect(previewCoupon).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    expect((await previewCoupon.innerText()).length).toBeGreaterThan(10);
+    (report.consumers as Record<string, unknown>).coupon = {
+      material: "gloss_lacquer",
+      contentPreserved: offerBefore.slice(0, 40),
+      previewParity: true,
+    };
+    await exitCustomerPreview();
+
+    // ——— Icon Backing ———
+    await insertFamily(page, "icon");
+    const icon = page.locator('[data-composition-node][data-element-kind="icon"]').last();
+    await icon.click();
+    await ownerClick(page.getByTestId("contextual-icon-appearance"), "Icon Appearance");
+    const backingCategory = page.getByTestId("appearance-category-backing_surface");
+    if (await backingCategory.isVisible().catch(() => false)) {
+      await ownerClick(backingCategory, "Backing Surface");
+    }
+    const backingEnabled = page.getByTestId("icon-backing-enabled");
+    await expect(backingEnabled).toBeVisible({ timeout: 10_000 });
+    if (!(await backingEnabled.isChecked())) await backingEnabled.check();
+    await expect(page.getByTestId("icon-backing-materials")).toBeVisible({ timeout: 10_000 });
+    await ownerClick(page.getByTestId("icon-backing-material-chrome"), "Chrome backing");
+    await expect(icon.locator('[data-icon-backing="on"]').first()).toBeVisible();
+    await expect(icon.locator("[data-material-fill-authority]").first()).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    expect(Number(await icon.locator("[data-material-stop-count]").first().getAttribute("data-material-stop-count"))).toBeGreaterThanOrEqual(2);
+    await saveDraft(page);
+    await enterCustomerPreview();
+    const previewIcon = page.locator('[data-testid="creative-composition-canvas"] [data-element-kind="icon"]').last();
+    await expect(previewIcon.locator('[data-icon-backing="on"]').first()).toBeVisible();
+    await expect(previewIcon.locator("[data-material-fill-authority]").first()).toHaveAttribute("data-material-fill-authority", "gradientFill");
+    (report.consumers as Record<string, unknown>).iconBacking = { material: "chrome", previewParity: true };
+    await exitCustomerPreview();
+    await evidenceShot(page, "materials", "consumer-icon-backing-chrome.png");
+
+    // ——— Card / Page Background texture Material ———
+    const canvas = page.getByTestId("creative-composition-canvas");
+    const canvasBox = await canvas.boundingBox();
+    expect(canvasBox).toBeTruthy();
+    await canvas.click({ position: { x: Math.max(4, (canvasBox?.width || 8) - 4), y: 4 } });
+    await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible({ timeout: 10_000 });
+    await ownerClick(page.getByTestId("contextual-root-background"), "Background");
+    await expect(page.getByTestId("root-background-materials")).toBeVisible();
+    const paperSwatch = page.getByTestId("root-material-paper");
+    await expect(paperSwatch).toHaveAttribute("data-material-texture", "paper");
+    await ownerClick(paperSwatch, "Apply Paper background");
+    const bg = page.getByTestId("composition-background-renderer");
+    await expect(bg).toHaveAttribute("data-material-preset", "paper");
+    await expect(bg).toHaveAttribute("data-surface-texture", "paper");
+    await expect(page.getByTestId("page-background-texture")).toBeVisible();
+    await saveDraft(page);
+    // Reload through Owner path
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute("data-builder-ready", "true", { timeout: 60_000 });
+    await dismissOverlays(page);
+    await expect(page.getByTestId("composition-background-renderer")).toHaveAttribute("data-material-preset", "paper", { timeout: 20_000 });
+    await expect(page.getByTestId("composition-background-renderer")).toHaveAttribute("data-surface-texture", "paper");
+    await enterCustomerPreview();
+    await expect(page.getByTestId("composition-background-renderer")).toHaveAttribute("data-material-preset", "paper");
+    await expect(page.getByTestId("composition-background-renderer")).toHaveAttribute("data-surface-texture", "paper");
+    await expect(page.getByTestId("page-background-texture")).toBeVisible();
+    (report.consumers as Record<string, unknown>).pageBackground = {
+      material: "paper",
+      textureSurvivedReload: true,
+      previewParity: true,
+    };
+    await exitCustomerPreview();
+
+    // Brushed metal texture + gradient on page
+    const canvas2 = page.getByTestId("creative-composition-canvas");
+    const box2 = await canvas2.boundingBox();
+    await canvas2.click({ position: { x: Math.max(4, (box2?.width || 8) - 4), y: 4 } });
+    await expect(page.locator('[data-contextual-object="card-root"]')).toBeVisible({ timeout: 10_000 });
+    await ownerClick(page.getByTestId("contextual-root-background"), "Background");
+    await ownerClick(page.getByTestId("root-material-brushed_metal"), "Brushed metal background");
+    await expect(page.getByTestId("composition-background-renderer")).toHaveAttribute("data-material-preset", "brushed_metal");
+    await expect(page.getByTestId("composition-background-renderer")).toHaveAttribute("data-surface-texture", "brushed");
+    expect(Number(await page.getByTestId("composition-background-renderer").getAttribute("data-material-stop-count"))).toBeGreaterThanOrEqual(3);
+
+    report.ok = true;
+    report.at = new Date().toISOString();
+    fs.writeFileSync(path.join(EVIDENCE, "materials", "consumer-gate.json"), JSON.stringify(report, null, 2));
+    await evidenceShot(page, "materials", "consumer-gate-final.png");
   });
 });

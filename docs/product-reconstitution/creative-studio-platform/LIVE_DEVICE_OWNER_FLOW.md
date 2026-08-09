@@ -13,12 +13,12 @@ Preview header always shows: **Desktop · Tablet · Phone · Live device**
 
 1. Open Preview.
 2. Click Live device.
-3. Panel **always** opens.
-4. When LAN is reachable, QR is immediately visible.
-5. Panel shows: link · LAN status · Same Wi-Fi guidance · Follow saved draft · Freeze revision · Refresh · Revoke · expiry.
+3. Panel **always** opens (pending: “Preparing phone preview…”).
+4. When a phone-attempt candidate exists (`lan_candidate` or `configured_public_candidate`), QR is shown as **QR ready to scan** — not as physical verification.
+5. Panel shows candidacy honesty (LAN candidate vs public candidate vs unreachable/invalid), phone-open-unverified, link, Follow / Freeze / Refresh / Revoke, expiry.
 6. Owner scans with phone (QR must not contain `localhost` or `127.0.0.1`).
 7. Phone opens signed token route `/preview/live/[token]`.
-8. Follow / Freeze / Refresh / Revoke work visibly.
+8. Follow / Freeze / Refresh / Revoke work visibly. Physical phone open remains Product Owner Human Verification.
 
 ## Security
 
@@ -36,7 +36,8 @@ Fail when:
 
 - Live Device control absent
 - Panel absent after click
-- QR absent when LAN reachable
+- QR absent when a phone-attempt candidate is available
+- UI claims “LAN reachable” or implies physical phone verification without evidence
 - URL contains localhost / 127.0.0.1
 - Token route unreachable
 - Follow / Freeze / Revoke / expiry controls absent

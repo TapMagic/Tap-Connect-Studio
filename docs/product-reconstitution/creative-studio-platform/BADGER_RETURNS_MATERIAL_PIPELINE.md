@@ -1,58 +1,73 @@
-# Badger Returns — Material Pipeline + Product Steward Constitution
+# Badger Returns — Material Consumer Closeout + Live Device Honesty
 
-**Status:** Engineering + Practical dual-green on Product SHA below.  
-**Human Verification:** Required for physical phone Live Device + Owner authoring acceptance.  
+**Status:** Engineering candidate after systemic Material consumer + Live Device UI closeout.  
+**Human Verification:** Required — physical phone Live Device + Owner authoring acceptance.  
 **Do not claim BADGER CAPTURED** until Product Owner Human Verification.
 
 ## SHAs
 
 | Role | SHA |
 |------|-----|
-| Starting HEAD | `4b8efc06c4052207c1c219ee722ba05ba1c16d7d` |
-| Prior HV candidate (superseded) | `eb1f53f7c91dffa89fff6424c7cd23efb9679936` |
-| **Final Product SHA** | `8d49d845f2453b92c8f1b3a4fe7467a7ed79226f` |
-| **Final Certification-Jig SHA** | `8d49d845f2453b92c8f1b3a4fe7467a7ed79226f` |
-| Documentation closeout tip | `028eddf6f9d46e1c3166547b0382fa5c2a6be75a` |
+| Starting HEAD (this assignment) | `5b46ce23326a36854af16c7212d14d615a037f13` |
+| Prior HV candidate (superseded) | `8d49d845f2453b92c8f1b3a4fe7467a7ed79226f` |
+| **Final Product SHA** | _(set at dual-green freeze)_ |
+| **Final Certification-Jig SHA** | _(same as Product when jig co-shipped)_ |
+| Documentation / remote tip | _(set after push)_ |
 
-## Dual green (same Product + Jig SHA)
+## Exposed Material Consumer Inventory
 
-| Run | Port | Suite | Result |
-|-----|------|-------|--------|
-| Green #1 | 3071 | 24 tests | **24 passed**, retries 0 |
-| Green #2 | 3072 (fresh build/start) | 24 tests | **24 passed**, retries 0 |
+| Host entry point | Target family | Apply authority | Durable state | Edit renderer | Preview/Public renderer | Canonical descriptor / layers | Status |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Appearance → Material (Button) | Button Surface | `applySurfaceMaterial` / `asButtonSurface` | node `materialPreset` + `gradientFill` / fill + layers | `resolveMaterialSurfaceFromProps(button)` + `MaterialSurfaceLayers` | Same via `CreativeCompositionCanvas` | Yes | **PASS** |
+| Appearance → Material (Badge) | Badge Surface | `applySurfaceMaterial` | node Material props | Badge path + shared layers | Same canvas | Yes | **PASS** |
+| Appearance → Material (Shape) | Shape Surface | `applySurfaceMaterial` | node Material props | Shape fill + shared layers | Same canvas | Yes | **PASS** |
+| Appearance → Material (Container) | Container Surface | `applySurfaceMaterial` (clears stale `visualPlane`) | node Material props; Visual Plane only when no Material | Material path when `materialPreset` set; else `readContainerVisualPlane` | Same canvas | Yes (Material path) | **REPAIRED → PASS** |
+| Appearance → Material (Coupon) | Coupon Surface | `applySurfaceMaterial` | node Material props | Shared Material fill + layers; content/perforation/QR untouched | Same canvas | Yes | **REPAIRED → PASS** |
+| Appearance → Material (Ticket) | Ticket Surface | `applySurfaceMaterial` | node Material props | Shared Material fill + layers; identity/terms/QR untouched | Same canvas | Yes | **REPAIRED → PASS** |
+| Icon Appearance → Backing Surface Material | Icon Backing | `applyMaterialRecipe("icon_backing")` | `boxFill` / `boxGradient` + Material layers; artwork independent | `resolveMaterialSurfaceFromProps(icon_backing)` + layers | Same canvas | Yes | **REPAIRED → PASS** |
+| Card / Background → Material tiles | Page Background | `compositionBackgroundFromMaterialRecipe` | `rootComposition.background.materialPreset` + kind/pattern/gradient/value + highlight/shine | `materialPropsFromCompositionBackground` → shared resolve + layers | Same canvas | Yes | **REPAIRED → PASS** |
+| Group Appearance Material fan-out | Compatible descendants | Group fan-out → `applySurfaceMaterial` / glyph | Per-member props | Per-member consumers above | Same | Inherited | **PASS** (via consumers) |
+| Text glyph Material | Text glyphs | `applyGlyphMaterial` | glyph props | Glyph paint (not surface layers) | Same | Glyph path (not surface descriptor) | **PASS** (glyph authority; not surface Material) |
+| Text Box Material | Text Box | `applyMaterialRecipe("text_box")` | box* props | Text Box path / icon_backing-like | Same | Partial (`text_box` role) | **PASS** where exposed |
 
-Suite: practical-authoring (A–H) + owner-simulation-physical + visual-plane + media-direct + pattern-catalog + google-fonts + providers-visual-plane + chaos-endurance + product-steward-five.
+Universal law: Material picker preview and applied result resolve through the same `MaterialSurfaceDescriptor` (+ `MaterialSurfaceLayers` for highlight / shine / texture).
 
-Evidence: `tmp/owner-sim-physical-evidence/_reports/green{1,2}-material-*.json|log`  
-Materials: `tmp/owner-sim-physical-evidence/materials/` + `tmp/practical-authoring-evidence/materials/quality-gate.json`  
-Steward: `tmp/practical-authoring-evidence/product-steward/steward-walkthrough.json`
-
-## Material pipeline root cause
-
-`applyRecipeFill` stored the full recipe gradient in `gradientFill` **and** extracted only the first two color stops into `gradientStart` / `gradientEnd`. Button rendering rebuilt gradients from `gradientStart`/`gradientEnd` only, discarding multi-stop structure. Highlight layers were ignored on Buttons; `shine` used a generic overlay. `materialPreviewCss` showed the full recipe gradient → **preview better than applied**.
-
-## Canonical architecture
+## Canonical architecture after repair
 
 | Piece | Role |
 | --- | --- |
-| `lib/fusion/creative-studio/material-surface.ts` | Canonical `MaterialSurfaceDescriptor` + resolve from props/recipe |
-| `components/.../material-surface-layers.tsx` | Shared highlight + shine overlays |
-| Button / Badge / shape consumers | Consume the descriptor |
-| Toolbar Material swatches | `MaterialSurfaceSwatch` — same fill + layers |
+| `lib/fusion/creative-studio/material-surface.ts` | Canonical `MaterialSurfaceDescriptor` |
+| `components/.../material-surface-layers.tsx` | Shared texture + highlight + shine overlays |
+| `compositionBackgroundFromMaterialRecipe` | Page Background adapter into Visual Plane + `materialPreset` |
+| `materialPropsFromCompositionBackground` | Rehydrate Material props for page render |
+| Button / Badge / Shape / Container / Coupon / Ticket / Icon Backing / Page BG | Consume shared authority (geometry adapters only) |
 
-`gradientFill` is the multi-stop fill authority. `gradientStart`/`gradientEnd` are editor mirrors only.
+PAGE BACKGROUND ≠ SURFACE BACKGROUND ≠ CONTAINER BACKGROUND remains enforced: Material on Container never mutates Page Background.
 
-## Product Steward doctrine
+## Live Device UI honesty
 
-- Entry: `AGENTS.md`
-- Durable laws: `PRODUCT_STEWARD_CONSTITUTION.md`
-- Catalog overload (report only): `MATERIAL_CATALOG_OVERLOAD_RECOMMENDATIONS.md`
+API (unchanged laws):
 
-## Live Device honesty
+- `candidateKind`: invalid | locally_unreachable | lan_candidate | configured_public_candidate  
+- `physicallyVerified: false` at session creation  
+- `reachableForPhone` = phone-attempt candidate only  
 
-`reachableForPhone` = phone-attempt candidate (non-loopback).  
-`candidateKind`: invalid | locally_unreachable | lan_candidate | configured_public_candidate.  
-`physicallyVerified` is always false at URL resolution. No remote tunnel probing. Physical phone remains Product Owner HV.
+UI (`LiveDeviceQrPanel`):
+
+- Pending: “Preparing phone preview…” (not default reachable)  
+- LAN: “LAN candidate — keep phone on the same Wi-Fi. Phone open has not been verified yet.”  
+- Public: “Public preview candidate — phone open has not been verified yet.”  
+- Ready QR: “QR ready to scan” (not “Phone preview ready” / not physically verified)  
+- Never “LAN reachable”
+
+## Dual green
+
+| Run | Port | Suite | Result |
+|-----|------|-------|--------|
+| Green #1 | _(fresh ≠ 3072)_ | prior engineering suite + Task I | _(pending)_ |
+| Green #2 | _(fresh ≠ 3072)_ | same Product + Jig SHA, retries 0 | _(pending)_ |
+
+Prior Green #2 on **3072 / PID 93101** is left undisturbed and is **not** part of this pair.
 
 ## External blockers
 

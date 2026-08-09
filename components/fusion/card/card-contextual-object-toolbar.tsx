@@ -57,6 +57,7 @@ import {
   applyGlyphMaterial,
   applyMaterialRecipe,
   applySurfaceMaterial,
+  compositionBackgroundFromMaterialRecipe,
   EFFECT_RECIPES,
   getMaterialRecipe,
   MATERIAL_UI_CATEGORIES,
@@ -241,7 +242,19 @@ function RootContextualToolbar({
   const background = root.background || { kind: "none" as const };
   const setBackground = (next: typeof background, label: string) => model.patchConfig({ rootComposition: { ...root, background: next } }, label);
   const gradient = normalizeGradient(background.gradient || DEFAULT_GRADIENT);
-  const setGradient = (next: typeof gradient, label: string) => setBackground({ ...background, kind: "gradient", gradient: next }, label);
+  const setGradient = (next: typeof gradient, label: string) =>
+    setBackground(
+      {
+        ...background,
+        kind: "gradient",
+        gradient: next,
+        // Manual gradient edits leave Material authority so preview cannot lie.
+        materialPreset: undefined,
+        highlight: undefined,
+        shine: undefined,
+      },
+      label
+    );
   const toggle = (next: Exclude<RootFocus, null>) => setFocus((current) => current === next ? null : next);
   const close = () => {
     setFocus(null);
@@ -261,36 +274,36 @@ function RootContextualToolbar({
   }, [focus]);
   const panel = focus ? (
     <EditorPanelShell testId={`contextual-root-${focus}-drawer`} title={`Card / ${focus === "background" ? "Background" : focus === "page-size" ? "Page size" : focus}`} targetLabel="Card" onClose={close} portalEl={portalEl}>
-      {focus === "background" ? <div className="space-y-3" data-testid="root-background-editor"><div className="grid grid-cols-3 gap-1">{(["none", "solid", "gradient"] as const).map((kind) => <button key={kind} type="button" aria-pressed={background.kind === kind} className={buttonClass} onClick={() => setBackground(kind === "gradient" ? { ...background, kind, gradient } : kind === "solid" ? { ...background, kind, value: model.config.surfaceColor } : { kind }, `Changed root background to ${kind}`)}>{kind === "none" ? "Transparent" : kind}</button>)}</div><label className="block text-[10px] text-white/65">Solid color<input aria-label="Card root solid color" type="color" value={background.kind === "solid" && background.value?.startsWith("#") ? background.value.slice(0, 7) : model.config.surfaceColor} onChange={(event) => setBackground({ ...background, kind: "solid", value: event.target.value }, "Changed root solid color")} className={fieldClass} /></label><div className="h-12 rounded border border-white/15" style={{ background: gradientToCss(gradient) }} data-testid="gradient-preview" /><div className="grid grid-cols-2 gap-2"><label className="text-[10px]">Type<select aria-label="Card root gradient type" value={gradient.kind} onChange={(event) => setGradient({ ...gradient, kind: event.target.value as "linear" | "radial" | "conic" }, "Changed gradient type")} className={fieldClass}><option value="linear">Linear</option><option value="radial">Radial</option><option value="conic">Conic</option></select></label><label className="text-[10px]">Angle<input aria-label="Card root gradient angle" type="number" min={0} max={360} value={gradient.angle} onChange={(event) => setGradient({ ...gradient, angle: Number(event.target.value) }, "Changed gradient angle")} className={fieldClass} /></label>{gradient.kind !== "linear" ? <><label className="text-[10px]">Center X<input aria-label="Card root gradient center X" type="range" min={0} max={100} value={gradient.centerX} onChange={(event) => setGradient({ ...gradient, centerX: Number(event.target.value) }, "Changed gradient center")} /></label><label className="text-[10px]">Center Y<input aria-label="Card root gradient center Y" type="range" min={0} max={100} value={gradient.centerY} onChange={(event) => setGradient({ ...gradient, centerY: Number(event.target.value) }, "Changed gradient center")} /></label></> : null}{gradient.kind === "radial" ? <label className="text-[10px]">Size<input aria-label="Card root radial gradient size" type="range" min={10} max={100} value={gradient.size ?? 50} onChange={(event) => setGradient({ ...gradient, size: Number(event.target.value) }, "Changed radial size")} /></label> : null}<label className="text-[10px]">Direction<svg viewBox="0 0 64 64" className="mt-1 h-16 w-16 cursor-crosshair rounded-full border border-white/20" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const dx = event.clientX - (rect.left + rect.width / 2); const dy = event.clientY - (rect.top + rect.height / 2); const angle = Math.round(((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360); setGradient({ ...gradient, angle }, "Changed gradient direction visually"); }} data-testid="gradient-direction-control"><circle cx="32" cy="32" r="30" fill="none" stroke="rgba(255,255,255,.25)" /><line x1="32" y1="32" x2={32 + 26 * Math.sin((gradient.angle * Math.PI) / 180)} y2={32 - 26 * Math.cos((gradient.angle * Math.PI) / 180)} stroke="#b8ff2c" strokeWidth="2" /></svg></label></div><div className="space-y-2">{gradient.stops.map((stop, stopIndex) => <div key={stop.id} className="grid grid-cols-[3rem_1fr_1fr_2rem] items-end gap-1"><input aria-label={`Gradient stop color · ${stop.id}`} type="color" value={stop.color} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, color: event.target.value } : item) }, "Changed gradient stop color")} className="h-9 w-12" data-gradient-stop-index={stopIndex} /><label className="text-[9px]">Position<input aria-label={`Gradient stop position · ${stop.id}`} type="range" min={0} max={100} value={stop.position} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, position: Number(event.target.value) } : item) }, "Moved gradient stop")} data-gradient-stop-index={stopIndex} /></label><label className="text-[9px]">Alpha<input aria-label={`Gradient stop alpha · ${stop.id}`} type="range" min={0} max={100} value={stop.opacity * 100} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, opacity: Number(event.target.value) / 100 } : item) }, "Changed gradient stop opacity")} data-gradient-stop-index={stopIndex} /></label><button type="button" disabled={gradient.stops.length <= 2} className={buttonClass} onClick={() => setGradient(removeGradientStop(gradient, stop.id), "Removed gradient stop")}>×</button></div>)}</div><div className="grid grid-cols-2 gap-2"><button type="button" className={buttonClass} onClick={() => setGradient(addGradientStop(gradient), "Added gradient stop")}>Add stop</button><button type="button" className={buttonClass} onClick={() => setGradient(reverseGradient(gradient), "Reversed gradient")}>Reverse</button><button type="button" className={buttonClass} onClick={() => setGradient(rotateGradient(gradient, 15), "Rotated gradient")}>Rotate</button><button type="button" className={buttonClass} onClick={() => setGradient(mirrorGradient(gradient), "Mirrored gradient")}>Mirror</button></div><label className="block text-[10px]">Background opacity · {Math.round((background.opacity ?? 1) * 100)}%<input aria-label="Card root background opacity" type="range" min={0} max={100} value={(background.opacity ?? 1) * 100} onChange={(event) => setBackground({ ...background, opacity: Number(event.target.value) / 100 }, "Changed Background opacity")} className="w-full" data-testid="root-background-opacity" /></label>
+      {focus === "background" ? <div className="space-y-3" data-testid="root-background-editor"><div className="grid grid-cols-3 gap-1">{(["none", "solid", "gradient"] as const).map((kind) => <button key={kind} type="button" aria-pressed={background.kind === kind} className={buttonClass} onClick={() => setBackground(kind === "gradient" ? { ...background, kind, gradient, materialPreset: undefined, highlight: undefined, shine: undefined } : kind === "solid" ? { kind, value: model.config.surfaceColor } : { kind }, `Changed root background to ${kind}`)}>{kind === "none" ? "Transparent" : kind}</button>)}</div><label className="block text-[10px] text-white/65">Solid color<input aria-label="Card root solid color" type="color" value={background.kind === "solid" && background.value?.startsWith("#") ? background.value.slice(0, 7) : model.config.surfaceColor} onChange={(event) => setBackground({ kind: "solid", value: event.target.value }, "Changed root solid color")} className={fieldClass} /></label><div className="h-12 rounded border border-white/15" style={{ background: gradientToCss(gradient) }} data-testid="gradient-preview" /><div className="grid grid-cols-2 gap-2"><label className="text-[10px]">Type<select aria-label="Card root gradient type" value={gradient.kind} onChange={(event) => setGradient({ ...gradient, kind: event.target.value as "linear" | "radial" | "conic" }, "Changed gradient type")} className={fieldClass}><option value="linear">Linear</option><option value="radial">Radial</option><option value="conic">Conic</option></select></label><label className="text-[10px]">Angle<input aria-label="Card root gradient angle" type="number" min={0} max={360} value={gradient.angle} onChange={(event) => setGradient({ ...gradient, angle: Number(event.target.value) }, "Changed gradient angle")} className={fieldClass} /></label>{gradient.kind !== "linear" ? <><label className="text-[10px]">Center X<input aria-label="Card root gradient center X" type="range" min={0} max={100} value={gradient.centerX} onChange={(event) => setGradient({ ...gradient, centerX: Number(event.target.value) }, "Changed gradient center")} /></label><label className="text-[10px]">Center Y<input aria-label="Card root gradient center Y" type="range" min={0} max={100} value={gradient.centerY} onChange={(event) => setGradient({ ...gradient, centerY: Number(event.target.value) }, "Changed gradient center")} /></label></> : null}{gradient.kind === "radial" ? <label className="text-[10px]">Size<input aria-label="Card root radial gradient size" type="range" min={10} max={100} value={gradient.size ?? 50} onChange={(event) => setGradient({ ...gradient, size: Number(event.target.value) }, "Changed radial size")} /></label> : null}<label className="text-[10px]">Direction<svg viewBox="0 0 64 64" className="mt-1 h-16 w-16 cursor-crosshair rounded-full border border-white/20" onClick={(event) => { const rect = event.currentTarget.getBoundingClientRect(); const dx = event.clientX - (rect.left + rect.width / 2); const dy = event.clientY - (rect.top + rect.height / 2); const angle = Math.round(((Math.atan2(dy, dx) * 180) / Math.PI + 90 + 360) % 360); setGradient({ ...gradient, angle }, "Changed gradient direction visually"); }} data-testid="gradient-direction-control"><circle cx="32" cy="32" r="30" fill="none" stroke="rgba(255,255,255,.25)" /><line x1="32" y1="32" x2={32 + 26 * Math.sin((gradient.angle * Math.PI) / 180)} y2={32 - 26 * Math.cos((gradient.angle * Math.PI) / 180)} stroke="#b8ff2c" strokeWidth="2" /></svg></label></div><div className="space-y-2">{gradient.stops.map((stop, stopIndex) => <div key={stop.id} className="grid grid-cols-[3rem_1fr_1fr_2rem] items-end gap-1"><input aria-label={`Gradient stop color · ${stop.id}`} type="color" value={stop.color} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, color: event.target.value } : item) }, "Changed gradient stop color")} className="h-9 w-12" data-gradient-stop-index={stopIndex} /><label className="text-[9px]">Position<input aria-label={`Gradient stop position · ${stop.id}`} type="range" min={0} max={100} value={stop.position} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, position: Number(event.target.value) } : item) }, "Moved gradient stop")} data-gradient-stop-index={stopIndex} /></label><label className="text-[9px]">Alpha<input aria-label={`Gradient stop alpha · ${stop.id}`} type="range" min={0} max={100} value={stop.opacity * 100} onChange={(event) => setGradient({ ...gradient, stops: gradient.stops.map((item) => item.id === stop.id ? { ...item, opacity: Number(event.target.value) / 100 } : item) }, "Changed gradient stop opacity")} data-gradient-stop-index={stopIndex} /></label><button type="button" disabled={gradient.stops.length <= 2} className={buttonClass} onClick={() => setGradient(removeGradientStop(gradient, stop.id), "Removed gradient stop")}>×</button></div>)}</div><div className="grid grid-cols-2 gap-2"><button type="button" className={buttonClass} onClick={() => setGradient(addGradientStop(gradient), "Added gradient stop")}>Add stop</button><button type="button" className={buttonClass} onClick={() => setGradient(reverseGradient(gradient), "Reversed gradient")}>Reverse</button><button type="button" className={buttonClass} onClick={() => setGradient(rotateGradient(gradient, 15), "Rotated gradient")}>Rotate</button><button type="button" className={buttonClass} onClick={() => setGradient(mirrorGradient(gradient), "Mirrored gradient")}>Mirror</button></div><label className="block text-[10px]">Background opacity · {Math.round((background.opacity ?? 1) * 100)}%<input aria-label="Card root background opacity" type="range" min={0} max={100} value={(background.opacity ?? 1) * 100} onChange={(event) => setBackground({ ...background, opacity: Number(event.target.value) / 100 }, "Changed Background opacity")} className="w-full" data-testid="root-background-opacity" /></label>
         <div data-testid="root-background-materials">
           <p className="mb-1 text-[9px] font-semibold uppercase text-white/45">Material</p>
           <div className="grid grid-cols-2 gap-2">
             {["matte", "frosted_glass", "brushed_metal", "paper", "linen", "grain", "holographic", "leather"].map((id) => {
               const recipe = getMaterialRecipe(id);
               if (!recipe) return null;
+              const surface = resolveMaterialSurfaceFromRecipe(recipe);
               return (
                 <button
                   key={id}
                   type="button"
-                  className={buttonClass}
+                  className={`${buttonClass} relative overflow-hidden p-0`}
                   data-testid={`root-material-${id}`}
-                  style={{ background: materialPreviewCss(recipe) }}
-                  onClick={() => {
-                    if (recipe.gradient) {
-                      const colors = recipe.gradient.match(/#[0-9a-fA-F]{3,8}/g) || ["#111827", "#334155"];
-                      const stops = colors.slice(0, 4).map((color, index, arr) => ({
-                        id: `bg-${index}`,
-                        color: color.length === 4 ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}` : color.slice(0, 7),
-                        position: Math.round((index / Math.max(1, arr.length - 1)) * 100),
-                        opacity: 1,
-                      }));
-                      setBackground({ kind: "gradient", gradient: normalizeGradient({ ...DEFAULT_GRADIENT, kind: "linear", angle: 135, stops }) }, `Applied ${recipe.label} background`);
-                    } else {
-                      setBackground({ kind: "solid", value: recipe.fill || "#0f172a" }, `Applied ${recipe.label} background`);
-                    }
-                  }}
+                  data-material-fill-authority={surface.fillAuthority}
+                  data-material-stop-count={String(surface.gradientStopCount)}
+                  data-material-texture={surface.textureToken || undefined}
+                  onClick={() =>
+                    setBackground(
+                      compositionBackgroundFromMaterialRecipe(recipe),
+                      `Applied ${recipe.label} background`
+                    )
+                  }
                 >
-                  {recipe.label}
+                  <MaterialSurfaceSwatch
+                    surface={surface}
+                    className="absolute inset-0"
+                    testId={`root-material-swatch-${id}`}
+                  />
+                  <span className="relative z-[1] px-2 py-1.5 drop-shadow">{recipe.label}</span>
                 </button>
               );
             })}
@@ -1148,9 +1161,25 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           {node.props.backingSurfaceEnabled === true ? <>
             <div className="grid grid-cols-3 gap-1">{[["square", 0], ["rounded", 14], ["circle", 999]].map(([shape, radius]) => <button key={String(shape)} type="button" className={buttonClass} data-testid={`icon-backing-shape-${shape}`} onClick={() => patchProps({ radius }, `Changed Icon backing shape to ${shape}`)}>{shape}</button>)}</div>
             <div className="grid grid-cols-2 gap-1" data-testid="icon-backing-materials">
-              {["glass", "frosted_glass", "gold", "chrome"].map((id) => (
-                <button key={id} type="button" className={buttonClass} data-testid={`icon-backing-material-${id}`} onClick={() => patchProps(applyMaterialRecipe("icon_backing", id, node.props), `Applied ${id} Icon backing`)}>{id.replaceAll("_", " ")}</button>
-              ))}
+              {["glass", "frosted_glass", "gold", "chrome", "polished_metal", "gloss_lacquer"].map((id) => {
+                const recipe = getMaterialRecipe(id);
+                if (!recipe) return null;
+                const surface = resolveMaterialSurfaceFromRecipe(recipe);
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`${buttonClass} relative min-h-12 overflow-hidden p-0`}
+                    data-testid={`icon-backing-material-${id}`}
+                    data-material-fill-authority={surface.fillAuthority}
+                    data-material-stop-count={String(surface.gradientStopCount)}
+                    onClick={() => patchProps(applyMaterialRecipe("icon_backing", id, node.props), `Applied ${id} Icon backing`)}
+                  >
+                    <MaterialSurfaceSwatch surface={surface} className="absolute inset-0" testId={`icon-backing-swatch-${id}`} />
+                    <span className="relative z-[1] px-1 py-1 text-[10px] drop-shadow">{id.replaceAll("_", " ")}</span>
+                  </button>
+                );
+              })}
             </div>
             <div className="grid grid-cols-2 gap-2">
               <label className="text-[10px] text-white/65">Fill<input type="color" value={String(node.props.boxFill || "#111827").slice(0, 7)} onChange={(event) => patchProps({ boxFill: event.target.value, boxGradient: undefined }, "Changed Icon backing fill")} className={fieldClass} data-testid="icon-backing-fill" /></label>

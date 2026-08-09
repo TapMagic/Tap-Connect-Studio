@@ -67,7 +67,10 @@ import {
 } from "@/lib/fusion/creative-studio/group-authority";
 import { badgeShapeBorderRadius, badgeShapeClipPath, badgeShapeSvgPoints, badgeUsesPathStroke } from "@/lib/fusion/creative-studio/badge-shape";
 import { effectLayersCss } from "@/lib/fusion/creative-studio/effect-render";
-import { surfaceShadowCss } from "@/lib/fusion/creative-studio/material-engine";
+import {
+  materialPropsFromCompositionBackground,
+  surfaceShadowCss,
+} from "@/lib/fusion/creative-studio/material-engine";
 import { resolveMaterialSurfaceFromProps } from "@/lib/fusion/creative-studio/material-surface";
 import { MaterialSurfaceLayers } from "@/components/fusion/creative-studio/material-surface-layers";
 
@@ -379,6 +382,41 @@ function NodeVisual({
 
   const componentKind = str(node.props.componentKind);
   if (componentKind === "container") {
+    // Material props are the surface authority when a Material was applied.
+    // Visual Plane remains for non-Material Container Background editing.
+    const materialActive =
+      typeof node.props.materialPreset === "string" &&
+      node.props.materialPreset.length > 0 &&
+      node.props.materialPreset !== "none";
+    if (materialActive) {
+      const material = resolveMaterialSurfaceFromProps(node.props, "container");
+      return (
+        <div
+          className="relative h-full w-full overflow-hidden"
+          data-component-kind="container"
+          data-container-layout={str(node.props.layout, "free")}
+          data-container-resize-policy={str(node.props.resizePolicy, "reflow")}
+          data-surface-texture={material.textureToken || undefined}
+          data-visual-plane="material"
+          data-material-fill-authority={material.fillAuthority}
+          data-material-stop-count={String(material.gradientStopCount)}
+          data-material-highlight={material.highlight ? "true" : "false"}
+          style={{
+            background: material.background,
+            backgroundSize: material.backgroundSize,
+            border:
+              material.borderWidth > 0
+                ? `${material.borderWidth}px ${material.borderStyle} ${material.borderColor}`
+                : "none",
+            borderRadius: num(node.props.radius, 0),
+            boxShadow: material.boxShadow,
+            opacity: material.opacity,
+          }}
+        >
+          <MaterialSurfaceLayers surface={material} testIdPrefix={`container-${node.id}`} />
+        </div>
+      );
+    }
     const plane = readContainerVisualPlane(node);
     const planeStyle = visualPlaneToStyle(plane);
     const texture =
@@ -411,38 +449,71 @@ function NodeVisual({
     const coupon = componentKind === "coupon";
     const artwork = str(node.props.artworkSrc);
     const variant = str(node.props.layoutVariant, coupon ? "retail_card" : "admission_stub");
-    const fill = str(node.props.gradientFill) || (str(node.props.gradientStart) && str(node.props.gradientEnd) ? `linear-gradient(${num(node.props.gradientAngle, 135)}deg,${str(node.props.gradientStart)},${str(node.props.gradientEnd)})` : str(node.props.fill, "linear-gradient(135deg,#fcd34d,#f97316,#f43f5e)"));
-    const borderWidth = num(node.props.borderWidth, 1);
-    const borderColor = str(node.props.borderColor, "rgba(255,255,255,0.35)");
-    const borderStyle = str(node.props.borderStyle, "solid");
+    const defaultCouponFill = "linear-gradient(135deg,#fcd34d,#f97316,#f43f5e)";
+    const resolvedGradientFill =
+      str(node.props.gradientFill) ||
+      (str(node.props.gradientStart) && str(node.props.gradientEnd)
+        ? `linear-gradient(${num(node.props.gradientAngle, 135)}deg,${str(node.props.gradientStart)},${str(node.props.gradientEnd)})`
+        : !str(node.props.fill)
+          ? defaultCouponFill
+          : "");
+    const material = resolveMaterialSurfaceFromProps(
+      {
+        ...node.props,
+        fill: node.props.fill ?? "#f97316",
+        gradientFill: resolvedGradientFill || undefined,
+      },
+      "generic"
+    );
+    const fallbackFill =
+      str(node.props.gradientFill) ||
+      (str(node.props.gradientStart) && str(node.props.gradientEnd)
+        ? `linear-gradient(${num(node.props.gradientAngle, 135)}deg,${str(node.props.gradientStart)},${str(node.props.gradientEnd)})`
+        : str(node.props.fill, "linear-gradient(135deg,#fcd34d,#f97316,#f43f5e)"));
+    const borderWidth = material.borderWidth > 0 ? material.borderWidth : num(node.props.borderWidth, 1);
+    const borderColor =
+      material.borderWidth > 0 ? material.borderColor : str(node.props.borderColor, "rgba(255,255,255,0.35)");
+    const borderStyle =
+      material.borderWidth > 0
+        ? material.borderStyle
+        : str(node.props.borderStyle, "solid");
     const radius = num(node.props.radius, 18);
-    const shadow = surfaceShadowCss(node.props);
     const surfaceStyle: CSSProperties = {
-      background: artwork ? undefined : fill,
-      backgroundImage: artwork ? `linear-gradient(rgba(255,255,255,.18),rgba(255,255,255,.18)),url("${artwork.replaceAll('"', "%22")}")` : undefined,
+      background: artwork ? undefined : material.background || fallbackFill,
+      backgroundImage: artwork
+        ? `linear-gradient(rgba(255,255,255,.18),rgba(255,255,255,.18)),url("${artwork.replaceAll('"', "%22")}")`
+        : undefined,
       backgroundPosition: "center",
-      backgroundSize: "cover",
+      backgroundSize: artwork ? "cover" : material.backgroundSize,
       borderWidth,
       borderStyle: borderStyle as CSSProperties["borderStyle"],
       borderColor,
       borderRadius: radius,
-      boxShadow: shadow,
-      opacity: num(node.props.opacity, 1),
+      boxShadow: material.boxShadow || surfaceShadowCss(node.props),
+      opacity: material.opacity,
       color: str(node.props.color, "#17100a"),
     };
+    const surfaceAttrs = {
+      "data-material-fill-authority": artwork ? "image" : material.fillAuthority,
+      "data-material-stop-count": artwork ? undefined : String(material.gradientStopCount),
+      "data-material-highlight": !artwork && material.highlight ? "true" : "false",
+      "data-surface-texture": !artwork ? material.textureToken || undefined : undefined,
+    } as const;
+    const materialLayers =
+      !artwork ? <MaterialSurfaceLayers surface={material} testIdPrefix={`${componentKind}-${node.id}`} /> : null;
     if (!coupon) {
-      return <div className="flex h-full w-full flex-col justify-between overflow-hidden p-4 shadow-xl" style={surfaceStyle} data-component-kind="ticket" data-layout-variant={variant} data-surface-mode={artwork ? "uploaded_artwork" : "preset"}><div><span className="text-[9px] font-black uppercase tracking-[.22em]">TapConnect Ticket</span><strong className="mt-1 block text-xl leading-none">{str(node.props.title, "ADMIT ONE")}</strong></div><div className="flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.ticketId, "TICKET-001")}</span><span className="grid h-10 w-10 place-items-center rounded bg-white text-[8px] font-black" aria-label="QR context">QR</span></div><p className="mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
+      return <div className="relative flex h-full w-full flex-col justify-between overflow-hidden p-4 shadow-xl" style={surfaceStyle} data-component-kind="ticket" data-layout-variant={variant} data-surface-mode={artwork ? "uploaded_artwork" : "preset"} {...surfaceAttrs}>{materialLayers}<div className="relative z-[1]"><span className="text-[9px] font-black uppercase tracking-[.22em]">TapConnect Ticket</span><strong className="mt-1 block text-xl leading-none">{str(node.props.title, "ADMIT ONE")}</strong></div><div className="relative z-[1] flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.ticketId, "TICKET-001")}</span><span className="grid h-10 w-10 place-items-center rounded bg-white text-[8px] font-black" aria-label="QR context">QR</span></div><p className="relative z-[1] mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
     }
     if (variant === "perforated_stub" || node.props.perforated === true) {
-      return <div className="relative flex h-full w-full overflow-hidden text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="perforated_stub" data-coupon-perforation="true"><div className="flex w-[62%] flex-col justify-between p-3"><span className="text-[8px] font-black uppercase tracking-widest">Coupon</span><strong className="text-xl font-black leading-none">{str(node.props.offerValue, "20% OFF")}</strong><span className="text-[11px] font-bold">{str(node.props.headline, "TEAR HERE")}</span><p className="text-[7px] leading-tight opacity-80">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div><div className="absolute inset-y-2 left-[62%] w-0 border-l-2 border-dashed border-black/45" data-testid="coupon-perforation" aria-hidden /><div className="flex w-[38%] flex-col items-center justify-between border-l border-transparent p-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[9px] text-white">{str(node.props.code, "TEAR10")}</span><span className="grid h-14 w-14 place-items-center rounded bg-white text-[8px] font-black shadow" aria-label="QR placeholder">QR</span><span className="text-[7px] opacity-70">{str(node.props.expiration, "Expires soon")}</span></div></div>;
+      return <div className="relative flex h-full w-full overflow-hidden text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="perforated_stub" data-coupon-perforation="true" {...surfaceAttrs}>{materialLayers}<div className="relative z-[1] flex w-[62%] flex-col justify-between p-3"><span className="text-[8px] font-black uppercase tracking-widest">Coupon</span><strong className="text-xl font-black leading-none">{str(node.props.offerValue, "20% OFF")}</strong><span className="text-[11px] font-bold">{str(node.props.headline, "TEAR HERE")}</span><p className="text-[7px] leading-tight opacity-80">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div><div className="absolute inset-y-2 left-[62%] z-[1] w-0 border-l-2 border-dashed border-black/45" data-testid="coupon-perforation" aria-hidden /><div className="relative z-[1] flex w-[38%] flex-col items-center justify-between border-l border-transparent p-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[9px] text-white">{str(node.props.code, "TEAR10")}</span><span className="grid h-14 w-14 place-items-center rounded bg-white text-[8px] font-black shadow" aria-label="QR placeholder">QR</span><span className="text-[7px] opacity-70">{str(node.props.expiration, "Expires soon")}</span></div></div>;
     }
     if (variant === "split_image" || node.props.showArtwork === true) {
-      return <div className="flex h-full w-full overflow-hidden text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="split_image" data-coupon-split="true"><div className="h-full w-[42%] bg-black/20" data-coupon-split="image" style={artwork ? { backgroundImage: `url("${artwork.replaceAll('"', "%22")}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined} /><div className="flex w-[58%] flex-col justify-between p-3" data-coupon-split="content"><strong className="text-xl font-black leading-none">{str(node.props.offerValue, "BUY 1 GET 1")}</strong><span className="text-[11px] font-bold">{str(node.props.headline, "LOOK BOOK")}</span><p className="text-[8px] leading-tight opacity-80">{str(node.props.description, str(node.props.terms, ""))}</p><div className="flex items-center gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[9px] text-white">{str(node.props.code, "LOOKBOGO")}</span><span className="rounded-full bg-black px-2 py-1 text-[8px] font-semibold text-white">{str(node.props.ctaLabel, "Claim")}</span></div></div></div>;
+      return <div className="relative flex h-full w-full overflow-hidden text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="split_image" data-coupon-split="true" {...surfaceAttrs}>{materialLayers}<div className="relative z-[1] h-full w-[42%] bg-black/20" data-coupon-split="image" style={artwork ? { backgroundImage: `url("${artwork.replaceAll('"', "%22")}")`, backgroundSize: "cover", backgroundPosition: "center" } : undefined} /><div className="relative z-[1] flex w-[58%] flex-col justify-between p-3" data-coupon-split="content"><strong className="text-xl font-black leading-none">{str(node.props.offerValue, "BUY 1 GET 1")}</strong><span className="text-[11px] font-bold">{str(node.props.headline, "LOOK BOOK")}</span><p className="text-[8px] leading-tight opacity-80">{str(node.props.description, str(node.props.terms, ""))}</p><div className="flex items-center gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[9px] text-white">{str(node.props.code, "LOOKBOGO")}</span><span className="rounded-full bg-black px-2 py-1 text-[8px] font-semibold text-white">{str(node.props.ctaLabel, "Claim")}</span></div></div></div>;
     }
     if (variant === "qr_first" || node.props.qrFirst === true) {
-      return <div className="flex h-full w-full flex-col items-center justify-between overflow-hidden p-3 text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="qr_first" data-coupon-qr-first="true"><span className="grid h-[42%] aspect-square max-h-28 place-items-center rounded-lg bg-white text-[10px] font-black shadow" aria-label="QR placeholder">QR</span><strong className="text-center text-xl font-black leading-none">{str(node.props.offerValue, "FREE GIFT")}</strong><span className="text-center text-[11px] font-bold">{str(node.props.headline, "SCAN TO CLAIM")}</span><span className="font-mono text-[11px] font-bold">{str(node.props.code, "SCANME")}</span><p className="text-center text-[7px] leading-tight opacity-80">{str(node.props.description, "Scan the code or enter the offer code to claim.")}</p></div>;
+      return <div className="relative flex h-full w-full flex-col items-center justify-between overflow-hidden p-3 text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="qr_first" data-coupon-qr-first="true" {...surfaceAttrs}>{materialLayers}<span className="relative z-[1] grid h-[42%] aspect-square max-h-28 place-items-center rounded-lg bg-white text-[10px] font-black shadow" aria-label="QR placeholder">QR</span><strong className="relative z-[1] text-center text-xl font-black leading-none">{str(node.props.offerValue, "FREE GIFT")}</strong><span className="relative z-[1] text-center text-[11px] font-bold">{str(node.props.headline, "SCAN TO CLAIM")}</span><span className="relative z-[1] font-mono text-[11px] font-bold">{str(node.props.code, "SCANME")}</span><p className="relative z-[1] text-center text-[7px] leading-tight opacity-80">{str(node.props.description, "Scan the code or enter the offer code to claim.")}</p></div>;
     }
-    return <div className="flex h-full w-full flex-col justify-between overflow-hidden p-4 text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="retail_card" data-surface-mode={artwork ? "uploaded_artwork" : "preset"}><div><span className="text-[9px] font-black uppercase tracking-[.22em]">TapConnect Coupon</span><strong className="mt-1 block text-2xl font-black leading-none">{str(node.props.offerValue, "20% OFF")}</strong><span className="mt-1 block text-sm font-bold">{str(node.props.headline, "SPECIAL OFFER")}</span><p className="mt-1 text-[8px] leading-tight opacity-80">{str(node.props.description, "")}</p></div><div className="flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.code, "SAVE20")}</span><span className="rounded-full bg-black px-3 py-1 text-[9px] font-semibold text-white">{str(node.props.ctaLabel, "Use offer")}</span></div><p className="mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
+    return <div className="relative flex h-full w-full flex-col justify-between overflow-hidden p-4 text-[#17100a]" style={surfaceStyle} data-component-kind="coupon" data-layout-variant="retail_card" data-surface-mode={artwork ? "uploaded_artwork" : "preset"} {...surfaceAttrs}>{materialLayers}<div className="relative z-[1]"><span className="text-[9px] font-black uppercase tracking-[.22em]">TapConnect Coupon</span><strong className="mt-1 block text-2xl font-black leading-none">{str(node.props.offerValue, "20% OFF")}</strong><span className="mt-1 block text-sm font-bold">{str(node.props.headline, "SPECIAL OFFER")}</span><p className="mt-1 text-[8px] leading-tight opacity-80">{str(node.props.description, "")}</p></div><div className="relative z-[1] flex items-end justify-between gap-2"><span className="rounded bg-black/80 px-2 py-1 font-mono text-[10px] text-white">{str(node.props.code, "SAVE20")}</span><span className="rounded-full bg-black px-3 py-1 text-[9px] font-semibold text-white">{str(node.props.ctaLabel, "Use offer")}</span></div><p className="relative z-[1] mt-2 text-[8px] leading-tight">{str(node.props.terms, "Draft terms — review before publishing.")}</p></div>;
   }
 
   if (componentKind === "form") {
@@ -849,14 +920,9 @@ function NodeVisual({
       const blur = num(node.props.blur, 0);
       const backingEnabled = node.props.backingSurfaceEnabled === true;
       const radius = backingEnabled ? num(node.props.radius, 0) : 0;
-      const backingFill = backingEnabled
-        ? (node.props.boxGradient ? str(node.props.boxGradient) : str(node.props.boxFill, "transparent"))
-        : "transparent";
-      const borderWidth = backingEnabled ? num(node.props.borderWidth, 0) : 0;
-      const borderStyle = borderWidth > 0 ? str(node.props.borderStyle, "solid") : "none";
-      const borderColor = str(node.props.borderColor, "#ffffff");
-      const backingShadow = backingEnabled ? num(node.props.boxShadow, 0) : 0;
-      const backingGlow = backingEnabled ? num(node.props.boxGlow, 0) : 0;
+      const backingMaterial = backingEnabled
+        ? resolveMaterialSurfaceFromProps(node.props, "icon_backing")
+        : null;
       // Path-aware artwork effects — never box-shadow on the Icon Element wrapper.
       const glowColor = str(node.props.glowColor, fill);
       const effectFilter = effectLayersCss("icon_artwork", {
@@ -903,18 +969,18 @@ function NodeVisual({
             color: fill,
             opacity,
             borderRadius: radius,
-            background: backingEnabled && backingFill !== "transparent" ? backingFill : "transparent",
-            border: backingEnabled && borderWidth > 0 && borderStyle !== "none"
-              ? `${borderWidth}px ${borderStyle} ${borderColor}`
-              : "none",
-            boxShadow: backingEnabled
-              ? surfaceShadowCss({
-                  ...node.props,
-                  boxShadow: backingShadow,
-                  boxGlow: backingGlow,
-                  glowColor: str(node.props.glowColor, fill),
-                })
-              : undefined,
+            background:
+              backingMaterial && backingMaterial.fillAuthority !== "transparent"
+                ? backingMaterial.background
+                : "transparent",
+            backgroundSize: backingMaterial?.backgroundSize,
+            border:
+              backingMaterial &&
+              backingMaterial.borderWidth > 0 &&
+              backingMaterial.borderStyle !== "none"
+                ? `${backingMaterial.borderWidth}px ${backingMaterial.borderStyle} ${backingMaterial.borderColor}`
+                : "none",
+            boxShadow: backingMaterial?.boxShadow,
           }}
           role={node.props.decorative === true ? undefined : "img"}
           aria-hidden={node.props.decorative === true ? true : undefined}
@@ -928,8 +994,17 @@ function NodeVisual({
           data-icon-backing={backingEnabled ? "on" : "off"}
           data-icon-glow={String(glow)}
           data-icon-effect-target="artwork"
+          data-material-fill-authority={backingMaterial?.fillAuthority}
+          data-material-stop-count={
+            backingMaterial ? String(backingMaterial.gradientStopCount) : undefined
+          }
+          data-material-highlight={backingMaterial?.highlight ? "true" : "false"}
+          data-surface-texture={backingMaterial?.textureToken || undefined}
         >
-          {artwork}
+          {backingMaterial ? (
+            <MaterialSurfaceLayers surface={backingMaterial} testIdPrefix={`icon-backing-${node.id}`} />
+          ) : null}
+          <span className="relative z-[1] grid h-full w-full place-items-center">{artwork}</span>
         </div>
       );
     }
@@ -945,7 +1020,6 @@ function NodeVisual({
         },
         "badge"
       );
-      const badgeTexture = textureOverlayStyle(node.props);
       const borderWidth = badgeMaterial.borderWidth;
       const borderStyle = badgeMaterial.borderStyle;
       const borderColor = badgeMaterial.borderColor === "transparent" ? str(node.props.borderColor, "#fff") : badgeMaterial.borderColor;
@@ -1009,7 +1083,6 @@ function NodeVisual({
             </>
           ) : null}
           <MaterialSurfaceLayers surface={badgeMaterial} clipPath={badgeClip} testIdPrefix={`badge-${node.id}`} />
-          {badgeTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={{ ...badgeTexture, clipPath: badgeClip }} /> : null}
           <span className="relative z-[1] whitespace-pre-wrap" data-testid="badge-text">{str(node.props.text, "SALE")}</span>
         </div>
       );
@@ -1241,7 +1314,6 @@ function NodeVisual({
         color: str(labelProps.color, str(node.props.labelColor, "currentColor")),
       }).textShadow,
     };
-    const buttonTexture = textureOverlayStyle(node.props);
     const nestedIcon = buttonContentNode(node.props, "icon", node.id);
     const iconSvg = str(node.props.iconSvg, str(nestedIcon?.props.iconSvg));
     const iconPosition = str(node.props.iconPosition, "before");
@@ -1303,7 +1375,6 @@ function NodeVisual({
         data-material-highlight={materialSurface.highlight ? "true" : "false"}
         data-surface-texture={materialSurface.textureToken || undefined}
       >
-        {buttonTexture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={buttonTexture} /> : null}
         <MaterialSurfaceLayers surface={materialSurface} testIdPrefix={`button-${node.id}`} />
         {(iconPosition === "before" || iconPosition === "above") ? buttonIconEl : null}
         {buttonLabelEl}
@@ -1998,17 +2069,31 @@ export function CreativeCompositionCanvas({
     );
   };
 
+  const pageMaterialProps = materialPropsFromCompositionBackground(block.background);
+  const pageMaterial = pageMaterialProps
+    ? resolveMaterialSurfaceFromProps(pageMaterialProps, "generic")
+    : null;
   const bg =
-    block.background?.kind === "solid"
+    pageMaterial
+      ? pageMaterial.background
+      : block.background?.kind === "solid"
       ? block.background.value || "#0b0f19"
       : block.background?.kind === "gradient"
-        ? block.background.gradient
-          ? gradientToCss(block.background.gradient)
-          : block.background.value || gradientToCss(DEFAULT_GRADIENT)
+        ? // Prefer durable full CSS value (may include rgba) over hex-only gradient model.
+          block.background.value ||
+          (block.background.gradient
+            ? gradientToCss(block.background.gradient)
+            : gradientToCss(DEFAULT_GRADIENT))
         : "transparent";
   const backgroundImage = block.background?.image;
-  const backgroundStyle =
-    block.background?.kind === "image" && backgroundImage?.src
+  // Material page backgrounds resolve fill + texture/highlight via shared authority.
+  // Non-Material Visual Plane paths keep pattern/image/solid/gradient as before.
+  const backgroundStyle = pageMaterial
+    ? {
+        background: pageMaterial.background,
+        backgroundSize: pageMaterial.backgroundSize,
+      }
+    : block.background?.kind === "image" && backgroundImage?.src
       ? {
           backgroundColor: "#0b0f19",
           backgroundImage: `${
@@ -2054,6 +2139,35 @@ export function CreativeCompositionCanvas({
         }
       : undefined;
 
+  const compositionBackgroundNode = (
+    <div
+      className="pointer-events-none absolute inset-0 overflow-hidden"
+      style={{
+        ...backgroundStyle,
+        ...backgroundTreatmentStyle,
+        opacity: block.background?.opacity ?? 1,
+        filter: [
+          backgroundTreatmentStyle?.filter,
+          `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`,
+        ]
+          .filter(Boolean)
+          .join(" "),
+      }}
+      data-testid="composition-background-renderer"
+      data-background-opacity={String(block.background?.opacity ?? 1)}
+      data-material-preset={block.background?.materialPreset || undefined}
+      data-material-fill-authority={pageMaterial?.fillAuthority}
+      data-material-stop-count={pageMaterial ? String(pageMaterial.gradientStopCount) : undefined}
+      data-material-highlight={pageMaterial?.highlight ? "true" : "false"}
+      data-surface-texture={pageMaterial?.textureToken || undefined}
+      aria-hidden
+    >
+      {pageMaterial ? (
+        <MaterialSurfaceLayers surface={pageMaterial} testIdPrefix="page-background" />
+      ) : null}
+    </div>
+  );
+
   const structured = useStack || layoutMode !== "free";
   if (structured) {
     const structuredMode = useStack ? "stack" : layoutMode;
@@ -2086,13 +2200,7 @@ export function CreativeCompositionCanvas({
           onSelectNodes?.([]);
         }}
       >
-        <div
-          className="pointer-events-none absolute inset-0"
-          style={{ ...backgroundStyle, ...backgroundTreatmentStyle, opacity: block.background?.opacity ?? 1, filter: [backgroundTreatmentStyle?.filter, `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`].filter(Boolean).join(" ") }}
-          data-testid="composition-background-renderer"
-          data-background-opacity={String(block.background?.opacity ?? 1)}
-          aria-hidden
-        />
+        {compositionBackgroundNode}
         <ol className="sr-only" data-testid="composition-reading-order">
           {readingOrder.map((n) => (
             <li key={n.id}>
@@ -2276,23 +2384,7 @@ export function CreativeCompositionCanvas({
         event.currentTarget.setPointerCapture?.(event.pointerId);
       }}
     >
-      <div
-        className="pointer-events-none absolute inset-0"
-        style={{
-          ...backgroundStyle,
-          ...backgroundTreatmentStyle,
-          opacity: block.background?.opacity ?? 1,
-          filter: [
-            backgroundTreatmentStyle?.filter,
-            `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`,
-          ]
-            .filter(Boolean)
-            .join(" "),
-        }}
-        data-testid="composition-background-renderer"
-        data-background-opacity={String(block.background?.opacity ?? 1)}
-        aria-hidden
-      />
+      {compositionBackgroundNode}
       {editMode && (block.safeAreaPaddingPx || 0) > 0 ? (
         <div
           className="pointer-events-none absolute z-[998] border border-dashed border-[#9cff57]/45"
