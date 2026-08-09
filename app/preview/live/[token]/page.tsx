@@ -98,7 +98,7 @@ export default async function PreviewCardPage({
         actionsLayout: "stack",
         sections: [],
         rootComposition: raw as unknown as TapConnectCardConfig["rootComposition"],
-      } as TapConnectCardConfig;
+      } as unknown as TapConnectCardConfig;
     } else {
       config = {
         ...(raw as unknown as TapConnectCardConfig),
