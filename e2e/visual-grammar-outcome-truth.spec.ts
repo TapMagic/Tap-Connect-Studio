@@ -127,25 +127,31 @@ test.describe("Visual Grammar Outcome Truth", () => {
     });
 
     // —— 3 Independent Both primary + secondary ——
+    await openBlankStudio(page);
+    await dismissOverlays(page);
     await insertFamily(page, "button");
-    const bothBtn = page.locator("[data-composition-node]").filter({ has: page.locator("[data-button-surface-kind]") }).last();
+    const bothBtn = page.locator("[data-composition-node]").filter({ has: page.locator("[data-button-surface-kind]") }).first();
     await bothBtn.click();
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-icon_image"), "Icon");
     await ownerClick(page.getByTestId("vp-icon-upload-demo"), "Primary portrait");
     await ownerClick(page.getByTestId("vp-icon-pos-both"), "Both");
     await ownerClick(page.getByTestId("vp-icon-secondary-arrow"), "Secondary arrow");
-    const primary = bothBtn.locator("[data-vp-icon-slot='primary']").first();
-    const secondary = bothBtn.locator("[data-vp-icon-slot='secondary']").first();
+    // Enable rail slots so primary/secondary occupy durable left/right stations
+    await ownerClick(page.getByTestId("vp-drawer-layout"), "Layout");
+    await ownerClick(page.getByTestId("vp-part-layout_one_column"), "One column rails");
+    const slotted = page.locator("[data-vp-rail-geometry='slots']").first();
+    await expect(slotted).toBeVisible({ timeout: 15_000 });
+    const primary = slotted.locator("[data-vp-icon-slot='primary']").first();
+    const secondary = slotted.locator("[data-vp-icon-slot='secondary']").first();
     await expect(primary).toBeVisible();
     await expect(secondary).toBeVisible();
-    await expect(primary).toHaveAttribute("data-icon-canonical", /sparkles|phone|/); // media may blank canonical
     await expect(secondary).toHaveAttribute("data-icon-canonical", "arrow-up-right");
+    await ownerClick(page.getByTestId("vp-drawer-icon_image"), "Icon");
     await ownerClick(page.getByTestId("vp-icon-secondary-phone"), "Secondary phone");
     await expect(secondary).toHaveAttribute("data-icon-canonical", "phone");
-    // Primary media must still be present
-    await expect(bothBtn.locator("[data-vp-icon-slot='primary'] img, [data-vp-icon-slot='primary']").first()).toBeVisible();
-    await bothBtn.screenshot({ path: path.join(PROOFS, "both-primary-secondary.png") });
+    await expect(slotted.locator("[data-vp-icon-slot='primary'] img").first()).toBeVisible();
+    await slotted.screenshot({ path: path.join(PROOFS, "both-primary-secondary.png") });
     await ownerClick(page.getByTestId("contextual-button-action"), "Action after Both");
     await page.getByLabel("Button action type").selectOption("call");
     await page.getByLabel("Button destination").fill("tel:+15550102030");
