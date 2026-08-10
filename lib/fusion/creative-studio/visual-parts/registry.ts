@@ -737,8 +737,10 @@ export const VISUAL_PARTS_DRAWER_CONTRACT: Readonly<
   bottom_stop: { label: "Bottom Stop", categories: ["bottom_stop"] },
   hero: { label: "Hero", categories: ["hero"] },
   action: { label: "Action", categories: ["action"], passthrough: "action" },
-  // Interaction modes are Host-facing Visual Parts; Motion intensity remains the existing Motion authority.
-  motion: { label: "Motion", categories: ["interaction", "motion"], passthrough: "motion" },
+  // Interaction modes are Host-facing Visual Parts in this drawer.
+  // Motion intensity remains available via the in-drawer "Open Motion intensity" handle — not an auto-passthrough
+  // that would skip rendering Interaction tiles.
+  motion: { label: "Motion", categories: ["interaction", "motion"] },
   advanced: { label: "Advanced", categories: [], passthrough: "advanced" },
 };
 
