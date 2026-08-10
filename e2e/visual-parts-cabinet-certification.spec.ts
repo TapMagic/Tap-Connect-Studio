@@ -79,7 +79,7 @@ test.describe("Visual Parts Cabinet certification", () => {
     await ownerClick(page.getByTestId("vp-drawer-icon_image"), "Icon/Image drawer");
     await ownerClick(page.getByTestId("vp-icon-library"), "Library icon");
     await ownerClick(page.getByTestId("vp-icon-upload-demo"), "Uploaded logo");
-    await expect(page.getByTestId("vp-icon-station-media").or(button.locator('[data-testid="vp-icon-station-media"]'))).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator('[data-testid="vp-icon-station-media"], [data-testid$="-media"]').first()).toBeVisible({ timeout: 10_000 });
 
     // F — Left → Right → Both
     await ownerClick(page.getByTestId("vp-icon-pos-right"), "Icon Right");
@@ -115,16 +115,17 @@ test.describe("Visual Parts Cabinet certification", () => {
     await ownerClick(page.getByTestId("vp-part-action_surface_copper_harmonized"), "Copper Harmonized Surface");
     await expect(page.locator("[data-vp-action-surface='action_surface_copper_harmonized']").first()).toBeVisible({ timeout: 10_000 });
 
-    const dividerTile = page.getByTestId("starter-divider-line").or(page.getByRole("button", { name: /Divider|Minimal line/i })).first();
-    if (await dividerTile.isVisible().catch(() => false)) {
-      await ownerClick(dividerTile, "Insert Divider");
-      const divider = page.locator('[data-composition-node]').filter({ has: page.locator("[data-border-style], [data-vp-divider-treatment]") }).last();
-      await divider.click();
-      await openVisualParts(page);
-      await ownerClick(page.getByTestId("vp-drawer-divider"), "Divider drawer");
-      await ownerClick(page.getByTestId("vp-part-divider_copper_botanical"), "Copper Botanical Divider");
-      await expect(page.locator("[data-vp-divider-treatment='copper_botanical']").first()).toBeVisible({ timeout: 10_000 });
-    }
+    await ownerClick(page.getByTestId("card-creative-tool-tools"), "Tools rail for Divider");
+    const dividerTile = page.locator('[data-testid^="starter-divider-"]').first();
+    await expect(dividerTile).toBeVisible({ timeout: 15_000 });
+    await ownerClick(dividerTile, "Insert Divider");
+    const divider = page.locator('[data-composition-node][data-primitive="border"]').last();
+    await expect(divider).toBeVisible({ timeout: 15_000 });
+    await divider.click();
+    await openVisualParts(page);
+    await ownerClick(page.getByTestId("vp-drawer-divider"), "Divider drawer");
+    await ownerClick(page.getByTestId("vp-part-divider_copper_botanical"), "Copper Botanical Divider");
+    await expect(page.locator("[data-vp-divider-treatment='copper_botanical'], [data-vp-divider='divider_copper_botanical']").first()).toBeVisible({ timeout: 10_000 });
 
     // K — Cross-object same Pounded Copper part ID on Button AND Container (Action Surface edge)
     const copperOnButton = page.locator('[data-button-surface-kind][data-vp-rim="rim_pounded_copper"], a[data-vp-rim="rim_pounded_copper"]');
