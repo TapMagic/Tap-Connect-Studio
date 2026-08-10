@@ -1,7 +1,8 @@
 # Visual Grammar + Mobile Composition
 
-**Status:** Dual-green certified candidate — see `VISUAL_GRAMMAR_CLOSEOUT.md`.  
-**Product/Jig freeze:** `6bc904895b3af0bc186830eaf7e138688b465a1d` (ports 3110/3111).  
+**Status:** Outcome Truth dual-green candidate — see `VISUAL_GRAMMAR_OUTCOME_TRUTH_CLOSEOUT.md`.  
+**Product/Jig freeze:** `7b8190583852991b091182bf7bc00811c11fe4de` (ports 3124/3125).  
+**Prior grammar freeze:** `6bc904895b3af0bc186830eaf7e138688b465a1d` (ports 3110/3111).  
 **Holds:** Visual Parts Cabinet Integrity laws.  
 **Not claimed:** library filled · tApIt · Campaigns · Product Owner HV · physical phone HV
 
