@@ -321,13 +321,15 @@ export function applyVisualPart(
       break;
     }
     case "action_surface": {
-      const treatment = part.payload.backgroundTone as SurfaceTreatment;
-      const styles = surfaceToneStyles(part.payload.backgroundTone);
+      const tone = part.payload.backgroundTone;
+      const styles = surfaceToneStyles(tone);
+      const treatment: SurfaceTreatment =
+        tone === "neutral" ? "off" : (tone as SurfaceTreatment);
       next = writeVisualPartsState(next, {
         actionSurfacePartId: partId,
         rimPartId: part.payload.edgePartId || state.rimPartId || null,
-        surfaceEnabled: part.payload.backgroundTone !== "neutral",
-        surfaceTreatment: treatment === "neutral" ? "quiet_field" : treatment,
+        surfaceEnabled: tone !== "neutral",
+        surfaceTreatment: treatment,
         surfaceIntensity: part.payload.intensityDefault ?? 0.55,
         surfaceDepth: part.payload.depthDefault ?? 0.45,
       });
