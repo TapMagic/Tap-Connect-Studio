@@ -1,6 +1,7 @@
 /**
  * Studio-wide Visual Parts Cabinet — type contracts.
  * Parts belong to Studio sockets, not to the first object that consumes them.
+ * Visual Grammar extends these contracts without inventing a second Studio.
  */
 
 export type VisualPartCollection = "foundation" | "tapconnect_signature";
@@ -18,6 +19,9 @@ export type VisualPartCategory =
   | "layout"
   | "divider"
   | "action_surface"
+  | "mount"
+  | "bottom_stop"
+  | "hero"
   | "interaction"
   | "action"
   | "motion"
@@ -59,9 +63,12 @@ export type VisualPartSocket =
   | "actionSurface.capTop"
   | "actionSurface.capBottom"
   | "actionSurface.divider"
+  | "mount.plate"
   | "body.geometry"
   | "finish.recipe"
   | "layout.intent"
+  | "bottomStop.cap"
+  | "hero.section"
   | "curated.family";
 
 export type VisualPartTargetFamily =
@@ -77,7 +84,10 @@ export type VisualPartTargetFamily =
   | "ticket"
   | "form_submit"
   | "card_root"
-  | "action_surface";
+  | "action_surface"
+  | "hero"
+  | "launch"
+  | "bottom_stop";
 
 export type VisualPartRenderKind =
   | "body_geometry"
@@ -87,6 +97,9 @@ export type VisualPartRenderKind =
   | "accent_ornament"
   | "divider_treatment"
   | "action_surface_cap"
+  | "mount_plate"
+  | "bottom_stop_cap"
+  | "hero_section"
   | "interaction_recipe"
   | "layout_intent"
   | "curated_family"
@@ -103,8 +116,48 @@ export type VisualPartProvenanceRef = {
   provenanceId: string;
 };
 
+/** Action visual role — not a separate Action engine. */
+export type ActionVisualRole = "utility" | "signature" | "hero" | "launch";
+
+/** Surface / Stage treatment concepts (optional local staging). */
+export type SurfaceTreatment =
+  | "off"
+  | "quiet_field"
+  | "panel_plaque"
+  | "recess_well"
+  | "energy_field"
+  | "plinth_base"
+  | "copper_harmonized";
+
+export type IconStationAnchor =
+  | "left_center"
+  | "right_center"
+  | "top_left"
+  | "top_right"
+  | "center_overlap";
+
+export type HeroSizeIntent = "compact" | "standard" | "feature";
+export type HeroStructureType = "compact" | "identity" | "spotlight" | "media";
+
+export type FinishColorRefinement = {
+  /** 0 muted ↔ 1 saturated/deep */
+  richness?: number;
+  /** 0 light/open ↔ 1 dark/luxurious (finish depth — not MaterialRecipe.depth) */
+  depth?: number;
+  /** 0 cool ↔ 1 warm */
+  temperature?: number;
+  /** 0 subtle ↔ 1 dramatic */
+  contrast?: number;
+  /** 0 soft/matte ↔ 1 brilliant/specular */
+  lightResponse?: number;
+};
+
 export type VisualPartPayload =
-  | { kind: "body"; presentation: "rounded" | "pill"; radius: number }
+  | {
+      kind: "body";
+      presentation: "rounded" | "pill" | "rectangle" | "angular" | "circle";
+      radius: number;
+    }
   | {
       kind: "finish";
       finishId: "lacquer" | "acrylic";
@@ -115,11 +168,13 @@ export type VisualPartPayload =
       kind: "rim";
       cssClass: string;
       copperFamily?: boolean;
+      industrialFamily?: boolean;
+      electricFamily?: boolean;
       rimWidthPx: number;
     }
   | {
       kind: "icon_station_geometry";
-      shape: "round" | "faceted";
+      shape: "round" | "faceted" | "rounded_square" | "square" | "oval" | "shield";
       clipPath?: string;
     }
   | {
@@ -135,27 +190,54 @@ export type VisualPartPayload =
     }
   | {
       kind: "divider";
-      lineStyle: "minimal" | "copper_botanical";
+      lineStyle: "minimal" | "copper_botanical" | "geometric" | "industrial" | "electric";
       endcapAssetId?: string;
+      motion?: "none" | "energy_travel" | "neon_flicker";
     }
   | {
       kind: "action_surface";
       edgePartId?: string;
-      backgroundTone: "neutral" | "copper_harmonized";
+      backgroundTone: "neutral" | "copper_harmonized" | "quiet_field" | "energy_field" | "recess_well" | "panel_plaque" | "plinth_base";
+      intensityDefault?: number;
+      depthDefault?: number;
+    }
+  | {
+      kind: "mount";
+      style: "dark_plaque" | "beveled_plate" | "mission_control_plate" | "glass_plate";
+      paddingPx: number;
+      radius: number;
+      background: string;
+      border?: string;
+      shadow?: string;
+    }
+  | {
+      kind: "bottom_stop";
+      style: "minimal" | "themed_border" | "surface_closure" | "brand_footer_plate";
+      heightPx: number;
+    }
+  | {
+      kind: "hero";
+      structure: HeroStructureType;
+      sizeIntent: HeroSizeIntent;
+      flowShape?: "arc" | "swoosh" | "ribbon" | "geometric_band" | "organic_wave" | "none";
     }
   | {
       kind: "interaction";
-      mode: "quiet" | "tactile";
+      mode: "quiet" | "tactile" | "mechanical";
     }
   | {
       kind: "layout";
-      intent: "one_column" | "two_column";
+      intent: "one_column" | "two_column" | "round_team_grid";
       autoStackPhone: boolean;
+      railAware?: boolean;
     }
   | {
       kind: "curated_family";
       ingredientPartIds: Readonly<Record<string, string | null>>;
       defaultBaseColor: string;
+      actionRole?: ActionVisualRole;
+      mountPartId?: string | null;
+      surfaceTreatment?: SurfaceTreatment;
     }
   | { kind: "none" };
 
@@ -189,6 +271,8 @@ export type VisualPartsState = {
   finishPartId?: string | null;
   /** Host-chosen base color. Never store “Red Lacquer” as a finish id. */
   baseColor?: string | null;
+  colorRefinement?: FinishColorRefinement | null;
+  brandRecipeId?: string | null;
   rimPartId?: string | null;
   iconStationGeometryPartId?: string | null;
   /** Explicit Icon Station backing part — independent of geometry. */
@@ -196,13 +280,29 @@ export type VisualPartsState = {
   /** Explicit Icon Station rim part (may reuse surface rim IDs such as Pounded Copper). */
   iconStationRimPartId?: string | null;
   iconStationPosition?: IconStationPosition | null;
+  /** 0–1 within family-safe MIN/MAX. Geometry stays proportional. */
+  iconStationScale?: number | null;
+  iconStationAnchor?: IconStationAnchor | null;
   accentPartId?: string | null;
   interactionPartId?: string | null;
-  layoutIntent?: "one_column" | "two_column" | null;
+  layoutIntent?: "one_column" | "two_column" | "round_team_grid" | null;
   dividerLinePartId?: string | null;
   dividerEndcapStartPartId?: string | null;
   dividerEndcapEndPartId?: string | null;
+  /** Surface ON/OFF — independent from Page Background. */
+  surfaceEnabled?: boolean | null;
+  surfaceTreatment?: SurfaceTreatment | null;
+  surfaceIntensity?: number | null;
+  surfaceDepth?: number | null;
   actionSurfacePartId?: string | null;
+  mountPartId?: string | null;
+  bottomStopPartId?: string | null;
+  actionRole?: ActionVisualRole | null;
+  heroStructure?: HeroStructureType | null;
+  heroSizeIntent?: HeroSizeIntent | null;
+  heroFlowShape?: string | null;
+  /** Full cake recipe for curated reassembly — not ingredient list alone. */
+  assemblyRecipeId?: string | null;
 };
 
 export type VisualPartsDrawerId =
@@ -217,6 +317,9 @@ export type VisualPartsDrawerId =
   | "layout"
   | "divider"
   | "surface_zone"
+  | "mount"
+  | "bottom_stop"
+  | "hero"
   | "action"
   | "motion"
   | "advanced";

@@ -3,21 +3,29 @@
 import { useMemo, useState } from "react";
 import {
   CURATED_FAMILY_BRIGHT_LACQUER_ID,
+  CURATED_FAMILY_MISSION_CONTROL_ID,
   LACQUER_PROOF_COLORS,
   VISUAL_PARTS_DRAWER_CONTRACT,
+  applyColorRefinement,
   applyCuratedFamily,
+  applyIconStationAnchor,
   applyIconStationContent,
   applyIconStationPosition,
+  applyIconStationScale,
+  applySurfaceMode,
   applyVisualPart,
   applyVisualPartBaseColor,
+  applyBrandRecipeToProps,
   curatedFamilyIngredientIds,
   getVisualPart,
+  listBrandRecipes,
   listVisualParts,
   partCompatibleWithTarget,
   partTilePreviewBackground,
   partTilePreviewKind,
   readVisualPartsState,
   removeVisualPartSocket,
+  type IconStationAnchor,
   type IconStationPosition,
   type VisualPartCollection,
   type VisualPartDefinition,
@@ -35,16 +43,19 @@ type Props = {
 
 const DRAWER_ORDER: VisualPartsDrawerId[] = [
   "curated",
+  "hero",
   "body",
   "finish",
   "color",
   "frame_ring",
   "icon_image",
+  "mount",
   "accents",
   "text",
   "layout",
   "divider",
   "surface_zone",
+  "bottom_stop",
   "action",
   "motion",
   "advanced",
@@ -113,9 +124,9 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
     return listed;
   }, [collection, contract.categories, targetFamily]);
 
-  const ingredients = state.curatedFamilyId
-    ? curatedFamilyIngredientIds(state.curatedFamilyId)
-    : curatedFamilyIngredientIds(CURATED_FAMILY_BRIGHT_LACQUER_ID);
+  const ingredients = curatedFamilyIngredientIds(
+    state.curatedFamilyId || CURATED_FAMILY_BRIGHT_LACQUER_ID
+  );
 
   const currentHandle = (() => {
     switch (drawer) {
@@ -221,6 +232,11 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
             active={state.curatedFamilyId === CURATED_FAMILY_BRIGHT_LACQUER_ID}
             onApply={() => applyPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)}
           />
+          <PartTile
+            part={getVisualPart(CURATED_FAMILY_MISSION_CONTROL_ID)!}
+            active={state.curatedFamilyId === CURATED_FAMILY_MISSION_CONTROL_ID}
+            onApply={() => applyPart(CURATED_FAMILY_MISSION_CONTROL_ID)}
+          />
           {state.curatedFamilyId ? (
             <div className="rounded border border-white/10 p-2" data-testid="vp-customize-ingredients">
               <p className="mb-1 text-[9px] font-semibold uppercase text-white/50">Customize · underlying part IDs</p>
@@ -233,11 +249,12 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
                     {key === "body" && state.bodyPartId === id ? " ✓" : ""}
                     {key === "accent" && state.accentPartId === id ? " ✓" : ""}
                     {key === "iconStation" && state.iconStationGeometryPartId === id ? " ✓" : ""}
+                    {key === "mount" && state.mountPartId === id ? " ✓" : ""}
                   </li>
                 ))}
               </ul>
-              <p className="mt-2 text-[9px] text-white/45">
-                Architecture proof — not the final Signature visual lock.
+              <p className="mt-2 text-[9px] text-white/45" data-testid="vp-assembly-id">
+                Assembly recipe: {state.assemblyRecipeId || "—"}
               </p>
             </div>
           ) : null}
@@ -246,7 +263,16 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
 
       {drawer === "color" ? null : null}
 
-      {drawer === "finish" || drawer === "body" || drawer === "frame_ring" || drawer === "accents" || drawer === "layout" || drawer === "divider" || drawer === "surface_zone" ? (
+      {drawer === "finish" ||
+      drawer === "body" ||
+      drawer === "frame_ring" ||
+      drawer === "accents" ||
+      drawer === "layout" ||
+      drawer === "divider" ||
+      drawer === "surface_zone" ||
+      drawer === "mount" ||
+      drawer === "bottom_stop" ||
+      drawer === "hero" ? (
         <div className="grid grid-cols-2 gap-1.5" data-testid={`vp-drawer-body-${drawer}`}>
           {parts.map((part) => {
             const compat = partCompatibleWithTarget(part.id, targetFamily);
@@ -257,7 +283,10 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
               state.accentPartId === part.id ||
               state.layoutIntent === (part.payload.kind === "layout" ? part.payload.intent : undefined) ||
               state.dividerLinePartId === part.id ||
-              state.actionSurfacePartId === part.id;
+              state.actionSurfacePartId === part.id ||
+              state.mountPartId === part.id ||
+              state.bottomStopPartId === part.id ||
+              state.heroStructure === (part.payload.kind === "hero" ? part.payload.structure : undefined);
             return (
               <PartTile
                 key={part.id}
@@ -287,6 +316,84 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
             >
               Remove accent
             </button>
+          ) : null}
+          {drawer === "mount" ? (
+            <button
+              type="button"
+              className="min-h-12 rounded border border-white/15 text-[10px] text-white/70"
+              data-testid="vp-mount-reset"
+              onClick={() => onPatch(removeVisualPartSocket(props, "mount.plate"), "Removed Mount")}
+            >
+              Remove Mount
+            </button>
+          ) : null}
+          {drawer === "surface_zone" ? (
+            <div className="col-span-2 space-y-2" data-testid="vp-surface-controls">
+              <div className="grid grid-cols-2 gap-1">
+                <button
+                  type="button"
+                  data-testid="vp-surface-off"
+                  className="rounded border border-white/15 px-2 py-2 text-[10px]"
+                  onClick={() => onPatch(applySurfaceMode(props, false), "Surface Off")}
+                >
+                  Surface Off
+                </button>
+                <button
+                  type="button"
+                  data-testid="vp-surface-on"
+                  className="rounded border border-white/15 px-2 py-2 text-[10px]"
+                  onClick={() => onPatch(applySurfaceMode(props, true, "quiet_field"), "Surface On")}
+                >
+                  Surface On
+                </button>
+              </div>
+              <label className="block text-[9px] text-white/55">
+                Intensity
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  data-testid="vp-surface-intensity"
+                  value={Math.round((state.surfaceIntensity ?? 0.55) * 100)}
+                  onChange={(e) =>
+                    onPatch(
+                      {
+                        ...props,
+                        visualParts: {
+                          ...state,
+                          surfaceIntensity: Number(e.target.value) / 100,
+                        },
+                      },
+                      "Surface intensity"
+                    )
+                  }
+                  className="mt-1 w-full"
+                />
+              </label>
+              <label className="block text-[9px] text-white/55">
+                Depth
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  data-testid="vp-surface-depth"
+                  value={Math.round((state.surfaceDepth ?? 0.45) * 100)}
+                  onChange={(e) =>
+                    onPatch(
+                      {
+                        ...props,
+                        visualParts: {
+                          ...state,
+                          surfaceDepth: Number(e.target.value) / 100,
+                        },
+                      },
+                      "Surface depth"
+                    )
+                  }
+                  className="mt-1 w-full"
+                />
+              </label>
+            </div>
           ) : null}
         </div>
       ) : null}
@@ -357,6 +464,45 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
               </button>
             ))}
           </div>
+          <p className="text-[9px] font-semibold uppercase text-white/50">Size (MIN ↔ MAX)</p>
+          <input
+            type="range"
+            min={0}
+            max={100}
+            data-testid="vp-icon-scale"
+            value={Math.round((state.iconStationScale ?? 0.45) * 100)}
+            onChange={(e) =>
+              onPatch(applyIconStationScale(props, Number(e.target.value) / 100), "Icon Station scale")
+            }
+            className="w-full"
+          />
+          <p className="text-[9px] font-semibold uppercase text-white/50">Anchor</p>
+          <div className="grid grid-cols-2 gap-1" data-testid="vp-icon-anchor">
+            {(
+              [
+                "left_center",
+                "right_center",
+                "top_left",
+                "top_right",
+                "center_overlap",
+              ] as IconStationAnchor[]
+            ).map((anchor) => (
+              <button
+                key={anchor}
+                type="button"
+                data-testid={`vp-icon-anchor-${anchor}`}
+                aria-pressed={state.iconStationAnchor === anchor}
+                className={`rounded px-2 py-1.5 text-[9px] ${
+                  state.iconStationAnchor === anchor
+                    ? "bg-[#b8ff2c]/20 text-[#d8f59a]"
+                    : "border border-white/15 text-white/70"
+                }`}
+                onClick={() => onPatch(applyIconStationAnchor(props, anchor), `Icon Station anchor ${anchor}`)}
+              >
+                {anchor.replaceAll("_", " ")}
+              </button>
+            ))}
+          </div>
           <p className="text-[9px] font-semibold uppercase text-white/50">Content</p>
           <div className="grid grid-cols-2 gap-1.5">
             <button
@@ -391,14 +537,14 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
             </button>
           </div>
           <p className="text-[9px] text-white/45">
-            Upload reuses durable Media paths in production; demo uses Host mark for proof.
+            Both = primary left identity + secondary right cue — not mirrored duplicates.
           </p>
         </div>
       ) : null}
 
       {drawer === "color" ? (
         <div className="space-y-2" data-testid="vp-color-passthrough">
-          <p className="text-[11px] text-white/70">Color uses the shared Studio color authority.</p>
+          <p className="text-[11px] text-white/70">Base Color + Finish-aware refinement (not a Material fork).</p>
           <button
             type="button"
             className="w-full rounded border border-white/15 px-2 py-2 text-[10px]"
@@ -428,6 +574,64 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
               />
             ))}
           </div>
+          <p className="text-[9px] font-semibold uppercase text-white/50">Brand Recipes</p>
+          <div className="grid grid-cols-1 gap-1" data-testid="vp-brand-recipes">
+            {listBrandRecipes().map((recipe) => (
+              <button
+                key={recipe.id}
+                type="button"
+                data-testid={`vp-brand-recipe-${recipe.id}`}
+                className="rounded border border-white/15 px-2 py-2 text-left text-[10px]"
+                onClick={() =>
+                  onPatch(
+                    applyVisualPartBaseColor(
+                      applyBrandRecipeToProps(props, recipe.id),
+                      recipe.anchorColor,
+                      targetFamily
+                    ),
+                    `Brand Recipe ${recipe.label}`
+                  )
+                }
+              >
+                {recipe.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[9px] font-semibold uppercase text-white/50">Refinement</p>
+          {(
+            [
+              ["richness", "Richness"],
+              ["depth", "Depth"],
+              ["temperature", "Temperature"],
+              ["contrast", "Contrast"],
+              ["lightResponse", "Light response"],
+            ] as const
+          ).map(([key, label]) => (
+            <label key={key} className="block text-[9px] text-white/55">
+              {label}
+              <input
+                type="range"
+                min={0}
+                max={100}
+                data-testid={`vp-refine-${key}`}
+                value={Math.round((state.colorRefinement?.[key] ?? 0.55) * 100)}
+                onChange={(e) =>
+                  onPatch(
+                    applyColorRefinement(
+                      props,
+                      {
+                        ...(state.colorRefinement || {}),
+                        [key]: Number(e.target.value) / 100,
+                      },
+                      targetFamily
+                    ),
+                    `Color ${label}`
+                  )
+                }
+                className="mt-1 w-full"
+              />
+            </label>
+          ))}
         </div>
       ) : null}
     </div>

@@ -2,9 +2,13 @@
 
 import type { CSSProperties, ReactNode } from "react";
 import {
+  composeDepthShadow,
+  iconStationAnchorTransform,
+  iconStationSizePx,
   readVisualPartsState,
   resolveAccentDescriptor,
   resolveIconStationBackingDescriptor,
+  resolveMountDescriptor,
   resolveRimDescriptor,
   visualPartsDataAttrs,
 } from "@/lib/fusion/creative-studio/visual-parts";
@@ -58,10 +62,7 @@ export function VisualPartsShell({ props, radius, children, testIdPrefix = "vp" 
           {rim.partId}
         </span>
       ) : null}
-      <span
-        className="relative block h-full w-full overflow-hidden"
-        style={{ borderRadius: radius }}
-      >
+      <span className="relative block h-full w-full overflow-hidden" style={{ borderRadius: radius }}>
         {children}
       </span>
       {accent ? (
@@ -69,7 +70,7 @@ export function VisualPartsShell({ props, radius, children, testIdPrefix = "vp" 
           {(position === "left" || position === "both") && (
             <span
               aria-hidden
-              className="pointer-events-none absolute z-[3]"
+              className="pointer-events-none absolute z-[5]"
               data-testid={`${testIdPrefix}-accent-left`}
               data-vp-accent-part={accent.partId}
               style={{ left: 2, top: -4, width: 28, height: 28 } satisfies CSSProperties}
@@ -79,7 +80,7 @@ export function VisualPartsShell({ props, radius, children, testIdPrefix = "vp" 
           {(position === "right" || position === "both") && (
             <span
               aria-hidden
-              className="pointer-events-none absolute z-[3]"
+              className="pointer-events-none absolute z-[5]"
               data-testid={`${testIdPrefix}-accent-right`}
               data-vp-accent-part={accent.partId}
               style={{ right: 2, bottom: -4, width: 28, height: 28, transform: "scaleX(-1)" } satisfies CSSProperties}
@@ -92,10 +93,43 @@ export function VisualPartsShell({ props, radius, children, testIdPrefix = "vp" 
   );
 }
 
+/** Mount / Backplate between Surface and Core Action. */
+export function MountShell({
+  props,
+  children,
+  testIdPrefix = "vp-mount",
+}: {
+  props: Record<string, unknown>;
+  children: ReactNode;
+  testIdPrefix?: string;
+}) {
+  const state = readVisualPartsState(props);
+  const mount = resolveMountDescriptor(state);
+  if (!mount) return <>{children}</>;
+  return (
+    <span
+      className="relative block h-full w-full"
+      data-testid={testIdPrefix}
+      data-vp-mount-part={mount.partId}
+      data-vp-mount-style={mount.style}
+      style={{
+        padding: mount.paddingPx,
+        borderRadius: mount.radius,
+        background: mount.background,
+        border: mount.border,
+        boxShadow: mount.shadow || composeDepthShadow(2),
+        zIndex: mount.zIndex,
+      }}
+    >
+      {children}
+    </span>
+  );
+}
+
 /**
  * Icon Station geometry shell.
  * Hard law: geometry ≠ backing ≠ rim ≠ content ≠ accent.
- * Foundation Round alone must not inherit Signature copper styling.
+ * Scale grows away from fixed anchor; Foundation Round alone is not Signature copper.
  */
 export function IconStationShell({
   props,
@@ -117,9 +151,11 @@ export function IconStationShell({
   const stationRim = state.iconStationRimPartId
     ? resolveRimDescriptor({ rimPartId: state.iconStationRimPartId })
     : null;
+  const size = iconStationSizePx(state.iconStationScale, state.actionRole);
+  const overflow = Math.max(0, Math.round((size - 28) * 0.55));
+  const anchorStyle = iconStationAnchorTransform(state.iconStationAnchor, overflow);
 
   const content = mediaUrl ? (
-    // Host-owned upload inside TapConnect craft frame
     // eslint-disable-next-line @next/next/no-img-element
     <img
       src={mediaUrl}
@@ -133,18 +169,20 @@ export function IconStationShell({
 
   return (
     <span
-      className="relative grid place-items-center overflow-hidden"
+      className="relative grid place-items-center overflow-visible"
       data-testid={testIdPrefix}
       data-vp-icon-station-geometry={geometryId}
       data-vp-icon-station-shape={shape}
       data-vp-icon-station-backing={backing?.partId || undefined}
       data-vp-icon-station-rim={stationRim?.partId || undefined}
+      data-vp-icon-station-scale={state.iconStationScale != null ? String(state.iconStationScale) : undefined}
+      data-vp-icon-station-anchor={state.iconStationAnchor || "left_center"}
       style={{
-        width: "100%",
-        height: "100%",
-        borderRadius: shape === "round" ? "50%" : 8,
-        clipPath: shape === "faceted" ? clip : undefined,
-        // Geometry alone stays transparent — Signature look requires explicit backing + rim parts.
+        width: size,
+        height: size,
+        flexShrink: 0,
+        borderRadius: shape === "round" || shape === "circle" || shape === "oval" ? "50%" : shape === "rounded_square" ? 10 : 8,
+        clipPath: shape === "faceted" || shape === "shield" ? clip : undefined,
         background: backing?.background ?? "transparent",
         boxShadow: stationRim
           ? stationRim.copperFamily
@@ -153,9 +191,46 @@ export function IconStationShell({
           : backing
             ? "inset 0 1px 2px rgba(255,255,255,.1), inset 0 -2px 4px rgba(0,0,0,.55)"
             : undefined,
+        overflow: "hidden",
+        zIndex: 4,
+        ...anchorStyle,
       }}
     >
       {content}
     </span>
   );
+}
+
+/** Compact Bottom Stop / Footer Cap — borrows little vertical space. */
+export function BottomStopBar({
+  props,
+  testIdPrefix = "vp-bottom-stop",
+}: {
+  props: Record<string, unknown>;
+  testIdPrefix?: string;
+}) {
+  const state = readVisualPartsState(props);
+  if (!state.bottomStopPartId) return null;
+  const height = Number(props.vpBottomStopHeightPx || 12);
+  const themed = state.bottomStopPartId.includes("themed") || state.rimPartId === "rim_pounded_copper";
+  return (
+    <div
+      data-testid={testIdPrefix}
+      data-vp-bottom-stop={state.bottomStopPartId}
+      style={{
+        height,
+        marginTop: 4,
+        borderRadius: 999,
+        background: themed
+          ? poundedCopperLike()
+          : "linear-gradient(90deg,transparent,#ffffff33 20%,#ffffff55 50%,#ffffff33 80%,transparent)",
+        boxShadow: "0 -2px 8px rgba(0,0,0,.25)",
+        opacity: 0.9,
+      }}
+    />
+  );
+}
+
+function poundedCopperLike() {
+  return "linear-gradient(90deg,#5c2e14,#c56a2d 35%,#f0c27a 50%,#c56a2d 65%,#5c2e14)";
 }

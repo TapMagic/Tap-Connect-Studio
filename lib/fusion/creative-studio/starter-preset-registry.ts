@@ -365,6 +365,142 @@ export const STARTER_CONTAINER_PRESETS = [
   { id: "media-frame", label: "Media frame", props: { layout: "free", padding: 8, fill: "#0b0f19", radius: 12, borderWidth: 2, borderColor: "#b8ff2c55", resizePolicy: "frame" } },
 ] as const;
 
+/** Hero Section starters — Container recipes with Visual Grammar hero role. */
+export const STARTER_HERO_PRESETS = [
+  {
+    id: "compact",
+    label: "Compact Hero",
+    props: {
+      componentKind: "container",
+      layout: "stack",
+      gap: 8,
+      padding: 14,
+      radius: 18,
+      resizePolicy: "reflow",
+      fill: "#0f172a",
+      vpSectionRole: "hero",
+      visualParts: {
+        heroStructure: "compact",
+        heroSizeIntent: "compact",
+        heroFlowShape: "geometric_band",
+        surfaceEnabled: true,
+        surfaceTreatment: "quiet_field",
+        actionSurfacePartId: "action_surface_quiet_field",
+      },
+    },
+  },
+  {
+    id: "identity",
+    label: "Identity Hero",
+    props: {
+      componentKind: "container",
+      layout: "stack",
+      gap: 10,
+      padding: 16,
+      radius: 20,
+      resizePolicy: "reflow",
+      fill: "#111827",
+      vpSectionRole: "hero",
+      visualParts: {
+        heroStructure: "identity",
+        heroSizeIntent: "standard",
+        heroFlowShape: "arc",
+        rimPartId: "rim_pounded_copper",
+        surfaceEnabled: true,
+        surfaceTreatment: "copper_harmonized",
+        actionSurfacePartId: "action_surface_copper_harmonized",
+      },
+    },
+  },
+  {
+    id: "spotlight",
+    label: "Spotlight Hero",
+    props: {
+      componentKind: "container",
+      layout: "stack",
+      gap: 12,
+      padding: 18,
+      radius: 22,
+      resizePolicy: "reflow",
+      fill: "#0b1224",
+      vpSectionRole: "hero",
+      visualParts: {
+        heroStructure: "spotlight",
+        heroSizeIntent: "feature",
+        heroFlowShape: "swoosh",
+        surfaceEnabled: true,
+        surfaceTreatment: "energy_field",
+        actionSurfacePartId: "action_surface_energy_field",
+      },
+    },
+  },
+] as const;
+
+/** Launch Block — Action role launch; destination via Action authority. */
+export const STARTER_LAUNCH_PRESETS = [
+  {
+    id: "featured-launch",
+    label: "Featured Launch",
+    props: {
+      label: "Launch",
+      actionRole: "launch",
+      presentation: "rounded",
+      radius: 16,
+      showIcon: true,
+      icon: "sparkles",
+      visualParts: {
+        actionRole: "launch",
+        bodyPartId: "body_rounded_rect",
+        finishPartId: "finish_lacquer",
+        baseColor: "#155eef",
+        mountPartId: "mount_beveled_plate",
+        iconStationGeometryPartId: "icon_station_round",
+        iconStationBackingPartId: "icon_station_backing_dark",
+        iconStationScale: 0.7,
+        iconStationAnchor: "left_center",
+        iconStationPosition: "left",
+      },
+    },
+  },
+] as const;
+
+export const STARTER_BOTTOM_STOP_PRESETS = [
+  {
+    id: "minimal-end",
+    label: "Minimal End Cap",
+    props: {
+      componentKind: "container",
+      layout: "stack",
+      padding: 4,
+      height: 16,
+      fill: "transparent",
+      visualParts: { bottomStopPartId: "bottom_stop_minimal" },
+      vpBottomStopHeightPx: 10,
+    },
+  },
+  {
+    id: "themed-footer",
+    label: "Themed Footer Border",
+    props: {
+      componentKind: "container",
+      layout: "stack",
+      padding: 4,
+      fill: "transparent",
+      visualParts: { bottomStopPartId: "bottom_stop_themed_border", rimPartId: "rim_pounded_copper" },
+      vpBottomStopHeightPx: 14,
+    },
+  },
+] as const;
+
+/** Page Background direction proofs — environment only, not Surface. */
+export const BACKGROUND_DIRECTION_PRESETS = [
+  { id: "clean-light", label: "Clean / Light Professional", fill: { kind: "solid", color: "#f8fafc" } },
+  { id: "dark-grunge", label: "Dark Industrial / Grunge", fill: { kind: "gradient", css: "linear-gradient(160deg,#1c1917 0%,#0c0a09 45%,#292524 100%)" } },
+  { id: "seasonal-bright", label: "Seasonal / Bright", fill: { kind: "gradient", css: "linear-gradient(135deg,#fef3c7,#fdba74 50%,#fb7185)" } },
+  { id: "elegant-luxury", label: "Elegant / Luxury", fill: { kind: "gradient", css: "linear-gradient(160deg,#0f172a,#1e293b 40%,#0b1220)" } },
+  { id: "photo-env", label: "Uploaded Photo Environment", fill: { kind: "image", url: "/tap-connect-mark.png", fit: "cover" } },
+] as const;
+
 export function listStarterPresetFamilies() {
   return {
     pack: STARTER_PRESET_PACK,
@@ -376,5 +512,9 @@ export function listStarterPresetFamilies() {
     dividers: STARTER_DIVIDER_PRESETS.length,
     forms: STARTER_FORM_PRESETS.length,
     containers: STARTER_CONTAINER_PRESETS.length,
+    heroes: STARTER_HERO_PRESETS.length,
+    launches: STARTER_LAUNCH_PRESETS.length,
+    bottomStops: STARTER_BOTTOM_STOP_PRESETS.length,
+    backgrounds: BACKGROUND_DIRECTION_PRESETS.length,
   };
 }

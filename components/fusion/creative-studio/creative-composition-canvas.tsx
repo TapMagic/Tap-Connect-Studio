@@ -75,11 +75,14 @@ import { resolveMaterialSurfaceFromProps } from "@/lib/fusion/creative-studio/ma
 import { MaterialSurfaceLayers } from "@/components/fusion/creative-studio/material-surface-layers";
 import {
   IconStationShell,
+  MountShell,
   VisualPartsShell,
 } from "@/components/fusion/creative-studio/visual-parts-layers";
 import {
   ornamentSvg,
+  readActionRailLayout,
   readVisualPartsState,
+  railStyleVars,
   visualPartsDataAttrs,
 } from "@/lib/fusion/creative-studio/visual-parts";
 
@@ -1394,9 +1397,10 @@ function NodeVisual({
         ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={{ ...labelStyle, position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }} onCommit={onEditText} onFinish={onFinishTextEdit} />
         : <span style={{ ...labelStyle, whiteSpace: "pre-wrap", position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }}>{labelValue}</span>)
       : null;
+    const rails = readActionRailLayout(node.props);
     const surfaceInner = (
       <span
-        className="relative inline-flex h-full w-full shrink-0 items-center justify-center overflow-hidden"
+        className="relative inline-flex h-full w-full shrink-0 items-center justify-center overflow-visible"
         style={{
           minHeight: 44,
           background: surfaceBackground,
@@ -1409,8 +1413,9 @@ function NodeVisual({
           boxShadow: vpState.rimPartId ? undefined : shadowParts,
           opacity: materialSurface.opacity,
           padding: num(node.props.padding, 8),
-          gap: num(node.props.spacing, 6),
+          gap: num(node.props.spacing, rails.gapPx),
           flexDirection: verticalIcon ? "column" : "row",
+          ...(rails.railAware ? (railStyleVars(rails) as CSSProperties) : {}),
         }}
         data-button-surface-kind={surfaceKind}
         data-button-radius={String(linkedRadius)}
@@ -1420,26 +1425,35 @@ function NodeVisual({
         data-material-stop-count={String(materialSurface.gradientStopCount)}
         data-material-highlight={materialSurface.highlight ? "true" : "false"}
         data-surface-texture={materialSurface.textureToken || undefined}
+        data-vp-rail-aware={rails.railAware ? "true" : "false"}
+        data-vp-rail-left={String(rails.railLeftPct)}
+        data-vp-rail-right={String(rails.railRightPct)}
       >
         <MaterialSurfaceLayers surface={materialSurface} testIdPrefix={`button-${node.id}`} />
         {(iconPosition === "before" || iconPosition === "above") ? buttonIconEl : null}
-        {buttonLabelEl}
+        {buttonLabelEl ? (
+          <span className="min-w-0 flex-1 text-left" data-vp-text-zone="true">
+            {buttonLabelEl}
+          </span>
+        ) : null}
         {(iconPosition === "after" || iconPosition === "below") ? buttonIconEl : null}
         {mirrorIconEl}
       </span>
     );
     const surface = (
       <span
-        className="relative inline-flex shrink-0"
+        className="relative inline-flex shrink-0 overflow-visible"
         style={{
           width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           minHeight: 44,
         }}
       >
-        <VisualPartsShell props={node.props} radius={radius} testIdPrefix={`button-${node.id}`}>
-          {surfaceInner}
-        </VisualPartsShell>
+        <MountShell props={node.props}>
+          <VisualPartsShell props={node.props} radius={radius} testIdPrefix={`button-${node.id}`}>
+            {surfaceInner}
+          </VisualPartsShell>
+        </MountShell>
       </span>
     );
     return (
@@ -1468,7 +1482,15 @@ function NodeVisual({
         data-vp-rim={vpState.rimPartId || undefined}
         data-vp-layout={vpState.layoutIntent || undefined}
         data-vp-icon-position={vpState.iconStationPosition || undefined}
-        data-vp-phone-stack={vpState.layoutIntent === "two_column" ? "auto" : "off"}
+        data-vp-icon-scale={vpState.iconStationScale != null ? String(vpState.iconStationScale) : undefined}
+        data-vp-icon-anchor={vpState.iconStationAnchor || undefined}
+        data-vp-mount={vpState.mountPartId || undefined}
+        data-vp-action-role={vpState.actionRole || undefined}
+        data-vp-phone-stack={
+          vpState.layoutIntent === "two_column" || vpState.layoutIntent === "round_team_grid" ? "auto" : "off"
+        }
+        data-action-role={vpState.actionRole || (node.props.actionRole as string) || undefined}
+        {...visualPartsDataAttrs(node.props)}
       >
         {surface}
         {labelBelow && showLabel ? <strong className="block" style={labelStyle}>{labelValue}</strong> : null}

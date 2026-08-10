@@ -1,8 +1,8 @@
 # Visual Parts Cabinet — Architecture Proof
 
-**Status:** Cabinet Integrity candidate for Product Owner review (after dual-green). See `VISUAL_PARTS_CABINET_INTEGRITY_CLOSEOUT.md`.  
-**Assignment:** Operation Cabinet Handles + Integrity Closeout  
-**Not claimed:** Premium Action System complete · library filled · final Signature visual language · Visual Grammar complete · physical phone HV
+**Status:** Cabinet Integrity held; Visual Grammar foundation in `VISUAL_GRAMMAR.md`.  
+**Assignment:** Operation Cabinet Handles + Integrity Closeout + Visual Grammar  
+**Not claimed:** Premium Action System complete · library filled · final Signature visual language · tApIt · Campaigns · physical phone HV
 
 ## Law
 

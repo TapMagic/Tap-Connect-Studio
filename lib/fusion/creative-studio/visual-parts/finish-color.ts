@@ -4,6 +4,8 @@
  * Never store Black/Red/Green/Blue Lacquer as four unrelated finish presets.
  */
 
+import type { FinishColorRefinement } from "./types";
+
 export type FinishId = "lacquer" | "acrylic";
 
 export type DerivedFinishSurface = Readonly<{
@@ -100,51 +102,81 @@ export function lacquerProofTokenForColor(baseColor: string): LacquerProofToken 
   return bestDist < 40 ** 2 ? best : "custom";
 }
 
+function applyTemperature(hex: string, temperature = 0.5): string {
+  // 0 cool ↔ 1 warm
+  const cool = mix(hex, "#38bdf8", (0.5 - temperature) * 0.35);
+  const warm = mix(hex, "#f59e0b", (temperature - 0.5) * 0.35);
+  return temperature >= 0.5 ? warm : cool;
+}
+
+function applyRichness(hex: string, richness = 0.55): string {
+  // Move toward/away from gray
+  const gray = mix(hex, "#808080", 1 - richness);
+  return mix(hex, gray, 0.35);
+}
+
 /**
  * Perceptual finish derivation — not a single naive lighten/darken %.
  * Dark bases get stronger specular; bright bases get deeper edge falloff.
+ * Optional Host refinement axes modulate derivation without forking Material.
  */
-export function deriveFinishSurface(finishId: FinishId, baseColor: string): DerivedFinishSurface {
-  const base = hexToRgb(baseColor) ? baseColor : LACQUER_PROOF_COLORS.green;
+export function deriveFinishSurface(
+  finishId: FinishId,
+  baseColor: string,
+  refinement?: FinishColorRefinement | null
+): DerivedFinishSurface {
+  const r = {
+    richness: refinement?.richness ?? 0.6,
+    depth: refinement?.depth ?? 0.5,
+    temperature: refinement?.temperature ?? 0.5,
+    contrast: refinement?.contrast ?? 0.55,
+    lightResponse: refinement?.lightResponse ?? 0.6,
+  };
+  let base = hexToRgb(baseColor) ? baseColor : LACQUER_PROOF_COLORS.green;
+  base = applyTemperature(applyRichness(base, r.richness), r.temperature);
   const L = relativeLuminance(base);
-  const proofToken = lacquerProofTokenForColor(base);
+  const proofToken = lacquerProofTokenForColor(baseColor);
 
   if (finishId === "acrylic") {
-    const hi = lighten(base, L < 0.25 ? 0.55 : 0.35);
-    const mid = mix(base, "#94a3b8", 0.22);
-    const deep = darken(base, 0.45);
+    const hiAmt = (L < 0.25 ? 0.55 : 0.35) * (0.7 + r.lightResponse * 0.5);
+    const hi = lighten(base, hiAmt);
+    const mid = mix(base, "#94a3b8", 0.22 * (1.1 - r.contrast * 0.3));
+    const deep = darken(base, 0.35 + r.depth * 0.25);
     return {
       finishId,
       baseColor: base,
       gradient: `linear-gradient(145deg,${hi}aa 0%,${mid}88 42%,${deep}cc 100%)`,
-      highlight: "linear-gradient(110deg,#ffffff66 0 18%,#0000 40%)",
-      shine: true,
+      highlight: `linear-gradient(110deg,#ffffff${Math.round(40 + r.lightResponse * 50).toString(16)} 0 18%,#0000 40%)`,
+      shine: r.lightResponse > 0.25,
       borderWidth: 1,
       borderColor: "#ffffff77",
-      outerShadow: 22,
+      outerShadow: Math.round(16 + r.depth * 14),
       textColor: L < 0.45 ? "#f8fafc" : "#0f172a",
       proofToken,
     };
   }
 
   // Bright Lacquer
-  const specularBoost = L < 0.18 ? 0.72 : L < 0.35 ? 0.55 : 0.38;
-  const edgeDeep = L > 0.4 ? 0.62 : 0.78;
+  const specularBoost = (L < 0.18 ? 0.72 : L < 0.35 ? 0.55 : 0.38) * (0.65 + r.lightResponse * 0.55);
+  const edgeDeep = (L > 0.4 ? 0.62 : 0.78) * (0.7 + r.depth * 0.45);
+  const contrastSep = 0.7 + r.contrast * 0.45;
   const lightFacing = lighten(base, specularBoost);
-  const mid = mix(base, lightFacing, 0.28);
-  const darkFacing = darken(base, 0.35);
-  const deepEdge = darken(base, edgeDeep);
-  const hiStop = L < 0.2 ? "#ffffffcc" : lighten(base, 0.82);
+  const mid = mix(base, lightFacing, 0.28 / contrastSep);
+  const darkFacing = darken(base, 0.28 + r.depth * 0.2);
+  const deepEdge = darken(base, Math.min(0.92, edgeDeep));
+  const hiStop = L < 0.2 ? "#ffffffcc" : lighten(base, 0.7 + r.lightResponse * 0.2);
 
   return {
     finishId: "lacquer",
     baseColor: base,
     gradient: `linear-gradient(180deg,${hiStop} 0%,${lightFacing} 22%,${mid} 48%,${darkFacing} 78%,${deepEdge} 100%)`,
-    highlight: "linear-gradient(180deg,#ffffff88,#0000 48%)",
-    shine: true,
+    highlight: `linear-gradient(180deg,#ffffff${Math.round(80 + r.lightResponse * 40)
+      .toString(16)
+      .slice(0, 2)},#0000 48%)`,
+    shine: r.lightResponse > 0.2,
     borderWidth: 1,
     borderColor: "#ffffff55",
-    outerShadow: 26,
+    outerShadow: Math.round(18 + r.depth * 16),
     textColor: L < 0.5 ? "#f8fafc" : "#111827",
     proofToken,
   };
