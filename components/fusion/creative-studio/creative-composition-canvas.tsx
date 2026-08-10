@@ -2294,6 +2294,7 @@ export function CreativeCompositionCanvas({
             data-selected={selectedSet.has(node.id) ? "true" : "false"}
             data-effect={String(node.props.effectPreset || "") || undefined}
             data-material={String(node.props.materialPreset || "") || undefined}
+            {...visualPartsDataAttrs(node.props)}
             onClick={(e) => {
               if (!editMode) return;
               e.stopPropagation();
@@ -2562,6 +2563,7 @@ export function CreativeCompositionCanvas({
             data-anchor={node.anchor || "top-left"}
             data-effect={String(node.props.effectPreset || "") || undefined}
             data-material={String(node.props.materialPreset || "") || undefined}
+            {...visualPartsDataAttrs(node.props)}
             onPointerDown={(e) => onPointerDownNode(e, node, "move")}
             onDoubleClick={(event) => {
               if (!editMode || !((node.primitive === "text" && str(node.props.textCurve, "none") === "none") || (node.primitive === "button" && node.props.contentEditing === true))) return;
