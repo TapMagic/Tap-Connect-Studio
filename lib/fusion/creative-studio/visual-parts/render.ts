@@ -44,6 +44,20 @@ export type VisualPartMountDescriptor = {
 
 const SIMPLE_CHROME_RIM_BACKGROUND = "linear-gradient(120deg,#64748b,#ffffff 50%,#64748b)";
 
+/** Canonical rim edge shadows — one language for Action / Icon Station / Bottom Stop. */
+export function rimEdgeBoxShadow(kind: "copper" | "chrome" | "electric" | "industrial"): string {
+  switch (kind) {
+    case "copper":
+      return "inset 0 2px 0 rgba(255,236,200,.55), inset 0 -3px 4px rgba(30,8,2,.65), 0 0 0 1px rgba(70,28,8,.55), 0 8px 16px rgba(0,0,0,.32)";
+    case "electric":
+      return "inset 0 1px 0 rgba(186,230,253,.55), 0 0 10px rgba(56,189,248,.35), 0 6px 12px rgba(0,0,0,.28)";
+    case "industrial":
+      return "inset 0 1px 0 rgba(255,255,255,.25), inset 0 -2px 3px rgba(0,0,0,.55), 0 6px 12px rgba(0,0,0,.3)";
+    default:
+      return "inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 2px rgba(0,0,0,.35), 0 6px 12px rgba(0,0,0,.28)";
+  }
+}
+
 export function resolveRimDescriptor(
   state: Pick<VisualPartsState, "rimPartId"> & { rimPartId?: string | null }
 ): VisualPartRimDescriptor | null {
@@ -64,8 +78,27 @@ export function resolveRimDescriptor(
       ? poundedCopperRimBackground()
       : electric
         ? "linear-gradient(90deg,#0ea5e9,#38bdf8 40%,#022c55 100%)"
-        : SIMPLE_CHROME_RIM_BACKGROUND,
+        : industrial
+          ? "linear-gradient(120deg,#334155,#94a3b8 45%,#1e293b)"
+          : SIMPLE_CHROME_RIM_BACKGROUND,
   };
+}
+
+export function rimKindFromDescriptor(
+  rim: VisualPartRimDescriptor
+): "copper" | "chrome" | "electric" | "industrial" {
+  if (rim.copperFamily) return "copper";
+  if (rim.previewKind === "rim-electric") return "electric";
+  if (rim.previewKind === "rim-industrial") return "industrial";
+  return "chrome";
+}
+
+/** Shared themed bar fill for Bottom Stop / compact edge punctuation — same Copper authority. */
+export function themedBottomStopBackground(rimPartId?: string | null): string {
+  if (rimPartId === "rim_pounded_copper" || String(rimPartId || "").includes("copper")) {
+    return poundedCopperRimBackground();
+  }
+  return "linear-gradient(90deg,transparent,#ffffff33 20%,#ffffff55 50%,#ffffff33 80%,transparent)";
 }
 
 export function partTilePreviewBackground(part: VisualPartDefinition): string | undefined {
@@ -116,11 +149,28 @@ export function resolveIconStationBackingDescriptor(
   };
 }
 
-export function resolveMountDescriptor(state: VisualPartsState): VisualPartMountDescriptor | null {
+export function resolveMountDescriptor(
+  state: VisualPartsState,
+  depthIntensity?: number
+): VisualPartMountDescriptor | null {
   const partId = state.mountPartId;
   if (!partId) return null;
   const part = getVisualPart(partId);
   if (!part || part.payload.kind !== "mount") return null;
+  const intensity =
+    depthIntensity ??
+    (typeof state.surfaceDepth === "number" ? state.surfaceDepth : 0.55);
+  // Relational Depth owns cast/contact staging. Mount payload may contribute
+  // inset/decorative edge language, but must not freeze a constant cast shadow.
+  const relational = composeDepthShadow(2, intensity);
+  const decorativeInset =
+    typeof part.payload.shadow === "string"
+      ? part.payload.shadow
+          .split(",")
+          .map((s) => s.trim())
+          .filter((s) => /^inset\b/i.test(s))
+          .join(", ")
+      : "";
   return {
     partId,
     style: part.payload.style,
@@ -128,7 +178,7 @@ export function resolveMountDescriptor(state: VisualPartsState): VisualPartMount
     radius: part.payload.radius,
     background: part.payload.background,
     border: part.payload.border,
-    shadow: part.payload.shadow || composeDepthShadow(2),
+    shadow: decorativeInset ? `${relational}, ${decorativeInset}` : relational,
     zIndex: depthZIndex(2),
   };
 }
@@ -154,9 +204,7 @@ export function rimOuterStyle(rim: VisualPartRimDescriptor, radius: string | num
     borderRadius: radius,
     padding: rim.rimWidthPx,
     background: rim.background,
-    boxShadow: rim.copperFamily
-      ? "inset 0 2px 0 rgba(255,236,200,.55), inset 0 -3px 4px rgba(30,8,2,.65), 0 0 0 1px rgba(70,28,8,.55)"
-      : "inset 0 1px 0 rgba(255,255,255,.55), inset 0 -1px 2px rgba(0,0,0,.35)",
+    boxShadow: rimEdgeBoxShadow(rimKindFromDescriptor(rim)),
     pointerEvents: "none",
     zIndex: 0,
   };
@@ -235,6 +283,13 @@ export function visualPartsDataAttrs(props: Record<string, unknown>): Record<str
     "data-vp-action-role": state.actionRole || undefined,
     "data-vp-hero": state.heroStructure || undefined,
     "data-vp-hero-size": state.heroSizeIntent || undefined,
+    "data-vp-hero-flow": state.heroFlowShape || undefined,
+    "data-vp-interaction": state.interactionPartId
+      ? String(props.vpInteractionMode || "") || undefined
+      : undefined,
+    "data-vp-surface-intensity":
+      state.surfaceIntensity != null ? String(state.surfaceIntensity) : undefined,
+    "data-vp-surface-depth": state.surfaceDepth != null ? String(state.surfaceDepth) : undefined,
     "data-vp-assembly": state.assemblyRecipeId || undefined,
   };
 }

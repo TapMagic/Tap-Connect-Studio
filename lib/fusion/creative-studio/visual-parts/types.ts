@@ -150,6 +150,14 @@ export type FinishColorRefinement = {
   contrast?: number;
   /** 0 soft/matte ↔ 1 brilliant/specular */
   lightResponse?: number;
+  /** Degrees — feeds shared Material highlight direction (renderer channel, optional Host). */
+  lightDirectionDeg?: number;
+  /** 0 glossy ↔ 1 matte — shared Material response channel */
+  roughness?: number;
+  /** Specular strength override (defaults from lightResponse) */
+  highlightStrength?: number;
+  /** Edge darkening / falloff */
+  edgeFalloff?: number;
 };
 
 export type VisualPartPayload =

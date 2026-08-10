@@ -32,10 +32,21 @@ function textureLayerStyle(surface: MaterialSurfaceDescriptor): CSSProperties | 
 /**
  * Shared Material overlay layers — highlight/specular + shine + (optional) bevel wash.
  * Used by Material tiles and authored Button/Badge/backing surfaces so previews cannot drift.
+ * Finish feeds these channels via props.highlight / shine — not a parallel paint path.
  */
 export function MaterialSurfaceLayers({ surface, clipPath, testIdPrefix = "material" }: Props) {
   const clipStyle: CSSProperties | undefined = clipPath ? { clipPath } : undefined;
   const texture = textureLayerStyle(surface);
+  const microSurface =
+    surface.textureToken === "hammered" || surface.textureToken === "brushed"
+      ? ({
+          backgroundImage:
+            "radial-gradient(circle at 20% 30%,#ffffff18 0 0.8px,transparent 1.4px), radial-gradient(circle at 70% 60%,#00000022 0 1px,transparent 1.6px)",
+          backgroundSize: "7px 7px, 9px 9px",
+          opacity: 0.55,
+          mixBlendMode: "overlay" as const,
+        } satisfies CSSProperties)
+      : null;
   return (
     <>
       {texture ? (
@@ -47,11 +58,20 @@ export function MaterialSurfaceLayers({ surface, clipPath, testIdPrefix = "mater
           style={{ ...texture, ...clipStyle }}
         />
       ) : null}
+      {microSurface ? (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          data-testid={`${testIdPrefix}-micro-surface`}
+          style={{ ...microSurface, ...clipStyle }}
+        />
+      ) : null}
       {surface.highlight ? (
         <span
           aria-hidden
           className="pointer-events-none absolute inset-0"
           data-testid={`${testIdPrefix}-highlight`}
+          data-material-response-channel="highlight"
           style={{ background: surface.highlight, ...clipStyle }}
         />
       ) : null}
@@ -60,6 +80,7 @@ export function MaterialSurfaceLayers({ surface, clipPath, testIdPrefix = "mater
           aria-hidden
           className="pointer-events-none absolute inset-x-0 top-0 h-1/2 bg-gradient-to-b from-white/45 to-transparent"
           data-testid={`${testIdPrefix}-shine`}
+          data-material-response-channel="shine"
           style={clipStyle}
         />
       ) : null}

@@ -74,6 +74,8 @@ import {
 import { resolveMaterialSurfaceFromProps } from "@/lib/fusion/creative-studio/material-surface";
 import { MaterialSurfaceLayers } from "@/components/fusion/creative-studio/material-surface-layers";
 import {
+  BottomStopBar,
+  HeroFlowShapeLayer,
   IconStationShell,
   MountShell,
   VisualPartsShell,
@@ -400,23 +402,39 @@ function NodeVisual({
     const vpContainer = readVisualPartsState(node.props);
     const actionSurfaceTone = str(node.props.actionSurfaceTone);
     const containerRadius = num(node.props.radius, actionSurfaceTone ? 18 : 0);
+    const isBottomStop =
+      Boolean(vpContainer.bottomStopPartId) || str(node.props.vpSectionRole) === "bottom_stop";
+    if (isBottomStop) {
+      return (
+        <div className="relative flex h-full w-full items-end" data-component-kind="container" data-vp-section="bottom_stop">
+          <BottomStopBar props={node.props} testIdPrefix={`bottom-stop-${node.id}`} />
+        </div>
+      );
+    }
     // Material props are the surface authority when a Material was applied.
     // Visual Plane remains for non-Material Container Background editing.
     const materialActive =
       typeof node.props.materialPreset === "string" &&
       node.props.materialPreset.length > 0 &&
       node.props.materialPreset !== "none";
-    if (materialActive || actionSurfaceTone === "copper_harmonized" || vpContainer.rimPartId) {
+    if (materialActive || actionSurfaceTone === "copper_harmonized" || vpContainer.rimPartId || actionSurfaceTone) {
       const material = materialActive
         ? resolveMaterialSurfaceFromProps(node.props, "container")
         : null;
+      const surfaceGradient = str(node.props.gradientFill);
       const background =
-        actionSurfaceTone === "copper_harmonized"
-          ? str(
-              node.props.gradientFill,
-              "linear-gradient(160deg,#3a2418 0%,#1a1410 48%,#0c0a08 100%)"
-            )
-          : material?.background || str(node.props.fill, "#111827");
+        surfaceGradient ||
+        material?.background ||
+        str(node.props.fill, "#111827");
+      const surfaceBorderWidth = material
+        ? material.borderWidth
+        : num(node.props.borderWidth, 0);
+      const surfaceBorderColor = material
+        ? material.borderColor
+        : str(node.props.borderColor, "transparent");
+      const surfaceShadow =
+        material?.boxShadow ||
+        (typeof node.props.boxShadow === "string" ? node.props.boxShadow : undefined);
       return (
         <VisualPartsShell props={node.props} radius={containerRadius} testIdPrefix={`container-${node.id}`}>
         <div
@@ -425,24 +443,35 @@ function NodeVisual({
           data-container-layout={str(node.props.layout, "free")}
           data-container-resize-policy={str(node.props.resizePolicy, "reflow")}
           data-vp-action-surface={vpContainer.actionSurfacePartId || undefined}
+          data-vp-surface={vpContainer.surfaceTreatment || undefined}
+          data-vp-surface-intensity={
+            vpContainer.surfaceIntensity != null ? String(vpContainer.surfaceIntensity) : undefined
+          }
+          data-vp-surface-depth={
+            vpContainer.surfaceDepth != null ? String(vpContainer.surfaceDepth) : undefined
+          }
+          data-vp-hero={vpContainer.heroStructure || undefined}
           data-surface-texture={material?.textureToken || undefined}
           data-visual-plane={materialActive ? "material" : "visual-parts"}
-          data-material-fill-authority={material?.fillAuthority}
+          data-material-fill-authority={material?.fillAuthority || (surfaceGradient ? "gradientFill" : undefined)}
           data-material-stop-count={material ? String(material.gradientStopCount) : undefined}
           data-material-highlight={material?.highlight ? "true" : "false"}
           style={{
             background,
             backgroundSize: material?.backgroundSize,
             border:
-              material && material.borderWidth > 0
-                ? `${material.borderWidth}px ${material.borderStyle} ${material.borderColor}`
+              surfaceBorderWidth > 0
+                ? `${surfaceBorderWidth}px ${material?.borderStyle || "solid"} ${surfaceBorderColor}`
                 : "none",
             borderRadius: containerRadius,
-            boxShadow: material?.boxShadow,
-            opacity: material?.opacity ?? 1,
+            boxShadow: surfaceShadow,
+            opacity: material?.opacity ?? num(node.props.opacity, 1),
           }}
         >
           {material ? <MaterialSurfaceLayers surface={material} testIdPrefix={`container-${node.id}`} /> : null}
+          {vpContainer.heroStructure || str(node.props.vpSectionRole) === "hero" ? (
+            <HeroFlowShapeLayer props={node.props} testIdPrefix={`hero-flow-${node.id}`} />
+          ) : null}
         </div>
         </VisualPartsShell>
       );
@@ -458,6 +487,7 @@ function NodeVisual({
       data-component-kind="container"
       data-container-layout={str(node.props.layout, "free")}
       data-container-resize-policy={str(node.props.resizePolicy, "reflow")}
+      data-vp-hero={vpContainer.heroStructure || undefined}
       data-surface-texture={typeof node.props.texture === "string" ? String(node.props.texture) : undefined}
       data-visual-plane={plane.kind}
       style={{
@@ -467,7 +497,12 @@ function NodeVisual({
         boxShadow: num(node.props.boxShadow, 0) ? `0 10px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)` : undefined,
         opacity: num(node.props.opacity, 1),
       }}
-    >{texture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={texture} /> : null}</div>;
+    >
+      {texture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={texture} /> : null}
+      {vpContainer.heroStructure || str(node.props.vpSectionRole) === "hero" ? (
+        <HeroFlowShapeLayer props={node.props} testIdPrefix={`hero-flow-${node.id}`} />
+      ) : null}
+    </div>;
   }
   if (componentKind === "gallery") {
     const media = Array.isArray(node.props.media) ? node.props.media.filter((item): item is string => typeof item === "string" && item.length > 0) : [];
@@ -1195,10 +1230,30 @@ function NodeVisual({
 
   if (node.primitive === "border") {
     const vpDivider = readVisualPartsState(node.props);
-    const botanical = str(node.props.vpDividerTreatment) === "copper_botanical" || vpDivider.dividerLinePartId === "divider_copper_botanical";
-    const style = botanical ? "solid" : str(node.props.style, "solid");
-    const thickness = botanical ? Math.max(num(node.props.thickness, 2), 4) : num(node.props.thickness, 2);
-    const color = botanical ? "#c56a2d" : str(node.props.color, "#fff");
+    const treatment = str(node.props.vpDividerTreatment) ||
+      (vpDivider.dividerLinePartId === "divider_copper_botanical"
+        ? "copper_botanical"
+        : vpDivider.dividerLinePartId === "divider_electric"
+          ? "electric"
+          : vpDivider.dividerLinePartId === "divider_industrial"
+            ? "industrial"
+            : "minimal");
+    const botanical = treatment === "copper_botanical";
+    const electric = treatment === "electric";
+    const industrial = treatment === "industrial";
+    const style = botanical || electric || industrial ? "solid" : str(node.props.style, "solid");
+    const thickness = botanical
+      ? Math.max(num(node.props.thickness, 2), 4)
+      : electric || industrial
+        ? Math.max(num(node.props.thickness, 2), 3)
+        : num(node.props.thickness, 2);
+    const color = botanical
+      ? "#c56a2d"
+      : electric
+        ? "#38bdf8"
+        : industrial
+          ? "#94a3b8"
+          : str(node.props.color, "#fff");
     const opacity = num(node.props.opacity, 1);
     const cap = str(node.props.cap, "round");
     const startMarker = str(node.props.startMarker, "none");
@@ -1206,6 +1261,7 @@ function NodeVisual({
     const endcapSvg = botanical
       ? ornamentSvg(str(node.props.vpDividerEndcapAssetId, "copper_divider_endcap"))
       : "";
+    const motionIntensity = Math.min(100, Math.max(0, num(node.props.motionIntensity, 55))) / 100;
     const markerId = (side: "start" | "end", type: string) =>
       `divider-${node.id}-${side}-${type}`;
     const dash =
@@ -1229,17 +1285,39 @@ function NodeVisual({
       return null;
     };
     return (
-      <div className="relative h-full w-full" {...visualPartsDataAttrs(node.props)} data-vp-divider-treatment={botanical ? "copper_botanical" : "minimal"}>
+      <div
+        className={cn(
+          "relative h-full w-full",
+          electric && "vp-divider-electric",
+          industrial && "vp-divider-industrial"
+        )}
+        {...visualPartsDataAttrs(node.props)}
+        data-vp-divider-treatment={treatment}
+        data-vp-divider-motion={electric ? str(node.props.vpDividerMotion, "energy_travel") : "none"}
+        data-vp-rim-authority={botanical ? "rim_pounded_copper" : industrial ? "rim_industrial" : undefined}
+        style={
+          electric
+            ? ({ ["--vp-motion-intensity" as string]: String(motionIntensity) } as CSSProperties)
+            : undefined
+        }
+      >
       {botanical && endcapSvg ? (
         <>
           <span className="pointer-events-none absolute left-0 top-1/2 z-[1] h-5 w-5 -translate-y-1/2 [&_svg]:h-full [&_svg]:w-full" data-testid={`divider-endcap-start-${node.id}`} dangerouslySetInnerHTML={{ __html: endcapSvg }} />
           <span className="pointer-events-none absolute right-0 top-1/2 z-[1] h-5 w-5 -translate-y-1/2 scale-x-[-1] [&_svg]:h-full [&_svg]:w-full" data-testid={`divider-endcap-end-${node.id}`} dangerouslySetInnerHTML={{ __html: endcapSvg }} />
         </>
       ) : null}
+      {electric ? (
+        <span
+          aria-hidden
+          className="vp-divider-electric-glow pointer-events-none absolute inset-x-0 top-1/2 h-[2px] -translate-y-1/2"
+          data-testid={`divider-electric-glow-${node.id}`}
+        />
+      ) : null}
       <svg
         viewBox="0 0 100 20"
         preserveAspectRatio="none"
-        className="h-full w-full overflow-visible"
+        className={cn("h-full w-full overflow-visible", electric && "vp-divider-electric-stroke")}
         data-border-style={style}
         role="img"
         aria-label={str(node.props.label, "Divider")}
@@ -1515,13 +1593,23 @@ function NodeVisual({
         )}
       </span>
     );
+    const interactionMode = str(node.props.vpInteractionMode, "");
+    const motionIntensity = Math.min(100, Math.max(0, num(node.props.motionIntensity, 50)));
     const surface = (
       <span
-        className="relative inline-flex shrink-0 overflow-visible"
+        className={cn(
+          "relative inline-flex shrink-0 overflow-visible",
+          interactionMode === "tactile" && "vp-interaction-tactile",
+          interactionMode === "mechanical" && "vp-interaction-mechanical",
+          interactionMode === "quiet" && "vp-interaction-quiet"
+        )}
+        data-vp-interaction={interactionMode || undefined}
+        data-vp-motion-intensity={interactionMode ? String(motionIntensity) : undefined}
         style={{
           width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           minHeight: 44,
+          ["--vp-motion-intensity" as string]: String(motionIntensity / 100),
         }}
       >
         <MountShell props={node.props}>

@@ -13,6 +13,7 @@ import {
   applyIconStationPosition,
   applyIconStationScale,
   applySurfaceMode,
+  applySurfaceParameters,
   applyVisualPart,
   applyVisualPartBaseColor,
   applyBrandRecipeToProps,
@@ -170,6 +171,8 @@ export function VisualPartsCabinetPanel({
         return state.bottomStopPartId || "—";
       case "hero":
         return state.heroStructure || "—";
+      case "motion":
+        return state.interactionPartId || (contract.passthrough ? "passthrough" : "—");
       default:
         return contract.passthrough ? "passthrough" : "—";
     }
@@ -290,7 +293,8 @@ export function VisualPartsCabinetPanel({
       drawer === "surface_zone" ||
       drawer === "mount" ||
       drawer === "bottom_stop" ||
-      drawer === "hero" ? (
+      drawer === "hero" ||
+      drawer === "motion" ? (
         <div className="grid grid-cols-2 gap-1.5" data-testid={`vp-drawer-body-${drawer}`}>
           {parts.map((part) => {
             const compat = partCompatibleWithTarget(part.id, targetFamily);
@@ -303,6 +307,7 @@ export function VisualPartsCabinetPanel({
               state.actionSurfacePartId === part.id ||
               state.mountPartId === part.id ||
               state.bottomStopPartId === part.id ||
+              state.interactionPartId === part.id ||
               (part.payload.kind === "layout" && state.layoutIntent === part.payload.intent) ||
               (part.payload.kind === "hero" && state.heroStructure === part.payload.structure);
             return (
@@ -345,6 +350,21 @@ export function VisualPartsCabinetPanel({
               Remove Mount
             </button>
           ) : null}
+          {drawer === "motion" ? (
+            <div className="col-span-2 space-y-2 rounded border border-white/10 p-2" data-testid="vp-motion-interaction">
+              <p className="text-[9px] text-white/55">
+                Quiet / Tactile / Mechanical are pointer-driven. Open Motion for intensity on animated presets.
+              </p>
+              <button
+                type="button"
+                className="w-full rounded border border-white/15 px-2 py-2 text-[10px]"
+                data-testid="vp-open-motion-authority"
+                onClick={() => onPassthrough?.("motion")}
+              >
+                Open Motion intensity
+              </button>
+            </div>
+          ) : null}
           {drawer === "surface_zone" ? (
             <div className="col-span-2 space-y-2" data-testid="vp-surface-controls">
               <div className="grid grid-cols-2 gap-1">
@@ -375,13 +395,11 @@ export function VisualPartsCabinetPanel({
                   value={Math.round((state.surfaceIntensity ?? 0.55) * 100)}
                   onChange={(e) =>
                     onPatch(
-                      {
-                        ...props,
-                        visualParts: {
-                          ...state,
-                          surfaceIntensity: Number(e.target.value) / 100,
-                        },
-                      },
+                      applySurfaceParameters(
+                        props,
+                        { intensity: Number(e.target.value) / 100 },
+                        targetFamily
+                      ),
                       "Surface intensity"
                     )
                   }
@@ -398,13 +416,11 @@ export function VisualPartsCabinetPanel({
                   value={Math.round((state.surfaceDepth ?? 0.45) * 100)}
                   onChange={(e) =>
                     onPatch(
-                      {
-                        ...props,
-                        visualParts: {
-                          ...state,
-                          surfaceDepth: Number(e.target.value) / 100,
-                        },
-                      },
+                      applySurfaceParameters(
+                        props,
+                        { depth: Number(e.target.value) / 100 },
+                        targetFamily
+                      ),
                       "Surface depth"
                     )
                   }

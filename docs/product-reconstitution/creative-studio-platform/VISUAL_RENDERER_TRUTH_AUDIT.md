@@ -383,3 +383,25 @@ Distinguish:
 ---
 
 **No Product Owner visual acceptance claimed. No aesthetics repaired. Enrique located.**
+
+---
+
+## Remediation status appendix (Evict Enrique)
+
+Forensic findings above remain the historical record. Repair implementation status:
+
+| Finding | Status |
+| --- | --- |
+| Finish overwrites Material fill | **Repaired** — Finish feeds Material channels + layers |
+| Depth intensity ceremonial | **Repaired** — continuous intensity scales cast/contact/inset/rim |
+| Surface Intensity/Depth ceremonial | **Repaired** — `applySurfaceParameters` re-derives treatment paint |
+| Copper/Chrome forked | **Repaired** — canonical Rim + `poundedCopperRimBackground`; `poundedCopperLike` removed |
+| BottomStopBar unmounted | **Repaired** — mounted in shared canvas path |
+| heroFlowShape persist-only | **Repaired** — `HeroFlowShapeLayer` |
+| Mechanical → dead preset | **Repaired** — pointer-driven CSS; Motion drawer hosts Quiet/Tactile/Mechanical |
+| Electric Divider name-only | **Repaired** — restrained travel/glow + reduced-motion static |
+
+Closeout: `VISUAL_RENDERER_REPAIR_CLOSEOUT.md`  
+Evidence: `tmp/visual-renderer-repair-evidence/`
+
+Art direction / flagship Card / new families remain deferred.

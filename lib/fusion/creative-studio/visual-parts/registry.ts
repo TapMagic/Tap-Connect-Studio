@@ -737,7 +737,8 @@ export const VISUAL_PARTS_DRAWER_CONTRACT: Readonly<
   bottom_stop: { label: "Bottom Stop", categories: ["bottom_stop"] },
   hero: { label: "Hero", categories: ["hero"] },
   action: { label: "Action", categories: ["action"], passthrough: "action" },
-  motion: { label: "Motion", categories: ["motion"], passthrough: "motion" },
+  // Interaction modes are Host-facing Visual Parts; Motion intensity remains the existing Motion authority.
+  motion: { label: "Motion", categories: ["interaction", "motion"], passthrough: "motion" },
   advanced: { label: "Advanced", categories: [], passthrough: "advanced" },
 };
 

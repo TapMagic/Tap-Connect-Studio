@@ -69,13 +69,28 @@ export type MaterialRecipeFill = Readonly<{
   opacity?: number;
 }>;
 
+function isCssShadowString(value: unknown): value is string {
+  return typeof value === "string" && /(?:px|inset|rgba?\(|hsla?\()/i.test(value);
+}
+
 export function surfaceShadowCss(props: Record<string, unknown>): string | undefined {
+  // Visual Parts / Depth may already author a full CSS box-shadow string.
+  // Preserve it — Number("0 12px …") is NaN and must not erase Depth/Finish.
+  const authoredShadow = isCssShadowString(props.boxShadow)
+    ? props.boxShadow
+    : isCssShadowString(props.vpDepthShadow)
+      ? props.vpDepthShadow
+      : null;
+
   const effectPreset = typeof props.effectPreset === "string" ? props.effectPreset : null;
   if (effectPreset && effectPreset !== "none") {
+    const numericShadow = isCssShadowString(props.boxShadow)
+      ? Number(props.shadow ?? 0)
+      : Number(props.boxShadow ?? props.shadow ?? 0);
     const layers = effectLayersCss("surface", {
       effectPreset,
       glow: Number(props.boxGlow ?? props.glow ?? 0),
-      shadow: Number(props.boxShadow ?? props.shadow ?? 0),
+      shadow: Number.isFinite(numericShadow) ? numericShadow : 0,
       glowColor: typeof props.glowColor === "string" ? props.glowColor : null,
       secondaryGlow: Number(props.secondaryGlow ?? 0),
       innerShadow: typeof props.innerShadow === "string" ? props.innerShadow : null,
@@ -85,8 +100,11 @@ export function surfaceShadowCss(props: Record<string, unknown>): string | undef
       opacity: Number(props.opacity ?? 1),
       color: typeof props.color === "string" ? props.color : null,
     });
+    if (layers.boxShadow && authoredShadow) return `${authoredShadow}, ${layers.boxShadow}`;
     if (layers.boxShadow) return layers.boxShadow;
   }
+  if (authoredShadow) return authoredShadow;
+
   const shadow = Number(props.boxShadow ?? props.shadow ?? 0);
   const glow = Number(props.boxGlow ?? props.glow ?? 0);
   const secondary = Number(props.secondaryGlow ?? 0);

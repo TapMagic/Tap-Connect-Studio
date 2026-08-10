@@ -603,6 +603,95 @@
   animation: none !important;
   transform: none !important;
 }
+
+/* Visual Parts — pointer-driven interaction (not perpetual motion). */
+.vp-interaction-quiet {
+  transition: none;
+}
+.vp-interaction-tactile {
+  transition: transform 120ms ease, filter 120ms ease, box-shadow 120ms ease;
+}
+.vp-interaction-tactile:hover {
+  filter: brightness(calc(1 + 0.04 * var(--vp-motion-intensity, 0.5)));
+}
+.vp-interaction-tactile:active {
+  transform: translateY(calc(1px + 1px * var(--vp-motion-intensity, 0.5)));
+  filter: brightness(0.97);
+}
+.vp-interaction-mechanical {
+  transition: transform 90ms cubic-bezier(0.2, 0.8, 0.2, 1), filter 90ms ease, box-shadow 90ms ease;
+  transform-style: preserve-3d;
+}
+.vp-interaction-mechanical:hover {
+  filter: brightness(calc(1 + 0.03 * var(--vp-motion-intensity, 0.5)));
+}
+.vp-interaction-mechanical:active {
+  transform: translateY(calc(2px + 2px * var(--vp-motion-intensity, 0.5))) scale(0.985);
+  filter: brightness(0.92);
+}
+.vp-interaction-mechanical:active [data-vp-depth-level],
+.vp-interaction-mechanical:active [data-testid$="-shell"] {
+  filter: brightness(0.96);
+}
+
+/* Electric Divider — restrained travel + glow; static under reduced motion. */
+@keyframes vp-electric-travel {
+  0% { transform: translateX(-35%); opacity: 0.35; }
+  45% { opacity: calc(0.45 + 0.4 * var(--vp-motion-intensity, 0.55)); }
+  100% { transform: translateX(135%); opacity: 0.25; }
+}
+@keyframes vp-electric-flicker {
+  0%, 100% { opacity: 0.55; }
+  48% { opacity: calc(0.45 + 0.35 * var(--vp-motion-intensity, 0.55)); }
+  52% { opacity: 0.4; }
+}
+.vp-divider-electric-glow {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(56, 189, 248, calc(0.15 + 0.45 * var(--vp-motion-intensity, 0.55))) 45%,
+    rgba(186, 230, 253, calc(0.2 + 0.5 * var(--vp-motion-intensity, 0.55))) 50%,
+    rgba(56, 189, 248, calc(0.15 + 0.45 * var(--vp-motion-intensity, 0.55))) 55%,
+    transparent 100%
+  );
+  box-shadow: 0 0 calc(4px + 8px * var(--vp-motion-intensity, 0.55)) rgba(56, 189, 248, 0.45);
+  animation: vp-electric-travel calc(2.8s + (1 - var(--vp-motion-intensity, 0.55)) * 1.6s) linear infinite;
+}
+.vp-divider-electric-stroke path {
+  filter: drop-shadow(0 0 calc(2px + 4px * var(--vp-motion-intensity, 0.55)) rgba(56, 189, 248, 0.65));
+  animation: vp-electric-flicker 3.2s ease-in-out infinite;
+}
+.vp-divider-industrial svg path {
+  filter: drop-shadow(0 1px 0 rgba(255, 255, 255, 0.18));
+}
+@media (prefers-reduced-motion: reduce) {
+  .vp-divider-electric-glow,
+  .vp-divider-electric-stroke path {
+    animation: none !important;
+  }
+  .vp-divider-electric-glow {
+    transform: none;
+    opacity: 0.7;
+    background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.55), transparent);
+  }
+  .vp-interaction-tactile,
+  .vp-interaction-mechanical {
+    transition: none;
+  }
+  .vp-interaction-tactile:hover,
+  .vp-interaction-mechanical:hover {
+    filter: none;
+  }
+}
+[data-reduced-motion-simulation="true"] .vp-divider-electric-glow,
+[data-reduced-motion-simulation="true"] .vp-divider-electric-stroke path {
+  animation: none !important;
+}
+[data-reduced-motion-simulation="true"] .vp-divider-electric-glow {
+  transform: none;
+  opacity: 0.7;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.55), transparent);
+}
 /* Creative Studio editor preferences are view-only. They never alter document colors. */
 .creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-edit-mode-topbar"],
 .creative-studio-editor[data-resolved-appearance="light"] [data-testid="card-creative-left-workspace"],

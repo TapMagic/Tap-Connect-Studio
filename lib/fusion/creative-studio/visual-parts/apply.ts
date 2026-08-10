@@ -6,7 +6,12 @@
 
 import { applySurfaceMaterial } from "../material-engine";
 import { applyButtonIconAsset } from "../button-composition";
-import { deriveFinishSurface, type FinishId } from "./finish-color";
+import {
+  deriveFinishSurface,
+  finishSurfaceCssVars,
+  geometryClassFromPresentation,
+  type FinishId,
+} from "./finish-color";
 import { getVisualPart, partCompatibleWithTarget } from "./registry";
 import { captureAssemblyRecipe, applyAssemblyRecipeToProps } from "./assembly";
 import { composeDepthShadow } from "./depth";
@@ -71,7 +76,7 @@ function surfaceShadow(outer: number): string {
   return `0 ${Math.round(outer * 0.35)}px ${outer}px rgba(0,0,0,.42)`;
 }
 
-function applyFinishToSurface(
+export function applyFinishToSurface(
   props: Record<string, unknown>,
   finishPartId: string,
   baseColor: string,
@@ -81,28 +86,39 @@ function applyFinishToSurface(
   const part = getVisualPart(finishPartId);
   if (!part || part.payload.kind !== "finish") return props;
   const state = readVisualPartsState(props);
+  const geometry = geometryClassFromPresentation(String(props.presentation || ""));
   const derived = deriveFinishSurface(
     part.payload.finishId as FinishId,
     baseColor,
-    refinement ?? state.colorRefinement
+    refinement ?? state.colorRefinement,
+    geometry
   );
+  const response = derived.materialResponse;
   let next = { ...props };
+  // Bridge Material catalog for texture/shine infrastructure — Finish then feeds Material response channels.
   if (part.payload.materialBridgeId) {
     next = applySurfaceMaterial(next, part.payload.materialBridgeId, {
       asButtonSurface,
       preserveTextColor: true,
     });
   }
-  next.gradientFill = derived.gradient;
+  // Compose into Material surface props (MaterialSurfaceLayers), not a competing paint path.
+  next.gradientFill = response.background;
   next.buttonSurfaceKind = "gradient";
   next.fill = undefined;
-  next.shine = derived.shine;
-  next.highlight = derived.highlight;
-  next.borderWidth = derived.borderWidth;
-  next.borderColor = derived.borderColor;
-  next.boxShadow = surfaceShadow(derived.outerShadow);
-  next.labelColor = next.labelColor || derived.textColor;
-  next.textColor = next.textColor || derived.textColor;
+  next.shine = response.shine;
+  next.highlight = response.highlight;
+  next.borderWidth = response.borderWidth;
+  next.borderColor = response.borderColor;
+  next.boxShadow = composeDepthShadow(3, 0.35 + (refinement?.depth ?? state.colorRefinement?.depth ?? 0.5) * 0.55);
+  if (!next.boxShadow || next.boxShadow === "none") {
+    next.boxShadow = surfaceShadow(response.outerShadow);
+  }
+  next.labelColor = next.labelColor || response.textColor;
+  next.textColor = next.textColor || response.textColor;
+  next.materialResponse = response;
+  next.materialFillAuthority = "finish";
+  Object.assign(next, finishSurfaceCssVars(derived));
   return writeVisualPartsState(next, {
     finishPartId,
     baseColor: derived.baseColor,
@@ -129,29 +145,40 @@ function mapIconStationPosition(pos: IconStationPosition): {
   }
 }
 
-function surfaceToneStyles(tone: string): Partial<Record<string, unknown>> {
+function surfaceToneStyles(
+  tone: string,
+  intensity = 0.55,
+  depth = 0.45
+): Partial<Record<string, unknown>> {
+  const i = Math.min(1, Math.max(0, intensity));
+  const d = Math.min(1, Math.max(0, depth));
+  const energyA = (0.08 + i * 0.28).toFixed(3);
+  const energyB = (0.06 + i * 0.22).toFixed(3);
   switch (tone) {
     case "copper_harmonized":
       return {
         fill: "#1a1410",
-        gradientFill: "linear-gradient(160deg,#3a2418 0%,#1a1410 48%,#0c0a08 100%)",
-        borderWidth: 0,
-        boxShadow: composeDepthShadow(1),
+        gradientFill: `linear-gradient(160deg,rgba(90,50,28,${(0.55 + i * 0.45).toFixed(3)}) 0%,#1a1410 48%,#0c0a08 100%)`,
+        borderWidth: i > 0.35 ? 1 : 0,
+        borderColor: `rgba(197,106,45,${(0.15 + i * 0.45).toFixed(3)})`,
+        boxShadow: composeDepthShadow(1, d),
+        opacity: 0.72 + i * 0.28,
       };
     case "quiet_field":
       return {
         fill: "#111827",
-        gradientFill: "linear-gradient(180deg,#1f2937 0%,#111827 55%,#0b1220 100%)",
+        gradientFill: `linear-gradient(180deg,rgba(31,41,55,${(0.55 + i * 0.45).toFixed(3)}) 0%,#111827 55%,#0b1220 100%)`,
         borderWidth: 0,
-        boxShadow: composeDepthShadow(1, 0.7),
+        boxShadow: composeDepthShadow(1, d * 0.85),
+        opacity: 0.65 + i * 0.35,
       };
     case "energy_field":
       return {
         fill: "#0b1224",
-        gradientFill:
-          "linear-gradient(155deg,#0b1224 0%,#111c3a 40%,#0a1020 70%), radial-gradient(ellipse at 20% 40%,rgba(56,189,248,.22),transparent 45%), radial-gradient(ellipse at 80% 70%,rgba(37,99,235,.18),transparent 40%)",
+        gradientFill: `linear-gradient(155deg,#0b1224 0%,#111c3a 40%,#0a1020 70%), radial-gradient(ellipse at 20% 40%,rgba(56,189,248,${energyA}),transparent 45%), radial-gradient(ellipse at 80% 70%,rgba(37,99,235,${energyB}),transparent 40%)`,
         borderWidth: 0,
-        boxShadow: composeDepthShadow(1),
+        boxShadow: `${composeDepthShadow(1, d)}, 0 0 ${Math.round(8 + i * 28)}px rgba(56,189,248,${(0.08 + i * 0.35).toFixed(3)})`,
+        opacity: 0.7 + i * 0.3,
       };
     case "recess_well":
       return {
@@ -159,22 +186,25 @@ function surfaceToneStyles(tone: string): Partial<Record<string, unknown>> {
         gradientFill: "linear-gradient(180deg,#151922 0%,#0a0c12 100%)",
         borderWidth: 1,
         borderColor: "#00000088",
-        boxShadow: "inset 0 8px 18px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.05)",
+        boxShadow: `inset 0 ${Math.round(4 + d * 14)}px ${Math.round(10 + d * 18)}px rgba(0,0,0,${(0.35 + d * 0.4).toFixed(3)}), inset 0 -1px 0 rgba(255,255,255,${(0.03 + i * 0.08).toFixed(3)})`,
+        opacity: 0.75 + i * 0.25,
       };
     case "panel_plaque":
       return {
         fill: "#1e2430",
-        gradientFill: "linear-gradient(180deg,#2a3344 0%,#171c26 100%)",
+        gradientFill: `linear-gradient(180deg,rgba(55,68,90,${(0.55 + i * 0.45).toFixed(3)}) 0%,#171c26 100%)`,
         borderWidth: 1,
-        borderColor: "#ffffff22",
-        boxShadow: composeDepthShadow(1),
+        borderColor: `rgba(255,255,255,${(0.08 + i * 0.22).toFixed(3)})`,
+        boxShadow: composeDepthShadow(1, d),
+        opacity: 0.7 + i * 0.3,
       };
     case "plinth_base":
       return {
         fill: "#12141a",
         gradientFill: "linear-gradient(180deg,#1a1d26 0%,#0e1016 70%,#08090c 100%)",
         borderWidth: 0,
-        boxShadow: "0 -2px 0 rgba(255,255,255,.06), 0 16px 28px rgba(0,0,0,.45)",
+        boxShadow: `0 -${Math.max(1, Math.round(d * 3))}px 0 rgba(255,255,255,${(0.04 + i * 0.08).toFixed(3)}), ${composeDepthShadow(1, d)}`,
+        opacity: 0.75 + i * 0.25,
       };
     default:
       return { fill: "#111827", gradientFill: undefined };
@@ -334,7 +364,9 @@ export function applyVisualPart(
     }
     case "action_surface": {
       const tone = part.payload.backgroundTone;
-      const styles = surfaceToneStyles(tone);
+      const intensity = part.payload.intensityDefault ?? state.surfaceIntensity ?? 0.55;
+      const depth = part.payload.depthDefault ?? state.surfaceDepth ?? 0.45;
+      const styles = surfaceToneStyles(tone, intensity, depth);
       const treatment: SurfaceTreatment =
         tone === "neutral" ? "off" : (tone as SurfaceTreatment);
       next = writeVisualPartsState(next, {
@@ -342,8 +374,8 @@ export function applyVisualPart(
         rimPartId: part.payload.edgePartId || state.rimPartId || null,
         surfaceEnabled: tone !== "neutral",
         surfaceTreatment: treatment,
-        surfaceIntensity: part.payload.intensityDefault ?? 0.55,
-        surfaceDepth: part.payload.depthDefault ?? 0.45,
+        surfaceIntensity: intensity,
+        surfaceDepth: depth,
       });
       next.actionSurfaceTone = part.payload.backgroundTone;
       // Surface is a Visual Parts socket — never rewrite Button/Launch/Badge identity
@@ -366,7 +398,9 @@ export function applyVisualPart(
       next.vpMountRadius = part.payload.radius;
       next.vpMountBackground = part.payload.background;
       next.vpMountBorder = part.payload.border || null;
-      next.vpMountShadow = part.payload.shadow || composeDepthShadow(2);
+      // Persist relational depth shadow — Mount style remains structurally distinct via bg/border/radius.
+      next.vpMountShadow = composeDepthShadow(2, state.surfaceDepth ?? 0.55);
+      next.vpMountDepthLevel = 2;
       break;
     }
     case "bottom_stop": {
@@ -392,13 +426,18 @@ export function applyVisualPart(
     case "interaction": {
       next = writeVisualPartsState(next, { interactionPartId: partId });
       next.vpInteractionMode = part.payload.mode;
+      // Interaction is pointer-driven — not a perpetual motion loop.
+      if (part.payload.mode === "quiet") {
+        next.motionPreset = "none";
+        next.motionPlay = false;
+      }
       if (part.payload.mode === "tactile") {
-        next.motionPreset = next.motionPreset || "subtle_pulse";
-        next.motionPlay = true;
+        next.motionPreset = "none";
+        next.motionPlay = false;
       }
       if (part.payload.mode === "mechanical") {
-        next.motionPreset = next.motionPreset || "press_inset";
-        next.motionPlay = true;
+        next.motionPreset = "none";
+        next.motionPlay = false;
       }
       break;
     }
@@ -544,6 +583,46 @@ export function applySurfaceMode(
   return result.ok
     ? writeVisualPartsState(result.props, { surfaceEnabled: true, surfaceTreatment: treatment })
     : writeVisualPartsState(props, { surfaceEnabled: true, surfaceTreatment: treatment });
+}
+
+/** Re-derive Surface fill/shadow when Host Intensity / Depth change. */
+export function applySurfaceParameters(
+  props: Record<string, unknown>,
+  patch: { intensity?: number; depth?: number },
+  targetFamily: VisualPartTargetFamily = "container"
+): Record<string, unknown> {
+  const state = readVisualPartsState(props);
+  const intensity = patch.intensity ?? state.surfaceIntensity ?? 0.55;
+  const depth = patch.depth ?? state.surfaceDepth ?? 0.45;
+  const treatment = (state.surfaceTreatment || "quiet_field") as SurfaceTreatment;
+  if (!state.surfaceEnabled || treatment === "off") {
+    return writeVisualPartsState(props, { surfaceIntensity: intensity, surfaceDepth: depth });
+  }
+  const tone =
+    treatment === "copper_harmonized"
+      ? "copper_harmonized"
+      : treatment === "energy_field"
+        ? "energy_field"
+        : treatment === "recess_well"
+          ? "recess_well"
+          : treatment === "panel_plaque"
+            ? "panel_plaque"
+            : treatment === "plinth_base"
+              ? "plinth_base"
+              : "quiet_field";
+  const styles = surfaceToneStyles(tone, intensity, depth);
+  const next = writeVisualPartsState(props, {
+    surfaceIntensity: intensity,
+    surfaceDepth: depth,
+    surfaceTreatment: treatment,
+  });
+  const buttonishHost =
+    targetFamily === "button" ||
+    targetFamily === "launch" ||
+    targetFamily === "badge" ||
+    targetFamily === "form_submit";
+  if (buttonishHost) return next;
+  return { ...next, ...styles };
 }
 
 export function applyColorRefinement(
