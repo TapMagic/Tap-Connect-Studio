@@ -236,7 +236,8 @@ export function VisualPartsCabinetPanel({
             className={`rounded px-2 py-1 text-[9px] ${drawer === id ? "bg-white/15 text-white" : "text-white/55 hover:bg-white/10"}`}
             onClick={() => {
               const pass = VISUAL_PARTS_DRAWER_CONTRACT[id].passthrough;
-              if (pass && onPassthrough) {
+              // Motion hosts in-cabinet Interaction parts — stay in Cabinet; intensity uses Open Motion.
+              if (pass && onPassthrough && id !== "motion" && id !== "color") {
                 onPassthrough(pass);
                 return;
               }
