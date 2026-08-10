@@ -91,3 +91,15 @@ Restrained travel glow + flicker; reduced-motion static treatment; compact footp
 ## Certification evidence
 
 `tmp/visual-renderer-repair-evidence/` (lab ladders + metrics).
+
+### Product / Jig freeze + dual-green
+
+| Item | Value |
+| --- | --- |
+| Product SHA | `bc8295611d3c7294508dac11b96d11fa17f7b42c` |
+| Jig SHA | `bc8295611d3c7294508dac11b96d11fa17f7b42c` |
+| Green #1 | port **3130**, pid 52183, 7 passed, retries 0 |
+| Green #2 | port **3131**, pid 52179, 7 passed, retries 0 |
+| Suites | Visual Renderer Repair · Visual Grammar Outcome Truth · Cabinet Integrity · Practical Authoring |
+
+No Product/Jig changes between Greens.
