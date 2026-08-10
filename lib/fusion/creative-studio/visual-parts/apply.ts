@@ -473,7 +473,7 @@ export function applyCuratedFamily(
   });
   next = applyAssemblyRecipeToProps(next, recipe);
   next = writeVisualPartsState(next, { assemblyRecipeId: recipe.id, curatedFamilyId: familyId });
-  next.vpAssemblyRecipe = recipe;
+  // Persist recipe id only — full recipe reconstructs from catalog + state (avoid prop bloat).
   return next;
 }
 

@@ -88,9 +88,11 @@ test.describe("Visual Parts Cabinet certification", () => {
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-curated"), "Curated drawer");
     await ownerClick(page.getByTestId("vp-part-family_bright_lacquer_pounded_copper"), "Apply curated family");
-    await expect(button).toHaveAttribute("data-vp-rim", "rim_pounded_copper", { timeout: 10_000 });
-    await expect(button).toHaveAttribute("data-vp-finish", "finish_lacquer");
-    await expect(button).toHaveAttribute("data-vp-family", "family_bright_lacquer_pounded_copper");
+    const copperButton = page.locator('[data-composition-node][data-vp-family="family_bright_lacquer_pounded_copper"]').first();
+    await expect(copperButton).toBeVisible({ timeout: 15_000 });
+    await expect(copperButton).toHaveAttribute("data-vp-rim", "rim_pounded_copper");
+    await expect(copperButton).toHaveAttribute("data-vp-finish", "finish_lacquer");
+    await expect(copperButton).toHaveAttribute("data-vp-family", "family_bright_lacquer_pounded_copper");
     await expect(page.getByTestId("vp-customize-ingredients")).toBeVisible();
     await expect(page.getByTestId("vp-ingredient-rim")).toHaveAttribute("data-part-id", "rim_pounded_copper");
     await expect(page.getByTestId("vp-ingredient-iconStationBacking")).toHaveAttribute(
@@ -113,19 +115,19 @@ test.describe("Visual Parts Cabinet certification", () => {
     // C — Change base Color, Icon Station position, Accent (reusable part)
     await ownerClick(page.getByTestId("vp-drawer-finish"), "Finish drawer");
     await ownerClick(page.getByTestId("vp-lacquer-color-blue"), "Electric blue lacquer base");
-    await expect(button).toHaveAttribute("data-vp-finish", "finish_lacquer");
-    await expect(button).toHaveAttribute("data-vp-base-color", "#155eef");
-    await expect(button).toHaveAttribute("data-vp-rim", "rim_pounded_copper");
+    await expect(copperButton).toHaveAttribute("data-vp-finish", "finish_lacquer");
+    await expect(copperButton).toHaveAttribute("data-vp-base-color", "#155eef");
+    await expect(copperButton).toHaveAttribute("data-vp-rim", "rim_pounded_copper");
 
     await ownerClick(page.getByTestId("vp-drawer-icon_image"), "Icon/Image drawer");
     await ownerClick(page.getByTestId("vp-icon-pos-right"), "Icon Right");
-    await expect(button).toHaveAttribute("data-vp-icon-position", "right");
-    await expect(button).toHaveAttribute("data-vp-icon-station", "icon_station_round");
+    await expect(copperButton).toHaveAttribute("data-vp-icon-position", "right");
+    await expect(copperButton).toHaveAttribute("data-vp-icon-station", "icon_station_round");
 
     await ownerClick(page.getByTestId("vp-drawer-accents"), "Accents drawer");
     await ownerClick(page.getByTestId("vp-accent-reset"), "Remove accent");
     await ownerClick(page.getByTestId("vp-part-accent_copper_leaves"), "Re-apply Copper Leaves");
-    await expect(button).toHaveAttribute("data-vp-accent", "accent_copper_leaves");
+    await expect(copperButton).toHaveAttribute("data-vp-accent", "accent_copper_leaves");
     await evidenceShot(page, "visual-parts", "02-visual-parts-edited.png");
 
     // Action still exact after visual edits

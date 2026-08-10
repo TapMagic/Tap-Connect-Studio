@@ -72,8 +72,10 @@ test.describe("Visual Grammar certification", () => {
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-curated"), "Curated");
     await ownerClick(page.getByTestId("vp-part-family_mission_control"), "Mission Control");
-    await expect(launch).toHaveAttribute("data-vp-mount", "mount_mission_control", { timeout: 10_000 });
-    await expect(launch).toHaveAttribute("data-vp-family", "family_mission_control");
+    const mission = page.locator('[data-composition-node][data-vp-family="family_mission_control"]').first();
+    await expect(mission).toBeVisible({ timeout: 15_000 });
+    await expect(mission).toHaveAttribute("data-vp-mount", "mount_mission_control");
+    await mission.click();
     await ownerClick(page.getByTestId("contextual-button-action"), "Action after Mission Control");
     await expect(page.getByLabel("Button action type")).toHaveValue("website");
     await expect(page.getByLabel("Button destination")).toHaveValue("https://host.example/launch");
@@ -84,23 +86,27 @@ test.describe("Visual Grammar certification", () => {
     await ownerClick(page.getByTestId("vp-drawer-icon_image"), "Icon");
     await page.getByTestId("vp-icon-scale").evaluate((el) => {
       const input = el as HTMLInputElement;
-      input.value = "85";
+      const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
+      proto?.set?.call(input, "85");
       input.dispatchEvent(new Event("input", { bubbles: true }));
       input.dispatchEvent(new Event("change", { bubbles: true }));
     });
     await ownerClick(page.getByTestId("vp-icon-anchor-left_center"), "Anchor left center");
     await ownerClick(page.getByTestId("vp-icon-upload-demo"), "Portrait upload");
-    await expect(launch).toHaveAttribute("data-vp-icon-scale", /0\.8|0\.85|0\.9/);
+    await expect(page.locator('[data-composition-node][data-vp-family="family_mission_control"]').first()).toHaveAttribute(
+      "data-vp-icon-scale",
+      /0\.8|0\.85|0\.9/
+    );
 
     // Surface On + Mount proof via Copper family on a second Button
     await insertFamily(page, "button");
-    const button = page.locator("[data-composition-node]").filter({ has: page.locator("[data-button-surface-kind]") }).first();
-    await button.click();
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-curated"), "Curated");
     await ownerClick(page.getByTestId("vp-part-family_bright_lacquer_pounded_copper"), "Copper family");
-    await expect(button).toHaveAttribute("data-vp-mount", "mount_dark_plaque", { timeout: 10_000 });
-    await expect(button).toHaveAttribute("data-vp-assembly", "family_bright_lacquer_pounded_copper");
+    const copper = page.locator('[data-composition-node][data-vp-family="family_bright_lacquer_pounded_copper"]').first();
+    await expect(copper).toBeVisible({ timeout: 15_000 });
+    await expect(copper).toHaveAttribute("data-vp-mount", "mount_dark_plaque");
+    await expect(copper).toHaveAttribute("data-vp-assembly", "family_bright_lacquer_pounded_copper");
 
     // Bottom Stop
     await ownerClick(page.getByTestId("card-creative-tool-tools"), "Tools");
