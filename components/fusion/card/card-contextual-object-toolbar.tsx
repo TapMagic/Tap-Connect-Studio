@@ -70,8 +70,10 @@ import { createIconAsset, iconAssetToNodeProps, nativeIconAsset, replaceIconCont
 import { GradientStudio } from "@/components/fusion/creative-studio/gradient-studio";
 import type { GradientModel } from "@/lib/fusion/creative-studio/gradient";
 import { MaterialSurfaceSwatch } from "@/components/fusion/creative-studio/material-surface-layers";
+import { VisualPartsCabinetPanel } from "@/components/fusion/creative-studio/visual-parts-cabinet-panel";
+import { objectFamilyToVisualTarget } from "@/lib/fusion/creative-studio/visual-parts";
 
-type Focus = "content" | "font" | "color" | "surface" | "media" | "crop" | "adjust" | "frame-appearance" | "action" | "effects" | "appearance" | "animate" | "position" | "layout" | "setup" | "fields" | "gallery" | "resize-policy" | "responsive" | "button-surface" | "button-content" | "button-action" | "button-styles" | "icon-appearance" | "divider-style" | "divider-thickness" | "divider-color" | "divider-appearance" | "map-action" | "text-box" | "border" | "corners" | "size" | "arrange" | "more" | "coupon-content" | null;
+type Focus = "content" | "font" | "color" | "surface" | "media" | "crop" | "adjust" | "frame-appearance" | "action" | "effects" | "appearance" | "animate" | "position" | "layout" | "setup" | "fields" | "gallery" | "resize-policy" | "responsive" | "button-surface" | "button-content" | "button-action" | "button-styles" | "icon-appearance" | "divider-style" | "divider-thickness" | "divider-color" | "divider-appearance" | "map-action" | "text-box" | "border" | "corners" | "size" | "arrange" | "more" | "coupon-content" | "visual-parts" | null;
 type SectionFocus = "size" | "surface" | "layout" | "position" | "more" | null;
 type RootFocus = "background" | "page-size" | "more" | null;
 
@@ -476,6 +478,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       : focus === "button-surface" ? "Surface"
       : focus === "font" ? "Typography"
       : focus === "content" && objectFamilyForNode(selected?.node || { primitive: "shape", props: {} }) === "icon" ? "Change Icon"
+      : focus === "visual-parts" ? "Visual Parts"
       : focus === "surface" || focus === "appearance" || focus === "effects" || focus === "icon-appearance" ? "Appearance"
       : focus || "Editor";
   const clearObjectFocus = useCallback(() => setFocus(null), []);
@@ -813,6 +816,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           onClick={() => { deepLeft?.setNestedPage("solid-colors"); openForced("appearance"); }}
         />
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-button-appearance">Appearance</button>
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("visual-parts"); }} data-testid="contextual-button-visual-parts">Visual Parts</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("button-action")} data-testid="contextual-button-action">Action</button>
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-button-motion">Motion</button>
       </> : toolbarChrome === "object" && isTextLike ? <>
@@ -889,6 +893,9 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           onClick={() => open("surface")}
         /><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-container-background" onClick={() => open("surface")}>Background</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-container-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("resizePolicy.open")} data-testid="contextual-container-resize-policy">Resize behavior</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("responsive.open")}>Responsive</button></> : null}
       {toolbarChrome === "object" && isImage ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace" : "Choose media"}</button> : null}
+      {toolbarChrome === "object" && (objectFamily === "divider" || objectFamily === "container" || objectFamily === "image" || objectFamily === "logo") ? (
+        <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("visual-parts"); }} data-testid="contextual-visual-parts">Visual Parts</button>
+      ) : null}
       {toolbarChrome === "object" && !isButton && !isImage && objectFamily !== "icon" && objectFamily !== "divider" && !isTextLike ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openCommand("appearance.open"); }} data-testid="contextual-appearance">Appearance</button>
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Motion</button></> : null}
       {toolbarChrome === "object" && (objectFamily === "divider" || isTextLike) ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Motion</button> : null}
@@ -1282,6 +1289,39 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           </label>
           <button type="button" className={`${buttonClass} w-full`} onClick={() => patchProps({ contentEditing: true, selectionMode: "content" }, "Entered Coupon canvas content mode")}>Edit individual elements on canvas</button>
         </div>;
+      })() : null}
+{focus === "visual-parts" ? (() => {
+        const vpTarget = objectFamilyToVisualTarget(objectFamily) || (objectFamily === "container" ? "action_surface" : null);
+        if (!vpTarget) {
+          return <p className="text-[11px] text-white/60" data-testid="vp-incompatible">Visual Parts are not available for this object.</p>;
+        }
+        return (
+          <VisualPartsCabinetPanel
+            props={node.props}
+            targetFamily={vpTarget}
+            onPatch={(next, label) => patchProps(next, label)}
+            onPassthrough={(kind) => {
+              if (kind === "color") {
+                deepLeft?.setNestedPage("solid-colors");
+                openForced("appearance");
+                return;
+              }
+              if (kind === "text") {
+                open("button-content");
+                return;
+              }
+              if (kind === "action") {
+                open(isButton ? "button-action" : "action");
+                return;
+              }
+              if (kind === "motion") {
+                open("animate");
+                return;
+              }
+              open("more");
+            }}
+          />
+        );
       })() : null}
 {focus === "effects" || focus === "appearance" ? (() => {
         const categories = appearanceCategoriesForFamily(groupParent ? "group" : objectFamily);

@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TapConnect Signature Visual Target — Bright Lacquer + Pounded Copper</title>
+  <style>
+    :root {
+      --bg: #0b0d10;
+      --bg-elev: #12161c;
+      --panel: #171c24;
+      --ink: #f4f7fb;
+      --muted: #9aa6b5;
+      --line: #2a3340;
+      --accent: #b6f04a;
+      --copper-1: #3a1a0c;
+      --copper-2: #7a3514;
+      --copper-3: #c56a2d;
+      --copper-4: #e8a56a;
+      --copper-5: #f3d0a8;
+      --lacquer: #0a0a0c;
+      --lacquer-mid: #1a1a1f;
+      --lacquer-hi: #4a4a55;
+      --label: #f8fafc;
+      --radius-pill: 999px;
+      --rim: 8px;
+      --medallion: 46px;
+    }
+
+    * { box-sizing: border-box; }
+    html, body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+      line-height: 1.45;
+    }
+
+    body {
+      background:
+        radial-gradient(1200px 600px at 10% -10%, #1a2433 0%, transparent 55%),
+        radial-gradient(900px 500px at 90% 0%, #241810 0%, transparent 50%),
+        var(--bg);
+      min-height: 100vh;
+    }
+
+    header {
+      padding: 28px 32px 12px;
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      color: var(--accent);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      font-size: 11px;
+      font-weight: 700;
+      margin: 0 0 8px;
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 40px);
+      letter-spacing: -0.03em;
+      font-weight: 750;
+    }
+
+    .lede {
+      max-width: 72ch;
+      color: var(--muted);
+      margin: 0;
+      font-size: 15px;
+    }
+
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .chip {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 5px 11px;
+      font-size: 12px;
+    }
+
+    .chip strong { color: var(--ink); font-weight: 650; }
+
+    main {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 12px 32px 64px;
+      display: grid;
+      gap: 22px;
+    }
+
+    section {
+      background: linear-gradient(180deg, #1a2029, var(--panel));
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 20px 22px 22px;
+    }
+
+    section h2 {
+      margin: 0 0 4px;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+
+    section .sub {
+      margin: 0 0 16px;
+      color: var(--muted);
+      font-size: 13px;
+      max-width: 80ch;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 18px;
+      max-width: 100%;
+    }
+    .controls .ctrl { flex: 0 1 auto; }
+
+    button.ctrl {
+      appearance: none;
+      border: 1px solid var(--line);
+      background: #10151c;
+      color: var(--ink);
+      border-radius: 999px;
+      padding: 7px 12px;
+      font: inherit;
+      font-size: 12px;
+      cursor: pointer;
+    }
+
+    button.ctrl[aria-pressed="true"] {
+      border-color: color-mix(in srgb, var(--accent) 55%, var(--line));
+      background: color-mix(in srgb, var(--accent) 16%, #10151c);
+      color: #f7ffe8;
+    }
+
+    .swatch {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      vertical-align: -2px;
+      border: 1px solid rgba(255,255,255,.25);
+    }
+
+    /* ── Signature Action Part ── */
+    .sig-stage {
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+      padding: 28px 16px;
+      border-radius: 14px;
+      background:
+        radial-gradient(ellipse at 50% 0%, rgba(197,106,45,.12), transparent 55%),
+        #0d1117;
+      border: 1px solid #242b35;
+      min-height: 180px;
+    }
+
+    .sig-action {
+      --body-a: var(--lacquer);
+      --body-b: var(--lacquer-mid);
+      --body-c: var(--lacquer-hi);
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      min-height: 72px;
+      padding: 12px calc(28px + var(--rim));
+      border-radius: var(--radius-pill);
+      color: var(--label);
+      text-decoration: none;
+      isolation: isolate;
+      transform: translateZ(0);
+      filter:
+        drop-shadow(0 14px 22px rgba(0,0,0,.55))
+        drop-shadow(0 2px 0 rgba(58,26,12,.65))
+        drop-shadow(0 0 18px rgba(197,106,45,.18));
+    }
+
+    .sig-action[data-icons="left"] { padding-left: calc(14px + var(--rim)); }
+    .sig-action[data-icons="right"] { padding-right: calc(14px + var(--rim)); flex-direction: row-reverse; }
+    .sig-action[data-icons="both"] { padding-left: calc(14px + var(--rim)); padding-right: calc(14px + var(--rim)); }
+    .sig-action[data-icons="none"] .medallion { display: none; }
+    .sig-action[data-icons="left"] .medallion.mirror,
+    .sig-action[data-icons="right"] .medallion.mirror,
+    .sig-action[data-icons="none"] .medallion.mirror { display: none; }
+    .sig-action[data-ornament="off"] .leaves { display: none; }
+    .sig-action[data-variant="social"] {
+      min-height: 52px;
+      gap: 10px;
+      --medallion: 36px;
+      font-size: 14px;
+    }
+    .sig-action[data-variant="utility"] {
+      min-height: 46px;
+      gap: 8px;
+      --rim: 5px;
+      --medallion: 30px;
+      font-size: 13px;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,.4));
+    }
+    .sig-action[data-variant="utility"] .leaves { display: none; }
+
+    /* Pounded Copper rim — reusable Signature socket */
+    .sig-action::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 8% 22%, #fff1d0 0 1.2px, transparent 2.4px),
+        radial-gradient(circle at 18% 70%, var(--copper-5) 0 1.6px, transparent 3px),
+        radial-gradient(circle at 31% 18%, var(--copper-4) 0 1.2px, transparent 2.5px),
+        radial-gradient(circle at 44% 82%, #fff1d0 0 1px, transparent 2.2px),
+        radial-gradient(circle at 57% 24%, var(--copper-5) 0 1.8px, transparent 3.2px),
+        radial-gradient(circle at 71% 76%, var(--copper-3) 0 2px, transparent 3.4px),
+        radial-gradient(circle at 84% 28%, var(--copper-4) 0 1.4px, transparent 2.8px),
+        radial-gradient(circle at 94% 68%, #fff1d0 0 1px, transparent 2.2px),
+        repeating-linear-gradient(118deg, transparent 0 3px, rgba(255,210,150,.08) 3px 4px),
+        radial-gradient(140% 90% at 18% -10%, var(--copper-5), transparent 42%),
+        radial-gradient(110% 80% at 88% 120%, var(--copper-1), transparent 48%),
+        conic-gradient(from 200deg at 50% 50%,
+          #5a2410, #e8a56a, #3a1a0c, #f3d0a8,
+          #c56a2d, #2a1208, #d4894a, #5a2410);
+      box-shadow:
+        inset 0 2px 0 rgba(255,236,200,.62),
+        inset 0 -3px 4px rgba(30,8,2,.72),
+        inset 3px 0 4px rgba(255,200,140,.18),
+        inset -3px 0 4px rgba(40,12,4,.35),
+        0 0 0 1px rgba(70,28,8,.7);
+    }
+
+    /* Bright Lacquer body — Finish socket; hue from Color socket */
+    .sig-action::after {
+      content: "";
+      position: absolute;
+      inset: var(--rim);
+      border-radius: inherit;
+      z-index: 1;
+      background:
+        linear-gradient(105deg, rgba(255,255,255,.55) 0%, rgba(255,255,255,.14) 16%, transparent 38%),
+        linear-gradient(180deg, rgba(255,255,255,.5) 0%, rgba(255,255,255,.1) 26%, rgba(0,0,0,0) 50%),
+        linear-gradient(165deg, var(--body-c) 0%, var(--body-b) 36%, var(--body-a) 70%, #000 100%);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.35),
+        inset 0 -12px 20px rgba(0,0,0,.42),
+        inset 0 0 0 1px rgba(255,255,255,.1);
+    }
+
+    .sig-action > * { position: relative; z-index: 2; }
+
+    .label {
+      font-weight: 750;
+      letter-spacing: 0.015em;
+      font-size: 17px;
+      text-shadow: 0 1px 0 rgba(0,0,0,.55), 0 0 12px rgba(0,0,0,.25);
+      white-space: nowrap;
+    }
+
+    .sig-action[data-lacquer="black"] {
+      --lacquer: #070709;
+      --lacquer-mid: #1c1c22;
+      --lacquer-hi: #5a5a66;
+      --label: #f8fafc;
+    }
+    .sig-action[data-lacquer="red"] {
+      --lacquer: #4a0408;
+      --lacquer-mid: #b10d1a;
+      --lacquer-hi: #ff6b6b;
+      --label: #fff5f5;
+    }
+    .sig-action[data-lacquer="green"] {
+      --lacquer: #04210f;
+      --lacquer-mid: #0f7a3a;
+      --lacquer-hi: #6dffb0;
+      --label: #ecfff4;
+    }
+    .sig-action[data-lacquer="blue"] {
+      --lacquer: #031533;
+      --lacquer-mid: #155eef;
+      --lacquer-hi: #7db4ff;
+      --label: #eff6ff;
+    }
+
+    /* Icon Station / dark medallion */
+    .medallion {
+      width: var(--medallion);
+      height: var(--medallion);
+      border-radius: 50%;
+      flex: 0 0 auto;
+      display: grid;
+      place-items: center;
+      background:
+        radial-gradient(circle at 35% 28%, #3a3a44, #0a0a0d 62%, #000);
+      box-shadow:
+        0 0 0 2px #8a4a22,
+        0 0 0 3px #3a1a0c,
+        inset 0 2px 4px rgba(255,255,255,.12),
+        inset 0 -4px 8px rgba(0,0,0,.7);
+      overflow: hidden;
+    }
+
+    .medallion img, .medallion .mark {
+      width: 58%;
+      height: 58%;
+      object-fit: contain;
+      display: block;
+    }
+
+    .medallion .mark {
+      border-radius: 4px;
+      background:
+        linear-gradient(135deg, #f4f7fb, #9aa6b5);
+      clip-path: polygon(20% 10%, 80% 10%, 90% 50%, 80% 90%, 20% 90%, 10% 50%);
+    }
+
+    .medallion.photo .mark {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      clip-path: none;
+      background:
+        radial-gradient(circle at 35% 30%, #f0d2a8, #8a5a2a 45%, #3a2010 80%);
+    }
+
+    /* Copper Leaves — reusable ornament socket */
+    .leaves {
+      position: absolute;
+      width: 34px;
+      height: 34px;
+      z-index: 3;
+      pointer-events: none;
+      opacity: .92;
+      filter: drop-shadow(0 1px 1px rgba(40,12,4,.55));
+    }
+    .leaves.left { left: calc(var(--rim) + var(--medallion) - 6px); top: -6px; }
+    .leaves.right { right: calc(var(--rim) + 8px); bottom: -4px; transform: scaleX(-1) rotate(18deg); }
+    .sig-action[data-icons="none"] .leaves.left { left: 18px; }
+    .sig-action[data-icons="right"] .leaves.left { left: auto; right: calc(var(--rim) + var(--medallion) - 6px); transform: scaleX(-1); }
+    .sig-action[data-icons="right"] .leaves.right { left: 16px; right: auto; transform: none; }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+    @media (max-width: 860px) {
+      .grid-2 { grid-template-columns: 1fr; }
+      header, main { padding-left: 16px; padding-right: 16px; }
+    }
+
+    .cardish {
+      background: #0f141b;
+      border: 1px solid var(--line);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .cardish h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+
+    .explode {
+      display: grid;
+      gap: 10px;
+    }
+
+    .layer-row {
+      display: grid;
+      grid-template-columns: 140px 1fr;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: #10151c;
+      border: 1px solid #243041;
+    }
+
+    .layer-name {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent);
+    }
+
+    .layer-desc {
+      font-size: 12px;
+      color: var(--muted);
+    }
+
+    .who {
+      display: inline-block;
+      margin-left: 6px;
+      padding: 1px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      border: 1px solid var(--line);
+      color: var(--ink);
+    }
+    .who.host { background: #1b2838; }
+    .who.tap { background: #243018; border-color: #405022; color: #d8f59a; }
+
+    /* Divider */
+    .sig-divider {
+      position: relative;
+      height: 28px;
+      display: grid;
+      place-items: center;
+      margin: 8px 0;
+    }
+    .sig-divider .bar {
+      width: min(420px, 90%);
+      height: 6px;
+      border-radius: 999px;
+      background:
+        radial-gradient(circle at 18% 40%, var(--copper-5) 0 1px, transparent 2px),
+        radial-gradient(circle at 62% 70%, var(--copper-4) 0 1.5px, transparent 3px),
+        linear-gradient(90deg, var(--copper-1), var(--copper-4), var(--copper-2), var(--copper-5), var(--copper-1));
+      box-shadow:
+        inset 0 1px 0 rgba(255,230,190,.5),
+        inset 0 -1px 1px rgba(40,12,4,.7),
+        0 4px 10px rgba(0,0,0,.35);
+    }
+    .sig-divider .leaf {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      top: 0;
+    }
+    .sig-divider .leaf.l { left: calc(50% - 210px); }
+    .sig-divider .leaf.r { right: calc(50% - 210px); transform: scaleX(-1); }
+    @media (max-width: 560px) {
+      .sig-divider .leaf.l { left: 4%; }
+      .sig-divider .leaf.r { right: 4%; }
+    }
+
+    /* Action Surface plaque */
+    .action-surface {
+      --rim: 8px;
+      position: relative;
+      width: min(520px, 100%);
+      border-radius: 22px;
+      padding: calc(18px + var(--rim));
+      color: var(--ink);
+      isolation: isolate;
+      filter: drop-shadow(0 14px 24px rgba(0,0,0,.45));
+    }
+    .action-surface::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      z-index: 0;
+      background:
+        radial-gradient(circle at 15% 20%, var(--copper-5) 0 1px, transparent 2px),
+        radial-gradient(circle at 70% 80%, var(--copper-4) 0 2px, transparent 3px),
+        conic-gradient(from 180deg at 50% 50%,
+          var(--copper-2), var(--copper-4), var(--copper-1), var(--copper-5),
+          var(--copper-3), var(--copper-1), var(--copper-4), var(--copper-2));
+      box-shadow: inset 0 1px 0 rgba(255,230,190,.45), inset 0 -2px 4px rgba(40,12,4,.6);
+    }
+    .action-surface::after {
+      content: "";
+      position: absolute;
+      inset: var(--rim);
+      border-radius: 16px;
+      z-index: 1;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.3) 0%, rgba(255,255,255,.05) 30%, transparent 55%),
+        linear-gradient(160deg, var(--body-c), var(--body-b) 40%, var(--body-a));
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.2), inset 0 -12px 22px rgba(0,0,0,.35);
+    }
+    .action-surface[data-lacquer="black"] { --body-a:#070709; --body-b:#1c1c22; --body-c:#5a5a66; }
+    .action-surface[data-lacquer="red"] { --body-a:#4a0408; --body-b:#b10d1a; --body-c:#ff6b6b; }
+    .action-surface[data-lacquer="green"] { --body-a:#04210f; --body-b:#0f7a3a; --body-c:#6dffb0; }
+    .action-surface[data-lacquer="blue"] { --body-a:#031533; --body-b:#155eef; --body-c:#7db4ff; }
+
+    .action-surface .as-inner {
+      position: relative;
+      z-index: 2;
+      display: grid;
+      gap: 12px;
+    }
+    .action-surface .as-top {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .action-surface .as-copy h4 {
+      margin: 0;
+      font-size: 18px;
+      letter-spacing: -0.02em;
+    }
+    .action-surface .as-copy p {
+      margin: 2px 0 0;
+      color: rgba(255,255,255,.72);
+      font-size: 13px;
+    }
+
+    /* Layout matrices */
+    .layout-frame {
+      border: 1px dashed #334155;
+      border-radius: 14px;
+      padding: 16px;
+      background: #0c1016;
+    }
+    .layout-frame .caption {
+      font-size: 11px;
+      color: var(--muted);
+      margin: 0 0 12px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+    .col-1 { display: grid; gap: 12px; justify-items: stretch; }
+    .col-1 .sig-action { width: 100%; justify-content: center; }
+    .col-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .col-2 .sig-action { width: 100%; justify-content: center; }
+    .phone {
+      width: min(320px, 100%);
+      margin: 0 auto;
+      border: 1px solid #334155;
+      border-radius: 28px;
+      padding: 18px 14px;
+      background: #0a0d12;
+    }
+    .phone .col-1 { gap: 10px; }
+    .phone .sig-action {
+      --medallion: 34px;
+      --rim: 5px;
+      min-height: 52px;
+      font-size: 14px;
+    }
+    .phone .leaves { transform: scale(.85); transform-origin: top left; }
+
+    .concept-row {
+      display: grid;
+      grid-template-columns: 1.1fr .9fr;
+      gap: 14px;
+    }
+    @media (max-width: 900px) {
+      .concept-row { grid-template-columns: 1fr; }
+      .col-2 { grid-template-columns: 1fr; }
+    }
+
+    .concept-row img {
+      width: 100%;
+      border-radius: 12px;
+      border: 1px solid var(--line);
+      display: block;
+      background: #000;
+    }
+
+    ul.lock {
+      margin: 0;
+      padding-left: 18px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+    ul.lock li { margin: 6px 0; }
+    ul.lock strong { color: var(--ink); }
+
+    .matrix {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 12px;
+    }
+    .matrix th, .matrix td {
+      border-bottom: 1px solid #243041;
+      padding: 8px 8px;
+      text-align: left;
+      vertical-align: top;
+    }
+    .matrix th { color: var(--muted); font-weight: 650; }
+    .matrix td { color: var(--ink); }
+
+    footer {
+      max-width: 1280px;
+      margin: 0 auto;
+      padding: 0 32px 40px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <p class="eyebrow">TapConnect Signature · Visual Target 01</p>
+    <h1>Bright Lacquer + Pounded Copper</h1>
+    <p class="lede">
+      First Signature visual target for Studio-wide Visual Parts — not a Button-only skin.
+      Same sockets assemble CTA, social, utility, Divider, and Action Surface.
+      Cody owns Cabinet Handles; this board locks look + decomposition before inventory fill.
+    </p>
+    <div class="status-row">
+      <span class="chip"><strong>Status</strong> Architecture / mechanical reference — not final Signature lock</span>
+      <span class="chip"><strong>Collection</strong> TapConnect Signature</span>
+      <span class="chip"><strong>Sourcing</strong> TapConnect-original construction · FREE only</span>
+      <span class="chip"><strong>Law</strong> Finish ≠ Color · Parts ≠ flattened preset</span>
+    </div>
+  </header>
+
+  <main>
+    <section>
+      <h2>1. Live assembly</h2>
+      <p class="sub">Host chooses lacquer color, icon placement, wording, and whether ornament is on. TapConnect owns lacquer behavior, pounded rim, medallion craft, and leaf composition.</p>
+
+      <div class="controls" id="controls">
+        <button class="ctrl" data-key="lacquer" data-val="black" aria-pressed="true"><span class="swatch" style="background:#111"></span>Black Lacquer</button>
+        <button class="ctrl" data-key="lacquer" data-val="red" aria-pressed="false"><span class="swatch" style="background:#c1121f"></span>Red</button>
+        <button class="ctrl" data-key="lacquer" data-val="green" aria-pressed="false"><span class="swatch" style="background:#15803d"></span>Green</button>
+        <button class="ctrl" data-key="lacquer" data-val="blue" aria-pressed="false"><span class="swatch" style="background:#2563eb"></span>Electric Blue</button>
+        <button class="ctrl" data-key="icons" data-val="left" aria-pressed="true">Icon Left</button>
+        <button class="ctrl" data-key="icons" data-val="right" aria-pressed="false">Icon Right</button>
+        <button class="ctrl" data-key="icons" data-val="both" aria-pressed="false">Icons Both</button>
+        <button class="ctrl" data-key="icons" data-val="none" aria-pressed="false">No Icon</button>
+        <button class="ctrl" data-key="ornament" data-val="on" aria-pressed="true">Copper Leaves On</button>
+        <button class="ctrl" data-key="ornament" data-val="off" aria-pressed="false">Leaves Off</button>
+        <button class="ctrl" data-key="artwork" data-val="mark" aria-pressed="true">Library Mark</button>
+        <button class="ctrl" data-key="artwork" data-val="photo" aria-pressed="false">Uploaded Photo</button>
+      </div>
+
+      <div class="sig-stage">
+        <div
+          class="sig-action"
+          id="hero"
+          data-lacquer="black"
+          data-icons="left"
+          data-ornament="on"
+          data-variant="cta"
+          data-artwork="mark"
+        >
+          <svg class="leaves left" viewBox="0 0 64 64" aria-hidden="true">
+            <defs>
+              <linearGradient id="leafGrad" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#f3d0a8"/>
+                <stop offset="45%" stop-color="#c56a2d"/>
+                <stop offset="100%" stop-color="#3a1a0c"/>
+              </linearGradient>
+            </defs>
+            <path fill="url(#leafGrad)" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44-4-2-8-6-12-12z"/>
+            <path fill="url(#leafGrad)" d="M8 28c10-8 22-10 34-8-6 10-14 18-26 22-4-2-6-8-8-14z" opacity=".9"/>
+            <path stroke="#f3d0a8" stroke-width="1.2" fill="none" d="M14 42c10-8 18-18 22-30"/>
+          </svg>
+          <span class="medallion primary"><span class="mark" aria-hidden="true"></span></span>
+          <span class="label">Book Your Table</span>
+          <span class="medallion mirror"><span class="mark" aria-hidden="true"></span></span>
+          <svg class="leaves right" viewBox="0 0 64 64" aria-hidden="true">
+            <path fill="url(#leafGrad)" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44-4-2-8-6-12-12z"/>
+            <path fill="url(#leafGrad)" d="M8 28c10-8 22-10 34-8-6 10-14 18-26 22-4-2-6-8-8-14z" opacity=".9"/>
+          </svg>
+        </div>
+        <p class="sub" style="margin:0;text-align:center">Curated family target — must come apart into the sockets below.</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>2. Construction — sockets, not a flat preset</h2>
+      <p class="sub">Every Curated Family decomposes into the same editable drawer pieces used to build it. Finish stays independent from Color.</p>
+      <div class="explode">
+        <div class="layer-row">
+          <div class="layer-name">1. Body / Finish</div>
+          <div class="layer-desc"><strong>Bright Lacquer</strong> — wet multi-stop depth, top specular band, edge falloff. <span class="who tap">TapConnect</span> behavior · <span class="who host">Host</span> chooses Color (black / red / green / electric blue / custom).</div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-name">2. Rim</div>
+          <div class="layer-desc"><strong>Pounded Copper</strong> — dimensional hammered metal with facet sparks. Reusable Signature rim part for buttons, medallions, dividers, plaques, frames. <span class="who tap">TapConnect</span></div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-name">3. Icon Station</div>
+          <div class="layer-desc">Dark / Black Lacquer medallion + copper ring. Artwork = library icon or Host upload (logo/photo). Placement Left / Right / Both. <span class="who host">Host</span> artwork · <span class="who tap">TapConnect</span> craft</div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-name">4. Ornament</div>
+          <div class="layer-desc"><strong>Copper Leaves</strong> — botanical copper accent, nestled at rim/medallion junctions. Same part may underline a name, terminate a Divider, or cap an Action Surface. <span class="who tap">TapConnect</span> · toggleable</div>
+        </div>
+        <div class="layer-row">
+          <div class="layer-name">5. Label / Action</div>
+          <div class="layer-desc">Wording, typography, text color, and Action binding remain ordinary Studio primitives — Signature does not replace the generic Button editor. <span class="who host">Host</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>3. Lacquer color proof + variants</h2>
+      <p class="sub">Proof set required by product direction. Social and utility share sockets with quieter scale — not separate engines.</p>
+      <div class="grid-2">
+        <div class="cardish">
+          <h3>Color proof · CTA</h3>
+          <div class="sig-stage" style="padding:18px;gap:12px">
+            <div class="sig-action" data-lacquer="black" data-icons="left" data-ornament="on"><span class="medallion"><span class="mark"></span></span><span class="label">Black Lacquer</span>
+              <svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+            </div>
+            <div class="sig-action" data-lacquer="red" data-icons="left" data-ornament="on"><span class="medallion"><span class="mark"></span></span><span class="label">Red Lacquer</span>
+              <svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+            </div>
+            <div class="sig-action" data-lacquer="green" data-icons="left" data-ornament="on"><span class="medallion"><span class="mark"></span></span><span class="label">Green Lacquer</span>
+              <svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+            </div>
+            <div class="sig-action" data-lacquer="blue" data-icons="left" data-ornament="on"><span class="medallion"><span class="mark"></span></span><span class="label">Electric Blue</span>
+              <svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+            </div>
+          </div>
+        </div>
+        <div class="cardish">
+          <h3>Role variants</h3>
+          <div class="sig-stage" style="padding:18px;gap:14px">
+            <div class="sig-action" data-lacquer="black" data-icons="left" data-ornament="on" data-variant="cta"><span class="medallion"><span class="mark"></span></span><span class="label">Primary CTA</span>
+              <svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+            </div>
+            <div class="sig-action" data-lacquer="blue" data-icons="left" data-ornament="off" data-variant="social"><span class="medallion"><span class="mark"></span></span><span class="label">Instagram</span></div>
+            <div class="sig-action" data-lacquer="black" data-icons="left" data-ornament="off" data-variant="utility"><span class="medallion"><span class="mark"></span></span><span class="label">Get Directions</span></div>
+            <div class="sig-action" data-lacquer="green" data-icons="both" data-ornament="on" data-variant="cta">
+              <span class="medallion primary"><span class="mark"></span></span>
+              <span class="label">Reserve · Both Icons</span>
+              <span class="medallion mirror"><span class="mark"></span></span>
+              <svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+              <svg class="leaves right" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>4. Matching Divider + Action Surface</h2>
+      <p class="sub">Same Pounded Copper + optional Copper Leaves. Action Surface is a plaque/cap — not a second material engine.</p>
+      <div class="grid-2">
+        <div class="cardish">
+          <h3>Signature Divider</h3>
+          <div class="sig-stage">
+            <div class="sig-divider">
+              <svg class="leaf l" viewBox="0 0 64 64" aria-hidden="true"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/><path fill="#e8a56a" d="M10 30c12-8 24-8 36-4-8 10-16 16-28 18z"/></svg>
+              <div class="bar"></div>
+              <svg class="leaf r" viewBox="0 0 64 64" aria-hidden="true"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/><path fill="#e8a56a" d="M10 30c12-8 24-8 36-4-8 10-16 16-28 18z"/></svg>
+            </div>
+            <p class="sub" style="margin:0;text-align:center">Reusable as section break, offer separator, or company-name underline when scaled down.</p>
+          </div>
+        </div>
+        <div class="cardish">
+          <h3>Harmonized Action Surface</h3>
+          <div class="sig-stage">
+            <div class="action-surface" id="plaque" data-lacquer="black">
+              <div class="as-inner">
+                <div class="as-top">
+                  <span class="medallion" style="--medallion:48px"><span class="mark"></span></span>
+                  <div class="as-copy">
+                    <h4>Tonight’s Special</h4>
+                    <p>Host copy · Signature craft on the plaque edge</p>
+                  </div>
+                </div>
+                <div class="sig-action" data-lacquer="red" data-icons="left" data-ornament="on" data-variant="social" style="width:100%;justify-content:center">
+                  <span class="medallion"><span class="mark"></span></span>
+                  <span class="label">Claim Offer</span>
+                  <svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>5. Responsive balance — one column / two column / phone stack</h2>
+      <p class="sub">Signature parts must reflow with Studio layout authorities. Phone auto-stacks; medallion and rim scale; leaves may simplify before colliding with type.</p>
+      <div class="grid-2" style="grid-template-columns: 1fr 1fr; gap:14px">
+        <div class="layout-frame">
+          <p class="caption">One column</p>
+          <div class="col-1" id="layout-1">
+            <div class="sig-action" data-lacquer="black" data-icons="left" data-ornament="on"><span class="medallion"><span class="mark"></span></span><span class="label">Book Now</span><svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg></div>
+            <div class="sig-action" data-lacquer="black" data-icons="left" data-ornament="off" data-variant="utility"><span class="medallion"><span class="mark"></span></span><span class="label">Call Us</span></div>
+          </div>
+        </div>
+        <div class="layout-frame">
+          <p class="caption">Two column</p>
+          <div class="col-2" id="layout-2">
+            <div class="sig-action" data-lacquer="red" data-icons="left" data-ornament="on" data-variant="social"><span class="medallion"><span class="mark"></span></span><span class="label">Reserve</span><svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg></div>
+            <div class="sig-action" data-lacquer="blue" data-icons="left" data-ornament="off" data-variant="social"><span class="medallion"><span class="mark"></span></span><span class="label">Follow</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="layout-frame" style="margin-top:14px">
+        <p class="caption">Phone auto-stack</p>
+        <div class="phone">
+          <div class="col-1">
+            <div class="sig-action" data-lacquer="green" data-icons="left" data-ornament="on"><span class="medallion"><span class="mark"></span></span><span class="label">Order Online</span><svg class="leaves left" viewBox="0 0 64 64"><path fill="#c56a2d" d="M12 40c8-18 22-28 40-32-2 18-10 34-28 44z"/></svg></div>
+            <div class="sig-action" data-lacquer="black" data-icons="left" data-ornament="off" data-variant="utility"><span class="medallion"><span class="mark"></span></span><span class="label">Hours</span></div>
+            <div class="sig-action" data-lacquer="black" data-icons="left" data-ornament="off" data-variant="utility"><span class="medallion"><span class="mark"></span></span><span class="label">Directions</span></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>6. Concept stills + locked product rules</h2>
+      <div class="concept-row">
+        <div>
+          <img src="./bright-lacquer-pounded-copper-black.png" alt="Concept: black lacquer CTA with pounded copper rim and medallion" />
+          <p class="sub" style="margin-top:10px">Atmosphere target — Daniel-level richness, cleaner system. Stills inspire; the CSS assembly above is the editable-part truth.</p>
+          <img src="./bright-lacquer-color-proof.png" alt="Concept: lacquer color proof sheet" style="margin-top:12px" />
+        </div>
+        <div class="cardish">
+          <h3>Lock for this Signature family</h3>
+          <ul class="lock">
+            <li><strong>Studio-owned parts.</strong> Pounded Copper rim, Copper Leaves, Bright Lacquer finish, Icon Station — belong to Studio Visual Parts, not “the Button.”</li>
+            <li><strong>Finish ≠ Color.</strong> Bright Lacquer is the finish recipe; Host recolors lacquer without swapping the finish socket.</li>
+            <li><strong>Curated → Customize.</strong> Selecting this family must open the same sockets used to construct it — never a flattened image.</li>
+            <li><strong>Generic Button survives.</strong> Campaigns, coupons, forms, badges, and plain buttons keep Foundation primitives. Signature is additive wow.</li>
+            <li><strong>One material authority.</strong> No parallel lacquer/copper renderer. Future Cabinet inventory mounts into these sockets.</li>
+            <li><strong>Compatible reuse.</strong> Rim/leaves/finish may later dress medallions, container edges, dividers, underlines, offer frames, Action Surfaces.</li>
+            <li><strong>FREE sourcing only.</strong> This target is TapConnect-original construction. Third-party free code/assets require license + provenance if introduced later.</li>
+            <li><strong>Benchmark.</strong> Match or exceed Monkey Cage / BreadBreakers tactile richness — with responsive balance and editable parts.</li>
+          </ul>
+          <table class="matrix" style="margin-top:14px">
+            <thead>
+              <tr><th>Socket</th><th>Host</th><th>TapConnect</th></tr>
+            </thead>
+            <tbody>
+              <tr><td>Finish</td><td>Pick / keep Bright Lacquer</td><td>Specular, depth, wetness</td></tr>
+              <tr><td>Color</td><td>Lacquer hue + label color</td><td>Recolorable stops stay coherent</td></tr>
+              <tr><td>Rim</td><td>On/off / weight later</td><td>Pounded Copper facets</td></tr>
+              <tr><td>Icon Station</td><td>Icon / logo / photo · L/R/Both</td><td>Dark medallion + copper ring</td></tr>
+              <tr><td>Ornament</td><td>On/off</td><td>Copper Leaves composition</td></tr>
+              <tr><td>Label / Action</td><td>Words, font, binding</td><td>Legibility on lacquer</td></tr>
+              <tr><td>Layout</td><td>1-col / 2-col intent</td><td>Phone stack + craft scale</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>7. Open refinements for Product Owner</h2>
+      <p class="sub">Not blocking Cody’s Cabinet Handles. Decide these while the visual target is warm.</p>
+      <ul class="lock">
+        <li><strong>Medallion default:</strong> Always Black Lacquer disc, or medallion follows body lacquer at a darker step?</li>
+        <li><strong>Leaves density:</strong> CTA only vs also social? Recommend CTA + Action Surface + Divider terminals; utility stays clean.</li>
+        <li><strong>Rim weight:</strong> One Signature rim weight now; Host-tunable rim thickness later via Foundation socket — not a second copper material.</li>
+        <li><strong>Both-icons mode:</strong> Mirrored artwork vs primary + secondary (e.g. brand + action glyph)? Recommend primary + optional secondary for v1.</li>
+        <li><strong>Electric Blue stop:</strong> Keep cobalt electric (current) vs neon-leaning cyan — still lacquer, not Neon Edge effect.</li>
+      </ul>
+    </section>
+  </main>
+
+  <footer>
+    Visual target only · No deploy · Main untouched · Does not interrupt Operation Cabinet Handles ·
+    Powered by Tap The Magic craft · TapConnect Studio product surface
+  </footer>
+
+  <script>
+    const hero = document.getElementById("hero");
+    const plaque = document.getElementById("plaque");
+    const controls = document.getElementById("controls");
+
+    function applyArtwork(root, mode) {
+      root.querySelectorAll(".medallion").forEach((el) => {
+        el.classList.toggle("photo", mode === "photo");
+        const mark = el.querySelector(".mark");
+        if (!mark) return;
+        mark.style.background = mode === "photo"
+          ? "radial-gradient(circle at 35% 30%, #f0d2a8, #8a5a2a 45%, #3a2010 80%)"
+          : "";
+        if (mode === "photo") {
+          mark.style.width = "100%";
+          mark.style.height = "100%";
+          mark.style.borderRadius = "50%";
+          mark.style.clipPath = "none";
+        } else {
+          mark.style.width = "";
+          mark.style.height = "";
+          mark.style.borderRadius = "";
+          mark.style.clipPath = "";
+        }
+      });
+    }
+
+    controls.addEventListener("click", (event) => {
+      const btn = event.target.closest("button.ctrl");
+      if (!btn) return;
+      const key = btn.dataset.key;
+      const val = btn.dataset.val;
+      controls.querySelectorAll(`button.ctrl[data-key="${key}"]`).forEach((b) => {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      if (key === "artwork") {
+        hero.dataset.artwork = val;
+        applyArtwork(hero, val);
+        return;
+      }
+      hero.setAttribute(`data-${key}`, val);
+      if (key === "lacquer") {
+        plaque.setAttribute("data-lacquer", val);
+      }
+    });
+  </script>
+</body>
+</html>

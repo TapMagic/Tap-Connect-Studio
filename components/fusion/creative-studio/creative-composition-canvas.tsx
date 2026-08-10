@@ -73,6 +73,15 @@ import {
 } from "@/lib/fusion/creative-studio/material-engine";
 import { resolveMaterialSurfaceFromProps } from "@/lib/fusion/creative-studio/material-surface";
 import { MaterialSurfaceLayers } from "@/components/fusion/creative-studio/material-surface-layers";
+import {
+  IconStationShell,
+  VisualPartsShell,
+} from "@/components/fusion/creative-studio/visual-parts-layers";
+import {
+  ornamentSvg,
+  readVisualPartsState,
+  visualPartsDataAttrs,
+} from "@/lib/fusion/creative-studio/visual-parts";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -382,39 +391,54 @@ function NodeVisual({
 
   const componentKind = str(node.props.componentKind);
   if (componentKind === "container") {
+    const vpContainer = readVisualPartsState(node.props);
+    const actionSurfaceTone = str(node.props.actionSurfaceTone);
+    const containerRadius = num(node.props.radius, actionSurfaceTone ? 18 : 0);
     // Material props are the surface authority when a Material was applied.
     // Visual Plane remains for non-Material Container Background editing.
     const materialActive =
       typeof node.props.materialPreset === "string" &&
       node.props.materialPreset.length > 0 &&
       node.props.materialPreset !== "none";
-    if (materialActive) {
-      const material = resolveMaterialSurfaceFromProps(node.props, "container");
+    if (materialActive || actionSurfaceTone === "copper_harmonized" || vpContainer.rimPartId) {
+      const material = materialActive
+        ? resolveMaterialSurfaceFromProps(node.props, "container")
+        : null;
+      const background =
+        actionSurfaceTone === "copper_harmonized"
+          ? str(
+              node.props.gradientFill,
+              "linear-gradient(160deg,#3a2418 0%,#1a1410 48%,#0c0a08 100%)"
+            )
+          : material?.background || str(node.props.fill, "#111827");
       return (
+        <VisualPartsShell props={node.props} radius={containerRadius} testIdPrefix={`container-${node.id}`}>
         <div
           className="relative h-full w-full overflow-hidden"
           data-component-kind="container"
           data-container-layout={str(node.props.layout, "free")}
           data-container-resize-policy={str(node.props.resizePolicy, "reflow")}
-          data-surface-texture={material.textureToken || undefined}
-          data-visual-plane="material"
-          data-material-fill-authority={material.fillAuthority}
-          data-material-stop-count={String(material.gradientStopCount)}
-          data-material-highlight={material.highlight ? "true" : "false"}
+          data-vp-action-surface={vpContainer.actionSurfacePartId || undefined}
+          data-surface-texture={material?.textureToken || undefined}
+          data-visual-plane={materialActive ? "material" : "visual-parts"}
+          data-material-fill-authority={material?.fillAuthority}
+          data-material-stop-count={material ? String(material.gradientStopCount) : undefined}
+          data-material-highlight={material?.highlight ? "true" : "false"}
           style={{
-            background: material.background,
-            backgroundSize: material.backgroundSize,
+            background,
+            backgroundSize: material?.backgroundSize,
             border:
-              material.borderWidth > 0
+              material && material.borderWidth > 0
                 ? `${material.borderWidth}px ${material.borderStyle} ${material.borderColor}`
                 : "none",
-            borderRadius: num(node.props.radius, 0),
-            boxShadow: material.boxShadow,
-            opacity: material.opacity,
+            borderRadius: containerRadius,
+            boxShadow: material?.boxShadow,
+            opacity: material?.opacity ?? 1,
           }}
         >
-          <MaterialSurfaceLayers surface={material} testIdPrefix={`container-${node.id}`} />
+          {material ? <MaterialSurfaceLayers surface={material} testIdPrefix={`container-${node.id}`} /> : null}
         </div>
+        </VisualPartsShell>
       );
     }
     const plane = readContainerVisualPlane(node);
@@ -688,9 +712,12 @@ function NodeVisual({
     const clarity = num(node.props.clarity, 0);
     const vignette = num(node.props.vignette, 0);
     const duotoneStrength = num(node.props.duotoneStrength, 0);
+    const imageRadius = num(node.props.outlineRadius, 6);
     return (
+      <VisualPartsShell props={node.props} radius={imageRadius} testIdPrefix={`image-${node.id}`}>
       <div
         className="relative h-full w-full overflow-hidden rounded-md bg-white/10"
+        {...visualPartsDataAttrs(node.props)}
         style={{
           opacity: num(node.props.opacity, 1),
           borderWidth:
@@ -705,7 +732,7 @@ function NodeVisual({
             str(node.props.outlineColor, "#ffffff"),
             num(node.props.outlineOpacity, 1)
           ),
-          borderRadius: num(node.props.outlineRadius, 6),
+          borderRadius: imageRadius,
           boxShadow: [
             num(node.props.boxShadow, 0) ? `0 8px ${num(node.props.boxShadow, 18)}px rgba(0,0,0,.4)` : "",
             num(node.props.boxGlow, 0) ? `0 0 ${num(node.props.boxGlow, 18)}px ${str(node.props.glowColor, "#b8ff2c")}` : "",
@@ -789,6 +816,7 @@ function NodeVisual({
           />
         ) : null}
       </div>
+      </VisualPartsShell>
     );
   }
 
@@ -1160,13 +1188,18 @@ function NodeVisual({
   }
 
   if (node.primitive === "border") {
-    const style = str(node.props.style, "solid");
-    const thickness = num(node.props.thickness, 2);
-    const color = str(node.props.color, "#fff");
+    const vpDivider = readVisualPartsState(node.props);
+    const botanical = str(node.props.vpDividerTreatment) === "copper_botanical" || vpDivider.dividerLinePartId === "divider_copper_botanical";
+    const style = botanical ? "solid" : str(node.props.style, "solid");
+    const thickness = botanical ? Math.max(num(node.props.thickness, 2), 4) : num(node.props.thickness, 2);
+    const color = botanical ? "#c56a2d" : str(node.props.color, "#fff");
     const opacity = num(node.props.opacity, 1);
     const cap = str(node.props.cap, "round");
     const startMarker = str(node.props.startMarker, "none");
     const endMarker = str(node.props.endMarker, "none");
+    const endcapSvg = botanical
+      ? ornamentSvg(str(node.props.vpDividerEndcapAssetId, "copper_divider_endcap"))
+      : "";
     const markerId = (side: "start" | "end", type: string) =>
       `divider-${node.id}-${side}-${type}`;
     const dash =
@@ -1190,6 +1223,13 @@ function NodeVisual({
       return null;
     };
     return (
+      <div className="relative h-full w-full" {...visualPartsDataAttrs(node.props)} data-vp-divider-treatment={botanical ? "copper_botanical" : "minimal"}>
+      {botanical && endcapSvg ? (
+        <>
+          <span className="pointer-events-none absolute left-0 top-1/2 z-[1] h-5 w-5 -translate-y-1/2 [&_svg]:h-full [&_svg]:w-full" data-testid={`divider-endcap-start-${node.id}`} dangerouslySetInnerHTML={{ __html: endcapSvg }} />
+          <span className="pointer-events-none absolute right-0 top-1/2 z-[1] h-5 w-5 -translate-y-1/2 scale-x-[-1] [&_svg]:h-full [&_svg]:w-full" data-testid={`divider-endcap-end-${node.id}`} dangerouslySetInnerHTML={{ __html: endcapSvg }} />
+        </>
+      ) : null}
       <svg
         viewBox="0 0 100 20"
         preserveAspectRatio="none"
@@ -1259,6 +1299,7 @@ function NodeVisual({
           />
         )}
       </svg>
+      </div>
     );
   }
 
@@ -1319,48 +1360,53 @@ function NodeVisual({
     const iconPosition = str(node.props.iconPosition, "before");
     const freeLayout = str(node.props.buttonContentLayout, "auto") === "free";
     const verticalIcon = iconPosition === "above" || iconPosition === "below" || labelBelow;
-    const buttonIconEl = showIcon ? (
-      <span
-        data-testid={`button-icon-${node.id}`}
-        data-icon-canonical={icon}
-        data-icon-svg={iconSvg.includes("<svg") ? "true" : "false"}
-        style={{
-          width: num(node.props.iconSize, 20),
-          height: num(node.props.iconSize, 20),
-          color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
-          transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)`,
-          position: freeLayout ? "absolute" : undefined,
-          left: freeLayout ? `${num(node.props.iconFreeX, 12)}px` : undefined,
-          top: freeLayout ? `${num(node.props.iconFreeY, 12)}px` : undefined,
-        }}
-      >
-        {iconSvg.includes("<svg") ? (
-          <span className="grid h-full w-full place-items-center [&_svg]:h-full [&_svg]:w-full" aria-hidden dangerouslySetInnerHTML={{ __html: iconSvg }} />
-        ) : (
-          <ElementIcon name={icon} size={num(node.props.iconSize, 20)} />
-        )}
-      </span>
-    ) : null;
+    const vpState = readVisualPartsState(node.props);
+    const iconStationActive = Boolean(vpState.iconStationGeometryPartId);
+    const iconInner = iconSvg.includes("<svg") ? (
+      <span className="grid h-full w-full place-items-center [&_svg]:h-full [&_svg]:w-full" aria-hidden dangerouslySetInnerHTML={{ __html: iconSvg }} />
+    ) : (
+      <ElementIcon name={icon} size={num(node.props.iconSize, iconStationActive ? 18 : 20)} />
+    );
+    const makeIconEl = (side: "primary" | "mirror") =>
+      showIcon ? (
+        <span
+          data-testid={side === "primary" ? `button-icon-${node.id}` : `button-icon-mirror-${node.id}`}
+          data-icon-canonical={icon}
+          data-icon-svg={iconSvg.includes("<svg") ? "true" : "false"}
+          data-vp-icon-station={iconStationActive ? "true" : undefined}
+          style={{
+            width: num(node.props.iconSize, iconStationActive ? 28 : 20),
+            height: num(node.props.iconSize, iconStationActive ? 28 : 20),
+            color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
+            transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)`,
+            position: freeLayout ? "absolute" : undefined,
+            left: freeLayout ? `${num(node.props.iconFreeX, 12)}px` : undefined,
+            top: freeLayout ? `${num(node.props.iconFreeY, 12)}px` : undefined,
+          }}
+        >
+          {iconStationActive ? <IconStationShell props={node.props}>{iconInner}</IconStationShell> : iconInner}
+        </span>
+      ) : null;
+    const buttonIconEl = makeIconEl("primary");
+    const mirrorIconEl = node.props.iconStationBoth === true ? makeIconEl("mirror") : null;
     const buttonLabelEl = !labelBelow && showLabel
       ? (node.props.contentEditing === true
         ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={{ ...labelStyle, position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }} onCommit={onEditText} onFinish={onFinishTextEdit} />
         : <span style={{ ...labelStyle, whiteSpace: "pre-wrap", position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }}>{labelValue}</span>)
       : null;
-    const surface = (
+    const surfaceInner = (
       <span
-        className="relative inline-flex shrink-0 items-center justify-center overflow-hidden"
+        className="relative inline-flex h-full w-full shrink-0 items-center justify-center overflow-hidden"
         style={{
-          width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
-          height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           minHeight: 44,
           background: surfaceBackground,
           backgroundSize: materialSurface.backgroundSize ?? (surfaceKind === "texture" ? "8px 8px" : undefined),
           color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
           borderRadius: radius,
-          borderWidth: materialSurface.borderWidth,
+          borderWidth: vpState.rimPartId ? 0 : materialSurface.borderWidth,
           borderStyle: materialSurface.borderStyle as CSSProperties["borderStyle"],
           borderColor: materialSurface.borderColor,
-          boxShadow: shadowParts,
+          boxShadow: vpState.rimPartId ? undefined : shadowParts,
           opacity: materialSurface.opacity,
           padding: num(node.props.padding, 8),
           gap: num(node.props.spacing, 6),
@@ -1379,6 +1425,21 @@ function NodeVisual({
         {(iconPosition === "before" || iconPosition === "above") ? buttonIconEl : null}
         {buttonLabelEl}
         {(iconPosition === "after" || iconPosition === "below") ? buttonIconEl : null}
+        {mirrorIconEl}
+      </span>
+    );
+    const surface = (
+      <span
+        className="relative inline-flex shrink-0"
+        style={{
+          width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
+          height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
+          minHeight: 44,
+        }}
+      >
+        <VisualPartsShell props={node.props} radius={radius} testIdPrefix={`button-${node.id}`}>
+          {surfaceInner}
+        </VisualPartsShell>
       </span>
     );
     return (
@@ -1402,6 +1463,12 @@ function NodeVisual({
         aria-label={str(node.props.accessibleLabel, labelValue)}
         data-button-presentation={presentation}
         data-button-content-count={buttonContent(node.props, node.id).nodes.length}
+        data-vp-family={vpState.curatedFamilyId || undefined}
+        data-vp-finish={vpState.finishPartId || undefined}
+        data-vp-rim={vpState.rimPartId || undefined}
+        data-vp-layout={vpState.layoutIntent || undefined}
+        data-vp-icon-position={vpState.iconStationPosition || undefined}
+        data-vp-phone-stack={vpState.layoutIntent === "two_column" ? "auto" : "off"}
       >
         {surface}
         {labelBelow && showLabel ? <strong className="block" style={labelStyle}>{labelValue}</strong> : null}
