@@ -723,7 +723,9 @@ export const VISUAL_PARTS_DRAWER_CONTRACT: Readonly<
   curated: { label: "Curated", categories: ["curated"] },
   body: { label: "Body", categories: ["body"] },
   finish: { label: "Finish", categories: ["finish"] },
-  color: { label: "Color", categories: ["color"], passthrough: "color" },
+  // Color stays in-cabinet (base color + refinement + Host Brand Recipes).
+  // Existing Color picker remains available via the Color drawer passthrough button.
+  color: { label: "Color", categories: ["color"] },
   frame_ring: { label: "Frame & Ring", categories: ["frame_ring"] },
   icon_image: { label: "Icon / Image", categories: ["icon_station", "icon_content"] },
   accents: { label: "Accents", categories: ["accent"] },

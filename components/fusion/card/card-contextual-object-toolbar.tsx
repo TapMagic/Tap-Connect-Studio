@@ -657,9 +657,17 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         props = { ...props, contentComposition: { ...content, nodes } };
       }
     }
-    // Material (and Visual Plane) must not soft-fail on selection-generation drift —
-    // Host Material applies are outcome-critical and use the same durable replace path.
-    if ("materialPreset" in next || next.visualPlane !== undefined || ("visualPlane" in next && next.visualPlane === null)) {
+    // Material / Visual Plane / Visual Parts must not soft-fail on selection-generation drift —
+    // Host applies are outcome-critical and use the same durable replace path.
+    if (
+      "materialPreset" in next ||
+      next.visualPlane !== undefined ||
+      ("visualPlane" in next && next.visualPlane === null) ||
+      "visualParts" in next ||
+      next.vpHeroStructure !== undefined ||
+      next.vpSectionRole !== undefined ||
+      next.vpActionGroup !== undefined
+    ) {
       replace(
         {
           ...block,
@@ -1291,7 +1299,14 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
         </div>;
       })() : null}
 {focus === "visual-parts" ? (() => {
-        const vpTarget = objectFamilyToVisualTarget(objectFamily) || (objectFamily === "container" ? "action_surface" : null);
+        const vpTarget =
+          objectFamilyToVisualTarget(objectFamily) ||
+          (objectFamily === "container"
+            ? String(node.props.vpSectionRole || "") === "hero" ||
+              Boolean((node.props.visualParts as { heroStructure?: string } | undefined)?.heroStructure)
+              ? "hero"
+              : "container"
+            : null);
         if (!vpTarget) {
           return <p className="text-[11px] text-white/60" data-testid="vp-incompatible">Visual Parts are not available for this object.</p>;
         }

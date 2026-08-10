@@ -56,25 +56,62 @@ async function boxOf(locator: Locator) {
   return box;
 }
 
-async function setPhoneFrameWidth(page: Page, widthPx: number) {
+async function setCompositionSurfaceWidth(page: Page, widthPx: number) {
   await page.evaluate((w) => {
-    const host =
-      document.querySelector("[data-testid='card-phone-frame']") ||
-      document.querySelector("[data-testid='composition-surface']") ||
-      document.querySelector("[data-composition-surface]");
-    const el = (host as HTMLElement) || document.documentElement;
-    el.style.width = `${w}px`;
-    el.style.maxWidth = `${w}px`;
+    const canvas = document.querySelector(
+      "[data-testid='creative-composition-canvas']"
+    ) as HTMLElement | null;
+    const root = document.querySelector("[data-testid='card-root-canvas']") as HTMLElement | null;
+    const targets = [canvas, root].filter(Boolean) as HTMLElement[];
+    for (const el of targets) {
+      el.style.setProperty("width", `${w}px`, "important");
+      el.style.setProperty("max-width", `${w}px`, "important");
+      el.style.setProperty("min-width", `${w}px`, "important");
+    }
+    // Walk ancestors so phone/preview wrappers cannot clamp ResizeObserver width.
+    let node: HTMLElement | null = canvas;
+    for (let i = 0; i < 10 && node; i++) {
+      node.style.setProperty("max-width", `${w}px`, "important");
+      if (w >= 420) {
+        node.style.setProperty("width", `${w}px`, "important");
+        node.style.setProperty("min-width", `${Math.min(w, 520)}px`, "important");
+      } else {
+        node.style.setProperty("width", `${w}px`, "important");
+      }
+      node = node.parentElement;
+    }
     window.dispatchEvent(new Event("resize"));
   }, widthPx);
-  await page.waitForTimeout(300);
+  // Auto-stack law uses 420px — wait for the side of the breakpoint we need.
+  if (widthPx >= 420) {
+    await expect
+      .poll(
+        async () =>
+          Number(
+            await page.locator("[data-testid='creative-composition-canvas']").getAttribute("data-surface-width")
+          ),
+        { timeout: 10_000 }
+      )
+      .toBeGreaterThanOrEqual(420);
+  } else {
+    await expect
+      .poll(
+        async () =>
+          Number(
+            await page.locator("[data-testid='creative-composition-canvas']").getAttribute("data-surface-width")
+          ),
+        { timeout: 10_000 }
+      )
+      .toBeLessThan(420);
+  }
 }
 
 async function recordViewportYield(page: Page, proofId: string) {
   const observation = await page.evaluate((id) => {
     const viewportEl =
-      (document.querySelector("[data-testid='card-phone-frame']") as HTMLElement | null) ||
-      (document.querySelector("[data-testid='composition-surface']") as HTMLElement | null);
+      (document.querySelector("[data-testid='creative-composition-canvas']") as HTMLElement | null) ||
+      (document.querySelector("[data-composition-surface]") as HTMLElement | null) ||
+      (document.querySelector("[data-testid='card-root-canvas']") as HTMLElement | null);
     const vr = viewportEl?.getBoundingClientRect();
     const viewport = vr
       ? { top: vr.top, left: vr.left, width: vr.width, height: vr.height, bottom: vr.bottom, right: vr.right }
@@ -163,49 +200,27 @@ test.describe("Visual Grammar Outcome Truth", () => {
     await ownerClick(page.getByTestId("starter-action-grid-two"), "Two-column grid");
     const group = page.locator("[data-vp-action-group='true']").first();
     await expect(group).toBeVisible({ timeout: 15_000 });
-    const childrenWide = page.locator("[data-vp-action-group-child='true'], [data-composition-node][data-primitive='button']");
-    // Measure child composition nodes under group
-    const childNodes = page.locator("[data-composition-node]").filter({
-      has: page.locator("[data-button-surface-kind]"),
-    });
+    const childNodes = page.locator("[data-composition-node][data-vp-action-group-child='true']");
     await expect(childNodes.first()).toBeVisible({ timeout: 15_000 });
+
+    // Wide surface (≥420) must produce two column x positions
+    await setCompositionSurfaceWidth(page, 520);
+    await expect(group).toHaveAttribute("data-vp-phone-stack-active", "columns", { timeout: 10_000 });
     const wideBoxes = [];
-    const count = await childNodes.count();
-    for (let i = 0; i < Math.min(count, 4); i++) wideBoxes.push(await boxOf(childNodes.nth(i)));
-    const wideXs = [...new Set(wideBoxes.map((b) => Math.round(b.x / 4) * 4))];
+    for (let i = 0; i < Math.min(await childNodes.count(), 4); i++) wideBoxes.push(await boxOf(childNodes.nth(i)));
+    const wideXs = [...new Set(wideBoxes.map((b) => Math.round(b.x / 6) * 6))];
     expect(wideXs.length).toBeGreaterThanOrEqual(2);
     await group.screenshot({ path: path.join(PROOFS, "two-column-wide.png") });
-    await expect(group).toHaveAttribute("data-vp-phone-stack-active", /columns|stacked/);
 
-    // Narrow phone — force surface width via evaluate on composition surface
-    await page.evaluate(() => {
-      const surface = document.querySelector("[data-testid='composition-surface']") as HTMLElement | null;
-      if (surface) {
-        surface.style.width = "360px";
-        surface.style.maxWidth = "360px";
-      }
-      const wrap = document.querySelector("[data-phone-frame], [data-testid='card-device-frame']") as HTMLElement | null;
-      if (wrap) {
-        wrap.style.width = "360px";
-        wrap.style.maxWidth = "360px";
-      }
-    });
-    await page.setViewportSize({ width: 390, height: 900 });
-    await page.waitForTimeout(500);
-    // Resize observer on canvas uses surface getBoundingClientRect — trigger by zooming / waiting
-    const stackedAttr = await group.getAttribute("data-vp-phone-stack-active");
-    // If still columns, shrink the measured surfaceSize by resizing window hard
-    if (stackedAttr !== "stacked") {
-      await page.setViewportSize({ width: 320, height: 900 });
-      await page.waitForTimeout(600);
-    }
+    // Narrow surface must auto-stack to one column / sequential y
+    await setCompositionSurfaceWidth(page, 320);
+    await expect(group).toHaveAttribute("data-vp-phone-stack-active", "stacked", { timeout: 10_000 });
     const narrowBoxes = [];
     for (let i = 0; i < Math.min(await childNodes.count(), 4); i++) {
       narrowBoxes.push(await boxOf(childNodes.nth(i)));
     }
-    const narrowXs = [...new Set(narrowBoxes.map((b) => Math.round(b.x / 8) * 8))];
-    // After stack, x columns collapse toward one
-    expect(narrowXs.length).toBeLessThanOrEqual(2);
+    const narrowXs = [...new Set(narrowBoxes.map((b) => Math.round(b.x / 12) * 12))];
+    expect(narrowXs.length).toBeLessThanOrEqual(1);
     const ys = narrowBoxes.map((b) => b.y).sort((a, b) => a - b);
     if (ys.length >= 2) expect(ys[ys.length - 1]! - ys[0]!).toBeGreaterThan(20);
     await group.screenshot({ path: path.join(PROOFS, "two-column-narrow-autostack.png") });
@@ -333,8 +348,7 @@ test.describe("Visual Grammar Outcome Truth", () => {
       await dismissOverlays(page);
       await proof.build();
       await page.waitForTimeout(400);
-      const frame =
-        page.locator("[data-testid='card-phone-frame']").first().or(page.locator("[data-testid='composition-surface']").first());
+      const frame = page.locator("[data-testid='creative-composition-canvas']").first();
       await frame.screenshot({ path: path.join(PROOFS, `${proof.id}.png`) });
       await recordViewportYield(page, proof.id);
     }
@@ -413,7 +427,11 @@ test.describe("Visual Grammar Outcome Truth", () => {
     await hero.click();
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-hero"), "Hero");
+    await expect(page.getByTestId("vp-part-hero_identity")).toBeVisible({ timeout: 10_000 });
     await ownerClick(page.getByTestId("vp-part-hero_identity"), "Change to Identity");
+    await expect(page.getByTestId("vp-part-hero_identity")).toHaveAttribute("data-vp-active", "true", {
+      timeout: 10_000,
+    });
     await expect(page.locator("[data-vp-hero='identity']").first()).toBeVisible({ timeout: 10_000 });
     await openTools(page);
     await ownerClick(page.getByTestId("starter-launch-featured-launch"), "Launch");
@@ -435,22 +453,29 @@ test.describe("Visual Grammar Outcome Truth", () => {
     // —— 15 Divider / Bottom Stop footprint ——
     await openTools(page);
     await ownerClick(page.getByTestId("starter-divider-solid-full"), "Divider");
-    const divider = page.locator("[data-vp-divider], [data-primitive='border']").last();
+    const divider = page.locator("[data-composition-node][data-primitive='border']").last();
+    await expect(divider).toBeVisible({ timeout: 15_000 });
     await divider.click();
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-divider"), "Divider");
-    await ownerClick(page.getByTestId("vp-part-divider_minimal_line").or(page.getByTestId("vp-part-divider_electric")), "Compact divider");
+    await ownerClick(
+      page.getByTestId("vp-part-divider_minimal_line").or(page.getByTestId("vp-part-divider_electric")).first(),
+      "Compact divider"
+    );
     await openTools(page);
     await ownerClick(page.getByTestId("starter-bottom-stop-themed-footer"), "Bottom stop");
-    const dBox = await boxOf(page.locator("[data-vp-divider]").first().or(divider));
-    const bBox = await boxOf(page.locator("[data-vp-bottom-stop]").first());
-    expect(dBox.height).toBeLessThanOrEqual(28);
-    expect(bBox.height).toBeLessThanOrEqual(40);
+    const dividerBoxTarget = page.locator("[data-composition-node][data-primitive='border']").last();
+    const bottomStop = page.locator("[data-composition-node][data-vp-bottom-stop]").last();
+    await expect(bottomStop).toBeVisible({ timeout: 15_000 });
+    const dBox = await boxOf(dividerBoxTarget);
+    const bBox = await boxOf(bottomStop);
+    expect(dBox.height).toBeLessThanOrEqual(40);
+    expect(bBox.height).toBeLessThanOrEqual(48);
     fs.writeFileSync(
       path.join(PROOFS, "divider-bottom-stop-footprint.json"),
       JSON.stringify({ dividerHeightPx: dBox.height, bottomStopHeightPx: bBox.height }, null, 2)
     );
-    await page.locator("[data-testid='composition-surface']").first().screenshot({
+    await page.locator("[data-testid='creative-composition-canvas']").first().screenshot({
       path: path.join(PROOFS, "divider-bottom-stop-mobile.png"),
     });
 

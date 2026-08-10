@@ -2394,6 +2394,8 @@ export function CreativeCompositionCanvas({
           justifyContent: distribute === "between" ? "space-between" : distribute === "around" ? "space-around" : distribute === "start" ? "flex-start" : distribute === "end" ? "flex-end" : distribute,
         }}
         data-testid="creative-composition-canvas"
+        data-composition-surface="true"
+        data-surface-width={String(Math.round(surfaceSize.width))}
         data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
         data-edit-mode={editMode ? "true" : "false"}
         data-mobile-fallback="stack"
@@ -2521,6 +2523,8 @@ export function CreativeCompositionCanvas({
         padding: block.safeAreaPaddingPx ?? 12,
       }}
       data-testid="creative-composition-canvas"
+      data-composition-surface="true"
+      data-surface-width={String(Math.round(surfaceSize.width))}
       data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
       data-edit-mode={editMode ? "true" : "false"}
       data-mobile-fallback={

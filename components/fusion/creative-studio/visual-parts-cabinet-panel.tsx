@@ -164,8 +164,14 @@ export function VisualPartsCabinetPanel({
         return state.dividerLinePartId || "—";
       case "surface_zone":
         return state.actionSurfacePartId || "—";
+      case "mount":
+        return state.mountPartId || "—";
+      case "bottom_stop":
+        return state.bottomStopPartId || "—";
+      case "hero":
+        return state.heroStructure || "—";
       default:
-        return "passthrough";
+        return contract.passthrough ? "passthrough" : "—";
     }
   })();
 
@@ -275,8 +281,6 @@ export function VisualPartsCabinetPanel({
         </div>
       ) : null}
 
-      {drawer === "color" ? null : null}
-
       {drawer === "finish" ||
       drawer === "body" ||
       drawer === "frame_ring" ||
@@ -295,12 +299,12 @@ export function VisualPartsCabinetPanel({
               state.finishPartId === part.id ||
               state.rimPartId === part.id ||
               state.accentPartId === part.id ||
-              state.layoutIntent === (part.payload.kind === "layout" ? part.payload.intent : undefined) ||
               state.dividerLinePartId === part.id ||
               state.actionSurfacePartId === part.id ||
               state.mountPartId === part.id ||
               state.bottomStopPartId === part.id ||
-              state.heroStructure === (part.payload.kind === "hero" ? part.payload.structure : undefined);
+              (part.payload.kind === "layout" && state.layoutIntent === part.payload.intent) ||
+              (part.payload.kind === "hero" && state.heroStructure === part.payload.structure);
             return (
               <PartTile
                 key={part.id}

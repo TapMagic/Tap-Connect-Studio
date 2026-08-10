@@ -200,13 +200,24 @@ export function insertObject(input: InsertObjectInput): ObjectMutationResult {
     ? { x: input.frame.x, y: input.frame.y }
     : findAvailableObjectPlacement(node, existing, input.dropPoint);
   const maxZ = existing.reduce((maximum, candidate) => Math.max(maximum, candidate.zIndex), 0);
+  const vp = props.visualParts && typeof props.visualParts === "object" ? (props.visualParts as Record<string, unknown>) : null;
+  const bottomStopCompact =
+    Boolean(vp?.bottomStopPartId) ||
+    Number(props.vpBottomStopHeightPx) > 0 ||
+    String(props.vpSectionRole || "") === "bottom_stop";
+  const dividerCompact =
+    Boolean(vp?.dividerLinePartId) || input.kind === "divider" || String(props.elementKind || "") === "divider";
+  // Bottom Stop / Divider starters must insert as compact footprints — never full-page slabs.
+  const compactHeight = bottomStopCompact ? 0.035 : dividerCompact ? 0.02 : null;
   const inserted = {
     ...node,
     ...placement,
-    width: input.frame?.width ?? node.width,
-    height: input.frame?.height ?? node.height,
+    width: input.frame?.width ?? (bottomStopCompact || dividerCompact ? 0.92 : node.width),
+    height: input.frame?.height ?? compactHeight ?? node.height,
     zIndex: input.layerPosition ?? maxZ + 1,
-    props,
+    props: bottomStopCompact
+      ? { ...props, vpSectionRole: props.vpSectionRole || "bottom_stop", resizePolicy: props.resizePolicy || "fixed" }
+      : props,
   };
   return {
     config: withContainerNodes(input.config, input.parentId, [...existing, inserted]),
