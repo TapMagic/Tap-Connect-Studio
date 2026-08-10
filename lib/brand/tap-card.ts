@@ -428,6 +428,25 @@ export type TapConnectCardConfig = {
     name: string;
     props: Record<string, unknown>;
   }>;
+  /**
+   * Card-scoped Visual Grammar Brand Recipes (anchor + refinement).
+   * Portable document collection — promote to Business scope later without changing recipe shape.
+   */
+  visualBrandRecipes?: Array<{
+    id: string;
+    label: string;
+    anchorColor: string;
+    refinement: {
+      richness?: number;
+      depth?: number;
+      temperature?: number;
+      contrast?: number;
+      lightResponse?: number;
+    };
+    notes?: string;
+    source?: "catalog" | "host";
+    createdAt?: string;
+  }>;
   /** Card-scoped editable resources. Instances are cloned into canonical compositions. */
   reusableCompositions?: CreativeCompositionBlock[];
   sections: TapCardSection[];
@@ -815,6 +834,18 @@ export function parseTapConnectCard(
           (preset as { props?: unknown }).props && typeof (preset as { props?: unknown }).props === "object"
         ))
       : [],
+    visualBrandRecipes: Array.isArray(o.visualBrandRecipes)
+      ? o.visualBrandRecipes.filter(
+          (recipe): recipe is NonNullable<TapConnectCardConfig["visualBrandRecipes"]>[number] =>
+            Boolean(
+              recipe &&
+                typeof recipe === "object" &&
+                typeof (recipe as { id?: unknown }).id === "string" &&
+                typeof (recipe as { label?: unknown }).label === "string" &&
+                typeof (recipe as { anchorColor?: unknown }).anchorColor === "string"
+            )
+        )
+      : undefined,
     reusableCompositions: Array.isArray(o.reusableCompositions)
       ? o.reusableCompositions.filter(
           (value): value is CreativeCompositionBlock =>

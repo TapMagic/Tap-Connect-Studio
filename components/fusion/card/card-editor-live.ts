@@ -96,7 +96,53 @@ export type CardEditorLiveModel = {
   onAddSurface?: (kind: CardSurfaceKind) => void;
   onAddSectionPreset?: (presetId: SectionPresetId) => void;
   onAddElement?: (kind: CardElementKind, targetSectionId: string | null, initialProps?: Record<string, unknown>) => void;
-  onAddObjects?: (objects: Array<{ kind: CardElementKind; initialProps?: Record<string, unknown> }>, targetSectionId: string | null, label: string) => void;
+  onAddObjects?: (
+    objects: Array<{
+      kind: CardElementKind;
+      initialProps?: Record<string, unknown>;
+      frame?: { x: number; y: number; width: number; height: number };
+    }>,
+    targetSectionId: string | null,
+    label: string
+  ) => void;
+  /** Card-scoped Host Brand Recipes (Visual Grammar). */
+  visualBrandRecipes?: Array<{
+    id: string;
+    label: string;
+    anchorColor: string;
+    refinement: Record<string, number>;
+    source?: string;
+  }>;
+  onSaveVisualBrandRecipe?: (recipe: {
+    id: string;
+    label: string;
+    anchorColor: string;
+    refinement: {
+      richness?: number;
+      depth?: number;
+      temperature?: number;
+      contrast?: number;
+      lightResponse?: number;
+    };
+    source?: "catalog" | "host";
+    createdAt?: string;
+    notes?: string;
+  }) => void;
+  onInsertActionGroup?: (
+    intent: "one_column" | "two_column" | "round_team_grid",
+    items: Array<{
+      label: string;
+      icon?: string;
+      iconSecondary?: string;
+      iconMediaUrl?: string;
+      portrait?: boolean;
+      familyId?: string;
+      actionType?: string;
+      href?: string;
+      presentation?: string;
+    }>,
+    label: string
+  ) => void;
   moveElementsTo?: (
     ids: string[],
     fromSectionId: string | null,

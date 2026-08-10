@@ -107,7 +107,7 @@ import {
   type CardSurfaceKind,
   type SectionPresetId,
 } from "@/lib/fusion/card/composer-model";
-import { deleteObject, duplicateObject, insertObject } from "@/lib/fusion/card/object-kernel";
+import { deleteObject, duplicateObject, insertActionGroup, insertObject } from "@/lib/fusion/card/object-kernel";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import {
   createSelectionRef,
@@ -1220,11 +1220,25 @@ export function TapCardBuilder({
     setSelectedCompositionNodeIds(addedId ? [addedId] : []);
   }
 
-  function addComposerObjects(objects: Array<{ kind: CardElementKind; initialProps?: Record<string, unknown> }>, targetSectionId: string | null, label: string) {
+  function addComposerObjects(
+    objects: Array<{
+      kind: CardElementKind;
+      initialProps?: Record<string, unknown>;
+      frame?: { x: number; y: number; width: number; height: number };
+    }>,
+    targetSectionId: string | null,
+    label: string
+  ) {
     let nextConfig = config;
     const addedIds: string[] = [];
     for (const object of objects) {
-      const result = insertObject({ config: nextConfig, parentId: targetSectionId, kind: object.kind, initialProps: object.initialProps });
+      const result = insertObject({
+        config: nextConfig,
+        parentId: targetSectionId,
+        kind: object.kind,
+        initialProps: object.initialProps,
+        frame: object.frame,
+      });
       nextConfig = result.config;
       addedIds.push(...result.objectIds);
     }
@@ -1841,6 +1855,25 @@ export function TapCardBuilder({
       onAddSectionPreset: addComposerSectionPreset,
       onAddElement: addComposerElement,
       onAddObjects: addComposerObjects,
+      visualBrandRecipes: config.visualBrandRecipes || [],
+      onSaveVisualBrandRecipe: (recipe) => {
+        const existing = Array.isArray(config.visualBrandRecipes) ? config.visualBrandRecipes : [];
+        const normalized = {
+          ...recipe,
+          source: recipe.source === "catalog" ? ("catalog" as const) : ("host" as const),
+        };
+        const next = [...existing.filter((item) => item.id !== normalized.id), normalized];
+        setConfigHistory({ ...config, visualBrandRecipes: next }, { label: `Saved Brand Recipe “${recipe.label}”` });
+        setDirty(true);
+      },
+      onInsertActionGroup: (intent, items, label) => {
+        const result = insertActionGroup(config, null, { intent, items });
+        if (!result.objectIds.length) return;
+        setConfigHistory(result.config, { label });
+        setDirty(true);
+        setSelectedId(null);
+        setSelectedCompositionNodeIds(result.objectIds.slice(0, 1));
+      },
       moveElementsTo: (ids, fromSectionId, toSectionId) => {
         const next = moveCardElements(config, ids, fromSectionId, toSectionId);
         setConfigHistory(next, { label: toSectionId ? "Moved Elements into Section" : "Moved Elements to Card root" });

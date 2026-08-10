@@ -8,6 +8,8 @@ export * from "./brand-environment";
 export * from "./assembly";
 export * from "./layout-rails";
 export * from "./composition-proofs";
+export * from "./action-group";
+export * from "./image-parity";
 export * from "./registry";
 export * from "./apply";
 export * from "./render";

@@ -16,10 +16,13 @@ import {
   applyVisualPart,
   applyVisualPartBaseColor,
   applyBrandRecipeToProps,
+  createHostBrandRecipe,
   curatedFamilyIngredientIds,
   getVisualPart,
   listBrandRecipes,
   listVisualParts,
+  readRefinementFromProps,
+  type BrandRecipe,
   partCompatibleWithTarget,
   partTilePreviewBackground,
   partTilePreviewKind,
@@ -39,6 +42,8 @@ type Props = {
   onPatch: (next: Record<string, unknown>, label: string) => void;
   /** Opens existing Color / Text / Action / Motion authorities without duplicating them. */
   onPassthrough?: (kind: "color" | "text" | "action" | "motion" | "advanced") => void;
+  hostBrandRecipes?: BrandRecipe[];
+  onSaveBrandRecipe?: (recipe: BrandRecipe) => void;
 };
 
 const DRAWER_ORDER: VisualPartsDrawerId[] = [
@@ -110,10 +115,19 @@ function PartTile({
   );
 }
 
-export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassthrough }: Props) {
+export function VisualPartsCabinetPanel({
+  props,
+  targetFamily,
+  onPatch,
+  onPassthrough,
+  hostBrandRecipes = [],
+  onSaveBrandRecipe,
+}: Props) {
   const [drawer, setDrawer] = useState<VisualPartsDrawerId>("curated");
   const [collection, setCollection] = useState<"all" | VisualPartCollection>("all");
+  const [brandRecipeName, setBrandRecipeName] = useState("");
   const state = readVisualPartsState(props);
+  const brandRecipes = useMemo(() => listBrandRecipes(hostBrandRecipes), [hostBrandRecipes]);
   const contract = VISUAL_PARTS_DRAWER_CONTRACT[drawer];
 
   const parts = useMemo(() => {
@@ -521,12 +535,43 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
             <button
               type="button"
               className="rounded border border-white/15 px-2 py-2 text-[10px]"
+              data-testid="vp-icon-secondary-phone"
+              onClick={() =>
+                onPatch(
+                  applyIconStationContent(props, { kind: "library", icon: "phone", slot: "secondary" }),
+                  "Secondary cue: phone"
+                )
+              }
+            >
+              Secondary: Phone
+            </button>
+            <button
+              type="button"
+              className="rounded border border-white/15 px-2 py-2 text-[10px]"
+              data-testid="vp-icon-secondary-arrow"
+              onClick={() =>
+                onPatch(
+                  applyIconStationContent(props, {
+                    kind: "library",
+                    icon: "arrow-up-right",
+                    slot: "secondary",
+                  }),
+                  "Secondary cue: arrow"
+                )
+              }
+            >
+              Secondary: Arrow
+            </button>
+            <button
+              type="button"
+              className="rounded border border-white/15 px-2 py-2 text-[10px]"
               data-testid="vp-icon-upload-demo"
               onClick={() =>
                 onPatch(
                   applyIconStationContent(props, {
                     kind: "upload",
                     mediaUrl: "/tap-connect-mark.png",
+                    slot: "primary",
                     mediaAssetId: "demo-host-upload",
                   }),
                   "Applied uploaded logo/photo to Icon Station"
@@ -576,16 +621,17 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
           </div>
           <p className="text-[9px] font-semibold uppercase text-white/50">Brand Recipes</p>
           <div className="grid grid-cols-1 gap-1" data-testid="vp-brand-recipes">
-            {listBrandRecipes().map((recipe) => (
+            {brandRecipes.map((recipe) => (
               <button
                 key={recipe.id}
                 type="button"
                 data-testid={`vp-brand-recipe-${recipe.id}`}
+                data-vp-brand-source={recipe.source || "catalog"}
                 className="rounded border border-white/15 px-2 py-2 text-left text-[10px]"
                 onClick={() =>
                   onPatch(
                     applyVisualPartBaseColor(
-                      applyBrandRecipeToProps(props, recipe.id),
+                      applyBrandRecipeToProps(props, recipe.id, hostBrandRecipes),
                       recipe.anchorColor,
                       targetFamily
                     ),
@@ -594,8 +640,45 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
                 }
               >
                 {recipe.label}
+                {recipe.source === "host" ? " · Host" : ""}
               </button>
             ))}
+          </div>
+          <div className="space-y-1 rounded border border-white/10 p-2" data-testid="vp-brand-recipe-save">
+            <p className="text-[9px] text-white/55">Save current color + refinement as a Brand Recipe</p>
+            <input
+              type="text"
+              data-testid="vp-brand-recipe-name"
+              placeholder="Recipe name"
+              value={brandRecipeName}
+              onChange={(e) => setBrandRecipeName(e.target.value)}
+              className="h-9 w-full rounded border border-white/15 bg-black/30 px-2 text-[11px]"
+            />
+            <button
+              type="button"
+              data-testid="vp-brand-recipe-save-btn"
+              className="min-h-10 w-full rounded bg-[#b8ff2c] text-[11px] font-semibold text-black"
+              onClick={() => {
+                const current = readRefinementFromProps(props);
+                const recipe = createHostBrandRecipe({
+                  label: brandRecipeName || "Host Brand Recipe",
+                  anchorColor: current.anchorColor,
+                  refinement: current.refinement,
+                });
+                onSaveBrandRecipe?.(recipe);
+                onPatch(
+                  applyVisualPartBaseColor(
+                    applyBrandRecipeToProps(props, recipe.id, [...hostBrandRecipes, recipe]),
+                    recipe.anchorColor,
+                    targetFamily
+                  ),
+                  `Saved Brand Recipe ${recipe.label}`
+                );
+                setBrandRecipeName("");
+              }}
+            >
+              Save Brand Recipe
+            </button>
           </div>
           <p className="text-[9px] font-semibold uppercase text-white/50">Refinement</p>
           {(

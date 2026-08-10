@@ -289,6 +289,18 @@ export function applyVisualPart(
       next.vpRailAware = part.payload.railAware !== false;
       next.vpRailLeftPct = next.vpRailLeftPct ?? 0.12;
       next.vpRailRightPct = next.vpRailRightPct ?? 0.88;
+      // Parent Action Group / Container owns grid geometry.
+      if (
+        options.targetFamily === "container" ||
+        options.targetFamily === "action_surface" ||
+        next.componentKind === "container" ||
+        next.vpActionGroup === true
+      ) {
+        next.vpActionGroup = true;
+        if (part.payload.intent === "two_column") next.layout = "grid";
+        else if (part.payload.intent === "round_team_grid") next.layout = "round_team";
+        else next.layout = "stack";
+      }
       break;
     }
     case "divider": {
@@ -637,9 +649,30 @@ export function applyIconStationContent(
         kind: "library";
         icon: string;
         asset?: Parameters<typeof applyButtonIconAsset>[1];
+        slot?: "primary" | "secondary";
       }
-    | { kind: "upload"; mediaUrl: string; mediaAssetId?: string }
+    | { kind: "upload"; mediaUrl: string; mediaAssetId?: string; slot?: "primary" | "secondary" }
 ): Record<string, unknown> {
+  const slot = content.slot || "primary";
+  if (slot === "secondary") {
+    if (content.kind === "library") {
+      return {
+        ...props,
+        showIcon: true,
+        iconStationBoth: true,
+        iconSecondary: content.icon,
+        iconSecondarySvg: undefined,
+        iconSecondaryMediaUrl: undefined,
+      };
+    }
+    return {
+      ...props,
+      showIcon: true,
+      iconStationBoth: true,
+      iconSecondaryMediaUrl: content.mediaUrl,
+      iconSecondaryMediaAssetId: content.mediaAssetId,
+    };
+  }
   let next: Record<string, unknown> = { ...props, showIcon: true };
   if (content.kind === "library") {
     if (content.asset) {

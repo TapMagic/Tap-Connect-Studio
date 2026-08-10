@@ -79,6 +79,7 @@ import {
   VisualPartsShell,
 } from "@/components/fusion/creative-studio/visual-parts-layers";
 import {
+  layoutActionGroupChildren,
   ornamentSvg,
   readActionRailLayout,
   readVisualPartsState,
@@ -1367,21 +1368,46 @@ function NodeVisual({
     const verticalIcon = iconPosition === "above" || iconPosition === "below" || labelBelow;
     const vpState = readVisualPartsState(node.props);
     const iconStationActive = Boolean(vpState.iconStationGeometryPartId);
-    const iconInner = iconSvg.includes("<svg") ? (
-      <span className="grid h-full w-full place-items-center [&_svg]:h-full [&_svg]:w-full" aria-hidden dangerouslySetInnerHTML={{ __html: iconSvg }} />
-    ) : (
-      <ElementIcon name={icon} size={num(node.props.iconSize, iconStationActive ? 18 : 20)} />
-    );
-    const makeIconEl = (side: "primary" | "mirror") =>
-      showIcon ? (
+    const makeIconEl = (side: "primary" | "secondary") => {
+      if (!showIcon && side === "primary") return null;
+      if (side === "secondary" && node.props.iconStationBoth !== true) return null;
+      const isSecondary = side === "secondary";
+      const cueName = isSecondary ? str(node.props.iconSecondary, "arrow-up-right") : icon;
+      const cueSvg = isSecondary ? str(node.props.iconSecondarySvg) : iconSvg;
+      const cueMedia = isSecondary ? str(node.props.iconSecondaryMediaUrl) : str(node.props.iconMediaUrl);
+      const size = num(
+        isSecondary ? node.props.iconSecondarySize : node.props.iconSize,
+        iconStationActive ? (isSecondary ? 20 : 28) : isSecondary ? 16 : 20
+      );
+      const cueInner = cueMedia ? (
+        <img src={cueMedia} alt="" className="h-full w-full object-cover" data-vp-icon-slot={side} />
+      ) : cueSvg.includes("<svg") ? (
+        <span className="grid h-full w-full place-items-center [&_svg]:h-full [&_svg]:w-full" aria-hidden dangerouslySetInnerHTML={{ __html: cueSvg }} />
+      ) : (
+        <ElementIcon name={cueName} size={size} />
+      );
+      const stationProps = isSecondary
+        ? {
+            ...node.props,
+            iconMediaUrl: cueMedia || undefined,
+            visualParts: {
+              ...vpState,
+              iconStationScale: Math.min(0.55, Number(vpState.iconStationScale ?? 0.45)),
+              iconStationAnchor: "right_center",
+            },
+          }
+        : node.props;
+      return (
         <span
-          data-testid={side === "primary" ? `button-icon-${node.id}` : `button-icon-mirror-${node.id}`}
-          data-icon-canonical={icon}
-          data-icon-svg={iconSvg.includes("<svg") ? "true" : "false"}
+          data-testid={isSecondary ? `button-icon-secondary-${node.id}` : `button-icon-${node.id}`}
+          data-icon-canonical={cueName}
+          data-icon-svg={cueSvg.includes("<svg") ? "true" : "false"}
+          data-vp-icon-slot={side}
           data-vp-icon-station={iconStationActive ? "true" : undefined}
+          className="grid place-items-center justify-self-center"
           style={{
-            width: num(node.props.iconSize, iconStationActive ? 28 : 20),
-            height: num(node.props.iconSize, iconStationActive ? 28 : 20),
+            width: size,
+            height: size,
             color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
             transform: `translate(${num(node.props.iconOffsetX, 0)}px, ${num(node.props.iconOffsetY, 0)}px)`,
             position: freeLayout ? "absolute" : undefined,
@@ -1389,20 +1415,26 @@ function NodeVisual({
             top: freeLayout ? `${num(node.props.iconFreeY, 12)}px` : undefined,
           }}
         >
-          {iconStationActive ? <IconStationShell props={node.props}>{iconInner}</IconStationShell> : iconInner}
+          {iconStationActive ? <IconStationShell props={stationProps}>{cueInner}</IconStationShell> : cueInner}
         </span>
-      ) : null;
+      );
+    };
     const buttonIconEl = makeIconEl("primary");
-    const mirrorIconEl = node.props.iconStationBoth === true ? makeIconEl("mirror") : null;
+    const secondaryIconEl = makeIconEl("secondary");
     const buttonLabelEl = !labelBelow && showLabel
       ? (node.props.contentEditing === true
         ? <InlineEditableText nodeId={node.id} value={labelValue} editing={Boolean(editMode && textEditing)} style={{ ...labelStyle, position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }} onCommit={onEditText} onFinish={onFinishTextEdit} />
         : <span style={{ ...labelStyle, whiteSpace: "pre-wrap", position: freeLayout ? "absolute" : undefined, left: freeLayout ? `${num(node.props.labelFreeX, 40)}px` : undefined, top: freeLayout ? `${num(node.props.labelFreeY, 14)}px` : undefined }}>{labelValue}</span>)
       : null;
     const rails = readActionRailLayout(node.props);
+    const railLayout = rails.railAware && !verticalIcon && !freeLayout;
     const surfaceInner = (
       <span
-        className="relative inline-flex h-full w-full shrink-0 items-center justify-center overflow-visible"
+        className={
+          railLayout
+            ? "relative grid h-full w-full shrink-0 items-center overflow-visible"
+            : "relative inline-flex h-full w-full shrink-0 items-center justify-center overflow-visible"
+        }
         style={{
           minHeight: 44,
           background: surfaceBackground,
@@ -1416,8 +1448,15 @@ function NodeVisual({
           opacity: materialSurface.opacity,
           padding: num(node.props.padding, 8),
           gap: num(node.props.spacing, rails.gapPx),
-          flexDirection: verticalIcon ? "column" : "row",
-          ...(rails.railAware ? (railStyleVars(rails) as CSSProperties) : {}),
+          ...(railLayout
+            ? {
+                gridTemplateColumns: `var(--vp-rail-left-slot) minmax(0, 1fr) var(--vp-rail-right-slot)`,
+                ...(railStyleVars(rails) as CSSProperties),
+              }
+            : {
+                flexDirection: verticalIcon ? "column" : "row",
+                ...(rails.railAware ? (railStyleVars(rails) as CSSProperties) : {}),
+              }),
         }}
         data-button-surface-kind={surfaceKind}
         data-button-radius={String(linkedRadius)}
@@ -1430,16 +1469,37 @@ function NodeVisual({
         data-vp-rail-aware={rails.railAware ? "true" : "false"}
         data-vp-rail-left={String(rails.railLeftPct)}
         data-vp-rail-right={String(rails.railRightPct)}
+        data-vp-rail-geometry={railLayout ? "slots" : "none"}
       >
         <MaterialSurfaceLayers surface={materialSurface} testIdPrefix={`button-${node.id}`} />
-        {(iconPosition === "before" || iconPosition === "above") ? buttonIconEl : null}
-        {buttonLabelEl ? (
-          <span className="min-w-0 flex-1 text-left" data-vp-text-zone="true">
-            {buttonLabelEl}
-          </span>
-        ) : null}
-        {(iconPosition === "after" || iconPosition === "below") ? buttonIconEl : null}
-        {mirrorIconEl}
+        {railLayout ? (
+          <>
+            <span data-vp-rail-slot="left" className="grid place-items-center">
+              {buttonIconEl}
+            </span>
+            {buttonLabelEl ? (
+              <span className="min-w-0 text-left" data-vp-text-zone="true">
+                {buttonLabelEl}
+              </span>
+            ) : (
+              <span />
+            )}
+            <span data-vp-rail-slot="right" className="grid place-items-center">
+              {secondaryIconEl}
+            </span>
+          </>
+        ) : (
+          <>
+            {(iconPosition === "before" || iconPosition === "above") ? buttonIconEl : null}
+            {buttonLabelEl ? (
+              <span className="min-w-0 flex-1 text-left" data-vp-text-zone="true">
+                {buttonLabelEl}
+              </span>
+            ) : null}
+            {(iconPosition === "after" || iconPosition === "below") ? buttonIconEl : null}
+            {secondaryIconEl}
+          </>
+        )}
       </span>
     );
     const surface = (
@@ -1596,6 +1656,49 @@ export function CreativeCompositionCanvas({
 
   const visibleNodes = useMemo(() => {
     let nodes = sortCompositionNodes(workingNodes).filter((n) => n.visible !== false);
+    // Action Group parents reflow children from live viewport width (real auto-stack geometry).
+    const viewportWidthPx = Math.max(160, surfaceSize.width || 390);
+    for (const container of nodes) {
+      if (!isContainerNode(container)) continue;
+      const intent = String(container.props.vpLayoutIntent || "");
+      const isGroup =
+        container.props.vpActionGroup === true ||
+        intent === "two_column" ||
+        intent === "round_team_grid" ||
+        container.props.layout === "grid" ||
+        container.props.layout === "round_team";
+      if (!isGroup) continue;
+      const childIds = new Set(containerChildIds(nodes, container.id));
+      const children = nodes.filter((n) => childIds.has(n.id));
+      if (!children.length) continue;
+      const laid = layoutActionGroupChildren({
+        container: {
+          ...container,
+          props: { ...container.props, vpViewportWidthPx: viewportWidthPx },
+        },
+        children,
+        viewportWidthPx,
+      });
+      const byId = new Map(laid.map((n) => [n.id, n]));
+      nodes = nodes.map((n) => {
+        if (n.id === container.id) {
+          return {
+            ...n,
+            props: {
+              ...n.props,
+              vpViewportWidthPx: viewportWidthPx,
+              vpPhoneStackActive:
+                intent === "two_column" || intent === "round_team_grid"
+                  ? viewportWidthPx < 420
+                    ? "stacked"
+                    : "columns"
+                  : "off",
+            },
+          };
+        }
+        return byId.get(n.id) || n;
+      });
+    }
     if (!editMode) {
       nodes = nodes.filter((node) => {
         if (node.props.componentKind === "gallery") return Array.isArray(node.props.media) && node.props.media.some(Boolean);
@@ -1608,7 +1711,7 @@ export function CreativeCompositionCanvas({
       nodes = nodes.filter((n) => n.primitive === "text" || n.primitive === "button");
     }
     return nodes;
-  }, [workingNodes, hideDecorative, editMode]);
+  }, [workingNodes, hideDecorative, editMode, surfaceSize.width]);
 
   const readingOrder = useMemo(
     () => accessibleReadingOrder(visibleNodes),

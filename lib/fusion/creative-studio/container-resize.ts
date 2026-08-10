@@ -1,5 +1,6 @@
 import type { CreativeCompositionNode } from "./composition";
 import { containerChildIds, isContainerNode } from "./selection-mode";
+import { layoutActionGroupChildren } from "./visual-parts/action-group";
 
 export type ContainerResizePolicy = "reflow" | "frame" | "scale" | "fit-content";
 
@@ -173,11 +174,23 @@ export function applyContainerResize(
     });
   }
 
-  // reflow (default): frame changes; children re-laid in stack/row; font sizes stable
+  // reflow (default): frame changes; children re-laid in stack/row/grid; font sizes stable
   const layout = String(container.props.layout || "stack");
   const children = nodes.filter((node) => childIds.has(node.id));
   let laidOut = children;
-  if (layout === "stack" || layout === "free") {
+  const isActionGroup =
+    container.props.vpActionGroup === true ||
+    layout === "grid" ||
+    layout === "round_team" ||
+    String(container.props.vpLayoutIntent || "") === "two_column" ||
+    String(container.props.vpLayoutIntent || "") === "round_team_grid";
+  if (isActionGroup) {
+    laidOut = layoutActionGroupChildren({
+      container: { ...container, ...frame },
+      children,
+      viewportWidthPx: Number(container.props.vpViewportWidthPx || 390),
+    });
+  } else if (layout === "stack" || layout === "free") {
     laidOut = layoutStackChildren({
       container: frame,
       children,

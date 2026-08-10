@@ -15,6 +15,13 @@ import {
   type CreativeCompositionNode,
 } from "@/lib/fusion/creative-studio/composition";
 import { updateButtonContentNode, updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
+import {
+  actionGroupContainerProps,
+  layoutActionGroupChildren,
+  type ActionGroupLayoutIntent,
+  type ActionGroupPlanItem,
+} from "@/lib/fusion/creative-studio/visual-parts/action-group";
+import { applyCuratedFamily, applyIconStationContent, applyIconStationPosition } from "@/lib/fusion/creative-studio/visual-parts/apply";
 
 export type ObjectParentId = ElementContainerId;
 
@@ -31,6 +38,8 @@ type InsertObjectInput = {
   kind: CardElementKind;
   initialProps?: Record<string, unknown>;
   dropPoint?: { x: number; y: number };
+  /** Explicit geometry for structured Action Group inserts. */
+  frame?: { x: number; y: number; width: number; height: number };
   layerPosition?: number;
 };
 
@@ -187,11 +196,15 @@ export function insertObject(input: InsertObjectInput): ObjectMutationResult {
   if (input.kind === "button" && typeof input.initialProps?.icon === "string") {
     props = updateButtonContentNode(props, "icon", { props: { icon: input.initialProps.icon } }, node.id);
   }
-  const placement = findAvailableObjectPlacement(node, existing, input.dropPoint);
+  const placement = input.frame
+    ? { x: input.frame.x, y: input.frame.y }
+    : findAvailableObjectPlacement(node, existing, input.dropPoint);
   const maxZ = existing.reduce((maximum, candidate) => Math.max(maximum, candidate.zIndex), 0);
   const inserted = {
     ...node,
     ...placement,
+    width: input.frame?.width ?? node.width,
+    height: input.frame?.height ?? node.height,
     zIndex: input.layerPosition ?? maxZ + 1,
     props,
   };
@@ -289,4 +302,85 @@ export function deleteObject(
   const nodes = containerNodes(config, parentId);
   if (!nodes) return { config, parentId, objectIds: [] };
   return { config: withContainerNodes(config, parentId, deleteNodes(nodes, objectIds)), parentId, objectIds };
+}
+
+/** Insert a parent-owned Action Group (rails / two-column / round team) with real child geometry. */
+export function insertActionGroup(
+  config: TapConnectCardConfig,
+  parentId: ObjectParentId,
+  input: {
+    intent: ActionGroupLayoutIntent;
+    items: ActionGroupPlanItem[];
+    viewportWidthPx?: number;
+  }
+): ObjectMutationResult {
+  const existing = containerNodes(config, parentId);
+  if (!existing) throw new Error(`Cannot insert action group into unknown parent: ${parentId}`);
+  const maxZ = existing.reduce((maximum, candidate) => Math.max(maximum, candidate.zIndex), 0);
+  const rowCount = Math.max(1, Math.ceil(input.items.length / (input.intent === "one_column" ? 1 : 2)));
+  const container = createCardElement("composition", existing.length);
+  const containerProps = {
+    ...container.props,
+    ...actionGroupContainerProps(input.intent),
+  };
+  const containerNode: CreativeCompositionNode = {
+    ...container,
+    x: 0.04,
+    y: 0.08,
+    width: 0.92,
+    height: Math.min(0.72, 0.12 + rowCount * 0.14),
+    zIndex: maxZ + 1,
+    props: containerProps,
+  };
+
+  let childNodes: CreativeCompositionNode[] = input.items.map((item, index) => {
+    const button = createCardElement("button", existing.length + index + 1);
+    let props: Record<string, unknown> = {
+      ...button.props,
+      ...updateButtonLabel(button.props, item.label, button.id),
+      containerId: containerNode.id,
+      vpRailAware: true,
+      vpActionGroupChild: true,
+      showIcon: true,
+      icon: item.icon || "sparkles",
+      iconSecondary: item.iconSecondary || "arrow-up-right",
+      actionType: item.actionType || "website",
+      href: item.href || "https://host.example/action",
+    };
+    if (item.presentation) props.presentation = item.presentation;
+    if (item.portrait || item.iconMediaUrl) {
+      props = applyIconStationContent(props, {
+        kind: "upload",
+        mediaUrl: item.iconMediaUrl || "/tap-connect-mark.png",
+        mediaAssetId: `demo-team-${index}`,
+        slot: "primary",
+      });
+      props = applyIconStationPosition(props, "left");
+    }
+    if (item.familyId) {
+      props = applyCuratedFamily(props, item.familyId, "button");
+    }
+    return {
+      ...button,
+      zIndex: maxZ + 2 + index,
+      props,
+    };
+  });
+
+  childNodes = layoutActionGroupChildren({
+    container: containerNode,
+    children: childNodes,
+    viewportWidthPx: input.viewportWidthPx ?? 390,
+  });
+
+  containerNode.props = {
+    ...containerNode.props,
+    childIds: childNodes.map((child) => child.id),
+  };
+
+  return {
+    config: withContainerNodes(config, parentId, [...existing, containerNode, ...childNodes]),
+    parentId,
+    objectIds: [containerNode.id, ...childNodes.map((child) => child.id)],
+  };
 }

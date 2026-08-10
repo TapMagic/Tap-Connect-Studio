@@ -1299,6 +1299,8 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           <VisualPartsCabinetPanel
             props={node.props}
             targetFamily={vpTarget}
+            hostBrandRecipes={(model.visualBrandRecipes || model.config.visualBrandRecipes || []) as never}
+            onSaveBrandRecipe={(recipe) => model.onSaveVisualBrandRecipe?.(recipe)}
             onPatch={(next, label) => patchProps(next, label)}
             onPassthrough={(kind) => {
               if (kind === "color") {
