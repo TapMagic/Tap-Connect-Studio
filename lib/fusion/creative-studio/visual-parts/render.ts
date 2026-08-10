@@ -90,6 +90,7 @@ export function visualPartsDataAttrs(props: Record<string, unknown>): Record<str
     "data-vp-icon-station": state.iconStationGeometryPartId || undefined,
     "data-vp-icon-position": state.iconStationPosition || undefined,
     "data-vp-layout": state.layoutIntent || undefined,
+    "data-vp-phone-stack": state.layoutIntent === "two_column" ? "auto" : state.layoutIntent ? "off" : undefined,
     "data-vp-divider": state.dividerLinePartId || undefined,
     "data-vp-action-surface": state.actionSurfacePartId || undefined,
   };
