@@ -1,6 +1,7 @@
 # Visual Grammar + Mobile Composition
 
-**Status:** Engineering foundation (candidate after dual-green).  
+**Status:** Dual-green certified candidate — see `VISUAL_GRAMMAR_CLOSEOUT.md`.  
+**Product/Jig freeze:** `6bc904895b3af0bc186830eaf7e138688b465a1d` (ports 3110/3111).  
 **Holds:** Visual Parts Cabinet Integrity laws.  
 **Not claimed:** library filled · tApIt · Campaigns · Product Owner HV · physical phone HV
 
