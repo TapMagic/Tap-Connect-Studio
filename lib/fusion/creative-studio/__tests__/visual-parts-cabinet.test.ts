@@ -116,6 +116,16 @@ describe("Visual Parts Cabinet — Action independence from curated family", () 
     assert.equal(props.href, "https://host.example/menu?utm=keep");
   });
 
+  it("curated family Surface does not demote Button to Container", () => {
+    const props = applyCuratedFamily(
+      { componentKind: "container", actionType: "call", href: "tel:+15551230000" },
+      CURATED_FAMILY_BRIGHT_LACQUER_ID,
+      "button"
+    );
+    assert.equal(props.componentKind, undefined);
+    assert.equal(props.actionType, "call");
+  });
+
   it("visual Color/Finish/Rim/Icon/Accent/Layout edits leave Action unchanged", () => {
     let props: Record<string, unknown> = {
       actionType: "call",

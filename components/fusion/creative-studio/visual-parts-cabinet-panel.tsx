@@ -334,7 +334,7 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
                   type="button"
                   data-testid="vp-surface-off"
                   className="rounded border border-white/15 px-2 py-2 text-[10px]"
-                  onClick={() => onPatch(applySurfaceMode(props, false), "Surface Off")}
+                  onClick={() => onPatch(applySurfaceMode(props, false, "off", targetFamily), "Surface Off")}
                 >
                   Surface Off
                 </button>
@@ -342,7 +342,7 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
                   type="button"
                   data-testid="vp-surface-on"
                   className="rounded border border-white/15 px-2 py-2 text-[10px]"
-                  onClick={() => onPatch(applySurfaceMode(props, true, "quiet_field"), "Surface On")}
+                  onClick={() => onPatch(applySurfaceMode(props, true, "quiet_field", targetFamily), "Surface On")}
                 >
                   Surface On
                 </button>

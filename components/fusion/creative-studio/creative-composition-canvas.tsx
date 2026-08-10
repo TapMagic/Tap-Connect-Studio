@@ -393,7 +393,9 @@ function NodeVisual({
   }
 
   const componentKind = str(node.props.componentKind);
-  if (componentKind === "container") {
+  // Button primitive must keep the Action surface renderer — Surface/Mount live in shells,
+  // not by demoting the node into the Container visual path.
+  if (componentKind === "container" && node.primitive !== "button") {
     const vpContainer = readVisualPartsState(node.props);
     const actionSurfaceTone = str(node.props.actionSurfaceTone);
     const containerRadius = num(node.props.radius, actionSurfaceTone ? 18 : 0);

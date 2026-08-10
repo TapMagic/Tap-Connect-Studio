@@ -36,7 +36,8 @@ const CHILD_ROLE_LABELS: Record<string, string> = {
   coupon: "Coupon",
 };
 
-export function isContainerNode(node: Pick<CreativeCompositionNode, "props">): boolean {
+export function isContainerNode(node: Pick<CreativeCompositionNode, "primitive" | "props"> | Pick<CreativeCompositionNode, "props">): boolean {
+  if ("primitive" in node && node.primitive === "button") return false;
   return String(node.props.componentKind || "") === "container";
 }
 

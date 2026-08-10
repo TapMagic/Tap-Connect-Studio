@@ -15,7 +15,6 @@ import {
   openBlankStudio,
   ownerClick,
   saveDraft,
-  selectObjectViaLayers,
   undo,
   redo,
 } from "./owner-sim/physical-harness";
@@ -43,13 +42,13 @@ async function openVisualParts(page: Page) {
 }
 
 async function selectCopperButton(page: Page) {
-  // Layers path — canvas may be covered by later Container / Divider inserts.
-  await selectObjectViaLayers(page, { elementKind: "button" }, "Button with Visual Parts");
+  // Re-acquire by family + Button surface — never trust a stale locator after reload.
   const button = page
-    .locator('[data-composition-node][data-vp-rim="rim_pounded_copper"]')
+    .locator('[data-composition-node][data-vp-family="family_bright_lacquer_pounded_copper"]')
     .filter({ has: page.locator("[data-button-surface-kind]") })
     .first();
   await expect(button).toBeVisible({ timeout: 15_000 });
+  await button.click();
   await expect(page.getByTestId("card-contextual-object-tools")).toHaveAttribute(
     "data-selection-target",
     /button/i,

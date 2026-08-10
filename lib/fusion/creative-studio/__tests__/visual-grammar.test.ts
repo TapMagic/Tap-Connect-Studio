@@ -57,6 +57,17 @@ describe("Visual Grammar — Surface ON/OFF", () => {
     assert.equal(state.surfaceEnabled, false);
     assert.equal(state.surfaceTreatment, "off");
   });
+
+  it("curated Surface on Button never stamps Container identity", () => {
+    const props = applyCuratedFamily(
+      { elementKind: "button", actionType: "call", href: "tel:+15550001111" },
+      CURATED_FAMILY_BRIGHT_LACQUER_ID,
+      "button"
+    );
+    assert.notEqual(props.componentKind, "container");
+    assert.equal(readVisualPartsState(props).actionSurfacePartId, "action_surface_copper_harmonized");
+    assert.equal(readVisualPartsState(props).surfaceEnabled, true);
+  });
 });
 
 describe("Visual Grammar — assembly reassembly parity", () => {

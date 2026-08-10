@@ -74,9 +74,10 @@ export const OBJECT_CAPABILITY_REGISTRY: Readonly<Record<ObjectFamily, ObjectCap
 export function objectFamilyForNode(node: Pick<CreativeCompositionNode, "primitive" | "props">): ObjectFamily {
   const element = String(node.props.elementKind || "");
   const component = String(node.props.componentKind || "");
+  // Button primitive identity outranks a stray componentKind stamp (e.g. Surface mis-apply).
+  if (node.primitive === "button") return "button";
   if (["coupon", "ticket", "map", "gallery", "form", "container"].includes(component)) return component as ObjectFamily;
   if (node.primitive === "text") return element === "badge" ? "badge" : "text";
-  if (node.primitive === "button") return "button";
   if (node.primitive === "group") return "group";
   if (element === "logo" || element === "secondary_logo") return "logo";
   if (element === "icon") return "icon";

@@ -334,8 +334,17 @@ export function applyVisualPart(
         surfaceDepth: part.payload.depthDefault ?? 0.45,
       });
       next.actionSurfaceTone = part.payload.backgroundTone;
-      next.componentKind = next.componentKind || "container";
-      Object.assign(next, styles);
+      // Surface is a Visual Parts socket — never rewrite Button/Launch/Badge identity
+      // into Container (that hijacks NodeVisual + objectFamily).
+      const buttonishHost =
+        options.targetFamily === "button" ||
+        options.targetFamily === "launch" ||
+        options.targetFamily === "badge" ||
+        options.targetFamily === "form_submit";
+      if (!buttonishHost) {
+        next.componentKind = next.componentKind || "container";
+        Object.assign(next, styles);
+      }
       break;
     }
     case "mount": {
@@ -441,8 +450,16 @@ export function applyCuratedFamily(
   if (finishResult.ok) next = finishResult.props;
 
   if (ingredients.actionSurface) {
+    const surfaceHost =
+      targetFamily === "button" || targetFamily === "launch" || targetFamily === "badge"
+        ? targetFamily
+        : targetFamily === "action_surface"
+          ? "container"
+          : targetFamily === "container" || targetFamily === "hero"
+            ? targetFamily
+            : "container";
     const surfaceResult = applyVisualPart(next, ingredients.actionSurface, {
-      targetFamily: "container",
+      targetFamily: surfaceHost,
     });
     if (surfaceResult.ok) next = surfaceResult.props;
   }
@@ -457,6 +474,8 @@ export function applyCuratedFamily(
   });
 
   if (targetFamily === "button" || targetFamily === "launch") {
+    // Repair any prior Surface mis-apply that stamped Container identity on a Button.
+    if (next.componentKind === "container") delete next.componentKind;
     next.showIcon = true;
     next.icon = next.icon && next.icon !== "none" ? next.icon : "sparkles";
     const mapped = mapIconStationPosition("left");
@@ -480,14 +499,22 @@ export function applyCuratedFamily(
 export function applySurfaceMode(
   props: Record<string, unknown>,
   enabled: boolean,
-  treatment: SurfaceTreatment = "quiet_field"
+  treatment: SurfaceTreatment = "quiet_field",
+  targetFamily: VisualPartTargetFamily = "container"
 ): Record<string, unknown> {
   if (!enabled) {
-    return writeVisualPartsState(props, {
+    const cleared = writeVisualPartsState(props, {
       surfaceEnabled: false,
       surfaceTreatment: "off",
       actionSurfacePartId: "action_surface_none",
     });
+    if (
+      (targetFamily === "button" || targetFamily === "launch" || targetFamily === "badge") &&
+      cleared.componentKind === "container"
+    ) {
+      delete cleared.componentKind;
+    }
+    return cleared;
   }
   const partId =
     treatment === "copper_harmonized"
@@ -501,7 +528,7 @@ export function applySurfaceMode(
             : treatment === "plinth_base"
               ? "action_surface_plinth"
               : "action_surface_quiet_field";
-  const result = applyVisualPart(props, partId, { targetFamily: "container" });
+  const result = applyVisualPart(props, partId, { targetFamily });
   return result.ok
     ? writeVisualPartsState(result.props, { surfaceEnabled: true, surfaceTreatment: treatment })
     : writeVisualPartsState(props, { surfaceEnabled: true, surfaceTreatment: treatment });
