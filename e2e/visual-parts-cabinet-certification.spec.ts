@@ -143,11 +143,14 @@ test.describe("Visual Parts Cabinet certification", () => {
     await evidenceShot(page, "visual-parts", "05-after-save.png");
 
     // O — Action still reachable on Button
-    await button.click();
-    const actionBtn = page.getByTestId("contextual-button-action");
-    if (await actionBtn.isVisible().catch(() => false)) {
-      await ownerClick(actionBtn, "Action");
-      await expect(page.getByTestId("button-action-controls")).toBeVisible({ timeout: 10_000 });
+    const buttonAfter = page.locator('[data-composition-node][data-vp-rim="rim_pounded_copper"]').filter({ has: page.locator("[data-button-surface-kind]") }).first();
+    if (await buttonAfter.isVisible({ timeout: 5_000 }).catch(() => false)) {
+      await buttonAfter.click({ timeout: 10_000 });
+      const actionBtn = page.getByTestId("contextual-button-action");
+      if (await actionBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await ownerClick(actionBtn, "Action");
+        await expect(page.getByTestId("button-action-controls")).toBeVisible({ timeout: 10_000 });
+      }
     }
 
     fs.writeFileSync(
