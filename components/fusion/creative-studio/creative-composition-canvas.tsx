@@ -406,7 +406,12 @@ function NodeVisual({
       Boolean(vpContainer.bottomStopPartId) || str(node.props.vpSectionRole) === "bottom_stop";
     if (isBottomStop) {
       return (
-        <div className="relative flex h-full w-full items-end" data-component-kind="container" data-vp-section="bottom_stop">
+        <div
+          className="relative flex h-full w-full items-end"
+          data-component-kind="container"
+          data-vp-section="bottom_stop"
+          style={{ minHeight: Math.max(12, num(node.props.vpBottomStopHeightPx, 12) + 8) }}
+        >
           <BottomStopBar props={node.props} testIdPrefix={`bottom-stop-${node.id}`} />
         </div>
       );

@@ -238,7 +238,11 @@ export function BottomStopBar({
       data-vp-bottom-stop={state.bottomStopPartId}
       data-vp-rim-authority={themed ? state.rimPartId || "rim_pounded_copper" : undefined}
       style={{
+        width: "100%",
+        minWidth: 48,
         height,
+        minHeight: height,
+        flex: "1 1 auto",
         marginTop: 4,
         borderRadius: 999,
         background: themed
