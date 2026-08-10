@@ -156,6 +156,22 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
       clipPath: FACETED_STATION_CLIP,
     },
   }),
+  original({
+    id: "icon_station_backing_dark",
+    label: "Dark Lacquer Backing",
+    collection: "foundation",
+    category: "icon_station",
+    supportedSockets: ["iconStation.backing"],
+    supportedTargetFamilies: ["button", "badge", "icon", "image", "logo"],
+    renderKind: "icon_station_shell",
+    colorization: "none",
+    payload: {
+      kind: "icon_station_backing",
+      tone: "dark",
+      background: "radial-gradient(circle at 35% 28%, #3a3a44, #0a0a0d 62%, #000)",
+    },
+    previewHint: "icon-station-dark-backing",
+  }),
 
   // ── Accents ──
   original({
@@ -304,13 +320,14 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     payload: {
       kind: "curated_family",
       defaultBaseColor: LACQUER_PROOF_COLORS.green,
-      defaultActionType: "website",
-      defaultHref: "https://example.com",
+      // Visual recipe only — never mutates Action/Bind authority.
       ingredientPartIds: {
         body: "body_rounded_rect",
         finish: "finish_lacquer",
         rim: "rim_pounded_copper",
         iconStation: "icon_station_round",
+        iconStationBacking: "icon_station_backing_dark",
+        iconStationRim: "rim_pounded_copper",
         accent: "accent_copper_leaves",
         layout: "layout_one_column",
         divider: "divider_copper_botanical",

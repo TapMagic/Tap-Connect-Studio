@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import {
   CURATED_FAMILY_BRIGHT_LACQUER_ID,
   LACQUER_PROOF_COLORS,
-  POUNDED_COPPER_PART_ID,
   VISUAL_PARTS_DRAWER_CONTRACT,
   applyCuratedFamily,
   applyIconStationContent,
@@ -15,7 +14,8 @@ import {
   getVisualPart,
   listVisualParts,
   partCompatibleWithTarget,
-  poundedCopperRimBackground,
+  partTilePreviewBackground,
+  partTilePreviewKind,
   readVisualPartsState,
   removeVisualPartSocket,
   type IconStationPosition,
@@ -61,12 +61,8 @@ function PartTile({
   disabledReason?: string;
   onApply: () => void;
 }) {
-  const rimPreview =
-    part.id === POUNDED_COPPER_PART_ID || part.payload.kind === "rim"
-      ? poundedCopperRimBackground()
-      : part.payload.kind === "finish"
-        ? "linear-gradient(180deg,#ffffffaa,#16a34a 40%,#052e16)"
-        : undefined;
+  const preview = partTilePreviewBackground(part);
+  const previewKind = partTilePreviewKind(part);
 
   return (
     <button
@@ -77,13 +73,20 @@ function PartTile({
       data-testid={`vp-part-${part.id}`}
       data-vp-collection={part.collection}
       data-vp-active={active ? "true" : "false"}
+      data-vp-preview-part={part.id}
+      data-vp-preview-kind={previewKind || undefined}
       className={`relative min-h-16 overflow-hidden rounded border px-2 py-1.5 text-left text-[10px] ${
         active ? "border-[#b8ff2c]/80 bg-[#b8ff2c]/10" : "border-white/15 hover:border-[#b8ff2c]/50"
       } ${disabledReason ? "opacity-40" : ""}`}
       onClick={onApply}
     >
-      {rimPreview ? (
-        <span aria-hidden className="absolute inset-0 opacity-80" style={{ background: rimPreview }} />
+      {preview ? (
+        <span
+          aria-hidden
+          className="absolute inset-0 opacity-80"
+          data-testid={`vp-part-preview-${part.id}`}
+          style={{ background: preview }}
+        />
       ) : null}
       <span className="relative z-[1] font-semibold text-white drop-shadow">{part.label}</span>
       <span className="relative z-[1] mt-0.5 block text-[9px] uppercase tracking-wide text-white/70">
@@ -329,7 +332,10 @@ export function VisualPartsCabinetPanel({ props, targetFamily, onPatch, onPassth
               <PartTile
                 key={part.id}
                 part={part}
-                active={state.iconStationGeometryPartId === part.id}
+                active={
+                  state.iconStationGeometryPartId === part.id ||
+                  state.iconStationBackingPartId === part.id
+                }
                 onApply={() => applyPart(part.id)}
               />
             ))}

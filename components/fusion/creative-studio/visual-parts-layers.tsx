@@ -4,6 +4,7 @@ import type { CSSProperties, ReactNode } from "react";
 import {
   readVisualPartsState,
   resolveAccentDescriptor,
+  resolveIconStationBackingDescriptor,
   resolveRimDescriptor,
   visualPartsDataAttrs,
 } from "@/lib/fusion/creative-studio/visual-parts";
@@ -91,6 +92,11 @@ export function VisualPartsShell({ props, radius, children, testIdPrefix = "vp" 
   );
 }
 
+/**
+ * Icon Station geometry shell.
+ * Hard law: geometry ≠ backing ≠ rim ≠ content ≠ accent.
+ * Foundation Round alone must not inherit Signature copper styling.
+ */
 export function IconStationShell({
   props,
   children,
@@ -107,6 +113,23 @@ export function IconStationShell({
   const clip = typeof props.iconStationClipPath === "string" ? props.iconStationClipPath : undefined;
   const mediaUrl = typeof props.iconMediaUrl === "string" ? props.iconMediaUrl : "";
   const fit = String(props.iconMediaFit || "cover");
+  const backing = resolveIconStationBackingDescriptor(state);
+  const stationRim = state.iconStationRimPartId
+    ? resolveRimDescriptor({ rimPartId: state.iconStationRimPartId })
+    : null;
+
+  const content = mediaUrl ? (
+    // Host-owned upload inside TapConnect craft frame
+    // eslint-disable-next-line @next/next/no-img-element
+    <img
+      src={mediaUrl}
+      alt=""
+      data-testid={`${testIdPrefix}-media`}
+      style={{ width: "100%", height: "100%", objectFit: fit as CSSProperties["objectFit"] }}
+    />
+  ) : (
+    children
+  );
 
   return (
     <span
@@ -114,28 +137,25 @@ export function IconStationShell({
       data-testid={testIdPrefix}
       data-vp-icon-station-geometry={geometryId}
       data-vp-icon-station-shape={shape}
+      data-vp-icon-station-backing={backing?.partId || undefined}
+      data-vp-icon-station-rim={stationRim?.partId || undefined}
       style={{
         width: "100%",
         height: "100%",
         borderRadius: shape === "round" ? "50%" : 8,
         clipPath: shape === "faceted" ? clip : undefined,
-        background: "radial-gradient(circle at 35% 28%, #3a3a44, #0a0a0d 62%, #000)",
-        boxShadow:
-          "0 0 0 2px #8a4a22, 0 0 0 3px #3a1a0c, inset 0 2px 4px rgba(255,255,255,.12), inset 0 -4px 8px rgba(0,0,0,.7)",
+        // Geometry alone stays transparent — Signature look requires explicit backing + rim parts.
+        background: backing?.background ?? "transparent",
+        boxShadow: stationRim
+          ? stationRim.copperFamily
+            ? "0 0 0 2px #8a4a22, 0 0 0 3px #3a1a0c, inset 0 2px 4px rgba(255,255,255,.12), inset 0 -4px 8px rgba(0,0,0,.7)"
+            : "0 0 0 2px #94a3b8, 0 0 0 3px #475569, inset 0 1px 2px rgba(255,255,255,.4)"
+          : backing
+            ? "inset 0 1px 2px rgba(255,255,255,.1), inset 0 -2px 4px rgba(0,0,0,.55)"
+            : undefined,
       }}
     >
-      {mediaUrl ? (
-        // Host-owned upload inside TapConnect craft frame
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={mediaUrl}
-          alt=""
-          data-testid={`${testIdPrefix}-media`}
-          style={{ width: "100%", height: "100%", objectFit: fit as CSSProperties["objectFit"] }}
-        />
-      ) : (
-        children
-      )}
+      {content}
     </span>
   );
 }

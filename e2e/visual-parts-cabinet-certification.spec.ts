@@ -1,7 +1,8 @@
 /**
- * VISUAL PARTS CABINET — drawer-handle architecture proof.
+ * VISUAL PARTS CABINET — integrity closeout certification.
  * Enable: VISUAL_PARTS_CABINET_CERT=1
  * Uses normal Owner UI paths (no document injection).
+ * Required: Action preservation · save/reload · Preview · Divider UI · cross-object same part ID.
  */
 
 import { expect, test, type Page } from "@playwright/test";
@@ -20,6 +21,7 @@ import {
 
 const enabled = process.env.VISUAL_PARTS_CABINET_CERT === "1" || process.env.PRACTICAL_AUTHORING_CERT === "1";
 const EVIDENCE = path.join("tmp", "visual-parts-cabinet-evidence");
+const ACTION_DESTINATION = "tel:+15559876543";
 
 async function dismissOverlays(page: Page) {
   for (const id of ["card-recovery-keep-server", "card-exit-keep-editing", "card-exit-preview", "preview-exit"]) {
@@ -39,11 +41,21 @@ async function openVisualParts(page: Page) {
   await expect(page.getByTestId("visual-parts-cabinet")).toBeVisible({ timeout: 15_000 });
 }
 
+async function selectCopperButton(page: Page) {
+  const button = page
+    .locator('[data-composition-node][data-vp-rim="rim_pounded_copper"]')
+    .filter({ has: page.locator("[data-button-surface-kind]") })
+    .first();
+  await expect(button).toBeVisible({ timeout: 15_000 });
+  await button.click();
+  return button;
+}
+
 test.describe("Visual Parts Cabinet certification", () => {
   test.skip(!enabled, "Set VISUAL_PARTS_CABINET_CERT=1 or PRACTICAL_AUTHORING_CERT=1");
-  test.setTimeout(300_000);
+  test.setTimeout(360_000);
 
-  test("Cabinet handles: curated family, finish≠color, icon station, cross-object rim", async ({ page }) => {
+  test("Cabinet integrity: Action preserve, persistence, Preview, Divider, cross-object", async ({ page }) => {
     ensureEvidenceDirs(["visual-parts"]);
     fs.mkdirSync(EVIDENCE, { recursive: true });
     await openBlankStudio(page);
@@ -51,114 +63,180 @@ test.describe("Visual Parts Cabinet certification", () => {
 
     // A — insert Button
     await insertFamily(page, "button");
-    const button = page.locator('[data-composition-node]').filter({ has: page.locator("[data-button-surface-kind]") }).first();
+    const button = page
+      .locator("[data-composition-node]")
+      .filter({ has: page.locator("[data-button-surface-kind]") })
+      .first();
     await expect(button).toBeVisible({ timeout: 15_000 });
     await button.click();
 
-    // B/C — Curated Bright Lacquer + Pounded Copper
+    // D (early) — deliberately configured non-default Call Action before visual family
+    await ownerClick(page.getByTestId("contextual-button-action"), "Action");
+    await page.getByLabel("Button action type").selectOption("call");
+    await page.getByLabel("Button destination").fill(ACTION_DESTINATION);
+    await expect(page.getByLabel("Button action type")).toHaveValue("call");
+    await expect(page.getByLabel("Button destination")).toHaveValue(ACTION_DESTINATION);
+
+    // B — Apply Bright Lacquer + Pounded Copper
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-curated"), "Curated drawer");
     await ownerClick(page.getByTestId("vp-part-family_bright_lacquer_pounded_copper"), "Apply curated family");
     await expect(button).toHaveAttribute("data-vp-rim", "rim_pounded_copper", { timeout: 10_000 });
     await expect(button).toHaveAttribute("data-vp-finish", "finish_lacquer");
+    await expect(button).toHaveAttribute("data-vp-family", "family_bright_lacquer_pounded_copper");
     await expect(page.getByTestId("vp-customize-ingredients")).toBeVisible();
     await expect(page.getByTestId("vp-ingredient-rim")).toHaveAttribute("data-part-id", "rim_pounded_copper");
-    await evidenceShot(page, "visual-parts", "01-curated-applied.png");
+    await expect(page.getByTestId("vp-ingredient-iconStationBacking")).toHaveAttribute(
+      "data-part-id",
+      "icon_station_backing_dark"
+    );
 
-    // D — Customize colors; finish remains Lacquer
+    // Action must survive curated visual family
+    await ownerClick(page.getByTestId("contextual-button-action"), "Action after family");
+    await expect(page.getByLabel("Button action type")).toHaveValue("call");
+    await expect(page.getByLabel("Button destination")).toHaveValue(ACTION_DESTINATION);
+    await openVisualParts(page);
+
+    // Rim tile preview parity (Chrome vs Copper) from shared descriptor
+    await ownerClick(page.getByTestId("vp-drawer-frame_ring"), "Frame & Ring");
+    await expect(page.getByTestId("vp-part-rim_simple_chrome")).toHaveAttribute("data-vp-preview-kind", "rim-chrome");
+    await expect(page.getByTestId("vp-part-rim_pounded_copper")).toHaveAttribute("data-vp-preview-kind", "rim-copper");
+    await evidenceShot(page, "visual-parts", "01-curated-applied-action-preserved.png");
+
+    // C — Change base Color, Icon Station position, Accent (reusable part)
     await ownerClick(page.getByTestId("vp-drawer-finish"), "Finish drawer");
-    await ownerClick(page.getByTestId("vp-lacquer-color-red"), "Red lacquer base");
-    await expect(button).toHaveAttribute("data-vp-finish", "finish_lacquer");
-    await expect(button).toHaveAttribute("data-vp-rim", "rim_pounded_copper");
     await ownerClick(page.getByTestId("vp-lacquer-color-blue"), "Electric blue lacquer base");
+    await expect(button).toHaveAttribute("data-vp-finish", "finish_lacquer");
     await expect(button).toHaveAttribute("data-vp-base-color", "#155eef");
-    await expect(page.getByTestId("vp-finish-id")).toContainText("finish_lacquer");
-    await evidenceShot(page, "visual-parts", "02-finish-color-independence.png");
+    await expect(button).toHaveAttribute("data-vp-rim", "rim_pounded_copper");
 
-    // E/F — Icon station content + positions
     await ownerClick(page.getByTestId("vp-drawer-icon_image"), "Icon/Image drawer");
-    await ownerClick(page.getByTestId("vp-icon-library"), "Library icon");
-    await ownerClick(page.getByTestId("vp-icon-upload-demo"), "Uploaded logo");
-    await expect(button).toHaveAttribute("data-vp-icon-station", "icon_station_round");
     await ownerClick(page.getByTestId("vp-icon-pos-right"), "Icon Right");
     await expect(button).toHaveAttribute("data-vp-icon-position", "right");
-    await ownerClick(page.getByTestId("vp-icon-pos-both"), "Icons Both");
-    await expect(button).toHaveAttribute("data-vp-icon-position", "both");
-    await ownerClick(page.getByTestId("vp-icon-pos-left"), "Icon Left");
+    await expect(button).toHaveAttribute("data-vp-icon-station", "icon_station_round");
 
-    // G — Layout two column + phone auto-stack intent
-    await ownerClick(page.getByTestId("vp-drawer-layout"), "Layout drawer");
-    await ownerClick(page.getByTestId("vp-part-layout_two_column"), "Two column");
-    await expect(button).toHaveAttribute("data-vp-layout", "two_column");
-    await expect(button).toHaveAttribute("data-vp-phone-stack", "auto");
+    await ownerClick(page.getByTestId("vp-drawer-accents"), "Accents drawer");
+    await ownerClick(page.getByTestId("vp-accent-reset"), "Remove accent");
+    await ownerClick(page.getByTestId("vp-part-accent_copper_leaves"), "Re-apply Copper Leaves");
+    await expect(button).toHaveAttribute("data-vp-accent", "accent_copper_leaves");
+    await evidenceShot(page, "visual-parts", "02-visual-parts-edited.png");
 
-    // H — Narrow preview (best-effort)
-    const preview = page.getByTestId("card-preview-as-customer");
-    if (await preview.isVisible().catch(() => false)) {
-      await ownerClick(preview, "Preview");
-      await evidenceShot(page, "visual-parts", "03-narrow-preview.png");
-      const exit = page.getByTestId("preview-exit");
-      if (await exit.isVisible({ timeout: 5_000 }).catch(() => false)) await exit.click();
-      await dismissOverlays(page);
-    }
+    // Action still exact after visual edits
+    await ownerClick(page.getByTestId("contextual-button-action"), "Action after visual edits");
+    await expect(page.getByLabel("Button action type")).toHaveValue("call");
+    await expect(page.getByLabel("Button destination")).toHaveValue(ACTION_DESTINATION);
 
-    // I/J — Action Surface Container (Divider proven in unit suite; Quick Tools divider is optional)
+    // E — Save
+    await saveDraft(page);
+    await evidenceShot(page, "visual-parts", "03-after-save.png");
+
+    // F — Reload / reopen Studio through normal Owner path
+    await page.reload({ waitUntil: "domcontentloaded" });
+    await expect(page.getByTestId("card-edit-workspace-host")).toHaveAttribute("data-builder-ready", "true", {
+      timeout: 60_000,
+    });
+    await dismissOverlays(page);
+    expect(page.url()).toContain("/dashboard/card/edit");
+
+    // G — Re-select the same Button
+    const reloaded = await selectCopperButton(page);
+
+    // H — Durable Visual Parts state survived
+    await expect(reloaded).toHaveAttribute("data-vp-family", "family_bright_lacquer_pounded_copper");
+    await expect(reloaded).toHaveAttribute("data-vp-finish", "finish_lacquer");
+    await expect(reloaded).toHaveAttribute("data-vp-base-color", "#155eef");
+    await expect(reloaded).toHaveAttribute("data-vp-rim", "rim_pounded_copper");
+    await expect(reloaded).toHaveAttribute("data-vp-icon-station", "icon_station_round");
+    await expect(reloaded).toHaveAttribute("data-vp-icon-position", "right");
+    await expect(reloaded).toHaveAttribute("data-vp-accent", "accent_copper_leaves");
+    await expect(reloaded).toHaveAttribute("data-vp-icon-station-backing", "icon_station_backing_dark");
+
+    // I — Exact Action/destination survived
+    await ownerClick(page.getByTestId("contextual-button-action"), "Action after reload");
+    await expect(page.getByLabel("Button action type")).toHaveValue("call");
+    await expect(page.getByLabel("Button destination")).toHaveValue(ACTION_DESTINATION);
+    await evidenceShot(page, "visual-parts", "04-after-reload.png");
+
+    // J/K — Required Preview proof (not optional)
+    await ownerClick(page.getByTestId("card-preview-as-customer"), "Preview as customer");
+    await expect(page.getByTestId("preview-toolbar")).toBeVisible({ timeout: 20_000 });
+    const previewButton = page
+      .locator('[data-vp-rim="rim_pounded_copper"]')
+      .filter({ has: page.locator("[data-button-surface-kind], [data-element-action]") })
+      .first();
+    await expect(previewButton).toBeVisible({ timeout: 15_000 });
+    await expect(previewButton).toHaveAttribute("data-vp-finish", "finish_lacquer");
+    await expect(previewButton).toHaveAttribute("data-vp-base-color", "#155eef");
+    await expect(previewButton).toHaveAttribute("data-vp-icon-station", "icon_station_round");
+    await expect(
+      page.locator(`[data-element-action="call"], a[href="${ACTION_DESTINATION}"]`).first()
+    ).toBeVisible({ timeout: 10_000 });
+    await evidenceShot(page, "visual-parts", "05-preview-visual-parts.png");
+    await ownerClick(page.getByTestId("preview-exit"), "Exit Preview");
+    await dismissOverlays(page);
+
+    // Required Divider UI path — Tools → Starter Dividers → Visual Parts drawer
+    await ownerClick(page.getByTestId("card-creative-tool-tools"), "Tools rail");
+    await expect(page.getByTestId("card-quick-tools")).toBeVisible({ timeout: 15_000 });
+    const dividerTile = page.getByTestId("starter-divider-solid-full");
+    await dividerTile.scrollIntoViewIfNeeded();
+    await expect(dividerTile).toBeVisible({ timeout: 10_000 });
+    await ownerClick(dividerTile, "Insert Divider");
+    const divider = page.locator('[data-composition-node][data-primitive="border"]').last();
+    await expect(divider).toBeVisible({ timeout: 10_000 });
+    await divider.click();
+    await openVisualParts(page);
+    await ownerClick(page.getByTestId("vp-drawer-divider"), "Divider drawer");
+    await ownerClick(page.getByTestId("vp-part-divider_copper_botanical"), "Copper Botanical Divider");
+    await expect(page.locator("[data-vp-divider='divider_copper_botanical']").first()).toBeVisible({
+      timeout: 10_000,
+    });
+    await evidenceShot(page, "visual-parts", "06-divider-ui.png");
+
+    // Cross-object: same rim_pounded_copper ID on Button AND Container Action Surface edge
     await ownerClick(page.getByTestId("card-creative-tool-tools"), "Tools rail");
     await expect(page.getByTestId("starter-container-stack-card")).toBeVisible({ timeout: 15_000 });
     await ownerClick(page.getByTestId("starter-container-stack-card"), "Insert Container");
-    const container = page.locator('[data-composition-node]').filter({ has: page.locator('[data-component-kind="container"]') }).last();
+    const container = page
+      .locator("[data-composition-node]")
+      .filter({ has: page.locator('[data-component-kind="container"]') })
+      .last();
     await expect(container).toBeVisible({ timeout: 15_000 });
     await container.click();
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-surface_zone"), "Surface/Zone");
     await ownerClick(page.getByTestId("vp-part-action_surface_copper_harmonized"), "Copper Harmonized Surface");
-    await expect(page.locator("[data-vp-action-surface='action_surface_copper_harmonized']").first()).toBeVisible({ timeout: 10_000 });
-
-    // Optional Divider handle if starter tile is immediately available
-    const dividerTile = page.locator('[data-testid^="starter-divider-"]').first();
-    if (await dividerTile.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await ownerClick(dividerTile, "Insert Divider");
-      const divider = page.locator('[data-composition-node][data-primitive="border"]').last();
-      if (await divider.isVisible({ timeout: 5_000 }).catch(() => false)) {
-        await divider.click();
-        await openVisualParts(page);
-        await ownerClick(page.getByTestId("vp-drawer-divider"), "Divider drawer");
-        await ownerClick(page.getByTestId("vp-part-divider_copper_botanical"), "Copper Botanical Divider");
-        await expect(page.locator("[data-vp-divider='divider_copper_botanical']").first()).toBeVisible({ timeout: 10_000 });
-      }
-    }
-
-    // K — Cross-object same Pounded Copper part ID on Button AND Container edge
+    await expect(
+      page.locator("[data-vp-action-surface='action_surface_copper_harmonized']").first()
+    ).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('[data-vp-rim="rim_pounded_copper"]').first()).toBeVisible();
-    await expect(button).toHaveAttribute("data-vp-rim", "rim_pounded_copper");
-    await expect(page.locator('[data-vp-action-surface="action_surface_copper_harmonized"]').first()).toBeVisible();
-    await evidenceShot(page, "visual-parts", "04-cross-object-rim.png");
+    const copperCount = await page.locator('[data-vp-rim="rim_pounded_copper"]').count();
+    expect(copperCount).toBeGreaterThanOrEqual(2);
+    await evidenceShot(page, "visual-parts", "07-cross-object-rim.png");
 
-    // L — Undo/Redo representative
+    // Undo/Redo representative
     await undo(page);
     await redo(page);
 
-    // M — Save (reload covered by practical suite; avoid tab-clutter hang)
-    await saveDraft(page);
-    await evidenceShot(page, "visual-parts", "05-after-save.png");
+    // Re-assert Button Action after cross-object work
+    await selectCopperButton(page);
+    await ownerClick(page.getByTestId("contextual-button-action"), "Final Action check");
+    await expect(page.getByLabel("Button action type")).toHaveValue("call");
+    await expect(page.getByLabel("Button destination")).toHaveValue(ACTION_DESTINATION);
 
-    // O — Action authority remains present (visual edits must not remove Action chrome)
-    const actionBtn = page.getByTestId("contextual-button-action");
-    const anyCopperButton = page.locator('[data-composition-node][data-vp-rim="rim_pounded_copper"]').first();
-    if (await anyCopperButton.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await anyCopperButton.click({ timeout: 5_000 }).catch(() => undefined);
-    }
-    if (await actionBtn.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await expect(actionBtn).toBeVisible();
-    }
+    await saveDraft(page);
 
     fs.writeFileSync(
-      path.join(EVIDENCE, "cabinet-cert.json"),
+      path.join(EVIDENCE, "cabinet-integrity-cert.json"),
       JSON.stringify(
         {
           curatedFamily: "family_bright_lacquer_pounded_copper",
           poundedCopperPartId: "rim_pounded_copper",
-          finishIndependent: true,
+          actionPreserved: { actionType: "call", href: ACTION_DESTINATION },
+          persistence: true,
+          previewRequired: true,
+          dividerUiRequired: true,
+          crossObjectSameRimId: true,
           productSha: process.env.PRODUCT_SHA || null,
           passedAt: new Date().toISOString(),
         },

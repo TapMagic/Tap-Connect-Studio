@@ -79,6 +79,12 @@ Proof colors: black `#0a0a0c` · red `#b10d1a` · green `#16a34a` · blue `#155e
 
 Family `family_bright_lacquer_pounded_copper` expands into the same ingredient part IDs the drawers edit. Changing base color must not change finish part id, rim, accent, icon identity, or Action.
 
+**Curated family never mutates Action.** Visual recipes must not set `actionType` / `href` / bind identity. Existing Call, Website, Booking, and tracking-related Action state survive family application. Demo/default Actions belong in starter/insertion authorities only.
+
+**Icon Station hard law:** geometry ≠ backing ≠ rim ≠ content ≠ accent. Foundation Round/Faceted control clip/shape only. Signature-like dark backing + Pounded Copper station rim are separate ingredients (`icon_station_backing_dark`, `rim_pounded_copper` on `iconStation.rim`).
+
+**Rim tile previews** derive from `resolveRimDescriptor` / `partTilePreviewBackground` — Simple Chrome and Pounded Copper must read as distinct parts, not a single copper swatch.
+
 ## Cross-object reuse
 
 `rim_pounded_copper` is one registry id applied to Button surface rim **and** Container / Action Surface edge (and compatible image/logo frames).

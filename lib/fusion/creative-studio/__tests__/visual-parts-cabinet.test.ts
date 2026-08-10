@@ -15,8 +15,11 @@ import {
   getVisualPart,
   listVisualParts,
   partCompatibleWithTarget,
+  partTilePreviewBackground,
+  partTilePreviewKind,
   readVisualPartsState,
   removeVisualPartSocket,
+  resolveRimDescriptor,
   visualPartsStateMatchesIngredients,
 } from "../visual-parts";
 
@@ -40,6 +43,7 @@ describe("Visual Parts Cabinet — registry & provenance", () => {
     const part = getVisualPart(POUNDED_COPPER_PART_ID)!;
     assert.ok(part.supportedSockets.includes("surface.rim"));
     assert.ok(part.supportedSockets.includes("frame.rim"));
+    assert.ok(part.supportedSockets.includes("iconStation.rim"));
     assert.ok(part.supportedTargetFamilies.includes("button"));
     assert.ok(part.supportedTargetFamilies.includes("image"));
     assert.ok(part.supportedTargetFamilies.includes("container"));
@@ -66,8 +70,12 @@ describe("Visual Parts Cabinet — Finish ≠ Color", () => {
     assert.ok(green.shine && red.shine);
   });
 
-  it("color change preserves finish part id and rim/accent/action", () => {
-    let props = applyCuratedFamily({}, CURATED_FAMILY_BRIGHT_LACQUER_ID, "button");
+  it("color change preserves finish part id, rim/accent, and Action", () => {
+    let props = applyCuratedFamily(
+      { actionType: "call", href: "tel:+15551234567" },
+      CURATED_FAMILY_BRIGHT_LACQUER_ID,
+      "button"
+    );
     const before = readVisualPartsState(props);
     props = applyVisualPartBaseColor(props, LACQUER_PROOF_COLORS.red, "button");
     props = applyVisualPartBaseColor(props, LACQUER_PROOF_COLORS.blue, "button");
@@ -76,8 +84,75 @@ describe("Visual Parts Cabinet — Finish ≠ Color", () => {
     assert.equal(after.rimPartId, before.rimPartId);
     assert.equal(after.accentPartId, before.accentPartId);
     assert.equal(after.bodyPartId, before.bodyPartId);
-    assert.equal(props.actionType, "website");
+    assert.equal(props.actionType, "call");
+    assert.equal(props.href, "tel:+15551234567");
     assert.equal(after.baseColor, LACQUER_PROOF_COLORS.blue);
+  });
+});
+
+describe("Visual Parts Cabinet — Action independence from curated family", () => {
+  it("preserves existing Call Action when curated family is applied", () => {
+    const props = applyCuratedFamily(
+      { label: "Call us", actionType: "call", href: "tel:+15551234567" },
+      CURATED_FAMILY_BRIGHT_LACQUER_ID,
+      "button"
+    );
+    assert.equal(props.actionType, "call");
+    assert.equal(props.href, "tel:+15551234567");
+    assert.equal(readVisualPartsState(props).rimPartId, POUNDED_COPPER_PART_ID);
+  });
+
+  it("preserves exact Website URL when curated family is applied", () => {
+    const props = applyCuratedFamily(
+      {
+        label: "Menu",
+        actionType: "website",
+        href: "https://host.example/menu?utm=keep",
+      },
+      CURATED_FAMILY_BRIGHT_LACQUER_ID,
+      "button"
+    );
+    assert.equal(props.actionType, "website");
+    assert.equal(props.href, "https://host.example/menu?utm=keep");
+  });
+
+  it("visual Color/Finish/Rim/Icon/Accent/Layout edits leave Action unchanged", () => {
+    let props: Record<string, unknown> = {
+      actionType: "call",
+      href: "tel:+18005550199",
+      campaignBindId: "bind-demo-keep",
+    };
+    props = applyCuratedFamily(props, CURATED_FAMILY_BRIGHT_LACQUER_ID, "button");
+    props = applyVisualPartBaseColor(props, LACQUER_PROOF_COLORS.red, "button");
+    let result = applyVisualPart(props, "rim_simple_chrome", {
+      targetFamily: "button",
+      socket: "surface.rim",
+    });
+    assert.equal(result.ok, true);
+    if (result.ok) props = result.props;
+    result = applyVisualPart(props, POUNDED_COPPER_PART_ID, {
+      targetFamily: "button",
+      socket: "surface.rim",
+    });
+    assert.equal(result.ok, true);
+    if (result.ok) props = result.props;
+    props = applyIconStationPosition(props, "right");
+    props = removeVisualPartSocket(props, "accent.left");
+    result = applyVisualPart(props, "layout_two_column", { targetFamily: "button" });
+    assert.equal(result.ok, true);
+    if (result.ok) props = result.props;
+    assert.equal(props.actionType, "call");
+    assert.equal(props.href, "tel:+18005550199");
+    assert.equal(props.campaignBindId, "bind-demo-keep");
+  });
+
+  it("curated family contract has no Action defaults", () => {
+    const family = getVisualPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)!;
+    assert.equal(family.payload.kind, "curated_family");
+    if (family.payload.kind === "curated_family") {
+      assert.equal("defaultActionType" in family.payload, false);
+      assert.equal("defaultHref" in family.payload, false);
+    }
   });
 });
 
@@ -93,9 +168,14 @@ describe("Visual Parts Cabinet — Curated → Customize", () => {
     const ingredients = curatedFamilyIngredientIds(CURATED_FAMILY_BRIGHT_LACQUER_ID)!;
     assert.equal(ingredients.rim, POUNDED_COPPER_PART_ID);
     assert.equal(ingredients.finish, "finish_lacquer");
-    // Curated may set website action for proof; do not wipe unrelated if already set — family sets website
+    assert.equal(ingredients.iconStationBacking, "icon_station_backing_dark");
+    assert.equal(ingredients.iconStationRim, POUNDED_COPPER_PART_ID);
     assert.ok(props.gradientFill);
-    assert.equal(readVisualPartsState(props).rimPartId, POUNDED_COPPER_PART_ID);
+    const state = readVisualPartsState(props);
+    assert.equal(state.rimPartId, POUNDED_COPPER_PART_ID);
+    assert.equal(state.iconStationBackingPartId, "icon_station_backing_dark");
+    assert.equal(state.iconStationRimPartId, POUNDED_COPPER_PART_ID);
+    assert.equal(props.actionType, "call");
   });
 
   it("remove accent only leaves rim + finish", () => {
@@ -127,6 +207,44 @@ describe("Visual Parts Cabinet — Curated → Customize", () => {
     });
     assert.equal(props.iconMediaUrl, "/tap-connect-mark.png");
     assert.equal(readVisualPartsState(props).rimPartId, POUNDED_COPPER_PART_ID);
+  });
+});
+
+describe("Visual Parts Cabinet — Icon Station geometry ≠ style", () => {
+  it("Foundation Round geometry alone does not attach dark backing or copper rim", () => {
+    const result = applyVisualPart({}, "icon_station_round", { targetFamily: "button" });
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    const state = readVisualPartsState(result.props);
+    assert.equal(state.iconStationGeometryPartId, "icon_station_round");
+    assert.equal(state.iconStationBackingPartId ?? null, null);
+    assert.equal(state.iconStationRimPartId ?? null, null);
+    assert.equal(result.props.iconStationShape, "round");
+  });
+
+  it("curated family composes Round + dark backing + Pounded Copper as separate ingredients", () => {
+    const props = applyCuratedFamily({}, CURATED_FAMILY_BRIGHT_LACQUER_ID, "button");
+    const state = readVisualPartsState(props);
+    assert.equal(state.iconStationGeometryPartId, "icon_station_round");
+    assert.equal(state.iconStationBackingPartId, "icon_station_backing_dark");
+    assert.equal(state.iconStationRimPartId, POUNDED_COPPER_PART_ID);
+    assert.equal(state.rimPartId, POUNDED_COPPER_PART_ID);
+  });
+});
+
+describe("Visual Parts Cabinet — rim tile preview parity", () => {
+  it("Simple Chrome and Pounded Copper previews derive from resolveRimDescriptor and differ", () => {
+    const chrome = getVisualPart("rim_simple_chrome")!;
+    const copper = getVisualPart(POUNDED_COPPER_PART_ID)!;
+    const chromeDesc = resolveRimDescriptor({ rimPartId: chrome.id })!;
+    const copperDesc = resolveRimDescriptor({ rimPartId: copper.id })!;
+    assert.equal(partTilePreviewBackground(chrome), chromeDesc.background);
+    assert.equal(partTilePreviewBackground(copper), copperDesc.background);
+    assert.notEqual(partTilePreviewBackground(chrome), partTilePreviewBackground(copper));
+    assert.equal(partTilePreviewKind(chrome), "rim-chrome");
+    assert.equal(partTilePreviewKind(copper), "rim-copper");
+    assert.equal(chromeDesc.previewKind, "rim-chrome");
+    assert.equal(copperDesc.previewKind, "rim-copper");
   });
 });
 

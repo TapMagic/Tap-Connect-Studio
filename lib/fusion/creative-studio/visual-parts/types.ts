@@ -123,6 +123,12 @@ export type VisualPartPayload =
       clipPath?: string;
     }
   | {
+      kind: "icon_station_backing";
+      /** Explicit backing paint — never implied by geometry alone. */
+      background: string;
+      tone: "neutral" | "dark";
+    }
+  | {
       kind: "accent";
       svgAssetId: string;
       defaultPlacement: "left" | "right" | "both";
@@ -150,8 +156,6 @@ export type VisualPartPayload =
       kind: "curated_family";
       ingredientPartIds: Readonly<Record<string, string | null>>;
       defaultBaseColor: string;
-      defaultActionType?: string;
-      defaultHref?: string;
     }
   | { kind: "none" };
 
@@ -187,6 +191,10 @@ export type VisualPartsState = {
   baseColor?: string | null;
   rimPartId?: string | null;
   iconStationGeometryPartId?: string | null;
+  /** Explicit Icon Station backing part — independent of geometry. */
+  iconStationBackingPartId?: string | null;
+  /** Explicit Icon Station rim part (may reuse surface rim IDs such as Pounded Copper). */
+  iconStationRimPartId?: string | null;
   iconStationPosition?: IconStationPosition | null;
   accentPartId?: string | null;
   interactionPartId?: string | null;

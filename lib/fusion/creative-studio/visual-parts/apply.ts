@@ -158,6 +158,10 @@ export function applyVisualPart(
       break;
     }
     case "rim": {
+      if (socket === "iconStation.rim") {
+        next = writeVisualPartsState(next, { iconStationRimPartId: partId });
+        break;
+      }
       next = writeVisualPartsState(next, { rimPartId: partId });
       // Dimensional rim is overlay-rendered from part id — keep border minimal.
       if (part.payload.copperFamily) {
@@ -169,6 +173,7 @@ export function applyVisualPart(
       break;
     }
     case "icon_station_geometry": {
+      // Geometry only — never implies backing or Signature rim styling.
       next = writeVisualPartsState(next, {
         iconStationGeometryPartId: partId,
         iconStationPosition: state.iconStationPosition || "left",
@@ -176,6 +181,10 @@ export function applyVisualPart(
       next.showIcon = true;
       next.iconStationShape = part.payload.shape;
       next.iconStationClipPath = part.payload.clipPath || null;
+      break;
+    }
+    case "icon_station_backing": {
+      next = writeVisualPartsState(next, { iconStationBackingPartId: partId });
       break;
     }
     case "accent": {
@@ -273,6 +282,8 @@ export function applyCuratedFamily(
     { id: ingredients.finish },
     { id: ingredients.rim, socket: "surface.rim" },
     { id: ingredients.iconStation },
+    { id: ingredients.iconStationBacking, socket: "iconStation.backing" },
+    { id: ingredients.iconStationRim, socket: "iconStation.rim" },
     { id: ingredients.accent },
     { id: ingredients.layout },
     { id: ingredients.interaction },
@@ -308,10 +319,7 @@ export function applyCuratedFamily(
     const mapped = mapIconStationPosition("left");
     next.iconPosition = mapped.iconPosition;
     next.iconStationBoth = mapped.iconStationBoth;
-    if (family.payload.defaultActionType) {
-      next.actionType = family.payload.defaultActionType;
-      next.href = family.payload.defaultHref || next.href;
-    }
+    // Action/Bind authority is independent — never set actionType/href here.
     if (!next.label) next = updateButtonLabel(next, "Book Your Table");
   }
 
@@ -334,6 +342,8 @@ export function applyVisualPartBaseColor(
     rimPartId: state.rimPartId,
     accentPartId: state.accentPartId,
     iconStationGeometryPartId: state.iconStationGeometryPartId,
+    iconStationBackingPartId: state.iconStationBackingPartId,
+    iconStationRimPartId: state.iconStationRimPartId,
     iconStationPosition: state.iconStationPosition,
     curatedFamilyId: state.curatedFamilyId,
     bodyPartId: state.bodyPartId,
@@ -415,6 +425,17 @@ export function removeVisualPartSocket(
     case "container.edge":
       next = writeVisualPartsState(next, { rimPartId: null });
       break;
+    case "iconStation.rim":
+      next = writeVisualPartsState(next, { iconStationRimPartId: null });
+      break;
+    case "iconStation.backing":
+      next = writeVisualPartsState(next, { iconStationBackingPartId: null });
+      break;
+    case "iconStation.geometry":
+      next = writeVisualPartsState(next, { iconStationGeometryPartId: null });
+      next.iconStationShape = null;
+      next.iconStationClipPath = null;
+      break;
     case "accent.left":
     case "accent.right":
     case "accent.both":
@@ -452,6 +473,15 @@ export function visualPartsStateMatchesIngredients(
   if (state.finishPartId !== ingredients.finish) missing.push("finish");
   if (state.rimPartId !== ingredients.rim) missing.push("rim");
   if (state.iconStationGeometryPartId !== ingredients.iconStation) missing.push("iconStation");
+  if (
+    ingredients.iconStationBacking &&
+    state.iconStationBackingPartId !== ingredients.iconStationBacking
+  ) {
+    missing.push("iconStationBacking");
+  }
+  if (ingredients.iconStationRim && state.iconStationRimPartId !== ingredients.iconStationRim) {
+    missing.push("iconStationRim");
+  }
   if (state.accentPartId !== ingredients.accent) missing.push("accent");
   if (state.interactionPartId !== ingredients.interaction) missing.push("interaction");
   return { ok: missing.length === 0, missing };
