@@ -1369,7 +1369,8 @@ function NodeVisual({
     const vpState = readVisualPartsState(node.props);
     const iconStationActive = Boolean(vpState.iconStationGeometryPartId);
     const makeIconEl = (side: "primary" | "secondary") => {
-      if (!showIcon && side === "primary") return null;
+      // Match Host default: showIcon undefined means visible (same as showIcon !== false).
+      if (showIcon === false && side === "primary") return null;
       if (side === "secondary" && node.props.iconStationBoth !== true) return null;
       const isSecondary = side === "secondary";
       const cueName = isSecondary ? str(node.props.iconSecondary, "arrow-up-right") : icon;
