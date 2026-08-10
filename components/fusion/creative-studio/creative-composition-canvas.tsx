@@ -1317,7 +1317,11 @@ function NodeVisual({
     const showLabel = node.props.showLabel !== false && presentation !== "icon_circle";
     const showDescription = node.props.showDescription === true || presentation === "icon_description";
     const icon = str(node.props.icon, "arrow-up-right");
-    const showIcon = node.props.showIcon !== false && icon !== "none" && icon !== "";
+    const showIcon =
+      node.props.showIcon !== false &&
+      (Boolean(node.props.iconMediaUrl) ||
+        node.props.iconStationBoth === true ||
+        (icon !== "none" && icon !== ""));
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
@@ -1475,7 +1479,11 @@ function NodeVisual({
         <MaterialSurfaceLayers surface={materialSurface} testIdPrefix={`button-${node.id}`} />
         {railLayout ? (
           <>
-            <span data-vp-rail-slot="left" className="grid place-items-center">
+            <span
+              data-vp-rail-slot="left"
+              data-vp-icon-slot="primary"
+              className="grid place-items-center"
+            >
               {buttonIconEl}
             </span>
             {buttonLabelEl ? (
@@ -1485,7 +1493,11 @@ function NodeVisual({
             ) : (
               <span />
             )}
-            <span data-vp-rail-slot="right" className="grid place-items-center">
+            <span
+              data-vp-rail-slot="right"
+              data-vp-icon-slot="secondary"
+              className="grid place-items-center"
+            >
               {secondaryIconEl}
             </span>
           </>
