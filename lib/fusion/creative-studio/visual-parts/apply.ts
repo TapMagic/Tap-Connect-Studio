@@ -459,6 +459,12 @@ export function applyCuratedFamily(
 ): Record<string, unknown> {
   const family = getVisualPart(familyId);
   if (!family || family.payload.kind !== "curated_family") return props;
+  // Top Shelf Enhanced package — dedicated recipe apply preserves layered package paint.
+  if (familyId === "family_top_shelf_premium_action") {
+    // Lazy import avoids circular init with packages/top-shelf/recipe.
+    const { applyTopShelfPremiumAction } = require("./packages/top-shelf/recipe") as typeof import("./packages/top-shelf/recipe");
+    return applyTopShelfPremiumAction(props, targetFamily);
+  }
   const ingredients = family.payload.ingredientPartIds;
   let next = writeVisualPartsState(props, {
     curatedFamilyId: familyId,

@@ -601,6 +601,64 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     payload: { kind: "layout", intent: "round_team_grid", autoStackPhone: true, railAware: true },
   }),
 
+  // ── Top Shelf Enhanced package parts (PO-approved; certify after dual-green) ──
+  original({
+    id: "finish_top_shelf_metallic_glass",
+    label: "Top Shelf Metallic Glass",
+    collection: "tapconnect_signature",
+    category: "finish",
+    supportedSockets: ["finish.recipe", "surface.material", "surface.highlight"],
+    supportedTargetFamilies: [...BUTTONISH, "container", "action_surface"],
+    renderKind: "finish_recipe",
+    colorization: "host_base_color",
+    lifecycleStatus: "approved",
+    expressionTier: "enhanced",
+    payload: { kind: "finish", finishId: "lacquer", materialBridgeId: "gloss_lacquer" },
+    previewHint: "top-shelf-metallic-glass",
+  }),
+  original({
+    id: "housing_simple_glass_icon_ring",
+    label: "Simple Glass Icon Ring",
+    collection: "tapconnect_signature",
+    category: "icon_station",
+    supportedSockets: ["iconStation.geometry"],
+    supportedTargetFamilies: BUTTONISH,
+    renderKind: "icon_station_shell",
+    colorization: "none",
+    lifecycleStatus: "approved",
+    expressionTier: "enhanced",
+    payload: { kind: "icon_station_geometry", shape: "round" },
+    previewHint: "top-shelf-icon-ring",
+  }),
+  original({
+    id: "effect_ambient_halo_top_shelf",
+    label: "Ambient Halo",
+    collection: "tapconnect_signature",
+    category: "interaction",
+    supportedSockets: ["surface.effect", "interaction.motion"],
+    supportedTargetFamilies: BUTTONISH,
+    renderKind: "finish_recipe",
+    colorization: "host_base_color",
+    lifecycleStatus: "approved",
+    expressionTier: "enhanced",
+    payload: { kind: "finish", finishId: "lacquer" },
+    previewHint: "top-shelf-halo",
+  }),
+  original({
+    id: "effect_upper_gloss_top_shelf",
+    label: "Upper Gloss Reflection",
+    collection: "tapconnect_signature",
+    category: "finish",
+    supportedSockets: ["surface.highlight"],
+    supportedTargetFamilies: BUTTONISH,
+    renderKind: "finish_recipe",
+    colorization: "none",
+    lifecycleStatus: "approved",
+    expressionTier: "enhanced",
+    payload: { kind: "finish", finishId: "lacquer" },
+    previewHint: "top-shelf-gloss",
+  }),
+
   // ── Curated families ──
   original({
     id: "family_bright_lacquer_pounded_copper",
@@ -665,6 +723,44 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
         bottomStop: "bottom_stop_minimal",
       },
     },
+  }),
+  original({
+    id: "family_top_shelf_premium_action",
+    label: "Top Shelf Premium Action",
+    collection: "tapconnect_signature",
+    category: "curated",
+    supportedSockets: ["curated.family"],
+    supportedTargetFamilies: ["button", "launch", "form_submit"],
+    renderKind: "curated_family",
+    colorization: "host_base_color",
+    lifecycleStatus: "approved",
+    expressionTier: "enhanced",
+    canonicalRecipeId: "recipe/enhanced/top-shelf-premium-action/v1",
+    referenceRenderPath:
+      "vendor/top-shelf-enhanced-component-package-v1.0/reference/code-render.png",
+    payload: {
+      kind: "curated_family",
+      defaultBaseColor: "#171717",
+      actionRole: "signature",
+      mountPartId: null,
+      surfaceTreatment: "off",
+      ingredientPartIds: {
+        body: "body_capsule",
+        finish: "finish_top_shelf_metallic_glass",
+        rim: null,
+        iconStation: "housing_simple_glass_icon_ring",
+        iconStationBacking: null,
+        iconStationRim: null,
+        mount: null,
+        accent: "accent_none",
+        layout: "layout_one_column",
+        divider: null,
+        actionSurface: null,
+        interaction: "interaction_tactile",
+        bottomStop: null,
+      },
+    },
+    previewHint: "top-shelf-premium-action",
   }),
 ] as const;
 
@@ -747,3 +843,5 @@ export const VISUAL_PARTS_DRAWER_CONTRACT: Readonly<
 export const POUNDED_COPPER_PART_ID = "rim_pounded_copper";
 export const CURATED_FAMILY_BRIGHT_LACQUER_ID = "family_bright_lacquer_pounded_copper";
 export const CURATED_FAMILY_MISSION_CONTROL_ID = "family_mission_control";
+export const CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID = "family_top_shelf_premium_action";
+export const TOP_SHELF_CANONICAL_RECIPE_ID = "recipe/enhanced/top-shelf-premium-action/v1";

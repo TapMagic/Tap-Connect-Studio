@@ -4,7 +4,12 @@ import { useMemo, useState } from "react";
 import {
   CURATED_FAMILY_BRIGHT_LACQUER_ID,
   CURATED_FAMILY_MISSION_CONTROL_ID,
+  CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID,
   LACQUER_PROOF_COLORS,
+  TOP_SHELF_ANCHOR_CHARCOAL,
+  TOP_SHELF_ANCHOR_COBALT,
+  TOP_SHELF_CANONICAL_RECIPE_ID,
+  TOP_SHELF_LIFECYCLE_STATUS,
   VISUAL_PARTS_DRAWER_CONTRACT,
   applyColorRefinement,
   applyCuratedFamily,
@@ -23,6 +28,9 @@ import {
   listBrandRecipes,
   listVisualParts,
   readRefinementFromProps,
+  readTopShelfParams,
+  resetTopShelfToCanonical,
+  writeTopShelfParams,
   type BrandRecipe,
   partCompatibleWithTarget,
   partTilePreviewBackground,
@@ -250,17 +258,36 @@ export function VisualPartsCabinetPanel({
       </div>
 
       {drawer === "curated" ? (
-        <div className="space-y-2" data-testid="vp-curated-panel">
-          <PartTile
-            part={getVisualPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)!}
-            active={state.curatedFamilyId === CURATED_FAMILY_BRIGHT_LACQUER_ID}
-            onApply={() => applyPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)}
-          />
-          <PartTile
-            part={getVisualPart(CURATED_FAMILY_MISSION_CONTROL_ID)!}
-            active={state.curatedFamilyId === CURATED_FAMILY_MISSION_CONTROL_ID}
-            onApply={() => applyPart(CURATED_FAMILY_MISSION_CONTROL_ID)}
-          />
+        <div className="space-y-3" data-testid="vp-curated-panel">
+          <div data-testid="vp-curated-enhanced" className="space-y-2">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-[#b8ff2c]/80">
+              Enhanced
+            </p>
+            <PartTile
+              part={getVisualPart(CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID)!}
+              active={state.curatedFamilyId === CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID}
+              onApply={() => applyPart(CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID)}
+            />
+            <p className="text-[9px] text-white/45" data-testid="vp-topshelf-lifecycle">
+              status: {TOP_SHELF_LIFECYCLE_STATUS} · tier: enhanced · recipe: {TOP_SHELF_CANONICAL_RECIPE_ID}
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">Signature</p>
+            <PartTile
+              part={getVisualPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)!}
+              active={state.curatedFamilyId === CURATED_FAMILY_BRIGHT_LACQUER_ID}
+              onApply={() => applyPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)}
+            />
+            <PartTile
+              part={getVisualPart(CURATED_FAMILY_MISSION_CONTROL_ID)!}
+              active={state.curatedFamilyId === CURATED_FAMILY_MISSION_CONTROL_ID}
+              onApply={() => applyPart(CURATED_FAMILY_MISSION_CONTROL_ID)}
+            />
+          </div>
+          {state.curatedFamilyId === CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID ? (
+            <TopShelfControls props={props} onPatch={onPatch} onPassthrough={onPassthrough} />
+          ) : null}
           {state.curatedFamilyId ? (
             <div className="rounded border border-white/10 p-2" data-testid="vp-customize-ingredients">
               <p className="mb-1 text-[9px] font-semibold uppercase text-white/50">Customize · underlying part IDs</p>
@@ -738,6 +765,146 @@ export function VisualPartsCabinetPanel({
           ))}
         </div>
       ) : null}
+    </div>
+  );
+}
+
+function TopShelfControls({
+  props,
+  onPatch,
+  onPassthrough,
+}: {
+  props: Record<string, unknown>;
+  onPatch: (next: Record<string, unknown>, label: string) => void;
+  onPassthrough?: (kind: "color" | "text" | "action" | "motion" | "advanced") => void;
+}) {
+  const params = readTopShelfParams(props);
+  return (
+    <div className="space-y-2 rounded border border-[#b8ff2c]/25 bg-black/30 p-2" data-testid="vp-topshelf-controls">
+      <p className="text-[9px] font-semibold uppercase text-[#d8f59a]">Top Shelf · Basic</p>
+      <div className="grid grid-cols-2 gap-1" data-testid="vp-topshelf-anchor">
+        {(
+          [
+            [TOP_SHELF_ANCHOR_CHARCOAL, "Charcoal"],
+            [TOP_SHELF_ANCHOR_COBALT, "Cobalt"],
+          ] as const
+        ).map(([color, label]) => (
+          <button
+            key={color}
+            type="button"
+            data-testid={`vp-topshelf-anchor-${label.toLowerCase()}`}
+            className={`rounded px-2 py-1.5 text-[10px] ${
+              params.anchorColor.toLowerCase() === color.toLowerCase()
+                ? "bg-[#b8ff2c]/20 text-[#d8f59a]"
+                : "border border-white/15 text-white/70"
+            }`}
+            onClick={() => onPatch(writeTopShelfParams(props, { anchorColor: color }), `Top Shelf Anchor ${label}`)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-1" data-testid="vp-topshelf-ring-placement">
+        {(["left", "right"] as const).map((side) => (
+          <button
+            key={side}
+            type="button"
+            data-testid={`vp-topshelf-ring-${side}`}
+            className={`rounded px-2 py-1.5 text-[10px] ${
+              params.iconRingPlacement === side
+                ? "bg-[#b8ff2c]/20 text-[#d8f59a]"
+                : "border border-white/15 text-white/70"
+            }`}
+            onClick={() =>
+              onPatch(writeTopShelfParams(props, { iconRingPlacement: side }), `Top Shelf Icon Ring ${side}`)
+            }
+          >
+            Ring {side}
+          </button>
+        ))}
+      </div>
+      <p className="text-[9px] font-semibold uppercase text-white/50">Contextual</p>
+      <label className="block text-[9px] text-white/55">
+        Halo intensity
+        <input
+          type="range"
+          min={0}
+          max={100}
+          data-testid="vp-topshelf-halo"
+          value={Math.round(params.haloIntensity * 100)}
+          onChange={(e) =>
+            onPatch(
+              writeTopShelfParams(props, { haloIntensity: Number(e.target.value) / 100 }),
+              "Top Shelf Halo intensity"
+            )
+          }
+          className="mt-1 w-full"
+        />
+      </label>
+      <button
+        type="button"
+        data-testid="vp-topshelf-toggle-description"
+        className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75"
+        onClick={() =>
+          onPatch(
+            writeTopShelfParams(props, { descriptionVisible: !params.descriptionVisible }),
+            "Top Shelf description visibility"
+          )
+        }
+      >
+        Description: {params.descriptionVisible ? "On" : "Off"}
+      </button>
+      <button
+        type="button"
+        data-testid="vp-topshelf-open-text"
+        className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75"
+        onClick={() => onPassthrough?.("text")}
+      >
+        Typography (Text authority)
+      </button>
+      <p className="text-[9px] font-semibold uppercase text-white/50">Advanced</p>
+      <label className="block text-[9px] text-white/55">
+        Gloss / reflection
+        <input
+          type="range"
+          min={0}
+          max={100}
+          data-testid="vp-topshelf-gloss"
+          value={Math.round(params.glossIntensity * 100)}
+          onChange={(e) =>
+            onPatch(
+              writeTopShelfParams(props, {
+                glossIntensity: Number(e.target.value) / 100,
+                reflectionIntensity: Number(e.target.value) / 100,
+              }),
+              "Top Shelf gloss"
+            )
+          }
+          className="mt-1 w-full"
+        />
+      </label>
+      <label className="block text-[9px] text-white/55">
+        Depth
+        <input
+          type="range"
+          min={0}
+          max={100}
+          data-testid="vp-topshelf-depth"
+          value={Math.round(params.depth * 100)}
+          onChange={(e) =>
+            onPatch(writeTopShelfParams(props, { depth: Number(e.target.value) / 100 }), "Top Shelf depth")
+          }
+          className="mt-1 w-full"
+        />
+      </label>
+      <button
+        type="button"
+        data-testid="vp-topshelf-reset-canonical"
+        className="w-full rounded bg-white/10 px-2 py-2 text-[10px] font-semibold text-[#d8f59a]"
+        onClick={() => onPatch(resetTopShelfToCanonical(props), "Reset Top Shelf to canonical")}
+      >
+        Reset appearance to canonical
+      </button>
     </div>
   );
 }

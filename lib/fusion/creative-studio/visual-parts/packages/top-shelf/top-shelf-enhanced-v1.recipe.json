@@ -1,0 +1,55 @@
+{
+  "package": "Top Shelf Enhanced Components",
+  "version": "1.0.0",
+  "tier": "enhanced",
+  "license": "user_attested_license_free",
+  "status": "locked_reference_ready_for_integration",
+  "visual_fidelity_law": "Do not remove gloss, inset depth, cast shadow, glass edge, or tactile states during integration without Product Owner review.",
+  "components": {
+    "effect/ambient-halo-top-shelf-01": {
+      "source": "OuterGlowRing",
+      "drawer": "Lighting / Effects"
+    },
+    "body/metallic-chassis-top-shelf-01": {
+      "source": "ButtonBase",
+      "drawer": "Body / Enhanced"
+    },
+    "effect/upper-reflection-top-shelf-01": {
+      "source": "GlossOverlay",
+      "drawer": "Lighting / Effects"
+    },
+    "housing/simple-glass-ring-top-shelf-01": {
+      "source": "IconRing",
+      "drawer": "Icon Housings"
+    },
+    "action/top-shelf-standard-01": {
+      "source": "TopShelfButton",
+      "drawer": "Enhanced / Actions"
+    },
+    "action/top-shelf-premium-01": {
+      "source": "PremiumActionButton",
+      "drawer": "Enhanced / Actions"
+    },
+    "action/top-shelf-circular-01": {
+      "source": "CircularRingButton",
+      "drawer": "Enhanced / Icon Actions"
+    }
+  },
+  "family_defaults": {
+    "application_scope": "current_button_section_container",
+    "preserve_content": [
+      "label",
+      "description",
+      "action",
+      "href",
+      "binding",
+      "tracking",
+      "icon"
+    ],
+    "supported_roles": [
+      "standard_action",
+      "premium_action",
+      "compact_icon_action"
+    ]
+  }
+}

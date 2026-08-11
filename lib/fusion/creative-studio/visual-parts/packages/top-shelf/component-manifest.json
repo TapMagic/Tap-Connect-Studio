@@ -1,0 +1,18 @@
+{
+  "name": "Top Shelf Enhanced Component Package",
+  "version": "1.0.0",
+  "files": [
+    "src/TopShelfPrimitives.tsx",
+    "src/TopShelfComponents.tsx",
+    "src/top-shelf.css",
+    "recipes/top-shelf-enhanced-v1.recipe.json",
+    "email/top-shelf-email-safe.html"
+  ],
+  "dependencies": [
+    "react"
+  ],
+  "optional_dependencies": [
+    "lucide-react"
+  ],
+  "integration_note": "Map supplied palette variables to TapConnect Brand Recipe / Finish channels. Preserve supplied visual layers and interaction states."
+}

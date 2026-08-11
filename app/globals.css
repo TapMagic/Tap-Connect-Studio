@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "../lib/fusion/creative-studio/visual-parts/packages/top-shelf/top-shelf.css";
 
 /*
  * Shared Owner status lighting. The icon, label and recovery copy carry the

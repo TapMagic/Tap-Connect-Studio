@@ -249,6 +249,17 @@ export type VisualPartPayload =
     }
   | { kind: "none" };
 
+/** Package / catalog lifecycle — Product Owner visual approval + certification. */
+export type VisualPartLifecycleStatus =
+  | "candidate"
+  | "approved"
+  | "certified"
+  | "deprecated"
+  | "locked_reference";
+
+/** Expression cost tier for Enhanced / Signature packaging. */
+export type VisualPartExpressionTier = "foundation" | "enhanced" | "signature";
+
 export type VisualPartDefinition = Readonly<{
   id: string;
   label: string;
@@ -268,6 +279,12 @@ export type VisualPartDefinition = Readonly<{
   payload: VisualPartPayload;
   provenance?: VisualPartProvenanceRef;
   previewHint?: string;
+  /** Optional package lifecycle — defaults to approved foundation when omitted. */
+  lifecycleStatus?: VisualPartLifecycleStatus;
+  expressionTier?: VisualPartExpressionTier;
+  /** Canonical assembly recipe id when this part is a curated family entry. */
+  canonicalRecipeId?: string;
+  referenceRenderPath?: string;
 }>;
 
 export type IconStationPosition = "left" | "right" | "both" | "none";

@@ -88,6 +88,10 @@ import {
   railStyleVars,
   visualPartsDataAttrs,
 } from "@/lib/fusion/creative-studio/visual-parts";
+import {
+  isTopShelfPremiumActionProps,
+  TopShelfStudioPremiumAction,
+} from "@/lib/fusion/creative-studio/visual-parts/packages/top-shelf/TopShelfStudioBridge";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -1408,6 +1412,38 @@ function NodeVisual({
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
+
+    // Top Shelf Premium Action — shared Edit/Preview/Public path using installed package layers.
+    if (isTopShelfPremiumActionProps(node.props)) {
+      const vpTop = readVisualPartsState(node.props);
+      const descriptionText = str(node.props.description, "");
+      return (
+        <a
+          href={editMode ? undefined : actionHref}
+          aria-disabled={!actionHref}
+          onClick={(event) => {
+            if (editMode || !actionHref) event.preventDefault();
+          }}
+          className="flex h-full w-full items-center justify-center"
+          style={{ opacity: num(node.props.opacity, 1) }}
+          tabIndex={editMode ? undefined : 0}
+          aria-label={str(node.props.accessibleLabel, labelValue)}
+          data-button-presentation="pill"
+          data-vp-topshelf="true"
+          data-vp-family={vpTop.curatedFamilyId || undefined}
+          data-vp-assembly={vpTop.assemblyRecipeId || undefined}
+          data-action-type={str(node.props.actionType, str(node.props.actionKind))}
+          data-action-href={actionHref || undefined}
+          {...visualPartsDataAttrs(node.props)}
+        >
+          <TopShelfStudioPremiumAction
+            props={node.props}
+            label={labelValue}
+            description={descriptionText || undefined}
+          />
+        </a>
+      );
+    }
     const linkedRadius = presentation === "rectangle" ? 0 : presentation === "square" ? num(node.props.radius, 0) : (circle || presentation === "pill") ? 999 : num(node.props.radius, 14);
     const radius = node.props.cornersLinked === false && presentation === "custom"
       ? `${num(node.props.radiusTopLeft, linkedRadius)}px ${num(node.props.radiusTopRight, linkedRadius)}px ${num(node.props.radiusBottomRight, linkedRadius)}px ${num(node.props.radiusBottomLeft, linkedRadius)}px`
