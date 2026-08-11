@@ -35,7 +35,8 @@ const RECIPE: Record<VisualDepthLevel, ShadowRecipe> = {
   0: { elevationPx: 0, zIndex: 0 },
   1: {
     cast: { y: 14, blur: 32, spread: 0, a: 0.28 },
-    inset: { y: 1, blur: 0, a: 0.06 },
+    // Inset must remain pixel-visible when cast/contact are clipped by overflow surfaces.
+    inset: { y: 2, blur: 12, a: 0.16 },
     elevationPx: 4,
     zIndex: 1,
   },
@@ -96,9 +97,10 @@ export function depthDescriptor(level: VisualDepthLevel, intensity = 1): DepthDe
       )}`
     : undefined;
   const inset = r.inset
-    ? `inset 0 ${r.inset.y}px ${Math.max(0, Math.round(r.inset.blur * blurScale))}px ${rgbaWhite(
-        r.inset.a * (0.4 + i * 0.6)
-      )}`
+    ? `inset 0 ${Math.max(1, Math.round(r.inset.y * elevScale))}px ${Math.max(
+        0,
+        Math.round(r.inset.blur * blurScale)
+      )}px ${rgba(r.inset.a * (0.45 + i * 0.55))}`
     : undefined;
   const rimLight = r.rim
     ? `inset 0 1px 0 ${rgbaWhite(r.rim.a * (0.35 + i * 0.65))}`

@@ -101,7 +101,12 @@ test.describe("Visual Renderer Repair certification", () => {
     await openVisualParts(page);
     await ownerClick(page.getByTestId("vp-drawer-surface_zone"), "Surface");
     await ownerClick(page.getByTestId("vp-surface-on"), "Surface On");
-    await ownerClick(page.getByTestId("vp-part-action_surface_energy_field").or(page.getByTestId("vp-part-action_surface_panel")).first(), "Surface treatment");
+    const energy = page.getByTestId("vp-part-action_surface_energy_field");
+    if (await energy.isVisible().catch(() => false)) {
+      await ownerClick(energy, "Energy Field surface");
+    } else {
+      await ownerClick(page.getByTestId("vp-part-action_surface_panel"), "Panel surface");
+    }
 
     const intensityFiles: string[] = [];
     for (const v of [0, 25, 50, 75, 100]) {

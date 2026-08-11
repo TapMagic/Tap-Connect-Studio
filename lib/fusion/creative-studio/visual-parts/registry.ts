@@ -601,7 +601,7 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     payload: { kind: "layout", intent: "round_team_grid", autoStackPhone: true, railAware: true },
   }),
 
-  // ── Top Shelf Enhanced package parts (PO-approved; certify after dual-green) ──
+  // ── Top Shelf Enhanced package parts (PO-approved + certified) ──
   original({
     id: "finish_top_shelf_metallic_glass",
     label: "Top Shelf Metallic Glass",
@@ -611,7 +611,7 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     supportedTargetFamilies: [...BUTTONISH, "container", "action_surface"],
     renderKind: "finish_recipe",
     colorization: "host_base_color",
-    lifecycleStatus: "approved",
+    lifecycleStatus: "certified",
     expressionTier: "enhanced",
     payload: { kind: "finish", finishId: "lacquer", materialBridgeId: "gloss_lacquer" },
     previewHint: "top-shelf-metallic-glass",
@@ -625,7 +625,7 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     supportedTargetFamilies: BUTTONISH,
     renderKind: "icon_station_shell",
     colorization: "none",
-    lifecycleStatus: "approved",
+    lifecycleStatus: "certified",
     expressionTier: "enhanced",
     payload: { kind: "icon_station_geometry", shape: "round" },
     previewHint: "top-shelf-icon-ring",
@@ -639,7 +639,7 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     supportedTargetFamilies: BUTTONISH,
     renderKind: "finish_recipe",
     colorization: "host_base_color",
-    lifecycleStatus: "approved",
+    lifecycleStatus: "certified",
     expressionTier: "enhanced",
     payload: { kind: "finish", finishId: "lacquer" },
     previewHint: "top-shelf-halo",
@@ -653,7 +653,7 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     supportedTargetFamilies: BUTTONISH,
     renderKind: "finish_recipe",
     colorization: "none",
-    lifecycleStatus: "approved",
+    lifecycleStatus: "certified",
     expressionTier: "enhanced",
     payload: { kind: "finish", finishId: "lacquer" },
     previewHint: "top-shelf-gloss",
@@ -733,7 +733,7 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     supportedTargetFamilies: ["button", "launch", "form_submit"],
     renderKind: "curated_family",
     colorization: "host_base_color",
-    lifecycleStatus: "approved",
+    lifecycleStatus: "certified",
     expressionTier: "enhanced",
     canonicalRecipeId: "recipe/enhanced/top-shelf-premium-action/v1",
     referenceRenderPath:

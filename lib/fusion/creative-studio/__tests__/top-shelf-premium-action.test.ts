@@ -28,10 +28,7 @@ describe("Top Shelf registry + recipe", () => {
   it("registers Enhanced family with canonical recipe id (approved→certified lifecycle)", () => {
     const family = getVisualPart(CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID);
     assert.ok(family);
-    assert.ok(
-      family!.lifecycleStatus === "approved" || family!.lifecycleStatus === "certified",
-      `expected approved|certified, got ${family!.lifecycleStatus}`
-    );
+    assert.equal(family!.lifecycleStatus, "certified");
     assert.equal(family!.expressionTier, "enhanced");
     assert.equal(family!.canonicalRecipeId, TOP_SHELF_CANONICAL_RECIPE_ID);
     assert.equal(family!.payload.kind, "curated_family");

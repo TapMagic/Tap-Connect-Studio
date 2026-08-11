@@ -155,31 +155,42 @@ function surfaceToneStyles(
   const energyA = (0.08 + i * 0.28).toFixed(3);
   const energyB = (0.06 + i * 0.22).toFixed(3);
   switch (tone) {
-    case "copper_harmonized":
+    case "copper_harmonized": {
+      const copperFoot = (0.35 + d * 0.55).toFixed(3);
       return {
-        fill: "#1a1410",
-        gradientFill: `linear-gradient(160deg,rgba(90,50,28,${(0.55 + i * 0.45).toFixed(3)}) 0%,#1a1410 48%,#0c0a08 100%)`,
+        fill: `rgb(${22 + Math.round(d * 8)},${16 + Math.round(d * 6)},${12 + Math.round(d * 4)})`,
+        gradientFill: `linear-gradient(160deg,rgba(90,50,28,${(0.55 + i * 0.45).toFixed(3)}) 0%,rgba(26,20,16,${(0.55 + (1 - d) * 0.35).toFixed(3)}) 48%,rgba(8,6,4,${copperFoot}) 100%)`,
         borderWidth: i > 0.35 ? 1 : 0,
         borderColor: `rgba(197,106,45,${(0.15 + i * 0.45).toFixed(3)})`,
         boxShadow: composeDepthShadow(1, d),
         opacity: 0.72 + i * 0.28,
       };
-    case "quiet_field":
+    }
+    case "quiet_field": {
+      const deep = (0.12 + d * 0.55).toFixed(3);
+      const open = (0.35 + (1 - d) * 0.45).toFixed(3);
       return {
-        fill: "#111827",
-        gradientFill: `linear-gradient(180deg,rgba(31,41,55,${(0.55 + i * 0.45).toFixed(3)}) 0%,#111827 55%,#0b1220 100%)`,
+        fill: `rgb(${12 + Math.round(d * 8)},${16 + Math.round(d * 10)},${28 + Math.round(d * 18)})`,
+        gradientFill: `linear-gradient(180deg,rgba(31,41,55,${(0.55 + i * 0.45).toFixed(3)}) 0%,rgba(17,24,39,${open}) 55%,rgba(8,10,16,${deep}) 100%)`,
         borderWidth: 0,
         boxShadow: composeDepthShadow(1, d * 0.85),
         opacity: 0.65 + i * 0.35,
       };
-    case "energy_field":
+    }
+    case "energy_field": {
+      // Depth must change in-bounds pixels (cast shadows are often clipped by overflow).
+      const topStop = Math.round(18 + (1 - d) * 28);
+      const midStop = Math.round(28 + d * 22);
+      const bottomStop = Math.round(10 + d * 18);
+      const veil = (0.08 + d * 0.42).toFixed(3);
       return {
-        fill: "#0b1224",
-        gradientFill: `linear-gradient(155deg,#0b1224 0%,#111c3a 40%,#0a1020 70%), radial-gradient(ellipse at 20% 40%,rgba(56,189,248,${energyA}),transparent 45%), radial-gradient(ellipse at 80% 70%,rgba(37,99,235,${energyB}),transparent 40%)`,
+        fill: `rgb(${8 + Math.round(d * 6)},${14 + Math.round(d * 10)},${28 + Math.round(d * 24)})`,
+        gradientFill: `linear-gradient(155deg,rgb(${topStop},${topStop + 8},${topStop + 40}) 0%,rgb(${midStop},${midStop + 6},${midStop + 34}) 42%,rgb(${bottomStop},${bottomStop + 2},${bottomStop + 14}) 100%), radial-gradient(ellipse at 20% 40%,rgba(56,189,248,${energyA}),transparent 45%), radial-gradient(ellipse at 80% 70%,rgba(37,99,235,${energyB}),transparent 40%), linear-gradient(180deg,transparent 35%,rgba(0,0,0,${veil}) 100%)`,
         borderWidth: 0,
         boxShadow: `${composeDepthShadow(1, d)}, 0 0 ${Math.round(8 + i * 28)}px rgba(56,189,248,${(0.08 + i * 0.35).toFixed(3)})`,
         opacity: 0.7 + i * 0.3,
       };
+    }
     case "recess_well":
       return {
         fill: "#0a0c12",
@@ -189,15 +200,17 @@ function surfaceToneStyles(
         boxShadow: `inset 0 ${Math.round(4 + d * 14)}px ${Math.round(10 + d * 18)}px rgba(0,0,0,${(0.35 + d * 0.4).toFixed(3)}), inset 0 -1px 0 rgba(255,255,255,${(0.03 + i * 0.08).toFixed(3)})`,
         opacity: 0.75 + i * 0.25,
       };
-    case "panel_plaque":
+    case "panel_plaque": {
+      const foot = (0.2 + d * 0.7).toFixed(3);
       return {
-        fill: "#1e2430",
-        gradientFill: `linear-gradient(180deg,rgba(55,68,90,${(0.55 + i * 0.45).toFixed(3)}) 0%,#171c26 100%)`,
+        fill: `rgb(${24 + Math.round(d * 10)},${30 + Math.round(d * 12)},${42 + Math.round(d * 16)})`,
+        gradientFill: `linear-gradient(180deg,rgba(55,68,90,${(0.55 + i * 0.45).toFixed(3)}) 0%,rgba(23,28,38,${(0.55 + (1 - d) * 0.4).toFixed(3)}) 55%,rgba(10,12,18,${foot}) 100%)`,
         borderWidth: 1,
         borderColor: `rgba(255,255,255,${(0.08 + i * 0.22).toFixed(3)})`,
         boxShadow: composeDepthShadow(1, d),
         opacity: 0.7 + i * 0.3,
       };
+    }
     case "plinth_base":
       return {
         fill: "#12141a",

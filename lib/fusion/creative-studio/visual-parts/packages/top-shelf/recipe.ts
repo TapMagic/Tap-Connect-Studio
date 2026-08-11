@@ -19,8 +19,8 @@ import { TOP_SHELF_ANCHOR_CHARCOAL, topShelfPaletteFromAnchor } from "./palette"
 export const TOP_SHELF_PACKAGE_VERSION = "1.0.0";
 export const TOP_SHELF_CANONICAL_RECIPE_ID = "recipe/enhanced/top-shelf-premium-action/v1";
 export const TOP_SHELF_CURATED_FAMILY_ID = "family_top_shelf_premium_action";
-/** Starts approved after PO visual approval; promoted to certified after dual-green. */
-export const TOP_SHELF_LIFECYCLE_STATUS = "approved" as const;
+/** PO visually approved; dual-green certification freezes this as certified. */
+export const TOP_SHELF_LIFECYCLE_STATUS = "certified" as const;
 export const TOP_SHELF_EXPRESSION_TIER = "enhanced" as const;
 export const TOP_SHELF_PACKAGE_REFERENCE_PATH =
   "vendor/top-shelf-enhanced-component-package-v1.0/reference/code-render.png";

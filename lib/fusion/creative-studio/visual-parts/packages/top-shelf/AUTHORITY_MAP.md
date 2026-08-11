@@ -3,7 +3,7 @@
 Package: Top Shelf Enhanced Component Package v1.0  
 Canonical recipe: `recipe/enhanced/top-shelf-premium-action/v1`  
 Curated family (candidate): `family_top_shelf_premium_action`  
-Lifecycle: `approved` → `certified` (after dual-green) · Expression tier: `enhanced`
+Lifecycle: `certified` · Expression tier: `enhanced`
 
 ## Specimen frame confirmation
 
