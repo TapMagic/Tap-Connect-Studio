@@ -57,6 +57,7 @@ export function CosmicGlassStudioAction({
       className="cg-action"
       data-cg-ring-finish={params.ringFinish}
       data-cg-ring-shape={params.ringShape}
+      data-cg-identity-bezel={params.identityBezel}
       data-vp-cosmic-glass="true"
       data-vp-assembly={COSMIC_GLASS_CANONICAL_RECIPE_ID}
     >
@@ -81,7 +82,20 @@ export function CosmicGlassStudioAction({
           <span className="cg-ring-groove">
             <span className="cg-ring-collar">
               <span className="cg-ring-seat">
-                <img className="cg-identity" src={identityUrl(props)} alt="" />
+                <img
+                  className="cg-identity"
+                  src={identityUrl(props)}
+                  alt=""
+                  data-cg-identity-fit={params.identityFit}
+                  data-cg-identity-scale={params.identityScale}
+                  style={{
+                    width: `${78 * params.identityScale}%`,
+                    height: `${78 * params.identityScale}%`,
+                    left: `${50 + params.identityPositionX * 18}%`,
+                    top: `${50 + params.identityPositionY * 18}%`,
+                    objectFit: params.identityFit,
+                  }}
+                />
               </span>
             </span>
           </span>
@@ -113,7 +127,16 @@ export function CosmicGlassDivider({ props, label }: { props: Record<string, unk
       aria-label={label || "Cosmic Glass divider"}
       data-vp-cosmic-divider="true"
       data-cg-divider-center={params.dividerCenter}
-      style={{ ["--cg-divider-intensity" as string]: String(params.dividerIntensity) } as CSSProperties}
+      data-cg-divider-scale={params.dividerScale}
+      data-cg-divider-span={params.dividerSpan}
+      data-cg-divider-position-x={params.dividerPositionX}
+      style={{
+        ["--cg-divider-intensity" as string]: String(params.dividerIntensity),
+        width: `${params.dividerSpan * 100}%`,
+        opacity: params.dividerOpacity,
+        filter: `brightness(${0.72 + params.dividerIntensity * 0.28})`,
+        transform: `translateX(${params.dividerPositionX * 8}%) scale(${params.dividerScale})`,
+      } as CSSProperties}
     >
       {/* Recovered finished assets: placement and intensity only; rods are never redrawn in CSS. */}
       <img className="cg-divider-rod" src={COSMIC_GLASS_ASSETS.leftRod} alt="" aria-hidden />

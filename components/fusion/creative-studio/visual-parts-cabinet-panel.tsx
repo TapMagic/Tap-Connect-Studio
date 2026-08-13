@@ -952,6 +952,30 @@ function CosmicGlassControls({
           </button>
         ))}
       </div>
+      <p className="text-[9px] font-semibold uppercase text-white/45">Identity aperture</p>
+      <div className="grid grid-cols-3 gap-1" data-testid="vp-cosmic-identity-bezel">
+        {(["medallion", "open_lens", "inset_plate"] as const).map((bezel) => (
+          <button key={bezel} type="button" data-testid={`vp-cosmic-bezel-${bezel}`}
+            className={`rounded px-1 py-1.5 text-[9px] ${params.identityBezel === bezel ? "bg-[#0d72ff]/25 text-[#ffe49a]" : "border border-white/15 text-white/65"}`}
+            onClick={() => onPatch(writeCosmicGlassParams(props, { identityBezel: bezel }), "Cosmic Glass identity aperture")}>
+            {bezel === "medallion" ? "Medallion" : bezel === "open_lens" ? "Open Lens" : "Inset Plate"}
+          </button>
+        ))}
+      </div>
+      <label className="block text-[9px] text-white/60">
+        Identity scale · {Math.round(params.identityScale * 100)}%
+        <input type="range" min={55} max={125} step={1} value={Math.round(params.identityScale * 100)} data-testid="vp-cosmic-identity-scale"
+          className="mt-1 w-full accent-[#0d72ff]" onChange={(event) => onPatch(writeCosmicGlassParams(props, { identityScale: Number(event.target.value) / 100 }), "Cosmic Glass identity scale")} />
+      </label>
+      <div className="grid grid-cols-3 gap-1">
+        {(["contain", "cover"] as const).map((fit) => (
+          <button key={fit} type="button" data-testid={`vp-cosmic-identity-fit-${fit}`}
+            className={`rounded px-1 py-1.5 text-[9px] ${params.identityFit === fit ? "bg-[#0d72ff]/25 text-[#ffe49a]" : "border border-white/15 text-white/65"}`}
+            onClick={() => onPatch(writeCosmicGlassParams(props, { identityFit: fit }), "Cosmic Glass identity fit")}>{fit === "contain" ? "Fit" : "Fill"}</button>
+        ))}
+        <button type="button" data-testid="vp-cosmic-identity-center" className="rounded border border-white/15 px-1 py-1.5 text-[9px] text-white/65"
+          onClick={() => onPatch(writeCosmicGlassParams(props, { identityPositionX: 0, identityPositionY: 0 }), "Center Cosmic Glass identity")}>Center</button>
+      </div>
       <button type="button" data-testid="vp-cosmic-toggle-description" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75"
         onClick={() => onPatch(writeCosmicGlassParams(props, { descriptionVisible: !params.descriptionVisible }), "Cosmic Glass description visibility")}>
         Description: {params.descriptionVisible ? "On" : "Off"}
@@ -965,6 +989,33 @@ function CosmicGlassControls({
             className={`rounded px-1 py-1.5 text-[9px] ${params.dividerCenter === center ? "bg-[#0d72ff]/25 text-[#ffe49a]" : "border border-white/15 text-white/65"}`}
             onClick={() => onPatch(writeCosmicGlassParams(props, { dividerCenter: center }), "Cosmic Glass divider center")}>{center}</button>
         ))}
+      </div>
+      <label className="block text-[9px] text-white/60">
+        Divider scale · {Math.round(params.dividerScale * 100)}%
+        <input type="range" min={75} max={125} step={1} value={Math.round(params.dividerScale * 100)} data-testid="vp-cosmic-divider-scale"
+          className="mt-1 w-full accent-[#0d72ff]" onChange={(event) => onPatch(writeCosmicGlassParams(props, { dividerScale: Number(event.target.value) / 100 }), "Cosmic Glass divider scale")} />
+      </label>
+      <label className="block text-[9px] text-white/60">
+        Divider span · {Math.round(params.dividerSpan * 100)}%
+        <input type="range" min={65} max={100} step={1} value={Math.round(params.dividerSpan * 100)} data-testid="vp-cosmic-divider-span"
+          className="mt-1 w-full accent-[#0d72ff]" onChange={(event) => onPatch(writeCosmicGlassParams(props, { dividerSpan: Number(event.target.value) / 100 }), "Cosmic Glass divider span")} />
+      </label>
+      <label className="block text-[9px] text-white/60">
+        Divider position · {Math.round(params.dividerPositionX * 100)}
+        <input type="range" min={-100} max={100} step={1} value={Math.round(params.dividerPositionX * 100)} data-testid="vp-cosmic-divider-position"
+          className="mt-1 w-full accent-[#0d72ff]" onChange={(event) => onPatch(writeCosmicGlassParams(props, { dividerPositionX: Number(event.target.value) / 100 }), "Cosmic Glass divider position")} />
+      </label>
+      <div className="grid grid-cols-2 gap-2">
+        <label className="block text-[9px] text-white/60">
+          Intensity · {Math.round(params.dividerIntensity * 100)}%
+          <input type="range" min={35} max={100} step={1} value={Math.round(params.dividerIntensity * 100)} data-testid="vp-cosmic-divider-intensity"
+            className="mt-1 w-full accent-[#0d72ff]" onChange={(event) => onPatch(writeCosmicGlassParams(props, { dividerIntensity: Number(event.target.value) / 100 }), "Cosmic Glass divider intensity")} />
+        </label>
+        <label className="block text-[9px] text-white/60">
+          Opacity · {Math.round(params.dividerOpacity * 100)}%
+          <input type="range" min={25} max={100} step={1} value={Math.round(params.dividerOpacity * 100)} data-testid="vp-cosmic-divider-opacity"
+            className="mt-1 w-full accent-[#0d72ff]" onChange={(event) => onPatch(writeCosmicGlassParams(props, { dividerOpacity: Number(event.target.value) / 100 }), "Cosmic Glass divider opacity")} />
+        </label>
       </div>
       <button type="button" data-testid="vp-cosmic-reset-canonical" className="w-full rounded bg-white/10 px-2 py-2 text-[10px] font-semibold text-[#ffe49a]" onClick={() => onPatch(resetCosmicGlassToCanonical(props), "Reset Cosmic Glass to canonical")}>Reset appearance to canonical</button>
     </div>

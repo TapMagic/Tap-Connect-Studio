@@ -46,17 +46,28 @@ describe("Cosmic Glass Signature recipe", () => {
 
   it("persists visual variants and reset never rewrites business content", () => {
     let props = applyCosmicGlassSignature({ label: "Call", actionType: "phone", phoneNumber: "+15555550123" });
-    props = writeCosmicGlassParams(props, { ringFinish: "copper", ringShape: "soft_square", dividerCenter: "identity" });
+    props = writeCosmicGlassParams(props, {
+      ringFinish: "copper", ringShape: "soft_square", dividerCenter: "identity",
+      identityBezel: "open_lens", identityScale: 1.12, identityFit: "cover",
+      dividerScale: .9, dividerSpan: .84, dividerPositionX: .2, dividerIntensity: .72, dividerOpacity: .86,
+    });
+    const customized = readCosmicGlassParams(props);
     assert.deepEqual(
-      (({ ringFinish, ringShape, dividerCenter }) => ({ ringFinish, ringShape, dividerCenter }))(readCosmicGlassParams(props)),
-      { ringFinish: "copper", ringShape: "soft_square", dividerCenter: "identity" }
+      (({ ringFinish, ringShape, dividerCenter, identityBezel, identityScale, identityFit, dividerScale, dividerSpan, dividerPositionX, dividerIntensity, dividerOpacity }) =>
+        ({ ringFinish, ringShape, dividerCenter, identityBezel, identityScale, identityFit, dividerScale, dividerSpan, dividerPositionX, dividerIntensity, dividerOpacity }))(customized),
+      { ringFinish: "copper", ringShape: "soft_square", dividerCenter: "identity", identityBezel: "open_lens", identityScale: 1.12, identityFit: "cover", dividerScale: .9, dividerSpan: .84, dividerPositionX: .2, dividerIntensity: .72, dividerOpacity: .86 }
     );
     props = JSON.parse(JSON.stringify(props)) as Record<string, unknown>;
     assert.equal(readCosmicGlassParams(props).ringFinish, "copper");
+    assert.equal(readCosmicGlassParams(props).identityBezel, "open_lens");
+    assert.equal(readCosmicGlassParams(props).identityScale, 1.12);
+    assert.equal(readCosmicGlassParams(props).dividerSpan, .84);
     props = resetCosmicGlassToCanonical(props);
     assert.equal(props.phoneNumber, "+15555550123");
     assert.equal(props.actionType, "phone");
     assert.equal(readCosmicGlassParams(props).ringFinish, "gold");
+    assert.equal(readCosmicGlassParams(props).identityBezel, "medallion");
+    assert.equal(readCosmicGlassParams(props).dividerSpan, 1);
   });
 
   it("preserves the recovered finished divider assets verbatim", () => {

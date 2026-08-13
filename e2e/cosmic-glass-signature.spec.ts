@@ -14,6 +14,7 @@ import {
 
 const enabled = process.env.COSMIC_GLASS_ACCEPTANCE === "1";
 const out = path.join("tmp", "cosmic-glass-signature-final-ring-polish");
+const detailOut = path.join("tmp", "cosmic-glass-signature-final-detail-pass");
 
 function writeBeforeAfter(beforePath: string, afterPath: string, outputPath: string) {
   const before = PNG.sync.read(fs.readFileSync(beforePath));
@@ -34,6 +35,35 @@ function writeBeforeAfter(beforePath: string, afterPath: string, outputPath: str
 test.describe("Cosmic Glass recovered visual evidence", () => {
   test.skip(!enabled, "Set COSMIC_GLASS_ACCEPTANCE=1");
   test.setTimeout(120_000);
+
+  test("captures the final identity aperture and finished-divider proof set", async ({ page }) => {
+    fs.mkdirSync(detailOut, { recursive: true });
+    const shot = async (query: string, testId: string, file: string) => {
+      await page.goto(`/dev/cosmic-glass-specimen?${query}`, { waitUntil: "networkidle" });
+      const target = page.getByTestId(testId);
+      await expect(target).toBeVisible();
+      if (testId === "cosmic-glass-divider") {
+        const rods = target.locator(".cg-divider-rod");
+        await expect(rods).toHaveCount(2);
+        const widths = await rods.evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width));
+        expect(widths.every((width) => width > 400)).toBeTruthy();
+      }
+      await target.screenshot({ path: path.join(detailOut, file) });
+    };
+    await shot("view=hero&bezel=medallion", "cosmic-glass-hero", "01-hero-medallion.png");
+    await shot("view=hero&bezel=open_lens", "cosmic-glass-hero", "02-hero-open-lens.png");
+    await shot("view=hero&bezel=open_lens&identity=detailed", "cosmic-glass-hero", "03-hero-detailed-identity.png");
+    await shot("view=hero&bezel=open_lens&phone=1", "cosmic-glass-hero", "04-phone-open-lens.png");
+    await shot("view=divider&center=diamond", "cosmic-glass-divider", "05-divider-diamond.png");
+    await shot("view=divider&center=identity", "cosmic-glass-divider", "06-divider-host-logo.png");
+    await shot("view=divider&center=none", "cosmic-glass-divider", "07-divider-none.png");
+    const rod = page.locator(".cg-divider-rod").first();
+    await expect(rod).toBeVisible();
+    const rodBox = await rod.boundingBox();
+    expect(rodBox).toBeTruthy();
+    await page.screenshot({ path: path.join(detailOut, "08-divider-closeup.png"), clip: { x: rodBox!.x, y: rodBox!.y - 10, width: rodBox!.width, height: rodBox!.height + 20 } });
+    await shot("view=full&bezel=open_lens&center=identity", "cosmic-glass-full-desktop", "09-full-desktop.png");
+  });
 
   test("renders canonical, closeup, variants, phone, divider, and full desktop", async ({ page }) => {
     fs.mkdirSync(out, { recursive: true });
@@ -125,8 +155,13 @@ test.describe("Cosmic Glass recovered visual evidence", () => {
     const hrefBefore = await action.getAttribute("data-action-href");
     await ownerClick(page.getByTestId("vp-cosmic-ring-copper"), "Copper ring");
     await ownerClick(page.getByTestId("vp-cosmic-shape-soft_square"), "Soft-square ring");
+    await ownerClick(page.getByTestId("vp-cosmic-bezel-open_lens"), "Open Lens");
+    await page.getByTestId("vp-cosmic-identity-scale").fill("112");
+    await ownerClick(page.getByTestId("vp-cosmic-identity-fit-cover"), "Identity fill");
     await expect(action.locator("[data-cg-ring-finish='copper']")).toBeVisible();
     await expect(action.getByTestId("cosmic-glass-ring-receiver")).toBeVisible();
+    await expect(action.locator(".cg-action")).toHaveAttribute("data-cg-identity-bezel", "open_lens");
+    await expect(action.locator(".cg-identity")).toHaveAttribute("data-cg-identity-scale", "1.12");
     expect(await action.locator(".cg-identity").getAttribute("src")).toBe(identityBefore);
     await expect(action.locator(".cg-title")).toHaveText("Live Cosmic Title");
 
@@ -138,6 +173,9 @@ test.describe("Cosmic Glass recovered visual evidence", () => {
     expect(await reloaded.getAttribute("data-action-href")).toBe(hrefBefore);
     await expect(reloaded.locator("[data-cg-ring-finish='copper']")).toBeVisible();
     await expect(reloaded.locator("[data-cg-ring-shape='soft_square']")).toBeVisible();
+    await expect(reloaded.locator(".cg-action")).toHaveAttribute("data-cg-identity-bezel", "open_lens");
+    await expect(reloaded.locator(".cg-identity")).toHaveAttribute("data-cg-identity-scale", "1.12");
+    await expect(reloaded.locator(".cg-identity")).toHaveAttribute("data-cg-identity-fit", "cover");
     await expect(reloaded.getByTestId("cosmic-glass-ring-receiver")).toBeVisible();
     await expect(reloaded.locator(".cg-title")).toHaveText("Live Cosmic Title");
     await expect(reloaded.locator(".cg-description")).toHaveText("Live secondary description");

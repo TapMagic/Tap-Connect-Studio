@@ -6,9 +6,10 @@ import { applyCosmicGlassSignature, type CosmicGlassParams } from "@/lib/fusion/
 import { buttonElementDefaults } from "@/lib/fusion/card/designer-elements";
 import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
 
-type SpecimenProps = Pick<CosmicGlassParams, "ringFinish" | "ringShape" | "dividerCenter"> & {
+type SpecimenProps = Pick<CosmicGlassParams, "ringFinish" | "ringShape" | "dividerCenter" | "identityBezel"> & {
   view: "hero" | "divider" | "full";
   phone: boolean;
+  detailedIdentity: boolean;
 };
 
 function useSpecimenProps(options: SpecimenProps) {
@@ -19,7 +20,7 @@ function useSpecimenProps(options: SpecimenProps) {
       label: "Shop The Monkey Cage",
       description: "One tap. Your world, connected.",
       eyebrow: "SIGNATURE ACTION",
-      iconMediaUrl: "/tap-connect-logo.png",
+      iconMediaUrl: options.detailedIdentity ? "/marketing/use-cases/pet-businesses.jpg" : "/tap-connect-logo.png",
       actionType: "website",
       href: "https://example.com/the-monkey-cage",
       accessibleLabel: "Shop The Monkey Cage",
@@ -32,9 +33,12 @@ function useSpecimenProps(options: SpecimenProps) {
       ringFinish: options.ringFinish,
       ringShape: options.ringShape,
       dividerCenter: options.dividerCenter,
+      identityBezel: options.identityBezel,
+      identityScale: options.detailedIdentity ? 1.08 : 1,
+      identityFit: options.detailedIdentity ? "cover" : "contain",
       descriptionVisible: options.view === "full",
     });
-  }, [options.dividerCenter, options.ringFinish, options.ringShape, options.view]);
+  }, [options.detailedIdentity, options.dividerCenter, options.identityBezel, options.ringFinish, options.ringShape, options.view]);
 }
 
 function Hero({ props, phone = false, width }: { props: Record<string, unknown>; phone?: boolean; width?: number }) {

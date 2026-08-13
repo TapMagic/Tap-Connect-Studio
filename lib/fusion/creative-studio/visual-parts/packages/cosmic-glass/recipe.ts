@@ -17,21 +17,39 @@ export const COSMIC_GLASS_ASSETS = {
 export type CosmicGlassParams = {
   ringFinish: "gold" | "copper";
   ringShape: "round" | "soft_square";
+  identityBezel: "medallion" | "open_lens" | "inset_plate";
+  identityScale: number;
+  identityFit: "contain" | "cover";
+  identityPositionX: number;
+  identityPositionY: number;
   eyebrowVisible: boolean;
   descriptionVisible: boolean;
   cueVisible: boolean;
   dividerCenter: "diamond" | "identity" | "none";
   dividerIntensity: number;
+  dividerScale: number;
+  dividerSpan: number;
+  dividerPositionX: number;
+  dividerOpacity: number;
 };
 
 export const COSMIC_GLASS_CANONICAL_PARAMS: CosmicGlassParams = {
   ringFinish: "gold",
   ringShape: "round",
+  identityBezel: "medallion",
+  identityScale: 1,
+  identityFit: "contain",
+  identityPositionX: 0,
+  identityPositionY: 0,
   eyebrowVisible: true,
   descriptionVisible: true,
   cueVisible: true,
   dividerCenter: "diamond",
   dividerIntensity: 1,
+  dividerScale: 1,
+  dividerSpan: 1,
+  dividerPositionX: 0,
+  dividerOpacity: 1,
 };
 
 const CONTENT_KEYS = [
@@ -60,8 +78,20 @@ export function readCosmicGlassParams(props: Record<string, unknown>): CosmicGla
     ...bag,
     ringFinish: bag.ringFinish === "copper" ? "copper" : "gold",
     ringShape: bag.ringShape === "soft_square" ? "soft_square" : "round",
+    identityBezel:
+      bag.identityBezel === "open_lens" || bag.identityBezel === "inset_plate"
+        ? bag.identityBezel
+        : "medallion",
+    identityScale: Math.min(1.25, Math.max(0.55, Number(bag.identityScale) || 1)),
+    identityFit: bag.identityFit === "cover" ? "cover" : "contain",
+    identityPositionX: Math.min(1, Math.max(-1, Number(bag.identityPositionX) || 0)),
+    identityPositionY: Math.min(1, Math.max(-1, Number(bag.identityPositionY) || 0)),
     dividerCenter: bag.dividerCenter === "identity" || bag.dividerCenter === "none" ? bag.dividerCenter : "diamond",
     dividerIntensity: clamp01(bag.dividerIntensity ?? 1),
+    dividerScale: Math.min(1.25, Math.max(0.75, Number(bag.dividerScale) || 1)),
+    dividerSpan: Math.min(1, Math.max(0.65, Number(bag.dividerSpan) || 1)),
+    dividerPositionX: Math.min(1, Math.max(-1, Number(bag.dividerPositionX) || 0)),
+    dividerOpacity: clamp01(bag.dividerOpacity ?? 1),
   };
 }
 

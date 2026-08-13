@@ -15,6 +15,8 @@ export default async function CosmicGlassSpecimenPage({
       ringFinish={value("finish") === "copper" ? "copper" : "gold"}
       ringShape={value("shape") === "soft_square" ? "soft_square" : "round"}
       dividerCenter={value("center") === "identity" || value("center") === "none" ? value("center") as "identity" | "none" : "diamond"}
+      identityBezel={value("bezel") === "open_lens" || value("bezel") === "inset_plate" ? value("bezel") as "open_lens" | "inset_plate" : "medallion"}
+      detailedIdentity={value("identity") === "detailed"}
       phone={value("phone") === "1"}
     />
   );
