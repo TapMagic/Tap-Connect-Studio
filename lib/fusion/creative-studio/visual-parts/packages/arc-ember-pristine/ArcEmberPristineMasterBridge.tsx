@@ -3,6 +3,7 @@
 import {
   ARC_EMBER_PRISTINE_MASTER_ASSET,
   readArcEmberActionCue,
+  readArcEmberRole,
 } from "./recipe";
 import "./arc-ember-pristine.css";
 
@@ -27,8 +28,10 @@ export function ArcEmberPristineMasterAction({
 }) {
   const identity = identityUrl(props);
   const cue = readArcEmberActionCue(props);
+  const role = readArcEmberRole(props);
+  const disabled = props.disabled === true;
   return (
-    <span className="ae-master-host" data-ae-pristine-master="true" data-ae-master-asset={ARC_EMBER_PRISTINE_MASTER_ASSET}>
+    <span className="ae-master-host" data-ae-pristine-master="true" data-ae-master-asset={ARC_EMBER_PRISTINE_MASTER_ASSET} data-ae-role={role} data-ae-state={disabled ? "disabled" : "default"}>
       <span className="ae-master-stage">
         {/* Immutable visual authority: no filters, masks, cropping, recoloring, or generated shell layers. */}
         <img className="ae-master-asset" src={ARC_EMBER_PRISTINE_MASTER_ASSET} width={2172} height={724} alt="" aria-hidden draggable={false} />

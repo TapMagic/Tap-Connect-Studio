@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import {
   ARC_EMBER_PRISTINE_MASTER_PART_ID,
+  ARC_EMBER_ROLE_PRESETS,
+  applyArcEmberRolePreset,
   arcEmberPristineMasterInsertProps,
   CURATED_FAMILY_BRIGHT_LACQUER_ID,
   CURATED_FAMILY_COSMIC_GLASS_ID,
@@ -33,6 +35,7 @@ import {
   readRefinementFromProps,
   readCosmicGlassParams,
   readArcEmberActionCue,
+  readArcEmberRole,
   readTopShelfParams,
   resetTopShelfToCanonical,
   resetCosmicGlassToCanonical,
@@ -283,6 +286,29 @@ export function VisualPartsCabinetPanel({
               onApply={() => applyPart(ARC_EMBER_PRISTINE_MASTER_PART_ID)}
               dragPayload={{ level: "element", kind: "button", initialProps: arcEmberPristineMasterInsertProps() }}
             />
+            <div className="grid grid-cols-2 gap-1" data-testid="vp-arc-ember-role-inserts">
+              {ARC_EMBER_ROLE_PRESETS.map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  draggable
+                  className="min-h-12 rounded border border-[#d56c2d]/30 bg-[#120804]/75 px-2 py-1.5 text-left text-[9px] text-[#ffd6b0] hover:border-[#f0a05e]/70"
+                  data-testid={`vp-arc-ember-insert-${preset.id}`}
+                  onClick={() => onPatch(applyArcEmberRolePreset(props, preset.id), `Arc Ember ${preset.label}`)}
+                  onDragStart={(event) => {
+                    event.dataTransfer.effectAllowed = "copy";
+                    event.dataTransfer.setData("application/x-tap-card-composer", JSON.stringify({
+                      level: "element",
+                      kind: "button",
+                      initialProps: arcEmberPristineMasterInsertProps(preset.id),
+                    }));
+                  }}
+                >
+                  <span className="block font-semibold">{preset.label}</span>
+                  <span className="mt-0.5 block text-white/45">{preset.title}</span>
+                </button>
+              ))}
+            </div>
             <p className="text-[9px] text-white/45">candidate · host-upload master · unchanged bitmap</p>
           </div>
           <div data-testid="vp-curated-enhanced" className="space-y-2">
@@ -1057,10 +1083,31 @@ function ArcEmberPristineControls({
   onPassthrough?: (kind: "color" | "text" | "action" | "motion" | "advanced") => void;
 }) {
   const cue = readArcEmberActionCue(props);
+  const role = readArcEmberRole(props);
+  const fieldClass = "mt-1 h-8 w-full rounded border border-white/15 bg-black/30 px-2 text-[10px] text-white";
   return (
     <div className="space-y-2 rounded border border-[#d56c2d]/35 bg-[#120804]/70 p-2" data-testid="vp-arc-ember-pristine-controls">
       <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[#f0a05e]">Arc Ember · Pristine Master</p>
       <p className="text-[9px] leading-4 text-white/50">Shell is immutable. Use Icon / Image for the live identity socket.</p>
+      <p className="text-[9px] font-semibold uppercase text-white/45">Role preset</p>
+      <div className="grid grid-cols-2 gap-1" data-testid="vp-arc-ember-role-controls">
+        {ARC_EMBER_ROLE_PRESETS.map((preset) => (
+          <button key={preset.id} type="button" data-testid={`vp-arc-ember-role-${preset.id}`}
+            aria-pressed={role === preset.id}
+            className={`rounded px-1 py-1.5 text-[9px] ${role === preset.id ? "bg-[#d56c2d]/25 text-[#ffd6b0]" : "border border-white/15 text-white/65"}`}
+            onClick={() => onPatch(applyArcEmberRolePreset(props, preset.id), `Arc Ember ${preset.label}`)}>
+            {preset.label}
+          </button>
+        ))}
+      </div>
+      <label className="block text-[9px] text-white/60">Eyebrow / supertitle
+        <input className={fieldClass} value={String(props.eyebrow || "")} data-testid="vp-arc-ember-eyebrow"
+          onChange={(event) => onPatch({ ...props, eyebrow: event.target.value }, "Arc Ember eyebrow")} />
+      </label>
+      <label className="block text-[9px] text-white/60">Subtext
+        <input className={fieldClass} value={String(props.description || "")} data-testid="vp-arc-ember-subtext"
+          onChange={(event) => onPatch({ ...props, description: event.target.value, showDescription: Boolean(event.target.value) }, "Arc Ember subtext")} />
+      </label>
       <button type="button" data-testid="vp-arc-ember-open-text" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75" onClick={() => onPassthrough?.("text")}>Live title, eyebrow & subtext</button>
       <p className="text-[9px] font-semibold uppercase text-white/45">Action cue</p>
       <div className="grid grid-cols-4 gap-1">
@@ -1072,6 +1119,11 @@ function ArcEmberPristineControls({
           </button>
         ))}
       </div>
+      <label className="flex min-h-9 items-center gap-2 rounded border border-white/15 px-2 text-[9px] text-white/65">
+        <input type="checkbox" checked={props.disabled === true} data-testid="vp-arc-ember-disabled"
+          onChange={(event) => onPatch({ ...props, disabled: event.target.checked }, event.target.checked ? "Disabled Arc Ember" : "Enabled Arc Ember")} />
+        Disabled state
+      </label>
       <button type="button" data-testid="vp-arc-ember-open-action" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75" onClick={() => onPassthrough?.("action")}>Destination & accessibility</button>
     </div>
   );

@@ -1428,12 +1428,13 @@ function NodeVisual({
     // Arc Ember hosting test — immutable PNG master plus live semantic overlays only.
     if (isArcEmberPristineMasterProps(node.props)) {
       const descriptionText = str(node.props.description, "");
+      const disabled = node.props.disabled === true;
       return (
         <a
-          href={editMode ? undefined : actionHref}
-          aria-disabled={!actionHref}
+          href={editMode || disabled ? undefined : actionHref}
+          aria-disabled={disabled || !actionHref}
           onClick={(event) => {
-            if (editMode || !actionHref) event.preventDefault();
+            if (editMode || disabled || !actionHref) event.preventDefault();
           }}
           className="block h-full w-full overflow-visible"
           style={{ opacity: num(node.props.opacity, 1), textDecoration: "none" }}
@@ -1443,6 +1444,7 @@ function NodeVisual({
           data-vp-arc-ember-pristine-master="true"
           data-action-type={str(node.props.actionType, str(node.props.actionKind))}
           data-action-href={actionHref || undefined}
+          data-action-state={disabled ? "disabled" : "default"}
           {...visualPartsDataAttrs(node.props)}
         >
           <ArcEmberPristineMasterAction props={node.props} label={labelValue} description={descriptionText || undefined} />

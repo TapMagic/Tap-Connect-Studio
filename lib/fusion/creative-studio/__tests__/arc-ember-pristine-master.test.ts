@@ -7,12 +7,15 @@ import {
   ARC_EMBER_PRISTINE_MASTER_ASSET,
   ARC_EMBER_PRISTINE_MASTER_PART_ID,
   ARC_EMBER_PRISTINE_MASTER_SHA256,
+  ARC_EMBER_ROLE_PRESETS,
+  applyArcEmberRolePreset,
   arcEmberPristineMasterInsertProps,
   applyVisualPart,
   getProvenanceForPart,
   getVisualPart,
   isArcEmberPristineMasterProps,
   readArcEmberActionCue,
+  readArcEmberRole,
   readVisualPartsState,
   writeArcEmberActionCue,
 } from "../visual-parts";
@@ -53,7 +56,7 @@ describe("Arc Ember pristine-master hosting test", () => {
     assert.equal(readArcEmberActionCue(result.props), "arrow");
     const changed = writeArcEmberActionCue(result.props, "launch");
     assert.equal(readArcEmberActionCue(changed), "launch");
-    assert.equal(changed.href, before.href);
+    assert.equal(changed["href"], before.href);
   });
 
   it("uses proportional contain geometry with overflow preserved", () => {
@@ -65,6 +68,9 @@ describe("Arc Ember pristine-master hosting test", () => {
     assert.match(css, /aspect-ratio:3 \/ 1/);
     assert.match(css, /\.ae-master-asset[^}]*object-fit:contain/);
     assert.match(css, /\.ae-master-host[^}]*overflow:visible/);
+    assert.match(css, /\.ae-master-host:hover \.ae-master-stage/);
+    assert.match(css, /\.ae-master-host:active \.ae-master-stage/);
+    assert.match(css, /data-ae-state="disabled"/);
   });
 
   it("provides a drag/drop insert payload with ratio lock and the same hosting part", () => {
@@ -72,5 +78,28 @@ describe("Arc Ember pristine-master hosting test", () => {
     assert.equal(props.aspectLocked, true);
     assert.equal(isArcEmberPristineMasterProps(props), true);
     assert.equal(props.actionType, "website");
+  });
+
+  it("offers four editable role presets from one immutable master", () => {
+    assert.deepEqual(ARC_EMBER_ROLE_PRESETS.map((preset) => preset.id), [
+      "primary",
+      "social",
+      "utility",
+      "informational",
+    ]);
+    for (const preset of ARC_EMBER_ROLE_PRESETS) {
+      const props = arcEmberPristineMasterInsertProps(preset.id);
+      assert.equal(readArcEmberRole(props), preset.id);
+      assert.equal(props.label, preset.title);
+      assert.equal(props.description, preset.description);
+      assert.equal(isArcEmberPristineMasterProps(props), true);
+    }
+
+    const customized = applyArcEmberRolePreset(
+      { ...arcEmberPristineMasterInsertProps(), href: "https://example.com" },
+      "social",
+    );
+    assert.equal(customized.href, "https://example.com");
+    assert.equal(readArcEmberRole(customized), "social");
   });
 });

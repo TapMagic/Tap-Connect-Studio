@@ -45,9 +45,13 @@ export {
 export {
   ARC_EMBER_PRISTINE_MASTER_ASSET,
   ARC_EMBER_PRISTINE_MASTER_SHA256,
+  ARC_EMBER_ROLE_PRESETS,
+  applyArcEmberRolePreset,
   arcEmberPristineMasterInsertProps,
   readArcEmberActionCue,
+  readArcEmberRole,
   writeArcEmberActionCue,
   isArcEmberPristineMasterProps,
   type ArcEmberActionCue,
+  type ArcEmberRole,
 } from "./packages/arc-ember-pristine/recipe";
