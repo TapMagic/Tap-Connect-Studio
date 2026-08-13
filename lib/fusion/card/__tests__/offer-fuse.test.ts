@@ -201,6 +201,39 @@ describe("offer resolver precedence", () => {
     });
     assert.equal(result.mode, "card_first");
   });
+
+  it("serves a root-composition-only Card first when no live Campaign", () => {
+    const card = minimalCard([]);
+    card.rootComposition = {
+      version: 1,
+      id: "root",
+      label: "Card root",
+      nodes: [
+        {
+          id: "button-1",
+          type: "button",
+          name: "Published action",
+          x: 0.1,
+          y: 0.1,
+          width: 0.8,
+          height: 0.2,
+          rotation: 0,
+          zIndex: 1,
+          props: { label: "Open" },
+        },
+      ],
+      mobileFallback: "scale",
+    };
+
+    const result = resolvePublicTapSurface({
+      hasLiveCampaign: false,
+      offerFeatureOn: true,
+      hasEndExperience: false,
+      card,
+    });
+
+    assert.equal(result.mode, "card_first");
+  });
 });
 
 describe("offer fuse-box honesty", () => {

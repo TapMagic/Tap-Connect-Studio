@@ -43,7 +43,10 @@ export function resolvePublicTapSurface(
   const bound =
     Boolean(spotlight?.linkedCampaignId) && spotlight?.offerMode === "campaign";
   const livingCard =
-    Boolean(input.card?.sections?.length) && !input.cardRetired;
+    Boolean(
+      input.card?.sections?.length ||
+        input.card?.rootComposition?.nodes?.length
+    ) && !input.cardRetired;
 
   if (input.hasLiveCampaign) {
     const matchesLive =

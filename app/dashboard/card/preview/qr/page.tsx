@@ -4,7 +4,7 @@ import { buildPreviewAbsoluteUrl, resolvePreviewBaseUrl } from "@/lib/fusion/cre
 
 export const dynamic = "force-dynamic";
 
-const PREVIEW_PATH = "/dashboard/card/preview";
+const PREVIEW_PATH = "/t/arcemberphone01?public=1";
 
 export default async function CardLanQrPage() {
   const assessment = resolvePreviewBaseUrl({ preferLanPort: 3142 });
@@ -23,9 +23,9 @@ export default async function CardLanQrPage() {
           <p className="text-xs font-semibold uppercase tracking-[0.22em] text-lime-300">
             Local-network Product Owner test
           </p>
-          <h1 className="mt-2 text-2xl font-semibold">Arc Ember iPhone Preview</h1>
+          <h1 className="mt-2 text-2xl font-semibold">Arc Ember Published Phone View</h1>
           <p className="mt-2 text-sm text-white/65">
-            Owner Private Demo ms8jfzoi · actual Card Preview renderer
+            Owner Private Demo ms8jfzoi · actual customer-facing Card renderer
           </p>
         </div>
 
@@ -45,7 +45,7 @@ export default async function CardLanQrPage() {
 
         <div className="space-y-2">
           <p className="text-xs font-medium uppercase tracking-wider text-white/50">
-            Phone-reachable Preview URL
+            Phone-reachable published Card URL
           </p>
           <a
             href={previewUrl}
@@ -60,7 +60,7 @@ export default async function CardLanQrPage() {
           <p>Keep this Mac awake and TapConnect Studio running.</p>
           <p>Connect the iPhone to the same Wi-Fi and scan with the Camera app.</p>
           <p>
-            This dashboard Preview route requires the same TapConnect owner sign-in on the iPhone.
+            This public Card route does not require a TapConnect owner sign-in on the iPhone.
           </p>
           <p>
             LAN candidacy is not physical-phone verification; the successful iPhone open completes that check.
