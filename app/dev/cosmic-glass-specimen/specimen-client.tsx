@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, type ReactNode } from "react";
-import { CosmicGlassDivider, CosmicGlassStudioAction } from "@/lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/CosmicGlassStudioBridge";
+import { CosmicGlassDivider, CosmicGlassStudioAction, CosmicGlassUtilitySurface } from "@/lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/CosmicGlassStudioBridge";
 import { applyCosmicGlassSignature, type CosmicGlassParams } from "@/lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/recipe";
 import { buttonElementDefaults } from "@/lib/fusion/card/designer-elements";
 import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
@@ -58,7 +58,7 @@ function Hero({ props, phone = false, width }: { props: Record<string, unknown>;
 }
 
 function UtilityCard({ title, detail, wide = false }: { title: string; detail: string; wide?: boolean }) {
-  return <div style={{ gridColumn: wide ? "1 / -1" : undefined, height: wide ? 142 : 150, border:"1px solid #0b459c", borderRadius:30, background:"linear-gradient(145deg,#091321,#02060d 52%,#00040a)", display:"flex", alignItems:"center", gap:26, padding:"0 28px", color:"#f7f3e9", boxShadow:"inset 0 1px rgba(255,255,255,.13)" }}><span style={{ width:78,height:78,borderRadius:24,border:"1px solid #0d72ff",display:"grid",placeItems:"center",color:"#087cff",fontSize:34,boxShadow:"inset 0 0 18px #06142b" }}>◉</span><span style={{ display:"flex",flexDirection:"column",fontFamily:"Georgia,serif",fontSize:30 }}>{title}<small style={{ color:"#0d72ff",fontSize:18,marginTop:8 }}>{detail}</small></span><span style={{ marginLeft:"auto",color:"#0d72ff",fontSize:28 }}>→</span></div>;
+  return <div style={{ gridColumn: wide ? "1 / -1" : undefined }}><CosmicGlassUtilitySurface title={title} detail={detail} wide={wide} /></div>;
 }
 
 function FullSection({ props, heroWidth }: { props: Record<string, unknown>; heroWidth: number }) {

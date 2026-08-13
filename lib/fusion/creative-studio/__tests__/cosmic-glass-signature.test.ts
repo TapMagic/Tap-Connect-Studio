@@ -92,4 +92,17 @@ describe("Cosmic Glass Signature recipe", () => {
     assert.match(css, /\.cg-ring-contact-shadow/);
     assert.match(css, /\.cg-action > \.cg-chassis/);
   });
+
+  it("keeps utility surfaces near-black with blue confined to reflected-light layers", () => {
+    const css = fs.readFileSync(
+      path.join(process.cwd(), "lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/cosmic-glass.css"),
+      "utf8"
+    );
+    assert.match(css, /\.cg-utility\s*\{/);
+    assert.match(css, /linear-gradient\(145deg,rgba\(10,15,23,\.96\),rgba\(2,5,9,\.985\) 54%,#010308\)/);
+    assert.match(css, /\.cg-utility::before/);
+    assert.match(css, /\.cg-utility::after/);
+    assert.doesNotMatch(css, /\.cg-utility-icon[^}]*color:#(?:087cff|0d72ff|187bf2|2180ff)/);
+    assert.doesNotMatch(css, /\.cg-utility-cue[^}]*color:#(?:087cff|0d72ff|187bf2|2180ff)/);
+  });
 });

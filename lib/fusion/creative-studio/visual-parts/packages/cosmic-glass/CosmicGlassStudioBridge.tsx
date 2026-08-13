@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, type CSSProperties } from "react";
+import { useLayoutEffect, useRef, type CSSProperties, type ReactNode } from "react";
 import { COSMIC_GLASS_ASSETS, COSMIC_GLASS_CANONICAL_RECIPE_ID, readCosmicGlassParams } from "./recipe";
 import "./cosmic-glass.css";
 
@@ -146,6 +146,29 @@ export function CosmicGlassDivider({ props, label }: { props: Record<string, unk
         {params.dividerCenter === "none" ? <span className="cg-divider-dot" /> : null}
       </span>
       <img className="cg-divider-rod" src={COSMIC_GLASS_ASSETS.rightRod} alt="" aria-hidden />
+    </div>
+  );
+}
+
+export function CosmicGlassUtilitySurface({
+  title,
+  detail,
+  wide = false,
+  icon = "◉",
+}: {
+  title: string;
+  detail: string;
+  wide?: boolean;
+  icon?: ReactNode;
+}) {
+  return (
+    <div className="cg-utility" data-cg-utility-surface="smoked-glass" data-cg-utility-wide={wide || undefined}>
+      <span className="cg-utility-icon" aria-hidden>{icon}</span>
+      <span className="cg-utility-copy">
+        <span className="cg-utility-title">{title}</span>
+        <span className="cg-utility-detail">{detail}</span>
+      </span>
+      <span className="cg-utility-cue" aria-hidden>→</span>
     </div>
   );
 }

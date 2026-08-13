@@ -9,6 +9,7 @@ Recovered final review imagery is the visual authority. The package remains one 
 | Eyebrow, title, description | normal Button content fields |
 | Destination and accessible label | normal Button Action fields |
 | Independent right cue | Cosmic Glass appearance params |
+| Secondary and utility smoked-glass surfaces | `CosmicGlassUtilitySurface` |
 | Electric rods | recovered `electric-rod-left.svg` and `electric-rod-right.svg` |
 | Divider center | recovered diamond, live identity, or no-center dot |
 
