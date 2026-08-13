@@ -291,6 +291,20 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
       endcapAssetId: "copper_divider_endcap",
     },
   }),
+  original({
+    id: "divider_cosmic_glass",
+    label: "Cosmic Electric Divider",
+    collection: "tapconnect_signature",
+    category: "divider",
+    supportedSockets: ["divider.line", "divider.centerpiece"],
+    supportedTargetFamilies: ["divider"],
+    renderKind: "divider_treatment",
+    colorization: "none",
+    lifecycleStatus: "approved",
+    expressionTier: "signature",
+    payload: { kind: "divider", lineStyle: "cosmic_glass", motion: "none" },
+    previewHint: "cosmic-glass-divider",
+  }),
 
   // ── Action Surface / Stage ──
   original({
@@ -762,6 +776,43 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
     },
     previewHint: "top-shelf-premium-action",
   }),
+  original({
+    id: "family_cosmic_glass_signature",
+    label: "Cosmic Glass",
+    collection: "tapconnect_signature",
+    category: "curated",
+    supportedSockets: ["curated.family"],
+    supportedTargetFamilies: ["button", "launch", "form_submit"],
+    renderKind: "curated_family",
+    colorization: "none",
+    lifecycleStatus: "approved",
+    expressionTier: "signature",
+    canonicalRecipeId: "recipe/signature/cosmic-glass-action/v1",
+    referenceRenderPath: "lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/reference/01-hero-canonical.png",
+    payload: {
+      kind: "curated_family",
+      defaultBaseColor: "#031126",
+      actionRole: "hero",
+      mountPartId: null,
+      surfaceTreatment: "off",
+      ingredientPartIds: {
+        body: "body_angular_mission",
+        finish: "finish_acrylic",
+        rim: null,
+        iconStation: "icon_station_round",
+        iconStationBacking: null,
+        iconStationRim: null,
+        mount: null,
+        accent: "accent_none",
+        layout: "layout_one_column",
+        divider: "divider_cosmic_glass",
+        actionSurface: null,
+        interaction: "interaction_tactile",
+        bottomStop: null,
+      },
+    },
+    previewHint: "cosmic-glass-signature",
+  }),
 ] as const;
 
 const BY_ID = new Map(VISUAL_PARTS_CATALOG.map((part) => [part.id, part]));
@@ -844,4 +895,5 @@ export const POUNDED_COPPER_PART_ID = "rim_pounded_copper";
 export const CURATED_FAMILY_BRIGHT_LACQUER_ID = "family_bright_lacquer_pounded_copper";
 export const CURATED_FAMILY_MISSION_CONTROL_ID = "family_mission_control";
 export const CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID = "family_top_shelf_premium_action";
+export const CURATED_FAMILY_COSMIC_GLASS_ID = "family_cosmic_glass_signature";
 export const TOP_SHELF_CANONICAL_RECIPE_ID = "recipe/enhanced/top-shelf-premium-action/v1";

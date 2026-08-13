@@ -92,6 +92,11 @@ import {
   isTopShelfPremiumActionProps,
   TopShelfStudioPremiumAction,
 } from "@/lib/fusion/creative-studio/visual-parts/packages/top-shelf/TopShelfStudioBridge";
+import {
+  CosmicGlassDivider,
+  CosmicGlassStudioAction,
+  isCosmicGlassProps,
+} from "@/lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/CosmicGlassStudioBridge";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -1244,9 +1249,14 @@ function NodeVisual({
         ? "copper_botanical"
         : vpDivider.dividerLinePartId === "divider_electric"
           ? "electric"
+          : vpDivider.dividerLinePartId === "divider_cosmic_glass"
+            ? "cosmic_glass"
           : vpDivider.dividerLinePartId === "divider_industrial"
             ? "industrial"
             : "minimal");
+    if (treatment === "cosmic_glass") {
+      return <CosmicGlassDivider props={node.props} label={str(node.props.label, "Cosmic Glass divider")} />;
+    }
     const botanical = treatment === "copper_botanical";
     const electric = treatment === "electric";
     const industrial = treatment === "industrial";
@@ -1412,6 +1422,34 @@ function NodeVisual({
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
+
+    // Cosmic Glass Signature — one semantic Action with shared Edit/Preview/Public paint.
+    if (isCosmicGlassProps(node.props)) {
+      const vpCosmic = readVisualPartsState(node.props);
+      const descriptionText = str(node.props.description, "");
+      return (
+        <a
+          href={editMode ? undefined : actionHref}
+          aria-disabled={!actionHref}
+          onClick={(event) => {
+            if (editMode || !actionHref) event.preventDefault();
+          }}
+          className="block h-full w-full overflow-visible"
+          style={{ opacity: num(node.props.opacity, 1), textDecoration: "none" }}
+          tabIndex={editMode ? undefined : 0}
+          aria-label={str(node.props.accessibleLabel, labelValue)}
+          data-button-presentation="cosmic-glass"
+          data-vp-cosmic-glass-host="true"
+          data-vp-family={vpCosmic.curatedFamilyId || undefined}
+          data-vp-assembly={vpCosmic.assemblyRecipeId || undefined}
+          data-action-type={str(node.props.actionType, str(node.props.actionKind))}
+          data-action-href={actionHref || undefined}
+          {...visualPartsDataAttrs(node.props)}
+        >
+          <CosmicGlassStudioAction props={node.props} label={labelValue} description={descriptionText || undefined} />
+        </a>
+      );
+    }
 
     // Top Shelf Premium Action — shared Edit/Preview/Public path using installed package layers.
     if (isTopShelfPremiumActionProps(node.props)) {

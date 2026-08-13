@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   CURATED_FAMILY_BRIGHT_LACQUER_ID,
+  CURATED_FAMILY_COSMIC_GLASS_ID,
   CURATED_FAMILY_MISSION_CONTROL_ID,
   CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID,
   LACQUER_PROOF_COLORS,
@@ -28,9 +29,12 @@ import {
   listBrandRecipes,
   listVisualParts,
   readRefinementFromProps,
+  readCosmicGlassParams,
   readTopShelfParams,
   resetTopShelfToCanonical,
+  resetCosmicGlassToCanonical,
   writeTopShelfParams,
+  writeCosmicGlassParams,
   type BrandRecipe,
   partCompatibleWithTarget,
   partTilePreviewBackground,
@@ -275,6 +279,11 @@ export function VisualPartsCabinetPanel({
           <div className="space-y-2">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-white/50">Signature</p>
             <PartTile
+              part={getVisualPart(CURATED_FAMILY_COSMIC_GLASS_ID)!}
+              active={state.curatedFamilyId === CURATED_FAMILY_COSMIC_GLASS_ID}
+              onApply={() => applyPart(CURATED_FAMILY_COSMIC_GLASS_ID)}
+            />
+            <PartTile
               part={getVisualPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)!}
               active={state.curatedFamilyId === CURATED_FAMILY_BRIGHT_LACQUER_ID}
               onApply={() => applyPart(CURATED_FAMILY_BRIGHT_LACQUER_ID)}
@@ -287,6 +296,9 @@ export function VisualPartsCabinetPanel({
           </div>
           {state.curatedFamilyId === CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID ? (
             <TopShelfControls props={props} onPatch={onPatch} onPassthrough={onPassthrough} />
+          ) : null}
+          {state.curatedFamilyId === CURATED_FAMILY_COSMIC_GLASS_ID ? (
+            <CosmicGlassControls props={props} onPatch={onPatch} onPassthrough={onPassthrough} />
           ) : null}
           {state.curatedFamilyId ? (
             <div className="rounded border border-white/10 p-2" data-testid="vp-customize-ingredients">
@@ -905,6 +917,56 @@ function TopShelfControls({
       >
         Reset appearance to canonical
       </button>
+    </div>
+  );
+}
+
+function CosmicGlassControls({
+  props,
+  onPatch,
+  onPassthrough,
+}: {
+  props: Record<string, unknown>;
+  onPatch: (next: Record<string, unknown>, label: string) => void;
+  onPassthrough?: (kind: "color" | "text" | "action" | "motion" | "advanced") => void;
+}) {
+  const params = readCosmicGlassParams(props);
+  return (
+    <div className="space-y-2 rounded border border-[#1584ff]/35 bg-[#020713]/70 p-2" data-testid="vp-cosmic-glass-controls">
+      <p className="text-[9px] font-semibold uppercase tracking-[.18em] text-[#f0c34a]">Cosmic Glass · Signature</p>
+      <div className="grid grid-cols-2 gap-1" data-testid="vp-cosmic-ring-finish">
+        {(["gold", "copper"] as const).map((finish) => (
+          <button key={finish} type="button" data-testid={`vp-cosmic-ring-${finish}`}
+            className={`rounded px-2 py-1.5 text-[10px] ${params.ringFinish === finish ? "bg-[#0d72ff]/25 text-[#ffe49a]" : "border border-white/15 text-white/70"}`}
+            onClick={() => onPatch(writeCosmicGlassParams(props, { ringFinish: finish }), `Cosmic Glass ${finish} ring`)}>
+            {finish === "gold" ? "Gold ring" : "Copper ring"}
+          </button>
+        ))}
+      </div>
+      <div className="grid grid-cols-2 gap-1" data-testid="vp-cosmic-ring-shape">
+        {(["round", "soft_square"] as const).map((shape) => (
+          <button key={shape} type="button" data-testid={`vp-cosmic-shape-${shape}`}
+            className={`rounded px-2 py-1.5 text-[10px] ${params.ringShape === shape ? "bg-[#0d72ff]/25 text-[#ffe49a]" : "border border-white/15 text-white/70"}`}
+            onClick={() => onPatch(writeCosmicGlassParams(props, { ringShape: shape }), `Cosmic Glass ring shape`)}>
+            {shape === "round" ? "Round" : "Soft square"}
+          </button>
+        ))}
+      </div>
+      <button type="button" data-testid="vp-cosmic-toggle-description" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75"
+        onClick={() => onPatch(writeCosmicGlassParams(props, { descriptionVisible: !params.descriptionVisible }), "Cosmic Glass description visibility")}>
+        Description: {params.descriptionVisible ? "On" : "Off"}
+      </button>
+      <button type="button" data-testid="vp-cosmic-open-text" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75" onClick={() => onPassthrough?.("text")}>Live copy (Text authority)</button>
+      <button type="button" data-testid="vp-cosmic-open-action" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75" onClick={() => onPassthrough?.("action")}>Destination (Action authority)</button>
+      <p className="text-[9px] font-semibold uppercase text-white/45">Divider center</p>
+      <div className="grid grid-cols-3 gap-1">
+        {(["diamond", "identity", "none"] as const).map((center) => (
+          <button key={center} type="button" data-testid={`vp-cosmic-divider-${center}`}
+            className={`rounded px-1 py-1.5 text-[9px] ${params.dividerCenter === center ? "bg-[#0d72ff]/25 text-[#ffe49a]" : "border border-white/15 text-white/65"}`}
+            onClick={() => onPatch(writeCosmicGlassParams(props, { dividerCenter: center }), "Cosmic Glass divider center")}>{center}</button>
+        ))}
+      </div>
+      <button type="button" data-testid="vp-cosmic-reset-canonical" className="w-full rounded bg-white/10 px-2 py-2 text-[10px] font-semibold text-[#ffe49a]" onClick={() => onPatch(resetCosmicGlassToCanonical(props), "Reset Cosmic Glass to canonical")}>Reset appearance to canonical</button>
     </div>
   );
 }

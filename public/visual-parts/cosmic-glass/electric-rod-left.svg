@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 64" fill="none" preserveAspectRatio="none">
+  <defs>
+    <linearGradient id="cgRodAura" x1="0" y1="32" x2="480" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#18b8ff" stop-opacity="0"/>
+      <stop offset="0.12" stop-color="#0a6dff" stop-opacity="0.22"/>
+      <stop offset="0.42" stop-color="#18b8ff" stop-opacity="0.55"/>
+      <stop offset="0.72" stop-color="#3cc8ff" stop-opacity="0.42"/>
+      <stop offset="0.92" stop-color="#0a6dff" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#18b8ff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cgRodCore" x1="0" y1="32" x2="480" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#065dff" stop-opacity="0"/>
+      <stop offset="0.1" stop-color="#065dff" stop-opacity="0.75"/>
+      <stop offset="0.28" stop-color="#83eaff"/>
+      <stop offset="0.48" stop-color="#f4ffff"/>
+      <stop offset="0.62" stop-color="#74e9ff"/>
+      <stop offset="0.82" stop-color="#1bbcff"/>
+      <stop offset="0.95" stop-color="#075fff" stop-opacity="0.7"/>
+      <stop offset="1" stop-color="#065dff" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="cgWisp" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#70ddff" stop-opacity="0"/>
+      <stop offset="0.35" stop-color="#b9f6ff" stop-opacity="0.55"/>
+      <stop offset="0.7" stop-color="#1a99ff" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#18b8ff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="cgSoftGlow" x="-20%" y="-120%" width="140%" height="340%">
+      <feGaussianBlur stdDeviation="2.2" result="b"/>
+      <feMerge>
+        <feMergeNode in="b"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <!-- soft aura envelope -->
+  <ellipse cx="250" cy="32" rx="210" ry="11" fill="url(#cgRodAura)" opacity="0.85"/>
+  <!-- energy wisps peeling away (elegant asymmetry) -->
+  <path d="M90 22 C160 10, 230 18, 310 12" stroke="url(#cgWisp)" stroke-width="1.1" fill="none" opacity="0.7"/>
+  <path d="M120 42 C200 50, 270 38, 360 46" stroke="url(#cgWisp)" stroke-width="0.9" fill="none" opacity="0.55"/>
+  <path d="M170 17 C240 8, 300 20, 380 14" stroke="#9eecff" stroke-width="0.55" fill="none" opacity="0.35"/>
+  <path d="M150 46 C230 54, 300 40, 390 48" stroke="#1a99ff" stroke-width="0.5" fill="none" opacity="0.3"/>
+  <!-- bright thin core -->
+  <rect x="16" y="30.25" width="448" height="3.5" rx="1.75" fill="url(#cgRodCore)" filter="url(#cgSoftGlow)"/>
+  <!-- hot core needle -->
+  <rect x="40" y="31.1" width="380" height="1.3" rx="0.65" fill="#ffffff" opacity="0.72"/>
+</svg>

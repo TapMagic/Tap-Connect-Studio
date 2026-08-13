@@ -668,11 +668,26 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       next.vpSectionRole !== undefined ||
       next.vpActionGroup !== undefined
     ) {
+      const enteringCosmicGlass =
+        node.props.vpCosmicGlassRecipe !== true && props.vpCosmicGlassRecipe === true;
       replace(
         {
           ...block,
           nodes: block.nodes.map((candidate) =>
-            candidate.id === node.id ? { ...candidate, props } : candidate
+            candidate.id === node.id
+              ? {
+                  ...candidate,
+                  ...(enteringCosmicGlass
+                    ? {
+                        width: Math.max(candidate.width, 0.88),
+                        x: Math.max(0, Math.min(candidate.x, 0.12)),
+                        minWidthPx: Math.max(candidate.minWidthPx || 0, 320),
+                        minHeightPx: Math.max(candidate.minHeightPx || 0, 96),
+                      }
+                    : {}),
+                  props,
+                }
+              : candidate
           ),
         },
         label

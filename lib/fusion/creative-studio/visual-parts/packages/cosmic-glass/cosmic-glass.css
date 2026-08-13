@@ -1,0 +1,78 @@
+/* Cosmic Glass Signature — preserve layered hardware depth from recovered final review. */
+.cg-action {
+  --cg-gold-a: #fff0a8;
+  --cg-gold-b: #d9a32f;
+  --cg-gold-c: #6f3f00;
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 96px;
+  container-type: size;
+  isolation: isolate;
+  overflow: visible;
+  color: #f8f4e9;
+  text-decoration: none;
+}
+.cg-action[data-cg-ring-finish="copper"] { --cg-gold-a:#ffc39d; --cg-gold-b:#a94f25; --cg-gold-c:#4c1c0c; }
+.cg-chassis,
+.cg-chassis-shadow {
+  position: absolute;
+  inset: 18% 2.6% 13% 25.2%;
+  display: block;
+  clip-path: polygon(0 0, 77% 0, 80% 7%, 94% 7%, 98% 16%, 100% 25%, 100% 84%, 98% 92%, 94% 100%, 0 100%);
+}
+.cg-chassis-shadow { transform: translateY(6px); background:#000; filter:blur(9px); opacity:.75; }
+.cg-chassis-gold { background:linear-gradient(120deg,#fff6bd 0 3%,#d69a28 12%,#ffdf78 58%,#9f5e00 100%); filter:drop-shadow(0 10px 10px rgba(0,0,0,.72)); }
+.cg-chassis-blue { inset: 2.7% 1.2% 3.6% .8%; background:linear-gradient(180deg,#3c69df,#123d9f 12%,#061b4c 80%,#075ef2); }
+.cg-chassis-face { inset: 4.5% .9% 5.2% .65%; background:linear-gradient(180deg,#102a58 0,#071830 25%,#010813 76%,#00040b); }
+.cg-chassis-gloss { position:absolute; inset:0 9% 48% 0; border-radius:0 0 80% 0; background:linear-gradient(180deg,rgba(106,154,255,.24),rgba(48,84,150,.08) 65%,transparent); transform:skewX(-8deg); }
+.cg-filament { position:absolute; left:0; right:4%; bottom:2px; height:2px; background:linear-gradient(90deg,#0066ff 0,#31e3ff 15%,#baf7ff 58%,#00aaff 80%,transparent); box-shadow:0 0 5px #0a8fff; }
+.cg-ring {
+  position:absolute;
+  z-index:5;
+  left:1.8%;
+  top:50%;
+  width:min(29.2cqw, calc(100cqh - 8px));
+  height:min(29.2cqw, calc(100cqh - 8px));
+  transform:translateY(-50%);
+  filter:drop-shadow(0 13px 8px rgba(0,0,0,.78));
+}
+.cg-ring-hull,.cg-ring-groove,.cg-ring-collar,.cg-ring-seat { position:absolute; inset:0; border-radius:50%; }
+.cg-action[data-cg-ring-shape="soft_square"] .cg-ring-hull,
+.cg-action[data-cg-ring-shape="soft_square"] .cg-ring-groove,
+.cg-action[data-cg-ring-shape="soft_square"] .cg-ring-collar,
+.cg-action[data-cg-ring-shape="soft_square"] .cg-ring-seat { border-radius:28%; }
+.cg-ring-hull { background:conic-gradient(from 205deg,var(--cg-gold-c),#291b05 10%,var(--cg-gold-a) 23%,#8b5305 39%,#ffdf76 55%,#6b3c00 72%,#f4c654 89%,var(--cg-gold-c)); box-shadow:inset 0 0 0 2px #2b210e,inset 0 0 0 9px rgba(0,0,0,.3),inset 4px 6px 6px rgba(255,255,255,.26); }
+.cg-ring-groove { inset:8.5%; background:radial-gradient(circle at 38% 30%,#24344c,#08101c 62%,#02050a); box-shadow:inset 0 0 0 2px #05070b,inset 0 0 0 8px rgba(0,0,0,.56),0 0 0 2px #8e5c08; }
+.cg-ring-collar { inset:20%; background:conic-gradient(from 25deg,#6f4200,#ffe68a 17%,#b3760d 35%,#fff1a8 49%,#5e3500 67%,#e5b746 84%,#7b4800); box-shadow:0 3px 7px #000,inset 0 2px 2px rgba(255,255,255,.42); }
+.cg-ring-seat { inset:10%; overflow:hidden; background:radial-gradient(circle at 44% 36%,#111b2e,#000 68%); box-shadow:inset 0 0 0 2px #084abf,inset 0 0 0 5px #030712,inset 0 8px 12px rgba(0,0,0,.72); }
+.cg-ring-seat::after { content:""; position:absolute; inset:0 8% 54%; border-radius:50%; background:linear-gradient(180deg,rgba(155,203,255,.22),transparent); transform:rotate(-8deg); }
+.cg-identity { position:absolute; z-index:1; inset:11%; width:78%; height:78%; object-fit:contain; border-radius:50%; }
+.cg-ring-notch { position:absolute; z-index:7; width:4.2%; height:16%; left:47.9%; background:linear-gradient(90deg,#3f2300,#d08c0b 45%,#4b2900); border:1px solid #171005; box-shadow:0 1px 2px #000; }
+.cg-ring-notch-top { top:4%; }.cg-ring-notch-bottom { bottom:4%; }
+.cg-ring-notch-left,.cg-ring-notch-right { top:42%; transform:rotate(90deg); }
+.cg-ring-notch-left { left:4%; }.cg-ring-notch-right { left:auto; right:4%; }
+.cg-copy { position:absolute; z-index:3; left:var(--cg-text-left,32%); right:var(--cg-text-right,14%); top:50%; display:flex; min-width:0; transform:translateY(calc(-50% + 8px)); flex-direction:column; align-items:flex-start; text-align:left; }
+.cg-eyebrow { margin-bottom:18px; color:#eab52c; font:600 clamp(8px,1.55cqw,16px)/1.05 Georgia,serif; letter-spacing:.22em; text-transform:uppercase; }
+.cg-title { max-width:100%; color:#f7f3e9; font:400 clamp(18px,4.05cqw,40px)/1.03 Georgia,"Times New Roman",serif; letter-spacing:-.025em; text-wrap:balance; text-shadow:0 2px 2px #000; }
+.cg-description { margin-top:8px; color:#7587a6; font:400 clamp(9px,1.65cqw,16px)/1.15 Georgia,serif; }
+.cg-cue { position:absolute; z-index:4; right:10.4%; top:50%; transform:translateY(-50%); color:#f6c23c; font:400 clamp(24px,4.4cqw,42px)/1 Georgia,serif; transition:transform 180ms ease; }
+.cg-action:hover .cg-cue { transform:translate(5px,-50%); }
+.cg-action:active { transform:translateY(1px); filter:brightness(.96); }
+.cg-divider { display:grid; width:100%; height:100%; min-height:36px; grid-template-columns:minmax(0,1fr) 54px minmax(0,1fr); align-items:center; opacity:var(--cg-divider-intensity,1); }
+.cg-divider-rod { display:block; width:100%; height:64px; object-fit:fill; }
+.cg-divider-center { display:grid; width:54px; height:54px; place-items:center; }
+.cg-divider-center>img { width:32px; height:32px; object-fit:contain; }
+.cg-divider-center .cg-divider-identity { width:26px; height:26px; padding:4px; border:1px solid #d5a43c; border-radius:50%; background:#03122d; box-shadow:0 0 8px #087cff; }
+.cg-divider-dot { width:7px; height:7px; border-radius:50%; background:#9ff3ff; box-shadow:0 0 7px 2px #087cff; }
+@container (max-width: 520px) {
+  .cg-action > .cg-chassis,.cg-action > .cg-chassis-shadow { inset:19% 7.7% 13% 25.2%; }
+  .cg-ring { left:6.4%; width:min(44cqw,61cqh); height:min(44cqw,61cqh); }
+  .cg-copy { right:var(--cg-text-right,17%); }
+  .cg-eyebrow { margin-bottom:7px; font-size:clamp(8px,2.8cqw,11px); line-height:.95; }
+  .cg-title { font-size:clamp(16px,5.8cqw,23px); line-height:1.05; }
+  .cg-description { display:none; }
+  .cg-cue { right:15.5%; font-size:26px; }
+}
+@media (prefers-reduced-motion: reduce) { .cg-cue { transition:none; }.cg-action:hover .cg-cue { transform:translateY(-50%); } }

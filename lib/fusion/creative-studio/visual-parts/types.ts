@@ -198,7 +198,7 @@ export type VisualPartPayload =
     }
   | {
       kind: "divider";
-      lineStyle: "minimal" | "copper_botanical" | "geometric" | "industrial" | "electric";
+      lineStyle: "minimal" | "copper_botanical" | "geometric" | "industrial" | "electric" | "cosmic_glass";
       endcapAssetId?: string;
       motion?: "none" | "energy_travel" | "neon_flicker";
     }

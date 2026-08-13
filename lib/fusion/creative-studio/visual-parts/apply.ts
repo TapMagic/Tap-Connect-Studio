@@ -478,6 +478,10 @@ export function applyCuratedFamily(
     const { applyTopShelfPremiumAction } = require("./packages/top-shelf/recipe") as typeof import("./packages/top-shelf/recipe");
     return applyTopShelfPremiumAction(props, targetFamily);
   }
+  if (familyId === "family_cosmic_glass_signature") {
+    const { applyCosmicGlassSignature } = require("./packages/cosmic-glass/recipe") as typeof import("./packages/cosmic-glass/recipe");
+    return applyCosmicGlassSignature(props, targetFamily);
+  }
   const ingredients = family.payload.ingredientPartIds;
   let next = writeVisualPartsState(props, {
     curatedFamilyId: familyId,
