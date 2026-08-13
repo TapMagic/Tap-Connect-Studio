@@ -3138,7 +3138,7 @@ export function TapCardBuilder({
                     interactionMode === "edit"
                       ? (payload, sectionId) => {
                           if (payload.level === "section") addComposerSurface(payload.kind as CardSurfaceKind);
-                          else addComposerElement(payload.kind as CardElementKind, sectionId ?? null);
+                          else addComposerElement(payload.kind as CardElementKind, sectionId ?? null, payload.initialProps);
                         }
                       : undefined
                   }

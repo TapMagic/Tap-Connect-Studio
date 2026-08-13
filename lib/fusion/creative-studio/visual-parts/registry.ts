@@ -3,7 +3,7 @@
  * Do not extend MATERIAL_CATALOG into a junk drawer.
  */
 
-import { tapconnectOriginalProvenance } from "./provenance";
+import { hostUploadProvenance, tapconnectOriginalProvenance } from "./provenance";
 import { FACETED_STATION_CLIP } from "./ornaments";
 import { LACQUER_PROOF_COLORS } from "./finish-color";
 import type {
@@ -16,6 +16,11 @@ import type {
 
 function original(part: VisualPartDefinition): VisualPartDefinition {
   const prov = tapconnectOriginalProvenance(part.id, part.label);
+  return { ...part, provenance: { provenanceId: prov.provenanceId } };
+}
+
+function hostUpload(part: VisualPartDefinition, sourceReference: string): VisualPartDefinition {
+  const prov = hostUploadProvenance(part.id, part.label, sourceReference);
   return { ...part, provenance: { provenanceId: prov.provenanceId } };
 }
 
@@ -390,6 +395,21 @@ export const VISUAL_PARTS_CATALOG: readonly VisualPartDefinition[] = [
       depthDefault: 0.55,
     },
   }),
+  hostUpload({
+    id: "action_surface_arc_ember_pristine_master",
+    label: "Arc Ember Pristine Master",
+    collection: "tapconnect_signature",
+    category: "action_surface",
+    supportedSockets: ["actionSurface.background"],
+    supportedTargetFamilies: ["button", "launch", "form_submit"],
+    renderKind: "action_surface_cap",
+    colorization: "none",
+    lifecycleStatus: "candidate",
+    expressionTier: "signature",
+    referenceRenderPath: "public/visual-parts/arc-ember/pristine-master-button.png",
+    payload: { kind: "action_surface", backgroundTone: "neutral" },
+    previewHint: "arc-ember-pristine-master",
+  }, "user-attached pristine PNG / b9e0d71d02bcb77460d29fbdbad9390bf493a96bd67d8c2350096ef52669df48"),
 
   // ── Mount / Backplate ──
   original({
@@ -895,5 +915,6 @@ export const POUNDED_COPPER_PART_ID = "rim_pounded_copper";
 export const CURATED_FAMILY_BRIGHT_LACQUER_ID = "family_bright_lacquer_pounded_copper";
 export const CURATED_FAMILY_MISSION_CONTROL_ID = "family_mission_control";
 export const CURATED_FAMILY_TOP_SHELF_PREMIUM_ACTION_ID = "family_top_shelf_premium_action";
+export const ARC_EMBER_PRISTINE_MASTER_PART_ID = "action_surface_arc_ember_pristine_master";
 export const CURATED_FAMILY_COSMIC_GLASS_ID = "family_cosmic_glass_signature";
 export const TOP_SHELF_CANONICAL_RECIPE_ID = "recipe/enhanced/top-shelf-premium-action/v1";

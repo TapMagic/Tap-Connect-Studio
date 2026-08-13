@@ -102,6 +102,9 @@ export function themedBottomStopBackground(rimPartId?: string | null): string {
 }
 
 export function partTilePreviewBackground(part: VisualPartDefinition): string | undefined {
+  if (part.id === "action_surface_arc_ember_pristine_master") {
+    return "url('/visual-parts/arc-ember/pristine-master-button.png') center / contain no-repeat";
+  }
   if (part.payload.kind === "rim") {
     return resolveRimDescriptor({ rimPartId: part.id })?.background;
   }

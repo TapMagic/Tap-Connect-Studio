@@ -1,0 +1,11 @@
+.ae-master-host { position:relative; display:grid; width:100%; height:100%; min-height:72px; place-items:center; overflow:visible; container-type:size; isolation:isolate; }
+.ae-master-stage { position:relative; display:block; width:min(100cqw,300cqh); max-width:100%; aspect-ratio:3 / 1; overflow:visible; }
+.ae-master-asset { position:absolute; inset:0; display:block; width:100%; height:100%; object-fit:contain; pointer-events:none; user-select:none; }
+.ae-master-identity { position:absolute; left:16.85%; top:35.9%; width:13.5%; aspect-ratio:1; transform:translate(-50%,-50%); display:grid; place-items:center; overflow:hidden; border-radius:50%; }
+.ae-master-identity>img { display:block; width:76%; height:76%; object-fit:contain; border-radius:50%; filter:drop-shadow(0 2px 2px rgba(0,0,0,.7)); }
+.ae-master-copy { position:absolute; left:30.4%; right:19%; top:22%; bottom:35%; display:flex; min-width:0; justify-content:center; flex-direction:column; align-items:flex-start; text-align:left; }
+.ae-master-eyebrow { margin-bottom:1.2cqh; color:#d69a65; font:600 clamp(6px,4.1cqh,15px)/1 Georgia,serif; letter-spacing:.2em; text-transform:uppercase; text-shadow:0 1px 2px #000; }
+.ae-master-title { max-width:100%; overflow:hidden; color:#fff3e5; font:600 clamp(11px,10cqh,38px)/1.02 Georgia,"Times New Roman",serif; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 2px 2px #000,0 0 4px rgba(161,72,29,.36); }
+.ae-master-description { margin-top:1.2cqh; max-width:100%; overflow:hidden; color:#bc9d88; font:400 clamp(6px,4.4cqh,16px)/1.05 Georgia,serif; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 1px 2px #000; }
+.ae-master-cue { position:absolute; left:85.7%; top:35.8%; transform:translate(-50%,-50%); color:#f5b46d; font:500 clamp(14px,12cqh,42px)/1 Georgia,serif; text-shadow:0 2px 2px #000,0 0 4px rgba(179,72,20,.42); }
+@media (prefers-reduced-motion:reduce) { .ae-master-host { scroll-behavior:auto; } }

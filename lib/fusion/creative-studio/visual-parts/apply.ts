@@ -391,6 +391,21 @@ export function applyVisualPart(
         surfaceDepth: depth,
       });
       next.actionSurfaceTone = part.payload.backgroundTone;
+      if (partId === "action_surface_arc_ember_pristine_master") {
+        next = writeVisualPartsState(next, {
+          curatedFamilyId: null,
+          assemblyRecipeId: null,
+          actionSurfacePartId: partId,
+          actionRole: "signature",
+          surfaceEnabled: false,
+          surfaceTreatment: "off",
+        });
+        delete next.vpCosmicGlassRecipe;
+        delete next.vpTopShelfRecipe;
+        next.showLabel = true;
+        next.showIcon = true;
+        next.vpArcEmberActionCue = next.vpArcEmberActionCue || "arrow";
+      }
       // Surface is a Visual Parts socket — never rewrite Button/Launch/Badge identity
       // into Container (that hijacks NodeVisual + objectFamily).
       const buttonishHost =

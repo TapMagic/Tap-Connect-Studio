@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from "react";
 import {
+  ARC_EMBER_PRISTINE_MASTER_PART_ID,
+  arcEmberPristineMasterInsertProps,
   CURATED_FAMILY_BRIGHT_LACQUER_ID,
   CURATED_FAMILY_COSMIC_GLASS_ID,
   CURATED_FAMILY_MISSION_CONTROL_ID,
@@ -30,11 +32,13 @@ import {
   listVisualParts,
   readRefinementFromProps,
   readCosmicGlassParams,
+  readArcEmberActionCue,
   readTopShelfParams,
   resetTopShelfToCanonical,
   resetCosmicGlassToCanonical,
   writeTopShelfParams,
   writeCosmicGlassParams,
+  writeArcEmberActionCue,
   type BrandRecipe,
   partCompatibleWithTarget,
   partTilePreviewBackground,
@@ -84,11 +88,13 @@ function PartTile({
   active,
   disabledReason,
   onApply,
+  dragPayload,
 }: {
   part: VisualPartDefinition;
   active: boolean;
   disabledReason?: string;
   onApply: () => void;
+  dragPayload?: { level: "element"; kind: "button"; initialProps: Record<string, unknown> };
 }) {
   const preview = partTilePreviewBackground(part);
   const previewKind = partTilePreviewKind(part);
@@ -96,6 +102,7 @@ function PartTile({
   return (
     <button
       type="button"
+      draggable={Boolean(dragPayload)}
       disabled={Boolean(disabledReason)}
       title={disabledReason || part.label}
       aria-pressed={active}
@@ -108,6 +115,11 @@ function PartTile({
         active ? "border-[#b8ff2c]/80 bg-[#b8ff2c]/10" : "border-white/15 hover:border-[#b8ff2c]/50"
       } ${disabledReason ? "opacity-40" : ""}`}
       onClick={onApply}
+      onDragStart={(event) => {
+        if (!dragPayload) return;
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("application/x-tap-card-composer", JSON.stringify(dragPayload));
+      }}
     >
       {preview ? (
         <span
@@ -263,6 +275,16 @@ export function VisualPartsCabinetPanel({
 
       {drawer === "curated" ? (
         <div className="space-y-3" data-testid="vp-curated-panel">
+          <div data-testid="vp-curated-pristine-masters" className="space-y-2">
+            <p className="text-[9px] font-semibold uppercase tracking-wider text-[#e39a57]/90">Pristine Masters</p>
+            <PartTile
+              part={getVisualPart(ARC_EMBER_PRISTINE_MASTER_PART_ID)!}
+              active={state.actionSurfacePartId === ARC_EMBER_PRISTINE_MASTER_PART_ID}
+              onApply={() => applyPart(ARC_EMBER_PRISTINE_MASTER_PART_ID)}
+              dragPayload={{ level: "element", kind: "button", initialProps: arcEmberPristineMasterInsertProps() }}
+            />
+            <p className="text-[9px] text-white/45">candidate · host-upload master · unchanged bitmap</p>
+          </div>
           <div data-testid="vp-curated-enhanced" className="space-y-2">
             <p className="text-[9px] font-semibold uppercase tracking-wider text-[#b8ff2c]/80">
               Enhanced
@@ -299,6 +321,9 @@ export function VisualPartsCabinetPanel({
           ) : null}
           {state.curatedFamilyId === CURATED_FAMILY_COSMIC_GLASS_ID ? (
             <CosmicGlassControls props={props} onPatch={onPatch} onPassthrough={onPassthrough} />
+          ) : null}
+          {state.actionSurfacePartId === ARC_EMBER_PRISTINE_MASTER_PART_ID ? (
+            <ArcEmberPristineControls props={props} onPatch={onPatch} onPassthrough={onPassthrough} />
           ) : null}
           {state.curatedFamilyId ? (
             <div className="rounded border border-white/10 p-2" data-testid="vp-customize-ingredients">
@@ -1018,6 +1043,36 @@ function CosmicGlassControls({
         </label>
       </div>
       <button type="button" data-testid="vp-cosmic-reset-canonical" className="w-full rounded bg-white/10 px-2 py-2 text-[10px] font-semibold text-[#ffe49a]" onClick={() => onPatch(resetCosmicGlassToCanonical(props), "Reset Cosmic Glass to canonical")}>Reset appearance to canonical</button>
+    </div>
+  );
+}
+
+function ArcEmberPristineControls({
+  props,
+  onPatch,
+  onPassthrough,
+}: {
+  props: Record<string, unknown>;
+  onPatch: (next: Record<string, unknown>, label: string) => void;
+  onPassthrough?: (kind: "color" | "text" | "action" | "motion" | "advanced") => void;
+}) {
+  const cue = readArcEmberActionCue(props);
+  return (
+    <div className="space-y-2 rounded border border-[#d56c2d]/35 bg-[#120804]/70 p-2" data-testid="vp-arc-ember-pristine-controls">
+      <p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[#f0a05e]">Arc Ember · Pristine Master</p>
+      <p className="text-[9px] leading-4 text-white/50">Shell is immutable. Use Icon / Image for the live identity socket.</p>
+      <button type="button" data-testid="vp-arc-ember-open-text" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75" onClick={() => onPassthrough?.("text")}>Live title, eyebrow & subtext</button>
+      <p className="text-[9px] font-semibold uppercase text-white/45">Action cue</p>
+      <div className="grid grid-cols-4 gap-1">
+        {(["arrow", "chevron", "launch", "none"] as const).map((option) => (
+          <button key={option} type="button" data-testid={`vp-arc-ember-cue-${option}`}
+            className={`rounded px-1 py-1.5 text-[9px] ${cue === option ? "bg-[#d56c2d]/25 text-[#ffd6b0]" : "border border-white/15 text-white/65"}`}
+            onClick={() => onPatch(writeArcEmberActionCue(props, option), "Arc Ember Action Cue")}>
+            {option === "arrow" ? "→" : option === "chevron" ? "›" : option === "launch" ? "↗" : "Off"}
+          </button>
+        ))}
+      </div>
+      <button type="button" data-testid="vp-arc-ember-open-action" className="w-full rounded border border-white/15 px-2 py-1.5 text-[10px] text-white/75" onClick={() => onPassthrough?.("action")}>Destination & accessibility</button>
     </div>
   );
 }

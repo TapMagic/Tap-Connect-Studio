@@ -88,7 +88,7 @@ type TapConnectCardProps = {
     composition: CreativeCompositionBlock,
     label?: string
   ) => void;
-  onComposerDrop?: (payload: { level: "section" | "element"; kind: string }, sectionId?: string) => void;
+  onComposerDrop?: (payload: { level: "section" | "element"; kind: string; initialProps?: Record<string, unknown> }, sectionId?: string) => void;
   onSectionReorder?: (fromSectionId: string, toSectionId: string) => void;
   onSectionResize?: (sectionId: string, heightPx: number) => void;
   onElementMove?: (elementId: string, toSectionId: string | null) => void;

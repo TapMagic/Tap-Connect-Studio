@@ -97,6 +97,8 @@ import {
   CosmicGlassStudioAction,
   isCosmicGlassProps,
 } from "@/lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/CosmicGlassStudioBridge";
+import { ArcEmberPristineMasterAction } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/ArcEmberPristineMasterBridge";
+import { isArcEmberPristineMasterProps } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/recipe";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -1422,6 +1424,31 @@ function NodeVisual({
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
+
+    // Arc Ember hosting test — immutable PNG master plus live semantic overlays only.
+    if (isArcEmberPristineMasterProps(node.props)) {
+      const descriptionText = str(node.props.description, "");
+      return (
+        <a
+          href={editMode ? undefined : actionHref}
+          aria-disabled={!actionHref}
+          onClick={(event) => {
+            if (editMode || !actionHref) event.preventDefault();
+          }}
+          className="block h-full w-full overflow-visible"
+          style={{ opacity: num(node.props.opacity, 1), textDecoration: "none" }}
+          tabIndex={editMode ? undefined : 0}
+          aria-label={str(node.props.accessibleLabel, labelValue)}
+          data-button-presentation="arc-ember-pristine-master"
+          data-vp-arc-ember-pristine-master="true"
+          data-action-type={str(node.props.actionType, str(node.props.actionKind))}
+          data-action-href={actionHref || undefined}
+          {...visualPartsDataAttrs(node.props)}
+        >
+          <ArcEmberPristineMasterAction props={node.props} label={labelValue} description={descriptionText || undefined} />
+        </a>
+      );
+    }
 
     // Cosmic Glass Signature — one semantic Action with shared Edit/Preview/Public paint.
     if (isCosmicGlassProps(node.props)) {

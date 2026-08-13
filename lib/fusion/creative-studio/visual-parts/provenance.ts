@@ -61,6 +61,31 @@ export function tapconnectOriginalProvenance(
   return record;
 }
 
+export function hostUploadProvenance(
+  partId: string,
+  label: string,
+  sourceReference: string
+): VisualPartProvenanceRecord {
+  const record: VisualPartProvenanceRecord = {
+    provenanceId: `prov_${partId}`,
+    partId,
+    sourceType: "host_upload",
+    sourceName: label,
+    sourceReference,
+    creator: "Product Owner supplied",
+    license: "Host-supplied master; rights review remains with Product Owner",
+    commercialUseReviewed: false,
+    modificationReviewed: false,
+    saasEditorUseReviewed: false,
+    redistributionRestrictions: "Hosting test only; do not redistribute or modify the master asset.",
+    attributionRequirements: "Unspecified by host upload.",
+    reviewDate: "2026-08-13",
+    notes: "Immutable pristine-master hosting test. Registration is not certification.",
+  };
+  register(record);
+  return record;
+}
+
 export function getProvenanceById(id: string): VisualPartProvenanceRecord | undefined {
   return PROVENANCE_BY_ID.get(id);
 }
