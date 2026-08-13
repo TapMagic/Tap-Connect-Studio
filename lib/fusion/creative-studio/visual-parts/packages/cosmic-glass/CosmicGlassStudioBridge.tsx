@@ -24,18 +24,21 @@ export function CosmicGlassStudioAction({
   const params = readCosmicGlassParams(props);
   const hostRef = useRef<HTMLSpanElement>(null);
   const ringRef = useRef<HTMLSpanElement>(null);
+  const receiverRef = useRef<HTMLSpanElement>(null);
   const cueRef = useRef<HTMLSpanElement>(null);
 
   useLayoutEffect(() => {
     const host = hostRef.current;
     const ring = ringRef.current;
+    const receiver = receiverRef.current;
     const cue = cueRef.current;
-    if (!host || !ring || !cue) return;
+    if (!host || !ring || !receiver || !cue) return;
     const measure = () => {
       const h = host.getBoundingClientRect();
       const r = ring.getBoundingClientRect();
+      const receiverBox = receiver.getBoundingClientRect();
       const c = cue.getBoundingClientRect();
-      host.style.setProperty("--cg-text-left", `${Math.max(0, r.right - h.left + Math.max(4, h.width * 0.012))}px`);
+      host.style.setProperty("--cg-text-left", `${Math.max(0, Math.max(r.right, receiverBox.right) - h.left + Math.max(4, h.width * 0.012))}px`);
       host.style.setProperty("--cg-text-right", `${Math.max(28, h.right - c.left + Math.max(12, h.width * 0.018))}px`);
       host.dataset.cgMeasured = "true";
     };
@@ -43,6 +46,7 @@ export function CosmicGlassStudioAction({
     const observer = new ResizeObserver(measure);
     observer.observe(host);
     observer.observe(ring);
+    observer.observe(receiver);
     observer.observe(cue);
     return () => observer.disconnect();
   }, [params.ringShape, params.cueVisible]);
@@ -64,6 +68,12 @@ export function CosmicGlassStudioAction({
             <span className="cg-filament" />
           </span>
         </span>
+      </span>
+
+      <span ref={receiverRef} className="cg-ring-receiver" data-testid="cosmic-glass-ring-receiver" aria-hidden>
+        <span className="cg-ring-receiver-channel" />
+        <span className="cg-ring-receiver-lip" />
+        <span className="cg-ring-contact-shadow" />
       </span>
 
       <span ref={ringRef} className="cg-ring" data-testid="cosmic-glass-ring-seat" aria-hidden>

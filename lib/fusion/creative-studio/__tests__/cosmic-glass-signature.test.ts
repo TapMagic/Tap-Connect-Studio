@@ -70,4 +70,15 @@ describe("Cosmic Glass Signature recipe", () => {
     assert.match(left, /energy wisps|cgWisp/);
     assert.doesNotMatch(left, /<script/i);
   });
+
+  it("keeps one adaptive receiver authority beneath round and non-round rings", () => {
+    const css = fs.readFileSync(
+      path.join(process.cwd(), "lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/cosmic-glass.css"),
+      "utf8"
+    );
+    assert.match(css, /\.cg-ring-receiver\s*\{/);
+    assert.match(css, /data-cg-ring-shape="soft_square"[^}]*\.cg-ring-receiver/);
+    assert.match(css, /\.cg-ring-contact-shadow/);
+    assert.match(css, /\.cg-action > \.cg-chassis/);
+  });
 });
