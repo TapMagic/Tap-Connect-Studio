@@ -99,6 +99,7 @@ import {
 } from "@/lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/CosmicGlassStudioBridge";
 import { ArcEmberPristineMasterAction } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/ArcEmberPristineMasterBridge";
 import { isArcEmberPristineMasterProps } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/recipe";
+import { isSignatureAssetProps, SignatureMasterBridge } from "@/lib/fusion/creative-studio/signature-assets";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -407,6 +408,9 @@ function NodeVisual({
   }
 
   const componentKind = str(node.props.componentKind);
+  if (isSignatureAssetProps(node.props)) {
+    return <SignatureMasterBridge props={node.props} editMode={editMode} />;
+  }
   // Button primitive must keep the Action surface renderer — Surface/Mount live in shells,
   // not by demoting the node into the Container visual path.
   if (componentKind === "container" && node.primitive !== "button") {

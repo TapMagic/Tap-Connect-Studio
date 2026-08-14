@@ -1,0 +1,139 @@
+{
+  "family": "Arc Ember Copper Signature",
+  "packStatus": "organized source masters; not yet Cody ingestion pack",
+  "preservationRule": "Each independently selectable Studio item remains an independent pristine image master. Do not reconstruct artwork.",
+  "records": [
+    {
+      "original": "ef70329d-8f4a-4cd0-855b-4d0d502f779b.png",
+      "renamed": "01_buttons/04_team-about.png",
+      "note": "Team/About pristine master",
+      "sha256": "12a28d0cf658540df57207fe2a14d3c488f0966e53c776e21e6d89015e70459a",
+      "bytes": 1333539
+    },
+    {
+      "original": "7daea601-450f-4336-a0dd-686ae9419e8c.png",
+      "renamed": "01_buttons/05_compact-condensed.png",
+      "note": "Compact/Condensed pristine master",
+      "sha256": "059f562f2ed389e9c572e3c54ed3cf1a1592bc2422e481d912ee99bf85671e2f",
+      "bytes": 1073965
+    },
+    {
+      "original": "7ecf1b92-bd70-4d40-ab97-d1e0af3eaaef.png",
+      "renamed": "01_buttons/06_double-stack-row_call.png",
+      "note": "Single row master intended for use inside Double Stack layout",
+      "sha256": "c2ce8ae359d2de55c9e5a9cb468b2a074f291d145c0e302865c21ba4938b2d9e",
+      "bytes": 2465433
+    },
+    {
+      "original": "178cb7bc-8a8c-47ae-82cc-ad3293fe1bdb.png",
+      "renamed": "01_buttons/03_utility-save-contact.png",
+      "note": "Utility Save Contact master",
+      "sha256": "c052bf5529540a84c6b188ee5df57f2c8c09d6e1a0c6c8339b5e5dbb9018c74a",
+      "bytes": 1630366
+    },
+    {
+      "original": "39973ec7-e309-4546-934c-3a47d47fb7b0.png",
+      "renamed": "02_medallions/01_logo-medallion.png",
+      "note": "Logo medallion",
+      "sha256": "19ebde77d0fa532e8d16bfffa5888f88f45fcb14b7213594862df5d44dae3edd",
+      "bytes": 2020067
+    },
+    {
+      "original": "cee22aa2-1b4e-4628-91d1-d30ef43a2731.png",
+      "renamed": "02_medallions/02_open-lens.png",
+      "note": "Open Lens medallion, smoked/dark glass",
+      "sha256": "8cb5e9fc86a8fea32b4358f58b94daac6d4494cfc30f9ebd80545729803272a8",
+      "bytes": 1674516
+    },
+    {
+      "original": "65ad6c74-50f1-41ff-a46a-34c55b382d1b.png",
+      "renamed": "02_medallions/03_inset-plate.png",
+      "note": "Inset Plate medallion",
+      "sha256": "1207ddb3f919870909e2c8607d389aa714c863f77fba2fd2e58c8cb53069ee15",
+      "bytes": 2212668
+    },
+    {
+      "original": "5e98debc-4427-4d47-a4cc-31ff27379ad4.png",
+      "renamed": "02_medallions/04_framed-icon-insert_blank.png",
+      "note": "Framed Icon Insert blank socket",
+      "sha256": "fc71157a492b844d410f5d423701a894d38a1dff523d64a7182ecae896f82c84",
+      "bytes": 2063845
+    },
+    {
+      "original": "20522a0a-9577-4a19-9201-0c330640f456.png",
+      "renamed": "03_dividers/01_diamond-center.png",
+      "note": "Diamond Center divider",
+      "sha256": "3544e631c1c90f8bb42d5fcac0d0802509c1168a26275587fd9c925b28820cf1",
+      "bytes": 1002333
+    },
+    {
+      "original": "8ecb641a-6b29-40aa-bf09-5d4288755020.png",
+      "renamed": "03_dividers/02_logo-medallion-center.png",
+      "note": "Logo/Medallion Center divider with live center socket",
+      "sha256": "1b7532beb9e93ada6e95cc81c5b4a32c296944bad8d05499ded5480c20a6f13e",
+      "bytes": 656922
+    },
+    {
+      "original": "1102b6d4-6a5f-40c0-8415-00946a6c6859.png",
+      "renamed": "03_dividers/03_plain-no-center.png",
+      "note": "Plain / No-Center divider",
+      "sha256": "ff7ae240b2673e259145641197a818f83546ed5c78e93506efeb37e71b9242d1",
+      "bytes": 659660
+    },
+    {
+      "original": "01a7d6f4-ef77-4fc6-a0f1-60df5ba8d4b8.png",
+      "renamed": "03_dividers/04_single-electric-rod.png",
+      "note": "Single Electric Rod divider",
+      "sha256": "687d4d7c59317f49b56c27ce800e8ca24c14fb8e6e7bbb30310f17a32a7d3904",
+      "bytes": 497448
+    },
+    {
+      "original": "12957ebe-650b-4165-8590-3f2c71d04727.png",
+      "renamed": "04_frames/01_container-section-frame_wide.png",
+      "note": "Wide Container Border / Section Frame",
+      "sha256": "ee6a18e01586decbd490065a8cb83b2dfe3fe38066b7e33e10a6aaf2adfcf2e0",
+      "bytes": 1483621
+    },
+    {
+      "original": "6256d37d-431d-4828-ab6d-4f20283729b0.png",
+      "renamed": "04_frames/02_surface-stage-frame.png",
+      "note": "Surface / Stage Frame",
+      "sha256": "0e76ef07efec49f05b41397aa378bebc486da100e545c45a4a6f94739f8f646e",
+      "bytes": 1992330
+    },
+    {
+      "original": "e0825e33-91bd-4389-b957-4df8756ae879.png",
+      "renamed": "05_footer/01_bottom-stop-footer-plate.png",
+      "note": "Bottom Stop / Footer Plate",
+      "sha256": "d078e11205bb3645c60a1b4e119718c03d41d57d24359dce992de0f732c30255",
+      "bytes": 939508
+    },
+    {
+      "original": "b71c2b4d-f8ae-4161-84af-591235c2f5fc.png",
+      "renamed": "90_alternates/medallion_open-lens_blue-study-a.png",
+      "note": "Earlier Open Lens study",
+      "sha256": "d5cc3bb3aabd8f5b71d109a59f929b537ade68fbdf75a932b8e7339bb4ebd8a7",
+      "bytes": 1888404
+    },
+    {
+      "original": "80d64faa-4c4c-4055-8195-00eb3a85f9a9.png",
+      "renamed": "90_alternates/medallion_open-lens_blue-study-b.png",
+      "note": "Earlier Open Lens study",
+      "sha256": "c6aabfca7fe41c8e0cfd127edc66ab300712d3924809780759a845e6fcfa0e35",
+      "bytes": 1790110
+    },
+    {
+      "original": "17ee19d4-d97d-4b83-96a5-99f6e8b286c1.png",
+      "renamed": "99_review_not_production/double-stack_combined-reference_DO-NOT-INGEST.png",
+      "note": "Reference only; two actions baked into one image",
+      "sha256": "4c87a915af36c64d17e1f584042a8f426cd2263537d58a02905995a3a8003d98",
+      "bytes": 2526567
+    }
+  ],
+  "unclassified": [],
+  "expectedButMissingFromThisUpload": [
+    "Hero / Primary CTA master (already installed earlier; not present in this upload)",
+    "Social / Instagram master (approved earlier; not present in this upload)",
+    "Paired Rod Divider (not present in this upload)"
+  ]
+}

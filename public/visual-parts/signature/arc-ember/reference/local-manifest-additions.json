@@ -1,0 +1,18 @@
+{
+  "family": "Arc Ember Copper Signature",
+  "classificationAuthority": "Product Owner clarification, 2026-08-14",
+  "records": [
+    {
+      "original": "a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png",
+      "preservedSource": "source/dividers/a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png",
+      "stableId": "master/arc-ember/divider/paired-rods/v1",
+      "classification": "Paired Rod Divider",
+      "lifecycle": "approved-production-source",
+      "sha256": "65c2f7be29ac2f5e504458fbc13c0dbd8c68b47c41e8bf66c891258558cc132d",
+      "width": 2172,
+      "height": 724,
+      "bytes": 1060270,
+      "note": "Added after the original supplier manifest. Preserve the supplied filename and bytes; do not reconstruct."
+    }
+  ]
+}

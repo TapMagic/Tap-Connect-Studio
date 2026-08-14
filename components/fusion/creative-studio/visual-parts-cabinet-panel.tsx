@@ -2,6 +2,15 @@
 
 import { useMemo, useState } from "react";
 import {
+  ARC_EMBER_SIGNATURE_FAMILY_ID,
+  SIGNATURE_FAMILIES,
+  SIGNATURE_SUBGROUPS,
+  listSignatureAssets,
+  signatureAssetInsert,
+  type SignatureAssetDefinition,
+  type SignatureSubgroup,
+} from "@/lib/fusion/creative-studio/signature-assets";
+import {
   ARC_EMBER_PRISTINE_MASTER_PART_ID,
   ARC_EMBER_ROLE_PRESETS,
   applyArcEmberRolePreset,
@@ -64,6 +73,7 @@ type Props = {
   onPassthrough?: (kind: "color" | "text" | "action" | "motion" | "advanced") => void;
   hostBrandRecipes?: BrandRecipe[];
   onSaveBrandRecipe?: (recipe: BrandRecipe) => void;
+  onInsertSignatureAsset?: (asset: SignatureAssetDefinition) => void;
 };
 
 const DRAWER_ORDER: VisualPartsDrawerId[] = [
@@ -143,6 +153,32 @@ function PartTile({
   );
 }
 
+function SignatureAssetTile({ asset, onInsert }: { asset: SignatureAssetDefinition; onInsert?: (asset: SignatureAssetDefinition) => void }) {
+  const payload = signatureAssetInsert(asset);
+  return (
+    <button
+      type="button"
+      draggable
+      title={`${asset.label} · drag onto Card`}
+      data-testid={`signature-asset-${asset.id.replaceAll("/", "-")}`}
+      data-signature-asset-id={asset.id}
+      data-signature-source-sha256={asset.sourceSha256}
+      className="group relative min-h-24 overflow-hidden rounded border border-[#d56c2d]/35 bg-[#090604] p-2 text-left hover:border-[#f0a05e]/75"
+      onClick={() => onInsert?.(asset)}
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = "copy";
+        event.dataTransfer.setData("application/x-tap-card-composer", JSON.stringify(payload));
+      }}
+    >
+      <span className="absolute inset-1 bg-contain bg-center bg-no-repeat opacity-75 transition-opacity group-hover:opacity-100" style={{ backgroundImage: `url('${asset.sourceAsset}')` }} aria-hidden />
+      <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent px-2 pb-1.5 pt-5">
+        <span className="block font-semibold text-[#ffe1c2]">{asset.label}</span>
+        <span className="block text-[8px] uppercase tracking-wide text-white/55">{asset.role} · drag to Card</span>
+      </span>
+    </button>
+  );
+}
+
 export function VisualPartsCabinetPanel({
   props,
   targetFamily,
@@ -150,9 +186,12 @@ export function VisualPartsCabinetPanel({
   onPassthrough,
   hostBrandRecipes = [],
   onSaveBrandRecipe,
+  onInsertSignatureAsset,
 }: Props) {
   const [drawer, setDrawer] = useState<VisualPartsDrawerId>("curated");
-  const [collection, setCollection] = useState<"all" | VisualPartCollection>("all");
+  const [collection, setCollection] = useState<VisualPartCollection>("foundation");
+  const [signatureFamilyId, setSignatureFamilyId] = useState(ARC_EMBER_SIGNATURE_FAMILY_ID);
+  const [signatureSubgroup, setSignatureSubgroup] = useState<SignatureSubgroup>("actions");
   const [brandRecipeName, setBrandRecipeName] = useState("");
   const state = readVisualPartsState(props);
   const brandRecipes = useMemo(() => listBrandRecipes(hostBrandRecipes), [hostBrandRecipes]);
@@ -160,7 +199,7 @@ export function VisualPartsCabinetPanel({
 
   const parts = useMemo(() => {
     const listed = listVisualParts({
-      collection: collection === "all" ? undefined : collection,
+      collection,
       targetFamily,
     }).filter((part) => contract.categories.includes(part.category));
     return listed;
@@ -220,14 +259,14 @@ export function VisualPartsCabinetPanel({
   }
 
   return (
-    <div className="space-y-3" data-testid="visual-parts-cabinet" data-vp-target-family={targetFamily}>
+    <div className="space-y-3" data-testid="visual-parts-cabinet" data-vp-target-family={targetFamily} onPointerDown={(event)=>event.stopPropagation()} onClick={(event)=>event.stopPropagation()}>
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-[10px] font-semibold uppercase tracking-wider text-white/55">Visual Parts Cabinet</p>
           <p className="text-[11px] text-white/75">Studio-wide parts · Foundation + Signature collections</p>
         </div>
         <div className="flex gap-1" data-testid="vp-collection-filter">
-          {(["all", "foundation", "tapconnect_signature"] as const).map((id) => (
+          {(["foundation", "tapconnect_signature"] as const).map((id) => (
             <button
               key={id}
               type="button"
@@ -236,12 +275,29 @@ export function VisualPartsCabinetPanel({
               aria-pressed={collection === id}
               onClick={() => setCollection(id)}
             >
-              {id === "all" ? "All" : id === "foundation" ? "Foundation" : "Signature"}
+              {id === "foundation" ? "Buttons" : "Signature"}
             </button>
           ))}
         </div>
       </div>
 
+      {collection === "tapconnect_signature" ? (
+        <div className="space-y-3" data-testid="signature-catalog" data-signature-family={signatureFamilyId}>
+          <div>
+            <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">Family</p>
+            <div className="flex flex-wrap gap-1">
+              {SIGNATURE_FAMILIES.map((family)=><button key={family.id} type="button" aria-pressed={signatureFamilyId===family.id} data-testid={`signature-family-${family.slug}`} className={`rounded border px-2 py-1 text-[10px] ${signatureFamilyId===family.id?"border-[#f0a05e]/80 bg-[#6f2e13]/35 text-[#ffe1c2]":"border-white/15 text-white/60"}`} onClick={()=>setSignatureFamilyId(family.id)}>{family.label}</button>)}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-1" data-testid="signature-subgroup-rail">
+            {SIGNATURE_SUBGROUPS.map((group)=><button key={group.id} type="button" aria-pressed={signatureSubgroup===group.id} data-testid={`signature-subgroup-${group.id}`} className={`rounded px-2 py-1 text-[9px] uppercase tracking-wide ${signatureSubgroup===group.id?"bg-[#d56c2d]/25 text-[#ffd6b0]":"text-white/50 hover:bg-white/10"}`} onClick={()=>setSignatureSubgroup(group.id)}>{group.label}</button>)}
+          </div>
+          <div className="grid grid-cols-2 gap-1.5" data-testid={`signature-assets-${signatureSubgroup}`}>
+            {listSignatureAssets({familyId:signatureFamilyId,subgroup:signatureSubgroup}).map((asset)=><SignatureAssetTile key={asset.id} asset={asset} onInsert={onInsertSignatureAsset} />)}
+          </div>
+          <p className="text-[9px] text-white/45">Drag a pristine master onto the Card. Live sockets remain editable through the existing Text, Icon/Media, Action, and accessibility controls.</p>
+        </div>
+      ) : <>
       <div
         className="rounded border border-white/10 bg-black/20 px-2 py-1.5 text-[10px] text-white/70"
         data-testid="vp-drawer-handle"
@@ -522,7 +578,6 @@ export function VisualPartsCabinetPanel({
           ) : null}
         </div>
       ) : null}
-
       {drawer === "finish" ? (
         <div className="space-y-2 rounded border border-white/10 p-2" data-testid="vp-finish-color-independence">
           <p className="text-[9px] font-semibold uppercase text-white/50">Base Color (Finish stays Lacquer/Acrylic)</p>
@@ -828,6 +883,7 @@ export function VisualPartsCabinetPanel({
           ))}
         </div>
       ) : null}
+      </>}
     </div>
   );
 }
