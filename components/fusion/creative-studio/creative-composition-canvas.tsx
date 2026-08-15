@@ -99,7 +99,7 @@ import {
 } from "@/lib/fusion/creative-studio/visual-parts/packages/cosmic-glass/CosmicGlassStudioBridge";
 import { ArcEmberPristineMasterAction } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/ArcEmberPristineMasterBridge";
 import { isArcEmberPristineMasterProps } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/recipe";
-import { isSignatureAssetProps, SignatureMasterBridge } from "@/lib/fusion/creative-studio/signature-assets";
+import { ARC_EMBER_STAGE_ID, isSignatureAssetProps, layoutArcEmberStages, requiredArcEmberSurfaceHeightPx, SignatureMasterBridge } from "@/lib/fusion/creative-studio/signature-assets";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -1866,9 +1866,20 @@ export function CreativeCompositionCanvas({
   /** scale (default) keeps freeform relative layout — same renderer as edit */
 
   const workingNodes = draftNodes ?? block.nodes;
+  const hasExpandableArcEmberStage = workingNodes.some((node) => node.props.signatureAssetId === ARC_EMBER_STAGE_ID);
+  const fallbackSurfaceHeightPx = Math.max(260, minHeightPx ?? ((surfaceSize.width || 390) / Math.max(.25, aspectRatio)));
+  const contentDrivenSurfaceHeightPx = useMemo(
+    () => requiredArcEmberSurfaceHeightPx(workingNodes, Math.max(280, surfaceSize.width || 390), fallbackSurfaceHeightPx),
+    [workingNodes, surfaceSize.width, fallbackSurfaceHeightPx],
+  );
 
   const visibleNodes = useMemo(() => {
-    let nodes = sortCompositionNodes(workingNodes).filter((n) => n.visible !== false);
+    let nodes = sortCompositionNodes(layoutArcEmberStages(
+      workingNodes,
+      Math.max(280, surfaceSize.width || 390),
+      contentDrivenSurfaceHeightPx,
+      fallbackSurfaceHeightPx,
+    )).filter((n) => n.visible !== false);
     // Action Group parents reflow children from live viewport width (real auto-stack geometry).
     const viewportWidthPx = Math.max(160, surfaceSize.width || 390);
     for (const container of nodes) {
@@ -1924,7 +1935,7 @@ export function CreativeCompositionCanvas({
       nodes = nodes.filter((n) => n.primitive === "text" || n.primitive === "button");
     }
     return nodes;
-  }, [workingNodes, hideDecorative, editMode, surfaceSize.width]);
+  }, [workingNodes, hideDecorative, editMode, surfaceSize.width, contentDrivenSurfaceHeightPx, fallbackSurfaceHeightPx]);
 
   const readingOrder = useMemo(
     () => accessibleReadingOrder(visibleNodes),
@@ -2719,7 +2730,7 @@ export function CreativeCompositionCanvas({
       )}
       style={{
         aspectRatio: minHeightPx == null ? String(aspectRatio) : undefined,
-        height: minHeightPx,
+        height: hasExpandableArcEmberStage ? contentDrivenSurfaceHeightPx : minHeightPx,
         padding: block.safeAreaPaddingPx ?? 12,
       }}
       data-testid="creative-composition-canvas"

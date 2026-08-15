@@ -1,0 +1,19 @@
+{
+  "stableId": "master/arc-ember/stage/surface/v1",
+  "expansionMode": "protected-cap-inset",
+  "sourceSize": { "width": 1672, "height": 941 },
+  "sourceSlicePixels": { "top": 190, "right": 176, "bottom": 210, "left": 176 },
+  "protected": ["four corners", "corner hardware", "ornamental junctions", "lower plinth endpoints", "fixed center accents"],
+  "extendable": ["straight top rail", "straight bottom rail", "straight side rails", "dark physical content field", "plinth center span", "continuous glow runs"],
+  "contentSafeArea": { "top": 0.19, "right": 0.108, "bottom": 0.205, "left": 0.108 },
+  "innerPadding": { "top": 0.15, "right": 0.115, "bottom": 0.17, "left": 0.115 },
+  "minimumWidthPx": 300,
+  "minimumHeightPx": 230,
+  "childGapPx": 14,
+  "flow": "vertical",
+  "heightAuthority": "visible children + protected inner padding + gaps",
+  "childCountHardCoded": false,
+  "childIndependence": ["visual master", "live content", "identity", "Action destination", "state", "analytics", "accessibility", "persistence"],
+  "phoneProof": { "viewportWidthPx": 390, "previewCanvasWidthPx": 298.8125, "stageWidthPx": 298.8125, "stageHeightPx": 590, "horizontalScroll": false },
+  "saveReloadProof": { "stageHeightPx": 609.25, "childCount": 5, "expansionAttribute": "protected-cap-inset" }
+}

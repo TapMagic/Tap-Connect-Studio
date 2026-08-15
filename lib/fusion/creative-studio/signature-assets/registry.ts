@@ -8,6 +8,18 @@ const full = { top: 0, right: 0, bottom: 0, left: 0 } as const;
 const actionInsets = { top: 0.16, right: 0.09, bottom: 0.17, left: 0.13 } as const;
 const actionSockets = { identity: true, eyebrow: true, title: true, description: true, cue: true, action: true } as const;
 const states = ["default", "hover", "pressed", "disabled"] as const;
+const arcEmberStageExpansion = {
+  mode: "protected-cap-inset",
+  cornerCaps: { top: .202, right: .105, bottom: .223, left: .105 },
+  contentSafeArea: { top: .19, right: .108, bottom: .205, left: .108 },
+  glowSafeArea: { top: .025, right: .025, bottom: .045, left: .025 },
+  plinthSafeRegion: { top: .78, bottom: 1 },
+  minimumWidthPx: 300,
+  minimumHeightPx: 230,
+  innerPadding: { top: .15, right: .115, bottom: .17, left: .115 },
+  childGapPx: 14,
+  flow: "vertical",
+} as const;
 
 export const SIGNATURE_FAMILIES: readonly SignatureFamilyDefinition[] = [
   { id: ARC_EMBER_SIGNATURE_FAMILY_ID, slug: "arc-ember", label: "Arc Ember", lifecycle: "candidate", sortOrder: 10 },
@@ -38,14 +50,14 @@ export const SIGNATURE_ASSETS: readonly SignatureAssetDefinition[] = [
     ["framed-icon","Framed Icon Insert","04_framed-icon-insert_blank.png","fc71157a492b844d410f5d423701a894d38a1dff523d64a7182ecae896f82c84"],
   ].map(([role,label,file,sha],index)=>asset({id:`master/arc-ember/identity/${role}/v1`,label,subgroup:"identity",assetKind:"identity",role,variant:"standard",sourceAsset:`${ROOT}/identity/${file}`,sourceSha256:sha,width:1254,height:1254,glowPadding:full,safeInsets:{top:.2,right:.2,bottom:.2,left:.2},socketContract:{identity:true},layoutCapabilities:["SINGLE"],responsiveContract:{proportional:true,phoneSafe:true,minRenderedWidthPx:72},stateContract:["default","disabled"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"candidate",sortOrder:100+index,tags:["identity","logo","icon","portrait","phone-safe"]})),
   ...[
-    ["diamond","Diamond Center","01_diamond-center.png","3544e631c1c90f8bb42d5fcac0d0802509c1168a26275587fd9c925b28820cf1",false],
-    ["logo-center","Logo / Medallion Center","02_logo-medallion-center.png","1b7532beb9e93ada6e95cc81c5b4a32c296944bad8d05499ded5480c20a6f13e",true],
-    ["plain","Plain / No Center","03_plain-no-center.png","ff7ae240b2673e259145641197a818f83546ed5c78e93506efeb37e71b9242d1",false],
-    ["single-rod","Single Electric Rod","04_single-electric-rod.png","687d4d7c59317f49b56c27ce800e8ca24c14fb8e6e7bbb30310f17a32a7d3904",false],
-    ["paired-rods","Paired Rods","a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png","65c2f7be29ac2f5e504458fbc13c0dbd8c68b47c41e8bf66c891258558cc132d",false],
-  ].map(([role,label,file,sha,center],index)=>asset({id:`master/arc-ember/divider/${role}/v1`,label:String(label),subgroup:"dividers",assetKind:"divider",role:String(role),variant:"standard",sourceAsset:`${ROOT}/dividers/${file}`,sourceSha256:String(sha),width:role==="logo-center"?1774:2172,height:role==="logo-center"?887:724,glowPadding:full,safeInsets:full,socketContract:{dividerCenter:Boolean(center)},layoutCapabilities:["SINGLE"],responsiveContract:{proportional:true,phoneSafe:true,minRenderedWidthPx:260},stateContract:["default","disabled"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:role==="paired-rods"?"production":"candidate",sortOrder:200+index,tags:["divider","electric-blue","phone-safe",center?"live-center":"no-center"]})),
+    ["diamond","Diamond Center","01_diamond-center.png","f3d20fffe31d5056a5a35ede0be33e8c42f24825256f55840fa66add35c8943c",false],
+    ["logo-center","Logo / Medallion Center","02_logo-medallion-center.png","7b64d21229f679be65a6fc910fa2479d505c709173df755e2941270760efd34a",true],
+    ["plain","Plain / No Center","03_plain-no-center.png","3b3f87f5ee44c1562c043891930918174a1bb241f829397529859eafd8e3ad85",false],
+    ["single-rod","Single Electric Rod","04_single-electric-rod.png","f5308026129f7f44c00a42e8e0082ffe21beae05071adad8766c8f7271bc18d4",false],
+    ["paired-rods","Paired Rods","05-double-electic-rod.png","f1467a49addf1453fee647b3b48b2da199d65e97d00689ebd6780dd9fb0b7c73",false],
+  ].map(([role,label,file,sha,center],index)=>asset({id:`master/arc-ember/divider/${role}/v1`,label:String(label),subgroup:"dividers",assetKind:"divider",role:String(role),variant:"transparent-exterior",sourceAsset:`${ROOT}/dividers/${file}`,sourceSha256:String(sha),width:2172,height:724,glowPadding:full,safeInsets:full,socketContract:{dividerCenter:Boolean(center)},layoutCapabilities:["SINGLE"],responsiveContract:{proportional:true,phoneSafe:true,minRenderedWidthPx:260},stateContract:["default","disabled"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"production",sortOrder:200+index,tags:["divider","electric-blue","transparent-exterior","phone-safe",center?"live-center":"no-center"]})),
   asset({id:"master/arc-ember/frame/container-wide/v1",label:"Container / Section Frame",subgroup:"frames-stages",assetKind:"frame",role:"container-wide",variant:"wide",sourceAsset:`${ROOT}/frames-stages/01_container-section-frame_wide.png`,sourceSha256:"ee6a18e01586decbd490065a8cb83b2dfe3fe38066b7e33e10a6aaf2adfcf2e0",width:1672,height:941,glowPadding:full,safeInsets:{top:.12,right:.1,bottom:.14,left:.1},socketContract:{childContent:true},layoutCapabilities:["SINGLE","STACK-2","STACK-3","GRID-2"],responsiveContract:{proportional:true,phoneSafe:true,minRenderedWidthPx:300},stateContract:["default","disabled"],nestingCapabilities:{canContainChildren:true,acceptedChildKinds:["action","identity","divider","footer"]},lifecycle:"candidate",sortOrder:300,tags:["container-capable","section","background","phone-safe"]}),
-  asset({id:"master/arc-ember/stage/surface/v1",label:"Surface / Stage",subgroup:"frames-stages",assetKind:"stage",role:"surface",variant:"standard",sourceAsset:`${ROOT}/frames-stages/02_surface-stage-frame.png`,sourceSha256:"0e76ef07efec49f05b41397aa378bebc486da100e545c45a4a6f94739f8f646e",width:1672,height:941,glowPadding:full,safeInsets:{top:.12,right:.1,bottom:.14,left:.1},socketContract:{childContent:true},layoutCapabilities:["SINGLE","STACK-2","STACK-3","GRID-2"],responsiveContract:{proportional:true,phoneSafe:true,minRenderedWidthPx:300},stateContract:["default","disabled"],nestingCapabilities:{canContainChildren:true,acceptedChildKinds:["action","identity","divider","footer"]},lifecycle:"candidate",sortOrder:310,tags:["container-capable","stage","background","phone-safe"]}),
+  asset({id:"master/arc-ember/stage/surface/v1",label:"Surface / Stage",subgroup:"frames-stages",assetKind:"stage",role:"surface",variant:"expandable",sourceAsset:`${ROOT}/frames-stages/02_surface-stage-frame.png`,sourceSha256:"8bc4dfa4d7c8a69bede0ad03dae8bd88e84301f695892b3acc143a28d1b64c29",width:1672,height:941,glowPadding:full,safeInsets:{top:.19,right:.108,bottom:.205,left:.108},socketContract:{childContent:true},layoutCapabilities:["SINGLE","STACK-2","STACK-3","GRID-2"],responsiveContract:{proportional:true,phoneSafe:true,minRenderedWidthPx:300},stateContract:["default","disabled"],nestingCapabilities:{canContainChildren:true,acceptedChildKinds:["action","identity","divider","footer"]},expansionContract:arcEmberStageExpansion,lifecycle:"production",sortOrder:310,tags:["container-capable","stage","background","phone-safe","edge-preserving","content-driven"]}),
   asset({id:"master/arc-ember/footer/bottom-stop/v1",label:"Bottom Stop / Footer",subgroup:"footer",assetKind:"footer",role:"bottom-stop",variant:"plate",sourceAsset:`${ROOT}/footer/01_bottom-stop-footer-plate.png`,sourceSha256:"d078e11205bb3645c60a1b4e119718c03d41d57d24359dce992de0f732c30255",width:1928,height:816,glowPadding:full,safeInsets:full,socketContract:{},layoutCapabilities:["SINGLE"],responsiveContract:{proportional:true,phoneSafe:true,minRenderedWidthPx:280},stateContract:["default","disabled"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"candidate",sortOrder:400,tags:["footer","bottom-stop","non-action","phone-safe"]}),
 ] as const;
 
@@ -65,7 +77,7 @@ export function signatureAssetInsert(asset: SignatureAssetDefinition) {
   if (asset.assetKind === "action") Object.assign(common,{ elementKind:"button", label:asset.label, eyebrow:"SIGNATURE ACTION", description:"Edit live supporting text", showLabel:true,showDescription:true,showIcon:true,iconMediaUrl:"/tap-connect-mark.png",vpArcEmberActionCue:"arrow",actionType:"website",href:"",disabled:false });
   if (asset.assetKind === "identity") Object.assign(common,{ elementKind:"image",src:"/tap-connect-mark.png",imageUrl:"/tap-connect-mark.png",fit:"contain",alt:asset.label });
   if (asset.assetKind === "divider") Object.assign(common,{ elementKind:"divider",dividerCenterMediaUrl:asset.socketContract.dividerCenter?"/tap-connect-mark.png":"" });
-  if (asset.assetKind === "frame" || asset.assetKind === "stage") Object.assign(common,{ elementKind:"composition",componentKind:"container",layout:"free",resizePolicy:"reflow",canContainChildren:true });
+  if (asset.assetKind === "frame" || asset.assetKind === "stage") Object.assign(common,{ elementKind:"composition",componentKind:"container",layout:asset.assetKind === "stage"?"stack":"free",resizePolicy:asset.assetKind === "stage"?"fit-content":"reflow",canContainChildren:true,childIds:[],gap:asset.expansionContract?.childGapPx ?? 12,signatureStageFlow:asset.expansionContract?.flow });
   if (asset.assetKind === "footer") Object.assign(common,{ elementKind:"decorative_graphic",decorative:true,actionType:"none" });
   return { level:"element" as const, kind:kindMap[asset.assetKind], initialProps:common };
 }

@@ -1,0 +1,14 @@
+{
+  "drawer": "Visual Parts → Signature → Arc Ember",
+  "groupsChanged": ["Dividers", "Frames & Stages"],
+  "stableIdsPreserved": true,
+  "duplicateDividerRegistrations": 0,
+  "assets": [
+    { "id": "master/arc-ember/divider/diamond/v1", "source": "/visual-parts/signature/arc-ember/source/dividers/01_diamond-center.png", "transparentExterior": true },
+    { "id": "master/arc-ember/divider/logo-center/v1", "source": "/visual-parts/signature/arc-ember/source/dividers/02_logo-medallion-center.png", "transparentExterior": true, "liveCenterSocket": true },
+    { "id": "master/arc-ember/divider/plain/v1", "source": "/visual-parts/signature/arc-ember/source/dividers/03_plain-no-center.png", "transparentExterior": true },
+    { "id": "master/arc-ember/divider/single-rod/v1", "source": "/visual-parts/signature/arc-ember/source/dividers/04_single-electric-rod.png", "transparentExterior": true },
+    { "id": "master/arc-ember/divider/paired-rods/v1", "source": "/visual-parts/signature/arc-ember/source/dividers/05-double-electic-rod.png", "transparentExterior": true, "classification": "Paired Rod Divider" },
+    { "id": "master/arc-ember/stage/surface/v1", "source": "/visual-parts/signature/arc-ember/source/frames-stages/02_surface-stage-frame.png", "transparentExterior": true, "physicalDarkCenter": true, "expandable": true }
+  ]
+}

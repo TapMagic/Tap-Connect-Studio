@@ -14,7 +14,7 @@ write("asset-map.json",{
     combinedDoubleStack:"99_review_not_production/double-stack_combined-reference_DO-NOT-INGEST.png",
     reason:"Double Stack is STACK-2 over independent stack-row actions; baked combined reference is not customer selectable."
   },
-  pairedRodsClarification:{stableId:"master/arc-ember/divider/paired-rods/v1",classification:"approved production asset",originalFilename:"a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png"}
+  pairedRodsClarification:{stableId:"master/arc-ember/divider/paired-rods/v1",classification:"approved production asset",originalFilename:"05-double-electic-rod.png",sourceSha256:"f1467a49addf1453fee647b3b48b2da199d65e97d00689ebd6780dd9fb0b7c73",replacesOpaqueAuthority:true}
 });
 write("socket-map.json",{
   familyId:SIGNATURE_FAMILIES[0].id,

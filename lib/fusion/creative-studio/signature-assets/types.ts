@@ -4,6 +4,20 @@ export type SignatureSubgroup = "actions" | "identity" | "dividers" | "frames-st
 
 export type SignatureSafeInsets = { top: number; right: number; bottom: number; left: number };
 
+export type SignatureExpansionContract = {
+  mode: "protected-cap-inset";
+  /** Normalized source-image cuts. Corners/hardware outside these cuts never stretch. */
+  cornerCaps: SignatureSafeInsets;
+  contentSafeArea: SignatureSafeInsets;
+  glowSafeArea: SignatureSafeInsets;
+  plinthSafeRegion: { top: number; bottom: number };
+  minimumWidthPx: number;
+  minimumHeightPx: number;
+  innerPadding: SignatureSafeInsets;
+  childGapPx: number;
+  flow: "vertical";
+};
+
 export type SignatureSocketContract = {
   identity?: boolean;
   eyebrow?: boolean;
@@ -44,6 +58,8 @@ export type SignatureAssetDefinition = {
   tags: readonly string[];
   /** Optional immutable blank chassis used when a content-bearing approval render cannot host live sockets. */
   liveShellAsset?: string;
+  /** Present only for authored containers whose rails/caps must expand without whole-raster distortion. */
+  expansionContract?: SignatureExpansionContract;
 };
 
 export type SignatureFamilyDefinition = {

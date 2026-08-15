@@ -1,18 +1,19 @@
 {
   "family": "Arc Ember Copper Signature",
-  "classificationAuthority": "Product Owner clarification, 2026-08-14",
+  "classificationAuthority": "Product Owner transparent divider and expandable stage correction, 2026-08-15",
+  "preservationRule": "Installed files are byte-identical approved production sources; stable IDs replace earlier opaque/fixed-picture authorities without duplicate registration.",
   "records": [
-    {
-      "original": "a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png",
-      "preservedSource": "source/dividers/a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png",
-      "stableId": "master/arc-ember/divider/paired-rods/v1",
-      "classification": "Paired Rod Divider",
-      "lifecycle": "approved-production-source",
-      "sha256": "65c2f7be29ac2f5e504458fbc13c0dbd8c68b47c41e8bf66c891258558cc132d",
-      "width": 2172,
-      "height": 724,
-      "bytes": 1060270,
-      "note": "Added after the original supplier manifest. Preserve the supplied filename and bytes; do not reconstruct."
-    }
-  ]
+    { "original": "01_diamond-center.png", "preservedSource": "source/dividers/01_diamond-center.png", "stableId": "master/arc-ember/divider/diamond/v1", "classification": "Diamond Center Divider", "lifecycle": "approved-production-source", "sha256": "f3d20fffe31d5056a5a35ede0be33e8c42f24825256f55840fa66add35c8943c", "width": 2172, "height": 724, "bytes": 667150, "transparentExterior": true },
+    { "original": "02_logo-medallion-center.png", "preservedSource": "source/dividers/02_logo-medallion-center.png", "stableId": "master/arc-ember/divider/logo-center/v1", "classification": "Logo / Medallion Center Divider", "lifecycle": "approved-production-source", "sha256": "7b64d21229f679be65a6fc910fa2479d505c709173df755e2941270760efd34a", "width": 2172, "height": 724, "bytes": 1090068, "transparentExterior": true },
+    { "original": "03_plain-no-center.png", "preservedSource": "source/dividers/03_plain-no-center.png", "stableId": "master/arc-ember/divider/plain/v1", "classification": "Plain / No Center Divider", "lifecycle": "approved-production-source", "sha256": "3b3f87f5ee44c1562c043891930918174a1bb241f829397529859eafd8e3ad85", "width": 2172, "height": 724, "bytes": 546498, "transparentExterior": true },
+    { "original": "04_single-electric-rod.png", "preservedSource": "source/dividers/04_single-electric-rod.png", "stableId": "master/arc-ember/divider/single-rod/v1", "classification": "Single Electric Rod Divider", "lifecycle": "approved-production-source", "sha256": "f5308026129f7f44c00a42e8e0082ffe21beae05071adad8766c8f7271bc18d4", "width": 2172, "height": 724, "bytes": 488514, "transparentExterior": true },
+    { "original": "05-double-electic-rod.png", "preservedSource": "source/dividers/05-double-electic-rod.png", "stableId": "master/arc-ember/divider/paired-rods/v1", "classification": "Paired Rod Divider", "lifecycle": "approved-production-source", "sha256": "f1467a49addf1453fee647b3b48b2da199d65e97d00689ebd6780dd9fb0b7c73", "width": 2172, "height": 724, "bytes": 822991, "transparentExterior": true, "note": "Approved replacement authority under the existing stable Paired Rod ID; supplied spelling preserved." },
+    { "original": "01_container-section-frame_wide.png", "preservedSource": "source/frames-stages/02_surface-stage-frame.png", "stableId": "master/arc-ember/stage/surface/v1", "classification": "Expandable Surface / Stage", "lifecycle": "approved-production-source", "sha256": "8bc4dfa4d7c8a69bede0ad03dae8bd88e84301f695892b3acc143a28d1b64c29", "width": 1672, "height": 941, "bytes": 2122365, "transparentExterior": true, "physicalDarkCenter": true, "expansion": "protected-cap-inset" }
+  ],
+  "supersededPairedRodSource": {
+    "original": "a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png",
+    "preservedSource": "source/dividers/a6ebc5dd-c542-44ae-a78b-0d183f0c6794.png",
+    "sha256": "65c2f7be29ac2f5e504458fbc13c0dbd8c68b47c41e8bf66c891258558cc132d",
+    "status": "preserved-unregistered-predecessor"
+  }
 }

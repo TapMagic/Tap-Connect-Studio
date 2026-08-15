@@ -72,7 +72,7 @@ import type { GradientModel } from "@/lib/fusion/creative-studio/gradient";
 import { MaterialSurfaceSwatch } from "@/components/fusion/creative-studio/material-surface-layers";
 import { VisualPartsCabinetPanel } from "@/components/fusion/creative-studio/visual-parts-cabinet-panel";
 import { objectFamilyToVisualTarget } from "@/lib/fusion/creative-studio/visual-parts";
-import { signatureAssetInsert } from "@/lib/fusion/creative-studio/signature-assets";
+import { ARC_EMBER_STAGE_ID, signatureAssetInsert } from "@/lib/fusion/creative-studio/signature-assets";
 
 type Focus = "content" | "font" | "color" | "surface" | "media" | "crop" | "adjust" | "frame-appearance" | "action" | "effects" | "appearance" | "animate" | "position" | "layout" | "setup" | "fields" | "gallery" | "resize-policy" | "responsive" | "button-surface" | "button-content" | "button-action" | "button-styles" | "icon-appearance" | "divider-style" | "divider-thickness" | "divider-color" | "divider-appearance" | "map-action" | "text-box" | "border" | "corners" | "size" | "arrange" | "more" | "coupon-content" | "visual-parts" | null;
 type SectionFocus = "size" | "surface" | "layout" | "position" | "more" | null;
@@ -1334,7 +1334,21 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             onSaveBrandRecipe={(recipe) => model.onSaveVisualBrandRecipe?.(recipe)}
             onInsertSignatureAsset={(asset) => {
               const payload = signatureAssetInsert(asset);
-              model.onAddElement?.(payload.kind, section?.id ?? null, payload.initialProps);
+              const sectionNodes = section?.composition?.nodes || [];
+              const selectedStage = node.props.signatureAssetId === ARC_EMBER_STAGE_ID
+                ? node
+                : resolveContainerParent(sectionNodes, node.id);
+              const acceptsStageChild = Boolean(
+                selectedStage?.props.signatureAssetId === ARC_EMBER_STAGE_ID &&
+                ["action", "identity", "divider", "footer"].includes(asset.assetKind),
+              );
+              model.onAddElement?.(
+                payload.kind,
+                section?.id ?? null,
+                acceptsStageChild
+                  ? { ...payload.initialProps, containerId: selectedStage!.id }
+                  : payload.initialProps,
+              );
             }}
             onPatch={(next, label) => patchProps(next, label)}
             onPassthrough={(kind) => {

@@ -1,5 +1,6 @@
 "use client";
 
+import type { CSSProperties } from "react";
 import { buildButtonHref } from "@/lib/fusion/card/designer-elements";
 import { getSignatureAsset } from "./registry";
 import "./signature-master.css";
@@ -12,6 +13,19 @@ export function SignatureMasterBridge({ props, editMode = false }: { props: Reco
   if (!asset) return null;
   const state = props.disabled === true ? "disabled" : "default";
   const source = asset.liveShellAsset || asset.sourceAsset;
+  if (asset.assetKind === "stage" && asset.expansionContract) {
+    const style = { "--signature-stage-source": `url("${source}")` } as CSSProperties;
+    return (
+      <span
+        className="signature-master signature-master--expandable-stage"
+        data-signature-asset-id={asset.id}
+        data-signature-kind={asset.assetKind}
+        data-signature-state={state}
+        data-signature-expansion="protected-cap-inset"
+        style={style}
+      />
+    );
+  }
   const base = (
     <span className="signature-master" data-signature-asset-id={asset.id} data-signature-kind={asset.assetKind} data-signature-state={state}>
       {/* Immutable source artwork: containment only; never cropped, filtered, recolored, or reconstructed. */}
