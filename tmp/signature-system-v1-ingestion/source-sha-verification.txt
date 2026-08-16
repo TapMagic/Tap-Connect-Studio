@@ -1,0 +1,10 @@
+Signature System v1 source verification
+Manifest assets: 27
+Registry records including reference: 27
+SHA-256 matches: 27/27
+Dimension matches: 27/27
+Alpha retained: 27/27
+Source mutation: none
+
+Verified by:
+node --import tsx --test lib/fusion/creative-studio/__tests__/signature-system-v1-ingestion.test.ts

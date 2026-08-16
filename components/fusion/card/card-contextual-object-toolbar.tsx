@@ -72,7 +72,7 @@ import type { GradientModel } from "@/lib/fusion/creative-studio/gradient";
 import { MaterialSurfaceSwatch } from "@/components/fusion/creative-studio/material-surface-layers";
 import { VisualPartsCabinetPanel } from "@/components/fusion/creative-studio/visual-parts-cabinet-panel";
 import { objectFamilyToVisualTarget } from "@/lib/fusion/creative-studio/visual-parts";
-import { ARC_EMBER_STAGE_ID, signatureAssetInsert } from "@/lib/fusion/creative-studio/signature-assets";
+import { getSignatureAsset, signatureAssetInsert, signatureAssetInsertionFrame } from "@/lib/fusion/creative-studio/signature-assets";
 
 type Focus = "content" | "font" | "color" | "surface" | "media" | "crop" | "adjust" | "frame-appearance" | "action" | "effects" | "appearance" | "animate" | "position" | "layout" | "setup" | "fields" | "gallery" | "resize-policy" | "responsive" | "button-surface" | "button-content" | "button-action" | "button-styles" | "icon-appearance" | "divider-style" | "divider-thickness" | "divider-color" | "divider-appearance" | "map-action" | "text-box" | "border" | "corners" | "size" | "arrange" | "more" | "coupon-content" | "visual-parts" | null;
 type SectionFocus = "size" | "surface" | "layout" | "position" | "more" | null;
@@ -1335,12 +1335,14 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             onInsertSignatureAsset={(asset) => {
               const payload = signatureAssetInsert(asset);
               const sectionNodes = section?.composition?.nodes || [];
-              const selectedStage = node.props.signatureAssetId === ARC_EMBER_STAGE_ID
+              const selectedAsset = getSignatureAsset(node.props.signatureAssetId);
+              const selectedStage = selectedAsset?.nestingCapabilities.canContainChildren
                 ? node
                 : resolveContainerParent(sectionNodes, node.id);
+              const selectedStageAsset = getSignatureAsset(selectedStage?.props.signatureAssetId);
               const acceptsStageChild = Boolean(
-                selectedStage?.props.signatureAssetId === ARC_EMBER_STAGE_ID &&
-                ["action", "identity", "divider", "footer"].includes(asset.assetKind),
+                selectedStageAsset?.nestingCapabilities.canContainChildren &&
+                selectedStageAsset.nestingCapabilities.acceptedChildKinds.includes(asset.assetKind),
               );
               model.onAddElement?.(
                 payload.kind,
@@ -1348,6 +1350,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
                 acceptsStageChild
                   ? { ...payload.initialProps, containerId: selectedStage!.id }
                   : payload.initialProps,
+                signatureAssetInsertionFrame(asset, model.config.rootComposition?.pageHeightPx),
               );
             }}
             onPatch={(next, label) => patchProps(next, label)}

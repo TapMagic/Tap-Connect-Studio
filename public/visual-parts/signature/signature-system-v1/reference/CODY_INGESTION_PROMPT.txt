@@ -1,0 +1,369 @@
+# TAPCONNECT STUDIO — SIGNATURE SYSTEM v1 INGESTION
+## FILE / REGISTER / WIRE / PROVE — DO NOT REDESIGN
+
+Use this attached handoff pack as Product/Design authority.
+
+Your job is integration, filing, wiring, persistence, and proof.
+
+DO NOT:
+- redraw
+- reconstruct
+- simplify
+- recompress
+- crop premium edges/glow
+- globally hue-shift finished art
+- replace supplied artwork with CSS approximations
+- flatten independent actions into a single image
+- create a second Action, identity, icon, layout, or renderer authority
+
+PRIMARY LAW:
+PRESERVE DEPTH AND DEFINITION AT ALL COST.
+
+SOURCE LAW:
+Keep every supplied production PNG byte-for-byte intact and retain the manifest SHA-256 as provenance.
+Any thumbnail, mask, tint proxy, state derivative, or optimization must be a separate derived file linked back to the immutable source.
+
+==================================================
+1. PERMANENT CABINET TAXONOMY
+==================================================
+
+Keep existing:
+Visual Parts → Buttons
+for Foundation / functional controls such as Submit, Cancel, Next, form actions and mundane utility buttons.
+
+Signature families belong under:
+Visual Parts → Signature
+
+Register this family using:
+familyId: family_signature_system_v1
+working display name: Signature System v1
+
+Inside EVERY Signature family, use the permanent subgroups:
+
+Actions
+Identity
+Frames & Stages
+Dividers
+Micro Parts
+
+Do not create a family-specific alternate taxonomy.
+
+Micro Parts is now a permanent Signature subgroup. It exists for small supporting assets such as:
+- status chips
+- toggles
+- rating tokens
+- alert tokens
+- compact icon tokens
+- future small supporting visual parts
+
+==================================================
+2. INGEST ONLY ACCORDING TO MANIFEST READINESS
+==================================================
+
+Read `manifest.json`.
+
+Production assets may be registered as selectable inventory.
+
+Anything marked:
+visual-authority-needs-blank-shell
+or
+visual-authority-needs-state-implementation
+
+must NOT be silently promoted into editable production inventory.
+
+Specifically:
+
+01 Primary Action
+02 Secondary Action
+03 Rounded Rectangle Action
+05 Plaque / Panel Action
+
+contain baked approval copy / identity.
+
+Preserve them as visual authority.
+Do not erase their text.
+Do not reverse-engineer them.
+Do not rebuild them in CSS.
+Do not register them as editable pristine masters yet.
+
+Return them as explicit product blockers requiring matching blank pristine shells.
+
+#24 Toggle is also approval authority because its knob and shell are one composite bitmap.
+Do not fake a moving knob by reconstructing the premium visual.
+Either:
+- use separately approved state masters if available later, or
+- propose a non-destructive component split for Product Owner approval before implementing state animation.
+
+==================================================
+3. PRODUCTION FILING
+==================================================
+
+ACTIONS:
+- Circle Icon Action
+- Badge / Shield Action
+- Portrait Anchor / Extended Team Action
+- future approved blank shells for Primary, Secondary, Rounded Rectangle and Plaque/Panel
+
+IDENTITY:
+- Standard Medallion
+- Brand / Logo Medallion
+- Round Photo / Team Anchor
+
+FRAMES & STAGES:
+- Dark Plaque Stage
+- Recessed Well Stage
+- Smoked Glass Stage
+- Electric Rift Field Stage
+- Copper Panel Stage
+- Minimal Soft Field Stage
+
+DIVIDERS:
+- Botanical / Elegant
+- Geometric / Clean
+- Industrial / Masculine
+- Electric / Energy
+- Minimal / Quiet
+- Heritage / Classic
+
+MICRO PARTS:
+- Small Status Chip
+- Rating / Star Utility
+- Small Badge / Alert Token
+- Small Icon Row Token
+- Toggle only after its runtime-state implementation is separately approved
+
+==================================================
+4. LIVE SOCKET / BEHAVIOR CONTRACT
+==================================================
+
+Use existing Studio authorities.
+
+Actions may support compatible live sockets such as:
+identity
+eyebrow
+title
+description
+cue
+accessibleLabel
+Action / destination
+
+Identity masters support:
+logo
+icon
+monogram
+photo
+portrait
+future tApIt-generated identity art
+
+Frames & Stages:
+- support compatible live child/content placement
+- remain independent pristine assets
+- do not bake Host content into them
+
+Dividers:
+- place / move / proportional scale
+- no procedural redraw
+- preserve transparent surroundings
+
+Micro Parts:
+- status/alert text remains live
+- rating uses repeated independent star tokens
+- compact icon rows use repeated independent icon tokens
+- semantic state colors remain live where safely supported
+
+Unsupported live content must be hidden but retained, not deleted.
+
+==================================================
+5. COLOR / ENERGY CONTROLS
+==================================================
+
+Product intent is that this family can adapt to Host colors and that energy/electric effects can be turned up/down.
+
+DO NOT achieve this by degrading the source.
+
+For every asset declare safe capabilities:
+
+tintMode:
+- none
+- approved-mask
+- approved-palette
+- layered-safe
+
+energyMode:
+- fixed
+- approved-mask
+- approved-state-variants
+
+Default to `none` / `fixed` unless a fidelity-preserving implementation is proven.
+
+For #14 Electric Rift Field Stage and #20 Electric / Energy Divider:
+- preserve the approved source as default
+- preserve hot-core / mid-emission / outer-aura hierarchy
+- do not global hue-shift
+- do not rebuild energy in CSS
+- if safe masks/variants cannot be derived without visual loss, report the control as pending rather than faking it
+
+==================================================
+6. STACKING / LAYOUT
+==================================================
+
+Support existing reusable Signature layout recipes.
+
+Independent items stay independent.
+
+Examples:
+SINGLE
+STACK-2
+STACK-3
+GRID-2
+GROUPED-COMPACT
+ICON-ROW
+
+Never flatten independent actions or micro tokens into a single bitmap.
+
+The Small Icon Row Token is ONE token.
+Studio repeats independent copies for 3–6 item rows.
+
+The Rating Star is ONE token.
+Studio repeats it for 1–5 star rows and applies approved state treatment.
+
+==================================================
+7. MANUAL BUILD PATH IS REQUIRED
+==================================================
+
+Signature System v1 must be usable WITHOUT tApIt.
+
+A manual user must be able to:
+- open Visual Parts
+- choose Signature
+- choose Signature System v1
+- choose subgroup
+- place production master
+- populate live sockets where supported
+- assign Action where applicable
+- move and proportionally scale
+- group/stack where supported
+- save/reload
+- Preview/Public
+- publish through normal Studio flow
+
+tApIt may later automate these same operations.
+
+Do NOT create:
+- tApIt-only asset types
+- tApIt-only layout
+- tApIt-only renderer
+- hidden AI-specific representation
+
+Manual and tApIt paths must converge on the same canonical stored objects.
+
+==================================================
+8. PHONE-FIRST / RESPONSIVE
+==================================================
+
+Proportional scaling only unless explicitly certified otherwise.
+
+Never:
+- distort aspect ratio
+- clip glow
+- crop ornament
+- squeeze width independently
+- force live content outside safe zones
+
+If an asset is incompatible with a role or phone width, report it.
+Do not distort it.
+
+==================================================
+9. PRODUCT OWNER PROOF
+==================================================
+
+Create one local review Card.
+
+Prove representative production inventory from every subgroup.
+
+ACTIONS:
+- Circle Icon
+- Badge / Shield
+- Portrait / Team Action
+
+IDENTITY:
+- Standard Medallion
+- Brand / Logo Medallion
+- Round Photo / Team Anchor with real live media
+
+FRAMES & STAGES:
+- all six, with representative live content placed appropriately
+
+DIVIDERS:
+- all six over at least one dark background and one light/photo background to prove transparency
+
+MICRO PARTS:
+- Status Chip with live text
+- five repeated Rating Stars
+- Alert Token with live text/icon
+- 3–6 repeated Small Icon Row Tokens
+- Toggle shown as visual authority only unless approved runtime state implementation exists
+
+Prove:
+- Edit
+- Save
+- Reload
+- phone width
+- Preview/Public
+
+Also prove existing Arc Ember and Top Shelf regression remains green.
+
+==================================================
+10. EVIDENCE
+==================================================
+
+Use a local evidence folder such as:
+
+tmp/signature-system-v1-ingestion/
+
+Include:
+- drawer map
+- asset map
+- socket map
+- readiness/blocker map
+- screenshots for each subgroup
+- phone Preview
+- source SHA verification report
+
+==================================================
+11. STOP LINE
+==================================================
+
+Do NOT:
+- push
+- merge
+- deploy
+- certify
+- modify main
+- redesign blocked assets
+- start another Signature family
+
+Return:
+
+1. branch
+2. starting SHA
+3. final local commit
+4. files changed
+5. production asset map
+6. visual-authority/blocker map
+7. drawer map
+8. socket map
+9. color/energy capability map
+10. layout decisions
+11. tests
+12. local Studio URL
+13. review Card URL
+14. Preview/Public URL
+15. evidence directory
+16. blockers / fidelity exceptions
+
+Finish only with:
+
+SIGNATURE SYSTEM v1 READY FOR PRODUCT OWNER REVIEW
+
+Then STOP.

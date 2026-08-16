@@ -38,8 +38,8 @@ type InsertObjectInput = {
   kind: CardElementKind;
   initialProps?: Record<string, unknown>;
   dropPoint?: { x: number; y: number };
-  /** Explicit geometry for structured Action Group inserts. */
-  frame?: { x: number; y: number; width: number; height: number };
+  /** Explicit size and optional position for structured or proportional inserts. */
+  frame?: { x?: number; y?: number; width: number; height: number };
   layerPosition?: number;
 };
 
@@ -196,9 +196,12 @@ export function insertObject(input: InsertObjectInput): ObjectMutationResult {
   if (input.kind === "button" && typeof input.initialProps?.icon === "string") {
     props = updateButtonContentNode(props, "icon", { props: { icon: input.initialProps.icon } }, node.id);
   }
-  const placement = input.frame
+  const sizedNode = input.frame
+    ? { ...node, width: input.frame.width, height: input.frame.height }
+    : node;
+  const placement = input.frame && typeof input.frame.x === "number" && typeof input.frame.y === "number"
     ? { x: input.frame.x, y: input.frame.y }
-    : findAvailableObjectPlacement(node, existing, input.dropPoint);
+    : findAvailableObjectPlacement(sizedNode, existing, input.dropPoint);
   const maxZ = existing.reduce((maximum, candidate) => Math.max(maximum, candidate.zIndex), 0);
   const vp = props.visualParts && typeof props.visualParts === "object" ? (props.visualParts as Record<string, unknown>) : null;
   const bottomStopCompact =

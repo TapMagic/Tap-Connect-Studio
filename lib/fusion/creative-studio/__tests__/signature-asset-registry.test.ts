@@ -88,13 +88,13 @@ test("Signature sockets reuse canonical element kinds and keep actions independe
   assert.equal(insert.initialProps.signatureAssetId,stack.id);
   assert.equal(insert.initialProps.componentKind,undefined);
   assert.equal(stack.socketContract.action,true);
-  assert.deepEqual(SIGNATURE_LAYOUT_RECIPES.map((recipe)=>recipe.id),["SINGLE","STACK-2","STACK-3","GRID-2","GROUPED-COMPACT"]);
+  assert.deepEqual(SIGNATURE_LAYOUT_RECIPES.map((recipe)=>recipe.id),["SINGLE","STACK-2","STACK-3","GRID-2","GROUPED-COMPACT","ICON-ROW"]);
   assert.equal(SIGNATURE_ASSETS.some((item)=>item.id.includes("double-stack")),false);
 });
 
 test("only frames and stages declare child containment",()=>{
   const containers=SIGNATURE_ASSETS.filter((item)=>item.nestingCapabilities.canContainChildren);
-  assert.deepEqual(containers.map((item)=>item.assetKind).sort(),["frame","stage"]);
+  assert.deepEqual([...new Set(containers.map((item)=>item.assetKind))].sort(),["frame","stage"]);
   assert.ok(SIGNATURE_ASSETS.filter((item)=>["action","divider","footer"].includes(item.assetKind)).every((item)=>!item.nestingCapabilities.canContainChildren));
 });
 
@@ -109,7 +109,7 @@ test("identity inserts retain the canonical image src required by Preview/Public
 test("customer drawer is locked to Buttons and Signature family subgroups",()=>{
   const source=readFileSync(path.join(root,"components/fusion/creative-studio/visual-parts-cabinet-panel.tsx"),"utf8");
   assert.match(source,/\? "Buttons" : "Signature"/);
-  for (const label of ["Actions","Identity","Dividers","Frames & Stages","Footer"]) assert.ok(source.includes(`label:\"${label}\"`) || readFileSync(path.join(root,"lib/fusion/creative-studio/signature-assets/registry.ts"),"utf8").includes(`label:\"${label}\"`));
+  for (const label of ["Actions","Identity","Frames & Stages","Dividers","Micro Parts"]) assert.ok(source.includes(`label:\"${label}\"`) || readFileSync(path.join(root,"lib/fusion/creative-studio/signature-assets/registry.ts"),"utf8").includes(`label:\"${label}\"`));
 });
 
 test("legacy pristine master remains unchanged",()=>{

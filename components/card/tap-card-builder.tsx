@@ -1207,12 +1207,17 @@ export function TapCardBuilder({
     setSelectedCompositionNodeIds([result.containerId]);
   }
 
-  function addComposerElement(kind: CardElementKind, targetSectionId: string | null, initialProps?: Record<string, unknown>) {
+  function addComposerElement(
+    kind: CardElementKind,
+    targetSectionId: string | null,
+    initialProps?: Record<string, unknown>,
+    frame?: { x?: number; y?: number; width: number; height: number }
+  ) {
     const location = kind === "map" ? (locations.find((item) => item.isDefault) || locations[0]) : null;
     const props = location
       ? { ...initialProps, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" }
       : initialProps;
-    const result = insertObject({ config, parentId: targetSectionId, kind, initialProps: props });
+    const result = insertObject({ config, parentId: targetSectionId, kind, initialProps: props, frame });
     const addedId = result.objectIds[0];
     setConfigHistory(result.config, { label: `Added ${kind} to ${targetSectionId ? "Section" : "Card root"}` });
     setDirty(true);

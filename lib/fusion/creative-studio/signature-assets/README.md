@@ -1,8 +1,10 @@
 # Signature asset authority
 
-This family-neutral registry owns premium authored visual families. Customer discovery is permanently organized as `Visual Parts → Signature → Family → Actions / Identity / Dividers / Frames & Stages / Footer`.
+This family-neutral registry owns premium authored visual families. Customer discovery is permanently organized as `Visual Parts → Signature → Family → Actions / Identity / Frames & Stages / Dividers / Micro Parts`. Micro Parts is a permanent subgroup even when a family leaves it empty.
 
 Source masters in `public/visual-parts/signature/<family>/source/` are immutable. Runtime rendering may proportionally contain them and layer only declared live sockets. Reference/alternate files are segregated and are never returned by the customer catalog.
+
+Signature System v1 is registered as `family_signature_system_v1`. Its 27 package PNGs are retained byte-for-byte with manifest SHA-256 provenance. Twenty-two production records are selectable; four content-bearing Action authorities and the composite Toggle authority remain reference-only until the blocked manufacturing inputs are approved. Its Electric Rift Stage and Electric / Energy Divider expose `tintMode: none` and `energyMode: fixed` until fidelity-safe derived controls exist.
 
 Arc Ember's source approval renders for Utility, Team/About, Compact, and Stack Row contain sample copy. Their byte-identical records remain the catalog/provenance authority. The separately supplied blank pristine shell is used as `liveShellAsset` for editable customer output so live text does not collide with baked approval copy. No shell artwork is reconstructed.
 

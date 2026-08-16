@@ -1,0 +1,457 @@
+{
+  "package": "TapConnect Signature System v1 \u2014 Cody Handoff",
+  "familyId": "family_signature_system_v1",
+  "workingDisplayName": "Signature System v1",
+  "assetCount": 27,
+  "sourcePolicy": "All PNG source bytes are copied unchanged. No resizing, recompression, masking, or artwork edits were performed during packaging.",
+  "drawerTaxonomy": [
+    "Visual Parts \u2192 Buttons (Foundation / functional controls only)",
+    "Visual Parts \u2192 Signature \u2192 Signature System v1 \u2192 Actions",
+    "Visual Parts \u2192 Signature \u2192 Signature System v1 \u2192 Identity",
+    "Visual Parts \u2192 Signature \u2192 Signature System v1 \u2192 Frames & Stages",
+    "Visual Parts \u2192 Signature \u2192 Signature System v1 \u2192 Dividers",
+    "Visual Parts \u2192 Signature \u2192 Signature System v1 \u2192 Micro Parts"
+  ],
+  "productRules": {
+    "manualAndTapIt": "Manual Studio assembly and tApIt assembly must target the same canonical assets, sockets, actions, layout recipes, persistence, and render path.",
+    "pristineMaster": "Finished source masters are immutable visual authority. Do not redraw/reconstruct/simplify them.",
+    "color": "Color/finish controls may be exposed only where a safe, fidelity-preserving mask/variant exists.",
+    "energy": "Energy/glow intensity may be exposed only through approved non-destructive masks/state variants. Never fake it with global hue shifts or lossy CSS reconstruction.",
+    "stacking": "Stacks/groups are layout recipes of independent live objects; do not bake multiple actions into one bitmap.",
+    "microParts": "Micro Parts is a permanent Signature subgroup for status chips, toggles, rating tokens, alert tokens, compact icon tokens, and future small supporting objects."
+  },
+  "assets": [
+    {
+      "number": 1,
+      "sourceFilename": "01-Primary Action Button-pill-capsule.png",
+      "packagedPath": "01_actions/visual-authority/01_primary-action-pill-capsule.png",
+      "sha256": "06bf38792e2b4f9df000dfe2bfd65bf64f2d1941679e1bbf860e28e4e992559f",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "visual-authority-needs-blank-shell",
+      "notes": "Approved visual authority, but TAKE ACTION / LET'S CONNECT and the A identity are baked into the source. Do not register as an editable pristine action until a blank shell is supplied."
+    },
+    {
+      "number": 2,
+      "sourceFilename": "02-Secondary Action Button-pill-capsule.png",
+      "packagedPath": "01_actions/visual-authority/02_secondary-action-pill-capsule.png",
+      "sha256": "d858944e32a8a40133e5de63e8cde2ffd2c3a255e71af769b7cf720db3900ec0",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "visual-authority-needs-blank-shell",
+      "notes": "Approved visual authority, but BOOK NOW and the A identity are baked into the source. Do not register as an editable pristine action until a blank shell is supplied."
+    },
+    {
+      "number": 3,
+      "sourceFilename": "03-Rounded Rectangle Action.png",
+      "packagedPath": "01_actions/visual-authority/03_rounded-rectangle-action.png",
+      "sha256": "d9c5f1744e236aeba51b2a98aebd4da2b5e0d53b0354974d30588c500a24c973",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "visual-authority-needs-blank-shell",
+      "notes": "Approved visual authority, but View Menu, supporting copy, fork/knife identity and cue are baked into the source. Do not register as an editable pristine action until a blank shell is supplied."
+    },
+    {
+      "number": 4,
+      "sourceFilename": "04-circle-icon-action.png",
+      "packagedPath": "01_actions/production/04_circle-icon-action.png",
+      "sha256": "aa1fe68e54d94318e58bbccbdbb61233ff5bc374774b592608c9c3fd9794fe49",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Standalone circular action shell with a neutral live center socket."
+    },
+    {
+      "number": 5,
+      "sourceFilename": "05-Plaque : Panel Action.png",
+      "packagedPath": "01_actions/visual-authority/05_plaque-panel-action.png",
+      "sha256": "bd1fdf1091e5ad27922038d0ebf0b1e43c93775493e649d70f39a95554feb72e",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "visual-authority-needs-blank-shell",
+      "notes": "Approved visual authority, but Learn More, supporting copy, A identity and cue are baked into the source. Do not register as an editable pristine action until a blank shell is supplied."
+    },
+    {
+      "number": 6,
+      "sourceFilename": "06-Badge : Shield Action.png",
+      "packagedPath": "01_actions/production/06_badge-shield-action.png",
+      "sha256": "5698875ae3c17e1aae41ed63e69294b8ba2d166d1abc8424c947569fda831eb8",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "production-ready",
+      "notes": "Blank shield/badge live identity socket and blank action field; cue artwork is part of the approved shell."
+    },
+    {
+      "number": 7,
+      "sourceFilename": "07-Icon Station : Standard Medallion.png",
+      "packagedPath": "02_identity/production/07_standard-medallion.png",
+      "sha256": "838bc61447da6c294b5e8a16de3b7ce3af9ae0c3e573bb8ef0f4012065bfc9e9",
+      "width": 1536,
+      "height": 1024,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "production-ready",
+      "notes": "General-purpose identity/icon housing. Center remains live."
+    },
+    {
+      "number": 8,
+      "sourceFilename": "08-Brand : Logo Medallion.png",
+      "packagedPath": "02_identity/production/08_brand-logo-medallion.png",
+      "sha256": "bc8ceebb62156f327af19967fa1c05b301f924c7e5dc9d0dd7a36605e653f923",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Brand-forward identity housing. Center remains live."
+    },
+    {
+      "number": 9,
+      "sourceFilename": "09-Round Photo : Team Anchor.png",
+      "packagedPath": "02_identity/production/09_round-photo-team-anchor.png",
+      "sha256": "53ec9ae82734f8c82ee4655dfad775f337b73066fda4ccbfc9e1987204d78d65",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Portrait/team anchor with large live photo socket."
+    },
+    {
+      "number": 10,
+      "sourceFilename": "10-Portrait Anchor : Extended Team Action.png",
+      "packagedPath": "01_actions/production/10_portrait-anchor-extended-team-action.png",
+      "sha256": "4bc9d8d8e57270b18ad828590eb34e584c512588eb6a8f0c7cebe401839e2d39",
+      "width": 1942,
+      "height": 809,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "People-first action with live portrait opening and blank action field; cue artwork is part of the approved shell."
+    },
+    {
+      "number": 11,
+      "sourceFilename": "11-Dark Plaque Stage.png",
+      "packagedPath": "03_frames-stages/production/11_dark-plaque-stage.png",
+      "sha256": "7e2756d98de5f08ed096117c51e6b2f77366d6049b546198fbf91c319ff5bfe0",
+      "width": 1672,
+      "height": 941,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Low-profile opaque dark presentation stage."
+    },
+    {
+      "number": 12,
+      "sourceFilename": "12-Recessed Well Stage.png",
+      "packagedPath": "03_frames-stages/production/12_recessed-well-stage.png",
+      "sha256": "f1ef377fcceafcf3ada012455720fb82eb9d4fa8143a5981816af6976f085683",
+      "width": 1881,
+      "height": 836,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Recessed presentation well; content should sit inside the declared live region."
+    },
+    {
+      "number": 13,
+      "sourceFilename": "13-Smoked Glass Stage.png",
+      "packagedPath": "03_frames-stages/production/13_smoked-glass-stage.png",
+      "sha256": "02db50e8daafd40674f8fbf312202ab0047c8a72306cc086193cd4bc487c3a4d",
+      "width": 2048,
+      "height": 768,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "production-ready",
+      "notes": "Thin smoked-glass stage; content should sit on/above it."
+    },
+    {
+      "number": 14,
+      "sourceFilename": "14-Electric Rift Field Stage.png",
+      "packagedPath": "03_frames-stages/production/14_electric-rift-field-stage.png",
+      "sha256": "acf9dd13d1856518d1b58ffda4624a8c641af3310452e31628a994ca28bdb136",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        253
+      ],
+      "readiness": "production-ready-with-derived-control-needed",
+      "notes": "Default energy visual is approved. User-adjustable energy/color must use non-destructive derived masks/variants; do not globally hue-shift or reconstruct the source."
+    },
+    {
+      "number": 15,
+      "sourceFilename": "15-Copper Panel Stage(1).png",
+      "packagedPath": "03_frames-stages/production/15_copper-panel-stage.png",
+      "sha256": "5d8a8d419bc3bfc55bba55a37b38756f1b92e55f602d71024c1bf25b140c3b6c",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Copper-dominant presentation stage."
+    },
+    {
+      "number": 16,
+      "sourceFilename": "16-Minimal Soft Field Stage.png",
+      "packagedPath": "03_frames-stages/production/16_minimal-soft-field-stage.png",
+      "sha256": "bf11f52312260b61e0d35ca67030633f65c73914cf92db7d7967a8c46d8c47f4",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Quietest stage; premium with energy/glow off."
+    },
+    {
+      "number": 17,
+      "sourceFilename": "17-Botanical : Elegant Divider.png",
+      "packagedPath": "04_dividers/production/17_botanical-elegant-divider.png",
+      "sha256": "4b4ee2753bf85e27338f3fa761103a1125e066432252f74815135e14309ef115",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "production-ready",
+      "notes": "Transparent botanical/elegant divider."
+    },
+    {
+      "number": 18,
+      "sourceFilename": "18Geometric : Clean Divider.png",
+      "packagedPath": "04_dividers/production/18_geometric-clean-divider.png",
+      "sha256": "43e3de91c5030cd42999c6395c650810ae17473bf78c4a27878b6643e4e5ab2d",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "production-ready",
+      "notes": "Transparent geometric/clean divider."
+    },
+    {
+      "number": 19,
+      "sourceFilename": "19-Industrial : Masculine Divider(1).png",
+      "packagedPath": "04_dividers/production/19_industrial-masculine-divider.png",
+      "sha256": "d375c0c751a49c95f1e55e75be5aa0abeffa0273e49b59b08c1d6d2fefb809ab",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Transparent industrial/masculine divider."
+    },
+    {
+      "number": 20,
+      "sourceFilename": "20-Electric : Energy Divider.png",
+      "packagedPath": "04_dividers/production/20_electric-energy-divider.png",
+      "sha256": "0870c6073be55b0f6b81122fb0713d787923ef02c07f4fa329d6ffff08553ad5",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready-with-derived-control-needed",
+      "notes": "Default energy visual is approved. User-adjustable energy/color must use non-destructive derived masks/variants; preserve core/mid/aura hierarchy."
+    },
+    {
+      "number": 21,
+      "sourceFilename": "21-Minimal : Quiet Divider(1).png",
+      "packagedPath": "04_dividers/production/21_minimal-quiet-divider.png",
+      "sha256": "6838a819aa46baa399bcc9fd514c74eb332827fb9c8763083d9bdd95454c576d",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Transparent minimal/quiet divider."
+    },
+    {
+      "number": 22,
+      "sourceFilename": "22-Heritage : Classic Divider.png",
+      "packagedPath": "04_dividers/production/22_heritage-classic-divider.png",
+      "sha256": "d22b26a1feb66e5b869817d81eefb42b3ff1489ab160f69abc1a7402525c6498",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "Transparent heritage/classic divider."
+    },
+    {
+      "number": 23,
+      "sourceFilename": "23-Small Status Chip.png",
+      "packagedPath": "05_micro-parts/production/23_small-status-chip.png",
+      "sha256": "cede366d5495412399cca4b3feb57a3bc46238439af8916e367cdf4481c7fd4a",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "production-ready",
+      "notes": "Blank live status field; semantic color/text remain live."
+    },
+    {
+      "number": 24,
+      "sourceFilename": "24-Small Toggle : On-Off(1).png",
+      "packagedPath": "05_micro-parts/visual-authority/24_small-toggle-on-off.png",
+      "sha256": "e4b01b4b0270fb269491259ea5dee68c3e1247556384a7d7f339d4f95fac3043",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "visual-authority-needs-state-implementation",
+      "notes": "Approved toggle look, but knob and shell are one composite bitmap. Runtime knob movement requires separately approved state masters or a certified non-destructive component split; do not reconstruct casually."
+    },
+    {
+      "number": 25,
+      "sourceFilename": "25-Rating : Star Utility.png",
+      "packagedPath": "05_micro-parts/production/25_rating-star-utility.png",
+      "sha256": "f152dd4e89226aad96904f42ccf67965797ae0c3f0b73a2a4996bc909620f082",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready-with-state-treatment",
+      "notes": "Single reusable star token. Repeat 1-5 times; active/inactive/partial treatment must preserve the pristine shell."
+    },
+    {
+      "number": 26,
+      "sourceFilename": "26-Small Badge : Alert Token.png",
+      "packagedPath": "05_micro-parts/production/26_small-badge-alert-token.png",
+      "sha256": "6546de40153eff2548c02b7442c0894e329b6950d2182fa0c4dc320434a6da5e",
+      "width": 2048,
+      "height": 682,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        254
+      ],
+      "readiness": "production-ready",
+      "notes": "Blank live alert/status field; semantic state remains live."
+    },
+    {
+      "number": 27,
+      "sourceFilename": "27-Small Icon Row Token Set.png",
+      "packagedPath": "05_micro-parts/production/27_small-icon-row-token.png",
+      "sha256": "c79902866821ba05de9766d68bb16df93000c1fc011b9baee70c9ec03d3ccefd",
+      "width": 1289,
+      "height": 1220,
+      "mode": "RGBA",
+      "hasAlpha": true,
+      "alphaExtrema": [
+        0,
+        255
+      ],
+      "readiness": "production-ready",
+      "notes": "One reusable small icon token, not a baked row. Repeat independent tokens for 3-6 item rows."
+    }
+  ]
+}

@@ -1,6 +1,14 @@
-export type SignatureAssetKind = "action" | "identity" | "divider" | "frame" | "stage" | "footer";
+export type SignatureAssetKind = "action" | "identity" | "divider" | "frame" | "stage" | "footer" | "micro-part";
 export type SignatureLifecycle = "production" | "candidate" | "reference";
-export type SignatureSubgroup = "actions" | "identity" | "dividers" | "frames-stages" | "footer";
+export type SignatureSubgroup = "actions" | "identity" | "frames-stages" | "dividers" | "micro-parts";
+export type SignatureSourceReadiness =
+  | "production-ready"
+  | "production-ready-with-derived-control-needed"
+  | "production-ready-with-state-treatment"
+  | "visual-authority-needs-blank-shell"
+  | "visual-authority-needs-state-implementation";
+export type SignatureTintMode = "none" | "approved-mask" | "approved-palette" | "layered-safe";
+export type SignatureEnergyMode = "fixed" | "approved-mask" | "approved-state-variants";
 
 export type SignatureSafeInsets = { top: number; right: number; bottom: number; left: number };
 
@@ -27,6 +35,9 @@ export type SignatureSocketContract = {
   action?: boolean;
   dividerCenter?: boolean;
   childContent?: boolean;
+  statusText?: boolean;
+  icon?: boolean;
+  rating?: boolean;
 };
 
 /** Family-neutral catalog contract used by every premium authored visual family. */
@@ -50,6 +61,12 @@ export type SignatureAssetDefinition = {
   responsiveContract: { proportional: true; phoneSafe: boolean; minRenderedWidthPx?: number };
   stateContract: readonly ("default" | "hover" | "pressed" | "disabled")[];
   tintCapabilities: readonly string[];
+  tintMode: SignatureTintMode;
+  energyMode: SignatureEnergyMode;
+  sourceReadiness: SignatureSourceReadiness;
+  provenanceManifest?: string;
+  sourceNumber?: number;
+  blockerNote?: string;
   nestingCapabilities: { canContainChildren: boolean; acceptedChildKinds: readonly SignatureAssetKind[] };
   lifecycle: SignatureLifecycle;
   expressionTier: "signature";
@@ -71,7 +88,7 @@ export type SignatureFamilyDefinition = {
 };
 
 export type SignatureLayoutRecipe = {
-  id: "SINGLE" | "STACK-2" | "STACK-3" | "GRID-2" | "GROUPED-COMPACT";
+  id: "SINGLE" | "STACK-2" | "STACK-3" | "GRID-2" | "GROUPED-COMPACT" | "ICON-ROW";
   label: string;
   minItems: number;
   maxItems: number;

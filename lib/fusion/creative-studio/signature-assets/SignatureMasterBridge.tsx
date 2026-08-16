@@ -19,28 +19,34 @@ export function SignatureMasterBridge({ props, editMode = false }: { props: Reco
       <span
         className="signature-master signature-master--expandable-stage"
         data-signature-asset-id={asset.id}
+        data-signature-family={asset.familyId}
         data-signature-kind={asset.assetKind}
+        data-signature-role={asset.role}
         data-signature-state={state}
+        data-signature-tint-mode={asset.tintMode}
+        data-signature-energy-mode={asset.energyMode}
         data-signature-expansion="protected-cap-inset"
         style={style}
       />
     );
   }
   const base = (
-    <span className="signature-master" data-signature-asset-id={asset.id} data-signature-kind={asset.assetKind} data-signature-state={state}>
+    <span className="signature-master" data-signature-asset-id={asset.id} data-signature-family={asset.familyId} data-signature-kind={asset.assetKind} data-signature-role={asset.role} data-signature-state={state} data-signature-tint-mode={asset.tintMode} data-signature-energy-mode={asset.energyMode}>
       {/* Immutable source artwork: containment only; never cropped, filtered, recolored, or reconstructed. */}
       <img className="signature-master__asset" src={source} width={asset.width} height={asset.height} alt="" aria-hidden draggable={false} />
       {asset.assetKind === "action" ? <>
-        <span className="signature-master__identity">{text(props.iconMediaUrl, text(props.logoUrl)) ? <img src={text(props.iconMediaUrl, text(props.logoUrl))} alt="" aria-hidden draggable={false} /> : null}</span>
-        <span className="signature-master__copy">
-          <span className="signature-master__eyebrow">{text(props.eyebrow,"SIGNATURE ACTION")}</span>
-          <span className="signature-master__title">{text(props.label,"Action")}</span>
-          {props.showDescription !== false && text(props.description) ? <span className="signature-master__description">{text(props.description)}</span> : null}
-        </span>
-        <span className="signature-master__cue" aria-hidden>{cues[text(props.vpArcEmberActionCue,"arrow")] ?? "→"}</span>
+        {asset.socketContract.identity ? <span className="signature-master__identity">{text(props.iconMediaUrl, text(props.logoUrl, text(props.imageUrl))) ? <img src={text(props.iconMediaUrl, text(props.logoUrl, text(props.imageUrl)))} alt="" aria-hidden draggable={false} /> : null}</span> : null}
+        {asset.socketContract.eyebrow || asset.socketContract.title || asset.socketContract.description ? <span className="signature-master__copy">
+          {asset.socketContract.eyebrow ? <span className="signature-master__eyebrow">{text(props.eyebrow,"SIGNATURE ACTION")}</span> : null}
+          {asset.socketContract.title ? <span className="signature-master__title">{text(props.label,"Action")}</span> : null}
+          {asset.socketContract.description && props.showDescription !== false && text(props.description) ? <span className="signature-master__description">{text(props.description)}</span> : null}
+        </span> : null}
+        {asset.socketContract.cue ? <span className="signature-master__cue" aria-hidden>{cues[text(props.vpArcEmberActionCue,"arrow")] ?? "→"}</span> : null}
       </> : null}
       {asset.assetKind === "identity" && text(props.imageUrl, text(props.iconMediaUrl)) ? <span className="signature-master__identity-only"><img src={text(props.imageUrl, text(props.iconMediaUrl))} alt="" aria-hidden draggable={false} /></span> : null}
       {asset.assetKind === "divider" && asset.socketContract.dividerCenter && text(props.dividerCenterMediaUrl) ? <span className="signature-master__divider-center"><img src={text(props.dividerCenterMediaUrl)} alt="" aria-hidden draggable={false} /></span> : null}
+      {asset.assetKind === "micro-part" && asset.socketContract.statusText ? <span className="signature-master__micro-copy" style={{ color:text(props.statusColor,"#fff3e5") }}>{text(props.statusText,text(props.label,asset.label))}</span> : null}
+      {asset.assetKind === "micro-part" && asset.socketContract.icon && text(props.iconMediaUrl,text(props.imageUrl)) ? <span className="signature-master__micro-icon"><img src={text(props.iconMediaUrl,text(props.imageUrl))} alt="" aria-hidden draggable={false} /></span> : null}
     </span>
   );
   if (asset.assetKind !== "action") return base;
