@@ -127,7 +127,8 @@ export function LiveDeviceQrPanel({
           return;
         }
         if (data.token) setToken(data.token);
-        setPreviewUrl(data.qrUrl || data.url || null);
+        const resolvedPreviewUrl = data.qrUrl || data.url || null;
+        setPreviewUrl(resolvedPreviewUrl);
         const kind = data.candidateKind || (data.reachableForPhone ? "lan_candidate" : "invalid");
         setCandidateKind(kind);
         // Session creation never physically verifies a phone open.
@@ -138,8 +139,8 @@ export function LiveDeviceQrPanel({
         setSessionRevision(data.revision ?? revision);
         setUpdatedAt(new Date().toISOString());
         if (data.expiresAt) setExpiresAt(data.expiresAt);
-        if (data.url && data.reachableForPhone) {
-          const png = await QRCode.toDataURL(data.url, {
+        if (resolvedPreviewUrl && data.reachableForPhone) {
+          const png = await QRCode.toDataURL(resolvedPreviewUrl, {
             margin: 1,
             width: 240,
             errorCorrectionLevel: "M",
@@ -324,9 +325,15 @@ export function LiveDeviceQrPanel({
 
       {previewUrl ? (
         <div className="space-y-2">
-          <p className="break-all text-[11px] text-white/55" data-testid="preview-url-text">
+          <a
+            href={previewUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="block break-all text-[11px] text-lime-200 underline decoration-lime-300/40 underline-offset-4"
+            data-testid="preview-url-text"
+          >
             {previewUrl}
-          </p>
+          </a>
           <div className="flex flex-wrap gap-2">
             <Button
               type="button"

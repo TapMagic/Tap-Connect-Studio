@@ -193,13 +193,22 @@ export async function PATCH(req: Request) {
     requestOrigin,
     preferLanPort: portFromOrigin(requestOrigin),
   });
+  const path = `/preview/live/${body.token}`;
+  const { url } = buildPreviewAbsoluteUrl(path, assessment);
+  const phoneSafeUrl =
+    assessment.reachableForPhone && !/localhost|127\.0\.0\.1/.test(url) ? url : null;
   return NextResponse.json({
     ok: true,
+    token: body.token,
+    path,
+    url: phoneSafeUrl || url,
+    qrUrl: phoneSafeUrl,
     revision: result.revision,
     mode: result.mode,
-    reachableForPhone: assessment.reachableForPhone,
+    reachableForPhone: Boolean(phoneSafeUrl),
     candidateKind: assessment.candidateKind,
     physicallyVerified: false,
+    isLocalhost: assessment.isLocalhost || !phoneSafeUrl,
     guidance: assessment.guidance,
   });
 }
