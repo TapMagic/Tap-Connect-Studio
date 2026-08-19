@@ -1,5 +1,7 @@
 import type { CardElementKind } from "@/lib/fusion/card/composer-model";
 import type { SignatureAssetDefinition, SignatureAssetKind, SignatureFamilyDefinition, SignatureSubgroup } from "./types";
+import { CABINET_NOIR_ASSEMBLY_RECIPES, CABINET_NOIR_ASSETS, CABINET_NOIR_FAMILY } from "./cabinet-noir";
+import type { SignatureAssemblyRecipe } from "./layout-recipes";
 
 export const ARC_EMBER_SIGNATURE_FAMILY_ID = "family_arc_ember_signature";
 export const SIGNATURE_SYSTEM_V1_FAMILY_ID = "family_signature_system_v1";
@@ -27,7 +29,17 @@ const arcEmberStageExpansion = {
 export const SIGNATURE_FAMILIES: readonly SignatureFamilyDefinition[] = [
   { id: ARC_EMBER_SIGNATURE_FAMILY_ID, slug: "arc-ember", label: "Arc Ember", lifecycle: "candidate", sortOrder: 10 },
   { id: SIGNATURE_SYSTEM_V1_FAMILY_ID, slug: "signature-system-v1", label: "Signature System v1", lifecycle: "production", sortOrder: 20 },
+  CABINET_NOIR_FAMILY,
 ] as const;
+
+export const SIGNATURE_ASSEMBLY_RECIPES: readonly SignatureAssemblyRecipe[] = [
+  ...CABINET_NOIR_ASSEMBLY_RECIPES,
+] as const;
+
+export function getSignatureAssemblyRecipe(recipeId: unknown, recipeVersion?: unknown) {
+  if (typeof recipeId !== "string") return undefined;
+  return SIGNATURE_ASSEMBLY_RECIPES.find((recipe)=>(recipe.recipeId===recipeId) && (recipeVersion === undefined || recipe.recipeVersion === recipeVersion));
+}
 
 function asset(input: Omit<SignatureAssetDefinition, "aspectRatio" | "expressionTier" | "referenceOnly" | "tintCapabilities" | "tintMode" | "energyMode" | "sourceReadiness"> & {
   referenceOnly?: boolean;
@@ -120,6 +132,7 @@ export const SIGNATURE_ASSETS: readonly SignatureAssetDefinition[] = [
     ["plaque-panel","Plaque / Panel Action","05_plaque-panel-action.png","bd1fdf1091e5ad27922038d0ebf0b1e43c93775493e649d70f39a95554feb72e",5],
   ].map(([role,label,file,sha,number],index)=>signatureV1Asset({id:`reference/signature-system-v1/action/${role}/v1`,sourceNumber:Number(number),label:String(label),subgroup:"actions",assetKind:"action",role:String(role),variant:"visual-authority",sourceAsset:`${SIGNATURE_V1_ROOT}/01_actions/visual-authority/${file}`,sourceSha256:String(sha),width:2048,height:682,glowPadding:full,safeInsets:full,socketContract:{},layoutCapabilities:[],responsiveContract:{proportional:true,phoneSafe:false},stateContract:["default"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"reference",referenceOnly:true,sourceReadiness:"visual-authority-needs-blank-shell",blockerNote:"Baked approval copy/identity requires a matching blank pristine shell before editable production use.",sortOrder:1900+index,tags:["visual-authority","blocked","needs-blank-shell"]})),
   signatureV1Asset({id:"reference/signature-system-v1/micro-part/toggle/v1",sourceNumber:24,label:"Small Toggle / On-Off",subgroup:"micro-parts",assetKind:"micro-part",role:"toggle",variant:"visual-authority",sourceAsset:`${SIGNATURE_V1_ROOT}/05_micro-parts/visual-authority/24_small-toggle-on-off.png`,sourceSha256:"e4b01b4b0270fb269491259ea5dee68c3e1247556384a7d7f339d4f95fac3043",width:2048,height:682,glowPadding:full,safeInsets:full,socketContract:{},layoutCapabilities:[],responsiveContract:{proportional:true,phoneSafe:false},stateContract:["default"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"reference",referenceOnly:true,sourceReadiness:"visual-authority-needs-state-implementation",blockerNote:"Composite knob and shell require approved state masters or a certified non-destructive split.",sortOrder:1950,tags:["visual-authority","blocked","needs-state-implementation"]}),
+  ...CABINET_NOIR_ASSETS,
 ] as const;
 
 export const SIGNATURE_SUBGROUPS: readonly { id: SignatureSubgroup; label: string }[] = [
@@ -155,6 +168,7 @@ export function signatureAssetInsert(asset: SignatureAssetDefinition) {
   if (asset.assetKind === "divider") Object.assign(common,{ elementKind:"divider",dividerCenterMediaUrl:asset.socketContract.dividerCenter?"/tap-connect-mark.png":"" });
   if (asset.assetKind === "frame" || asset.assetKind === "stage") Object.assign(common,{ elementKind:"composition",componentKind:"container",layout:asset.expansionContract?"stack":"free",resizePolicy:asset.expansionContract?"fit-content":"fixed",canContainChildren:true,childIds:[],gap:asset.expansionContract?.childGapPx ?? 12,signatureStageFlow:asset.expansionContract?.flow });
   if (asset.assetKind === "footer") Object.assign(common,{ elementKind:"decorative_graphic",decorative:true,actionType:"none" });
+  if (asset.normalizedContract?.liveContentContract?.startsWith("informationalLine@")) Object.assign(common,{ informationalText:"",decorative:false,actionType:"none",accessibleLabel:asset.label });
   if (asset.assetKind === "micro-part") {
     Object.assign(common,{ elementKind:"image",src:asset.sourceAsset,fit:"contain",alt:asset.label,disabled:false });
     if (asset.socketContract.statusText) Object.assign(common,{elementKind:"button",label:asset.role === "alert-token"?"Alert":"Available",statusText:asset.role === "alert-token"?"Alert":"Available",showLabel:true,showDescription:false,actionType:"none"});

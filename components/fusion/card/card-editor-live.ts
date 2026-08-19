@@ -14,6 +14,7 @@ import type {
 import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject, SectionPresetId } from "@/lib/fusion/card/composer-model";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import type { SelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
+import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
 
 export type CardEditorLiveModel = {
   documentId: string;
@@ -33,6 +34,7 @@ export type CardEditorLiveModel = {
   showFreeform: boolean;
   isAdmin: boolean;
   demoPublished: boolean;
+  signatureEntitlementKeys?: readonly SignatureEntitlementKey[];
   versions: {
     id: string;
     version: number;

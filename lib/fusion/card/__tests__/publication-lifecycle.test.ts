@@ -94,6 +94,7 @@ describe("canonical Card publication", () => {
       businessId: "business-1",
       expectedDraftRevision: 4,
       publishedById: "user-1",
+      signatureEntitlementKeys: [],
       client: client as never,
     });
     assert.equal(result.publication.id, "publication-1");

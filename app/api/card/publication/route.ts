@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { isPlatformAdmin } from "@/lib/auth";
 import { appendAuditEvent } from "@/lib/control/audit";
+import { prisma } from "@/lib/db";
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import {
   archiveCardPublication,
@@ -9,6 +11,7 @@ import {
   publishSavedCard,
   rollbackPublishedCard,
 } from "@/lib/fusion/card/publication";
+import { resolveBusinessSignatureEntitlements } from "@/lib/fusion/creative-studio/signature-assets/entitlements.server";
 
 export const runtime = "nodejs";
 
@@ -20,7 +23,10 @@ const commandSchema = z.discriminatedUnion("action", [
 
 function errorResponse(error: unknown) {
   if (error instanceof CardPublicationError) {
-    return NextResponse.json({ error: error.message, code: error.code }, { status: error.status });
+    return NextResponse.json(
+      { error: error.message, code: error.code, findings: error.findings },
+      { status: error.status },
+    );
   }
   if (error instanceof z.ZodError) {
     return NextResponse.json({ error: "Invalid Card publication command." }, { status: 400 });
@@ -58,12 +64,40 @@ export async function POST(request: Request) {
   try {
     const { business, user } = await requireBusinessCapability("card.publish");
     const command = commandSchema.parse(await request.json());
+    const signatureEntitlementKeys = command.action === "archive"
+      ? []
+      : await resolveBusinessSignatureEntitlements({
+          businessId: business.id,
+          planDefinitionId: business.planDefinitionId,
+          privileged: isPlatformAdmin(user) || Boolean(await prisma.campaign.findFirst({
+            where: { businessId: business.id, isLandingDemo: true },
+            select: { id: true },
+          })),
+        });
     if (command.action === "publish") {
-      const result = await publishSavedCard({
-        businessId: business.id,
-        expectedDraftRevision: command.expectedDraftRevision,
-        publishedById: user.id,
-      });
+      let result;
+      try {
+        result = await publishSavedCard({
+          businessId: business.id,
+          expectedDraftRevision: command.expectedDraftRevision,
+          publishedById: user.id,
+          signatureEntitlementKeys,
+        });
+      } catch (error) {
+        if (error instanceof CardPublicationError && error.code === "signature_family_not_publishable") {
+          await appendAuditEvent({
+            actorId: user.id,
+            businessId: business.id,
+            action: "studio.card.publication_blocked",
+            permissionUsed: "card.publish",
+            resourceType: "Business",
+            resourceId: business.id,
+            reason: "Restricted Signature family is not currently publishable",
+            newValue: { operation: "publish", findings: error.findings },
+          }).catch((auditError) => console.error("Unable to audit blocked Card publication:", auditError));
+        }
+        throw error;
+      }
       await appendAuditEvent({
         actorId: user.id,
         businessId: business.id,
@@ -109,11 +143,29 @@ export async function POST(request: Request) {
       return NextResponse.json({ status: "Archived" });
     }
 
-    const result = await rollbackPublishedCard({
-      businessId: business.id,
-      publicationId: command.publicationId,
-      actorId: user.id,
-    });
+    let result;
+    try {
+      result = await rollbackPublishedCard({
+        businessId: business.id,
+        publicationId: command.publicationId,
+        actorId: user.id,
+        signatureEntitlementKeys,
+      });
+    } catch (error) {
+      if (error instanceof CardPublicationError && error.code === "signature_family_not_publishable") {
+        await appendAuditEvent({
+          actorId: user.id,
+          businessId: business.id,
+          action: "studio.card.publication_blocked",
+          permissionUsed: "card.publish",
+          resourceType: "CardPublication",
+          resourceId: command.publicationId,
+          reason: "Restricted Signature family is not currently publishable",
+          newValue: { operation: "rollback", findings: error.findings },
+        }).catch((auditError) => console.error("Unable to audit blocked Card rollback:", auditError));
+      }
+      throw error;
+    }
     await appendAuditEvent({
       actorId: user.id,
       businessId: business.id,

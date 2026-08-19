@@ -72,7 +72,15 @@ import type { GradientModel } from "@/lib/fusion/creative-studio/gradient";
 import { MaterialSurfaceSwatch } from "@/components/fusion/creative-studio/material-surface-layers";
 import { VisualPartsCabinetPanel } from "@/components/fusion/creative-studio/visual-parts-cabinet-panel";
 import { objectFamilyToVisualTarget } from "@/lib/fusion/creative-studio/visual-parts";
-import { getSignatureAsset, signatureAssetInsert, signatureAssetInsertionFrame } from "@/lib/fusion/creative-studio/signature-assets";
+import {
+  compileSignatureAuthoringState,
+  getSignatureAsset,
+  mergeSignatureAssemblyComposition,
+  readSignatureAssemblyAuthoringState,
+  signatureAssetInsert,
+  signatureAssetInsertionFrame,
+  updateSignatureAction,
+} from "@/lib/fusion/creative-studio/signature-assets";
 
 type Focus = "content" | "font" | "color" | "surface" | "media" | "crop" | "adjust" | "frame-appearance" | "action" | "effects" | "appearance" | "animate" | "position" | "layout" | "setup" | "fields" | "gallery" | "resize-policy" | "responsive" | "button-surface" | "button-content" | "button-action" | "button-styles" | "icon-appearance" | "divider-style" | "divider-thickness" | "divider-color" | "divider-appearance" | "map-action" | "text-box" | "border" | "corners" | "size" | "arrange" | "more" | "coupon-content" | "visual-parts" | null;
 type SectionFocus = "size" | "surface" | "layout" | "position" | "more" | null;
@@ -538,6 +546,8 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const objectFamily = objectFamilyForNode(node);
   const isComponent = Boolean(componentKind);
   const isImage = !isComponent && (node.primitive === "image" || node.primitive === "frame");
+  const selectedSignatureAsset = getSignatureAsset(node.props.signatureAssetId);
+  const isSignatureInformationalLine = Boolean(selectedSignatureAsset?.normalizedContract?.liveContentContract?.startsWith("informationalLine@"));
   const isBadge = String(node.props.elementKind || "") === "badge";
   // Component parents (Container/Form/…) must not inherit Text glyph toolbar even if
   // a legacy insert path left primitive === "text".
@@ -569,6 +579,29 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
   const groupHasText = groupParent && textDescendantsInScope(block.nodes, selectedIds).length > 0;
   const appearanceScopes = groupParent ? groupAppearanceScopes(block.nodes, selectedIds) : [];
   const patchProps = (next: Record<string, unknown>, label: string) => {
+    const patchAsset = getSignatureAsset(node.props.signatureAssetId);
+    if (patchAsset?.normalizedContract?.liveContentContract?.startsWith("informationalLine@") && typeof next.text === "string") {
+      next = { ...next, text: next.text.replace(/[\r\n]+/g, " "), informationalText: next.text.replace(/[\r\n]+/g, " ") };
+    }
+    const signatureAssembly = readSignatureAssemblyAuthoringState(block);
+    const signatureActionId = typeof node.props.signatureActionId === "string" ? node.props.signatureActionId : null;
+    if (signatureAssembly && signatureActionId) {
+      const actionPatch = {
+        ...(typeof next.label === "string" ? { label: next.label } : {}),
+        ...(typeof next.href === "string" ? { destination: next.href } : {}),
+        ...(typeof next.accessibleLabel === "string" ? { accessibilityLabel: next.accessibleLabel } : {}),
+        ...(typeof next.trackingName === "string" ? { analyticsId: next.trackingName } : {}),
+        ...(typeof next.disabled === "boolean" ? { state: next.disabled ? "disabled" as const : "default" as const } : {}),
+      };
+      if (Object.keys(actionPatch).length) {
+        const updated = updateSignatureAction(signatureAssembly, signatureActionId, actionPatch);
+        const compiled = compileSignatureAuthoringState(updated, { blockId: block.id, label: block.label, background: block.background?.kind === "solid" ? block.background.value : undefined });
+        if (compiled.ok) {
+          replace(mergeSignatureAssemblyComposition(block, compiled.composition.block), label);
+          return;
+        }
+      }
+    }
     // Group capability fan-out — per-descendant adapters, never primary-node clone.
     if (groupParent) {
       const capability = inferFanOutCapability(next);
@@ -916,7 +949,8 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
           data-testid="contextual-container-surface-swatch"
           onClick={() => open("surface")}
         /><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" data-testid="contextual-container-background" onClick={() => open("surface")}>Background</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("appearance"); }} data-testid="contextual-container-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("resizePolicy.open")} data-testid="contextual-container-resize-policy">Resize behavior</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => openCommand("responsive.open")}>Responsive</button></> : null}
-      {toolbarChrome === "object" && isImage ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace" : "Choose media"}</button> : null}
+      {toolbarChrome === "object" && isSignatureInformationalLine ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("content")} data-testid="contextual-signature-informational-content">Edit line</button> : null}
+      {toolbarChrome === "object" && isImage && !isSignatureInformationalLine ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("media")} data-testid="contextual-replace-media">{String(node.props.src || node.props.mediaSrc || "") ? "Replace" : "Choose media"}</button> : null}
       {toolbarChrome === "object" && (objectFamily === "divider" || objectFamily === "container" || objectFamily === "image" || objectFamily === "logo") ? (
         <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => { deepLeft?.setNestedPage("overview"); openForced("visual-parts"); }} data-testid="contextual-visual-parts">Visual Parts</button>
       ) : null}
@@ -924,7 +958,7 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
       <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Motion</button></> : null}
       {toolbarChrome === "object" && (objectFamily === "divider" || isTextLike) ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Motion</button> : null}
       {toolbarChrome === "object" && objectFamily === "icon" ? <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")} data-testid="contextual-animate">Motion</button> : null}
-      {toolbarChrome === "object" && isImage ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("crop")} data-testid="contextual-crop-fit">Crop / Fit</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("adjust")} data-testid="contextual-adjust">Adjust</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("frame-appearance")} data-testid="contextual-frame-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")}>Motion</button></> : null}
+      {toolbarChrome === "object" && isImage && !isSignatureInformationalLine ? <><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("crop")} data-testid="contextual-crop-fit">Crop / Fit</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("adjust")} data-testid="contextual-adjust">Adjust</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("frame-appearance")} data-testid="contextual-frame-appearance">Appearance</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("action")} data-testid="contextual-action">Action</button><button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("animate")}>Motion</button></> : null}
       {toolbarChrome === "object" && (isButton || isBadge || isImage || objectFamily === "container" || objectFamily === "icon" || objectFamily === "shape" || isText) ? (
         <>
           <button type="button" className="min-h-9 rounded px-2 text-xs hover:bg-white/10" onClick={() => open("border")} data-testid="contextual-border">Border</button>
@@ -1331,6 +1365,18 @@ export function CardContextualObjectToolbar({ model, onAdvanced, previewMotion =
             props={node.props}
             targetFamily={vpTarget}
             hostBrandRecipes={(model.visualBrandRecipes || model.config.visualBrandRecipes || []) as never}
+            signatureEntitlementKeys={model.signatureEntitlementKeys}
+            signatureAssembly={readSignatureAssemblyAuthoringState(block)}
+            onSignatureAssemblyChange={(state, label) => {
+              const compiled = compileSignatureAuthoringState(state, { blockId: block.id, label: block.label, background: block.background?.kind === "solid" ? block.background.value : undefined });
+              if (!compiled.ok) {
+                model.notify?.(compiled.errors.map((error) => error.message).join(" "));
+                return;
+              }
+              replace(mergeSignatureAssemblyComposition(block, compiled.composition.block), label);
+              const firstAction = compiled.composition.block.nodes.find((candidate) => typeof candidate.props.signatureActionId === "string");
+              if (firstAction) model.setSelectedCompositionNodeIds?.([firstAction.id]);
+            }}
             onSaveBrandRecipe={(recipe) => model.onSaveVisualBrandRecipe?.(recipe)}
             onInsertSignatureAsset={(asset) => {
               const payload = signatureAssetInsert(asset);

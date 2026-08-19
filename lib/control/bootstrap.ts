@@ -4,7 +4,7 @@ import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 import { DEMO_BLOCKED_ACTIONS } from "@/lib/control/demo-policy";
 import { PLATFORM_PERMISSIONS, ROLE_TEMPLATES } from "@/lib/control/permissions";
 
-const SERVICES = [
+export const CONTROL_SERVICE_CATALOG = [
   ["cards", "Cards", "Experience", true],
   ["brand", "Brand", "Creative", true],
   ["assets", "Assets", "Creative", true],
@@ -18,7 +18,19 @@ const SERVICES = [
   ["tap_points", "Tap Points", "Hardware", false],
   ["media_upload", "Media upload", "Creative", true],
   ["external_integrations", "External integrations", "Providers", false],
+  ["signature.family.cabinet_noir", "Cabinet Noir Signature family", "Creative", true],
 ] as const;
+
+export const SEEDED_SAFE_PLAN_BLOCKED_SERVICE_KEYS = [
+  "campaign_send",
+  "email_send",
+  "tap_points",
+  "external_integrations",
+] as const;
+
+export function seededPlanServiceEnabled(serviceKey: string, internal: boolean) {
+  return internal || !SEEDED_SAFE_PLAN_BLOCKED_SERVICE_KEYS.some((key) => key === serviceKey);
+}
 
 const CONFIGURATION = [
   ["platform.identity", "TapConnect Control Room", "Internal platform identity"],
@@ -65,7 +77,7 @@ async function ensureCatalogs() {
     }
   }
 
-  for (const [key, name, category, customerVisible] of SERVICES) {
+  for (const [key, name, category, customerVisible] of CONTROL_SERVICE_CATALOG) {
     await prisma.serviceDefinition.upsert({
       where: { key },
       create: {
@@ -136,21 +148,15 @@ async function ensureCatalogs() {
   const services = await prisma.serviceDefinition.findMany();
   for (const plan of [sandboxPlan, demoPlan, internalPlan]) {
     for (const service of services) {
-      const blockedInSafePlan = [
-        "campaign_send",
-        "email_send",
-        "tap_points",
-        "external_integrations",
-      ].includes(service.key);
       await prisma.planEntitlement.upsert({
         where: { planId_serviceId: { planId: plan.id, serviceId: service.id } },
         create: {
           planId: plan.id,
           serviceId: service.id,
-          enabled: plan.id === internalPlan.id || !blockedInSafePlan,
+          enabled: seededPlanServiceEnabled(service.key, plan.id === internalPlan.id),
         },
         update: {
-          enabled: plan.id === internalPlan.id || !blockedInSafePlan,
+          enabled: seededPlanServiceEnabled(service.key, plan.id === internalPlan.id),
         },
       });
     }

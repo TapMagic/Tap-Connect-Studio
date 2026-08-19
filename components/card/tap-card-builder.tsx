@@ -63,6 +63,8 @@ import {
   reorderById,
 } from "@/lib/fusion/authoring/reorder-list";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
+import type { SignaturePublicationFinding } from "@/lib/fusion/card/signature-publication-validation";
 import {
   createInheritanceState,
   overrideField,
@@ -204,6 +206,7 @@ type Props = {
   stockReady: boolean;
   isAdmin?: boolean;
   isLandingDemo?: boolean;
+  signatureEntitlementKeys?: readonly SignatureEntitlementKey[];
   devices?: { id: string; nickname: string | null; deviceCode: string }[];
   campaigns?: CampaignLinkOption[];
   campaignGroups?: CampaignGroupLinkOption[];
@@ -331,6 +334,7 @@ export function TapCardBuilder({
   stockReady,
   isAdmin = false,
   isLandingDemo = false,
+  signatureEntitlementKeys = [],
   devices = [],
   campaigns = [],
   campaignGroups = [],
@@ -1415,10 +1419,15 @@ export function TapCardBuilder({
     setSaving(false);
     const data = (await res.json().catch(() => ({}))) as {
       error?: string;
+      findings?: SignaturePublicationFinding[];
       publication?: { version?: number };
     };
     if (!res.ok) {
-      setMessage(data.error ?? "Publish failed.");
+      setMessage(
+        data.findings?.length
+          ? data.findings.map((finding) => finding.remediation.message).join(" ")
+          : data.error ?? "Publish failed.",
+      );
       return;
     }
     setMessage(`Published revision ${data.publication?.version ?? "?"}.`);
@@ -1825,6 +1834,7 @@ export function TapCardBuilder({
       showFreeform,
       isAdmin,
       demoPublished,
+      signatureEntitlementKeys,
       versions,
       logoUrl,
       brandKitId,
@@ -1970,6 +1980,7 @@ export function TapCardBuilder({
     showFreeform,
     isAdmin,
     demoPublished,
+    signatureEntitlementKeys,
     versions,
     logoUrl,
     brandKitId,

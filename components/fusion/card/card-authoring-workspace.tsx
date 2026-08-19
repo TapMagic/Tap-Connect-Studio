@@ -64,6 +64,7 @@ import {
 } from "@/lib/fusion/authoring/workspace-tools";
 import { cn } from "@/lib/utils";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import {
   DEFAULT_EDITOR_PREFERENCES,
@@ -116,6 +117,7 @@ export type CardAuthoringWorkspaceProps = {
   stockReady: boolean;
   isAdmin?: boolean;
   isLandingDemo?: boolean;
+  signatureEntitlementKeys?: readonly SignatureEntitlementKey[];
   devices?: { id: string; nickname: string | null; deviceCode: string }[];
   campaigns?: {
     id: string;

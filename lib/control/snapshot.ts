@@ -7,6 +7,8 @@ import {
 } from "@/lib/control/permissions";
 import { resolvePresenceState } from "@/lib/control/presence";
 import { calculateEffectiveEntitlement } from "@/lib/control/entitlements";
+import { resolveSignatureEntitlementInspection } from "@/lib/control/signature-entitlement-administration";
+import { SIGNATURE_FAMILIES } from "@/lib/fusion/creative-studio/signature-assets/registry";
 
 function iso(value: Date | null | undefined): string | null {
   return value?.toISOString() ?? null;
@@ -66,8 +68,13 @@ export async function getControlSnapshot(actor: ControlActor) {
       ? prisma.business.findMany({
           include: {
             users: { include: { user: true } },
-            planDefinition: true,
-            accountRestrictions: { where: { revokedAt: null } },
+            planDefinition: {
+              include: { entitlements: { include: { service: true } } },
+            },
+            accountRestrictions: {
+              where: { revokedAt: null },
+              include: { service: true },
+            },
             entitlementOverrides: {
               include: { service: true },
               orderBy: { createdAt: "desc" },
@@ -276,6 +283,55 @@ export async function getControlSnapshot(actor: ControlActor) {
     }),
   );
 
+  const signatureEntitlements = can("entitlements.view")
+    ? businesses.flatMap((business) => SIGNATURE_FAMILIES.flatMap((family) => {
+        if (!family.entitlement) return [];
+        const service = services.find((candidate) => candidate.key === family.entitlement?.entitlementKey) ?? null;
+        const planEntitlement = business.planDefinition?.entitlements.find(
+          (candidate) => candidate.service.key === family.entitlement?.entitlementKey,
+        );
+        const inspection = resolveSignatureEntitlementInspection({
+          businessId: business.id,
+          businessName: business.name,
+          family,
+          service: service
+            ? { id: service.id, status: service.status, defaultEnabled: service.defaultEnabled }
+            : null,
+          plan: planEntitlement
+            ? {
+                source: "Plan entitlement",
+                enabled: planEntitlement.enabled,
+                allowance: planEntitlement.allowance,
+              }
+            : null,
+          overrides: business.entitlementOverrides
+            .filter((override) => override.service.key === family.entitlement?.entitlementKey)
+            .map((override) => ({
+              id: override.id,
+              source: `Business override: ${override.reason}`,
+              enabled: override.enabled,
+              allowance: override.allowance,
+              startsAt: override.startsAt,
+              expiresAt: override.expiresAt,
+              status: override.status,
+              revokedAt: override.revokedAt,
+            })),
+          restrictions: business.accountRestrictions
+            .filter((restriction) => restriction.service?.key === family.entitlement?.entitlementKey)
+            .map((restriction) => ({
+              id: restriction.id,
+              source: `Account restriction: ${restriction.reason}`,
+              enabled: false,
+              startsAt: restriction.startsAt,
+              expiresAt: restriction.expiresAt,
+              revokedAt: restriction.revokedAt,
+            })),
+          now,
+        });
+        return inspection ? [inspection] : [];
+      }))
+    : [];
+
   const counts = {
     usersOnline: serializedUsers.filter((user) => user.presence === "Online").length,
     usersRecentlyActive: serializedUsers.filter(
@@ -332,6 +388,7 @@ export async function getControlSnapshot(actor: ControlActor) {
       explanation: entry.explanation,
     })),
     counts,
+    signatureEntitlements,
     users: serializedUsers,
     invitations: invitations.map((invitation) => ({
       id: invitation.id,
@@ -534,4 +591,3 @@ export async function getControlSnapshot(actor: ControlActor) {
 }
 
 export type ControlSnapshot = Awaited<ReturnType<typeof getControlSnapshot>>;
-

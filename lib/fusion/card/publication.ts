@@ -5,6 +5,12 @@ import {
   hashPublishManifest,
   type CardPublishManifest,
 } from "@/lib/fusion/publication/snapshots";
+import {
+  validateSignaturePublication,
+  type SignaturePublicationFinding,
+  type SignaturePublicationOperation,
+} from "@/lib/fusion/card/signature-publication-validation";
+import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
 
 type CardPublicationClient = Pick<
   PrismaClient,
@@ -19,11 +25,31 @@ export class CardPublicationError extends Error {
       | "revision_conflict"
       | "publication_not_found"
       | "current_revision"
-      | "invalid_revision",
+      | "invalid_revision"
+      | "signature_family_not_publishable",
     readonly status: number,
+    readonly findings: readonly SignaturePublicationFinding[] = [],
   ) {
     super(message);
     this.name = "CardPublicationError";
+  }
+}
+
+function assertSignatureFamiliesPublishable(
+  document: Parameters<typeof validateSignaturePublication>[0],
+  entitlementKeys: readonly SignatureEntitlementKey[],
+  operation: SignaturePublicationOperation = "card.publish",
+) {
+  const validation = validateSignaturePublication(document, entitlementKeys, undefined, operation);
+  if (!validation.ok) {
+    throw new CardPublicationError(
+      validation.findings.length === 1
+        ? validation.findings[0].remediation.message
+        : "Restore access to the restricted Signature families or remove their content before publishing.",
+      "signature_family_not_publishable",
+      403,
+      validation.findings,
+    );
   }
 }
 
@@ -98,6 +124,7 @@ export async function publishSavedCard(input: {
   businessId: string;
   expectedDraftRevision: number;
   publishedById?: string | null;
+  signatureEntitlementKeys: readonly SignatureEntitlementKey[];
   client?: CardPublicationClient;
 }) {
   const client = input.client ?? prisma;
@@ -113,6 +140,8 @@ export async function publishSavedCard(input: {
         409,
       );
     }
+
+    assertSignatureFamiliesPublishable(kit.tapCardDraft, input.signatureEntitlementKeys);
 
     const comparisonSummary = summarizeCardComparison(kit.tapCard, kit.tapCardDraft);
     const manifest: CardPublishManifest = {
@@ -197,6 +226,7 @@ export async function rollbackPublishedCard(input: {
   businessId: string;
   publicationId: string;
   actorId?: string | null;
+  signatureEntitlementKeys: readonly SignatureEntitlementKey[];
   client?: CardPublicationClient;
 }) {
   const client = input.client ?? prisma;
@@ -209,6 +239,7 @@ export async function rollbackPublishedCard(input: {
       throw new CardPublicationError("Published Card revision not found.", "publication_not_found", 404);
     }
     const { document } = await findSnapshotDocument(tx, target.publicationSnapshotId);
+    assertSignatureFamiliesPublishable(document, input.signatureEntitlementKeys, "card.rollback");
     await tx.brandKit.update({
       where: { id: kit.id },
       data: {

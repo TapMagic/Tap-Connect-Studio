@@ -181,7 +181,7 @@ function permissionForOperation(operation: string): PlatformPermission {
     [/^business\.create/, "businesses.create"],
     [/^business\./, "businesses.edit"],
     [/^service\.|^plan\./, "entitlements.plan_manage"],
-    [/^entitlement\.restrict/, "entitlements.restrict"],
+    [/^entitlement\.(restrict|restore)/, "entitlements.restrict"],
     [/^entitlement\./, "entitlements.override"],
     [/^view_as\./, "users.support_view"],
     [/^support\./, "users.support_impersonate"],
@@ -1200,6 +1200,7 @@ export async function performControlMutation(
         internalNote: optionalText(data, "internalNote"),
         grantedById: actor.id,
       },
+      include: { service: true },
     });
     await audit({
       actor,
@@ -1209,14 +1210,26 @@ export async function performControlMutation(
       resourceId: override.id,
       businessId: override.businessId,
       reason: override.reason,
-      next: override,
+      next: {
+        outcome: "granted",
+        entitlementKey: override.service.key,
+        enabled: override.enabled,
+        allowance: override.allowance,
+        grantKind: override.grantKind,
+        startsAt: override.startsAt,
+        expiresAt: override.expiresAt,
+        status: override.status,
+      },
     });
     return { ok: true, message: "Entitlement override granted with visible source and expiration.", resourceId: override.id };
   }
 
   if (operation === "entitlement.revoke") {
     const id = text(data, "id");
-    const existing = await prisma.businessEntitlementOverride.findUniqueOrThrow({ where: { id } });
+    const existing = await prisma.businessEntitlementOverride.findUniqueOrThrow({
+      where: { id },
+      include: { service: true },
+    });
     const updated = await prisma.businessEntitlementOverride.update({
       where: { id },
       data: { status: "REVOKED", revokedAt: new Date(), revokedById: actor.id },
@@ -1229,10 +1242,117 @@ export async function performControlMutation(
       resourceId: id,
       businessId: existing.businessId,
       reason: reason(data),
-      prior: existing,
-      next: updated,
+      prior: {
+        entitlementKey: existing.service.key,
+        enabled: existing.enabled,
+        status: existing.status,
+      },
+      next: {
+        outcome: "override-revoked",
+        entitlementKey: existing.service.key,
+        status: updated.status,
+        revokedAt: updated.revokedAt,
+      },
     });
     return { ok: true, message: "Entitlement override revoked.", resourceId: id };
+  }
+
+  if (operation === "entitlement.restrict") {
+    const targetBusinessId = text(data, "businessId");
+    const serviceId = text(data, "serviceId");
+    const [business, service, existing] = await Promise.all([
+      prisma.business.findUniqueOrThrow({ where: { id: targetBusinessId } }),
+      prisma.serviceDefinition.findUniqueOrThrow({ where: { id: serviceId } }),
+      prisma.accountRestriction.findFirst({
+        where: {
+          businessId: targetBusinessId,
+          serviceId,
+          revokedAt: null,
+          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+        },
+      }),
+    ]);
+    if (service.status !== "ACTIVE") throw new Error("Only an active service can be restricted.");
+    if (existing) {
+      await audit({
+        actor,
+        operation,
+        permission,
+        resourceType: "AccountRestriction",
+        resourceId: existing.id,
+        businessId: targetBusinessId,
+        reason: reason(data),
+        next: { outcome: "already-restricted", entitlementKey: service.key },
+      });
+      return { ok: true, message: `${service.ownerFacingName} is already restricted for ${business.name}.`, resourceId: existing.id };
+    }
+    const restriction = await prisma.accountRestriction.create({
+      data: {
+        businessId: targetBusinessId,
+        serviceId,
+        capability: service.key,
+        reason: reason(data),
+        internalNote: optionalText(data, "internalNote"),
+        customerVisibleExplanation: optionalText(data, "customerVisibleExplanation"),
+        startsAt: optionalDate(data, "startsAt") ?? new Date(),
+        expiresAt: optionalDate(data, "expiresAt"),
+        createdById: actor.id,
+      },
+    });
+    await audit({
+      actor,
+      operation,
+      permission,
+      resourceType: "AccountRestriction",
+      resourceId: restriction.id,
+      businessId: targetBusinessId,
+      reason: restriction.reason,
+      next: {
+        outcome: "restricted",
+        entitlementKey: service.key,
+        startsAt: restriction.startsAt,
+        expiresAt: restriction.expiresAt,
+      },
+    });
+    return { ok: true, message: `${service.ownerFacingName} access revoked through the canonical restriction layer.`, resourceId: restriction.id };
+  }
+
+  if (operation === "entitlement.restore") {
+    const targetBusinessId = text(data, "businessId");
+    const serviceId = text(data, "serviceId");
+    const [business, service, restrictions] = await Promise.all([
+      prisma.business.findUniqueOrThrow({ where: { id: targetBusinessId } }),
+      prisma.serviceDefinition.findUniqueOrThrow({ where: { id: serviceId } }),
+      prisma.accountRestriction.findMany({
+        where: { businessId: targetBusinessId, serviceId, revokedAt: null },
+        select: { id: true },
+      }),
+    ]);
+    const restoredAt = new Date();
+    if (restrictions.length) {
+      await prisma.accountRestriction.updateMany({
+        where: { id: { in: restrictions.map((restriction) => restriction.id) }, revokedAt: null },
+        data: { revokedAt: restoredAt, revokedById: actor.id },
+      });
+    }
+    await audit({
+      actor,
+      operation,
+      permission,
+      resourceType: "ServiceEntitlement",
+      resourceId: `${targetBusinessId}:${serviceId}`,
+      businessId: targetBusinessId,
+      reason: reason(data),
+      prior: { entitlementKey: service.key, activeRestrictionIds: restrictions.map((restriction) => restriction.id) },
+      next: { outcome: "restored", entitlementKey: service.key, restoredAt, restoredRestrictionCount: restrictions.length },
+    });
+    return {
+      ok: true,
+      message: restrictions.length
+        ? `${service.ownerFacingName} restriction restored for ${business.name}; effective access was recalculated.`
+        : `${service.ownerFacingName} had no active restriction; effective access is unchanged.`,
+      resourceId: `${targetBusinessId}:${serviceId}`,
+    };
   }
 
   if (operation === "view_as.start") {

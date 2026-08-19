@@ -9,6 +9,7 @@
 import { nanoid } from "nanoid";
 import type { GradientModel } from "@/lib/fusion/creative-studio/gradient";
 import type { SurfacePatternModel } from "@/lib/fusion/creative-studio/patterns";
+import type { SignatureAssemblyAuthoringState } from "@/lib/fusion/creative-studio/signature-assets/authoring";
 
 export type CreativeCompositionPrimitive =
   | "text"
@@ -327,6 +328,8 @@ export type CreativeCompositionBlock = {
     revisionId: string;
     resourceName: string;
   };
+  /** Serializable authority used to deterministically regenerate registered Signature assemblies. */
+  signatureAssembly?: SignatureAssemblyAuthoringState;
 };
 
 export const CREATIVE_COMPOSITION_BLOCK_ID = "card.creative_composition" as const;
@@ -461,6 +464,10 @@ export function parseCreativeComposition(
     resourceRef:
       o.resourceRef && typeof o.resourceRef === "object"
         ? (o.resourceRef as CreativeCompositionBlock["resourceRef"])
+        : undefined,
+    signatureAssembly:
+      o.signatureAssembly && typeof o.signatureAssembly === "object"
+        ? (o.signatureAssembly as CreativeCompositionBlock["signatureAssembly"])
         : undefined,
   };
 }

@@ -8,6 +8,7 @@ import { isFeatureEnabled } from "@/lib/fusion/features";
 import { listFeatureOverrides } from "@/lib/fusion/features/overrides";
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import { beginCardDraftEditing } from "@/lib/fusion/card/draft";
+import { resolveBusinessSignatureEntitlements } from "@/lib/fusion/creative-studio/signature-assets/entitlements.server";
 import { buildFirstCardDraft } from "@/lib/fusion/card/first-card-draft";
 import "@/app/t/tap.css";
 
@@ -58,6 +59,11 @@ export default async function TapCardEditPage({
   const landingDemo = await prisma.campaign.findFirst({
     where: { businessId: business.id, isLandingDemo: true },
     select: { id: true },
+  });
+  const signatureEntitlementKeys = await resolveBusinessSignatureEntitlements({
+    businessId: business.id,
+    planDefinitionId: business.planDefinitionId,
+    privileged: isPlatformAdmin(user) || Boolean(landingDemo),
   });
 
   const devices = await prisma.deviceSlot.findMany({
@@ -192,6 +198,7 @@ export default async function TapCardEditPage({
     stockReady: isStockImagesReady(),
     isAdmin: isPlatformAdmin(user),
     isLandingDemo: Boolean(landingDemo),
+    signatureEntitlementKeys,
     devices,
     campaigns,
     campaignGroups,

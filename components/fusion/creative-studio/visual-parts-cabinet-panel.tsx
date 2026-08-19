@@ -3,13 +3,17 @@
 import { useMemo, useState } from "react";
 import {
   ARC_EMBER_SIGNATURE_FAMILY_ID,
-  SIGNATURE_FAMILIES,
   SIGNATURE_SUBGROUPS,
+  createSignatureAssemblyAuthoringState,
+  listSignatureAuthoringFamilies,
   listSignatureAssets,
   signatureAssetInsert,
+  type SignatureAssemblyAuthoringState,
   type SignatureAssetDefinition,
+  type SignatureEntitlementKey,
   type SignatureSubgroup,
 } from "@/lib/fusion/creative-studio/signature-assets";
+import { SignatureAssemblyAuthoringControls } from "@/components/fusion/creative-studio/signature-assembly-authoring-controls";
 import {
   ARC_EMBER_PRISTINE_MASTER_PART_ID,
   ARC_EMBER_ROLE_PRESETS,
@@ -74,6 +78,9 @@ type Props = {
   hostBrandRecipes?: BrandRecipe[];
   onSaveBrandRecipe?: (recipe: BrandRecipe) => void;
   onInsertSignatureAsset?: (asset: SignatureAssetDefinition) => void;
+  signatureEntitlementKeys?: readonly SignatureEntitlementKey[];
+  signatureAssembly?: SignatureAssemblyAuthoringState | null;
+  onSignatureAssemblyChange?: (state: SignatureAssemblyAuthoringState, label: string) => void;
 };
 
 const DRAWER_ORDER: VisualPartsDrawerId[] = [
@@ -153,19 +160,21 @@ function PartTile({
   );
 }
 
-function SignatureAssetTile({ asset, onInsert }: { asset: SignatureAssetDefinition; onInsert?: (asset: SignatureAssetDefinition) => void }) {
+function SignatureAssetTile({ asset, onInsert, disabledReason }: { asset: SignatureAssetDefinition; onInsert?: (asset: SignatureAssetDefinition) => void; disabledReason?: string }) {
   const payload = signatureAssetInsert(asset);
   return (
     <button
       type="button"
-      draggable
-      title={`${asset.label} · drag onto Card`}
+      draggable={!disabledReason}
+      disabled={Boolean(disabledReason)}
+      title={disabledReason || `${asset.label} · drag onto Card`}
       data-testid={`signature-asset-${asset.id.replaceAll("/", "-")}`}
       data-signature-asset-id={asset.id}
       data-signature-source-sha256={asset.sourceSha256}
       className="group relative min-h-24 overflow-hidden rounded border border-[#d56c2d]/35 bg-[#090604] p-2 text-left hover:border-[#f0a05e]/75"
-      onClick={() => onInsert?.(asset)}
+      onClick={() => { if (!disabledReason) onInsert?.(asset); }}
       onDragStart={(event) => {
+        if (disabledReason) return;
         event.dataTransfer.effectAllowed = "copy";
         event.dataTransfer.setData("application/x-tap-card-composer", JSON.stringify(payload));
       }}
@@ -174,6 +183,7 @@ function SignatureAssetTile({ asset, onInsert }: { asset: SignatureAssetDefiniti
       <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black via-black/85 to-transparent px-2 pb-1.5 pt-5">
         <span className="block font-semibold text-[#ffe1c2]">{asset.label}</span>
         <span className="block text-[8px] uppercase tracking-wide text-white/55">{asset.role} · drag to Card</span>
+        {disabledReason ? <span className="block text-[8px] text-amber-200">{disabledReason}</span> : null}
       </span>
     </button>
   );
@@ -187,15 +197,20 @@ export function VisualPartsCabinetPanel({
   hostBrandRecipes = [],
   onSaveBrandRecipe,
   onInsertSignatureAsset,
+  signatureEntitlementKeys = [],
+  signatureAssembly = null,
+  onSignatureAssemblyChange,
 }: Props) {
   const [drawer, setDrawer] = useState<VisualPartsDrawerId>("curated");
   const [collection, setCollection] = useState<VisualPartCollection>("foundation");
-  const [signatureFamilyId, setSignatureFamilyId] = useState(ARC_EMBER_SIGNATURE_FAMILY_ID);
+  const [signatureFamilyId, setSignatureFamilyId] = useState(signatureAssembly?.input.familyId ?? ARC_EMBER_SIGNATURE_FAMILY_ID);
   const [signatureSubgroup, setSignatureSubgroup] = useState<SignatureSubgroup>("actions");
   const [brandRecipeName, setBrandRecipeName] = useState("");
   const state = readVisualPartsState(props);
   const brandRecipes = useMemo(() => listBrandRecipes(hostBrandRecipes), [hostBrandRecipes]);
   const contract = VISUAL_PARTS_DRAWER_CONTRACT[drawer];
+  const signatureCatalog = useMemo(() => listSignatureAuthoringFamilies(signatureEntitlementKeys), [signatureEntitlementKeys]);
+  const selectedSignatureFamily = signatureCatalog.find((entry) => entry.family.id === signatureFamilyId) ?? signatureCatalog[0];
 
   const parts = useMemo(() => {
     const listed = listVisualParts({
@@ -286,14 +301,25 @@ export function VisualPartsCabinetPanel({
           <div>
             <p className="mb-1 text-[9px] font-semibold uppercase tracking-wider text-white/45">Family</p>
             <div className="flex flex-wrap gap-1">
-              {SIGNATURE_FAMILIES.map((family)=><button key={family.id} type="button" aria-pressed={signatureFamilyId===family.id} data-testid={`signature-family-${family.slug}`} className={`rounded border px-2 py-1 text-[10px] ${signatureFamilyId===family.id?"border-[#f0a05e]/80 bg-[#6f2e13]/35 text-[#ffe1c2]":"border-white/15 text-white/60"}`} onClick={()=>setSignatureFamilyId(family.id)}>{family.label}</button>)}
+              {signatureCatalog.map((entry)=><button key={entry.family.id} type="button" aria-pressed={signatureFamilyId===entry.family.id} aria-label={`${entry.family.label}${entry.access.selectable ? "" : " locked"}`} data-testid={`signature-family-${entry.family.slug}`} data-signature-locked={entry.access.selectable ? "false" : "true"} className={`rounded border px-2 py-1 text-[10px] outline-none focus-visible:ring-2 focus-visible:ring-[#b8ff2c]/40 ${signatureFamilyId===entry.family.id?"border-[#f0a05e]/80 bg-[#6f2e13]/35 text-[#ffe1c2]":"border-white/15 text-white/60"}`} onClick={()=>setSignatureFamilyId(entry.family.id)}>{entry.family.label}{entry.access.selectable ? "" : " · Locked"}</button>)}
             </div>
           </div>
+          {selectedSignatureFamily ? <div className="rounded border border-white/10 bg-black/20 p-2 text-[9px] text-white/55" data-testid="signature-family-status" style={selectedSignatureFamily.previewAsset ? { backgroundImage:`linear-gradient(90deg,rgba(0,0,0,.92),rgba(0,0,0,.55)),url('${selectedSignatureFamily.previewAsset.sourceAsset}')`, backgroundSize:"cover", backgroundPosition:"center" } : undefined}>
+            <p className="font-semibold text-white/80">{selectedSignatureFamily.certificationStatus} · {selectedSignatureFamily.launchMode || "legacy asset mode"}</p>
+            <p>{selectedSignatureFamily.runtimeEligible ? "Runtime assembly eligible" : "Individual component library"}{selectedSignatureFamily.access.publishable ? "" : " · publication entitlement required"}</p>
+          </div> : null}
+          {selectedSignatureFamily?.layouts.length && onSignatureAssemblyChange ? (
+            signatureAssembly?.input.familyId === selectedSignatureFamily.family.id ? (
+              <SignatureAssemblyAuthoringControls catalog={selectedSignatureFamily} state={signatureAssembly} disabled={!selectedSignatureFamily.access.selectable} onChange={onSignatureAssemblyChange} />
+            ) : (
+              <button type="button" className="min-h-10 w-full rounded border border-[#d56c2d]/45 px-3 text-[10px] text-[#ffe1c2] outline-none focus-visible:ring-2 focus-visible:ring-[#b8ff2c]/40 disabled:opacity-45" disabled={!selectedSignatureFamily.access.selectable} data-testid="signature-create-assembly" onClick={() => { const first = selectedSignatureFamily.layouts[0]; const next = first && createSignatureAssemblyAuthoringState(selectedSignatureFamily.family.id, first.layoutMode); if (next) onSignatureAssemblyChange(next, `Created ${selectedSignatureFamily.family.label} assembly`); }}>{selectedSignatureFamily.access.selectable ? "Create certified assembly" : "Locked · entitlement required"}</button>
+            )
+          ) : null}
           <div className="flex flex-wrap gap-1" data-testid="signature-subgroup-rail">
             {SIGNATURE_SUBGROUPS.map((group)=><button key={group.id} type="button" aria-pressed={signatureSubgroup===group.id} data-testid={`signature-subgroup-${group.id}`} className={`rounded px-2 py-1 text-[9px] uppercase tracking-wide ${signatureSubgroup===group.id?"bg-[#d56c2d]/25 text-[#ffd6b0]":"text-white/50 hover:bg-white/10"}`} onClick={()=>setSignatureSubgroup(group.id)}>{group.label}</button>)}
           </div>
           <div className="grid grid-cols-2 gap-1.5" data-testid={`signature-assets-${signatureSubgroup}`}>
-            {listSignatureAssets({familyId:signatureFamilyId,subgroup:signatureSubgroup}).map((asset)=><SignatureAssetTile key={asset.id} asset={asset} onInsert={onInsertSignatureAsset} />)}
+            {listSignatureAssets({familyId:signatureFamilyId,subgroup:signatureSubgroup}).map((asset)=><SignatureAssetTile key={asset.id} asset={asset} disabledReason={selectedSignatureFamily && !selectedSignatureFamily.access.selectable ? "Locked" : undefined} onInsert={onInsertSignatureAsset} />)}
           </div>
           <p className="text-[9px] text-white/45">Drag a pristine master onto the Card. Live sockets remain editable through the existing Text, Icon/Media, Action, and accessibility controls.</p>
         </div>
