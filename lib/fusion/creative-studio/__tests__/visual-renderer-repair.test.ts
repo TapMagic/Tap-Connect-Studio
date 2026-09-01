@@ -85,7 +85,7 @@ describe("Visual Renderer Repair — Finish composes Material channels", () => {
 
 describe("Visual Renderer Repair — Surface Intensity / Depth", () => {
   it("Surface Intensity ladder mutates gradient / opacity / glow", () => {
-    let props = applyVisualPart({}, "action_surface_energy_field", { targetFamily: "container" });
+    const props = applyVisualPart({}, "action_surface_energy_field", { targetFamily: "container" });
     assert.equal(props.ok, true);
     if (!props.ok) return;
     const ladder = [0, 0.25, 0.5, 0.75, 1].map((intensity) =>
@@ -102,7 +102,7 @@ describe("Visual Renderer Repair — Surface Intensity / Depth", () => {
   });
 
   it("Quiet Field Intensity changes opacity/gradient without touching page background keys", () => {
-    let base = applyVisualPart(
+    const base = applyVisualPart(
       { pageBackground: "#112233", compositionBackground: "solid:#112233" },
       "action_surface_quiet_field",
       { targetFamily: "container" }

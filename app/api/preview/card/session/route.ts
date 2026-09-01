@@ -10,6 +10,8 @@ import {
   portFromOrigin,
   resolvePreviewBaseUrl,
 } from "@/lib/fusion/creative-studio/preview/url";
+import { inspectPreviewVisualResourcePortability } from "@/lib/fusion/creative-studio/preview/visual-resources";
+import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 
 export const runtime = "nodejs";
 
@@ -72,6 +74,15 @@ export async function POST(req: Request) {
     );
   }
 
+  if (inspectPreviewVisualResourcePortability({ snapshot: body.snapshot, profile: body.profile, logoUrl: body.logoUrl }).length > 0) {
+    return ownerFacingError(
+      "A committed image is not portable to Live Device",
+      "Phone preview was not created because the image exists only in this browser or machine.",
+      "Choose or upload the Asset through Studio so it receives a canonical MediaAsset reference, then try again.",
+      422
+    );
+  }
+
   const requestOrigin = new URL(req.url).origin;
   const assessment = resolvePreviewBaseUrl({
     requestOrigin,
@@ -89,7 +100,8 @@ export async function POST(req: Request) {
     revision: body.revision ?? 1,
     mode: body.mode === "freeze" ? "freeze" : "follow",
   });
-  const { url } = buildPreviewAbsoluteUrl(session.path, assessment);
+  const reviewPath = isLocalDevAuthEnabled() ? `${session.path}?debug=1` : session.path;
+  const { url } = buildPreviewAbsoluteUrl(reviewPath, assessment);
   const phoneSafeUrl =
     assessment.reachableForPhone && !/localhost|127\.0\.0\.1/.test(url) ? url : null;
 
@@ -147,6 +159,14 @@ export async function PATCH(req: Request) {
       "Generate a new Live device QR, then try again."
     );
   }
+  if (inspectPreviewVisualResourcePortability({ snapshot: body.snapshot, profile: body.profile }).length > 0) {
+    return ownerFacingError(
+      "A committed image is not portable to Live Device",
+      "Phone preview was not updated because the image exists only in this browser or machine.",
+      "Choose or upload the Asset through Studio so it receives a canonical MediaAsset reference, then try again.",
+      422
+    );
+  }
   const existing = getPreviewSession(body.token);
   if (!existing.ok || existing.record.businessId !== businessId) {
     return ownerFacingError(
@@ -193,7 +213,8 @@ export async function PATCH(req: Request) {
     requestOrigin,
     preferLanPort: portFromOrigin(requestOrigin),
   });
-  const path = `/preview/live/${body.token}`;
+  const basePath = `/preview/live/${body.token}`;
+  const path = isLocalDevAuthEnabled() ? `${basePath}?debug=1` : basePath;
   const { url } = buildPreviewAbsoluteUrl(path, assessment);
   const phoneSafeUrl =
     assessment.reachableForPhone && !/localhost|127\.0\.0\.1/.test(url) ? url : null;

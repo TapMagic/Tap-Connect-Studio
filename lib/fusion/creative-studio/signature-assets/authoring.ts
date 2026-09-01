@@ -1,4 +1,8 @@
 import type { CreativeCompositionBlock } from "../composition";
+import type { StudioCuratedAssemblyMutation } from "../platform/structured-assembly";
+import type { StudioSemanticResource } from "../platform/semantic-resource-slot";
+import { familyAppearanceContract, familyTextTreatmentContract } from "../platform/family-appearance-registry";
+import { validateFamilyAppearanceSelection, type FamilyTextTreatmentId } from "../platform/family-appearance";
 import {
   resolveSignatureAssembly,
   type SignatureAssemblyActionSelection,
@@ -14,14 +18,34 @@ import {
   type SignatureAssetDefinition,
   type SignatureEntitlementKey,
   type SignatureFamilyDefinition,
+  type SignatureTypographyRange,
 } from "./types";
 
 export const SIGNATURE_ASSEMBLY_AUTHORING_CONTRACT = "signatureAssemblyAuthoring@1.0.0" as const;
 
+export function normalizeSignatureActionCopy(value: string) {
+  return value.trim().replace(/\s+([!?.,;:])/g, "$1");
+}
+
 export type SignatureAssemblyAuthoringState = {
   contractId: typeof SIGNATURE_ASSEMBLY_AUTHORING_CONTRACT;
   input: SignatureAssemblyInput;
-  identityContent?: { src: string; alt: string };
+  identityContent?: StudioSemanticResource | { src: string; alt: string };
+  identityDefault?: StudioSemanticResource | { src: string; alt: string };
+  appearance?: {
+    contractId: string;
+    contractVersion: string;
+    semanticOptionIds: Readonly<Record<string, string>>;
+  };
+  textTreatment?: {
+    contractId: string;
+    contractVersion: string;
+    requested: FamilyTextTreatmentId;
+  };
+  lastAuthoringCommand?: {
+    commandId: string;
+    provenance: "host" | "tapit" | "system";
+  };
 };
 
 export type SignatureAuthoringLayoutOption = {
@@ -53,10 +77,6 @@ export type SignatureAuthoringFamily = {
   plugs: readonly SignatureAssetDefinition[];
   informationalComponents: readonly SignatureAssetDefinition[];
 };
-
-function layoutModeForRecipe(kind: "row" | "paired-level"): SignatureAssemblyLayoutMode {
-  return kind === "row" ? "single-stack" : "twin-rail";
-}
 
 function runtimeAssets(familyId: string) {
   return SIGNATURE_ASSETS.filter(
@@ -98,8 +118,8 @@ export function listSignatureAuthoringFamilies(
       entitled,
       runtimeEligible: family.lifecycle === "production" && recipes.length > 0 && assets.length > 0,
       layouts: recipes.map((recipe) => ({
-        layoutMode: layoutModeForRecipe(recipe.actionUnit.kind),
-        label: recipe.actionUnit.kind === "row" ? "Single Stack" : "Twin Rail",
+        layoutMode: recipe.presentationMode,
+        label: recipe.presentationMode === "standalone" ? "Standalone Action" : recipe.presentationMode === "single-stack" ? "Single Stack" : "Twin Rail",
         recipeId: recipe.recipeId,
         recipeVersion: recipe.recipeVersion,
         launchCertifiedActionCounts: recipe.certificationLimits.launchCertifiedActionCounts,
@@ -118,23 +138,66 @@ function familyEntry(familyId: string) {
   ).find((entry) => entry.family.id === familyId);
 }
 
-function createAction(index: number, plugComponentId: string, idFactory: () => string): SignatureAssemblyActionSelection {
-  const ordinal = index + 1;
+function typographyRange(familyId: string, layoutMode: SignatureAssemblyLayoutMode) {
+  return SIGNATURE_ASSETS.find((asset) =>
+    asset.familyId === familyId
+    && asset.assetKind === "action"
+    && asset.normalizedContract?.liveContentGeometry?.presentationTypography?.[layoutMode]
+  )?.normalizedContract?.liveContentGeometry?.presentationTypography?.[layoutMode];
+}
+
+function normalizePrecisionValue(value: number | undefined, precision: SignatureTypographyRange) {
+  const requested = Number.isFinite(value) ? value! : precision.defaultPx;
+  const clamped = Math.max(precision.minPx, Math.min(precision.maxPx, requested));
+  const stepped = precision.minPx + Math.round((clamped - precision.minPx) / precision.stepPx) * precision.stepPx;
+  return Number(Math.max(precision.minPx, Math.min(precision.maxPx, stepped)).toFixed(3));
+}
+
+export function normalizeSignatureActionTypography(
+  action: SignatureAssemblyActionSelection,
+  familyId: string,
+  layoutMode: SignatureAssemblyLayoutMode,
+) {
+  const precision = typographyRange(familyId, layoutMode);
+  return precision
+    ? { ...action, textSizePx: normalizePrecisionValue(action.textSizePx, precision) }
+    : action;
+}
+
+export function normalizeSignatureAssemblyAuthoringState(state: SignatureAssemblyAuthoringState): SignatureAssemblyAuthoringState {
   return {
+    ...state,
+    input: {
+      ...state.input,
+      actions: state.input.actions.map((action) => normalizeSignatureActionTypography({
+        ...action,
+        label: normalizeSignatureActionCopy(action.label),
+        accessibilityLabel: normalizeSignatureActionCopy(action.accessibilityLabel),
+      }, state.input.familyId, state.input.layoutMode)),
+    },
+  };
+}
+
+function createAction(index: number, plugComponentId: string, idFactory: () => string, familyId: string, layoutMode: SignatureAssemblyLayoutMode): SignatureAssemblyActionSelection {
+  const ordinal = index + 1;
+  return normalizeSignatureActionTypography({
     id: idFactory(),
     label: `Action ${ordinal}`,
     destination: "#",
+    actionType: "website",
     plugComponentId,
     accessibilityLabel: `Action ${ordinal}`,
     state: "default",
     analyticsId: `signature-action-${ordinal}`,
-  };
+    textAlign: "center",
+    textSize: "medium",
+  }, familyId, layoutMode);
 }
 
 export function createSignatureAssemblyAuthoringState(
   familyId: string,
   layoutMode: SignatureAssemblyLayoutMode,
-  options: { idFactory?: () => string; identityContent?: { src: string; alt: string } } = {},
+  options: { idFactory?: () => string; identityContent?: StudioSemanticResource | { src: string; alt: string }; identityDefault?: StudioSemanticResource | { src: string; alt: string } } = {},
 ): SignatureAssemblyAuthoringState | null {
   const entry = familyEntry(familyId);
   const layout = entry?.layouts.find((candidate) => candidate.layoutMode === layoutMode);
@@ -144,6 +207,9 @@ export function createSignatureAssemblyAuthoringState(
   const idFactory = options.idFactory ?? (() => `signature-action-${Date.now().toString(36)}-${++counter}`);
   const count = layout.launchCertifiedActionCounts[0];
   const variant = entry.variants[0];
+  const appearance = familyAppearanceContract(familyId);
+  const treatment = familyTextTreatmentContract(familyId);
+  const defaultTreatment = treatment?.options.find((option) => option.certified);
   return {
     contractId: SIGNATURE_ASSEMBLY_AUTHORING_CONTRACT,
     input: {
@@ -153,11 +219,22 @@ export function createSignatureAssemblyAuthoringState(
       recipeVersion: layout.recipeVersion,
       requestedActionCount: count,
       layoutMode,
-      actions: Array.from({ length: count }, (_, index) => createAction(index, plug, idFactory)),
+      actions: Array.from({ length: count }, (_, index) => createAction(index, plug, idFactory, familyId, layoutMode)),
       componentVariants: variant ? { [variant.role]: variant.componentId } : {},
       decorativeFurniture: {},
     },
-    identityContent: options.identityContent,
+    ...(options.identityContent ? { identityContent: options.identityContent } : {}),
+    ...(options.identityDefault ? { identityDefault: options.identityDefault } : {}),
+    appearance: appearance ? {
+      contractId: appearance.id,
+      contractVersion: appearance.version,
+      semanticOptionIds: appearance.defaults,
+    } : undefined,
+    textTreatment: treatment && defaultTreatment ? {
+      contractId: treatment.id,
+      contractVersion: treatment.version,
+      requested: defaultTreatment.id,
+    } : undefined,
   };
 }
 
@@ -170,8 +247,8 @@ function withActionCount(state: SignatureAssemblyAuthoringState, count: number, 
   let counter = 0;
   const makeId = idFactory ?? (() => `signature-action-${Date.now().toString(36)}-${++counter}`);
   const actions = state.input.actions.slice(0, count);
-  while (actions.length < count) actions.push(createAction(actions.length, defaultPlug, makeId));
-  return { ...state, input: { ...state.input, requestedActionCount: count, actions } };
+  while (actions.length < count) actions.push(createAction(actions.length, defaultPlug, makeId, state.input.familyId, state.input.layoutMode));
+  return normalizeSignatureAssemblyAuthoringState({ ...state, input: { ...state.input, requestedActionCount: count, actions } });
 }
 
 export function setSignatureActionCount(state: SignatureAssemblyAuthoringState, count: number, idFactory?: () => string) {
@@ -201,7 +278,36 @@ export function updateSignatureAction(
   actionId: string,
   patch: Partial<Omit<SignatureAssemblyActionSelection, "id">>,
 ) {
-  return { ...state, input: { ...state.input, actions: state.input.actions.map((action) => action.id === actionId ? { ...action, ...patch } : action) } };
+  const normalizedPatch = {
+    ...patch,
+    ...(typeof patch.label === "string" ? { label: normalizeSignatureActionCopy(patch.label) } : {}),
+    ...(typeof patch.accessibilityLabel === "string" ? { accessibilityLabel: normalizeSignatureActionCopy(patch.accessibilityLabel) } : {}),
+  };
+  return normalizeSignatureAssemblyAuthoringState({ ...state, input: { ...state.input, actions: state.input.actions.map((action) => action.id === actionId ? { ...action, ...normalizedPatch } : action) } });
+}
+
+export function setSignatureIdentityContent(
+  state: SignatureAssemblyAuthoringState,
+  resource?: StudioSemanticResource,
+) {
+  if (resource && (!resource.src.trim() || !resource.alt.trim())) return state;
+  if (!resource && !state.identityContent) return state;
+  return { ...state, identityContent: resource };
+}
+
+export function setSignatureAppearanceOption(
+  state: SignatureAssemblyAuthoringState,
+  roleId: string,
+  optionId: string,
+) {
+  const contract = familyAppearanceContract(state.input.familyId);
+  if (!contract || state.appearance?.contractId !== contract.id) return state;
+  const role = contract.roles.find((candidate) => candidate.id === roleId);
+  if (!role?.options.some((option) => option.id === optionId && option.certified)) return state;
+  const semanticOptionIds = { ...contract.defaults, ...state.appearance.semanticOptionIds, [roleId]: optionId };
+  const validation = validateFamilyAppearanceSelection(contract, contract.roles.map((candidate) => semanticOptionIds[candidate.id]));
+  if (!validation.ok || state.appearance.semanticOptionIds[roleId] === optionId) return state;
+  return { ...state, appearance: { contractId: contract.id, contractVersion: contract.version, semanticOptionIds } };
 }
 
 export function setSignatureComponentVariant(state: SignatureAssemblyAuthoringState, role: string, componentId: string) {
@@ -218,12 +324,34 @@ export function compileSignatureAuthoringState(
   state: SignatureAssemblyAuthoringState,
   options: { blockId?: string; label?: string; background?: string } = {},
 ): SignatureCompositionAdapterResult {
-  const adapted = adaptSignatureAssemblyResult(resolveSignatureAssembly(state.input), {
+  const normalizedState = normalizeSignatureAssemblyAuthoringState(state);
+  const appearanceContract = familyAppearanceContract(normalizedState.input.familyId);
+  const textContract = familyTextTreatmentContract(normalizedState.input.familyId);
+  const semanticOptionIds = appearanceContract
+    ? { ...appearanceContract.defaults, ...(normalizedState.appearance?.contractId === appearanceContract.id ? normalizedState.appearance.semanticOptionIds : {}) }
+    : undefined;
+  const requestedTreatment = textContract?.options.find((option) => option.id === normalizedState.textTreatment?.requested && option.certified)
+    ?? textContract?.options.find((option) => option.certified);
+  const adapted = adaptSignatureAssemblyResult(resolveSignatureAssembly(normalizedState.input), {
     ...options,
-    fixtureContent: state.identityContent ? { identity: state.identityContent } : undefined,
+    fixtureContent: normalizedState.identityContent ? { identity: normalizedState.identityContent } : undefined,
+    appearance: appearanceContract && semanticOptionIds ? {
+      contractId: appearanceContract.id,
+      contractVersion: appearanceContract.version,
+      semanticOptionIds,
+      semanticRendererValues: Object.fromEntries(appearanceContract.roles.map((role) => {
+        const optionId = semanticOptionIds[role.id];
+        const option = role.options.find((candidate) => candidate.id === optionId && candidate.certified);
+        return [role.id, option?.rendererValue ?? "preserve-read-only"];
+      })),
+      textTreatmentContractId: textContract?.id,
+      textTreatmentContractVersion: textContract?.version,
+      textTreatmentId: requestedTreatment?.id,
+      textTreatmentRecipe: requestedTreatment?.rendererRecipe,
+    } : undefined,
   });
   if (!adapted.ok) return adapted;
-  return { ...adapted, composition: { ...adapted.composition, block: { ...adapted.composition.block, signatureAssembly: state } } };
+  return { ...adapted, composition: { ...adapted.composition, block: { ...adapted.composition.block, signatureAssembly: normalizedState } } };
 }
 
 function isAssemblyOwnedNode(node: CreativeCompositionBlock["nodes"][number]) {
@@ -262,7 +390,7 @@ export function mergeSignatureAssemblyComposition(
   }));
   return {
     ...compiled,
-    background: current.background,
+    background: current.background?.kind === "solid" && current.background.value === "#030303" ? { kind: "none" } : current.background,
     resourceRef: current.resourceRef,
     pageHeightPx,
     nodes: [...compiled.nodes, ...normalizedPreserved],
@@ -273,5 +401,117 @@ export function readSignatureAssemblyAuthoringState(block: CreativeCompositionBl
   const value = block.signatureAssembly;
   if (!value || value.contractId !== SIGNATURE_ASSEMBLY_AUTHORING_CONTRACT) return null;
   const result = resolveSignatureAssembly(value.input);
-  return result.ok ? value : null;
+  return result.ok ? normalizeSignatureAssemblyAuthoringState(value) : null;
+}
+
+/**
+ * Rebuilds derived Curated-System furniture from its canonical authored input.
+ *
+ * Stored nodes are a disposable projection: recipe/renderer corrections must be
+ * visible after reload (and in old published snapshots) without migrating or
+ * mutating the Host's labels, destinations, plugs, ordering, or identity data.
+ * Independently placed objects are retained by the shared merge authority.
+ */
+export function recompileSignatureAssemblyComposition(
+  block: CreativeCompositionBlock,
+): CreativeCompositionBlock {
+  const state = readSignatureAssemblyAuthoringState(block);
+  if (!state) return block;
+  const compiled = compileSignatureAuthoringState(state, {
+    blockId: block.id,
+    label: block.label,
+    background: block.background?.kind === "solid" && block.background.value !== "#030303" ? block.background.value : undefined,
+  });
+  return compiled.ok
+    ? mergeSignatureAssemblyComposition(block, compiled.composition.block)
+    : block;
+}
+
+/**
+ * Rebuilds every Curated projection in a composition tree. Curated Systems are
+ * commonly hosted by ordinary flow Modules, so repairing only the root block
+ * creates a Studio/runtime split for persisted nested assemblies.
+ */
+export function recompileSignatureAssemblyTree(block: CreativeCompositionBlock): CreativeCompositionBlock {
+  const recompiled = recompileSignatureAssemblyComposition(block);
+  return {
+    ...recompiled,
+    nodes: recompiled.nodes.map((node) => node.moduleComposition
+      ? { ...node, moduleComposition: recompileSignatureAssemblyTree(node.moduleComposition) }
+      : node),
+  };
+}
+
+export function applySignatureAssemblyMutation(
+  block: CreativeCompositionBlock,
+  mutation: StudioCuratedAssemblyMutation,
+): { ok: true; block: CreativeCompositionBlock; selectedActionId?: string } | { ok: false; message: string } {
+  const current = readSignatureAssemblyAuthoringState(block);
+  if (!current) return { ok: false, message: "This Curated assembly no longer has valid canonical inputs." };
+  if (mutation.type === "update-action") {
+    const action = current.input.actions.find((candidate) => candidate.id === mutation.actionId);
+    const size = mutation.patch.textSize ?? action?.textSize ?? "medium";
+    const label = mutation.patch.label ?? action?.label ?? "";
+    const geometry = SIGNATURE_ASSETS.find((asset) => asset.familyId === current.input.familyId && asset.assetKind === "action" && asset.normalizedContract?.liveContentGeometry?.recommendedCharacterCounts)?.normalizedContract?.liveContentGeometry;
+    const limit = geometry?.recommendedCharacterCounts?.[size];
+    if (limit && label.trim().length > limit) return { ok: false, message: `Shorten this label to ${limit} characters or fewer for ${size} text.` };
+    if (mutation.patch.textSizePx != null) {
+      const precision = geometry?.presentationTypography?.[current.input.layoutMode];
+      if (precision) {
+        const px = mutation.patch.textSizePx;
+        const limit = characterLimitForPrecision(precision, px);
+        if (px < precision.minPx || px > precision.maxPx) return { ok: false, message: `Choose a phone text size between ${precision.minPx} and ${precision.maxPx}px for ${current.input.layoutMode}.` };
+        if (label.trim().length > limit) return { ok: false, message: `Shorten this label to ${limit} characters or fewer at ${px}px.` };
+      } else {
+      const presets = geometry?.textSizePresetsPxAt390;
+      const counts = geometry?.recommendedCharacterCounts;
+      const allowed = (["small", "medium", "large"] as const).filter((candidate) => label.trim().length <= (counts?.[candidate] ?? Number.POSITIVE_INFINITY)).map((candidate) => presets?.[candidate]).filter((candidate): candidate is number => typeof candidate === "number");
+      const min = presets ? Math.min(...Object.values(presets)) : 10;
+      const max = allowed.length ? Math.max(...allowed) : min;
+      if (mutation.patch.textSizePx < min || mutation.patch.textSizePx > max) return { ok: false, message: `Choose a phone text size between ${min} and ${max}px for this label.` };
+      }
+    }
+  }
+  const mutated = mutation.type === "update-action"
+    ? updateSignatureAction(current, mutation.actionId, mutation.patch)
+    : mutation.type === "reorder-action"
+      ? reorderSignatureAction(current, mutation.from, mutation.to)
+      : mutation.type === "set-action-count"
+        ? setSignatureActionCount(current, mutation.count)
+        : mutation.type === "set-resource-slot"
+          ? mutation.slotId === "identity" ? setSignatureIdentityContent(current, mutation.resource) : current
+          : mutation.type === "set-appearance-option"
+            ? setSignatureAppearanceOption(current, mutation.roleId, mutation.optionId)
+            : setSignatureLayout(current, mutation.layoutMode);
+  const next = mutated === current ? current : mutation.commandId && mutation.provenance
+    ? { ...mutated, lastAuthoringCommand: { commandId: mutation.commandId, provenance: mutation.provenance } }
+    : mutated;
+  if (next === current) return { ok: false, message: "That change is outside this Curated recipe’s certified limits." };
+  const familyLabel = familyEntry(next.input.familyId)?.family.label ?? block.label;
+  const nextLabel = mutation.type === "set-layout"
+    ? `${familyLabel} ${mutation.layoutMode === "standalone" ? "Standalone Action" : mutation.layoutMode === "twin-rail" ? "Twin Rail" : "Single Stack"}`
+    : block.label;
+  const compiled = compileSignatureAuthoringState(next, {
+    blockId: block.id,
+    label: nextLabel,
+    background: block.background?.kind === "solid" && block.background.value !== "#030303" ? block.background.value : undefined,
+  });
+  if (!compiled.ok) return { ok: false, message: compiled.errors.map((error) => error.message).join(" ") };
+  return {
+    ok: true,
+    block: mergeSignatureAssemblyComposition(block, compiled.composition.block),
+    selectedActionId: mutation.type === "update-action" ? mutation.actionId : undefined,
+  };
+}
+
+function characterLimitForPrecision(
+  precision: SignatureTypographyRange,
+  px: number,
+) {
+  if (px <= precision.defaultPx) {
+    const progress = (px - precision.minPx) / Math.max(.001, precision.defaultPx - precision.minPx);
+    return Math.floor(precision.characterLimits.atMin + (precision.characterLimits.atDefault - precision.characterLimits.atMin) * progress);
+  }
+  const progress = (px - precision.defaultPx) / Math.max(.001, precision.maxPx - precision.defaultPx);
+  return Math.floor(precision.characterLimits.atDefault + (precision.characterLimits.atMax - precision.characterLimits.atDefault) * progress);
 }

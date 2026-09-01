@@ -6,6 +6,7 @@ import {
   type SignatureSide,
   type SignatureSocketContractId,
 } from "./types";
+import type { SignatureAssemblyLayoutMode } from "./assembly";
 
 export type SignatureAssemblyComponentReference = {
   role: string;
@@ -39,7 +40,7 @@ export type SignatureRepeatInterval = {
   normalizedStride: number;
   preferredOverlapPx: number;
   maximumSeamOverlapPx: number;
-  placement: "between-action-units";
+  placement: "between-action-units" | "action-unit-chassis";
 };
 
 export type SignatureOddActionTreatment =
@@ -64,8 +65,34 @@ export type SignatureAssemblyVerticalReference =
   | "assembly-origin"
   | "unit-start"
   | "content-end"
+  | "termination-start"
   | "odd-action-end"
   | "transition-end";
+
+export type SignatureStructuralAttachment = Readonly<{
+  attachmentRole: "incoming" | "continuation" | "termination" | "decorative-free-end";
+  startAnchor: string;
+  endAnchor: string;
+  expectedNeighborRoles: readonly string[];
+  visualSeamTolerancePx: number;
+  zOrderRelationship: "above-neighbor" | "below-neighbor" | "same-plane";
+  /**
+   * Named, visible attachment surfaces. These deliberately do not use source
+   * canvas bounds: transparent padding is not material and cannot prove that
+   * certified furniture is mechanically connected.
+   */
+  visibleRelationships?: readonly Readonly<{
+    id: string;
+    sourceAnchor: string;
+    destinationRole: string;
+    destinationAnchor: string;
+    destinationOccurrence: "first" | "last" | "same-level";
+    when?: "always" | "even-action-count" | "odd-action-count";
+    direction: "vertical" | "horizontal" | "point";
+    contact: "meet" | "overlap";
+    tolerancePx: number;
+  }>[];
+}>;
 
 export type SignatureAssemblyPlacementRule = {
   role: string;
@@ -77,19 +104,48 @@ export type SignatureAssemblyPlacementRule = {
   zOrder: number;
   attachmentAnchorId?: string;
   targetXPx?: number;
+  structuralAttachment?: SignatureStructuralAttachment;
 };
 
 export type SignatureAssemblyGeometryContract = {
   coordinateWidthPx: number;
   unitStridePx: number;
+  actionPresentation?: {
+    mode: "compact-stacked";
+    /** One deterministic row envelope in recipe-native coordinates. */
+    rowHeightPx: number;
+    /** Minimum clear material retained above and below raised plug hardware. */
+    plugVerticalInsetPx: number;
+    preservePlugAspectRatio: true;
+  };
+  /**
+   * Moves the complete governed content run relative to fixed crown/topper
+   * furniture. A negative value deliberately tucks the first action chassis
+   * beneath the crown, removing transparent source-canvas air without
+   * changing certified assets or allowing individual parts to drift.
+   */
+  contentOriginOffsetPx?: number;
+  /**
+   * Projection-only overlap used to make transparent, full-canvas source
+   * parts read as one manufactured object. This is deliberately distinct
+   * from repeatInterval.preferredOverlapPx: the certified source seam stays
+   * unchanged while the runtime recipe owns visual continuation.
+   */
+  visualContinuationOverlapPx?: number;
   fixedTop: readonly SignatureAssemblyPlacementRule[];
   actionSlots: readonly SignatureAssemblyPlacementRule[];
   repeatComponents: readonly SignatureAssemblyPlacementRule[];
-  structuralTermination: SignatureAssemblyPlacementRule;
+  structuralTermination?: SignatureAssemblyPlacementRule;
   decorativeTermination?: SignatureAssemblyPlacementRule;
   oddAction?: {
     action: SignatureAssemblyPlacementRule;
     transition: SignatureAssemblyPlacementRule;
+    /**
+     * Projection-only overlap between the full-width odd action canvas and
+     * its non-action transition. The compiler uses this to close transparent
+     * source padding while keeping both certified source images immutable.
+     */
+    visualContinuationOverlapPx?: number;
   };
 };
 
@@ -99,13 +155,20 @@ export type SignatureAssemblyRecipe = {
   familyVersion: `${number}.${number}.${number}`;
   recipeId: string;
   recipeVersion: `${number}.${number}.${number}`;
+  presentationMode: SignatureAssemblyLayoutMode;
   fixedTop: readonly SignatureAssemblyComponentReference[];
   actionUnit: SignatureLiveActionUnit;
   repeatInterval?: SignatureRepeatInterval;
-  structuralTermination: SignatureAssemblyComponentReference;
+  structuralTermination?: SignatureAssemblyComponentReference;
   optionalDecorativeTermination?: SignatureAssemblyComponentReference;
   oddActionTreatment: SignatureOddActionTreatment;
   attachmentOrder: readonly string[];
+  /**
+   * Opts a Curated recipe into fail-closed endpoint coverage. Every piece of
+   * structural furniture declared by the recipe must then state its incoming,
+   * continuation, termination, or intentionally free endpoint contract.
+   */
+  structuralAttachmentPolicy?: "complete";
   certificationLimits: SignatureAssemblyCertificationLimits;
   geometry: SignatureAssemblyGeometryContract;
 };
@@ -121,7 +184,7 @@ export function validateSignatureAssemblyRecipe(recipe: SignatureAssemblyRecipe)
   if (!isSignatureContractId(recipe.contractId, expectedContract)) {
     errors.push(`contractId must be a versioned ${expectedContract} contract`);
   }
-  if (recipe.fixedTop.length === 0) errors.push("fixedTop must contain at least one structural component");
+  if (recipe.presentationMode !== "standalone" && recipe.fixedTop.length === 0) errors.push("assembled presentations require at least one fixed structural component");
   if (recipe.actionUnit.capacity < 1) errors.push("actionUnit capacity must be positive");
   if (recipe.repeatInterval) {
     if (recipe.repeatInterval.nativeStridePx <= 0) errors.push("repeat stride must be positive");
@@ -157,6 +220,24 @@ export function validateSignatureAssemblyRecipe(recipe: SignatureAssemblyRecipe)
   if (recipe.geometry.coordinateWidthPx <= 0 || recipe.geometry.unitStridePx <= 0) {
     errors.push("assembly geometry requires positive coordinate width and unit stride");
   }
+  if (recipe.geometry.actionPresentation) {
+    const presentation=recipe.geometry.actionPresentation;
+    if (presentation.rowHeightPx<=0 || presentation.plugVerticalInsetPx<0 || presentation.plugVerticalInsetPx*2>=presentation.rowHeightPx) {
+      errors.push("compact-stacked presentation requires a positive row height and bounded plug inset");
+    }
+    if (Math.abs(presentation.rowHeightPx-recipe.geometry.unitStridePx)>.001) {
+      errors.push("compact-stacked row height must equal the governed assembly unit stride");
+    }
+  }
+  if (!Number.isFinite(recipe.geometry.contentOriginOffsetPx ?? 0)) {
+    errors.push("assembly content origin offset must be finite");
+  }
+  if ((recipe.geometry.visualContinuationOverlapPx ?? 0) < 0) {
+    errors.push("visual continuation overlap cannot be negative");
+  }
+  if ((recipe.geometry.oddAction?.visualContinuationOverlapPx ?? 0) < 0) {
+    errors.push("odd-action visual continuation overlap cannot be negative");
+  }
   if (recipe.geometry.actionSlots.length === 0) errors.push("assembly geometry requires at least one action slot");
   if (recipe.geometry.repeatComponents.length !== (recipe.repeatInterval?.components.length ?? 0)) {
     errors.push("repeat placement rules must match repeat interval components");
@@ -176,7 +257,8 @@ export function validateSignatureAssemblyRecipe(recipe: SignatureAssemblyRecipe)
   actionMasters.forEach((component)=>{
     if (!recipe.geometry.actionSlots.some((rule)=>rule.role===component.role && (!component.side || rule.side===component.side))) errors.push(`action placement must cover role ${component.role}${component.side?` on ${component.side}`:""}`);
   });
-  if (recipe.geometry.structuralTermination.role!==recipe.structuralTermination.role) errors.push("structural termination placement must match its component role");
+  if (Boolean(recipe.geometry.structuralTermination) !== Boolean(recipe.structuralTermination)) errors.push("structural termination component and placement must be declared together");
+  if (recipe.geometry.structuralTermination && recipe.structuralTermination && recipe.geometry.structuralTermination.role!==recipe.structuralTermination.role) errors.push("structural termination placement must match its component role");
   if (recipe.optionalDecorativeTermination && recipe.geometry.decorativeTermination?.role!==recipe.optionalDecorativeTermination.role) errors.push("decorative termination placement must match its component role");
   if (recipe.oddActionTreatment.mode==="full-width-after-complete-pairs") {
     if (recipe.geometry.oddAction?.action.role!==recipe.oddActionTreatment.finalActionMaster.role) errors.push("odd-action placement must match the final action role");
@@ -186,13 +268,34 @@ export function validateSignatureAssemblyRecipe(recipe: SignatureAssemblyRecipe)
     ...recipe.geometry.fixedTop,
     ...recipe.geometry.actionSlots,
     ...recipe.geometry.repeatComponents,
-    recipe.geometry.structuralTermination,
+    ...(recipe.geometry.structuralTermination ? [recipe.geometry.structuralTermination] : []),
     ...(recipe.geometry.decorativeTermination?[recipe.geometry.decorativeTermination]:[]),
     ...(recipe.geometry.oddAction?[recipe.geometry.oddAction.action,recipe.geometry.oddAction.transition]:[]),
   ];
+  if (recipe.structuralAttachmentPolicy === "complete") {
+    const structuralRules = [
+      ...recipe.geometry.fixedTop,
+      ...recipe.geometry.repeatComponents,
+      ...(recipe.geometry.structuralTermination ? [recipe.geometry.structuralTermination] : []),
+      ...(recipe.geometry.oddAction ? [recipe.geometry.oddAction.transition] : []),
+    ];
+    structuralRules.forEach((rule) => {
+      if (!rule.structuralAttachment) errors.push(`${rule.role} must declare its structural attachment intent`);
+    });
+  }
   if (placementRules.some((rule)=>!Number.isFinite(rule.xPx)||!Number.isFinite(rule.yOffsetPx)||!Number.isFinite(rule.scale)||rule.scale<=0)) {
     errors.push("assembly placement rules require finite coordinates and positive scale");
   }
+  placementRules.forEach((rule) => {
+    const attachment = rule.structuralAttachment;
+    if (!attachment) return;
+    if (!attachment.startAnchor || !attachment.endAnchor || attachment.expectedNeighborRoles.length === 0) errors.push(`${rule.role} has an incomplete structural attachment invariant`);
+    if (!Number.isFinite(attachment.visualSeamTolerancePx) || attachment.visualSeamTolerancePx < 0) errors.push(`${rule.role} has an invalid structural seam tolerance`);
+    for (const relationship of attachment.visibleRelationships ?? []) {
+      if (relationship.tolerancePx < 0 || !Number.isFinite(relationship.tolerancePx)) errors.push(`${rule.role} visible relationship ${relationship.id} requires a finite non-negative tolerance`);
+      if (!relationship.sourceAnchor || !relationship.destinationAnchor || !relationship.destinationRole) errors.push(`${rule.role} visible relationship ${relationship.id} is incomplete`);
+    }
+  });
   return errors;
 }
 

@@ -40,7 +40,7 @@ import {
 import { MATURITY_GROUP_META } from "@/lib/fusion/studio/integration-maturity";
 import { ZONE_TOKENS, type StudioZoneId } from "@/lib/fusion/studio/zone-tokens";
 import { TAP_THE_MAGIC_LOGO } from "@/lib/brand/assets";
-import { isClerkClientConfigured } from "@/lib/utils/clerk-client";
+import { useClerkRuntimeEnabled } from "@/components/auth/auth-runtime-provider";
 import { cn } from "@/lib/utils";
 import type { TapConnectIconId } from "@/lib/fusion/icons/registry";
 import "./card-centered-landing.css";
@@ -218,7 +218,7 @@ export function CardCenteredLanding() {
   const [activeDeepDiveId, setActiveDeepDiveId] = useState<string>(
     DEEP_DIVES[0]?.id ?? ""
   );
-  const clerkConfigured = isClerkClientConfigured();
+  const clerkConfigured = useClerkRuntimeEnabled();
   const demoCard = demoCardSnapshot();
   const petHref = siblingProductHref(SIBLING_PRODUCTS.petFinder);
   const stayHref = siblingProductHref(SIBLING_PRODUCTS.tapStay);

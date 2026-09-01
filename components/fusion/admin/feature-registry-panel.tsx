@@ -30,6 +30,7 @@ export function FeatureRegistryPanel({
   const [pillar, setPillar] = useState<string>("all");
   const [overrides, setOverrides] = useState(initialOverrides);
   const [reason, setReason] = useState("Admin activation");
+  const [scope, setScope] = useState("global");
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [pendingToggle, setPendingToggle] = useState<{
@@ -43,8 +44,15 @@ export function FeatureRegistryPanel({
       listRegistryStatus({
         overrides,
         internalOperator,
+        subject: scope.startsWith("user:")
+          ? { userId: scope.slice(5) }
+          : scope.startsWith("business:")
+            ? { businessId: scope.slice(9) }
+            : scope.startsWith("cohort:")
+              ? { cohortIds: [scope.slice(7)] }
+              : undefined,
       }),
-    [overrides, internalOperator]
+    [overrides, internalOperator, scope]
   );
 
   const pillars = useMemo(
@@ -67,7 +75,7 @@ export function FeatureRegistryPanel({
         body: JSON.stringify({
           featureId: row.id,
           enabled: nextEnabled,
-          scope: "global",
+          scope: scope.trim() || "global",
           reason: reason.trim(),
         }),
       });
@@ -143,6 +151,15 @@ export function FeatureRegistryPanel({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Why is this changing?"
+          />
+        </div>
+        <div className="min-w-[190px] flex-1 space-y-1">
+          <p className="text-xs font-medium text-muted-foreground">Override scope</p>
+          <Input
+            value={scope}
+            onChange={(e) => setScope(e.target.value)}
+            placeholder="global, user:id, business:id, cohort:id"
+            aria-label="Feature override scope"
           />
         </div>
         <div className="space-y-1">

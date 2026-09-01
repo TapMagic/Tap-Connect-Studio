@@ -41,7 +41,7 @@ test("composer library exposes one blank generic Section plus populated Section 
   for (const item of CARD_ELEMENT_LIBRARY) {
     const element = createCardElement(item.kind as Parameters<typeof createCardElement>[0]);
     assert.equal(element.props.elementKind, item.kind);
-    assert.equal(element.props.borderWidth, 0);
+    assert.equal(element.props.borderWidth, item.kind === "coupon" ? 1 : 0);
   }
 });
 

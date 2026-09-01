@@ -490,10 +490,12 @@ export function applyCuratedFamily(
   // Top Shelf Enhanced package — dedicated recipe apply preserves layered package paint.
   if (familyId === "family_top_shelf_premium_action") {
     // Lazy import avoids circular init with packages/top-shelf/recipe.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { applyTopShelfPremiumAction } = require("./packages/top-shelf/recipe") as typeof import("./packages/top-shelf/recipe");
     return applyTopShelfPremiumAction(props, targetFamily);
   }
   if (familyId === "family_cosmic_glass_signature") {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const { applyCosmicGlassSignature } = require("./packages/cosmic-glass/recipe") as typeof import("./packages/cosmic-glass/recipe");
     return applyCosmicGlassSignature(props, targetFamily);
   }

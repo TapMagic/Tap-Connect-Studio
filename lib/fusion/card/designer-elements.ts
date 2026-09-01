@@ -233,11 +233,24 @@ export function buildButtonHref(props: Record<string, unknown>): string | undefi
   const action = typeof props.actionType === "string" ? props.actionType : "website";
   const destination = typeof props.href === "string" ? props.href.trim() : "";
   if (action === "directions") return buildMapHref(props as MapElementProps);
+  if (action === "map") {
+    if (/^https?:\/\//i.test(destination)) return safeHttpUrl(destination);
+    return destination
+      ? `https://maps.google.com/?q=${encodeURIComponent(destination)}`
+      : undefined;
+  }
   if (action === "call") {
-    const phone = destination.replace(/[^+\d]/g, "");
+    const phone = destination.replace(/^tel:/i, "").replace(/[^+\d]/g, "");
     return phone ? `tel:${phone}` : undefined;
   }
-  if (action === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(destination) ? `mailto:${destination}` : undefined;
+  if (action === "email") {
+    const email = destination.replace(/^mailto:/i, "");
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? `mailto:${email}` : undefined;
+  }
+  if (action === "sms" || action === "text") {
+    const phone = destination.replace(/^(?:sms|smsto):/i, "").replace(/[^+\d]/g, "");
+    return phone ? `sms:${phone}` : undefined;
+  }
   if (action === "tapsave") return "#save-card";
   return safeHttpUrl(destination);
 }

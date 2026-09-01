@@ -942,6 +942,15 @@
   overflow: visible;
 }
 
+/* Studio's phone surface represents the complete usable Card viewport. */
+.builder-phone-authoritative {
+  overflow: visible;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
 /* Studio builder chrome — dark canvas + lime accents (Tap Connect) */
 .builder-studio {
   --builder-accent: #a3e635;
@@ -1166,9 +1175,9 @@
 
 .tcc-shell {
   background: color-mix(in srgb, var(--tcc-surface) calc(var(--tcc-surface-alpha, 1) * 100%), transparent);
-  border-radius: 0 0 1.25rem 1.25rem;
-  padding: 0 0.85rem 1rem;
-  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.35);
+  border-radius: 0;
+  padding: 0 0 1rem;
+  box-shadow: none;
 }
 
 /* When the composition owns the Card fill, do not paint a matching shell

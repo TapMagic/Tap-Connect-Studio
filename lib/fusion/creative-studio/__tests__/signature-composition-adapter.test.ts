@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { resolveSignatureAssembly, type SignatureAssemblyActionSelection, type SignatureAssemblyInput } from "../signature-assets/assembly";
-import { adaptSignatureAssemblyResult, adaptSignatureStandaloneComponent } from "../signature-assets/composition-adapter";
+import { adaptSignatureAssemblyResult, adaptSignatureStandaloneAction, adaptSignatureStandaloneComponent } from "../signature-assets/composition-adapter";
 import { CABINET_NOIR_ASSETS } from "../signature-assets/cabinet-noir";
 
 const action=(index:number,plugComponentId=index%2?"CN-026":"CN-013"):SignatureAssemblyActionSelection=>({id:`action-${index+1}`,label:`Fixture action ${index+1}`,destination:`https://example.com/${index+1}`,plugComponentId,accessibilityLabel:`Open fixture action ${index+1}`,state:"default",analyticsId:`fixture-${index+1}`});
@@ -26,11 +26,26 @@ test("adapter is deterministic and copies resolver geometry without recalculatio
   assert.equal(first.composition.block.nodes.length,resolved.plan.instances.length);
   resolved.plan.instances.forEach((instance,index)=>{
     const node=first.composition.block.nodes[index];
-    assert.equal(node.id,instance.instanceId);
+    assert.equal(node.id,`${first.composition.block.id}:${instance.instanceId}`);
+    assert.equal(node.props.signatureAssemblyInstanceId,first.composition.block.id);
+    assert.equal(node.props.signaturePartInstanceId,instance.instanceId);
     assert.deepEqual({x:node.x,y:node.y,width:node.width,height:node.height},instance.placement.normalized);
     assert.deepEqual(node.props.signatureNativePlacement,instance.placement.native);
     assert.deepEqual(node.props.signatureScaleAuthority,instance.placement.sourceScale);
   });
+});
+
+test("identical recipes inserted as separate Curated objects have disjoint node identity",()=>{
+  const resolved=resolveSignatureAssembly(request("twin-rail",2));
+  const first=adaptSignatureAssemblyResult(resolved,{blockId:"curated-one"});
+  const second=adaptSignatureAssemblyResult(resolved,{blockId:"curated-two"});
+  assert.equal(first.ok,true);
+  assert.equal(second.ok,true);
+  if(!first.ok||!second.ok)return;
+  const firstIds=new Set(first.composition.block.nodes.map((node)=>node.id));
+  assert.equal(second.composition.block.nodes.some((node)=>firstIds.has(node.id)),false);
+  assert.equal(first.composition.block.nodes.every((node)=>node.props.signatureAssemblyInstanceId==="curated-one"),true);
+  assert.equal(second.composition.block.nodes.every((node)=>node.props.signatureAssemblyInstanceId==="curated-two"),true);
 });
 
 test("certified sources, component versions, z-order, and provenance survive adaptation",()=>{
@@ -46,7 +61,7 @@ test("certified sources, component versions, z-order, and provenance survive ada
   });
 });
 
-test("actions remain accessible interactive nodes while furniture stays locked and decorative",()=>{
+test("actions remain accessible runtime nodes while every Curated output part stays transform-locked",()=>{
   const {composition}=adapted("twin-rail",3);
   const actions=composition.block.nodes.filter((node)=>node.props.signatureClassification==="live-action");
   assert.equal(actions.length,3);
@@ -55,7 +70,7 @@ test("actions remain accessible interactive nodes while furniture stays locked a
     assert.equal(typeof node.props.href,"string");
     assert.equal(typeof node.props.accessibleLabel,"string");
     assert.equal(typeof node.props.trackingName,"string");
-    assert.equal(node.locked,false);
+    assert.equal(node.locked,true);
   }
   const transition=composition.block.nodes.find((node)=>node.props.signatureRole==="odd-action-finisher")!;
   assert.equal(transition.primitive,"image");
@@ -93,7 +108,34 @@ test("semantic and social plug instances remain metadata-positioned live content
   plugNodes.forEach((node,index)=>{
     assert.deepEqual({x:node.x,y:node.y,width:node.width,height:node.height},plugPlan[index].placement.normalized);
     assert.equal(node.props.signatureMirrored,false);
+    assert.equal(node.props.signatureDepthTreatment,"raised-contact");
+    assert.equal(typeof node.props.signatureParentPartInstanceId,"string");
+    const owner=plan.instances.find((instance)=>instance.instanceId===node.props.signatureParentPartInstanceId);
+    assert.equal(node.props.signatureActionId,owner?.action?.id);
   });
+});
+
+test("curated text alignment and size remain canonical inputs consumed by the renderer",()=>{
+  const base=request("single-stack",1);
+  const resolved=resolveSignatureAssembly({...base,actions:[{...base.actions[0],textAlign:"right",textSize:"large"}]});
+  const result=adaptSignatureAssemblyResult(resolved);
+  assert.equal(result.ok,true,JSON.stringify(result));
+  if (!result.ok)return;
+  const action=result.composition.block.nodes.find((node)=>node.primitive==="button")!;
+  assert.equal(action.props.signatureTextAlign,"right");
+  assert.equal(action.props.signatureTextSize,"large");
+});
+
+test("Curated host surfaces are transparent while certified furniture remains unchanged",()=>{
+  for (const layout of ["single-stack","twin-rail"] as const) {
+    const {composition}=adapted(layout,layout==="single-stack"?1:2);
+    assert.deepEqual(composition.block.background,{kind:"none"});
+    assert.equal(composition.block.nodes.every((node)=>node.props.src&&node.props.opacity===1),true);
+  }
+  const standalone=adaptSignatureStandaloneAction({familyId:"cabinet-noir",familyVersion:"1.0.0",componentId:"CN-004",componentVersion:"1.0.0",instanceId:"transparent-standalone",action:action(0)});
+  assert.deepEqual(standalone?.background,{kind:"none"});
+  const informational=adaptSignatureStandaloneComponent({familyId:"cabinet-noir",familyVersion:"1.0.0",componentId:"CN-011",componentVersion:"1.0.0",instanceId:"transparent-information"});
+  assert.deepEqual(informational?.background,{kind:"none"});
 });
 
 test("identity fixture content maps to all certified variant sockets",()=>{
@@ -114,6 +156,19 @@ test("CN-011 standalone mapping retains informational text and certified authori
   assert.equal(node.props.signatureInteractive,false);
   assert.equal(node.props.signatureLiveContentOwnership && (node.props.signatureLiveContentOwnership as {informationalLine:boolean}).informationalLine,true);
   assert.equal(node.props.signatureMirrored,false);
+});
+
+test("standalone action retains full source height while compact presentation remains recipe-owned",()=>{
+  const block=adaptSignatureStandaloneAction({familyId:"cabinet-noir",familyVersion:"1.0.0",componentId:"CN-004",componentVersion:"1.0.0",instanceId:"standalone-action",action:action(0)});
+  assert.ok(block);
+  assert.equal(block!.pageHeightPx,724/2172*390);
+  assert.equal(block!.nodes[0].props.signaturePresentationMode,"standalone");
+  assert.equal(block!.nodes[1].props.signaturePresentationMode,"standalone");
+  const plugScale=block!.nodes[1].props.signatureScaleAuthority as {x:number;y:number};
+  assert.ok(Math.abs(plugScale.x-plugScale.y)<.000001);
+  const {plan,composition}=adapted("single-stack",1);
+  assert.equal(plan.actionPresentationMode,"compact-stacked");
+  assert.equal(composition.block.nodes.find((node)=>node.primitive==="button")?.props.signaturePresentationMode,"compact-stacked");
 });
 
 test("all requested proof counts preserve plan certification and lockstep",()=>{
@@ -150,6 +205,26 @@ test("renderer consumes live safe areas from normalized registry metadata",()=>{
   for (const id of ["CN-002","CN-003","CN-004","CN-005","CN-011"]) {
     assert.ok(CABINET_NOIR_ASSETS.find((asset)=>asset.normalizedContract?.componentId===id)?.normalizedContract?.liveContentGeometry);
   }
+  const geometry=CABINET_NOIR_ASSETS.find((asset)=>asset.normalizedContract?.componentId==="CN-004")?.normalizedContract?.liveContentGeometry;
+  assert.equal(geometry?.opticalCenterOffsetEm,-.08);
+  assert.deepEqual(geometry?.presentationTypography,{
+    standalone:{minPx:12,maxPx:18,stepPx:.5,defaultPx:14,characterLimits:{atMin:28,atDefault:22,atMax:14}},
+    "single-stack":{minPx:12,maxPx:17,stepPx:.5,defaultPx:14,characterLimits:{atMin:26,atDefault:20,atMax:15}},
+    "twin-rail":{minPx:11,maxPx:15,stepPx:.5,defaultPx:13,characterLimits:{atMin:24,atDefault:18,atMax:14}},
+  });
+});
+
+test("Canvas, Preview, public Card, and Live Device retain one visual-resource renderer path",()=>{
+  const root=process.cwd();
+  const publicCard=readFileSync(path.join(root,"components/tap/tap-connect-card.tsx"),"utf8");
+  const canvas=readFileSync(path.join(root,"components/fusion/creative-studio/creative-composition-canvas.tsx"),"utf8");
+  const bridge=readFileSync(path.join(root,"lib/fusion/creative-studio/signature-assets/SignatureMasterBridge.tsx"),"utf8");
+  const liveDevice=readFileSync(path.join(root,"components/fusion/creative-studio/live-device-preview-page.tsx"),"utf8");
+  assert.match(publicCard,/<CreativeCompositionCanvas/);
+  assert.match(canvas,/<SignatureMasterBridge/);
+  assert.match(bridge,/<StudioVisualResourceProjection/);
+  assert.match(liveDevice,/TapConnectCard/);
+  assert.doesNotMatch(`${publicCard}\n${liveDevice}`,/CabinetNoir.*(?:crop|fit)|(?:crop|fit).*CabinetNoir/i);
 });
 
 test("reference-only components cannot enter standalone runtime composition",()=>{

@@ -45,11 +45,15 @@ function store(): Map<string, PreviewSessionRecord> {
 }
 
 function secret(): string {
-  return (
-    process.env.PREVIEW_TOKEN_SECRET ||
-    process.env.CLERK_SECRET_KEY ||
-    "local-dev-preview-secret-change-me"
-  );
+  const configured =
+    process.env.PREVIEW_TOKEN_SECRET || process.env.CLERK_SECRET_KEY;
+  if (configured) return configured;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "PREVIEW_TOKEN_SECRET is required for production Live Device Preview"
+    );
+  }
+  return "local-dev-preview-secret-change-me";
 }
 
 export function previewTtlMinutes(): number {

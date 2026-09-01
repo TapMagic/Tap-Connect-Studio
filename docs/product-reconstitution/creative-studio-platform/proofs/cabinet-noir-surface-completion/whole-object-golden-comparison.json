@@ -1,0 +1,68 @@
+{
+  "runtimeRoute": "/review/studio",
+  "viewport": {
+    "widthPx": 390,
+    "heightPx": 844,
+    "density": "phone-authoritative"
+  },
+  "humanQuestion": "If I did not know these were separate PNGs, would I believe this was designed as one finished physical object?",
+  "presentations": [
+    {
+      "mode": "standalone",
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-compact-stacked/01-current-standalone-action.png",
+      "currentDeterministicProof": "docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-surface-completion/standalone-whole-object-phone390.png",
+      "referenceAssetIds": [],
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "mode": "single-stack",
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-final-tuning/01-single-stack-4-phone.png",
+      "currentDeterministicProof": "docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-surface-completion/single-stack-whole-object-phone390.png",
+      "referenceAssetIds": [
+        "CN-006",
+        "CN-007"
+      ],
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "crown-seating",
+        "rail-continuity",
+        "row-cadence",
+        "terminal-closure",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "mode": "twin-rail",
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-final-tuning/02-twin-rail-4-phone.png",
+      "currentDeterministicProof": "docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-surface-completion/twin-rail-spine-phone390.png",
+      "referenceAssetIds": [
+        "CN-008",
+        "CN-009"
+      ],
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "crown-seating",
+        "rail-continuity",
+        "row-cadence",
+        "center-spine-continuity",
+        "center-seam",
+        "terminal-closure",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    }
+  ],
+  "inspectionResult": "pass",
+  "productOwnerAcceptance": "pending"
+}

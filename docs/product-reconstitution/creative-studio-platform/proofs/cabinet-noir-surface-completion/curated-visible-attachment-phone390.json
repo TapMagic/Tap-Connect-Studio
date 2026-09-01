@@ -1,0 +1,87 @@
+{
+  "attachment": {
+    "spineCount": 2,
+    "visibleSocketPlaneDeltaPx": 0,
+    "centerDeltaPx": 0.125,
+    "spinePlane": 15,
+    "capPlane": 18,
+    "projectionWidthPx": 372
+  },
+  "plugEnvelope": [
+    {
+      "index": 0,
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-013_website-globe_plug.png",
+      "outerMedallion": {
+        "widthPx": 47.34375,
+        "heightPx": 49.65625
+      },
+      "sourceBitmap": {
+        "widthPx": 1254,
+        "heightPx": 1254
+      },
+      "visibleArtworkBounds": {
+        "widthPx": 42.32244318181818,
+        "heightPx": 40.69901315789473
+      },
+      "governedScaleFactor": 0.03775418660287081
+    },
+    {
+      "index": 1,
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-014_call-phone_plug.png",
+      "outerMedallion": {
+        "widthPx": 47.34375,
+        "heightPx": 49.65625
+      },
+      "sourceBitmap": {
+        "widthPx": 1254,
+        "heightPx": 1254
+      },
+      "visibleArtworkBounds": {
+        "widthPx": 42.473459928229666,
+        "heightPx": 40.96329246411483
+      },
+      "governedScaleFactor": 0.03775418660287081
+    },
+    {
+      "index": 2,
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-015_directions-map-pin_plug.png",
+      "outerMedallion": {
+        "widthPx": 47.34375,
+        "heightPx": 49.65625
+      },
+      "sourceBitmap": {
+        "widthPx": 1254,
+        "heightPx": 1254
+      },
+      "visibleArtworkBounds": {
+        "widthPx": 42.36019736842105,
+        "heightPx": 40.774521531100476
+      },
+      "governedScaleFactor": 0.03775418660287081
+    },
+    {
+      "index": 3,
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-016_reviews-star_plug.png",
+      "outerMedallion": {
+        "widthPx": 47.34375,
+        "heightPx": 49.65625
+      },
+      "sourceBitmap": {
+        "widthPx": 1312,
+        "heightPx": 1199
+      },
+      "visibleArtworkBounds": {
+        "widthPx": 42.18356993140244,
+        "heightPx": 40.74016291920732
+      },
+      "governedScaleFactor": 0.03608517530487805
+    }
+  ],
+  "goldenAuthority": [
+    "CN-006",
+    "CN-007",
+    "CN-008",
+    "CN-009"
+  ],
+  "runtimeRoute": "/review/studio"
+}

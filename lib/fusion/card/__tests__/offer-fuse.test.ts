@@ -211,13 +211,13 @@ describe("offer resolver precedence", () => {
       nodes: [
         {
           id: "button-1",
-          type: "button",
+          primitive: "button",
           name: "Published action",
           x: 0.1,
           y: 0.1,
           width: 0.8,
           height: 0.2,
-          rotation: 0,
+          rotationDeg: 0,
           zIndex: 1,
           props: { label: "Open" },
         },

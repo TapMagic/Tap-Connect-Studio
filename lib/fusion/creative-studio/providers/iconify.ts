@@ -23,7 +23,7 @@ export type CanonicalIconProviderResult = {
 
 export { normalizeIconifySearch };
 
-async function fetchIconSvg(collection: string, name: string): Promise<string | undefined> {
+export async function fetchIconSvg(collection: string, name: string): Promise<string | undefined> {
   try {
     const response = await fetch(
       `https://api.iconify.design/${encodeURIComponent(collection)}/${encodeURIComponent(name)}.svg?height=28`,

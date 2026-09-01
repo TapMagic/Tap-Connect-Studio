@@ -32,7 +32,7 @@ export function sanitizeSvg(raw: string): string | null {
   if (!trimmed.includes("<svg")) return null;
   if (FORBIDDEN_SVG.test(trimmed) || FORBIDDEN_ATTR.test(trimmed)) {
     // Remove forbidden tags/attrs rather than reject when paths remain.
-    let cleaned = trimmed
+    const cleaned = trimmed
       .replace(/<\s*script\b[^>]*>[\s\S]*?<\s*\/\s*script\s*>/gi, "")
       .replace(/<\s*foreignObject\b[^>]*>[\s\S]*?<\s*\/\s*foreignObject\s*>/gi, "")
       .replace(/\son\w+\s*=\s*(["']).*?\1/gi, "")

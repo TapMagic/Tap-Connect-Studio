@@ -4,7 +4,7 @@ import { Show, UserButton } from "@clerk/nextjs";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { isClerkClientConfigured } from "@/lib/utils/clerk-client";
+import { useClerkRuntimeEnabled } from "@/components/auth/auth-runtime-provider";
 
 function DevAuthLinks({ className, dashboardLabel }: { className?: string; dashboardLabel: string }) {
   return (
@@ -17,7 +17,8 @@ function DevAuthLinks({ className, dashboardLabel }: { className?: string; dashb
 }
 
 export function AuthControls({ className }: { className?: string }) {
-  if (!isClerkClientConfigured()) {
+  const clerkEnabled = useClerkRuntimeEnabled();
+  if (!clerkEnabled) {
     return <DevAuthLinks className={className} dashboardLabel="Dashboard" />;
   }
 
@@ -49,7 +50,8 @@ export function AuthControls({ className }: { className?: string }) {
 
 /** Landing-page auth: shows Sign in/up OR Dashboard depending on session */
 export function AuthLinks({ className }: { className?: string }) {
-  if (!isClerkClientConfigured()) {
+  const clerkEnabled = useClerkRuntimeEnabled();
+  if (!clerkEnabled) {
     return <DevAuthLinks className={className} dashboardLabel="Go to dashboard" />;
   }
 

@@ -2,6 +2,7 @@
 
 import type { BrandKit } from "@prisma/client";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { CardViewportSurface } from "@/components/tap/card-viewport-surface";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import { CompositionFontLoader } from "@/components/fusion/creative-studio/composition-font-loader";
@@ -67,45 +68,35 @@ export function TapConnectCardPublic({
       data-testid="tap-card-first-public"
     >
       <CompositionFontLoader config={config} />
-      <div className="tap-page-inner mx-auto max-w-lg px-4 py-6">
-        <TapConnectCard
-          config={config}
-          profile={profile}
-          businessName={businessName}
-          logoUrl={logoUrl}
-          reviewUrl={reviewUrl}
-          forceExpanded
-          offerFuseEnabled={offerFuse}
-          offerContext={
-            offerFuse
-              ? {
-                  businessId,
-                  campaignId: boundCampaignId || "",
-                  deviceSlotId,
-                }
-              : null
-          }
-          supportContext={{
-            businessId,
-            deviceSlotId,
-            campaignId: boundCampaignId,
-          }}
-        />
-        {utilityLayer.visible ? (
-          <CardUtilityLayer
-            layer={utilityLayer}
-            businessId={businessId}
-            businessName={businessName}
-            campaignId={boundCampaignId}
-            deviceSlotId={deviceSlotId}
+      <div className="tap-page-inner mx-auto max-w-lg py-6">
+        <CardViewportSurface environment="runtime" testId="public-card-viewport">
+          <TapConnectCard
+            config={config}
             profile={profile}
-            walletMode={walletMode}
-            walletFeatureOn={walletFeatureOn}
-            accentColor={config.accentColor}
-            surfaceColor={config.surfaceColor}
-            textColor={config.textColor}
+            businessName={businessName}
+            logoUrl={logoUrl}
+            reviewUrl={reviewUrl}
+            forceExpanded
+            offerFuseEnabled={offerFuse}
+            offerContext={offerFuse ? { businessId, campaignId: boundCampaignId || "", deviceSlotId } : null}
+            supportContext={{ businessId, deviceSlotId, campaignId: boundCampaignId }}
           />
-        ) : null}
+          {utilityLayer.visible ? (
+            <CardUtilityLayer
+              layer={utilityLayer}
+              businessId={businessId}
+              businessName={businessName}
+              campaignId={boundCampaignId}
+              deviceSlotId={deviceSlotId}
+              profile={profile}
+              walletMode={walletMode}
+              walletFeatureOn={walletFeatureOn}
+              accentColor={config.accentColor}
+              surfaceColor={config.surfaceColor}
+              textColor={config.textColor}
+            />
+          ) : null}
+        </CardViewportSurface>
         <footer className="px-4 py-10">
           <PoweredByTapTheMagic />
         </footer>

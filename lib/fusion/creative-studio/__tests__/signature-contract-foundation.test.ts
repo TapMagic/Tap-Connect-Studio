@@ -82,6 +82,7 @@ const singleStackRecipe: SignatureAssemblyRecipe = {
   familyVersion,
   recipeId: "fixture-single-stack",
   recipeVersion: "1.0.0",
+  presentationMode: "single-stack",
   fixedTop: [{ role: "identity-topper" }, { role: "top-bridge" }],
   actionUnit: {
     id: "action-row",
@@ -139,6 +140,7 @@ const twinRailRecipe: SignatureAssemblyRecipe = {
   familyVersion,
   recipeId: "fixture-twin-rail",
   recipeVersion: "1.0.0",
+  presentationMode: "twin-rail",
   fixedTop: [{ role: "identity-topper" }, { role: "twin-rail-top-bridge" }],
   actionUnit: {
     id: "paired-level",

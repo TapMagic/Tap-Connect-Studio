@@ -408,6 +408,10 @@ export async function markCreativeResourceUsed(input: {
   businessId: string;
   userId: string;
   resourceId: string;
+  resourceKind?: string;
+  consumer?: string;
+  context?: string;
+  operation?: "place" | "apply" | "select_for_use";
 }) {
   const resource = await prisma.creativeResource.findFirst({
     where: {
@@ -420,20 +424,28 @@ export async function markCreativeResourceUsed(input: {
   if (!resource) throw new CreativeResourceError("Reusable design not found", 404);
   return prisma.creativeResourceRecent.upsert({
     where: {
-      businessId_userId_resourceId: {
+      businessId_userId_resourceId_consumer_context: {
         businessId: input.businessId,
         userId: input.userId,
         resourceId: input.resourceId,
+        consumer: input.consumer ?? "studio",
+        context: input.context ?? "general",
       },
     },
     create: {
       businessId: input.businessId,
       userId: input.userId,
       resourceId: input.resourceId,
+      resourceKind: input.resourceKind ?? "creative-resource",
+      consumer: input.consumer ?? "studio",
+      context: input.context ?? "general",
+      lastOperation: input.operation ?? "select_for_use",
     },
     update: {
       lastUsedAt: new Date(),
       useCount: { increment: 1 },
+      resourceKind: input.resourceKind ?? "creative-resource",
+      lastOperation: input.operation ?? "select_for_use",
     },
   });
 }

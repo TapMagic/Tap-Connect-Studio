@@ -1,0 +1,25 @@
+{
+  "assetSource": "/api/media/local?key=cms8i8omf007zit9k2ca39g2s%2Fuploads%2Fda1e817a36a7d85ad0cd0eee31aea8d24d5d181721cc9adb3f5e23c1d66e39f2.png",
+  "maskShape": "circle",
+  "zoom": "1.10",
+  "focalX": "0.065",
+  "focalY": "0.065",
+  "visibleUtilization": "0.869",
+  "backingPlate": {
+    "mode": "dark",
+    "resolvedColor": "#080b10"
+  },
+  "cropperPlacement": {
+    "left": 0.131,
+    "top": 0.131,
+    "width": 0.869,
+    "height": 0.869
+  },
+  "crownPlacement": {
+    "left": 0.131,
+    "top": 0.131,
+    "width": 0.869,
+    "height": 0.869
+  },
+  "renderer": "StudioVisualResourceProjection"
+}

@@ -134,3 +134,33 @@ test("Live Device LAN URL preserves non-default application port from request or
     else process.env.NEXT_PUBLIC_APP_URL = prevApp;
   }
 });
+
+test("production preview signing fails closed without a configured secret", () => {
+  const mutableEnv = process.env as Record<string, string | undefined>;
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousPreviewSecret = process.env.PREVIEW_TOKEN_SECRET;
+  const previousClerkSecret = process.env.CLERK_SECRET_KEY;
+  mutableEnv.NODE_ENV = "production";
+  delete process.env.PREVIEW_TOKEN_SECRET;
+  delete process.env.CLERK_SECRET_KEY;
+  try {
+    assert.throws(
+      () => createPreviewSession({
+        businessId: "biz_1",
+        brandKitId: "brand_1",
+        cardName: "Demo",
+        businessName: "Demo Co",
+        snapshotJson: "{}",
+        profileJson: "{}",
+      }),
+      /PREVIEW_TOKEN_SECRET is required/
+    );
+  } finally {
+    if (previousNodeEnv === undefined) delete mutableEnv.NODE_ENV;
+    else mutableEnv.NODE_ENV = previousNodeEnv;
+    if (previousPreviewSecret === undefined) delete process.env.PREVIEW_TOKEN_SECRET;
+    else process.env.PREVIEW_TOKEN_SECRET = previousPreviewSecret;
+    if (previousClerkSecret === undefined) delete process.env.CLERK_SECRET_KEY;
+    else process.env.CLERK_SECRET_KEY = previousClerkSecret;
+  }
+});

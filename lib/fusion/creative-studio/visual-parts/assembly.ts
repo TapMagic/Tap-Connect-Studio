@@ -203,7 +203,7 @@ export function applyAssemblyRecipeToProps(
   props: Record<string, unknown>,
   recipe: VisualAssemblyRecipe
 ): Record<string, unknown> {
-  let next = writeVisualPartsState(props, assemblyRecipeToVisualPartsPatch(recipe));
+  const next = writeVisualPartsState(props, assemblyRecipeToVisualPartsPatch(recipe));
   if (recipe.geometry?.radius != null) next.radius = recipe.geometry.radius;
   if (recipe.geometry?.bodyPresentation) next.presentation = recipe.geometry.bodyPresentation;
   if (recipe.geometry?.iconStationShape) next.iconStationShape = recipe.geometry.iconStationShape;

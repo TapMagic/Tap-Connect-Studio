@@ -96,7 +96,9 @@ export function WorkspaceAccessMenu({
         <div
           role="dialog"
           aria-label="Workspace and user menu"
-          className="absolute right-0 top-full z-[80] mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-white/12 bg-[#0d1320] text-white shadow-2xl shadow-black/60"
+          className={`absolute top-full z-[80] mt-2 w-[min(24rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-white/12 bg-[#0d1320] text-white shadow-2xl shadow-black/60 ${
+            surface === "studio" ? "left-0" : "right-0"
+          }`}
         >
           <div className="border-b border-white/10 p-3">
             <div className="flex items-center gap-2">

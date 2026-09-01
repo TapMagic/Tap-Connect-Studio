@@ -315,13 +315,17 @@ export function VisualPartsCabinetPanel({
               <button type="button" className="min-h-10 w-full rounded border border-[#d56c2d]/45 px-3 text-[10px] text-[#ffe1c2] outline-none focus-visible:ring-2 focus-visible:ring-[#b8ff2c]/40 disabled:opacity-45" disabled={!selectedSignatureFamily.access.selectable} data-testid="signature-create-assembly" onClick={() => { const first = selectedSignatureFamily.layouts[0]; const next = first && createSignatureAssemblyAuthoringState(selectedSignatureFamily.family.id, first.layoutMode); if (next) onSignatureAssemblyChange(next, `Created ${selectedSignatureFamily.family.label} assembly`); }}>{selectedSignatureFamily.access.selectable ? "Create certified assembly" : "Locked · entitlement required"}</button>
             )
           ) : null}
-          <div className="flex flex-wrap gap-1" data-testid="signature-subgroup-rail">
-            {SIGNATURE_SUBGROUPS.map((group)=><button key={group.id} type="button" aria-pressed={signatureSubgroup===group.id} data-testid={`signature-subgroup-${group.id}`} className={`rounded px-2 py-1 text-[9px] uppercase tracking-wide ${signatureSubgroup===group.id?"bg-[#d56c2d]/25 text-[#ffd6b0]":"text-white/50 hover:bg-white/10"}`} onClick={()=>setSignatureSubgroup(group.id)}>{group.label}</button>)}
-          </div>
-          <div className="grid grid-cols-2 gap-1.5" data-testid={`signature-assets-${signatureSubgroup}`}>
-            {listSignatureAssets({familyId:signatureFamilyId,subgroup:signatureSubgroup}).map((asset)=><SignatureAssetTile key={asset.id} asset={asset} disabledReason={selectedSignatureFamily && !selectedSignatureFamily.access.selectable ? "Locked" : undefined} onInsert={onInsertSignatureAsset} />)}
-          </div>
-          <p className="text-[9px] text-white/45">Drag a pristine master onto the Card. Live sockets remain editable through the existing Text, Icon/Media, Action, and accessibility controls.</p>
+          {selectedSignatureFamily?.layouts.length ? (
+            <p className="rounded border border-[#d56c2d]/20 bg-[#d56c2d]/6 px-2 py-1.5 text-[9px] leading-relaxed text-white/50">This Curated System inserts as one certified assembly. Structural rails, bridges, spines, and caps remain assembly-managed.</p>
+          ) : <>
+            <div className="flex flex-wrap gap-1" data-testid="signature-subgroup-rail">
+              {SIGNATURE_SUBGROUPS.map((group)=><button key={group.id} type="button" aria-pressed={signatureSubgroup===group.id} data-testid={`signature-subgroup-${group.id}`} className={`rounded px-2 py-1 text-[9px] uppercase tracking-wide ${signatureSubgroup===group.id?"bg-[#d56c2d]/25 text-[#ffd6b0]":"text-white/50 hover:bg-white/10"}`} onClick={()=>setSignatureSubgroup(group.id)}>{group.label}</button>)}
+            </div>
+            <div className="grid grid-cols-2 gap-1.5" data-testid={`signature-assets-${signatureSubgroup}`}>
+              {listSignatureAssets({familyId:signatureFamilyId,subgroup:signatureSubgroup}).map((asset)=><SignatureAssetTile key={asset.id} asset={asset} disabledReason={selectedSignatureFamily && !selectedSignatureFamily.access.selectable ? "Locked" : undefined} onInsert={onInsertSignatureAsset} />)}
+            </div>
+            <p className="text-[9px] text-white/45">Drag a pristine master onto the Card. Live sockets remain editable through the existing Text, Icon/Media, Action, and accessibility controls.</p>
+          </>}
         </div>
       ) : <>
       <div

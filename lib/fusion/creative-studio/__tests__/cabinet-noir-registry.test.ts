@@ -11,10 +11,14 @@ import {
   CABINET_NOIR_FAMILY,
   CABINET_NOIR_FAMILY_ID,
   CABINET_NOIR_GEOMETRY,
+  CABINET_NOIR_COMPACT_STACKED_PRESENTATION,
+  CABINET_NOIR_ROW_SEAM_CONTRACT,
+  CABINET_NOIR_VISUAL_ACCEPTANCE,
 } from "../signature-assets/cabinet-noir";
 import { validateSignatureAssemblyRecipe } from "../signature-assets/layout-recipes";
-import { SIGNATURE_ASSETS, SIGNATURE_FAMILIES, listSignatureAssets } from "../signature-assets/registry";
+import { CURATED_VISUAL_ACCEPTANCE_CONTRACTS, SIGNATURE_ASSEMBLY_RECIPES, SIGNATURE_ASSETS, SIGNATURE_FAMILIES, listSignatureAssets } from "../signature-assets/registry";
 import { isSignatureComponentRuntimeEligible } from "../signature-assets/types";
+import { validateCuratedFamilyVisualAcceptance } from "../signature-assets/visual-acceptance";
 
 const workspace = process.cwd();
 const publicRoot = path.join(workspace, "public/visual-parts/signature/cabinet-noir");
@@ -88,12 +92,38 @@ test("approved sockets, live text, repeat geometry, and phone metadata are regis
   assert.equal(CABINET_NOIR_GEOMETRY.phone390.certified,true);
 });
 
-test("Single-Stack and Twin-Rail recipe instances validate without one-off runtime behavior", () => {
-  assert.equal(CABINET_NOIR_ASSEMBLY_RECIPES.length,2);
+test("Standalone, Single-Stack, and Twin-Rail recipe instances validate without one-off runtime behavior", () => {
+  assert.equal(CABINET_NOIR_ASSEMBLY_RECIPES.length,3);
   for (const recipe of CABINET_NOIR_ASSEMBLY_RECIPES) assert.deepEqual(validateSignatureAssemblyRecipe(recipe),[],recipe.recipeId);
-  assert.equal(CABINET_NOIR_ASSEMBLY_RECIPES[0].repeatInterval?.nativeStridePx,724);
-  assert.equal(CABINET_NOIR_ASSEMBLY_RECIPES[1].repeatInterval?.nativeStridePx,362);
-  assert.equal(CABINET_NOIR_ASSEMBLY_RECIPES[1].oddActionTreatment.mode,"full-width-after-complete-pairs");
+  const singleStack = CABINET_NOIR_ASSEMBLY_RECIPES.find((recipe) => recipe.presentationMode === "single-stack");
+  const twinRail = CABINET_NOIR_ASSEMBLY_RECIPES.find((recipe) => recipe.presentationMode === "twin-rail");
+  assert.ok(singleStack);
+  assert.ok(twinRail);
+  assert.equal(singleStack.repeatInterval?.nativeStridePx,724);
+  assert.equal(twinRail.repeatInterval?.nativeStridePx,362);
+  assert.equal(singleStack.geometry.visualContinuationOverlapPx,724-singleStack.geometry.unitStridePx);
+  assert.equal(CABINET_NOIR_ROW_SEAM_CONTRACT.targetCssPx,3.14);
+  assert.equal(CABINET_NOIR_COMPACT_STACKED_PRESENTATION.mode,"compact-stacked");
+  assert.equal(CABINET_NOIR_COMPACT_STACKED_PRESENTATION.standaloneRowHeightPx,724);
+  assert.equal(CABINET_NOIR_COMPACT_STACKED_PRESENTATION.rowHeightPx,singleStack.geometry.unitStridePx);
+  assert.deepEqual(CABINET_NOIR_ROW_SEAM_CONTRACT.acceptableCssPx,{min:2,max:4});
+  assert.ok(Math.abs(singleStack.geometry.unitStridePx-350.86163561313074)<.000001);
+  assert.equal(CABINET_NOIR_COMPACT_STACKED_PRESENTATION.actionScale,.9);
+  assert.equal(twinRail.geometry.visualContinuationOverlapPx,132);
+  assert.equal(twinRail.geometry.unitStridePx,230);
+  assert.equal(twinRail.oddActionTreatment.mode,"full-width-after-complete-pairs");
+});
+
+test("every launch Curated presentation has a family-neutral whole-object golden gate", () => {
+  assert.deepEqual(CURATED_VISUAL_ACCEPTANCE_CONTRACTS,[CABINET_NOIR_VISUAL_ACCEPTANCE]);
+  assert.deepEqual(validateCuratedFamilyVisualAcceptance(CABINET_NOIR_VISUAL_ACCEPTANCE,SIGNATURE_ASSEMBLY_RECIPES,SIGNATURE_ASSETS),[]);
+  assert.equal(CABINET_NOIR_VISUAL_ACCEPTANCE.deterministicRuntimeRoute,"/review/studio");
+  assert.deepEqual(CABINET_NOIR_VISUAL_ACCEPTANCE.presentations.map((presentation)=>presentation.presentationMode),["standalone","single-stack","twin-rail"]);
+  assert.deepEqual(CABINET_NOIR_VISUAL_ACCEPTANCE.presentations.flatMap((presentation)=>presentation.referenceAssetIds),["CN-006","CN-007","CN-008","CN-009"]);
+  for (const presentation of CABINET_NOIR_VISUAL_ACCEPTANCE.presentations) {
+    assert.ok(presentation.requiredChecks.includes("whole-object-silhouette"));
+    assert.ok(presentation.requiredChecks.includes("phone-density"));
+  }
 });
 
 test("entitlement states remain independent and do not name marketing plans", () => {

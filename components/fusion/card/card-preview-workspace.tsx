@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { CardViewportSurface } from "@/components/tap/card-viewport-surface";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
 import { CompositionFontLoader } from "@/components/fusion/creative-studio/composition-font-loader";
@@ -223,9 +224,10 @@ export function CardPreviewWorkspace({
         data-testid="card-preview-canvas"
       >
         <div className="mx-auto flex justify-center pb-16">
-          <div
+          <CardViewportSurface
+            environment="studio"
             className={cn(
-              "origin-top rounded-[1.5rem] border border-white/10 bg-[#0b0f19] shadow-2xl",
+              "origin-top",
               widthClass,
               zoom === "fit" ? "w-full" : undefined
             )}
@@ -234,7 +236,7 @@ export function CardPreviewWorkspace({
                 ? undefined
                 : { transform: `scale(${zoom})`, marginBottom: `${(Number(zoom) - 1) * 30}%` }
             }
-            data-testid="card-preview-frame"
+            testId="card-preview-frame"
             data-viewport={viewport}
             data-zoom={zoom === "fit" ? "fit" : String(zoom)}
             data-mode={mode}
@@ -282,10 +284,10 @@ export function CardPreviewWorkspace({
                 />
               </div>
             ) : (
-              <div className="space-y-3 p-3">
+              <div className="space-y-3">
                 {mode === "personalized" && personalizedLabel ? (
                   <p
-                    className="rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary"
+                    className="mx-3 rounded-md border border-primary/30 bg-primary/10 px-3 py-2 text-xs text-primary"
                     data-testid="card-preview-personalized-banner"
                   >
                     Personalized preview · {personalizedLabel}
@@ -315,7 +317,7 @@ export function CardPreviewWorkspace({
                 ) : null}
               </div>
             )}
-          </div>
+          </CardViewportSurface>
         </div>
       </div>
     </div>

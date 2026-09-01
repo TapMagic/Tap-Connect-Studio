@@ -113,6 +113,52 @@ export function updateButtonLabel(
   };
 }
 
+/**
+ * Canonical Button text-size mutation. The parent mirror and nested label are
+ * updated together so Edit, Preview, Public, and saved content resolve the
+ * same glyph size instead of changing only the Button frame.
+ */
+export function updateButtonTextSize(
+  props: Record<string, unknown>,
+  fontSize: number,
+  buttonId = "button",
+): Record<string, unknown> {
+  const safeSize = Math.max(10, Math.min(28, Math.round(fontSize)));
+  return {
+    ...updateButtonContentNode(props, "label", { props: { fontSize: safeSize } }, buttonId),
+    fontSize: safeSize,
+  };
+}
+
+export type ButtonLabelTypographyPatch = Partial<{
+  fontFamily: string;
+  fontSize: number;
+  fontWeight: number;
+  letterSpacingEm: number;
+  textTransform: string;
+  textAlign: string;
+  color: string;
+}>;
+
+/** One canonical door for Button label typography plus legacy mirrors. */
+export function updateButtonLabelTypography(
+  props: Record<string, unknown>,
+  patch: ButtonLabelTypographyPatch,
+  buttonId = "button",
+): Record<string, unknown> {
+  const normalized: ButtonLabelTypographyPatch = {
+    ...patch,
+    fontSize: patch.fontSize == null ? undefined : Math.max(10, Math.min(28, Math.round(patch.fontSize))),
+  };
+  const mirrors: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(normalized)) if (value !== undefined) mirrors[key === "color" ? "labelColor" : key] = value;
+  if (normalized.color !== undefined) mirrors.textColor = normalized.color;
+  return {
+    ...updateButtonContentNode(props, "label", { props: normalized as Record<string, unknown> }, buttonId),
+    ...mirrors,
+  };
+}
+
 /** Icon identity props for a Button — never mutates Button Surface fill/material. */
 export function buttonIconIdentityProps(asset: {
   canonicalId: string;

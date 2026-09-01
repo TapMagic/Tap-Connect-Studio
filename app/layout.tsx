@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { ClerkProvider } from "@clerk/nextjs";
-import { dark, shadcn } from "@clerk/ui/themes";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AuthRuntimeProvider } from "@/components/auth/auth-runtime-provider";
 import { TAP_CONNECT_LOGO } from "@/lib/brand/assets";
 import { isClerkConfigured } from "@/lib/utils/app";
 import "./globals.css";
@@ -102,11 +101,7 @@ export default function RootLayout({
 }>) {
   const body = (
     <body className="min-h-full flex flex-col bg-background text-foreground">
-      {isClerkConfigured() ? (
-        <ClerkProvider appearance={{ theme: [shadcn, dark] }}>{children}</ClerkProvider>
-      ) : (
-        children
-      )}
+      <AuthRuntimeProvider clerkEnabled={isClerkConfigured()}>{children}</AuthRuntimeProvider>
     </body>
   );
 

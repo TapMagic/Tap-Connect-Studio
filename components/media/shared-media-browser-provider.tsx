@@ -10,6 +10,7 @@ import {
 } from "react";
 import { SharedMediaAssetBrowser } from "@/components/media/shared-media-asset-browser";
 import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
+import { studioCatalogBrowserEvent } from "@/lib/fusion/creative-studio/platform/catalog-browser";
 
 type BrowserRequest = {
   onSelect: (asset: MediaAssetCandidate) => void;
@@ -28,7 +29,14 @@ const SharedMediaBrowserContext =
 
 export function SharedMediaBrowserProvider({ children }: { children: ReactNode }) {
   const [request, setRequest] = useState<BrowserRequest | null>(null);
-  const openBrowser = useCallback((next: BrowserRequest) => setRequest(next), []);
+  const closeBrowser = useCallback(() => {
+    setRequest(null);
+    window.dispatchEvent(studioCatalogBrowserEvent("close", "canonical-assets"));
+  }, []);
+  const openBrowser = useCallback((next: BrowserRequest) => {
+    window.dispatchEvent(studioCatalogBrowserEvent("open", "canonical-assets"));
+    setRequest(next);
+  }, []);
   const value = useMemo(() => ({ openBrowser }), [openBrowser]);
 
   return (
@@ -37,7 +45,7 @@ export function SharedMediaBrowserProvider({ children }: { children: ReactNode }
       {request ? (
         <SharedMediaAssetBrowser
           open
-          onClose={() => setRequest(null)}
+          onClose={closeBrowser}
           onSelect={request.onSelect}
           mediaUploadReady={request.mediaUploadReady}
           stockReady={request.stockReady}

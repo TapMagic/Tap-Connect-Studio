@@ -3,6 +3,8 @@
 Status: assembly candidate — human verification required.  
 Starting SHA: `54fada53deb351a8edc7081b3b1ac448bdd378ae`
 
+> **Reconstitution status:** This document records the implemented candidate and remains useful as current-state evidence. Its 18-destination Library Mode list is not the future editor information architecture. Future rail, drawer, discovery, and browse-state decisions are governed by [`STUDIO_RECONSTITUTION_INTERACTION_SPEC.md`](STUDIO_RECONSTITUTION_INTERACTION_SPEC.md).
+
 ## Modes (mutually exclusive)
 
 ### LIBRARY MODE

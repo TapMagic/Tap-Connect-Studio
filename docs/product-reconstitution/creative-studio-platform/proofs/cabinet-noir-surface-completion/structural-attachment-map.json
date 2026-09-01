@@ -1,0 +1,48 @@
+{
+  "familyId": "cabinet-noir",
+  "recipeId": "cabinet-noir-twin-rail",
+  "contractVersion": "1.0.0",
+  "relationships": [
+    {
+      "id": "left-outer-rail-into-bottom-cap",
+      "sourceAnchor": "left-rail",
+      "destinationRole": "twin-rail-repeat-outer",
+      "destinationAnchor": "left-top",
+      "destinationOccurrence": "last",
+      "when": "even-action-count",
+      "direction": "point",
+      "contact": "overlap",
+      "tolerancePx": 2
+    },
+    {
+      "id": "center-spine-into-bottom-socket",
+      "sourceAnchor": "center-spine",
+      "destinationRole": "twin-rail-repeat-spine",
+      "destinationAnchor": "center-top",
+      "destinationOccurrence": "last",
+      "when": "even-action-count",
+      "direction": "point",
+      "contact": "overlap",
+      "tolerancePx": 2
+    },
+    {
+      "id": "right-outer-rail-into-bottom-cap",
+      "sourceAnchor": "right-rail",
+      "destinationRole": "twin-rail-repeat-outer",
+      "destinationAnchor": "right-top",
+      "destinationOccurrence": "last",
+      "when": "even-action-count",
+      "direction": "point",
+      "contact": "overlap",
+      "tolerancePx": 2
+    }
+  ],
+  "measuredRuntime": {
+    "spineCount": 2,
+    "visibleSocketPlaneDeltaPx": 0,
+    "centerDeltaPx": 0.125,
+    "spinePlane": 15,
+    "capPlane": 18,
+    "projectionWidthPx": 372
+  }
+}

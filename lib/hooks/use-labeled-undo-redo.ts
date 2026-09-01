@@ -25,9 +25,14 @@ export function useLabeledUndoRedo<T>(initial: T, options: Options = {}) {
   const [history, setHistory] = useState<LabeledEditorHistory<T>>(() =>
     createLabeledHistory(initial)
   );
+  // Event boundaries such as input blur -> adjacent input focus can be batched
+  // by React. Keep the authoritative present snapshot in a ref so a completed
+  // transaction is closed synchronously before the next gesture begins.
+  const presentRef = useRef(initial);
   const recordingRef = useRef(true);
   const batchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pendingLabel = useRef<string | null>(null);
+  const transactionBaseRef = useRef<T | null>(null);
 
   const flushBatch = useCallback(() => {
     batchTimer.current = null;
@@ -44,6 +49,7 @@ export function useLabeledUndoRedo<T>(initial: T, options: Options = {}) {
       setHistory((h) => {
         const resolved =
           typeof next === "function" ? (next as (prev: T) => T)(h.present) : next;
+        presentRef.current = resolved;
         if (!record) {
           return { ...h, present: resolved };
         }
@@ -65,14 +71,24 @@ export function useLabeledUndoRedo<T>(initial: T, options: Options = {}) {
   );
 
   const undo = useCallback(() => {
-    setHistory((h) => undoLabeledHistory(h) ?? h);
+    setHistory((h) => {
+      const next = undoLabeledHistory(h) ?? h;
+      presentRef.current = next.present;
+      return next;
+    });
   }, []);
 
   const redo = useCallback(() => {
-    setHistory((h) => redoLabeledHistory(h) ?? h);
+    setHistory((h) => {
+      const next = redoLabeledHistory(h) ?? h;
+      presentRef.current = next.present;
+      return next;
+    });
   }, []);
 
   const reset = useCallback((next: T) => {
+    presentRef.current = next;
+    transactionBaseRef.current = null;
     setHistory(createLabeledHistory(next));
   }, []);
 
@@ -83,6 +99,39 @@ export function useLabeledUndoRedo<T>(initial: T, options: Options = {}) {
     } finally {
       recordingRef.current = true;
     }
+  }, []);
+
+  const beginTransaction = useCallback(() => {
+    if (transactionBaseRef.current == null) transactionBaseRef.current = presentRef.current;
+  }, []);
+
+  const previewTransaction = useCallback((next: T | ((prev: T) => T)) => {
+    if (transactionBaseRef.current == null) transactionBaseRef.current = presentRef.current;
+    setHistory((h) => {
+      const resolved = typeof next === "function" ? (next as (prev: T) => T)(h.present) : next;
+      presentRef.current = resolved;
+      return { ...h, present: resolved };
+    });
+  }, []);
+
+  const commitTransaction = useCallback((label = "Change") => {
+    const base = transactionBaseRef.current;
+    transactionBaseRef.current = null;
+    setHistory((h) => {
+      if (base == null || Object.is(base, h.present)) return h;
+      presentRef.current = h.present;
+      return pushLabeledHistory({ ...h, present: base }, h.present, label, maxDepth);
+    });
+  }, [maxDepth]);
+
+  const cancelTransaction = useCallback(() => {
+    const base = transactionBaseRef.current;
+    transactionBaseRef.current = null;
+    setHistory((h) => {
+      if (base == null) return h;
+      presentRef.current = base;
+      return { ...h, present: base };
+    });
   }, []);
 
   useEffect(() => {
@@ -109,6 +158,10 @@ export function useLabeledUndoRedo<T>(initial: T, options: Options = {}) {
     redo,
     reset,
     withoutRecording,
+    beginTransaction,
+    previewTransaction,
+    commitTransaction,
+    cancelTransaction,
     canUndo: history.past.length > 0,
     canRedo: history.future.length > 0,
     pastLabels,

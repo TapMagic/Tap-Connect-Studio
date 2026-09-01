@@ -195,7 +195,9 @@ describe("Signature controlled operational lifecycle", () => {
     const savedJson = JSON.stringify(authored.config);
     const reloaded = parseTapConnectCard(JSON.parse(savedJson), { businessName: "Cabinet Noir Acceptance" });
     assert.deepEqual(reloaded.rootComposition?.signatureAssembly, authored.state);
-    const recompiled = compileSignatureAuthoringState(reloaded.rootComposition!.signatureAssembly!);
+    const recompiled = compileSignatureAuthoringState(reloaded.rootComposition!.signatureAssembly!, {
+      blockId: reloaded.rootComposition!.id,
+    });
     assert.equal(recompiled.ok, true);
     if (!recompiled.ok) throw new Error("Reloaded assembly did not compile");
     assert.deepEqual(recompiled.composition.block.nodes, authored.compiled.composition.block.nodes);
@@ -212,6 +214,9 @@ describe("Signature controlled operational lifecycle", () => {
     const initialPublicCard = runtime.state.kit.tapCard;
     const publicMarkup = await renderPublicSignature(initialPublicCard);
     assert.match(publicMarkup, /data-signature-family="cabinet-noir"/);
+    assert.match(publicMarkup, /data-signature-source-sha="[a-f0-9]{64}"/);
+    assert.match(publicMarkup, /data-signature-depth-renderer="portable-layer-v1"/);
+    assert.match(publicMarkup, /\?tcv=[a-f0-9]{16}/);
     assert.match(publicMarkup, /\/visual-parts\/signature\/cabinet-noir\/source\/01-production-assets\//);
     assert.match(publicMarkup, /Call the atelier/);
     assert.match(publicMarkup, /href="tel:\+15551212"/);

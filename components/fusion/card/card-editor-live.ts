@@ -15,6 +15,10 @@ import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject, SectionP
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import type { SelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
 import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
+import type { StudioDiscoveryResource } from "@/lib/fusion/creative-studio/platform/discovery";
+import type { StudioPresentationApplication, StudioPresentationOperation } from "@/lib/fusion/creative-studio/platform/presentation-application";
+import type { StudioCuratedAssemblyMutation } from "@/lib/fusion/creative-studio/platform/structured-assembly";
+import type { SignatureAssemblyLayoutMode } from "@/lib/fusion/creative-studio/signature-assets/assembly";
 
 export type CardEditorLiveModel = {
   documentId: string;
@@ -26,6 +30,7 @@ export type CardEditorLiveModel = {
   config: TapConnectCardConfig;
   selected: TapCardSection | null;
   selectedObject?: ComposerSelectedObject;
+  selectedCompositionNode?: CreativeCompositionNode | null;
   sorted: TapCardSection[];
   brandState: BrandInheritanceState;
   mediaUploadReady: boolean;
@@ -88,6 +93,11 @@ export type CardEditorLiveModel = {
     patch: Partial<CreativeCompositionNode>,
     label: string
   ) => void;
+  beginLiveAdjustment?: () => void;
+  previewCompositionNode?: (nodeId: string, patch: Partial<CreativeCompositionNode>) => void;
+  previewSelection?: (selection: SelectionRef, patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>) => void;
+  commitLiveAdjustment?: (label: string) => void;
+  cancelLiveAdjustment?: () => void;
   patchSelection: (
     selection: SelectionRef,
     patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>,
@@ -102,7 +112,12 @@ export type CardEditorLiveModel = {
     targetSectionId: string | null,
     initialProps?: Record<string, unknown>,
     frame?: { x?: number; y?: number; width: number; height: number }
-  ) => void;
+  ) => string | undefined;
+  onApplyPresentationResource?: (
+    nodeId: string,
+    resource: StudioDiscoveryResource<StudioPresentationApplication>,
+    operation: StudioPresentationOperation
+  ) => { ok: true } | { ok: false; conflicts: readonly string[] };
   onAddObjects?: (
     objects: Array<{
       kind: CardElementKind;
@@ -150,6 +165,33 @@ export type CardEditorLiveModel = {
     }>,
     label: string
   ) => void;
+  onInsertCuratedAssembly?: (
+    familyId: string,
+    layoutMode: SignatureAssemblyLayoutMode,
+  ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
+  onMutateCuratedAssembly?: (
+    selectedNodeId: string,
+    mutation: StudioCuratedAssemblyMutation,
+    label: string,
+  ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
+  previewCuratedAssembly?: (
+    selectedNodeId: string,
+    mutation: StudioCuratedAssemblyMutation,
+  ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
+  /** Canonical Card Surface → optional Container → Module authority. */
+  onEnableCompositionParentAuthority?: () => void;
+  onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image") => string | undefined;
+  onAddCompositionModule?: (
+    kind: "text" | "image" | "button" | "divider",
+    parentId: string | null,
+    initialProps?: Record<string, unknown>,
+  ) => string | undefined;
+  onReparentCompositionModule?: (moduleId: string, parentId: string | null, index?: number) => void;
+  onReorderCompositionNode?: (nodeId: string, index: number) => void;
+  onWrapCompositionModules?: (moduleIds: string[]) => string | undefined;
+  onUnwrapCompositionContainer?: (containerId: string) => void;
+  onDuplicateCompositionNode?: (nodeId: string) => void;
+  onDeleteCompositionNode?: (nodeId: string, deleteContainerContents?: boolean) => void;
   moveElementsTo?: (
     ids: string[],
     fromSectionId: string | null,
@@ -209,6 +251,7 @@ export function cardEditorLiveMaterialSignature(
     config: model.config,
     selectedId: model.selected?.id ?? null,
     selectedObject: model.selectedObject,
+    selectedCompositionNode: model.selectedCompositionNode,
     sortedIds: model.sorted.map((s) => s.id),
     brandState: model.brandState,
     mediaUploadReady: model.mediaUploadReady,

@@ -57,6 +57,66 @@ describe("feature gate helpers", () => {
   });
 });
 
+describe("feature gate: deterministic scoped overrides", () => {
+  const overrides = [
+    { featureId: "card.studio.reconstitution_v1", enabled: true, scope: "global" },
+    { featureId: "card.studio.reconstitution_v1", enabled: false, scope: "business:biz-1" },
+    { featureId: "card.studio.reconstitution_v1", enabled: true, scope: "cohort:pilot" },
+    { featureId: "card.studio.reconstitution_v1", enabled: false, scope: "user:user-1" },
+  ];
+
+  it("uses user then cohort then business then global precedence", () => {
+    assert.equal(
+      isFeatureEnabled("card.studio.reconstitution_v1", {
+        overrides,
+        subject: { userId: "user-1", businessId: "biz-1", cohortIds: ["pilot"] },
+      }),
+      false
+    );
+    assert.equal(
+      isFeatureEnabled("card.studio.reconstitution_v1", {
+        overrides,
+        subject: { userId: "user-2", businessId: "biz-1", cohortIds: ["pilot"] },
+      }),
+      true
+    );
+    assert.equal(
+      isFeatureEnabled("card.studio.reconstitution_v1", {
+        overrides,
+        subject: { userId: "user-2", businessId: "biz-1" },
+      }),
+      false
+    );
+    assert.equal(
+      isFeatureEnabled("card.studio.reconstitution_v1", {
+        overrides,
+        subject: { userId: "user-2", businessId: "biz-2" },
+      }),
+      true
+    );
+  });
+
+  it("is default-off when no matching scoped override exists", () => {
+    assert.equal(
+      isFeatureEnabled("card.studio.reconstitution_v1", {
+        overrides: overrides.filter((override) => override.scope !== "global"),
+        subject: { userId: "other", businessId: "other" },
+      }),
+      false
+    );
+  });
+
+  it("ignores an unrelated scoped override instead of treating it as global", () => {
+    assert.equal(
+      isFeatureEnabled("card.studio.reconstitution_v1", {
+        overrides: [{ featureId: "card.studio.reconstitution_v1", enabled: true, scope: "user:someone-else" }],
+        subject: { userId: "user-1" },
+      }),
+      false
+    );
+  });
+});
+
 describe("feature gate: Studio IA readiness", () => {
   it("marks wallet section DISABLED when registry override is off", () => {
     const wallet = sectionsForDestination("audience").find((s) => s.id === "wallet");

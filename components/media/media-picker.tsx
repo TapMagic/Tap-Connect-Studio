@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -17,6 +17,12 @@ interface MediaPickerProps {
   mediaUploadReady?: boolean;
   stockReady?: boolean;
   campaignId?: string;
+  chooseLabel?: string;
+  replaceLabel?: string;
+  removeLabel?: string;
+  selectionLabel?: string;
+  preview?: ReactNode;
+  openRequestToken?: number;
 }
 
 export function MediaPicker({
@@ -27,9 +33,16 @@ export function MediaPicker({
   label = "Image",
   mediaUploadReady = false,
   stockReady = false,
+  chooseLabel = "Browse media & assets",
+  replaceLabel = "Replace",
+  removeLabel,
+  selectionLabel,
+  preview,
+  openRequestToken,
 }: MediaPickerProps) {
   const [browserOpen, setBrowserOpen] = useState(false);
   const sharedBrowser = useSharedMediaBrowser();
+  const handledOpenRequest = useRef(openRequestToken);
 
   function chooseAsset(asset: MediaAssetCandidate) {
     onChange?.(asset.url);
@@ -54,21 +67,29 @@ export function MediaPicker({
     setBrowserOpen(true);
   }
 
+  useEffect(() => {
+    if (openRequestToken === undefined || handledOpenRequest.current === openRequestToken) return;
+    handledOpenRequest.current = openRequestToken;
+    openMediaBrowser();
+  // The token is the imperative request boundary; browser configuration is read at request time.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [openRequestToken]);
+
   return (
     <div className="space-y-3" data-testid="media-picker">
       <Label className="text-xs">{label}</Label>
       {value ? (
         <div className="overflow-hidden rounded-lg border border-border/50 bg-black/20">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
+          {preview ?? <img
             src={value}
             alt={`${label} selection`}
             className="max-h-40 w-full object-contain"
-          />
+          />}
           <div className="flex items-center justify-between gap-2 border-t border-border/50 p-2">
             <div className="min-w-0">
               <p className="truncate text-xs text-muted-foreground">
-                {valueAssetId ? `Studio asset ${valueAssetId}` : "Legacy URL selection"}
+                {selectionLabel || (valueAssetId ? `Studio asset ${valueAssetId}` : "Current selection")}
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
@@ -78,7 +99,7 @@ export function MediaPicker({
                 variant="outline"
                 onClick={openMediaBrowser}
               >
-                Replace
+                {replaceLabel}
               </Button>
               <Button
                 type="button"
@@ -88,6 +109,7 @@ export function MediaPicker({
                 aria-label={`Clear ${label}`}
               >
                 <X className="h-4 w-4" />
+                {removeLabel ? <span className="ml-1">{removeLabel}</span> : null}
               </Button>
             </div>
           </div>
@@ -101,7 +123,7 @@ export function MediaPicker({
           data-testid="open-shared-media-browser"
         >
           <ImageIcon className="mr-2 h-4 w-4" />
-          Browse media & assets
+          {chooseLabel}
         </Button>
       )}
 

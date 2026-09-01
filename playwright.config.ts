@@ -20,5 +20,8 @@ export default defineConfig({
     // Headed when PROOF_HEADED=1
     headless: process.env.PROOF_HEADED !== "1",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    { name: "chromium", use: { ...devices["Desktop Chrome"] } },
+    { name: "webkit", use: { ...devices["Desktop Safari"] } },
+  ],
 });

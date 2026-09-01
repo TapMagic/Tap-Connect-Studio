@@ -21,7 +21,7 @@ import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
 import { TapConnectIcon } from "@/components/fusion/icons/tapconnect-icons";
 import { PublicRetentionPath } from "@/components/marketing/public-retention-path";
 import { PLANS } from "@/lib/plans";
-import { isClerkClientConfigured } from "@/lib/utils/clerk-client";
+import { useClerkRuntimeEnabled } from "@/components/auth/auth-runtime-provider";
 import type { TapConnectIconId } from "@/lib/fusion/icons/registry";
 import "./public-experience-landing.css";
 
@@ -162,7 +162,7 @@ function AcquisitionLink({
   testId: string;
   children?: ReactNode;
 }) {
-  const clerkConfigured = isClerkClientConfigured();
+  const clerkConfigured = useClerkRuntimeEnabled();
 
   if (!clerkConfigured) {
     return (
@@ -260,7 +260,7 @@ function LivingCardVisual() {
 
 function PublicHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
-  const clerkConfigured = isClerkClientConfigured();
+  const clerkConfigured = useClerkRuntimeEnabled();
 
   return (
     <header className="public-header" data-testid="public-header">
@@ -702,4 +702,3 @@ export function PublicExperienceLanding() {
     </div>
   );
 }
-

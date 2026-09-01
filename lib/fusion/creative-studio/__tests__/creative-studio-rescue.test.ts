@@ -38,7 +38,7 @@ import {
   updatePreviewSession,
   verifyPreviewToken,
 } from "@/lib/fusion/creative-studio/preview/tokens";
-import { resolvePreviewBaseUrl } from "@/lib/fusion/creative-studio/preview/url";
+import { detectLanBaseUrl, resolvePreviewBaseUrl } from "@/lib/fusion/creative-studio/preview/url";
 
 describe("creative-studio modes", () => {
   it("edit blocks activation; preview and public do not", () => {
@@ -221,8 +221,13 @@ describe("creative-studio preview base url", () => {
     const local = resolvePreviewBaseUrl({
       configured: "http://localhost:3000",
     });
-    assert.equal(local.reachableForPhone, false);
-    assert.equal(local.isLocalhost, true);
+    if (detectLanBaseUrl(3000)) {
+      assert.equal(local.reachableForPhone, true);
+      assert.equal(local.candidateKind, "lan_candidate");
+    } else {
+      assert.equal(local.reachableForPhone, false);
+      assert.equal(local.isLocalhost, true);
+    }
     const lan = resolvePreviewBaseUrl({
       configured: "http://192.168.1.20:3000",
     });

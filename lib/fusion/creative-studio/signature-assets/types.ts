@@ -42,6 +42,13 @@ export function isSignatureContractId(value: unknown, expectedName?: string): va
 export type SignatureSafeInsets = { top: number; right: number; bottom: number; left: number };
 export type SignatureNormalizedPoint = { x: number; y: number };
 export type SignatureNormalizedRect = { x: number; y: number; width: number; height: number };
+export type SignatureTypographyRange = {
+  minPx: number;
+  maxPx: number;
+  stepPx: number;
+  defaultPx: number;
+  characterLimits: { atMin: number; atDefault: number; atMax: number };
+};
 
 export type SignatureSourceGeometry = {
   widthPx: number;
@@ -52,9 +59,22 @@ export type SignatureSourceGeometry = {
 export type SignatureLiveContentGeometry = {
   safeArea: SignatureNormalizedRect;
   alignment: "left" | "center" | "right";
+  allowedAlignments?: readonly ("left" | "center" | "right")[];
   recommendedWidthPx?: number;
   fontSizePxAt390?: readonly [number, number];
   lineHeightPxAt390?: readonly [number, number];
+  textSizePresetsPxAt390?: Readonly<Record<"small" | "medium" | "large", number>>;
+  lineHeightPresetsPxAt390?: Readonly<Record<"small" | "medium" | "large", number>>;
+  recommendedCharacterCounts?: Readonly<Record<"small" | "medium" | "large", number>>;
+  /** Optical correction for font metrics inside the certified safe area. */
+  opticalCenterOffsetEm?: number;
+  presentationTypography?: Readonly<Record<"standalone" | "single-stack" | "twin-rail", SignatureTypographyRange>>;
+  textTreatment?: "raised-enamel";
+};
+
+export type SignatureCompactStackedGeometry = {
+  /** Final visible machined-body bounds inside the immutable source canvas. */
+  visibleBodyBounds: { top: number; bottom: number };
 };
 
 export type SignatureAssetProvenance = {
@@ -159,6 +179,7 @@ export type SignatureComponentContract = {
   accessibility: SignatureFurnitureAccessibility;
   sourceGeometry?: SignatureSourceGeometry;
   liveContentGeometry?: SignatureLiveContentGeometry;
+  compactStackedGeometry?: SignatureCompactStackedGeometry;
   provenance?: SignatureAssetProvenance;
 };
 

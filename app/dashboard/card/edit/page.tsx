@@ -1,4 +1,5 @@
 import { CardAuthoringWorkspace } from "@/components/fusion/card/card-authoring-workspace";
+import { CardStudioReconstitutionWorkspace } from "@/components/fusion/card/reconstitution/card-studio-reconstitution-workspace";
 import { isPlatformAdmin } from "@/lib/auth";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
 import { parseTapConnectCard } from "@/lib/brand/tap-card";
@@ -9,6 +10,7 @@ import { listFeatureOverrides } from "@/lib/fusion/features/overrides";
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import { beginCardDraftEditing } from "@/lib/fusion/card/draft";
 import { resolveBusinessSignatureEntitlements } from "@/lib/fusion/creative-studio/signature-assets/entitlements.server";
+import { buildStudioButtonFamilyCatalog } from "@/lib/fusion/creative-studio/reconstitution/button-family-provider.server";
 import { buildFirstCardDraft } from "@/lib/fusion/card/first-card-draft";
 import "@/app/t/tap.css";
 
@@ -33,6 +35,11 @@ export default async function TapCardEditPage({
   const freeformEnabled = isFeatureEnabled("card.builder.freeform", {
     overrides,
     internalOperator: isPlatformAdmin(user),
+  });
+  const reconstitutedStudioEnabled = isFeatureEnabled("card.studio.reconstitution_v1", {
+    overrides,
+    internalOperator: isPlatformAdmin(user),
+    subject: { userId: user.id, businessId: business.id },
   });
   const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
   const cardCreativeDocuments = await prisma.cardCreativeDocument.findMany({ where: { businessId: business.id }, orderBy: { updatedAt: "desc" } });
@@ -217,13 +224,39 @@ export default async function TapCardEditPage({
       : null,
   };
 
-  return (
-    <CardAuthoringWorkspace
-      {...builderProps}
-      publicCode={publicCode}
-      tapPointCount={devices.length}
-      activeSpotlightTitle={activeSpotlight?.title ?? null}
-      doneHref={doneHref}
-    />
-  );
+  const workspaceProps = {
+    ...builderProps,
+    publicCode,
+    tapPointCount: devices.length,
+    activeSpotlightTitle: activeSpotlight?.title ?? null,
+    doneHref,
+  };
+
+  if (reconstitutedStudioEnabled) {
+    const fontFamily = brandKit?.fontStyle === "PREMIUM" || brandKit?.fontStyle === "CLASSIC"
+      ? '"Playfair Display", Georgia, serif'
+      : brandKit?.fontStyle === "PLAYFUL"
+        ? '"Montserrat", ui-sans-serif, system-ui, sans-serif'
+        : '"Inter", ui-sans-serif, system-ui, sans-serif';
+    return (
+      <CardStudioReconstitutionWorkspace
+        {...workspaceProps}
+        buttonFamilyCatalog={buildStudioButtonFamilyCatalog(signatureEntitlementKeys)}
+        brandPreviewContext={{
+          businessName: business.name,
+          logoUrl: business.logoUrl,
+          primaryColor: brandKit?.primaryColor,
+          secondaryColor: brandKit?.secondaryColor,
+          accentColor: brandKit?.accentColor,
+          backgroundColor: brandKit?.backgroundColor,
+          textColor: brandKit?.textColor,
+          headingFontFamily: fontFamily,
+          bodyFontFamily: fontFamily,
+          contactPhone: profile.phone || business.phone,
+        }}
+      />
+    );
+  }
+
+  return <CardAuthoringWorkspace {...workspaceProps} />;
 }

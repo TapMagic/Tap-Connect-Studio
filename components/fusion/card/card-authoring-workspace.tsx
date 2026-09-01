@@ -390,6 +390,8 @@ export function CardAuthoringWorkspace({
   }, [editSelectionMemory]);
 
   // Keep shell Esc layering honest: deep-left / Resize / exit dialog are modal layers.
+  // This effect synchronizes modal state owned by several external shell surfaces.
+  /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     const deepLeftOpen =
       typeof document !== "undefined" &&
@@ -398,6 +400,7 @@ export function CardAuthoringWorkspace({
       exitState !== "closed" || resizeAdaptOpen || advancedSettingsOpen || deepLeftOpen;
     setShell((current) => (current.modalOpen === blocking ? current : { ...current, modalOpen: blocking }));
   }, [exitState, resizeAdaptOpen, advancedSettingsOpen, liveModel?.selectionRef.selectionGeneration, creativeTool]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   // Owner-facing Escape ownership: dismiss Studio overlays / Preview before trapping the crawl or the keyboard.
   useEffect(() => {

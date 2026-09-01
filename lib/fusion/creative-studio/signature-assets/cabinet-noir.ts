@@ -6,6 +6,7 @@ import {
   type SignatureFamilyDefinition,
   type SignatureNormalizedRect,
 } from "./types";
+import type { CuratedFamilyVisualAcceptanceContract } from "./visual-acceptance";
 import {
   SIGNATURE_ASSEMBLY_CONTRACT_IDS,
   type SignatureAssemblyRecipe,
@@ -13,6 +14,56 @@ import {
 
 export const CABINET_NOIR_FAMILY_ID = "cabinet-noir";
 export const CABINET_NOIR_FAMILY_VERSION = "1.0.0" as const;
+
+/**
+ * Phone-visible seam authority. Bounds are measured from the opaque horizontal
+ * body in the certified source, excluding transparent canvas padding and the
+ * separately projected plug medallion. The generic Curated compiler consumes
+ * the resulting native cadence; no CSS gap participates in assembly geometry.
+ */
+export const CABINET_NOIR_ROW_SEAM_CONTRACT = {
+  authoritativeWidthCssPx: 390,
+  targetCssPx: 3.14,
+  acceptableCssPx: { min: 2, max: 4 },
+  coordinateWidthPx: 2172,
+  projectionWidthPx: 2553.8337226500003,
+  visibleBodyBoundsPx: {
+    "CN-004": { top: 171, bottom: 523 },
+    "CN-005": { top: 151, bottom: 533 },
+  },
+} as const;
+
+const cabinetNoirNativePxPerCssPx =
+  CABINET_NOIR_ROW_SEAM_CONTRACT.projectionWidthPx /
+  CABINET_NOIR_ROW_SEAM_CONTRACT.authoritativeWidthCssPx;
+const cabinetNoirTargetSeamNativePx =
+  CABINET_NOIR_ROW_SEAM_CONTRACT.targetCssPx * cabinetNoirNativePxPerCssPx;
+const cabinetNoirCompactActionScale = .9;
+const cabinetNoirSingleStridePx =
+  (((CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-004"].bottom -
+    CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-005"].top) +
+    (CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-005"].bottom -
+      CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-004"].top)) /
+    2)*cabinetNoirCompactActionScale + cabinetNoirTargetSeamNativePx;
+const cabinetNoirRightActionYOffsetPx =
+  (((CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-004"].bottom -
+    CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-005"].top) -
+    (CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-005"].bottom -
+      CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx["CN-004"].top)) /
+  2)*cabinetNoirCompactActionScale;
+export const CABINET_NOIR_COMPACT_STACKED_PRESENTATION = {
+  mode:"compact-stacked",
+  standaloneRowHeightPx:724,
+  rowHeightPx:cabinetNoirSingleStridePx,
+  actionScale:cabinetNoirCompactActionScale,
+  plugVerticalInsetPx:12,
+  preservePlugAspectRatio:true,
+} as const;
+export const CABINET_NOIR_PRESENTATION_TYPOGRAPHY = {
+  standalone: { minPx: 12, maxPx: 18, stepPx: .5, defaultPx: 14, characterLimits: { atMin: 28, atDefault: 22, atMax: 14 } },
+  "single-stack": { minPx: 12, maxPx: 17, stepPx: .5, defaultPx: 14, characterLimits: { atMin: 26, atDefault: 20, atMax: 15 } },
+  "twin-rail": { minPx: 11, maxPx: 15, stepPx: .5, defaultPx: 13, characterLimits: { atMin: 24, atDefault: 18, atMax: 14 } },
+} as const;
 export const CABINET_NOIR_ENTITLEMENT_KEY = "signature.family.cabinet_noir" as const;
 export const CABINET_NOIR_FINISH_ID = "champagne-gold-blackened-gunmetal@1.0.0";
 export const CABINET_NOIR_ROOT = "/visual-parts/signature/cabinet-noir";
@@ -63,29 +114,33 @@ const semanticSocket = (
   ownership: "component" | "live-action" = "live-action",
 ) => ({
   contractId: APPROVED_SIGNATURE_CONTRACT_IDS.semanticPlugSocket,
-  geometry: { bounds: rect(bounds), safeArea: rect(safeArea), center: { x: center[0], y: center[1] } },
+  geometry: {
+    bounds: rect(bounds),
+    safeArea: rect(safeArea),
+    center: { x: center[0], y: center[1] },
+  },
   ownership,
 });
 
 const actionGeometry = {
   "CN-002": {
     socket: semanticSocket([.701625572,.092201965,.996818383,.944519234],[.77946593,.296961326,.916206262,.70441989],[.847836096,.500690608]),
-    text: rect([.115101289,.345303867,.667587477,.552486188]),
+    text: rect([.115101289,.375303867,.667587477,.582486188]),
     side: "right" as const,
   },
   "CN-003": {
     socket: semanticSocket([-.006279242,.073561389,.289907483,.928748413],[.071823204,.267955801,.209023941,.698895028],[.140423573,.483425414]),
-    text: rect([.299263352,.33839779,.85174954,.54558011]),
+    text: rect([.299263352,.36839779,.85174954,.57558011]),
     side: "left" as const,
   },
   "CN-004": {
     socket: semanticSocket([.023527326,.135401112,.266042631,.83562136],[.08747698,.30801105,.199815838,.633977901],[.143646409,.470994475]),
-    text: rect([.276243094,.372928177,.828729282,.566298343]),
+    text: rect([.276243094,.382928177,.828729282,.576298343]),
     side: "left" as const,
   },
   "CN-005": {
     socket: semanticSocket([.734413886,.109280508,.99780141,.869765613],[.803867403,.296961326,.92587477,.650552486],[.864871087,.473756906]),
-    text: rect([.161141805,.366022099,.690607735,.559392265]),
+    text: rect([.161141805,.376022099,.690607735,.569392265]),
     side: "right" as const,
   },
 } as const;
@@ -253,7 +308,25 @@ const normalizedContract = (spec: AssetSpec): SignatureComponentContract => {
     entitlementKey:CABINET_NOIR_ENTITLEMENT_KEY,
     accessibility:{furniture:"decorative",ariaHidden:true,interactive:false,liveContent:action?"socket-content":spec.componentId==="CN-011"?"text":"none",accessibleNameSource:action?"live-label":spec.componentId==="CN-011"?"live-content":undefined},
     sourceGeometry:{widthPx:spec.width,heightPx:spec.height,runtimeScale:spec.componentId==="CN-043"?362/1536:undefined},
-    liveContentGeometry:action ? {safeArea:action.text,alignment:"left",fontSizePxAt390:[14,16],lineHeightPxAt390:[18,20]} : spec.componentId === "CN-011" ? {safeArea:rect([326/2172,284/724,1846/2172,440/724]),alignment:"center",recommendedWidthPx:1352,fontSizePxAt390:[14,16],lineHeightPxAt390:[18,20]} : undefined,
+    liveContentGeometry:action ? {
+      safeArea:action.text,
+      alignment:"center",
+      allowedAlignments:["left","center","right"],
+      fontSizePxAt390:[12,17],
+      lineHeightPxAt390:[15,21],
+      textSizePresetsPxAt390:{small:12,medium:14,large:17},
+      lineHeightPresetsPxAt390:{small:15,medium:18,large:21},
+      recommendedCharacterCounts:{small:26,medium:20,large:15},
+      opticalCenterOffsetEm:-.08,
+      presentationTypography:CABINET_NOIR_PRESENTATION_TYPOGRAPHY,
+      textTreatment:"raised-enamel",
+    } : spec.componentId === "CN-011" ? {safeArea:rect([326/2172,284/724,1846/2172,440/724]),alignment:"center",recommendedWidthPx:1352,fontSizePxAt390:[14,16],lineHeightPxAt390:[18,20]} : undefined,
+    compactStackedGeometry:spec.componentId==="CN-004"||spec.componentId==="CN-005"?{
+      visibleBodyBounds:{
+        top:CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx[spec.componentId].top/spec.height,
+        bottom:CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx[spec.componentId].bottom/spec.height,
+      },
+    }:undefined,
     provenance:{sourceAssetPath:handoffSourcePath(spec.path),authorityManifest:CABINET_NOIR_MANIFEST,geometryAuthority:CABINET_NOIR_GEOMETRY_AUTHORITY,sourceMode:"exact-asset",immutable:true},
   };
 };
@@ -318,9 +391,10 @@ export const CABINET_NOIR_SINGLE_STACK_RECIPE: SignatureAssemblyRecipe = {
   familyVersion:CABINET_NOIR_FAMILY_VERSION,
   recipeId:"cabinet-noir-single-stack",
   recipeVersion:"1.0.0",
+  presentationMode:"single-stack",
   fixedTop:[{role:"identity-header",componentId:"CN-037",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.identityHeaderSocket]},{role:"single-stack-bridge",componentId:"CN-038"}],
   actionUnit:{id:"action-row",kind:"row",capacity:1,masterStrategy:{mode:"alternating",sequence:[{role:"standard-action",componentId:"CN-004",side:"left",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.semanticPlugSocket]},{role:"standard-action",componentId:"CN-005",side:"right",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.semanticPlugSocket]}]},socketOwnership:"action-master"},
-  repeatInterval:{id:"single-stack-rail-interval",components:[{role:"single-stack-repeat-rails",componentId:"CN-039"}],axis:"y",cadence:"action-row",nativeStridePx:724,normalizedStride:1,preferredOverlapPx:0,maximumSeamOverlapPx:2,placement:"between-action-units"},
+  repeatInterval:{id:"single-stack-rail-interval",components:[{role:"single-stack-repeat-rails",componentId:"CN-039"}],axis:"y",cadence:"action-row",nativeStridePx:724,normalizedStride:1,preferredOverlapPx:0,maximumSeamOverlapPx:2,placement:"action-unit-chassis"},
   structuralTermination:{role:"single-stack-termination",componentId:"CN-040"},
   optionalDecorativeTermination:{role:"decorative-termination",componentId:"CN-041"},
   oddActionTreatment:{mode:"not-applicable"},
@@ -328,18 +402,27 @@ export const CABINET_NOIR_SINGLE_STACK_RECIPE: SignatureAssemblyRecipe = {
   certificationLimits:{minimumActions:1,launchCertifiedActionCounts:[1,2,3,4,5,6],maximumLaunchCertifiedActions:6},
   geometry:{
     coordinateWidthPx:2172,
-    unitStridePx:724,
+    // CN-004/CN-005 carry transparent vertical source padding. Phone-scale
+    // projection removes the dark band while retaining a hairline material
+    // seam at alternating row boundaries.
+    unitStridePx:cabinetNoirSingleStridePx,
+    actionPresentation:CABINET_NOIR_COMPACT_STACKED_PRESENTATION,
+    // Phone density is authoritative. Pull the whole governed content run
+    // under the bridge so the first action and crown share a visible seam
+    // instead of exposing transparent source-canvas air between them.
+    contentOriginOffsetPx:-320,
+    visualContinuationOverlapPx:724-cabinetNoirSingleStridePx,
     fixedTop:[
       {role:"identity-header",verticalReference:"assembly-origin",xPx:0,yOffsetPx:-392.79437309,scale:1,zOrder:40,attachmentAnchorId:"bridge-attachment",targetXPx:1086.957789325},
       {role:"single-stack-bridge",verticalReference:"assembly-origin",xPx:0,yOffsetPx:0,scale:1.34059513,zOrder:10,attachmentAnchorId:"left-rail",targetXPx:120},
     ],
     actionSlots:[
-      {role:"standard-action",side:"left",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:1,zOrder:20},
-      {role:"standard-action",side:"right",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:1,zOrder:20},
+      {role:"standard-action",side:"left",verticalReference:"unit-start",xPx:108.6,yOffsetPx:0,scale:cabinetNoirCompactActionScale,zOrder:20},
+      {role:"standard-action",side:"right",verticalReference:"unit-start",xPx:108.6,yOffsetPx:cabinetNoirRightActionYOffsetPx,scale:cabinetNoirCompactActionScale,zOrder:20},
     ],
     repeatComponents:[{role:"single-stack-repeat-rails",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:1,zOrder:10,attachmentAnchorId:"left-top",targetXPx:120}],
-    structuralTermination:{role:"single-stack-termination",verticalReference:"content-end",xPx:0,yOffsetPx:0,scale:1.350278091,zOrder:10,attachmentAnchorId:"left-rail",targetXPx:120},
-    decorativeTermination:{role:"decorative-termination",verticalReference:"content-end",xPx:0,yOffsetPx:1270.611884831,scale:1,zOrder:5},
+    structuralTermination:{role:"single-stack-termination",verticalReference:"termination-start",xPx:0,yOffsetPx:0,scale:1.350278091,zOrder:10,attachmentAnchorId:"left-rail",targetXPx:120},
+    decorativeTermination:{role:"decorative-termination",verticalReference:"termination-start",xPx:0,yOffsetPx:1270.611884831,scale:1,zOrder:5},
   },
 };
 
@@ -349,37 +432,106 @@ export const CABINET_NOIR_TWIN_RAIL_RECIPE: SignatureAssemblyRecipe = {
   familyVersion:CABINET_NOIR_FAMILY_VERSION,
   recipeId:"cabinet-noir-twin-rail",
   recipeVersion:"1.0.0",
+  presentationMode:"twin-rail",
   fixedTop:[{role:"identity-header",componentId:"CN-037",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.identityHeaderSocket]},{role:"twin-rail-crown-bridge",componentId:"CN-044"}],
   actionUnit:{id:"paired-action-level",kind:"paired-level",capacity:2,masterStrategy:{mode:"side-specific",masters:{left:{role:"standard-action",componentId:"CN-004",side:"left",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.semanticPlugSocket]},right:{role:"standard-action",componentId:"CN-005",side:"right",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.semanticPlugSocket]}}},socketOwnership:"action-master"},
-  repeatInterval:{id:"twin-rail-interval",components:[{role:"twin-rail-repeat-outer",componentId:"CN-042"},{role:"twin-rail-repeat-spine",componentId:"CN-043",side:"center"}],axis:"y",cadence:"paired-level",nativeStridePx:362,normalizedStride:1,preferredOverlapPx:0,maximumSeamOverlapPx:2,placement:"between-action-units"},
+  repeatInterval:{id:"twin-rail-interval",components:[{role:"twin-rail-repeat-outer",componentId:"CN-042"},{role:"twin-rail-repeat-spine",componentId:"CN-043",side:"center"}],axis:"y",cadence:"paired-level",nativeStridePx:362,normalizedStride:1,preferredOverlapPx:0,maximumSeamOverlapPx:2,placement:"action-unit-chassis"},
   structuralTermination:{role:"twin-rail-termination",componentId:"CN-045"},
   oddActionTreatment:{mode:"full-width-after-complete-pairs",terminateRepeatsAfterLastCompleteUnit:true,finalActionMaster:{role:"hero-action",componentId:"CN-002",side:"right",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.semanticPlugSocket]},transitionFurniture:{role:"odd-action-finisher",componentId:"CN-010"},transitionIsInteractive:false,structuralTerminationFollows:true},
   attachmentOrder:["identity-header","twin-rail-crown-bridge","paired-action-level","twin-rail-interval","odd-action-finisher","twin-rail-termination"],
+  structuralAttachmentPolicy:"complete",
   certificationLimits:{minimumActions:2,launchCertifiedActionCounts:[2,3,4,5,6],structuralProofOnlyActionCounts:[7],maximumLaunchCertifiedActions:6},
   geometry:{
     coordinateWidthPx:2172,
-    unitStridePx:362,
+    // Phone-density cadence removes the residual dark band while retaining a
+    // hairline material seam between paired levels.
+    unitStridePx:230,
+    actionPresentation:{mode:"compact-stacked",rowHeightPx:230,plugVerticalInsetPx:12,preservePlugAspectRatio:true},
+    // The paired action chassis tucks beneath the crown legs at phone scale;
+    // all later levels and terminal furniture inherit the same origin.
+    contentOriginOffsetPx:-450,
+    visualContinuationOverlapPx:132,
     fixedTop:[
-      {role:"identity-header",verticalReference:"assembly-origin",xPx:0,yOffsetPx:-753.22772375,scale:1,zOrder:40,attachmentAnchorId:"bridge-attachment",targetXPx:1086.327482546},
-      {role:"twin-rail-crown-bridge",verticalReference:"assembly-origin",xPx:0,yOffsetPx:0,scale:1.205164358,zOrder:10,attachmentAnchorId:"left-rail",targetXPx:120},
+      {role:"identity-header",verticalReference:"assembly-origin",xPx:0,yOffsetPx:-585.22772375,scale:1,zOrder:40,attachmentAnchorId:"bridge-attachment",targetXPx:1086.327482546,structuralAttachment:{attachmentRole:"incoming",startAnchor:"identity-crown",endAnchor:"bridge-attachment",expectedNeighborRoles:["twin-rail-crown-bridge"],visualSeamTolerancePx:2,zOrderRelationship:"above-neighbor"}},
+      {role:"twin-rail-crown-bridge",verticalReference:"assembly-origin",xPx:0,yOffsetPx:0,scale:1.205164358,zOrder:10,attachmentAnchorId:"left-rail",targetXPx:120,structuralAttachment:{attachmentRole:"continuation",startAnchor:"identity-crown",endAnchor:"rail-and-spine-junctions",expectedNeighborRoles:["identity-header","twin-rail-repeat-outer","twin-rail-repeat-spine"],visualSeamTolerancePx:2,zOrderRelationship:"below-neighbor"}},
     ],
     actionSlots:[
       {role:"standard-action",side:"left",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:.5,zOrder:20},
       {role:"standard-action",side:"right",verticalReference:"unit-start",xPx:1086,yOffsetPx:0,scale:.5,zOrder:20},
     ],
     repeatComponents:[
-      {role:"twin-rail-repeat-outer",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:1,zOrder:10,attachmentAnchorId:"left-top",targetXPx:120},
-      {role:"twin-rail-repeat-spine",side:"center",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:362/1536,zOrder:15,attachmentAnchorId:"center-top",targetXPx:1086},
+      {role:"twin-rail-repeat-outer",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:1,zOrder:10,attachmentAnchorId:"left-top",targetXPx:120,structuralAttachment:{attachmentRole:"continuation",startAnchor:"left-top/right-top",endAnchor:"left-bottom/right-bottom",expectedNeighborRoles:["twin-rail-crown-bridge","twin-rail-repeat-outer","twin-rail-termination"],visualSeamTolerancePx:2,zOrderRelationship:"same-plane"}},
+      {role:"twin-rail-repeat-spine",side:"center",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:362/1536,zOrder:15,attachmentAnchorId:"center-top",targetXPx:1086,structuralAttachment:{attachmentRole:"continuation",startAnchor:"center-top",endAnchor:"center-bottom",expectedNeighborRoles:["twin-rail-crown-bridge","twin-rail-repeat-spine","twin-rail-termination"],visualSeamTolerancePx:2,zOrderRelationship:"above-neighbor"}},
     ],
-    structuralTermination:{role:"twin-rail-termination",verticalReference:"content-end",xPx:4.047172791,yOffsetPx:0,scale:.996696894,zOrder:10,attachmentAnchorId:"left-rail",targetXPx:120},
+    structuralTermination:{role:"twin-rail-termination",verticalReference:"termination-start",xPx:4.047172791,yOffsetPx:0,scale:.996696894,zOrder:18,attachmentAnchorId:"left-rail",targetXPx:120,structuralAttachment:{attachmentRole:"termination",startAnchor:"center-spine",endAnchor:"bottom-cap",expectedNeighborRoles:["twin-rail-repeat-outer","twin-rail-repeat-spine"],visualSeamTolerancePx:2,zOrderRelationship:"above-neighbor",visibleRelationships:[
+      {id:"left-outer-rail-into-bottom-cap",sourceAnchor:"left-rail",destinationRole:"twin-rail-repeat-outer",destinationAnchor:"left-top",destinationOccurrence:"last",when:"even-action-count",direction:"point",contact:"overlap",tolerancePx:2},
+      {id:"center-spine-into-bottom-socket",sourceAnchor:"center-spine",destinationRole:"twin-rail-repeat-spine",destinationAnchor:"center-top",destinationOccurrence:"last",when:"even-action-count",direction:"point",contact:"overlap",tolerancePx:2},
+      {id:"right-outer-rail-into-bottom-cap",sourceAnchor:"right-rail",destinationRole:"twin-rail-repeat-outer",destinationAnchor:"right-top",destinationOccurrence:"last",when:"even-action-count",direction:"point",contact:"overlap",tolerancePx:2},
+    ]}},
     oddAction:{
       action:{role:"hero-action",side:"right",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:1,zOrder:20},
-      transition:{role:"odd-action-finisher",verticalReference:"odd-action-end",xPx:0,yOffsetPx:0,scale:1,zOrder:10},
+      transition:{role:"odd-action-finisher",verticalReference:"odd-action-end",xPx:0,yOffsetPx:0,scale:1,zOrder:10,structuralAttachment:{attachmentRole:"continuation",startAnchor:"odd-action-end",endAnchor:"terminal-junction",expectedNeighborRoles:["twin-rail-termination"],visualSeamTolerancePx:2,zOrderRelationship:"below-neighbor"}},
+      visualContinuationOverlapPx:244,
     },
   },
 };
 
-export const CABINET_NOIR_ASSEMBLY_RECIPES = [CABINET_NOIR_SINGLE_STACK_RECIPE,CABINET_NOIR_TWIN_RAIL_RECIPE] as const;
+export const CABINET_NOIR_STANDALONE_RECIPE: SignatureAssemblyRecipe = {
+  contractId:SIGNATURE_ASSEMBLY_CONTRACT_IDS.singleStack,
+  familyId:CABINET_NOIR_FAMILY_ID,
+  familyVersion:CABINET_NOIR_FAMILY_VERSION,
+  recipeId:"cabinet-noir-standalone-action",
+  recipeVersion:"1.0.0",
+  presentationMode:"standalone",
+  fixedTop:[],
+  actionUnit:{id:"standalone-action",kind:"row",capacity:1,masterStrategy:{mode:"single",master:{role:"hero-action",componentId:"CN-002",side:"right",ownsSockets:[APPROVED_SIGNATURE_CONTRACT_IDS.semanticPlugSocket]}},socketOwnership:"action-master"},
+  oddActionTreatment:{mode:"not-applicable"},
+  attachmentOrder:["standalone-action"],
+  certificationLimits:{minimumActions:1,launchCertifiedActionCounts:[1],maximumLaunchCertifiedActions:1},
+  geometry:{
+    coordinateWidthPx:2172,
+    unitStridePx:724,
+    fixedTop:[],
+    actionSlots:[{role:"hero-action",side:"right",verticalReference:"unit-start",xPx:0,yOffsetPx:0,scale:1,zOrder:20}],
+    repeatComponents:[],
+  },
+};
+
+export const CABINET_NOIR_ASSEMBLY_RECIPES = [CABINET_NOIR_STANDALONE_RECIPE,CABINET_NOIR_SINGLE_STACK_RECIPE,CABINET_NOIR_TWIN_RAIL_RECIPE] as const;
+
+export const CABINET_NOIR_VISUAL_ACCEPTANCE: CuratedFamilyVisualAcceptanceContract = {
+  familyId:CABINET_NOIR_FAMILY_ID,
+  contractVersion:"1.0.0",
+  deterministicRuntimeRoute:"/review/studio",
+  viewport:{widthPx:390,heightPx:844,density:"phone-authoritative"},
+  humanQuestion:"If I did not know these were separate PNGs, would I believe this was designed as one finished physical object?",
+  presentations:[
+    {
+      recipeId:CABINET_NOIR_STANDALONE_RECIPE.recipeId,
+      presentationMode:"standalone",
+      referenceAssetIds:[],
+      acceptedRuntimeGolden:"docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-compact-stacked/01-current-standalone-action.png",
+      deterministicRuntimeProof:"docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-surface-completion/standalone-whole-object-phone390.png",
+      requiredChecks:["outer-geometry","text-safe-area","plug-envelope","whole-object-silhouette","phone-density"],
+    },
+    {
+      recipeId:CABINET_NOIR_SINGLE_STACK_RECIPE.recipeId,
+      presentationMode:"single-stack",
+      referenceAssetIds:["CN-006","CN-007"],
+      acceptedRuntimeGolden:"docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-final-tuning/01-single-stack-4-phone.png",
+      deterministicRuntimeProof:"docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-surface-completion/single-stack-whole-object-phone390.png",
+      requiredChecks:["outer-geometry","text-safe-area","plug-envelope","crown-seating","rail-continuity","row-cadence","terminal-closure","whole-object-silhouette","phone-density"],
+    },
+    {
+      recipeId:CABINET_NOIR_TWIN_RAIL_RECIPE.recipeId,
+      presentationMode:"twin-rail",
+      referenceAssetIds:["CN-008","CN-009"],
+      acceptedRuntimeGolden:"docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-final-tuning/02-twin-rail-4-phone.png",
+      deterministicRuntimeProof:"docs/product-reconstitution/creative-studio-platform/proofs/cabinet-noir-surface-completion/twin-rail-spine-phone390.png",
+      requiredChecks:["outer-geometry","text-safe-area","plug-envelope","crown-seating","rail-continuity","row-cadence","center-spine-continuity","center-seam","terminal-closure","whole-object-silhouette","phone-density"],
+    },
+  ],
+} as const;
 
 export const CABINET_NOIR_GEOMETRY = {
   authority:CABINET_NOIR_GEOMETRY_AUTHORITY,

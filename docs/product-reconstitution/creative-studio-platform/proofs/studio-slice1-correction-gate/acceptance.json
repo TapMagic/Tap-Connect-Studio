@@ -1,0 +1,17 @@
+{
+  "runtimeRoute": "/review/studio",
+  "fixture": "phase-1-slice-1-curated-golden-v2",
+  "ordinaryModules": [
+    "Text",
+    "Standard Button",
+    "Divider",
+    "Container"
+  ],
+  "curatedPresentations": [
+    "Cabinet Noir Single Stack",
+    "Cabinet Noir Twin Rail"
+  ],
+  "canonicalFlow": true,
+  "oneDropHistoryAction": true,
+  "productOwnerAcceptance": "pending"
+}

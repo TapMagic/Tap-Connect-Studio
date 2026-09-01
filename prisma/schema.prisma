@@ -187,6 +187,7 @@ enum CreativeSurfaceKind {
 }
 
 enum CreativeResourceKind {
+  ICON
   COMPOSITION
   TEXT_STYLE
   BUTTON_STYLE
@@ -1948,19 +1949,23 @@ model CreativeResourceFavorite {
 }
 
 model CreativeResourceRecent {
-  id         String   @id @default(cuid())
-  businessId String
-  userId     String
-  resourceId String
-  lastUsedAt DateTime @default(now())
-  useCount   Int      @default(1)
+  id            String   @id @default(cuid())
+  businessId    String
+  userId        String
+  resourceId    String
+  resourceKind  String   @default("creative-resource")
+  consumer      String   @default("studio")
+  context       String   @default("general")
+  lastOperation String   @default("select_for_use")
+  lastUsedAt    DateTime @default(now())
+  useCount      Int      @default(1)
 
   business Business         @relation(fields: [businessId], references: [id], onDelete: Cascade)
   user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   resource CreativeResource @relation(fields: [resourceId], references: [id], onDelete: Cascade)
 
-  @@unique([businessId, userId, resourceId])
-  @@index([businessId, userId, lastUsedAt])
+  @@unique([businessId, userId, resourceId, consumer, context], map: "CreativeResourceRecent_businessId_userId_resourceId_consumer_co")
+  @@index([businessId, userId, consumer, context, lastUsedAt], map: "CreativeResourceRecent_businessId_userId_consumer_context_lastU")
 }
 
 model SavedTemplate {

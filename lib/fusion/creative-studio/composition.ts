@@ -257,6 +257,15 @@ export function frameMaskPath(id: FrameMaskId | string | undefined): string {
 export type CreativeCompositionNode = {
   id: string;
   primitive: CreativeCompositionPrimitive;
+  /**
+   * Canonical Card composition membership. When a block declares
+   * `parentAuthority`, this pair is the only writable hierarchy/order truth.
+   * Older compositions intentionally omit these fields and remain readable
+   * through the legacy flat-layout adapter.
+   */
+  compositionKind?: "container" | "module";
+  parentId?: string | null;
+  siblingOrder?: number;
   /** Relative position within the composition (0–1). */
   x: number;
   y: number;
@@ -272,8 +281,15 @@ export type CreativeCompositionNode = {
   widthPct?: number;
   heightPct?: number;
   minWidthPx?: number;
+  minHeightPx?: number;
   maxWidthPx?: number;
   props: Record<string, unknown>;
+  /**
+   * Optional authored composition hosted by this outer Module. The parent
+   * authority owns only the Module's membership/order; the nested authority
+   * owns its internal projection. Curated Systems are the first consumer.
+   */
+  moduleComposition?: CreativeCompositionBlock;
 };
 
 export type CreativeCompositionBlock = {
@@ -281,6 +297,12 @@ export type CreativeCompositionBlock = {
   id: string;
   label: string;
   nodes: CreativeCompositionNode[];
+  /** Card Surface is the semantic root; it is not represented by a fake node. */
+  parentAuthority?: {
+    version: 1;
+    layout: "flow";
+    cardGapPx: number;
+  };
   background?: {
     kind: "solid" | "gradient" | "image" | "pattern" | "texture" | "none";
     /** Legacy CSS/string value retained for import compatibility only. */
@@ -323,6 +345,8 @@ export type CreativeCompositionBlock = {
   safeAreaPaddingPx?: number;
   /** Published height authority when this composition is the Card root. */
   pageHeightPx?: number;
+  /** Authored blank-space floor. Actual Card height is derived from content. */
+  explicitMinimumHeightPx?: number;
   resourceRef?: {
     resourceId: string;
     revisionId: string;
@@ -444,7 +468,22 @@ export function parseCreativeComposition(
     version: 1,
     id: typeof o.id === "string" ? o.id : "composition",
     label: typeof o.label === "string" ? o.label : "Creative Composition",
-    nodes: o.nodes as CreativeCompositionNode[],
+    nodes: (o.nodes as CreativeCompositionNode[]).map((node) => ({
+      ...node,
+      moduleComposition: node.moduleComposition
+        ? parseCreativeComposition(node.moduleComposition) ?? undefined
+        : undefined,
+    })),
+    parentAuthority:
+      o.parentAuthority && typeof o.parentAuthority === "object" &&
+      (o.parentAuthority as Record<string, unknown>).version === 1 &&
+      (o.parentAuthority as Record<string, unknown>).layout === "flow"
+        ? {
+            version: 1,
+            layout: "flow",
+            cardGapPx: Math.max(0, Math.round(Number((o.parentAuthority as Record<string, unknown>).cardGapPx ?? 16))),
+          }
+        : undefined,
     background:
       o.background && typeof o.background === "object"
         ? (o.background as CreativeCompositionBlock["background"])
@@ -460,6 +499,10 @@ export function parseCreativeComposition(
     pageHeightPx:
       typeof o.pageHeightPx === "number"
         ? Math.max(240, Math.min(2400, Math.round(o.pageHeightPx)))
+        : undefined,
+    explicitMinimumHeightPx:
+      typeof o.explicitMinimumHeightPx === "number"
+        ? Math.max(240, Math.min(4000, Math.round(o.explicitMinimumHeightPx)))
         : undefined,
     resourceRef:
       o.resourceRef && typeof o.resourceRef === "object"
@@ -823,16 +866,35 @@ export function createCompositionNode(
   };
 }
 
-/** Reading order for a11y: top-to-bottom, then left-to-right among visible nodes. */
+function signatureReadingPosition(node: CreativeCompositionNode) {
+  const layout = node.props.signatureLayout;
+  if (!layout || typeof layout !== "object") return null;
+  const row = Number((layout as Record<string, unknown>).row);
+  const column = Number((layout as Record<string, unknown>).column);
+  return Number.isFinite(row) && Number.isFinite(column) ? { row, column } : null;
+}
+
+/** Reading order for a11y: recipe order for one Curated assembly, otherwise visual flow. */
 export function accessibleReadingOrder(
   nodes: CreativeCompositionNode[]
 ): CreativeCompositionNode[] {
   return [...nodes]
     .filter((n) => n.visible !== false)
-    .sort(
-      (a, b) =>
-        a.y - b.y || a.x - b.x || a.zIndex - b.zIndex || a.id.localeCompare(b.id)
-    );
+    .sort((a, b) => {
+      const sameAssembly = typeof a.props.signatureAssemblyInstanceId === "string"
+        && a.props.signatureAssemblyInstanceId === b.props.signatureAssemblyInstanceId;
+      if (sameAssembly) {
+        const aLayout = signatureReadingPosition(a);
+        const bLayout = signatureReadingPosition(b);
+        if (aLayout && bLayout) {
+          return aLayout.row - bLayout.row
+            || aLayout.column - bLayout.column
+            || a.zIndex - b.zIndex
+            || a.id.localeCompare(b.id);
+        }
+      }
+      return a.y - b.y || a.x - b.x || a.zIndex - b.zIndex || a.id.localeCompare(b.id);
+    });
 }
 
 export function patchCompositionNode(

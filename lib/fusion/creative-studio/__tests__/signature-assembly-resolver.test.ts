@@ -10,6 +10,12 @@ import {
   type SignatureAssemblyRegistry,
 } from "../signature-assets/assembly";
 import { SIGNATURE_ASSEMBLY_RECIPES, SIGNATURE_ASSETS, SIGNATURE_FAMILIES } from "../signature-assets/registry";
+import { CABINET_NOIR_ROW_SEAM_CONTRACT, CABINET_NOIR_TWIN_RAIL_RECIPE } from "../signature-assets/cabinet-noir";
+
+const singleRecipe = SIGNATURE_ASSEMBLY_RECIPES.find((recipe)=>recipe.recipeId==="cabinet-noir-single-stack")!;
+const singleStride = singleRecipe.geometry.unitStridePx;
+const singleOrigin = singleRecipe.geometry.contentOriginOffsetPx??0;
+const singleContinuationOverlap = 724-singleStride;
 
 const action = (index:number): SignatureAssemblyActionSelection => ({
   id:`action-${index+1}`,
@@ -40,14 +46,48 @@ function planFor(layout:"single-stack"|"twin-rail",count:number,overrides:Partia
 
 const instances = (plan:SignatureAssemblyPlan,role:string) => plan.instances.filter((instance)=>instance.semanticRole===role);
 
-test("Single-Stack proofs resolve 1/2/4/6 actions with intervals only between rows",()=>{
+test("Single-Stack proofs resolve 1/2/4/6 actions with a continuous rail chassis behind every row",()=>{
   for (const count of [1,2,4,6]) {
     const plan=planFor("single-stack",count);
     assert.equal(instances(plan,"standard-action").length,count);
-    assert.equal(instances(plan,"single-stack-repeat-rails").length,Math.max(0,count-1));
+    assert.equal(instances(plan,"single-stack-repeat-rails").length,count);
+    assert.deepEqual(instances(plan,"single-stack-repeat-rails").map((instance)=>instance.placement.native.yPx),Array.from({length:count},(_,index)=>singleOrigin+index*singleStride));
     assert.equal(instances(plan,"single-stack-termination").length,1);
+    assert.equal(instances(plan,"single-stack-termination")[0].placement.native.yPx,singleOrigin+Math.max(0,(count-1)*singleStride)-136*1.350278091);
     assert.equal(plan.preferredOverlapPx,0);
-    assert.equal(plan.unitStridePx,724);
+    assert.equal(plan.unitStridePx,singleStride);
+    assert.equal(plan.visualContinuationOverlapPx,singleContinuationOverlap);
+  }
+});
+
+test("Single-Stack visible action bodies preserve the phone-scale pi seam independently of plug geometry",()=>{
+  const scale=CABINET_NOIR_ROW_SEAM_CONTRACT.authoritativeWidthCssPx/CABINET_NOIR_ROW_SEAM_CONTRACT.projectionWidthPx;
+  for (const count of [2,3,4,5,6]) {
+    for (const plan of [planFor("single-stack",count),planFor("single-stack",count,{actions:[...input("single-stack",count).actions].reverse()})]) {
+      const actions=instances(plan,"standard-action");
+      for (let index=0;index<actions.length-1;index++) {
+        const current=actions[index];
+        const next=actions[index+1];
+        const currentBounds=CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx[current.sourceComponentId as "CN-004"|"CN-005"];
+        const nextBounds=CABINET_NOIR_ROW_SEAM_CONTRACT.visibleBodyBoundsPx[next.sourceComponentId as "CN-004"|"CN-005"];
+        const renderedGap=(next.placement.native.yPx+nextBounds.top*next.placement.sourceScale.y-current.placement.native.yPx-currentBounds.bottom*current.placement.sourceScale.y)*scale;
+        assert.ok(Math.abs(renderedGap-CABINET_NOIR_ROW_SEAM_CONTRACT.targetCssPx)<.000001,`${count} actions · ${current.sourceComponentId} → ${next.sourceComponentId}: ${renderedGap}`);
+      }
+      const plugs=instances(plan,"semantic-plug");
+      assert.equal(plugs.length,count);
+      assert.ok(plugs.every((plug)=>plug.zOrder>actions[0].zOrder));
+      assert.equal(plan.actionPresentationMode,"compact-stacked");
+      for (const plug of plugs) {
+        const parent=actions.find((candidate)=>candidate.instanceId===plug.parentInstanceId)!;
+        const component=SIGNATURE_ASSETS.find((asset)=>asset.normalizedContract?.componentId===parent.sourceComponentId)?.normalizedContract;
+        assert.ok(component?.compactStackedGeometry);
+        const rowTop=parent.placement.native.yPx+component!.compactStackedGeometry!.visibleBodyBounds.top*parent.placement.native.heightPx;
+        const rowBottom=rowTop+plan.actionRowHeightPx;
+        assert.ok(plug.placement.native.yPx>=rowTop-.000001,`${plug.sourceComponentId} starts outside its row`);
+        assert.ok(plug.placement.native.yPx+plug.placement.native.heightPx<=rowBottom+.000001,`${plug.sourceComponentId} ends outside its row`);
+        assert.ok(Math.abs(plug.placement.native.widthPx-plug.placement.native.heightPx)<.000001,"compact plugs must share one governed medallion envelope");
+      }
+    }
   }
 });
 
@@ -68,7 +108,7 @@ test("removing or reordering actions changes content only while structural caden
     assert.deepEqual(structure(reorderedResult.plan),structure(originalPlan));
   }
   const reduced=planFor("single-stack",2);
-  assert.equal(instances(reduced,"single-stack-repeat-rails").length,1);
+  assert.equal(instances(reduced,"single-stack-repeat-rails").length,2);
   assert.equal(instances(reduced,"single-stack-termination").length,1);
 });
 
@@ -81,16 +121,33 @@ test("optional structural decoration never controls Single-Stack closure",()=>{
   assert.equal(instances(withFooter,"single-stack-termination").length,1);
 });
 
-test("Twin-Rail even proofs resolve 2/4/6 actions and paired intervals",()=>{
+test("Twin-Rail even proofs resolve 2/4/6 actions with outer rails and spine behind every paired level",()=>{
   for (const count of [2,4,6]) {
     const plan=planFor("twin-rail",count);
     const levels=count/2;
     assert.equal(plan.actionUnitCount,levels);
     assert.equal(instances(plan,"standard-action").length,count);
-    assert.equal(instances(plan,"twin-rail-repeat-outer").length,Math.max(0,levels-1));
-    assert.equal(instances(plan,"twin-rail-repeat-spine").length,Math.max(0,levels-1));
+    assert.equal(instances(plan,"twin-rail-repeat-outer").length,levels);
+    assert.equal(instances(plan,"twin-rail-repeat-spine").length,levels);
+    assert.deepEqual(instances(plan,"twin-rail-repeat-outer").map((instance)=>instance.placement.native.yPx),Array.from({length:levels},(_,index)=>-450+index*230));
     assert.equal(instances(plan,"twin-rail-termination").length,1);
+    const lastSpine=instances(plan,"twin-rail-repeat-spine").at(-1)!;
+    const termination=instances(plan,"twin-rail-termination")[0];
+    assert.equal(termination.placement.native.yPx,lastSpine.placement.native.yPx,"bottom-cap center socket and final spine use the declared visible overlap plane, not transparent canvas edges");
+    assert.ok(termination.zOrder>lastSpine.zOrder,"terminal cap masks the incoming seam instead of letting the spine die above it");
+    assert.equal(plan.visualContinuationOverlapPx,132);
   }
+});
+
+test("Twin-Rail opts into complete structural endpoint coverage",()=>{
+  assert.equal(CABINET_NOIR_TWIN_RAIL_RECIPE.structuralAttachmentPolicy,"complete");
+  const structuralRules=[
+    ...CABINET_NOIR_TWIN_RAIL_RECIPE.geometry.fixedTop,
+    ...CABINET_NOIR_TWIN_RAIL_RECIPE.geometry.repeatComponents,
+    CABINET_NOIR_TWIN_RAIL_RECIPE.geometry.structuralTermination!,
+    CABINET_NOIR_TWIN_RAIL_RECIPE.geometry.oddAction!.transition,
+  ];
+  assert.ok(structuralRules.every((rule)=>rule.structuralAttachment));
 });
 
 test("Twin-Rail sides remain independent and repeat rails stay in exact 362px lockstep",()=>{
@@ -98,7 +155,7 @@ test("Twin-Rail sides remain independent and repeat rails stay in exact 362px lo
   assert.deepEqual(instances(plan,"standard-action").map((instance)=>instance.sourceComponentId),["CN-004","CN-005","CN-004","CN-005","CN-004","CN-005"]);
   const outer=instances(plan,"twin-rail-repeat-outer");
   const spine=instances(plan,"twin-rail-repeat-spine");
-  assert.equal(outer.length,2);
+  assert.equal(outer.length,3);
   for (let index=0;index<outer.length;index++) {
     assert.equal(outer[index].placement.native.yPx,spine[index].placement.native.yPx);
     assert.equal(outer[index].placement.native.heightPx,362);
@@ -120,6 +177,10 @@ test("odd Twin-Rail 3/5 plans terminate complete pairs before a legitimate full-
     assert.equal(odd.action?.destination,`https://example.com/${count}`);
     assert.equal(odd.action?.analyticsId,`analytics-action-${count}`);
     assert.equal(odd.placement.native.widthPx,2172);
+    const transition=instances(plan,"odd-action-finisher")[0];
+    const termination=instances(plan,"twin-rail-termination")[0];
+    assert.equal(transition.placement.native.yPx,odd.placement.native.yPx+480);
+    assert.equal(termination.placement.native.yPx,transition.placement.native.yPx);
   }
 });
 
@@ -198,7 +259,7 @@ test("missing anchors, cadence drift, stride drift, and overlap hacks fail close
   const cadenceAssets=SIGNATURE_ASSETS.map((asset)=>asset.normalizedContract?.componentId==="CN-039"?{...asset,normalizedContract:{...asset.normalizedContract,repeatability:{...asset.normalizedContract.repeatability!,cadence:"wrong"}}}:asset) as typeof SIGNATURE_ASSETS;
   const cadence=run(cadenceAssets,baseRecipe);
   assert.equal(cadence.ok,false); if(!cadence.ok)assert.ok(cadence.errors.some((error)=>error.code==="REPEAT_CADENCE_MISMATCH"));
-  const strideRecipe={...baseRecipe,repeatInterval:{...baseRecipe.repeatInterval!,nativeStridePx:700},geometry:{...baseRecipe.geometry,unitStridePx:700}};
+  const strideRecipe={...baseRecipe,repeatInterval:{...baseRecipe.repeatInterval!,nativeStridePx:700},geometry:{...baseRecipe.geometry,unitStridePx:700,actionPresentation:baseRecipe.geometry.actionPresentation?{...baseRecipe.geometry.actionPresentation,rowHeightPx:700}:undefined}};
   const stride=run(SIGNATURE_ASSETS,strideRecipe);
   assert.equal(stride.ok,false); if(!stride.ok)assert.ok(stride.errors.some((error)=>error.code==="REPEAT_STRIDE_MISMATCH"));
   const overlapRecipe={...baseRecipe,repeatInterval:{...baseRecipe.repeatInterval!,preferredOverlapPx:1}};

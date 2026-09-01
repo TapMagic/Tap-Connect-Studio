@@ -134,6 +134,17 @@ describe("creative composition operations", () => {
     assert.deepEqual(order, ["top", "bottom"]);
   });
 
+  it("uses Curated recipe rows before optical placement offsets", () => {
+    const assembly = "cabinet-noir-instance";
+    const nodes = [
+      createCompositionNode("button", { id: "left-1", y: .1, props: { signatureAssemblyInstanceId: assembly, signatureLayout: { row: 0, column: 0 } } }),
+      createCompositionNode("button", { id: "right-1", y: .13, props: { signatureAssemblyInstanceId: assembly, signatureLayout: { row: 0, column: 1 } } }),
+      createCompositionNode("button", { id: "left-2", y: .12, props: { signatureAssemblyInstanceId: assembly, signatureLayout: { row: 1, column: 0 } } }),
+      createCompositionNode("button", { id: "right-2", y: .15, props: { signatureAssemblyInstanceId: assembly, signatureLayout: { row: 1, column: 1 } } }),
+    ];
+    assert.deepEqual(accessibleReadingOrder(nodes).map((node) => node.id), ["left-1", "right-1", "left-2", "right-2"]);
+  });
+
   it("preserves off-Card geometry so edit can expose it and preview can clip it", () => {
     const node = createCompositionNode("text", { id: "off-card", x: -0.25, y: 1.1, width: 0.3, height: 0.12 });
     const preview = resolveNodeBox(node);

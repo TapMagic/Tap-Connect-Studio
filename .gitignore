@@ -50,3 +50,10 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+# local package-manager and deterministic review runtime residue
+/.pnpm-store/
+/.v2-review/
+
+# generated V2 client is not part of the Studio Slice 1 source checkpoint
+/src/v2/generated/prisma/

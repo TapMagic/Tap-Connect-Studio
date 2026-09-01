@@ -29,7 +29,7 @@ function baseConfig(): TapConnectCardConfig {
     actionsLayout: "stack",
     defaultFinish: "metallic",
     cardFinish: "metallic",
-    defaultShape: "rounded",
+    defaultShape: "rounded_md",
     rootComposition: {
       version: 1,
       id: "root",
@@ -69,7 +69,7 @@ describe("visual plane authority", () => {
     const containerProps = writeContainerVisualPlane(container);
     const node = {
       id: "container-1",
-      primitive: "rect",
+      primitive: "shape",
       x: 0.1,
       y: 0.1,
       width: 0.5,

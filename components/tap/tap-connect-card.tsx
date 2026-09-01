@@ -57,9 +57,12 @@ import {
   parseCreativeComposition,
   type CreativeCompositionBlock,
 } from "@/lib/fusion/creative-studio/composition";
+import { recompileSignatureAssemblyTree } from "@/lib/fusion/creative-studio/signature-assets/authoring";
 import { isCardBlockLinkEligible } from "@/lib/fusion/card/block-model";
 import { fitRootCanvasToContent, rootCanvasAutoHeight, setRootPageHeightPreservingBounds } from "@/lib/fusion/card/composer-model";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
+import { explicitCardMinimum, setExplicitCardMinimum } from "@/lib/fusion/creative-studio/platform/card-extent";
+import { hasCompositionParentAuthority } from "@/lib/fusion/card/composition-parent-authority";
 
 type TapConnectCardProps = {
   config: TapConnectCardConfig;
@@ -114,6 +117,11 @@ type TapConnectCardProps = {
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
 };
+
+function parseRuntimeComposition(value: unknown): CreativeCompositionBlock | null {
+  const block = parseCreativeComposition(value);
+  return block ? recompileSignatureAssemblyTree(block) : null;
+}
 
 function sectionDomProps(id: string, selectedSectionId?: string | null) {
   return {
@@ -201,7 +209,7 @@ export function TapConnectCard({
     : shellBackground;
 
   function commitRootCanvasHeight(heightPx: number, label: string) {
-    const root = parseCreativeComposition(config.rootComposition) || {
+    const root = parseRuntimeComposition(config.rootComposition) || {
       version: 1 as const,
       id: "card-root-composition",
       label: "Card root Elements",
@@ -210,12 +218,16 @@ export function TapConnectCard({
       mobileFallback: "scale" as const,
       safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
     };
-    onCompositionChange?.(
-      null,
-      setRootPageHeightPreservingBounds(root, heightPx, config.rootCanvasMinHeightPx ?? 520),
-      label
-    );
+    onCompositionChange?.(null, hasCompositionParentAuthority(root)
+      ? setExplicitCardMinimum(root, heightPx)
+      : setRootPageHeightPreservingBounds(root, heightPx, config.rootCanvasMinHeightPx ?? 520), label);
   }
+
+  const cardExtentComposition = parseRuntimeComposition(config.rootComposition);
+  const hasCardExtentAuthority = Boolean(cardExtentComposition && hasCompositionParentAuthority(cardExtentComposition));
+  const governedCardMinimum = cardExtentComposition && hasCardExtentAuthority
+    ? explicitCardMinimum(cardExtentComposition, config.rootCanvasMinHeightPx ?? 420)
+    : undefined;
 
   const style = {
     "--tcc-accent": config.accentColor,
@@ -226,6 +238,7 @@ export function TapConnectCard({
     "--tcc-pill-text": config.pillTextColor || "#f5e6a8",
     "--tcc-energy": String(config.headerEnergy / 100),
     "--tcc-surface-alpha": String(surfaceAlpha),
+    ...(governedCardMinimum ? { minHeight: rootHeightDraft ?? governedCardMinimum, display: "flex", flexDirection: "column" as const } : {}),
   } as CSSProperties;
 
   async function downloadVcf() {
@@ -1131,7 +1144,7 @@ export function TapConnectCard({
 
   function renderCreativeComposition(section: TapCardSection) {
     const block =
-      parseCreativeComposition(section.composition) ||
+      parseRuntimeComposition(section.composition) ||
       createStarterCreativeComposition(section.id);
     return (
       <div
@@ -1177,10 +1190,11 @@ export function TapConnectCard({
   }
 
   function renderSurface(section: TapCardSection) {
-    const block = parseCreativeComposition(section.composition) || {
+    const block = parseRuntimeComposition(section.composition) || {
       ...createStarterCreativeComposition(section.id),
       nodes: [],
     };
+    const isCuratedSystem = Boolean(block.signatureAssembly);
     const surfacePlane = readSurfaceVisualPlane(section);
     const surfacePlaneStyle = visualPlaneToStyle(surfacePlane);
     const shadow = section.surfaceShadow === "strong"
@@ -1371,7 +1385,7 @@ export function TapConnectCard({
             onWrap: (nodeId) => onElementWrap?.(nodeId, section.id),
           }}
         />
-        {editSelects && selectedSectionId === section.id ? <>
+        {editSelects && selectedSectionId === section.id && !isCuratedSystem ? <>
           <button
             type="button"
             className="absolute left-2 top-0 z-[1100] h-6 w-14 cursor-ns-resize rounded bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-10 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:bg-white/90"
@@ -1623,6 +1637,7 @@ export function TapConnectCard({
       style={style}
       data-interaction-mode={mode}
       data-edit-selects={editSelects ? "true" : "false"}
+      data-card-surface-geometry="edge-to-edge-v1"
       onClickCapture={(e) => {
         if (!editSelects) return;
         if ((e.target as HTMLElement | null)?.closest?.("[data-composition-node], [data-testid=creative-composition-canvas], button, input, textarea, select")) return;
@@ -1690,8 +1705,8 @@ export function TapConnectCard({
             ? "true"
             : "false"
         }
-        style={
-          rootBackground
+        style={{
+          ...(rootBackground
             ? {
                 backgroundImage: rootBackground,
                 backgroundSize: config.rootBackgroundFit || "cover",
@@ -1705,8 +1720,9 @@ export function TapConnectCard({
                   // shell underlay transparent so Background opacity is visible.
                   background: "transparent",
                 }
-              : undefined
-        }
+              : {}),
+          ...(hasCardExtentAuthority ? { flex: 1, display: "flex", flexDirection: "column" as const, minHeight: 0 } : {}),
+        }}
       >
         {(config.rootComposition || (editSelects && sections.length === 0)) ? (
           <div
@@ -1731,7 +1747,7 @@ export function TapConnectCard({
             <CreativeCompositionCanvas
               key={`card-root-motion-${motionRevision}`}
               block={(() => {
-                const root = parseCreativeComposition(config.rootComposition) || {
+                const root = parseRuntimeComposition(config.rootComposition) || {
                   version: 1 as const,
                   id: "card-root-composition",
                   label: "Card root Elements",
@@ -1757,7 +1773,7 @@ export function TapConnectCard({
               previewMotion={previewMotion}
               reducedMotionSimulation={reducedMotionSimulation}
               layoutMode="free"
-              minHeightPx={rootHeightDraft ?? rootCanvasAutoHeight(config)}
+              minHeightPx={sections.length > 0 ? rootCanvasAutoHeight(config) : rootHeightDraft ?? (hasCompositionParentAuthority(parseRuntimeComposition(config.rootComposition)) ? explicitCardMinimum(parseRuntimeComposition(config.rootComposition)!, config.rootCanvasMinHeightPx ?? 420) : rootCanvasAutoHeight(config))}
               className="!rounded-none !border-0"
               onSelectNodes={(ids) => {
                 onSectionSelect?.(null);
@@ -1767,7 +1783,7 @@ export function TapConnectCard({
               mediaUploadReady={mediaUploadReady}
               onNotify={onNotify}
               onEditNodeText={(nodeId, value) => {
-                const root = parseCreativeComposition(config.rootComposition);
+                const root = parseRuntimeComposition(config.rootComposition);
                 if (!root) return;
                 onCompositionChange?.(null, {
                   ...root,
@@ -1784,7 +1800,7 @@ export function TapConnectCard({
               }}
             />
             {editSelects ? (
-              <div className="relative z-40 flex h-9 items-center justify-center gap-2 border-t border-dashed border-[#b8ff2c]/45 bg-[#07100a]/90 text-[10px] text-white/70" data-testid="card-page-extension-controls">
+              <div className={cn("relative z-40 flex h-9 items-center justify-center gap-2 border-t border-dashed border-[#b8ff2c]/45 bg-[#07100a]/90 text-[10px] text-white/70", sections.length > 0 && "hidden")} data-testid="card-page-extension-controls">
                 <button
                   type="button"
                   className="flex h-7 min-w-32 touch-none items-center justify-center rounded-md border border-[#b8ff2c]/55 bg-[#b8ff2c]/10 px-3 font-semibold text-[#dfff9a] cursor-ns-resize"
@@ -1877,6 +1893,50 @@ export function TapConnectCard({
           </div>
         ) : null}
         {bodyNodes}
+        {editSelects && sections.length > 0 ? (
+          <div className="relative z-40 mt-auto flex min-h-10 items-center justify-center gap-2 border-t border-dashed border-[#b8ff2c]/45 bg-[#07100a]/90 px-2 text-[10px] text-white/70" data-testid="card-page-extension-controls" data-card-surface-utility="page-end">
+            <button
+              type="button"
+              className="flex h-8 min-w-32 touch-none items-center justify-center rounded-lg border border-[#b8ff2c]/55 bg-[#b8ff2c]/10 px-3 font-semibold text-[#dfff9a] cursor-ns-resize"
+              aria-label="Drag Card end to add intentional blank space"
+              data-testid="card-page-extension-handle"
+              onKeyDown={(event) => {
+                if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+                event.preventDefault();
+                const delta = (event.shiftKey ? 96 : 24) * (event.key === "ArrowDown" ? 1 : -1);
+                const start = governedCardMinimum ?? rootCanvasAutoHeight(config);
+                commitRootCanvasHeight(Math.max(240, Math.min(4000, start + delta)), event.key === "ArrowDown" ? "Extended Card minimum" : "Shortened Card minimum");
+              }}
+              onPointerDown={(event) => {
+                const renderedHeight = rootHeightDraft ?? governedCardMinimum ?? rootCanvasAutoHeight(config);
+                rootResizeRef.current = { startY: event.clientY, startHeight: renderedHeight, nextHeight: renderedHeight, scale: 1, moved: false };
+                event.currentTarget.setPointerCapture(event.pointerId);
+              }}
+              onPointerMove={(event) => {
+                const drag = rootResizeRef.current;
+                if (!drag || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
+                const delta = event.clientY - drag.startY;
+                if (Math.abs(delta) < 2) return;
+                drag.nextHeight = Math.round(Math.max(240, Math.min(2400, drag.startHeight + delta)) / 8) * 8;
+                drag.moved = true;
+                setRootHeightDraft(drag.nextHeight);
+              }}
+              onPointerUp={(event) => {
+                const drag = rootResizeRef.current;
+                if (!drag) return;
+                if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
+                rootResizeRef.current = null;
+                setRootHeightDraft(null);
+                if (drag.moved) commitRootCanvasHeight(drag.nextHeight, "Changed intentional Card minimum height");
+              }}
+              onPointerCancel={() => { rootResizeRef.current = null; setRootHeightDraft(null); }}
+            >
+              ↕ Card end
+            </button>
+            <span className="min-w-20 tabular-nums" data-testid="card-page-height">Minimum {rootHeightDraft ?? governedCardMinimum ?? rootCanvasAutoHeight(config)}px</span>
+            <button type="button" className="h-8 rounded-lg border border-white/15 px-3 hover:border-[#b8ff2c]/55" onClick={() => commitRootCanvasHeight(hasCardExtentAuthority ? 240 : fitRootCanvasToContent(config), "Fit Card to content")} data-testid="card-page-fit-content">Fit to content</button>
+          </div>
+        ) : null}
       </div>
       {supportSectionId && supportContext?.businessId ? (
         <div className="mt-3 px-1">

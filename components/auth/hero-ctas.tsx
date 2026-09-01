@@ -5,10 +5,10 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { isClerkClientConfigured } from "@/lib/utils/clerk-client";
+import { useClerkRuntimeEnabled } from "@/components/auth/auth-runtime-provider";
 
 export function HeroCtas() {
-  const clerkConfigured = isClerkClientConfigured();
+  const clerkConfigured = useClerkRuntimeEnabled();
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row">

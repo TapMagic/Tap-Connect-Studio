@@ -1,7 +1,8 @@
 import type { CardElementKind } from "@/lib/fusion/card/composer-model";
 import type { SignatureAssetDefinition, SignatureAssetKind, SignatureFamilyDefinition, SignatureSubgroup } from "./types";
-import { CABINET_NOIR_ASSEMBLY_RECIPES, CABINET_NOIR_ASSETS, CABINET_NOIR_FAMILY } from "./cabinet-noir";
+import { CABINET_NOIR_ASSEMBLY_RECIPES, CABINET_NOIR_ASSETS, CABINET_NOIR_FAMILY, CABINET_NOIR_VISUAL_ACCEPTANCE } from "./cabinet-noir";
 import type { SignatureAssemblyRecipe } from "./layout-recipes";
+import type { CuratedFamilyVisualAcceptanceContract } from "./visual-acceptance";
 
 export const ARC_EMBER_SIGNATURE_FAMILY_ID = "family_arc_ember_signature";
 export const SIGNATURE_SYSTEM_V1_FAMILY_ID = "family_signature_system_v1";
@@ -34,6 +35,10 @@ export const SIGNATURE_FAMILIES: readonly SignatureFamilyDefinition[] = [
 
 export const SIGNATURE_ASSEMBLY_RECIPES: readonly SignatureAssemblyRecipe[] = [
   ...CABINET_NOIR_ASSEMBLY_RECIPES,
+] as const;
+
+export const CURATED_VISUAL_ACCEPTANCE_CONTRACTS: readonly CuratedFamilyVisualAcceptanceContract[] = [
+  CABINET_NOIR_VISUAL_ACCEPTANCE,
 ] as const;
 
 export function getSignatureAssemblyRecipe(recipeId: unknown, recipeVersion?: unknown) {

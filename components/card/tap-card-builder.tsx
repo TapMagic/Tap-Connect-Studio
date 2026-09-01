@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import {
   Columns2,
@@ -26,6 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { MediaPicker } from "@/components/media/media-picker";
 import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { CardViewportSurface } from "@/components/tap/card-viewport-surface";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { IconPicker } from "@/components/design/icon-picker";
 import { FinishPicker, TextFormatControls } from "@/components/design/format-controls";
@@ -64,6 +65,18 @@ import {
 } from "@/lib/fusion/authoring/reorder-list";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
+import type { StudioCuratedAssemblyMutation } from "@/lib/fusion/creative-studio/platform/structured-assembly";
+import { editableControlOwnsKeyboard, studioShortcutMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
+import type { SignatureAssemblyLayoutMode } from "@/lib/fusion/creative-studio/signature-assets/assembly";
+import {
+  applySignatureAssemblyMutation,
+  compileSignatureAuthoringState,
+  createSignatureAssemblyAuthoringState,
+  listSignatureAuthoringFamilies,
+  recompileSignatureAssemblyTree,
+} from "@/lib/fusion/creative-studio/signature-assets/authoring";
+import type { StudioDiscoveryResource } from "@/lib/fusion/creative-studio/platform/discovery";
+import { applyStudioPresentation, type StudioPresentationApplication, type StudioPresentationOperation } from "@/lib/fusion/creative-studio/platform/presentation-application";
 import type { SignaturePublicationFinding } from "@/lib/fusion/card/signature-publication-validation";
 import {
   createInheritanceState,
@@ -99,6 +112,7 @@ import { resolveCardUtilityLayer } from "@/lib/fusion/card/utility-layer";
 import {
   createCardSurface,
   createSectionPreset,
+  ensureRootComposition,
   insertRootContainerPreset,
   SECTION_PRESET_LIBRARY,
   moveCardElements,
@@ -110,7 +124,21 @@ import {
   type SectionPresetId,
 } from "@/lib/fusion/card/composer-model";
 import { deleteObject, duplicateObject, insertActionGroup, insertObject } from "@/lib/fusion/card/object-kernel";
-import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import {
+  compositionChildren,
+  createFlowContainerNode,
+  deleteCompositionNode,
+  duplicateCompositionNode,
+  establishCompositionParentAuthority,
+  hasCompositionParentAuthority,
+  insertCompositionContainer,
+  insertCompositionModule,
+  reparentCompositionModule,
+  reorderCompositionNode,
+  unwrapCompositionContainer,
+  wrapCompositionModules,
+} from "@/lib/fusion/card/composition-parent-authority";
 import {
   createSelectionRef,
   type SelectionRef,
@@ -249,6 +277,28 @@ type Props = {
   motionRevision?: number;
 };
 
+function patchCompositionNodeInConfig(
+  current: TapConnectCardConfig,
+  nodeId: string,
+  patch: Partial<CreativeCompositionNode>,
+): TapConnectCardConfig {
+  const patchNodes = (nodes: CreativeCompositionNode[]) => nodes.map((node) => node.id === nodeId ? {
+    ...node,
+    ...patch,
+    props: patch.props ? { ...node.props, ...patch.props } : node.props,
+  } : node);
+  if (current.rootComposition?.nodes.some((node) => node.id === nodeId)) {
+    return { ...current, rootComposition: { ...current.rootComposition, nodes: patchNodes(current.rootComposition.nodes) } };
+  }
+  return {
+    ...current,
+    sections: current.sections.map((section) => section.composition?.nodes.some((node) => node.id === nodeId) ? {
+      ...section,
+      composition: { ...section.composition, nodes: patchNodes(section.composition.nodes) },
+    } : section),
+  };
+}
+
 const COMMON_ACTION_KINDS: TapCardActionKind[] = [
   "vcard",
   "call",
@@ -322,6 +372,31 @@ function strInherited(
   return typeof v === "string" && v.trim() ? v : undefined;
 }
 
+function reconstituteCuratedAssemblyProjections(
+  config: TapConnectCardConfig,
+): TapConnectCardConfig {
+  const rootComposition = config.rootComposition
+    ? recompileSignatureAssemblyTree(config.rootComposition)
+    : undefined;
+  const sections = config.sections.map((section) => {
+    if (!section.composition) return section;
+    const composition = recompileSignatureAssemblyTree(section.composition);
+    if (!composition.signatureAssembly || !composition.pageHeightPx) {
+      return { ...section, composition };
+    }
+    const assemblyHeight = Math.ceil(composition.pageHeightPx);
+    return {
+      ...section,
+      composition,
+      surfaceMinHeightPx: assemblyHeight,
+      surfaceExactHeightPx: assemblyHeight,
+      surfaceCoordinateHeightPx: assemblyHeight,
+      surfaceHeightMode: "fixed" as const,
+    };
+  });
+  return { ...config, rootComposition, sections };
+}
+
 export function TapCardBuilder({
   initialConfig,
   initialDraftRevision = 0,
@@ -363,6 +438,13 @@ export function TapCardBuilder({
   motionRevision = 0,
 }: Props) {
   const router = useRouter();
+  // Curated-System nodes are compiled output, not saved authoring authority.
+  // Reconstituting here makes recipe corrections deterministic on reload while
+  // keeping the saved canonical signatureAssembly input byte-for-byte intact.
+  const reconstitutedInitialConfig = useMemo(
+    () => reconstituteCuratedAssemblyProjections(initialConfig),
+    [initialConfig],
+  );
   const {
     state: config,
     setState: setConfigHistory,
@@ -372,7 +454,11 @@ export function TapCardBuilder({
     canRedo: canRedoEditor,
     pastLabels,
     futureLabels,
-  } = useLabeledUndoRedo<TapConnectCardConfig>(initialConfig, { maxDepth: 50, batchMs: 350 });
+    beginTransaction: beginLiveAdjustment,
+    previewTransaction: previewConfigHistory,
+    commitTransaction: commitLiveAdjustment,
+    cancelTransaction: cancelLiveAdjustment,
+  } = useLabeledUndoRedo<TapConnectCardConfig>(reconstitutedInitialConfig, { maxDepth: 50, batchMs: 350 });
   const sectionsHistory = config.sections;
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedCompositionNodeIds, setSelectedCompositionNodeIds] = useState<
@@ -422,7 +508,7 @@ export function TapCardBuilder({
   const selectionIdentityRef = useRef("");
   const selectionGenerationRef = useRef(0);
   const [openDocuments, setOpenDocuments] = useState(initialOpenDocuments);
-  const mainDocumentRef = useRef({ draft: initialConfig, revision: initialDraftRevision });
+  const mainDocumentRef = useRef({ draft: reconstitutedInitialConfig, revision: initialDraftRevision });
   const [message, setMessage] = useState<string | null>(null);
   const [pendingSectionDelete, setPendingSectionDelete] = useState<TapCardSection | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -442,6 +528,19 @@ export function TapCardBuilder({
     }[]
   >([]);
   const [currentPublicationId, setCurrentPublicationId] = useState<string | null>(null);
+
+  // Dirty state follows the active document snapshot, including history
+  // navigation. Imperative mutation flags alone cannot detect the important
+  // saved → change → undo → redo path because redo restores a different
+  // snapshot without calling the original mutation helper.
+  useEffect(() => {
+    const savedDraft = activeDocumentId === "main-card"
+      ? mainDocumentRef.current.draft
+      : openDocuments.find((document) => document.id === activeDocumentId)?.draft;
+    if (!savedDraft) return;
+    const changed = JSON.stringify(config) !== JSON.stringify(savedDraft);
+    setDirty((current) => current === changed ? current : changed);
+  }, [activeDocumentId, config, openDocuments]);
   const [brandState, setBrandState] = useState<BrandInheritanceState>(() =>
     createInitialBrandState(createInheritanceState(buildBrandKitSnapshot({
       logoUrl,
@@ -449,8 +548,8 @@ export function TapCardBuilder({
       profile,
       reviewUrl,
       brandColors,
-      config: initialConfig,
-    })), initialConfig.propertySources)
+      config: reconstitutedInitialConfig,
+    })), reconstitutedInitialConfig.propertySources)
   );
   const inspectorRef = useRef<HTMLDivElement>(null);
   const previewScrollRef = useRef<HTMLDivElement>(null);
@@ -551,17 +650,14 @@ export function TapCardBuilder({
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
-      const target = e.target as HTMLElement | null;
-      if (e.key === "Escape" && !target?.closest("input, textarea, select, [contenteditable=true]")) {
+      if (e.key === "Escape" && !editableControlOwnsKeyboard(e)) {
         if (selectedCompositionNodeIds.length || selectedId || explicitCardRootSelected) {
           e.preventDefault();
           clearStudioSelection();
           return;
         }
       }
-      if (!(e.metaKey || e.ctrlKey)) return;
-      const tag = target?.tagName;
-      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (!(e.metaKey || e.ctrlKey) || !studioShortcutMayRun(e)) return;
       if (e.key === "z" && !e.shiftKey) {
         e.preventDefault();
         undoEditor();
@@ -603,8 +699,7 @@ export function TapCardBuilder({
   useEffect(() => {
     if (interactionMode !== "edit") return;
     const down = (event: KeyboardEvent) => {
-      const target = event.target as HTMLElement | null;
-      if (event.code === "Space" && !target?.closest("input,textarea,select,[contenteditable=true]")) {
+      if (event.code === "Space" && studioShortcutMayRun(event)) {
         event.preventDefault();
         setSpacePan(true);
       }
@@ -922,6 +1017,28 @@ export function TapCardBuilder({
     setDirty(true);
   }
 
+  function previewCompositionNode(
+    nodeId: string,
+    patch: Partial<CreativeCompositionNode>,
+  ) {
+    previewConfigHistory((current) => patchCompositionNodeInConfig(current, nodeId, patch));
+  }
+
+  function previewSelection(
+    target: SelectionRef,
+    patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>,
+  ) {
+    if (target.objectKind === "element") {
+      previewCompositionNode(target.objectId, patch as Partial<CreativeCompositionNode>);
+      return;
+    }
+    const sectionPatch = patch as Partial<TapCardSection>;
+    previewConfigHistory((current) => ({
+      ...current,
+      sections: current.sections.map((section) => section.id === target.objectId ? { ...section, ...sectionPatch } : section),
+    }));
+  }
+
   function patchSelection(
     target: SelectionRef,
     patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>,
@@ -1217,6 +1334,24 @@ export function TapCardBuilder({
     initialProps?: Record<string, unknown>,
     frame?: { x?: number; y?: number; width: number; height: number }
   ) {
+    const canonicalRoot = config.rootComposition;
+    const canonicalContainer = canonicalRoot?.nodes.find((node) => node.id === targetSectionId && node.compositionKind === "container");
+    if (canonicalRoot && hasCompositionParentAuthority(canonicalRoot) && (targetSectionId === null || canonicalContainer)) {
+      const staged = insertObject({ config, parentId: null, kind, initialProps, frame });
+      const addedId = staged.objectIds[0];
+      const stagedNode = staged.config.rootComposition?.nodes.find((node) => node.id === addedId);
+      if (!stagedNode || !addedId) return undefined;
+      const result = insertCompositionModule(canonicalRoot, stagedNode, canonicalContainer?.id ?? null);
+      if (!result.ok) {
+        setMessage(result.issues.map((issue) => issue.message).join(" "));
+        return undefined;
+      }
+      setConfigHistory({ ...config, rootComposition: result.block }, { label: `Added ${kind} to ${canonicalContainer ? "Container" : "Card Surface"}` });
+      setDirty(true);
+      setSelectedId(null);
+      setSelectedCompositionNodeIds([addedId]);
+      return addedId;
+    }
     const location = kind === "map" ? (locations.find((item) => item.isDefault) || locations[0]) : null;
     const props = location
       ? { ...initialProps, locationId: location.id, locationName: location.name, address: location.address || "", mapUrl: location.mapUrl || "" }
@@ -1227,6 +1362,153 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(targetSectionId);
     setSelectedCompositionNodeIds(addedId ? [addedId] : []);
+    return addedId;
+  }
+
+  function enableCompositionParentAuthority() {
+    const root = establishCompositionParentAuthority(ensureRootComposition(config));
+    setConfigHistory({ ...config, rootComposition: root }, { label: "Enabled Card composition parent authority" });
+    setDirty(true);
+    selectCardRoot();
+  }
+
+  function addCompositionContainer(
+    treatment: "transparent" | "solid" | "smoked_glass" | "image" = "transparent",
+  ) {
+    const root = ensureRootComposition(config);
+    if (!hasCompositionParentAuthority(root)) {
+      setMessage("Enable the Card composition parent authority before adding a Container.");
+      return undefined;
+    }
+    const container = createFlowContainerNode(
+      treatment === "transparent" ? "Transparent Container" : treatment === "solid" ? "Brand Container" : treatment === "smoked_glass" ? "Smoked Glass Container" : "Image-backed Container",
+      treatment,
+    );
+    const result = insertCompositionContainer(root, container);
+    if (!result.ok) {
+      setMessage(result.issues.map((issue) => issue.message).join(" "));
+      return undefined;
+    }
+    setConfigHistory({ ...config, rootComposition: result.block }, { label: `Added ${container.name}` });
+    setDirty(true);
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([container.id]);
+    return container.id;
+  }
+
+  function addCompositionModule(
+    kind: "text" | "image" | "button" | "divider",
+    parentId: string | null,
+    initialProps?: Record<string, unknown>,
+  ) {
+    return addComposerElement(kind, parentId, initialProps);
+  }
+
+  function commitCompositionAuthorityResult(
+    result: ReturnType<typeof reparentCompositionModule>,
+    label: string,
+  ) {
+    if (!result.ok) {
+      setMessage(result.issues.map((issue) => issue.message).join(" "));
+      return false;
+    }
+    setConfigHistory({ ...config, rootComposition: result.block }, { label });
+    setDirty(true);
+    return true;
+  }
+
+  function reparentComposition(moduleId: string, parentId: string | null, index?: number) {
+    const root = config.rootComposition;
+    if (!root) return;
+    if (commitCompositionAuthorityResult(reparentCompositionModule(root, moduleId, parentId, index), parentId ? "Moved Module into Container" : "Moved Module to Card Surface")) {
+      setSelectedId(null);
+      setSelectedCompositionNodeIds([moduleId]);
+    }
+  }
+
+  function reorderComposition(nodeId: string, index: number) {
+    const root = config.rootComposition;
+    if (!root) return;
+    if (commitCompositionAuthorityResult(reorderCompositionNode(root, nodeId, index), "Reordered Card composition")) {
+      setSelectedCompositionNodeIds([nodeId]);
+    }
+  }
+
+  function wrapComposition(moduleIds: string[]) {
+    const root = config.rootComposition;
+    if (!root) return undefined;
+    const container = createFlowContainerNode("Container", "transparent");
+    const result = wrapCompositionModules(root, moduleIds, container);
+    if (!commitCompositionAuthorityResult(result, "Wrapped Modules in Container")) return undefined;
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([container.id]);
+    return container.id;
+  }
+
+  function unwrapComposition(containerId: string) {
+    const root = config.rootComposition;
+    if (!root) return;
+    const result = unwrapCompositionContainer(root, containerId);
+    if (!commitCompositionAuthorityResult(result, "Removed Container and kept Modules")) return;
+    setSelectedId(null);
+    setSelectedCompositionNodeIds(result.ok && result.selectedNodeId ? [result.selectedNodeId] : []);
+  }
+
+  function duplicateComposition(nodeId: string) {
+    const root = config.rootComposition;
+    if (!root) return;
+    const result = duplicateCompositionNode(root, nodeId);
+    if (!commitCompositionAuthorityResult(result, "Duplicated composition object")) return;
+    setSelectedId(null);
+    setSelectedCompositionNodeIds(result.ok && result.selectedNodeId ? [result.selectedNodeId] : []);
+  }
+
+  function removeComposition(nodeId: string, deleteContainerContents = false) {
+    const root = config.rootComposition;
+    if (!root) return;
+    const result = deleteCompositionNode(root, nodeId, { deleteContainerContents });
+    if (!commitCompositionAuthorityResult(result, "Deleted composition object")) return;
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([]);
+  }
+
+  function applyComposerPresentationResource(
+    nodeId: string,
+    resource: StudioDiscoveryResource<StudioPresentationApplication>,
+    operation: StudioPresentationOperation
+  ): { ok: true } | { ok: false; conflicts: readonly string[] } {
+    const currentNode = (
+      config.rootComposition?.nodes.find((node) => node.id === nodeId) ??
+      sorted.flatMap((section) => section.composition?.nodes ?? []).find((node) => node.id === nodeId)
+    );
+    if (!currentNode) {
+      const conflicts = ["Select an authored object before applying presentation."];
+      setMessage(conflicts[0]);
+      return { ok: false, conflicts };
+    }
+    const result = applyStudioPresentation({
+      operation,
+      target: { id: currentNode.id, kind: currentNode.primitive, capabilities: ["presentation", "content", "action"], props: currentNode.props },
+      resource,
+      context: {
+        authoringJob: "edit-presentation",
+        target: { kind: currentNode.primitive, capabilities: ["presentation", "content", "action"] },
+        resourceKinds: [resource.kind],
+        brandRelationship: resource.brand.relationship,
+        readiness: ["ready", "preview"],
+        approval: ["approved", "not_required"],
+      },
+    });
+    if (!result.ok) {
+      setMessage(result.conflicts.join(" "));
+      return { ok: false, conflicts: result.conflicts };
+    }
+    patchCompositionNode(
+      nodeId,
+      { props: result.props },
+      `${operation === "apply" ? "Applied" : "Replaced"} ${resource.label} presentation`
+    );
+    return { ok: true };
   }
 
   function addComposerObjects(
@@ -1256,6 +1538,145 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(targetSectionId);
     setSelectedCompositionNodeIds(addedIds);
+  }
+
+  function insertCuratedAssembly(
+    familyId: string,
+    layoutMode: SignatureAssemblyLayoutMode,
+  ): { ok: true; selectedNodeId: string } | { ok: false; message: string } {
+    const family = listSignatureAuthoringFamilies(signatureEntitlementKeys).find((entry) => entry.family.id === familyId);
+    if (!family?.access.selectable) {
+      const message = "This Curated family is visible for discovery but is not available to this workspace.";
+      setMessage(message);
+      return { ok: false, message };
+    }
+    const state = createSignatureAssemblyAuthoringState(familyId, layoutMode, {
+      identityContent: logoUrl ? { src: logoUrl, alt: `${businessName} identity` } : undefined,
+    });
+    if (!state) {
+      const message = "This Curated layout does not have a complete certified recipe.";
+      setMessage(message);
+      return { ok: false, message };
+    }
+    const compiled = compileSignatureAuthoringState(state, {
+      label: `${family.family.label} ${layoutMode === "standalone" ? "Standalone Action" : layoutMode === "twin-rail" ? "Twin Rail" : "Single Stack"}`,
+    });
+    if (!compiled.ok) {
+      const message = compiled.errors.map((error) => error.message).join(" ");
+      setMessage(message);
+      return { ok: false, message };
+    }
+    const root = establishCompositionParentAuthority(ensureRootComposition(config));
+    const outerNodeId = `module-${nanoid(8)}`;
+    const outerNode: CreativeCompositionNode = {
+      id: outerNodeId,
+      primitive: "frame",
+      compositionKind: "module",
+      parentId: null,
+      siblingOrder: compositionChildren(root, null).length,
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+      minHeightPx: Math.ceil(compiled.composition.phone390.heightPx),
+      zIndex: root.nodes.length + 1,
+      name: compiled.composition.block.label,
+      props: {
+        componentKind: "curated-system",
+        elementKind: "curated-system",
+        curatedFamilyId: familyId,
+        curatedLayoutMode: layoutMode,
+      },
+      moduleComposition: compiled.composition.block,
+    };
+    const inserted = insertCompositionModule(root, outerNode, null);
+    if (!inserted.ok) {
+      const message = inserted.issues.map((issue) => issue.message).join(" ");
+      setMessage(message);
+      return { ok: false, message };
+    }
+    if (!compiled.composition.block.nodes.some((node) => node.props.signatureClassification === "live-action")) {
+      const message = "The Curated recipe compiled without an editable action input.";
+      setMessage(message);
+      return { ok: false, message };
+    }
+    setConfigHistory({ ...config, rootComposition: inserted.block }, { label: `Added ${compiled.composition.block.label}` });
+    setDirty(true);
+    setSelectedId(null);
+    setSelectedCompositionNodeIds([outerNodeId]);
+    return { ok: true, selectedNodeId: outerNodeId };
+  }
+
+  function mutateCuratedAssembly(
+    selectedNodeId: string,
+    mutation: StudioCuratedAssemblyMutation,
+    label: string,
+  ): { ok: true; selectedNodeId: string } | { ok: false; message: string } {
+    const outerModule = config.rootComposition?.nodes.find((node) => node.id === selectedNodeId && node.moduleComposition?.signatureAssembly);
+    const section = sorted.find((candidate) => candidate.composition?.nodes.some((node) => node.id === selectedNodeId));
+    const block = outerModule?.moduleComposition ?? section?.composition;
+    if (!block) {
+      const message = "Reselect the Curated assembly and try again.";
+      setMessage(message);
+      return { ok: false, message };
+    }
+    const result = applySignatureAssemblyMutation(block, mutation);
+    if (!result.ok) {
+      setMessage(result.message);
+      return result;
+    }
+    const actionId = result.selectedActionId ?? (mutation.type === "update-action" ? mutation.actionId : undefined);
+    const nextSelectedNode = result.block.nodes.find((node) => node.props.signatureActionId === actionId)
+      ?? result.block.nodes.find((node) => node.props.signatureClassification === "live-action");
+    if (!nextSelectedNode) {
+      const message = "The Curated recipe recompiled without an editable action input.";
+      setMessage(message);
+      return { ok: false, message };
+    }
+    const nextConfig = outerModule
+      ? {
+          ...config,
+          rootComposition: {
+            ...config.rootComposition!,
+            nodes: config.rootComposition!.nodes.map((node) => node.id === outerModule.id
+              ? { ...node, name: result.block.label, minHeightPx: Math.ceil(result.block.pageHeightPx ?? node.minHeightPx ?? 56), moduleComposition: result.block }
+              : node),
+          },
+        }
+      : { ...config, sections: sorted.map((candidate) => candidate.id === section?.id
+        ? { ...candidate, label: result.block.label, composition: result.block, surfaceMinHeightPx: Math.ceil(result.block.pageHeightPx ?? candidate.surfaceMinHeightPx ?? 320), surfaceExactHeightPx: Math.ceil(result.block.pageHeightPx ?? candidate.surfaceExactHeightPx ?? 320), surfaceCoordinateHeightPx: Math.ceil(result.block.pageHeightPx ?? candidate.surfaceCoordinateHeightPx ?? 320) }
+        : candidate) };
+    setConfigHistory(nextConfig, { label });
+    setDirty(true);
+    setSelectedId(section?.id ?? null);
+    const nextSelectionId = outerModule?.id ?? nextSelectedNode.id;
+    setSelectedCompositionNodeIds([nextSelectionId]);
+    return { ok: true, selectedNodeId: nextSelectionId };
+  }
+
+  function previewCuratedAssembly(
+    selectedNodeId: string,
+    mutation: StudioCuratedAssemblyMutation,
+  ): { ok: true; selectedNodeId: string } | { ok: false; message: string } {
+    // React state updaters are not guaranteed to run synchronously. Resolve
+    // the canonical mutation against the latest config ref first so the live
+    // interaction gets an authoritative success/failure result rather than a
+    // false stale-selection error while the preview is already visible.
+    const current = configRef.current;
+    const outer = current.rootComposition?.nodes.find((node) => node.id === selectedNodeId && node.moduleComposition?.signatureAssembly);
+    if (!outer?.moduleComposition || !current.rootComposition) return { ok: false, message: "Reselect the Curated assembly and try again." };
+    const result = applySignatureAssemblyMutation(outer.moduleComposition, mutation);
+    if (!result.ok) return result;
+    previewConfigHistory({
+      ...current,
+      rootComposition: {
+        ...current.rootComposition,
+        nodes: current.rootComposition.nodes.map((node) => node.id === outer.id
+          ? { ...node, name: result.block.label, minHeightPx: Math.ceil(result.block.pageHeightPx ?? node.minHeightPx ?? 56), moduleComposition: result.block }
+          : node),
+      },
+    });
+    return { ok: true, selectedNodeId: outer.id };
   }
 
   function moveComposerElement(elementId: string, targetSectionId: string | null) {
@@ -1309,6 +1730,7 @@ export function TapCardBuilder({
             id: `card-root-composition-${nanoid(7)}`,
             label: "Card root Elements",
             nodes: [],
+            parentAuthority: { version: 1, layout: "flow", cardGapPx: 16 },
             background: { kind: "none" },
             mobileFallback: "scale",
             pageHeightPx: 420,
@@ -1326,13 +1748,13 @@ export function TapCardBuilder({
       return;
     }
     if (kind === "clone") {
-      const cloned = initialConfig.sections.map((section, order) => ({
+      const cloned = reconstitutedInitialConfig.sections.map((section, order) => ({
         ...structuredClone(section),
         id: nanoid(8),
         order,
         locked: false,
       }));
-      const clonedRoot = initialConfig.rootComposition ? { ...structuredClone(initialConfig.rootComposition), id: `card-root-composition-${nanoid(7)}`, nodes: initialConfig.rootComposition.nodes.map((node) => ({ ...structuredClone(node), id: nanoid(8), locked: false })) } : undefined;
+      const clonedRoot = reconstitutedInitialConfig.rootComposition ? { ...structuredClone(reconstitutedInitialConfig.rootComposition), id: `card-root-composition-${nanoid(7)}`, nodes: reconstitutedInitialConfig.rootComposition.nodes.map((node) => ({ ...structuredClone(node), id: nanoid(8), locked: false })) } : undefined;
       setConfigHistory({ ...config, sections: cloned, rootComposition: clonedRoot }, { label: "Cloned existing Card" });
       setDirty(true);
       setSelectedId(cloned[0]?.id ?? null);
@@ -1826,6 +2248,7 @@ export function TapCardBuilder({
       config,
       selected,
       selectedObject,
+      selectedCompositionNode,
       sorted,
       brandState,
       mediaUploadReady,
@@ -1859,6 +2282,11 @@ export function TapCardBuilder({
       patchConfigColor,
       patchSection,
       patchCompositionNode,
+      beginLiveAdjustment,
+      previewCompositionNode,
+      previewSelection,
+      commitLiveAdjustment: (label) => { commitLiveAdjustment(label); setDirty(true); },
+      cancelLiveAdjustment,
       patchSelection,
       onAddSection: (type) =>
         addSection(type as Exclude<TapCardSectionType, "action_row">),
@@ -1869,6 +2297,7 @@ export function TapCardBuilder({
       onAddSurface: addComposerSurface,
       onAddSectionPreset: addComposerSectionPreset,
       onAddElement: addComposerElement,
+      onApplyPresentationResource: applyComposerPresentationResource,
       onAddObjects: addComposerObjects,
       visualBrandRecipes: config.visualBrandRecipes || [],
       onSaveVisualBrandRecipe: (recipe) => {
@@ -1889,6 +2318,18 @@ export function TapCardBuilder({
         setSelectedId(null);
         setSelectedCompositionNodeIds(result.objectIds.slice(0, 1));
       },
+      onInsertCuratedAssembly: insertCuratedAssembly,
+      onMutateCuratedAssembly: mutateCuratedAssembly,
+      previewCuratedAssembly,
+      onEnableCompositionParentAuthority: enableCompositionParentAuthority,
+      onAddCompositionContainer: addCompositionContainer,
+      onAddCompositionModule: addCompositionModule,
+      onReparentCompositionModule: reparentComposition,
+      onReorderCompositionNode: reorderComposition,
+      onWrapCompositionModules: wrapComposition,
+      onUnwrapCompositionContainer: unwrapComposition,
+      onDuplicateCompositionNode: duplicateComposition,
+      onDeleteCompositionNode: removeComposition,
       moveElementsTo: (ids, fromSectionId, toSectionId) => {
         const next = moveCardElements(config, ids, fromSectionId, toSectionId);
         setConfigHistory(next, { label: toSectionId ? "Moved Elements into Section" : "Moved Elements to Card root" });
@@ -2017,7 +2458,7 @@ export function TapCardBuilder({
     >
 
       {pendingSectionDelete ? (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-black/65 p-4" role="presentation" data-testid="section-delete-confirmation">
+        <div className="fixed inset-0 z-[3000] grid place-items-center bg-black/65 p-4" role="presentation" data-testid="section-delete-confirmation">
           <section className="w-full max-w-sm rounded-xl border border-white/15 bg-[#0c1220] p-5 text-white shadow-2xl" role="alertdialog" aria-modal="true" aria-labelledby="section-delete-title" aria-describedby="section-delete-description">
             <h2 id="section-delete-title" className="text-base font-semibold">Delete {sectionDisplayName(pendingSectionDelete)} and its {pendingSectionDelete.composition?.nodes.length ?? 0} Elements?</h2>
             <p id="section-delete-description" className="mt-2 text-xs text-white/65">The Section and all nested Elements will be removed from this draft. You can Undo afterward.</p>
@@ -2974,7 +3415,17 @@ export function TapCardBuilder({
           )}
           data-testid="card-preview-canvas"
         >
-          {interactionMode === "edit" && zoomToolbarCollapsed ? (
+          {interactionMode === "edit" && shellHosted ? (
+            <div className="pointer-events-none sticky top-0 z-[1500] flex h-12 items-start justify-center pt-2" data-testid="card-view-toolbar-compact">
+              <div className="pointer-events-auto flex items-center gap-1 rounded-2xl bg-background/88 p-1 shadow-[0_12px_35px_rgba(0,0,0,.24)] backdrop-blur-xl">
+                <Button type="button" size="sm" variant="ghost" className="h-8 rounded-xl px-2.5 text-[11px]" data-testid="card-zoom-fit" onClick={() => setPreviewZoom("fit")}>Fit</Button>
+                <Button type="button" size="sm" variant="ghost" className="h-8 w-8 rounded-xl p-0 text-sm" data-testid="card-zoom-out" aria-label="Zoom out" onClick={() => setPreviewZoom((zoom) => zoom === "fit" ? 0.75 : Math.max(0.25, Math.round((Number(zoom) - 0.25) * 100) / 100))}>−</Button>
+                <label className="relative"><span className="sr-only">Canvas zoom</span><select value={previewZoom === "fit" ? "fit" : String(previewZoom)} onChange={(event) => setPreviewZoom(event.target.value === "fit" ? "fit" : Number(event.target.value))} className="h-8 min-w-[64px] appearance-none rounded-xl border-0 bg-white/6 px-2 text-center text-[10px] font-semibold tabular-nums outline-none hover:bg-white/10" data-testid="card-zoom-menu"><option value="fit">Fit</option>{[0.5,0.75,1,1.5,2].map((zoom) => <option key={zoom} value={zoom}>{Math.round(zoom * 100)}%</option>)}</select></label>
+                <Button type="button" size="sm" variant="ghost" className="h-8 w-8 rounded-xl p-0 text-sm" data-testid="card-zoom-in" aria-label="Zoom in" onClick={() => setPreviewZoom((zoom) => zoom === "fit" ? 1.25 : Math.min(2, Math.round((Number(zoom) + 0.25) * 100) / 100))}>+</Button>
+                <details className="relative"><summary className="grid h-8 w-8 cursor-pointer list-none place-items-center rounded-xl text-sm text-muted-foreground hover:bg-white/8 hover:text-foreground" aria-label="More view controls">•••</summary><div className="absolute right-0 top-[calc(100%+6px)] z-50 w-40 rounded-2xl bg-background/98 p-1.5 shadow-2xl"><button type="button" disabled={!selectedId && selectedCompositionNodeIds.length === 0} onClick={() => { setPreviewZoom(1); document.getElementById(`tap-section-${selectedId}`)?.scrollIntoView({ block: "center" }); }} className="min-h-9 w-full rounded-xl px-3 text-left text-xs hover:bg-white/8 disabled:opacity-35" data-testid="card-zoom-fit-selection">Fit selection</button><button type="button" aria-pressed={previewPan} onClick={() => setPreviewPan((active) => !active)} className="min-h-9 w-full rounded-xl px-3 text-left text-xs hover:bg-white/8" data-testid="card-pan-tool">{previewPan ? "Stop panning" : "Pan canvas"}</button></div></details>
+              </div>
+            </div>
+          ) : interactionMode === "edit" && zoomToolbarCollapsed ? (
             <div className="pointer-events-none sticky top-0 z-[1500] flex h-9 items-center justify-center bg-transparent" data-testid="card-view-toolbar-collapsed">
               <Button type="button" size="sm" variant="outline" className="pointer-events-auto h-7 bg-background/95 text-xs shadow-lg" aria-expanded="false" data-testid="card-zoom-toolbar-toggle" onClick={() => setZoomToolbarCollapsed(false)}>
                 Show view controls
@@ -3090,7 +3541,7 @@ export function TapCardBuilder({
           </div>
           </div>
           ) : null}
-          <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceId}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => {
+          <div className={cn("flex min-h-full justify-center", interactionMode === "preview" ? "w-full min-w-0 px-4 py-8 pb-24" : compositionForceMobile ? "w-full min-w-0 px-0 pb-40 pt-12" : "min-w-[760px] px-44 py-20 pb-40", (previewPan || spacePan) && "cursor-grab overflow-auto")} data-testid="card-pasteboard" data-instance-id={`${editorInstanceId}-pasteboard`} data-pan-active={previewPan || spacePan ? "true" : "false"} onPointerDown={(event) => {
             const target = event.target as HTMLElement | null;
             if (interactionMode === "edit" && !previewPan && !spacePan && target && !target.closest(".builder-phone")) {
               clearStudioSelection();
@@ -3102,9 +3553,10 @@ export function TapCardBuilder({
             event.currentTarget.setPointerCapture(event.pointerId);
             panStartRef.current = { x: event.clientX, y: event.clientY, left: viewport.scrollLeft, top: viewport.scrollTop, pointerId: event.pointerId };
           }} onPointerMove={(event) => { const start = panStartRef.current; const viewport = previewScrollRef.current; if (!start || !viewport || start.pointerId !== event.pointerId) return; viewport.scrollLeft = start.left - (event.clientX - start.x); viewport.scrollTop = start.top - (event.clientY - start.y); }} onPointerUp={(event) => { if (panStartRef.current?.pointerId === event.pointerId) panStartRef.current = null; }}>
-            <div
+            <CardViewportSurface
+              environment="studio"
               className={cn(
-                "builder-phone builder-phone-natural origin-top",
+                "builder-phone builder-phone-authoritative builder-phone-natural origin-top",
                 renderedPreviewZoom === "fit" ? "w-full max-w-[min(390px,100%)]" : "w-[390px]"
               )}
               style={
@@ -3112,12 +3564,11 @@ export function TapCardBuilder({
                   ? undefined
                   : { transform: `scale(${renderedPreviewZoom})`, marginBottom: `${(Number(renderedPreviewZoom) - 1) * 40}%` }
               }
-              data-testid="card-preview-phone"
+              testId="card-preview-phone"
               data-instance-id={`${editorInstanceId}-card`}
               data-zoom={renderedPreviewZoom === "fit" ? "fit" : String(renderedPreviewZoom)}
             >
-              <div className="builder-phone-notch" />
-              <div className="builder-phone-screen !bg-[#1a1a1a] p-3 pb-8">
+              <div className="builder-phone-screen !bg-transparent !p-0 !pb-0">
                 <TapConnectCard
                   config={{ ...config, sections: sectionsHistory }}
                   profile={profile}
@@ -3215,7 +3666,7 @@ export function TapCardBuilder({
                   />
                 ) : null}
               </div>
-            </div>
+            </CardViewportSurface>
           </div>
         </div>
 

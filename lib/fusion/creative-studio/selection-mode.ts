@@ -36,8 +36,9 @@ const CHILD_ROLE_LABELS: Record<string, string> = {
   coupon: "Coupon",
 };
 
-export function isContainerNode(node: Pick<CreativeCompositionNode, "primitive" | "props"> | Pick<CreativeCompositionNode, "props">): boolean {
+export function isContainerNode(node: Pick<CreativeCompositionNode, "primitive" | "props" | "compositionKind"> | Pick<CreativeCompositionNode, "props" | "compositionKind">): boolean {
   if ("primitive" in node && node.primitive === "button") return false;
+  if (node.compositionKind === "container") return true;
   return String(node.props.componentKind || "") === "container";
 }
 
@@ -58,6 +59,12 @@ export function isComponentParent(node: Pick<CreativeCompositionNode, "primitive
 export function containerChildIds(nodes: readonly CreativeCompositionNode[], containerId: string): string[] {
   const container = nodes.find((node) => node.id === containerId);
   if (!container || !isContainerNode(container)) return [];
+  if (container.compositionKind === "container") {
+    return nodes
+      .filter((node) => node.compositionKind === "module" && node.parentId === containerId)
+      .sort((left, right) => (left.siblingOrder ?? 0) - (right.siblingOrder ?? 0))
+      .map((node) => node.id);
+  }
   const declared = Array.isArray(container.props.childIds)
     ? container.props.childIds.filter((id): id is string => typeof id === "string")
     : [];
@@ -74,6 +81,7 @@ export function isTrueGroupMember(node: CreativeCompositionNode): boolean {
   if (!node.groupId) return false;
   if (isContainerNode(node)) return false;
   if (node.props.containerId) return false;
+  if (node.parentId) return false;
   return true;
 }
 
@@ -205,6 +213,7 @@ export function resolveContainerParent(
   const node = nodes.find((candidate) => candidate.id === nodeId);
   if (!node) return null;
   if (isContainerNode(node)) return node;
+  if (node.parentId) return nodes.find((candidate) => candidate.id === node.parentId && isContainerNode(candidate)) || null;
   const containerId = String(node.props.containerId || "");
   if (!containerId) return null;
   return nodes.find((candidate) => candidate.id === containerId) || null;

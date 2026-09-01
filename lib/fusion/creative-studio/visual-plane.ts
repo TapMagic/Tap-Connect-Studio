@@ -113,6 +113,9 @@ export function photographyVisualPlane(input: {
   fit?: BackgroundImageTreatment["fit"];
   overlayOpacity?: number;
   tint?: string;
+  focalX?: number;
+  focalY?: number;
+  opacity?: number;
 }): VisualPlane {
   return {
     kind: "image",
@@ -123,6 +126,8 @@ export function photographyVisualPlane(input: {
     treatment: {
       ...DEFAULT_BACKGROUND_TREATMENT,
       fit: input.fit || "cover",
+      focalPoint: { x: input.focalX ?? .5, y: input.focalY ?? .5 },
+      opacity: input.opacity ?? 1,
       overlayOpacity: input.overlayOpacity ?? 0.2,
       tint: input.tint || "#000000",
       decorative: true,

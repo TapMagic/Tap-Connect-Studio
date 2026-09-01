@@ -6,9 +6,11 @@ import { Copy, RefreshCw, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { STUDIO_WORDING } from "@/lib/fusion/creative-studio/wording";
+import { LanPreviewReachability } from "@/components/fusion/creative-studio/lan-preview-reachability";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { PreviewUrlCandidateKind } from "@/lib/fusion/creative-studio/preview/url";
+import { resolveLiveDeviceSessionActivation } from "@/lib/fusion/creative-studio/preview/session-activation";
 
 export type LiveDeviceQrPanelProps = {
   config: TapConnectCardConfig;
@@ -19,6 +21,7 @@ export type LiveDeviceQrPanelProps = {
   logoUrl?: string | null;
   reviewUrl?: string | null;
   revision: number;
+  activationKey?: number;
   className?: string;
 };
 
@@ -65,6 +68,7 @@ export function LiveDeviceQrPanel({
   logoUrl,
   reviewUrl,
   revision,
+  activationKey = 1,
   className,
 }: LiveDeviceQrPanelProps) {
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
@@ -83,7 +87,7 @@ export function LiveDeviceQrPanel({
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState(() => new Date().toISOString());
   const [followMode, setFollowMode] = useState<"follow" | "freeze">("follow");
-  const autoStarted = useRef(false);
+  const lastActivation = useRef(0);
   const stale = revision > sessionRevision;
 
   const payload = useMemo(
@@ -176,12 +180,55 @@ export function LiveDeviceQrPanel({
     [payload, revision, token]
   );
 
-  // Entering Live Device auto-creates or refreshes the phone preview QR.
+  // Opening Live Device reuses a still-valid session. A missing, revoked, or
+  // expired session is regenerated without requiring Host recovery steps.
   useEffect(() => {
-    if (autoStarted.current) return;
-    autoStarted.current = true;
-    void createOrUpdate("create");
-  }, [createOrUpdate]);
+    if (lastActivation.current === activationKey) return;
+    lastActivation.current = activationKey;
+    const action = resolveLiveDeviceSessionActivation({ status, token, previewUrl, expiresAt, revision, sessionRevision });
+    if (action === "reuse") return;
+    window.queueMicrotask(() => void createOrUpdate(action));
+  }, [activationKey, createOrUpdate, expiresAt, previewUrl, revision, sessionRevision, status, token]);
+
+  useEffect(() => {
+    if (status !== "ready" || !expiresAt) return;
+    const remaining = Date.parse(expiresAt) - Date.now();
+    if (remaining <= 0) {
+      const timer = window.setTimeout(() => {
+        setStatus("error");
+        setError("This phone preview has expired");
+        setGuidance("Reopen Live Device Preview to generate a fresh QR.");
+      }, 0);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => {
+      setStatus("error");
+      setError("This phone preview has expired");
+      setGuidance("Reopen Live Device Preview to generate a fresh QR.");
+    }, Math.min(remaining, 2_147_483_647));
+    return () => window.clearTimeout(timer);
+  }, [expiresAt, status]);
+
+  const regenerate = useCallback(async () => {
+    const previousToken = token;
+    if (previousToken) {
+      try {
+        await fetch("/api/preview/card/revoke", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ token: previousToken }),
+        });
+      } catch {
+        // A fresh signed session remains the safe recovery even if the old
+        // local session was already unavailable.
+      }
+    }
+    setPreviewUrl(null);
+    setQrDataUrl(null);
+    setToken(null);
+    setExpiresAt(null);
+    await createOrUpdate("create");
+  }, [createOrUpdate, token]);
 
   const candidacyLabel =
     status === "idle" || status === "creating"
@@ -247,7 +294,7 @@ export function LiveDeviceQrPanel({
                 ? STUDIO_WORDING.qrReadyToScan
                 : status === "error"
                   ? "Preview unavailable"
-                  : STUDIO_WORDING.creatingPhonePreview}
+                  : "Preview inactive"}
           </p>
           {status === "ready" ? (
             <span className="sr-only" data-testid="live-device-status-ready">
@@ -290,6 +337,18 @@ export function LiveDeviceQrPanel({
             Try again
           </Button>
         </div>
+      ) : null}
+
+      {status === "idle" ? (
+        <Button
+          type="button"
+          className="min-h-10 bg-primary text-primary-foreground"
+          data-testid="preview-generate-qr"
+          disabled={busy}
+          onClick={() => void createOrUpdate("create")}
+        >
+          Generate phone QR
+        </Button>
       ) : null}
 
       {!phoneAttemptCandidate && guidance && status === "error" ? (
@@ -387,6 +446,16 @@ export function LiveDeviceQrPanel({
               type="button"
               variant="outline"
               className="min-h-10"
+              data-testid="preview-regenerate"
+              disabled={busy}
+              onClick={() => void regenerate()}
+            >
+              Generate new QR
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="min-h-10"
               data-testid="preview-revoke"
               disabled={busy || !token}
               onClick={async () => {
@@ -405,7 +474,8 @@ export function LiveDeviceQrPanel({
                   setPhysicallyVerified(false);
                   setPhoneAttemptCandidate(false);
                   setStatus("idle");
-                  autoStarted.current = false;
+                  setError(null);
+                  setGuidance("Preview revoked. Reopen Live Device Preview or generate a new QR.");
                 } finally {
                   setBusy(false);
                 }
@@ -426,6 +496,12 @@ export function LiveDeviceQrPanel({
             </Button>
           </div>
         </div>
+      ) : null}
+
+      {status === "ready" &&
+      previewUrl &&
+      candidateKind === "lan_candidate" ? (
+        <LanPreviewReachability url={previewUrl} />
       ) : null}
     </div>
   );

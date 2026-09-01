@@ -503,7 +503,7 @@ export function SharedMediaAssetBrowser({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[1900] flex items-end justify-center bg-black/75 sm:items-center sm:p-4"
+      className="fixed inset-0 z-[7000] flex items-end justify-center bg-black/75 sm:items-center sm:p-4"
       role="presentation"
       onMouseDown={(event) => {
         if (event.currentTarget === event.target) onClose();
@@ -517,9 +517,11 @@ export function SharedMediaAssetBrowser({
         aria-labelledby="shared-media-browser-title"
         className="flex h-[94dvh] w-full max-w-6xl flex-col overflow-hidden rounded-t-2xl border border-white/15 bg-[#090d16] text-white shadow-2xl sm:h-[86vh] sm:rounded-2xl"
         data-testid="shared-media-browser"
+        data-catalog-adapter="canonical-assets"
       >
         <header className="flex min-h-14 items-center justify-between border-b border-white/10 px-4">
           <div>
+            <p className="text-[9px] font-semibold uppercase tracking-[.14em] text-[#8bdcff]/70">Card / Assets</p>
             <h2 id="shared-media-browser-title" className="font-semibold">
               {title}
             </h2>
@@ -595,7 +597,7 @@ export function SharedMediaAssetBrowser({
         </div>
 
         <div className="flex min-h-0 flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="flex min-h-0 flex-1 flex-col border-b border-white/10 lg:border-b-0 lg:border-r">
+          <div className="flex h-[52%] min-h-0 flex-none flex-col border-b border-white/10 lg:h-auto lg:flex-1 lg:border-b-0 lg:border-r">
             {showGrid ? (
               <div className="space-y-2 border-b border-white/10 p-3">
                 {providerSearch ? (
@@ -844,7 +846,7 @@ export function SharedMediaAssetBrowser({
             ) : null}
           </div>
 
-          <aside className="max-h-[42dvh] overflow-y-auto p-4 lg:max-h-none" aria-label="Selected media preview">
+          <aside className="min-h-0 flex-1 overflow-y-auto p-4 lg:max-h-none" aria-label="Selected media preview">
             {selected ? (
               <div className="space-y-4">
                 {/* eslint-disable-next-line @next/next/no-img-element */}

@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowUpRight, Heart, Mail, MapPin, Phone, Sparkles, Star, Tag, Ticket } from "lucide-react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { ArrowUpRight, GripVertical, Heart, Mail, MapPin, Phone, Sparkles, Star, Tag, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   FRAME_MASK_CATALOG,
@@ -39,7 +39,16 @@ import {
   type CompositionGuide,
 } from "@/lib/fusion/creative-studio/composition-snap";
 import { buildButtonHref, buildMapHref, type MapElementProps } from "@/lib/fusion/card/designer-elements";
+import {
+  compositionChildren,
+  deleteCompositionNode,
+  duplicateCompositionNode,
+  hasCompositionParentAuthority,
+  reparentCompositionModule,
+  reorderCompositionNode,
+} from "@/lib/fusion/card/composition-parent-authority";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
+import { resolveFlowDropTarget } from "@/lib/fusion/creative-studio/platform/flow-drop-target";
 import { copyCompositionNodes, copyCompositionNodeStyle, hasCompositionClipboard, hasCompositionStyleClipboard, pasteCompositionNodes, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
 import { buttonContent, buttonContentNode } from "@/lib/fusion/creative-studio/button-composition";
 import {
@@ -100,6 +109,8 @@ import {
 import { ArcEmberPristineMasterAction } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/ArcEmberPristineMasterBridge";
 import { isArcEmberPristineMasterProps } from "@/lib/fusion/creative-studio/visual-parts/packages/arc-ember-pristine/recipe";
 import { ARC_EMBER_STAGE_ID, isSignatureAssetProps, layoutArcEmberStages, requiredArcEmberSurfaceHeightPx, SignatureMasterBridge } from "@/lib/fusion/creative-studio/signature-assets";
+import { curatedCompoundObjectForNode, curatedCompoundObjects } from "@/lib/fusion/creative-studio/platform/curated-compound-object";
+import { readStudioSurfaceState } from "@/lib/fusion/creative-studio/platform/surface-capability";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -497,6 +508,7 @@ function NodeVisual({
       );
     }
     const plane = readContainerVisualPlane(node);
+    const studioSurface = readStudioSurfaceState(node.props);
     const planeStyle = visualPlaneToStyle(plane);
     const texture =
       plane.kind === "none" || plane.kind === "pattern" || plane.kind === "texture" || plane.kind === "image"
@@ -516,6 +528,9 @@ function NodeVisual({
         borderRadius: num(node.props.radius, 0),
         boxShadow: num(node.props.boxShadow, 0) ? `0 10px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)` : undefined,
         opacity: num(node.props.opacity, 1),
+        filter: studioSurface.treatment === "image" && studioSurface.brightness !== 1 ? `brightness(${studioSurface.brightness})` : undefined,
+        backdropFilter: studioSurface.treatment === "smoked_glass" ? `blur(${studioSurface.blurPx}px)` : undefined,
+        WebkitBackdropFilter: studioSurface.treatment === "smoked_glass" ? `blur(${studioSurface.blurPx}px)` : undefined,
       }}
     >
       {texture ? <span aria-hidden className="pointer-events-none absolute inset-0" data-testid="surface-texture-overlay" style={texture} /> : null}
@@ -1250,7 +1265,7 @@ function NodeVisual({
 
   if (node.primitive === "border") {
     const vpDivider = readVisualPartsState(node.props);
-    const treatment = str(node.props.vpDividerTreatment) ||
+    const treatment = str(node.props.vpDividerTreatment) || str(node.props.decorativeTreatment) ||
       (vpDivider.dividerLinePartId === "divider_copper_botanical"
         ? "copper_botanical"
         : vpDivider.dividerLinePartId === "divider_electric"
@@ -1266,6 +1281,8 @@ function NodeVisual({
     const botanical = treatment === "copper_botanical";
     const electric = treatment === "electric";
     const industrial = treatment === "industrial";
+    const metallic = treatment === "metallic";
+    const softGlow = treatment === "soft-glow";
     const style = botanical || electric || industrial ? "solid" : str(node.props.style, "solid");
     const thickness = botanical
       ? Math.max(num(node.props.thickness, 2), 4)
@@ -1339,6 +1356,7 @@ function NodeVisual({
           data-testid={`divider-electric-glow-${node.id}`}
         />
       ) : null}
+      {metallic ? <span aria-hidden className="pointer-events-none absolute inset-x-[2%] top-1/2 z-[1] -translate-y-1/2 rounded-full" data-divider-material="metallic" style={{height:Math.max(2,thickness),background:"linear-gradient(90deg,#5d431c 0%,#f9e8a8 22%,#b78332 50%,#fff0b5 78%,#5d431c 100%)",boxShadow:`0 -${Math.max(2,thickness)}px 0 rgba(106,77,29,.65), 0 ${Math.max(2,thickness)}px 0 rgba(255,224,143,.35), 0 0 10px rgba(214,179,106,.42)`}} /> : null}
       <svg
         viewBox="0 0 100 20"
         preserveAspectRatio="none"
@@ -1348,6 +1366,8 @@ function NodeVisual({
         aria-label={str(node.props.label, "Divider")}
       >
         <defs>
+          {metallic ? <linearGradient id={`divider-metal-${node.id}`} x1="0" x2="1"><stop offset="0" stopColor="#6d5225"/><stop offset=".22" stopColor="#f6df9a"/><stop offset=".5" stopColor="#b88b3d"/><stop offset=".78" stopColor="#fff0b6"/><stop offset="1" stopColor="#6d5225"/></linearGradient> : null}
+          {softGlow ? <filter id={`divider-glow-${node.id}`} x="-20%" width="140%"><feGaussianBlur stdDeviation="1.6" result="blur"/><feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge></filter> : null}
           {(["start", "end"] as const).map((side) => {
             const type = side === "start" ? startMarker : endMarker;
             return type === "none" ? null : (
@@ -1371,25 +1391,27 @@ function NodeVisual({
             <path
               d="M2 7 H98"
               fill="none"
-              stroke={color}
+              stroke={metallic ? `url(#divider-metal-${node.id})` : color}
               strokeOpacity={opacity}
               strokeWidth={Math.max(1, thickness / 2)}
               vectorEffect="non-scaling-stroke"
+              filter={softGlow ? `url(#divider-glow-${node.id})` : undefined}
             />
             <path
               d="M2 13 H98"
               fill="none"
-              stroke={color}
+              stroke={metallic ? `url(#divider-metal-${node.id})` : color}
               strokeOpacity={opacity}
               strokeWidth={Math.max(1, thickness / 2)}
               vectorEffect="non-scaling-stroke"
+              filter={softGlow ? `url(#divider-glow-${node.id})` : undefined}
             />
           </>
         ) : (
           <path
             d={linePath}
             fill="none"
-            stroke={color}
+            stroke={metallic ? `url(#divider-metal-${node.id})` : color}
             strokeOpacity={opacity}
             strokeWidth={thickness}
             strokeDasharray={dash}
@@ -1405,6 +1427,7 @@ function NodeVisual({
                 ? undefined
                 : `url(#${markerId("end", endMarker)})`
             }
+            filter={softGlow ? `url(#divider-glow-${node.id})` : undefined}
           />
         )}
       </svg>
@@ -1814,6 +1837,11 @@ export function CreativeCompositionCanvas({
     return () => window.removeEventListener("studio:dismiss-composition-menu", dismiss as EventListener);
   }, []);
   const [editingNodeId, setEditingNodeId] = useState<string | null>(null);
+  const [flowDropTarget, setFlowDropTarget] = useState<{ parentId: string | null; index: number } | null>(null);
+  const flowDropTargetRef = useRef<{ parentId: string | null; index: number } | null>(null);
+  const [flowDragNodeId, setFlowDragNodeId] = useState<string | null>(null);
+  const [flowPointerVisual, setFlowPointerVisual] = useState<{ x: number; y: number; startX: number; startY: number; nodeId: string; label: string } | null>(null);
+  const flowPointerRef = useRef<number | null>(null);
   const [marquee, setMarquee] = useState<{
     startX: number;
     startY: number;
@@ -1856,6 +1884,11 @@ export function CreativeCompositionCanvas({
   }, []);
 
   const selectedSet = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
+  const selectedCuratedCompound = useMemo(
+    () => selectedNodeIds.length ? curatedCompoundObjectForNode(block, selectedNodeIds[0]) : null,
+    [block, selectedNodeIds],
+  );
+  const curatedCompounds = useMemo(() => curatedCompoundObjects(block), [block]);
   const applyFallback = compositionAppliesMobileFallback({
     editMode,
     forceMobileFallback: forceMobileFallback || narrow,
@@ -2125,6 +2158,27 @@ export function CreativeCompositionCanvas({
       }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
+        if (hasCompositionParentAuthority(block)) {
+          const selected = selectedNodeIds
+            .map((id) => block.nodes.find((node) => node.id === id))
+            .filter((node): node is CreativeCompositionNode => Boolean(node));
+          if (selected.some((node) => node.compositionKind === "container")) {
+            onNotify?.("Use Delete in the Container Inspector to confirm removal of the Container and its contents.");
+            return;
+          }
+          let current: CreativeCompositionBlock = block;
+          for (const node of selected) {
+            const result = deleteCompositionNode(current, node.id);
+            if (!result.ok) {
+              onNotify?.(result.issues[0]?.message || "Unable to delete this Module.");
+              return;
+            }
+            current = result.block;
+          }
+          commitNodes(current.nodes, "Deleted composition Modules");
+          onSelectNodes?.([]);
+          return;
+        }
         commitNodes(
           deleteNodes(block.nodes, selectedNodeIds),
           "Deleted composition items"
@@ -2134,12 +2188,29 @@ export function CreativeCompositionCanvas({
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
         e.preventDefault();
+        if (hasCompositionParentAuthority(block)) {
+          let current: CreativeCompositionBlock = block;
+          const newIds: string[] = [];
+          for (const nodeId of selectedNodeIds) {
+            const result = duplicateCompositionNode(current, nodeId);
+            if (!result.ok) {
+              onNotify?.(result.issues[0]?.message || "Unable to duplicate this composition item.");
+              return;
+            }
+            current = result.block;
+            if (result.selectedNodeId) newIds.push(result.selectedNodeId);
+          }
+          commitNodes(current.nodes, "Duplicated composition items");
+          if (newIds.length) onSelectNodes?.(newIds);
+          return;
+        }
         const { nodes, newIds } = duplicateNodes(block.nodes, selectedNodeIds);
         commitNodes(nodes, "Duplicated composition items");
         if (newIds.length) onSelectNodes?.(newIds);
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g" && !e.shiftKey) {
+        if (hasCompositionParentAuthority(block)) return;
         if (selectedNodeIds.length < 2) return;
         e.preventDefault();
         const next = groupNodes(block.nodes, selectedNodeIds);
@@ -2148,6 +2219,7 @@ export function CreativeCompositionCanvas({
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "g") {
+        if (hasCompositionParentAuthority(block)) return;
         const gid = resolveActiveGroupId(block.nodes, selectedNodeIds);
         if (!gid) return;
         e.preventDefault();
@@ -2157,6 +2229,7 @@ export function CreativeCompositionCanvas({
         return;
       }
       // Arrow nudge — responsive relative units
+      if (hasCompositionParentAuthority(block)) return;
       const rect = surfaceRef.current?.getBoundingClientRect();
       const stepPx = e.shiftKey ? 10 : 1;
       let dx = 0;
@@ -2201,6 +2274,10 @@ export function CreativeCompositionCanvas({
       }
       if (hasCompositionClipboard()) {
         e.preventDefault();
+        if (hasCompositionParentAuthority(block)) {
+          onNotify?.("Use Add to insert a Module into the selected Card Surface or Container.");
+          return;
+        }
         const result = pasteCompositionNodes(block.nodes);
         commitNodes(result.nodes, "Pasted composition items");
         onSelectNodes?.(result.newIds);
@@ -2212,7 +2289,7 @@ export function CreativeCompositionCanvas({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("paste", onPaste);
     };
-  }, [editMode, selectedNodeIds, block.nodes, commitNodes, onSelectNodes, contextMenu, importImageFiles]);
+  }, [editMode, selectedNodeIds, block, commitNodes, onSelectNodes, onNotify, contextMenu, importImageFiles]);
 
   const onPointerDownNode = (
     e: React.PointerEvent,
@@ -2220,7 +2297,9 @@ export function CreativeCompositionCanvas({
     mode: "move" | "resize" | "rotate",
     handle?: "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w"
   ) => {
-    if (!editMode || node.locked) return;
+    if (!editMode) return;
+    const curatedManaged = typeof node.props.signatureAssemblyInstanceId === "string";
+    if (node.locked && !curatedManaged) return;
     e.stopPropagation();
     e.preventDefault();
     (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
@@ -2234,6 +2313,12 @@ export function CreativeCompositionCanvas({
       if (parentMode !== "content") {
         target = containerParent;
       }
+    }
+
+    const curatedCompound = curatedManaged ? curatedCompoundObjectForNode(block, target.id) : null;
+    if (curatedCompound) {
+      onSelectNodes?.([curatedCompound.anchorNodeId]);
+      return;
     }
 
     const multi = e.metaKey || e.ctrlKey || e.shiftKey;
@@ -2264,6 +2349,7 @@ export function CreativeCompositionCanvas({
       }
     }
     onSelectNodes?.(nextIds);
+    if (curatedManaged) return;
 
     const groupIdForTransform = resolveActiveGroupId(block.nodes, nextIds);
     const groupParent = Boolean(groupIdForTransform) && !isGroupContentEditing(block.nodes, nextIds);
@@ -2587,6 +2673,280 @@ export function CreativeCompositionCanvas({
   );
 
   const structured = useStack || layoutMode !== "free";
+  if (hasCompositionParentAuthority(block)) {
+    const rootChildren = compositionChildren(block, null);
+    const moduleFrame = (node: CreativeCompositionNode): CSSProperties => {
+      const minHeight = node.moduleComposition ? Math.max(52, node.moduleComposition.pageHeightPx ?? 56)
+        : node.primitive === "text" ? 40
+          : node.primitive === "image" ? Math.max(140, node.minHeightPx ?? 180)
+            : node.primitive === "border" ? 12
+              : Math.max(52, node.minHeightPx ?? 56);
+      const width = Math.max(20, Math.min(100, num(node.props.flowWidthPercent, 100)));
+      const inset = Math.max(0, Math.min(80, num(node.props.flowInsetPx, 0)));
+      const alignment = str(node.props.flowAlignment, "stretch");
+      return {
+        minHeight,
+        width: `min(${width}%, calc(100% - ${inset * 2}px))`,
+        alignSelf: alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
+        marginTop: Math.max(0, num(node.props.spacingAbovePx, 0)),
+        marginBottom: Math.max(0, num(node.props.spacingBelowPx, 0)),
+      };
+    };
+    const commitFlowTarget = (node: CreativeCompositionNode, parentId: string | null, index: number, label: string) => {
+      const resolved = resolveFlowDropTarget(block, node.id, parentId, index);
+      if (!resolved.ok) { onNotify?.(resolved.reason); return; }
+      const result = node.compositionKind === "module" && node.parentId !== resolved.target.parentId
+        ? reparentCompositionModule(block, node.id, resolved.target.parentId, resolved.target.index)
+        : reorderCompositionNode(block, node.id, resolved.target.index);
+      if (!result.ok) { onNotify?.(result.issues[0]?.message || "That placement is not available."); return; }
+      onChangeBlock?.(result.block, label);
+      onSelectNodes?.([result.selectedNodeId ?? node.id]);
+    };
+    const startFlowPointerMove = (event: React.PointerEvent<HTMLButtonElement>, node: CreativeCompositionNode) => {
+      if (event.button !== 0 || flowPointerRef.current !== null) return;
+      event.preventDefault();
+      event.stopPropagation();
+      flowPointerRef.current = event.pointerId;
+      flowDropTargetRef.current = null;
+      setFlowDragNodeId(node.id);
+      setFlowPointerVisual({ x: event.clientX, y: event.clientY, startX:event.clientX, startY:event.clientY, nodeId:node.id, label: node.name || String(node.props.elementKind || node.primitive) });
+      onSelectNodes?.([node.id]);
+      const move = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId !== flowPointerRef.current) return;
+        setFlowPointerVisual((current)=>current ? { ...current, x:pointerEvent.clientX, y:pointerEvent.clientY } : current);
+        autoScrollForPointer(surfaceRef.current, pointerEvent.clientX, pointerEvent.clientY);
+        const hit = document.elementFromPoint(pointerEvent.clientX, pointerEvent.clientY)?.closest<HTMLElement>("[data-flow-drop-parent][data-flow-drop-index]");
+        if (!hit) { flowDropTargetRef.current = null; setFlowDropTarget(null); return; }
+        const parentValue = hit.dataset.flowDropParent;
+        const parentId = parentValue === "card-surface" ? null : parentValue ?? null;
+        const index = Number(hit.dataset.flowDropIndex);
+        if (!Number.isInteger(index) || !resolveFlowDropTarget(block, node.id, parentId, index).ok) {
+          flowDropTargetRef.current = null;
+          setFlowDropTarget(null);
+          return;
+        }
+        flowDropTargetRef.current = { parentId, index };
+        setFlowDropTarget(flowDropTargetRef.current);
+      };
+      const finish = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId !== flowPointerRef.current) return;
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", cancel);
+        const target = flowDropTargetRef.current;
+        if (target) commitFlowTarget(node, target.parentId, target.index, target.parentId ? "Moved Module into Container" : "Reordered Card flow");
+        flowPointerRef.current = null;
+        flowDropTargetRef.current = null;
+        setFlowDropTarget(null);
+        setFlowDragNodeId(null);
+        setFlowPointerVisual(null);
+      };
+      const cancel = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId !== flowPointerRef.current) return;
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", cancel);
+        flowPointerRef.current = null;
+        flowDropTargetRef.current = null;
+        setFlowDropTarget(null);
+        setFlowDragNodeId(null);
+        setFlowPointerVisual(null);
+      };
+      window.addEventListener("pointermove", move, { passive: false });
+      window.addEventListener("pointerup", finish);
+      window.addEventListener("pointercancel", cancel);
+    };
+    const flowDropLine = (parentId: string | null, index: number, label = "Move here") => {
+      const active = flowDropTarget?.parentId === parentId && flowDropTarget.index === index;
+      const valid = flowDragNodeId ? resolveFlowDropTarget(block, flowDragNodeId, parentId, index).ok : false;
+      return <div className={cn("relative z-20 h-0 w-full touch-none overflow-hidden rounded-full transition-[height,background-color,border-color]", flowDragNodeId && valid && "h-5 border border-dashed border-[#8bdcff]/35 bg-[#8bdcff]/5", active && "!h-10 !border-[#8bdcff]/80 !bg-[#8bdcff]/14")} data-flow-drop-parent={parentId ?? "card-surface"} data-flow-drop-index={index} data-testid={`studio-canvas-drop-${parentId ?? "card"}-${index}`} data-drop-valid={flowDragNodeId ? String(valid) : undefined} data-drop-active={active ? "true" : "false"}>{active ? <span className="absolute inset-0 grid place-items-center text-[9px] font-semibold text-[#c9efff]">{label}</span> : null}</div>;
+    };
+    const handleFlowKey = (event: React.KeyboardEvent, node: CreativeCompositionNode) => {
+      const siblings = compositionChildren(block, node.parentId ?? null);
+      const index = siblings.findIndex((candidate) => candidate.id === node.id);
+      if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+        event.preventDefault();
+        commitFlowTarget(node, node.parentId ?? null, index + (event.key === "ArrowUp" ? -1 : 1), "Reordered Card flow by keyboard");
+      } else if (event.altKey && event.key === "ArrowLeft" && node.compositionKind === "module" && node.parentId) {
+        event.preventDefault();
+        commitFlowTarget(node, null, compositionChildren(block, null).length, "Moved Module to Card Surface by keyboard");
+      } else if (event.altKey && event.key === "ArrowRight" && node.compositionKind === "module" && !node.parentId) {
+        const target = compositionChildren(block, null).find((candidate) => candidate.compositionKind === "container");
+        if (target) { event.preventDefault(); commitFlowTarget(node, target.id, compositionChildren(block, target.id).length, "Moved Module into Container by keyboard"); }
+      }
+    };
+    const renderModule = (node: CreativeCompositionNode) => (
+      <div
+        key={node.id}
+        className={cn(
+          "relative w-full",
+          editMode && "rounded-xl outline outline-1 outline-transparent hover:outline-white/25",
+          selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
+        )}
+        style={{
+          ...moduleFrame(node),
+          ...(flowPointerVisual?.nodeId === node.id ? {
+            transform:`translate3d(${flowPointerVisual.x-flowPointerVisual.startX}px, ${flowPointerVisual.y-flowPointerVisual.startY}px, 0) scale(.985)`,
+            zIndex:3900,
+            opacity:.9,
+            filter:"drop-shadow(0 18px 24px rgba(0,0,0,.45))",
+            pointerEvents:"none" as const,
+          } : {}),
+        }}
+        data-composition-node={node.id}
+        data-composition-kind="module"
+        data-parent-id={node.parentId ?? "card-surface"}
+        data-sibling-order={node.siblingOrder}
+        data-primitive={node.primitive}
+        data-element-kind={String(node.props.elementKind || node.primitive)}
+        data-selected={selectedSet.has(node.id) ? "true" : "false"}
+        draggable={false}
+        role={editMode ? "button" : undefined}
+        tabIndex={editMode ? 0 : undefined}
+        aria-label={editMode ? node.moduleComposition?.signatureAssembly ? `${node.name || "Curated"} Curated System` : `${node.name || String(node.props.elementKind || node.primitive)} Module` : undefined}
+        onPointerDown={(event) => {
+          if (!editMode || event.button !== 0) return;
+          event.stopPropagation();
+          const multi = event.metaKey || event.ctrlKey || event.shiftKey;
+          onSelectNodes?.(multi
+            ? selectedNodeIds.includes(node.id)
+              ? selectedNodeIds.filter((id) => id !== node.id)
+              : [...selectedNodeIds, node.id]
+            : [node.id]);
+        }}
+        onClick={(event) => {
+          if (!editMode) return;
+          event.stopPropagation();
+          const multi = event.metaKey || event.ctrlKey || event.shiftKey;
+          onSelectNodes?.(multi
+            ? selectedNodeIds.includes(node.id)
+              ? selectedNodeIds.filter((id) => id !== node.id)
+              : [...selectedNodeIds, node.id]
+            : [node.id]);
+        }}
+        onDoubleClick={(event) => {
+          if (!editMode || node.primitive !== "text") return;
+          event.preventDefault();
+          event.stopPropagation();
+          onSelectNodes?.([node.id]);
+          setEditingNodeId(node.id);
+        }}
+        onKeyDown={(event) => {
+          if (!editMode || (event.key !== "Enter" && event.key !== " ")) return;
+          event.preventDefault();
+          onSelectNodes?.([node.id]);
+        }}
+      >
+        {editMode && selectedSet.has(node.id) ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={`Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => handleFlowKey(event, node)} onPointerDown={(event) => startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
+        {node.moduleComposition ? (
+          <div className={cn("w-full", editMode && "pointer-events-none")} data-module-composition={node.moduleComposition.id}>
+            <CreativeCompositionCanvas block={node.moduleComposition} editMode={false} forceMobileFallback={forceMobileFallback} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} minHeightPx={node.moduleComposition.pageHeightPx} />
+          </div>
+        ) : <ActionVisual node={node} editMode={editMode}>
+          <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
+            <NodeVisual
+              node={node}
+              editMode={editMode}
+              textEditing={editingNodeId === node.id}
+              onEditText={(value) => onEditNodeText?.(node.id, value)}
+              onFinishTextEdit={() => setEditingNodeId(null)}
+            />
+          </MotionVisual>
+        </ActionVisual>}
+      </div>
+    );
+    return (
+      <div
+        ref={surfaceRef}
+        className={cn("relative w-full rounded-xl", editMode ? "overflow-visible" : "overflow-hidden", className)}
+        style={{ minHeight: minHeightPx, padding: block.safeAreaPaddingPx ?? 12 }}
+        data-testid="creative-composition-canvas"
+        data-composition-surface="true"
+        data-parent-authority="flow-v1"
+        data-edit-mode={editMode ? "true" : "false"}
+        role="group"
+        aria-label={block.label}
+        onPointerDown={(event) => {
+          if (!editMode || event.button !== 0) return;
+          const target = event.target as HTMLElement | null;
+          if (target?.closest("[data-composition-node]")) return;
+          onSelectNodes?.([]);
+        }}
+      >
+        {compositionBackgroundNode}
+        {flowPointerVisual ? <div className="pointer-events-none fixed z-[4000] max-w-52 -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-full border border-[#8bdcff]/55 bg-[#0b111b]/94 px-3 py-1.5 text-[9px] font-semibold text-[#c9efff] shadow-2xl backdrop-blur" style={{ left: flowPointerVisual.x, top: flowPointerVisual.y }} data-testid="studio-flow-drag-ghost">{flowDropTarget ? "Release to place" : `Moving ${flowPointerVisual.label}`}</div> : null}
+        <ol className="sr-only" data-testid="composition-reading-order">
+          {readingOrder.filter((node) => node.compositionKind === "module").map((node) => (
+            <li key={node.id}>{node.primitive}: {str(node.props.text) || str(node.props.alt) || str(node.props.label) || node.id}</li>
+          ))}
+        </ol>
+        <div className="relative z-[1] flex w-full flex-col" style={{ gap: block.parentAuthority.cardGapPx }} data-card-surface-flow="true">
+          {flowDropLine(null, 0)}
+          {rootChildren.map((node, rootIndex) => {
+            if (node.compositionKind === "module") return <Fragment key={node.id}>{renderModule(node)}{flowDropLine(null, rootIndex + 1)}</Fragment>;
+            const children = compositionChildren(block, node.id);
+            const padding = Math.max(0, num(node.props.padding, 16));
+            const gap = Math.max(0, num(node.props.gap, 12));
+            const alignment = str(node.props.alignment, "stretch");
+            return <Fragment key={node.id}>
+              <div
+                className={cn(
+                  "relative w-full",
+                  editMode ? "overflow-visible" : "overflow-hidden",
+                  editMode && "outline outline-1 outline-dashed outline-white/25",
+                  selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
+                )}
+                data-composition-node={node.id}
+                data-composition-kind="container"
+                data-parent-id="card-surface"
+                data-sibling-order={node.siblingOrder}
+                data-container-auto-height="true"
+                data-selected={selectedSet.has(node.id) ? "true" : "false"}
+                draggable={false}
+                style={{
+                  marginTop:Math.max(0,num(node.props.spacingAbovePx,0)),
+                  marginBottom:Math.max(0,num(node.props.spacingBelowPx,0)),
+                  ...(flowPointerVisual?.nodeId === node.id ? {
+                    transform:`translate3d(${flowPointerVisual.x-flowPointerVisual.startX}px, ${flowPointerVisual.y-flowPointerVisual.startY}px, 0) scale(.985)`,
+                    zIndex:3900,opacity:.9,filter:"drop-shadow(0 18px 24px rgba(0,0,0,.45))",pointerEvents:"none" as const,
+                  } : {}),
+                }}
+                onClick={(event) => {
+                  if (!editMode) return;
+                  event.stopPropagation();
+                  const multi = event.metaKey || event.ctrlKey || event.shiftKey;
+                  onSelectNodes?.(multi
+                    ? selectedNodeIds.includes(node.id)
+                      ? selectedNodeIds.filter((id) => id !== node.id)
+                      : [...selectedNodeIds, node.id]
+                    : [node.id]);
+                }}
+              >
+                {editMode && selectedSet.has(node.id) ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={`Move ${node.name || "Container"}. Drag with pointer or touch; Arrow keys reorder.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => handleFlowKey(event, node)} onPointerDown={(event) => startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
+                <div className="pointer-events-none absolute inset-0"><NodeVisual node={node} editMode={editMode} /></div>
+                <div
+                  className="relative z-[1] flex w-full flex-col"
+                  style={{
+                    padding,
+                    gap,
+                    alignItems: alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
+                  }}
+                  data-container-content="true"
+                >
+                  {flowDropLine(node.id, 0, "Drop into panel")}
+                  {children.map((child, childIndex) => <Fragment key={child.id}>{renderModule(child)}{flowDropLine(node.id, childIndex + 1)}</Fragment>)}
+                  {editMode && children.length === 0 ? (
+                    <div className="grid min-h-20 w-full place-items-center rounded-xl border border-dashed border-white/18 text-xs text-white/38">Add Modules here</div>
+                  ) : null}
+                </div>
+              </div>
+              {flowDropLine(null, rootIndex + 1)}
+            </Fragment>;
+          })}
+        </div>
+      </div>
+    );
+  }
   if (structured) {
     const structuredMode = useStack ? "stack" : layoutMode;
     return (
@@ -2616,7 +2976,7 @@ export function CreativeCompositionCanvas({
           if (!editMode || event.button !== 0) return;
           const target = event.target as HTMLElement | null;
           if (!target || !event.currentTarget.contains(target)) return;
-          if (target.closest("[data-composition-node]")) return;
+          if (target.closest("[data-composition-node], [data-curated-compound-overlay]")) return;
           onSelectNodes?.([]);
         }}
       >
@@ -2654,6 +3014,13 @@ export function CreativeCompositionCanvas({
               onSelectNodes?.([node.id]);
             }}
             onDoubleClick={(event) => {
+              if (typeof node.props.signatureAssemblyInstanceId === "string") {
+                event.preventDefault();
+                event.stopPropagation();
+                const compound = curatedCompoundObjectForNode(block, node.id);
+                if (compound) onSelectNodes?.([compound.anchorNodeId]);
+                return;
+              }
               if (!editMode || !((node.primitive === "text" && str(node.props.textCurve, "none") === "none") || (node.primitive === "button" && node.props.contentEditing === true))) return;
               event.preventDefault();
               event.stopPropagation();
@@ -2797,7 +3164,7 @@ export function CreativeCompositionCanvas({
         // safe-area guides / reading-order / background layers must not steal the Owner click.
         if (
           target.closest(
-            "[data-composition-node], [data-testid^='composition-resize-'], [data-testid^='composition-rotate-'], [data-testid^='composition-more-'], [data-testid^='composition-group-'], [data-testid='composition-context-menu']"
+            "[data-composition-node], [data-curated-compound-overlay], [data-testid^='composition-resize-'], [data-testid^='composition-rotate-'], [data-testid^='composition-more-'], [data-testid^='composition-group-'], [data-testid='composition-context-menu']"
           )
         ) {
           return;
@@ -2818,11 +3185,13 @@ export function CreativeCompositionCanvas({
       ) : null}
       {/* Accessible reading order (visually hidden list for SR) */}
       <ol className="sr-only" data-testid="composition-reading-order">
-        {readingOrder.map((n) => (
-          <li key={n.id}>
-            {n.primitive}: {str(n.props.text) || str(n.props.alt) || str(n.props.label) || n.id}
-          </li>
-        ))}
+        {readingOrder.map((n) => {
+          const compound = curatedCompounds.find((candidate) => candidate.memberNodeIds.includes(n.id));
+          if (compound && compound.anchorNodeId !== n.id) return null;
+          return <li key={compound?.instanceId ?? n.id}>
+            {compound ? `Curated System: ${compound.label}` : `${n.primitive}: ${str(n.props.text) || str(n.props.alt) || str(n.props.label) || n.id}`}
+          </li>;
+        })}
       </ol>
 
       {editMode
@@ -2867,6 +3236,7 @@ export function CreativeCompositionCanvas({
 
       {visibleNodes.map((node) => {
         const selected = selectedSet.has(node.id);
+        const curatedManaged = curatedCompounds.some((compound) => compound.memberNodeIds.includes(node.id));
         const box = resolveNodeBox(node, editMode);
         const contentParentActive =
           isContainerNode(node) &&
@@ -2938,6 +3308,7 @@ export function CreativeCompositionCanvas({
               if (!selectedSet.has(node.id) || selectedNodeIds.length <= 1) {
                 onSelectNodes?.(expandSelectionToGroups(block.nodes, [node.id]));
               }
+              if (typeof node.props.signatureAssemblyInstanceId === "string") return;
               setContextMenu({ id: node.id, x: event.clientX - rect.left, y: event.clientY - rect.top });
             }}
             onKeyDown={(event) => {
@@ -2956,6 +3327,7 @@ export function CreativeCompositionCanvas({
               }
               if (
                 !editMode ||
+                node.locked ||
                 !["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(
                   event.key
                 )
@@ -2987,9 +3359,10 @@ export function CreativeCompositionCanvas({
                   : "Nudged composition items 1 pixel"
               );
             }}
-            role={editMode ? (selected && !node.locked ? "group" : "button") : undefined}
-            tabIndex={editMode ? 0 : undefined}
-            aria-label={`${node.primitive}${node.locked ? " locked" : ""}`}
+            role={editMode && !curatedManaged ? (selected && !node.locked ? "group" : "button") : undefined}
+            tabIndex={editMode ? (curatedManaged ? -1 : 0) : undefined}
+            aria-hidden={editMode && curatedManaged ? true : undefined}
+            aria-label={curatedManaged ? undefined : `${node.primitive}${node.locked ? " locked" : ""}`}
           >
             <ActionVisual node={node} editMode={editMode}>
               <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
@@ -3005,6 +3378,51 @@ export function CreativeCompositionCanvas({
           </div>
         );
       })}
+      {editMode ? curatedCompounds.map((compound) => {
+        const selected = selectedCuratedCompound?.instanceId === compound.instanceId;
+        return <button
+          type="button"
+          key={compound.instanceId}
+          className={cn(
+            "pointer-events-auto absolute z-[1600] cursor-pointer rounded-[2px] focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b8ff2c]",
+            selected && "outline outline-2 outline-[#b8ff2c] shadow-[0_0_0_4px_rgba(184,255,44,.10),0_0_32px_rgba(184,255,44,.16)]",
+          )}
+          style={{
+            left: `${compound.bounds.left * 100}%`,
+            top: `${compound.bounds.top * 100}%`,
+            width: `${compound.bounds.width * 100}%`,
+            height: `${compound.bounds.height * 100}%`,
+          }}
+          aria-label={`${compound.label} Curated System${selected ? " selected" : ""}. Press Enter to edit contents.`}
+          onPointerDown={(event) => {
+            // Do not mutate layout on pointer-down: opening the Inspector can
+            // move the overlay before pointer-up and cancel the native click.
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            // Keep the canvas' background click from clearing the compound
+            // immediately after pointer selection.
+            event.stopPropagation();
+            onSelectNodes?.([compound.anchorNodeId]);
+          }}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            onSelectNodes?.([compound.anchorNodeId]);
+          }}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" && event.key !== " ") return;
+            event.preventDefault();
+            onSelectNodes?.([compound.anchorNodeId]);
+          }}
+          data-testid={selected ? "composition-curated-selection-overlay" : undefined}
+          data-curated-instance-id={compound.instanceId}
+          data-curated-compound-overlay="true"
+        >
+          {selected ? <span className="absolute left-0 top-0 -translate-y-full rounded-t-lg bg-[#b8ff2c] px-2.5 py-1 text-[9px] font-semibold text-[#07100a]">
+            {compound.label} · Edit Contents
+          </span> : null}
+        </button>;
+      }) : null}
       {editMode && groupContentScopeActive && groupBounds && activeGroupId && !groupParentSelection ? (
         <div
           key={`group-content-scope-${activeGroupId}`}

@@ -24,7 +24,34 @@ export type ResolveContext = {
   overrides?: FeatureOverride[];
   /** When true, allow internal_only features for platform staff */
   internalOperator?: boolean;
+  /** Subjects used by audited scoped overrides. Omit to resolve global state only. */
+  subject?: {
+    userId?: string;
+    businessId?: string;
+    cohortIds?: readonly string[];
+  };
 };
+
+function matchingOverride(
+  featureId: string,
+  ctx: ResolveContext
+): FeatureOverride | undefined {
+  const candidates = (ctx.overrides ?? []).filter(
+    (override) => override.featureId === featureId
+  );
+  const scopes = [
+    ctx.subject?.userId ? `user:${ctx.subject.userId}` : null,
+    ...(ctx.subject?.cohortIds ?? []).map((id) => `cohort:${id}`),
+    ctx.subject?.businessId ? `business:${ctx.subject.businessId}` : null,
+    "global",
+  ].filter((scope): scope is string => Boolean(scope));
+
+  for (const scope of scopes) {
+    const found = candidates.find((override) => override.scope === scope);
+    if (found) return found;
+  }
+  return undefined;
+}
 
 function envHas(env: Record<string, string | undefined> | undefined, key: string) {
   const fromArg = env?.[key]?.trim();
@@ -122,7 +149,7 @@ export function isFeatureEnabled(featureId: string, ctx: ResolveContext = {}): b
   if (!feature) return false;
   if (feature.maturity === "retired") return false;
 
-  const override = ctx.overrides?.find((o) => o.featureId === featureId);
+  const override = matchingOverride(featureId, ctx);
   const enabled = override ? override.enabled : feature.defaultEnabled;
   if (!enabled) return false;
 
