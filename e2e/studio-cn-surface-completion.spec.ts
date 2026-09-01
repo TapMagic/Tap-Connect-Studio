@@ -46,11 +46,12 @@ test.describe.serial("Cabinet Noir typography and Container Surface completion",
       await page.getByRole("button", { name: "Close authoring panel" }).click();
       await page.getByTestId("studio-rail-add").click();
       await expect(page.getByTestId("studio-discovery-drawer")).toBeVisible();
+      await page.getByTestId("studio-add-container").click();
       await page.getByTestId("studio-add-container-image").click();
       const container = page.locator('[data-composition-kind="container"]').last();
       const containerId = await container.getAttribute("data-composition-node");
       expect(containerId).toBeTruthy();
-      await page.getByRole("button", { name: "Close drawer", exact: true }).click();
+      await page.getByTestId("studio-composition-inspector").getByRole("button", { name: "Close Inspector", exact: true }).click();
       await container.click({ position: { x: 8, y: 8 } });
       await page.getByTestId("studio-composition-object-toolbar").getByRole("button", { name: /^Edit/ }).click();
       const inspector = page.getByTestId("studio-composition-inspector");

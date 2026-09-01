@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable @next/next/no-img-element -- catalog previews preserve canonical asset URLs and governed object-fit behavior */
 
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { ArrowLeft, Box, ChevronRight, GripVertical, ImageIcon, Layers3, LockKeyhole, Minus, MousePointer2, Search, Sparkles, SquareStack, Type, X } from "lucide-react";
@@ -15,10 +16,17 @@ import type { StudioWorkspaceComposition } from "@/lib/fusion/creative-studio/pl
 import { cn } from "@/lib/utils";
 import { curatedCompoundObjects } from "@/lib/fusion/creative-studio/platform/curated-compound-object";
 import { compositionChildren, hasCompositionParentAuthority } from "@/lib/fusion/card/composition-parent-authority";
+import {
+  STUDIO_CONTAINERS,
+  STUDIO_ORDINARY_MODULES,
+  visibleStudioAddCategories,
+  type StudioAddCategoryRegistration,
+  type StudioPlacementContext,
+} from "@/lib/fusion/creative-studio/platform/add-discover";
 
 export type StandardButtonDiscoveryResource = StudioDiscoveryResource<StandardButtonDiscoveryApplication, Record<string, unknown>>;
 
-export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCatalog, recents, recentsState, onUseResource, catalogAdapter, workspaceComposition, onCompleteDiscovery }: {
+export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCatalog, recents, recentsState, onUseResource, catalogAdapter, workspaceComposition, placementContext, onPlaceOrdinary, onChooseImage, onPlaceContainer, onPlaceCurated }: {
   state: StudioDrawerState;
   dispatch: (event: StudioDrawerEvent) => void;
   model: CardEditorLiveModel | null;
@@ -29,28 +37,38 @@ export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCat
   onUseResource: (resource: StandardButtonDiscoveryResource) => void;
   catalogAdapter: StudioCatalogConsumerAdapter;
   workspaceComposition: StudioWorkspaceComposition;
-  onCompleteDiscovery: () => void;
+  placementContext: StudioPlacementContext | null;
+  onPlaceOrdinary: (kind: "text" | "image" | "divider", initialProps?: Record<string, unknown>) => void;
+  onChooseImage: () => void;
+  onPlaceContainer: (treatment: "transparent" | "solid" | "smoked_glass" | "image") => void;
+  onPlaceCurated: (familyId: string, layoutMode: "standalone" | "single-stack" | "twin-rail") => void;
 }) {
   if (state.mode === "closed" || !state.activeRailId) return null;
   const path = state.path;
   const isButtonsHome = state.activeRailId === "add" && path.join("/") === "buttons";
   const presentationFamily = path[0] === "buttons" && (path[1] === "standard" || path[1] === "brand") ? path[1] : null;
-  const governedFamily = path[0] === "buttons" && path[1] === "family" && path[2] ? findStudioButtonFamily(familyCatalog, path[2]) : null;
+  const governedFamily = (path[0] === "buttons" || path[0] === "curated") && path[1] === "family" && path[2] ? findStudioButtonFamily(familyCatalog, path[2]) : null;
   const isSaved = path.join("/") === "buttons/saved";
-  const title = state.activeRailId === "layers" ? "Outline" : governedFamily?.label ?? (presentationFamily === "brand" ? "Brand Buttons" : presentationFamily === "standard" ? "Standard Buttons" : isSaved ? "Saved Buttons" : isButtonsHome ? "Buttons" : "Add");
+  const category = visibleStudioAddCategories().find((entry) => entry.id === path[0]);
+  const title = state.activeRailId === "layers" ? "Outline" : governedFamily?.label ?? (presentationFamily === "brand" ? "Brand Buttons" : presentationFamily === "standard" ? "Standard Buttons" : isSaved ? "Saved Buttons" : isButtonsHome ? "Buttons" : category?.label ?? "Add");
 
   return <aside className={cn("absolute inset-y-0 left-0 z-40 flex w-[min(390px,calc(100vw-20px))] flex-col bg-[#0b111b]/98 text-white shadow-[18px_0_50px_rgba(0,0,0,.32)] backdrop-blur-xl md:relative md:z-10 md:shrink-0", workspaceComposition === "discover" ? "md:w-[clamp(420px,46vw,760px)]" : workspaceComposition === "organize" ? "md:w-[320px]" : "md:w-[360px]")} aria-label={`${title} drawer`} data-testid="studio-discovery-drawer" data-drawer-mode={state.mode} data-workspace-composition={workspaceComposition} data-catalog-adapter={catalogAdapter.id}>
     <header className="flex min-h-14 items-center gap-2 px-3">
       {path.length ? <button type="button" onClick={() => dispatch({ type: "BACK" })} className="grid h-9 w-9 place-items-center rounded-full text-white/68 hover:bg-white/8 hover:text-white" aria-label="Back" data-testid="studio-drawer-back"><ArrowLeft className="h-4 w-4" /></button> : null}
-      <div className="min-w-0 flex-1"><p className="text-sm font-semibold tracking-tight">{title}</p>{path.length > 1 ? <p className="truncate text-[10px] text-white/38">Add / Buttons / {title}</p> : null}</div>
+      <div className="min-w-0 flex-1"><p className="text-sm font-semibold tracking-tight">{title}</p>{path.length ? <p className="truncate text-[10px] text-white/38">{["Add", ...path.filter((segment) => segment !== "family").map((segment) => segment === path.at(-1) ? title : segment === "buttons" ? "Buttons" : segment === "curated" ? "Curated" : segment)].join(" / ")}</p> : null}</div>
       <span hidden data-tapit-slot="discovery" aria-hidden>•••</span>
       <button type="button" onClick={() => dispatch({ type: "CLOSE" })} className="grid h-9 w-9 place-items-center rounded-full text-white/68 hover:bg-white/8 hover:text-white" aria-label="Close drawer" data-testid="studio-drawer-close"><X className="h-4 w-4" /></button>
     </header>
     <MotionSurface pathKey={`${state.activeRailId}:${path.join("/")}`} depth={path.length}>
-      {state.activeRailId === "add" && path.length === 0 ? <AddHome dispatch={dispatch} model={model} /> : null}
+      {state.activeRailId === "add" && path.length === 0 ? <AddHome dispatch={dispatch} placementContext={placementContext} /> : null}
+      {path.join("/") === "text" ? <OrdinaryCategoryView categoryId="text" onPlace={(props) => onPlaceOrdinary("text", props)} /> : null}
+      {path.join("/") === "image" ? <ImageCategoryView onChoose={onChooseImage} /> : null}
+      {path.join("/") === "divider" ? <OrdinaryCategoryView categoryId="divider" onPlace={(props) => onPlaceOrdinary("divider", props)} /> : null}
+      {path.join("/") === "container" ? <ContainerCategoryView onPlace={onPlaceContainer} /> : null}
+      {path.join("/") === "curated" ? <CuratedCategoryView familyCatalog={familyCatalog} dispatch={dispatch} /> : null}
       {isButtonsHome ? <ButtonDiscoveryHome state={state} dispatch={dispatch} brand={brand} familyCatalog={familyCatalog} recents={recents} recentsState={recentsState} onUseResource={onUseResource} /> : null}
       {presentationFamily ? <PresentationLibrary family={presentationFamily} state={state} dispatch={dispatch} brand={brand} onUseResource={onUseResource} /> : null}
-      {governedFamily ? <GovernedFamilyView family={governedFamily} model={model} onCompleteDiscovery={onCompleteDiscovery} /> : null}
+      {governedFamily ? <GovernedFamilyView family={governedFamily} onPlace={onPlaceCurated} /> : null}
       {isSaved ? <SavedFamilyView /> : null}
       {state.activeRailId === "layers" ? <OutlineView model={model} /> : null}
     </MotionSurface>
@@ -70,40 +88,47 @@ function MotionSurface({ pathKey, depth, children }: { pathKey: string; depth: n
   return <div ref={ref} className="flex min-h-0 flex-1 flex-col overflow-hidden">{children}</div>;
 }
 
-function AddHome({ dispatch, model }: { dispatch: (event: StudioDrawerEvent) => void; model: CardEditorLiveModel | null }) {
-  const authority = hasCompositionParentAuthority(model?.config.rootComposition);
-  const selected = model?.selectedCompositionNode;
-  const parentId = authority && selected?.compositionKind === "container" ? selected.id : null;
-  const targetLabel = parentId ? selected?.name || "selected Container" : "Card Surface";
-  const addModule = (kind: "text" | "image" | "button" | "divider") => {
-    if (kind === "button") {
-      dispatch({ type: "NAVIGATE", path: ["buttons"] });
-      return;
-    }
-    model?.onAddCompositionModule?.(kind, parentId);
-  };
-  return <div className="flex-1 overflow-y-auto px-4 pb-5 pt-2">
-    <div className="flex items-center justify-between gap-3"><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#b8ff2c]">Add to your Card</p>{authority ? <span className="rounded-full bg-white/6 px-2 py-1 text-[9px] text-white/45" data-testid="studio-add-target">Into {targetLabel}</span> : null}</div>
-    {authority ? <>
-      <p className="mt-5 text-[10px] font-semibold uppercase tracking-[.14em] text-white/45">Modules</p>
-      <div className="mt-2 grid grid-cols-2 gap-2">
-        <AddTile label="Text" detail="Editable copy" icon={<Type />} onClick={() => addModule("text")} testId="studio-add-text" />
-        <AddTile label="Image" detail="From Assets" icon={<ImageIcon />} onClick={() => addModule("image")} testId="studio-add-image" />
-        <AddTile label="Button" detail="Choose a style" icon={<span className="text-[10px] font-black">CTA</span>} onClick={() => addModule("button")} testId="studio-add-buttons" />
-        <AddTile label="Divider" detail="Visual separator" icon={<Minus />} onClick={() => addModule("divider")} testId="studio-add-divider" />
-      </div>
-      <p className="mt-6 text-[10px] font-semibold uppercase tracking-[.14em] text-white/45">Containers</p>
-      <p className="mt-1 text-[11px] leading-4 text-white/38">Optional flow regions. Modules remain independently editable.</p>
-      <div className="mt-3 grid grid-cols-2 gap-2" data-testid="studio-container-treatment-gallery">
-        <TreatmentTile label="Transparent" treatment="transparent" onClick={() => model?.onAddCompositionContainer?.("transparent")} />
-        <TreatmentTile label="Solid / Brand" treatment="solid" onClick={() => model?.onAddCompositionContainer?.("solid")} />
-        <TreatmentTile label="Smoked Glass" treatment="smoked_glass" onClick={() => model?.onAddCompositionContainer?.("smoked_glass")} />
-        <TreatmentTile label="Image-backed" treatment="image" onClick={() => model?.onAddCompositionContainer?.("image")} />
-      </div>
-    </> : <button type="button" onClick={() => dispatch({ type: "NAVIGATE", path: ["buttons"] })} className="group mt-3 flex w-full items-center gap-3 rounded-2xl bg-white/[.055] p-4 text-left transition hover:bg-white/[.085]" data-testid="studio-add-buttons"><span className="grid h-12 w-12 place-items-center rounded-2xl bg-gradient-to-br from-[#d8ff82] to-[#7ee787] text-sm font-black text-[#07100a] shadow-[0_10px_28px_rgba(184,255,44,.15)]">CTA</span><span className="min-w-0 flex-1"><strong className="block text-sm">Buttons</strong><span className="mt-1 block text-xs leading-5 text-white/48">Standard, Brand, and governed Signature families</span></span><ChevronRight className="h-4 w-4 text-white/35 transition group-hover:translate-x-0.5 group-hover:text-white/70" /></button>}
-    <p className="mt-5 text-xs leading-5 text-white/38">Only customer-ready jobs are interactive. Structural furniture stays owned by its recipe.</p>
+function AddHome({ dispatch, placementContext }: { dispatch: (event: StudioDrawerEvent) => void; placementContext: StudioPlacementContext | null }) {
+  const categories = visibleStudioAddCategories();
+  return <div className="flex-1 overflow-y-auto px-4 pb-6 pt-2" data-testid="studio-add-home" data-add-contract="studioAddDiscover@1.0.0">
+    <div className="flex items-center justify-between gap-3"><div><p className="text-[10px] font-semibold uppercase tracking-[.18em] text-[#b8ff2c]">What would you like to add?</p><p className="mt-1 text-xs text-white/42">Choose a job, then browse only the choices that matter.</p></div>{placementContext ? <span className="max-w-36 truncate rounded-full bg-[#8bdcff]/8 px-2.5 py-1.5 text-[9px] text-[#bdeaff]" data-testid="studio-add-target">Into {placementContext.targetLabel}</span> : null}</div>
+    <div className="mt-5 grid grid-cols-2 gap-2.5" data-testid="studio-add-category-grid">
+      {categories.map((entry) => <AddCategoryTile key={entry.id} entry={entry} onClick={() => dispatch({ type: "NAVIGATE", path: [entry.id] })} />)}
+    </div>
+    <div className="mt-5 rounded-2xl border border-[#8bdcff]/10 bg-[#8bdcff]/[.035] px-3 py-3 text-[10px] leading-5 text-white/42"><strong className="text-[#c9efff]">Placement follows your selection.</strong> Choose a Container to add inside it, or select a Module to place the next item beside it. Nothing creates a hidden wrapper.</div>
   </div>;
 }
+
+function AddCategoryTile({ entry, onClick }: { entry: StudioAddCategoryRegistration; onClick: () => void }) {
+  const icon = entry.previewKind === "text" ? <Type /> : entry.previewKind === "image" ? <ImageIcon /> : entry.previewKind === "divider" ? <Minus /> : entry.previewKind === "container" ? <Box /> : entry.previewKind === "curated" ? <Sparkles /> : <span className="text-[10px] font-black">CTA</span>;
+  return <AddTile label={entry.label} detail={entry.description} icon={icon} onClick={onClick} testId={`studio-add-${entry.id}`} />;
+}
+
+function OrdinaryCategoryView({ categoryId, onPlace }: { categoryId: "text" | "divider"; onPlace: (props: Record<string, unknown>) => void }) {
+  const resources = STUDIO_ORDINARY_MODULES.filter((entry) => entry.categoryId === categoryId && entry.readiness === "ready");
+  return <CatalogResultGrid label={categoryId === "text" ? "Start with real editable copy" : "Choose a real Divider"} dataTestId={`studio-${categoryId}-catalog`}>
+    {resources.map((entry) => <button key={entry.id} type="button" onClick={() => onPlace({ ...entry.defaultCanonicalState })} className="group overflow-hidden rounded-2xl bg-white/[.045] text-left transition hover:-translate-y-0.5 hover:bg-white/[.08]" data-testid={`studio-add-resource-${entry.id.replaceAll(":", "-")}`}>
+      <span className="flex h-28 items-center justify-center bg-gradient-to-br from-[#111925] to-[#090d14] p-4">{entry.previewKind === "text" ? <span className="w-full"><span className="block h-2 w-2/3 rounded bg-white/72" /><span className="mt-3 block h-1.5 w-full rounded bg-white/20" /><span className="mt-2 block h-1.5 w-4/5 rounded bg-white/14" /></span> : <span className="relative block h-px w-4/5 bg-gradient-to-r from-transparent via-[#b8ff2c] to-transparent shadow-[0_0_12px_rgba(184,255,44,.45)]" />}</span>
+      <span className="block p-3"><strong className="text-xs">{entry.label}</strong><span className="mt-1 block text-[10px] leading-4 text-white/42">{entry.description}</span><span className="mt-3 inline-flex rounded-full bg-[#b8ff2c] px-2.5 py-1 text-[9px] font-semibold text-[#07100a]">Add to Card</span></span>
+    </button>)}
+  </CatalogResultGrid>;
+}
+
+function ImageCategoryView({ onChoose }: { onChoose: () => void }) {
+  const entry = STUDIO_ORDINARY_MODULES.find((resource) => resource.id === "image:asset")!;
+  return <CatalogResultGrid label="Use the shared Asset universe" dataTestId="studio-image-catalog"><button type="button" onClick={onChoose} className="group overflow-hidden rounded-3xl bg-white/[.05] text-left transition hover:bg-white/[.085]" data-testid="studio-choose-image-asset"><span className="grid h-44 place-items-center bg-[radial-gradient(circle_at_35%_30%,rgba(139,220,255,.28),transparent_28%),linear-gradient(145deg,#172d27,#293d51_55%,#111820)]"><span className="grid h-16 w-16 place-items-center rounded-2xl border border-white/15 bg-black/25 text-[#c9efff] shadow-xl"><ImageIcon className="h-7 w-7" /></span></span><span className="block p-4"><strong className="text-sm">{entry.label}</strong><span className="mt-1 block text-xs leading-5 text-white/45">{entry.description}</span><span className="mt-4 inline-flex items-center gap-1 rounded-full bg-[#b8ff2c] px-3 py-1.5 text-[10px] font-semibold text-[#07100a]">Browse Assets <ChevronRight className="h-3.5 w-3.5" /></span></span></button></CatalogResultGrid>;
+}
+
+function ContainerCategoryView({ onPlace }: { onPlace: (treatment: "transparent" | "solid" | "smoked_glass" | "image") => void }) {
+  return <CatalogResultGrid label="Optional flow regions" dataTestId="studio-container-treatment-gallery"><p className="-mt-2 mb-3 text-[10px] leading-4 text-white/38">Containers group Modules or give a region its own surface. They are never required.</p><div className="grid grid-cols-2 gap-2">{STUDIO_CONTAINERS.filter((entry) => entry.readiness === "ready").map((entry) => <TreatmentTile key={entry.id} label={entry.label} treatment={entry.treatment} onClick={() => onPlace(entry.treatment)} />)}</div></CatalogResultGrid>;
+}
+
+function CuratedCategoryView({ familyCatalog, dispatch }: { familyCatalog: StudioButtonFamilyCatalog; dispatch: (event: StudioDrawerEvent) => void }) {
+  const families = visibleStudioButtonFamilies(familyCatalog).filter((entry) => entry.model === "governed-signature" && entry.readiness === "ready");
+  return <CatalogResultGrid label="Finished certified systems" dataTestId="studio-curated-catalog"><div className="grid grid-cols-2 gap-2">{families.map((family) => <FamilyCard key={family.id} family={family} onOpen={() => dispatch({ type: "NAVIGATE", path: ["curated", "family", family.id] })} />)}</div>{families.length === 0 ? <EmptyState title="No Curated systems available" detail="Unready and unentitled families stay hidden rather than becoming dead-end choices." /> : null}</CatalogResultGrid>;
+}
+
+function CatalogResultGrid({ label, dataTestId, children }: { label: string; dataTestId: string; children: ReactNode }) { return <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-6" data-testid={dataTestId}><p className="mb-3 mt-2 text-[10px] font-semibold uppercase tracking-[.14em] text-white/48">{label}</p>{children}</div>; }
 
 function AddTile({ label, detail, icon, onClick, testId }: { label: string; detail: string; icon: ReactNode; onClick: () => void; testId: string }) { return <button type="button" onClick={onClick} className="group rounded-2xl bg-white/[.05] p-3 text-left transition hover:bg-white/[.085]" data-testid={testId}><span className="grid h-10 w-10 place-items-center rounded-xl bg-[#b8ff2c]/12 text-[#d8ff82] [&_svg]:h-4 [&_svg]:w-4">{icon}</span><strong className="mt-3 block text-xs">{label}</strong><span className="mt-1 block text-[10px] text-white/38">{detail}</span></button>; }
 
@@ -117,7 +142,7 @@ function ButtonDiscoveryHome({ state, dispatch, brand, familyCatalog, recents, r
   const visibleFamilies = visibleStudioButtonFamilies(familyCatalog);
   const matchingFamilies = query ? visibleFamilies.filter((entry) => `${entry.label} ${entry.description}`.toLowerCase().includes(query)) : [];
   return <div className="flex min-h-0 flex-1 flex-col"><SearchField state={state} dispatch={dispatch} placeholder="Search Buttons and families" /><div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6" data-testid="studio-button-family-home">
-    {query ? <section className="pt-4"><SectionHeading label="Search results" />{matchingFamilies.length || matchingResources.length ? <div className="space-y-4">{matchingFamilies.length ? <div className="grid grid-cols-2 gap-2">{matchingFamilies.map((entry) => <FamilyCard key={entry.id} family={entry} onOpen={() => openFamily(entry, dispatch)} />)}</div> : null}{matchingResources.length ? <div className="grid grid-cols-2 gap-2">{matchingResources.map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} compact onUse={onUseResource} />)}</div> : null}</div> : <EmptyState title="No matching Buttons" detail="Try Call, Brand, Cabinet Noir, Arc Ember, or CTA." />}</section> : <>
+    {query ? <section className="pt-4"><SectionHeading label="Search results" />{matchingFamilies.length || matchingResources.length ? <div className="space-y-4">{matchingFamilies.length ? <div className="grid grid-cols-2 gap-2">{matchingFamilies.map((entry) => <FamilyCard key={entry.id} family={entry} onOpen={() => openFamily(entry, dispatch)} />)}</div> : null}{matchingResources.length ? <div className="grid grid-cols-2 gap-2">{matchingResources.map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} compact onUse={onUseResource} />)}</div> : null}</div> : <EmptyState title="No matching Buttons" detail="Try Call, Brand, Cabinet Noir, or CTA." />}</section> : <>
       <section className="pt-4"><SectionHeading label="Recently Used" trailing={recentsState === "error" ? "Unavailable" : undefined} />{recentsState === "loading" ? <div className="h-20 animate-pulse rounded-2xl bg-white/5" aria-label="Loading Recently Used" /> : null}{recentsState === "ready" && recentPresets.length === 0 ? <p className="rounded-2xl bg-white/[.035] px-3 py-3 text-xs text-white/38">Buttons you place will appear here.</p> : null}{recentPresets.length ? <div className="flex gap-2 overflow-x-auto pb-1">{recentPresets.slice(0, 4).map((resource) => <div key={`recent-${resource.ref.resourceId}`} className="w-[152px] shrink-0"><PresetCard resource={resource} compact onUse={onUseResource} /></div>)}</div> : null}</section>
       <section className="mt-6"><SectionHeading label="Recommended for your Card" /><div className="grid grid-cols-2 gap-2">{allResources.slice(0, 3).map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} compact onUse={onUseResource} />)}</div></section>
       <section className="mt-6"><SectionHeading label="Families" /><div className="grid grid-cols-2 gap-2">{visibleFamilies.map((entry) => <FamilyCard key={entry.id} family={entry} onOpen={() => openFamily(entry, dispatch)} />)}</div></section>
@@ -144,13 +169,11 @@ function PresentationLibrary({ family, state, dispatch, brand, onUseResource }: 
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="studio-standard-button-gallery">{state.placementMode === "apply" ? <div className="mx-3 mb-2 rounded-xl bg-cyan-300/10 px-3 py-2 text-xs text-cyan-100"><div className="flex items-center justify-between gap-2"><span>Choose a new presentation. Content and Action stay intact.</span><button type="button" onClick={() => dispatch({ type: "END_APPLY" })} className="font-semibold">Cancel</button></div></div> : null}<SearchField state={state} dispatch={dispatch} placeholder={`Search ${family === "brand" ? "Brand" : "Standard"} Buttons`} /><div ref={scrollerRef} onScroll={(event) => dispatch({ type: "SET_SCROLL", scrollOffset: event.currentTarget.scrollTop })} className="min-h-0 flex-1 overflow-y-auto px-3 pb-6"><section className="pt-4"><SectionHeading label={state.query ? "Results" : family === "brand" ? "Built from your Brand" : "Standard Button styles"} />{visible.length ? <div className="grid grid-cols-1 gap-2">{visible.map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} onUse={onUseResource} />)}</div> : <EmptyState title={`No matching ${family === "brand" ? "Brand" : "Standard"} Buttons`} detail="Try a user job such as primary, Call, or section CTA." />}</section><p className="mt-5 text-[10px] leading-4 text-white/35">Only presets that pass the visual catalog quality gate are shown. Two weaker concepts remain hidden.</p></div></div>;
 }
 
-function GovernedFamilyView({ family, model, onCompleteDiscovery }: { family: StudioButtonFamilyDiscoveryEntry; model: CardEditorLiveModel | null; onCompleteDiscovery: () => void }) {
+function GovernedFamilyView({ family, onPlace }: { family: StudioButtonFamilyDiscoveryEntry; onPlace: (familyId: string, layoutMode: "standalone" | "single-stack" | "twin-rail") => void }) {
   const insert = (resource: StudioButtonFamilyResource) => {
     if (resource.classification !== "assembly-starting-point" || !resource.recipeId) return;
     const layoutMode = resource.tags.includes("standalone") ? "standalone" : resource.tags.includes("twin-rail") ? "twin-rail" : "single-stack";
-    const result = model?.onInsertCuratedAssembly?.(family.id, layoutMode);
-    if (result && !result.ok) model?.notify?.(result.message);
-    if (result?.ok) onCompleteDiscovery();
+    onPlace(family.id, layoutMode);
   };
   // Curated families are discovered as finished systems. Their certified
   // construction inventory remains available to the recipe/Inspector, but
@@ -224,9 +247,9 @@ function OutlineView({ model }: { model: CardEditorLiveModel | null }) {
     })}
   </div>;
 }
-function LayerButton({ nodeId, label, typeLabel, kind, selected, onClick }: { nodeId: string; label: string; typeLabel: string; kind: string; selected: boolean; onClick: () => void }) { const Icon = layerIcon(kind); return <button type="button" draggable aria-pressed={selected} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-tapconnect-composition-node", nodeId); }} onClick={onClick} className="group flex min-h-11 w-full items-center gap-2 rounded-lg border border-transparent px-2 text-left text-white/72 transition hover:border-white/8 hover:bg-white/6 aria-pressed:border-[#b8ff2c]/35 aria-pressed:bg-[#b8ff2c]/10 aria-pressed:text-[#efffd4]" data-testid={`studio-layer-${nodeId}`}><GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-white/22 group-hover:text-white/55" /><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#8bdcff]/8 text-[#a9e7ff]"><Icon className="h-3.5 w-3.5" /></span><span className="min-w-0 flex-1"><strong className="block truncate text-[11px] font-medium">{label}</strong><small className="block truncate text-[8px] uppercase tracking-[.08em] text-white/32">{typeLabel}</small></span></button>; }
+function LayerButton({ nodeId, label, typeLabel, kind, selected, onClick }: { nodeId: string; label: string; typeLabel: string; kind: string; selected: boolean; onClick: () => void }) { return <button type="button" draggable aria-pressed={selected} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-tapconnect-composition-node", nodeId); }} onClick={onClick} className="group flex min-h-11 w-full items-center gap-2 rounded-lg border border-transparent px-2 text-left text-white/72 transition hover:border-white/8 hover:bg-white/6 aria-pressed:border-[#b8ff2c]/35 aria-pressed:bg-[#b8ff2c]/10 aria-pressed:text-[#efffd4]" data-testid={`studio-layer-${nodeId}`}><GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-white/22 group-hover:text-white/55" /><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#8bdcff]/8 text-[#a9e7ff]">{layerIcon(kind)}</span><span className="min-w-0 flex-1"><strong className="block truncate text-[11px] font-medium">{label}</strong><small className="block truncate text-[8px] uppercase tracking-[.08em] text-white/32">{typeLabel}</small></span></button>; }
 function LegacyLayerButton({ label, typeLabel, selected, onClick }: { label: string; typeLabel: string; selected: boolean; onClick: () => void }) { return <button type="button" aria-pressed={selected} onClick={onClick} className="mt-1 flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-white/66 hover:bg-white/7 aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#e7ffc2]"><MousePointer2 className="h-3.5 w-3.5 text-white/28" /><span><strong className="block text-[11px] font-medium">{label}</strong><small className="text-[8px] uppercase tracking-[.08em] text-white/30">{typeLabel}</small></span></button>; }
 function LayerDropZone({ parentId, index, onDrop, label }: { parentId: string | null; index: number; onDrop: (event: DragEvent, parentId: string | null, index: number) => void; label?: string }) { const [active, setActive] = useState(false); return <div className={cn("my-0.5 flex h-1.5 items-center justify-center rounded-full transition-all", active && "h-7 border border-dashed border-[#8bdcff]/65 bg-[#8bdcff]/10 text-[8px] text-[#c9efff]")} onDragEnter={(event) => { if (event.dataTransfer.types.includes("application/x-tapconnect-composition-node")) { event.preventDefault(); setActive(true); } }} onDragOver={(event) => { if (event.dataTransfer.types.includes("application/x-tapconnect-composition-node")) event.preventDefault(); }} onDragLeave={() => setActive(false)} onDrop={(event) => { setActive(false); onDrop(event, parentId, index); }} data-testid={`studio-layer-drop-${parentId ?? "card"}-${index}`}>{active ? label || "Move here" : null}</div>; }
 function humanLayerName(name: string | undefined, kind: string | undefined, primitive: string) { if (name && !/^container$/i.test(name)) return name.replace(/Content divider/i, "Divider").replace(/Primary action/i, "Primary Action"); if (kind === "container") return "Smoked Glass Panel"; if (primitive === "border" || primitive === "divider") return "Divider"; if (primitive === "image") return "Brand Image"; if (primitive === "text") return "Introduction"; if (primitive === "button") return "Action"; return "Module"; }
 function humanTypeLabel(kind: string) { return kind === "curated-system" ? "Curated System" : kind === "border" || kind === "divider" ? "Divider" : kind === "image" ? "Image" : kind === "text" ? "Text" : kind === "button" ? "Button" : "Module"; }
-function layerIcon(kind: string) { return kind === "container" ? Box : kind === "image" ? ImageIcon : kind === "text" ? Type : kind === "border" || kind === "divider" ? Minus : MousePointer2; }
+function layerIcon(kind: string) { const className = "h-3.5 w-3.5"; return kind === "container" ? <Box className={className} /> : kind === "image" ? <ImageIcon className={className} /> : kind === "text" ? <Type className={className} /> : kind === "border" || kind === "divider" ? <Minus className={className} /> : <MousePointer2 className={className} />; }

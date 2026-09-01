@@ -9,9 +9,57 @@ import type { StudioAuthoringVisualOption } from "../platform/authoring-contract
 import type { StudioButtonFamilyCatalog } from "../platform/button-family-discovery";
 import { visibleStudioButtonFamilies } from "../platform/button-family-discovery";
 import type { StudioDiscoveryResource } from "../platform/discovery";
+import {
+  STUDIO_ADD_CATEGORIES,
+  STUDIO_CONTAINERS,
+  STUDIO_ORDINARY_MODULES,
+} from "../platform/add-discover";
 
 function category(id: string, label: string, parentId: string | null, readiness: StudioCatalogCategory["readiness"] = "ready", projection?: StudioCatalogCategory["projection"]): StudioCatalogCategory {
   return { id, label, parentId, readiness, projection };
+}
+
+export function studioAddCatalogAdapter(): StudioCatalogConsumerAdapter {
+  return {
+    contractId: STUDIO_CATALOG_BROWSER_CONTRACT,
+    id: "studio-add",
+    domainLabel: "Add",
+    resultKind: "authoring-entry",
+    categories: [
+      category("add", "Add", null, "ready", "focused-gallery"),
+      ...STUDIO_ADD_CATEGORIES.map((entry) => category(entry.id, entry.label, "add", entry.readiness, "focused-gallery")),
+    ],
+    results: [
+      ...STUDIO_ORDINARY_MODULES.map<StudioCatalogResult>((entry) => ({
+        id: entry.id,
+        label: entry.label,
+        description: entry.description,
+        categoryId: entry.categoryId,
+        readiness: entry.readiness,
+        searchText: `${entry.label} ${entry.description} ${entry.capabilityGroups.join(" ")}`,
+        stableResourceId: `studio-module:${entry.id}@1`,
+        previewAuthority: "canonical-card-composition-renderer",
+        preview: { kind: entry.previewKind },
+        application: { kind: "ordinary-module", moduleKind: entry.moduleKind, initialProps: entry.defaultCanonicalState, refineEntry: entry.refineEntry },
+      })),
+      ...STUDIO_CONTAINERS.map<StudioCatalogResult>((entry) => ({
+        id: entry.id,
+        label: entry.label,
+        description: entry.description,
+        categoryId: entry.categoryId,
+        readiness: entry.readiness,
+        searchText: `${entry.label} ${entry.description} ${entry.treatment}`,
+        stableResourceId: `studio-container:${entry.id}@1`,
+        previewAuthority: "studio-surface",
+        preview: { kind: entry.previewKind, treatment: entry.treatment },
+        application: { kind: "container", treatment: entry.treatment, refineEntry: entry.refineEntry },
+      })),
+    ],
+    previewAdapterId: "studio-add-canonical-previews",
+    application: "place",
+    supports: { brand: true, recent: true, saved: true, favorites: true, pagination: true },
+    returnBehavior: "restore-context",
+  };
 }
 
 export function buttonFamilyCatalogAdapter(

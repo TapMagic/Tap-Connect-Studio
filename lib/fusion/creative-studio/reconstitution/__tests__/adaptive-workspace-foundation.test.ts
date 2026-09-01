@@ -18,6 +18,17 @@ import {
 } from "../../platform/catalog-browser";
 import { STUDIO_SEMANTIC_UI } from "../../platform/studio-semantic-ui";
 import { projectStudioInspectorGroups } from "../../platform/inspector-grouping";
+import {
+  STUDIO_ADD_CATEGORIES,
+  STUDIO_CONTAINERS,
+  STUDIO_ORDINARY_MODULES,
+  resolveStudioPlacementContext,
+  validateStudioAddRegistry,
+  visibleStudioAddCategories,
+} from "../../platform/add-discover";
+import { establishCompositionParentAuthority, insertCompositionContainer, insertCompositionModule, createFlowContainerNode } from "../../../card/composition-parent-authority";
+import type { CreativeCompositionBlock, CreativeCompositionNode } from "../../composition";
+import { studioAddCatalogAdapter } from "../studio-catalog-adapters";
 
 const surfaceAdapter: StudioCatalogConsumerAdapter = {
   contractId: STUDIO_CATALOG_BROWSER_CONTRACT,
@@ -85,6 +96,16 @@ describe("Adaptive Workspace authority", () => {
     assert.equal(studioWorkspaceReducer(crop, { type: "COMPLETE_TRANSIENT_TASK" }).activeTaskId, "edit-contents");
   });
 
+  it("completes a nested discovery placement as one transaction without restoring the old selection", () => {
+    const add = studioWorkspaceReducer(INITIAL_STUDIO_WORKSPACE_STATE, { type: "BEGIN_EXPLICIT_TASK", taskId: "browse-add", context: EMPTY_STUDIO_CONTEXT });
+    const assets = studioWorkspaceReducer(add, { type: "BEGIN_NESTED_TASK", taskId: "browse-assets", context: { ...EMPTY_STUDIO_CONTEXT, taskId: "browse-add" } });
+    assert.equal(assets.returnStack.length, 2);
+    const placed = studioWorkspaceReducer(assets, { type: "COMPLETE_AUTHORING_TRANSACTION" });
+    assert.equal(placed.activeTaskId, "compose-card");
+    assert.equal(placed.composition, "compose");
+    assert.equal(placed.returnStack.length, 0);
+  });
+
   it("makes Outline yield to Discover, Tune, and Deep Edit while Organize owns it", () => {
     for (const taskId of ["browse-assets", "browse-curated-plugs", "browse-surface", "tune-selection", "edit-contents"] as const) {
       const state = studioWorkspaceReducer(INITIAL_STUDIO_WORKSPACE_STATE, { type:"BEGIN_EXPLICIT_TASK", taskId, context:EMPTY_STUDIO_CONTEXT });
@@ -121,6 +142,50 @@ describe("Catalog Browser authority", () => {
 
   it("suppresses hidden and placeholder categories even when a result record exists", () => {
     assert.equal(searchStudioCatalog(surfaceAdapter, "stone").length, 0);
+  });
+});
+
+describe("Slice 2 Add / Discover registration and placement", () => {
+  function node(id: string, kind: "text" | "image" | "button" | "divider" = "text"): CreativeCompositionNode {
+    return { id, primitive: kind === "divider" ? "border" : kind, compositionKind: "module", parentId: null, siblingOrder: 0, x: 0, y: 0, width: 1, height: .1, zIndex: 1, props: { elementKind: kind } };
+  }
+
+  function block(): CreativeCompositionBlock {
+    return establishCompositionParentAuthority({ version: 1, id: "root", label: "Card", nodes: [], mobileFallback: "stack" });
+  }
+
+  it("registers only honest ready categories and resources through one Add catalog", () => {
+    assert.deepEqual(validateStudioAddRegistry({}), []);
+    assert.deepEqual(visibleStudioAddCategories().map((entry) => entry.id), ["text", "image", "buttons", "divider", "container", "curated"]);
+    assert.equal(STUDIO_ORDINARY_MODULES.some((entry) => entry.id === "image:asset"), true);
+    assert.equal(STUDIO_CONTAINERS.length, 4);
+    const adapter = studioAddCatalogAdapter();
+    assert.equal(adapter.contractId, STUDIO_CATALOG_BROWSER_CONTRACT);
+    assert.equal(adapter.results.some((result) => /placeholder/i.test(`${result.label} ${result.description}`)), false);
+    assert.deepEqual(visibleStudioCatalogChildren(adapter, "add").map((entry) => entry.id), STUDIO_ADD_CATEGORIES.map((entry) => entry.id));
+  });
+
+  it("rejects duplicate registration and unknown category ownership", () => {
+    assert.match(validateStudioAddRegistry({ categories: [STUDIO_ADD_CATEGORIES[0], STUDIO_ADD_CATEGORIES[0]] })[0]!, /Duplicate Add category/);
+    assert.ok(validateStudioAddRegistry({ categories: STUDIO_ADD_CATEGORIES.filter((entry) => entry.id !== "text") }).some((issue) => issue.includes("Unknown Add category text")));
+  });
+
+  it("places at Card Surface, inside an active Container, or after a selected sibling", () => {
+    const root = block();
+    assert.deepEqual(resolveStudioPlacementContext(root, null), { parentId: null, insertionIndex: 0, targetLabel: "Card Surface", reason: "card-surface" });
+    const withFirst = insertCompositionModule(root, node("first"), null);
+    assert.equal(withFirst.ok, true);
+    if (!withFirst.ok) return;
+    assert.equal(resolveStudioPlacementContext(withFirst.block, withFirst.block.nodes[0])?.insertionIndex, 1);
+    const container = createFlowContainerNode("Feature panel", "smoked_glass");
+    const withContainer = insertCompositionContainer(withFirst.block, container);
+    assert.equal(withContainer.ok, true);
+    if (!withContainer.ok) return;
+    assert.deepEqual(resolveStudioPlacementContext(withContainer.block, withContainer.block.nodes.find((entry) => entry.id === container.id)), { parentId: container.id, insertionIndex: 0, targetLabel: "Feature panel", reason: "active-container" });
+    const inside = insertCompositionModule(withContainer.block, node("inside", "image"), container.id);
+    assert.equal(inside.ok, true);
+    if (!inside.ok) return;
+    assert.deepEqual(resolveStudioPlacementContext(inside.block, inside.block.nodes.find((entry) => entry.id === "inside")), { parentId: container.id, insertionIndex: 1, targetLabel: "Feature panel", reason: "selected-sibling" });
   });
 });
 

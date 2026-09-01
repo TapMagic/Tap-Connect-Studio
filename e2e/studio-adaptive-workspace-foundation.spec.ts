@@ -37,7 +37,7 @@ test.describe("Studio Adaptive Workspace Foundation", () => {
     await page.getByTestId("studio-rail-add").click();
     await expect(shell).toHaveAttribute("data-workspace-composition", "discover");
     await expect(shell).toHaveAttribute("data-task-surface", "broad");
-    await expect(page.getByTestId("studio-discovery-drawer")).toHaveAttribute("data-catalog-adapter", "button-families");
+    await expect(page.getByTestId("studio-discovery-drawer")).toHaveAttribute("data-catalog-adapter", "studio-add");
     await page.getByTestId("studio-add-buttons").click();
     await expect(shell).toHaveAttribute("data-workspace-task", "browse-buttons");
     await expect(page.getByTestId("studio-button-family-standard")).toBeVisible();
@@ -110,6 +110,7 @@ test.describe("Studio Adaptive Workspace Foundation", () => {
   test("uses canonical Surface and Asset consumers, then restores the tune context", async ({ page }) => {
     const shell = page.getByTestId("studio-reconstitution-shell");
     await page.getByTestId("studio-rail-add").click();
+    await page.getByTestId("studio-add-container").click();
     await page.getByRole("button", { name: "Smoked Glass", exact: true }).click();
     await expect(page.getByTestId("studio-composition-object-toolbar")).toBeVisible();
     await page.getByTestId("studio-composition-object-toolbar").getByRole("button", { name: /^Edit/ }).click();
@@ -130,7 +131,7 @@ test.describe("Studio Adaptive Workspace Foundation", () => {
 
   test("treats Text and Divider as complete ordinary Modules without duplicate controls", async ({ page }) => {
     await page.getByRole("button", { name: "Welcome text Module", exact: true }).click();
-    await page.getByRole("button", { name: "Edit · Text", exact: true }).click();
+    await page.getByTestId("studio-composition-object-toolbar").getByRole("button", { name: /^Edit/ }).click();
     const inspector = page.getByTestId("studio-composition-inspector");
     const text = inspector.getByTestId("studio-text-content");
     await text.fill("Studio text");
@@ -144,7 +145,7 @@ test.describe("Studio Adaptive Workspace Foundation", () => {
     await inspector.getByRole("button", { name: "Close Inspector", exact: true }).click();
 
     await page.getByRole("button", { name: "Champagne glow Divider Module", exact: true }).click();
-    await page.getByRole("button", { name: "Edit · Champagne glow Divider", exact: true }).click();
+    await page.getByTestId("studio-composition-object-toolbar").getByRole("button", { name: /^Edit/ }).click();
     const divider = page.getByTestId("studio-composition-inspector");
     await expect(divider.locator('[data-control-group="line"]')).toBeVisible();
     await expect(divider.locator('[data-control-group="width-and-alignment"]')).toBeVisible();
@@ -159,11 +160,11 @@ test.describe("Studio Adaptive Workspace Foundation", () => {
   });
 
   test("makes Standard Button a complete ordinary Module and keeps selection chrome outside its label", async ({ page }) => {
-    await page.getByRole("button", { name: "Button Module", exact: true }).click();
+    await page.getByRole("button", { name: "Standard Button Module", exact: true }).click();
     const geometry = await page.evaluate(() => {
-      const selected = document.querySelector('[data-composition-kind="module"][aria-label="Button Module"]')!;
+      const selected = document.querySelector('[data-composition-kind="module"][data-selected="true"]')!;
       const handle = selected.querySelector('[data-testid^="studio-canvas-handle-"]')!;
-      const label = selected.querySelector('[aria-label="Call now"]')!;
+      const label = selected.querySelector('a')!;
       const h = handle.getBoundingClientRect();
       const l = label.getBoundingClientRect();
       return { placement: handle.getAttribute("data-chrome-placement"), overlaps: !(h.right <= l.left || h.left >= l.right || h.bottom <= l.top || h.top >= l.bottom) };
@@ -172,7 +173,7 @@ test.describe("Studio Adaptive Workspace Foundation", () => {
     expect(geometry.overlaps).toBe(false);
     await page.screenshot({ path: path.join(evidence, "button-selection-chrome.png") });
 
-    await page.getByRole("button", { name: "Edit · Button", exact: true }).click();
+    await page.getByTestId("studio-composition-object-toolbar").getByRole("button", { name: /^Edit/ }).click();
     const buttonInspector = page.getByTestId("studio-button-inspector");
     await buttonInspector.getByTestId("studio-button-label").fill("Contact our team");
     await buttonInspector.getByRole("button", { name: "after", exact: true }).click();
@@ -182,7 +183,7 @@ test.describe("Studio Adaptive Workspace Foundation", () => {
     await expect(buttonInspector.getByRole("slider", { name: "Shadow / depth", exact: true })).toBeVisible();
     await page.screenshot({ path: path.join(evidence, "button-appearance.png") });
     await buttonInspector.getByTestId("studio-inspector-tab-action").click();
-    await expect(buttonInspector.getByRole("combobox", { name: "Action", exact: true })).toBeVisible();
+    await buttonInspector.getByRole("combobox", { name: "Action", exact: true }).selectOption("call");
     await expect(buttonInspector.getByRole("textbox", { name: "Phone number", exact: true })).toBeVisible();
     await buttonInspector.getByTestId("studio-inspector-tab-layout").click();
     await expect(buttonInspector.getByRole("slider", { name: "Width", exact: true })).toBeVisible();

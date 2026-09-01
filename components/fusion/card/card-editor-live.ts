@@ -168,6 +168,8 @@ export type CardEditorLiveModel = {
   onInsertCuratedAssembly?: (
     familyId: string,
     layoutMode: SignatureAssemblyLayoutMode,
+    parentId?: string | null,
+    insertionIndex?: number,
   ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
   onMutateCuratedAssembly?: (
     selectedNodeId: string,
@@ -180,11 +182,12 @@ export type CardEditorLiveModel = {
   ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
   /** Canonical Card Surface → optional Container → Module authority. */
   onEnableCompositionParentAuthority?: () => void;
-  onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image") => string | undefined;
+  onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image", insertionIndex?: number) => string | undefined;
   onAddCompositionModule?: (
     kind: "text" | "image" | "button" | "divider",
     parentId: string | null,
     initialProps?: Record<string, unknown>,
+    insertionIndex?: number,
   ) => string | undefined;
   onReparentCompositionModule?: (moduleId: string, parentId: string | null, index?: number) => void;
   onReorderCompositionNode?: (nodeId: string, index: number) => void;

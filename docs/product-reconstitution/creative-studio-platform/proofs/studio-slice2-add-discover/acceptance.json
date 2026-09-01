@@ -1,0 +1,16 @@
+{
+  "contract": "studioAddDiscover@1.0.0",
+  "catalog": "studioCatalogBrowser@1.0.0",
+  "categories": [
+    "Text",
+    "Image",
+    "Buttons",
+    "Divider",
+    "Container",
+    "Curated"
+  ],
+  "canonicalParentage": true,
+  "deterministicReviewEntry": "/review/studio",
+  "emberActive": false,
+  "productOwnerAcceptance": "pending"
+}

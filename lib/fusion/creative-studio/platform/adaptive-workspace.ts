@@ -112,6 +112,7 @@ export type StudioWorkspaceEvent =
   | { type: "HANDOFF_TRANSIENT_TASK"; taskId: StudioWorkspaceTaskId }
   | { type: "INCIDENTAL_SELECTION"; selectedObjectId: string | null }
   | { type: "COMPLETE_TRANSIENT_TASK" }
+  | { type: "COMPLETE_AUTHORING_TRANSACTION" }
   | { type: "CANCEL_TRANSIENT_TASK" }
   | { type: "RESTORE"; state: StudioWorkspaceState };
 
@@ -125,6 +126,13 @@ export type StudioTransientTaskLifecycle = {
 
 export function studioWorkspaceReducer(state: StudioWorkspaceState, event: StudioWorkspaceEvent): StudioWorkspaceState {
   if (event.type === "RESTORE") return event.state.contractId === STUDIO_ADAPTIVE_WORKSPACE_CONTRACT ? event.state : INITIAL_STUDIO_WORKSPACE_STATE;
+  // Choose → Browse → Place is one authoring transaction even when discovery
+  // temporarily nests an Asset browser. Successful placement owns the new
+  // selection, so it exits every discovery return frame without restoring the
+  // pre-placement selection.
+  if (event.type === "COMPLETE_AUTHORING_TRANSACTION") {
+    return { ...INITIAL_STUDIO_WORKSPACE_STATE, transitionSerial: state.transitionSerial + 1 };
+  }
   // Selection changes update the canonical selection authority, never workspace furniture.
   if (event.type === "INCIDENTAL_SELECTION") return state;
   if (event.type === "BEGIN_EXPLICIT_TASK") {

@@ -15,6 +15,7 @@ export type StudioCatalogCategory = {
 export type StudioCatalogResult = {
   id: string;
   label: string;
+  description?: string;
   categoryId: string;
   readiness: StudioCatalogReadiness;
   searchText: string;
@@ -22,6 +23,8 @@ export type StudioCatalogResult = {
   previewAuthority: string;
   compatibility?: readonly string[];
   entitlementKeys?: readonly string[];
+  preview?: Readonly<Record<string, unknown>>;
+  application?: Readonly<Record<string, unknown>>;
 };
 
 export type StudioCatalogConsumerAdapter = {
@@ -55,6 +58,7 @@ export function registerStudioCatalogAdapters(adapters: readonly StudioCatalogCo
     }
     for (const category of adapter.categories) {
       if (category.parentId && !categoryIds.has(category.parentId)) throw new Error(`Unknown parent ${category.parentId} in ${adapter.id}`);
+      studioCatalogCategoryPath(adapter, category.id);
     }
     for (const result of adapter.results) {
       if (!categoryIds.has(result.categoryId)) throw new Error(`Unknown category ${result.categoryId} for result ${result.id}`);

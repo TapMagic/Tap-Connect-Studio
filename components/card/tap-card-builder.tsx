@@ -124,7 +124,7 @@ import {
   type SectionPresetId,
 } from "@/lib/fusion/card/composer-model";
 import { deleteObject, duplicateObject, insertActionGroup, insertObject } from "@/lib/fusion/card/object-kernel";
-import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import {
   compositionChildren,
   createFlowContainerNode,
@@ -1332,7 +1332,8 @@ export function TapCardBuilder({
     kind: CardElementKind,
     targetSectionId: string | null,
     initialProps?: Record<string, unknown>,
-    frame?: { x?: number; y?: number; width: number; height: number }
+    frame?: { x?: number; y?: number; width: number; height: number },
+    insertionIndex?: number,
   ) {
     const canonicalRoot = config.rootComposition;
     const canonicalContainer = canonicalRoot?.nodes.find((node) => node.id === targetSectionId && node.compositionKind === "container");
@@ -1341,7 +1342,7 @@ export function TapCardBuilder({
       const addedId = staged.objectIds[0];
       const stagedNode = staged.config.rootComposition?.nodes.find((node) => node.id === addedId);
       if (!stagedNode || !addedId) return undefined;
-      const result = insertCompositionModule(canonicalRoot, stagedNode, canonicalContainer?.id ?? null);
+      const result = insertCompositionModule(canonicalRoot, stagedNode, canonicalContainer?.id ?? null, insertionIndex);
       if (!result.ok) {
         setMessage(result.issues.map((issue) => issue.message).join(" "));
         return undefined;
@@ -1374,6 +1375,7 @@ export function TapCardBuilder({
 
   function addCompositionContainer(
     treatment: "transparent" | "solid" | "smoked_glass" | "image" = "transparent",
+    insertionIndex?: number,
   ) {
     const root = ensureRootComposition(config);
     if (!hasCompositionParentAuthority(root)) {
@@ -1384,7 +1386,7 @@ export function TapCardBuilder({
       treatment === "transparent" ? "Transparent Container" : treatment === "solid" ? "Brand Container" : treatment === "smoked_glass" ? "Smoked Glass Container" : "Image-backed Container",
       treatment,
     );
-    const result = insertCompositionContainer(root, container);
+    const result = insertCompositionContainer(root, container, insertionIndex);
     if (!result.ok) {
       setMessage(result.issues.map((issue) => issue.message).join(" "));
       return undefined;
@@ -1400,8 +1402,9 @@ export function TapCardBuilder({
     kind: "text" | "image" | "button" | "divider",
     parentId: string | null,
     initialProps?: Record<string, unknown>,
+    insertionIndex?: number,
   ) {
-    return addComposerElement(kind, parentId, initialProps);
+    return addComposerElement(kind, parentId, initialProps, undefined, insertionIndex);
   }
 
   function commitCompositionAuthorityResult(
@@ -1543,6 +1546,8 @@ export function TapCardBuilder({
   function insertCuratedAssembly(
     familyId: string,
     layoutMode: SignatureAssemblyLayoutMode,
+    parentId: string | null = null,
+    insertionIndex?: number,
   ): { ok: true; selectedNodeId: string } | { ok: false; message: string } {
     const family = listSignatureAuthoringFamilies(signatureEntitlementKeys).find((entry) => entry.family.id === familyId);
     if (!family?.access.selectable) {
@@ -1572,8 +1577,8 @@ export function TapCardBuilder({
       id: outerNodeId,
       primitive: "frame",
       compositionKind: "module",
-      parentId: null,
-      siblingOrder: compositionChildren(root, null).length,
+      parentId,
+      siblingOrder: compositionChildren(root, parentId).length,
       x: 0,
       y: 0,
       width: 1,
@@ -1589,7 +1594,7 @@ export function TapCardBuilder({
       },
       moduleComposition: compiled.composition.block,
     };
-    const inserted = insertCompositionModule(root, outerNode, null);
+    const inserted = insertCompositionModule(root, outerNode, parentId, insertionIndex);
     if (!inserted.ok) {
       const message = inserted.issues.map((issue) => issue.message).join(" ");
       setMessage(message);

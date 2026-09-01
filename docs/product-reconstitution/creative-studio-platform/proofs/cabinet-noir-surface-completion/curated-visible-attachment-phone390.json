@@ -10,10 +10,10 @@
   "plugEnvelope": [
     {
       "index": 0,
-      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-013_website-globe_plug.png",
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-013_website-globe_plug.png?tcv=f30afbbbd9921b09",
       "outerMedallion": {
         "widthPx": 47.34375,
-        "heightPx": 49.65625
+        "heightPx": 49.6875
       },
       "sourceBitmap": {
         "widthPx": 1254,
@@ -27,10 +27,10 @@
     },
     {
       "index": 1,
-      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-014_call-phone_plug.png",
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-014_call-phone_plug.png?tcv=56eaf9b99418047e",
       "outerMedallion": {
         "widthPx": 47.34375,
-        "heightPx": 49.65625
+        "heightPx": 49.6875
       },
       "sourceBitmap": {
         "widthPx": 1254,
@@ -44,10 +44,10 @@
     },
     {
       "index": 2,
-      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-015_directions-map-pin_plug.png",
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-015_directions-map-pin_plug.png?tcv=3ab5ebee59f83442",
       "outerMedallion": {
         "widthPx": 47.34375,
-        "heightPx": 49.65625
+        "heightPx": 49.6875
       },
       "sourceBitmap": {
         "widthPx": 1254,
@@ -61,10 +61,10 @@
     },
     {
       "index": 3,
-      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-016_reviews-star_plug.png",
+      "source": "/visual-parts/signature/cabinet-noir/source/03-plugs-semantic/CN-016_reviews-star_plug.png?tcv=bbb0f048ba0532a7",
       "outerMedallion": {
         "widthPx": 47.34375,
-        "heightPx": 49.65625
+        "heightPx": 49.6875
       },
       "sourceBitmap": {
         "widthPx": 1312,

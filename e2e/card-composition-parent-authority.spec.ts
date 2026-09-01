@@ -8,6 +8,7 @@ const evidence = path.join("tmp", "composition-parent-authority");
 test("proves direct Modules, optional Containers, flow recompile, persistence, and Preview parity", async ({ page }) => {
   test.skip(!enabled, "Set COMPOSITION_PARENT_AUTHORITY_ACCEPTANCE=1 for the isolated Rich review runtime");
   test.setTimeout(120_000);
+  page.setDefaultTimeout(10_000);
   mkdirSync(evidence, { recursive: true });
 
   await page.goto("/review/studio", { waitUntil: "domcontentloaded" });
@@ -41,10 +42,14 @@ test("proves direct Modules, optional Containers, flow recompile, persistence, a
     expect(await authority.locator('[data-composition-kind="module"]').count()).toBeGreaterThan(0);
 
     await page.getByTestId("studio-rail-add").click();
+    await page.getByTestId("studio-add-container").click();
     await expect(page.getByTestId("studio-container-treatment-gallery")).toBeVisible();
     await page.getByTestId("studio-add-container-smoked_glass").click();
+    await page.getByTestId("studio-composition-inspector").getByRole("button", { name: "Close Inspector", exact: true }).click();
+    await page.getByTestId("studio-rail-add").click();
     await expect(page.getByTestId("studio-add-target")).toContainText("Smoked Glass Container");
     await page.getByTestId("studio-add-text").click();
+    await page.getByTestId("studio-add-resource-text-basic").click();
     await expect(authority.locator('[data-composition-kind="container"]')).toHaveCount(initialContainers + 1);
     const container = authority.locator('[data-composition-kind="container"]').last();
     await expect(container.locator('[data-composition-kind="module"]')).toHaveCount(1);
@@ -52,7 +57,7 @@ test("proves direct Modules, optional Containers, flow recompile, persistence, a
     const before = await container.evaluate((element) => Math.round(element.getBoundingClientRect().height));
     await page.getByRole("button", { name: "Edit · Text", exact: true }).click();
     await expect(page.getByTestId("studio-selection-breadcrumb")).toHaveText("Card Surface › Smoked Glass Container › Text");
-    await page.getByRole("textbox", { name: "Content" }).fill("A longer accessible paragraph proves that content growth recompiles Container height automatically without changing membership or asking the Host to resize structural furniture.");
+    await page.getByTestId("studio-text-content").fill("A longer accessible paragraph proves that content growth recompiles Container height automatically without changing membership or asking the Host to resize structural furniture.");
     await expect.poll(() => container.evaluate((element) => Math.round(element.getBoundingClientRect().height))).toBeGreaterThan(before);
 
     if (!(await page.getByTestId("studio-outline-view").isVisible())) await page.getByTestId("studio-rail-layers").click();

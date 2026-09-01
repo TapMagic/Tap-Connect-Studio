@@ -52,8 +52,8 @@ function pathKey(railId: StudioRailId | null, path: readonly string[]) {
 function parentPath(path: readonly string[]): string[] {
   // `family` is an internal routing namespace, not a customer-visible page.
   // Governed families return directly to the Buttons gallery.
-  if (path[0] === "buttons" && path[1] === "family" && path.length >= 3) {
-    return ["buttons"];
+  if ((path[0] === "buttons" || path[0] === "curated") && path[1] === "family" && path.length >= 3) {
+    return [path[0]];
   }
   return path.slice(0, -1);
 }

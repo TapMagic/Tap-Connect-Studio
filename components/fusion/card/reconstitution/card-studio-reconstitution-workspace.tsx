@@ -39,6 +39,11 @@ import {
 } from "@/lib/fusion/creative-studio/platform/adaptive-workspace";
 import { buttonFamilyCatalogAdapter } from "@/lib/fusion/creative-studio/reconstitution/studio-catalog-adapters";
 import { STUDIO_SEMANTIC_UI } from "@/lib/fusion/creative-studio/platform/studio-semantic-ui";
+import { resolveStudioPlacementContext } from "@/lib/fusion/creative-studio/platform/add-discover";
+import { studioAddCatalogAdapter } from "@/lib/fusion/creative-studio/reconstitution/studio-catalog-adapters";
+import { useSharedMediaBrowser } from "@/components/media/shared-media-browser-provider";
+import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
+import { compositionChildren } from "@/lib/fusion/card/composition-parent-authority";
 
 type Props = CardAuthoringWorkspaceProps & {
   brandPreviewContext: BrandPreviewContext;
@@ -80,9 +85,10 @@ export function CardStudioReconstitutionWorkspace({
   const [recents, setRecents] = useState<StudioRecentResource[]>([]);
   const [recentsState, setRecentsState] = useState<"loading" | "ready" | "error">("loading");
   const [sessionRestored, setSessionRestored] = useState(false);
-  const [pendingPostInsertId, setPendingPostInsertId] = useState<string | null>(null);
+  const [pendingPostInsert, setPendingPostInsert] = useState<{ id: string; refine: "button" | "composition" | "curated" } | null>(null);
   const [workspaceWidth, setWorkspaceWidth] = useState(1440);
   const consumedCatalogBoundary = useRef<"open" | "close" | null>(null);
+  const sharedMediaBrowser = useSharedMediaBrowser();
   const liveModel = useSyncExternalStore(subscribeCardEditorLive, getCardEditorLive, getCardEditorLive);
   const selectedNode = liveModel?.selectedCompositionNode ?? null;
   const selectedButton = selectedNode?.primitive === "button" ? selectedNode : null;
@@ -107,34 +113,58 @@ export function CardStudioReconstitutionWorkspace({
   const rail = useMemo(() => resolveStudioRail(railReadiness, Boolean(builderProps.isAdmin)), [builderProps.isAdmin, railReadiness]);
   const buttonResources = useMemo(() => standardButtonDiscoveryResources(brandPreviewContext), [brandPreviewContext]);
   const buttonCatalogAdapter = useMemo(() => buttonFamilyCatalogAdapter(buttonFamilyCatalog, buttonResources), [buttonFamilyCatalog, buttonResources]);
+  const addCatalogAdapter = useMemo(() => studioAddCatalogAdapter(), []);
+  const activeCatalogAdapter = drawer.path[0] === "buttons" || drawer.path[0] === "curated" ? buttonCatalogAdapter : addCatalogAdapter;
+  const activeCatalogAdapterId = activeCatalogAdapter.id;
+  const selectedCanonicalId = selectedCanonicalNode?.id ?? null;
+  const selectedCanonicalParentId = selectedCanonicalNode?.parentId ?? null;
+  const selectedCanonicalInternalId = typeof selectedCanonicalNode?.props.activeButtonContentNodeId === "string" ? selectedCanonicalNode.props.activeButtonContentNodeId : null;
+  const selectedSectionId = liveModel?.selected?.id ?? null;
+  const placementContext = useMemo(() => resolveStudioPlacementContext(liveModel?.config.rootComposition, liveModel?.selectedCompositionNode), [liveModel?.config.rootComposition, liveModel?.selectedCompositionNode]);
   const choreography = useMemo(() => resolveStudioWorkspaceChoreography(adaptiveWorkspace, workspaceWidth), [adaptiveWorkspace, workspaceWidth]);
   const devicePreviewRevision = (liveModel?.revision ?? builderProps.initialDraftRevision ?? 1) + (status.dirty ? 1 : 0);
+  const contextSource = {
+    activeCatalogAdapterId,
+    activeTaskId: adaptiveWorkspace.activeTaskId,
+    assemblyInspectorOpen,
+    compositionInspectorOpen,
+    drawer,
+    inspectorOpen,
+    inspectorSection,
+    selectedCanonicalId,
+    selectedCanonicalInternalId,
+    selectedCanonicalParentId,
+    selectedSectionId,
+  };
+  const contextSourceRef = useRef(contextSource);
+  useEffect(() => { contextSourceRef.current = contextSource; });
 
-  const captureContext = useCallback((taskId: StudioWorkspaceTaskId = adaptiveWorkspace.activeTaskId): StudioAuthoringContextSnapshot => {
+  const captureContext = useCallback((taskId?: StudioWorkspaceTaskId): StudioAuthoringContextSnapshot => {
+    const source = contextSourceRef.current;
     const active = document.activeElement instanceof HTMLElement ? activeElementIdentity(document.activeElement) : null;
-    const selectedId = selectedCanonicalNode?.id ?? liveModel?.selected?.id ?? null;
-    const semanticAncestors = selectedCanonicalNode?.parentId ? [selectedCanonicalNode.parentId] : [];
+    const selectedId = source.selectedCanonicalId ?? source.selectedSectionId;
+    const semanticAncestors = source.selectedCanonicalParentId ? [source.selectedCanonicalParentId] : [];
     return {
       ...EMPTY_STUDIO_CONTEXT,
-      taskId,
+      taskId: taskId ?? source.activeTaskId,
       selectedObjectId: selectedId,
-      selectedInternalItemId: typeof selectedCanonicalNode?.props.activeButtonContentNodeId === "string" ? selectedCanonicalNode.props.activeButtonContentNodeId : null,
+      selectedInternalItemId: source.selectedCanonicalInternalId,
       semanticAncestors,
       cardScroll: { left: canvasRef.current?.scrollLeft ?? 0, top: canvasRef.current?.scrollTop ?? 0 },
-      outline: { expandedIds: [], scrollOffset: drawer.activeRailId === "layers" ? drawer.scrollOffset : 0 },
-      inspectorGroup: inspectorOpen || assemblyInspectorOpen || compositionInspectorOpen ? inspectorSection : null,
+      outline: { expandedIds: [], scrollOffset: source.drawer.activeRailId === "layers" ? source.drawer.scrollOffset : 0 },
+      inspectorGroup: source.inspectorOpen || source.assemblyInspectorOpen || source.compositionInspectorOpen ? source.inspectorSection : null,
       browser: {
-        adapterId: drawer.activeRailId === "add" ? buttonCatalogAdapter.id : null,
-        path: drawer.path,
-        query: drawer.query,
+        adapterId: source.drawer.activeRailId === "add" ? source.activeCatalogAdapterId : null,
+        path: source.drawer.path,
+        query: source.drawer.query,
         filters: {},
-        scrollOffset: drawer.scrollOffset,
+        scrollOffset: source.drawer.scrollOffset,
         candidateResultId: null,
       },
       focusTarget: active,
-      returnDestination: drawer.mode !== "closed" ? "drawer" : inspectorOpen || assemblyInspectorOpen || compositionInspectorOpen ? "inspector" : "canvas",
+      returnDestination: source.drawer.mode !== "closed" ? "drawer" : source.inspectorOpen || source.assemblyInspectorOpen || source.compositionInspectorOpen ? "inspector" : "canvas",
     };
-  }, [adaptiveWorkspace.activeTaskId, assemblyInspectorOpen, buttonCatalogAdapter.id, compositionInspectorOpen, drawer, inspectorOpen, inspectorSection, liveModel?.selected?.id, selectedCanonicalNode]);
+  }, []);
 
   const restoreContext = useCallback((snapshot: StudioAuthoringContextSnapshot | undefined) => {
     if (!snapshot || !liveModel) return;
@@ -270,11 +300,13 @@ export function CardStudioReconstitutionWorkspace({
       }
       if (detail.name === "close") { finishTask(); return; }
       if (detail.name !== "open") return;
-      beginTask(detail.adapterId.startsWith("curated-plugs:") ? "browse-curated-plugs" : detail.adapterId === "surface-treatments" ? "browse-surface" : "browse-assets");
+      const task = detail.adapterId.startsWith("curated-plugs:") ? "browse-curated-plugs" : detail.adapterId === "surface-treatments" ? "browse-surface" : "browse-assets";
+      if (drawer.activeRailId === "add") beginNestedTask(task);
+      else beginTask(task);
     };
     window.addEventListener("tapconnect:studio-catalog-browser", handleCatalogBrowser);
     return () => window.removeEventListener("tapconnect:studio-catalog-browser", handleCatalogBrowser);
-  }, [beginTask, finishTask]);
+  }, [beginNestedTask, beginTask, drawer.activeRailId, finishTask]);
 
   useEffect(() => {
     let cancelled = false;
@@ -289,23 +321,28 @@ export function CardStudioReconstitutionWorkspace({
   }, []);
 
   useEffect(() => {
-    if (pendingPostInsertId && selectedButton?.id === pendingPostInsertId) {
+    if (pendingPostInsert && selectedCanonicalNode?.id === pendingPostInsert.id) {
       let cancelled = false;
       queueMicrotask(() => {
         if (cancelled) return;
-        beginTask("refine-selection");
-        setInspectorOpen(true);
-        setInspectorSection("content");
-        setPendingPostInsertId(null);
+        if (pendingPostInsert.refine === "button") {
+          beginTask("refine-selection");
+          setInspectorOpen(true);
+          setInspectorSection("content");
+        } else if (pendingPostInsert.refine === "composition") {
+          beginTask("refine-selection");
+          setCompositionInspectorOpen(true);
+        }
+        setPendingPostInsert(null);
       });
       return () => { cancelled = true; };
     }
-    if (!selectedButton && !pendingPostInsertId) {
+    if (!selectedButton && !pendingPostInsert) {
       let cancelled = false;
       queueMicrotask(() => { if (!cancelled) setInspectorOpen(false); });
       return () => { cancelled = true; };
     }
-  }, [beginTask, pendingPostInsertId, selectedButton]);
+  }, [beginTask, pendingPostInsert, selectedButton, selectedCanonicalNode?.id]);
 
   useEffect(() => {
     let cancelled = false;
@@ -354,18 +391,73 @@ export function CardStudioReconstitutionWorkspace({
       return;
     }
     const placementFrame = frame ?? { width: Number(props.width ?? 0.52), height: Number(props.height ?? 0.09) };
-    const parentId = liveModel.selectedCompositionNode?.compositionKind === "container"
-      ? liveModel.selectedCompositionNode.id
-      : null;
+    const parentId = placementContext?.parentId ?? null;
     const addedId = liveModel.config.rootComposition?.parentAuthority
-      ? liveModel.onAddCompositionModule?.("button", parentId, props)
+      ? liveModel.onAddCompositionModule?.("button", parentId, props, placementContext?.insertionIndex)
       : liveModel.onAddElement?.("button", null, props, placementFrame);
     if (!addedId) return;
     markRecent(resource, "place");
-    setPendingPostInsertId(addedId);
+    setPendingPostInsert({ id: addedId, refine: "button" });
     dispatch({ type: "CLOSE" });
-    completeTaskWithoutRestore();
-  }, [captureContext, completeTaskWithoutRestore, drawer.applyTargetId, drawer.placementMode, liveModel, markRecent]);
+    workspaceDispatch({ type: "COMPLETE_AUTHORING_TRANSACTION" });
+  }, [captureContext, completeTaskWithoutRestore, drawer.applyTargetId, drawer.placementMode, liveModel, markRecent, placementContext]);
+
+  const completePlacement = useCallback((id: string, refine: "button" | "composition" | "curated") => {
+    setPendingPostInsert({ id, refine });
+    dispatch({ type: "CLOSE" });
+    workspaceDispatch({ type: "COMPLETE_AUTHORING_TRANSACTION" });
+  }, []);
+
+  const placeOrdinaryModule = useCallback((kind: "text" | "image" | "divider", initialProps: Record<string, unknown> = {}) => {
+    if (!liveModel || !placementContext) return;
+    const id = liveModel.onAddCompositionModule?.(kind, placementContext.parentId, initialProps, placementContext.insertionIndex);
+    if (id) completePlacement(id, "composition");
+  }, [completePlacement, liveModel, placementContext]);
+
+  const chooseImageForPlacement = useCallback(() => {
+    if (!sharedMediaBrowser) {
+      liveModel?.notify?.("The shared Asset browser is unavailable in this workspace.");
+      return;
+    }
+    sharedMediaBrowser.openBrowser({
+      mediaUploadReady: Boolean(liveModel?.mediaUploadReady),
+      stockReady: Boolean(liveModel?.stockReady),
+      selectionKind: "photo",
+      title: "Choose an image for your Card",
+      onSelect: (asset: MediaAssetCandidate) => {
+        consumedCatalogBoundary.current = "close";
+        placeOrdinaryModule("image", {
+          elementKind: "image",
+          src: asset.url,
+          mediaSrc: asset.url,
+          mediaAssetId: asset.mediaAssetId || asset.id,
+          alt: asset.label || "Card image",
+          fit: "cover",
+          assetProvenance: { source: asset.source, sourceLabel: asset.sourceLabel, sourceUrl: asset.sourceUrl },
+        });
+      },
+    });
+  }, [liveModel, placeOrdinaryModule, sharedMediaBrowser]);
+
+  const placeContainer = useCallback((treatment: "transparent" | "solid" | "smoked_glass" | "image") => {
+    if (!liveModel?.config.rootComposition) return;
+    const selected = liveModel.selectedCompositionNode;
+    const rootSiblings = compositionChildren(liveModel.config.rootComposition, null);
+    const selectedRoot = selected?.parentId === null ? selected : selected?.parentId ? liveModel.config.rootComposition.nodes.find((node) => node.id === selected.parentId) : null;
+    const rootIndex = selectedRoot ? rootSiblings.findIndex((node) => node.id === selectedRoot.id) + 1 : rootSiblings.length;
+    const id = liveModel.onAddCompositionContainer?.(treatment, Math.max(0, rootIndex));
+    if (id) completePlacement(id, "composition");
+  }, [completePlacement, liveModel]);
+
+  const placeCurated = useCallback((familyId: string, layoutMode: "standalone" | "single-stack" | "twin-rail") => {
+    if (!liveModel || !placementContext) return;
+    const result = liveModel.onInsertCuratedAssembly?.(familyId, layoutMode, placementContext.parentId, placementContext.insertionIndex);
+    if (!result?.ok) {
+      if (result) liveModel.notify?.(result.message);
+      return;
+    }
+    completePlacement(result.selectedNodeId, "curated");
+  }, [completePlacement, liveModel, placementContext]);
 
   const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
     const raw = event.dataTransfer.getData("application/x-tapconnect-studio-resource");
@@ -488,7 +580,7 @@ export function CardStudioReconstitutionWorkspace({
 
       <div className="relative flex min-h-0 flex-1">
         {studioMode === "edit" ? <StudioEditorRail destinations={rail} activeId={activeRailId} onActivate={(id) => handleDrawerEvent({ type: "OPEN_RAIL", railId: id })} /> : null}
-        {studioMode === "edit" && !outlineYielding ? <StudioDiscoveryDrawer state={drawer} dispatch={handleDrawerEvent} model={liveModel} brand={brandPreviewContext} familyCatalog={buttonFamilyCatalog} recents={recents} recentsState={recentsState} onUseResource={applyResource} catalogAdapter={buttonCatalogAdapter} workspaceComposition={choreography.composition} onCompleteDiscovery={() => { dispatch({ type: "CLOSE" }); completeTaskWithoutRestore(); }} /> : null}
+        {studioMode === "edit" && !outlineYielding ? <StudioDiscoveryDrawer state={drawer} dispatch={handleDrawerEvent} model={liveModel} brand={brandPreviewContext} familyCatalog={buttonFamilyCatalog} recents={recents} recentsState={recentsState} onUseResource={applyResource} catalogAdapter={activeCatalogAdapter} workspaceComposition={choreography.composition} placementContext={placementContext} onPlaceOrdinary={placeOrdinaryModule} onChooseImage={chooseImageForPlacement} onPlaceContainer={placeContainer} onPlaceCurated={placeCurated} /> : null}
 
         <main className="relative z-0 isolate flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_50%_18%,#202a38_0%,#151b24_42%,#10151d_100%)]" aria-label="Card canvas">
           {studioMode === "edit" && selectionTarget?.capabilities.includes("edit-content") ? (

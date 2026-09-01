@@ -60,6 +60,13 @@ describe("Studio drawer controller", () => {
     assert.deepEqual(state.path, ["buttons"]);
     assert.equal(state.mode, "standard");
   });
+
+  it("reuses the same governed-family route from Curated discovery", () => {
+    let state = studioDrawerReducer(INITIAL_STUDIO_DRAWER_STATE, { type: "OPEN_RAIL", railId: "add" });
+    state = studioDrawerReducer(state, { type: "NAVIGATE", path: ["curated", "family", "cabinet-noir"] });
+    state = studioDrawerReducer(state, { type: "BACK" });
+    assert.deepEqual(state.path, ["curated"]);
+  });
 });
 
 describe("Studio shell session state", () => {
