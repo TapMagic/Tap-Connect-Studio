@@ -124,7 +124,7 @@ import {
   type SectionPresetId,
 } from "@/lib/fusion/card/composer-model";
 import { deleteObject, duplicateObject, insertActionGroup, insertObject } from "@/lib/fusion/card/object-kernel";
-import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import {
   compositionChildren,
   createFlowContainerNode,
@@ -1022,6 +1022,31 @@ export function TapCardBuilder({
     patch: Partial<CreativeCompositionNode>,
   ) {
     previewConfigHistory((current) => patchCompositionNodeInConfig(current, nodeId, patch));
+  }
+
+  function applyCanvasCompositionChange(
+    sectionId: string | null,
+    composition: CreativeCompositionBlock,
+    label = "Edited composition",
+    phase?: "preview" | "commit" | "cancel",
+  ) {
+    if (phase === "cancel") {
+      cancelLiveAdjustment();
+      return;
+    }
+    if (phase === "preview" || phase === "commit") {
+      beginLiveAdjustment();
+      previewConfigHistory((current) => sectionId
+        ? { ...current, sections: current.sections.map((section) => section.id === sectionId ? { ...section, composition } : section) }
+        : { ...current, rootComposition: composition });
+      if (phase === "commit") {
+        commitLiveAdjustment(label);
+        setDirty(true);
+      }
+      return;
+    }
+    if (sectionId) patchSection(sectionId, { composition }, label);
+    else patchConfig({ rootComposition: composition }, label);
   }
 
   function previewSelection(
@@ -3600,10 +3625,7 @@ export function TapCardBuilder({
                   }
                   onCompositionChange={
                     interactionMode === "edit"
-                      ? (sectionId, composition, label) => {
-                          if (sectionId) patchSection(sectionId, { composition }, label || "Edited composition");
-                          else patchConfig({ rootComposition: composition }, label || "Edited Card root Elements");
-                        }
+                      ? applyCanvasCompositionChange
                       : undefined
                   }
                   onComposerDrop={

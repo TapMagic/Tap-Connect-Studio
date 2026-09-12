@@ -281,3 +281,13 @@ A control that fixes an initially incorrect state is evidence that initializatio
 ## Cross-runtime Visual Treatment Parity Rule
 
 A visual treatment visible in Studio is incomplete until the same canonical projection is reproduced by Preview, signed Live Device, and public runtime. A valid-but-stale delivery session must not be presented as current, and runtime-specific CSS or fallback artwork must not substitute for authored semantic treatment.
+
+## Editable Input Ownership Rule
+
+An active text-entry control owns ordinary typing, Space, Enter, navigation, selection, clipboard, platform editing chords, and IME composition. This includes `input`, `textarea`, `select`, active `contenteditable`, textbox-like ARIA roles, and controls that explicitly declare Studio keyboard ownership. A selectable parent Module may claim keyboard activation only when the parent itself owns focus. No canvas shortcut, pan mode, selection wrapper, or ancestor activation handler may intercept an editable descendant’s event.
+
+Direct canvas editing and Inspector editing must write the same canonical value and share one coherent edit transaction: live preview while editing, one undoable history entry on commit, and complete restoration on cancel. Mobile keyboards and IME composition receive the same protection as hardware keyboards.
+
+## Small Excellent Set Rule
+
+A launch catalog earns visibility through a small, excellent, meaningfully differentiated set. Five credible choices are better than a large field of filler. Each visible choice must have a clear job, an honest preview made from the applied authority, a usable canonical default, strong phone behavior, and a complete path into Refine. Infrastructure capacity, legacy variants, or trivial parameter differences do not justify exposing more choices.

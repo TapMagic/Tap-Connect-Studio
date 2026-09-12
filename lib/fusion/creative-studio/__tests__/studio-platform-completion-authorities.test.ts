@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { resolveStudioControlAvailability, studioControlProps } from "../platform/control-availability";
-import { editableControlOwnsKeyboard, studioShortcutMayRun } from "../platform/keyboard-ownership";
+import { editableControlOwnsKeyboard, studioModuleActivationMayRun, studioShortcutMayRun } from "../platform/keyboard-ownership";
 import { resolveOrdinaryModuleCapability } from "../platform/ordinary-module-authoring";
 import { createCompositionNode } from "../composition";
 import { resolveStudioChromePlacement } from "../platform/workspace-collision";
@@ -21,11 +21,22 @@ test("editable targets own text entry, editing chords, and IME before Studio sho
   assert.equal(studioShortcutMayRun(event(documentElement("div"),"Process",{isComposing:true})),false);
 });
 
+test("module activation never steals Space or Enter from nested editable owners", () => {
+  const wrapper = documentElement("div");
+  for (const tag of ["input", "textarea", "select", "contenteditable", "textbox", "declared-owner"]) {
+    const editable = documentElement(tag);
+    for (const key of [" ", "Enter"]) assert.equal(studioModuleActivationMayRun(event(editable, key), wrapper), false, `${tag} owns ${key}`);
+  }
+  assert.equal(studioModuleActivationMayRun(event(wrapper, "Enter"), wrapper), true);
+  assert.equal(studioModuleActivationMayRun(event(wrapper, " "), wrapper), true);
+  assert.equal(studioModuleActivationMayRun(event(wrapper, "Process", { isComposing: true }), wrapper), false);
+});
+
 test("ordinary modules declare substantial shared capability groups", () => {
   const text=resolveOrdinaryModuleCapability(createCompositionNode("text",{props:{elementKind:"text"}}))!;
   const divider=resolveOrdinaryModuleCapability(createCompositionNode("border",{props:{elementKind:"divider"}}))!;
   const button=resolveOrdinaryModuleCapability(createCompositionNode("button",{props:{elementKind:"button",showIcon:false}}))!;
-  assert.deepEqual(text.groups,["content","text","spacing","position"]);
+  assert.deepEqual(text.groups,["content","text","spacing","position","accessibility"]);
   assert.ok(divider.groups.includes("edge")&&divider.groups.includes("spacing"));
   assert.ok(button.groups.includes("action")&&button.groups.includes("icon")&&button.groups.includes("accessibility"));
   assert.equal(button.controls.iconPresentation.availability,"disabled");
@@ -36,5 +47,5 @@ test("selected chrome prefers external placement and falls back at viewport edge
   assert.equal(resolveStudioChromePlacement({objectTop:2,objectBottom:698,viewportTop:0,viewportBottom:700,requiredPx:44,inspectorOnEnd:true}),"edge-start");
 });
 
-function documentElement(tag:string) { return { tagName:tag.toUpperCase(), closest:(selector:string)=>selector.includes(tag)?true:null } as unknown as HTMLElement; }
+function documentElement(tag:string) { const selectors:Record<string,string>={contenteditable:"contenteditable",textbox:"role='textbox'","declared-owner":"data-studio-keyboard-owner='text-entry'"}; return { tagName:tag.toUpperCase(), closest:(selector:string)=>selector.includes(selectors[tag] || tag)?true:null } as unknown as HTMLElement; }
 function event(target:EventTarget,key:string,patch:Partial<{metaKey:boolean;ctrlKey:boolean;altKey:boolean;isComposing:boolean}>={}) { return {target,key,defaultPrevented:false,isComposing:false,metaKey:false,ctrlKey:false,altKey:false,...patch}; }

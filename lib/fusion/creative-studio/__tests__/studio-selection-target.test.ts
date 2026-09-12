@@ -24,3 +24,11 @@ test("classifies the outer Curated host as one recipe-owned object", () => {
   assert.equal(result.ownership, "curated-recipe");
   assert.ok(result.capabilities.includes("edit-content"));
 });
+
+test("Card Surface is a selectable appearance authority without fake node capabilities", () => {
+  const rootSelection = createSelectionRef({ documentId: "card", pageId: "root", revision: 1, selectionGeneration: 2, objectKind: "root_surface", objectId: "card-page", parentId: null, targetLevel: "card-root" });
+  const result = resolveStudioSelectionTarget({ selection: rootSelection, root });
+  assert.equal(result.semanticKind, "card-surface");
+  assert.equal(result.node, null);
+  assert.deepEqual(result.capabilities, ["edit-appearance"]);
+});

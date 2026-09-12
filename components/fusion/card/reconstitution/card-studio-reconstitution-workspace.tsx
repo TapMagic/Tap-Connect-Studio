@@ -13,6 +13,7 @@ import { StudioSelectionInspector } from "./studio-selection-inspector";
 import { StudioSelectionToolbar, type ButtonInspectorSection, type ButtonPositionCommand } from "./studio-selection-toolbar";
 import { StudioAssemblyInspector } from "./studio-assembly-inspector";
 import { StudioCompositionInspector } from "./studio-composition-inspector";
+import { StudioCardSurfaceInspector } from "./studio-card-surface-inspector";
 import { INITIAL_STUDIO_DRAWER_STATE, studioDrawerReducer, type StudioDrawerEvent } from "@/lib/fusion/creative-studio/reconstitution/drawer-controller";
 import { resolveStudioRail, type StudioRailReadinessOverrides } from "@/lib/fusion/creative-studio/reconstitution/studio-rail-registry";
 import type { BrandPreviewContext } from "@/lib/fusion/creative-studio/reconstitution/standard-button-catalog";
@@ -354,11 +355,11 @@ export function CardStudioReconstitutionWorkspace({
   }, [selectedAssembly]);
 
   useEffect(() => {
-    if (selectedCanonicalNode) return;
+    if (selectedCanonicalNode || selectionTarget?.semanticKind === "card-surface") return;
     let cancelled = false;
     queueMicrotask(() => { if (!cancelled) setCompositionInspectorOpen(false); });
     return () => { cancelled = true; };
-  }, [selectedCanonicalNode]);
+  }, [selectedCanonicalNode, selectionTarget?.semanticKind]);
 
   const markRecent = useCallback((resource: StandardButtonDiscoveryResource, operation: StudioResourceUsageOperation) => {
     fetch("/api/studio/activity", {
@@ -411,7 +412,10 @@ export function CardStudioReconstitutionWorkspace({
   const placeOrdinaryModule = useCallback((kind: "text" | "image" | "divider", initialProps: Record<string, unknown> = {}) => {
     if (!liveModel || !placementContext) return;
     const id = liveModel.onAddCompositionModule?.(kind, placementContext.parentId, initialProps, placementContext.insertionIndex);
-    if (id) completePlacement(id, "composition");
+    if (id) {
+      completePlacement(id, "composition");
+      if (kind === "text" && typeof initialProps.textRole === "string") void fetch("/api/studio/activity", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ resource: { provider: "tapconnect-text", resourceId: `role:${initialProps.textRole}`, version: 1 }, resourceKind: "text-role", consumer: "card-composer", context: "text-role", operation: "place" }) }).catch(() => undefined);
+    }
   }, [completePlacement, liveModel, placementContext]);
 
   const chooseImageForPlacement = useCallback(() => {
@@ -583,8 +587,8 @@ export function CardStudioReconstitutionWorkspace({
         {studioMode === "edit" && !outlineYielding ? <StudioDiscoveryDrawer state={drawer} dispatch={handleDrawerEvent} model={liveModel} brand={brandPreviewContext} familyCatalog={buttonFamilyCatalog} recents={recents} recentsState={recentsState} onUseResource={applyResource} catalogAdapter={activeCatalogAdapter} workspaceComposition={choreography.composition} placementContext={placementContext} onPlaceOrdinary={placeOrdinaryModule} onChooseImage={chooseImageForPlacement} onPlaceContainer={placeContainer} onPlaceCurated={placeCurated} /> : null}
 
         <main className="relative z-0 isolate flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_50%_18%,#202a38_0%,#151b24_42%,#10151d_100%)]" aria-label="Card canvas">
-          {studioMode === "edit" && selectionTarget?.capabilities.includes("edit-content") ? (
-            <div className="relative z-[2000] hidden min-h-12 shrink-0 items-center border-b border-white/6 bg-[#0b111b]/78 px-3 py-1.5 backdrop-blur md:flex" data-chrome-placement="task-bar">{selectedAssembly ? <CuratedObjectToolbar
+          {studioMode === "edit" && (selectionTarget?.capabilities.includes("edit-content") || selectionTarget?.capabilities.includes("edit-appearance")) ? (
+            <div className="relative z-[2000] hidden min-h-12 shrink-0 items-center border-b border-white/6 bg-[#0b111b]/78 px-3 py-1.5 backdrop-blur md:flex" data-chrome-placement="task-bar">{selectionTarget?.semanticKind === "card-surface" ? <CardSurfaceToolbar onEdit={() => openCompositionInspector("tune-selection")} /> : selectedAssembly ? <CuratedObjectToolbar
               label={selectedAssembly.familyLabel}
               onEdit={openAssemblyInspector}
               onArrange={() => { if (selectedCanonicalNode) openCompositionInspector("arrange-card"); }}
@@ -624,7 +628,7 @@ export function CardStudioReconstitutionWorkspace({
           </div>
         </main>
 
-        {studioMode === "edit" && compositionInspectorOpen && selectedCanonicalNode && liveModel ? <StudioCompositionInspector model={liveModel} node={selectedCanonicalNode} onClose={closeContextualSurface} /> : studioMode === "edit" && assemblyInspectorOpen && selectedAssembly && selectedNode ? <StudioAssemblyInspector assembly={selectedAssembly} selectedNodeId={selectedNode.id} mediaUploadReady={liveModel?.mediaUploadReady} stockReady={liveModel?.stockReady} transientTaskLifecycle={transientTaskLifecycle} onBeginLiveAdjustment={liveModel?.beginLiveAdjustment} onCommitLiveAdjustment={(label) => liveModel?.commitLiveAdjustment?.(label)} onCancelLiveAdjustment={liveModel?.cancelLiveAdjustment} onPreviewCommand={(command, mutation) => {
+        {studioMode === "edit" && compositionInspectorOpen && selectionTarget?.semanticKind === "card-surface" && liveModel ? <StudioCardSurfaceInspector model={liveModel} brand={brandPreviewContext} onClose={closeContextualSurface} /> : studioMode === "edit" && compositionInspectorOpen && selectedCanonicalNode && liveModel ? <StudioCompositionInspector model={liveModel} node={selectedCanonicalNode} brand={brandPreviewContext} onClose={closeContextualSurface} /> : studioMode === "edit" && assemblyInspectorOpen && selectedAssembly && selectedNode ? <StudioAssemblyInspector assembly={selectedAssembly} selectedNodeId={selectedNode.id} mediaUploadReady={liveModel?.mediaUploadReady} stockReady={liveModel?.stockReady} transientTaskLifecycle={transientTaskLifecycle} onBeginLiveAdjustment={liveModel?.beginLiveAdjustment} onCommitLiveAdjustment={(label) => liveModel?.commitLiveAdjustment?.(label)} onCancelLiveAdjustment={liveModel?.cancelLiveAdjustment} onPreviewCommand={(command, mutation) => {
           if (!liveModel || !selectedNode) return;
           const result = liveModel.previewCuratedAssembly?.(selectedNode.id, mutation);
           if (result && !result.ok) liveModel.notify?.(result.message);
@@ -643,7 +647,7 @@ export function CardStudioReconstitutionWorkspace({
       {studioMode === "edit" ? (
         <nav className="z-50 grid h-16 shrink-0 grid-cols-5 border-t border-white/10 bg-[#0b111b] md:hidden" aria-label="Phone editor tools" data-testid="studio-phone-toolbar">
           <PhoneTool icon={Plus} label="Add" onClick={() => openPhoneRail("add")} />
-          <PhoneTool icon={Eye} label="Edit" disabled={!selectionTarget?.capabilities.includes("edit-content")} onClick={() => { if (selectedAssembly) openAssemblyInspector(); else if (selectedCanonicalNode && selectedCanonicalNode.primitive !== "button") openCompositionInspector("refine-selection"); else openInspector("content"); }} />
+          <PhoneTool icon={Eye} label="Edit" disabled={!selectionTarget?.capabilities.includes("edit-content") && !selectionTarget?.capabilities.includes("edit-appearance")} onClick={() => { if (selectionTarget?.semanticKind === "card-surface") openCompositionInspector("tune-selection"); else if (selectedAssembly) openAssemblyInspector(); else if (selectedCanonicalNode && selectedCanonicalNode.primitive !== "button") openCompositionInspector("refine-selection"); else openInspector("content"); }} />
           <PhoneTool icon={Layers3} label="Outline" onClick={() => openPhoneRail("layers")} />
           <PhoneTool icon={Eye} label="Preview" onClick={() => { beginTask("preview-card"); setStudioMode("preview"); }} />
           <PhoneTool icon={selectionTarget?.capabilities.includes("move-directly") ? Move : MoreHorizontal} label={selectionTarget?.capabilities.includes("move-directly") ? "Move" : "More"} disabled={!selectionTarget?.capabilities.includes("position")} onClick={() => selectedCanonicalNode ? openCompositionInspector("arrange-card") : selectedButton ? openInspector("layout") : undefined} />
@@ -662,6 +666,10 @@ function CuratedObjectToolbar({ label, onEdit, onArrange, onDuplicate, onDelete 
 }) {
   const iconButton = "grid h-9 w-9 place-items-center rounded-full text-white/62 transition hover:bg-white/8 hover:text-white";
   return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-curated-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]" data-testid="studio-curated-selection-identity">Edit Contents · {label}</button><button type="button" onClick={onArrange} className={iconButton} aria-label="Move Curated System"><Move className="h-4 w-4" /></button><StudioTransientMenu label="More Curated System actions">{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
+}
+
+function CardSurfaceToolbar({ onEdit }: { onEdit: () => void }) {
+  return <div className="flex items-center gap-2 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-card-surface-toolbar"><span className="px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-white/48">Card Surface</span><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">Refine surface</button></div>;
 }
 
 function CompositionObjectToolbar({ label, onEdit, onArrange, onDuplicate, onDelete }: {

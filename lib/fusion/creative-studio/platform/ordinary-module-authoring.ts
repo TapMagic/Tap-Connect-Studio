@@ -6,7 +6,7 @@ export type OrdinaryModuleKind = "text" | "image" | "button" | "divider";
 export type OrdinaryCapabilityGroup = "content" | "action" | "text" | "icon" | "surface" | "edge" | "spacing" | "position" | "accessibility";
 
 const GROUPS: Record<OrdinaryModuleKind, readonly OrdinaryCapabilityGroup[]> = {
-  text: ["content", "text", "spacing", "position"],
+  text: ["content", "text", "spacing", "position", "accessibility"],
   image: ["content", "surface", "edge", "spacing", "position", "accessibility"],
   button: ["content", "action", "text", "icon", "surface", "edge", "spacing", "position", "accessibility"],
   divider: ["surface", "edge", "spacing", "position", "accessibility"],

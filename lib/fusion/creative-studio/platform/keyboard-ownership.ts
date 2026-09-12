@@ -30,3 +30,14 @@ export function editableControlOwnsKeyboard(event: KeyboardOwnershipEvent): bool
 export function studioShortcutMayRun(event: KeyboardOwnershipEvent): boolean {
   return !editableControlOwnsKeyboard(event) && !event.altKey;
 }
+
+/**
+ * A selectable Module wrapper may claim Space/Enter only when it owns focus.
+ * Descendant controls and declared editing owners always retain the event.
+ */
+export function studioModuleActivationMayRun(
+  event: KeyboardOwnershipEvent,
+  currentTarget: EventTarget | null,
+): boolean {
+  return event.target === currentTarget && !editableControlOwnsKeyboard(event);
+}

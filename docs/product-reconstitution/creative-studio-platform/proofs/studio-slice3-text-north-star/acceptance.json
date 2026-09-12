@@ -1,0 +1,15 @@
+{
+  "contract": "studioTextAuthoring@1.0.0",
+  "roles": [
+    "heading",
+    "subheading",
+    "body",
+    "label",
+    "quote"
+  ],
+  "editableInputOwnership": true,
+  "canonicalHistory": true,
+  "desktopAndPhoneText": true,
+  "cardSurfaceAuthoringPresence": true,
+  "productOwnerAcceptance": "pending"
+}

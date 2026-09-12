@@ -23,6 +23,7 @@ import {
   type StudioAddCategoryRegistration,
   type StudioPlacementContext,
 } from "@/lib/fusion/creative-studio/platform/add-discover";
+import { studioTextRole, textRoleCanonicalProps } from "@/lib/fusion/creative-studio/platform/text-authoring";
 
 export type StandardButtonDiscoveryResource = StudioDiscoveryResource<StandardButtonDiscoveryApplication, Record<string, unknown>>;
 
@@ -61,7 +62,7 @@ export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCat
     </header>
     <MotionSurface pathKey={`${state.activeRailId}:${path.join("/")}`} depth={path.length}>
       {state.activeRailId === "add" && path.length === 0 ? <AddHome dispatch={dispatch} placementContext={placementContext} /> : null}
-      {path.join("/") === "text" ? <OrdinaryCategoryView categoryId="text" onPlace={(props) => onPlaceOrdinary("text", props)} /> : null}
+      {path.join("/") === "text" ? <OrdinaryCategoryView categoryId="text" brand={brand} onPlace={(props) => onPlaceOrdinary("text", props)} /> : null}
       {path.join("/") === "image" ? <ImageCategoryView onChoose={onChooseImage} /> : null}
       {path.join("/") === "divider" ? <OrdinaryCategoryView categoryId="divider" onPlace={(props) => onPlaceOrdinary("divider", props)} /> : null}
       {path.join("/") === "container" ? <ContainerCategoryView onPlace={onPlaceContainer} /> : null}
@@ -104,13 +105,13 @@ function AddCategoryTile({ entry, onClick }: { entry: StudioAddCategoryRegistrat
   return <AddTile label={entry.label} detail={entry.description} icon={icon} onClick={onClick} testId={`studio-add-${entry.id}`} />;
 }
 
-function OrdinaryCategoryView({ categoryId, onPlace }: { categoryId: "text" | "divider"; onPlace: (props: Record<string, unknown>) => void }) {
+function OrdinaryCategoryView({ categoryId, brand, onPlace }: { categoryId: "text" | "divider"; brand?: BrandPreviewContext; onPlace: (props: Record<string, unknown>) => void }) {
   const resources = STUDIO_ORDINARY_MODULES.filter((entry) => entry.categoryId === categoryId && entry.readiness === "ready");
   return <CatalogResultGrid label={categoryId === "text" ? "Start with real editable copy" : "Choose a real Divider"} dataTestId={`studio-${categoryId}-catalog`}>
-    {resources.map((entry) => <button key={entry.id} type="button" onClick={() => onPlace({ ...entry.defaultCanonicalState })} className="group overflow-hidden rounded-2xl bg-white/[.045] text-left transition hover:-translate-y-0.5 hover:bg-white/[.08]" data-testid={`studio-add-resource-${entry.id.replaceAll(":", "-")}`}>
-      <span className="flex h-28 items-center justify-center bg-gradient-to-br from-[#111925] to-[#090d14] p-4">{entry.previewKind === "text" ? <span className="w-full"><span className="block h-2 w-2/3 rounded bg-white/72" /><span className="mt-3 block h-1.5 w-full rounded bg-white/20" /><span className="mt-2 block h-1.5 w-4/5 rounded bg-white/14" /></span> : <span className="relative block h-px w-4/5 bg-gradient-to-r from-transparent via-[#b8ff2c] to-transparent shadow-[0_0_12px_rgba(184,255,44,.45)]" />}</span>
+    <div className={categoryId === "text" ? "grid grid-cols-2 gap-2.5" : undefined}>{resources.map((entry) => { const role = entry.categoryId === "text" ? studioTextRole(entry.id.slice("text:".length)) : null; const applied = role ? textRoleCanonicalProps(role.id, brand) : entry.defaultCanonicalState; return <button key={entry.id} type="button" onClick={() => onPlace({ ...applied })} className="group overflow-hidden rounded-2xl bg-white/[.045] text-left transition hover:-translate-y-0.5 hover:bg-white/[.08]" data-testid={`studio-add-resource-${entry.id.replaceAll(":", "-")}`} data-text-role={role?.id}>
+      <span className="flex h-28 items-center justify-center bg-gradient-to-br from-[#111925] to-[#090d14] p-4">{role ? <span className="block w-full" style={{ color: String(applied.color), fontFamily: String(applied.fontFamily), fontSize: Math.min(28, Number(applied.fontSize)), fontWeight: Number(applied.fontWeight), lineHeight: Number(applied.lineHeight), letterSpacing: `${Number(applied.letterSpacingEm)}em`, textAlign: String(applied.align) as "left" | "center" | "right", fontStyle: String(applied.fontStyle || "normal"), textTransform: String(applied.textTransform || "none") as "uppercase" | "none" }}>{role.sample}</span> : <span className="relative block h-px w-4/5 bg-gradient-to-r from-transparent via-[#b8ff2c] to-transparent shadow-[0_0_12px_rgba(184,255,44,.45)]" />}</span>
       <span className="block p-3"><strong className="text-xs">{entry.label}</strong><span className="mt-1 block text-[10px] leading-4 text-white/42">{entry.description}</span><span className="mt-3 inline-flex rounded-full bg-[#b8ff2c] px-2.5 py-1 text-[9px] font-semibold text-[#07100a]">Add to Card</span></span>
-    </button>)}
+    </button>; })}</div>
   </CatalogResultGrid>;
 }
 
@@ -225,7 +226,7 @@ function OutlineView({ model }: { model: CardEditorLiveModel | null }) {
     else model.onReorderCompositionNode?.(node.id, index);
   };
   return <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-5" data-testid="studio-outline-view">
-    <div className="mb-2 flex items-center gap-2 border-b border-white/8 px-2 py-2.5"><Layers3 className="h-4 w-4 text-[#8bdcff]" /><div><p className="text-xs font-semibold">Card Surface</p><p className="text-[9px] text-white/38">Drag to reorder or place inside a panel</p></div></div>
+    <button type="button" aria-pressed={model.selectionRef.targetLevel === "card-root"} onClick={() => model.selectCardRoot?.()} className="mb-2 flex w-full items-center gap-2 border-b border-white/8 px-2 py-2.5 text-left hover:bg-white/5 aria-pressed:bg-[#b8ff2c]/10" data-testid="studio-outline-card-surface"><Layers3 className="h-4 w-4 text-[#8bdcff]" /><span><strong className="block text-xs font-semibold">Card Surface</strong><span className="text-[9px] text-white/38">Root appearance and flow destination</span></span></button>
     {canonical ? <LayerDropZone parentId={null} index={0} onDrop={drop} /> : null}
     {canonical ? compositionChildren(canonical, null).map((node, index) => <div key={node.id}>
       <LayerButton nodeId={node.id} label={humanLayerName(node.name, node.compositionKind, String(node.props.elementKind || node.primitive))} typeLabel={node.compositionKind === "container" ? "Panel" : humanTypeLabel(String(node.props.elementKind || node.primitive))} kind={node.compositionKind === "container" ? "container" : String(node.props.elementKind || node.primitive)} selected={selectedId === node.id} onClick={() => select(node.id)} />

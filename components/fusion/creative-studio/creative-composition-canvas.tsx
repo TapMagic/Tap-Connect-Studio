@@ -111,6 +111,7 @@ import { isArcEmberPristineMasterProps } from "@/lib/fusion/creative-studio/visu
 import { ARC_EMBER_STAGE_ID, isSignatureAssetProps, layoutArcEmberStages, requiredArcEmberSurfaceHeightPx, SignatureMasterBridge } from "@/lib/fusion/creative-studio/signature-assets";
 import { curatedCompoundObjectForNode, curatedCompoundObjects } from "@/lib/fusion/creative-studio/platform/curated-compound-object";
 import { readStudioSurfaceState } from "@/lib/fusion/creative-studio/platform/surface-capability";
+import { studioModuleActivationMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -134,7 +135,7 @@ export type CreativeCompositionCanvasProps = {
   align?: "start" | "center" | "end" | "stretch";
   distribute?: "start" | "center" | "end" | "between" | "around";
   minHeightPx?: number;
-  onEditNodeText?: (nodeId: string, value: string) => void;
+  onEditNodeText?: (nodeId: string, value: string, phase: "preview" | "commit" | "cancel") => void;
   /** When true, OS file drop / image clipboard paste may upload via /api/media/upload. */
   mediaUploadReady?: boolean;
   onNotify?: (message: string | null) => void;
@@ -275,29 +276,29 @@ function InlineEditableText({
   style,
   onCommit,
   onFinish,
+  multiline = true,
 }: {
   nodeId: string;
   value: string;
   editing: boolean;
   style: CSSProperties;
-  onCommit?: (value: string) => void;
+  onCommit?: (value: string, phase: "preview" | "commit" | "cancel") => void;
   onFinish?: () => void;
+  multiline?: boolean;
 }) {
   const ref = useRef<HTMLSpanElement>(null);
   const valueAtEditStart = useRef(value);
-  const lastSentValue = useRef(value);
-  const settledTimer = useRef<number | null>(null);
+  const cancelled = useRef(false);
 
   useEffect(() => {
     if (!ref.current || editing) return;
     if (ref.current.innerText !== value) ref.current.innerText = value;
     valueAtEditStart.current = value;
-    lastSentValue.current = value;
   }, [editing, value]);
 
   useEffect(() => {
     if (!editing) return;
-    lastSentValue.current = valueAtEditStart.current;
+    cancelled.current = false;
     const element = ref.current;
     if (!element) return;
     element.focus({ preventScroll: true });
@@ -309,18 +310,10 @@ function InlineEditableText({
     selection?.addRange(range);
   }, [editing]);
 
-  useEffect(() => () => {
-    if (settledTimer.current != null) window.clearTimeout(settledTimer.current);
-  }, []);
-
   const commit = () => {
     const next = ref.current?.innerText ?? value;
-    if (settledTimer.current != null) window.clearTimeout(settledTimer.current);
-    settledTimer.current = null;
-    if (next !== lastSentValue.current) {
-      lastSentValue.current = next;
-      onCommit?.(next);
-    }
+    if (!cancelled.current) onCommit?.(next, "commit");
+    cancelled.current = false;
     onFinish?.();
   };
 
@@ -331,28 +324,32 @@ function InlineEditableText({
       style={style}
       dir="ltr"
       contentEditable={editing}
+      role={editing ? "textbox" : undefined}
+      aria-multiline={editing ? multiline : undefined}
       spellCheck={editing}
       suppressContentEditableWarning
       data-testid={`composition-inline-text-${nodeId}`}
       data-inline-editing={editing ? "true" : "false"}
+      data-studio-keyboard-owner={editing ? "text-entry" : undefined}
       onPointerDown={(event) => {
         if (editing) event.stopPropagation();
       }}
       onInput={(event) => {
-        if (settledTimer.current != null) window.clearTimeout(settledTimer.current);
-        const next = event.currentTarget.innerText;
-        settledTimer.current = window.setTimeout(() => {
-          if (next === lastSentValue.current) return;
-          lastSentValue.current = next;
-          onCommit?.(next);
-        }, 900);
+        onCommit?.(event.currentTarget.innerText, "preview");
       }}
       onBlur={commit}
       onKeyDown={(event) => {
-        if (event.key !== "Escape") return;
-        event.preventDefault();
-        if (ref.current) ref.current.innerText = valueAtEditStart.current;
-        ref.current?.blur();
+        if (event.nativeEvent.isComposing) return;
+        if (event.key === "Enter" && !multiline) {
+          event.preventDefault();
+          event.currentTarget.blur();
+        } else if (event.key === "Escape") {
+          event.preventDefault();
+          cancelled.current = true;
+          if (ref.current) ref.current.innerText = valueAtEditStart.current;
+          onCommit?.(valueAtEditStart.current, "cancel");
+          ref.current?.blur();
+        }
       }}
     />
   );
@@ -368,7 +365,7 @@ function NodeVisual({
   node: CreativeCompositionNode;
   editMode?: boolean;
   textEditing?: boolean;
-  onEditText?: (value: string) => void;
+  onEditText?: (value: string, phase: "preview" | "commit" | "cancel") => void;
   onFinishTextEdit?: () => void;
 }) {
   const elementKind = str(node.props.elementKind);
@@ -757,6 +754,7 @@ function NodeVisual({
           style={glyphStyle}
           onCommit={onEditText}
           onFinish={onFinishTextEdit}
+          multiline={node.props.textMultiline !== false}
         />
       </div>
     );
@@ -2677,7 +2675,7 @@ export function CreativeCompositionCanvas({
     const rootChildren = compositionChildren(block, null);
     const moduleFrame = (node: CreativeCompositionNode): CSSProperties => {
       const minHeight = node.moduleComposition ? Math.max(52, node.moduleComposition.pageHeightPx ?? 56)
-        : node.primitive === "text" ? 40
+        : node.primitive === "text" ? Math.max(32, num(node.props.textMinHeightPx, 40))
           : node.primitive === "image" ? Math.max(140, node.minHeightPx ?? 180)
             : node.primitive === "border" ? 12
               : Math.max(52, node.minHeightPx ?? 56);
@@ -2801,7 +2799,7 @@ export function CreativeCompositionCanvas({
         data-element-kind={String(node.props.elementKind || node.primitive)}
         data-selected={selectedSet.has(node.id) ? "true" : "false"}
         draggable={false}
-        role={editMode ? "button" : undefined}
+        role={editMode ? (node.moduleComposition || node.primitive === "button" || editingNodeId === node.id ? "group" : "button") : undefined}
         tabIndex={editMode ? 0 : undefined}
         aria-label={editMode ? node.moduleComposition?.signatureAssembly ? `${node.name || "Curated"} Curated System` : `${node.name || String(node.props.elementKind || node.primitive)} Module` : undefined}
         onPointerDown={(event) => {
@@ -2823,6 +2821,7 @@ export function CreativeCompositionCanvas({
               ? selectedNodeIds.filter((id) => id !== node.id)
               : [...selectedNodeIds, node.id]
             : [node.id]);
+          if (!multi && node.primitive === "text" && selectedSet.has(node.id)) setEditingNodeId(node.id);
         }}
         onDoubleClick={(event) => {
           if (!editMode || node.primitive !== "text") return;
@@ -2833,6 +2832,7 @@ export function CreativeCompositionCanvas({
         }}
         onKeyDown={(event) => {
           if (!editMode || (event.key !== "Enter" && event.key !== " ")) return;
+          if (!studioModuleActivationMayRun(event.nativeEvent, event.currentTarget)) return;
           event.preventDefault();
           onSelectNodes?.([node.id]);
         }}
@@ -2848,7 +2848,7 @@ export function CreativeCompositionCanvas({
               node={node}
               editMode={editMode}
               textEditing={editingNodeId === node.id}
-              onEditText={(value) => onEditNodeText?.(node.id, value)}
+              onEditText={(value, phase) => onEditNodeText?.(node.id, value, phase)}
               onFinishTextEdit={() => setEditingNodeId(null)}
             />
           </MotionVisual>
@@ -3075,7 +3075,7 @@ export function CreativeCompositionCanvas({
                   node={node}
                   editMode={editMode}
                   textEditing={editingNodeId === node.id}
-                  onEditText={(value) => onEditNodeText?.(node.id, value)}
+                  onEditText={(value, phase) => onEditNodeText?.(node.id, value, phase)}
                   onFinishTextEdit={() => setEditingNodeId(null)}
                 />
               </MotionVisual>
@@ -3370,7 +3370,7 @@ export function CreativeCompositionCanvas({
                   node={node}
                   editMode={editMode}
                   textEditing={editingNodeId === node.id}
-                  onEditText={(value) => onEditNodeText?.(node.id, value)}
+                  onEditText={(value, phase) => onEditNodeText?.(node.id, value, phase)}
                   onFinishTextEdit={() => setEditingNodeId(null)}
                 />
               </MotionVisual>
@@ -3411,6 +3411,7 @@ export function CreativeCompositionCanvas({
           }}
           onKeyDown={(event) => {
             if (event.key !== "Enter" && event.key !== " ") return;
+            if (!studioModuleActivationMayRun(event.nativeEvent, event.currentTarget)) return;
             event.preventDefault();
             onSelectNodes?.([compound.anchorNodeId]);
           }}

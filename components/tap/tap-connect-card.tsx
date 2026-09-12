@@ -89,7 +89,8 @@ type TapConnectCardProps = {
   onCompositionChange?: (
     sectionId: string | null,
     composition: CreativeCompositionBlock,
-    label?: string
+    label?: string,
+    phase?: "preview" | "commit" | "cancel",
   ) => void;
   onComposerDrop?: (payload: { level: "section" | "element"; kind: string; initialProps?: Record<string, unknown> }, sectionId?: string) => void;
   onSectionReorder?: (fromSectionId: string, toSectionId: string) => void;
@@ -1371,11 +1372,11 @@ export function TapConnectCard({
           onChangeBlock={(next, label) => onCompositionChange?.(section.id, next, label)}
               mediaUploadReady={mediaUploadReady}
               onNotify={onNotify}
-          onEditNodeText={(nodeId, value) => {
+          onEditNodeText={(nodeId, value, phase) => {
             const nodes = block.nodes.map((node) => node.id === nodeId
               ? { ...node, props: node.primitive === "button" ? updateButtonLabel(node.props, value, node.id) : { ...node.props, text: value } }
               : node);
-            onCompositionChange?.(section.id, { ...block, nodes }, nodeId && block.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited text on canvas");
+            onCompositionChange?.(section.id, { ...block, nodes }, nodeId && block.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited text on canvas", phase);
           }}
           containerActions={{
             current: "section",
@@ -1782,7 +1783,7 @@ export function TapConnectCard({
               onChangeBlock={(next, label) => onCompositionChange?.(null, next, label)}
               mediaUploadReady={mediaUploadReady}
               onNotify={onNotify}
-              onEditNodeText={(nodeId, value) => {
+              onEditNodeText={(nodeId, value, phase) => {
                 const root = parseRuntimeComposition(config.rootComposition);
                 if (!root) return;
                 onCompositionChange?.(null, {
@@ -1790,7 +1791,7 @@ export function TapConnectCard({
                   nodes: root.nodes.map((node) => node.id === nodeId
                     ? { ...node, props: node.primitive === "button" ? updateButtonLabel(node.props, value, node.id) : { ...node.props, text: value } }
                     : node),
-                }, root.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited root text on canvas");
+                }, root.nodes.find((node) => node.id === nodeId)?.primitive === "button" ? "Edited Button label on canvas" : "Edited root text on canvas", phase);
               }}
               containerActions={{
                 current: "card",

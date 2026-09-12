@@ -1,5 +1,6 @@
 import type { CreativeCompositionBlock, CreativeCompositionNode } from "../composition";
 import { compositionChildren, hasCompositionParentAuthority } from "../../card/composition-parent-authority";
+import { STUDIO_TEXT_ROLES, textRoleCanonicalProps } from "./text-authoring";
 
 export const STUDIO_ADD_DISCOVER_CONTRACT = "studioAddDiscover@1.0.0" as const;
 
@@ -59,7 +60,7 @@ export const STUDIO_ADD_CATEGORIES: readonly StudioAddCategoryRegistration[] = [
 ];
 
 export const STUDIO_ORDINARY_MODULES: readonly StudioOrdinaryModuleRegistration[] = [
-  { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "text:basic", categoryId: "text", label: "Editable text", description: "Start with clear body copy, then refine typography and spacing.", moduleKind: "text", previewKind: "text", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { text: "Type something meaningful", elementKind: "text" }, refineEntry: "content", capabilityGroups: ["content", "typography", "position", "accessibility"], governance: "host-editable" },
+  ...STUDIO_TEXT_ROLES.map((role) => ({ contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: `text:${role.id}`, categoryId: "text" as const, label: role.label, description: role.description, moduleKind: "text" as const, previewKind: "text" as const, readiness: "ready" as const, allowedParents: ["card-surface", "container"] as const, defaultCanonicalState: textRoleCanonicalProps(role.id), refineEntry: "content" as const, capabilityGroups: ["content", "text", "spacing", "position", "accessibility"], governance: "host-editable" as const })),
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "image:asset", categoryId: "image", label: "Image from Assets", description: "Choose an uploaded, Brand, recent, favorite, or provider-backed Asset.", moduleKind: "image", previewKind: "image", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { elementKind: "image", fit: "cover", alt: "Card image" }, refineEntry: "asset", capabilityGroups: ["asset", "treatment", "position", "accessibility"], governance: "host-editable" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "button:standard", categoryId: "buttons", label: "Standard Button", description: "A directly editable action using a customer-ready presentation.", moduleKind: "button", previewKind: "button", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { elementKind: "button" }, refineEntry: "action", capabilityGroups: ["content", "action", "appearance", "position", "accessibility"], governance: "host-editable" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "divider:standard", categoryId: "divider", label: "Clean Divider", description: "A restrained separator with editable weight, color, and spacing.", moduleKind: "divider", previewKind: "divider", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { elementKind: "divider", thicknessPx: 1, opacity: 0.55, lineStyle: "solid" }, refineEntry: "appearance", capabilityGroups: ["appearance", "spacing", "position", "accessibility"], governance: "host-editable" },

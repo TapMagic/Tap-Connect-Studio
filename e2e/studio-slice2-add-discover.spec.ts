@@ -49,8 +49,8 @@ test("completes Choose → Browse → Place → Select → Refine across the rea
 
     const initialModules = await page.locator('[data-parent-authority="flow-v1"] [data-composition-kind="module"]').count();
     await page.getByTestId("studio-add-text").click();
-    await expect(page.getByTestId("studio-add-resource-text-basic")).toBeVisible();
-    await page.getByTestId("studio-add-resource-text-basic").click();
+    await expect(page.getByTestId("studio-add-resource-text-body")).toBeVisible();
+    await page.getByTestId("studio-add-resource-text-body").click();
     await expect(page.getByTestId("studio-discovery-drawer")).toHaveCount(0);
     await expect(page.getByTestId("studio-composition-inspector")).toBeVisible();
     await expect(page.locator('[data-parent-authority="flow-v1"] [data-composition-kind="module"]')).toHaveCount(initialModules + 1);

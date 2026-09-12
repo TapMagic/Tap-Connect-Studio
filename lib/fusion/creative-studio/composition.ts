@@ -317,6 +317,8 @@ export type CreativeCompositionBlock = {
     shine?: boolean;
     /** Applies to the root fill only; never changes Element or utility opacity. */
     opacity?: number;
+    /** Whether this authored root base was copied from Brand or customized locally. */
+    source?: "brand" | "local";
     tint?: string;
     saturation?: number;
     brightness?: number;

@@ -6,6 +6,7 @@ import { listStudioRecentResources, recordStudioResourceUsage } from "@/lib/fusi
 import { resolveStudioResourceReference } from "@/lib/fusion/creative-studio/platform/resource-provider-registry.server";
 import { standardButtonResourceProvider } from "@/lib/fusion/creative-studio/reconstitution/standard-button-provider.server";
 import { studioIconResourceProviders } from "@/lib/fusion/creative-studio/platform/icon-resource-provider.server";
+import { textAuthoringResourceProvider } from "@/lib/fusion/creative-studio/platform/text-resource-provider.server";
 
 const usageSchema = z.object({
   resource: z.object({ provider: z.string().min(1), resourceId: z.string().min(1), version: z.union([z.string(), z.number()]).optional() }),
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
   try {
     const { user, business } = await requireBusiness();
     const input = usageSchema.parse(await request.json());
-    const canonical = await resolveStudioResourceReference({ businessId: business.id, userId: user.id, resource: input.resource, providers: [standardButtonResourceProvider, ...studioIconResourceProviders] });
+    const canonical = await resolveStudioResourceReference({ businessId: business.id, userId: user.id, resource: input.resource, providers: [standardButtonResourceProvider, textAuthoringResourceProvider, ...studioIconResourceProviders] });
     const recent = await recordStudioResourceUsage({ ...input, userId: user.id, businessId: business.id, timestamp: new Date().toISOString(), canonicalCreativeResourceId: canonical.resourceId });
     return NextResponse.json({ recent });
   } catch (error) {
