@@ -19,7 +19,7 @@ export const CURATED_AUTHORING_COMMANDS = {
 } as const;
 
 export type CuratedAuthoringCommandPayload =
-  | { layoutMode: "standalone" | "single-stack" | "twin-rail" }
+  | { presentationId: string }
   | { count: number }
   | { actionId: string; patch: Extract<StudioCuratedAssemblyMutation, { type: "update-action" }>["patch"] }
   | { controlId: string; slotId: string; resource?: StudioSemanticResource }
@@ -50,6 +50,8 @@ export function createCuratedAuthoringCapability(
   activeActionId?: string,
 ): StudioAuthoringCapabilityContract {
   const active = assembly.slots.find((slot) => slot.id === activeActionId) ?? assembly.slots[0];
+  const capabilities=assembly.capabilities??{supportsSublabel:false,supportsSemanticIcon:false,plugSide:"derived" as const};
+  const compatibleSemanticIcons=assembly.compatibleSemanticIcons??[];
   const actionOptions = standardButtonActions();
   const activePresentation = actionOptions.find((action) => action.kind === active?.actionType) ?? actionOptions.find((action) => action.kind === "website")!;
   const activeSize = assembly.textSizes.find((size) => size.id === (active?.textSize || "medium")) ?? assembly.textSizes.find((size) => size.id === "medium");
@@ -203,9 +205,9 @@ export function createCuratedAuthoringCapability(
             label: "Layout",
             description: "Choose a certified recipe. Structure recompiles automatically.",
             type: "visual-layout",
-            value: assembly.layoutMode,
+            value: assembly.presentationId??assembly.recipeId,
             commandId: CURATED_AUTHORING_COMMANDS.setLayout,
-            options: assembly.layouts.map((layout) => ({ id: layout.id, label: layout.label, description: layout.description, availability: "enabled" as const, metadata: { actionCountOptions: layout.allowedActionCounts.join(",") } })),
+            options: assembly.layouts.map((layout) => ({ id: layout.id, label: layout.label, description: layout.description, availability: "enabled" as const, metadata: { layoutMode:layout.layoutMode??assembly.layoutMode, actionCountOptions: layout.allowedActionCounts.join(",") } })),
           },
           {
             id: "action-count",
@@ -245,7 +247,9 @@ export function createCuratedAuthoringCapability(
         level: "module-internal",
         controls: active ? [
           { id: "label", label: "Label", type: "text", value: active.label, maxLength: characterLimit, guidance: characterLimit ? `${activePx}px is phone-safe up to ${characterLimit} characters in ${assembly.recipeLabel}.` : undefined, commandId: CURATED_AUTHORING_COMMANDS.updateAction },
+          ...(capabilities.supportsSublabel?[{ id: "sublabel", label: "Sublabel", type: "text" as const, value: active.sublabel || "", guidance: "Optional secondary copy; phone-safe overflow is truncated by the canonical renderer.", commandId: CURATED_AUTHORING_COMMANDS.updateAction }]:[]),
           { id: "accessible-name", label: "Accessible name", type: "text", value: active.accessibleName || active.label, commandId: CURATED_AUTHORING_COMMANDS.updateAction },
+          ...(capabilities.supportsSemanticIcon?[{ id: "semantic-label", label: "Icon accessible label", type: "text" as const, value: active.semanticLabel || active.semanticIconRef?.accessibleLabel || "", commandId: CURATED_AUTHORING_COMMANDS.updateAction }]:[]),
           {
             id: "action-intent",
             label: "Action",
@@ -266,15 +270,23 @@ export function createCuratedAuthoringCapability(
           ...textSizeControls,
           {
             id: "plug",
-            label: "Compatible plug",
+            label: capabilities.supportsSemanticIcon ? "Plug presentation" : "Compatible plug",
             description: "Only certified socket-compatible choices appear.",
             type: "visual-grid",
-            value: active.plugComponentId,
+            value: active.plugPresentationId ?? active.plugComponentId,
             commandId: CURATED_AUTHORING_COMMANDS.updateAction,
             searchable: true,
             initialVisibleCount: 8,
             options: assembly.compatiblePlugs.map((plug) => ({ id: plug.componentId, label: plug.label, previewRef: plug.previewSrc, availability: "enabled" as const, compatibilityTags: [assembly.recipeId] })),
           },
+          ...(capabilities.supportsSemanticIcon?[{
+            id:"semantic-icon",label:"Semantic icon",description:"Canonical shared artwork; the family presentation owns its treatment.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId,commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
+            options:compatibleSemanticIcons.map((icon)=>({id:icon.canonicalId,label:icon.accessibleLabel??icon.iconName,previewRef:icon.body,availability:"enabled" as const,compatibilityTags:icon.compatibility})),
+          }]:[]),
+          ...(capabilities.plugSide==="authorable"?[{
+            id:"plug-side",label:"Plug side",type:"segmented" as const,value:active.plugSide??capabilities.allowedPlugSides?.[0]??"left",commandId:CURATED_AUTHORING_COMMANDS.updateAction,
+            options:(capabilities.allowedPlugSides??["left","right"]).map((id)=>({id,label:id[0].toUpperCase()+id.slice(1),availability:"enabled" as const})),
+          }]:[]),
         ] : [],
       },
     ],
@@ -314,8 +326,13 @@ export function curatedCommandPayloadToMutation(
 ): StudioCuratedAssemblyMutation | null {
   if (!payload || typeof payload !== "object") return null;
   if (commandId === CURATED_AUTHORING_COMMANDS.setLayout) {
-    const layoutMode = "layoutMode" in payload ? payload.layoutMode : "value" in payload ? payload.value : undefined;
-    if (layoutMode === "standalone" || layoutMode === "single-stack" || layoutMode === "twin-rail") return { type: "set-layout", layoutMode };
+    const presentationId = "presentationId" in payload ? payload.presentationId : "value" in payload ? payload.value : undefined;
+    if (typeof presentationId === "string" && assembly?.layouts.some((layout)=>layout.id===presentationId)) return { type: "set-presentation", presentationId };
+    const legacyLayoutMode="layoutMode" in payload?payload.layoutMode:undefined;
+    if (legacyLayoutMode==="standalone"||legacyLayoutMode==="single-stack"||legacyLayoutMode==="twin-rail") {
+      const registered=assembly?.layouts.find((layout)=>(layout.layoutMode??layout.id)===legacyLayoutMode);
+      return registered?{type:"set-presentation",presentationId:registered.id}:{type:"set-layout",layoutMode:legacyLayoutMode};
+    }
   }
   if (commandId === CURATED_AUTHORING_COMMANDS.setCount) {
     const count = "count" in payload ? payload.count : "value" in payload ? payload.value : undefined;
@@ -344,12 +361,16 @@ export function curatedCommandPayloadToMutation(
     if (typeof payload.value !== "string") return null;
     const slot = assembly?.slots.find((candidate) => candidate.id === payload.actionId);
     const patch = payload.controlId === "label" ? { label: payload.value }
+      : payload.controlId === "sublabel" && assembly?.capabilities?.supportsSublabel ? { sublabel: payload.value }
       : payload.controlId === "accessible-name" ? { accessibilityLabel: payload.value }
+      : payload.controlId === "semantic-label" && assembly?.capabilities?.supportsSemanticIcon ? { semanticLabel: payload.value }
       : payload.controlId === "action-intent" ? actionIntentPatch(payload.value, slot?.destination)
           : payload.controlId === "destination" ? destinationPatch(slot?.actionType, payload.value)
             : payload.controlId === "alignment" && ["left", "center", "right"].includes(payload.value) ? { textAlign: payload.value as "left" | "center" | "right" }
               : payload.controlId === "text-size" && ["small", "medium", "large"].includes(payload.value) ? { textSize: payload.value as "small" | "medium" | "large" }
-                : payload.controlId === "plug" ? { plugComponentId: payload.value }
+                : payload.controlId === "plug" || payload.controlId === "plug-presentation" ? assembly?.capabilities?.supportsSemanticIcon ? { plugPresentationId: payload.value } : { plugComponentId: payload.value }
+                  : payload.controlId === "semantic-icon" && assembly?.capabilities?.supportsSemanticIcon ? { semanticIconRef: assembly.compatibleSemanticIcons?.find((icon)=>icon.canonicalId===payload.value) }
+                    : payload.controlId === "plug-side" && assembly?.capabilities?.plugSide==="authorable" && (payload.value==="left"||payload.value==="right") ? { plugSide:payload.value as "left"|"right" }
                   : null;
     return patch ? { type: "update-action", actionId: payload.actionId, patch } : null;
   }

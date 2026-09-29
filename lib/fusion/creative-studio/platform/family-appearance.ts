@@ -1,7 +1,7 @@
 export const FAMILY_APPEARANCE_CONTRACT = "familyAppearance@1.0.0" as const;
 export const FAMILY_TEXT_TREATMENT_CONTRACT = "familyTextTreatment@1.0.0" as const;
 
-export type FamilyAppearanceRoleId = "body-surface" | "structural-metal" | "plug-face" | "plug-base" | "text" | "accent" | (string & {});
+export type FamilyAppearanceRoleId = "body-surface" | "text-bar-surface" | "structural-metal" | "trim" | "plug-surface" | "plug-face" | "plug-base" | "text" | "subtext" | "accent" | "edge" | "depth" | (string & {});
 
 export type FamilyAppearanceOption = {
   id: string;
@@ -10,6 +10,12 @@ export type FamilyAppearanceOption = {
   preview: string;
   rendererValue: string;
   certified: boolean;
+  governance?: "fixed" | "configurable" | "governed" | "hidden" | "inherited";
+  /** Optional projection through the same material catalog used by Standard Buttons. */
+  materialProjection?: {
+    materialId: string;
+    target: "action-surface" | "plug-surface" | "structural" | "text" | "subtext" | "icon-artwork" | "icon-backing";
+  };
 };
 
 export type FamilyAppearanceOptionAvailability = FamilyAppearanceOption & {

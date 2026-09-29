@@ -2,6 +2,7 @@
  * Canonical IconAsset model + SVG sanitize/normalize for Iconify and built-ins.
  * Client-safe — no server-only imports.
  */
+import { siApplemusic, siBandsintown, siFacebook, siInstagram, siSpotify, siYoutube } from "simple-icons";
 
 export type IconRenderMode = "fill" | "stroke" | "multicolor";
 
@@ -18,6 +19,10 @@ export type IconAsset = Readonly<{
   license?: { title?: string; spdx?: string; url?: string };
   source: string;
   fetchedAt: string;
+  accessibleLabel?: string;
+  canonicalReference?: string;
+  compatibility?: readonly string[];
+  attribution?: string;
 }>;
 
 const FORBIDDEN_SVG =
@@ -86,6 +91,10 @@ export function createIconAsset(input: {
   source?: string;
   license?: IconAsset["license"];
   fetchedAt?: string;
+  accessibleLabel?: string;
+  canonicalReference?: string;
+  compatibility?: readonly string[];
+  attribution?: string;
 }): IconAsset | null {
   const body = sanitizeSvg(input.svg);
   if (!body) return null;
@@ -103,6 +112,10 @@ export function createIconAsset(input: {
     license: input.license,
     source: input.source || `https://icon-sets.iconify.design/${input.collection}/${input.iconName}/`,
     fetchedAt: input.fetchedAt || new Date().toISOString(),
+    accessibleLabel: input.accessibleLabel,
+    canonicalReference: input.canonicalReference,
+    compatibility: input.compatibility,
+    attribution: input.attribution,
   });
 }
 
@@ -129,6 +142,8 @@ export const NATIVE_ICON_SVGS: Record<string, string> = {
 };
 
 export function nativeIconAsset(iconId: string): IconAsset | null {
+  const platform = CANONICAL_PLATFORM_ICON_ASSETS.find((asset) => asset.iconName === iconId || asset.canonicalId === iconId);
+  if (platform) return platform;
   const svg = NATIVE_ICON_SVGS[iconId];
   if (!svg) return null;
   return createIconAsset({
@@ -138,6 +153,34 @@ export function nativeIconAsset(iconId: string): IconAsset | null {
     svg,
     source: "tapconnect-native",
   });
+}
+
+const PLATFORM_ICON_SOURCE_DATE = "2026-09-28T00:00:00.000Z";
+const platformIcons = [
+  ["spotify", "Spotify", siSpotify],
+  ["apple-music", "Apple Music", siApplemusic],
+  ["youtube", "YouTube", siYoutube],
+  ["instagram", "Instagram", siInstagram],
+  ["facebook", "Facebook", siFacebook],
+  ["bandsintown", "Bandsintown", siBandsintown],
+] as const;
+
+/** Reusable approved platform marks. No family owns or copies this artwork. */
+export const CANONICAL_PLATFORM_ICON_ASSETS: readonly IconAsset[] = platformIcons.map(([iconName, label, icon]) => createIconAsset({
+  provider: "native",
+  collection: "simple-icons",
+  iconName,
+  svg: icon.svg,
+  source: icon.source,
+  fetchedAt: PLATFORM_ICON_SOURCE_DATE,
+  accessibleLabel: label,
+  canonicalReference: `simple-icons:${icon.slug}`,
+  compatibility: ["curated-semantic-icon", "standard-icon", "standalone-icon"],
+  attribution: `${label} mark via simple-icons; source authority: ${icon.source}`,
+})!).filter(Boolean);
+
+export function canonicalIconAsset(canonicalId: string): IconAsset | null {
+  return CANONICAL_PLATFORM_ICON_ASSETS.find((asset) => asset.canonicalId === canonicalId) ?? nativeIconAsset(canonicalId);
 }
 
 /** Default bare Icon Element — SVG only; no backing Surface chrome. */

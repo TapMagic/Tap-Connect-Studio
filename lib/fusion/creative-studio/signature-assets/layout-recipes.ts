@@ -8,6 +8,32 @@ import {
 } from "./types";
 import type { SignatureAssemblyLayoutMode } from "./assembly";
 
+export type SignaturePlugSidePolicy =
+  | { mode: "fixed"; side: Extract<SignatureSide, "left" | "right" | "center"> }
+  | { mode: "authorable"; allowed: readonly Extract<SignatureSide, "left" | "right">[]; defaultSide: Extract<SignatureSide, "left" | "right"> }
+  | { mode: "derived" };
+
+export type SignatureIconTreatment = {
+  mode: "engraved" | "embossed" | "inset" | "monochrome";
+  safeInset: number;
+  scale?: number;
+  color?: string;
+  materialId?: string;
+  backingMaterialId?: string;
+};
+
+export type SignaturePresentationContract = {
+  id: string;
+  label: string;
+  description: string;
+  previewAssetId?: string;
+  capabilities?: {
+    semanticIcon?: { supported: boolean; defaultCanonicalIconId?: string; treatment: SignatureIconTreatment };
+    sublabel?: { supported: boolean; maxLength?: number };
+    plugSide?: SignaturePlugSidePolicy;
+  };
+};
+
 export type SignatureAssemblyComponentReference = {
   role: string;
   componentId?: string;
@@ -156,6 +182,8 @@ export type SignatureAssemblyRecipe = {
   recipeId: string;
   recipeVersion: `${number}.${number}.${number}`;
   presentationMode: SignatureAssemblyLayoutMode;
+  /** Specific approved presentation. Distinct recipes may share presentationMode. */
+  presentation?: SignaturePresentationContract;
   fixedTop: readonly SignatureAssemblyComponentReference[];
   actionUnit: SignatureLiveActionUnit;
   repeatInterval?: SignatureRepeatInterval;
@@ -172,6 +200,15 @@ export type SignatureAssemblyRecipe = {
   certificationLimits: SignatureAssemblyCertificationLimits;
   geometry: SignatureAssemblyGeometryContract;
 };
+
+export function signaturePresentation(recipe: SignatureAssemblyRecipe): SignaturePresentationContract {
+  return recipe.presentation ?? {
+    id: recipe.recipeId,
+    label: recipe.presentationMode === "standalone" ? "Standalone Action" : recipe.presentationMode === "single-stack" ? "Single Stack" : "Twin Rail",
+    description: "A governed Curated presentation whose structure is owned by its registered recipe.",
+    capabilities: { semanticIcon: { supported: false, treatment: { mode: "monochrome", safeInset: .2 } }, sublabel: { supported: false }, plugSide: { mode: "derived" } },
+  };
+}
 
 export const SIGNATURE_ASSEMBLY_CONTRACT_IDS = {
   singleStack: APPROVED_SIGNATURE_CONTRACT_IDS.singleStackAssembly,

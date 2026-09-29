@@ -11,6 +11,8 @@ import {
 } from "./assembly";
 import { adaptSignatureAssemblyResult, type SignatureCompositionAdapterResult } from "./composition-adapter";
 import { SIGNATURE_ASSEMBLY_RECIPES, SIGNATURE_ASSETS, SIGNATURE_FAMILIES } from "./registry";
+import { signaturePresentation, type SignaturePresentationContract } from "./layout-recipes";
+import { canonicalIconAsset } from "../icon-asset";
 import {
   isSignatureComponentRuntimeEligible,
   resolveSignatureAccess,
@@ -50,7 +52,11 @@ export type SignatureAssemblyAuthoringState = {
 
 export type SignatureAuthoringLayoutOption = {
   layoutMode: SignatureAssemblyLayoutMode;
+  presentationId: string;
   label: string;
+  description: string;
+  previewAssetId?: string;
+  capabilities?: SignaturePresentationContract["capabilities"];
   recipeId: string;
   recipeVersion: SignatureAssemblyInput["recipeVersion"];
   launchCertifiedActionCounts: readonly number[];
@@ -111,15 +117,15 @@ export function listSignatureAuthoringFamilies(
     const referenceAssets = SIGNATURE_ASSETS.filter((asset) => asset.familyId === family.id && asset.referenceOnly);
     return {
       family,
-      previewAsset: referenceAssets[0] ?? assets[0],
+      previewAsset: SIGNATURE_ASSETS.find((asset)=>asset.id===family.discovery?.previewAssetId) ?? referenceAssets[0] ?? assets[0],
       certificationStatus: assets.length > 0 && assets.every((asset) => asset.normalizedContract?.certification.state === "certified") ? "certified" as const : "candidate" as const,
       launchMode: family.launchMode,
       access,
       entitled,
       runtimeEligible: family.lifecycle === "production" && recipes.length > 0 && assets.length > 0,
       layouts: recipes.map((recipe) => ({
+        ...(() => { const presentation=signaturePresentation(recipe); return { presentationId:presentation.id, label:presentation.label, description:presentation.description, previewAssetId:presentation.previewAssetId, capabilities:presentation.capabilities }; })(),
         layoutMode: recipe.presentationMode,
-        label: recipe.presentationMode === "standalone" ? "Standalone Action" : recipe.presentationMode === "single-stack" ? "Single Stack" : "Twin Rail",
         recipeId: recipe.recipeId,
         recipeVersion: recipe.recipeVersion,
         launchCertifiedActionCounts: recipe.certificationLimits.launchCertifiedActionCounts,
@@ -173,19 +179,27 @@ export function normalizeSignatureAssemblyAuthoringState(state: SignatureAssembl
         ...action,
         label: normalizeSignatureActionCopy(action.label),
         accessibilityLabel: normalizeSignatureActionCopy(action.accessibilityLabel),
+        ...(typeof action.sublabel==="string"?{sublabel:normalizeSignatureActionCopy(action.sublabel)}:{}),
+        ...(typeof action.semanticLabel==="string"?{semanticLabel:normalizeSignatureActionCopy(action.semanticLabel)}:{}),
       }, state.input.familyId, state.input.layoutMode)),
     },
   };
 }
 
-function createAction(index: number, plugComponentId: string, idFactory: () => string, familyId: string, layoutMode: SignatureAssemblyLayoutMode): SignatureAssemblyActionSelection {
+function createAction(index: number, plugComponentId: string, idFactory: () => string, familyId: string, layoutMode: SignatureAssemblyLayoutMode, presentation?: SignatureAuthoringLayoutOption): SignatureAssemblyActionSelection {
   const ordinal = index + 1;
+  const semanticIconRef=presentation?.capabilities?.semanticIcon?.supported&&presentation.capabilities.semanticIcon.defaultCanonicalIconId
+    ? canonicalIconAsset(presentation.capabilities.semanticIcon.defaultCanonicalIconId)??undefined
+    : undefined;
+  const sidePolicy=presentation?.capabilities?.plugSide;
   return normalizeSignatureActionTypography({
     id: idFactory(),
     label: `Action ${ordinal}`,
     destination: "#",
     actionType: "website",
     plugComponentId,
+    ...(presentation?.capabilities?.semanticIcon?.supported?{plugPresentationId:plugComponentId,semanticIconRef,semanticLabel:semanticIconRef?.accessibleLabel??`Action ${ordinal}`}:{ }),
+    ...(sidePolicy?.mode==="authorable"?{plugSide:sidePolicy.defaultSide}:{ }),
     accessibilityLabel: `Action ${ordinal}`,
     state: "default",
     analyticsId: `signature-action-${ordinal}`,
@@ -196,13 +210,16 @@ function createAction(index: number, plugComponentId: string, idFactory: () => s
 
 export function createSignatureAssemblyAuthoringState(
   familyId: string,
-  layoutMode: SignatureAssemblyLayoutMode,
+  selection: SignatureAssemblyLayoutMode | { presentationId: string },
   options: { idFactory?: () => string; identityContent?: StudioSemanticResource | { src: string; alt: string }; identityDefault?: StudioSemanticResource | { src: string; alt: string } } = {},
 ): SignatureAssemblyAuthoringState | null {
   const entry = familyEntry(familyId);
-  const layout = entry?.layouts.find((candidate) => candidate.layoutMode === layoutMode);
+  const layout = typeof selection === "string"
+    ? entry?.layouts.find((candidate) => candidate.layoutMode === selection)
+    : entry?.layouts.find((candidate) => candidate.presentationId === selection.presentationId);
+  const layoutMode=layout?.layoutMode;
   const plug = entry?.plugs[0]?.normalizedContract?.componentId;
-  if (!entry?.family.version || !layout || !plug) return null;
+  if (!entry?.family.version || !layout || !layoutMode || !plug) return null;
   let counter = 0;
   const idFactory = options.idFactory ?? (() => `signature-action-${Date.now().toString(36)}-${++counter}`);
   const count = layout.launchCertifiedActionCounts[0];
@@ -217,9 +234,10 @@ export function createSignatureAssemblyAuthoringState(
       familyVersion: entry.family.version,
       recipeId: layout.recipeId,
       recipeVersion: layout.recipeVersion,
+      presentationId: layout.presentationId,
       requestedActionCount: count,
       layoutMode,
-      actions: Array.from({ length: count }, (_, index) => createAction(index, plug, idFactory, familyId, layoutMode)),
+      actions: Array.from({ length: count }, (_, index) => createAction(index, plug, idFactory, familyId, layoutMode, layout)),
       componentVariants: variant ? { [variant.role]: variant.componentId } : {},
       decorativeFurniture: {},
     },
@@ -247,7 +265,7 @@ function withActionCount(state: SignatureAssemblyAuthoringState, count: number, 
   let counter = 0;
   const makeId = idFactory ?? (() => `signature-action-${Date.now().toString(36)}-${++counter}`);
   const actions = state.input.actions.slice(0, count);
-  while (actions.length < count) actions.push(createAction(actions.length, defaultPlug, makeId, state.input.familyId, state.input.layoutMode));
+  while (actions.length < count) actions.push(createAction(actions.length, defaultPlug, makeId, state.input.familyId, state.input.layoutMode, layout));
   return normalizeSignatureAssemblyAuthoringState({ ...state, input: { ...state.input, requestedActionCount: count, actions } });
 }
 
@@ -262,7 +280,15 @@ export function setSignatureLayout(state: SignatureAssemblyAuthoringState, layou
   const desiredCount = layout.launchCertifiedActionCounts.includes(state.input.requestedActionCount)
     ? state.input.requestedActionCount
     : layout.launchCertifiedActionCounts[0];
-  return withActionCount({ ...state, input: { ...state.input, layoutMode, recipeId: layout.recipeId, recipeVersion: layout.recipeVersion } }, desiredCount, idFactory);
+  return withActionCount({ ...state, input: { ...state.input, layoutMode, recipeId: layout.recipeId, recipeVersion: layout.recipeVersion, presentationId: layout.presentationId } }, desiredCount, idFactory);
+}
+
+export function setSignaturePresentation(state: SignatureAssemblyAuthoringState, presentationId: string, idFactory?: () => string) {
+  const entry=familyEntry(state.input.familyId);
+  const layout=entry?.layouts.find((candidate)=>candidate.presentationId===presentationId);
+  if (!layout) return state;
+  const desiredCount=layout.launchCertifiedActionCounts.includes(state.input.requestedActionCount)?state.input.requestedActionCount:layout.launchCertifiedActionCounts[0];
+  return withActionCount({ ...state, input: { ...state.input, presentationId:layout.presentationId,layoutMode:layout.layoutMode,recipeId:layout.recipeId,recipeVersion:layout.recipeVersion } },desiredCount,idFactory);
 }
 
 export function reorderSignatureAction(state: SignatureAssemblyAuthoringState, from: number, to: number) {
@@ -343,6 +369,11 @@ export function compileSignatureAuthoringState(
         const optionId = semanticOptionIds[role.id];
         const option = role.options.find((candidate) => candidate.id === optionId && candidate.certified);
         return [role.id, option?.rendererValue ?? "preserve-read-only"];
+      })),
+      semanticMaterialRoles: Object.fromEntries(appearanceContract.roles.flatMap((role) => {
+        const optionId=semanticOptionIds[role.id];
+        const option=role.options.find((candidate)=>candidate.id===optionId&&candidate.certified);
+        return option?.materialProjection?[[role.id,option.materialProjection]]:[];
       })),
       textTreatmentContractId: textContract?.id,
       textTreatmentContractVersion: textContract?.version,
@@ -482,14 +513,16 @@ export function applySignatureAssemblyMutation(
           ? mutation.slotId === "identity" ? setSignatureIdentityContent(current, mutation.resource) : current
           : mutation.type === "set-appearance-option"
             ? setSignatureAppearanceOption(current, mutation.roleId, mutation.optionId)
-            : setSignatureLayout(current, mutation.layoutMode);
+            : mutation.type === "set-presentation"
+              ? setSignaturePresentation(current, mutation.presentationId)
+              : setSignatureLayout(current, mutation.layoutMode);
   const next = mutated === current ? current : mutation.commandId && mutation.provenance
     ? { ...mutated, lastAuthoringCommand: { commandId: mutation.commandId, provenance: mutation.provenance } }
     : mutated;
   if (next === current) return { ok: false, message: "That change is outside this Curated recipe’s certified limits." };
   const familyLabel = familyEntry(next.input.familyId)?.family.label ?? block.label;
-  const nextLabel = mutation.type === "set-layout"
-    ? `${familyLabel} ${mutation.layoutMode === "standalone" ? "Standalone Action" : mutation.layoutMode === "twin-rail" ? "Twin Rail" : "Single Stack"}`
+  const nextLabel = mutation.type === "set-layout" || mutation.type === "set-presentation"
+    ? `${familyLabel} ${familyEntry(next.input.familyId)?.layouts.find((layout)=>layout.presentationId===next.input.presentationId)?.label??next.input.layoutMode}`
     : block.label;
   const compiled = compileSignatureAuthoringState(next, {
     blockId: block.id,

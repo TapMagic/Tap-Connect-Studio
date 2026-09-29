@@ -105,6 +105,10 @@ Cabinet Noir is the first strict assembly consumer. A Cabinet Noir Twin Rail may
 
 Future curated Signature families and multipart curated components may reuse this authority only after Product Owner/Design supplies their curated asset specifications. A possible Cabinet Noir Coupon Block, for example, does not acquire an invented recipe merely because it is foreseeable.
 
+### Curated Family Neutrality Rule
+
+Shared Curated infrastructure must model semantic state, family registration, presentation identity, resource slots, appearance roles, layout authority, history and persistence, and renderer parity without encoding one family’s private geometry or asset assumptions into shared platform contracts. Plug presentation remains family-owned while canonical semantic resources remain independently addressable. A family may be visually unique without requiring a unique editor, browser, persistence model, material engine, or renderer.
+
 Ordinary flat or surface-editable components must not be forced through strict Curated assembly behavior. Generic Coupons, Hero sections, Maps, Offer blocks, banners, standard sections, Standard Buttons, images, text, and basic containers remain directly editable on the Studio surface according to their capability contracts. They may contain meaningful internal fields and still permit direct move, resize, appearance, spacing, alignment, imagery, typography, and responsive editing as appropriate. **Structured content does not imply fixed geometry.**
 
 If repeated real-world cases later demonstrate a broader assembly class beyond Curated Systems, stop and evaluate that class then. Do not prematurely make ordinary two-dimensional components consumers of the Cabinet Noir assembly model.

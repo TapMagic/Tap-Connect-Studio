@@ -67,7 +67,6 @@ import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
 import type { StudioCuratedAssemblyMutation } from "@/lib/fusion/creative-studio/platform/structured-assembly";
 import { editableControlOwnsKeyboard, studioShortcutMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
-import type { SignatureAssemblyLayoutMode } from "@/lib/fusion/creative-studio/signature-assets/assembly";
 import {
   applySignatureAssemblyMutation,
   compileSignatureAuthoringState,
@@ -1570,7 +1569,7 @@ export function TapCardBuilder({
 
   function insertCuratedAssembly(
     familyId: string,
-    layoutMode: SignatureAssemblyLayoutMode,
+    presentationId: string,
     parentId: string | null = null,
     insertionIndex?: number,
   ): { ok: true; selectedNodeId: string } | { ok: false; message: string } {
@@ -1580,7 +1579,7 @@ export function TapCardBuilder({
       setMessage(message);
       return { ok: false, message };
     }
-    const state = createSignatureAssemblyAuthoringState(familyId, layoutMode, {
+    const state = createSignatureAssemblyAuthoringState(familyId, { presentationId }, {
       identityContent: logoUrl ? { src: logoUrl, alt: `${businessName} identity` } : undefined,
     });
     if (!state) {
@@ -1589,7 +1588,7 @@ export function TapCardBuilder({
       return { ok: false, message };
     }
     const compiled = compileSignatureAuthoringState(state, {
-      label: `${family.family.label} ${layoutMode === "standalone" ? "Standalone Action" : layoutMode === "twin-rail" ? "Twin Rail" : "Single Stack"}`,
+      label: `${family.family.label} ${family.layouts.find((layout)=>layout.presentationId===presentationId)?.label??presentationId}`,
     });
     if (!compiled.ok) {
       const message = compiled.errors.map((error) => error.message).join(" ");
@@ -1615,7 +1614,8 @@ export function TapCardBuilder({
         componentKind: "curated-system",
         elementKind: "curated-system",
         curatedFamilyId: familyId,
-        curatedLayoutMode: layoutMode,
+        curatedLayoutMode: state.input.layoutMode,
+        curatedPresentationId: state.input.presentationId,
       },
       moduleComposition: compiled.composition.block,
     };

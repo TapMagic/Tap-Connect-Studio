@@ -33,3 +33,8 @@
 .signature-master[data-signature-family="family_signature_system_v1"] .signature-master__micro-icon img{width:76%;height:76%;object-fit:contain;filter:drop-shadow(0 2px 3px rgba(0,0,0,.72))}
 .signature-master[data-signature-family="family_signature_system_v1"][data-signature-role="alert-token"] .signature-master__micro-copy{left:25%;right:18%}
 .signature-master[data-signature-family="family_signature_system_v1"][data-signature-role="alert-token"] .signature-master__micro-icon{inset:31% auto 31% 18%;width:9%}
+
+/* Family-neutral Curated material and semantic-icon projection. Geometry stays family-owned. */
+.signature-master__material-surface{position:absolute;inset:0;z-index:0;box-sizing:border-box;border-radius:inherit;pointer-events:none}
+.signature-master__semantic-icon{position:absolute;z-index:2;display:grid;place-items:center;pointer-events:none}
+.signature-master__semantic-icon svg{width:100%;height:100%;display:block;fill:currentColor;stroke:currentColor}

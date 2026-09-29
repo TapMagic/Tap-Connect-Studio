@@ -9,7 +9,10 @@ import {
   type SignatureAssemblyComponentReference,
   type SignatureAssemblyPlacementRule,
   type SignatureAssemblyRecipe,
+  type SignatureIconTreatment,
+  signaturePresentation,
 } from "./layout-recipes";
+import type { IconAsset } from "../icon-asset";
 import {
   isSignatureComponentRuntimeEligible,
   type SignatureAssetDefinition,
@@ -29,7 +32,15 @@ export type SignatureAssemblyActionSelection = {
   label: string;
   destination: string;
   actionType?: string;
-  plugComponentId: string;
+  /** Legacy composed plug authority. Optional for new separated chassis/icon presentations. */
+  plugComponentId?: string;
+  /** Family-owned chassis. Legacy records continue to use plugComponentId as the composed presentation. */
+  plugPresentationId?: string;
+  /** Shared semantic resource, independent from the family-owned chassis. */
+  semanticIconRef?: IconAsset;
+  semanticLabel?: string;
+  sublabel?: string;
+  plugSide?: "left" | "right";
   accessibilityLabel: string;
   state: "default" | "hover" | "pressed" | "disabled";
   analyticsId: string;
@@ -44,6 +55,8 @@ export type SignatureAssemblyInput = {
   familyVersion: SignatureVersion;
   recipeId: string;
   recipeVersion: SignatureVersion;
+  /** Canonical approved presentation identity; optional only for legacy persisted records. */
+  presentationId?: string;
   requestedActionCount: number;
   layoutMode: SignatureAssemblyLayoutMode;
   actions: readonly SignatureAssemblyActionSelection[];
@@ -92,6 +105,8 @@ export type SignatureAssemblyPlanInstance = {
   };
   parentInstanceId?: string;
   action?: SignatureAssemblyActionSelection;
+  semanticIconRef?: IconAsset;
+  iconTreatment?: SignatureIconTreatment;
 };
 
 export type SignatureAssemblyPlan = {
@@ -100,6 +115,7 @@ export type SignatureAssemblyPlan = {
   familyVersion: SignatureVersion;
   recipeId: string;
   recipeVersion: SignatureVersion;
+  presentationId: string;
   layoutMode: SignatureAssemblyLayoutMode;
   certificationStatus: SignatureAssemblyCertificationStatus;
   requestedActionCount: number;
@@ -123,6 +139,9 @@ export type SignatureAssemblyErrorCode =
   | "RECIPE_NOT_FOUND"
   | "RECIPE_INVALID"
   | "LAYOUT_MODE_MISMATCH"
+  | "PRESENTATION_ID_MISMATCH"
+  | "INVALID_PLUG_SIDE"
+  | "UNSUPPORTED_SUBLABEL"
   | "INVALID_ACTION_COUNT"
   | "UNSUPPORTED_ACTION_COUNT"
   | "MISSING_ACTION_DATA"
@@ -280,15 +299,25 @@ export function resolveSignatureAssembly(
     return {ok:false,errors:[fail("INVALID_FAMILY_VERSION","Recipe family/version does not match the requested family authority.")]};
   }
   const expectedMode: SignatureAssemblyLayoutMode = recipe.presentationMode;
+  const presentation = signaturePresentation(recipe);
   if (input.layoutMode!==expectedMode) errors.push(fail("LAYOUT_MODE_MISMATCH",`Recipe ${recipe.recipeId} requires ${expectedMode}.`));
+  if (input.presentationId && input.presentationId!==presentation.id) errors.push(fail("PRESENTATION_ID_MISMATCH",`Recipe ${recipe.recipeId} provides presentation ${presentation.id}, not ${input.presentationId}.`));
   if (!Number.isInteger(input.requestedActionCount) || input.requestedActionCount<recipe.certificationLimits.minimumActions) {
     errors.push(fail("INVALID_ACTION_COUNT",`Action count must be an integer of at least ${recipe.certificationLimits.minimumActions}.`));
   }
   const launchCertified = recipe.certificationLimits.launchCertifiedActionCounts.includes(input.requestedActionCount);
   const proofOnly = recipe.certificationLimits.structuralProofOnlyActionCounts?.includes(input.requestedActionCount) ?? false;
   if (!launchCertified && !proofOnly) errors.push(fail("UNSUPPORTED_ACTION_COUNT",`Action count ${input.requestedActionCount} is not certified or approved for structural proof by ${recipe.recipeId}.`));
-  if (input.actions.length!==input.requestedActionCount || input.actions.some((action)=>!action.id || !action.label || !action.destination || !action.plugComponentId || !action.accessibilityLabel || !action.analyticsId)) {
-    errors.push(fail("MISSING_ACTION_DATA","Each requested action requires stable identity, label, destination, semantic plug, accessibility label, state, and analytics identity."));
+  if (input.actions.length!==input.requestedActionCount || input.actions.some((action)=>!action.id || !action.label || !action.destination || (!action.plugPresentationId&&!action.plugComponentId) || !action.accessibilityLabel || !action.analyticsId)) {
+    errors.push(fail("MISSING_ACTION_DATA","Each requested action requires stable identity, label, destination, plug presentation, accessibility label, state, and analytics identity."));
+  }
+  const sidePolicy=presentation.capabilities?.plugSide??{mode:"derived" as const};
+  for (const action of input.actions) {
+    if (action.sublabel && !presentation.capabilities?.sublabel?.supported) errors.push(fail("UNSUPPORTED_SUBLABEL",`Presentation ${presentation.id} does not support action sublabels.`));
+    if (action.sublabel && presentation.capabilities?.sublabel?.maxLength && action.sublabel.length>presentation.capabilities.sublabel.maxLength) errors.push(fail("UNSUPPORTED_SUBLABEL",`Presentation ${presentation.id} limits action sublabels to ${presentation.capabilities.sublabel.maxLength} characters.`));
+    if (sidePolicy.mode==="fixed" && action.plugSide && action.plugSide!==sidePolicy.side) errors.push(fail("INVALID_PLUG_SIDE",`Presentation ${presentation.id} fixes plug side to ${sidePolicy.side}.`));
+    if (sidePolicy.mode==="authorable" && action.plugSide && !sidePolicy.allowed.includes(action.plugSide)) errors.push(fail("INVALID_PLUG_SIDE",`Plug side ${action.plugSide} is not allowed by presentation ${presentation.id}.`));
+    if (sidePolicy.mode==="derived" && action.plugSide) errors.push(fail("INVALID_PLUG_SIDE",`Presentation ${presentation.id} derives plug side from its recipe.`));
   }
   if (errors.length) return {ok:false,errors};
 
@@ -361,18 +390,20 @@ export function resolveSignatureAssembly(
     return instanceId;
   };
   const addPlug = (parentId:string,parent:Resolved,parentRect:SignatureAssemblyNativeRect,selection:SignatureAssemblyActionSelection,layout:{level:number;row:number;column:number},index:number) => {
-    const plugAsset = assetForComponent(registry,input.familyId,selection.plugComponentId);
+    const plugPresentationId=selection.plugPresentationId??selection.plugComponentId;
+    if (!plugPresentationId) { errors.push(fail("INVALID_PLUG_SELECTION","Action has no family-owned plug presentation.")); return; }
+    const plugAsset = assetForComponent(registry,input.familyId,plugPresentationId);
     const plug = plugAsset?.normalizedContract;
-    if (!plugAsset || !plug || !isSignatureComponentRuntimeEligible(plug) || plug.role!=="semantic-plug" || !plug.layoutCompatibility.includes(recipe.contractId)) { errors.push(fail("INVALID_PLUG_SELECTION",`Plug ${selection.plugComponentId} is not an eligible semantic plug for ${recipe.contractId}.`,selection.plugComponentId)); return; }
+    if (!plugAsset || !plug || !isSignatureComponentRuntimeEligible(plug) || plug.role!=="semantic-plug" || !plug.layoutCompatibility.includes(recipe.contractId)) { errors.push(fail("INVALID_PLUG_SELECTION",`Plug presentation ${plugPresentationId} is not eligible for ${recipe.contractId}.`,plugPresentationId)); return; }
     const socket = parent.component.sockets.find((candidate)=>candidate.contractId.startsWith("semanticPlugSocket@"));
     if (!socket) { errors.push(fail("MISSING_SOCKET_CONTRACT",`Action ${parent.component.componentId} has no semantic plug socket.`,parent.component.componentId)); return; }
     const bounds = socket.geometry.bounds;
     const socketNative = {xPx:parentRect.xPx+bounds.x*parentRect.widthPx,yPx:parentRect.yPx+bounds.y*parentRect.heightPx,widthPx:bounds.width*parentRect.widthPx,heightPx:bounds.height*parentRect.heightPx};
-    const presentation=recipe.geometry.actionPresentation;
+    const actionPresentation=recipe.geometry.actionPresentation;
     const compactGeometry=parent.component.compactStackedGeometry;
     let native=socketNative;
-    if (presentation?.mode==="compact-stacked" && compactGeometry) {
-      const availableHeight=presentation.rowHeightPx-presentation.plugVerticalInsetPx*2;
+    if (actionPresentation?.mode==="compact-stacked" && compactGeometry) {
+      const availableHeight=actionPresentation.rowHeightPx-actionPresentation.plugVerticalInsetPx*2;
       // The presentation role owns one square medallion envelope. Immutable
       // plug artwork is contained within that envelope by the renderer, so a
       // source PNG's transparent aspect ratio can never make one plug appear
@@ -382,11 +413,11 @@ export function resolveSignatureAssembly(
       const heightPx=envelopePx;
       const centerXPx=parentRect.xPx+socket.geometry.center.x*parentRect.widthPx;
       const rowTopPx=parentRect.yPx+compactGeometry.visibleBodyBounds.top*parentRect.heightPx;
-      const centerYPx=rowTopPx+presentation.rowHeightPx/2;
+      const centerYPx=rowTopPx+actionPresentation.rowHeightPx/2;
       native={xPx:centerXPx-widthPx/2,yPx:centerYPx-heightPx/2,widthPx,heightPx};
     }
     const instanceId = [input.familyId,input.recipeId,"semantic-plug",plug.componentId,layout.level,layout.column,index].map(String).map(stableToken).join(":");
-    nativeInstances.push({instanceId,sourceAssetId:plugAsset.id,sourceAsset:plugAsset.sourceAsset,sourceComponentId:plug.componentId,sourceComponentVersion:plug.componentVersion,sourceSha256:plug.sourceSha256,semanticRole:"semantic-plug",classification:"live-content",structural:false,decorative:false,interactive:false,native,scale:{mode:"socket-fit",x:native.widthPx/plugAsset.width,y:native.heightPx/plugAsset.height},attachmentAnchorsUsed:[],zOrder:30,socketOwnership:[],liveContentOwnership:{actionText:false,semanticPlug:true,identitySocket:false,informationalLine:false},layout:{...layout,side:parent.component.side},runtimeEligibility:plug.runtimeEligibility,certificationProvenance:{state:plug.certification.state,geometryVersion:plug.certification.geometryVersion,evidence:plug.certification.evidence??[],authorityManifest:plug.provenance?.authorityManifest,geometryAuthority:plug.provenance?.geometryAuthority},parentInstanceId:parentId});
+    nativeInstances.push({instanceId,sourceAssetId:plugAsset.id,sourceAsset:plugAsset.sourceAsset,sourceComponentId:plug.componentId,sourceComponentVersion:plug.componentVersion,sourceSha256:plug.sourceSha256,semanticRole:"semantic-plug",classification:"live-content",structural:false,decorative:false,interactive:false,native,scale:{mode:"socket-fit",x:native.widthPx/plugAsset.width,y:native.heightPx/plugAsset.height},attachmentAnchorsUsed:[],zOrder:30,socketOwnership:[],liveContentOwnership:{actionText:false,semanticPlug:true,identitySocket:false,informationalLine:false},layout:{...layout,side:parent.component.side},runtimeEligibility:plug.runtimeEligibility,certificationProvenance:{state:plug.certification.state,geometryVersion:plug.certification.geometryVersion,evidence:plug.certification.evidence??[],authorityManifest:plug.provenance?.authorityManifest,geometryAuthority:plug.provenance?.geometryAuthority},parentInstanceId:parentId,semanticIconRef:selection.semanticIconRef,iconTreatment:presentation.capabilities?.semanticIcon?.supported?presentation.capabilities.semanticIcon.treatment:undefined});
   };
 
   const zeroContext = {unitStart:0,contentEnd:0,terminationStart:0,oddActionEnd:0,transitionEnd:0};
@@ -432,6 +463,15 @@ export function resolveSignatureAssembly(
         const repeatRow=repeatIsUnitChassis?row:row+1;
         repeat.forEach(({resolved},index)=>{if(resolved)add(resolved,recipe.geometry.repeatComponents[index],"repeat",index,{level:repeatRow,row:repeatRow,column:index},{unitStart:contentOrigin+repeatRow*recipe.geometry.unitStridePx,contentEnd:fullContentEnd,terminationStart:lastCompleteUnitStart,oddActionEnd:0,transitionEnd:0},undefined,row);});
       }
+    }
+  } else if (!isPaired && strategy.mode==="side-specific") {
+    for (let row=0;row<input.requestedActionCount;row++) {
+      const selection=input.actions[row];
+      const governedSide=sidePolicy.mode==="fixed"?sidePolicy.side:sidePolicy.mode==="authorable"?(selection.plugSide??sidePolicy.defaultSide):undefined;
+      const side=governedSide==="left"||governedSide==="right"?governedSide:(row%2===0?"left":"right");
+      const reference=strategy.masters[side];
+      const rule=recipe.geometry.actionSlots.find((candidate)=>candidate.side===side);
+      if (reference&&rule) addActionAt(reference,rule,row,0,selection);
     }
   } else if (isPaired && strategy.mode==="side-specific") {
     for (let level=0;level<completePairs;level++) {
@@ -484,7 +524,7 @@ export function resolveSignatureAssembly(
   const maxY=Math.max(...nativeInstances.map((instance)=>instance.native.yPx+instance.native.heightPx));
   const nativeBounds={xPx:minX,yPx:minY,widthPx:maxX-minX,heightPx:maxY-minY};
   const finalized: SignatureAssemblyPlanInstance[] = nativeInstances.map(({native,scale,...instance})=>({...instance,placement:{native,normalized:{x:(native.xPx-minX)/nativeBounds.widthPx,y:(native.yPx-minY)/nativeBounds.heightPx,width:native.widthPx/nativeBounds.widthPx,height:native.heightPx/nativeBounds.heightPx},sourceScale:scale}}));
-  const plan: SignatureAssemblyPlan = {planVersion:"1.0.0",familyId:input.familyId,familyVersion:input.familyVersion,recipeId:recipe.recipeId,recipeVersion:recipe.recipeVersion,layoutMode:input.layoutMode,certificationStatus:proofOnly?"structural-proof-only":"launch-certified",requestedActionCount:input.requestedActionCount,actionUnitCount:unitCount,completePairedLevelCount:completePairs,coordinateAuthority:"certified-native-space",coordinateWidthPx:recipe.geometry.coordinateWidthPx,unitStridePx:recipe.geometry.unitStridePx,actionPresentationMode:recipe.geometry.actionPresentation?.mode??"standalone",actionRowHeightPx:recipe.geometry.actionPresentation?.rowHeightPx??recipe.geometry.unitStridePx,preferredOverlapPx:recipe.repeatInterval?.preferredOverlapPx??0,visualContinuationOverlapPx:recipe.geometry.visualContinuationOverlapPx??0,nativeBounds,instances:finalized,canonicalInputs:input};
+  const plan: SignatureAssemblyPlan = {planVersion:"1.0.0",familyId:input.familyId,familyVersion:input.familyVersion,recipeId:recipe.recipeId,recipeVersion:recipe.recipeVersion,presentationId:presentation.id,layoutMode:input.layoutMode,certificationStatus:proofOnly?"structural-proof-only":"launch-certified",requestedActionCount:input.requestedActionCount,actionUnitCount:unitCount,completePairedLevelCount:completePairs,coordinateAuthority:"certified-native-space",coordinateWidthPx:recipe.geometry.coordinateWidthPx,unitStridePx:recipe.geometry.unitStridePx,actionPresentationMode:recipe.geometry.actionPresentation?.mode??"standalone",actionRowHeightPx:recipe.geometry.actionPresentation?.rowHeightPx??recipe.geometry.unitStridePx,preferredOverlapPx:recipe.repeatInterval?.preferredOverlapPx??0,visualContinuationOverlapPx:recipe.geometry.visualContinuationOverlapPx??0,nativeBounds,instances:finalized,canonicalInputs:input};
   const attachmentErrors = validateStructuralAttachmentInvariant(plan, recipe, registry.assets);
   if (attachmentErrors.length) return { ok:false, errors:attachmentErrors.map((message)=>fail("STRUCTURAL_ATTACHMENT_INVARIANT",message)) };
   return {ok:true,plan};

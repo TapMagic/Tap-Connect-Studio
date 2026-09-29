@@ -36,6 +36,8 @@ export type StudioButtonFamilyResource = {
   previewAlt?: string;
   recipeId?: string;
   recipeVersion?: string;
+  presentationId?: string;
+  layoutMode?: "standalone" | "single-stack" | "twin-rail";
   componentId?: string;
   tags: readonly string[];
 };

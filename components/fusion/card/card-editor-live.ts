@@ -18,7 +18,6 @@ import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signa
 import type { StudioDiscoveryResource } from "@/lib/fusion/creative-studio/platform/discovery";
 import type { StudioPresentationApplication, StudioPresentationOperation } from "@/lib/fusion/creative-studio/platform/presentation-application";
 import type { StudioCuratedAssemblyMutation } from "@/lib/fusion/creative-studio/platform/structured-assembly";
-import type { SignatureAssemblyLayoutMode } from "@/lib/fusion/creative-studio/signature-assets/assembly";
 
 export type CardEditorLiveModel = {
   documentId: string;
@@ -167,7 +166,7 @@ export type CardEditorLiveModel = {
   ) => void;
   onInsertCuratedAssembly?: (
     familyId: string,
-    layoutMode: SignatureAssemblyLayoutMode,
+    presentationId: string,
     parentId?: string | null,
     insertionIndex?: number,
   ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };

@@ -42,7 +42,7 @@ export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCat
   onPlaceOrdinary: (kind: "text" | "image" | "divider", initialProps?: Record<string, unknown>) => void;
   onChooseImage: () => void;
   onPlaceContainer: (treatment: "transparent" | "solid" | "smoked_glass" | "image") => void;
-  onPlaceCurated: (familyId: string, layoutMode: "standalone" | "single-stack" | "twin-rail") => void;
+  onPlaceCurated: (familyId: string, presentationId: string) => void;
 }) {
   if (state.mode === "closed" || !state.activeRailId) return null;
   const path = state.path;
@@ -170,11 +170,10 @@ function PresentationLibrary({ family, state, dispatch, brand, onUseResource }: 
   return <div className="flex min-h-0 flex-1 flex-col" data-testid="studio-standard-button-gallery">{state.placementMode === "apply" ? <div className="mx-3 mb-2 rounded-xl bg-cyan-300/10 px-3 py-2 text-xs text-cyan-100"><div className="flex items-center justify-between gap-2"><span>Choose a new presentation. Content and Action stay intact.</span><button type="button" onClick={() => dispatch({ type: "END_APPLY" })} className="font-semibold">Cancel</button></div></div> : null}<SearchField state={state} dispatch={dispatch} placeholder={`Search ${family === "brand" ? "Brand" : "Standard"} Buttons`} /><div ref={scrollerRef} onScroll={(event) => dispatch({ type: "SET_SCROLL", scrollOffset: event.currentTarget.scrollTop })} className="min-h-0 flex-1 overflow-y-auto px-3 pb-6"><section className="pt-4"><SectionHeading label={state.query ? "Results" : family === "brand" ? "Built from your Brand" : "Standard Button styles"} />{visible.length ? <div className="grid grid-cols-1 gap-2">{visible.map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} onUse={onUseResource} />)}</div> : <EmptyState title={`No matching ${family === "brand" ? "Brand" : "Standard"} Buttons`} detail="Try a user job such as primary, Call, or section CTA." />}</section><p className="mt-5 text-[10px] leading-4 text-white/35">Only presets that pass the visual catalog quality gate are shown. Two weaker concepts remain hidden.</p></div></div>;
 }
 
-function GovernedFamilyView({ family, onPlace }: { family: StudioButtonFamilyDiscoveryEntry; onPlace: (familyId: string, layoutMode: "standalone" | "single-stack" | "twin-rail") => void }) {
+function GovernedFamilyView({ family, onPlace }: { family: StudioButtonFamilyDiscoveryEntry; onPlace: (familyId: string, presentationId: string) => void }) {
   const insert = (resource: StudioButtonFamilyResource) => {
-    if (resource.classification !== "assembly-starting-point" || !resource.recipeId) return;
-    const layoutMode = resource.tags.includes("standalone") ? "standalone" : resource.tags.includes("twin-rail") ? "twin-rail" : "single-stack";
-    onPlace(family.id, layoutMode);
+    if (resource.classification !== "assembly-starting-point" || !resource.presentationId) return;
+    onPlace(family.id, resource.presentationId);
   };
   // Curated families are discovered as finished systems. Their certified
   // construction inventory remains available to the recipe/Inspector, but

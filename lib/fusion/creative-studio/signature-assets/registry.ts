@@ -3,6 +3,12 @@ import type { SignatureAssetDefinition, SignatureAssetKind, SignatureFamilyDefin
 import { CABINET_NOIR_ASSEMBLY_RECIPES, CABINET_NOIR_ASSETS, CABINET_NOIR_FAMILY, CABINET_NOIR_VISUAL_ACCEPTANCE } from "./cabinet-noir";
 import type { SignatureAssemblyRecipe } from "./layout-recipes";
 import type { CuratedFamilyVisualAcceptanceContract } from "./visual-acceptance";
+import {
+  FAMILY_NEUTRAL_RUNTIME_FIXTURE_ASSETS,
+  FAMILY_NEUTRAL_RUNTIME_FIXTURE_ENABLED,
+  FAMILY_NEUTRAL_RUNTIME_FIXTURE_FAMILY,
+  FAMILY_NEUTRAL_RUNTIME_FIXTURE_RECIPES,
+} from "./family-neutral-runtime-fixture";
 
 export const ARC_EMBER_SIGNATURE_FAMILY_ID = "family_arc_ember_signature";
 export const SIGNATURE_SYSTEM_V1_FAMILY_ID = "family_signature_system_v1";
@@ -28,13 +34,28 @@ const arcEmberStageExpansion = {
 } as const;
 
 export const SIGNATURE_FAMILIES: readonly SignatureFamilyDefinition[] = [
-  { id: ARC_EMBER_SIGNATURE_FAMILY_ID, slug: "arc-ember", label: "Arc Ember", lifecycle: "candidate", sortOrder: 10 },
-  { id: SIGNATURE_SYSTEM_V1_FAMILY_ID, slug: "signature-system-v1", label: "Signature System v1", lifecycle: "production", sortOrder: 20 },
-  CABINET_NOIR_FAMILY,
+  { id: ARC_EMBER_SIGNATURE_FAMILY_ID, slug: "arc-ember", label: "Arc Ember", lifecycle: "candidate", sortOrder: 10, discovery: { exposure: "inactive", category: "Curated", description: "Deferred electric-dimensional family.", sortOrder: 10 } },
+  { id: SIGNATURE_SYSTEM_V1_FAMILY_ID, slug: "signature-system-v1", label: "Signature System v1", lifecycle: "production", sortOrder: 20, discovery: { exposure: "hidden", category: "Curated", description: "Registered Signature component inventory.", sortOrder: 20 } },
+  { ...CABINET_NOIR_FAMILY, discovery: { exposure: "active", category: "Curated", description: "Certified champagne-gold and blackened-gunmetal governed actions.", previewAssetId: "master/cabinet-noir/cn-006/v1", previewAlt: "Cabinet Noir governed assembly preview", sortOrder: 30 } },
+  ...(FAMILY_NEUTRAL_RUNTIME_FIXTURE_ENABLED ? [FAMILY_NEUTRAL_RUNTIME_FIXTURE_FAMILY] : []),
 ] as const;
 
 export const SIGNATURE_ASSEMBLY_RECIPES: readonly SignatureAssemblyRecipe[] = [
-  ...CABINET_NOIR_ASSEMBLY_RECIPES,
+  ...CABINET_NOIR_ASSEMBLY_RECIPES.map((recipe) => ({
+    ...recipe,
+    presentation: {
+      id: recipe.recipeId,
+      label: recipe.presentationMode === "standalone" ? "Standalone Action" : recipe.presentationMode === "single-stack" ? "Single Stack" : "Twin Rail",
+      description: "A governed Cabinet Noir presentation whose structure is owned by its certified recipe.",
+      previewAssetId: recipe.presentationMode === "twin-rail" ? "master/cabinet-noir/cn-008/v1" : "master/cabinet-noir/cn-006/v1",
+      capabilities: {
+        semanticIcon: { supported: false, treatment: { mode: "monochrome" as const, safeInset: .2 } },
+        sublabel: { supported: false },
+        plugSide: { mode: "derived" as const },
+      },
+    },
+  })),
+  ...(FAMILY_NEUTRAL_RUNTIME_FIXTURE_ENABLED ? FAMILY_NEUTRAL_RUNTIME_FIXTURE_RECIPES : []),
 ] as const;
 
 export const CURATED_VISUAL_ACCEPTANCE_CONTRACTS: readonly CuratedFamilyVisualAcceptanceContract[] = [
@@ -138,6 +159,7 @@ export const SIGNATURE_ASSETS: readonly SignatureAssetDefinition[] = [
   ].map(([role,label,file,sha,number],index)=>signatureV1Asset({id:`reference/signature-system-v1/action/${role}/v1`,sourceNumber:Number(number),label:String(label),subgroup:"actions",assetKind:"action",role:String(role),variant:"visual-authority",sourceAsset:`${SIGNATURE_V1_ROOT}/01_actions/visual-authority/${file}`,sourceSha256:String(sha),width:2048,height:682,glowPadding:full,safeInsets:full,socketContract:{},layoutCapabilities:[],responsiveContract:{proportional:true,phoneSafe:false},stateContract:["default"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"reference",referenceOnly:true,sourceReadiness:"visual-authority-needs-blank-shell",blockerNote:"Baked approval copy/identity requires a matching blank pristine shell before editable production use.",sortOrder:1900+index,tags:["visual-authority","blocked","needs-blank-shell"]})),
   signatureV1Asset({id:"reference/signature-system-v1/micro-part/toggle/v1",sourceNumber:24,label:"Small Toggle / On-Off",subgroup:"micro-parts",assetKind:"micro-part",role:"toggle",variant:"visual-authority",sourceAsset:`${SIGNATURE_V1_ROOT}/05_micro-parts/visual-authority/24_small-toggle-on-off.png`,sourceSha256:"e4b01b4b0270fb269491259ea5dee68c3e1247556384a7d7f339d4f95fac3043",width:2048,height:682,glowPadding:full,safeInsets:full,socketContract:{},layoutCapabilities:[],responsiveContract:{proportional:true,phoneSafe:false},stateContract:["default"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"reference",referenceOnly:true,sourceReadiness:"visual-authority-needs-state-implementation",blockerNote:"Composite knob and shell require approved state masters or a certified non-destructive split.",sortOrder:1950,tags:["visual-authority","blocked","needs-state-implementation"]}),
   ...CABINET_NOIR_ASSETS,
+  ...(FAMILY_NEUTRAL_RUNTIME_FIXTURE_ENABLED ? FAMILY_NEUTRAL_RUNTIME_FIXTURE_ASSETS : []),
 ] as const;
 
 export const SIGNATURE_SUBGROUPS: readonly { id: SignatureSubgroup; label: string }[] = [

@@ -17,6 +17,11 @@ export type StudioStructuredAssemblySlot = {
   actionType?: string;
   accessibleName?: string;
   plugComponentId?: string;
+  plugPresentationId?: string;
+  semanticIconRef?: import("../icon-asset").IconAsset;
+  semanticLabel?: string;
+  sublabel?: string;
+  plugSide?: "left" | "right";
   plugLabel?: string;
   plugPreviewSrc?: string;
   textAlign?: "left" | "center" | "right";
@@ -34,6 +39,7 @@ export type StudioStructuredAssemblyDescriptor = {
   familyLabel: string;
   objectId: string;
   layoutMode: "standalone" | "single-stack" | "twin-rail";
+  presentationId?: string;
   recipeId: string;
   recipeVersion: string;
   recipeLabel: string;
@@ -42,11 +48,18 @@ export type StudioStructuredAssemblyDescriptor = {
   resourceSlots?: readonly import("./semantic-resource-slot").StudioSemanticResourceSlot[];
   allowedActionCounts: readonly number[];
   layouts: readonly {
-    id: "standalone" | "single-stack" | "twin-rail";
+    id: string;
+    layoutMode?: "standalone" | "single-stack" | "twin-rail";
     label: string;
     description: string;
     allowedActionCounts: readonly number[];
   }[];
+  capabilities?: {
+    supportsSublabel: boolean;
+    supportsSemanticIcon: boolean;
+    plugSide: "fixed" | "authorable" | "derived";
+    allowedPlugSides?: readonly ("left" | "right")[];
+  };
   textSizes: readonly {
     id: "small" | "medium" | "large";
     label: string;
@@ -90,6 +103,7 @@ export type StudioStructuredAssemblyDescriptor = {
     previewSrc: string;
     previewAlt: string;
   }[];
+  compatibleSemanticIcons?: readonly import("../icon-asset").IconAsset[];
   outputOwnership: "recipe-governed";
   compiler: "deterministic";
   mutationReadiness: "ready" | "deliberately-deferred";
@@ -97,12 +111,13 @@ export type StudioStructuredAssemblyDescriptor = {
 };
 
 type StudioCuratedAssemblyMutationInput =
-  | { type: "update-action"; actionId: string; patch: { label?: string; destination?: string; actionType?: string; accessibilityLabel?: string; plugComponentId?: string; textAlign?: "left" | "center" | "right"; textSize?: "small" | "medium" | "large"; textSizePx?: number } }
+  | { type: "update-action"; actionId: string; patch: { label?: string; sublabel?: string; destination?: string; actionType?: string; accessibilityLabel?: string; semanticLabel?: string; plugComponentId?: string; plugPresentationId?: string; semanticIconRef?: import("../icon-asset").IconAsset; plugSide?: "left" | "right"; textAlign?: "left" | "center" | "right"; textSize?: "small" | "medium" | "large"; textSizePx?: number } }
   | { type: "reorder-action"; from: number; to: number }
   | { type: "set-action-count"; count: number }
   | { type: "set-resource-slot"; slotId: string; resource?: import("./semantic-resource-slot").StudioSemanticResource }
   | { type: "set-appearance-option"; roleId: string; optionId: string }
-  | { type: "set-layout"; layoutMode: "standalone" | "single-stack" | "twin-rail" };
+  | { type: "set-layout"; layoutMode: "standalone" | "single-stack" | "twin-rail" }
+  | { type: "set-presentation"; presentationId: string };
 
 export type StudioCuratedAssemblyMutation = StudioCuratedAssemblyMutationInput & {
   commandId?: string;

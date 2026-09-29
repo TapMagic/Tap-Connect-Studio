@@ -7,3 +7,4 @@ export * from "./composition-adapter";
 export * from "./authoring";
 export * from "./SignatureMasterBridge";
 export * from "./arc-ember-stage-layout";
+export * from "./curated-material-projection";

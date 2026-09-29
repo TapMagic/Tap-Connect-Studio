@@ -24,6 +24,7 @@ export type SignatureCompositionAdapterOptions = {
     contractVersion: string;
     semanticOptionIds: Readonly<Record<string, string>>;
     semanticRendererValues: Readonly<Record<string, string>>;
+    semanticMaterialRoles?: Readonly<Record<string, { materialId: string; target: string }>>;
     textTreatmentContractId?: string;
     textTreatmentContractVersion?: string;
     textTreatmentId?: string;
@@ -37,6 +38,7 @@ export type SignatureCompositionPlan = {
   familyVersion: SignatureVersion;
   recipeId: string;
   recipeVersion: SignatureVersion;
+  presentationId: string;
   certificationStatus: SignatureAssemblyPlan["certificationStatus"];
   coordinateAuthority: SignatureAssemblyPlan["coordinateAuthority"];
   nativeBounds: SignatureAssemblyPlan["nativeBounds"];
@@ -104,6 +106,7 @@ function nodeForInstance(
       signatureAppearanceContractVersion:appearance?.contractVersion,
       signatureAppearanceOptionIds:appearance?.semanticOptionIds,
       signatureAppearanceRendererValues:appearance?.semanticRendererValues,
+      signatureMaterialRoles:appearance?.semanticMaterialRoles,
       signatureTextTreatmentContractId:appearance?.textTreatmentContractId,
       signatureTextTreatmentContractVersion:appearance?.textTreatmentContractVersion,
       signatureTextTreatmentId:appearance?.textTreatmentId,
@@ -124,6 +127,7 @@ function nodeForInstance(
       signatureCertificationProvenance:instance.certificationProvenance,
       signatureLayoutCertificationStatus:plan.certificationStatus,
       signaturePresentationMode:plan.actionPresentationMode,
+      signaturePresentationId:plan.presentationId,
       signatureLayoutMode:plan.layoutMode,
       signatureActionRowHeightPx:plan.actionRowHeightPx,
       signatureMirrored:false,
@@ -147,6 +151,18 @@ function nodeForInstance(
         signatureTextAlign:instance.action.textAlign??"center",
         signatureTextSize:instance.action.textSize??"medium",
         signatureTextSizePx:instance.action.textSizePx,
+        description:instance.action.sublabel,
+        showDescription:Boolean(instance.action.sublabel),
+        signatureSemanticLabel:instance.action.semanticLabel,
+        signaturePlugSide:instance.action.plugSide,
+      }:{}),
+      ...(instance.semanticIconRef?{
+        signatureSemanticIcon:instance.semanticIconRef.canonicalId,
+        iconSvg:instance.semanticIconRef.body,
+        iconViewBox:instance.semanticIconRef.viewBox,
+        iconRenderMode:instance.semanticIconRef.renderMode,
+        iconAccessibleLabel:instance.semanticIconRef.accessibleLabel,
+        signatureIconTreatment:instance.iconTreatment,
       }:{}),
     },
   };
@@ -170,7 +186,7 @@ export function adaptSignatureAssemblyResult(
     safeAreaPaddingPx:0,
     pageHeightPx:plan.nativeBounds.heightPx*scale,
   };
-  return {ok:true,composition:{adapterVersion:"1.0.0",familyId:plan.familyId,familyVersion:plan.familyVersion,recipeId:plan.recipeId,recipeVersion:plan.recipeVersion,certificationStatus:plan.certificationStatus,coordinateAuthority:plan.coordinateAuthority,nativeBounds:plan.nativeBounds,block,phone390:{widthPx:390,heightPx:plan.nativeBounds.heightPx*scale,scale}}};
+  return {ok:true,composition:{adapterVersion:"1.0.0",familyId:plan.familyId,familyVersion:plan.familyVersion,recipeId:plan.recipeId,recipeVersion:plan.recipeVersion,presentationId:plan.presentationId,certificationStatus:plan.certificationStatus,coordinateAuthority:plan.coordinateAuthority,nativeBounds:plan.nativeBounds,block,phone390:{widthPx:390,heightPx:plan.nativeBounds.heightPx*scale,scale}}};
 }
 
 export type SignatureStandaloneComponentInput = {
@@ -201,7 +217,7 @@ export function adaptSignatureStandaloneAction(input: SignatureStandaloneActionI
   const family=SIGNATURE_FAMILIES.find((candidate)=>candidate.id===input.familyId&&candidate.version===input.familyVersion);
   const asset=SIGNATURE_ASSETS.find((candidate)=>candidate.familyId===input.familyId&&candidate.normalizedContract?.componentId===input.componentId&&candidate.normalizedContract.componentVersion===input.componentVersion);
   const component=asset?.normalizedContract;
-  const plugAsset=SIGNATURE_ASSETS.find((candidate)=>candidate.familyId===input.familyId&&candidate.normalizedContract?.componentId===input.action.plugComponentId);
+  const plugAsset=SIGNATURE_ASSETS.find((candidate)=>candidate.familyId===input.familyId&&candidate.normalizedContract?.componentId===(input.action.plugPresentationId??input.action.plugComponentId));
   const plug=plugAsset?.normalizedContract;
   const socket=component?.sockets.find((candidate)=>candidate.contractId.startsWith("semanticPlugSocket@"));
   if (!family||!asset||!component||!plugAsset||!plug||!socket||!isSignatureComponentRuntimeEligible(component)||!isSignatureComponentRuntimeEligible(plug)) return null;

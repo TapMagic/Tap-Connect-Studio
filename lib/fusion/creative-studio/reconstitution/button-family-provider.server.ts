@@ -35,23 +35,24 @@ function governedResource(
 
 function governedFamilyEntries(entitlementKeys: readonly SignatureEntitlementKey[]) {
   return listSignatureAuthoringFamilies(entitlementKeys).flatMap<StudioButtonFamilyDiscoveryEntry>((entry) => {
-    if (entry.family.slug !== "cabinet-noir" && entry.family.slug !== "arc-ember") return [];
+    const discovery=entry.family.discovery;
+    if (!discovery || discovery.exposure==="hidden") return [];
     const assets = SIGNATURE_ASSETS.filter((asset) => asset.familyId === entry.family.id && !asset.referenceOnly);
     const referencePresets = SIGNATURE_ASSETS.filter((asset) => asset.familyId === entry.family.id && asset.referenceOnly);
     const assemblyStarts: StudioButtonFamilyResource[] = entry.layouts.map((layout) => {
-      const finishedPreview = referencePresets.find((asset) => layout.layoutMode === "twin-rail"
-        ? asset.normalizedContract?.componentId === "CN-008"
-        : asset.normalizedContract?.componentId === "CN-006") ?? entry.previewAsset;
+      const finishedPreview = SIGNATURE_ASSETS.find((asset)=>asset.id===layout.previewAssetId) ?? entry.previewAsset ?? referencePresets[0];
       return {
       id: `${entry.family.id}:${layout.recipeId}`,
       label: layout.label,
-      description: "Insert a finished certified system. Edit its content while Studio keeps every structural part aligned.",
+      description: layout.description,
       classification: "assembly-starting-point",
       readiness: entry.access.selectable ? "ready" : "managed",
       previewSrc: finishedPreview?.sourceAsset,
       previewAlt: `${entry.family.label} ${layout.label} assembly preview`,
       recipeId: layout.recipeId,
       recipeVersion: layout.recipeVersion,
+      presentationId: layout.presentationId,
+      layoutMode: layout.layoutMode,
       tags: [entry.family.slug, "assembly", layout.layoutMode],
       };
     });
@@ -74,15 +75,13 @@ function governedFamilyEntries(entitlementKeys: readonly SignatureEntitlementKey
       contractId: STUDIO_BUTTON_FAMILY_DISCOVERY_CONTRACT,
       id: entry.family.id,
       label: entry.family.label,
-      description: entry.family.slug === "cabinet-noir"
-        ? "Certified champagne-gold and blackened-gunmetal governed actions."
-        : "Electric, dimensional governed actions and compatible visual parts.",
+      description: discovery.description,
       model: "governed-signature",
       readiness: entry.access.selectable ? (entry.runtimeEligible ? "ready" : "preview") : "restricted",
-      exposure: entry.family.slug === "arc-ember" ? "hidden" : "visible",
+      exposure: discovery.exposure==="active"?"visible":"hidden",
       available: entry.access.selectable,
       previewSrc: previewAsset?.sourceAsset,
-      previewAlt: previewAsset ? `${entry.family.label} family preview` : undefined,
+      previewAlt: discovery.previewAlt ?? (previewAsset ? `${entry.family.label} family preview` : undefined),
       provenanceAuthority: "signature-family-registry",
       sections: [
         ...(assemblyStarts.length ? [{ id: "assembly-starts", label: "Assembly starting points", description: "Choose the governed layout; edit its inputs after placement.", resources: assemblyStarts }] : []),

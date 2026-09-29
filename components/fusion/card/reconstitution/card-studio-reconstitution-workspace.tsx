@@ -453,9 +453,9 @@ export function CardStudioReconstitutionWorkspace({
     if (id) completePlacement(id, "composition");
   }, [completePlacement, liveModel]);
 
-  const placeCurated = useCallback((familyId: string, layoutMode: "standalone" | "single-stack" | "twin-rail") => {
+  const placeCurated = useCallback((familyId: string, presentationId: string) => {
     if (!liveModel || !placementContext) return;
-    const result = liveModel.onInsertCuratedAssembly?.(familyId, layoutMode, placementContext.parentId, placementContext.insertionIndex);
+    const result = liveModel.onInsertCuratedAssembly?.(familyId, presentationId, placementContext.parentId, placementContext.insertionIndex);
     if (!result?.ok) {
       if (result) liveModel.notify?.(result.message);
       return;

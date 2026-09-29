@@ -270,6 +270,15 @@ export type SignatureFamilyDefinition = {
   finishId?: string;
   launchMode?: SignatureSourceMode;
   provenanceManifest?: string;
+  /** Registry-owned discovery metadata. Shared browsers must not branch on family slugs. */
+  discovery?: {
+    exposure: "active" | "hidden" | "inactive";
+    category: string;
+    description: string;
+    previewAssetId?: string;
+    previewAlt?: string;
+    sortOrder?: number;
+  };
 };
 
 export type SignatureLayoutRecipe = {
