@@ -35,6 +35,12 @@ export type TapConnectExperienceProps = Omit<TapConnectCardProps, "config" | "on
   persistentContent?: ReactNode;
 };
 
+const EXPERIENCE_SHELL_LAYERS = {
+  content: 1,
+  persistent: 20,
+  navigation: 1200,
+} as const;
+
 export function TapConnectExperience({
   config,
   activePageId: controlledPageId,
@@ -63,6 +69,15 @@ export function TapConnectExperience({
   const activePage = experience ? resolveExperiencePage(experience, requestedPageId) : null;
   const pageConfig = experience && activePage ? projectExperiencePage(config, activePage.pageId) : config;
   const navPages = experience ? visibleExperienceNavPages(experience) : [];
+  const navigationIsLoveAndTheft = experience?.navigation.itemPresentation === "everencore-love-and-theft-mini-pick";
+  const navigationIsFloating = experience?.navigation.presentation === "floating";
+  const navigationClearance = navigationIsLoveAndTheft
+    ? navigationIsFloating
+      ? "calc(6rem + env(safe-area-inset-bottom, 0px))"
+      : "calc(5.75rem + env(safe-area-inset-bottom, 0px))"
+    : navigationIsFloating
+      ? "calc(4.75rem + env(safe-area-inset-bottom, 0px))"
+      : "calc(4rem + env(safe-area-inset-bottom, 0px))";
 
   const selectPage = useCallback((pageId: string, source: "nav" | "action" | "cta" = "nav") => {
     if (!experience) return;
@@ -146,7 +161,13 @@ export function TapConnectExperience({
   const locked = activePage.access?.state === "locked";
   return (
     <div
-      className="relative min-h-0 w-full"
+      className={cn("relative min-h-0 w-full", navPages.length && "pb-[var(--experience-shell-nav-clearance)]")}
+      style={navPages.length ? {
+        "--experience-shell-nav-clearance": navigationClearance,
+        "--experience-shell-content-z": EXPERIENCE_SHELL_LAYERS.content,
+        "--experience-shell-persistent-z": EXPERIENCE_SHELL_LAYERS.persistent,
+        "--experience-shell-navigation-z": EXPERIENCE_SHELL_LAYERS.navigation,
+      } as CSSProperties : undefined}
       data-testid="tap-experience-renderer"
       data-experience-id={experience.experienceId}
       data-experience-contract={experience.contractId}
@@ -154,10 +175,12 @@ export function TapConnectExperience({
       data-page-analytics-id={activePage.analyticsId}
       data-experience-session-authority="session-storage"
       data-experience-routing={routeBasePath ? "stable-path" : routingMode}
+      data-navigation-placement={navPages.length ? "viewport-fixed" : "none"}
+      data-navigation-content-clearance={navPages.length ? "automatic" : "none"}
       onClickCapture={handleDestinationCapture}
     >
       {viewportBackdrop ? <CardSurfaceViewportBackdrop config={pageConfig} viewportFixed /> : null}
-      <div className="relative z-[1]" key={activePage.pageId} data-testid={`experience-page-${activePage.pageId}`} data-page-transition="instant-preserve-session">
+      <div className="relative z-[var(--experience-shell-content-z)]" key={activePage.pageId} data-testid={`experience-page-${activePage.pageId}`} data-page-transition="instant-preserve-session">
         {locked ? <LockedPage page={activePage} onNavigate={(pageId) => selectPage(pageId, "cta")} /> : <TapConnectCard
           config={pageConfig}
           onNotify={onNotify}
@@ -165,7 +188,7 @@ export function TapConnectExperience({
           {...cardProps}
         />}
       </div>
-      {persistentContent}
+      {persistentContent ? <div className="relative z-[var(--experience-shell-persistent-z)]" data-experience-shell-layer="persistent">{persistentContent}</div> : null}
       {navPages.length ? <ExperienceBottomNavigation
         pages={navPages}
         activePageId={activePage.pageId}
@@ -199,11 +222,12 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
   } as CSSProperties;
   return <nav
     className={cn(
-      "sticky bottom-0 z-[1200] mx-auto w-full border-t border-[var(--experience-nav-border)] px-1 pb-[max(.3rem,env(safe-area-inset-bottom))] pt-1",
+      "fixed inset-x-0 bottom-0 z-[var(--experience-shell-navigation-z)] mx-auto w-full max-w-lg border-t border-[var(--experience-nav-border)] px-1 pt-1",
+      config.presentation === "floating" ? "inset-x-auto left-1/2 bottom-[max(.5rem,env(safe-area-inset-bottom,0px))] w-[calc(100%-16px)] max-w-[calc(32rem-16px)] -translate-x-1/2 pb-2" : "pb-[max(.3rem,env(safe-area-inset-bottom,0px))]",
       (config.surfaceTreatment || "solid") === "solid" && "bg-[var(--experience-nav-surface)]",
       config.surfaceTreatment === "smoky-glass" && "bg-[linear-gradient(180deg,rgba(31,27,22,.78),rgba(4,5,7,.94))] shadow-[inset_0_1px_0_rgba(239,203,125,.2),0_-12px_32px_rgba(0,0,0,.3)] backdrop-blur-[var(--experience-nav-blur)]",
       config.surfaceTreatment === "transparent" && "bg-transparent",
-      config.presentation === "floating" && "bottom-2 w-[calc(100%-16px)] rounded-2xl border shadow-[0_16px_40px_rgba(0,0,0,.42)]",
+      config.presentation === "floating" && "rounded-2xl border shadow-[0_16px_40px_rgba(0,0,0,.42)]",
     )}
     style={style}
     aria-label="Experience pages"
@@ -212,6 +236,8 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
     data-item-presentation={config.itemPresentation || "standard-icon"}
     data-surface-treatment={config.surfaceTreatment || "solid"}
     data-pick-size-tier={loveAndTheft ? certifiedPickRange.tier : undefined}
+    data-shell-layer="navigation"
+    data-safe-area="bottom"
   >
     <div className="grid" style={{ gridTemplateColumns: `repeat(${pages.length}, minmax(0, 1fr))` }}>
       {pages.map((page) => {

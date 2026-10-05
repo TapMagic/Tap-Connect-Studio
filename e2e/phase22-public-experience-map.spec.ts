@@ -12,14 +12,41 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
   await page.setViewportSize({ width: 390, height: 844 });
   await page.route("https://maps.google.com/**", async (route) => route.fulfill({ contentType: "text/html", body: "<main style='font-family:sans-serif;padding:1rem'>Map provider adapter proof</main>" }));
   await page.route("https://www.youtube.com/embed/**", async (route) => route.fulfill({ contentType: "text/html", body: "<main style='background:#080b10;color:white;font-family:sans-serif;padding:1rem'>Inline video provider adapter proof</main>" }));
+  const expectPersistentViewportNavigation = async () => {
+    const nav = page.getByTestId("experience-bottom-navigation");
+    const shell = page.getByTestId("tap-experience-renderer");
+    await expect(nav).toBeVisible();
+    await expect(shell).toHaveAttribute("data-navigation-placement", "viewport-fixed");
+    await expect(shell).toHaveAttribute("data-navigation-content-clearance", "automatic");
+    const metrics = await page.evaluate(() => {
+      const navElement = document.querySelector<HTMLElement>('[data-testid="experience-bottom-navigation"]')!;
+      const shellElement = document.querySelector<HTMLElement>('[data-testid="tap-experience-renderer"]')!;
+      const rect = navElement.getBoundingClientRect();
+      return {
+        position: getComputedStyle(navElement).position,
+        bottomGap: window.innerHeight - rect.bottom,
+        navHeight: rect.height,
+        shellPaddingBottom: Number.parseFloat(getComputedStyle(shellElement).paddingBottom),
+      };
+    });
+    expect(metrics.position).toBe("fixed");
+    expect(Math.abs(metrics.bottomGap)).toBeLessThanOrEqual(1);
+    expect(metrics.shellPaddingBottom).toBeGreaterThanOrEqual(metrics.navHeight + 8);
+    await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: "instant" }));
+    await expect(nav).toBeVisible();
+    const scrolledBottomGap = await nav.evaluate((element) => window.innerHeight - element.getBoundingClientRect().bottom);
+    expect(Math.abs(scrolledBottomGap)).toBeLessThanOrEqual(1);
+  };
 
   const response = await page.goto("/everencore/love-and-theft", { waitUntil: "domcontentloaded" });
   expect(response?.status()).toBe(200);
   await expect(page.getByTestId("everencore-public-experience")).toHaveAttribute("data-published-revision", "phase-2-2-public-shell-v1");
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+  await expect(page.locator('meta[name="viewport"]')).toHaveAttribute("content", /viewport-fit=cover/);
   await expect(page.getByTestId("experience-bottom-navigation")).toHaveAttribute("data-visible-slots", "4");
   await expect(page.getByTestId("tap-experience-renderer")).toHaveAttribute("data-active-page-id", "page-home");
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);
+  await expectPersistentViewportNavigation();
   await expect.poll(() => page.evaluate(() => sessionStorage.getItem("tapconnect.experience.session:everencore-love-and-theft"))).not.toBeNull();
   const sessionId = await page.evaluate(() => sessionStorage.getItem("tapconnect.experience.session:everencore-love-and-theft"));
   expect(sessionId).toBeTruthy();
@@ -34,6 +61,7 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
   await featureVideo.getByRole("button", { name: /Play Road session/i }).click();
   await expect(featureVideo).toHaveAttribute("data-video-state", "playing");
   await expect(featureVideo.locator("iframe")).toBeVisible();
+  await expectPersistentViewportNavigation();
   await page.evaluate(() => {
     document.addEventListener("click", (event) => event.preventDefault(), { capture: true, once: true });
     (document.querySelector('[data-analytics-id="everencore:music:spotify"] a, a[data-analytics-id="everencore:music:spotify"]') as HTMLAnchorElement | null)?.click();
@@ -58,6 +86,7 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
   await expect(map.locator('[data-map-associated-action="ee-live-tickets"]')).toBeVisible();
   await expect(page.getByTestId("map-location-embed")).toBeVisible();
   await expect(page.getByTestId("map-activate-interaction")).toBeVisible();
+  await expectPersistentViewportNavigation();
   expect(await page.getByTestId("map-location-embed").evaluate((element) => getComputedStyle(element).pointerEvents)).toBe("none");
   const venueNavigate = page.getByTestId("map-location-tile-wec-venue").locator('[data-location-action="navigate"]');
   await expect(venueNavigate).toHaveAttribute("data-runtime-map-adapter", "device");
@@ -81,6 +110,7 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
   expect(parkingReturnContext?.sessionId).toBe(sessionId);
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
   await expect(page.getByTestId("tap-experience-renderer")).toHaveAttribute("data-active-page-id", "page-live");
+  await expectPersistentViewportNavigation();
   await page.getByTestId("map-activate-interaction").click();
   expect(await page.getByTestId("map-location-embed").evaluate((element) => getComputedStyle(element).pointerEvents)).toBe("auto");
   await page.screenshot({ path: path.join(evidence, "03-public-live-map-390.png"), fullPage: true });
