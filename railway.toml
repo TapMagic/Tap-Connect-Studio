@@ -3,7 +3,9 @@ builder = "nixpacks"
 buildCommand = "npm install && npx prisma generate && npm run build"
 
 [deploy]
-startCommand = "npx prisma db push && npm start"
+# Schema changes are a separately reviewed production operation. Web startup
+# must not mutate the database or block health checks on destructive warnings.
+startCommand = "npm start"
 healthcheckPath = "/api/health"
 healthcheckTimeout = 120
 restartPolicyType = "on_failure"
