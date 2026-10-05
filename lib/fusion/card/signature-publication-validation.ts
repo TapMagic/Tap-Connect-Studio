@@ -80,6 +80,7 @@ function visitComposition(
     if (nested && typeof nested === "object" && !Array.isArray(nested)) {
       visitComposition(nested as CreativeCompositionBlock, visit, seen);
     }
+    visitComposition(node.moduleComposition, visit, seen);
   }
 }
 
@@ -110,6 +111,10 @@ export function collectPublishedSignatureFamilyUses(
   const seen = new Set<unknown>();
   visitComposition(card.rootComposition, visit, seen);
   visitSections(card.sections, visit, seen);
+  for (const page of card.experience?.pages ?? []) {
+    visitComposition(page.composition.rootComposition, visit, seen);
+    visitSections(page.composition.sections, visit, seen);
+  }
   return [...uses.values()];
 }
 

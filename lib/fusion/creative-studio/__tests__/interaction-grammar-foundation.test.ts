@@ -35,6 +35,7 @@ test("image Surface parameters round-trip through one canonical visual plane", (
   const image = applyStudioSurfaceTreatment({}, "image", { mediaUrl: "/assets/blue-room.jpg", mediaAssetId: "asset-blue" });
   const adjusted = applyStudioSurfaceParameters(image, {
     fit: "contain", focalX: .25, focalY: .75, brightness: .8, tint: "#123456",
+    contrast: 1.25, saturation: .65, scale: 1.4,
     overlayOpacity: .4, imageOpacity: .7, radiusPx: 22, borderWidthPx: 2,
     borderColor: "#abcdef", shadowPx: 24, opacity: .9,
   });
@@ -44,6 +45,9 @@ test("image Surface parameters round-trip through one canonical visual plane", (
   assert.equal(state.focalX, .25);
   assert.equal(state.focalY, .75);
   assert.equal(state.brightness, .8);
+  assert.equal(state.contrast, 1.25);
+  assert.equal(state.saturation, .65);
+  assert.equal(state.scale, 1.4);
   assert.equal(state.tint, "#123456");
   assert.equal(state.overlayOpacity, .4);
   assert.equal(state.imageOpacity, .7);
@@ -54,7 +58,7 @@ test("image Surface parameters round-trip through one canonical visual plane", (
     kind: "image",
     media: { mediaAssetId: "asset-blue", fallbackUrl: "/assets/blue-room.jpg" },
     treatment: {
-      focalPoint: { x: .25, y: .75 }, fit: "contain", scale: 1, position: { x: .5, y: .5 },
+      focalPoint: { x: .25, y: .75 }, fit: "contain", scale: 1.4, position: { x: .5, y: .5 },
       opacity: .7, altText: "Background photography", decorative: true, repeat: "no-repeat",
       blurPx: 0, overlayOpacity: .4, blendMode: "normal", tint: "#123456",
     },

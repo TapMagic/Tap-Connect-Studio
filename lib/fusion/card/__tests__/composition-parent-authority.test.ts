@@ -37,6 +37,11 @@ function legacy(nodes: CreativeCompositionNode[] = []): CreativeCompositionBlock
   return { version: 1, id: "root", label: "Card root", nodes, background: { kind: "none" }, mobileFallback: "scale" };
 }
 
+function reviewRoot(config: TapConnectCardConfig): CreativeCompositionBlock {
+  const experienceRoot = config.experience?.pages.find((page) => page.pageId === config.experience?.defaultPageId)?.composition.rootComposition;
+  return experienceRoot ?? config.rootComposition!;
+}
+
 describe("Composition Parent Authority", () => {
   it("establishes one direct parent/order truth without changing module identity or state", () => {
     const original = node("copy");
@@ -45,18 +50,27 @@ describe("Composition Parent Authority", () => {
     expect(validateCompositionParentAuthority(block)).toEqual([]);
   });
 
-  it("allows only Card-level Containers and rejects nested or missing parents", () => {
+  it("allows three governed Container levels and rejects missing, cyclic, or deeper parents", () => {
     const root = establishCompositionParentAuthority(legacy());
     const container = createFlowContainerNode("Primary");
     const inserted = insertCompositionContainer(root, container);
     expect(inserted.ok).toBe(true);
     if (!inserted.ok) return;
     const nested = insertCompositionContainer(inserted.block, { ...createFlowContainerNode("Nested"), parentId: container.id });
-    expect(nested.ok).toBe(false);
-    const missing = insertCompositionModule(inserted.block, node("m"), "missing");
+    expect(nested.ok).toBe(true);
+    if (!nested.ok) return;
+    const nestedId = nested.block.nodes.find((candidate) => candidate.name === "Nested")!.id;
+    const third = insertCompositionContainer(nested.block, { ...createFlowContainerNode("Third"), parentId: nestedId });
+    expect(third.ok).toBe(true);
+    if (!third.ok) return;
+    const thirdId = third.block.nodes.find((candidate) => candidate.name === "Third")!.id;
+    const fourth = insertCompositionContainer(third.block, { ...createFlowContainerNode("Too deep"), parentId: thirdId });
+    expect(fourth.ok).toBe(false);
+    if (!fourth.ok) expect(fourth.issues.map((issue) => issue.code)).toContain("nesting_depth");
+    const missing = insertCompositionModule(third.block, node("m"), "missing");
     expect(missing.ok).toBe(false);
-    const invalid = { ...inserted.block, nodes: inserted.block.nodes.map((candidate) => candidate.id === container.id ? { ...candidate, parentId: "other" } : candidate) };
-    expect(validateCompositionParentAuthority(invalid).map((issue) => issue.code)).toContain("nested_container");
+    const invalid = { ...third.block, nodes: third.block.nodes.map((candidate) => candidate.id === container.id ? { ...candidate, parentId: "other" } : candidate) };
+    expect(validateCompositionParentAuthority(invalid).map((issue) => issue.code)).toContain("invalid_parent");
     const cycle = {
       ...inserted.block,
       nodes: [
@@ -107,6 +121,22 @@ describe("Composition Parent Authority", () => {
     expect(deleted.block.nodes).toEqual([]);
   });
 
+  it("duplicates and unwraps nested Container structure without flattening child identity", () => {
+    let root = establishCompositionParentAuthority(legacy());
+    const hero = createFlowContainerNode("Hero");
+    const heroResult = insertCompositionContainer(root, hero); assert.equal(heroResult.ok, true); if (!heroResult.ok) return; root = heroResult.block;
+    const left = { ...createFlowContainerNode("Left"), parentId: hero.id, props: { ...createFlowContainerNode("Left").props, widthPercent: 35 } };
+    const leftResult = insertCompositionContainer(root, left); assert.equal(leftResult.ok, true); if (!leftResult.ok) return; root = leftResult.block;
+    const logo = insertCompositionModule(root, node("logo", "image"), left.id); assert.equal(logo.ok, true); if (!logo.ok) return; root = logo.block;
+    const copy = duplicateCompositionNode(root, hero.id); assert.equal(copy.ok, true); if (!copy.ok) return;
+    const copiedHero = copy.block.nodes.find((candidate) => candidate.id === copy.selectedNodeId)!;
+    const copiedLeft = compositionChildren(copy.block, copiedHero.id).find((candidate) => candidate.compositionKind === "container")!;
+    assert.ok(copiedLeft);
+    assert.equal(copiedLeft.props.widthPercent, 35);
+    assert.equal(compositionChildren(copy.block, copiedLeft.id).length, 1);
+    assert.notEqual(compositionChildren(copy.block, copiedLeft.id)[0]?.id, "logo");
+  });
+
   it("duplicates a hosted Curated Module without sharing assembly or action identity", () => {
     const hosted = legacy([{ ...node("inner", "button"), props: { signatureAssemblyInstanceId: "hosted", signatureActionId: "action-a" } }]);
     hosted.id = "hosted";
@@ -125,7 +155,7 @@ describe("Composition Parent Authority", () => {
     const config = { version: 3 as const, identity: { name: "Review" }, sections: [{ id: "cn", type: "surface" as const, enabled: true, order: 0, composition: { ...legacy(), signatureAssembly } }] } as unknown as TapConnectCardConfig;
     const first = prepareCompositionParentReviewDraft(config);
     expect(first.changed).toBe(true);
-    expect(compositionChildren(first.config.rootComposition!, null).map((item) => item.id)).toEqual([
+    expect(compositionChildren(reviewRoot(first.config), null).map((item) => item.id)).toEqual([
       "review-text",
       "review-standard-button",
       "review-divider",
@@ -133,10 +163,10 @@ describe("Composition Parent Authority", () => {
       "review-module-single-stack",
       "review-module-twin-rail",
     ]);
-    assert.equal(compositionChildren(first.config.rootComposition!, null).at(-1)?.moduleComposition?.label, "Cabinet Noir Twin Rail");
+    assert.equal(compositionChildren(reviewRoot(first.config), null).at(-1)?.moduleComposition?.label, "Cabinet Noir Twin Rail");
     const second = prepareCompositionParentReviewDraft(first.config);
-    expect(second.changed).toBe(true);
-    expect(second.config.rootComposition).toEqual(first.config.rootComposition);
+    expect(second.changed).toBe(false);
+    expect(reviewRoot(second.config)).toEqual(reviewRoot(first.config));
   });
 
   it("replaces a root-level Curated proof with the exact clean review composition", () => {
@@ -146,8 +176,8 @@ describe("Composition Parent Authority", () => {
     const root = { ...legacy([member, residue]), signatureAssembly, pageHeightPx: 412 };
     const first = prepareCompositionParentReviewDraft({ version: 3, identity: { name: "Review" }, sections: [], rootComposition: root } as unknown as TapConnectCardConfig);
     assert.equal(first.changed, true);
-    assert.equal(first.config.rootComposition?.signatureAssembly, undefined);
-    const children = compositionChildren(first.config.rootComposition!, null);
+    assert.equal(reviewRoot(first.config).signatureAssembly, undefined);
+    const children = compositionChildren(reviewRoot(first.config), null);
     assert.deepEqual(children.map((candidate) => candidate.id), [
       "review-text",
       "review-standard-button",
@@ -158,8 +188,8 @@ describe("Composition Parent Authority", () => {
     ]);
     assert.equal(children.some((candidate) => candidate.id === "proof" || candidate.id === "cn-member"), false);
     const second = prepareCompositionParentReviewDraft(first.config);
-    assert.equal(second.changed, true);
-    assert.deepEqual(second.config.rootComposition, first.config.rootComposition);
+    assert.equal(second.changed, false);
+    assert.deepEqual(reviewRoot(second.config), reviewRoot(first.config));
   });
 
   it("removes only acceptance-created Curated identity media from the local review fixture", () => {
@@ -172,7 +202,7 @@ describe("Composition Parent Authority", () => {
     const root = establishCompositionParentAuthority({ ...legacy([outer]), nodes: [{ ...outer, compositionKind: "module", parentId: null, siblingOrder: 0 }] });
     const result = prepareCompositionParentReviewDraft({ version: 3, identity: { name: "Review" }, sections: [], rootComposition: root } as unknown as TapConnectCardConfig);
     assert.equal(result.changed, true);
-    assert.equal(compositionChildren(result.config.rootComposition!, null)[0]?.moduleComposition?.signatureAssembly?.identityContent, undefined);
+    assert.equal(compositionChildren(reviewRoot(result.config), null)[0]?.moduleComposition?.signatureAssembly?.identityContent, undefined);
   });
 
   it("replaces an interrupted composition acceptance fixture with the exact review composition", () => {
@@ -182,7 +212,7 @@ describe("Composition Parent Authority", () => {
     const root = { ...establishCompositionParentAuthority(legacy()), nodes: [container, proofText, retained] };
     const result = prepareCompositionParentReviewDraft({ version: 3, identity: { name: "Review" }, sections: [], rootComposition: root } as unknown as TapConnectCardConfig);
     assert.equal(result.changed, true);
-    assert.deepEqual(compositionChildren(result.config.rootComposition!, null).map((candidate) => candidate.id), [
+    assert.deepEqual(compositionChildren(reviewRoot(result.config), null).map((candidate) => candidate.id), [
       "review-text",
       "review-standard-button",
       "review-divider",
@@ -198,7 +228,7 @@ describe("Composition Parent Authority", () => {
     const root = establishCompositionParentAuthority(legacy([emptyProof, authored]));
     const result = prepareCompositionParentReviewDraft({ version: 3, identity: { name: "Review" }, sections: [], rootComposition: root } as unknown as TapConnectCardConfig);
     assert.equal(result.changed, true);
-    assert.deepEqual(compositionChildren(result.config.rootComposition!, null).map((candidate) => candidate.id), [
+    assert.deepEqual(compositionChildren(reviewRoot(result.config), null).map((candidate) => candidate.id), [
       "review-text",
       "review-standard-button",
       "review-divider",

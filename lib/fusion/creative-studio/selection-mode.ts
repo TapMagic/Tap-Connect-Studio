@@ -81,7 +81,6 @@ export function isTrueGroupMember(node: CreativeCompositionNode): boolean {
   if (!node.groupId) return false;
   if (isContainerNode(node)) return false;
   if (node.props.containerId) return false;
-  if (node.parentId) return false;
   return true;
 }
 

@@ -50,7 +50,8 @@ export function createCuratedAuthoringCapability(
   activeActionId?: string,
 ): StudioAuthoringCapabilityContract {
   const active = assembly.slots.find((slot) => slot.id === activeActionId) ?? assembly.slots[0];
-  const capabilities=assembly.capabilities??{supportsSublabel:false,supportsSemanticIcon:false,plugSide:"derived" as const};
+  const capabilities=assembly.capabilities??{supportsSublabel:false,supportsSemanticIcon:false,supportsPlug:true,plugOptional:false,plugSide:"derived" as const,supportsBackgroundReflection:false};
+  const plugActive=capabilities.supportsPlug&&active?.plugEnabled!==false;
   const compatibleSemanticIcons=assembly.compatibleSemanticIcons??[];
   const actionOptions = standardButtonActions();
   const activePresentation = actionOptions.find((action) => action.kind === active?.actionType) ?? actionOptions.find((action) => action.kind === "website")!;
@@ -134,6 +135,24 @@ export function createCuratedAuthoringCapability(
         metadata: { rendererValue: option.rendererValue, roleId: role.id },
       })),
     }));
+  const actionAppearanceControls: StudioAuthoringControl[] = active && (assembly.layoutMode === "single-stack" || assembly.layoutMode === "twin-rail")
+    ? assembly.appearance.roles
+      .filter((role) => !role.governed && role.options.some((option) => option.availability === "enabled"))
+      .map((role) => ({
+        id: `action-appearance:${role.id}`,
+        label: `${role.label} · this action`,
+        description: "Override only this action, or return it to the assembly default.",
+        type: "visual-grid" as const,
+        value: active.appearanceOptionIds?.[role.id] ?? "__inherit__",
+        commandId: CURATED_AUTHORING_COMMANDS.updateAction,
+        interactionClass: "choice" as const,
+        semanticGroup: "appearance" as const,
+        options: [
+          { id: "__inherit__", label: `Use assembly default · ${role.optionLabel}`, previewRef: role.preview, availability: "enabled" as const, metadata: { roleId: role.id, inherited: true } },
+          ...role.options.map((option) => ({ id: option.id, label: option.label, previewRef: option.preview, availability: option.availability, disabledReason: option.disabledReason, recommended: option.recommended, metadata: { rendererValue: option.rendererValue, roleId: role.id } })),
+        ],
+      }))
+    : [];
   const declarations = [
     declaredAuthoringCapability({
       id: "curated.identity",
@@ -207,7 +226,7 @@ export function createCuratedAuthoringCapability(
             type: "visual-layout",
             value: assembly.presentationId??assembly.recipeId,
             commandId: CURATED_AUTHORING_COMMANDS.setLayout,
-            options: assembly.layouts.map((layout) => ({ id: layout.id, label: layout.label, description: layout.description, availability: "enabled" as const, metadata: { layoutMode:layout.layoutMode??assembly.layoutMode, actionCountOptions: layout.allowedActionCounts.join(",") } })),
+            options: assembly.layouts.map((layout) => ({ id: layout.id, label: layout.density ? `${layout.density.mode[0].toUpperCase()}${layout.density.mode.slice(1)} · ${layout.label}` : layout.label, description: layout.description, availability: "enabled" as const, metadata: { layoutMode:layout.layoutMode??assembly.layoutMode, densityMode:layout.density?.mode??"governed", actionCountOptions: layout.allowedActionCounts.join(",") } })),
           },
           {
             id: "action-count",
@@ -249,7 +268,7 @@ export function createCuratedAuthoringCapability(
           { id: "label", label: "Label", type: "text", value: active.label, maxLength: characterLimit, guidance: characterLimit ? `${activePx}px is phone-safe up to ${characterLimit} characters in ${assembly.recipeLabel}.` : undefined, commandId: CURATED_AUTHORING_COMMANDS.updateAction },
           ...(capabilities.supportsSublabel?[{ id: "sublabel", label: "Sublabel", type: "text" as const, value: active.sublabel || "", guidance: "Optional secondary copy; phone-safe overflow is truncated by the canonical renderer.", commandId: CURATED_AUTHORING_COMMANDS.updateAction }]:[]),
           { id: "accessible-name", label: "Accessible name", type: "text", value: active.accessibleName || active.label, commandId: CURATED_AUTHORING_COMMANDS.updateAction },
-          ...(capabilities.supportsSemanticIcon?[{ id: "semantic-label", label: "Icon accessible label", type: "text" as const, value: active.semanticLabel || active.semanticIconRef?.accessibleLabel || "", commandId: CURATED_AUTHORING_COMMANDS.updateAction }]:[]),
+          ...(capabilities.supportsSemanticIcon&&plugActive?[{ id: "semantic-label", label: "Icon accessible label", type: "text" as const, value: active.semanticLabel || active.semanticIconRef?.accessibleLabel || "", commandId: CURATED_AUTHORING_COMMANDS.updateAction }]:[]),
           {
             id: "action-intent",
             label: "Action",
@@ -268,22 +287,52 @@ export function createCuratedAuthoringCapability(
             options: ["left", "center", "right"].map((id) => ({ id, label: id[0].toUpperCase() + id.slice(1), availability: "enabled" as const })),
           },
           ...textSizeControls,
-          {
+          ...actionAppearanceControls,
+          ...(capabilities.supportsBackgroundReflection&&capabilities.backgroundReflectionRange?[{
+            id:"background-reflection",
+            label:"Background reflection",
+            description:"Lift or quiet the fan silhouette without changing the selected glass master.",
+            type:"precision" as const,
+            value:active.backgroundReflectionIntensity??capabilities.backgroundReflectionRange.defaultValue,
+            unit:"%" as const,
+            min:capabilities.backgroundReflectionRange.min,
+            max:capabilities.backgroundReflectionRange.max,
+            step:5,
+            fineStep:1,
+            defaultValue:capabilities.backgroundReflectionRange.defaultValue,
+            commandId:CURATED_AUTHORING_COMMANDS.updateAction,
+            guidance:"The certified range preserves live-label contrast at phone scale.",
+          }]:[]),
+          ...(capabilities.plugOptional?[{
+            id:"plug-mode",
+            label:"Signature plug",
+            description:"Reserve the collectible guitar pick for actions that need emphasis.",
+            type:"segmented" as const,
+            value:active.plugEnabled===false?"body-only":capabilities.plugSide==="authorable"?(active.plugSide??capabilities.allowedPlugSides?.[0]??"left"):"plug",
+            commandId:CURATED_AUTHORING_COMMANDS.updateAction,
+            options:[
+              {id:"body-only",label:"Body",availability:"enabled" as const},
+              ...(capabilities.plugSide==="authorable"
+                ? (capabilities.allowedPlugSides??["left","right"]).map((id)=>({id,label:`Pick ${id[0].toUpperCase()+id.slice(1)}`,availability:"enabled" as const}))
+                : [{id:"plug",label:"Pick",availability:"enabled" as const}]),
+            ],
+          }]:[]),
+          ...(plugActive?[{
             id: "plug",
             label: capabilities.supportsSemanticIcon ? "Plug presentation" : "Compatible plug",
             description: "Only certified socket-compatible choices appear.",
-            type: "visual-grid",
+            type: "visual-grid" as const,
             value: active.plugPresentationId ?? active.plugComponentId,
             commandId: CURATED_AUTHORING_COMMANDS.updateAction,
             searchable: true,
             initialVisibleCount: 8,
             options: assembly.compatiblePlugs.map((plug) => ({ id: plug.componentId, label: plug.label, previewRef: plug.previewSrc, availability: "enabled" as const, compatibilityTags: [assembly.recipeId] })),
-          },
-          ...(capabilities.supportsSemanticIcon?[{
+          }]:[]),
+          ...(capabilities.supportsSemanticIcon&&plugActive?[{
             id:"semantic-icon",label:"Semantic icon",description:"Canonical shared artwork; the family presentation owns its treatment.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId,commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
             options:compatibleSemanticIcons.map((icon)=>({id:icon.canonicalId,label:icon.accessibleLabel??icon.iconName,previewRef:icon.body,availability:"enabled" as const,compatibilityTags:icon.compatibility})),
           }]:[]),
-          ...(capabilities.plugSide==="authorable"?[{
+          ...(capabilities.plugSide==="authorable"&&plugActive&&!capabilities.plugOptional?[{
             id:"plug-side",label:"Plug side",type:"segmented" as const,value:active.plugSide??capabilities.allowedPlugSides?.[0]??"left",commandId:CURATED_AUTHORING_COMMANDS.updateAction,
             options:(capabilities.allowedPlugSides??["left","right"]).map((id)=>({id,label:id[0].toUpperCase()+id.slice(1),availability:"enabled" as const})),
           }]:[]),
@@ -358,8 +407,21 @@ export function curatedCommandPayloadToMutation(
     if (payload.controlId === "text-size" && typeof payload.value === "number") {
       return { type: "update-action", actionId: payload.actionId, patch: { textSizePx: payload.value } };
     }
+    if (payload.controlId === "background-reflection" && typeof payload.value === "number" && assembly?.capabilities?.supportsBackgroundReflection) {
+      return { type: "update-action", actionId: payload.actionId, patch: { backgroundReflectionIntensity: payload.value } };
+    }
     if (typeof payload.value !== "string") return null;
     const slot = assembly?.slots.find((candidate) => candidate.id === payload.actionId);
+    if (payload.controlId.startsWith("action-appearance:")) {
+      const roleId = payload.controlId.slice("action-appearance:".length);
+      const role = assembly?.appearance.roles.find((candidate) => candidate.id === roleId && !candidate.governed);
+      if (!role) return null;
+      const current = { ...(slot?.appearanceOptionIds ?? {}) };
+      if (payload.value === "__inherit__") delete current[roleId];
+      else if (!role.options.some((option) => option.id === payload.value && option.availability === "enabled")) return null;
+      else current[roleId] = payload.value;
+      return { type: "update-action", actionId: payload.actionId, patch: { appearanceOptionIds: Object.keys(current).length ? current : undefined } };
+    }
     const patch = payload.controlId === "label" ? { label: payload.value }
       : payload.controlId === "sublabel" && assembly?.capabilities?.supportsSublabel ? { sublabel: payload.value }
       : payload.controlId === "accessible-name" ? { accessibilityLabel: payload.value }
@@ -368,6 +430,11 @@ export function curatedCommandPayloadToMutation(
           : payload.controlId === "destination" ? destinationPatch(slot?.actionType, payload.value)
             : payload.controlId === "alignment" && ["left", "center", "right"].includes(payload.value) ? { textAlign: payload.value as "left" | "center" | "right" }
               : payload.controlId === "text-size" && ["small", "medium", "large"].includes(payload.value) ? { textSize: payload.value as "small" | "medium" | "large" }
+                : payload.controlId === "plug-mode" && assembly?.capabilities?.plugOptional
+                  ? payload.value==="body-only" ? {plugEnabled:false}
+                    : payload.value==="left"||payload.value==="right" ? {plugEnabled:true,plugSide:payload.value as "left"|"right"}
+                      : payload.value==="plug" ? {plugEnabled:true}
+                        : null
                 : payload.controlId === "plug" || payload.controlId === "plug-presentation" ? assembly?.capabilities?.supportsSemanticIcon ? { plugPresentationId: payload.value } : { plugComponentId: payload.value }
                   : payload.controlId === "semantic-icon" && assembly?.capabilities?.supportsSemanticIcon ? { semanticIconRef: assembly.compatibleSemanticIcons?.find((icon)=>icon.canonicalId===payload.value) }
                     : payload.controlId === "plug-side" && assembly?.capabilities?.plugSide==="authorable" && (payload.value==="left"||payload.value==="right") ? { plugSide:payload.value as "left"|"right" }
@@ -381,19 +448,20 @@ function destinationPatch(actionType: string | undefined, destination: string) {
   const kind = standardButtonActions().some((action) => action.kind === actionType) ? actionType as StandardButtonActionIntent : "website";
   const reconciled = reconcileActionIntent(kind, destination);
   const props = actionProps(reconciled.kind, reconciled.destination);
-  return { actionType: String(props.actionType), destination: String(props.href) };
+  return { actionType: String(props.actionType), destination: reconciled.kind === "internal_page" ? reconciled.destination : String(props.href) };
 }
 
 function actionIntentPatch(actionType: string, currentDestination?: string) {
   const kind = standardButtonActions().some((action) => action.kind === actionType) ? actionType as StandardButtonActionIntent : "website";
   if (currentDestination && !validateActionDestination(kind, currentDestination)) {
     const props = actionProps(kind, currentDestination);
-    return { actionType: String(props.actionType), destination: String(props.href) };
+    return { actionType: String(props.actionType), destination: kind === "internal_page" ? currentDestination : String(props.href) };
   }
   const destination = kind === "call" ? "tel:"
     : kind === "sms" ? "sms:"
       : kind === "email" ? "mailto:"
         : kind === "map" ? "geo:"
-          : "https://";
+          : kind === "internal_page" ? ""
+            : "https://";
   return { actionType: kind, destination };
 }

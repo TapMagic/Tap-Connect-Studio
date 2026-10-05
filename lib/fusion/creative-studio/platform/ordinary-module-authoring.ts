@@ -2,12 +2,13 @@ import type { CreativeCompositionNode } from "../composition";
 import { resolveStudioControlAvailability, type StudioControlAvailability } from "./control-availability";
 
 export const STUDIO_ORDINARY_MODULE_CONTRACT = "studioOrdinaryModuleAuthoring@1.0.0" as const;
-export type OrdinaryModuleKind = "text" | "image" | "button" | "divider";
-export type OrdinaryCapabilityGroup = "content" | "action" | "text" | "icon" | "surface" | "edge" | "spacing" | "position" | "accessibility";
+export type OrdinaryModuleKind = "text" | "image" | "video" | "button" | "divider";
+export type OrdinaryCapabilityGroup = "content" | "action" | "text" | "icon" | "source" | "playback" | "poster" | "analytics" | "surface" | "edge" | "spacing" | "position" | "accessibility";
 
 const GROUPS: Record<OrdinaryModuleKind, readonly OrdinaryCapabilityGroup[]> = {
   text: ["content", "text", "spacing", "position", "accessibility"],
   image: ["content", "surface", "edge", "spacing", "position", "accessibility"],
+  video: ["source", "playback", "poster", "position", "accessibility", "analytics"],
   button: ["content", "action", "text", "icon", "surface", "edge", "spacing", "position", "accessibility"],
   divider: ["surface", "edge", "spacing", "position", "accessibility"],
 };
@@ -22,7 +23,7 @@ export type OrdinaryModuleCapability = Readonly<{
 export function ordinaryModuleKind(node: CreativeCompositionNode): OrdinaryModuleKind | null {
   const kind = String(node.props.elementKind || node.primitive);
   if (kind === "divider" || node.primitive === "border") return "divider";
-  if (node.primitive === "text" || node.primitive === "image" || node.primitive === "button") return node.primitive;
+  if (node.primitive === "text" || node.primitive === "image" || node.primitive === "video" || node.primitive === "button") return node.primitive;
   return null;
 }
 

@@ -1,0 +1,48 @@
+{
+  "route": "/everencore/love-and-theft",
+  "publishedRevision": "phase-2-2-public-shell-v1",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "noLogin": true,
+  "noPreviewToken": true,
+  "noIndex": true,
+  "stableSlugToPublishedRevision": true,
+  "spaHistory": [
+    "home",
+    "music",
+    "backstage",
+    "music",
+    "live"
+  ],
+  "sessionPreserved": true,
+  "externalReturnContextPreserved": true,
+  "directPageEntry": [
+    "live",
+    "vault"
+  ],
+  "map": {
+    "providerNeutralState": true,
+    "locationCount": 3,
+    "primary": "wec-venue",
+    "tiles": true,
+    "scrollSafeActivation": true,
+    "fallback": true,
+    "routeGuidanceSeparatedFromDisplay": true,
+    "runtimeDeviceAdapter": true,
+    "independentlyNavigable": [
+      "wec-venue",
+      "wec-parking",
+      "wec-vip"
+    ]
+  },
+  "navigationReturnProof": {
+    "primary": "wec-venue",
+    "secondary": "wec-parking",
+    "samePage": "page-live",
+    "sameSession": true,
+    "noRetap": true
+  },
+  "productOwnerAcceptance": "pending"
+}

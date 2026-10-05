@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 160">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#444a54"/><stop offset=".22" stop-color="#11141a"/><stop offset=".5" stop-color="#030507"/><stop offset=".8" stop-color="#191b20"/><stop offset="1" stop-color="#020304"/></linearGradient>
+    <linearGradient id="b" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#241205"/><stop offset=".16" stop-color="#e7c77e"/><stop offset=".31" stop-color="#684019"/><stop offset=".51" stop-color="#cc9748"/><stop offset=".7" stop-color="#4e2b10"/><stop offset=".87" stop-color="#edd08a"/><stop offset="1" stop-color="#211005"/></linearGradient>
+    <filter id="s" x="-10%" y="-30%" width="120%" height="180%"><feDropShadow dy="7" stdDeviation="5" flood-opacity=".7"/></filter>
+  </defs>
+  <g filter="url(#s)">
+    <rect x="15" y="18" width="570" height="124" rx="62" fill="#070302" stroke="#120704" stroke-width="11"/>
+    <rect x="19" y="22" width="562" height="116" rx="58" fill="url(#g)" stroke="url(#b)" stroke-width="7"/>
+    <rect x="27" y="30" width="546" height="100" rx="50" fill="none" stroke="#1a0b05" stroke-width="4"/>
+    <rect x="31" y="34" width="538" height="92" rx="46" fill="none" stroke="#f8dd9b" stroke-opacity=".32" stroke-width="2"/>
+    <path d="M51 37h478" stroke="#fff8db" stroke-opacity=".24" stroke-width="3" stroke-linecap="round"/>
+    <path d="m524 67 13 13-13 13" fill="none" stroke="#e8c38a" stroke-width="3" stroke-linecap="square"/>
+  </g>
+  <text x="70" y="77" fill="#fff7e8" font-family="Georgia,serif" font-size="23" font-weight="700">Website</text>
+  <text x="70" y="102" fill="#dfc994" font-family="system-ui" font-size="10" font-weight="600" letter-spacing="2">OFFICIAL ARTIST HOME</text>
+</svg>

@@ -2,6 +2,8 @@ export * from "./types";
 export * from "./registry";
 export * from "./layout-recipes";
 export * from "./cabinet-noir";
+export * from "./everencore-love-and-theft";
+export * from "./everencore-love-and-theft-appearance";
 export * from "./assembly";
 export * from "./composition-adapter";
 export * from "./authoring";

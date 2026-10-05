@@ -7,7 +7,7 @@ import {
 } from "@/lib/fusion/creative-studio/platform/structured-assembly";
 import { familyAppearanceContract, familyTextTreatmentContract } from "../platform/family-appearance-registry";
 import { signaturePresentation } from "../signature-assets/layout-recipes";
-import { CANONICAL_PLATFORM_ICON_ASSETS } from "../icon-asset";
+import { CANONICAL_SEMANTIC_ICON_ASSETS } from "../icon-asset";
 import { reconcileActionIntent } from "@/lib/fusion/card/action-intent-presentation";
 import { createIdentityVisualResourceFitContract, createStudioSemanticResourceSlot, type StudioSemanticResource } from "../platform/semantic-resource-slot";
 import { compatibleFamilyAppearanceOptions } from "../platform/family-appearance";
@@ -44,6 +44,7 @@ export function selectedStructuredAssembly(
       layoutMode,
       label: presentation.label,
       description: presentation.description,
+      density: presentation.density,
       allowedActionCounts: layoutMode === "twin-rail"
         ? candidate.certificationLimits.launchCertifiedActionCounts.filter((count) => count % 2 === 0)
         : candidate.certificationLimits.launchCertifiedActionCounts,
@@ -57,7 +58,15 @@ export function selectedStructuredAssembly(
   const activePresentation=recipe?signaturePresentation(recipe):undefined;
   const recipeLabel = activePresentation?.label ?? (state.input.layoutMode === "standalone" ? "Standalone Action" : state.input.layoutMode === "twin-rail" ? "Twin Rail" : "Single Stack");
   const liveTextGeometry = SIGNATURE_ASSETS.find((asset) => asset.familyId === state.input.familyId && asset.assetKind === "action" && asset.normalizedContract?.liveContentGeometry?.textSizePresetsPxAt390)?.normalizedContract?.liveContentGeometry;
-  const textPrecision = liveTextGeometry?.presentationTypography?.[state.input.layoutMode];
+  const legacyTextPrecision = liveTextGeometry?.presentationTypography?.[state.input.layoutMode];
+  const governedTitleTypography = activePresentation?.capabilities?.responsiveTypography?.title;
+  const textPrecision = governedTitleTypography ? {
+    minPx: governedTitleTypography.minPx,
+    maxPx: governedTitleTypography.maxPx,
+    defaultPx: governedTitleTypography.defaultPx,
+    stepPx: 0.5,
+    characterLimits: legacyTextPrecision?.characterLimits ?? { atMin: 28, atDefault: 22, atMax: 16 },
+  } : legacyTextPrecision;
   const sizeIds = ["small", "medium", "large"] as const;
   const hasIdentitySocket = SIGNATURE_ASSEMBLY_RECIPES
     .filter((candidate) => candidate.familyId === state.input.familyId && candidate.familyVersion === state.input.familyVersion)
@@ -85,6 +94,7 @@ export function selectedStructuredAssembly(
     recipeId: state.input.recipeId,
     recipeVersion: state.input.recipeVersion,
     recipeLabel,
+    density: activePresentation?.density,
     inputCount: state.input.actions.length,
     slots: state.input.actions.map((action, index) => ({
       id: action.id,
@@ -97,12 +107,15 @@ export function selectedStructuredAssembly(
       semanticIconRef: action.semanticIconRef,
       semanticLabel: action.semanticLabel,
       sublabel: action.sublabel,
+      plugEnabled: action.plugEnabled,
       plugSide: action.plugSide,
       plugLabel: plugs.find((plug) => plug.normalizedContract?.componentId === (action.plugPresentationId??action.plugComponentId))?.label,
       plugPreviewSrc: plugs.find((plug) => plug.normalizedContract?.componentId === (action.plugPresentationId??action.plugComponentId))?.sourceAsset,
       textAlign: action.textAlign ?? "center",
       textSize: action.textSize ?? "medium",
       textSizePx: action.textSizePx,
+      backgroundReflectionIntensity: action.backgroundReflectionIntensity,
+      appearanceOptionIds: action.appearanceOptionIds,
       contentType: "action" as const,
       required: true,
       order: index,
@@ -126,8 +139,16 @@ export function selectedStructuredAssembly(
     capabilities: {
       supportsSublabel:Boolean(activePresentation?.capabilities?.sublabel?.supported),
       supportsSemanticIcon:Boolean(activePresentation?.capabilities?.semanticIcon?.supported),
+      supportsPlug:activePresentation?.capabilities?.plug?.supported??true,
+      plugOptional:activePresentation?.capabilities?.plug?.optional??false,
       plugSide:activePresentation?.capabilities?.plugSide?.mode??"derived",
       allowedPlugSides:activePresentation?.capabilities?.plugSide?.mode==="authorable"?activePresentation.capabilities.plugSide.allowed:undefined,
+      supportsBackgroundReflection:Boolean(activePresentation?.capabilities?.backgroundReflection?.supported),
+      backgroundReflectionRange:activePresentation?.capabilities?.backgroundReflection?{
+        min:activePresentation.capabilities.backgroundReflection.minIntensity,
+        max:activePresentation.capabilities.backgroundReflection.maxIntensity,
+        defaultValue:activePresentation.capabilities.backgroundReflection.defaultIntensity,
+      }:undefined,
     },
     textSizes: sizeIds.map((id) => ({
       id,
@@ -164,7 +185,7 @@ export function selectedStructuredAssembly(
       previewSrc: plug.sourceAsset,
       previewAlt: `${plug.label} plug preview`,
     })),
-    compatibleSemanticIcons: activePresentation?.capabilities?.semanticIcon?.supported?CANONICAL_PLATFORM_ICON_ASSETS:[],
+    compatibleSemanticIcons: activePresentation?.capabilities?.semanticIcon?.supported?CANONICAL_SEMANTIC_ICON_ASSETS:[],
     outputOwnership: "recipe-governed",
     compiler: "deterministic",
     mutationReadiness: "ready",

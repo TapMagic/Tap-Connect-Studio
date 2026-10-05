@@ -1,7 +1,7 @@
 import { CARD_ACTION_DEFINITIONS } from "./action-registry";
 import type { TapCardActionKind } from "@/lib/brand/tap-card";
 
-export type StandardButtonActionIntent = "website" | "call" | "email" | "sms" | "map" | "review" | "book";
+export type StandardButtonActionIntent = "website" | "call" | "email" | "sms" | "map" | "review" | "book" | "internal_page";
 
 export type StandardButtonActionPresentation = {
   kind: StandardButtonActionIntent;
@@ -25,15 +25,17 @@ const PRESENTATION: Record<StandardButtonActionIntent, Omit<StandardButtonAction
   map: { fieldLabel: "Address or map destination", placeholder: "123 Main Street", inputMode: "text" },
   review: { fieldLabel: "Review URL", placeholder: "https://…", inputMode: "url" },
   book: { fieldLabel: "Booking URL", placeholder: "https://…", inputMode: "url" },
+  internal_page: { fieldLabel: "Experience Page", placeholder: "Choose a Page", inputMode: "text" },
 };
 
 export function standardButtonActions(): StandardButtonActionPresentation[] {
   const allowed = new Set<StandardButtonActionIntent>(["website", "call", "email", "sms", "map", "review", "book"]);
-  return CARD_ACTION_DEFINITIONS.flatMap((definition) => {
+  const registered = CARD_ACTION_DEFINITIONS.flatMap((definition) => {
     if (!allowed.has(definition.kind as StandardButtonActionIntent)) return [];
     const kind = definition.kind as StandardButtonActionIntent;
     return [{ kind, label: kind === "sms" ? "Text" : kind === "map" ? "Directions" : kind === "book" ? "Booking" : definition.label.replace(/^Click to /, ""), ...PRESENTATION[kind] }];
   });
+  return [...registered, { kind: "internal_page" as const, label: "Experience Page", ...PRESENTATION.internal_page }];
 }
 
 export function normalizeActionDestination(kind: StandardButtonActionIntent, value: string): string {
@@ -86,6 +88,7 @@ export function reconcileActionIntent(
 export function validateActionDestination(kind: StandardButtonActionIntent, value: string): string | null {
   const normalized = normalizeActionDestination(kind, value);
   if (!normalized) return "Enter a destination.";
+  if (kind === "internal_page") return /^[A-Za-z0-9][A-Za-z0-9._:-]{2,127}$/.test(normalized) ? null : "Choose a valid Experience Page.";
   if (kind === "call" || kind === "sms") return /^\+?\d{7,15}$/.test(normalized) ? null : "Enter a valid phone number.";
   if (kind === "email") return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalized) ? null : "Enter a valid email address.";
   if (kind === "map") return normalized.length >= 3 ? null : "Enter an address or map destination.";
@@ -99,6 +102,7 @@ export function validateActionDestination(kind: StandardButtonActionIntent, valu
 
 export function actionProps(kind: StandardButtonActionIntent, value: string): Record<string, unknown> {
   const normalized = normalizeActionDestination(kind, value);
+  if (kind === "internal_page") return { actionType: "internal_page", internalPageId: normalized, destinationRef: normalized, href: "" };
   const href = kind === "call"
     ? `tel:${normalized}`
     : kind === "sms"

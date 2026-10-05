@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280">
+  <defs>
+    <linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#1b0d05"/><stop offset=".19" stop-color="#d3a45b"/><stop offset=".34" stop-color="#5e3716"/><stop offset=".53" stop-color="#f0d38e"/><stop offset=".70" stop-color="#694019"/><stop offset=".88" stop-color="#c58f45"/><stop offset="1" stop-color="#180b04"/></linearGradient>
+    <linearGradient id="post" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#140905"/><stop offset=".30" stop-color="#9a6228"/><stop offset=".52" stop-color="#f0d28a"/><stop offset=".68" stop-color="#5b3212"/><stop offset="1" stop-color="#120805"/></linearGradient>
+    <filter id="contact" x="-30%" y="-5%" width="160%" height="110%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".78"/></filter>
+  </defs>
+  <g filter="url(#contact)">
+    <rect x="34" y="0" width="32" height="280" rx="16" fill="#0c0503"/>
+    <rect x="40" y="0" width="20" height="280" rx="10" fill="url(#post)"/>
+    <rect x="1134" y="0" width="32" height="280" rx="16" fill="#0c0503"/>
+    <rect x="1140" y="0" width="20" height="280" rx="10" fill="url(#post)"/>
+    <path d="M52 17h1096M52 263h1096" stroke="#100704" stroke-width="14"/>
+    <path d="M52 18h1096M52 262h1096" stroke="url(#metal)" stroke-width="7"/>
+    <path d="M70 21h1060M70 259h1060" stroke="#ffe4a3" stroke-opacity=".36" stroke-width="2"/>
+    <circle cx="50" cy="140" r="13" fill="#100704" stroke="#9a672d" stroke-width="4"/>
+    <circle cx="50" cy="140" r="4" fill="#f0d28c"/>
+    <circle cx="1150" cy="140" r="13" fill="#100704" stroke="#9a672d" stroke-width="4"/>
+    <circle cx="1150" cy="140" r="4" fill="#f0d28c"/>
+  </g>
+</svg>

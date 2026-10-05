@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useLayoutEffect, useState, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 import { createPortal } from "react-dom";
 
 const OPEN_EVENT = "tapconnect:studio-transient-overlay-open";
@@ -20,7 +20,10 @@ export function StudioTransientOverlay({
 }) {
   const id = useId();
   const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const task = window.setTimeout(() => setMounted(true), 0);
+    return () => window.clearTimeout(task);
+  }, []);
   useEffect(() => {
     if (!open) return;
     window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: id }));
@@ -56,13 +59,13 @@ export function StudioTransientMenu({
 }) {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ left: 0, top: 0 });
-  const triggerRef = useState(() => ({ current: null as HTMLButtonElement | null }))[0];
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
   const close = () => setOpen(false);
   useLayoutEffect(() => {
     if (!open || !triggerRef.current) return;
     const rect = triggerRef.current.getBoundingClientRect();
     setPosition({ left: Math.max(8, Math.min(window.innerWidth - 184, rect.left)), top: Math.min(window.innerHeight - 120, rect.bottom + 8) });
-  }, [open, triggerRef]);
+  }, [open]);
   return <>
     <button ref={(node) => { triggerRef.current = node; }} type="button" onClick={() => setOpen((current) => !current)} className="grid h-9 w-9 place-items-center rounded-full text-white/62 transition hover:bg-white/8 hover:text-white" aria-label={label} aria-haspopup="menu" aria-expanded={open}>•••</button>
     <StudioTransientOverlay open={open} onClose={close} ownerRef={triggerRef} kind="menu">

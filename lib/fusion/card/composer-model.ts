@@ -328,7 +328,8 @@ export function fitCardSurfaceToContent(section: TapCardSection): TapCardSection
 }
 
 function primitiveFor(kind: CardElementKind): CreativeCompositionPrimitive {
-  if (["logo", "secondary_logo", "image", "thumbnail", "image_gallery", "video", "map", "qr_image"].includes(kind)) return "image";
+  if (kind === "video") return "video";
+  if (["logo", "secondary_logo", "image", "thumbnail", "image_gallery", "map", "qr_image"].includes(kind)) return "image";
   if (["button", "tapsave", "campaign", "campaign_group", "experience", "contact_form", "wallet_cta", "event_rsvp"].includes(kind)) return "button";
   if (["coupon", "ticket"].includes(kind)) return "frame";
   if (["gallery", "form", "composition"].includes(kind)) return "group";
@@ -381,6 +382,18 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
     borderWidth: 0,
   };
   if (primitive === "image") semanticProps.aspectLocked = true;
+  if (primitive === "video") Object.assign(semanticProps, {
+    aspectLocked: true,
+    videoUrl: "",
+    videoProvider: "hosted",
+    playbackMode: "play_on_tap",
+    muted: true,
+    controls: true,
+    playsInline: true,
+    loop: false,
+    playOnce: false,
+    videoTitle: "Card video",
+  });
   const semanticText = text[kind];
   if (semanticText !== undefined) semanticProps.text = semanticText;
   if (kind === "button") semanticProps.label = "Learn more";
@@ -436,7 +449,12 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   }
   if (kind === "ticket") Object.assign(semanticProps, { componentKind: "ticket", mask: "ticket", title: "ADMIT ONE", ticketId: "TICKET-001", terms: "Draft terms — review before publishing.", ownerReviewRequired: true, accessibleLabel: "Ticket", contentComposition: componentContent("ticket", node.id) });
   if (kind === "form") Object.assign(semanticProps, { componentKind: "form", heading: "Stay in touch", fields: [{ id: "email", label: "Email", type: "email", required: true }], consent: "I agree to be contacted.", liveSubmission: false, accessibleLabel: "Contact form", contentComposition: componentContent("form", node.id) });
-  if (kind === "map") Object.assign(semanticProps, mapElementDefaults());
+  if (kind === "map") Object.assign(semanticProps, mapElementDefaults(), {
+    resizePolicy: "free",
+    aspectLocked: false,
+    flowWidthPercent: 100,
+    flowAlignment: "stretch",
+  });
   if (kind === "composition") Object.assign(semanticProps, { componentKind: "container", elementKind: "composition", layout: "stack", resizePolicy: "reflow" });
   const isCompactAction = kind === "button" || kind === "tapsave";
   const isMap = kind === "map";
@@ -445,6 +463,7 @@ export function createCardElement(kind: CardElementKind, index = 0): CreativeCom
   const isThumbnail = kind === "thumbnail";
   return {
     ...node,
+    ...(isMap ? { minHeightPx: 420 } : {}),
     width: isMap ? 0.84 : isBadge ? 0.84 : isLogo || isThumbnail ? 0.42 : isCompactAction ? 0.42 : node.width,
     height: isMap ? 0.34 : isBadge ? 0.12 : isLogo ? 0.18 : isThumbnail ? 0.3 : isCompactAction ? 0.16 : node.height,
     props: {

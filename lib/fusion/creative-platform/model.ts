@@ -199,7 +199,7 @@ export const shapeNodeSchema = z.object({
 
 export const creativeRenderNodeSchema = z.object({
   id: z.string().min(1).max(120),
-  primitive: z.enum(["text", "button", "image", "frame", "shape", "divider", "group"]),
+  primitive: z.enum(["text", "button", "image", "video", "frame", "shape", "divider", "group"]),
   x: unitSchema,
   y: unitSchema,
   width: z.number().min(0.001).max(1),

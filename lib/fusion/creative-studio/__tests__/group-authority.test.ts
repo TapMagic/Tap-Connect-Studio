@@ -3,6 +3,8 @@ import { test } from "node:test";
 import {
   createCompositionNode,
   groupNodes,
+  parseCreativeComposition,
+  type CreativeCompositionNode,
 } from "../composition";
 import {
   appearanceAdapterTargetForFamily,
@@ -16,9 +18,16 @@ import {
   isGroupParentSelection,
   mixedValueForCapability,
   moveGroupComposition,
+  readCompositionGroupSettings,
   resizeGroupComposition,
   resolveActiveGroupId,
   rotateGroupComposition,
+  setCompositionGroupSettings,
+  compositionGroupRecord,
+  groupCompositionBlock,
+  reorderCompositionGroupZ,
+  setCompositionGroupScaleMode,
+  ungroupCompositionBlock,
 } from "../group-authority";
 import { applyEffectRecipe } from "../material-engine";
 import { effectIdentitySignature } from "../effect-render";
@@ -87,6 +96,101 @@ test("group resize and rotate transform both members", () => {
   const rotated = rotateGroupComposition(nodes, "g1", 25);
   assert.notEqual(rotated.find((n) => n.id === "t1")!.rotationDeg || 0, 0);
   assert.notEqual(rotated.find((n) => n.id === "t2")!.rotationDeg || 0, 0);
+});
+
+test("canonical sibling Modules form one persisted Group without creating a second parent hierarchy", () => {
+  const nodes = twoTexts().map((node, index) => ({
+    ...node,
+    groupId: null,
+    compositionKind: "module" as const,
+    parentId: "container-1",
+    siblingOrder: index,
+  }));
+  const grouped = groupNodes(nodes, ["t1", "t2"], "canonical-group");
+  assert.ok(grouped.every((node) => node.groupId === "canonical-group"));
+  assert.ok(grouped.every((node) => node.parentId === "container-1"));
+  assert.equal(resolveActiveGroupId(grouped, ["t1"]), "canonical-group");
+  const rejected = groupNodes([{ ...nodes[0], parentId: null }, nodes[1]], ["t1", "t2"], "invalid-cross-parent");
+  assert.ok(rejected.every((node) => node.groupId == null));
+});
+
+test("canonical Group record persists responsive transform, scale mode, and local z-order", () => {
+  const nodes = twoTexts().map((node, index) => ({ ...node, groupId: null, compositionKind: "module" as const, parentId: null, siblingOrder: index }));
+  const peer = { ...nodes[0], id: "peer", groupId: null, x: .02, y: .6, zIndex: 8, siblingOrder: 2 };
+  const block = { version: 1 as const, id: "root", label: "Root", nodes: [...nodes, peer], parentAuthority: { version: 1 as const, layout: "flow" as const, cardGapPx: 12 }, background: { kind: "none" as const }, mobileFallback: "scale" as const };
+  const grouped = groupCompositionBlock(block, ["t1", "t2"], "persisted-group");
+  const record = compositionGroupRecord(grouped, "persisted-group");
+  assert.ok(record);
+  assert.equal(grouped.groups?.length, 1);
+  assert.equal(record?.parentId, null);
+  const compact = setCompositionGroupScaleMode(grouped, "persisted-group", "compact", { minChildWidth: 28 / 390, minChildHeight: 44 / 620 });
+  assert.equal(compositionGroupRecord(compact, "persisted-group")?.scaleMode, "compact");
+  assert.ok((compositionGroupRecord(compact, "persisted-group")?.width ?? 1) <= .79);
+  assert.ok((compositionGroupRecord(compact, "persisted-group")?.width ?? 0) >= .77);
+  assert.deepEqual(parseCreativeComposition(JSON.parse(JSON.stringify(compact)))?.groups, compact.groups);
+  const front = reorderCompositionGroupZ(compact, "persisted-group", "front");
+  assert.ok((compositionGroupRecord(front, "persisted-group")?.zIndex ?? 0) > (front.nodes.find((node) => node.id === "peer")?.zIndex ?? 0));
+  const ungrouped = ungroupCompositionBlock(front, "persisted-group");
+  assert.equal(ungrouped.groups?.length, 0);
+  assert.ok(ungrouped.nodes.filter((node) => node.id !== "peer").every((node) => node.groupId == null));
+});
+
+test("Group density and layout reflow are canonical member state and keep readable Text height", () => {
+  const nodes = twoTexts();
+  const originalHeights = new Map(nodes.map((node) => [node.id, node.height]));
+  const dense = setCompositionGroupSettings(nodes, "g1", { layout: "flow_vertical", density: "dense" }, { widthPx: 390, heightPx: 620 });
+  const settings = readCompositionGroupSettings(dense, "g1");
+  assert.deepEqual(settings, { layout: "flow_vertical", density: "dense", rowGapPx: 4, columnGapPx: 6, internalGapPx: 2 });
+  assert.ok(dense.every((node) => node.props.compositionGroupLayout === "flow_vertical"));
+  assert.ok(dense.find((node) => node.id === "t2")!.y > dense.find((node) => node.id === "t1")!.y);
+  const bounds = computeGroupUnionBounds(dense, "g1")!;
+  const resized = resizeGroupComposition(dense, "g1", { ...bounds, width: bounds.width * .75, height: bounds.height * .5 });
+  assert.equal(resized.find((node) => node.id === "t1")!.height, originalHeights.get("t1"));
+  assert.equal(resized.find((node) => node.id === "t2")!.height, originalHeights.get("t2"));
+});
+
+test("dense Group reflow removes phantom Curated wrapper height while preserving a 44px target", () => {
+  const nodes = twoTexts().map((node, index) => ({
+    ...node,
+    primitive: "frame" as const,
+    width: index === 0 ? .6 : .5,
+    height: .18,
+    moduleComposition: { pageHeightPx: index === 0 ? 82 : 64, signatureAssembly: {} } as CreativeCompositionNode["moduleComposition"],
+  }));
+  const dense = setCompositionGroupSettings(nodes, "g1", { layout: "flow_vertical", density: "dense" }, { widthPx: 390, heightPx: 680 });
+  const first = dense.find((node) => node.id === "t1")!;
+  const second = dense.find((node) => node.id === "t2")!;
+  assert.ok(first.height < .18);
+  assert.ok(second.height < .18);
+  assert.ok(first.height * 680 >= 44);
+  assert.ok(second.height * 680 >= 44);
+  assert.ok(Math.abs(second.y - (first.y + first.height + 4 / 680)) < 1e-9);
+});
+
+test("Grid Group reflow fits full-width parent-authority actions inside one bounded plane", () => {
+  const nodes = Array.from({ length: 6 }, (_, index) => ({
+    ...createCompositionNode("frame", {
+      id: `action-${index}`,
+      x: .03,
+      y: .22 + index * .01,
+      width: .94,
+      height: .12,
+      zIndex: index + 1,
+      groupId: "action-grid",
+      props: { minimumTouchTargetPx: 44 },
+    }),
+    compositionKind: "module" as const,
+    parentId: null,
+    siblingOrder: index,
+    anchor: index % 2 ? "right" as const : "top-left" as const,
+    moduleComposition: { pageHeightPx: 72, signatureAssembly: {} } as CreativeCompositionNode["moduleComposition"],
+  }));
+  const arranged = setCompositionGroupSettings(nodes, "action-grid", { layout: "grid", density: "dense" }, { widthPx: 390, heightPx: 760 });
+  const bounds = computeGroupUnionBounds(arranged, "action-grid", true)!;
+  assert.ok(bounds.left >= 0);
+  assert.ok(bounds.left + bounds.width <= 1 + Number.EPSILON);
+  assert.ok(arranged.every((node) => node.width < .5));
+  assert.ok(arranged.every((node) => node.height * 760 >= 44));
 });
 
 test("capability fan-out applies color to all text and reports mixed", () => {

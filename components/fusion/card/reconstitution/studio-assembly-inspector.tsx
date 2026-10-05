@@ -10,13 +10,14 @@ import {
   curatedCommandPayloadToMutation,
 } from "@/lib/fusion/creative-studio/reconstitution/curated-authoring-adapter";
 import { StudioAuthoringShell } from "./studio-authoring-shell";
+import type { TapExperiencePage } from "@/lib/brand/tap-card";
 
 /**
  * Compatibility adapter for the original Curated inspector entry point.
  * The selected family supplies capabilities; StudioAuthoringShell supplies the
  * shared interaction grammar. No family presentation logic lives here.
  */
-export function StudioAssemblyInspector({ assembly, selectedNodeId, onCommand, onPreviewCommand, onBeginLiveAdjustment, onCommitLiveAdjustment, onCancelLiveAdjustment, onMutate, onClose, transientTaskLifecycle, mediaUploadReady = false, stockReady = false }: {
+export function StudioAssemblyInspector({ assembly, selectedNodeId, onCommand, onPreviewCommand, onBeginLiveAdjustment, onCommitLiveAdjustment, onCancelLiveAdjustment, onMutate, onClose, transientTaskLifecycle, mediaUploadReady = false, stockReady = false, experiencePages = [] }: {
   assembly: StudioStructuredAssemblyDescriptor;
   selectedNodeId: string;
   onCommand?: (command: StudioAuthoringCommand, mutation: StudioCuratedAssemblyMutation) => void;
@@ -30,6 +31,7 @@ export function StudioAssemblyInspector({ assembly, selectedNodeId, onCommand, o
   transientTaskLifecycle?: StudioTransientTaskLifecycle;
   mediaUploadReady?: boolean;
   stockReady?: boolean;
+  experiencePages?: readonly TapExperiencePage[];
 }) {
   const [activeId, setActiveId] = useState<string | undefined>();
   const resolvedActiveId = activeId && assembly.slots.some((slot) => slot.id === activeId) ? activeId : undefined;
@@ -66,5 +68,6 @@ export function StudioAssemblyInspector({ assembly, selectedNodeId, onCommand, o
     transientTaskLifecycle={transientTaskLifecycle}
     mediaUploadReady={mediaUploadReady}
     stockReady={stockReady}
+    experiencePages={experiencePages}
   />;
 }

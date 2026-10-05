@@ -29,9 +29,12 @@ describe("Interaction and Composure shared authorities", () => {
     assert.equal(fitCardToContent(block(), 610).explicitMinimumHeightPx, 610);
   });
 
-  it("resolves the same valid flow targets without permitting nested Containers", () => {
+  it("resolves shared flow targets, including governed nested Containers, without permitting cycles", () => {
     assert.deepEqual(resolveFlowDropTarget(block(), "a", "panel", 4), { ok: true, target: { contractId: "studioFlowDropTarget@1.0.0", parentId: "panel", index: 1 } });
-    assert.deepEqual(resolveFlowDropTarget(block(), "panel", "panel", 0), { ok: false, reason: "Containers remain on the Card Surface." });
+    const nestedCandidate = { ...moduleNode("nested", null, 2), primitive: "frame" as const, compositionKind: "container" as const, props: { componentKind: "container" } };
+    const withNestedCandidate = { ...block(), nodes: [...block().nodes, nestedCandidate] };
+    assert.deepEqual(resolveFlowDropTarget(withNestedCandidate, "nested", "panel", 0), { ok: true, target: { contractId: "studioFlowDropTarget@1.0.0", parentId: "panel", index: 0 } });
+    assert.deepEqual(resolveFlowDropTarget(block(), "panel", "panel", 0), { ok: false, reason: "A Container cannot be placed inside one of its descendants." });
   });
 
   it("separates flow Position from future freeform and z-order", () => {

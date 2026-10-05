@@ -15,7 +15,7 @@ test.describe("Slice 3 Text North Star", () => {
   test.skip(!enabled, "Set STUDIO_SLICE3_TEXT_ACCEPTANCE=1 for the isolated Rich review runtime");
   test.describe.configure({ timeout: 240_000 });
 
-  test("authors five-role Text, protects inline input ownership, and exposes Card Surface", async ({ page }) => {
+  test("authors six-role Text Boxes, protects inline input ownership, and exposes Card Surface", async ({ page }) => {
     page.setDefaultTimeout(12_000);
     mkdirSync(evidence, { recursive: true });
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -28,8 +28,8 @@ test.describe("Slice 3 Text North Star", () => {
     try {
       await openAdd(page);
       await page.getByTestId("studio-add-text").click();
-      for (const role of ["heading", "subheading", "body", "label", "quote"]) await expect(page.getByTestId(`studio-add-resource-text-${role}`)).toBeVisible();
-      await page.screenshot({ path: path.join(evidence, "01-five-real-text-roles.png") });
+      for (const role of ["heading", "subheading", "body", "label", "quote", "free"]) await expect(page.getByTestId(`studio-add-resource-text-${role}`)).toBeVisible();
+      await page.screenshot({ path: path.join(evidence, "01-six-real-text-box-roles.png") });
       await page.getByTestId("studio-add-resource-text-body").click();
       const selected = page.locator('[data-composition-kind="module"][data-primitive="text"][data-selected="true"]');
       await expect(selected).toBeVisible();
@@ -122,7 +122,7 @@ test.describe("Slice 3 Text North Star", () => {
       await expect(phoneInline).toContainText("phone line");
       await phoneInline.press("Escape");
 
-      writeFileSync(path.join(evidence, "acceptance.json"), `${JSON.stringify({ contract: "studioTextAuthoring@1.0.0", roles: ["heading", "subheading", "body", "label", "quote"], editableInputOwnership: true, canonicalHistory: true, desktopAndPhoneText: true, cardSurfaceAuthoringPresence: true, productOwnerAcceptance: "pending" }, null, 2)}\n`);
+      writeFileSync(path.join(evidence, "acceptance.json"), `${JSON.stringify({ contract: "studioTextAuthoring@1.0.0", roles: ["heading", "subheading", "body", "label", "quote", "free"], editableInputOwnership: true, canonicalHistory: true, desktopAndPhoneText: true, cardSurfaceAuthoringPresence: true, productOwnerAcceptance: "pending" }, null, 2)}\n`);
     } finally {
       const current = await page.request.get("/api/card/draft");
       if (current.ok()) {

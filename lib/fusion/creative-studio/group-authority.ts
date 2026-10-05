@@ -4,14 +4,18 @@
  * editing target without inventing a second Group species.
  */
 
-import type { CreativeCompositionNode } from "./composition";
+import { nanoid } from "nanoid";
+import type { CreativeCompositionBlock, CreativeCompositionGroup, CreativeCompositionNode } from "./composition";
 import {
   expandSelectionToGroups,
+  groupNodes,
   resolveNodeBox,
   translateNodesOnPasteboard,
+  ungroupNodes,
 } from "./composition";
 import { objectFamilyForNode, type ObjectFamily } from "./capabilities";
 import { isTrueGroupMember } from "./selection-mode";
+import { layeredResizePolicy } from "./platform/layered-region";
 
 export type GroupUnionBounds = {
   groupId: string;
@@ -46,6 +50,322 @@ export type FanOutCapability =
   | "accessibility";
 
 export type TriState = "on" | "off" | "mixed" | "empty";
+
+export type CompositionGroupLayoutMode = "layered" | "flow_vertical" | "flow_horizontal" | "grid";
+export type CompositionGroupDensityMode = "dense" | "standard" | "airy" | "custom";
+export type CompositionGroupSettings = {
+  layout: CompositionGroupLayoutMode;
+  density: CompositionGroupDensityMode;
+  rowGapPx: number;
+  columnGapPx: number;
+  internalGapPx: number;
+};
+
+export type CompositionGroupScaleMode = CreativeCompositionGroup["scaleMode"];
+
+const GROUP_DENSITY: Record<Exclude<CompositionGroupDensityMode, "custom">, Pick<CompositionGroupSettings, "rowGapPx" | "columnGapPx" | "internalGapPx">> = {
+  dense: { rowGapPx: 4, columnGapPx: 6, internalGapPx: 2 },
+  standard: { rowGapPx: 10, columnGapPx: 12, internalGapPx: 6 },
+  airy: { rowGapPx: 20, columnGapPx: 22, internalGapPx: 12 },
+};
+
+function groupGap(value: unknown, fallback: number) {
+  const number = Number(value);
+  return Math.max(0, Math.min(64, Number.isFinite(number) ? number : fallback));
+}
+
+export function readCompositionGroupSettings(
+  nodes: readonly CreativeCompositionNode[],
+  groupId: string,
+): CompositionGroupSettings {
+  const member = groupMembers(nodes, groupId)[0];
+  const rawDensity = String(member?.props.compositionGroupDensityMode || "standard");
+  const density: CompositionGroupDensityMode = rawDensity === "dense" || rawDensity === "airy" || rawDensity === "custom" ? rawDensity : "standard";
+  const rawLayout = String(member?.props.compositionGroupLayout || "layered");
+  const layout: CompositionGroupLayoutMode = rawLayout === "flow_vertical" || rawLayout === "flow_horizontal" || rawLayout === "grid" ? rawLayout : "layered";
+  const preset = density === "custom" ? GROUP_DENSITY.standard : GROUP_DENSITY[density];
+  return {
+    layout,
+    density,
+    rowGapPx: groupGap(member?.props.compositionGroupRowGapPx, preset.rowGapPx),
+    columnGapPx: groupGap(member?.props.compositionGroupColumnGapPx, preset.columnGapPx),
+    internalGapPx: groupGap(member?.props.compositionGroupInternalGapPx, preset.internalGapPx),
+  };
+}
+
+function inferredGroupRecord(
+  block: CreativeCompositionBlock,
+  groupId: string,
+): CreativeCompositionGroup | null {
+  const members = groupMembers(block.nodes, groupId);
+  const bounds = computeGroupUnionBounds(block.nodes, groupId, true);
+  if (!bounds || members.length < 2) return null;
+  const settings = readCompositionGroupSettings(block.nodes, groupId);
+  return {
+    id: groupId,
+    name: "Group",
+    parentId: members[0]?.parentId ?? null,
+    x: bounds.left,
+    y: bounds.top,
+    width: bounds.width,
+    height: bounds.height,
+    anchor: members[0]?.anchor ?? "top-left",
+    zIndex: Math.max(1, ...members.map((member) => member.zIndex)),
+    locked: members.every((member) => member.locked === true),
+    ...settings,
+    scaleMode: "proportional",
+  };
+}
+
+export function compositionGroupRecord(
+  block: CreativeCompositionBlock,
+  groupId: string,
+): CreativeCompositionGroup | null {
+  return block.groups?.find((group) => group.id === groupId) ?? inferredGroupRecord(block, groupId);
+}
+
+/** Keeps persisted Group objects synchronized with canonical member geometry. */
+export function synchronizeCompositionGroups(block: CreativeCompositionBlock): CreativeCompositionBlock {
+  const ids = [...new Set(block.nodes.flatMap((node) => node.groupId && isTrueGroupMember(node) ? [node.groupId] : []))];
+  const current = new Map((block.groups ?? []).map((group) => [group.id, group]));
+  const groups = ids.flatMap((groupId) => {
+    const inferred = inferredGroupRecord(block, groupId);
+    if (!inferred) return [];
+    const existing = current.get(groupId);
+    return [{
+      ...inferred,
+      ...existing,
+      parentId: inferred.parentId,
+      x: inferred.x,
+      y: inferred.y,
+      width: inferred.width,
+      height: inferred.height,
+    }];
+  });
+  return { ...block, groups };
+}
+
+export function groupCompositionBlock(
+  block: CreativeCompositionBlock,
+  ids: readonly string[],
+  groupId = `group-${nanoid(6)}`,
+): CreativeCompositionBlock {
+  const nodes = groupNodes(block.nodes, [...ids], groupId);
+  if (nodes === block.nodes) return block;
+  return synchronizeCompositionGroups({ ...block, nodes });
+}
+
+export function ungroupCompositionBlock(
+  block: CreativeCompositionBlock,
+  groupId: string,
+): CreativeCompositionBlock {
+  return {
+    ...block,
+    nodes: ungroupNodes(block.nodes, groupId),
+    groups: (block.groups ?? []).filter((group) => group.id !== groupId),
+  };
+}
+
+export function updateCompositionGroup(
+  block: CreativeCompositionBlock,
+  groupId: string,
+  patch: Partial<CreativeCompositionGroup>,
+): CreativeCompositionBlock {
+  const record = compositionGroupRecord(block, groupId);
+  if (!record) return block;
+  const next = { ...record, ...patch, id: groupId, parentId: record.parentId };
+  const groups = [...(block.groups ?? []).filter((group) => group.id !== groupId), next];
+  return { ...block, groups };
+}
+
+export function setCompositionGroupSettingsInBlock(
+  block: CreativeCompositionBlock,
+  groupId: string,
+  patch: Partial<CompositionGroupSettings>,
+  region: { widthPx: number; heightPx: number },
+): CreativeCompositionBlock {
+  const nodes = setCompositionGroupSettings(block.nodes, groupId, patch, region);
+  const synced = synchronizeCompositionGroups({ ...block, nodes });
+  const settings = readCompositionGroupSettings(nodes, groupId);
+  return updateCompositionGroup(synced, groupId, settings);
+}
+
+export function moveCompositionGroupInBlock(
+  block: CreativeCompositionBlock,
+  groupId: string,
+  dx: number,
+  dy: number,
+): CreativeCompositionBlock {
+  const bounds = computeGroupUnionBounds(block.nodes, groupId, true);
+  if (!bounds) return block;
+  const boundedDx = Math.max(-bounds.left, Math.min(1 - bounds.left - bounds.width, dx));
+  const boundedDy = Math.max(-bounds.top, Math.min(1 - bounds.top - bounds.height, dy));
+  return synchronizeCompositionGroups({ ...block, nodes: moveGroupComposition(block.nodes, groupId, boundedDx, boundedDy) });
+}
+
+export function resizeCompositionGroupInBlock(
+  block: CreativeCompositionBlock,
+  groupId: string,
+  next: { left: number; top: number; width: number; height: number },
+  options?: { minChildWidth?: number; minChildHeight?: number },
+): CreativeCompositionBlock {
+  const width = Math.max(.08, Math.min(1, next.width));
+  const height = Math.max(.06, Math.min(1, next.height));
+  const bounded = {
+    left: Math.max(0, Math.min(1 - width, next.left)),
+    top: Math.max(0, Math.min(1 - height, next.top)),
+    width,
+    height,
+  };
+  return synchronizeCompositionGroups({ ...block, nodes: resizeGroupComposition(block.nodes, groupId, bounded, options) });
+}
+
+export function setCompositionGroupScaleMode(
+  block: CreativeCompositionBlock,
+  groupId: string,
+  scaleMode: CompositionGroupScaleMode,
+  options: { minChildWidth: number; minChildHeight: number },
+): CreativeCompositionBlock {
+  const bounds = computeGroupUnionBounds(block.nodes, groupId, true);
+  if (!bounds) return block;
+  // These are parent-relative authored widths. Compact must remain useful when
+  // the Group itself lives in a 60–70% side region; over-shrinking here makes
+  // a two-column action bank technically smaller but visually illegible.
+  const targetWidth = scaleMode === "compact" ? .78 : scaleMode === "medium" ? .88 : scaleMode === "full" ? .96 : bounds.width;
+  const ratio = targetWidth / Math.max(.02, bounds.width);
+  const targetHeight = scaleMode === "fill" ? Math.min(1 - bounds.top, bounds.height) : bounds.height * ratio;
+  const resized = resizeCompositionGroupInBlock(block, groupId, {
+    left: bounds.left,
+    top: bounds.top,
+    width: targetWidth,
+    height: targetHeight,
+  }, options);
+  return updateCompositionGroup(resized, groupId, { scaleMode });
+}
+
+export function reorderCompositionGroupZ(
+  block: CreativeCompositionBlock,
+  groupId: string,
+  command: "backward" | "forward" | "back" | "front",
+): CreativeCompositionBlock {
+  const record = compositionGroupRecord(block, groupId);
+  if (!record) return block;
+  const siblings = block.nodes.filter((node) => (node.parentId ?? null) === record.parentId);
+  const emitted = new Set<string>();
+  const entries: Array<{ id: string; kind: "group" | "node"; zIndex: number }> = [];
+  for (const node of siblings) {
+    if (node.groupId) {
+      if (emitted.has(node.groupId)) continue;
+      emitted.add(node.groupId);
+      const group = compositionGroupRecord(block, node.groupId);
+      if (group) entries.push({ id: group.id, kind: "group", zIndex: group.zIndex });
+      continue;
+    }
+    entries.push({ id: node.id, kind: "node", zIndex: node.zIndex });
+  }
+  entries.sort((a, b) => a.zIndex - b.zIndex);
+  const index = entries.findIndex((entry) => entry.id === groupId && entry.kind === "group");
+  if (index < 0) return block;
+  if (command === "front") entries.push(...entries.splice(index, 1));
+  else if (command === "back") entries.unshift(...entries.splice(index, 1));
+  else if (command === "forward" && index < entries.length - 1) [entries[index], entries[index + 1]] = [entries[index + 1], entries[index]];
+  else if (command === "backward" && index > 0) [entries[index - 1], entries[index]] = [entries[index], entries[index - 1]];
+  const z = new Map(entries.map((entry, order) => [entry.id, order + 1]));
+  return {
+    ...block,
+    groups: (block.groups ?? []).map((group) => group.parentId === record.parentId && z.has(group.id) ? { ...group, zIndex: z.get(group.id)! } : group),
+    nodes: block.nodes.map((node) => !node.groupId && (node.parentId ?? null) === record.parentId && z.has(node.id) ? { ...node, zIndex: z.get(node.id)! } : node),
+  };
+}
+
+/**
+ * Updates one canonical Group relationship and, for non-layered policies,
+ * rewrites its sibling geometry as a single history-ready transaction.
+ */
+export function setCompositionGroupSettings(
+  nodes: CreativeCompositionNode[],
+  groupId: string,
+  patch: Partial<CompositionGroupSettings>,
+  region: { widthPx: number; heightPx: number },
+): CreativeCompositionNode[] {
+  const current = readCompositionGroupSettings(nodes, groupId);
+  const density = patch.density ?? current.density;
+  const preset = density === "custom" ? null : GROUP_DENSITY[density];
+  const next: CompositionGroupSettings = {
+    layout: patch.layout ?? current.layout,
+    density,
+    rowGapPx: groupGap(patch.rowGapPx ?? preset?.rowGapPx, current.rowGapPx),
+    columnGapPx: groupGap(patch.columnGapPx ?? preset?.columnGapPx, current.columnGapPx),
+    internalGapPx: groupGap(patch.internalGapPx ?? preset?.internalGapPx, current.internalGapPx),
+  };
+  const members = groupMembers(nodes, groupId).sort((left, right) => (left.siblingOrder ?? left.zIndex) - (right.siblingOrder ?? right.zIndex));
+  if (!members.length) return nodes;
+  const memberSet = new Set(members.map((member) => member.id));
+  let arranged = nodes;
+  const bounds = computeGroupUnionBounds(nodes, groupId, true);
+  if (bounds && next.layout !== "layered") {
+    const rowGap = next.rowGapPx / Math.max(1, region.heightPx);
+    const columnGap = next.columnGapPx / Math.max(1, region.widthPx);
+    const insetX = next.internalGapPx / Math.max(1, region.widthPx);
+    const insetY = next.internalGapPx / Math.max(1, region.heightPx);
+    const boundedLeft = Math.max(0, Math.min(1, bounds.left));
+    const boundedTop = Math.max(0, Math.min(1, bounds.top));
+    const boundedWidth = Math.max(.08, Math.min(1 - boundedLeft, bounds.width));
+    const contentWidth = Math.max(.04, boundedWidth - insetX * 2);
+    const columns = next.layout === "grid" ? Math.min(2, members.length) : next.layout === "flow_horizontal" ? members.length : 1;
+    const memberWidth = next.layout === "flow_vertical"
+      ? contentWidth
+      : Math.max(.04, (contentWidth - columnGap * Math.max(0, columns - 1)) / Math.max(1, columns));
+    const reflowWidths = new Map(members.map((member) => [member.id, memberWidth] as const));
+    const reflowHeights = new Map(members.map((member) => {
+      if (!member.moduleComposition?.signatureAssembly) return [member.id, member.height] as const;
+      const canonicalPhoneHeight = Number(member.moduleComposition.pageHeightPx ?? member.minHeightPx ?? 44);
+      const physicalHeight = memberWidth * region.widthPx * canonicalPhoneHeight / 390;
+      return [member.id, Math.max(44, physicalHeight) / Math.max(1, region.heightPx)] as const;
+    }));
+    const rowHeights: number[] = [];
+    if (next.layout === "grid") {
+      for (let row = 0; row < Math.ceil(members.length / columns); row += 1) {
+        rowHeights[row] = Math.max(...members.slice(row * columns, row * columns + columns).map((member) => reflowHeights.get(member.id) ?? member.height));
+      }
+    }
+    const positions = new Map<string, { x: number; y: number }>();
+    let cursorX = boundedLeft + insetX;
+    let cursorY = boundedTop + insetY;
+    members.forEach((member, index) => {
+      if (next.layout === "flow_vertical") {
+        positions.set(member.id, { x: boundedLeft + insetX, y: cursorY });
+        cursorY += (reflowHeights.get(member.id) ?? member.height) + rowGap;
+      } else if (next.layout === "flow_horizontal") {
+        positions.set(member.id, { x: cursorX, y: boundedTop + insetY });
+        cursorX += memberWidth + columnGap;
+      } else {
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        const x = boundedLeft + insetX + column * (memberWidth + columnGap);
+        const y = boundedTop + insetY + rowHeights.slice(0, row).reduce((value, height) => value + height + rowGap, 0);
+        positions.set(member.id, { x, y });
+      }
+    });
+    arranged = nodes.map((node) => positions.has(node.id) ? {
+      ...node,
+      ...positions.get(node.id)!,
+      width: reflowWidths.get(node.id) ?? node.width,
+      height: reflowHeights.get(node.id) ?? node.height,
+    } : node);
+  }
+  return arranged.map((node) => memberSet.has(node.id) ? {
+    ...node,
+    props: {
+      ...node.props,
+      compositionGroupLayout: next.layout,
+      compositionGroupDensityMode: next.density,
+      compositionGroupRowGapPx: next.rowGapPx,
+      compositionGroupColumnGapPx: next.columnGapPx,
+      compositionGroupInternalGapPx: next.internalGapPx,
+    },
+  } : node);
+}
 
 /** Map a family to the Material/Effect adapter target used for fan-out. */
 export function appearanceAdapterTargetForFamily(
@@ -178,7 +498,13 @@ export function computeGroupUnionBounds(
   let bottom = -Infinity;
   let rotationSum = 0;
   for (const member of members) {
-    const box = resolveNodeBox(member, allowPasteboardOverflow);
+    // Parent-authority Modules store x/y as their visual top-left. Older
+    // freeform nodes use anchor-relative coordinates and still resolve through
+    // the legacy box helper. Keeping those models distinct prevents a right
+    // anchor from shifting a governed Group one full child width off-Card.
+    const box = member.compositionKind
+      ? { left: member.x, top: member.y, width: member.width, height: member.height }
+      : resolveNodeBox(member, allowPasteboardOverflow);
     const rot = ((member.rotationDeg || 0) * Math.PI) / 180;
     // Approximate transformed AABB from center + half extents.
     const cx = box.left + box.width / 2;
@@ -245,20 +571,20 @@ export function resizeGroupComposition(
 
   return nodes.map((node) => {
     if (!memberSet.has(node.id)) return node;
-    const relX = (node.x - bounds.left) / bounds.width;
-    const relY = (node.y - bounds.top) / bounds.height;
-    const width = Math.max(minW, node.width * sx);
-    const height = Math.max(minH, node.height * sy);
-    const x = next.left + relX * next.width;
-    const y = next.top + relY * next.height;
-    const nextProps = { ...node.props };
-    if (node.primitive === "text") {
-      const fontSize = Number(node.props.fontSize ?? 18);
-      if (Number.isFinite(fontSize)) {
-        nextProps.fontSize = Math.max(6, Math.min(320, fontSize * Math.sqrt(sx * sy)));
-      }
-    }
-    return { ...node, x, y, width, height, props: nextProps };
+    const relCenterX = (node.x + node.width / 2 - bounds.left) / bounds.width;
+    const relCenterY = (node.y + node.height / 2 - bounds.top) / bounds.height;
+    const resizePolicy = layeredResizePolicy(node);
+    // Curated furniture and video keep their manufactured/media proportions.
+    // Text/Button/Divider may change width, but their readable/touch-safe height
+    // is not geometrically crushed by a Group envelope resize.
+    const governedScale = Math.min(sx, sy);
+    const width = Math.max(minW, node.width * (resizePolicy === "governed-aspect" ? governedScale : sx));
+    const height = Math.max(minH, node.height * (resizePolicy === "free" ? sy : resizePolicy === "governed-aspect" ? governedScale : 1));
+    const x = next.left + relCenterX * next.width - width / 2;
+    const y = next.top + relCenterY * next.height - height / 2;
+    // Group geometry changes a Text Box frame, never its glyph geometry.
+    // Typography is authored independently and reflows inside the new frame.
+    return { ...node, x, y, width, height, props: { ...node.props } };
   });
 }
 

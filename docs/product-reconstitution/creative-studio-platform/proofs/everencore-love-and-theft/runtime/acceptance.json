@@ -1,0 +1,148 @@
+{
+  "familyId": "everencore-love-and-theft",
+  "route": "/review/studio",
+  "viewport": {
+    "widthPx": 390,
+    "heightPx": 844,
+    "density": "phone-authoritative"
+  },
+  "presentations": [
+    {
+      "recipeId": "everencore-love-and-theft-hero",
+      "presentationMode": "standalone",
+      "referenceAssetIds": [
+        "EELT-REF-HERO"
+      ],
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/golden/everencore-love-and-theft-hero-phone390.png",
+      "deterministicRuntimeProof": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/runtime/everencore-love-and-theft-hero-phone390.png",
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "recipeId": "everencore-love-and-theft-standard-left",
+      "presentationMode": "standalone",
+      "referenceAssetIds": [
+        "EELT-REF-STANDARD-L"
+      ],
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/golden/everencore-love-and-theft-standard-left-phone390.png",
+      "deterministicRuntimeProof": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/runtime/everencore-love-and-theft-standard-left-phone390.png",
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "recipeId": "everencore-love-and-theft-standard-right",
+      "presentationMode": "standalone",
+      "referenceAssetIds": [
+        "EELT-REF-STANDARD-R"
+      ],
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/golden/everencore-love-and-theft-standard-right-phone390.png",
+      "deterministicRuntimeProof": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/runtime/everencore-love-and-theft-standard-right-phone390.png",
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "recipeId": "everencore-love-and-theft-standard-utility",
+      "presentationMode": "standalone",
+      "referenceAssetIds": [
+        "EELT-REF-UTILITY"
+      ],
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/golden/everencore-love-and-theft-standard-utility-phone390.png",
+      "deterministicRuntimeProof": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/runtime/everencore-love-and-theft-standard-utility-phone390.png",
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "recipeId": "everencore-love-and-theft-standard-body",
+      "presentationMode": "standalone",
+      "referenceAssetIds": [
+        "EELT-REF-BODY"
+      ],
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/golden/everencore-love-and-theft-standard-body-phone390.png",
+      "deterministicRuntimeProof": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/runtime/everencore-love-and-theft-standard-body-phone390.png",
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "recipeId": "everencore-love-and-theft-single-stack",
+      "presentationMode": "single-stack",
+      "referenceAssetIds": [
+        "EELT-REF-SINGLE"
+      ],
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/golden/everencore-love-and-theft-single-stack-phone390.png",
+      "deterministicRuntimeProof": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/runtime/everencore-love-and-theft-single-stack-phone390.png",
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    },
+    {
+      "recipeId": "everencore-love-and-theft-twin-rail",
+      "presentationMode": "twin-rail",
+      "referenceAssetIds": [
+        "EELT-REF-TWIN"
+      ],
+      "acceptedRuntimeGolden": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/golden/everencore-love-and-theft-twin-rail-phone390.png",
+      "deterministicRuntimeProof": "docs/product-reconstitution/creative-studio-platform/proofs/everencore-love-and-theft/runtime/everencore-love-and-theft-twin-rail-phone390.png",
+      "requiredChecks": [
+        "outer-geometry",
+        "text-safe-area",
+        "plug-envelope",
+        "whole-object-silhouette",
+        "phone-density"
+      ]
+    }
+  ],
+  "checks": {
+    "saveReload": true,
+    "actualTreatmentControlRoundTrip": true,
+    "certifiedTreatments": [
+      "smoky_black_glass",
+      "burgundy_plum_glass",
+      "frosted_charcoal",
+      "deep_blue_glass"
+    ],
+    "previewParity": true,
+    "liveDeviceCookieFree": true,
+    "noHorizontalOverflow": true,
+    "noOuterActionCard": true,
+    "pickBarOverlap": true,
+    "masteredChassisSourceOnly": true,
+    "secondaryPlugFurnitureCount": 0,
+    "rendererAddedSilhouettePercent": 3.367,
+    "rendererAddedBeyondAntialiasPercent": 0,
+    "semanticDensityModes": [
+      "full",
+      "medium",
+      "compact"
+    ],
+    "mixedLayeredComposition": true,
+    "minimumTouchTargetPx": 44
+  }
+}

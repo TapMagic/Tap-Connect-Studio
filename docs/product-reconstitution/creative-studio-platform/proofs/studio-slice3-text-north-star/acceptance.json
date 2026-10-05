@@ -5,7 +5,8 @@
     "subheading",
     "body",
     "label",
-    "quote"
+    "quote",
+    "free"
   ],
   "editableInputOwnership": true,
   "canonicalHistory": true,

@@ -6,9 +6,11 @@ import type {
   SignatureAssemblyPlanInstance,
   SignatureAssemblyResult,
 } from "./assembly";
-import { SIGNATURE_ASSETS, SIGNATURE_FAMILIES } from "./registry";
+import { SIGNATURE_ASSEMBLY_RECIPES, SIGNATURE_ASSETS, SIGNATURE_FAMILIES } from "./registry";
+import { signaturePresentation } from "./layout-recipes";
 import { isSignatureComponentRuntimeEligible, type SignatureVersion } from "./types";
 import type { StudioSemanticResource } from "../platform/semantic-resource-slot";
+import { actionProps, type StandardButtonActionIntent } from "../../card/action-intent-presentation";
 
 export type SignatureCompositionFixtureContent = {
   identity?: StudioSemanticResource | { src: string; alt: string };
@@ -25,6 +27,7 @@ export type SignatureCompositionAdapterOptions = {
     semanticOptionIds: Readonly<Record<string, string>>;
     semanticRendererValues: Readonly<Record<string, string>>;
     semanticMaterialRoles?: Readonly<Record<string, { materialId: string; target: string }>>;
+    optionsByRole?: Readonly<Record<string, Readonly<Record<string, { rendererValue: string; materialProjection?: { materialId: string; target: string } }>>>>;
     textTreatmentContractId?: string;
     textTreatmentContractVersion?: string;
     textTreatmentId?: string;
@@ -42,6 +45,7 @@ export type SignatureCompositionPlan = {
   certificationStatus: SignatureAssemblyPlan["certificationStatus"];
   coordinateAuthority: SignatureAssemblyPlan["coordinateAuthority"];
   nativeBounds: SignatureAssemblyPlan["nativeBounds"];
+  layoutBounds: SignatureAssemblyPlan["layoutBounds"];
   block: CreativeCompositionBlock;
   phone390: { widthPx: 390; heightPx: number; scale: number };
 };
@@ -51,7 +55,7 @@ export type SignatureCompositionAdapterResult =
   | { ok: false; errors: readonly SignatureAssemblyError[] };
 
 function actionDestination(destination: string, explicitActionType?: string) {
-  if (explicitActionType) return { actionType: explicitActionType, href: /^mailto:/i.test(destination) ? destination.replace(/^mailto:/i, "") : destination };
+  if (explicitActionType) return actionProps(explicitActionType as StandardButtonActionIntent, destination);
   if (/^tel:/i.test(destination)) return { actionType: "call", href: destination } as const;
   if (/^mailto:/i.test(destination)) return { actionType: "email", href: destination.replace(/^mailto:/i, "") } as const;
   return { actionType: "website", href: destination } as const;
@@ -70,6 +74,41 @@ function nodeForInstance(
       ? plan.instances.find((candidate) => candidate.instanceId === instance.parentInstanceId)?.action?.id
       : undefined);
   const identity=instance.liveContentOwnership.identitySocket?fixtureContent?.identity:undefined;
+  const recipe=SIGNATURE_ASSEMBLY_RECIPES.find((candidate)=>candidate.familyId===plan.familyId&&candidate.recipeId===plan.recipeId&&candidate.recipeVersion===plan.recipeVersion);
+  const responsiveTypography=recipe?signaturePresentation(recipe).capabilities?.responsiveTypography:undefined;
+  const actionOverrides=instance.classification==="live-action"?instance.action?.appearanceOptionIds:undefined;
+  const effectiveAppearance=appearance&&actionOverrides?{
+    ...appearance,
+    semanticOptionIds:{...appearance.semanticOptionIds,...actionOverrides},
+    semanticRendererValues:{...appearance.semanticRendererValues,...Object.fromEntries(Object.entries(actionOverrides).flatMap(([roleId,optionId])=>{
+      const option=appearance.optionsByRole?.[roleId]?.[optionId];
+      return option?[[roleId,option.rendererValue]]:[];
+    }))},
+    semanticMaterialRoles:{...appearance.semanticMaterialRoles,...Object.fromEntries(Object.entries(actionOverrides).flatMap(([roleId,optionId])=>{
+      const projection=appearance.optionsByRole?.[roleId]?.[optionId]?.materialProjection;
+      return projection?[[roleId,projection]]:[];
+    }))},
+  }:appearance;
+  const asset=SIGNATURE_ASSETS.find((candidate)=>candidate.id===instance.sourceAssetId);
+  const authoredSafeArea=asset?.normalizedContract?.liveContentGeometry?.safeArea;
+  const attachedPlug=instance.classification==="live-action"
+    ? plan.instances.find((candidate)=>candidate.parentInstanceId===instance.instanceId&&candidate.semanticRole==="semantic-plug")
+    : undefined;
+  const resolvedTextSafeArea=authoredSafeArea&&attachedPlug?(()=>{
+    const parent=instance.placement.native;
+    const plug=attachedPlug.placement.native;
+    const gap=.02;
+    if (instance.layout.side==="left") {
+      const intrusion=(plug.xPx+plug.widthPx-parent.xPx)/parent.widthPx;
+      const x=Math.min(.82,Math.max(0,intrusion+gap));
+      return {...authoredSafeArea,x,width:Math.max(0,authoredSafeArea.x+authoredSafeArea.width-x)};
+    }
+    if (instance.layout.side==="right") {
+      const intrusion=(plug.xPx-parent.xPx)/parent.widthPx-gap;
+      return {...authoredSafeArea,width:Math.max(0,intrusion-authoredSafeArea.x)};
+    }
+    return authoredSafeArea;
+  })():undefined;
   return {
     // Resolver part ids are deterministic inside a recipe. The composition
     // block id scopes them to a specific inserted Curated object so two copies
@@ -101,12 +140,14 @@ function nodeForInstance(
       signatureRole:instance.semanticRole,
       signatureClassification:instance.classification,
       signatureParentPartInstanceId:instance.parentInstanceId,
-      signatureDepthTreatment:instance.semanticRole==="semantic-plug"?"raised-contact":undefined,
-      signatureAppearanceContractId:appearance?.contractId,
-      signatureAppearanceContractVersion:appearance?.contractVersion,
-      signatureAppearanceOptionIds:appearance?.semanticOptionIds,
-      signatureAppearanceRendererValues:appearance?.semanticRendererValues,
-      signatureMaterialRoles:appearance?.semanticMaterialRoles,
+      signatureDepthTreatment:instance.semanticRole==="semantic-plug"&&plan.plugDepthTreatment==="raised-contact"?"raised-contact":undefined,
+      signaturePlugVisualMode:instance.semanticRole==="semantic-plug"?plan.plugVisualMode:undefined,
+      signatureTextSafeArea:resolvedTextSafeArea,
+      signatureAppearanceContractId:effectiveAppearance?.contractId,
+      signatureAppearanceContractVersion:effectiveAppearance?.contractVersion,
+      signatureAppearanceOptionIds:effectiveAppearance?.semanticOptionIds,
+      signatureAppearanceRendererValues:effectiveAppearance?.semanticRendererValues,
+      signatureMaterialRoles:effectiveAppearance?.semanticMaterialRoles,
       signatureTextTreatmentContractId:appearance?.textTreatmentContractId,
       signatureTextTreatmentContractVersion:appearance?.textTreatmentContractVersion,
       signatureTextTreatmentId:appearance?.textTreatmentId,
@@ -128,8 +169,12 @@ function nodeForInstance(
       signatureLayoutCertificationStatus:plan.certificationStatus,
       signaturePresentationMode:plan.actionPresentationMode,
       signaturePresentationId:plan.presentationId,
+      signatureResponsiveTypography:responsiveTypography,
       signatureLayoutMode:plan.layoutMode,
       signatureActionRowHeightPx:plan.actionRowHeightPx,
+      signatureLayoutBounds:plan.layoutBounds,
+      signatureVisualBounds:plan.nativeBounds,
+      signatureUnitStridePx:plan.unitStridePx,
       signatureMirrored:false,
       signatureCompensatingOverlapPx:plan.preferredOverlapPx,
       signatureVisualContinuationOverlapPx:plan.visualContinuationOverlapPx,
@@ -151,6 +196,7 @@ function nodeForInstance(
         signatureTextAlign:instance.action.textAlign??"center",
         signatureTextSize:instance.action.textSize??"medium",
         signatureTextSizePx:instance.action.textSizePx,
+        signatureBackgroundReflectionIntensity:instance.action.backgroundReflectionIntensity,
         description:instance.action.sublabel,
         showDescription:Boolean(instance.action.sublabel),
         signatureSemanticLabel:instance.action.semanticLabel,
@@ -174,7 +220,7 @@ export function adaptSignatureAssemblyResult(
 ): SignatureCompositionAdapterResult {
   if (!result.ok) return result;
   const plan=result.plan;
-  const scale=390/plan.nativeBounds.widthPx;
+  const scale=390/plan.layoutBounds.widthPx;
   const blockId=options.blockId??`${plan.familyId}:${plan.recipeId}:${plan.requestedActionCount}`;
   const block: CreativeCompositionBlock = {
     version:1,
@@ -184,9 +230,9 @@ export function adaptSignatureAssemblyResult(
     background:options.background?{kind:"solid",value:options.background}:{kind:"none"},
     mobileFallback:"scale",
     safeAreaPaddingPx:0,
-    pageHeightPx:plan.nativeBounds.heightPx*scale,
+    pageHeightPx:plan.layoutBounds.heightPx*scale,
   };
-  return {ok:true,composition:{adapterVersion:"1.0.0",familyId:plan.familyId,familyVersion:plan.familyVersion,recipeId:plan.recipeId,recipeVersion:plan.recipeVersion,presentationId:plan.presentationId,certificationStatus:plan.certificationStatus,coordinateAuthority:plan.coordinateAuthority,nativeBounds:plan.nativeBounds,block,phone390:{widthPx:390,heightPx:plan.nativeBounds.heightPx*scale,scale}}};
+  return {ok:true,composition:{adapterVersion:"1.0.0",familyId:plan.familyId,familyVersion:plan.familyVersion,recipeId:plan.recipeId,recipeVersion:plan.recipeVersion,presentationId:plan.presentationId,certificationStatus:plan.certificationStatus,coordinateAuthority:plan.coordinateAuthority,nativeBounds:plan.nativeBounds,layoutBounds:plan.layoutBounds,block,phone390:{widthPx:390,heightPx:plan.layoutBounds.heightPx*scale,scale}}};
 }
 
 export type SignatureStandaloneComponentInput = {

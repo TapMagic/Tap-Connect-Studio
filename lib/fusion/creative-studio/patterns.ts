@@ -55,6 +55,21 @@ export const SURFACE_PATTERN_CATALOG: SurfacePatternDefinition[] = [
     }),
   },
   {
+    id: "frosted-glass",
+    label: "Frosted Glass",
+    category: "Glass",
+    kind: "texture",
+    css: (m) => ({
+      backgroundColor: m.background,
+      backgroundImage: `
+        radial-gradient(circle at 18% 31%, ${withAlpha(m.foreground, m.opacity * 0.5)} 0 .45px, transparent .9px),
+        radial-gradient(circle at 72% 64%, ${withAlpha(m.foreground, m.opacity * 0.34)} 0 .55px, transparent 1px),
+        radial-gradient(circle at 43% 82%, ${withAlpha("#000000", m.opacity * 0.22)} 0 .5px, transparent 1px)
+      `,
+      backgroundSize: `${scaled(m.scale, 13)} ${scaled(m.scale, 11)}, ${scaled(m.scale, 17)} ${scaled(m.scale, 15)}, ${scaled(m.scale, 23)} ${scaled(m.scale, 19)}`,
+    }),
+  },
+  {
     id: "paper-fiber",
     label: "Paper Fiber",
     category: "Paper",
@@ -371,6 +386,8 @@ export function textureTokenToPatternId(texture: string | undefined | null): str
     paper: "paper-fiber",
     grain: "subtle-grain",
     noise: "subtle-grain",
+    frosted: "frosted-glass",
+    "frosted-glass": "frosted-glass",
     brushed: "brushed-metal",
     "brushed-metal": "brushed-metal",
     stamped: "checks",
@@ -428,4 +445,3 @@ export function surfacePatternStyle(model: SurfacePatternModel) {
     backgroundBlendMode: model.blendMode,
   };
 }
-

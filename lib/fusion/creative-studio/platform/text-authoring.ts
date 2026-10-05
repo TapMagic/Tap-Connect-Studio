@@ -4,8 +4,10 @@ import { declaredAuthoringCapability } from "./authoring-completeness";
 
 export const STUDIO_TEXT_AUTHORING_CONTRACT = "studioTextAuthoring@1.0.0" as const;
 
-export type StudioTextRoleId = "heading" | "subheading" | "body" | "label" | "quote";
+export type StudioTextRoleId = "heading" | "subheading" | "body" | "label" | "quote" | "free";
 export type StudioTextValueSource = "brand" | "local";
+export type StudioTextHeightMode = "auto" | "minimum" | "fixed";
+export type StudioTextOverflowMode = "visible" | "scroll" | "clip";
 
 export type StudioTextRole = Readonly<{
   id: StudioTextRoleId;
@@ -18,11 +20,12 @@ export type StudioTextRole = Readonly<{
 }>;
 
 export const STUDIO_TEXT_ROLES: readonly StudioTextRole[] = Object.freeze([
-  { id: "heading", label: "Heading", description: "A decisive primary idea.", sample: "A clear point of view", brandFontRole: "heading", minHeightPx: 54, defaults: { fontSize: 34, fontWeight: 800, lineHeight: 1.06, letterSpacingEm: -0.025, align: "left", textMultiline: false, spacingAbovePx: 8, spacingBelowPx: 10 } },
-  { id: "subheading", label: "Subheading", description: "A supporting promise or section lead.", sample: "What makes this worth your time", brandFontRole: "heading", minHeightPx: 44, defaults: { fontSize: 22, fontWeight: 650, lineHeight: 1.2, letterSpacingEm: -0.01, align: "left", textMultiline: false, spacingAbovePx: 4, spacingBelowPx: 8 } },
-  { id: "body", label: "Body", description: "Comfortable reading for useful detail.", sample: "Add the detail your visitor needs to take the next step with confidence.", brandFontRole: "body", minHeightPx: 72, defaults: { fontSize: 16, fontWeight: 450, lineHeight: 1.55, letterSpacingEm: 0, align: "left", textMultiline: true, spacingAbovePx: 2, spacingBelowPx: 8 } },
-  { id: "label", label: "Label", description: "Compact context, category, or eyebrow copy.", sample: "FEATURED SERVICE", brandFontRole: "body", minHeightPx: 32, defaults: { fontSize: 12, fontWeight: 750, lineHeight: 1.15, letterSpacingEm: 0.12, align: "left", textTransform: "uppercase", textMultiline: false, spacingAbovePx: 4, spacingBelowPx: 5 } },
-  { id: "quote", label: "Quote", description: "An expressive testimonial or statement.", sample: "“The kind of experience people remember.”", brandFontRole: "heading", minHeightPx: 78, defaults: { fontSize: 25, fontWeight: 500, lineHeight: 1.35, letterSpacingEm: -0.01, align: "left", italic: true, textMultiline: true, flowInsetPx: 12, spacingAbovePx: 8, spacingBelowPx: 12 } },
+  { id: "heading", label: "Heading Text Box", description: "A decisive primary idea.", sample: "A clear point of view", brandFontRole: "heading", minHeightPx: 54, defaults: { fontSize: 34, fontWeight: 800, lineHeight: 1.06, letterSpacingEm: -0.025, align: "left", textMultiline: false, spacingAbovePx: 8, spacingBelowPx: 10 } },
+  { id: "subheading", label: "Subheading Text Box", description: "A supporting promise or section lead.", sample: "What makes this worth your time", brandFontRole: "heading", minHeightPx: 44, defaults: { fontSize: 22, fontWeight: 650, lineHeight: 1.2, letterSpacingEm: -0.01, align: "left", textMultiline: false, spacingAbovePx: 4, spacingBelowPx: 8 } },
+  { id: "body", label: "Body Text Box", description: "Comfortable reading for useful detail.", sample: "Add the detail your visitor needs to take the next step with confidence.", brandFontRole: "body", minHeightPx: 72, defaults: { fontSize: 16, fontWeight: 450, lineHeight: 1.55, letterSpacingEm: 0, align: "left", textMultiline: true, spacingAbovePx: 2, spacingBelowPx: 8 } },
+  { id: "label", label: "Caption / Label", description: "Compact context, category, or eyebrow copy.", sample: "FEATURED SERVICE", brandFontRole: "body", minHeightPx: 32, defaults: { fontSize: 12, fontWeight: 750, lineHeight: 1.15, letterSpacingEm: 0.12, align: "left", textTransform: "uppercase", textMultiline: false, spacingAbovePx: 4, spacingBelowPx: 5 } },
+  { id: "quote", label: "Quote Text Box", description: "An expressive testimonial or statement.", sample: "“The kind of experience people remember.”", brandFontRole: "heading", minHeightPx: 78, defaults: { fontSize: 25, fontWeight: 500, lineHeight: 1.35, letterSpacingEm: -0.01, align: "left", italic: true, textMultiline: true, flowInsetPx: 12, spacingAbovePx: 8, spacingBelowPx: 12 } },
+  { id: "free", label: "Free Text Box", description: "Unstyled copy ready for direct placement.", sample: "Type anywhere", brandFontRole: "body", minHeightPx: 44, defaults: { fontSize: 16, fontWeight: 500, lineHeight: 1.35, letterSpacingEm: 0, align: "left", textMultiline: true, spacingAbovePx: 0, spacingBelowPx: 0 } },
 ]);
 
 export function studioTextRole(id: unknown): StudioTextRole {
@@ -39,6 +42,8 @@ export function textRoleCanonicalProps(roleId: StudioTextRoleId, brand?: BrandPr
     text: role.sample,
     textRole: role.id,
     textMinHeightPx: role.minHeightPx,
+    textHeightMode: "auto" satisfies StudioTextHeightMode,
+    textOverflow: "visible" satisfies StudioTextOverflowMode,
     ...role.defaults,
     fontFamily,
     color: brand?.textColor || "#f8fafc",
@@ -48,6 +53,14 @@ export function textRoleCanonicalProps(roleId: StudioTextRoleId, brand?: BrandPr
     colorSource: "brand" satisfies StudioTextValueSource,
     textStyleSource: "brand" satisfies StudioTextValueSource,
     brandFontRole: role.brandFontRole,
+    opacity: 1,
+    boxFill: "transparent",
+    boxFillOpacity: 1,
+    boxBorder: "transparent",
+    boxBorderWidth: 0,
+    boxRadius: 0,
+    boxPadding: 0,
+    boxShadow: 0,
   };
 }
 
@@ -114,9 +127,9 @@ function contrastRatio(left: [number, number, number], right: [number, number, n
 }
 
 export const STUDIO_TEXT_CAPABILITY_DECLARATIONS = Object.freeze({
-  editable: ["content", "role", "font-family", "font-size", "font-weight", "line-height", "tracking", "alignment", "color", "width", "inset", "flow-alignment", "space-before", "space-after"],
+  editable: ["content", "role", "font-family", "font-size", "font-weight", "line-height", "tracking", "alignment", "color", "width", "height-mode", "minimum-height", "fixed-height", "overflow", "inset", "flow-alignment", "space-before", "space-after", "text-box-fill", "text-box-opacity", "text-box-border", "text-box-radius", "text-box-padding", "text-box-shadow", "overall-opacity"],
   preserved: ["empty-state", "phone-readability", "contrast-status", "brand-provenance", "undo-redo", "preview-live-parity"],
-  deferred: ["glyph-gradient", "outline", "glow", "text-box-material", "dynamic-data", "reusable-text-styles"],
+  deferred: ["glyph-gradient", "outline", "glow", "dynamic-data", "reusable-text-styles"],
 } as const);
 
 const TEXT_PARITY = ["canvas", "preview", "public", "live-device"] as const;
@@ -150,7 +163,6 @@ const TEXT_DEFERRED_REASONS: Record<(typeof STUDIO_TEXT_CAPABILITY_DECLARATIONS.
   "glyph-gradient": "Full Color and Text Effects authority is outside Slice 3.",
   outline: "Text Effects is deferred until its shared renderer and catalog are accepted.",
   glow: "Text Effects is deferred until its shared renderer and catalog are accepted.",
-  "text-box-material": "Full Surface and Material authoring belongs to Slice 4.",
   "dynamic-data": "Dynamic data is explicitly outside the accepted Text slice.",
   "reusable-text-styles": "Reusable style promotion requires a future shared-resource lifecycle.",
 };

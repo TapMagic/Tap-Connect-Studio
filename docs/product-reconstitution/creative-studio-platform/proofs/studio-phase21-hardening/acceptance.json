@@ -1,0 +1,36 @@
+{
+  "route": "/review/studio",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "videoFeature": {
+    "provider": "youtube",
+    "posterFirst": true,
+    "inlinePlayback": true,
+    "aspect": "16:9",
+    "analyticsIdentity": "review:video-feature"
+  },
+  "directMedia": {
+    "contractCoveredByUnitTest": true,
+    "hostedMp4BrowserProof": true,
+    "inlinePlayback": true
+  },
+  "textHeightMode": "minimum",
+  "textResize": {
+    "sideHandles": true,
+    "topBottomHandles": true,
+    "cornerHandles": true,
+    "typographyDistortion": false
+  },
+  "internalPagePicker": {
+    "search": true,
+    "offNavigationSelectable": true,
+    "unavailableDisabled": true
+  },
+  "navigationPickTierAtFive": "compact",
+  "squareLockedVideoProof": true,
+  "signedLiveDevice": true,
+  "fullMapDeferred": true,
+  "productOwnerAcceptance": "pending"
+}

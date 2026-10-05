@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 190">
+  <defs>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#4e535e"/><stop offset=".2" stop-color="#171a20"/><stop offset=".48" stop-color="#040608"/><stop offset=".77" stop-color="#1a1c22"/><stop offset="1" stop-color="#020304"/></linearGradient>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#261305"/><stop offset=".12" stop-color="#a96d2e"/><stop offset=".23" stop-color="#f1d58f"/><stop offset=".38" stop-color="#694019"/><stop offset=".55" stop-color="#d2a052"/><stop offset=".73" stop-color="#4e2b10"/><stop offset=".88" stop-color="#ebc87e"/><stop offset="1" stop-color="#211005"/></linearGradient>
+    <radialGradient id="face" cx="34%" cy="23%" r="84%"><stop stop-color="#f5d893"/><stop offset=".28" stop-color="#986127"/><stop offset=".68" stop-color="#42220c"/><stop offset="1" stop-color="#180b04"/></radialGradient>
+    <filter id="shadow" x="-15%" y="-25%" width="130%" height="165%"><feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000" flood-opacity=".7"/></filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <rect x="15" y="24" width="570" height="142" rx="71" fill="#090403" stroke="#120805" stroke-width="12"/>
+    <rect x="18" y="27" width="564" height="136" rx="68" fill="url(#glass)" stroke="url(#brass)" stroke-width="7"/>
+    <rect x="24" y="33" width="552" height="124" rx="62" fill="none" stroke="#1a0c05" stroke-width="4"/>
+    <rect x="28" y="37" width="544" height="116" rx="58" fill="none" stroke="#f7d995" stroke-opacity=".35" stroke-width="2"/>
+    <path d="M75 36h419" stroke="#fff9dc" stroke-opacity=".28" stroke-width="3" stroke-linecap="round"/>
+    <path d="M502 29c40 0 67 17 67 47 0 34-29 73-59 94-5 4-11 4-16 0-30-21-59-60-59-94 0-30 27-47 67-47Z" fill="#0b0502" stroke="#140804" stroke-width="10"/>
+    <path d="M502 32c37 0 63 15 63 45 0 32-28 69-57 89-4 3-8 3-12 0-29-20-57-57-57-89 0-30 26-45 63-45Z" fill="url(#face)" stroke="url(#brass)" stroke-width="6"/>
+    <circle cx="502" cy="90" r="25" fill="#090402" stroke="url(#brass)" stroke-width="4"/>
+    <path d="m490 90 8 8 17-19" fill="none" stroke="#271307" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M460 54c17-14 45-18 67-9" fill="none" stroke="#fff0b5" stroke-opacity=".38" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+  <text x="250" y="91" text-anchor="middle" fill="#fff7e8" font-family="Georgia,serif" font-size="25" font-weight="700">Listen Now</text>
+  <text x="250" y="116" text-anchor="middle" fill="#dfc994" font-family="system-ui" font-size="12" font-weight="600">New music &amp; official releases</text>
+</svg>

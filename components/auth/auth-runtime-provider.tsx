@@ -3,6 +3,11 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { dark, shadcn } from "@clerk/ui/themes";
 import { createContext, useContext, type ReactNode } from "react";
+import {
+  AUTH_CONTINUE_PATH,
+  AUTH_SIGN_IN_PATH,
+  AUTH_SIGN_UP_PATH,
+} from "@/lib/auth-route-policy";
 
 const AuthRuntimeContext = createContext<boolean | null>(null);
 
@@ -18,7 +23,13 @@ export function AuthRuntimeProvider({
   }
 
   return (
-    <ClerkProvider appearance={{ theme: [shadcn, dark] }}>
+    <ClerkProvider
+      appearance={{ theme: [shadcn, dark] }}
+      signInUrl={AUTH_SIGN_IN_PATH}
+      signUpUrl={AUTH_SIGN_UP_PATH}
+      signInForceRedirectUrl={AUTH_CONTINUE_PATH}
+      signUpForceRedirectUrl={AUTH_CONTINUE_PATH}
+    >
       <AuthRuntimeContext.Provider value>{children}</AuthRuntimeContext.Provider>
     </ClerkProvider>
   );

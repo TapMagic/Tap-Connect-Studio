@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 150">
+  <defs><linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#190c04"/><stop offset=".13" stop-color="#bd813a"/><stop offset=".25" stop-color="#eed08a"/><stop offset=".45" stop-color="#603816"/><stop offset=".5" stop-color="#e4bd71"/><stop offset=".55" stop-color="#603816"/><stop offset=".75" stop-color="#eed08a"/><stop offset=".87" stop-color="#bd813a"/><stop offset="1" stop-color="#190c04"/></linearGradient><filter id="shadow" x="-10%" y="-10%" width="120%" height="125%"><feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity=".76"/></filter></defs>
+  <g filter="url(#shadow)">
+    <path d="M47 0v150M600 0v150M1153 0v150M47 10h1106M47 140h1106" stroke="#0d0503" stroke-width="27" stroke-linecap="round"/>
+    <path d="M47 0v150M600 0v150M1153 0v150M47 10h1106M47 140h1106" stroke="url(#metal)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M47 0v150M600 0v150M1153 0v150M58 14h1084M58 136h1084" stroke="#211006" stroke-width="6" stroke-linecap="round"/>
+    <path d="M52 0v150M605 0v150M1158 0v150M72 17h1056M72 133h1056" stroke="#ffe3a0" stroke-opacity=".35" stroke-width="2.5" stroke-linecap="round"/>
+    <circle cx="600" cy="75" r="10" fill="#120704" stroke="#c08b43" stroke-width="4"/><circle cx="600" cy="75" r="3" fill="#f0d18a"/>
+  </g>
+</svg>

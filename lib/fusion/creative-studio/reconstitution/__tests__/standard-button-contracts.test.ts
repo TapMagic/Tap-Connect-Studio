@@ -17,12 +17,14 @@ import { applyStudioPresentation } from "../../platform/presentation-application
 import { discoverStandardButtons, standardButtonDiscoveryContext, standardButtonDiscoveryResources } from "../standard-button-discovery";
 
 describe("Standard Button catalog", () => {
-  it("retains the five reviewed concepts but exposes only the three that pass the quality gate", () => {
-    assert.deepEqual(STANDARD_BUTTON_CATALOG.map((preset) => preset.name), [
-      "Brand Primary", "Brand Outline", "Full-width CTA", "Icon + Label", "Compact Utility",
-    ]);
-    assert.deepEqual(discoverStandardButtons({ businessName: "Acme" }, standardButtonDiscoveryContext()).resources.map((resource) => resource.application.presetId), ["brand-primary", "full-width-cta", "icon-label"]);
-    assert.deepEqual(STANDARD_BUTTON_CATALOG.filter((preset) => preset.readiness === "architecture_ready").map((preset) => preset.id), ["brand-outline", "compact-utility"]);
+  it("exposes the accepted editable appearance families and keeps only the undifferentiated utility concept hidden", () => {
+    const ready = discoverStandardButtons({ businessName: "Acme" }, standardButtonDiscoveryContext()).resources.map((resource) => resource.application.presetId);
+    assert.ok(ready.includes("brand-primary"));
+    assert.ok(ready.includes("brand-outline"));
+    assert.ok(ready.includes("deep-raised"));
+    assert.ok(ready.includes("gloss-enamel"));
+    assert.ok(ready.includes("black-chrome"));
+    assert.deepEqual(STANDARD_BUTTON_CATALOG.filter((preset) => preset.readiness === "architecture_ready").map((preset) => preset.id), ["compact-utility"]);
   });
 
   it("resolves Brand props deterministically and preserves canonical nested label content", () => {
@@ -42,7 +44,7 @@ describe("Standard Button catalog", () => {
 
   it("keeps meaningful geometry differences in the canonical resolved payload", () => {
     const primary = resolveStandardButtonPreset(STANDARD_BUTTON_CATALOG[0], { businessName: "Acme" });
-    const fullWidth = resolveStandardButtonPreset(STANDARD_BUTTON_CATALOG[2], { businessName: "Acme" });
+    const fullWidth = resolveStandardButtonPreset(STANDARD_BUTTON_CATALOG.find((preset) => preset.id === "full-width-cta")!, { businessName: "Acme" });
     assert.ok(Number(fullWidth.width) > Number(primary.width));
     assert.equal(fullWidth.width, 0.9);
     assert.equal(fullWidth.showDescription, true);
@@ -61,7 +63,7 @@ describe("Standard Button replacement", () => {
       accessibleLabel: "Call Rich now",
       trackingName: "hero-call",
     }, "Call Rich", "button-1");
-    const replacement = standardButtonDiscoveryResources({ businessName: "Acme", primaryColor: "#ffcc00" })[2];
+    const replacement = standardButtonDiscoveryResources({ businessName: "Acme", primaryColor: "#ffcc00" }).find((resource) => resource.application.presetId === "full-width-cta")!;
     const result = applyStudioPresentation({
       operation: "apply",
       target: { id: "button-1", kind: "button", capabilities: ["presentation", "content", "action"], props: authored },
@@ -83,7 +85,7 @@ describe("Standard Button replacement", () => {
 
 describe("Standard Button actions", () => {
   it("offers approved provider-neutral intents and no Payment", () => {
-    assert.deepEqual(standardButtonActions().map((action) => action.kind), ["call", "email", "sms", "website", "map", "review", "book"]);
+    assert.deepEqual(standardButtonActions().map((action) => action.kind), ["call", "email", "sms", "website", "map", "review", "book", "internal_page"]);
     assert.equal(standardButtonActions().some((action) => action.label.toLowerCase().includes("payment")), false);
   });
 

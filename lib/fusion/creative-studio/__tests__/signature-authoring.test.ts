@@ -512,9 +512,9 @@ test("reference assets cannot become assembly authority", () => {
 });
 
 test("legacy families degrade to their existing component libraries", () => {
-  const legacy = listSignatureAuthoringFamilies().filter((entry) => entry.family.id !== CABINET_NOIR_FAMILY_ID);
+  const legacy = listSignatureAuthoringFamilies().filter((entry) => entry.layouts.length === 0);
   assert.ok(legacy.length >= 2);
-  assert.ok(legacy.every((entry) => entry.layouts.length === 0 && entry.access.selectable));
+  assert.ok(legacy.every((entry) => entry.access.selectable));
 });
 
 test("locked discovery cannot create an assembly through the drawer contract", () => {

@@ -10,6 +10,8 @@ import type { BrandInheritanceState } from "@/lib/fusion/authoring/brand-inherit
 import type {
   TapCardSection,
   TapConnectCardConfig,
+  TapExperienceConfig,
+  TapExperiencePage,
 } from "@/lib/brand/tap-card";
 import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject, SectionPresetId } from "@/lib/fusion/card/composer-model";
 import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
@@ -22,6 +24,9 @@ import type { StudioCuratedAssemblyMutation } from "@/lib/fusion/creative-studio
 export type CardEditorLiveModel = {
   documentId: string;
   pageId: string;
+  activeExperiencePageId?: string;
+  experience?: TapExperienceConfig;
+  experiencePages?: TapExperiencePage[];
   revision: number;
   selectionRef: SelectionRef;
   activeDocumentId: string;
@@ -66,6 +71,9 @@ export type CardEditorLiveModel = {
   onUndo: () => void;
   onRedo: () => void;
   openDocument: (id: string) => Promise<boolean>;
+  selectExperiencePage?: (pageId: string) => void;
+  ensureExperience?: () => TapExperienceConfig;
+  mutateExperience?: (next: TapExperienceConfig, label: string, nextActivePageId?: string) => void;
   onBrandStateChange: (next: BrandInheritanceState) => void;
   patchConfig: (
     patch: Partial<TapConnectCardConfig>,
@@ -179,14 +187,15 @@ export type CardEditorLiveModel = {
     selectedNodeId: string,
     mutation: StudioCuratedAssemblyMutation,
   ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
-  /** Canonical Card Surface → optional Container → Module authority. */
+  /** Canonical Card Surface → bounded nested Container → Module authority. */
   onEnableCompositionParentAuthority?: () => void;
-  onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image", insertionIndex?: number) => string | undefined;
+  onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image", parentId?: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionModule?: (
-    kind: "text" | "image" | "button" | "divider",
+    kind: "text" | "image" | "video" | "button" | "divider",
     parentId: string | null,
     initialProps?: Record<string, unknown>,
     insertionIndex?: number,
+    frame?: { x?: number; y?: number; width: number; height: number },
   ) => string | undefined;
   onReparentCompositionModule?: (moduleId: string, parentId: string | null, index?: number) => void;
   onReorderCompositionNode?: (nodeId: string, index: number) => void;
@@ -246,6 +255,8 @@ export function cardEditorLiveMaterialSignature(
   return JSON.stringify({
     documentId: model.documentId,
     pageId: model.pageId,
+    activeExperiencePageId: model.activeExperiencePageId,
+    experience: model.experience,
     revision: model.revision,
     selectionRef: model.selectionRef,
     activeDocumentId: model.activeDocumentId,

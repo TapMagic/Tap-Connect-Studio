@@ -32,3 +32,11 @@ test("Card Surface is a selectable appearance authority without fake node capabi
   assert.equal(result.node, null);
   assert.deepEqual(result.capabilities, ["edit-appearance"]);
 });
+
+test("a canonical Outline selection outranks a stale Card Surface reference", () => {
+  const staleRootSelection = createSelectionRef({ documentId: "card", pageId: "root", revision: 1, selectionGeneration: 2, objectKind: "root_surface", objectId: "card-page", parentId: null, targetLevel: "card-root" });
+  const result = resolveStudioSelectionTarget({ selection: staleRootSelection, root, selectedNode: moduleNode });
+  assert.equal(result.semanticKind, "flow-module");
+  assert.equal(result.objectId, moduleNode.id);
+  assert.ok(result.capabilities.includes("move-directly"));
+});

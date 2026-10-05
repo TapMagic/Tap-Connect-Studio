@@ -1,0 +1,33 @@
+{
+  "route": "/review/studio",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "contracts": [
+    "compactActionGrid@1.0.0",
+    "compactActionTile@1.0.0",
+    "tapExperience@1.0.0"
+  ],
+  "columns": [
+    2,
+    3,
+    4
+  ],
+  "socialTiles": 6,
+  "musicTiles": 3,
+  "addDiscover": true,
+  "neutralPresentation": true,
+  "lockedPolicy": true,
+  "newState": true,
+  "internalPage": true,
+  "navigationVisibleCounts": [
+    3,
+    4,
+    5
+  ],
+  "navigationPresentation": "everencore-love-and-theft-mini-pick",
+  "sameExperienceState": true,
+  "signedLiveDevice": true,
+  "productOwnerAcceptance": "pending"
+}

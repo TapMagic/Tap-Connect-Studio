@@ -56,7 +56,9 @@ export type SignatureAuthoringLayoutOption = {
   label: string;
   description: string;
   previewAssetId?: string;
+  density?: SignaturePresentationContract["density"];
   capabilities?: SignaturePresentationContract["capabilities"];
+  defaultActions?: SignaturePresentationContract["defaultActions"];
   recipeId: string;
   recipeVersion: SignatureAssemblyInput["recipeVersion"];
   launchCertifiedActionCounts: readonly number[];
@@ -124,7 +126,7 @@ export function listSignatureAuthoringFamilies(
       entitled,
       runtimeEligible: family.lifecycle === "production" && recipes.length > 0 && assets.length > 0,
       layouts: recipes.map((recipe) => ({
-        ...(() => { const presentation=signaturePresentation(recipe); return { presentationId:presentation.id, label:presentation.label, description:presentation.description, previewAssetId:presentation.previewAssetId, capabilities:presentation.capabilities }; })(),
+        ...(() => { const presentation=signaturePresentation(recipe); return { presentationId:presentation.id, label:presentation.label, description:presentation.description, previewAssetId:presentation.previewAssetId, density:presentation.density, capabilities:presentation.capabilities, defaultActions:presentation.defaultActions }; })(),
         layoutMode: recipe.presentationMode,
         recipeId: recipe.recipeId,
         recipeVersion: recipe.recipeVersion,
@@ -171,40 +173,63 @@ export function normalizeSignatureActionTypography(
 }
 
 export function normalizeSignatureAssemblyAuthoringState(state: SignatureAssemblyAuthoringState): SignatureAssemblyAuthoringState {
+  const appearanceContract = familyAppearanceContract(state.input.familyId);
+  const normalizeActionAppearance = (selection: SignatureAssemblyActionSelection["appearanceOptionIds"]) => {
+    if (!appearanceContract || !selection) return undefined;
+    const entries = appearanceContract.roles.flatMap((role) => {
+      const optionId = selection[role.id];
+      const option = role.options.find((candidate) => candidate.id === optionId && candidate.certified && candidate.governance === "configurable");
+      return option ? [[role.id, option.id] as const] : [];
+    });
+    return entries.length ? Object.fromEntries(entries) : undefined;
+  };
   return {
     ...state,
     input: {
       ...state.input,
-      actions: state.input.actions.map((action) => normalizeSignatureActionTypography({
-        ...action,
-        label: normalizeSignatureActionCopy(action.label),
-        accessibilityLabel: normalizeSignatureActionCopy(action.accessibilityLabel),
-        ...(typeof action.sublabel==="string"?{sublabel:normalizeSignatureActionCopy(action.sublabel)}:{}),
-        ...(typeof action.semanticLabel==="string"?{semanticLabel:normalizeSignatureActionCopy(action.semanticLabel)}:{}),
-      }, state.input.familyId, state.input.layoutMode)),
+      actions: state.input.actions.map((action) => {
+        const baseAction = { ...action };
+        delete baseAction.appearanceOptionIds;
+        const actionAppearance = normalizeActionAppearance(action.appearanceOptionIds);
+        return normalizeSignatureActionTypography({
+          ...baseAction,
+          ...(actionAppearance ? { appearanceOptionIds: actionAppearance } : {}),
+          label: normalizeSignatureActionCopy(action.label),
+          accessibilityLabel: normalizeSignatureActionCopy(action.accessibilityLabel),
+          ...(typeof action.sublabel==="string"?{sublabel:normalizeSignatureActionCopy(action.sublabel)}:{}),
+          ...(typeof action.semanticLabel==="string"?{semanticLabel:normalizeSignatureActionCopy(action.semanticLabel)}:{}),
+        }, state.input.familyId, state.input.layoutMode);
+      }),
     },
   };
 }
 
 function createAction(index: number, plugComponentId: string, idFactory: () => string, familyId: string, layoutMode: SignatureAssemblyLayoutMode, presentation?: SignatureAuthoringLayoutOption): SignatureAssemblyActionSelection {
   const ordinal = index + 1;
-  const semanticIconRef=presentation?.capabilities?.semanticIcon?.supported&&presentation.capabilities.semanticIcon.defaultCanonicalIconId
-    ? canonicalIconAsset(presentation.capabilities.semanticIcon.defaultCanonicalIconId)??undefined
+  const preset=presentation?.defaultActions?.[index%Math.max(presentation.defaultActions.length,1)];
+  const canonicalIconId=preset?.canonicalIconId??presentation?.capabilities?.semanticIcon?.defaultCanonicalIconId;
+  const semanticIconRef=presentation?.capabilities?.semanticIcon?.supported&&canonicalIconId
+    ? canonicalIconAsset(canonicalIconId)??undefined
     : undefined;
   const sidePolicy=presentation?.capabilities?.plugSide;
+  const plugPolicy=presentation?.capabilities?.plug??{supported:true,optional:false,defaultEnabled:true};
+  const plugEnabled=preset?.plugEnabled??plugPolicy.defaultEnabled;
+  const reflection=presentation?.capabilities?.backgroundReflection;
   return normalizeSignatureActionTypography({
     id: idFactory(),
-    label: `Action ${ordinal}`,
-    destination: "#",
-    actionType: "website",
-    plugComponentId,
-    ...(presentation?.capabilities?.semanticIcon?.supported?{plugPresentationId:plugComponentId,semanticIconRef,semanticLabel:semanticIconRef?.accessibleLabel??`Action ${ordinal}`}:{ }),
-    ...(sidePolicy?.mode==="authorable"?{plugSide:sidePolicy.defaultSide}:{ }),
-    accessibilityLabel: `Action ${ordinal}`,
+    label: preset?.label??`Action ${ordinal}`,
+    destination: preset?.destination??"#",
+    actionType: preset?.actionType??"website",
+    ...(plugPolicy.supported?{plugComponentId,plugPresentationId:plugComponentId,plugEnabled}:{}),
+    ...(presentation?.capabilities?.semanticIcon?.supported&&plugPolicy.supported?{semanticIconRef,semanticLabel:preset?.semanticLabel??semanticIconRef?.accessibleLabel??`Action ${ordinal}`}:{ }),
+    ...(presentation?.capabilities?.sublabel?.supported&&preset?.sublabel?{sublabel:preset.sublabel}:{}),
+    ...(plugPolicy.supported&&sidePolicy?.mode==="authorable"?{plugSide:preset?.plugSide??sidePolicy.defaultSide}:{ }),
+    accessibilityLabel: preset?.accessibilityLabel??preset?.label??`Action ${ordinal}`,
     state: "default",
     analyticsId: `signature-action-${ordinal}`,
-    textAlign: "center",
+    textAlign: preset?.textAlign??"center",
     textSize: "medium",
+    ...(reflection?.supported?{backgroundReflectionIntensity:preset?.backgroundReflectionIntensity??reflection.defaultIntensity}:{}),
   }, familyId, layoutMode);
 }
 
@@ -309,7 +334,21 @@ export function updateSignatureAction(
     ...(typeof patch.label === "string" ? { label: normalizeSignatureActionCopy(patch.label) } : {}),
     ...(typeof patch.accessibilityLabel === "string" ? { accessibilityLabel: normalizeSignatureActionCopy(patch.accessibilityLabel) } : {}),
   };
-  return normalizeSignatureAssemblyAuthoringState({ ...state, input: { ...state.input, actions: state.input.actions.map((action) => action.id === actionId ? { ...action, ...normalizedPatch } : action) } });
+  return normalizeSignatureAssemblyAuthoringState({
+    ...state,
+    input: {
+      ...state.input,
+      actions: state.input.actions.map((action) => {
+        if (action.id !== actionId) return action;
+        const synchronizedLegacyPresentation = typeof patch.plugComponentId === "string"
+          && patch.plugPresentationId === undefined
+          && action.plugPresentationId === action.plugComponentId
+          ? { plugPresentationId: patch.plugComponentId }
+          : {};
+        return { ...action, ...normalizedPatch, ...synchronizedLegacyPresentation };
+      }),
+    },
+  });
 }
 
 export function setSignatureIdentityContent(
@@ -375,6 +414,7 @@ export function compileSignatureAuthoringState(
         const option=role.options.find((candidate)=>candidate.id===optionId&&candidate.certified);
         return option?.materialProjection?[[role.id,option.materialProjection]]:[];
       })),
+      optionsByRole: Object.fromEntries(appearanceContract.roles.map((role) => [role.id, Object.fromEntries(role.options.filter((option) => option.certified).map((option) => [option.id, { rendererValue: option.rendererValue, materialProjection: option.materialProjection }]))])),
       textTreatmentContractId: textContract?.id,
       textTreatmentContractVersion: textContract?.version,
       textTreatmentId: requestedTreatment?.id,
@@ -501,6 +541,13 @@ export function applySignatureAssemblyMutation(
       const max = allowed.length ? Math.max(...allowed) : min;
       if (mutation.patch.textSizePx < min || mutation.patch.textSizePx > max) return { ok: false, message: `Choose a phone text size between ${min} and ${max}px for this label.` };
       }
+    }
+    if (mutation.patch.backgroundReflectionIntensity != null) {
+      const activeRecipe=SIGNATURE_ASSEMBLY_RECIPES.find((candidate)=>candidate.familyId===current.input.familyId&&candidate.recipeId===current.input.recipeId);
+      const presentation=activeRecipe?signaturePresentation(activeRecipe):undefined;
+      const reflection=presentation?.capabilities?.backgroundReflection;
+      if (!reflection?.supported) return { ok: false, message: "This Curated presentation does not support an adjustable background reflection." };
+      if (mutation.patch.backgroundReflectionIntensity < reflection.minIntensity || mutation.patch.backgroundReflectionIntensity > reflection.maxIntensity) return { ok: false, message: `Choose a background reflection between ${reflection.minIntensity}% and ${reflection.maxIntensity}%.` };
     }
   }
   const mutated = mutation.type === "update-action"

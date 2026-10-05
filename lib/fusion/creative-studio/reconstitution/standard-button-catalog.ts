@@ -1,8 +1,19 @@
 import { updateButtonLabel } from "@/lib/fusion/creative-studio/button-composition";
+import { applyStandardButtonAppearancePreset, type StandardButtonAppearancePresetId } from "./standard-button-appearance";
 
 export type StandardButtonPresetId =
   | "brand-primary"
   | "brand-outline"
+  | "clean-flat"
+  | "soft-raised"
+  | "deep-raised"
+  | "embossed-light"
+  | "recessed"
+  | "engraved-dark"
+  | "gloss-enamel"
+  | "smoked-glass"
+  | "brushed-metal"
+  | "black-chrome"
   | "full-width-cta"
   | "icon-label"
   | "compact-utility";
@@ -40,10 +51,20 @@ export const STANDARD_BUTTON_CATALOG: readonly StandardButtonPresetDefinition[] 
   },
   {
     id: "brand-outline", version: 1, name: "Brand Outline",
-    description: "Concept retained for later differentiation; hidden until it earns a distinct job.",
-    useCase: "Secondary action", tags: ["secondary", "brand", "outline"], readiness: "architecture_ready",
-    props: { label: "Learn more", presentation: "rounded", radius: 14, width: 0.56, height: 0.09, buttonSurfaceKind: "solid", fill: "transparent", borderWidth: 2, fontWeight: 750, showIcon: false, materialPreset: "flat" },
+    description: "A crisp secondary action with a Brand-led edge.",
+    useCase: "Secondary action", tags: ["secondary", "brand", "outline", "2d"], readiness: "product_ready",
+    props: { label: "Learn more", width: 0.56, height: 0.09, fontWeight: 750, showIcon: false, appearancePreset: "brand-outline" },
   },
+  { id: "clean-flat", version: 1, name: "Clean Flat", description: "Crisp, quiet, and direct.", useCase: "Straightforward everyday action", tags: ["2d", "flat", "clean"], readiness: "product_ready", props: { label: "Continue", width: .58, height: .09, appearancePreset: "clean-flat" } },
+  { id: "soft-raised", version: 1, name: "Soft Raised", description: "A gently lifted tactile surface.", useCase: "Friendly primary action", tags: ["dimensional", "soft", "raised"], readiness: "product_ready", props: { label: "Get started", width: .62, height: .095, appearancePreset: "soft-raised" } },
+  { id: "deep-raised", version: 1, name: "Deep Raised", description: "Substantial face and side-wall depth.", useCase: "High-emphasis conversion action", tags: ["dimensional", "deep", "raised"], readiness: "product_ready", props: { label: "Take action", width: .64, height: .105, appearancePreset: "deep-raised" } },
+  { id: "embossed-light", version: 1, name: "Embossed Light", description: "A lifted embossed face with restrained relief.", useCase: "Premium light-surface action", tags: ["dimensional", "embossed", "relief"], readiness: "product_ready", props: { label: "Continue", width: .6, height: .095, appearancePreset: "embossed-light" } },
+  { id: "recessed", version: 1, name: "Recessed", description: "An inset action surface.", useCase: "Integrated utility action", tags: ["dimensional", "inset", "recessed"], readiness: "product_ready", props: { label: "View details", width: .58, height: .09, appearancePreset: "recessed" } },
+  { id: "engraved-dark", version: 1, name: "Engraved Dark", description: "A controlled engraved treatment.", useCase: "Quiet premium action", tags: ["dimensional", "engraved", "dark"], readiness: "product_ready", props: { label: "Discover", width: .58, height: .09, appearancePreset: "engraved-dark" } },
+  { id: "gloss-enamel", version: 1, name: "Gloss Enamel", description: "High-fidelity lacquer and highlight.", useCase: "Polished promotional action", tags: ["glass", "gloss", "enamel"], readiness: "product_ready", props: { label: "Shop now", width: .6, height: .095, appearancePreset: "gloss-enamel" } },
+  { id: "smoked-glass", version: 1, name: "Smoked Glass", description: "Dark translucent premium glass.", useCase: "Premium action over photography", tags: ["glass", "smoked", "premium"], readiness: "product_ready", props: { label: "Explore", width: .58, height: .09, appearancePreset: "smoked-glass" } },
+  { id: "brushed-metal", version: 1, name: "Brushed Metal", description: "Brushed dimensional metal.", useCase: "Industrial premium action", tags: ["metal", "brushed", "dimensional"], readiness: "product_ready", props: { label: "Open", width: .54, height: .09, appearancePreset: "brushed-metal" } },
+  { id: "black-chrome", version: 1, name: "Black Chrome", description: "Dark polished metal with a controlled rim.", useCase: "Luxury primary action", tags: ["metal", "chrome", "premium"], readiness: "product_ready", props: { label: "Reserve", width: .6, height: .095, appearancePreset: "black-chrome" } },
   {
     id: "full-width-cta", version: 1, name: "Full-width CTA",
     description: "A substantial section-closing action with supporting context and a clear forward cue.",
@@ -97,5 +118,7 @@ export function resolveStandardButtonPreset(
         : preset.id === "full-width-cta"
           ? { ...base, borderColor: `${secondary}66`, labelColor: brand.textColor || GENERIC_BRAND.textColor, descriptionColor: `${brand.textColor || GENERIC_BRAND.textColor}b8`, iconColor: primary }
           : { ...base, fill: primary, gradientFill: `linear-gradient(120deg, ${primary} 0%, ${secondary} 100%)`, borderColor: `${primary}dd`, glowColor: primary, labelColor: readableText(primary, null), iconColor: readableText(primary, null) };
-  return updateButtonLabel(resolved, String(resolved.label || "Button"), `standard-${preset.id}`);
+  const appearancePreset = typeof resolved.appearancePreset === "string" ? resolved.appearancePreset as StandardButtonAppearancePresetId : null;
+  const withAppearance = appearancePreset ? applyStandardButtonAppearancePreset(resolved, appearancePreset) : resolved;
+  return updateButtonLabel(withAppearance, String(withAppearance.label || "Button"), `standard-${preset.id}`);
 }

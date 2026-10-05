@@ -133,6 +133,18 @@ export const NATIVE_ICON_SVGS: Record<string, string> = {
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>',
   heart:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+  play:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 3 14 9-14 9z"/></svg>',
+  globe:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 0 20M12 2a15.3 15.3 0 0 0 0 20"/></svg>',
+  lock:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+  microphone:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v3"/></svg>',
+  shirt:
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.1l.58 4.02a1 1 0 0 0 1.14.85l2-.34V22h12V10.09l2 .34a1 1 0 0 0 1.14-.85l.58-4.02a2 2 0 0 0-1.34-2.1Z"/></svg>',
+  "calendar-days":
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18M8 14h.01M12 14h.01M16 14h.01M8 18h.01M12 18h.01"/></svg>',
   star:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>',
   ticket:
@@ -140,20 +152,6 @@ export const NATIVE_ICON_SVGS: Record<string, string> = {
   tag:
     '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"/><circle cx="7.5" cy="7.5" r=".5" fill="currentColor"/></svg>',
 };
-
-export function nativeIconAsset(iconId: string): IconAsset | null {
-  const platform = CANONICAL_PLATFORM_ICON_ASSETS.find((asset) => asset.iconName === iconId || asset.canonicalId === iconId);
-  if (platform) return platform;
-  const svg = NATIVE_ICON_SVGS[iconId];
-  if (!svg) return null;
-  return createIconAsset({
-    provider: "native",
-    collection: "lucide",
-    iconName: iconId,
-    svg,
-    source: "tapconnect-native",
-  });
-}
 
 const PLATFORM_ICON_SOURCE_DATE = "2026-09-28T00:00:00.000Z";
 const platformIcons = [
@@ -179,8 +177,41 @@ export const CANONICAL_PLATFORM_ICON_ASSETS: readonly IconAsset[] = platformIcon
   attribution: `${label} mark via simple-icons; source authority: ${icon.source}`,
 })!).filter(Boolean);
 
+const semanticNativeIcons = [
+  ["play", "Play"], ["map-pin", "Directions"], ["globe", "Website"], ["phone", "Phone"],
+  ["ticket", "Tickets"], ["calendar-days", "Calendar"], ["star", "Featured"], ["lock", "Exclusive access"],
+  ["microphone", "Podcast"], ["shirt", "Merch"], ["heart", "Support"],
+] as const;
+
+/** Reusable non-brand semantic artwork for every governed family and standalone Icon consumer. */
+export const CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS: readonly IconAsset[] = semanticNativeIcons.map(([iconName, label]) => createIconAsset({
+  provider: "native",
+  collection: "lucide",
+  iconName,
+  svg: NATIVE_ICON_SVGS[iconName],
+  source: "tapconnect-native",
+  fetchedAt: PLATFORM_ICON_SOURCE_DATE,
+  accessibleLabel: label,
+  canonicalReference: `lucide:${iconName}`,
+  compatibility: ["curated-semantic-icon", "standard-icon", "standalone-icon"],
+  attribution: `${label} mark via the TapConnect-approved Lucide source set.`,
+})!).filter(Boolean);
+
+export const CANONICAL_SEMANTIC_ICON_ASSETS: readonly IconAsset[] = [
+  ...CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS,
+  ...CANONICAL_PLATFORM_ICON_ASSETS,
+];
+
+export function nativeIconAsset(iconId: string): IconAsset | null {
+  const registered = CANONICAL_SEMANTIC_ICON_ASSETS.find((asset) => asset.iconName === iconId || asset.canonicalId === iconId);
+  if (registered) return registered;
+  const svg = NATIVE_ICON_SVGS[iconId];
+  if (!svg) return null;
+  return createIconAsset({ provider: "native", collection: "lucide", iconName: iconId, svg, source: "tapconnect-native" });
+}
+
 export function canonicalIconAsset(canonicalId: string): IconAsset | null {
-  return CANONICAL_PLATFORM_ICON_ASSETS.find((asset) => asset.canonicalId === canonicalId) ?? nativeIconAsset(canonicalId);
+  return CANONICAL_SEMANTIC_ICON_ASSETS.find((asset) => asset.canonicalId === canonicalId) ?? nativeIconAsset(canonicalId);
 }
 
 /** Default bare Icon Element — SVG only; no backing Surface chrome. */

@@ -3,14 +3,16 @@ import test from "node:test";
 import type { CreativeCompositionBlock, CreativeCompositionNode } from "../composition";
 import { applyStudioTextRole, evaluateStudioTextAccessibility, STUDIO_TEXT_AUTHORING_DECLARATIONS, STUDIO_TEXT_CAPABILITY_DECLARATIONS, STUDIO_TEXT_ROLES, textRoleCanonicalProps } from "../platform/text-authoring";
 
-test("Text launches as a small excellent set of five meaningfully distinct roles", () => {
-  assert.deepEqual(STUDIO_TEXT_ROLES.map((role) => role.id), ["heading", "subheading", "body", "label", "quote"]);
-  assert.equal(new Set(STUDIO_TEXT_ROLES.map((role) => `${role.defaults.fontSize}:${role.defaults.fontWeight}:${role.defaults.lineHeight}:${role.defaults.letterSpacingEm}`)).size, 5);
+test("Text launches as six governed, meaningfully distinct Text Box roles", () => {
+  assert.deepEqual(STUDIO_TEXT_ROLES.map((role) => role.id), ["heading", "subheading", "body", "label", "quote", "free"]);
+  assert.equal(new Set(STUDIO_TEXT_ROLES.map((role) => `${role.defaults.fontSize}:${role.defaults.fontWeight}:${role.defaults.lineHeight}:${role.defaults.letterSpacingEm}:${role.defaults.spacingAbovePx}`)).size, 6);
   for (const role of STUDIO_TEXT_ROLES) {
     const props = textRoleCanonicalProps(role.id, { businessName: "Test", headingFontFamily: "Brand Display", bodyFontFamily: "Brand Body", textColor: "#ffffff" });
     assert.equal(props.textRole, role.id);
     assert.equal(props.colorSource, "brand");
     assert.equal(props.fontSource, "brand");
+    assert.equal(props.boxFill, "transparent");
+    assert.equal(props.opacity, 1);
   }
 });
 

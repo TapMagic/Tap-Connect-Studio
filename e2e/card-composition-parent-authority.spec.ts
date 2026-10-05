@@ -1,6 +1,8 @@
 import { expect, test } from "@playwright/test";
 import { mkdirSync } from "node:fs";
 import path from "node:path";
+import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
+import { canonicalizeExperienceConfig, projectExperiencePage } from "@/lib/fusion/card/experience-pages";
 
 const enabled = process.env.COMPOSITION_PARENT_AUTHORITY_ACCEPTANCE === "1";
 const evidence = path.join("tmp", "composition-parent-authority");
@@ -18,15 +20,18 @@ test("proves direct Modules, optional Containers, flow recompile, persistence, a
   let baselineResponse = await page.request.get("/api/card/draft");
   expect(baselineResponse.ok()).toBeTruthy();
   let baseline = await baselineResponse.json() as { draft: Record<string, unknown>; revision: number };
-  const root = baseline.draft.rootComposition as { nodes?: Array<{ id: string; name?: string; parentId?: string | null; props?: { text?: string } }> } | undefined;
+  const baselineConfig = baseline.draft as unknown as TapConnectCardConfig;
+  const activePageId = baselineConfig.experience?.defaultPageId;
+  const baselineProjection = projectExperiencePage(baselineConfig, activePageId);
+  const root = baselineProjection.rootComposition as { nodes?: Array<{ id: string; name?: string; parentId?: string | null; props?: { text?: string } }> } | undefined;
   const proofContainerIds = new Set((root?.nodes ?? [])
     .filter((node) => node.name === "Smoked Glass Container" && (root?.nodes ?? []).some((child) => child.parentId === node.id && String(child.props?.text || "").startsWith("A longer accessible paragraph")))
     .map((node) => node.id));
   if (proofContainerIds.size) {
-    const cleanDraft = structuredClone(baseline.draft) as typeof baseline.draft;
+    const cleanDraft = projectExperiencePage(structuredClone(baseline.draft) as unknown as TapConnectCardConfig, activePageId);
     const cleanRoot = cleanDraft.rootComposition as typeof root;
     if (cleanRoot?.nodes) cleanRoot.nodes = cleanRoot.nodes.filter((node) => !proofContainerIds.has(node.id) && !proofContainerIds.has(node.parentId || ""));
-    const cleanup = await page.request.put("/api/card/draft", { data: { draft: cleanDraft, expectedRevision: baseline.revision } });
+    const cleanup = await page.request.put("/api/card/draft", { data: { draft: canonicalizeExperienceConfig(cleanDraft, activePageId), expectedRevision: baseline.revision } });
     expect(cleanup.ok()).toBeTruthy();
     await page.reload({ waitUntil: "domcontentloaded" });
     baselineResponse = await page.request.get("/api/card/draft");
@@ -49,7 +54,7 @@ test("proves direct Modules, optional Containers, flow recompile, persistence, a
     await page.getByTestId("studio-rail-add").click();
     await expect(page.getByTestId("studio-add-target")).toContainText("Smoked Glass Container");
     await page.getByTestId("studio-add-text").click();
-    await page.getByTestId("studio-add-resource-text-basic").click();
+    await page.getByRole("button", { name: /Body Text Box/ }).click();
     await expect(authority.locator('[data-composition-kind="container"]')).toHaveCount(initialContainers + 1);
     const container = authority.locator('[data-composition-kind="container"]').last();
     await expect(container.locator('[data-composition-kind="module"]')).toHaveCount(1);

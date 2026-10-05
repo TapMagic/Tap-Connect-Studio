@@ -8,10 +8,15 @@ export function curatedMaterialRoles(value: unknown): Readonly<Record<string, Cu
   return value&&typeof value==="object"?value as Record<string,CuratedMaterialRoleProjection>:{};
 }
 
+/** Complete shared Material response, including highlight/shine/texture channels. */
+export function curatedMaterialSurface(materialId: string | undefined) {
+  const recipe=getMaterialRecipe(materialId);
+  return recipe?resolveMaterialSurfaceFromRecipe(recipe):undefined;
+}
+
 /** Canonical Curated adapter into the shared Material surface authority. */
 export function curatedMaterialSurfaceStyle(materialId: string | undefined): CSSProperties | undefined {
-  const recipe=getMaterialRecipe(materialId);
-  if (!recipe) return undefined;
-  const surface=resolveMaterialSurfaceFromRecipe(recipe);
+  const surface=curatedMaterialSurface(materialId);
+  if (!surface) return undefined;
   return {background:surface.background,backgroundSize:surface.backgroundSize,borderWidth:surface.borderWidth,borderStyle:surface.borderStyle,borderColor:surface.borderColor,boxShadow:surface.boxShadow,opacity:surface.opacity};
 }

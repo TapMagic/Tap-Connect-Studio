@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "1.0.0",
+  "familyId": "everencore-love-and-theft",
+  "coordinateWidthPx": 1200,
+  "actionBody": {
+    "sourceDimensionsPx": [1200, 280],
+    "aspectRatio": 4.2857142857,
+    "placement": "full component bounds",
+    "zOrder": 0,
+    "liveTextSafeAreas": {
+      "leftPick": {"x": 0.27, "y": 0.19, "width": 0.67, "height": 0.63},
+      "rightPick": {"x": 0.06, "y": 0.19, "width": 0.67, "height": 0.63},
+      "miniLeft": {"x": 0.19, "y": 0.20, "width": 0.71, "height": 0.61},
+      "miniRight": {"x": 0.10, "y": 0.20, "width": 0.71, "height": 0.61},
+      "bodyOnly": {"x": 0.10, "y": 0.19, "width": 0.72, "height": 0.63}
+    }
+  },
+  "signaturePlug": {
+    "sourceDimensionsPx": [1254, 1254],
+    "semanticSafeArea": {"x": 0.28, "y": 0.24, "width": 0.44, "height": 0.44},
+    "fullPickSockets": {
+      "left": {"x": 0, "y": -0.214286, "width": 0.333333, "height": 1.428572},
+      "right": {"x": 0.666667, "y": -0.214286, "width": 0.333333, "height": 1.428572}
+    },
+    "miniInsertSockets": {
+      "left": {"x": 0.025, "y": 0.27, "width": 0.135, "height": 0.46},
+      "right": {"x": 0.84, "y": 0.27, "width": 0.135, "height": 0.46}
+    },
+    "mirroringPolicy": "never mirror pixels; use unchanged master with left/right placement"
+  },
+  "presentations": {
+    "hero": {"unitStridePx": 400, "actionYOffsetPx": 60, "capacity": 1, "structure": "action-only"},
+    "standardLeft": {"unitStridePx": 400, "actionYOffsetPx": 60, "capacity": 1, "structure": "action-only"},
+    "standardRight": {"unitStridePx": 400, "actionYOffsetPx": 60, "capacity": 1, "structure": "action-only"},
+    "utility": {"unitStridePx": 280, "capacity": 1, "structure": "action-only"},
+    "bodyOnly": {"unitStridePx": 280, "capacity": 1, "structure": "action-only"},
+    "singleStack": {"unitStridePx": 340, "actionYOffsetPx": 60, "capacity": 1, "visualOverlapPx": 60, "structure": "minimum renderer-native cadence; no crown, cage, or terminator"},
+    "twinRail": {"unitStridePx": 200, "actionYOffsetPx": 30, "capacity": 2, "actionScale": 0.5, "leftXPx": 0, "rightXPx": 600, "structure": "minimum renderer-native paired cadence; adjoining certified rims form the narrow center divider; no heavy mechanical furniture"}
+  },
+  "phoneGate": {"viewportWidthPx": 390, "safeAreaIndependentFromVisualBleed": true}
+}

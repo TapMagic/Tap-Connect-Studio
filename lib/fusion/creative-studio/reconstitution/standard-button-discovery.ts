@@ -7,6 +7,7 @@ import {
   type BrandPreviewContext,
   type StandardButtonPresetId,
 } from "./standard-button-catalog";
+import { STANDARD_BUTTON_APPEARANCE_PRESETS } from "./standard-button-appearance";
 
 export type StandardButtonDiscoveryApplication = StudioPresentationApplication & {
   presetId: StandardButtonPresetId;
@@ -18,6 +19,7 @@ export function standardButtonDiscoveryResources(
 ): readonly StudioDiscoveryResource<StandardButtonDiscoveryApplication, Record<string, unknown>>[] {
   return STANDARD_BUTTON_CATALOG.map((preset) => {
     const presentation = resolveStandardButtonPreset(preset, brand);
+    const appearanceCategory = STANDARD_BUTTON_APPEARANCE_PRESETS.find((candidate) => candidate.id === preset.props.appearancePreset)?.category;
     const readiness = preset.readiness === "product_ready" ? "ready" as const : "preview" as const;
     return {
       ref: { provider: "tapconnect-catalog", resourceId: `standard-button:${preset.id}`, version: preset.version },
@@ -25,7 +27,7 @@ export function standardButtonDiscoveryResources(
       label: preset.name,
       description: preset.description,
       preview: { authority: "creative-composition-renderer", payload: presentation },
-      taxonomy: { category: "standard", collections: ["standard-buttons"], tags: preset.tags },
+      taxonomy: { category: "standard", collections: ["standard-buttons", ...(appearanceCategory ? [`button-${appearanceCategory.toLowerCase().replaceAll(" ", "-").replaceAll("&", "and")}`] : [])], tags: preset.tags },
       compatibility: { targetKinds: ["button"], requiredCapabilities: ["presentation"] },
       source: { authority: "tapconnect-standard-button-catalog", provenance: `standard-button:${preset.id}@${preset.version}` },
       brand: { relationship: preset.id.startsWith("brand-") ? "derived" : "compatible" },

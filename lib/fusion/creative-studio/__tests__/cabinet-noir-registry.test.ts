@@ -115,7 +115,7 @@ test("Standalone, Single-Stack, and Twin-Rail recipe instances validate without 
 });
 
 test("every launch Curated presentation has a family-neutral whole-object golden gate", () => {
-  assert.deepEqual(CURATED_VISUAL_ACCEPTANCE_CONTRACTS,[CABINET_NOIR_VISUAL_ACCEPTANCE]);
+  assert.ok(CURATED_VISUAL_ACCEPTANCE_CONTRACTS.includes(CABINET_NOIR_VISUAL_ACCEPTANCE));
   assert.deepEqual(validateCuratedFamilyVisualAcceptance(CABINET_NOIR_VISUAL_ACCEPTANCE,SIGNATURE_ASSEMBLY_RECIPES,SIGNATURE_ASSETS),[]);
   assert.equal(CABINET_NOIR_VISUAL_ACCEPTANCE.deterministicRuntimeRoute,"/review/studio");
   assert.deepEqual(CABINET_NOIR_VISUAL_ACCEPTANCE.presentations.map((presentation)=>presentation.presentationMode),["standalone","single-stack","twin-rail"]);

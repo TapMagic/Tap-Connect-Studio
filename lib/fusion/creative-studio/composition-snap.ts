@@ -21,6 +21,7 @@ export function snapCompositionNodes(input: {
   movingIds: string[];
   threshold?: number;
   grid?: number;
+  safeMargin?: number;
 }): { nodes: CreativeCompositionNode[]; guides: CompositionGuide[] } {
   const moving = new Set(input.movingIds);
   const movers = input.nodes.filter((node) => moving.has(node.id));
@@ -28,6 +29,7 @@ export function snapCompositionNodes(input: {
   const fixed = input.nodes.filter((node) => !moving.has(node.id) && node.visible !== false);
   const threshold = input.threshold ?? 0.012;
   const grid = input.grid ?? 0.025;
+  const safeMargin = Math.max(0, Math.min(.2, input.safeMargin ?? .03));
   const minX = Math.min(...movers.map((node) => node.x));
   const maxX = Math.max(...movers.map((node) => node.x + node.width));
   const minY = Math.min(...movers.map((node) => node.y));
@@ -46,9 +48,9 @@ export function snapCompositionNodes(input: {
   ]);
   const canvasX = [
     { value: 0, kind: "edge" as const },
-    { value: 0.03, kind: "safe-margin" as const },
+    { value: safeMargin, kind: "safe-margin" as const },
     { value: 0.5, kind: "center" as const },
-    { value: 0.97, kind: "safe-margin" as const },
+    { value: 1 - safeMargin, kind: "safe-margin" as const },
     { value: 1, kind: "edge" as const },
   ];
   const canvasY = canvasX;

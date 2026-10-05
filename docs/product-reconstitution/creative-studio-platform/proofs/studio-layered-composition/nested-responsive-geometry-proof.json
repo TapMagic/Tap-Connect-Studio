@@ -1,0 +1,189 @@
+{
+  "contract": "studioNestedResponsiveComposition@1.0.0",
+  "route": "http://127.0.0.1:3050/review/studio",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "parent": {
+    "widthPx": 212.703125,
+    "heightPx": 310
+  },
+  "initialGroup": {
+    "x": 0.01,
+    "y": 0.02,
+    "width": 0.97,
+    "height": 0.56,
+    "scaleMode": "full"
+  },
+  "compactGroup": {
+    "x": 0.2,
+    "y": 0.020000000000000004,
+    "id": "nested-proof-actions",
+    "name": "Compact action bank",
+    "width": 0.78,
+    "anchor": "center",
+    "height": 0.45030927835051543,
+    "layout": "grid",
+    "locked": false,
+    "zIndex": 2,
+    "density": "dense",
+    "parentId": "nested-proof-right",
+    "rowGapPx": 4,
+    "scaleMode": "compact",
+    "columnGapPx": 6,
+    "internalGapPx": 0
+  },
+  "phoneResolved": {
+    "surface": {
+      "x": 535,
+      "y": 90,
+      "width": 370,
+      "height": 720
+    },
+    "hero": {
+      "x": 553.5,
+      "y": 108,
+      "width": 351.5,
+      "height": 309.59375
+    },
+    "right": {
+      "x": 687.296875,
+      "y": 113,
+      "width": 212.703125,
+      "height": 310
+    },
+    "group": {
+      "x": 729.828125,
+      "y": 119.1875,
+      "width": 165.90625,
+      "height": 139.59375
+    },
+    "children": [
+      {
+        "id": "nested-proof-spotify",
+        "box": {
+          "x": 729.828125,
+          "y": 119.1875,
+          "width": 80.375,
+          "height": 48
+        }
+      },
+      {
+        "id": "nested-proof-watch",
+        "box": {
+          "x": 815.34375,
+          "y": 119.1875,
+          "width": 80.375,
+          "height": 48
+        }
+      },
+      {
+        "id": "nested-proof-tour",
+        "box": {
+          "x": 729.828125,
+          "y": 166.546875,
+          "width": 80.375,
+          "height": 48
+        }
+      },
+      {
+        "id": "nested-proof-tickets",
+        "box": {
+          "x": 815.34375,
+          "y": 166.546875,
+          "width": 80.375,
+          "height": 48
+        }
+      },
+      {
+        "id": "nested-proof-merch",
+        "box": {
+          "x": 729.828125,
+          "y": 213.90625,
+          "width": 80.375,
+          "height": 48
+        }
+      },
+      {
+        "id": "nested-proof-contact",
+        "box": {
+          "x": 815.34375,
+          "y": 213.90625,
+          "width": 80.375,
+          "height": 48
+        }
+      }
+    ]
+  },
+  "heroAuthored": {
+    "x": 0.05,
+    "y": 0.025,
+    "id": "nested-proof-hero",
+    "name": "Hero Container",
+    "props": {
+      "gap": 6,
+      "fill": "transparent",
+      "layout": "flow_horizontal",
+      "padding": 5,
+      "alignment": "stretch",
+      "contentFit": "fit_content",
+      "borderWidth": 0,
+      "clipContent": false,
+      "elementKind": "container",
+      "minHeightPx": 320,
+      "widthPercent": 100,
+      "componentKind": "container",
+      "containerTreatment": "transparent"
+    },
+    "width": 0.95,
+    "anchor": "top",
+    "height": 0.43,
+    "locked": false,
+    "zIndex": 2,
+    "visible": true,
+    "parentId": null,
+    "primitive": "frame",
+    "siblingOrder": 0,
+    "compositionKind": "container"
+  },
+  "rightAuthored": {
+    "x": 0,
+    "y": 0,
+    "id": "nested-proof-right",
+    "name": "Right · Compact actions",
+    "props": {
+      "gap": 4,
+      "fill": "transparent",
+      "layout": "layered",
+      "padding": 2,
+      "alignment": "stretch",
+      "contentFit": "fit_content",
+      "minWidthPx": 0,
+      "borderWidth": 0,
+      "clipContent": false,
+      "elementKind": "container",
+      "widthPercent": 66,
+      "componentKind": "container",
+      "layeredHeightPx": 310,
+      "containerTreatment": "transparent",
+      "layeredPlacementInitialized": true
+    },
+    "width": 0.65,
+    "anchor": "right",
+    "height": 1,
+    "locked": false,
+    "zIndex": 2,
+    "visible": true,
+    "parentId": "nested-proof-hero",
+    "primitive": "frame",
+    "siblingOrder": 1,
+    "compositionKind": "container"
+  },
+  "internalRowGapPx": 4,
+  "internalColumnGapPx": 6,
+  "savedAndReloaded": true,
+  "previewParity": true,
+  "nestedDepth": 2,
+  "productOwnerAcceptance": "pending"
+}

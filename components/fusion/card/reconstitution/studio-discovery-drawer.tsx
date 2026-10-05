@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- catalog previews preserve canonical asset URLs and governed object-fit behavior */
 
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { ArrowLeft, Box, ChevronRight, GripVertical, ImageIcon, Layers3, LockKeyhole, Minus, MousePointer2, Search, Sparkles, SquareStack, Type, X } from "lucide-react";
+import { ArrowLeft, Box, CheckSquare2, ChevronRight, GripVertical, ImageIcon, Layers3, LockKeyhole, Minus, MousePointer2, Search, Sparkles, SquareStack, Type, UnlockKeyhole, Video, X } from "lucide-react";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
 import { StandardButtonPreview } from "./standard-button-preview";
 import type { StudioDrawerEvent, StudioDrawerState } from "@/lib/fusion/creative-studio/reconstitution/drawer-controller";
@@ -24,10 +24,11 @@ import {
   type StudioPlacementContext,
 } from "@/lib/fusion/creative-studio/platform/add-discover";
 import { studioTextRole, textRoleCanonicalProps } from "@/lib/fusion/creative-studio/platform/text-authoring";
+import { groupMembers } from "@/lib/fusion/creative-studio/group-authority";
 
 export type StandardButtonDiscoveryResource = StudioDiscoveryResource<StandardButtonDiscoveryApplication, Record<string, unknown>>;
 
-export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCatalog, recents, recentsState, onUseResource, catalogAdapter, workspaceComposition, placementContext, onPlaceOrdinary, onChooseImage, onPlaceContainer, onPlaceCurated }: {
+export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCatalog, recents, recentsState, onUseResource, catalogAdapter, workspaceComposition, placementContext, onPlaceOrdinary, onChooseImage, onPlaceContainer, onPlaceCurated, onPlaceCompactGrid, selectMultipleMode = false, onToggleSelectMultiple, onCancelSelectMultiple }: {
   state: StudioDrawerState;
   dispatch: (event: StudioDrawerEvent) => void;
   model: CardEditorLiveModel | null;
@@ -39,10 +40,14 @@ export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCat
   catalogAdapter: StudioCatalogConsumerAdapter;
   workspaceComposition: StudioWorkspaceComposition;
   placementContext: StudioPlacementContext | null;
-  onPlaceOrdinary: (kind: "text" | "image" | "divider", initialProps?: Record<string, unknown>) => void;
+  onPlaceOrdinary: (kind: "text" | "image" | "video" | "divider", initialProps?: Record<string, unknown>) => void;
   onChooseImage: () => void;
   onPlaceContainer: (treatment: "transparent" | "solid" | "smoked_glass" | "image") => void;
   onPlaceCurated: (familyId: string, presentationId: string) => void;
+  onPlaceCompactGrid: () => void;
+  selectMultipleMode?: boolean;
+  onToggleSelectMultiple?: () => void;
+  onCancelSelectMultiple?: () => void;
 }) {
   if (state.mode === "closed" || !state.activeRailId) return null;
   const path = state.path;
@@ -63,15 +68,15 @@ export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCat
     <MotionSurface pathKey={`${state.activeRailId}:${path.join("/")}`} depth={path.length}>
       {state.activeRailId === "add" && path.length === 0 ? <AddHome dispatch={dispatch} placementContext={placementContext} /> : null}
       {path.join("/") === "text" ? <OrdinaryCategoryView categoryId="text" brand={brand} onPlace={(props) => onPlaceOrdinary("text", props)} /> : null}
-      {path.join("/") === "image" ? <ImageCategoryView onChoose={onChooseImage} /> : null}
+      {path.join("/") === "image" ? <MediaCategoryView onChooseImage={onChooseImage} onPlaceVideo={(props) => onPlaceOrdinary("video", props)} /> : null}
       {path.join("/") === "divider" ? <OrdinaryCategoryView categoryId="divider" onPlace={(props) => onPlaceOrdinary("divider", props)} /> : null}
       {path.join("/") === "container" ? <ContainerCategoryView onPlace={onPlaceContainer} /> : null}
       {path.join("/") === "curated" ? <CuratedCategoryView familyCatalog={familyCatalog} dispatch={dispatch} /> : null}
-      {isButtonsHome ? <ButtonDiscoveryHome state={state} dispatch={dispatch} brand={brand} familyCatalog={familyCatalog} recents={recents} recentsState={recentsState} onUseResource={onUseResource} /> : null}
+      {isButtonsHome ? <ButtonDiscoveryHome state={state} dispatch={dispatch} brand={brand} familyCatalog={familyCatalog} recents={recents} recentsState={recentsState} onUseResource={onUseResource} onPlaceCompactGrid={onPlaceCompactGrid} /> : null}
       {presentationFamily ? <PresentationLibrary family={presentationFamily} state={state} dispatch={dispatch} brand={brand} onUseResource={onUseResource} /> : null}
       {governedFamily ? <GovernedFamilyView family={governedFamily} onPlace={onPlaceCurated} /> : null}
       {isSaved ? <SavedFamilyView /> : null}
-      {state.activeRailId === "layers" ? <OutlineView model={model} /> : null}
+      {state.activeRailId === "layers" ? <OutlineView model={model} selectMultipleMode={selectMultipleMode} onToggleSelectMultiple={onToggleSelectMultiple} onCancelSelectMultiple={onCancelSelectMultiple} /> : null}
     </MotionSurface>
   </aside>;
 }
@@ -115,9 +120,10 @@ function OrdinaryCategoryView({ categoryId, brand, onPlace }: { categoryId: "tex
   </CatalogResultGrid>;
 }
 
-function ImageCategoryView({ onChoose }: { onChoose: () => void }) {
-  const entry = STUDIO_ORDINARY_MODULES.find((resource) => resource.id === "image:asset")!;
-  return <CatalogResultGrid label="Use the shared Asset universe" dataTestId="studio-image-catalog"><button type="button" onClick={onChoose} className="group overflow-hidden rounded-3xl bg-white/[.05] text-left transition hover:bg-white/[.085]" data-testid="studio-choose-image-asset"><span className="grid h-44 place-items-center bg-[radial-gradient(circle_at_35%_30%,rgba(139,220,255,.28),transparent_28%),linear-gradient(145deg,#172d27,#293d51_55%,#111820)]"><span className="grid h-16 w-16 place-items-center rounded-2xl border border-white/15 bg-black/25 text-[#c9efff] shadow-xl"><ImageIcon className="h-7 w-7" /></span></span><span className="block p-4"><strong className="text-sm">{entry.label}</strong><span className="mt-1 block text-xs leading-5 text-white/45">{entry.description}</span><span className="mt-4 inline-flex items-center gap-1 rounded-full bg-[#b8ff2c] px-3 py-1.5 text-[10px] font-semibold text-[#07100a]">Browse Assets <ChevronRight className="h-3.5 w-3.5" /></span></span></button></CatalogResultGrid>;
+function MediaCategoryView({ onChooseImage, onPlaceVideo }: { onChooseImage: () => void; onPlaceVideo: (props: Record<string, unknown>) => void }) {
+  const image = STUDIO_ORDINARY_MODULES.find((resource) => resource.id === "image:asset")!;
+  const video = STUDIO_ORDINARY_MODULES.find((resource) => resource.id === "video:module")!;
+  return <CatalogResultGrid label="Image and Video" dataTestId="studio-image-catalog"><div className="grid grid-cols-2 gap-2.5"><button type="button" onClick={onChooseImage} className="group overflow-hidden rounded-2xl bg-white/[.05] text-left transition hover:bg-white/[.085]" data-testid="studio-choose-image-asset"><span className="grid h-28 place-items-center bg-[radial-gradient(circle_at_35%_30%,rgba(139,220,255,.28),transparent_28%),linear-gradient(145deg,#172d27,#293d51_55%,#111820)]"><ImageIcon className="h-8 w-8 text-[#c9efff]" /></span><span className="block p-3"><strong className="text-xs">{image.label}</strong><span className="mt-1 block text-[9px] leading-4 text-white/45">{image.description}</span><span className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#b8ff2c] px-2.5 py-1 text-[9px] font-semibold text-[#07100a]">Browse Assets <ChevronRight className="h-3 w-3" /></span></span></button><button type="button" onClick={() => onPlaceVideo({ ...video.defaultCanonicalState })} className="group overflow-hidden rounded-2xl bg-white/[.05] text-left transition hover:bg-white/[.085]" data-testid="studio-add-video-module"><span className="grid h-28 place-items-center bg-[radial-gradient(circle_at_65%_20%,rgba(184,255,44,.22),transparent_30%),linear-gradient(145deg,#141d29,#090d14)]"><span className="grid h-12 w-12 place-items-center rounded-full border border-white/18 bg-black/30"><Video className="h-5 w-5 text-[#d8ff82]" /></span></span><span className="block p-3"><strong className="text-xs">{video.label}</strong><span className="mt-1 block text-[9px] leading-4 text-white/45">{video.description}</span><span className="mt-3 inline-flex rounded-full bg-[#b8ff2c] px-2.5 py-1 text-[9px] font-semibold text-[#07100a]">Add Video</span></span></button></div></CatalogResultGrid>;
 }
 
 function ContainerCategoryView({ onPlace }: { onPlace: (treatment: "transparent" | "solid" | "smoked_glass" | "image") => void }) {
@@ -135,17 +141,17 @@ function AddTile({ label, detail, icon, onClick, testId }: { label: string; deta
 
 function TreatmentTile({ label, treatment, onClick }: { label: string; treatment: "transparent" | "solid" | "smoked_glass" | "image"; onClick: () => void }) { const style = treatment === "transparent" ? "border border-dashed border-white/25 bg-transparent" : treatment === "solid" ? "bg-[#203322]" : treatment === "smoked_glass" ? "border border-white/20 bg-white/10 backdrop-blur" : "bg-[linear-gradient(135deg,#243d2b,#657b59,#17201a)]"; return <button type="button" onClick={onClick} className="rounded-2xl bg-white/[.04] p-2 text-left transition hover:bg-white/[.08]" data-testid={`studio-add-container-${treatment}`}><span className={cn("grid h-16 place-items-center rounded-xl", style)}><SquareStack className="h-5 w-5 text-white/72" /></span><strong className="mt-2 block px-1 text-[10px]">{label}</strong></button>; }
 
-function ButtonDiscoveryHome({ state, dispatch, brand, familyCatalog, recents, recentsState, onUseResource }: { state: StudioDrawerState; dispatch: (event: StudioDrawerEvent) => void; brand: BrandPreviewContext; familyCatalog: StudioButtonFamilyCatalog; recents: StudioRecentResource[]; recentsState: "loading" | "ready" | "error"; onUseResource: (resource: StandardButtonDiscoveryResource) => void }) {
+function ButtonDiscoveryHome({ state, dispatch, brand, familyCatalog, recents, recentsState, onUseResource, onPlaceCompactGrid }: { state: StudioDrawerState; dispatch: (event: StudioDrawerEvent) => void; brand: BrandPreviewContext; familyCatalog: StudioButtonFamilyCatalog; recents: StudioRecentResource[]; recentsState: "loading" | "ready" | "error"; onUseResource: (resource: StandardButtonDiscoveryResource) => void; onPlaceCompactGrid: () => void }) {
   const allResources = standardButtonDiscoveryResources(brand).filter((resource) => resource.governance.readiness === "ready");
   const recentPresets = recents.flatMap((recent) => { const resource = allResources.find((candidate) => candidate.ref.provider === recent.resource.provider && candidate.ref.resourceId === recent.resource.resourceId); return resource ? [resource] : []; });
   const query = state.query.trim().toLowerCase();
   const matchingResources = query ? allResources.filter((resource) => resource.search.text.toLowerCase().includes(query)) : [];
-  const visibleFamilies = visibleStudioButtonFamilies(familyCatalog);
+  const visibleFamilies = visibleStudioButtonFamilies(familyCatalog).filter((entry) => entry.id !== "saved");
   const matchingFamilies = query ? visibleFamilies.filter((entry) => `${entry.label} ${entry.description}`.toLowerCase().includes(query)) : [];
   return <div className="flex min-h-0 flex-1 flex-col"><SearchField state={state} dispatch={dispatch} placeholder="Search Buttons and families" /><div className="min-h-0 flex-1 overflow-y-auto px-3 pb-6" data-testid="studio-button-family-home">
     {query ? <section className="pt-4"><SectionHeading label="Search results" />{matchingFamilies.length || matchingResources.length ? <div className="space-y-4">{matchingFamilies.length ? <div className="grid grid-cols-2 gap-2">{matchingFamilies.map((entry) => <FamilyCard key={entry.id} family={entry} onOpen={() => openFamily(entry, dispatch)} />)}</div> : null}{matchingResources.length ? <div className="grid grid-cols-2 gap-2">{matchingResources.map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} compact onUse={onUseResource} />)}</div> : null}</div> : <EmptyState title="No matching Buttons" detail="Try Call, Brand, Cabinet Noir, or CTA." />}</section> : <>
       <section className="pt-4"><SectionHeading label="Recently Used" trailing={recentsState === "error" ? "Unavailable" : undefined} />{recentsState === "loading" ? <div className="h-20 animate-pulse rounded-2xl bg-white/5" aria-label="Loading Recently Used" /> : null}{recentsState === "ready" && recentPresets.length === 0 ? <p className="rounded-2xl bg-white/[.035] px-3 py-3 text-xs text-white/38">Buttons you place will appear here.</p> : null}{recentPresets.length ? <div className="flex gap-2 overflow-x-auto pb-1">{recentPresets.slice(0, 4).map((resource) => <div key={`recent-${resource.ref.resourceId}`} className="w-[152px] shrink-0"><PresetCard resource={resource} compact onUse={onUseResource} /></div>)}</div> : null}</section>
-      <section className="mt-6"><SectionHeading label="Recommended for your Card" /><div className="grid grid-cols-2 gap-2">{allResources.slice(0, 3).map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} compact onUse={onUseResource} />)}</div></section>
+      <section className="mt-6"><SectionHeading label="Recommended for your Card" /><div className="grid grid-cols-2 gap-2"><button type="button" onClick={onPlaceCompactGrid} className="group col-span-2 overflow-hidden rounded-2xl bg-white/[.045] text-left transition hover:bg-white/[.075]" data-testid="studio-add-compact-action-grid"><span className="grid min-h-[92px] grid-cols-3 gap-2 bg-[radial-gradient(circle_at_50%_35%,#6f4a1d,#12100d_66%)] p-3">{["S","♪","▶"].map((value) => <span key={value} className="grid aspect-square place-items-center rounded-[36%] border border-[#f5d68c]/55 bg-[linear-gradient(145deg,#d6aa54,#3e260e)] font-serif text-lg font-bold text-[#211409] shadow-lg">{value}</span>)}</span><span className="block px-3 pb-3 pt-2"><strong className="block text-[11px]">Compact Action Grid</strong><span className="mt-1 block text-[9px] leading-4 text-white/42">2, 3, or 4 columns · editable Tiles · artist presentation ready</span></span></button>{allResources.slice(0, 3).map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} compact onUse={onUseResource} />)}</div></section>
       <section className="mt-6"><SectionHeading label="Families" /><div className="grid grid-cols-2 gap-2">{visibleFamilies.map((entry) => <FamilyCard key={entry.id} family={entry} onOpen={() => openFamily(entry, dispatch)} />)}</div></section>
     </>}
   </div></div>;
@@ -164,10 +170,19 @@ function FamilyCard({ family, onOpen }: { family: StudioButtonFamilyDiscoveryEnt
 
 function PresentationLibrary({ family, state, dispatch, brand, onUseResource }: { family: "standard" | "brand"; state: StudioDrawerState; dispatch: (event: StudioDrawerEvent) => void; brand: BrandPreviewContext; onUseResource: (resource: StandardButtonDiscoveryResource) => void }) {
   const visible = discoverStandardButtons(brand, standardButtonDiscoveryContext({ query: state.query })).resources.filter((resource) => family === "brand" ? resource.application.presetId === "brand-primary" : resource.application.presetId !== "brand-primary");
+  const groups = family === "brand" || state.query
+    ? [{ id: family === "brand" ? "brand" : "results", label: family === "brand" ? "Built from your Brand" : "Results", resources: visible }]
+    : [
+        { id: "essentials", label: "Quick styles", resources: visible.filter((resource) => !(resource.taxonomy.collections ?? []).some((collection) => collection.startsWith("button-"))) },
+        { id: "2d", label: "2D", resources: visible.filter((resource) => (resource.taxonomy.collections ?? []).includes("button-2d")) },
+        { id: "dimensional", label: "3D / Dimensional", resources: visible.filter((resource) => (resource.taxonomy.collections ?? []).includes("button-dimensional")) },
+        { id: "glass", label: "Glass", resources: visible.filter((resource) => (resource.taxonomy.collections ?? []).includes("button-gloss-and-glass")) },
+        { id: "metal", label: "Metal / Premium", resources: visible.filter((resource) => (resource.taxonomy.collections ?? []).includes("button-metal")) },
+      ].filter((group) => group.resources.length > 0);
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const pathKey = `${state.activeRailId || "closed"}:${state.path.join("/")}`;
   useEffect(() => { if (scrollerRef.current) scrollerRef.current.scrollTop = state.scrollOffset; }, [pathKey, state.scrollOffset]);
-  return <div className="flex min-h-0 flex-1 flex-col" data-testid="studio-standard-button-gallery">{state.placementMode === "apply" ? <div className="mx-3 mb-2 rounded-xl bg-cyan-300/10 px-3 py-2 text-xs text-cyan-100"><div className="flex items-center justify-between gap-2"><span>Choose a new presentation. Content and Action stay intact.</span><button type="button" onClick={() => dispatch({ type: "END_APPLY" })} className="font-semibold">Cancel</button></div></div> : null}<SearchField state={state} dispatch={dispatch} placeholder={`Search ${family === "brand" ? "Brand" : "Standard"} Buttons`} /><div ref={scrollerRef} onScroll={(event) => dispatch({ type: "SET_SCROLL", scrollOffset: event.currentTarget.scrollTop })} className="min-h-0 flex-1 overflow-y-auto px-3 pb-6"><section className="pt-4"><SectionHeading label={state.query ? "Results" : family === "brand" ? "Built from your Brand" : "Standard Button styles"} />{visible.length ? <div className="grid grid-cols-1 gap-2">{visible.map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} onUse={onUseResource} />)}</div> : <EmptyState title={`No matching ${family === "brand" ? "Brand" : "Standard"} Buttons`} detail="Try a user job such as primary, Call, or section CTA." />}</section><p className="mt-5 text-[10px] leading-4 text-white/35">Only presets that pass the visual catalog quality gate are shown. Two weaker concepts remain hidden.</p></div></div>;
+  return <div className="flex min-h-0 flex-1 flex-col" data-testid="studio-standard-button-gallery">{state.placementMode === "apply" ? <div className="mx-3 mb-2 rounded-xl bg-cyan-300/10 px-3 py-2 text-xs text-cyan-100"><div className="flex items-center justify-between gap-2"><span>Choose a new presentation. Content and Action stay intact.</span><button type="button" onClick={() => dispatch({ type: "END_APPLY" })} className="font-semibold">Cancel</button></div></div> : null}<SearchField state={state} dispatch={dispatch} placeholder={`Search ${family === "brand" ? "Brand" : "Standard"} Buttons`} /><div ref={scrollerRef} onScroll={(event) => dispatch({ type: "SET_SCROLL", scrollOffset: event.currentTarget.scrollTop })} className="min-h-0 flex-1 overflow-y-auto px-3 pb-6">{groups.length ? groups.map((group, index) => <section key={group.id} className={index === 0 ? "pt-4" : "mt-6"} data-testid={`studio-standard-group-${group.id}`}><SectionHeading label={group.label} /><div className="grid grid-cols-1 gap-2">{group.resources.map((resource) => <PresetCard key={resource.ref.resourceId} resource={resource} onUse={onUseResource} />)}</div></section>) : <section className="pt-4"><EmptyState title={`No matching ${family === "brand" ? "Brand" : "Standard"} Buttons`} detail="Try a user job such as primary, Call, or section CTA." /></section>}<p className="mt-5 text-[10px] leading-4 text-white/35">Only presets that pass the visual catalog quality gate are shown. Undifferentiated concepts remain hidden.</p></div></div>;
 }
 
 function GovernedFamilyView({ family, onPlace }: { family: StudioButtonFamilyDiscoveryEntry; onPlace: (familyId: string, presentationId: string) => void }) {
@@ -205,14 +220,20 @@ function PresetCard({ resource, onUse, compact = false }: { resource: StandardBu
   return <div role="button" tabIndex={0} draggable={dragEnabled} onDragStart={(event) => { event.dataTransfer.effectAllowed = "copy"; event.dataTransfer.setData("application/x-tapconnect-studio-resource", JSON.stringify(resource.ref)); }} onClick={() => onUse(resource)} onKeyDown={(event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); onUse(resource); } }} className={cn("group overflow-hidden rounded-2xl bg-white/[.045] text-left transition hover:-translate-y-0.5 hover:bg-white/[.075] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8ff2c]", compact && resource.application.presetId === "full-width-cta" && "order-last col-span-2")} data-testid={`standard-button-preset-${resource.application.presetId}`}><StandardButtonPreview props={resource.preview.payload} className={compact ? "min-h-[72px]" : "min-h-[96px]"} /><span className="block px-3 pb-3 pt-2"><strong className="block text-[11px]">{resource.label}</strong>{!compact ? <span className="mt-1 line-clamp-2 block text-[9px] leading-4 text-white/42">{resource.description}</span> : null}</span></div>;
 }
 
-function OutlineView({ model }: { model: CardEditorLiveModel | null }) {
+function OutlineView({ model, selectMultipleMode, onToggleSelectMultiple, onCancelSelectMultiple }: { model: CardEditorLiveModel | null; selectMultipleMode: boolean; onToggleSelectMultiple?: () => void; onCancelSelectMultiple?: () => void }) {
   if (!model) return <div className="p-4"><div className="h-20 animate-pulse rounded-xl bg-white/6" aria-label="Loading Outline" /></div>;
   const rootNodes = model.config.rootComposition?.nodes ?? [];
   const rootCompounds = model.config.rootComposition ? curatedCompoundObjects(model.config.rootComposition) : [];
   const rootManaged = new Set(rootCompounds.flatMap((compound) => compound.memberNodeIds));
   const canonical = model.config.rootComposition && hasCompositionParentAuthority(model.config.rootComposition) ? model.config.rootComposition : null;
   const selectedId = model.selectedCompositionNode?.id ?? model.selectedObject?.id;
-  const select = (nodeId: string) => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([nodeId]); };
+  const selectedIds = model.selectedCompositionNodeIds ?? [];
+  const select = (nodeId: string) => {
+    model.setSelectedId(null);
+    model.setSelectedCompositionNodeIds?.(selectMultipleMode
+      ? selectedIds.includes(nodeId) ? selectedIds.filter((id) => id !== nodeId) : [...selectedIds, nodeId]
+      : [nodeId]);
+  };
   const drop = (event: DragEvent, parentId: string | null, index: number) => {
     const nodeId = event.dataTransfer.getData("application/x-tapconnect-composition-node");
     if (!nodeId || !canonical) return;
@@ -220,21 +241,18 @@ function OutlineView({ model }: { model: CardEditorLiveModel | null }) {
     event.stopPropagation();
     const node = canonical.nodes.find((candidate) => candidate.id === nodeId);
     if (!node) return;
-    if (node.compositionKind === "container" && parentId !== null) { model.notify?.("Containers stay directly on the Card."); return; }
-    if (node.compositionKind === "module" && node.parentId !== parentId) model.onReparentCompositionModule?.(node.id, parentId, index);
+    if (node.groupId) { model.notify?.("Ungroup these Modules before changing their composition parent."); return; }
+    if (node.parentId !== parentId) model.onReparentCompositionModule?.(node.id, parentId, index);
     else model.onReorderCompositionNode?.(node.id, index);
   };
   return <div className="min-h-0 flex-1 overflow-y-auto px-2 pb-5" data-testid="studio-outline-view">
-    <button type="button" aria-pressed={model.selectionRef.targetLevel === "card-root"} onClick={() => model.selectCardRoot?.()} className="mb-2 flex w-full items-center gap-2 border-b border-white/8 px-2 py-2.5 text-left hover:bg-white/5 aria-pressed:bg-[#b8ff2c]/10" data-testid="studio-outline-card-surface"><Layers3 className="h-4 w-4 text-[#8bdcff]" /><span><strong className="block text-xs font-semibold">Card Surface</strong><span className="text-[9px] text-white/38">Root appearance and flow destination</span></span></button>
+    <div className="mb-2 rounded-xl border border-[#8bdcff]/15 bg-[#8bdcff]/[.04] p-2" data-testid="studio-outline-selection-mode">
+      <div className="flex items-center gap-2"><button type="button" aria-pressed={selectMultipleMode} onClick={onToggleSelectMultiple} className="flex min-h-9 flex-1 items-center gap-2 rounded-lg px-2 text-left text-[10px] font-semibold text-[#c9efff] hover:bg-white/6 aria-pressed:bg-[#8bdcff]/14"><CheckSquare2 className="h-4 w-4" />{selectMultipleMode ? `${selectedIds.length} selected` : "Select multiple"}</button>{selectMultipleMode ? <button type="button" onClick={onCancelSelectMultiple} className="min-h-9 rounded-lg px-2 text-[10px] text-white/58 hover:bg-white/6">Cancel</button> : null}</div>
+      <p className="px-2 pt-1 text-[9px] leading-4 text-white/36">{selectMultipleMode ? "Choose compatible sibling Modules, then use Group." : "Touch-safe multi-selection; no modifier key required."}</p>
+    </div>
+    <button type="button" aria-pressed={model.selectionRef.targetLevel === "card-root"} onClick={() => model.selectCardRoot?.()} className="mb-2 flex w-full items-center gap-2 border-b border-white/8 px-2 py-2.5 text-left hover:bg-white/5 aria-pressed:bg-[#b8ff2c]/10" data-testid="studio-outline-card-surface"><Layers3 className="h-4 w-4 text-[#8bdcff]" /><span><strong className="block text-xs font-semibold">Card Surface</strong><span className="text-[9px] text-white/38">Root appearance · {canonical?.compositionMode?.mode === "layered" ? "Layered composition" : "Flow destination"}</span></span></button>
     {canonical ? <LayerDropZone parentId={null} index={0} onDrop={drop} /> : null}
-    {canonical ? compositionChildren(canonical, null).map((node, index) => <div key={node.id}>
-      <LayerButton nodeId={node.id} label={humanLayerName(node.name, node.compositionKind, String(node.props.elementKind || node.primitive))} typeLabel={node.compositionKind === "container" ? "Panel" : humanTypeLabel(String(node.props.elementKind || node.primitive))} kind={node.compositionKind === "container" ? "container" : String(node.props.elementKind || node.primitive)} selected={selectedId === node.id} onClick={() => select(node.id)} />
-      {node.compositionKind === "container" ? <div className="ml-4 border-l border-[#8bdcff]/20 pl-2" data-outline-parent={node.id} data-testid={`studio-outline-container-${node.id}`}>
-        <LayerDropZone parentId={node.id} index={0} onDrop={drop} label="Drop into panel" />
-        {compositionChildren(canonical, node.id).map((child, childIndex) => <div key={child.id}><LayerButton nodeId={child.id} label={humanLayerName(child.name, child.compositionKind, String(child.props.elementKind || child.primitive))} typeLabel={humanTypeLabel(String(child.props.elementKind || child.primitive))} kind={String(child.props.elementKind || child.primitive)} selected={selectedId === child.id} onClick={() => select(child.id)} /><LayerDropZone parentId={node.id} index={childIndex + 1} onDrop={drop} /></div>)}
-      </div> : null}
-      <LayerDropZone parentId={null} index={index + 1} onDrop={drop} />
-    </div>) : <>{rootCompounds.map((compound) => <LegacyLayerButton key={compound.instanceId} label={compound.label} typeLabel={`${compound.memberNodeIds.length} actions`} selected={compound.memberNodeIds.includes(model.selectedObject?.id ?? "")} onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([compound.anchorNodeId]); }} />)}{rootNodes.filter((node) => !rootManaged.has(node.id)).map((node) => <LegacyLayerButton key={node.id} label={humanLayerName(node.name, node.compositionKind, String(node.props.elementKind || node.primitive))} typeLabel={humanTypeLabel(String(node.props.elementKind || node.primitive))} selected={model.selectedObject?.id === node.id} onClick={() => select(node.id)} />)}</>}
+    {canonical ? <CanonicalOutlineParent block={canonical} parentId={null} selectedId={selectedId} selectedIds={selectedIds} onSelect={select} onUnlock={(nodeId) => model.patchCompositionNode(nodeId, { locked: false }, "Unlocked layer from Outline")} onDrop={drop} /> : <>{rootCompounds.map((compound) => <LegacyLayerButton key={compound.instanceId} label={compound.label} typeLabel={`${compound.memberNodeIds.length} actions`} selected={compound.memberNodeIds.includes(model.selectedObject?.id ?? "")} onClick={() => { model.setSelectedId(null); model.setSelectedCompositionNodeIds?.([compound.anchorNodeId]); }} />)}{rootNodes.filter((node) => !rootManaged.has(node.id)).map((node) => <LegacyLayerButton key={node.id} label={humanLayerName(node.name, node.compositionKind, String(node.props.elementKind || node.primitive))} typeLabel={humanTypeLabel(String(node.props.elementKind || node.primitive))} selected={model.selectedObject?.id === node.id} onClick={() => select(node.id)} />)}</>}
     {model.sorted.map((section) => {
       const assembly = section.composition?.signatureAssembly;
       if (assembly) {
@@ -247,7 +265,32 @@ function OutlineView({ model }: { model: CardEditorLiveModel | null }) {
     })}
   </div>;
 }
-function LayerButton({ nodeId, label, typeLabel, kind, selected, onClick }: { nodeId: string; label: string; typeLabel: string; kind: string; selected: boolean; onClick: () => void }) { return <button type="button" draggable aria-pressed={selected} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-tapconnect-composition-node", nodeId); }} onClick={onClick} className="group flex min-h-11 w-full items-center gap-2 rounded-lg border border-transparent px-2 text-left text-white/72 transition hover:border-white/8 hover:bg-white/6 aria-pressed:border-[#b8ff2c]/35 aria-pressed:bg-[#b8ff2c]/10 aria-pressed:text-[#efffd4]" data-testid={`studio-layer-${nodeId}`}><GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-white/22 group-hover:text-white/55" /><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#8bdcff]/8 text-[#a9e7ff]">{layerIcon(kind)}</span><span className="min-w-0 flex-1"><strong className="block truncate text-[11px] font-medium">{label}</strong><small className="block truncate text-[8px] uppercase tracking-[.08em] text-white/32">{typeLabel}</small></span></button>; }
+function CanonicalOutlineParent({ block, parentId, selectedId, selectedIds, onSelect, onUnlock, onDrop }: { block: NonNullable<CardEditorLiveModel["config"]["rootComposition"]>; parentId: string | null; selectedId?: string | null; selectedIds: string[]; onSelect: (nodeId: string) => void; onUnlock: (nodeId: string) => void; onDrop: (event: DragEvent, parentId: string | null, index: number) => void }) {
+  const siblings = compositionChildren(block, parentId);
+  const emittedGroups = new Set<string>();
+  return <>{siblings.map((node, index) => {
+    if (node.groupId) {
+      if (emittedGroups.has(node.groupId)) return null;
+      emittedGroups.add(node.groupId);
+      const members = groupMembers(block.nodes, node.groupId).filter((member) => (member.parentId ?? null) === parentId).sort((left, right) => (left.siblingOrder ?? 0) - (right.siblingOrder ?? 0));
+      if (members.length > 1) {
+        const selected = members.some((member) => selectedIds.includes(member.id));
+        return <div key={node.groupId} className="rounded-lg border border-[#b8ff2c]/12 bg-[#b8ff2c]/[.025]" data-testid={`studio-outline-group-${node.groupId}`}>
+          <button type="button" aria-pressed={selected} onClick={() => { onSelect(members[0]!.id); }} className="flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-white/72 hover:bg-white/5 aria-pressed:bg-[#b8ff2c]/10 aria-pressed:text-[#efffd4]"><SquareStack className="h-4 w-4 text-[#d8ff82]" /><span className="min-w-0 flex-1"><strong className="block text-[11px] font-medium">Group</strong><small className="block text-[8px] uppercase tracking-[.08em] text-white/32">{members.length} Modules · {String(members[0]?.props.compositionGroupLayout || "layered").replaceAll("_", " ")}</small></span></button>
+          <div className="ml-4 border-l border-[#b8ff2c]/20 pl-2">{members.map((member) => <LayerButton key={member.id} nodeId={member.id} label={humanLayerName(member.name, member.compositionKind, String(member.props.elementKind || member.primitive))} typeLabel={`${humanTypeLabel(String(member.props.elementKind || member.primitive))} · Layer ${member.zIndex}`} kind={String(member.props.elementKind || member.primitive)} selected={selectedIds.includes(member.id)} locked={member.locked === true} onUnlock={() => onUnlock(member.id)} onClick={() => onSelect(member.id)} />)}</div>
+          <LayerDropZone parentId={parentId} index={(members.at(-1)?.siblingOrder ?? index) + 1} onDrop={onDrop} />
+        </div>;
+      }
+    }
+    const isContainer = node.compositionKind === "container";
+    return <div key={node.id}>
+      <LayerButton nodeId={node.id} label={humanLayerName(node.name, node.compositionKind, String(node.props.elementKind || node.primitive))} typeLabel={`${isContainer ? "Container" : humanTypeLabel(String(node.props.elementKind || node.primitive))}${block.compositionMode?.mode === "layered" || parentId ? ` · Layer ${node.zIndex}` : ""}`} kind={isContainer ? "container" : String(node.props.elementKind || node.primitive)} selected={selectedIds.includes(node.id) || selectedId === node.id} locked={node.locked === true} onUnlock={() => onUnlock(node.id)} onClick={() => onSelect(node.id)} />
+      {isContainer ? <div className="ml-4 border-l border-[#8bdcff]/20 pl-2" data-outline-parent={node.id} data-testid={`studio-outline-container-${node.id}`}><LayerDropZone parentId={node.id} index={0} onDrop={onDrop} label="Drop into Container" /><CanonicalOutlineParent block={block} parentId={node.id} selectedId={selectedId} selectedIds={selectedIds} onSelect={onSelect} onUnlock={onUnlock} onDrop={onDrop} /></div> : null}
+      <LayerDropZone parentId={parentId} index={index + 1} onDrop={onDrop} />
+    </div>;
+  })}</>;
+}
+function LayerButton({ nodeId, label, typeLabel, kind, selected, locked, onClick, onUnlock }: { nodeId: string; label: string; typeLabel: string; kind: string; selected: boolean; locked: boolean; onClick: () => void; onUnlock: () => void }) { return <div className="group flex min-h-11 items-center gap-1 rounded-lg border border-transparent text-white/72 transition hover:border-white/8 hover:bg-white/6 has-[button[aria-pressed=true]]:border-[#b8ff2c]/35 has-[button[aria-pressed=true]]:bg-[#b8ff2c]/10" data-testid={`studio-layer-${nodeId}`}><button type="button" draggable={!locked} aria-pressed={selected} onDragStart={(event) => { event.dataTransfer.effectAllowed = "move"; event.dataTransfer.setData("application/x-tapconnect-composition-node", nodeId); }} onClick={onClick} className="flex min-h-11 min-w-0 flex-1 items-center gap-2 px-2 text-left aria-pressed:text-[#efffd4]"><GripVertical className="h-3.5 w-3.5 shrink-0 cursor-grab text-white/22 group-hover:text-white/55" /><span className="grid h-7 w-7 shrink-0 place-items-center rounded-md bg-[#8bdcff]/8 text-[#a9e7ff]">{layerIcon(kind)}</span><span className="min-w-0 flex-1"><strong className="flex items-center gap-1 truncate text-[11px] font-medium">{locked ? <LockKeyhole className="h-3 w-3 shrink-0 text-amber-200" /> : null}{label}</strong><small className="block truncate text-[8px] uppercase tracking-[.08em] text-white/32">{typeLabel}{locked ? " · Locked" : ""}</small></span></button>{locked ? <button type="button" onClick={onUnlock} className="mr-1 flex min-h-8 shrink-0 items-center gap-1 rounded-md bg-amber-200/10 px-2 text-[9px] font-semibold text-amber-100 hover:bg-amber-200/18" data-testid={`studio-layer-unlock-${nodeId}`}><UnlockKeyhole className="h-3 w-3" />Unlock</button> : null}</div>; }
 function LegacyLayerButton({ label, typeLabel, selected, onClick }: { label: string; typeLabel: string; selected: boolean; onClick: () => void }) { return <button type="button" aria-pressed={selected} onClick={onClick} className="mt-1 flex min-h-11 w-full items-center gap-2 rounded-lg px-2 text-left text-white/66 hover:bg-white/7 aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#e7ffc2]"><MousePointer2 className="h-3.5 w-3.5 text-white/28" /><span><strong className="block text-[11px] font-medium">{label}</strong><small className="text-[8px] uppercase tracking-[.08em] text-white/30">{typeLabel}</small></span></button>; }
 function LayerDropZone({ parentId, index, onDrop, label }: { parentId: string | null; index: number; onDrop: (event: DragEvent, parentId: string | null, index: number) => void; label?: string }) { const [active, setActive] = useState(false); return <div className={cn("my-0.5 flex h-1.5 items-center justify-center rounded-full transition-all", active && "h-7 border border-dashed border-[#8bdcff]/65 bg-[#8bdcff]/10 text-[8px] text-[#c9efff]")} onDragEnter={(event) => { if (event.dataTransfer.types.includes("application/x-tapconnect-composition-node")) { event.preventDefault(); setActive(true); } }} onDragOver={(event) => { if (event.dataTransfer.types.includes("application/x-tapconnect-composition-node")) event.preventDefault(); }} onDragLeave={() => setActive(false)} onDrop={(event) => { setActive(false); onDrop(event, parentId, index); }} data-testid={`studio-layer-drop-${parentId ?? "card"}-${index}`}>{active ? label || "Move here" : null}</div>; }
 function humanLayerName(name: string | undefined, kind: string | undefined, primitive: string) { if (name && !/^container$/i.test(name)) return name.replace(/Content divider/i, "Divider").replace(/Primary action/i, "Primary Action"); if (kind === "container") return "Smoked Glass Panel"; if (primitive === "border" || primitive === "divider") return "Divider"; if (primitive === "image") return "Brand Image"; if (primitive === "text") return "Introduction"; if (primitive === "button") return "Action"; return "Module"; }

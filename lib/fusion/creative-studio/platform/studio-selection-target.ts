@@ -42,7 +42,10 @@ export function resolveStudioSelectionTarget(input: {
   selectedBlock?: CreativeCompositionBlock | null;
 }): StudioSelectionTarget {
   const { selection, root = null, selectedNode = null, selectedBlock = null } = input;
-  if (selection.targetLevel === "card-root" || selection.objectKind === "root_surface") {
+  // A freshly chosen Outline/canvas object outranks the previously selected
+  // Card Surface. The legacy selection ref may lag one render behind the
+  // canonical composition selection and must not hide object controls.
+  if (!selectedNode && (selection.targetLevel === "card-root" || selection.objectKind === "root_surface")) {
     return target(selection, "card-surface", null, root, "card-flow", ["edit-appearance"], []);
   }
   if (!selectedNode) return target(selection, "none", null, null, "none", [], []);

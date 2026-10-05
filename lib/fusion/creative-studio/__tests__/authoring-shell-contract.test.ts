@@ -161,6 +161,7 @@ test("shared Appearance controls register future certified choices without famil
   assert.equal(curatedCommandPayloadToMutation("curated.appearance.set", { controlId: "appearance:body-surface", roleId: "body-surface", value: "ivory" }, configurable), null);
   const shellSource = readFileSync(path.join(process.cwd(), "components/fusion/card/reconstitution/studio-authoring-shell.tsx"), "utf8");
   assert.doesNotMatch(shellSource, /test-family|body-surface\s*===/);
+  assert.match(shellSource, /option\.metadata\?\.roleId/, "the shared Visual Grid must forward its declared appearance role through the command payload");
 });
 
 test("uncertified treatment and Auto remain unavailable deterministically", () => {

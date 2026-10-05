@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 
 type DraftClient = Pick<PrismaClient, "brandKit">;
 
-const MAX_DRAFT_BYTES = 512_000;
+const MAX_DRAFT_BYTES = 2_000_000;
 const MAX_SECTIONS = 100;
 
 export class CardDraftError extends Error {
@@ -33,6 +33,22 @@ export function isTapConnectCardDraft(value: unknown): value is TapConnectCardCo
     )
   ) {
     return false;
+  }
+  if (candidate.experience != null) {
+    if (!candidate.experience || typeof candidate.experience !== "object" || Array.isArray(candidate.experience)) return false;
+    const experience = candidate.experience as Record<string, unknown>;
+    if (experience.contractId !== "tapExperience@1.0.0" || typeof experience.experienceId !== "string" || typeof experience.defaultPageId !== "string" || !Array.isArray(experience.pages) || experience.pages.length < 1 || experience.pages.length > 40) return false;
+    const pageIds = new Set<string>();
+    for (const rawPage of experience.pages) {
+      if (!rawPage || typeof rawPage !== "object" || Array.isArray(rawPage)) return false;
+      const page = rawPage as Record<string, unknown>;
+      if (typeof page.pageId !== "string" || !page.pageId || pageIds.has(page.pageId) || typeof page.title !== "string") return false;
+      pageIds.add(page.pageId);
+      if (!page.composition || typeof page.composition !== "object" || Array.isArray(page.composition)) return false;
+      const composition = page.composition as Record<string, unknown>;
+      if (!Array.isArray(composition.sections) || composition.sections.length > MAX_SECTIONS) return false;
+    }
+    if (!pageIds.has(experience.defaultPageId)) return false;
   }
   try {
     return Buffer.byteLength(JSON.stringify(value), "utf8") <= MAX_DRAFT_BYTES;

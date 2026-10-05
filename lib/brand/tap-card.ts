@@ -377,6 +377,79 @@ export type CardPropertySources = Partial<
   Record<"accentColor" | "surfaceColor" | "textColor" | "pillColor" | "pillTextColor", CardPropertySource>
 >;
 
+export type TapExperienceLockedBehavior = {
+  mode: "none" | "message" | "cta" | "hidden";
+  message?: string;
+  ctaLabel?: string;
+  ctaDestinationType?: "external" | "internal_page";
+  ctaDestinationRef?: string;
+};
+
+export type TapExperiencePageAccess = {
+  /** Phase 1 visual state. Backend entitlement evaluation is intentionally deferred. */
+  state: "public" | "locked";
+  /** Stable future entitlement/rule reference; never inferred from the page title. */
+  ruleRef?: string;
+  lockedBehavior?: TapExperienceLockedBehavior;
+};
+
+export type TapExperiencePageComposition = {
+  rootComposition?: CreativeCompositionBlock;
+  sections: TapCardSection[];
+  rootCanvasMinHeightPx?: number;
+  rootCanvasPaddingPx?: number;
+  rootBackgroundImageUrl?: string;
+  rootBackgroundFit?: "cover" | "contain" | "fill";
+  rootBackgroundPosition?: string;
+  rootOverlayColor?: string;
+  rootOverlayOpacity?: number;
+};
+
+export type TapExperiencePage = {
+  pageId: string;
+  experienceId: string;
+  title: string;
+  /** Stable internal route identity. Renaming the title or nav label does not change it. */
+  slug: string;
+  navLabel: string;
+  navIconRef?: string;
+  navOrder: number;
+  navVisible: boolean;
+  pageVisible: boolean;
+  navigationSlot?: number;
+  /** Usually this pageId; may deliberately point a nav slot at another Page. */
+  navDestinationPageId?: string;
+  access?: TapExperiencePageAccess;
+  composition: TapExperiencePageComposition;
+  analyticsId: string;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
+export type TapExperienceNavigation = {
+  maxVisibleSlots: number;
+  presentation: "edge" | "floating";
+  /** Generic navigation remains canonical; artist families provide visual adapters. */
+  itemPresentation?: "standard-icon" | "everencore-love-and-theft-mini-pick";
+  surfaceTreatment?: "solid" | "smoky-glass" | "transparent";
+  surfaceColor?: string;
+  textColor?: string;
+  activeColor?: string;
+  borderColor?: string;
+  blurPx?: number;
+};
+
+export type TapExperienceConfig = {
+  contractId: "tapExperience@1.0.0";
+  experienceId: string;
+  analyticsId: string;
+  defaultPageId: string;
+  pages: TapExperiencePage[];
+  navigation: TapExperienceNavigation;
+  createdAt?: string;
+  updatedAt?: string;
+};
+
 export type TapConnectCardConfig = {
   version: 1 | 2 | 3;
   /** Human-readable creative-document label. Identity and public URLs remain ID-based. */
@@ -413,6 +486,8 @@ export type TapConnectCardConfig = {
   titleFormat?: TextFormat;
   bodyFormat?: TextFormat;
   compactActionsOnly?: boolean;
+  /** Optional multi-page authority. Legacy Cards remain valid without it. */
+  experience?: TapExperienceConfig;
   /** First-class positioning plane for Elements placed directly on the Card. */
   rootComposition?: CreativeCompositionBlock;
   rootCanvasMinHeightPx?: number;
@@ -800,6 +875,7 @@ export function parseTapConnectCard(
     titleFormat: (o.titleFormat as TextFormat) || base.titleFormat,
     bodyFormat: (o.bodyFormat as TextFormat) || base.bodyFormat,
     compactActionsOnly: o.compactActionsOnly === true,
+    experience: parseTapExperience(o.experience),
     rootComposition:
       o.rootComposition && typeof o.rootComposition === "object"
         ? (o.rootComposition as CreativeCompositionBlock)
@@ -863,6 +939,99 @@ export function parseTapConnectCard(
     utilityLayer: parseUtilityLayer(o.utilityLayer, base.utilityLayer),
     propertySources: parseCardPropertySources(o.propertySources, o),
     sections,
+  };
+}
+
+function parseTapExperience(raw: unknown): TapExperienceConfig | undefined {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return undefined;
+  const value = raw as Record<string, unknown>;
+  if (value.contractId !== "tapExperience@1.0.0" || typeof value.experienceId !== "string" || !Array.isArray(value.pages)) return undefined;
+  const experienceId = value.experienceId.trim();
+  if (!experienceId) return undefined;
+  const pages = value.pages.flatMap((candidate): TapExperiencePage[] => {
+    if (!candidate || typeof candidate !== "object" || Array.isArray(candidate)) return [];
+    const page = candidate as Record<string, unknown>;
+    const pageId = typeof page.pageId === "string" ? page.pageId.trim() : "";
+    const title = typeof page.title === "string" ? page.title.trim() : "";
+    const composition = page.composition && typeof page.composition === "object" && !Array.isArray(page.composition)
+      ? page.composition as Record<string, unknown>
+      : null;
+    if (!pageId || !title || !composition || !Array.isArray(composition.sections)) return [];
+    const sections = composition.sections.filter((section): section is TapCardSection => Boolean(
+      section && typeof section === "object" && typeof (section as Record<string, unknown>).id === "string" && typeof (section as Record<string, unknown>).type === "string"
+    ));
+    const accessValue = page.access && typeof page.access === "object" && !Array.isArray(page.access)
+      ? page.access as Record<string, unknown>
+      : null;
+    const lockedValue = accessValue?.lockedBehavior && typeof accessValue.lockedBehavior === "object" && !Array.isArray(accessValue.lockedBehavior)
+      ? accessValue.lockedBehavior as Record<string, unknown>
+      : null;
+    const lockedMode = lockedValue?.mode === "message" || lockedValue?.mode === "cta" || lockedValue?.mode === "hidden" ? lockedValue.mode : "none";
+    return [{
+      pageId,
+      experienceId,
+      title: title.slice(0, 80),
+      slug: typeof page.slug === "string" && page.slug.trim() ? page.slug.trim().slice(0, 96) : pageId,
+      navLabel: typeof page.navLabel === "string" && page.navLabel.trim() ? page.navLabel.trim().slice(0, 24) : title.slice(0, 24),
+      navIconRef: typeof page.navIconRef === "string" ? page.navIconRef : undefined,
+      navOrder: typeof page.navOrder === "number" ? page.navOrder : 0,
+      navVisible: page.navVisible !== false,
+      pageVisible: page.pageVisible !== false,
+      navigationSlot: typeof page.navigationSlot === "number" ? page.navigationSlot : undefined,
+      navDestinationPageId: typeof page.navDestinationPageId === "string" ? page.navDestinationPageId : pageId,
+      access: accessValue ? {
+        state: accessValue.state === "locked" ? "locked" : "public",
+        ruleRef: typeof accessValue.ruleRef === "string" ? accessValue.ruleRef : undefined,
+        lockedBehavior: lockedValue ? {
+          mode: lockedMode,
+          message: typeof lockedValue.message === "string" ? lockedValue.message : undefined,
+          ctaLabel: typeof lockedValue.ctaLabel === "string" ? lockedValue.ctaLabel : undefined,
+          ctaDestinationType: lockedValue.ctaDestinationType === "internal_page" ? "internal_page" : "external",
+          ctaDestinationRef: typeof lockedValue.ctaDestinationRef === "string" ? lockedValue.ctaDestinationRef : undefined,
+        } : undefined,
+      } : { state: "public" },
+      composition: {
+        rootComposition: composition.rootComposition && typeof composition.rootComposition === "object" ? composition.rootComposition as CreativeCompositionBlock : undefined,
+        sections,
+        rootCanvasMinHeightPx: typeof composition.rootCanvasMinHeightPx === "number" ? composition.rootCanvasMinHeightPx : undefined,
+        rootCanvasPaddingPx: typeof composition.rootCanvasPaddingPx === "number" ? composition.rootCanvasPaddingPx : undefined,
+        rootBackgroundImageUrl: typeof composition.rootBackgroundImageUrl === "string" ? composition.rootBackgroundImageUrl : undefined,
+        rootBackgroundFit: composition.rootBackgroundFit === "contain" || composition.rootBackgroundFit === "fill" ? composition.rootBackgroundFit : "cover",
+        rootBackgroundPosition: typeof composition.rootBackgroundPosition === "string" ? composition.rootBackgroundPosition : undefined,
+        rootOverlayColor: typeof composition.rootOverlayColor === "string" ? composition.rootOverlayColor : undefined,
+        rootOverlayOpacity: typeof composition.rootOverlayOpacity === "number" ? composition.rootOverlayOpacity : undefined,
+      },
+      analyticsId: typeof page.analyticsId === "string" && page.analyticsId.trim() ? page.analyticsId : `page:${pageId}`,
+      createdAt: typeof page.createdAt === "string" ? page.createdAt : undefined,
+      updatedAt: typeof page.updatedAt === "string" ? page.updatedAt : undefined,
+    }];
+  });
+  if (!pages.length) return undefined;
+  const defaultPageId = typeof value.defaultPageId === "string" && pages.some((page) => page.pageId === value.defaultPageId && page.pageVisible)
+    ? value.defaultPageId
+    : pages.find((page) => page.pageVisible)?.pageId ?? pages[0]!.pageId;
+  const navigationValue = value.navigation && typeof value.navigation === "object" && !Array.isArray(value.navigation)
+    ? value.navigation as Record<string, unknown>
+    : {};
+  return {
+    contractId: "tapExperience@1.0.0",
+    experienceId,
+    analyticsId: typeof value.analyticsId === "string" && value.analyticsId.trim() ? value.analyticsId : `experience:${experienceId}`,
+    defaultPageId,
+    pages,
+    navigation: {
+      maxVisibleSlots: typeof navigationValue.maxVisibleSlots === "number" ? Math.max(1, Math.min(5, Math.round(navigationValue.maxVisibleSlots))) : 5,
+      presentation: navigationValue.presentation === "floating" ? "floating" : "edge",
+      itemPresentation: navigationValue.itemPresentation === "everencore-love-and-theft-mini-pick" ? "everencore-love-and-theft-mini-pick" : "standard-icon",
+      surfaceTreatment: navigationValue.surfaceTreatment === "transparent" || navigationValue.surfaceTreatment === "smoky-glass" ? navigationValue.surfaceTreatment : "solid",
+      surfaceColor: typeof navigationValue.surfaceColor === "string" ? navigationValue.surfaceColor : undefined,
+      textColor: typeof navigationValue.textColor === "string" ? navigationValue.textColor : undefined,
+      activeColor: typeof navigationValue.activeColor === "string" ? navigationValue.activeColor : undefined,
+      borderColor: typeof navigationValue.borderColor === "string" ? navigationValue.borderColor : undefined,
+      blurPx: typeof navigationValue.blurPx === "number" ? navigationValue.blurPx : undefined,
+    },
+    createdAt: typeof value.createdAt === "string" ? value.createdAt : undefined,
+    updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : undefined,
   };
 }
 

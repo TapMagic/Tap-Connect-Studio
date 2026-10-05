@@ -1,7 +1,7 @@
 "use client";
 
 import type { BrandKit } from "@prisma/client";
-import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { TapConnectExperience } from "@/components/tap/tap-connect-experience";
 import { CardViewportSurface } from "@/components/tap/card-viewport-surface";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { PoweredByTapTheMagic } from "@/components/brand/powered-by";
@@ -27,6 +27,8 @@ export function TapConnectCardPublic({
   walletFeatureOn = true,
   featureFlags,
   backgroundColor = "#0b0f19",
+  routeBasePath,
+  directPageRef,
 }: {
   config: TapConnectCardConfig;
   profile: BrandContactProfile;
@@ -41,6 +43,8 @@ export function TapConnectCardPublic({
   walletFeatureOn?: boolean;
   featureFlags?: Record<string, boolean>;
   backgroundColor?: string;
+  routeBasePath?: string;
+  directPageRef?: string;
 }) {
   void brandKit;
   const featureGate = (id: string) => {
@@ -63,14 +67,14 @@ export function TapConnectCardPublic({
 
   return (
     <div
-      className="tap-page min-h-screen"
+      className="tap-page relative isolate min-h-screen overflow-hidden"
       style={{ backgroundColor, color: config.textColor || "#f8fafc" }}
       data-testid="tap-card-first-public"
     >
       <CompositionFontLoader config={config} />
-      <div className="tap-page-inner mx-auto max-w-lg py-6">
+      <div className="tap-page-inner relative z-[1] mx-auto max-w-lg py-6">
         <CardViewportSurface environment="runtime" testId="public-card-viewport">
-          <TapConnectCard
+          <TapConnectExperience
             config={config}
             profile={profile}
             businessName={businessName}
@@ -80,9 +84,12 @@ export function TapConnectCardPublic({
             offerFuseEnabled={offerFuse}
             offerContext={offerFuse ? { businessId, campaignId: boundCampaignId || "", deviceSlotId } : null}
             supportContext={{ businessId, deviceSlotId, campaignId: boundCampaignId }}
-          />
-          {utilityLayer.visible ? (
-            <CardUtilityLayer
+            externalFullBleedSurface
+            routingMode="history"
+            routeBasePath={routeBasePath}
+            directPageRef={directPageRef}
+            viewportBackdrop
+            persistentContent={utilityLayer.visible ? <CardUtilityLayer
               layer={utilityLayer}
               businessId={businessId}
               businessName={businessName}
@@ -94,8 +101,8 @@ export function TapConnectCardPublic({
               accentColor={config.accentColor}
               surfaceColor={config.surfaceColor}
               textColor={config.textColor}
-            />
-          ) : null}
+            /> : null}
+          />
         </CardViewportSurface>
         <footer className="px-4 py-10">
           <PoweredByTapTheMagic />

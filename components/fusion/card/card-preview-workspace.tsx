@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { TapConnectExperience } from "@/components/tap/tap-connect-experience";
 import { CardViewportSurface } from "@/components/tap/card-viewport-surface";
 import { CardUtilityLayer } from "@/components/tap/card-utility-layer";
 import { CampaignPageRenderer } from "@/components/tap/campaign-renderer";
@@ -293,16 +293,16 @@ export function CardPreviewWorkspace({
                     Personalized preview · {personalizedLabel}
                   </p>
                 ) : null}
-                <TapConnectCard
+                <TapConnectExperience
                   config={config}
                   profile={profile}
                   businessName={businessName}
                   logoUrl={logoUrl}
                   reviewUrl={reviewUrl}
                   forceExpanded
-                />
-                {utilityLayer.visible ? (
-                  <CardUtilityLayer
+                  interactionMode="preview"
+                  routingMode="history"
+                  persistentContent={utilityLayer.visible ? <CardUtilityLayer
                     layer={utilityLayer}
                     businessId={businessId}
                     businessName={businessName}
@@ -313,8 +313,8 @@ export function CardPreviewWorkspace({
                     accentColor={config.accentColor}
                     surfaceColor={config.surfaceColor}
                     textColor={config.textColor}
-                  />
-                ) : null}
+                  /> : null}
+                />
               </div>
             )}
           </CardViewportSurface>

@@ -1,4 +1,4 @@
-import { TapConnectCard } from "@/components/tap/tap-connect-card";
+import { TapConnectExperience } from "@/components/tap/tap-connect-experience";
 import { CardViewportSurface } from "@/components/tap/card-viewport-surface";
 import { CompositionFontLoader } from "@/components/fusion/creative-studio/composition-font-loader";
 import { LiveDeviceRefresh } from "@/components/fusion/creative-studio/live-device-refresh";
@@ -73,15 +73,15 @@ export async function LiveDevicePreviewPage({ token, debug = false, pageTestId =
   const resolvedLogoUrl = resolvePreviewVisualResources({ logoUrl: record.logoUrl }, token).logoUrl;
 
   return (
-    <main className="min-h-dvh pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(.75rem,env(safe-area-inset-top))]" style={{ background: "linear-gradient(180deg,#12141a,#0b0f19)" }} data-testid={pageTestId} data-preview-revision={String(effectiveRevision)} data-preview-snapshot-revision={String(record.revision)} data-preview-mode={record.mode || "follow"} data-preview-session-id={record.sid} data-preview-card-id={record.brandKitId}>
+    <main className="relative isolate min-h-dvh overflow-hidden pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(.75rem,env(safe-area-inset-top))]" style={{ background: "linear-gradient(180deg,#12141a,#0b0f19)" }} data-testid={pageTestId} data-preview-revision={String(effectiveRevision)} data-preview-snapshot-revision={String(record.revision)} data-preview-mode={record.mode || "follow"} data-preview-session-id={record.sid} data-preview-card-id={record.brandKitId}>
       <CompositionFontLoader config={resolvedConfig} />
-      <div className="mx-3 mb-3 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-amber-50 sm:mx-auto sm:max-w-md" data-testid="preview-draft-banner" role="status">
+      <div className="relative z-[1] mx-3 mb-3 rounded-xl border border-amber-300/25 bg-amber-400/10 px-3 py-2 text-amber-50 sm:mx-auto sm:max-w-md" data-testid="preview-draft-banner" role="status">
         <p className="text-sm font-medium">{record.cardName || record.businessName}</p><p className="text-xs opacity-90">{STUDIO_WORDING.workingDraft}</p><p className="text-xs opacity-80">Updated {new Date(effectiveUpdatedAt).toLocaleString()}</p><p className="text-xs opacity-80">{STUDIO_WORDING.previewOnlyNotPublished}</p><LiveDeviceRefresh />
       </div>
-      <CardViewportSurface environment="runtime" testId="live-device-card-viewport">
-        <div data-testid="preview-card-composition-host"><TapConnectCard config={resolvedConfig} profile={resolvedProfile} businessName={record.businessName} logoUrl={resolvedLogoUrl} reviewUrl={record.reviewUrl} forceExpanded interactionMode="preview" previewSafe compositionForceMobile={false} /></div>
+      <CardViewportSurface environment="runtime" testId="live-device-card-viewport" className="relative z-[1]">
+        <div data-testid="preview-card-composition-host"><TapConnectExperience config={resolvedConfig} profile={resolvedProfile} businessName={record.businessName} logoUrl={resolvedLogoUrl} reviewUrl={record.reviewUrl} forceExpanded interactionMode="preview" previewSafe compositionForceMobile={false} externalFullBleedSurface routingMode="history" viewportBackdrop /></div>
       </CardViewportSurface>
-      <p className="mx-3 mt-6 text-center text-[11px] text-white/35 sm:mx-auto sm:max-w-md">Powered by Tap The Magic · Temporary draft preview</p>
+      <p className="relative z-[1] mx-3 mt-6 text-center text-[11px] text-white/35 sm:mx-auto sm:max-w-md">Powered by Tap The Magic · Temporary draft preview</p>
       {debug ? <LiveDeviceDebugEvidence cardId={record.brandKitId} revision={effectiveRevision} snapshotRevision={record.revision} sessionId={record.sid} sessionCreatedAt={record.createdAt} followMode={record.mode || "follow"} /> : null}
     </main>
   );

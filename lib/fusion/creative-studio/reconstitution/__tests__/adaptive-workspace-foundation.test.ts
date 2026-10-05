@@ -186,6 +186,11 @@ describe("Slice 2 Add / Discover registration and placement", () => {
     assert.equal(inside.ok, true);
     if (!inside.ok) return;
     assert.deepEqual(resolveStudioPlacementContext(inside.block, inside.block.nodes.find((entry) => entry.id === "inside")), { parentId: container.id, insertionIndex: 1, targetLabel: "Feature panel", reason: "selected-sibling" });
+    const nested = { ...createFlowContainerNode("Nested panel"), parentId: container.id };
+    const withNested = insertCompositionContainer(inside.block, nested);
+    assert.equal(withNested.ok, true);
+    if (!withNested.ok) return;
+    assert.deepEqual(resolveStudioPlacementContext(withNested.block, withNested.block.nodes.find((entry) => entry.id === nested.id)), { parentId: nested.id, insertionIndex: 0, targetLabel: "Nested panel", reason: "active-container" });
   });
 });
 

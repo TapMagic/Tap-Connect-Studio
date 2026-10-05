@@ -43,6 +43,78 @@ export type MapDisplayMode =
 export type MapOpenApp = "default" | "apple" | "google" | "waze" | "browser" | "custom";
 export type MapOpenAction = "show" | "directions" | "routes";
 
+export type MapLocationCategory =
+  | "venue"
+  | "parking"
+  | "vip"
+  | "merch"
+  | "food"
+  | "hotel"
+  | "sponsor"
+  | "other";
+
+/** Provider-neutral authored location. Providers are renderer/destination adapters only. */
+export type MapLocationItem = {
+  locationId: string;
+  name: string;
+  category: MapLocationCategory;
+  address?: string;
+  latitude?: number;
+  longitude?: number;
+  description?: string;
+  imageUrl?: string;
+  phone?: string;
+  website?: string;
+  directionsIntent?: "show" | "directions";
+  timeNote?: string;
+  iconRef?: string;
+  visible: boolean;
+  order: number;
+  primary: boolean;
+};
+
+/** Canonical action intent associated with a Map / Location Container. */
+export type MapLocationAction = {
+  actionId: string;
+  label: string;
+  actionType: ButtonActionType | "internal_page";
+  destinationRef: string;
+  iconRef?: string;
+  accessibleLabel?: string;
+  analyticsId?: string;
+  visible: boolean;
+  order: number;
+};
+
+export type MapLocationDisplay = {
+  map: boolean;
+  name: boolean;
+  address: boolean;
+  marker: boolean;
+  markerLabels: boolean;
+  locationTiles: boolean;
+  description: boolean;
+  image: boolean;
+  timeNote: boolean;
+  directions: boolean;
+  phone: boolean;
+  website: boolean;
+  customButtons: boolean;
+  zoomControls: boolean;
+  recenterControl: boolean;
+};
+
+export type MapLocationLayout =
+  | "map_only"
+  | "map_details_below"
+  | "details_above_map"
+  | "map_tiles_below"
+  | "tiles_above_map"
+  | "map_left_details_right"
+  | "details_left_map_right";
+
+export type MapHeightPreset = "compact" | "standard" | "tall" | "custom";
+
 export type WorkspaceLocationOption = {
   id: string;
   name: string;
@@ -63,7 +135,51 @@ export type MapElementProps = Record<string, unknown> & {
   mapOpenApp?: MapOpenApp;
   mapOpenAction?: MapOpenAction;
   customDirectionsUrl?: string;
+  locationItems?: MapLocationItem[];
+  mapActions?: MapLocationAction[];
+  mapDisplay?: Partial<MapLocationDisplay>;
+  mapLayout?: MapLocationLayout;
+  mapHeightPreset?: MapHeightPreset;
+  mapCustomHeightPx?: number;
+  mapTitle?: string;
+  mapIntro?: string;
+  mapSurfaceTreatment?: "transparent" | "solid" | "glass";
 };
+
+export const DEFAULT_MAP_LOCATION_DISPLAY: MapLocationDisplay = {
+  map: true,
+  name: true,
+  address: true,
+  marker: true,
+  markerLabels: false,
+  locationTiles: true,
+  description: true,
+  image: true,
+  timeNote: true,
+  directions: true,
+  phone: false,
+  website: false,
+  customButtons: true,
+  zoomControls: false,
+  recenterControl: true,
+};
+
+export const MAP_LOCATION_LAYOUTS: ReadonlyArray<{ value: MapLocationLayout; label: string }> = [
+  { value: "map_only", label: "Map only" },
+  { value: "map_details_below", label: "Map + details below" },
+  { value: "details_above_map", label: "Details above + map" },
+  { value: "map_tiles_below", label: "Map + location tiles below" },
+  { value: "tiles_above_map", label: "Location tiles above + map" },
+  { value: "map_left_details_right", label: "Map left / details right" },
+  { value: "details_left_map_right", label: "Details left / map right" },
+];
+
+export const MAP_HEIGHT_PRESETS: ReadonlyArray<{ value: MapHeightPreset; label: string; heightPx: number }> = [
+  { value: "compact", label: "Compact", heightPx: 180 },
+  { value: "standard", label: "Standard", heightPx: 260 },
+  { value: "tall", label: "Tall", heightPx: 360 },
+  { value: "custom", label: "Custom", heightPx: 260 },
+];
 
 export const BUTTON_PRESENTATIONS: ReadonlyArray<{ value: ButtonPresentation; label: string }> = [
   { value: "rectangle", label: "Rectangle" },
@@ -154,7 +270,102 @@ export function mapElementDefaults(): MapElementProps {
     radius: 14,
     accessibleLabel: "Open directions",
     responsiveMapBehavior: "full_width",
+    locationItems: [],
+    mapDisplay: DEFAULT_MAP_LOCATION_DISPLAY,
+    mapLayout: "map_details_below",
+    mapHeightPreset: "standard",
+    mapCustomHeightPx: 260,
+    mapSurfaceTreatment: "glass",
   };
+}
+
+function isLocationCategory(value: unknown): value is MapLocationCategory {
+  return ["venue", "parking", "vip", "merch", "food", "hotel", "sponsor", "other"].includes(String(value));
+}
+
+export function normalizeMapLocationItems(props: MapElementProps): MapLocationItem[] {
+  const authored = Array.isArray(props.locationItems) ? props.locationItems : [];
+  const normalized = authored.flatMap((candidate, index): MapLocationItem[] => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const item = candidate as MapLocationItem;
+    const name = typeof item.name === "string" ? item.name.trim() : "";
+    if (!name) return [];
+    const number = (value: unknown) => typeof value === "number" && Number.isFinite(value) ? value : undefined;
+    return [{
+      locationId: typeof item.locationId === "string" && item.locationId.trim() ? item.locationId : `location-${index + 1}`,
+      name,
+      category: isLocationCategory(item.category) ? item.category : "other",
+      address: typeof item.address === "string" ? item.address : undefined,
+      latitude: number(item.latitude),
+      longitude: number(item.longitude),
+      description: typeof item.description === "string" ? item.description : undefined,
+      imageUrl: safeHttpUrl(item.imageUrl) || (typeof item.imageUrl === "string" && item.imageUrl.startsWith("/") ? item.imageUrl : undefined),
+      phone: typeof item.phone === "string" ? item.phone : undefined,
+      website: safeHttpUrl(item.website),
+      directionsIntent: item.directionsIntent === "show" ? "show" : "directions",
+      timeNote: typeof item.timeNote === "string" ? item.timeNote : undefined,
+      iconRef: typeof item.iconRef === "string" ? item.iconRef : undefined,
+      visible: item.visible !== false,
+      order: typeof item.order === "number" ? item.order : index,
+      primary: item.primary === true,
+    }];
+  }).sort((a, b) => a.order - b.order);
+  if (normalized.length) {
+    const primaryIndex = normalized.findIndex((item) => item.primary && item.visible);
+    const fallbackIndex = normalized.findIndex((item) => item.visible);
+    const winner = primaryIndex >= 0 ? primaryIndex : fallbackIndex;
+    return normalized.map((item, index) => ({ ...item, primary: index === winner }));
+  }
+  const legacy = resolveMapLocation({ ...props, locationItems: undefined });
+  if (!legacy) return [];
+  return [{
+    locationId: props.locationId || "primary-location",
+    name: legacy.name,
+    category: "venue",
+    address: legacy.address,
+    latitude: legacy.latitude,
+    longitude: legacy.longitude,
+    visible: true,
+    order: 0,
+    primary: true,
+    directionsIntent: "directions",
+  }];
+}
+
+export function normalizeMapLocationActions(props: MapElementProps): MapLocationAction[] {
+  if (!Array.isArray(props.mapActions)) return [];
+  return props.mapActions.flatMap((candidate, index): MapLocationAction[] => {
+    if (!candidate || typeof candidate !== "object") return [];
+    const action = candidate as MapLocationAction;
+    const label = typeof action.label === "string" ? action.label.trim() : "";
+    if (!label) return [];
+    return [{
+      actionId: typeof action.actionId === "string" && action.actionId.trim() ? action.actionId : `map-action-${index + 1}`,
+      label,
+      actionType: action.actionType || "website",
+      destinationRef: typeof action.destinationRef === "string" ? action.destinationRef : "",
+      iconRef: typeof action.iconRef === "string" ? action.iconRef : undefined,
+      accessibleLabel: typeof action.accessibleLabel === "string" ? action.accessibleLabel : undefined,
+      analyticsId: typeof action.analyticsId === "string" ? action.analyticsId : undefined,
+      visible: action.visible !== false,
+      order: typeof action.order === "number" ? action.order : index,
+    }];
+  }).sort((a, b) => a.order - b.order);
+}
+
+export function readMapLocationDisplay(props: MapElementProps): MapLocationDisplay {
+  const authored = props.mapDisplay && typeof props.mapDisplay === "object" ? props.mapDisplay : {};
+  return Object.fromEntries(Object.entries(DEFAULT_MAP_LOCATION_DISPLAY).map(([key, fallback]) => [
+    key,
+    typeof (authored as Record<string, unknown>)[key] === "boolean" ? (authored as Record<string, boolean>)[key] : fallback,
+  ])) as MapLocationDisplay;
+}
+
+export function mapLocationHeight(props: MapElementProps): number {
+  const preset = MAP_HEIGHT_PRESETS.find((item) => item.value === props.mapHeightPreset) || MAP_HEIGHT_PRESETS[1]!;
+  return preset.value === "custom"
+    ? Math.max(140, Math.min(720, Number(props.mapCustomHeightPx) || preset.heightPx))
+    : preset.heightPx;
 }
 
 export function resolveMapLocation(
@@ -227,6 +438,35 @@ export function buildMapHref(
     default:
       return `geo:0,0?q=${encoded}`;
   }
+}
+
+export function buildLocationItemHref(item: MapLocationItem, app: MapOpenApp = "default"): string | undefined {
+  return buildMapHref({
+    mapSourceMode: Number.isFinite(item.latitude) && Number.isFinite(item.longitude) ? "coordinates" : "custom_address",
+    locationName: item.name,
+    address: item.address,
+    latitude: item.latitude,
+    longitude: item.longitude,
+    mapOpenApp: app,
+    mapOpenAction: item.directionsIntent || "directions",
+  });
+}
+
+/** Selects a device adapter at runtime without writing provider URLs into Card state. */
+export function resolveRuntimeMapOpenApp(preference: MapOpenApp = "default", userAgent = ""): MapOpenApp {
+  if (preference !== "default") return preference;
+  if (/iPhone|iPad|iPod/i.test(userAgent)) return "apple";
+  if (/Android/i.test(userAgent)) return "default";
+  return "google";
+}
+
+/** Public renderer adapter. Canonical state never stores this provider URL. */
+export function buildMapEmbedHref(item: MapLocationItem): string | undefined {
+  const destination = Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
+    ? `${item.latitude},${item.longitude}`
+    : item.address?.trim();
+  if (!destination) return undefined;
+  return `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&z=15&output=embed`;
 }
 
 export function buildButtonHref(props: Record<string, unknown>): string | undefined {

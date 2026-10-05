@@ -1,0 +1,12 @@
+{
+  "contract": "studioCompositionFoundation@1.0.0",
+  "rootLayout": "flow",
+  "boundedLayering": true,
+  "media": [
+    "image",
+    "video"
+  ],
+  "standardButtonMaterialAuthority": true,
+  "editPreviewPublicParity": true,
+  "productOwnerAcceptance": "pending"
+}

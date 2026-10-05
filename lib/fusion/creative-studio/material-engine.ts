@@ -62,6 +62,23 @@ export type MaterialRecipe = Readonly<{
   textColor?: string;
   artworkFill?: string;
   glyphShadowLayers?: string;
+  /** Immutable governed image source; authoring adjustments remain non-destructive. */
+  sourceMaster?: Readonly<{
+    id: string;
+    src: string;
+    sha256: string;
+    width: number;
+    height: number;
+    fit: "cover" | "contain";
+    focalX: number;
+    focalY: number;
+    scale: number;
+    overlayColor: string;
+    overlayOpacity: number;
+    brightness: number;
+    contrast: number;
+    saturation: number;
+  }>;
 }>;
 
 export type EffectRecipe = Readonly<{
@@ -157,6 +174,10 @@ export const MATERIAL_CATALOG: readonly MaterialRecipe[] = [
   recipe("clear_glass", "Clear glass", "glass", { fill: "#ffffff0f", borderWidth: 1, borderColor: "#ffffff66", outerShadow: 12, textColor: "#ffffff" }),
   recipe("smoked_glass", "Smoked glass", "glass", { fill: "#0f172a99", borderWidth: 1, borderColor: "#ffffff33", outerShadow: 18, textColor: "#f8fafc" }),
   recipe("tinted_glass", "Tinted glass", "glass", { fill: "#22d3ee33", borderWidth: 1, borderColor: "#67e8f9aa", outerShadow: 16, textColor: "#ecfeff" }),
+  recipe("smoky_black_glass", "Smoky black glass", "glass", { gradient: "radial-gradient(ellipse at 78% 76%,rgba(0,0,0,.58),transparent 38%),radial-gradient(ellipse at 24% 18%,rgba(126,132,143,.22),transparent 34%),linear-gradient(145deg,rgba(50,54,63,.92),rgba(5,7,10,.98) 42%,rgba(18,20,25,.96) 72%,rgba(1,2,4,.99))", borderWidth: 1, borderColor: "#d9b97466", outerShadow: 14, innerShadow: "inset 0 1px 0 rgba(255,255,255,.17),inset 0 -8px 18px rgba(0,0,0,.48)", highlight: "linear-gradient(176deg,rgba(255,255,255,.2),rgba(255,255,255,.025) 28%,rgba(255,255,255,0) 46%),radial-gradient(ellipse at 74% 86%,rgba(190,171,139,.07),transparent 42%)", shine: true, textColor: "#fff7e8" }),
+  recipe("burgundy_plum_glass", "Burgundy plum glass", "glass", { gradient: "radial-gradient(circle at 77% 112%,transparent 0 24%,rgba(206,112,157,.11) 24.5% 25%,transparent 25.5% 32%,rgba(206,112,157,.08) 32.5% 33%,transparent 33.5%),radial-gradient(ellipse at 27% 18%,rgba(204,102,151,.22),transparent 37%),linear-gradient(145deg,rgba(105,31,68,.96),rgba(30,5,20,.99) 43%,rgba(70,14,45,.97) 74%,rgba(11,2,8,1))", borderWidth: 1, borderColor: "#e0b66c70", outerShadow: 14, innerShadow: "inset 0 1px 0 rgba(255,220,235,.2),inset 0 -8px 18px rgba(13,0,8,.56)", highlight: "linear-gradient(176deg,rgba(255,220,237,.23),rgba(255,255,255,.025) 30%,rgba(255,255,255,0) 48%),radial-gradient(circle at 76% 110%,transparent 0 34%,rgba(255,187,220,.09) 34.5% 35%,transparent 35.5%)", shine: true, textColor: "#fff2f7" }),
+  recipe("frosted_charcoal", "Frosted charcoal", "glass", { gradient: "radial-gradient(ellipse at 28% 20%,rgba(218,225,232,.16),transparent 40%),linear-gradient(145deg,rgba(94,101,110,.94),rgba(31,35,40,.98) 42%,rgba(61,67,74,.96) 72%,rgba(17,19,22,.99))", borderWidth: 1, borderColor: "#e0c48766", outerShadow: 12, innerShadow: "inset 0 1px 0 rgba(255,255,255,.22),inset 0 -7px 16px rgba(0,0,0,.42)", texture: "frosted", highlight: "linear-gradient(180deg,rgba(255,255,255,.13),rgba(255,255,255,0) 46%)", textColor: "#f6f7f8" }),
+  recipe("deep_blue_glass", "Deep blue glass", "glass", { gradient: "radial-gradient(ellipse at 68% 74%,rgba(20,98,164,.22),transparent 44%),radial-gradient(ellipse at 27% 18%,rgba(78,151,211,.24),transparent 38%),linear-gradient(145deg,rgba(28,75,117,.96),rgba(4,17,32,.99) 42%,rgba(12,43,73,.98) 74%,rgba(1,7,13,1))", borderWidth: 1, borderColor: "#80caff88", outerShadow: 14, innerShadow: "inset 0 1px 0 rgba(190,225,255,.22),inset 0 -8px 18px rgba(0,5,12,.54)", highlight: "linear-gradient(104deg,transparent 44%,rgba(132,203,255,.18) 61%,rgba(255,255,255,.04) 68%,transparent 78%),linear-gradient(176deg,rgba(190,226,255,.22),rgba(255,255,255,.02) 32%,rgba(255,255,255,0) 48%)", shine: true, textColor: "#f0f8ff" }),
   // METALLIC
   recipe("chrome", "Chrome", "metallic", { gradient: "linear-gradient(120deg,#64748b,#ffffff 50%,#64748b)", outerShadow: 20, textColor: "#111827", artworkFill: "#e2e8f0" }),
   recipe("brushed_silver", "Brushed silver", "metallic", { gradient: "linear-gradient(120deg,#6b7280,#e5e7eb,#9ca3af)", outerShadow: 18, textColor: "#111827", artworkFill: "#cbd5e1" }),
@@ -164,6 +185,7 @@ export const MATERIAL_CATALOG: readonly MaterialRecipe[] = [
   recipe("polished_metal", "Polished metal", "metallic", { gradient: "linear-gradient(125deg,#0f172a,#e2e8f0 32%,#64748b 48%,#f8fafc 62%,#1e293b)", outerShadow: 26, shine: true, highlight: "linear-gradient(100deg,#ffffff88 0 14%,#0000 36%)", textColor: "#0f172a", artworkFill: "#e2e8f0" }),
   recipe("gold", "Gold", "metallic", { gradient: "linear-gradient(120deg,#8a5a00,#ffe169,#b77900)", outerShadow: 20, textColor: "#17100a", artworkFill: "#fbbf24" }),
   recipe("brushed_gold", "Brushed gold", "metallic", { gradient: "linear-gradient(120deg,#713f12,#fbbf24,#a16207,#fde68a)", outerShadow: 18, textColor: "#1c1917" }),
+  recipe("aged_brass", "Aged brass", "metallic", { gradient: "linear-gradient(125deg,#261305 0%,#815021 10%,#e9cb82 22%,#694018 35%,#c69349 49%,#4b290f 61%,#e3bc6c 76%,#f2d99b 85%,#6d4119 94%,#211005 100%)", borderWidth: 1, borderColor: "#f3db9b80", outerShadow: 12, innerShadow: "inset 0 2px 1px rgba(255,247,207,.35),inset 0 -5px 9px rgba(38,20,6,.58)", texture: "brushed", highlight: "linear-gradient(105deg,rgba(255,242,190,.34),rgba(255,255,255,0) 32%)", bevel: true, textColor: "#211207", artworkFill: "#2b180a" }),
   recipe("rose_gold", "Rose gold", "metallic", { gradient: "linear-gradient(120deg,#9f5f59,#f4c2b8,#a75d56)", outerShadow: 18, textColor: "#2b1110" }),
   recipe("copper", "Copper", "metallic", { gradient: "linear-gradient(120deg,#7c2d12,#fb923c,#9a3412)", outerShadow: 20, textColor: "#fff7ed" }),
   recipe("bronze", "Bronze", "metallic", { gradient: "linear-gradient(120deg,#78350f,#d97706,#92400e)", outerShadow: 18, textColor: "#fffbeb" }),
@@ -181,6 +203,28 @@ export const MATERIAL_CATALOG: readonly MaterialRecipe[] = [
   recipe("kraft", "Kraft", "texture", { fill: "#d6a77a", texture: "kraft", outerShadow: 8, textColor: "#3b2414" }),
   recipe("linen", "Linen", "texture", { fill: "#e7e5e4", texture: "linen", outerShadow: 6, textColor: "#1c1917" }),
   recipe("leather", "Leather-like", "texture", { fill: "#78350f", texture: "leather", outerShadow: 10, textColor: "#fff7ed" }),
+  recipe("worn_saddle_leather", "Worn Saddle Leather", "texture", {
+    supportedTargets: ["surface", "background"],
+    fill: "#4a2717",
+    outerShadow: 0,
+    textColor: "#fff7ed",
+    sourceMaster: {
+      id: "worn-saddle-leather@1.0.0",
+      src: "/visual-parts/materials/surfaces/worn-saddle-leather/v1/SURFACE-LEATHER-001_worn-saddle-leather.png",
+      sha256: "7cfbbc872682b26fdce2b6b9b3c116d0d00cb0c877ebf641c895fb54679a32fc",
+      width: 1536,
+      height: 1024,
+      fit: "cover",
+      focalX: .5,
+      focalY: .5,
+      scale: 1,
+      overlayColor: "#1b0b04",
+      overlayOpacity: .22,
+      brightness: .82,
+      contrast: 1.12,
+      saturation: .9,
+    },
+  }),
   recipe("brushed_metal", "Brushed metal", "texture", { gradient: "linear-gradient(90deg,#52525b,#d4d4d8,#71717a,#a1a1aa)", texture: "brushed", outerShadow: 14, textColor: "#18181b" }),
   recipe("grain", "Grain", "texture", { fill: "#292524", texture: "grain", outerShadow: 8, textColor: "#fafaf9" }),
   recipe("soft_noise", "Soft noise", "texture", { fill: "#1f2937", texture: "noise", outerShadow: 8, textColor: "#f8fafc" }),
@@ -449,6 +493,21 @@ export function applyMaterialRecipe(
     }
     const recipe = getMaterialRecipe(materialId);
     if (!recipe) return next;
+    if (recipe.sourceMaster) {
+      next.materialPreset = recipe.id;
+      next.surfaceBackgroundKind = "image";
+      next.backgroundImageUrl = recipe.sourceMaster.src;
+      next.backgroundFit = recipe.sourceMaster.fit;
+      next.focalX = recipe.sourceMaster.focalX;
+      next.focalY = recipe.sourceMaster.focalY;
+      next.imageScale = recipe.sourceMaster.scale;
+      next.overlayColor = recipe.sourceMaster.overlayColor;
+      next.overlayOpacity = recipe.sourceMaster.overlayOpacity;
+      next.brightness = recipe.sourceMaster.brightness;
+      next.contrast = recipe.sourceMaster.contrast;
+      next.saturation = recipe.sourceMaster.saturation;
+      return next;
+    }
     next.materialPreset = recipe.id;
     if (recipe.gradient) {
       next.surfaceBackgroundKind = "gradient";
@@ -474,6 +533,47 @@ export function applyMaterialRecipe(
   }
   const recipe = getMaterialRecipe(materialId);
   if (!recipe) return next;
+
+  if (recipe.sourceMaster) {
+    const source = recipe.sourceMaster;
+    const visualPlane = {
+      kind: "image" as const,
+      image: { src: source.src, fit: source.fit, focalX: source.focalX, focalY: source.focalY, opacity: 1 },
+      overlay: { color: source.overlayColor, opacity: source.overlayOpacity },
+    };
+    next.materialPreset = recipe.id;
+    next.backgroundImageUrl = source.src;
+    next.backgroundFit = source.fit;
+    next.focalX = source.focalX;
+    next.focalY = source.focalY;
+    next.brightness = source.brightness;
+    next.contrast = source.contrast;
+    next.saturation = source.saturation;
+    next.overlayColor = source.overlayColor;
+    next.overlayOpacity = source.overlayOpacity;
+    next.imageOpacity = 1;
+    next.visualPlane = visualPlane;
+    next.surfaceTreatment = {
+      contractId: "studioSurfaceCapability@1.0.0",
+      treatment: "image",
+      mediaUrl: source.src,
+      overlayOpacity: source.overlayOpacity,
+      imageOpacity: 1,
+      brightness: source.brightness,
+      tint: source.overlayColor,
+      fit: source.fit,
+      focalX: source.focalX,
+      focalY: source.focalY,
+      blurPx: 0,
+      radiusPx: Number(props.radius ?? 16),
+      borderWidthPx: Number(props.borderWidth ?? 0),
+      borderColor: String(props.borderColor ?? "transparent"),
+      opacity: Number(props.opacity ?? 1),
+      shadowPx: Number(props.boxShadow ?? 0),
+      visualPlane,
+    };
+    return next;
+  }
 
   next.materialPreset = recipe.id;
   // Material props become the surface authority — null (not undefined) so
@@ -582,6 +682,7 @@ export function applyEffectRecipe(
  * Overlay layers (highlight/shine) are rendered by MaterialSurfaceLayers.
  */
 export function materialPreviewCss(recipe: MaterialRecipe): string {
+  if (recipe.sourceMaster) return `linear-gradient(rgba(0,0,0,.08),rgba(0,0,0,.08)),url("${recipe.sourceMaster.src}") center/cover`;
   return materialPreviewBackgroundFromRecipe(recipe);
 }
 
@@ -607,6 +708,34 @@ export function compositionBackgroundFromMaterialRecipe(
     highlight: recipe.highlight,
     shine: recipe.shine === true,
   };
+
+  if (recipe.sourceMaster) {
+    const source = recipe.sourceMaster;
+    return {
+      kind: "image",
+      source: "local",
+      opacity: 1,
+      saturation: source.saturation,
+      brightness: 1,
+      contrast: 1,
+      image: {
+        src: source.src,
+        fit: source.fit,
+        focalX: source.focalX,
+        focalY: source.focalY,
+        scale: source.scale,
+        repeat: "no-repeat",
+        blur: 0,
+        brightness: source.brightness,
+        contrast: source.contrast,
+        overlayColor: source.overlayColor,
+        overlayOpacity: source.overlayOpacity,
+        decorative: true,
+        alt: "",
+      },
+      ...meta,
+    };
+  }
 
   if (recipe.texture) {
     const pattern = surfacePatternFromTextureToken(recipe.texture, {
@@ -664,6 +793,7 @@ export function materialPropsFromCompositionBackground(
   if (!background?.materialPreset) return null;
   const recipe = getMaterialRecipe(background.materialPreset);
   if (recipe) {
+    if (recipe.sourceMaster) return null;
     return {
       materialPreset: recipe.id,
       fill: recipe.fill,

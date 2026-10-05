@@ -62,6 +62,14 @@ If the answers indicate a reusable platform capability, design the shared system
 
 **Is this a new feature, or another consumer of a capability Studio should already have?**
 
+### Composition Mode Rule
+
+Tap Studio must distinguish structured **Flow** from deliberate **Layered** composition. Flow is the default for clarity, accessibility, and fast authoring. Layered composition is available only inside parents that explicitly support it, including Card Surface and Container where the canonical parent authority declares that capability.
+
+A Host may visually place and overlap compatible Modules without creating a second document model or sacrificing canonical persistence, responsive intent, accessibility, Outline hierarchy, Preview parity, public rendering, or Live Device parity. Layered geometry is parent-relative and governed by each Module's transform capability; a Curated System may be positioned as one outer Module while its certified internal geometry remains protected. Local front/back order applies only among siblings of the same Layered parent. Visual paint overflow such as shadows, glows, and signature hardware must remain separate from logical layout bounds.
+
+Switching modes must preserve content and placement intent. Flow → Layered initializes useful positions from the current flow; Layered → Flow keeps prior layered geometry available for a reversible return. One direct-manipulation gesture produces one history entry, and the same canonical geometry must resolve across Studio, Preview, public runtime, and Live Device.
+
 Apply this test to capabilities including icon handling, search and discovery, visual asset intake, Recently Used, favorites, backgrounds, derivatives, structured assembly, actions, appearance, Brand role assignment, and tApIt output. Think far enough ahead that obvious future consumers influence present architecture; the Product Owner is not required to enumerate every future consumer before the shared pattern is recognized.
 
 When a reusable capability is identified during implementation:

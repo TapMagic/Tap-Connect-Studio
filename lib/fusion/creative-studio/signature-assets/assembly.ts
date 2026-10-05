@@ -40,6 +40,8 @@ export type SignatureAssemblyActionSelection = {
   semanticIconRef?: IconAsset;
   semanticLabel?: string;
   sublabel?: string;
+  /** False keeps the family body while omitting its optional signature plug. */
+  plugEnabled?: boolean;
   plugSide?: "left" | "right";
   accessibilityLabel: string;
   state: "default" | "hover" | "pressed" | "disabled";
@@ -48,6 +50,10 @@ export type SignatureAssemblyActionSelection = {
   textSize?: "small" | "medium" | "large";
   /** Exact phone-scale glyph size. Existing assemblies fall back to textSize presets. */
   textSizePx?: number;
+  /** Governed environmental reflection strength, expressed as a percentage. */
+  backgroundReflectionIntensity?: number;
+  /** Sparse per-action overrides. Missing roles inherit the assembly default. */
+  appearanceOptionIds?: Readonly<Record<string, string>>;
 };
 
 export type SignatureAssemblyInput = {
@@ -128,7 +134,12 @@ export type SignatureAssemblyPlan = {
   actionRowHeightPx: number;
   preferredOverlapPx: number;
   visualContinuationOverlapPx: number;
+  /** Union of every rendered part, including allowed overflow hardware. */
   nativeBounds: SignatureAssemblyNativeRect;
+  /** Normal-flow authority. May be smaller than nativeBounds for overflow hardware. */
+  layoutBounds: SignatureAssemblyNativeRect;
+  plugVisualMode: "composed" | "mastered-chassis";
+  plugDepthTreatment: "raised-contact" | "none";
   instances: readonly SignatureAssemblyPlanInstance[];
   canonicalInputs: SignatureAssemblyInput;
 };
@@ -300,6 +311,7 @@ export function resolveSignatureAssembly(
   }
   const expectedMode: SignatureAssemblyLayoutMode = recipe.presentationMode;
   const presentation = signaturePresentation(recipe);
+  const plugPolicy=presentation.capabilities?.plug??{supported:true,optional:false,defaultEnabled:true};
   if (input.layoutMode!==expectedMode) errors.push(fail("LAYOUT_MODE_MISMATCH",`Recipe ${recipe.recipeId} requires ${expectedMode}.`));
   if (input.presentationId && input.presentationId!==presentation.id) errors.push(fail("PRESENTATION_ID_MISMATCH",`Recipe ${recipe.recipeId} provides presentation ${presentation.id}, not ${input.presentationId}.`));
   if (!Number.isInteger(input.requestedActionCount) || input.requestedActionCount<recipe.certificationLimits.minimumActions) {
@@ -308,16 +320,22 @@ export function resolveSignatureAssembly(
   const launchCertified = recipe.certificationLimits.launchCertifiedActionCounts.includes(input.requestedActionCount);
   const proofOnly = recipe.certificationLimits.structuralProofOnlyActionCounts?.includes(input.requestedActionCount) ?? false;
   if (!launchCertified && !proofOnly) errors.push(fail("UNSUPPORTED_ACTION_COUNT",`Action count ${input.requestedActionCount} is not certified or approved for structural proof by ${recipe.recipeId}.`));
-  if (input.actions.length!==input.requestedActionCount || input.actions.some((action)=>!action.id || !action.label || !action.destination || (!action.plugPresentationId&&!action.plugComponentId) || !action.accessibilityLabel || !action.analyticsId)) {
+  if (input.actions.length!==input.requestedActionCount || input.actions.some((action)=>{
+    const plugEnabled=plugPolicy.supported&&(action.plugEnabled??plugPolicy.defaultEnabled);
+    return !action.id || !action.label || !action.destination || (plugEnabled&&(!action.plugPresentationId&&!action.plugComponentId)) || !action.accessibilityLabel || !action.analyticsId;
+  })) {
     errors.push(fail("MISSING_ACTION_DATA","Each requested action requires stable identity, label, destination, plug presentation, accessibility label, state, and analytics identity."));
   }
   const sidePolicy=presentation.capabilities?.plugSide??{mode:"derived" as const};
   for (const action of input.actions) {
+    const plugEnabled=plugPolicy.supported&&(action.plugEnabled??plugPolicy.defaultEnabled);
+    if (action.plugEnabled===false && plugPolicy.supported && !plugPolicy.optional) errors.push(fail("INVALID_PLUG_SELECTION",`Presentation ${presentation.id} requires its signature plug.`));
+    if (action.plugEnabled===true && !plugPolicy.supported) errors.push(fail("INVALID_PLUG_SELECTION",`Presentation ${presentation.id} is body-only.`));
     if (action.sublabel && !presentation.capabilities?.sublabel?.supported) errors.push(fail("UNSUPPORTED_SUBLABEL",`Presentation ${presentation.id} does not support action sublabels.`));
     if (action.sublabel && presentation.capabilities?.sublabel?.maxLength && action.sublabel.length>presentation.capabilities.sublabel.maxLength) errors.push(fail("UNSUPPORTED_SUBLABEL",`Presentation ${presentation.id} limits action sublabels to ${presentation.capabilities.sublabel.maxLength} characters.`));
-    if (sidePolicy.mode==="fixed" && action.plugSide && action.plugSide!==sidePolicy.side) errors.push(fail("INVALID_PLUG_SIDE",`Presentation ${presentation.id} fixes plug side to ${sidePolicy.side}.`));
-    if (sidePolicy.mode==="authorable" && action.plugSide && !sidePolicy.allowed.includes(action.plugSide)) errors.push(fail("INVALID_PLUG_SIDE",`Plug side ${action.plugSide} is not allowed by presentation ${presentation.id}.`));
-    if (sidePolicy.mode==="derived" && action.plugSide) errors.push(fail("INVALID_PLUG_SIDE",`Presentation ${presentation.id} derives plug side from its recipe.`));
+    if (plugEnabled && sidePolicy.mode==="fixed" && action.plugSide && action.plugSide!==sidePolicy.side) errors.push(fail("INVALID_PLUG_SIDE",`Presentation ${presentation.id} fixes plug side to ${sidePolicy.side}.`));
+    if (plugEnabled && sidePolicy.mode==="authorable" && action.plugSide && !sidePolicy.allowed.includes(action.plugSide)) errors.push(fail("INVALID_PLUG_SIDE",`Plug side ${action.plugSide} is not allowed by presentation ${presentation.id}.`));
+    if (plugEnabled && sidePolicy.mode==="derived" && action.plugSide) errors.push(fail("INVALID_PLUG_SIDE",`Presentation ${presentation.id} derives plug side from its recipe.`));
   }
   if (errors.length) return {ok:false,errors};
 
@@ -408,13 +426,17 @@ export function resolveSignatureAssembly(
       // plug artwork is contained within that envelope by the renderer, so a
       // source PNG's transparent aspect ratio can never make one plug appear
       // larger than its peers.
-      const envelopePx=Math.min(socketNative.widthPx,socketNative.heightPx,availableHeight);
+      const envelopePx=plugPolicy.renderedSizePx??Math.min(socketNative.widthPx,socketNative.heightPx,availableHeight);
       const widthPx=envelopePx;
       const heightPx=envelopePx;
       const centerXPx=parentRect.xPx+socket.geometry.center.x*parentRect.widthPx;
       const rowTopPx=parentRect.yPx+compactGeometry.visibleBodyBounds.top*parentRect.heightPx;
       const centerYPx=rowTopPx+actionPresentation.rowHeightPx/2;
       native={xPx:centerXPx-widthPx/2,yPx:centerYPx-heightPx/2,widthPx,heightPx};
+    } else if (plugPolicy.renderedSizePx) {
+      const centerXPx=parentRect.xPx+socket.geometry.center.x*parentRect.widthPx;
+      const centerYPx=parentRect.yPx+socket.geometry.center.y*parentRect.heightPx;
+      native={xPx:centerXPx-plugPolicy.renderedSizePx/2,yPx:centerYPx-plugPolicy.renderedSizePx/2,widthPx:plugPolicy.renderedSizePx,heightPx:plugPolicy.renderedSizePx};
     }
     const instanceId = [input.familyId,input.recipeId,"semantic-plug",plug.componentId,layout.level,layout.column,index].map(String).map(stableToken).join(":");
     nativeInstances.push({instanceId,sourceAssetId:plugAsset.id,sourceAsset:plugAsset.sourceAsset,sourceComponentId:plug.componentId,sourceComponentVersion:plug.componentVersion,sourceSha256:plug.sourceSha256,semanticRole:"semantic-plug",classification:"live-content",structural:false,decorative:false,interactive:false,native,scale:{mode:"socket-fit",x:native.widthPx/plugAsset.width,y:native.heightPx/plugAsset.height},attachmentAnchorsUsed:[],zOrder:30,socketOwnership:[],liveContentOwnership:{actionText:false,semanticPlug:true,identitySocket:false,informationalLine:false},layout:{...layout,side:parent.component.side},runtimeEligibility:plug.runtimeEligibility,certificationProvenance:{state:plug.certification.state,geometryVersion:plug.certification.geometryVersion,evidence:plug.certification.evidence??[],authorityManifest:plug.provenance?.authorityManifest,geometryAuthority:plug.provenance?.geometryAuthority},parentInstanceId:parentId,semanticIconRef:selection.semanticIconRef,iconTreatment:presentation.capabilities?.semanticIcon?.supported?presentation.capabilities.semanticIcon.treatment:undefined});
@@ -437,7 +459,8 @@ export function resolveSignatureAssembly(
     const before=nativeInstances.length;
     const parentId=add(resolved,rule,"action",actionIndex,{level,row:level,column},context,selection);
     const parent=nativeInstances[before];
-    if (parentId && parent) addPlug(parentId,resolved,parent.native,selection,{level,row:level,column},actionIndex);
+    const plugEnabled=plugPolicy.supported&&(selection.plugEnabled??plugPolicy.defaultEnabled);
+    if (parentId && parent && plugEnabled) addPlug(parentId,resolved,parent.native,selection,{level,row:level,column},actionIndex);
     actionIndex++;
   };
   if (!isPaired && strategy.mode==="single") {
@@ -467,11 +490,18 @@ export function resolveSignatureAssembly(
   } else if (!isPaired && strategy.mode==="side-specific") {
     for (let row=0;row<input.requestedActionCount;row++) {
       const selection=input.actions[row];
+      const plugEnabled=plugPolicy.supported&&(selection.plugEnabled??plugPolicy.defaultEnabled);
       const governedSide=sidePolicy.mode==="fixed"?sidePolicy.side:sidePolicy.mode==="authorable"?(selection.plugSide??sidePolicy.defaultSide):undefined;
-      const side=governedSide==="left"||governedSide==="right"?governedSide:(row%2===0?"left":"right");
+      const side=!plugEnabled&&strategy.masters.center?"center":governedSide==="left"||governedSide==="right"?governedSide:(row%2===0?"left":"right");
       const reference=strategy.masters[side];
       const rule=recipe.geometry.actionSlots.find((candidate)=>candidate.side===side);
       if (reference&&rule) addActionAt(reference,rule,row,0,selection);
+      // Side selection changes the live action master, not the structural
+      // cadence. A unit-chassis recipe still owns one repeat layer per row.
+      if (repeatIsUnitChassis || row<input.requestedActionCount-1) {
+        const repeatRow=repeatIsUnitChassis?row:row+1;
+        repeat.forEach(({resolved},index)=>{if(resolved)add(resolved,recipe.geometry.repeatComponents[index],"repeat",index,{level:repeatRow,row:repeatRow,column:index},{unitStart:contentOrigin+repeatRow*recipe.geometry.unitStridePx,contentEnd:fullContentEnd,terminationStart:lastCompleteUnitStart,oddActionEnd:0,transitionEnd:0},undefined,row);});
+      }
     }
   } else if (isPaired && strategy.mode==="side-specific") {
     for (let level=0;level<completePairs;level++) {
@@ -523,8 +553,15 @@ export function resolveSignatureAssembly(
   const maxX=Math.max(...nativeInstances.map((instance)=>instance.native.xPx+instance.native.widthPx));
   const maxY=Math.max(...nativeInstances.map((instance)=>instance.native.yPx+instance.native.heightPx));
   const nativeBounds={xPx:minX,yPx:minY,widthPx:maxX-minX,heightPx:maxY-minY};
-  const finalized: SignatureAssemblyPlanInstance[] = nativeInstances.map(({native,scale,...instance})=>({...instance,placement:{native,normalized:{x:(native.xPx-minX)/nativeBounds.widthPx,y:(native.yPx-minY)/nativeBounds.heightPx,width:native.widthPx/nativeBounds.widthPx,height:native.heightPx/nativeBounds.heightPx},sourceScale:scale}}));
-  const plan: SignatureAssemblyPlan = {planVersion:"1.0.0",familyId:input.familyId,familyVersion:input.familyVersion,recipeId:recipe.recipeId,recipeVersion:recipe.recipeVersion,presentationId:presentation.id,layoutMode:input.layoutMode,certificationStatus:proofOnly?"structural-proof-only":"launch-certified",requestedActionCount:input.requestedActionCount,actionUnitCount:unitCount,completePairedLevelCount:completePairs,coordinateAuthority:"certified-native-space",coordinateWidthPx:recipe.geometry.coordinateWidthPx,unitStridePx:recipe.geometry.unitStridePx,actionPresentationMode:recipe.geometry.actionPresentation?.mode??"standalone",actionRowHeightPx:recipe.geometry.actionPresentation?.rowHeightPx??recipe.geometry.unitStridePx,preferredOverlapPx:recipe.repeatInterval?.preferredOverlapPx??0,visualContinuationOverlapPx:recipe.geometry.visualContinuationOverlapPx??0,nativeBounds,instances:finalized,canonicalInputs:input};
+  const flowBox=recipe.geometry.flowBox;
+  const layoutBounds=flowBox?{
+    xPx:flowBox.xPx,
+    yPx:contentOrigin+flowBox.firstRowOffsetPx,
+    widthPx:flowBox.widthPx,
+    heightPx:Math.max(flowBox.rowHeightPx,(unitCount-1)*recipe.geometry.unitStridePx+flowBox.rowHeightPx),
+  }:nativeBounds;
+  const finalized: SignatureAssemblyPlanInstance[] = nativeInstances.map(({native,scale,...instance})=>({...instance,placement:{native,normalized:{x:(native.xPx-layoutBounds.xPx)/layoutBounds.widthPx,y:(native.yPx-layoutBounds.yPx)/layoutBounds.heightPx,width:native.widthPx/layoutBounds.widthPx,height:native.heightPx/layoutBounds.heightPx},sourceScale:scale}}));
+  const plan: SignatureAssemblyPlan = {planVersion:"1.0.0",familyId:input.familyId,familyVersion:input.familyVersion,recipeId:recipe.recipeId,recipeVersion:recipe.recipeVersion,presentationId:presentation.id,layoutMode:input.layoutMode,certificationStatus:proofOnly?"structural-proof-only":"launch-certified",requestedActionCount:input.requestedActionCount,actionUnitCount:unitCount,completePairedLevelCount:completePairs,coordinateAuthority:"certified-native-space",coordinateWidthPx:recipe.geometry.coordinateWidthPx,unitStridePx:recipe.geometry.unitStridePx,actionPresentationMode:recipe.geometry.actionPresentation?.mode??"standalone",actionRowHeightPx:recipe.geometry.actionPresentation?.rowHeightPx??recipe.geometry.unitStridePx,preferredOverlapPx:recipe.repeatInterval?.preferredOverlapPx??0,visualContinuationOverlapPx:recipe.geometry.visualContinuationOverlapPx??0,nativeBounds,layoutBounds,plugVisualMode:plugPolicy.visualMode??"composed",plugDepthTreatment:plugPolicy.depthTreatment??"raised-contact",instances:finalized,canonicalInputs:input};
   const attachmentErrors = validateStructuralAttachmentInvariant(plan, recipe, registry.assets);
   if (attachmentErrors.length) return { ok:false, errors:attachmentErrors.map((message)=>fail("STRUCTURAL_ATTACHMENT_INVARIANT",message)) };
   return {ok:true,plan};

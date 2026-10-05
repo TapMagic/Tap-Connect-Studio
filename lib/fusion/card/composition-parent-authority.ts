@@ -12,12 +12,33 @@ export type CompositionAuthorityIssue = {
     | "kind_missing"
     | "parent_missing"
     | "nested_container"
+    | "nesting_depth"
     | "invalid_parent"
     | "cycle"
     | "duplicate_order";
   nodeId?: string;
   message: string;
 };
+
+/** Card Surface is depth 0; authored Containers may nest three levels below it. */
+export const MAX_COMPOSITION_CONTAINER_DEPTH = 3;
+
+export function compositionContainerDepth(
+  block: CreativeCompositionBlock,
+  containerId: string,
+): number {
+  const byId = new Map(block.nodes.map((node) => [node.id, node]));
+  const visited = new Set<string>();
+  let depth = 0;
+  let current = byId.get(containerId);
+  while (current?.compositionKind === "container") {
+    if (visited.has(current.id)) return Number.POSITIVE_INFINITY;
+    visited.add(current.id);
+    depth += 1;
+    current = current.parentId ? byId.get(current.parentId) : undefined;
+  }
+  return depth;
+}
 
 export type CompositionAuthorityResult =
   | { ok: true; block: CreativeCompositionBlock; selectedNodeId?: string }
@@ -79,14 +100,14 @@ export function validateCompositionParentAuthority(
       issues.push({ code: "parent_missing", nodeId: node.id, message: `${node.id} has incomplete parent/order membership.` });
       continue;
     }
-    if (node.compositionKind === "container" && node.parentId !== null) {
-      issues.push({ code: "nested_container", nodeId: node.id, message: "Containers can only be direct children of the Card Surface." });
-    }
     if (node.parentId !== null) {
       const parent = byId.get(node.parentId);
-      if (!parent || parent.compositionKind !== "container" || parent.parentId !== null) {
+      if (!parent || parent.compositionKind !== "container") {
         issues.push({ code: "invalid_parent", nodeId: node.id, message: `${node.id} references an invalid Container parent.` });
       }
+    }
+    if (node.compositionKind === "container" && compositionContainerDepth(block, node.id) > MAX_COMPOSITION_CONTAINER_DEPTH) {
+      issues.push({ code: "nesting_depth", nodeId: node.id, message: `Containers support at most ${MAX_COMPOSITION_CONTAINER_DEPTH} authored levels below the Card Surface.` });
     }
     const key = node.parentId ?? "__card_surface__";
     const siblingOrders = orders.get(key) ?? new Set<number>();
@@ -158,6 +179,7 @@ function duplicateHostedComposition(block: CreativeCompositionBlock): CreativeCo
   const copy = structuredClone(block);
   const blockId = `composition-${nanoid(8)}`;
   const nodeIds = new Map(copy.nodes.map((node) => [node.id, `node-${nanoid(8)}`]));
+  const groupIds = new Map((copy.groups ?? []).map((group) => [group.id, `group-${nanoid(6)}`]));
   const actionIds = new Map(copy.signatureAssembly?.input.actions.map((action) => [action.id, `action-${nanoid(8)}`]) ?? []);
   const signatureAssembly = copy.signatureAssembly ? {
     ...copy.signatureAssembly,
@@ -174,10 +196,15 @@ function duplicateHostedComposition(block: CreativeCompositionBlock): CreativeCo
     ...copy,
     id: blockId,
     signatureAssembly,
+    groups: copy.groups?.map((group) => ({
+      ...group,
+      id: groupIds.get(group.id)!,
+      parentId: group.parentId ? nodeIds.get(group.parentId) ?? group.parentId : null,
+    })),
     nodes: copy.nodes.map((node) => ({
       ...node,
       id: nodeIds.get(node.id)!,
-      groupId: node.groupId ? nodeIds.get(node.groupId) ?? node.groupId : node.groupId,
+      groupId: node.groupId ? groupIds.get(node.groupId) ?? node.groupId : node.groupId,
       parentId: node.parentId ? nodeIds.get(node.parentId) ?? node.parentId : node.parentId,
       props: {
         ...node.props,
@@ -197,8 +224,8 @@ export function insertCompositionModule(
 ): CompositionAuthorityResult {
   if (!hasCompositionParentAuthority(block)) return commit(block);
   const parent = parentId === null ? null : block.nodes.find((candidate) => candidate.id === parentId);
-  if (parentId !== null && (!parent || parent.compositionKind !== "container" || parent.parentId !== null)) {
-    return { ok: false, issues: [{ code: "invalid_parent", nodeId: node.id, message: "The requested insertion target is not a Card-level Container." }] };
+  if (parentId !== null && (!parent || parent.compositionKind !== "container")) {
+    return { ok: false, issues: [{ code: "invalid_parent", nodeId: node.id, message: "The requested insertion target is not a canonical Container." }] };
   }
   const siblings = compositionChildren(block, parentId);
   const at = Math.max(0, Math.min(index ?? siblings.length, siblings.length));
@@ -218,17 +245,29 @@ export function insertCompositionContainer(
   index?: number,
 ): CompositionAuthorityResult {
   if (!hasCompositionParentAuthority(block)) return commit(block);
-  if (container.parentId !== null && container.parentId !== undefined) {
+  const parentId = container.parentId ?? null;
+  const parent = parentId ? block.nodes.find((candidate) => candidate.id === parentId) : null;
+  if (parentId && (!parent || parent.compositionKind !== "container")) {
     return {
       ok: false,
       issues: [{
-        code: "nested_container",
+        code: "invalid_parent",
         nodeId: container.id,
-        message: "Containers can only be inserted directly on the Card Surface.",
+        message: "The requested Container parent is not available.",
       }],
     };
   }
-  const siblings = compositionChildren(block, null);
+  if (parentId && compositionContainerDepth(block, parentId) >= MAX_COMPOSITION_CONTAINER_DEPTH) {
+    return {
+      ok: false,
+      issues: [{
+        code: "nesting_depth",
+        nodeId: container.id,
+        message: `Containers support at most ${MAX_COMPOSITION_CONTAINER_DEPTH} authored levels below the Card Surface.`,
+      }],
+    };
+  }
+  const siblings = compositionChildren(block, parentId);
   const at = Math.max(0, Math.min(index ?? siblings.length, siblings.length));
   const shifted = new Map(siblings.slice(at).map((sibling) => [sibling.id, (sibling.siblingOrder ?? 0) + 1]));
   return commit({
@@ -239,14 +278,14 @@ export function insertCompositionContainer(
         ...container,
         primitive: "frame",
         compositionKind: "container",
-        parentId: null,
+        parentId,
         siblingOrder: at,
         props: {
           ...container.props,
           componentKind: "container",
           elementKind: "container",
-          layout: "flow",
-          autoHeight: true,
+          layout: container.props.layout ?? "flow",
+          autoHeight: container.props.autoHeight ?? true,
         },
       },
     ],
@@ -265,6 +304,40 @@ export function reparentCompositionModule(
   }
   const without = normalizeSiblingOrder({ ...block, nodes: block.nodes.filter((node) => node.id !== moduleId) });
   return insertCompositionModule(without, compositionModule, parentId, index);
+}
+
+/** Reparents a Module or Container while preserving canonical identity and responsive geometry. */
+export function reparentCompositionNode(
+  block: CreativeCompositionBlock,
+  nodeId: string,
+  parentId: CompositionParentId,
+  index?: number,
+): CompositionAuthorityResult {
+  const node = block.nodes.find((candidate) => candidate.id === nodeId);
+  if (!node) return { ok: false, issues: [{ code: "invalid_parent", nodeId, message: "Composition node was not found." }] };
+  if (nodeId === parentId) return { ok: false, issues: [{ code: "cycle", nodeId, message: "A Container cannot contain itself." }] };
+  if (node.compositionKind === "module") return reparentCompositionModule(block, nodeId, parentId, index);
+  if (node.compositionKind !== "container") return { ok: false, issues: [{ code: "invalid_parent", nodeId, message: "Only canonical Modules and Containers can change parent." }] };
+  let cursor = parentId ? block.nodes.find((candidate) => candidate.id === parentId) : undefined;
+  while (cursor) {
+    if (cursor.id === nodeId) return { ok: false, issues: [{ code: "cycle", nodeId, message: "A Container cannot move inside one of its descendants." }] };
+    cursor = cursor.parentId ? block.nodes.find((candidate) => candidate.id === cursor!.parentId) : undefined;
+  }
+  const descendants = new Set<string>();
+  const collect = (containerId: string) => {
+    for (const child of block.nodes.filter((candidate) => candidate.parentId === containerId && candidate.compositionKind === "container")) {
+      descendants.add(child.id);
+      collect(child.id);
+    }
+  };
+  collect(nodeId);
+  const targetDepth = parentId ? compositionContainerDepth(block, parentId) : 0;
+  const subtreeDepth = Math.max(1, ...[nodeId, ...descendants].map((id) => compositionContainerDepth(block, id) - compositionContainerDepth(block, nodeId) + 1));
+  if (targetDepth + subtreeDepth > MAX_COMPOSITION_CONTAINER_DEPTH) {
+    return { ok: false, issues: [{ code: "nesting_depth", nodeId, message: `That move would exceed ${MAX_COMPOSITION_CONTAINER_DEPTH} Container levels.` }] };
+  }
+  const without = normalizeSiblingOrder({ ...block, nodes: block.nodes.filter((candidate) => candidate.id !== nodeId) });
+  return insertCompositionContainer(without, { ...node, parentId }, index);
 }
 
 export function reorderCompositionNode(
@@ -286,18 +359,22 @@ export function wrapCompositionModules(
   moduleIds: string[],
   container: CreativeCompositionNode,
 ): CompositionAuthorityResult {
-  const selected = compositionChildren(block, null).filter((node) => moduleIds.includes(node.id));
+  const selected = block.nodes.filter((node) => moduleIds.includes(node.id));
   if (!selected.length || selected.length !== moduleIds.length || selected.some((node) => node.compositionKind !== "module")) {
-    return { ok: false, issues: [{ code: "invalid_parent", message: "Wrap requires direct Card Surface Modules." }] };
+    return { ok: false, issues: [{ code: "invalid_parent", message: "Wrap requires compatible sibling Modules." }] };
   }
-  const indices = selected.map((node) => node.siblingOrder ?? -1).sort((a, b) => a - b);
+  const parentId = selected[0]?.parentId ?? null;
+  if (selected.some((node) => (node.parentId ?? null) !== parentId)) return { ok: false, issues: [{ code: "invalid_parent", message: "Wrap requires Modules from one parent." }] };
+  const siblings = compositionChildren(block, parentId);
+  if (container.parentId !== undefined && container.parentId !== null && container.parentId !== parentId) return { ok: false, issues: [{ code: "invalid_parent", message: "The new Container must share the selected Modules' parent." }] };
+  const indices = selected.map((node) => siblings.findIndex((sibling) => sibling.id === node.id)).sort((a, b) => a - b);
   if (indices.some((value, position) => position > 0 && value !== indices[position - 1]! + 1)) {
     return { ok: false, issues: [{ code: "invalid_parent", message: "Wrap requires contiguous sibling Modules." }] };
   }
   const insertionIndex = indices[0]!;
   const selectedSet = new Set(moduleIds);
   const base = normalizeSiblingOrder({ ...block, nodes: block.nodes.filter((node) => !selectedSet.has(node.id)) });
-  const inserted = insertCompositionContainer(base, container, insertionIndex);
+  const inserted = insertCompositionContainer(base, { ...container, parentId }, insertionIndex);
   if (!inserted.ok) return inserted;
   let current = inserted.block;
   for (const compositionModule of selected) {
@@ -316,12 +393,17 @@ export function unwrapCompositionContainer(
   if (!container) return { ok: false, issues: [{ code: "invalid_parent", nodeId: containerId, message: "Container was not found." }] };
   const children = compositionChildren(block, containerId);
   const insertionIndex = container.siblingOrder ?? 0;
+  const targetParentId = container.parentId ?? null;
   let current = normalizeSiblingOrder({ ...block, nodes: block.nodes.filter((node) => node.id !== containerId && node.parentId !== containerId) });
   for (const [offset, child] of children.entries()) {
-    const added = insertCompositionModule(current, child, null, insertionIndex + offset);
+    const added = child.compositionKind === "container"
+      ? insertCompositionContainer(current, { ...child, parentId: targetParentId }, insertionIndex + offset)
+      : insertCompositionModule(current, child, targetParentId, insertionIndex + offset);
     if (!added.ok) return added;
     current = added.block;
   }
+  const movedGroupIds = new Set(children.flatMap((child) => child.groupId ? [child.groupId] : []));
+  if (movedGroupIds.size) current = { ...current, groups: (current.groups ?? []).map((group) => movedGroupIds.has(group.id) ? { ...group, parentId: targetParentId } : group) };
   return { ok: true, block: current, selectedNodeId: children[0]?.id };
 }
 
@@ -337,9 +419,15 @@ export function deleteCompositionNode(
   }
   const remove = new Set([nodeId]);
   if (node.compositionKind === "container") {
-    for (const child of block.nodes) if (child.parentId === nodeId) remove.add(child.id);
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const child of block.nodes) if (child.parentId && remove.has(child.parentId) && !remove.has(child.id)) { remove.add(child.id); changed = true; }
+    }
   }
-  return commit({ ...block, nodes: block.nodes.filter((candidate) => !remove.has(candidate.id)) });
+  const nodes = block.nodes.filter((candidate) => !remove.has(candidate.id));
+  const liveGroupIds = new Set(nodes.flatMap((candidate) => candidate.groupId ? [candidate.groupId] : []));
+  return commit({ ...block, nodes, groups: (block.groups ?? []).filter((group) => liveGroupIds.has(group.id)) });
 }
 
 export function duplicateCompositionNode(
@@ -363,13 +451,43 @@ export function duplicateCompositionNode(
   const inserted = insertCompositionContainer(block, copiedContainer, (node.siblingOrder ?? 0) + 1);
   if (!inserted.ok) return inserted;
   let current = inserted.block;
-  for (const child of compositionChildren(block, node.id)) {
+  const descendants: CreativeCompositionNode[] = [];
+  const collect = (parentId: string) => {
+    for (const child of compositionChildren(block, parentId)) {
+      descendants.push(child);
+      if (child.compositionKind === "container") collect(child.id);
+    }
+  };
+  collect(node.id);
+  const idMap = new Map<string, string>([[node.id, copyId], ...descendants.map((child) => [child.id, `${child.compositionKind === "container" ? "container" : "module"}-${nanoid(8)}`] as const)]);
+  const groupIds = new Map<string, string>();
+  for (const child of descendants) if (child.groupId && !groupIds.has(child.groupId)) groupIds.set(child.groupId, `group-${nanoid(6)}`);
+  for (const child of descendants) {
     const copiedChild = structuredClone(child);
-    copiedChild.id = `module-${nanoid(8)}`;
-    copiedChild.name = `${child.name || "Module"} copy`;
-    const added = insertCompositionModule(current, copiedChild, copyId);
+    copiedChild.id = idMap.get(child.id)!;
+    copiedChild.parentId = child.parentId ? idMap.get(child.parentId) ?? child.parentId : null;
+    copiedChild.groupId = child.groupId ? groupIds.get(child.groupId) ?? child.groupId : child.groupId;
+    copiedChild.name = `${child.name || (child.compositionKind === "container" ? "Container" : "Module")} copy`;
+    copiedChild.moduleComposition = child.moduleComposition ? duplicateHostedComposition(child.moduleComposition) : undefined;
+    const added = copiedChild.compositionKind === "container"
+      ? insertCompositionContainer(current, copiedChild)
+      : insertCompositionModule(current, copiedChild, copiedChild.parentId ?? null);
     if (!added.ok) return added;
     current = added.block;
+  }
+  if (block.groups?.length && groupIds.size) {
+    current = {
+      ...current,
+      groups: [
+        ...(current.groups ?? []),
+        ...block.groups.filter((group) => groupIds.has(group.id)).map((group) => ({
+          ...structuredClone(group),
+          id: groupIds.get(group.id)!,
+          name: `${group.name || "Group"} copy`,
+          parentId: group.parentId ? idMap.get(group.parentId) ?? group.parentId : null,
+        })),
+      ],
+    };
   }
   return { ok: true, block: current, selectedNodeId: copyId };
 }
@@ -395,6 +513,11 @@ export function createFlowContainerNode(
       elementKind: "container",
       layout: "flow",
       autoHeight: true,
+      widthPercent: 100,
+      minWidthPx: 0,
+      maxWidthPx: 1200,
+      contentFit: "fit_content",
+      clipContent: false,
       padding: 16,
       gap: 12,
       alignment: "stretch",

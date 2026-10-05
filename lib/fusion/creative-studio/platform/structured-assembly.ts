@@ -21,12 +21,15 @@ export type StudioStructuredAssemblySlot = {
   semanticIconRef?: import("../icon-asset").IconAsset;
   semanticLabel?: string;
   sublabel?: string;
+  plugEnabled?: boolean;
   plugSide?: "left" | "right";
   plugLabel?: string;
   plugPreviewSrc?: string;
   textAlign?: "left" | "center" | "right";
   textSize?: "small" | "medium" | "large";
   textSizePx?: number;
+  backgroundReflectionIntensity?: number;
+  appearanceOptionIds?: Readonly<Record<string, string>>;
   contentType: "action" | "identity" | "plug" | "content";
   required: boolean;
   order: number;
@@ -43,6 +46,14 @@ export type StudioStructuredAssemblyDescriptor = {
   recipeId: string;
   recipeVersion: string;
   recipeLabel: string;
+  density?: {
+    mode: "full" | "medium" | "compact";
+    preferredFlowWidthPercent: number;
+    minimumFlowWidthPercent: number;
+    maximumFlowWidthPercent: number;
+    defaultFlowAlignment: "start" | "center" | "end" | "stretch";
+    minimumTouchTargetPx: number;
+  };
   inputCount: number;
   slots: readonly StudioStructuredAssemblySlot[];
   resourceSlots?: readonly import("./semantic-resource-slot").StudioSemanticResourceSlot[];
@@ -53,12 +64,17 @@ export type StudioStructuredAssemblyDescriptor = {
     label: string;
     description: string;
     allowedActionCounts: readonly number[];
+    density?: StudioStructuredAssemblyDescriptor["density"];
   }[];
   capabilities?: {
     supportsSublabel: boolean;
     supportsSemanticIcon: boolean;
+    supportsPlug: boolean;
+    plugOptional: boolean;
     plugSide: "fixed" | "authorable" | "derived";
     allowedPlugSides?: readonly ("left" | "right")[];
+    supportsBackgroundReflection?: boolean;
+    backgroundReflectionRange?: { min: number; max: number; defaultValue: number };
   };
   textSizes: readonly {
     id: "small" | "medium" | "large";
@@ -111,7 +127,7 @@ export type StudioStructuredAssemblyDescriptor = {
 };
 
 type StudioCuratedAssemblyMutationInput =
-  | { type: "update-action"; actionId: string; patch: { label?: string; sublabel?: string; destination?: string; actionType?: string; accessibilityLabel?: string; semanticLabel?: string; plugComponentId?: string; plugPresentationId?: string; semanticIconRef?: import("../icon-asset").IconAsset; plugSide?: "left" | "right"; textAlign?: "left" | "center" | "right"; textSize?: "small" | "medium" | "large"; textSizePx?: number } }
+  | { type: "update-action"; actionId: string; patch: { label?: string; sublabel?: string; destination?: string; actionType?: string; accessibilityLabel?: string; semanticLabel?: string; plugEnabled?: boolean; plugComponentId?: string; plugPresentationId?: string; semanticIconRef?: import("../icon-asset").IconAsset; plugSide?: "left" | "right"; textAlign?: "left" | "center" | "right"; textSize?: "small" | "medium" | "large"; textSizePx?: number; backgroundReflectionIntensity?: number; appearanceOptionIds?: Readonly<Record<string, string>> } }
   | { type: "reorder-action"; from: number; to: number }
   | { type: "set-action-count"; count: number }
   | { type: "set-resource-slot"; slotId: string; resource?: import("./semantic-resource-slot").StudioSemanticResource }

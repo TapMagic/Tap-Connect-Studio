@@ -15,6 +15,7 @@ export type CreativeCompositionPrimitive =
   | "text"
   | "button"
   | "image"
+  | "video"
   | "frame"
   | "shape"
   | "border"
@@ -292,16 +293,64 @@ export type CreativeCompositionNode = {
   moduleComposition?: CreativeCompositionBlock;
 };
 
+/**
+ * Persisted transform/layout authority for a selection Group. Membership stays
+ * on child Modules through `groupId`; this record owns the Group as an authored
+ * composition object without introducing another parent hierarchy or surface.
+ */
+export type CreativeCompositionGroup = {
+  id: string;
+  name: string;
+  parentId: string | null;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  anchor: CreativeCompositionAnchor;
+  zIndex: number;
+  locked: boolean;
+  layout: "layered" | "flow_vertical" | "flow_horizontal" | "grid";
+  density: "dense" | "standard" | "airy" | "custom";
+  rowGapPx: number;
+  columnGapPx: number;
+  internalGapPx: number;
+  scaleMode: "fit" | "fill" | "proportional" | "compact" | "medium" | "full";
+};
+
 export type CreativeCompositionBlock = {
   version: 1;
   id: string;
   label: string;
   nodes: CreativeCompositionNode[];
+  /** Canonical Group objects. Legacy member-only groups remain readable. */
+  groups?: CreativeCompositionGroup[];
   /** Card Surface is the semantic root; it is not represented by a fake node. */
   parentAuthority?: {
     version: 1;
     layout: "flow";
     cardGapPx: number;
+  };
+  /** Surface edge geometry is independent from the Card's content safe area. */
+  edgeLayout?: {
+    version: 1;
+    mode: "contained" | "inset" | "full_bleed";
+  };
+  /** Optional bounded composition on Card Surface; Flow remains the default. */
+  compositionMode?: {
+    version: 1;
+    mode: "flow" | "layered";
+    layeredHeightPx: number;
+    /** Once seeded, Flow may hide placement without destroying it. */
+    layeredPlacementInitialized?: boolean;
+  };
+  /** Parent-level rhythm; Flow consumes gaps, Layered consumes snap rhythm. */
+  compositionDensity?: {
+    version: 1;
+    mode: "dense" | "standard" | "airy" | "custom";
+    customGapPx?: number;
+    rowGapPx?: number;
+    columnGapPx?: number;
+    internalGroupGapPx?: number;
   };
   background?: {
     kind: "solid" | "gradient" | "image" | "pattern" | "texture" | "none";
@@ -476,6 +525,32 @@ export function parseCreativeComposition(
         ? parseCreativeComposition(node.moduleComposition) ?? undefined
         : undefined,
     })),
+    groups: Array.isArray(o.groups)
+      ? (o.groups as CreativeCompositionGroup[]).flatMap((group) => {
+          if (!group || typeof group.id !== "string") return [];
+          const layout = ["layered", "flow_vertical", "flow_horizontal", "grid"].includes(String(group.layout)) ? group.layout : "layered";
+          const density = ["dense", "standard", "airy", "custom"].includes(String(group.density)) ? group.density : "standard";
+          const scaleMode = ["fit", "fill", "proportional", "compact", "medium", "full"].includes(String(group.scaleMode)) ? group.scaleMode : "proportional";
+          return [{
+            id: group.id,
+            name: typeof group.name === "string" ? group.name : "Group",
+            parentId: typeof group.parentId === "string" ? group.parentId : null,
+            x: Math.max(-1, Math.min(2, Number(group.x) || 0)),
+            y: Math.max(-1, Math.min(2, Number(group.y) || 0)),
+            width: Math.max(.02, Math.min(2, Number(group.width) || .2)),
+            height: Math.max(.02, Math.min(2, Number(group.height) || .2)),
+            anchor: group.anchor ?? "top-left",
+            zIndex: Math.max(1, Math.round(Number(group.zIndex) || 1)),
+            locked: group.locked === true,
+            layout: layout as CreativeCompositionGroup["layout"],
+            density: density as CreativeCompositionGroup["density"],
+            rowGapPx: Math.max(0, Math.min(64, Number(group.rowGapPx) || 0)),
+            columnGapPx: Math.max(0, Math.min(64, Number(group.columnGapPx) || 0)),
+            internalGapPx: Math.max(0, Math.min(64, Number(group.internalGapPx) || 0)),
+            scaleMode: scaleMode as CreativeCompositionGroup["scaleMode"],
+          }];
+        })
+      : undefined,
     parentAuthority:
       o.parentAuthority && typeof o.parentAuthority === "object" &&
       (o.parentAuthority as Record<string, unknown>).version === 1 &&
@@ -484,6 +559,38 @@ export function parseCreativeComposition(
             version: 1,
             layout: "flow",
             cardGapPx: Math.max(0, Math.round(Number((o.parentAuthority as Record<string, unknown>).cardGapPx ?? 16))),
+          }
+        : undefined,
+    edgeLayout:
+      o.edgeLayout && typeof o.edgeLayout === "object" &&
+      (o.edgeLayout as Record<string, unknown>).version === 1 &&
+      ["contained", "inset", "full_bleed"].includes(String((o.edgeLayout as Record<string, unknown>).mode))
+        ? o.edgeLayout as CreativeCompositionBlock["edgeLayout"]
+        : undefined,
+    compositionMode:
+      o.compositionMode && typeof o.compositionMode === "object" &&
+      (o.compositionMode as Record<string, unknown>).version === 1 &&
+      ["flow", "layered"].includes(String((o.compositionMode as Record<string, unknown>).mode))
+        ? {
+            version: 1,
+            mode: (o.compositionMode as Record<string, unknown>).mode as "flow" | "layered",
+            layeredHeightPx: Math.max(240, Math.min(1600, Number((o.compositionMode as Record<string, unknown>).layeredHeightPx) || 620)),
+            layeredPlacementInitialized: (o.compositionMode as Record<string, unknown>).layeredPlacementInitialized === true,
+          }
+        : undefined,
+    compositionDensity:
+      o.compositionDensity && typeof o.compositionDensity === "object" &&
+      (o.compositionDensity as Record<string, unknown>).version === 1 &&
+      ["dense", "standard", "airy", "custom"].includes(String((o.compositionDensity as Record<string, unknown>).mode))
+        ? {
+            version: 1,
+            mode: (o.compositionDensity as Record<string, unknown>).mode as "dense" | "standard" | "airy" | "custom",
+            customGapPx: typeof (o.compositionDensity as Record<string, unknown>).customGapPx === "number"
+              ? Math.max(0, Math.min(64, Number((o.compositionDensity as Record<string, unknown>).customGapPx)))
+              : undefined,
+            rowGapPx: typeof (o.compositionDensity as Record<string, unknown>).rowGapPx === "number" ? Math.max(0, Math.min(64, Number((o.compositionDensity as Record<string, unknown>).rowGapPx))) : undefined,
+            columnGapPx: typeof (o.compositionDensity as Record<string, unknown>).columnGapPx === "number" ? Math.max(0, Math.min(64, Number((o.compositionDensity as Record<string, unknown>).columnGapPx))) : undefined,
+            internalGroupGapPx: typeof (o.compositionDensity as Record<string, unknown>).internalGroupGapPx === "number" ? Math.max(0, Math.min(64, Number((o.compositionDensity as Record<string, unknown>).internalGroupGapPx))) : undefined,
           }
         : undefined,
     background:
@@ -584,7 +691,19 @@ export function groupNodes(
   ids: string[],
   groupId = `group-${nanoid(6)}`
 ): CreativeCompositionNode[] {
-  const set = new Set(ids);
+  const requested = new Set(ids);
+  const selected = nodes.filter((node) => requested.has(node.id));
+  // A Composition Group is a sibling relationship inside the existing
+  // Card/Container parent authority. It never becomes a second hierarchy and
+  // never groups a Container with its descendants.
+  const compatible = selected.filter((node) =>
+    node.compositionKind !== "container" &&
+    node.props.componentKind !== "container" &&
+    !node.props.containerId
+  );
+  const parents = new Set(compatible.map((node) => node.parentId ?? null));
+  if (compatible.length < 2 || compatible.length !== selected.length || parents.size !== 1) return nodes;
+  const set = new Set(compatible.map((node) => node.id));
   return nodes.map((n) => (set.has(n.id) ? { ...n, groupId } : n));
 }
 
@@ -770,6 +889,26 @@ export function createCompositionNode(
         zIndex: 10,
         visible: true,
         props: { src: "", alt: "Image", fit: "cover", opacity: 1 },
+      },
+      video: {
+        id,
+        primitive: "video",
+        x: 0.08,
+        y: 0.08,
+        width: 0.84,
+        height: 0.48,
+        zIndex: 10,
+        visible: true,
+        props: {
+          elementKind: "video",
+          videoUrl: "",
+          videoProvider: "hosted",
+          playbackMode: "play_on_tap",
+          muted: true,
+          controls: true,
+          playsInline: true,
+          videoTitle: "Card video",
+        },
       },
       frame: {
         id,
@@ -1081,8 +1220,8 @@ export function deleteNodes(
 
 /**
  * Expand selection so true Group members move/select together.
- * Container trees must NOT expand here — Containers use containerId/childIds
- * and explicit parent/content selection modes.
+ * Container trees must NOT expand here — Containers use canonical parentId.
+ * Canonical sibling Modules may still form a Group inside that one hierarchy.
  */
 export function expandSelectionToGroups(
   nodes: CreativeCompositionNode[],
@@ -1094,14 +1233,14 @@ export function expandSelectionToGroups(
     if (!seed.has(n.id) || !n.groupId) continue;
     // Containers and their children share a durable hierarchy id for Layers,
     // but must not participate in Group selection expansion.
-    if (n.props.componentKind === "container" || n.props.containerId) continue;
+    if (n.compositionKind === "container" || n.props.componentKind === "container" || n.props.containerId) continue;
     groupIds.add(n.groupId);
   }
   if (!groupIds.size) return [...ids];
   const out = new Set(ids);
   for (const n of nodes) {
     if (!n.groupId || !groupIds.has(n.groupId)) continue;
-    if (n.props.componentKind === "container" || n.props.containerId) continue;
+    if (n.compositionKind === "container" || n.props.componentKind === "container" || n.props.containerId) continue;
     out.add(n.id);
   }
   return [...out];

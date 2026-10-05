@@ -63,8 +63,10 @@ import { fitRootCanvasToContent, rootCanvasAutoHeight, setRootPageHeightPreservi
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
 import { explicitCardMinimum, setExplicitCardMinimum } from "@/lib/fusion/creative-studio/platform/card-extent";
 import { hasCompositionParentAuthority } from "@/lib/fusion/card/composition-parent-authority";
+import { readCardEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
+import { internalPageDestination } from "@/lib/fusion/card/experience-pages";
 
-type TapConnectCardProps = {
+export type TapConnectCardProps = {
   config: TapConnectCardConfig;
   profile: BrandContactProfile;
   businessName: string;
@@ -85,6 +87,7 @@ type TapConnectCardProps = {
   onSectionSelect?: (sectionId: string | null) => void;
   /** Composition node selection (Edit) when a Creative Composition section is active */
   selectedCompositionNodeIds?: string[];
+  compositionSelectionMode?: "single" | "multiple";
   onCompositionNodeSelect?: (sectionId: string | null, nodeIds: string[]) => void;
   onCompositionChange?: (
     sectionId: string | null,
@@ -117,11 +120,34 @@ type TapConnectCardProps = {
   onNotify?: (message: string | null) => void;
   className?: string;
   onAction?: (kind: string, sectionId: string) => void;
+  /** Shared Experience router intercept for canonical INTERNAL PAGE actions. */
+  onInternalPageNavigate?: (pageId: string, sourceId?: string) => void;
+  /** Public/Live Device shells own the full viewport Surface plane. */
+  externalFullBleedSurface?: boolean;
 };
 
 function parseRuntimeComposition(value: unknown): CreativeCompositionBlock | null {
   const block = parseCreativeComposition(value);
   return block ? recompileSignatureAssemblyTree(block) : null;
+}
+
+function findCompositionNode(config: TapConnectCardConfig, nodeId: string) {
+  const visit = (block: CreativeCompositionBlock | undefined): CreativeCompositionBlock["nodes"][number] | null => {
+    if (!block) return null;
+    for (const node of block.nodes) {
+      if (node.id === nodeId) return node;
+      const nested = visit(node.moduleComposition);
+      if (nested) return nested;
+    }
+    return null;
+  };
+  const root = visit(parseRuntimeComposition(config.rootComposition) ?? undefined);
+  if (root) return root;
+  for (const section of config.sections) {
+    const found = visit(parseRuntimeComposition(section.composition) ?? undefined);
+    if (found) return found;
+  }
+  return null;
 }
 
 function sectionDomProps(id: string, selectedSectionId?: string | null) {
@@ -144,6 +170,7 @@ export function TapConnectCard({
   interactionMode,
   onSectionSelect,
   selectedCompositionNodeIds = [],
+  compositionSelectionMode = "single",
   onCompositionNodeSelect,
   onCompositionChange,
   onComposerDrop,
@@ -164,6 +191,8 @@ export function TapConnectCard({
   onNotify,
   className = "",
   onAction,
+  onInternalPageNavigate,
+  externalFullBleedSurface = false,
 }: TapConnectCardProps) {
   const mode: CreativeStudioMode =
     interactionMode ?? (builderChrome ? "edit" : "public");
@@ -225,6 +254,7 @@ export function TapConnectCard({
   }
 
   const cardExtentComposition = parseRuntimeComposition(config.rootComposition);
+  const externalSurfaceOwnsBackground = Boolean(externalFullBleedSurface && cardExtentComposition && readCardEdgeMode(cardExtentComposition) === "full_bleed");
   const hasCardExtentAuthority = Boolean(cardExtentComposition && hasCompositionParentAuthority(cardExtentComposition));
   const governedCardMinimum = cardExtentComposition && hasCardExtentAuthority
     ? explicitCardMinimum(cardExtentComposition, config.rootCanvasMinHeightPx ?? 420)
@@ -1165,6 +1195,7 @@ export function TapConnectCard({
             selectedNodeIds={
               selectedSectionId === section.id ? selectedCompositionNodeIds : []
             }
+            selectionMode={compositionSelectionMode}
             forceMobileFallback={compositionForceMobile}
             editorZoom={editorZoom}
             previewMotion={previewMotion}
@@ -1354,6 +1385,7 @@ export function TapConnectCard({
           block={{ ...block, background: { kind: "none" } }}
           editMode={editSelects}
           selectedNodeIds={selectedSectionId === section.id ? selectedCompositionNodeIds : []}
+          selectionMode={compositionSelectionMode}
           forceMobileFallback={compositionForceMobile}
           editorZoom={editorZoom}
           previewMotion={previewMotion}
@@ -1640,6 +1672,28 @@ export function TapConnectCard({
       data-edit-selects={editSelects ? "true" : "false"}
       data-card-surface-geometry="edge-to-edge-v1"
       onClickCapture={(e) => {
+        if (!editSelects && onInternalPageNavigate) {
+          const nestedAction = (e.target as HTMLElement | null)?.closest?.("[data-internal-page-id]") as HTMLElement | null;
+          const nestedDestination = nestedAction?.dataset.internalPageId;
+          if (nestedDestination) {
+            e.preventDefault();
+            e.stopPropagation();
+            onInternalPageNavigate(nestedDestination, nestedAction.dataset.actionId);
+            return;
+          }
+          const compositionNode = (e.target as HTMLElement | null)?.closest?.("[data-composition-node]") as HTMLElement | null;
+          const nodeId = compositionNode?.dataset.compositionNode;
+          if (nodeId) {
+            const node = findCompositionNode(config, nodeId);
+            const destination = node ? internalPageDestination(node.props) : null;
+            if (destination) {
+              e.preventDefault();
+              e.stopPropagation();
+              onInternalPageNavigate(destination, node?.id);
+              return;
+            }
+          }
+        }
         if (!editSelects) return;
         if ((e.target as HTMLElement | null)?.closest?.("[data-composition-node], [data-testid=creative-composition-canvas], button, input, textarea, select")) return;
         const el = (e.target as HTMLElement | null)?.closest?.(
@@ -1769,6 +1823,7 @@ export function TapConnectCard({
               })()}
               editMode={editSelects}
               selectedNodeIds={!selectedSectionId ? selectedCompositionNodeIds : []}
+              selectionMode={compositionSelectionMode}
               forceMobileFallback={compositionForceMobile}
               editorZoom={editorZoom}
               previewMotion={previewMotion}
@@ -1776,6 +1831,7 @@ export function TapConnectCard({
               layoutMode="free"
               minHeightPx={sections.length > 0 ? rootCanvasAutoHeight(config) : rootHeightDraft ?? (hasCompositionParentAuthority(parseRuntimeComposition(config.rootComposition)) ? explicitCardMinimum(parseRuntimeComposition(config.rootComposition)!, config.rootCanvasMinHeightPx ?? 420) : rootCanvasAutoHeight(config))}
               className="!rounded-none !border-0"
+              suppressBackground={externalSurfaceOwnsBackground}
               onSelectNodes={(ids) => {
                 onSectionSelect?.(null);
                 onCompositionNodeSelect?.(null, ids);

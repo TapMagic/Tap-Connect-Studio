@@ -1,0 +1,166 @@
+{
+  "contract": "studioLayeredCompositionJourney@1.0.0",
+  "route": "http://127.0.0.1:3050/review/studio",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "parent": {
+    "widthPx": 366,
+    "heightPx": 680
+  },
+  "density": {
+    "mode": "dense",
+    "version": 1
+  },
+  "children": [
+    {
+      "id": "composition-proof-image",
+      "authored": {
+        "x": 0.025,
+        "y": 0.035,
+        "width": 0.43,
+        "height": 0.255,
+        "anchor": "top-left",
+        "zIndex": 1
+      },
+      "phone390Viewport": {
+        "x": 21.140625,
+        "y": 193.796875,
+        "width": 157.375,
+        "height": 173.390625
+      },
+      "phone390Parent": {
+        "xPx": 9.140625,
+        "yPx": 23.796875,
+        "widthPx": 157.375,
+        "heightPx": 173.390625
+      }
+    },
+    {
+      "id": "composition-proof-heading",
+      "authored": {
+        "x": 0.48,
+        "y": 0.05000000000000002,
+        "width": 0.48,
+        "height": 0.085,
+        "anchor": "top-right",
+        "zIndex": 3
+      },
+      "phone390Viewport": {
+        "x": 187.671875,
+        "y": 204,
+        "width": 175.671875,
+        "height": 57.796875
+      },
+      "phone390Parent": {
+        "xPx": 175.671875,
+        "yPx": 34,
+        "widthPx": 175.671875,
+        "heightPx": 57.796875
+      }
+    },
+    {
+      "id": "composition-proof-listen",
+      "authored": {
+        "x": 0.17119588062211008,
+        "y": 0.33028799019607846,
+        "width": 0.58,
+        "height": 0.07761764705882353,
+        "anchor": "right",
+        "zIndex": 7
+      },
+      "phone390Viewport": {
+        "x": 74.65625,
+        "y": 394.59375,
+        "width": 212.265625,
+        "height": 52.765625
+      },
+      "phone390Parent": {
+        "xPx": 62.65625,
+        "yPx": 224.59375,
+        "widthPx": 212.265625,
+        "heightPx": 52.765625
+      }
+    },
+    {
+      "id": "composition-proof-watch",
+      "authored": {
+        "x": 0.17119588062211008,
+        "y": 0.45848161764705886,
+        "width": 0.58,
+        "height": 0.07761764705882353,
+        "anchor": "left",
+        "zIndex": 5
+      },
+      "phone390Viewport": {
+        "x": 74.65625,
+        "y": 481.75,
+        "width": 212.265625,
+        "height": 52.765625
+      },
+      "phone390Parent": {
+        "xPx": 62.65625,
+        "yPx": 311.75,
+        "widthPx": 212.265625,
+        "heightPx": 52.765625
+      }
+    },
+    {
+      "id": "composition-proof-lower-flow",
+      "authored": {
+        "x": 0.025,
+        "y": 0.56,
+        "width": 0.95,
+        "height": 0.23,
+        "anchor": "bottom",
+        "zIndex": 2
+      },
+      "phone390Viewport": {
+        "x": 21.140625,
+        "y": 550.796875,
+        "width": 347.6875,
+        "height": 156.390625
+      },
+      "phone390Parent": {
+        "xPx": 9.140625,
+        "yPx": 380.796875,
+        "widthPx": 347.6875,
+        "heightPx": 156.390625
+      }
+    }
+  ],
+  "group": {
+    "id": "group-avwPED",
+    "memberIds": [
+      "composition-proof-listen",
+      "composition-proof-watch",
+      "composition-proof-website"
+    ],
+    "layout": "flow_vertical",
+    "density": "dense",
+    "movedByPointer": true,
+    "savedAndReloaded": true
+  },
+  "checks": {
+    "fullBleed": true,
+    "rootLayered": true,
+    "lowerFlowContainer": true,
+    "snapGuidesTransient": true,
+    "oneGestureHistory": true,
+    "groupMultiselect": true,
+    "groupOutlineHierarchy": true,
+    "groupResizeGoverned": true,
+    "groupMoveOneGesture": true,
+    "phoneGroupAuthoring": true,
+    "phoneGroupHandlesReachable": true,
+    "undoRedo": true,
+    "exactSaveReload": true,
+    "previewParity": true,
+    "liveDeviceParity": true,
+    "phoneActionCount": 7,
+    "minimumTouchTargetPx": 44,
+    "noHorizontalOverflow": true,
+    "productOwnerAcceptance": "pending"
+  }
+}

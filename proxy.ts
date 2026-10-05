@@ -1,28 +1,9 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
+import { AUTH_SIGN_IN_PATH, PUBLIC_ROUTE_PATTERNS } from "@/lib/auth-route-policy";
 import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 
-const isPublicRoute = createRouteMatcher([
-  "/",
-  "/pricing(.*)",
-  "/offer(.*)",
-  "/sign-in(.*)",
-  "/sign-up(.*)",
-  "/onboarding(.*)",
-  "/t/(.*)",
-  "/mytap/(.*)",
-  "/scan/(.*)",
-  "/api/health(.*)",
-  "/api/leads",
-  "/api/tap/(.*)",
-  "/api/qr(.*)",
-  "/api/scan/claim(.*)",
-  "/api/integrations/status(.*)",
-  "/api/public/(.*)",
-  "/api/tapsave/(.*)",
-  "/api/mytap/(.*)",
-  "/preview/(.*)",
-]);
+const isPublicRoute = createRouteMatcher(PUBLIC_ROUTE_PATTERNS);
 
 const localDevAuth = isLocalDevAuthEnabled();
 const isClerkConfigured =
@@ -35,7 +16,9 @@ const isClerkConfigured =
 export default isClerkConfigured
   ? clerkMiddleware(async (auth, request) => {
       if (!isPublicRoute(request)) {
-        await auth.protect();
+        await auth.protect({
+          unauthenticatedUrl: new URL(AUTH_SIGN_IN_PATH, request.url).toString(),
+        });
       }
     })
   : function proxy() {

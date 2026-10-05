@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowUpRight, GripVertical, Heart, Mail, MapPin, Phone, Sparkles, Star, Tag, Ticket } from "lucide-react";
+import { ArrowDownToLine, ArrowUpToLine, ArrowUpRight, GripVertical, Heart, LockKeyhole, Mail, MapPin, Maximize2, Move, Phone, Play, Sparkles, Star, Tag, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
   FRAME_MASK_CATALOG,
@@ -14,14 +14,13 @@ import {
   duplicateNodes,
   expandSelectionToGroups,
   frameMaskPath,
-  groupNodes,
   resolveNodeBox,
   sendBackward,
   sendToBack,
   sortCompositionNodes,
   translateNodesOnPasteboard,
-  ungroupNodes,
   type CreativeCompositionBlock,
+  type CreativeCompositionGroup,
   type CreativeCompositionNode,
   type FrameMaskId,
 } from "@/lib/fusion/creative-studio/composition";
@@ -38,13 +37,13 @@ import {
   snapCompositionNodes,
   type CompositionGuide,
 } from "@/lib/fusion/creative-studio/composition-snap";
-import { buildButtonHref, buildMapHref, type MapElementProps } from "@/lib/fusion/card/designer-elements";
+import { buildButtonHref, type MapElementProps } from "@/lib/fusion/card/designer-elements";
 import {
   compositionChildren,
   deleteCompositionNode,
   duplicateCompositionNode,
   hasCompositionParentAuthority,
-  reparentCompositionModule,
+  reparentCompositionNode,
   reorderCompositionNode,
 } from "@/lib/fusion/card/composition-parent-authority";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
@@ -65,18 +64,23 @@ import {
 } from "@/lib/fusion/creative-studio/selection-mode";
 import {
   activateGroupContentChild,
+  compositionGroupRecord,
   computeGroupUnionBounds,
   exitGroupContentEditing,
+  groupCompositionBlock,
   isGroupContentEditing,
   isGroupContentScope,
   isGroupParentSelection,
   resolveActiveGroupId,
   resizeGroupComposition,
   rotateGroupComposition,
+  synchronizeCompositionGroups,
+  ungroupCompositionBlock,
 } from "@/lib/fusion/creative-studio/group-authority";
 import { badgeShapeBorderRadius, badgeShapeClipPath, badgeShapeSvgPoints, badgeUsesPathStroke } from "@/lib/fusion/creative-studio/badge-shape";
 import { effectLayersCss } from "@/lib/fusion/creative-studio/effect-render";
 import {
+  getMaterialRecipe,
   materialPropsFromCompositionBackground,
   surfaceShadowCss,
 } from "@/lib/fusion/creative-studio/material-engine";
@@ -112,11 +116,22 @@ import { ARC_EMBER_STAGE_ID, isSignatureAssetProps, layoutArcEmberStages, requir
 import { curatedCompoundObjectForNode, curatedCompoundObjects } from "@/lib/fusion/creative-studio/platform/curated-compound-object";
 import { readStudioSurfaceState } from "@/lib/fusion/creative-studio/platform/surface-capability";
 import { studioModuleActivationMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
+import { readStudioVideoState, videoAspectRatio, videoEmbedUrl } from "@/lib/fusion/creative-studio/platform/media-module";
+import { readCardEdgeMode, readContainerEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
+import { allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, layeredResizePolicy, moveLayeredNode, reorderLayeredNodeZ, snapLayeredNode, snapLayeredResize, type StudioRectangularResizeHandle } from "@/lib/fusion/creative-studio/platform/layered-region";
+import { readCardSurfaceDensity, readContainerDensity } from "@/lib/fusion/creative-studio/platform/composition-density";
+import { cardSurfaceImageLayerStyle } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
+import { STANDARD_BUTTON_APPEARANCE_CONTRACT, readStandardButtonAppearance } from "@/lib/fusion/creative-studio/reconstitution/standard-button-appearance";
+import { readCompactActionGrid } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
+import { CompactActionGrid } from "@/components/tap/compact-action-grid";
+import { MapLocationContainer } from "@/components/tap/map-location-container";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
   editMode?: boolean;
   selectedNodeIds?: string[];
+  /** Explicit touch-safe selection mode. Modifier keys remain an optional shortcut. */
+  selectionMode?: "single" | "multiple";
   onSelectNodes?: (ids: string[]) => void;
   onChangeBlock?: (next: CreativeCompositionBlock, label?: string) => void;
   /** Force mobile fallback layout (narrow preview). */
@@ -129,6 +144,8 @@ export type CreativeCompositionCanvasProps = {
    */
   editorZoom?: number;
   className?: string;
+  /** Runtime shells project a full-bleed root Surface behind the whole viewport. */
+  suppressBackground?: boolean;
   aspectRatio?: number;
   layoutMode?: "stack" | "row" | "grid" | "free";
   gapPx?: number;
@@ -301,6 +318,7 @@ function InlineEditableText({
     cancelled.current = false;
     const element = ref.current;
     if (!element) return;
+    if (element.innerText !== value) element.innerText = value;
     element.focus({ preventScroll: true });
     const selection = window.getSelection();
     const range = document.createRange();
@@ -351,8 +369,93 @@ function InlineEditableText({
           ref.current?.blur();
         }
       }}
-    />
+    >
+      {editing ? null : value}
+    </span>
   );
+}
+
+function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMode?: boolean }) {
+  const state = readStudioVideoState(node.props);
+  const [activated, setActivated] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(false);
+  useEffect(() => {
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const sync = () => setReducedMotion(query.matches);
+    sync();
+    query.addEventListener("change", sync);
+    return () => query.removeEventListener("change", sync);
+  }, []);
+  const autoplay = !editMode && !reducedMotion && state.playbackMode === "autoplay_muted";
+  const embed = videoEmbedUrl(state, autoplay || activated);
+  const shouldEmbed = Boolean(embed && (autoplay || activated));
+  const accessibleDescription = state.description ? `${state.title}. ${state.description}` : state.title;
+  const hiddenLocked = state.locked && state.lockedBehavior?.mode === "hidden";
+  const frameBackground = state.frameTreatment === "transparent" ? "transparent"
+    : state.frameTreatment === "solid" ? state.frameColor
+      : state.frameTreatment === "artist-surface" ? `linear-gradient(145deg,${state.frameColor},#050608 68%,${state.frameAccent}22)`
+        : `linear-gradient(145deg,${state.frameColor}e8,${state.frameColor}b8)`;
+  const featureFrame: CSSProperties = {
+    background: frameBackground,
+    borderRadius: state.frameRadiusPx,
+    border: state.frameBorderPx ? `${state.frameBorderPx}px solid ${state.frameAccent}66` : undefined,
+    boxShadow: state.frameTreatment === "transparent" ? undefined : `inset 0 1px 0 ${state.frameAccent}33, 0 18px 38px rgba(0,0,0,.32)`,
+  };
+
+  if (hiddenLocked && !editMode) return null;
+
+  if (!state.sourceUrl) {
+    return editMode ? <div className="grid h-full w-full place-items-center rounded-xl border border-dashed border-white/22 bg-white/5 p-4 text-center text-[10px] text-white/72" data-video-presentation={state.presentation}><span>Add a hosted, YouTube, or Vimeo source in Refine</span></div> : null;
+  }
+
+  const playback = state.provider === "youtube" || state.provider === "vimeo" ? (
+    shouldEmbed ? <iframe className="h-full w-full border-0" src={embed || undefined} title={state.title} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : null
+  ) : (
+    <video
+      className="h-full w-full bg-black object-contain"
+      src={state.sourceUrl}
+      poster={state.presentation === "standard" ? state.posterUrl : undefined}
+      title={state.title}
+      aria-label={accessibleDescription}
+      controls={state.controls}
+      autoPlay={autoplay || activated}
+      muted={state.muted || autoplay}
+      loop={state.loop && !state.playOnce}
+      playsInline={state.playsInline}
+      preload={autoplay ? "metadata" : "none"}
+      data-video-provider="hosted"
+      data-video-playback={state.playbackMode}
+      data-analytics-id={state.analyticsId}
+      onClick={(event) => { if (editMode) event.preventDefault(); }}
+    >
+      {state.captionsUrl ? <track kind="captions" src={state.captionsUrl} srcLang="en" label="English" default /> : null}
+    </video>
+  );
+
+  if (state.presentation === "feature") {
+    const playing = Boolean((state.provider === "youtube" || state.provider === "vimeo") ? shouldEmbed : activated || autoplay);
+    const locked = state.locked;
+    const policy = state.lockedBehavior ?? { mode: "none" as const };
+    return (
+      <div className="relative h-full w-full overflow-hidden text-white" style={featureFrame} data-video-provider={state.provider} data-video-playback={state.playbackMode} data-video-presentation="feature" data-video-aspect={state.aspect} data-video-state={locked ? "locked" : playing ? "playing" : "poster"} data-analytics-id={state.analyticsId}>
+        <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: Math.max(0, state.frameRadiusPx - state.frameBorderPx) }}>
+          {playing && !locked ? playback : <button type="button" disabled={editMode || locked} className="group relative grid h-full w-full place-items-center overflow-hidden bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,.12),transparent_42%),#080b10] text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--video-accent)]" style={{ "--video-accent": state.frameAccent } as CSSProperties} aria-label={locked ? `${state.title} is locked` : `Play ${accessibleDescription}`} onClick={(event) => { event.preventDefault(); if (!editMode && !locked) setActivated(true); }}>
+            {state.posterUrl ? <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={state.posterUrl} alt="" className={cn("absolute inset-0 h-full w-full", state.posterFit === "contain" ? "object-contain" : "object-cover")} style={{ objectPosition: `${state.posterFocalX * 100}% ${state.posterFocalY * 100}%` }} /></> : null}
+            <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-black/20" aria-hidden />
+            <span className={cn("relative grid place-items-center transition-transform group-hover:scale-105", state.playPresentation === "minimal" ? "h-12 w-12" : "h-16 w-16 rounded-full border shadow-2xl", state.playPresentation === "accent" ? "border-white/40 bg-[var(--video-accent)] text-black" : state.playPresentation === "circle" ? "border-white/35 bg-black/62" : "bg-black/35")}><Play className="ml-1 h-6 w-6 fill-current" aria-hidden /></span>
+            <span className="absolute inset-x-0 bottom-0 p-4 text-left">
+              {state.showTitle ? <strong className="block text-base leading-tight drop-shadow">{state.title}</strong> : null}
+              {state.showSubtitle && state.subtitle ? <span className="mt-1 block text-[11px] font-medium text-white/82">{state.subtitle}</span> : null}
+              {state.showDescription && state.description ? <span className="mt-1.5 line-clamp-2 block text-[10px] leading-4 text-white/68">{state.description}</span> : null}
+            </span>
+          </button>}
+        </div>
+        {locked ? <div className="absolute inset-0 z-10 grid place-items-center bg-black/68 p-4 text-center backdrop-blur-[2px]" data-video-locked-mode={policy.mode}><div><LockKeyhole className="mx-auto h-7 w-7 text-[var(--video-accent)]" style={{ "--video-accent": state.frameAccent } as CSSProperties} /><strong className="mt-2 block text-sm">{state.title}</strong>{policy.mode === "message" || policy.mode === "cta" ? <p className="mt-1 text-[10px] leading-4 text-white/68">{policy.message || "This video requires additional access."}</p> : null}{policy.mode === "cta" && policy.ctaLabel ? <a href={policy.ctaDestinationType === "external" ? policy.ctaDestinationRef : undefined} data-internal-page-id={policy.ctaDestinationType === "internal_page" ? policy.ctaDestinationRef : undefined} onClick={(event) => { if (editMode || !policy.ctaDestinationRef) event.preventDefault(); }} className="mt-3 inline-flex min-h-10 items-center rounded-full bg-[var(--video-accent)] px-4 text-[10px] font-semibold text-black" style={{ "--video-accent": state.frameAccent } as CSSProperties}>{policy.ctaLabel}</a> : null}</div></div> : null}
+      </div>
+    );
+  }
+  if (state.provider === "youtube" || state.provider === "vimeo") return <div className="relative h-full w-full overflow-hidden rounded-xl bg-black" data-video-provider={state.provider} data-video-playback={state.playbackMode} data-analytics-id={state.analyticsId}>{shouldEmbed ? playback : <button type="button" className="group relative grid h-full w-full place-items-center bg-[#0b111b] text-white" aria-label={`Play ${accessibleDescription}`} onClick={(event) => { event.preventDefault(); if (!editMode) setActivated(true); }}>{state.posterUrl ? <img src={state.posterUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-75" /> : null}<span className="relative grid h-14 w-14 place-items-center rounded-full border border-white/30 bg-black/65 shadow-xl"><Play className="ml-1 h-6 w-6 fill-current" /></span></button>}</div>;
+  return playback;
 }
 
 function NodeVisual({
@@ -371,51 +474,14 @@ function NodeVisual({
   const elementKind = str(node.props.elementKind);
 
   if (elementKind === "map" || str(node.props.componentKind) === "map") {
-    const props = node.props as MapElementProps;
-    const hasSetup = Boolean(props.locationId || props.address || props.mapUrl || (Number.isFinite(props.latitude) && Number.isFinite(props.longitude)));
-    // Preview must never make the Map disappear — show a location-card fallback.
-    const mode = str(props.mapDisplayMode, hasSetup ? "location_card" : "location_card");
-    const name = str(props.locationName, hasSetup ? "Location" : "Location setup required");
-    const address = str(props.address, hasSetup ? "" : "Add an address in Map Setup");
-    const href = buildMapHref(props);
-    const directions = (
-      <a
-        href={href || undefined}
-        aria-disabled={!href}
-        aria-label={str(props.accessibleLabel, "Open directions")}
-        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white"
-        onClick={(event) => { if (editMode || !href) event.preventDefault(); }}
-      >
-        <MapPin className="h-4 w-4" aria-hidden /> Directions
-      </a>
-    );
-    if (mode === "directions_only") return <div className="flex h-full w-full items-center justify-center" data-map-presentation={mode}>{directions}</div>;
-    if (mode === "pin_only") return <div className="flex h-full w-full items-center justify-center" data-map-presentation={mode}><MapPin className="h-8 w-8" aria-label={name} /></div>;
-    if (mode === "text_link") return <div className="flex h-full w-full items-center justify-center" data-map-presentation={mode}><a href={href || undefined} aria-disabled={!href} onClick={(event) => { if (editMode || !href) event.preventDefault(); }} className="text-sm font-semibold underline underline-offset-4">Get directions to {name}</a></div>;
-    const mapLike = mode === "interactive" || mode === "static" || mode === "map_directions";
-    return (
-      <div
-        className="relative flex h-full w-full overflow-hidden border border-white/15 bg-[#17231d]"
-        style={{ borderRadius: num(props.radius, 14), opacity: num(props.opacity, 1) }}
-        data-map-presentation={mode}
-      >
-        {mapLike ? (
-          <div className="relative min-w-[46%] flex-1 overflow-hidden bg-[#dce8d8]" aria-label={`${mode === "interactive" ? "Interactive" : "Static"} map preview`}>
-            <div className="absolute inset-0 opacity-60" style={{ backgroundImage: "linear-gradient(28deg, transparent 46%, #afc5aa 47%, #afc5aa 52%, transparent 53%), linear-gradient(112deg, transparent 42%, #c2d2bd 43%, #c2d2bd 48%, transparent 49%)", backgroundSize: "58px 58px, 76px 76px" }} />
-            <MapPin className="absolute left-1/2 top-1/2 h-7 w-7 -translate-x-1/2 -translate-y-1/2 fill-[#14241a] text-[#b8ff2c] drop-shadow" aria-hidden />
-            <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[8px] text-white">Map preview</span>
-          </div>
-        ) : null}
-        <div className="flex min-w-0 flex-1 flex-col justify-center gap-2 p-3">
-          <div className="flex items-start gap-2"><MapPin className="mt-0.5 h-4 w-4 shrink-0 text-[#b8ff2c]" aria-hidden /><div className="min-w-0"><strong className="block truncate text-xs text-white">{name}</strong><span className="block text-[10px] leading-snug text-white/70">{address}</span></div></div>
-          {(mode === "map_directions" || mode === "location_card") ? directions : null}
-          {editMode && !href ? <span className="text-[9px] text-amber-200">Choose a location in Setup</span> : null}
-        </div>
-      </div>
-    );
+    return <MapLocationContainer props={node.props as MapElementProps} editMode={editMode} />;
   }
 
   const componentKind = str(node.props.componentKind);
+  const compactActionGrid = readCompactActionGrid(node.props);
+  if (compactActionGrid) {
+    return <CompactActionGrid state={compactActionGrid} editMode={editMode} />;
+  }
   if (isSignatureAssetProps(node.props)) {
     return <SignatureMasterBridge props={node.props} editMode={editMode} />;
   }
@@ -441,10 +507,12 @@ function NodeVisual({
     }
     // Material props are the surface authority when a Material was applied.
     // Visual Plane remains for non-Material Container Background editing.
+    const selectedMaterialRecipe = typeof node.props.materialPreset === "string" ? getMaterialRecipe(node.props.materialPreset) : null;
     const materialActive =
       typeof node.props.materialPreset === "string" &&
       node.props.materialPreset.length > 0 &&
-      node.props.materialPreset !== "none";
+      node.props.materialPreset !== "none" &&
+      !selectedMaterialRecipe?.sourceMaster;
     if (materialActive || actionSurfaceTone === "copper_harmonized" || vpContainer.rimPartId || actionSurfaceTone) {
       const material = materialActive
         ? resolveMaterialSurfaceFromProps(node.props, "container")
@@ -525,7 +593,7 @@ function NodeVisual({
         borderRadius: num(node.props.radius, 0),
         boxShadow: num(node.props.boxShadow, 0) ? `0 10px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)` : undefined,
         opacity: num(node.props.opacity, 1),
-        filter: studioSurface.treatment === "image" && studioSurface.brightness !== 1 ? `brightness(${studioSurface.brightness})` : undefined,
+        filter: studioSurface.treatment === "image" ? `brightness(${studioSurface.brightness}) contrast(${studioSurface.contrast}) saturate(${studioSurface.saturation})` : undefined,
         backdropFilter: studioSurface.treatment === "smoked_glass" ? `blur(${studioSurface.blurPx}px)` : undefined,
         WebkitBackdropFilter: studioSurface.treatment === "smoked_glass" ? `blur(${studioSurface.blurPx}px)` : undefined,
       }}
@@ -621,6 +689,8 @@ function NodeVisual({
   if (node.primitive === "text") {
     const text = str(node.props.text, "Text");
     const curve = str(node.props.textCurve, "none");
+    const heightMode = str(node.props.textHeightMode, "auto");
+    const overflowMode = str(node.props.textOverflow, "visible");
     const glyphStyle: CSSProperties = {
       display: "inline-block",
       backgroundImage: node.props.gradientFill ? str(node.props.gradientFill) : undefined,
@@ -694,11 +764,13 @@ function NodeVisual({
     }
     return (
       <div
-        className="flex h-full w-full items-center overflow-hidden px-1"
+        className={cn("flex w-full items-center px-1", heightMode === "fixed" ? "h-full" : "h-auto min-h-full")}
         data-text-box-background={node.props.boxGradient || (node.props.boxFill && str(node.props.boxFill) !== "transparent") ? "filled" : "transparent"}
         data-glyph-effect={str(node.props.effectPreset, str(node.props.glyphEffect, node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"))}
         data-glyph-gradient={node.props.gradientFill ? "true" : "false"}
-        data-text-box={node.props.boxFill || node.props.boxGradient || node.props.boxBorder ? "true" : "false"}
+        data-text-box={node.props.boxGradient || (node.props.boxFill && str(node.props.boxFill) !== "transparent") || num(node.props.boxBorderWidth, node.props.boxBorder ? 1 : 0) > 0 ? "true" : "false"}
+        data-text-height-mode={heightMode}
+        data-text-overflow={heightMode === "fixed" ? overflowMode : "visible"}
         style={{
           color: str(node.props.color, "#f8fafc"),
           fontSize: num(node.props.fontSize, 18),
@@ -730,10 +802,13 @@ function NodeVisual({
                 ? "flex-end"
                 : "center",
           // Text Box fill only — never glyph gradientFill.
-          background: node.props.boxGradient ? str(node.props.boxGradient) : node.props.boxFill ? str(node.props.boxFill) : "transparent",
-          border: node.props.boxBorder ? `1px solid ${str(node.props.boxBorder)}` : undefined,
+          background: node.props.boxGradient ? str(node.props.boxGradient) : node.props.boxFill ? colorWithOpacity(str(node.props.boxFill), num(node.props.boxFillOpacity, 1)) : "transparent",
+          border: num(node.props.boxBorderWidth, node.props.boxBorder ? 1 : 0) > 0 ? `${num(node.props.boxBorderWidth, 1)}px solid ${str(node.props.boxBorder, "transparent")}` : undefined,
           borderRadius: node.props.boxRadius != null ? num(node.props.boxRadius, 0) : undefined,
           padding: node.props.boxPadding != null ? num(node.props.boxPadding, 0) : undefined,
+          minHeight: Math.max(0, num(node.props.textMinHeightPx, 0)) || undefined,
+          overflowY: heightMode !== "fixed" || overflowMode === "visible" ? "visible" : overflowMode === "scroll" ? "auto" : "hidden",
+          opacity: num(node.props.opacity, 1),
           boxShadow: effectLayersCss("text_box", {
             effectPreset: str(node.props.effectPreset, ""),
             glow: num(node.props.boxGlow, 0),
@@ -878,6 +953,14 @@ function NodeVisual({
             aria-hidden
           />
         ) : null}
+        {src && num(node.props.layerTintOpacity, 0) > 0 ? (
+          <div
+            className="pointer-events-none absolute inset-0"
+            style={{ background: str(node.props.layerTintColor, "#000000"), opacity: num(node.props.layerTintOpacity, 0) }}
+            aria-hidden
+            data-image-layer-tint="true"
+          />
+        ) : null}
         {src && vignette > 0 ? (
           <div
             className="pointer-events-none absolute inset-0"
@@ -893,6 +976,8 @@ function NodeVisual({
       </VisualPartsShell>
     );
   }
+
+  if (node.primitive === "video") return <VideoVisual node={node} editMode={editMode} />;
 
   if (node.primitive === "frame") {
     const mask = str(node.props.mask, "rounded") as FrameMaskId;
@@ -1449,6 +1534,7 @@ function NodeVisual({
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
+    const standardAppearance = readStandardButtonAppearance(node.props);
 
     // Arc Ember hosting test — immutable PNG master plus live semantic overlays only.
     if (isArcEmberPristineMasterProps(node.props)) {
@@ -1646,11 +1732,12 @@ function NodeVisual({
     const railLayout = rails.railAware && !verticalIcon && !freeLayout;
     const surfaceInner = (
       <span
-        className={
+        className={cn(
+          "studio-standard-button-face",
           railLayout
             ? "relative grid h-full w-full shrink-0 items-center overflow-visible"
             : "relative inline-flex h-full w-full shrink-0 items-center justify-center overflow-visible"
-        }
+        )}
         style={{
           minHeight: 44,
           background: surfaceBackground,
@@ -1675,6 +1762,7 @@ function NodeVisual({
               }),
         }}
         data-button-surface-kind={surfaceKind}
+        data-standard-button-face="true"
         data-button-radius={String(linkedRadius)}
         data-button-content-layout={str(node.props.buttonContentLayout, "auto")}
         data-button-high-gloss={materialSurface.shine ? "true" : "false"}
@@ -1731,20 +1819,26 @@ function NodeVisual({
     const surface = (
       <span
         className={cn(
-          "relative inline-flex shrink-0 overflow-visible",
+          "studio-standard-button relative inline-flex shrink-0 overflow-visible",
           interactionMode === "tactile" && "vp-interaction-tactile",
           interactionMode === "mechanical" && "vp-interaction-mechanical",
           interactionMode === "quiet" && "vp-interaction-quiet"
         )}
         data-vp-interaction={interactionMode || undefined}
+        data-standard-button={STANDARD_BUTTON_APPEARANCE_CONTRACT}
+        data-standard-button-depth={standardAppearance.depth}
+        data-standard-button-edge={standardAppearance.edge}
+        data-material-preset={standardAppearance.materialId}
         data-vp-motion-intensity={interactionMode ? String(motionIntensity) : undefined}
         style={{
           width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           minHeight: 44,
           ["--vp-motion-intensity" as string]: String(motionIntensity / 100),
+          ["--standard-button-elevation" as string]: `${standardAppearance.faceElevationPx}px`,
         }}
       >
+        {standardAppearance.faceElevationPx > 0 ? <span className="studio-standard-button-sidewall" style={{ borderRadius: radius }} aria-hidden /> : null}
         <MountShell props={node.props}>
           <VisualPartsShell props={node.props} radius={radius} testIdPrefix={`button-${node.id}`}>
             {surfaceInner}
@@ -1802,6 +1896,7 @@ export function CreativeCompositionCanvas({
   block,
   editMode = false,
   selectedNodeIds = [],
+  selectionMode = "single",
   onSelectNodes,
   onChangeBlock,
   forceMobileFallback = false,
@@ -1809,6 +1904,7 @@ export function CreativeCompositionCanvas({
   reducedMotionSimulation = false,
   editorZoom = 1,
   className,
+  suppressBackground = false,
   aspectRatio = 4 / 5,
   layoutMode = "free",
   gapPx = 12,
@@ -1828,6 +1924,7 @@ export function CreativeCompositionCanvas({
     null
   );
   const [guides, setGuides] = useState<CompositionGuide[]>([]);
+  const [layeredGuideRegionId, setLayeredGuideRegionId] = useState<string | null>(null);
   const [contextMenu, setContextMenu] = useState<{ id: string; x: number; y: number } | null>(null);
   useEffect(() => {
     const dismiss = () => setContextMenu(null);
@@ -1840,6 +1937,7 @@ export function CreativeCompositionCanvas({
   const [flowDragNodeId, setFlowDragNodeId] = useState<string | null>(null);
   const [flowPointerVisual, setFlowPointerVisual] = useState<{ x: number; y: number; startX: number; startY: number; nodeId: string; label: string } | null>(null);
   const flowPointerRef = useRef<number | null>(null);
+  const layeredFinalNodesRef = useRef<CreativeCompositionNode[] | null>(null);
   const [marquee, setMarquee] = useState<{
     startX: number;
     startY: number;
@@ -1974,7 +2072,7 @@ export function CreativeCompositionCanvas({
   );
   const commitNodes = useCallback(
     (nodes: CreativeCompositionNode[], label: string) => {
-      onChangeBlock?.({ ...block, nodes }, label);
+      onChangeBlock?.(synchronizeCompositionGroups({ ...block, nodes }), label);
     },
     [block, onChangeBlock]
   );
@@ -2208,21 +2306,23 @@ export function CreativeCompositionCanvas({
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "g" && !e.shiftKey) {
-        if (hasCompositionParentAuthority(block)) return;
         if (selectedNodeIds.length < 2) return;
         e.preventDefault();
-        const next = groupNodes(block.nodes, selectedNodeIds);
-        commitNodes(next, "Grouped Elements");
-        onSelectNodes?.(expandSelectionToGroups(next, selectedNodeIds));
+        const next = groupCompositionBlock(block, selectedNodeIds);
+        if (next === block) {
+          onNotify?.("Group compatible sibling Modules inside the same Card or Container parent.");
+          return;
+        }
+        onChangeBlock?.(next, "Grouped Elements");
+        onSelectNodes?.(expandSelectionToGroups(next.nodes, selectedNodeIds));
         return;
       }
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === "g") {
-        if (hasCompositionParentAuthority(block)) return;
         const gid = resolveActiveGroupId(block.nodes, selectedNodeIds);
         if (!gid) return;
         e.preventDefault();
-        const next = ungroupNodes(block.nodes, gid);
-        commitNodes(next, "Ungrouped Elements");
+        const next = ungroupCompositionBlock(block, gid);
+        onChangeBlock?.(next, "Ungrouped Elements");
         onSelectNodes?.(selectedNodeIds);
         return;
       }
@@ -2287,7 +2387,7 @@ export function CreativeCompositionCanvas({
       window.removeEventListener("keydown", onKey);
       window.removeEventListener("paste", onPaste);
     };
-  }, [editMode, selectedNodeIds, block, commitNodes, onSelectNodes, onNotify, contextMenu, importImageFiles]);
+  }, [editMode, selectedNodeIds, block, commitNodes, onSelectNodes, onNotify, onChangeBlock, contextMenu, importImageFiles]);
 
   const onPointerDownNode = (
     e: React.PointerEvent,
@@ -2446,12 +2546,7 @@ export function CreativeCompositionCanvas({
       if (north) { y = n.y + dy; height = n.height - dy * 2; }
     }
     const cornerResize = (east || west) && (north || south);
-    const preservesAspect =
-      n.primitive === "image"
-        ? n.props.aspectLocked !== false
-        : n.primitive === "text"
-          ? n.props.transformMode !== "stretch_glyphs"
-          : n.props.aspectLocked === true;
+    const preservesAspect = layeredResizePolicy(n) === "governed-aspect" || n.props.aspectLocked === true;
     if ((e.shiftKey || preservesAspect) && cornerResize && !isContainerNode(n)) {
       const aspect = drag.orig.width / drag.orig.height;
       if (Math.abs(dx) >= Math.abs(dy)) height = width / aspect;
@@ -2492,19 +2587,6 @@ export function CreativeCompositionCanvas({
       );
       return;
     }
-    const isTextCorner = n.primitive === "text" && (east || west) && (north || south);
-    const scale = isTextCorner
-      ? Math.max(
-          0.2,
-          Math.min(
-            8,
-            Math.sqrt(
-              (frame.width / Math.max(drag.orig.width, 0.02)) *
-                (frame.height / Math.max(drag.orig.height, 0.02))
-            )
-          )
-        )
-      : 1;
     setDraftNodes(
       drag.origNodes.map((candidate) =>
         candidate.id !== drag.id
@@ -2512,23 +2594,9 @@ export function CreativeCompositionCanvas({
           : {
               ...candidate,
               ...frame,
-              props: isTextCorner
-                ? {
-                    ...candidate.props,
-                    fontSize: Math.max(
-                      6,
-                      Math.min(320, num(drag.orig.props.fontSize, 18) * scale)
-                    ),
-                    lineHeight: Math.max(
-                      0.7,
-                      Math.min(3, num(drag.orig.props.lineHeight, 1.2) * scale)
-                    ),
-                    curveRadius: Math.max(
-                      8,
-                      Math.min(80, num(drag.orig.props.curveRadius, 38) * scale)
-                    ),
-                  }
-                : candidate.props,
+              // Text width/height edits change the frame and wrapping only.
+              // Typography remains independent from box geometry.
+              props: candidate.props,
             }
       )
     );
@@ -2590,72 +2658,36 @@ export function CreativeCompositionCanvas({
   const backgroundImage = block.background?.image;
   // Material page backgrounds resolve fill + texture/highlight via shared authority.
   // Non-Material Visual Plane paths keep pattern/image/solid/gradient as before.
+  const imageLayerStyle = cardSurfaceImageLayerStyle(block.background);
   const backgroundStyle = pageMaterial
     ? {
         background: pageMaterial.background,
         backgroundSize: pageMaterial.backgroundSize,
       }
-    : block.background?.kind === "image" && backgroundImage?.src
-      ? {
-          backgroundColor: "#0b0f19",
-          backgroundImage: `${
-            backgroundImage.overlayColor && (backgroundImage.overlayOpacity || 0) > 0
-              ? `linear-gradient(${backgroundImage.overlayColor}${Math.round(
-                  (backgroundImage.overlayOpacity || 0) * 255
-                )
-                  .toString(16)
-                  .padStart(2, "0")}, ${backgroundImage.overlayColor}${Math.round(
-                  (backgroundImage.overlayOpacity || 0) * 255
-                )
-                  .toString(16)
-                  .padStart(2, "0")}), `
-              : ""
-          }url("${backgroundImage.src.replaceAll('"', "%22")}")`,
-          backgroundSize:
-            backgroundImage.fit === "fill"
-              ? "100% 100%"
-              : backgroundImage.fit === "original"
-                ? `${Math.round(backgroundImage.scale * 100)}% auto`
-                : backgroundImage.fit,
-          backgroundPosition: `${backgroundImage.focalX * 100}% ${
-            backgroundImage.focalY * 100
-          }%`,
-          backgroundRepeat: backgroundImage.repeat,
-          backgroundBlendMode: backgroundImage.blendMode || "normal",
-        }
+    : imageLayerStyle
+      ? imageLayerStyle
       : (block.background?.kind === "pattern" ||
             block.background?.kind === "texture") &&
           block.background.pattern
         ? surfacePatternStyle(block.background.pattern)
         : { background: bg };
-  const backgroundTreatmentStyle =
-    block.background?.kind === "image" && backgroundImage
-      ? {
-          filter: `blur(${backgroundImage.blur || 0}px) brightness(${
-            backgroundImage.brightness || 1
-          }) contrast(${backgroundImage.contrast || 1})`,
-          transform:
-            (backgroundImage.blur || 0) > 0
-              ? `scale(${1 + Math.min(backgroundImage.blur || 0, 20) / 100})`
-              : undefined,
-        }
-      : undefined;
+  const backgroundTreatmentStyle = block.background?.kind === "image" && backgroundImage ? imageLayerStyle || undefined : undefined;
 
+  const cardEdgeMode = readCardEdgeMode(block);
+  const cardEdgeInset = cardEdgeMode === "full_bleed" ? 0 : cardEdgeMode === "contained" ? (block.safeAreaPaddingPx ?? 12) : (block.safeAreaPaddingPx ?? 12) + 12;
   const compositionBackgroundNode = (
     <div
       className="pointer-events-none absolute inset-0 overflow-hidden"
       style={{
         ...backgroundStyle,
         ...backgroundTreatmentStyle,
-        opacity: block.background?.opacity ?? 1,
-        filter: [
-          backgroundTreatmentStyle?.filter,
-          `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`,
-        ]
-          .filter(Boolean)
-          .join(" "),
+        inset: cardEdgeInset,
+        borderRadius: cardEdgeMode === "full_bleed" ? 0 : cardEdgeMode === "contained" ? 16 : 22,
+        opacity: imageLayerStyle?.opacity ?? block.background?.opacity ?? 1,
+        filter: imageLayerStyle?.filter || `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`,
       }}
       data-testid="composition-background-renderer"
+      data-edge-mode={cardEdgeMode}
       data-background-opacity={String(block.background?.opacity ?? 1)}
       data-material-preset={block.background?.materialPreset || undefined}
       data-material-fill-authority={pageMaterial?.fillAuthority}
@@ -2672,18 +2704,28 @@ export function CreativeCompositionCanvas({
 
   const structured = useStack || layoutMode !== "free";
   if (hasCompositionParentAuthority(block)) {
-    const rootChildren = compositionChildren(block, null);
+    const flowBlock = draftNodes ? { ...block, nodes: draftNodes } : block;
+    const rootLayered = isCardSurfaceLayered(flowBlock);
+    const rootDensity = readCardSurfaceDensity(flowBlock);
     const moduleFrame = (node: CreativeCompositionNode): CSSProperties => {
-      const minHeight = node.moduleComposition ? Math.max(52, node.moduleComposition.pageHeightPx ?? 56)
+      const width = Math.max(20, Math.min(100, num(node.props.flowWidthPercent, 100)));
+      const isCuratedAssembly = Boolean(node.moduleComposition?.signatureAssembly);
+      const nativeModuleHeight = node.moduleComposition?.pageHeightPx ?? 56;
+      const responsiveModuleHeight = isCuratedAssembly ? nativeModuleHeight * (width / 100) : nativeModuleHeight;
+      const minimumTouchTarget = Math.max(44, num(node.props.minimumTouchTargetPx, 44));
+      const minHeight = node.moduleComposition ? Math.max(isCuratedAssembly ? minimumTouchTarget : 52, responsiveModuleHeight)
         : node.primitive === "text" ? Math.max(32, num(node.props.textMinHeightPx, 40))
           : node.primitive === "image" ? Math.max(140, node.minHeightPx ?? 180)
             : node.primitive === "border" ? 12
               : Math.max(52, node.minHeightPx ?? 56);
-      const width = Math.max(20, Math.min(100, num(node.props.flowWidthPercent, 100)));
       const inset = Math.max(0, Math.min(80, num(node.props.flowInsetPx, 0)));
       const alignment = str(node.props.flowAlignment, "stretch");
+      const fixedTextHeight = node.primitive === "text" && str(node.props.textHeightMode, "auto") === "fixed" ? Math.max(minHeight, num(node.props.textFixedHeightPx, minHeight)) : undefined;
+      const videoAspect = node.primitive === "video" ? videoAspectRatio(readStudioVideoState(node.props).aspect) : undefined;
       return {
         minHeight,
+        height: fixedTextHeight,
+        aspectRatio: videoAspect,
         width: `min(${width}%, calc(100% - ${inset * 2}px))`,
         alignSelf: alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
         marginTop: Math.max(0, num(node.props.spacingAbovePx, 0)),
@@ -2693,8 +2735,8 @@ export function CreativeCompositionCanvas({
     const commitFlowTarget = (node: CreativeCompositionNode, parentId: string | null, index: number, label: string) => {
       const resolved = resolveFlowDropTarget(block, node.id, parentId, index);
       if (!resolved.ok) { onNotify?.(resolved.reason); return; }
-      const result = node.compositionKind === "module" && node.parentId !== resolved.target.parentId
-        ? reparentCompositionModule(block, node.id, resolved.target.parentId, resolved.target.index)
+      const result = node.parentId !== resolved.target.parentId
+        ? reparentCompositionNode(block, node.id, resolved.target.parentId, resolved.target.index)
         : reorderCompositionNode(block, node.id, resolved.target.index);
       if (!result.ok) { onNotify?.(result.issues[0]?.message || "That placement is not available."); return; }
       onChangeBlock?.(result.block, label);
@@ -2773,7 +2815,182 @@ export function CreativeCompositionCanvas({
         if (target) { event.preventDefault(); commitFlowTarget(node, target.id, compositionChildren(block, target.id).length, "Moved Module into Container by keyboard"); }
       }
     };
-    const renderModule = (node: CreativeCompositionNode) => (
+    const startLayeredPointer = (event: React.PointerEvent<HTMLButtonElement>, node: CreativeCompositionNode, mode: "move" | "resize", handle: StudioRectangularResizeHandle = "se") => {
+      if (event.button !== 0 || node.locked) return;
+      const region = event.currentTarget.closest<HTMLElement>("[data-layered-region]");
+      if (!region) return;
+      event.preventDefault();
+      event.stopPropagation();
+      const bounds = region.getBoundingClientRect();
+      const startX = event.clientX;
+      const startY = event.clientY;
+      const startBlock = { ...block, nodes: flowBlock.nodes };
+      const parent = node.parentId ? startBlock.nodes.find((candidate) => candidate.id === node.parentId) : null;
+      const density = parent ? readContainerDensity(parent) : readCardSurfaceDensity(startBlock);
+      const regionId = region.dataset.layeredRegionId || (node.parentId ?? "card-surface");
+      const activeNodeGroupId = node.groupId && isTrueGroupMember(node) && isGroupParentSelection(startBlock.nodes, selectedNodeIds)
+        ? node.groupId
+        : null;
+      const groupStartBounds = activeNodeGroupId ? computeGroupUnionBounds(startBlock.nodes, activeNodeGroupId, true) : null;
+      const groupMemberIds = activeNodeGroupId
+        ? startBlock.nodes.filter((candidate) => candidate.groupId === activeNodeGroupId && isTrueGroupMember(candidate)).map((candidate) => candidate.id)
+        : [];
+      setLayeredGuideRegionId(regionId);
+      layeredFinalNodesRef.current = startBlock.nodes;
+      onSelectNodes?.(activeNodeGroupId ? groupMemberIds : [node.id]);
+      const move = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId !== event.pointerId) return;
+        const dx = (pointerEvent.clientX - startX) / Math.max(1, bounds.width);
+        const dy = (pointerEvent.clientY - startY) / Math.max(1, bounds.height);
+        if (mode === "move") {
+          if (activeNodeGroupId && groupStartBounds) {
+            const clampedDx = Math.max(-groupStartBounds.left, Math.min(1 - groupStartBounds.left - groupStartBounds.width, dx));
+            const clampedDy = Math.max(-groupStartBounds.top, Math.min(1 - groupStartBounds.top - groupStartBounds.height, dy));
+            const nextNodes = translateNodesOnPasteboard(startBlock.nodes, groupMemberIds, clampedDx, clampedDy);
+            layeredFinalNodesRef.current = nextNodes;
+            setDraftNodes(nextNodes);
+            setGuides([]);
+            return;
+          }
+          const snapped = snapLayeredNode({
+            block: startBlock,
+            nodeId: node.id,
+            patch: { x: node.x + dx, y: node.y + dy },
+            threshold: Math.max(.008, 7 / Math.max(1, bounds.width)),
+            grid: density.snapGrid,
+            safeMargin: (block.safeAreaPaddingPx ?? 12) / Math.max(1, bounds.width),
+          });
+          layeredFinalNodesRef.current = snapped.block.nodes;
+          setDraftNodes(snapped.block.nodes);
+          setGuides(snapped.guides);
+          return;
+        }
+        if (activeNodeGroupId && groupStartBounds) {
+          const targetWidth = Math.max(.08, Math.min(1 - groupStartBounds.left, groupStartBounds.width + dx));
+          const targetHeight = Math.max(.06, Math.min(1 - groupStartBounds.top, groupStartBounds.height + dy));
+          const nextNodes = resizeGroupComposition(startBlock.nodes, activeNodeGroupId, {
+            left: groupStartBounds.left,
+            top: groupStartBounds.top,
+            width: targetWidth,
+            height: targetHeight,
+          }, {
+            minChildWidth: 28 / Math.max(1, bounds.width),
+            minChildHeight: 44 / Math.max(1, bounds.height),
+          });
+          layeredFinalNodesRef.current = nextNodes;
+          setDraftNodes(nextNodes);
+          setGuides([]);
+          return;
+        }
+        const resizePolicy = layeredResizePolicy(node);
+        const west = handle.includes("w");
+        const east = handle.includes("e");
+        const north = handle.includes("n");
+        const south = handle.includes("s");
+        let x = west ? Math.min(node.x + node.width - .02, node.x + dx) : node.x;
+        let y = north ? Math.min(node.y + node.height - .02, node.y + dy) : node.y;
+        let width = west ? node.width + (node.x - x) : east ? node.width + dx : node.width;
+        let height = north ? node.height + (node.y - y) : south ? node.height + dy : node.height;
+        if (resizePolicy === "governed-aspect") {
+          const physicalAspect = (node.width * bounds.width) / Math.max(1, node.height * bounds.height);
+          if (Math.abs(dx * bounds.width) >= Math.abs(dy * bounds.height)) height = (width * bounds.width) / Math.max(.01, physicalAspect * bounds.height);
+          else width = (height * bounds.height * physicalAspect) / Math.max(1, bounds.width);
+          if (west) x = node.x + node.width - width;
+          if (north) y = node.y + node.height - height;
+        } else if (resizePolicy === "width-only") {
+          height = node.height;
+          y = node.y;
+        }
+        const snapped = snapLayeredResize({ block: startBlock, nodeId: node.id, frame: { x, y, width, height }, handle, threshold: Math.max(.008, 7 / Math.max(1, bounds.width)), grid: density.snapGrid, safeMargin: (block.safeAreaPaddingPx ?? 12) / Math.max(1, bounds.width) });
+        const next = moveLayeredNode(startBlock, node.id, snapped.frame);
+        layeredFinalNodesRef.current = next.nodes;
+        setDraftNodes(next.nodes);
+        setGuides(snapped.guides);
+      };
+      const finish = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId !== event.pointerId) return;
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", cancel);
+        const nodes = layeredFinalNodesRef.current;
+        if (nodes) onChangeBlock?.(synchronizeCompositionGroups({ ...block, nodes }), activeNodeGroupId ? mode === "move" ? "Moved composition Group" : "Resized composition Group" : mode === "move" ? "Moved layered Module" : "Resized layered Module");
+        layeredFinalNodesRef.current = null;
+        setDraftNodes(null);
+        setGuides([]);
+        setLayeredGuideRegionId(null);
+      };
+      const cancel = (pointerEvent: PointerEvent) => {
+        if (pointerEvent.pointerId !== event.pointerId) return;
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", finish);
+        window.removeEventListener("pointercancel", cancel);
+        layeredFinalNodesRef.current = null;
+        setDraftNodes(null);
+        setGuides([]);
+        setLayeredGuideRegionId(null);
+      };
+      window.addEventListener("pointermove", move, { passive: false });
+      window.addEventListener("pointerup", finish);
+      window.addEventListener("pointercancel", cancel);
+    };
+    const handleLayeredKey = (event: React.KeyboardEvent, node: CreativeCompositionNode) => {
+      const step = event.shiftKey ? .05 : .01;
+      const patch = event.key === "ArrowLeft" ? { x: node.x - step }
+        : event.key === "ArrowRight" ? { x: node.x + step }
+          : event.key === "ArrowUp" ? { y: node.y - step }
+            : event.key === "ArrowDown" ? { y: node.y + step }
+              : null;
+      if (!patch) return;
+      event.preventDefault();
+      onChangeBlock?.(moveLayeredNode(block, node.id, patch), "Moved layered Module by keyboard");
+    };
+    const layeredGuides = (regionId: string) => editMode && layeredGuideRegionId === regionId
+      ? guides.map((guide, index) => <div key={`${guide.axis}-${guide.value}-${index}`} className="pointer-events-none absolute z-[80] bg-[#b8ff2c] shadow-[0_0_6px_rgba(184,255,44,.65)]" style={guide.axis === "x" ? { left: `${guide.value * 100}%`, top: 0, bottom: 0, width: 1 } : { top: `${guide.value * 100}%`, left: 0, right: 0, height: 1 }} data-testid={`composition-guide-${guide.axis}`} data-guide-kind={guide.kind} aria-hidden />)
+      : null;
+    /* eslint-disable react-hooks/refs -- group pointer callbacks execute only after a pointer event; they do not read refs while rendering. */
+    const layeredGroupChrome = (parentId: string | null) => {
+      if (!editMode || !groupParentSelection || !activeGroupId) return null;
+      const members = flowBlock.nodes.filter((candidate) => candidate.groupId === activeGroupId && isTrueGroupMember(candidate));
+      if (members.length < 2 || members.some((member) => (member.parentId ?? null) !== parentId)) return null;
+      const bounds = computeGroupUnionBounds(flowBlock.nodes, activeGroupId, true);
+      const seed = members[0];
+      if (!bounds || !seed) return null;
+      return <div
+        className="pointer-events-none absolute z-[90] outline outline-1 outline-[#b8ff2c]"
+        style={{ left: `${bounds.left * 100}%`, top: `${bounds.top * 100}%`, width: `${bounds.width * 100}%`, height: `${bounds.height * 100}%` }}
+        data-testid="studio-layered-group-envelope"
+        data-group-id={activeGroupId}
+        data-group-parent={parentId ?? "card-surface"}
+      >
+        <button type="button" className="pointer-events-auto absolute bottom-full left-0 mb-1 min-h-9 touch-none rounded-lg border border-[#b8ff2c]/55 bg-[#0b111b] px-2.5 text-[9px] font-semibold text-[#d8ff82] shadow-xl" aria-label="Move Group" data-testid="studio-layered-group-move" onPointerDown={(event) => startLayeredPointer(event, seed, "move")}>Group · move</button>
+        <button type="button" className="pointer-events-auto absolute -bottom-2 -right-2 h-6 w-6 cursor-nwse-resize touch-none rounded-sm border border-[#b8ff2c] bg-[#0b111b] shadow-xl" aria-label="Resize Group" data-testid="studio-layered-group-resize" onPointerDown={(event) => startLayeredPointer(event, seed, "resize")} />
+      </div>;
+    };
+    /* eslint-enable react-hooks/refs */
+    const layeredQuickControls = (node: CreativeCompositionNode, parentSelected: boolean) => {
+      if (!editMode || node.locked || parentSelected || !selectedSet.has(node.id) || selectedNodeIds.length !== 1) return null;
+      const above = node.y > .72;
+      const layer = (command: "front" | "back") => {
+        const next = reorderLayeredNodeZ({ ...block, nodes: flowBlock.nodes }, node.id, command);
+        commitNodes(next.nodes, command === "front" ? "Brought layered Module to front" : "Sent layered Module to back");
+      };
+      const lock = () => commitNodes(flowBlock.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, locked: true } : candidate), `Locked ${node.name || "Module"}`);
+      const itemClass = "flex min-h-8 items-center gap-1 rounded-md px-2 text-[9px] font-semibold text-white/72 hover:bg-white/9 hover:text-white";
+      return <div className={cn("pointer-events-auto absolute left-0 z-[95] flex max-w-[min(100%,320px)] items-center gap-0.5 rounded-lg border border-white/12 bg-[#0b111b]/96 p-1 shadow-2xl backdrop-blur-xl", above ? "bottom-full mb-1" : "top-full mt-1")} data-chrome-placement={above ? "outside-top" : "outside-bottom"} data-testid={`studio-layer-controls-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
+        <button type="button" className={itemClass} onPointerDown={(event) => startLayeredPointer(event, node, "move")}><Move className="h-3 w-3" />Move</button>
+        <button type="button" className={itemClass} onPointerDown={(event) => startLayeredPointer(event, node, "resize")}><Maximize2 className="h-3 w-3" />Resize</button>
+        <button type="button" className={itemClass} onClick={() => layer("front")}><ArrowUpToLine className="h-3 w-3" />Front</button>
+        <button type="button" className={itemClass} onClick={() => layer("back")}><ArrowDownToLine className="h-3 w-3" />Back</button>
+        <button type="button" className={itemClass} onClick={lock}><LockKeyhole className="h-3 w-3" />Lock</button>
+      </div>;
+    };
+    const renderModule = (node: CreativeCompositionNode, layered = false, groupFrame?: CreativeCompositionGroup) => {
+      const localX = groupFrame ? (node.x - groupFrame.x) / Math.max(.02, groupFrame.width) : node.x;
+      const localY = groupFrame ? (node.y - groupFrame.y) / Math.max(.02, groupFrame.height) : node.y;
+      const localWidth = groupFrame ? node.width / Math.max(.02, groupFrame.width) : node.width;
+      const localHeight = groupFrame ? node.height / Math.max(.02, groupFrame.height) : node.height;
+      const parentSelected = Boolean(groupParentSelection && activeGroupId && node.groupId === activeGroupId);
+      return (
       <div
         key={node.id}
         className={cn(
@@ -2782,7 +2999,16 @@ export function CreativeCompositionCanvas({
           selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
         )}
         style={{
-          ...moduleFrame(node),
+          ...(layered ? {
+            position: "absolute" as const,
+            left: `${localX * 100}%`,
+            top: `${localY * 100}%`,
+            width: `${localWidth * 100}%`,
+            height: `${localHeight * 100}%`,
+            minHeight: node.moduleComposition?.signatureAssembly ? Math.max(44, num(node.props.minimumTouchTargetPx, 44)) : 0,
+            zIndex: editMode && selectedSet.has(node.id) && selectedNodeIds.length === 1 ? 3800 : node.zIndex,
+            pointerEvents: editMode && node.locked === true ? "none" : editMode || node.props.clickThrough !== true ? "auto" : "none",
+          } : { ...moduleFrame(node), pointerEvents: editMode && node.locked === true ? "none" : editMode || node.props.clickThrough !== true ? "auto" : "none" }),
           ...(flowPointerVisual?.nodeId === node.id ? {
             transform:`translate3d(${flowPointerVisual.x-flowPointerVisual.startX}px, ${flowPointerVisual.y-flowPointerVisual.startY}px, 0) scale(.985)`,
             zIndex:3900,
@@ -2798,30 +3024,41 @@ export function CreativeCompositionCanvas({
         data-primitive={node.primitive}
         data-element-kind={String(node.props.elementKind || node.primitive)}
         data-selected={selectedSet.has(node.id) ? "true" : "false"}
+        data-local-layer={layered ? "true" : undefined}
+        data-position-mode={layered ? "absolute" : "flow"}
+        data-layer-x={layered ? String(node.x) : undefined}
+        data-layer-y={layered ? String(node.y) : undefined}
+        data-layer-width={layered ? String(node.width) : undefined}
+        data-layer-height={layered ? String(node.height) : undefined}
+        data-layer-z={layered ? String(node.zIndex) : undefined}
+        data-flow-wrapper={layered ? "false" : undefined}
+        data-curated-density={typeof node.props.curatedDensityMode === "string" ? node.props.curatedDensityMode : undefined}
         draggable={false}
-        role={editMode ? (node.moduleComposition || node.primitive === "button" || editingNodeId === node.id ? "group" : "button") : undefined}
+        role={editMode ? (node.moduleComposition || node.primitive === "button" || node.primitive === "video" || editingNodeId === node.id ? "group" : "button") : undefined}
         tabIndex={editMode ? 0 : undefined}
         aria-label={editMode ? node.moduleComposition?.signatureAssembly ? `${node.name || "Curated"} Curated System` : `${node.name || String(node.props.elementKind || node.primitive)} Module` : undefined}
         onPointerDown={(event) => {
           if (!editMode || event.button !== 0) return;
           event.stopPropagation();
-          const multi = event.metaKey || event.ctrlKey || event.shiftKey;
+          if (node.groupId && isGroupContentScope(block.nodes, node.groupId)) {
+            onSelectNodes?.([node.id]);
+            return;
+          }
+          const multi = selectionMode === "multiple" || event.metaKey || event.ctrlKey || event.shiftKey;
           onSelectNodes?.(multi
             ? selectedNodeIds.includes(node.id)
               ? selectedNodeIds.filter((id) => id !== node.id)
               : [...selectedNodeIds, node.id]
-            : [node.id]);
+            : expandSelectionToGroups(block.nodes, [node.id]));
         }}
         onClick={(event) => {
           if (!editMode) return;
           event.stopPropagation();
-          const multi = event.metaKey || event.ctrlKey || event.shiftKey;
-          onSelectNodes?.(multi
-            ? selectedNodeIds.includes(node.id)
-              ? selectedNodeIds.filter((id) => id !== node.id)
-              : [...selectedNodeIds, node.id]
-            : [node.id]);
-          if (!multi && node.primitive === "text" && selectedSet.has(node.id)) setEditingNodeId(node.id);
+          if (node.groupId && isGroupContentScope(block.nodes, node.groupId)) {
+            commitNodes(activateGroupContentChild(block.nodes, node.groupId, node.id), "Selected Group child");
+            return;
+          }
+          if (selectionMode !== "multiple" && !event.metaKey && !event.ctrlKey && !event.shiftKey && node.primitive === "text" && selectedSet.has(node.id)) setEditingNodeId(node.id);
         }}
         onDoubleClick={(event) => {
           if (!editMode || node.primitive !== "text") return;
@@ -2837,10 +3074,15 @@ export function CreativeCompositionCanvas({
           onSelectNodes?.([node.id]);
         }}
       >
-        {editMode && selectedSet.has(node.id) ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={`Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => handleFlowKey(event, node)} onPointerDown={(event) => startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
+        {editMode && selectedSet.has(node.id) && !parentSelected ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={layered ? `Move ${node.name || "Module"} within its layered Container.` : `Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => layered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => layered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
+        {editMode && selectedSet.has(node.id) && node.primitive === "text" && editingNodeId !== node.id ? <button type="button" className="absolute bottom-full left-0 z-30 mb-1 min-h-8 rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] px-2.5 text-[10px] font-semibold text-[#b8ff2c] shadow-lg" data-chrome-placement="outside-top" data-testid={`studio-edit-text-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); setEditingNodeId(node.id); }}>Edit text</button> : null}
+        {layered ? layeredQuickControls(node, parentSelected) : null}
+        {editMode && layered && selectedSet.has(node.id) && !node.locked && !parentSelected ? <>{([
+          ["nw","-left-2 -top-2 cursor-nwse-resize"],["n","left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize"],["ne","-right-2 -top-2 cursor-nesw-resize"],["e","-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],["se","-bottom-2 -right-2 cursor-nwse-resize"],["s","left-1/2 -bottom-2 -translate-x-1/2 cursor-ns-resize"],["sw","-bottom-2 -left-2 cursor-nesw-resize"],["w","-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+        ] as const).filter(([handle]) => allowedLayeredResizeHandles(node).includes(handle)).map(([handle, position]) => <button key={handle} type="button" className={cn("absolute z-30 h-5 w-5 touch-none rounded-sm border border-[#b8ff2c] bg-[#0b111b] shadow-lg", position)} aria-label={`Resize ${node.name || "Module"} ${handle}`} data-testid={`studio-layer-resize-${node.id}-${handle}`} data-resize-axis={handle.length === 1 ? handle === "n" || handle === "s" ? "height" : "width" : "both"} onPointerDown={(event) => startLayeredPointer(event, node, "resize", handle)} />)}</> : null}
         {node.moduleComposition ? (
           <div className={cn("w-full", editMode && "pointer-events-none")} data-module-composition={node.moduleComposition.id}>
-            <CreativeCompositionCanvas block={node.moduleComposition} editMode={false} forceMobileFallback={forceMobileFallback} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} minHeightPx={node.moduleComposition.pageHeightPx} />
+            <CreativeCompositionCanvas block={node.moduleComposition} editMode={false} forceMobileFallback={forceMobileFallback} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} aspectRatio={390 / Math.max(1, node.moduleComposition.pageHeightPx ?? 56)} />
           </div>
         ) : <ActionVisual node={node} editMode={editMode}>
           <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
@@ -2855,6 +3097,169 @@ export function CreativeCompositionCanvas({
         </ActionVisual>}
       </div>
     );
+    };
+    const renderGroup = (group: CreativeCompositionGroup, members: CreativeCompositionNode[], layered: boolean) => {
+      const selected = group.id === activeGroupId && groupParentSelection;
+      const lockedClickThrough = editMode ? group.locked : group.locked && members.every((member) => member.props.clickThrough === true);
+      const layoutClass = group.layout === "grid" ? "grid grid-cols-2" : group.layout === "flow_horizontal" ? "flex flex-row flex-wrap" : group.layout === "flow_vertical" ? "flex flex-col" : "block";
+      return <div
+        key={group.id}
+        className={cn("relative min-w-0", layoutClass, editMode && selected && "outline outline-1 outline-[#b8ff2c]")}
+        style={layered ? {
+          position: "absolute",
+          left: `${group.x * 100}%`,
+          top: `${group.y * 100}%`,
+          width: `${group.width * 100}%`,
+          height: `${group.height * 100}%`,
+          zIndex: group.zIndex,
+          overflow: "visible",
+          pointerEvents: lockedClickThrough ? "none" : undefined,
+        } : {
+          width: group.scaleMode === "compact" ? "78%" : group.scaleMode === "medium" ? "88%" : group.scaleMode === "full" ? "96%" : "100%",
+          rowGap: `${group.rowGapPx}px`,
+          columnGap: `${group.columnGapPx}px`,
+          padding: group.internalGapPx,
+          alignSelf: group.anchor.includes("right") ? "flex-end" : group.anchor === "center" || group.anchor === "top" || group.anchor === "bottom" ? "center" : "flex-start",
+          pointerEvents: lockedClickThrough ? "none" : undefined,
+        }}
+        data-composition-group={group.id}
+        data-group-parent={group.parentId ?? "card-surface"}
+        data-group-layout={group.layout}
+        data-group-density={group.density}
+        data-group-scale={group.scaleMode}
+        data-group-locked={group.locked ? "true" : "false"}
+        data-group-click-through={lockedClickThrough ? "true" : "false"}
+        data-group-persisted="true"
+        data-position-mode={layered ? "absolute" : "flow"}
+        data-layer-x={layered ? String(group.x) : undefined}
+        data-layer-y={layered ? String(group.y) : undefined}
+        data-layer-width={layered ? String(group.width) : undefined}
+        data-layer-height={layered ? String(group.height) : undefined}
+        data-layer-z={layered ? String(group.zIndex) : undefined}
+        data-flow-wrapper={layered ? "false" : undefined}
+      >
+        {members.map((member) => renderModule(member, layered, layered ? group : undefined))}
+      </div>;
+    };
+    function renderContainer(node: CreativeCompositionNode, parentLayered: boolean) {
+      const children = compositionChildren(flowBlock, node.id);
+      const padding = Math.max(0, num(node.props.padding, 16));
+      const containerDensity = readContainerDensity(node);
+      const gap = containerDensity.gapPx;
+      const alignment = str(node.props.alignment, "stretch");
+      const layered = isLayeredContainer(node);
+      const layout = str(node.props.layout, "flow");
+      const horizontal = layout === "flow_horizontal";
+      const grid = layout === "grid";
+      const edgeMode = readContainerEdgeMode(node.props);
+      const safeArea = block.safeAreaPaddingPx ?? 12;
+      const widthPercent = Math.max(20, Math.min(100, num(node.props.widthPercent ?? node.props.flowWidthPercent, 100)));
+      const minWidth = Math.max(0, num(node.props.minWidthPx, 0));
+      const maxWidth = Math.max(minWidth || 0, num(node.props.maxWidthPx, 9999));
+      const minHeight = Math.max(0, num(node.props.minHeightPx, 0));
+      const contentFit = str(node.props.contentFit, "fit_content");
+      const fixedHeight = contentFit === "fixed" ? Math.max(minHeight || 120, num(node.props.heightPx, 240)) : undefined;
+      const aspectRatio = str(node.props.aspectRatio, "auto");
+      const depth = (() => { let value = 1; let parentId = node.parentId; while (parentId) { value += 1; parentId = flowBlock.nodes.find((candidate) => candidate.id === parentId)?.parentId ?? null; } return value; })();
+      return <div
+        key={node.id}
+        className={cn(
+          "relative min-w-0",
+          editMode ? "overflow-visible" : node.props.clipContent === true ? "overflow-hidden" : "overflow-visible",
+          editMode && "outline outline-1 outline-dashed outline-white/25",
+          selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
+        )}
+        data-composition-node={node.id}
+        data-composition-kind="container"
+        data-parent-id={node.parentId ?? "card-surface"}
+        data-container-depth={depth}
+        data-sibling-order={node.siblingOrder}
+        data-container-auto-height={layered || fixedHeight ? "false" : "true"}
+        data-layered-container={layered ? "true" : undefined}
+        data-selected={selectedSet.has(node.id) ? "true" : "false"}
+        data-position-mode={parentLayered ? "absolute" : "flow"}
+        data-layer-x={parentLayered ? String(node.x) : undefined}
+        data-layer-y={parentLayered ? String(node.y) : undefined}
+        data-layer-width={parentLayered ? String(node.width) : undefined}
+        data-layer-height={parentLayered ? String(node.height) : undefined}
+        data-layer-z={parentLayered ? String(node.zIndex) : undefined}
+        data-flow-wrapper={parentLayered ? "false" : undefined}
+        draggable={false}
+        style={{
+          position: parentLayered ? "absolute" : "relative",
+          left: parentLayered ? `${node.x * 100}%` : undefined,
+          top: parentLayered ? `${node.y * 100}%` : undefined,
+          height: parentLayered ? `${node.height * 100}%` : fixedHeight ?? (contentFit === "fill_parent" ? "100%" : undefined),
+          aspectRatio: !parentLayered && aspectRatio !== "auto" ? aspectRatio.replace(":", " / ") : undefined,
+          minHeight: parentLayered ? undefined : minHeight || undefined,
+          minWidth: parentLayered ? undefined : minWidth || undefined,
+          maxWidth: parentLayered ? undefined : maxWidth < 9999 ? maxWidth : undefined,
+          zIndex: parentLayered ? editMode && selectedSet.has(node.id) && selectedNodeIds.length === 1 ? 3800 : node.zIndex : undefined,
+          width: parentLayered ? `${node.width * 100}%` : edgeMode === "inset" ? `min(${widthPercent}%, calc(100% - 24px))` : edgeMode === "full_bleed" ? `calc(${widthPercent}% + ${safeArea * 2}px)` : `${widthPercent}%`,
+          alignSelf: parentLayered ? undefined : alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
+          marginLeft: parentLayered ? 0 : edgeMode === "inset" ? 12 : edgeMode === "full_bleed" ? -safeArea : 0,
+          marginRight: parentLayered ? 0 : edgeMode === "inset" ? 12 : edgeMode === "full_bleed" ? -safeArea : 0,
+          marginTop: parentLayered ? 0 : Math.max(0, num(node.props.spacingAbovePx, 0)),
+          marginBottom: parentLayered ? 0 : Math.max(0, num(node.props.spacingBelowPx, 0)),
+          pointerEvents: editMode && node.locked === true ? "none" : undefined,
+          ...(flowPointerVisual?.nodeId === node.id ? {
+            transform:`translate3d(${flowPointerVisual.x-flowPointerVisual.startX}px, ${flowPointerVisual.y-flowPointerVisual.startY}px, 0) scale(.985)`,
+            zIndex:3900,opacity:.9,filter:"drop-shadow(0 18px 24px rgba(0,0,0,.45))",pointerEvents:"none" as const,
+          } : {}),
+        }}
+        onClick={(event) => {
+          if (!editMode) return;
+          event.stopPropagation();
+          const multi = selectionMode === "multiple" || event.metaKey || event.ctrlKey || event.shiftKey;
+          onSelectNodes?.(multi ? selectedNodeIds.includes(node.id) ? selectedNodeIds.filter((id) => id !== node.id) : [...selectedNodeIds, node.id] : [node.id]);
+        }}
+      >
+        {editMode && selectedSet.has(node.id) ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={parentLayered ? `Move ${node.name || "Container"} within its layered parent.` : `Move ${node.name || "Container"}. Drag with pointer or touch; Arrow keys reorder.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => parentLayered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => parentLayered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
+        {editMode && parentLayered && selectedSet.has(node.id) && !node.locked ? <>{([
+          ["nw", "-left-2 -top-2 cursor-nwse-resize"], ["n", "left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize"], ["ne", "-right-2 -top-2 cursor-nesw-resize"],
+          ["e", "-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize"], ["se", "-bottom-2 -right-2 cursor-nwse-resize"], ["s", "-bottom-2 left-1/2 -translate-x-1/2 cursor-ns-resize"],
+          ["sw", "-bottom-2 -left-2 cursor-nesw-resize"], ["w", "-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
+        ] as const).filter(([handle]) => allowedLayeredResizeHandles(node).includes(handle)).map(([handle, position]) => <button key={handle} type="button" className={cn("absolute z-30 h-5 w-5 touch-none rounded-sm border border-[#b8ff2c] bg-[#0b111b] shadow-lg", position)} aria-label={`Resize ${node.name || "Container"} ${handle}`} data-testid={`studio-layer-resize-${node.id}-${handle}`} data-resize-axis={handle.length === 1 ? handle === "n" || handle === "s" ? "height" : "width" : "both"} onPointerDown={(event) => startLayeredPointer(event, node, "resize", handle)} />)}</> : null}
+        {parentLayered ? layeredQuickControls(node, false) : null}
+        <div className="pointer-events-none absolute inset-0"><NodeVisual node={node} editMode={editMode} /></div>
+        <div
+          className={cn("relative z-[1] w-full", layered ? "block" : grid ? "grid grid-cols-2" : horizontal ? "flex flex-row flex-nowrap" : "flex flex-col")}
+          style={{
+            padding,
+            gap: layered ? undefined : gap,
+            height: layered ? Math.max(180, num(node.props.layeredHeightPx, 360)) : fixedHeight ? "100%" : undefined,
+            alignItems: !layered ? alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch" : undefined,
+          }}
+          data-container-content="true"
+          data-container-layout={layout}
+          data-layered-region={layered ? "true" : undefined}
+          data-layered-region-id={layered ? node.id : undefined}
+          data-density={containerDensity.mode}
+          data-flow-gap-applied={layered ? "false" : "true"}
+        >
+          {layered ? layeredGuides(node.id) : null}
+          {layered ? layeredGroupChrome(node.id) : null}
+          {!layered && !horizontal && !grid ? flowDropLine(node.id, 0, "Drop into region") : null}
+          {renderParentChildren(node.id, layered, horizontal || grid)}
+          {editMode && children.length === 0 ? <div className="grid min-h-20 w-full place-items-center rounded-xl border border-dashed border-white/18 text-xs text-white/38">Add Modules or Containers here</div> : null}
+        </div>
+      </div>;
+    }
+    function renderParentChildren(parentId: string | null, layered: boolean, suppressFlowDropLines = false) {
+      const children = compositionChildren(flowBlock, parentId);
+      const emittedGroups = new Set<string>();
+      return children.map((node, index) => {
+        if (node.groupId) {
+          if (emittedGroups.has(node.groupId)) return null;
+          emittedGroups.add(node.groupId);
+          const record = compositionGroupRecord(flowBlock, node.groupId);
+          const members = children.filter((candidate) => candidate.groupId === node.groupId && candidate.compositionKind === "module");
+          if (record && members.length > 1) return <Fragment key={record.id}>{renderGroup(record, members, layered)}{!layered && !suppressFlowDropLines ? flowDropLine(parentId, index + members.length) : null}</Fragment>;
+        }
+        const rendered = node.compositionKind === "container" ? renderContainer(node, layered) : renderModule(node, layered);
+        return <Fragment key={node.id}>{rendered}{!layered && !suppressFlowDropLines ? flowDropLine(parentId, index + 1) : null}</Fragment>;
+      });
+    }
     return (
       <div
         ref={surfaceRef}
@@ -2873,76 +3278,18 @@ export function CreativeCompositionCanvas({
           onSelectNodes?.([]);
         }}
       >
-        {compositionBackgroundNode}
+        {!suppressBackground ? compositionBackgroundNode : null}
         {flowPointerVisual ? <div className="pointer-events-none fixed z-[4000] max-w-52 -translate-x-1/2 -translate-y-[calc(100%+12px)] rounded-full border border-[#8bdcff]/55 bg-[#0b111b]/94 px-3 py-1.5 text-[9px] font-semibold text-[#c9efff] shadow-2xl backdrop-blur" style={{ left: flowPointerVisual.x, top: flowPointerVisual.y }} data-testid="studio-flow-drag-ghost">{flowDropTarget ? "Release to place" : `Moving ${flowPointerVisual.label}`}</div> : null}
         <ol className="sr-only" data-testid="composition-reading-order">
           {readingOrder.filter((node) => node.compositionKind === "module").map((node) => (
             <li key={node.id}>{node.primitive}: {str(node.props.text) || str(node.props.alt) || str(node.props.label) || node.id}</li>
           ))}
         </ol>
-        <div className="relative z-[1] flex w-full flex-col" style={{ gap: block.parentAuthority.cardGapPx }} data-card-surface-flow="true">
-          {flowDropLine(null, 0)}
-          {rootChildren.map((node, rootIndex) => {
-            if (node.compositionKind === "module") return <Fragment key={node.id}>{renderModule(node)}{flowDropLine(null, rootIndex + 1)}</Fragment>;
-            const children = compositionChildren(block, node.id);
-            const padding = Math.max(0, num(node.props.padding, 16));
-            const gap = Math.max(0, num(node.props.gap, 12));
-            const alignment = str(node.props.alignment, "stretch");
-            return <Fragment key={node.id}>
-              <div
-                className={cn(
-                  "relative w-full",
-                  editMode ? "overflow-visible" : "overflow-hidden",
-                  editMode && "outline outline-1 outline-dashed outline-white/25",
-                  selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
-                )}
-                data-composition-node={node.id}
-                data-composition-kind="container"
-                data-parent-id="card-surface"
-                data-sibling-order={node.siblingOrder}
-                data-container-auto-height="true"
-                data-selected={selectedSet.has(node.id) ? "true" : "false"}
-                draggable={false}
-                style={{
-                  marginTop:Math.max(0,num(node.props.spacingAbovePx,0)),
-                  marginBottom:Math.max(0,num(node.props.spacingBelowPx,0)),
-                  ...(flowPointerVisual?.nodeId === node.id ? {
-                    transform:`translate3d(${flowPointerVisual.x-flowPointerVisual.startX}px, ${flowPointerVisual.y-flowPointerVisual.startY}px, 0) scale(.985)`,
-                    zIndex:3900,opacity:.9,filter:"drop-shadow(0 18px 24px rgba(0,0,0,.45))",pointerEvents:"none" as const,
-                  } : {}),
-                }}
-                onClick={(event) => {
-                  if (!editMode) return;
-                  event.stopPropagation();
-                  const multi = event.metaKey || event.ctrlKey || event.shiftKey;
-                  onSelectNodes?.(multi
-                    ? selectedNodeIds.includes(node.id)
-                      ? selectedNodeIds.filter((id) => id !== node.id)
-                      : [...selectedNodeIds, node.id]
-                    : [node.id]);
-                }}
-              >
-                {editMode && selectedSet.has(node.id) ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={`Move ${node.name || "Container"}. Drag with pointer or touch; Arrow keys reorder.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => handleFlowKey(event, node)} onPointerDown={(event) => startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
-                <div className="pointer-events-none absolute inset-0"><NodeVisual node={node} editMode={editMode} /></div>
-                <div
-                  className="relative z-[1] flex w-full flex-col"
-                  style={{
-                    padding,
-                    gap,
-                    alignItems: alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
-                  }}
-                  data-container-content="true"
-                >
-                  {flowDropLine(node.id, 0, "Drop into panel")}
-                  {children.map((child, childIndex) => <Fragment key={child.id}>{renderModule(child)}{flowDropLine(node.id, childIndex + 1)}</Fragment>)}
-                  {editMode && children.length === 0 ? (
-                    <div className="grid min-h-20 w-full place-items-center rounded-xl border border-dashed border-white/18 text-xs text-white/38">Add Modules here</div>
-                  ) : null}
-                </div>
-              </div>
-              {flowDropLine(null, rootIndex + 1)}
-            </Fragment>;
-          })}
+        <div className={cn("relative z-[1] w-full", rootLayered ? "block" : "flex flex-col")} style={{ gap: rootLayered ? undefined : rootDensity.gapPx, height: rootLayered ? Math.max(240, block.compositionMode?.layeredHeightPx ?? 620) : undefined }} data-card-surface-flow={rootLayered ? "false" : "true"} data-layered-region={rootLayered ? "true" : undefined} data-layered-region-id={rootLayered ? "card-surface" : undefined} data-density={rootDensity.mode} data-card-surface-layered={rootLayered ? "true" : undefined} data-flow-gap-applied={rootLayered ? "false" : "true"}>
+          {rootLayered ? layeredGuides("card-surface") : null}
+          {rootLayered ? layeredGroupChrome(null) : null}
+          {!rootLayered ? flowDropLine(null, 0) : null}
+          {renderParentChildren(null, rootLayered)}
         </div>
       </div>
     );
@@ -3086,22 +3433,25 @@ export function CreativeCompositionCanvas({
     );
   }
 
+  const isGovernedSignatureAssembly = Boolean(block.signatureAssembly);
   return (
     <div
       ref={surfaceRef}
       className={cn(
-        "relative w-full rounded-xl border border-white/10",
-        editMode ? "overflow-visible" : "overflow-hidden",
+        "relative w-full",
+        isGovernedSignatureAssembly ? "overflow-visible border-0 rounded-none" : "rounded-xl border border-white/10",
+        !isGovernedSignatureAssembly && (editMode ? "overflow-visible" : "overflow-hidden"),
         editMode && "touch-none",
         className
       )}
       style={{
         aspectRatio: minHeightPx == null ? String(aspectRatio) : undefined,
         height: hasExpandableArcEmberStage ? contentDrivenSurfaceHeightPx : minHeightPx,
-        padding: block.safeAreaPaddingPx ?? 12,
+        padding: isGovernedSignatureAssembly ? 0 : block.safeAreaPaddingPx ?? 12,
       }}
       data-testid="creative-composition-canvas"
       data-composition-surface="true"
+      data-curated-surface-shell={isGovernedSignatureAssembly ? "none" : undefined}
       data-surface-width={String(Math.round(surfaceSize.width))}
       data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
       data-edit-mode={editMode ? "true" : "false"}
@@ -3522,7 +3872,7 @@ export function CreativeCompositionCanvas({
             ["s", "left-1/2 bottom-0 cursor-ns-resize", "center", "translate(-50%, 50%) ", "edge"],
             ["sw", "bottom-0 left-0 cursor-nesw-resize", "center", "translate(-50%, 50%) ", "corner"],
             ["w", "left-0 top-1/2 cursor-ew-resize", "center", "translate(-50%, -50%) ", "edge"],
-          ] as const).map(([handle, position, origin, translate, kind]) => <button key={handle} type="button" className={`pointer-events-auto absolute ${handleHit} rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-resize-${node.id}-${handle}`} data-handle-kind={kind} data-handle-placement="outside" data-handle-screen-px={kind === "corner" ? (compactHandles ? "4" : "6") : (compactHandles ? "3" : "5")} aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
+          ] as const).filter(([handle]) => allowedLayeredResizeHandles(node).includes(handle)).map(([handle, position, origin, translate, kind]) => <button key={handle} type="button" className={`pointer-events-auto absolute ${handleHit} rounded-sm border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-[1px] after:border after:border-white/85 after:bg-white ${kind === "corner" ? "after:h-1.5 after:w-1.5" : "after:h-[5px] after:w-[5px]"} ${position}`} style={{ transform: `${translate}scale(${chromeScale})`, transformOrigin: origin }} data-testid={`composition-resize-${node.id}-${handle}`} data-handle-kind={kind} data-handle-placement="outside" data-handle-screen-px={kind === "corner" ? (compactHandles ? "4" : "6") : (compactHandles ? "3" : "5")} aria-label={`Resize ${handle}`} onPointerDown={(event) => onPointerDownNode(event, node, "resize", handle)} />)}
           <button type="button" className="pointer-events-auto absolute left-1/2 h-5 w-5 cursor-grab rounded-full border-0 bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-2 after:w-2 after:-translate-x-1/2 after:-translate-y-1/2 after:rounded-full after:border after:border-white/85 after:bg-[#9cff57]" style={{ top: `calc(-1.85rem * ${chromeScale})`, transform: `translateX(-50%) scale(${chromeScale})`, transformOrigin: "bottom center" }} data-testid={`composition-rotate-${node.id}`} data-handle-kind="rotate" data-handle-screen-px="8" aria-label="Rotate" onPointerDown={(event) => onPointerDownNode(event, node, "rotate")} />
         </div>;
       }) : null}
@@ -3540,8 +3890,8 @@ export function CreativeCompositionCanvas({
             <button role="menuitem" type="button" disabled={!hasCompositionClipboard()} className="block w-full rounded px-2 py-2 text-left hover:bg-white/5 disabled:opacity-35" onClick={() => { const result = pasteCompositionNodes(block.nodes); action(result.nodes, "Pasted Element"); onSelectNodes?.(result.newIds); }}>Paste</button>
             <button role="menuitem" type="button" disabled={!hasCompositionStyleClipboard()} className="block w-full rounded px-2 py-2 text-left hover:bg-white/5 disabled:opacity-35" onClick={() => action(pasteCompositionNodeStyle(block.nodes, node.id), "Pasted Element style")}>Paste style</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => { const duplicated = duplicateNodes(block.nodes, [node.id]); action(duplicated.nodes, "Duplicated Element"); onSelectNodes?.(duplicated.newIds); }}>Duplicate</button>
-            {selectedNodeIds.length > 1 ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" data-testid="composition-context-group" onClick={() => { const next = groupNodes(block.nodes, selectedNodeIds); action(next, "Grouped Elements"); onSelectNodes?.(expandSelectionToGroups(next, selectedNodeIds)); }}>Group</button> : null}
-            {node.groupId ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" data-testid="composition-context-ungroup" onClick={() => { action(ungroupNodes(block.nodes, node.groupId!), "Ungrouped Elements"); onSelectNodes?.(selectedNodeIds); }}>Ungroup</button> : null}
+            {selectedNodeIds.length > 1 ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" data-testid="composition-context-group" onClick={() => { const next = groupCompositionBlock(block, selectedNodeIds); onChangeBlock?.(next, "Grouped Elements"); onSelectNodes?.(expandSelectionToGroups(next.nodes, selectedNodeIds)); }}>Group</button> : null}
+            {node.groupId ? <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" data-testid="composition-context-ungroup" onClick={() => { onChangeBlock?.(ungroupCompositionBlock(block, node.groupId!), "Ungrouped Elements"); onSelectNodes?.(selectedNodeIds); }}>Ungroup</button> : null}
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringForward(block.nodes, node.id), "Brought Element forward")}>Bring forward</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(sendBackward(block.nodes, node.id), "Sent Element backward")}>Send backward</button>
             <button role="menuitem" type="button" className="block w-full rounded px-2 py-2 text-left hover:bg-white/5" onClick={() => action(bringToFront(block.nodes, node.id), "Brought Element to front")}>Bring to front</button>

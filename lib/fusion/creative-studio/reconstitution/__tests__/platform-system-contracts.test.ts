@@ -5,6 +5,7 @@ import { applyStudioPresentation, type StudioPresentationApplication } from "../
 import { isQualifyingStudioUsageOperation, LEGACY_STUDIO_RECENCY_SOURCES } from "../../platform/activity";
 import { buildStudioButtonFamilyCatalog } from "../button-family-provider.server";
 import { CABINET_NOIR_ENTITLEMENT_KEY, CABINET_NOIR_FAMILY_ID } from "../../signature-assets/cabinet-noir";
+import { EVERENCORE_LOVE_AND_THEFT_FAMILY_ID } from "../../signature-assets/everencore-love-and-theft";
 import { ARC_EMBER_SIGNATURE_FAMILY_ID } from "../../signature-assets/registry";
 import { compileSignatureAuthoringState, createSignatureAssemblyAuthoringState } from "../../signature-assets/authoring";
 import { selectedStructuredAssembly } from "../signature-assembly-entry";
@@ -105,7 +106,7 @@ describe("shared Studio activity", () => {
 describe("shared Button-family discovery", () => {
   it("presents standalone, Brand, governed, and saved resource models through one contract", () => {
     const catalog = buildStudioButtonFamilyCatalog([CABINET_NOIR_ENTITLEMENT_KEY]);
-    assert.deepEqual(catalog.entries.map((entry) => entry.id), ["standard", "brand", ARC_EMBER_SIGNATURE_FAMILY_ID, CABINET_NOIR_FAMILY_ID, "saved"]);
+    assert.deepEqual(catalog.entries.map((entry) => entry.id), ["standard", "brand", ARC_EMBER_SIGNATURE_FAMILY_ID, CABINET_NOIR_FAMILY_ID, EVERENCORE_LOVE_AND_THEFT_FAMILY_ID, "saved"]);
     const cabinet = catalog.entries.find((entry) => entry.id === CABINET_NOIR_FAMILY_ID)!;
     assert.equal(cabinet.model, "governed-signature");
     assert.equal(cabinet.available, true);

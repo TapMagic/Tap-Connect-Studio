@@ -1,0 +1,187 @@
+{
+  "contract": "studioActualLayeredAuthoringJourney@1.0.0",
+  "route": "http://127.0.0.1:3050/review/studio",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "parentMode": "layered",
+  "flowGapApplied": false,
+  "nodes": [
+    {
+      "id": "node-9oJlpl",
+      "parentId": "card-surface",
+      "x": "0.03",
+      "y": "0.03",
+      "width": "0.46",
+      "height": "0.23684210526315788",
+      "z": "1",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "node-MZBypR",
+      "parentId": "card-surface",
+      "x": "0.08",
+      "y": "0.08",
+      "width": "0.44",
+      "height": "0.07105263157894737",
+      "z": "10",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "node-ryTzpi",
+      "parentId": "card-surface",
+      "x": "0.52",
+      "y": "0.08",
+      "width": "0.44",
+      "height": "0.09473684210526316",
+      "z": "2",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "module-dpsEYkG8",
+      "parentId": "card-surface",
+      "x": "0.08102564102564083",
+      "y": "0.24947368421052635",
+      "width": "0.4517948717948719",
+      "height": "0.05789473684210526",
+      "z": "3",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "module-0temZbup",
+      "parentId": "card-surface",
+      "x": "0.5482051282051281",
+      "y": "0.24947368421052635",
+      "width": "0.4517948717948719",
+      "height": "0.05789473684210526",
+      "z": "4",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "module-ps3A9DfT",
+      "parentId": "card-surface",
+      "x": "0.08102564102564083",
+      "y": "0.3126315789473684",
+      "width": "0.4517948717948719",
+      "height": "0.05789473684210526",
+      "z": "5",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "module-Dcvuo805",
+      "parentId": "card-surface",
+      "x": "0.5482051282051281",
+      "y": "0.3126315789473684",
+      "width": "0.4517948717948719",
+      "height": "0.05789473684210526",
+      "z": "6",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "module-LpQtPMV9",
+      "parentId": "card-surface",
+      "x": "0.08102564102564083",
+      "y": "0.37578947368421056",
+      "width": "0.4517948717948719",
+      "height": "0.05789473684210526",
+      "z": "7",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "module-N5Pvw1Gi",
+      "parentId": "card-surface",
+      "x": "0.5482051282051281",
+      "y": "0.37578947368421056",
+      "width": "0.4517948717948719",
+      "height": "0.05789473684210526",
+      "z": "8",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "container-dW7hJTOJ",
+      "parentId": "card-surface",
+      "x": "0.03",
+      "y": "0.45",
+      "width": "0.46",
+      "height": "0.2894736842105263",
+      "z": "9",
+      "position": "absolute",
+      "flowWrapper": "false"
+    }
+  ],
+  "group": {
+    "id": "group-usGhvh",
+    "parentId": "card-surface",
+    "layout": "grid",
+    "density": "dense",
+    "x": "0.0810256410256408",
+    "y": "0.24947368421052632",
+    "width": "0.9189743589743592",
+    "height": "0.18421052631578946",
+    "z": "9",
+    "position": "absolute",
+    "flowWrapper": "false"
+  },
+  "nestedChild": {
+    "id": "node-CAe56U",
+    "parentId": "container-dW7hJTOJ",
+    "x": "0.03",
+    "y": "0.03",
+    "width": "0.48",
+    "height": "0.12222222222222222",
+    "z": "1",
+    "position": "absolute",
+    "flowWrapper": "false"
+  },
+  "phoneGeometry": {
+    "surface": {
+      "x": 12,
+      "y": 170,
+      "width": 366,
+      "height": 760
+    },
+    "group": {
+      "x": 41.640625,
+      "y": 359.59375,
+      "width": 336.34375,
+      "height": 140
+    },
+    "nestedContainer": {
+      "x": 22.96875,
+      "y": 512,
+      "width": 168.359375,
+      "height": 220
+    },
+    "fullBleedBackdrop": {
+      "x": 0,
+      "y": 0,
+      "width": 390,
+      "height": 844
+    }
+  },
+  "checks": {
+    "leatherAppliedInStudio": true,
+    "imageAddedInStudio": true,
+    "textBoxesAddedInStudio": true,
+    "directTyping": true,
+    "sixCuratedActionsAddedInStudio": true,
+    "groupedAndDragged": true,
+    "nestedContainerAddedInStudio": true,
+    "nestedTextTargetedCorrectly": true,
+    "saveReloadExact": true,
+    "previewParity": true,
+    "liveDeviceParity": true,
+    "noHorizontalOverflow": true
+  },
+  "productOwnerAcceptance": "pending"
+}

@@ -13,6 +13,45 @@
   overflow: hidden;
 }
 
+/* Standard Button uses a real face/side-wall relationship; Material still owns paint. */
+.studio-standard-button-sidewall {
+  position: absolute;
+  inset: 0;
+  top: var(--standard-button-elevation, 0px);
+  background: linear-gradient(180deg, rgba(255,255,255,.12), rgba(0,0,0,.5));
+  border: 1px solid rgba(0,0,0,.28);
+  pointer-events: none;
+}
+
+.studio-standard-button-face {
+  position: relative;
+  transform: translateY(calc(-1 * var(--standard-button-elevation, 0px)));
+  transition: transform 160ms ease, filter 160ms ease;
+}
+
+a:hover .studio-standard-button-face {
+  filter: brightness(1.06);
+}
+
+a:active .studio-standard-button-face {
+  transform: translateY(calc(-1 * max(0px, var(--standard-button-elevation, 0px) - 3px)));
+}
+
+a[aria-disabled="true"] .studio-standard-button {
+  opacity: .48;
+  filter: saturate(.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .studio-standard-button-face {
+    transition: none;
+  }
+}
+
+[data-in-layered-container="true"] ~ section:last-child {
+  display: none;
+}
+
 .owner-status-frame::before {
   content: "";
   position: absolute;

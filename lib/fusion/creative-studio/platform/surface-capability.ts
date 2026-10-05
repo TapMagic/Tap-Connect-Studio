@@ -13,6 +13,9 @@ export type StudioSurfaceState = Readonly<{
   overlayOpacity: number;
   imageOpacity: number;
   brightness: number;
+  contrast: number;
+  saturation: number;
+  scale: number;
   tint: string;
   fit: "cover" | "contain" | "fill";
   focalX: number;
@@ -48,6 +51,9 @@ export function readStudioSurfaceState(props: Readonly<Record<string, unknown>>)
   const overlayOpacity = number(savedState?.overlayOpacity ?? props.overlayOpacity, treatment === "image" ? .28 : treatment === "smoked_glass" ? .2 : 0, 0, 1);
   const imageOpacity = number(savedState?.imageOpacity ?? props.imageOpacity, 1, .1, 1);
   const brightness = number(savedState?.brightness ?? props.brightness, 1, .25, 2);
+  const contrast = number(savedState?.contrast ?? props.contrast, 1, .25, 2);
+  const saturation = number(savedState?.saturation ?? props.saturation, 1, 0, 2);
+  const scale = number(savedState?.scale ?? props.imageScale, 1, .5, 3);
   const tint = String(savedState?.tint ?? props.overlayColor ?? "#000000");
   const fitValue = savedState?.fit ?? props.backgroundFit;
   const fit = fitValue === "contain" || fitValue === "fill" ? fitValue : "cover";
@@ -60,9 +66,9 @@ export function readStudioSurfaceState(props: Readonly<Record<string, unknown>>)
   const opacity = number(savedState?.opacity ?? props.opacity, 1, .1, 1);
   const shadowPx = number(savedState?.shadowPx ?? props.boxShadow, treatment === "transparent" ? 0 : 18, 0, 48);
   const visualPlane = savedState?.visualPlane ?? (props.visualPlane as VisualPlane | undefined) ?? (treatment === "image" && mediaUrl
-    ? photographyVisualPlane({ url: mediaUrl, mediaAssetId, overlayOpacity, tint, fit, focalX, focalY, opacity: imageOpacity })
+    ? photographyVisualPlane({ url: mediaUrl, mediaAssetId, overlayOpacity, tint, fit, focalX, focalY, opacity: imageOpacity, scale })
     : treatment === "transparent" ? { kind: "none" } : { kind: "solid", color: fill });
-  return { contractId: STUDIO_SURFACE_CAPABILITY_CONTRACT, treatment, fill, mediaUrl, mediaAssetId, overlayOpacity, imageOpacity, brightness, tint, fit, focalX, focalY, blurPx, radiusPx, borderWidthPx, borderColor, opacity, shadowPx, visualPlane };
+  return { contractId: STUDIO_SURFACE_CAPABILITY_CONTRACT, treatment, fill, mediaUrl, mediaAssetId, overlayOpacity, imageOpacity, brightness, contrast, saturation, scale, tint, fit, focalX, focalY, blurPx, radiusPx, borderWidthPx, borderColor, opacity, shadowPx, visualPlane };
 }
 
 export function applyStudioSurfaceTreatment(
@@ -78,7 +84,7 @@ export function applyStudioSurfaceTreatment(
   const mediaUrl = Object.prototype.hasOwnProperty.call(patch, "mediaUrl") ? patch.mediaUrl : current.mediaUrl;
   const mediaAssetId = Object.prototype.hasOwnProperty.call(patch, "mediaAssetId") ? patch.mediaAssetId : current.mediaAssetId;
   const visualPlane: VisualPlane = treatment === "image" && mediaUrl
-    ? photographyVisualPlane({ url: mediaUrl, mediaAssetId, overlayOpacity: current.overlayOpacity, tint: current.tint, fit: current.fit, focalX: current.focalX, focalY: current.focalY, opacity: current.imageOpacity })
+    ? photographyVisualPlane({ url: mediaUrl, mediaAssetId, overlayOpacity: current.overlayOpacity, tint: current.tint, fit: current.fit, focalX: current.focalX, focalY: current.focalY, opacity: current.imageOpacity, scale: current.scale })
     : treatment === "transparent" ? { kind: "none" } : { kind: "solid", color: fill };
   const surfaceTreatment: StudioSurfaceState = { ...current, contractId: STUDIO_SURFACE_CAPABILITY_CONTRACT, treatment, fill, mediaUrl, mediaAssetId, visualPlane };
   return { ...props, surfaceTreatment, containerTreatment: treatment, fill, backgroundImageUrl: mediaUrl, backgroundMediaAssetId: mediaAssetId, visualPlane };
@@ -86,12 +92,12 @@ export function applyStudioSurfaceTreatment(
 
 export function applyStudioSurfaceParameters(
   props: Readonly<Record<string, unknown>>,
-  patch: Partial<Pick<StudioSurfaceState, "fill" | "overlayOpacity" | "imageOpacity" | "brightness" | "tint" | "fit" | "focalX" | "focalY" | "blurPx" | "radiusPx" | "borderWidthPx" | "borderColor" | "opacity" | "shadowPx">>,
+  patch: Partial<Pick<StudioSurfaceState, "fill" | "overlayOpacity" | "imageOpacity" | "brightness" | "contrast" | "saturation" | "scale" | "tint" | "fit" | "focalX" | "focalY" | "blurPx" | "radiusPx" | "borderWidthPx" | "borderColor" | "opacity" | "shadowPx">>,
 ): Record<string, unknown> {
   const current = readStudioSurfaceState(props);
   const next = { ...current, ...patch };
   const visualPlane: VisualPlane = next.treatment === "image" && next.mediaUrl
-    ? photographyVisualPlane({ url: next.mediaUrl, mediaAssetId: next.mediaAssetId, overlayOpacity: next.overlayOpacity, tint: next.tint, fit: next.fit, focalX: next.focalX, focalY: next.focalY, opacity: next.imageOpacity })
+    ? photographyVisualPlane({ url: next.mediaUrl, mediaAssetId: next.mediaAssetId, overlayOpacity: next.overlayOpacity, tint: next.tint, fit: next.fit, focalX: next.focalX, focalY: next.focalY, opacity: next.imageOpacity, scale: next.scale })
     : next.treatment === "transparent" ? { kind: "none" } : { kind: "solid", color: next.fill || "transparent" };
   const surfaceTreatment: StudioSurfaceState = { ...next, visualPlane };
   return {
@@ -101,6 +107,9 @@ export function applyStudioSurfaceParameters(
     overlayOpacity: next.overlayOpacity,
     imageOpacity: next.imageOpacity,
     brightness: next.brightness,
+    contrast: next.contrast,
+    saturation: next.saturation,
+    imageScale: next.scale,
     overlayColor: next.tint,
     backgroundFit: next.fit,
     focalX: next.focalX,

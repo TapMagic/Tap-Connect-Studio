@@ -38,6 +38,8 @@ import { studioVisualResourceCompatibility, studioVisualResourceLegibilityGuidan
 import { StudioVisualResourceCropEditor } from "@/components/fusion/creative-studio/studio-visual-resource-crop-editor";
 import { StudioVisualResourceProjection } from "@/components/fusion/creative-studio/studio-visual-resource-projection";
 import type { StudioTransientTaskLifecycle } from "@/lib/fusion/creative-studio/platform/adaptive-workspace";
+import type { TapExperiencePage } from "@/lib/brand/tap-card";
+import { StudioInternalPagePicker } from "./studio-internal-page-picker";
 
 export function StudioAuthoringShell({
   capability,
@@ -53,6 +55,7 @@ export function StudioAuthoringShell({
   transientTaskLifecycle,
   mediaUploadReady = false,
   stockReady = false,
+  experiencePages = [],
 }: {
   capability: StudioAuthoringCapabilityContract;
   selection: StudioAuthoringSelectionContext;
@@ -67,6 +70,7 @@ export function StudioAuthoringShell({
   transientTaskLifecycle?: StudioTransientTaskLifecycle;
   mediaUploadReady?: boolean;
   stockReady?: boolean;
+  experiencePages?: readonly TapExperiencePage[];
 }) {
   const [sheetSize, setSheetSize] = useState<"peek" | "partial" | "expanded">("partial");
   const groups = capability.groups.filter((group) => group.level === selection.level);
@@ -121,13 +125,13 @@ export function StudioAuthoringShell({
       {selection.level === "module" && firstInternalId ? <div className="shrink-0 px-3 pt-3"><button type="button" onClick={() => onSelectInternal(firstInternalId)} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a]" data-testid="studio-authoring-edit-contents">Edit Contents <ChevronRight className="h-4 w-4" /></button></div> : null}
 
       <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-[max(24px,env(safe-area-inset-bottom))]", sheetSize === "peek" && "max-xl:hidden")}>
-        {groups.map((group) => <section key={group.id} className="mt-3 rounded-xl border border-[#8bdcff]/10 bg-[#101824]/70 p-2.5" aria-labelledby={`studio-authoring-group-${group.id}`}><h3 id={`studio-authoring-group-${group.id}`} className="text-[8px] font-semibold uppercase tracking-[.16em] text-[#a9e7ff]/70">{group.label}</h3><div className="mt-2 space-y-2.5">{group.controls.map((control) => <PurposeBuiltControl key={`${selection.internalId || "module"}:${control.id}:${control.type === "action-destination" ? control.actionType : ""}`} control={control} selection={selection} onDispatch={dispatch} onPreviewDispatch={previewDispatch} onBeginLiveAdjustment={onBeginLiveAdjustment} onCommitLiveAdjustment={onCommitLiveAdjustment} onCancelLiveAdjustment={onCancelLiveAdjustment} onSelectInternal={onSelectInternal} transientTaskLifecycle={transientTaskLifecycle} mediaUploadReady={mediaUploadReady} stockReady={stockReady} />)}</div></section>)}
+        {groups.map((group) => <section key={group.id} className="mt-3 rounded-xl border border-[#8bdcff]/10 bg-[#101824]/70 p-2.5" aria-labelledby={`studio-authoring-group-${group.id}`}><h3 id={`studio-authoring-group-${group.id}`} className="text-[8px] font-semibold uppercase tracking-[.16em] text-[#a9e7ff]/70">{group.label}</h3><div className="mt-2 space-y-2.5">{group.controls.map((control) => <PurposeBuiltControl key={`${selection.internalId || "module"}:${control.id}:${control.type === "action-destination" ? control.actionType : ""}`} control={control} selection={selection} onDispatch={dispatch} onPreviewDispatch={previewDispatch} onBeginLiveAdjustment={onBeginLiveAdjustment} onCommitLiveAdjustment={onCommitLiveAdjustment} onCancelLiveAdjustment={onCancelLiveAdjustment} onSelectInternal={onSelectInternal} transientTaskLifecycle={transientTaskLifecycle} mediaUploadReady={mediaUploadReady} stockReady={stockReady} experiencePages={experiencePages} />)}</div></section>)}
       </div>
     </div>
   </aside>;
 }
 
-function PurposeBuiltControl({ control, selection, onDispatch, onPreviewDispatch, onBeginLiveAdjustment, onCommitLiveAdjustment, onCancelLiveAdjustment, onSelectInternal, transientTaskLifecycle, mediaUploadReady, stockReady }: {
+function PurposeBuiltControl({ control, selection, onDispatch, onPreviewDispatch, onBeginLiveAdjustment, onCommitLiveAdjustment, onCancelLiveAdjustment, onSelectInternal, transientTaskLifecycle, mediaUploadReady, stockReady, experiencePages }: {
   control: StudioAuthoringControl;
   selection: StudioAuthoringSelectionContext;
   onDispatch: (control: StudioAuthoringControl, payload: unknown, label: string) => void;
@@ -139,6 +143,7 @@ function PurposeBuiltControl({ control, selection, onDispatch, onPreviewDispatch
   transientTaskLifecycle?: StudioTransientTaskLifecycle;
   mediaUploadReady: boolean;
   stockReady: boolean;
+  experiencePages: readonly TapExperiencePage[];
 }) {
   if (control.type === "visual-layout") return <ControlFrame control={control}><div className={cn("grid gap-1.5", control.options.length >= 3 ? "grid-cols-3" : "grid-cols-2")}>{control.options.map((option) => <button key={option.id} type="button" disabled={option.availability !== "enabled"} aria-pressed={control.value === option.id} onClick={() => onDispatch(control, { controlId: control.id, value: option.id }, `Changed layout to ${option.label}`)} className={visualChoiceClass}><LayoutPreview layout={option.id} /><strong className="mt-1.5 block text-[9px]">{option.label}</strong><span className="mt-0.5 block text-[7px] leading-3 text-white/34">{option.description}</span>{control.value === option.id ? <Check className="absolute right-1.5 top-1.5 h-3 w-3 text-[#b8ff2c]" /> : null}</button>)}</div></ControlFrame>;
   if (control.type === "count-stepper") {
@@ -149,7 +154,7 @@ function PurposeBuiltControl({ control, selection, onDispatch, onPreviewDispatch
   }
   if (control.type === "action-roster") return <ControlFrame control={control}><ActionRoster control={control} onDispatch={onDispatch} onSelectInternal={onSelectInternal} /></ControlFrame>;
   if (control.type === "text") return <TextControl control={control} selection={selection} onDispatch={onDispatch} onPreviewDispatch={onPreviewDispatch} onBegin={onBeginLiveAdjustment} onCommit={onCommitLiveAdjustment} onCancel={onCancelLiveAdjustment} />;
-  if (control.type === "action-destination") return <DestinationControl control={control} selection={selection} onDispatch={onDispatch} />;
+  if (control.type === "action-destination") return <DestinationControl control={control} selection={selection} onDispatch={onDispatch} experiencePages={experiencePages} />;
   if (control.type === "action-intent") return <ControlFrame control={control}><div className="grid grid-cols-2 gap-1.5">{control.options.map((option) => <button key={option.id} type="button" aria-pressed={control.value === option.id} onClick={() => onDispatch(control, { controlId: control.id, value: option.id, actionId: selection.internalId }, `Changed Action to ${option.label}`)} className={cn("min-h-10 rounded-xl bg-white/[.045] px-2 text-left text-[10px] text-white/62 transition hover:bg-white/[.08] aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#e7ffc2] aria-pressed:ring-1 aria-pressed:ring-[#b8ff2c]/45", option.availability !== "enabled" && "opacity-35")}><strong>{option.label}</strong><span className="mt-0.5 block text-[8px] text-white/30">{option.description}</span></button>)}</div></ControlFrame>;
   if (control.type === "segmented") return <ControlFrame control={control}><div className="grid grid-cols-3 gap-1">{control.options.map((option) => { const Icon = control.id === "alignment" ? option.id === "left" ? AlignLeft : option.id === "right" ? AlignRight : AlignCenter : null; return <button key={option.id} type="button" disabled={option.availability !== "enabled"} title={option.disabledReason} aria-label={option.label} aria-pressed={control.value === option.id} onClick={() => onDispatch(control, { controlId: control.id, value: option.id, actionId: selection.internalId }, `Changed ${control.label} to ${option.label}`)} className="flex h-10 items-center justify-center gap-1 rounded-xl bg-white/[.045] text-[9px] text-white/52 transition hover:bg-white/[.08] disabled:cursor-not-allowed disabled:opacity-30 aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#e7ffc2] aria-pressed:ring-1 aria-pressed:ring-[#b8ff2c]/45">{Icon ? <Icon className="h-3.5 w-3.5" /> : <span style={{ fontSize: `${Math.min(Number(option.metadata?.phonePx || 12), 15)}px` }}>A</span>}{option.label}</button>; })}</div>{control.options.find((option) => option.id === control.value)?.metadata?.recommendedCharacterCount ? <p className="mt-1.5 text-[8px] text-white/30">Phone-safe guidance: up to {String(control.options.find((option) => option.id === control.value)?.metadata?.recommendedCharacterCount)} characters.</p> : null}</ControlFrame>;
   if (control.type === "precision") return <ControlFrame control={control}><StudioPrecisionControl label={control.label} value={control.value} descriptor={{ unit: control.unit, min: control.min, max: control.max, step: control.step, fineStep: control.fineStep, defaultValue: control.defaultValue }} onBegin={onBeginLiveAdjustment} onPreview={(value) => onPreviewDispatch(control, { controlId: control.id, value, actionId: selection.internalId }, `Changed ${control.label}`)} onCommit={(value) => onCommitLiveAdjustment ? onCommitLiveAdjustment(`Changed ${control.label}`) : onDispatch(control, { controlId: control.id, value, actionId: selection.internalId }, `Changed ${control.label}`)} onCancel={onCancelLiveAdjustment} testId={`studio-authoring-${control.id}`} />{control.guidance ? <p className="mt-1.5 text-[8px] text-white/30">{control.guidance}</p> : null}</ControlFrame>;
@@ -277,9 +282,10 @@ function TextControl({ control, selection, onDispatch, onPreviewDispatch, onBegi
   return <ControlFrame control={control}><input value={value} onFocus={begin} onChange={(event) => { begin(); const next = event.target.value; setValue(next); onPreviewDispatch(control, { controlId: control.id, value: next, actionId: selection.internalId }, `Edited ${control.label}`); }} onBlur={commit} onKeyDown={(event) => { if (event.key === "Enter") { commit(); event.currentTarget.blur(); } else if (event.key === "Escape") { event.preventDefault(); cancel(); event.currentTarget.blur(); } }} inputMode={control.inputMode} placeholder={control.placeholder} maxLength={control.maxLength} className={fieldClass} data-testid={`studio-authoring-${control.id}`} />{control.guidance ? <p className="mt-1.5 text-[8px] text-white/30">{control.guidance}</p> : null}</ControlFrame>;
 }
 
-function DestinationControl({ control, selection, onDispatch }: { control: Extract<StudioAuthoringControl, { type: "action-destination" }>; selection: StudioAuthoringSelectionContext; onDispatch: (control: StudioAuthoringControl, payload: unknown, label: string) => void }) {
+function DestinationControl({ control, selection, onDispatch, experiencePages }: { control: Extract<StudioAuthoringControl, { type: "action-destination" }>; selection: StudioAuthoringSelectionContext; onDispatch: (control: StudioAuthoringControl, payload: unknown, label: string) => void; experiencePages: readonly TapExperiencePage[] }) {
   const [value, setValue] = useState(control.value);
   const error = validateActionDestination(control.actionType as StandardButtonActionIntent, value);
+  if (control.actionType === "internal_page") return <ControlFrame control={{ ...control, label: "Destination Page" }}><StudioInternalPagePicker pages={experiencePages} value={value} onChange={(next) => { setValue(next); if (next !== control.value) onDispatch(control, { controlId: control.id, value: next, actionId: selection.internalId }, "Mapped Curated action to Experience Page"); }} testId={`studio-authoring-${control.id}`} /></ControlFrame>;
   return <ControlFrame control={control}><input value={value} onChange={(event) => setValue(event.target.value)} onBlur={() => { if (value !== control.value && !error) onDispatch(control, { controlId: control.id, value, actionId: selection.internalId }, `Edited ${control.label}`); }} inputMode={control.inputMode} placeholder={control.placeholder} aria-invalid={Boolean(error)} aria-describedby={error ? `studio-authoring-${control.id}-error` : undefined} className={fieldClass} data-testid={`studio-authoring-${control.id}`} />{error ? <p id={`studio-authoring-${control.id}-error`} className="mt-1.5 text-[9px] text-amber-200" role="status">{error}</p> : null}</ControlFrame>;
 }
 
@@ -289,7 +295,15 @@ function ActionRoster({ control, onDispatch, onSelectInternal }: { control: Extr
 }
 
 function VisualGridControl({ control, selection, onDispatch }: { control: Extract<StudioAuthoringControl, { type: "visual-grid" }>; selection: StudioAuthoringSelectionContext; onDispatch: (control: StudioAuthoringControl, payload: unknown, label: string) => void }) {
-  return <ControlFrame control={control}><StudioTransientVisualBrowser label={control.label} value={control.value} options={control.options} searchable={control.searchable} adapterId={`curated-plugs:${selection.objectId}`} pathLabel={`${selection.objectLabel} / ${control.label}`} onSelect={(option) => onDispatch(control, { controlId: control.id, value: option.id, actionId: selection.internalId }, `Changed visual choice to ${option.label}`)} /></ControlFrame>;
+  return <ControlFrame control={control}><StudioTransientVisualBrowser label={control.label} value={control.value} options={control.options} searchable={control.searchable} adapterId={`curated-plugs:${selection.objectId}`} pathLabel={`${selection.objectLabel} / ${control.label}`} onSelect={(option) => onDispatch(control, {
+    controlId: control.id,
+    value: option.id,
+    actionId: selection.internalId,
+    // Appearance roles are semantic family state, not action-local visual choices.
+    // Preserve the role declared by the adapter so the shared command path can
+    // validate, persist, recompile, and project the selected material master.
+    ...(typeof option.metadata?.roleId === "string" ? { roleId: option.metadata.roleId } : {}),
+  }, `Changed visual choice to ${option.label}`)} /></ControlFrame>;
 }
 
 function LayoutPreview({ layout }: { layout: string }) {

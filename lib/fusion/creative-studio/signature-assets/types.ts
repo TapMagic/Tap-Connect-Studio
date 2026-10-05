@@ -77,6 +77,13 @@ export type SignatureCompactStackedGeometry = {
   visibleBodyBounds: { top: number; bottom: number };
 };
 
+/** Family-owned clipping authority for a shared Material projection. */
+export type SignatureMaterialSurfaceGeometry = {
+  inset?: SignatureSafeInsets;
+  borderRadiusPercent?: number;
+  clipPolygon?: readonly SignatureNormalizedPoint[];
+};
+
 export type SignatureAssetProvenance = {
   sourceAssetPath: string;
   authorityManifest: string;
@@ -180,6 +187,7 @@ export type SignatureComponentContract = {
   sourceGeometry?: SignatureSourceGeometry;
   liveContentGeometry?: SignatureLiveContentGeometry;
   compactStackedGeometry?: SignatureCompactStackedGeometry;
+  materialSurfaceGeometry?: SignatureMaterialSurfaceGeometry;
   provenance?: SignatureAssetProvenance;
 };
 
@@ -229,6 +237,18 @@ export type SignatureAssetDefinition = {
   variant: string;
   sourceAsset: string;
   sourceSha256: string;
+  /** Optional material-selected production masters. The renderer swaps whole governed sources; it does not repaint them. */
+  materialSourceVariants?: Readonly<Record<string, { sourceAsset: string; sourceSha256: string }>>;
+  /** Optional supplied semantic masters. Live identity remains canonical even when artwork is pre-engraved. */
+  semanticSourceVariants?: Readonly<Record<string, { sourceAsset: string; sourceSha256: string }>>;
+  /** Optional family-authored environmental reflection layered beneath live copy. */
+  ambientReflection?: {
+    sourceAsset: string;
+    sourceSha256: string;
+    defaultIntensity: number;
+    minIntensity: number;
+    maxIntensity: number;
+  };
   width: number;
   height: number;
   aspectRatio: number;
@@ -268,6 +288,13 @@ export type SignatureFamilyDefinition = {
   version?: SignatureVersion;
   entitlement?: SignatureEntitlementResolutionContract;
   finishId?: string;
+  /** Optional reusable collection lineage for program-owned artist families. */
+  artistCollection?: {
+    programId: string;
+    programLabel: string;
+    artistId: string;
+    artistLabel: string;
+  };
   launchMode?: SignatureSourceMode;
   provenanceManifest?: string;
   /** Registry-owned discovery metadata. Shared browsers must not branch on family slugs. */

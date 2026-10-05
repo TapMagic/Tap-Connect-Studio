@@ -1,0 +1,26 @@
+{
+  "route": "/review/studio",
+  "contract": "tapExperience@1.0.0",
+  "viewport": {
+    "width": 390,
+    "height": 844
+  },
+  "pages": [
+    "page-home",
+    "page-music",
+    "page-live",
+    "page-exclusives",
+    "page-profile",
+    "page-afterparty"
+  ],
+  "stableRenameProof": {
+    "pageId": "page-music",
+    "title": "Releases"
+  },
+  "offNavInternalDestination": "page-afterparty",
+  "lockedPolicy": "cta",
+  "persistentNavigation": true,
+  "fullReloadsDuringInternalNavigation": 0,
+  "signedLiveDevice": true,
+  "productOwnerAcceptance": "pending"
+}

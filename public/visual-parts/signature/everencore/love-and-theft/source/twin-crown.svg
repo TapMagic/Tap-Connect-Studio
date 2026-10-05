@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 72">
+  <defs><linearGradient id="metal" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#170a04"/><stop offset=".10" stop-color="#ad7030"/><stop offset=".20" stop-color="#efd18a"/><stop offset=".43" stop-color="#5f3816"/><stop offset=".50" stop-color="#d7a85b"/><stop offset=".57" stop-color="#5f3816"/><stop offset=".80" stop-color="#efd18a"/><stop offset=".90" stop-color="#ad7030"/><stop offset="1" stop-color="#170a04"/></linearGradient><filter id="shadow" x="-4%" y="-40%" width="108%" height="190%"><feDropShadow dx="0" dy="6" stdDeviation="4" flood-color="#000" flood-opacity=".75"/></filter></defs>
+  <g filter="url(#shadow)">
+    <path d="M40 62C174 20 340 13 600 13s426 7 560 49M600 13v49" fill="none" stroke="#0d0503" stroke-width="28" stroke-linecap="round"/>
+    <path d="M40 59C174 24 340 20 600 20s426 4 560 39M600 18v41" fill="none" stroke="url(#metal)" stroke-width="14" stroke-linecap="round"/>
+    <path d="M47 57C179 29 344 27 600 27s421 2 553 30M600 24v34" fill="none" stroke="#211006" stroke-width="6" stroke-linecap="round"/>
+    <path d="M74 52C199 34 357 32 600 32s401 2 526 20M600 29v24" fill="none" stroke="#ffe5a4" stroke-opacity=".42" stroke-width="2.5" stroke-linecap="round"/>
+  </g>
+</svg>

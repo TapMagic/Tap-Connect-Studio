@@ -17,9 +17,37 @@ export type SignatureIconTreatment = {
   mode: "engraved" | "embossed" | "inset" | "monochrome";
   safeInset: number;
   scale?: number;
+  /** Percentage of the icon envelope. Negative values move artwork upward. */
+  offsetY?: number;
   color?: string;
   materialId?: string;
   backingMaterialId?: string;
+};
+
+export type SignaturePlugPolicy = {
+  supported: boolean;
+  optional: boolean;
+  defaultEnabled: boolean;
+  /**
+   * `mastered-chassis` means the selected immutable master is the complete
+   * visible hardware. The shared renderer must not add a base, material face,
+   * icon layer, socket plate, or other chassis furniture around it.
+   */
+  visualMode?: "composed" | "mastered-chassis";
+  /** Optional projection furniture. `none` means the certified plug master is the entire plug. */
+  depthTreatment?: "raised-contact" | "none";
+  /** Exact family-native square envelope used at assembly time. */
+  renderedSizePx?: number;
+};
+
+export type SignaturePresentationDensity = {
+  mode: "full" | "medium" | "compact";
+  /** Canonical flow width at the representative phone viewport. */
+  preferredFlowWidthPercent: number;
+  minimumFlowWidthPercent: number;
+  maximumFlowWidthPercent: number;
+  defaultFlowAlignment: "start" | "center" | "end" | "stretch";
+  minimumTouchTargetPx: number;
 };
 
 export type SignaturePresentationContract = {
@@ -27,11 +55,36 @@ export type SignaturePresentationContract = {
   label: string;
   description: string;
   previewAssetId?: string;
+  density?: SignaturePresentationDensity;
   capabilities?: {
     semanticIcon?: { supported: boolean; defaultCanonicalIconId?: string; treatment: SignatureIconTreatment };
     sublabel?: { supported: boolean; maxLength?: number };
     plugSide?: SignaturePlugSidePolicy;
+    plug?: SignaturePlugPolicy;
+    backgroundReflection?: { supported: boolean; defaultIntensity: number; minIntensity: number; maxIntensity: number };
+    /** Family-governed live type that responds to the action's rendered width. */
+    responsiveTypography?: {
+      density: "full" | "medium" | "compact" | "single-stack" | "twin-rail";
+      renderedWidthPx: { min: number; max: number };
+      title: { minPx: number; maxPx: number; defaultPx: number; lineHeight: number; trackingEm?: number };
+      sublabel?: { minPx: number; maxPx: number; defaultPx: number; lineHeight: number; trackingEm?: number; hideBelowWidthPx?: number };
+      safeAreaPaddingPx: number;
+      affordanceReservePx: number;
+    };
   };
+  defaultActions?: readonly {
+    label: string;
+    sublabel?: string;
+    accessibilityLabel?: string;
+    semanticLabel?: string;
+    canonicalIconId?: string;
+    plugEnabled?: boolean;
+    plugSide?: "left" | "right";
+    textAlign?: "left" | "center" | "right";
+    actionType?: string;
+    destination?: string;
+    backgroundReflectionIntensity?: number;
+  }[];
 };
 
 export type SignatureAssemblyComponentReference = {
@@ -136,6 +189,18 @@ export type SignatureAssemblyPlacementRule = {
 export type SignatureAssemblyGeometryContract = {
   coordinateWidthPx: number;
   unitStridePx: number;
+  /**
+   * Governs normal document flow independently from visual overflow. When
+   * present, the action bar owns the layout box and plug hardware may render
+   * outside it without increasing row cadence.
+   */
+  flowBox?: {
+    mode: "action-bar-owned";
+    xPx: number;
+    widthPx: number;
+    firstRowOffsetPx: number;
+    rowHeightPx: number;
+  };
   actionPresentation?: {
     mode: "compact-stacked";
     /** One deterministic row envelope in recipe-native coordinates. */
@@ -221,8 +286,14 @@ export function validateSignatureAssemblyRecipe(recipe: SignatureAssemblyRecipe)
   if (!isSignatureContractId(recipe.contractId, expectedContract)) {
     errors.push(`contractId must be a versioned ${expectedContract} contract`);
   }
-  if (recipe.presentationMode !== "standalone" && recipe.fixedTop.length === 0) errors.push("assembled presentations require at least one fixed structural component");
+  // A governed stack may deliberately be action-only. Some family languages use the
+  // action bodies themselves as the complete manufactured cadence; forcing a crown
+  // would add unapproved furniture and make a quieter stack look heavier, not safer.
   if (recipe.actionUnit.capacity < 1) errors.push("actionUnit capacity must be positive");
+  if (recipe.geometry.flowBox) {
+    if (recipe.geometry.flowBox.widthPx <= 0) errors.push("flow-box width must be positive");
+    if (recipe.geometry.flowBox.rowHeightPx <= 0) errors.push("flow-box row height must be positive");
+  }
   if (recipe.repeatInterval) {
     if (recipe.repeatInterval.nativeStridePx <= 0) errors.push("repeat stride must be positive");
     if (recipe.repeatInterval.normalizedStride <= 0) errors.push("normalized repeat stride must be positive");

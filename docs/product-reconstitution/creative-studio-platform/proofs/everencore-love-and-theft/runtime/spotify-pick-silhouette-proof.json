@@ -1,0 +1,13 @@
+{
+  "source": "EE-LT-PICK-002_spotify.png",
+  "runtimeSizePx": 71,
+  "silhouetteUnionPixels": 2554,
+  "silhouetteDifferencePixels": 86,
+  "rendererAddedPixels": 86,
+  "rendererAddedPercent": 3.367,
+  "rendererAddedBeyondAntialiasPixels": 0,
+  "rendererAddedBeyondAntialiasPercent": 0,
+  "allowedBrowserAntialiasFringePx": 1,
+  "thresholdAlpha": 16,
+  "requiredMaximumRendererAddedPercent": 0.5
+}

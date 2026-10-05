@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 280">
+  <defs>
+    <linearGradient id="brass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#211006"/><stop offset=".08" stop-color="#895625"/><stop offset=".16" stop-color="#eed28d"/><stop offset=".24" stop-color="#70431c"/><stop offset=".46" stop-color="#d2a158"/><stop offset=".60" stop-color="#523013"/><stop offset=".79" stop-color="#e9c77c"/><stop offset=".90" stop-color="#77471c"/><stop offset="1" stop-color="#1d0e05"/>
+    </linearGradient>
+    <linearGradient id="edge" x1="0" y1="0" x2="0" y2="1">
+      <stop stop-color="#ffeab0"/><stop offset=".27" stop-color="#b77a36"/><stop offset=".67" stop-color="#41220d"/><stop offset="1" stop-color="#c89549"/>
+    </linearGradient>
+    <linearGradient id="reflection" x1="0" y1="0" x2="1" y2="0"><stop stop-color="#fff5cc" stop-opacity="0"/><stop offset=".17" stop-color="#fff5cc" stop-opacity=".36"/><stop offset=".48" stop-color="#fff5cc" stop-opacity=".08"/><stop offset=".84" stop-color="#fff5cc" stop-opacity=".23"/><stop offset="1" stop-color="#fff5cc" stop-opacity="0"/></linearGradient>
+    <filter id="contact" x="-8%" y="-30%" width="116%" height="180%"><feDropShadow dx="0" dy="15" stdDeviation="12" flood-color="#000" flood-opacity=".54"/><feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000" flood-opacity=".82"/></filter>
+  </defs>
+  <g filter="url(#contact)">
+    <rect x="25" y="25" width="1150" height="224" rx="112" fill="#050302" fill-opacity=".22" stroke="#120905" stroke-width="22"/>
+    <rect x="31" y="31" width="1138" height="212" rx="106" fill="none" stroke="url(#brass)" stroke-width="13"/>
+    <rect x="40" y="40" width="1120" height="194" rx="97" fill="none" stroke="#190e08" stroke-width="7"/>
+    <rect x="46" y="46" width="1108" height="182" rx="91" fill="none" stroke="url(#edge)" stroke-width="4"/>
+    <rect x="54" y="54" width="1092" height="166" rx="83" fill="none" stroke="#fff3c1" stroke-opacity=".24" stroke-width="1.5"/>
+    <path d="M119 50H1081" fill="none" stroke="url(#reflection)" stroke-width="5" stroke-linecap="round"/>
+    <path d="M122 226H1078" fill="none" stroke="#140a05" stroke-opacity=".9" stroke-width="6" stroke-linecap="round"/>
+    <path d="M63 96c-8 28-8 58 0 86M1137 96c8 28 8 58 0 86" fill="none" stroke="#f4d890" stroke-opacity=".34" stroke-width="3" stroke-linecap="round"/>
+  </g>
+</svg>

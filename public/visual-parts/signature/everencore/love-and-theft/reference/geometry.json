@@ -1,0 +1,18 @@
+{
+  "contract": "curatedArtistFamilyGeometry@1.0.0",
+  "familyId": "everencore-love-and-theft",
+  "coordinateWidthPx": 1200,
+  "authoritativeViewportPx": 390,
+  "semanticPlug": {
+    "shape": "guitar-pick",
+    "sourceSizePx": [300, 300],
+    "iconSafeArea": { "left": 0.28, "top": 0.24, "right": 0.72, "bottom": 0.68 }
+  },
+  "presentations": {
+    "hero": { "rowHeightPx": 340, "actions": 1, "plugSides": ["left", "right"] },
+    "standard-left": { "rowHeightPx": 280, "actions": 1, "plugSide": "left" },
+    "standard-right": { "rowHeightPx": 280, "actions": 1, "plugSide": "right" },
+    "single-stack": { "crownHeightPx": 96, "rowHeightPx": 280, "capHeightPx": 72, "actionRange": [2, 6], "seamOverlapPx": 0 },
+    "twin-rail": { "crownHeightPx": 72, "rowHeightPx": 150, "capHeightPx": 64, "actionsPerLevel": 2, "certifiedActionCounts": [2, 4, 6], "centerSpinePx": 600, "seamOverlapPx": 0 }
+  }
+}

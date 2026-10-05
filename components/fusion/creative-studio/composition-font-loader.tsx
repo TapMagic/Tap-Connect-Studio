@@ -17,17 +17,23 @@ export function CompositionFontLoader({
 }) {
   useEffect(() => {
     const families = new Set<string>();
-    for (const node of config.rootComposition?.nodes || []) {
-      const ff = node.props.fontFamily;
-      if (typeof ff === "string" && ff.trim()) families.add(ff);
-    }
-    for (const section of config.sections || []) {
-      const block = parseCreativeComposition(section.composition);
-      if (!block) continue;
+    const collectBlock = (block: ReturnType<typeof parseCreativeComposition>) => {
+      if (!block) return;
       for (const node of block.nodes) {
         const ff = node.props.fontFamily;
         if (typeof ff === "string" && ff.trim()) families.add(ff);
+        collectBlock(parseCreativeComposition(node.moduleComposition));
       }
+    };
+    const collectSections = (sections: TapConnectCardConfig["sections"]) => { for (const section of sections || []) {
+      const block = parseCreativeComposition(section.composition);
+      collectBlock(block);
+    }};
+    collectBlock(parseCreativeComposition(config.rootComposition));
+    collectSections(config.sections);
+    for (const page of config.experience?.pages ?? []) {
+      collectBlock(parseCreativeComposition(page.composition.rootComposition));
+      collectSections(page.composition.sections);
     }
     for (const stack of families) {
       const match =
