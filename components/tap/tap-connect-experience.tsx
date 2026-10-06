@@ -20,6 +20,10 @@ import {
   preserveExperienceReturnContext,
   readExperienceReturnContext,
 } from "@/lib/fusion/card/destination-opening-policy";
+import {
+  resolveExperienceNavigationComposition,
+  resolveLoveAndTheftNavigationArtwork,
+} from "@/lib/fusion/card/experience-navigation-presentation";
 
 export type TapConnectExperienceProps = Omit<TapConnectCardProps, "config" | "onInternalPageNavigate"> & {
   config: TapConnectCardConfig;
@@ -206,19 +210,16 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
   onSelect: (page: TapExperiencePage) => void;
 }) {
   const loveAndTheft = config.itemPresentation === "everencore-love-and-theft-mini-pick";
-  const certifiedPickRange = pages.length <= 3
-    ? { min: 52, max: 58, tier: "large" }
-    : pages.length === 4
-      ? { min: 46, max: 52, tier: "medium" }
-      : { min: 40, max: 46, tier: "compact" };
+  const composition = resolveExperienceNavigationComposition(pages.length);
+  const loveAndTheftArtwork = resolveLoveAndTheftNavigationArtwork(pages.length);
   const style = {
     "--experience-nav-surface": config.surfaceColor || "rgba(7, 11, 16, .92)",
     "--experience-nav-text": config.textColor || "rgba(255,255,255,.62)",
     "--experience-nav-active": config.activeColor || "#b8ff2c",
     "--experience-nav-border": config.borderColor || "rgba(255,255,255,.12)",
     "--experience-nav-blur": `${Math.max(0, Math.min(30, config.blurPx ?? 18))}px`,
-    "--experience-nav-pick-min": `${certifiedPickRange.min}px`,
-    "--experience-nav-pick-max": `${certifiedPickRange.max}px`,
+    "--experience-nav-cluster-width": `${composition.clusterWidthPercent}%`,
+    "--experience-nav-pick-width": `${loveAndTheftArtwork.layoutWidthPx}px`,
   } as CSSProperties;
   return <nav
     className={cn(
@@ -235,11 +236,13 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
     data-visible-slots={pages.length}
     data-item-presentation={config.itemPresentation || "standard-icon"}
     data-surface-treatment={config.surfaceTreatment || "solid"}
-    data-pick-size-tier={loveAndTheft ? certifiedPickRange.tier : undefined}
+    data-count-composition={composition.tier}
+    data-cluster-width-percent={composition.clusterWidthPercent}
+    data-pick-size-tier={loveAndTheft ? loveAndTheftArtwork.tier : undefined}
     data-shell-layer="navigation"
     data-safe-area="bottom"
   >
-    <div className="grid" style={{ gridTemplateColumns: `repeat(${pages.length}, minmax(0, 1fr))` }}>
+    <div className="mx-auto grid w-[var(--experience-nav-cluster-width)]" style={{ gridTemplateColumns: `repeat(${pages.length}, minmax(0, 1fr))` }} data-navigation-cluster={composition.tier}>
       {pages.map((page) => {
         const destination = page.navDestinationPageId || page.pageId;
         const active = destination === activePageId;
@@ -256,8 +259,8 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
           data-nav-destination={destination}
           data-nav-active={active ? "true" : "false"}
         >
-          <span className={cn("relative grid place-items-center overflow-visible", loveAndTheft ? "shrink-0" : "h-5 w-6")} aria-hidden style={loveAndTheft ? { width: "clamp(var(--experience-nav-pick-min), 58cqi, var(--experience-nav-pick-max))", aspectRatio: "1.06 / 1" } : undefined}>
-            <NavIcon iconRef={page.navIconRef} presentation={config.itemPresentation} active={active} />
+          <span className={cn("relative grid place-items-center overflow-visible", loveAndTheft ? "shrink-0" : "h-6 w-7")} aria-hidden style={loveAndTheft ? { width: "min(var(--experience-nav-pick-width), calc(100% - .5rem))", aspectRatio: "1.06 / 1" } : undefined}>
+            <NavIcon iconRef={page.navIconRef} presentation={config.itemPresentation} active={active} standardIconSizePx={composition.standardIconSizePx} familyArtworkScale={loveAndTheftArtwork.visualScale} />
             {locked ? <LockKeyhole className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-[var(--experience-nav-surface)] p-px" /> : null}
           </span>
           <span className="max-w-full truncate">{page.navLabel}</span>
@@ -268,16 +271,16 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
   </nav>;
 }
 
-function NavIcon({ iconRef, presentation, active }: { iconRef?: string; presentation?: NonNullable<TapConnectCardConfig["experience"]>["navigation"]["itemPresentation"]; active?: boolean }) {
+function NavIcon({ iconRef, presentation, active, standardIconSizePx, familyArtworkScale }: { iconRef?: string; presentation?: NonNullable<TapConnectCardConfig["experience"]>["navigation"]["itemPresentation"]; active?: boolean; standardIconSizePx: number; familyArtworkScale: number }) {
   const value = iconRef || "circle";
   if (presentation === "everencore-love-and-theft-mini-pick") {
-    return <LoveAndTheftPickVisual iconAssetRef={value.includes(":") ? value : `lucide:${value}`} active={active} compact className="h-full w-full" />;
+    return <span className="grid h-full w-full place-items-center" style={{ transform: `scale(${familyArtworkScale})` }} data-navigation-artwork="love-and-theft-pick"><LoveAndTheftPickVisual iconAssetRef={value.includes(":") ? value : `lucide:${value}`} active={active} compact className="h-full w-full" /></span>;
   }
   if (/^(?:https?:\/\/|\/)/.test(value)) {
     // eslint-disable-next-line @next/next/no-img-element
-    return <img src={value} alt="" className="h-4 w-4 object-contain" />;
+    return <img src={value} alt="" className="object-contain" style={{ width: standardIconSizePx, height: standardIconSizePx }} data-navigation-artwork="standard-icon" />;
   }
-  return <PremiumIcon icon={value} sizePx={17} />;
+  return <span className="grid place-items-center" data-navigation-artwork="standard-icon"><PremiumIcon icon={value} sizePx={standardIconSizePx} /></span>;
 }
 
 function LockedPage({ page, onNavigate }: { page: TapExperiencePage; onNavigate: (pageId: string) => void }) {

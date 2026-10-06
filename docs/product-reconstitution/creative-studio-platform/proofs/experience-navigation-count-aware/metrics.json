@@ -1,0 +1,86 @@
+{
+  "3": {
+    "viewportWidth": 390,
+    "navHeight": 82.296875,
+    "bottomGap": 0,
+    "clusterWidth": 297.953125,
+    "clusterWidthRatio": 0.779982002617801,
+    "clusterCenterDelta": 0.0078125,
+    "pickWidths": [
+      62.53999328613281,
+      62.540008544921875,
+      62.53997802734375
+    ],
+    "touchHeights": [
+      72.5,
+      72.5,
+      72.5
+    ],
+    "labels": [
+      "Home",
+      "Music",
+      "Live"
+    ],
+    "shellPaddingBottom": 92,
+    "clipped": false
+  },
+  "4": {
+    "viewportWidth": 390,
+    "navHeight": 77.796875,
+    "bottomGap": 0,
+    "clusterWidth": 343.796875,
+    "clusterWidthRatio": 0.8999918193717278,
+    "clusterCenterDelta": 0.0078125,
+    "pickWidths": [
+      56.160003662109375,
+      56.160003662109375,
+      56.15998840332031,
+      56.15997314453125
+    ],
+    "touchHeights": [
+      68,
+      68,
+      68,
+      68
+    ],
+    "labels": [
+      "Home",
+      "Music",
+      "Live",
+      "Vault (locked)"
+    ],
+    "shellPaddingBottom": 92,
+    "clipped": false
+  },
+  "5": {
+    "viewportWidth": 390,
+    "navHeight": 77.796875,
+    "bottomGap": 0,
+    "clusterWidth": 382,
+    "clusterWidthRatio": 1,
+    "clusterCenterDelta": 0,
+    "pickWidths": [
+      49.720001220703125,
+      49.720001220703125,
+      49.720001220703125,
+      49.71998596191406,
+      49.719970703125
+    ],
+    "touchHeights": [
+      68,
+      68,
+      68,
+      68,
+      68
+    ],
+    "labels": [
+      "Home",
+      "Music",
+      "Live",
+      "Vault (locked)",
+      "Profile"
+    ],
+    "shellPaddingBottom": 92,
+    "clipped": false
+  }
+}
