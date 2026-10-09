@@ -1,9 +1,12 @@
-import { defaultTapConnectCard, type TapConnectCardConfig, type TapExperiencePage } from "@/lib/brand/tap-card";
+import { defaultTapConnectCard, parseTapConnectCard, type TapConnectCardConfig, type TapExperiencePage } from "@/lib/brand/tap-card";
 import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
-import type { BrandContactProfile } from "@/lib/brand/contact-profile";
+import { parseBrandContactProfile, type BrandContactProfile } from "@/lib/brand/contact-profile";
+import { prisma } from "@/lib/db";
 import { compactActionGridNodeProps, createCompactActionGrid, createCompactActionTile } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import { TAP_EXPERIENCE_CONTRACT, canonicalizeExperienceConfig } from "@/lib/fusion/card/experience-pages";
 import { DEFAULT_MAP_LOCATION_DISPLAY, type MapLocationItem } from "@/lib/fusion/card/designer-elements";
+import { Prisma } from "@prisma/client";
+import { hashPublishManifest, type ExperiencePublishManifest } from "@/lib/fusion/publication/snapshots";
 
 export const EVERENCORE_LOVE_AND_THEFT_PUBLIC_SLUG = "love-and-theft";
 export const EVERENCORE_LOVE_AND_THEFT_ROUTE_BASE = "/everencore/love-and-theft";
@@ -15,7 +18,13 @@ export type PublicExperiencePublication = {
   config: TapConnectCardConfig;
   profile: BrandContactProfile;
   businessName: string;
+  businessId?: string;
 };
+
+export type PublicExperienceResolution =
+  | { state: "live"; publication: PublicExperiencePublication }
+  | { state: "dormant"; businessName: string; stableSlug: string; reason: "unpublished" | "access_inactive" }
+  | { state: "missing" };
 
 const leather = "/visual-parts/materials/surfaces/worn-saddle-leather/v1/SURFACE-LEATHER-001_worn-saddle-leather.png";
 
@@ -140,4 +149,123 @@ const publications: Record<string, PublicExperiencePublication> = {
 /** Stable slug resolves the currently published immutable revision. */
 export function resolvePublishedEverEncoreExperience(stableSlug: string): PublicExperiencePublication | null {
   return publications[stableSlug] || null;
+}
+
+/**
+ * Production resolver: the stable public slug points at the document's current
+ * immutable PublicationSnapshot. The code-backed registry remains a migration
+ * fallback for the already accepted Love & Theft URL until its row is present.
+ */
+export async function resolveEverEncoreDestination(stableSlug: string): Promise<PublicExperienceResolution> {
+  const lookup = await prisma.experiencePublicDestination.findUnique({
+    where: { slug: stableSlug },
+    include: { experience: { include: { business: { include: { brandKit: true } } } } },
+  }).then((destination) => ({ ok: true as const, destination })).catch(() => ({ ok: false as const, destination: null }));
+  const destination = lookup.destination;
+  const document = destination?.experience;
+  if (document) {
+    const businessName = document.clientName || document.business.name;
+    if (!destination.accessActive) return { state: "dormant", businessName, stableSlug, reason: "access_inactive" };
+    if (!document.publicationActive || !document.currentPublicationSnapshotId) {
+      return { state: "dormant", businessName, stableSlug, reason: "unpublished" };
+    }
+    const snapshot = await prisma.publicationSnapshot.findFirst({
+      where: {
+        id: document.currentPublicationSnapshotId,
+        subjectType: "experience",
+        subjectId: document.id,
+      },
+    }).catch(() => null);
+    const manifest = snapshot?.manifest as { kind?: string; document?: unknown } | null;
+    if (snapshot && manifest?.kind === "experience") {
+      const profile = parseBrandContactProfile(document.business.brandKit?.socialLinks);
+      return { state: "live", publication: {
+        stableSlug,
+        publishedRevision: String(snapshot.version),
+        config: parseTapConnectCard(manifest.document, {
+          businessName: document.business.name,
+          profile,
+          logoUrl: document.business.logoUrl,
+          accentColor: document.business.brandKit?.accentColor || "#d4af37",
+          reviewUrl: document.business.googleReviewUrl,
+        }),
+        profile: {
+          ...profile,
+          displayName: profile.displayName || document.clientName || document.business.name,
+          organization: profile.organization || document.clientName || document.business.name,
+          phone: profile.phone || document.business.phone || undefined,
+          email: profile.email || document.business.email || undefined,
+          website: profile.website || document.business.website || undefined,
+        },
+        businessName: document.clientName || document.business.name,
+        businessId: document.businessId,
+      } };
+    }
+    return { state: "dormant", businessName, stableSlug, reason: "unpublished" };
+  }
+  // Code-backed publications are local/test bootstrap material only. Production
+  // public delivery must resolve through the durable destination + immutable
+  // snapshot authority so an old fixture can never bypass unpublish/access.
+  const fallback = process.env.NODE_ENV !== "production" && (!lookup.ok || stableSlug === EVERENCORE_LOVE_AND_THEFT_PUBLIC_SLUG)
+    ? resolvePublishedEverEncoreExperience(stableSlug)
+    : null;
+  return fallback ? { state: "live", publication: fallback } : { state: "missing" };
+}
+
+export async function resolveProductionEverEncoreExperience(stableSlug: string): Promise<PublicExperiencePublication | null> {
+  const result = await resolveEverEncoreDestination(stableSlug);
+  return result.state === "live" ? result.publication : null;
+}
+
+/** One-time compatibility registration for the accepted public proof. */
+export async function ensureLoveAndTheftExperienceRegistration(businessId: string) {
+  const existing = await prisma.experiencePublicDestination.findUnique({
+    where: { slug: EVERENCORE_LOVE_AND_THEFT_PUBLIC_SLUG },
+    include: { experience: true },
+  });
+  if (existing) return existing.experience;
+  const publication = buildPublication();
+  const manifest: ExperiencePublishManifest = {
+    kind: "experience",
+    document: publication.config,
+    label: "Imported accepted Love & Theft public revision",
+    sourceDraftRevision: 1,
+    comparisonSummary: { summary: "Imported accepted public Experience" },
+  };
+  return prisma.$transaction(async (tx) => {
+    const raced = await tx.experiencePublicDestination.findUnique({ where: { slug: publication.stableSlug }, include: { experience: true } });
+    if (raced) return raced.experience;
+    const document = await tx.cardCreativeDocument.create({
+      data: {
+        businessId,
+        name: "Love & Theft Sales Demo",
+        documentType: "EXPERIENCE",
+        clientName: "Love & Theft",
+        experienceType: "DEMO",
+        experienceStatus: "PUBLISHED",
+        publicationActive: true,
+        draft: publication.config as unknown as Prisma.InputJsonValue,
+        draftRevision: 1,
+        publishedAt: new Date(),
+      },
+    });
+    const snapshot = await tx.publicationSnapshot.create({
+      data: {
+        businessId,
+        subjectType: "experience",
+        subjectId: document.id,
+        version: 1,
+        schemaVersion: 1,
+        manifest: manifest as unknown as Prisma.InputJsonValue,
+        contentHash: hashPublishManifest({ ...manifest, comparisonSummary: {} }),
+      },
+    });
+    await tx.experiencePublicDestination.create({
+      data: { businessId, experienceId: document.id, slug: publication.stableSlug, accessActive: true },
+    });
+    return tx.cardCreativeDocument.update({
+      where: { id: document.id },
+      data: { currentPublicationSnapshotId: snapshot.id },
+    });
+  });
 }

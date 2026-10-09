@@ -8,12 +8,15 @@ import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import { Prisma } from "@prisma/client";
 
 /**
- * Deterministic, local-only Product Owner entry. This changes no rollout or
- * customer state: it resolves the existing Rich fixture and intended internal
- * review workspace, replaces stale local context cookies, then enters Studio.
+ * Stable protected Studio entry. Production authentication is enforced by the
+ * route proxy; local development additionally selects the deterministic Rich
+ * workspace before entering the production-backed Experience Library.
  */
 export async function GET(request: Request) {
-  if (!isLocalDevAuthEnabled()) return new Response("Not found", { status: 404 });
+  const host = request.headers.get("host") || "127.0.0.1:3050";
+  const protocol = request.headers.get("x-forwarded-proto") || "http";
+  const destination = new URL("/dashboard/experiences/library", `${protocol}://${host}`);
+  if (!isLocalDevAuthEnabled()) return NextResponse.redirect(destination);
   await ensureLocalControlFixtures();
   const [rich, business] = await Promise.all([
     prisma.user.findUnique({ where: { clerkId: "local:rich" }, select: { id: true } }),
@@ -45,9 +48,6 @@ export async function GET(request: Request) {
     });
   }
 
-  const host = request.headers.get("host") || "127.0.0.1:3050";
-  const protocol = request.headers.get("x-forwarded-proto") || "http";
-  const destination = new URL("/dashboard/card/edit", `${protocol}://${host}`);
   const response = NextResponse.redirect(destination);
   const options = { httpOnly: true, sameSite: "lax" as const, secure: false, path: "/", maxAge: 60 * 60 * 8 };
   response.cookies.set("tapconnect_control_identity", "rich", options);

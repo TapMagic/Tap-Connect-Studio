@@ -15,9 +15,20 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const input = saveSchema.parse(await request.json());
   if (!isTapConnectCardDraft(input.draft)) return NextResponse.json({ error: "Invalid Card document" }, { status: 400 });
   const name = requireCreativeDocumentName(input.draft.documentName || "Untitled Card");
+  const existing = await prisma.cardCreativeDocument.findFirst({
+    where: { id, businessId: business.id, archivedAt: null },
+    select: { documentType: true },
+  });
+  if (!existing) return NextResponse.json({ error: "Card document not found" }, { status: 404 });
   const updated = await prisma.cardCreativeDocument.updateMany({
-    where: { id, businessId: business.id, draftRevision: input.expectedRevision },
-    data: { name, draft: input.draft as unknown as Prisma.InputJsonValue, draftRevision: { increment: 1 } },
+    where: { id, businessId: business.id, archivedAt: null, draftRevision: input.expectedRevision },
+    // Library identity is managed independently from the editable document
+    // title. Saving Experience content must not rename its Library record.
+    data: {
+      ...(existing.documentType === "EXPERIENCE" ? {} : { name }),
+      draft: input.draft as unknown as Prisma.InputJsonValue,
+      draftRevision: { increment: 1 },
+    },
   });
   if (updated.count !== 1) return NextResponse.json({ error: "This Card document changed in another session." }, { status: 409 });
   const document = await prisma.cardCreativeDocument.findUniqueOrThrow({ where: { id } });

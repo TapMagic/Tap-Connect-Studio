@@ -18,9 +18,12 @@ test("auth destinations are root-absolute and cannot inherit a nested public pat
 
 test("public policy admits generic Experiences and auth support without exposing Studio", () => {
   assert.ok(PUBLIC_ROUTE_PATTERNS.includes("/everencore/(.*)"));
+  assert.ok(PUBLIC_ROUTE_PATTERNS.includes("/x/(.*)"));
   assert.ok(PUBLIC_ROUTE_PATTERNS.includes("/auth/(.*)"));
   assert.ok(PUBLIC_ROUTE_PATTERNS.includes("/__clerk/(.*)"));
   assert.equal(PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.startsWith("/review")), false);
   assert.equal(PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.startsWith("/dashboard")), false);
   assert.equal(PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.startsWith("/admin")), false);
+  assert.equal(PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.startsWith("/api/experiences")), false);
+  assert.equal(PUBLIC_ROUTE_PATTERNS.some((pattern) => pattern.startsWith("/dashboard/experiences")), false);
 });

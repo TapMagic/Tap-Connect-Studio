@@ -461,12 +461,13 @@ export function resolveRuntimeMapOpenApp(preference: MapOpenApp = "default", use
 }
 
 /** Public renderer adapter. Canonical state never stores this provider URL. */
-export function buildMapEmbedHref(item: MapLocationItem): string | undefined {
+export function buildMapEmbedHref(item: MapLocationItem, zoom = 15): string | undefined {
   const destination = Number.isFinite(item.latitude) && Number.isFinite(item.longitude)
     ? `${item.latitude},${item.longitude}`
     : item.address?.trim();
   if (!destination) return undefined;
-  return `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&z=15&output=embed`;
+  const resolvedZoom = Math.max(1, Math.min(20, Math.round(Number(zoom) || 15)));
+  return `https://maps.google.com/maps?q=${encodeURIComponent(destination)}&z=${resolvedZoom}&output=embed`;
 }
 
 export function buildButtonHref(props: Record<string, unknown>): string | undefined {

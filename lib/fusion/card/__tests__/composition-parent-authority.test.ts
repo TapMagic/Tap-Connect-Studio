@@ -3,12 +3,14 @@ import assert from "node:assert/strict";
 import { parseCreativeComposition, type CreativeCompositionBlock, type CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import {
   compositionChildren,
+  copyCompositionNodeSubtree,
   createFlowContainerNode,
   deleteCompositionNode,
   duplicateCompositionNode,
   establishCompositionParentAuthority,
   insertCompositionContainer,
   insertCompositionModule,
+  pasteCompositionNodeSubtree,
   reparentCompositionModule,
   unwrapCompositionContainer,
   validateCompositionParentAuthority,
@@ -148,6 +150,27 @@ describe("Composition Parent Authority", () => {
     assert.notEqual(copy.moduleComposition?.id, hosted.id);
     assert.notEqual(copy.moduleComposition?.signatureAssembly?.input.actions[0]?.id, "action-a");
     assert.notEqual(copy.moduleComposition?.nodes[0]?.id, "inner");
+  });
+
+  it("copies a complete Container subtree across Pages and pastes fresh canonical identities", () => {
+    let source = establishCompositionParentAuthority(legacy());
+    const container = createFlowContainerNode("Tour logistics");
+    const insertedContainer = insertCompositionContainer(source, container); assert.equal(insertedContainer.ok, true); if (!insertedContainer.ok) return; source = insertedContainer.block;
+    const map = { ...node("map", "image"), props: { elementKind: "map", componentKind: "map", analyticsId: "map:source", mapActions: [{ actionId: "tickets", analyticsId: "map:tickets", label: "Tickets" }] } };
+    const insertedMap = insertCompositionModule(source, map, container.id); assert.equal(insertedMap.ok, true); if (!insertedMap.ok) return;
+    const payload = copyCompositionNodeSubtree(insertedMap.block, container.id);
+    assert.ok(payload);
+    const destination = establishCompositionParentAuthority(legacy([node("existing")]));
+    const pasted = pasteCompositionNodeSubtree(destination, payload!, null, 1); assert.equal(pasted.ok, true); if (!pasted.ok) return;
+    const pastedContainer = pasted.block.nodes.find((candidate) => candidate.id === pasted.selectedNodeId)!;
+    const pastedMap = compositionChildren(pasted.block, pastedContainer.id)[0]!;
+    assert.notEqual(pastedContainer.id, container.id);
+    assert.notEqual(pastedMap.id, map.id);
+    assert.equal(pastedMap.props.elementKind, "map");
+    assert.notEqual(pastedMap.props.analyticsId, "map:source");
+    assert.notEqual((pastedMap.props.mapActions as Array<{ actionId: string }>)[0]?.actionId, "tickets");
+    assert.deepEqual(compositionChildren(pasted.block, null).map((candidate) => candidate.name), ["existing", "Tour logistics copy"]);
+    assert.equal(insertedMap.block.nodes.length, 2, "copy/paste must not mutate the source Page");
   });
 
   it("rebuilds the deterministic local review root and hosts Curated sections as ordinary outer Modules", () => {

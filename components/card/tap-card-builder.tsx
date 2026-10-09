@@ -199,6 +199,9 @@ export type OpenCardCreativeDocument = {
   documentType: "CARD_VARIATION";
   draft: TapConnectCardConfig;
   revision: number;
+  clientName?: string;
+  experienceType?: string;
+  experienceStatus?: string;
 };
 
 export type CardBuilderShellPanels = {
@@ -218,6 +221,7 @@ export type CardBuilderShellStatus = {
   selectedId: string | null;
   sectionCount: number;
   cardName: string;
+  clientName: string;
   pastLabels: string[];
   futureLabels: string[];
   canPublish: boolean;
@@ -233,6 +237,7 @@ type Props = {
   initialConfig: TapConnectCardConfig;
   initialDraftRevision?: number;
   initialOpenDocuments?: OpenCardCreativeDocument[];
+  initialActiveDocumentId?: string;
   profile: BrandContactProfile;
   businessName: string;
   logoUrl?: string | null;
@@ -422,6 +427,7 @@ export function TapCardBuilder({
   initialConfig,
   initialDraftRevision = 0,
   initialOpenDocuments = [],
+  initialActiveDocumentId = "main-card",
   profile,
   businessName,
   logoUrl,
@@ -463,10 +469,18 @@ export function TapCardBuilder({
   // Curated-System nodes are compiled output, not saved authoring authority.
   // Reconstituting here makes recipe corrections deterministic on reload while
   // keeping the saved canonical signatureAssembly input byte-for-byte intact.
-  const reconstitutedInitialConfig = useMemo(
+  const reconstitutedMainConfig = useMemo(
     () => reconstituteCuratedAssemblyProjections(initialConfig),
     [initialConfig],
   );
+  const preparedInitialDocuments = useMemo(
+    () => initialOpenDocuments.map((document) => ({ ...document, draft: reconstituteCuratedAssemblyProjections(document.draft) })),
+    [initialOpenDocuments],
+  );
+  const requestedInitialDocument = preparedInitialDocuments.find((document) => document.id === initialActiveDocumentId);
+  const reconstitutedInitialConfig = requestedInitialDocument?.draft ?? reconstitutedMainConfig;
+  const initialRevision = requestedInitialDocument?.revision ?? initialDraftRevision;
+  const resolvedInitialDocumentId = requestedInitialDocument?.id ?? "main-card";
   const {
     state: canonicalConfig,
     setState: setCanonicalConfigHistory,
@@ -553,12 +567,12 @@ export function TapCardBuilder({
   } | null>(null);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [draftRevision, setDraftRevision] = useState(initialDraftRevision);
-  const [activeDocumentId, setActiveDocumentId] = useState("main-card");
+  const [draftRevision, setDraftRevision] = useState(initialRevision);
+  const [activeDocumentId, setActiveDocumentId] = useState(resolvedInitialDocumentId);
   const selectionIdentityRef = useRef("");
   const selectionGenerationRef = useRef(0);
-  const [openDocuments, setOpenDocuments] = useState(initialOpenDocuments);
-  const mainDocumentRef = useRef({ draft: reconstitutedInitialConfig, revision: initialDraftRevision });
+  const [openDocuments, setOpenDocuments] = useState(preparedInitialDocuments);
+  const mainDocumentRef = useRef({ draft: reconstitutedMainConfig, revision: initialDraftRevision });
   const [message, setMessage] = useState<string | null>(null);
   const [pendingSectionDelete, setPendingSectionDelete] = useState<TapCardSection | null>(null);
   const [saveFailed, setSaveFailed] = useState(false);
@@ -578,6 +592,7 @@ export function TapCardBuilder({
     }[]
   >([]);
   const [currentPublicationId, setCurrentPublicationId] = useState<string | null>(null);
+  const [publicationActive, setPublicationActive] = useState(false);
 
   // Dirty state follows the active document snapshot, including history
   // navigation. Imperative mutation flags alone cannot detect the important
@@ -1517,7 +1532,7 @@ export function TapCardBuilder({
   }
 
   function addCompositionModule(
-    kind: "text" | "image" | "video" | "button" | "divider",
+    kind: "text" | "image" | "video" | "button" | "map" | "divider",
     parentId: string | null,
     initialProps?: Record<string, unknown>,
     insertionIndex?: number,
@@ -1945,16 +1960,18 @@ export function TapCardBuilder({
   }
 
   async function refreshVersions() {
-    if (!brandKitId) return;
+    if (activeDocumentId === "main-card" && !brandKitId) return;
     try {
-      const res = await fetch("/api/card/publication");
+      const res = await fetch(activeDocumentId === "main-card" ? "/api/card/publication" : `/api/experiences/${activeDocumentId}/publication`);
       if (res.ok) {
         const data = (await res.json()) as {
           currentPublicationId?: string | null;
+          publicationActive?: boolean;
           revisions?: typeof versions;
         };
         setVersions(data.revisions ?? []);
         setCurrentPublicationId(data.currentPublicationId ?? null);
+        setPublicationActive(data.publicationActive ?? Boolean(data.currentPublicationId));
       }
     } catch {
       // non-blocking
@@ -1965,20 +1982,20 @@ export function TapCardBuilder({
     queueMicrotask(() => {
       void refreshVersions();
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- load once per brand kit
-  }, [brandKitId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reload when the active durable document changes
+  }, [activeDocumentId, brandKitId]);
 
   async function rollbackToVersion(publicationId: string) {
-    if (!brandKitId) return;
+    if (activeDocumentId === "main-card" && !brandKitId) return;
     setSaving(true);
     setMessage(null);
     setSaveFailed(false);
-    const res = await fetch("/api/card/publication", {
+    const res = await fetch(activeDocumentId === "main-card" ? "/api/card/publication" : `/api/experiences/${activeDocumentId}/publication`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         action: "rollback",
-        publicationId,
+        ...(activeDocumentId === "main-card" ? { publicationId } : { publicationSnapshotId: publicationId }),
       }),
     });
     setSaving(false);
@@ -1989,16 +2006,12 @@ export function TapCardBuilder({
       return;
     }
     const data = (await res.json()) as { publication?: { version?: number } };
-    setMessage(`Published Card rolled back to revision ${data.publication?.version ?? "?"}. Your saved draft was not changed.`);
+    setMessage(`Published Experience rolled back to revision ${data.publication?.version ?? "?"}. Your saved draft was not changed.`);
     await refreshVersions();
     router.refresh();
   }
 
   async function publishSavedDraft() {
-    if (activeDocumentId !== "main-card") {
-      setMessage("Card variations remain drafts. Switch to the Main Tap Card to publish.");
-      return;
-    }
     if (dirty) {
       setMessage("Save this draft before publishing.");
       return;
@@ -2009,7 +2022,7 @@ export function TapCardBuilder({
     }
     setSaving(true);
     setMessage(null);
-    const res = await fetch("/api/card/publication", {
+    const res = await fetch(activeDocumentId === "main-card" ? "/api/card/publication" : `/api/experiences/${activeDocumentId}/publication`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "publish", expectedDraftRevision: draftRevision }),
@@ -2259,7 +2272,7 @@ export function TapCardBuilder({
       closeDocument,
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- API bridge refresh on undo capability
-  }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode, config, dirty, saving, draftRevision, currentPublicationId, versions, recovery, recoveryDocumentId, activeDocumentId, openDocuments]);
+  }, [shellHosted, onShellApi, canUndoEditor, canRedoEditor, focusMode, config, dirty, saving, draftRevision, currentPublicationId, publicationActive, versions, recovery, recoveryDocumentId, activeDocumentId, openDocuments]);
 
   useEffect(() => {
     if (!shellHosted || !onShellStatus) return;
@@ -2275,10 +2288,17 @@ export function TapCardBuilder({
       selectedId,
       sectionCount: sorted.length,
       cardName: config.documentName || `${businessName || "Untitled"} Card`,
+      clientName: activeDocumentId === "main-card"
+        ? businessName
+        : openDocuments.find((document) => document.id === activeDocumentId)?.clientName || businessName,
       pastLabels,
       futureLabels,
-      canPublish: activeDocumentId === "main-card" && !dirty && !saving && draftRevision >= 1,
-      publicationLabel: activeDocumentId !== "main-card" ? "Draft variation" : currentPublicationId ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}` : "Not published",
+      canPublish: !dirty && !saving && draftRevision >= 1,
+      publicationLabel: currentPublicationId
+        ? publicationActive
+          ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}`
+          : `Publication off · revision ${versions.find((version) => version.current)?.version ?? ""} retained`
+        : "Not published",
       saveState: saving ? "saving" : recovery.state === "conflict" ? "conflict" : saveFailed ? "failed" : dirty ? "unsaved" : "saved",
       savedAt: lastSavedAt,
       recoveryState: recovery.state,
@@ -2307,6 +2327,7 @@ export function TapCardBuilder({
     futureLabels,
     draftRevision,
     currentPublicationId,
+    publicationActive,
     versions,
     saveFailed,
     lastSavedAt,
@@ -2865,7 +2886,7 @@ export function TapCardBuilder({
               </span>
             ) : (
               <span data-testid="card-status-next">
-                {versions.some(
+                {publicationActive && versions.some(
                   (version) => version.current && version.sourceDraftRevision === draftRevision,
                 )
                   ? "Saved draft · Published"
@@ -2874,7 +2895,9 @@ export function TapCardBuilder({
             )}
             <span data-testid="card-publication-state">
               {currentPublicationId
-                ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}`
+                ? publicationActive
+                  ? `Published revision ${versions.find((version) => version.current)?.version ?? ""}`
+                  : `Publication off · revision ${versions.find((version) => version.current)?.version ?? ""} retained`
                 : "Not published"}
             </span>
             <Button

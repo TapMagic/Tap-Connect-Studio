@@ -191,7 +191,7 @@ export type CardEditorLiveModel = {
   onEnableCompositionParentAuthority?: () => void;
   onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image", parentId?: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionModule?: (
-    kind: "text" | "image" | "video" | "button" | "divider",
+    kind: "text" | "image" | "video" | "button" | "map" | "divider",
     parentId: string | null,
     initialProps?: Record<string, unknown>,
     insertionIndex?: number,

@@ -156,7 +156,7 @@ describe("Slice 2 Add / Discover registration and placement", () => {
 
   it("registers only honest ready categories and resources through one Add catalog", () => {
     assert.deepEqual(validateStudioAddRegistry({}), []);
-    assert.deepEqual(visibleStudioAddCategories().map((entry) => entry.id), ["text", "image", "buttons", "divider", "container", "curated"]);
+    assert.deepEqual(visibleStudioAddCategories().map((entry) => entry.id), ["text", "image", "buttons", "map", "divider", "container", "curated"]);
     assert.equal(STUDIO_ORDINARY_MODULES.some((entry) => entry.id === "image:asset"), true);
     assert.equal(STUDIO_CONTAINERS.length, 4);
     const adapter = studioAddCatalogAdapter();

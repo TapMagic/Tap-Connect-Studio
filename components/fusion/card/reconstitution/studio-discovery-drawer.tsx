@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- catalog previews preserve canonical asset URLs and governed object-fit behavior */
 
 import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
-import { ArrowLeft, Box, CheckSquare2, ChevronRight, GripVertical, ImageIcon, Layers3, LockKeyhole, Minus, MousePointer2, Search, Sparkles, SquareStack, Type, UnlockKeyhole, Video, X } from "lucide-react";
+import { ArrowLeft, Box, CheckSquare2, ChevronRight, GripVertical, ImageIcon, Layers3, LockKeyhole, MapPinned, Minus, MousePointer2, Navigation, Search, Sparkles, SquareStack, Type, UnlockKeyhole, Video, X } from "lucide-react";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
 import { StandardButtonPreview } from "./standard-button-preview";
 import type { StudioDrawerEvent, StudioDrawerState } from "@/lib/fusion/creative-studio/reconstitution/drawer-controller";
@@ -40,7 +40,7 @@ export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCat
   catalogAdapter: StudioCatalogConsumerAdapter;
   workspaceComposition: StudioWorkspaceComposition;
   placementContext: StudioPlacementContext | null;
-  onPlaceOrdinary: (kind: "text" | "image" | "video" | "divider", initialProps?: Record<string, unknown>) => void;
+  onPlaceOrdinary: (kind: "text" | "image" | "video" | "map" | "divider", initialProps?: Record<string, unknown>) => void;
   onChooseImage: () => void;
   onPlaceContainer: (treatment: "transparent" | "solid" | "smoked_glass" | "image") => void;
   onPlaceCurated: (familyId: string, presentationId: string) => void;
@@ -69,6 +69,7 @@ export function StudioDiscoveryDrawer({ state, dispatch, model, brand, familyCat
       {state.activeRailId === "add" && path.length === 0 ? <AddHome dispatch={dispatch} placementContext={placementContext} /> : null}
       {path.join("/") === "text" ? <OrdinaryCategoryView categoryId="text" brand={brand} onPlace={(props) => onPlaceOrdinary("text", props)} /> : null}
       {path.join("/") === "image" ? <MediaCategoryView onChooseImage={onChooseImage} onPlaceVideo={(props) => onPlaceOrdinary("video", props)} /> : null}
+      {path.join("/") === "map" ? <MapCategoryView onPlace={(props) => onPlaceOrdinary("map", props)} /> : null}
       {path.join("/") === "divider" ? <OrdinaryCategoryView categoryId="divider" onPlace={(props) => onPlaceOrdinary("divider", props)} /> : null}
       {path.join("/") === "container" ? <ContainerCategoryView onPlace={onPlaceContainer} /> : null}
       {path.join("/") === "curated" ? <CuratedCategoryView familyCatalog={familyCatalog} dispatch={dispatch} /> : null}
@@ -106,7 +107,7 @@ function AddHome({ dispatch, placementContext }: { dispatch: (event: StudioDrawe
 }
 
 function AddCategoryTile({ entry, onClick }: { entry: StudioAddCategoryRegistration; onClick: () => void }) {
-  const icon = entry.previewKind === "text" ? <Type /> : entry.previewKind === "image" ? <ImageIcon /> : entry.previewKind === "divider" ? <Minus /> : entry.previewKind === "container" ? <Box /> : entry.previewKind === "curated" ? <Sparkles /> : <span className="text-[10px] font-black">CTA</span>;
+  const icon = entry.previewKind === "text" ? <Type /> : entry.previewKind === "image" ? <ImageIcon /> : entry.previewKind === "map" ? <MapPinned /> : entry.previewKind === "divider" ? <Minus /> : entry.previewKind === "container" ? <Box /> : entry.previewKind === "curated" ? <Sparkles /> : <span className="text-[10px] font-black">CTA</span>;
   return <AddTile label={entry.label} detail={entry.description} icon={icon} onClick={onClick} testId={`studio-add-${entry.id}`} />;
 }
 
@@ -124,6 +125,20 @@ function MediaCategoryView({ onChooseImage, onPlaceVideo }: { onChooseImage: () 
   const image = STUDIO_ORDINARY_MODULES.find((resource) => resource.id === "image:asset")!;
   const video = STUDIO_ORDINARY_MODULES.find((resource) => resource.id === "video:module")!;
   return <CatalogResultGrid label="Image and Video" dataTestId="studio-image-catalog"><div className="grid grid-cols-2 gap-2.5"><button type="button" onClick={onChooseImage} className="group overflow-hidden rounded-2xl bg-white/[.05] text-left transition hover:bg-white/[.085]" data-testid="studio-choose-image-asset"><span className="grid h-28 place-items-center bg-[radial-gradient(circle_at_35%_30%,rgba(139,220,255,.28),transparent_28%),linear-gradient(145deg,#172d27,#293d51_55%,#111820)]"><ImageIcon className="h-8 w-8 text-[#c9efff]" /></span><span className="block p-3"><strong className="text-xs">{image.label}</strong><span className="mt-1 block text-[9px] leading-4 text-white/45">{image.description}</span><span className="mt-3 inline-flex items-center gap-1 rounded-full bg-[#b8ff2c] px-2.5 py-1 text-[9px] font-semibold text-[#07100a]">Browse Assets <ChevronRight className="h-3 w-3" /></span></span></button><button type="button" onClick={() => onPlaceVideo({ ...video.defaultCanonicalState })} className="group overflow-hidden rounded-2xl bg-white/[.05] text-left transition hover:bg-white/[.085]" data-testid="studio-add-video-module"><span className="grid h-28 place-items-center bg-[radial-gradient(circle_at_65%_20%,rgba(184,255,44,.22),transparent_30%),linear-gradient(145deg,#141d29,#090d14)]"><span className="grid h-12 w-12 place-items-center rounded-full border border-white/18 bg-black/30"><Video className="h-5 w-5 text-[#d8ff82]" /></span></span><span className="block p-3"><strong className="text-xs">{video.label}</strong><span className="mt-1 block text-[9px] leading-4 text-white/45">{video.description}</span><span className="mt-3 inline-flex rounded-full bg-[#b8ff2c] px-2.5 py-1 text-[9px] font-semibold text-[#07100a]">Add Video</span></span></button></div></CatalogResultGrid>;
+}
+
+function MapCategoryView({ onPlace }: { onPlace: (props: Record<string, unknown>) => void }) {
+  const map = STUDIO_ORDINARY_MODULES.find((resource) => resource.id === "map:location-container")!;
+  return <CatalogResultGrid label="Locations and directions" dataTestId="studio-map-catalog">
+    <button type="button" onClick={() => onPlace({ ...map.defaultCanonicalState })} className="group w-full overflow-hidden rounded-2xl bg-white/[.05] text-left transition hover:-translate-y-0.5 hover:bg-white/[.085]" data-testid="studio-add-map-location-container">
+      <span className="relative grid h-40 place-items-center overflow-hidden bg-[linear-gradient(145deg,#10212a,#142b24_55%,#0a1118)]">
+        <span className="absolute inset-0 opacity-35 [background-image:linear-gradient(rgba(139,220,255,.18)_1px,transparent_1px),linear-gradient(90deg,rgba(139,220,255,.18)_1px,transparent_1px)] [background-size:34px_34px]" />
+        <span className="relative grid h-16 w-16 place-items-center rounded-full border border-[#b8ff2c]/35 bg-[#08100c]/75 shadow-[0_0_28px_rgba(184,255,44,.2)]"><MapPinned className="h-7 w-7 text-[#d8ff82]" /></span>
+        <span className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-black/55 px-2.5 py-1 text-[9px] text-[#c9efff]"><Navigation className="h-3 w-3" /> Phone directions</span>
+      </span>
+      <span className="block p-4"><strong className="text-sm">{map.label}</strong><span className="mt-1 block text-[10px] leading-4 text-white/45">{map.description}</span><span className="mt-3 inline-flex rounded-full bg-[#b8ff2c] px-3 py-1.5 text-[10px] font-semibold text-[#07100a]">Add Map</span></span>
+    </button>
+  </CatalogResultGrid>;
 }
 
 function ContainerCategoryView({ onPlace }: { onPlace: (treatment: "transparent" | "solid" | "smoked_glass" | "image") => void }) {

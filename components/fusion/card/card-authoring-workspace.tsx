@@ -109,6 +109,7 @@ export type CardAuthoringWorkspaceProps = {
   initialConfig: TapConnectCardConfig;
   initialDraftRevision?: number;
   initialOpenDocuments?: OpenCardCreativeDocument[];
+  initialActiveDocumentId?: string;
   profile: BrandContactProfile;
   businessName: string;
   logoUrl?: string | null;
@@ -262,6 +263,7 @@ export function CardAuthoringWorkspace({
     selectedId: null,
     sectionCount: 0,
     cardName: builderProps.businessName || "Card",
+    clientName: builderProps.businessName || "Workspace",
     pastLabels: [],
     futureLabels: [],
     canPublish: false,

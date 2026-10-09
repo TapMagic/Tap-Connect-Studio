@@ -20,13 +20,17 @@ test("opens the Rich Studio review entry from a fresh browser state", async ({ b
   });
 
   await page.goto("/review/studio", { waitUntil: "networkidle" });
-  await expect(page).toHaveURL(/\/dashboard\/card\/edit$/);
+  await expect(page).toHaveURL(/\/dashboard\/experiences\/library$/);
+  await expect(page.getByTestId("experience-library")).toBeVisible();
+  const loveCard = page.locator('[data-testid^="experience-card-"]').filter({ hasText: "Love & Theft Sales Demo" });
+  await expect(loveCard).toBeVisible();
+  await loveCard.getByRole("link", { name: "Open" }).click();
   await expect(page.getByTestId("studio-reconstitution-shell")).toBeVisible();
   await expect(page.getByTestId("studio-reconstitution-shell")).toHaveAttribute(
     "data-session-restored",
     "true"
   );
-  await expect(page.getByText("The Monkey Cage · Slice 1 Review", { exact: true }).first()).toBeVisible();
+  await expect(page.getByText(/Love & Theft \/ Love & Theft Sales Demo/).first()).toBeVisible();
 
   const cookies = await context.cookies();
   expect(cookies.find((cookie) => cookie.name === "tapconnect_control_identity")?.value).toBe(
@@ -76,6 +80,8 @@ test("replaces stale local identity and workspace context before Studio loads", 
   page.on("pageerror", (error) => pageErrors.push(error.message));
 
   await page.goto("/review/studio", { waitUntil: "networkidle" });
+  await expect(page.getByTestId("experience-library")).toBeVisible();
+  await page.locator('[data-testid^="experience-card-"]').filter({ hasText: "Love & Theft Sales Demo" }).getByRole("link", { name: "Open" }).click();
   await expect(page.getByTestId("studio-reconstitution-shell")).toBeVisible();
   await expect(page.getByTestId("studio-reconstitution-shell")).toHaveAttribute("data-workspace-task", "compose-card");
   await expect(page.getByTestId("studio-reconstitution-shell")).toHaveAttribute("data-workspace-composition", "compose");

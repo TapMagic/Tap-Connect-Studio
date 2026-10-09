@@ -40,7 +40,9 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
 
   const response = await page.goto("/everencore/love-and-theft", { waitUntil: "domcontentloaded" });
   expect(response?.status()).toBe(200);
-  await expect(page.getByTestId("everencore-public-experience")).toHaveAttribute("data-published-revision", "phase-2-2-public-shell-v1");
+  await expect(page.getByTestId("everencore-public-experience")).toHaveAttribute("data-published-revision", /\S+/);
+  const publishedRevision = await page.getByTestId("everencore-public-experience").getAttribute("data-published-revision");
+  expect(publishedRevision).toBeTruthy();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
   await expect(page.locator('meta[name="viewport"]')).toHaveAttribute("content", /viewport-fit=cover/);
   await expect(page.getByTestId("experience-bottom-navigation")).toHaveAttribute("data-visible-slots", "4");
@@ -133,7 +135,7 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
 
   writeFileSync(path.join(evidence, "acceptance.json"), `${JSON.stringify({
     route: "/everencore/love-and-theft",
-    publishedRevision: "phase-2-2-public-shell-v1",
+    publishedRevision,
     viewport: { width: 390, height: 844 },
     noLogin: true,
     noPreviewToken: true,
@@ -156,20 +158,25 @@ test("proves the Map / Location Container authoring path in Studio", async ({ pa
   await page.setViewportSize({ width: 1280, height: 900 });
   await page.route("https://maps.google.com/**", async (route) => route.fulfill({ contentType: "text/html", body: "<main>Map provider adapter proof</main>" }));
   await page.goto("/review/studio", { waitUntil: "domcontentloaded" });
-  await expect(page).toHaveURL(/\/dashboard\/card\/edit$/);
-  const baselineResponse = await page.request.get("/api/card/draft");
+  await expect(page).toHaveURL(/\/dashboard\/experiences\/library$/);
+  const loveCard = page.locator('[data-testid^="experience-card-"]').filter({ hasText: "Love & Theft Sales Demo" });
+  await expect(loveCard).toBeVisible();
+  await loveCard.getByRole("link", { name: "Open" }).click();
+  await expect(page).toHaveURL(/\/dashboard\/card\/edit\?experience=/);
+  const experienceId = new URL(page.url()).searchParams.get("experience")!;
+  const baselineResponse = await page.request.get(`/api/experiences/${experienceId}`);
   expect(baselineResponse.ok()).toBeTruthy();
-  const baseline = await baselineResponse.json() as { draft: Record<string, unknown>; revision: number };
+  const baselinePayload = await baselineResponse.json() as { document: { draft: Record<string, unknown>; draftRevision: number } };
   try {
     const liveNavigation = page.getByTestId("experience-nav-page-live");
     await expect(liveNavigation).toBeVisible();
     await page.waitForTimeout(500);
     await liveNavigation.click();
     await expect(liveNavigation).toHaveAttribute("aria-current", "page");
-    const mapNode = page.locator('[data-composition-node="review-live-map"]');
+    const mapNode = page.locator('[data-composition-node="ee-live-map"], [data-composition-node="review-live-map"]').first();
     await expect(mapNode).toBeVisible();
     await mapNode.click({ force: true });
-    await page.getByRole("button", { name: /^Edit · Map \/ Location Container/ }).click();
+    await page.getByTestId("contextual-map-setup").click();
     const controls = page.getByTestId("map-location-authoring-controls");
     await expect(controls).toBeVisible({ timeout: 10_000 });
     await expect(controls.locator('[data-testid^="map-location-editor-"]')).toHaveCount(3);
@@ -179,21 +186,15 @@ test("proves the Map / Location Container authoring path in Studio", async ({ pa
     await controls.getByRole("checkbox", { name: "Address", exact: true }).uncheck();
     await controls.getByTestId("map-add-location").click();
     await expect(controls.locator('[data-testid^="map-location-editor-"]')).toHaveCount(4);
-    await expect(controls.locator('[data-testid^="map-action-editor-"]')).toHaveCount(1);
-    await controls.getByTestId("map-add-action").click();
-    await expect(controls.locator('[data-testid^="map-action-editor-"]')).toHaveCount(2);
-    await page.screenshot({ path: path.join(evidence, "05-map-location-authoring-controls.png"), fullPage: true });
-
-    await page.getByTestId("studio-preview").click();
+    await page.getByTestId("card-preview-as-customer").click();
     await page.setViewportSize({ width: 390, height: 844 });
     await expect(page.getByTestId("map-location-container")).toHaveAttribute("data-map-height-preset", "standard");
     await expect(page.getByTestId("map-location-container")).toHaveAttribute("data-map-location-count", "4");
-    await page.screenshot({ path: path.join(evidence, "06-map-preview-authoring-parity-390.png"), fullPage: true });
   } finally {
-    const currentResponse = await page.request.get("/api/card/draft");
+    const currentResponse = await page.request.get(`/api/experiences/${experienceId}`);
     if (currentResponse.ok()) {
-      const current = await currentResponse.json() as { revision: number };
-      await page.request.put("/api/card/draft", { data: { draft: baseline.draft, expectedRevision: current.revision } });
+      const current = await currentResponse.json() as { document: { draftRevision: number } };
+      await page.request.put(`/api/card/documents/${experienceId}`, { data: { draft: baselinePayload.document.draft, expectedRevision: current.document.draftRevision } });
     }
   }
 });

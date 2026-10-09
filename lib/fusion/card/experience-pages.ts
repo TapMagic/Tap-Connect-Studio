@@ -266,6 +266,127 @@ function cloneCompositionBlock(source: CreativeCompositionBlock): CreativeCompos
   };
 }
 
+/**
+ * Creates an independent Experience document while preserving authored visual
+ * structure. Identity-bearing values are regenerated and internal Page links
+ * are remapped; public slugs and publication ownership live outside the draft
+ * and are intentionally not part of this operation.
+ */
+export function cloneExperienceDocument(
+  source: TapConnectCardConfig,
+  documentName: string,
+): TapConnectCardConfig {
+  const canonicalSource = source.experience
+    ? canonicalizeExperienceConfig(source, source.experience.defaultPageId)
+    : createExperienceFromLegacyCard(source);
+  const sourceExperience = canonicalSource.experience!;
+  const experienceId = `experience-${nanoid(10)}`;
+  const pageIds = new Map(sourceExperience.pages.map((page) => [page.pageId, `page-${nanoid(10)}`]));
+  const now = new Date().toISOString();
+  const mapPageRef = (value: string | undefined) => value ? pageIds.get(value) ?? value : value;
+  const remapProps = (props: Record<string, unknown>): Record<string, unknown> => {
+    const next = cloneNestedActionIdentities(structuredClone(props));
+    delete next.analyticsId;
+    delete next.trackingId;
+    for (const key of ["internalPageId", "destinationRef", "href"] as const) {
+      if (next.actionType === "internal_page" && typeof next[key] === "string") next[key] = mapPageRef(next[key] as string);
+    }
+    const grid = next.compactActionGrid;
+    if (grid && typeof grid === "object" && !Array.isArray(grid)) {
+      const value = grid as Record<string, unknown>;
+      next.compactActionGrid = {
+        ...value,
+        tiles: compactActionTiles(next).map((tile) => {
+          const cloned = { ...tile };
+          if (cloned.actionType === "internal_page" && typeof cloned.destinationRef === "string") {
+            cloned.destinationRef = mapPageRef(cloned.destinationRef);
+          }
+          const locked = cloned.lockedBehavior;
+          if (locked && typeof locked === "object" && !Array.isArray(locked)) {
+            const behavior = { ...(locked as Record<string, unknown>) };
+            if (behavior.ctaDestinationType === "internal_page" && typeof behavior.ctaDestinationRef === "string") {
+              behavior.ctaDestinationRef = mapPageRef(behavior.ctaDestinationRef);
+            }
+            cloned.lockedBehavior = behavior;
+          }
+          return cloned;
+        }),
+      };
+    }
+    return next;
+  };
+  const remapBlock = (sourceBlock: CreativeCompositionBlock): CreativeCompositionBlock => {
+    const cloned = cloneCompositionBlock(sourceBlock);
+    return {
+      ...cloned,
+      nodes: cloned.nodes.map((node) => ({
+        ...node,
+        props: remapProps(node.props),
+        moduleComposition: node.moduleComposition ? remapBlock(node.moduleComposition) : undefined,
+      })),
+      signatureAssembly: cloned.signatureAssembly ? {
+        ...cloned.signatureAssembly,
+        input: {
+          ...cloned.signatureAssembly.input,
+          actions: cloned.signatureAssembly.input.actions.map((action) => ({
+            ...action,
+            destination: action.actionType === "internal_page" ? mapPageRef(action.destination) ?? "" : action.destination,
+          })),
+        },
+      } : undefined,
+    };
+  };
+  const pages = sourceExperience.pages.map((page) => {
+    const pageId = pageIds.get(page.pageId)!;
+    const lockedBehavior = page.access?.lockedBehavior
+      ? {
+          ...structuredClone(page.access.lockedBehavior),
+          ctaDestinationRef: page.access.lockedBehavior.ctaDestinationType === "internal_page"
+            ? mapPageRef(page.access.lockedBehavior.ctaDestinationRef)
+            : page.access.lockedBehavior.ctaDestinationRef,
+        }
+      : undefined;
+    return {
+      ...structuredClone(page),
+      pageId,
+      experienceId,
+      slug: page.slug,
+      navDestinationPageId: mapPageRef(page.navDestinationPageId),
+      analyticsId: `page:${pageId}`,
+      access: page.access ? { ...structuredClone(page.access), ruleRef: undefined, lockedBehavior } : undefined,
+      composition: {
+        ...structuredClone(page.composition),
+        rootComposition: page.composition.rootComposition ? remapBlock(page.composition.rootComposition) : undefined,
+        sections: page.composition.sections.map((section) => ({
+          ...structuredClone(section),
+          id: nanoid(9),
+          linkedObjectId: undefined,
+          linkedCampaignId: undefined,
+          offerBlockId: undefined,
+          composition: section.composition ? remapBlock(section.composition) : undefined,
+        })),
+      },
+      createdAt: now,
+      updatedAt: now,
+    } satisfies TapExperiencePage;
+  });
+  return canonicalizeExperienceConfig({
+    ...structuredClone(canonicalSource),
+    documentName,
+    relatedSourceDocumentId: undefined,
+    adaptationMode: undefined,
+    experience: {
+      ...structuredClone(sourceExperience),
+      experienceId,
+      analyticsId: `experience:${experienceId}`,
+      defaultPageId: pageIds.get(sourceExperience.defaultPageId) ?? pages[0]!.pageId,
+      pages,
+      createdAt: now,
+      updatedAt: now,
+    },
+  }, pageIds.get(sourceExperience.defaultPageId));
+}
+
 export type ExperiencePageReference = {
   sourcePageId: string;
   sourceLabel: string;

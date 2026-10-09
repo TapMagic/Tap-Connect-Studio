@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import type {
   CreativeCompositionBlock,
+  CreativeCompositionGroup,
   CreativeCompositionNode,
 } from "@/lib/fusion/creative-studio/composition";
 
@@ -214,6 +215,132 @@ function duplicateHostedComposition(block: CreativeCompositionBlock): CreativeCo
       moduleComposition: node.moduleComposition ? duplicateHostedComposition(node.moduleComposition) : undefined,
     })),
   };
+}
+
+function isCompositionBlock(value: unknown): value is CreativeCompositionBlock {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Partial<CreativeCompositionBlock>;
+  return candidate.version === 1 && typeof candidate.id === "string" && Array.isArray(candidate.nodes);
+}
+
+function duplicateNodeProps(props: Record<string, unknown>): Record<string, unknown> {
+  const copied = structuredClone(props);
+  if (typeof copied.analyticsId === "string") copied.analyticsId = `${copied.analyticsId}:copy:${nanoid(5)}`;
+  if (typeof copied.trackingId === "string") copied.trackingId = `${copied.trackingId}:copy:${nanoid(5)}`;
+  if (isCompositionBlock(copied.contentComposition)) copied.contentComposition = duplicateHostedComposition(copied.contentComposition);
+  if (Array.isArray(copied.mapActions)) {
+    copied.mapActions = copied.mapActions.map((value) => {
+      if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+      const action = value as Record<string, unknown>;
+      return {
+        ...action,
+        actionId: `map-action-${nanoid(8)}`,
+        analyticsId: typeof action.analyticsId === "string" ? `${action.analyticsId}:copy:${nanoid(5)}` : action.analyticsId,
+      };
+    });
+  }
+  const compactGrid = copied.compactActionGrid;
+  if (compactGrid && typeof compactGrid === "object" && !Array.isArray(compactGrid)) {
+    const grid = compactGrid as Record<string, unknown>;
+    copied.compactActionGrid = {
+      ...grid,
+      componentId: `compact-grid-${nanoid(8)}`,
+      analyticsId: typeof grid.analyticsId === "string" ? `${grid.analyticsId}:copy:${nanoid(5)}` : grid.analyticsId,
+      tiles: Array.isArray(grid.tiles) ? grid.tiles.map((value) => {
+        if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+        const tile = value as Record<string, unknown>;
+        return {
+          ...tile,
+          componentId: `compact-tile-${nanoid(8)}`,
+          actionId: `action-${nanoid(8)}`,
+          analyticsId: typeof tile.analyticsId === "string" ? `${tile.analyticsId}:copy:${nanoid(5)}` : tile.analyticsId,
+        };
+      }) : grid.tiles,
+    };
+  }
+  return copied;
+}
+
+export type CompositionNodeClipboardPayload = {
+  version: 1;
+  rootId: string;
+  label: string;
+  nodes: CreativeCompositionNode[];
+  groups: CreativeCompositionGroup[];
+};
+
+/** Captures one canonical Module or a complete Container subtree for page-aware paste. */
+export function copyCompositionNodeSubtree(
+  block: CreativeCompositionBlock,
+  nodeId: string,
+): CompositionNodeClipboardPayload | null {
+  if (!hasCompositionParentAuthority(block)) return null;
+  const root = block.nodes.find((node) => node.id === nodeId);
+  if (!root) return null;
+  const included = new Set<string>([root.id]);
+  const ordered: CreativeCompositionNode[] = [root];
+  const collect = (parentId: string) => {
+    for (const child of compositionChildren(block, parentId)) {
+      included.add(child.id);
+      ordered.push(child);
+      if (child.compositionKind === "container") collect(child.id);
+    }
+  };
+  if (root.compositionKind === "container") collect(root.id);
+  const groupIds = new Set(ordered.flatMap((node) => node.groupId ? [node.groupId] : []));
+  return {
+    version: 1,
+    rootId: root.id,
+    label: root.name || (root.compositionKind === "container" ? "Container" : "Module"),
+    nodes: structuredClone(ordered),
+    groups: structuredClone((block.groups ?? []).filter((group) => groupIds.has(group.id) && (group.parentId === null || included.has(group.parentId)))),
+  };
+}
+
+/** Pastes a copied subtree through the same parent/order authority used by Add and Outline. */
+export function pasteCompositionNodeSubtree(
+  block: CreativeCompositionBlock,
+  payload: CompositionNodeClipboardPayload,
+  parentId: CompositionParentId,
+  insertionIndex?: number,
+): CompositionAuthorityResult {
+  if (!hasCompositionParentAuthority(block)) return commit(block);
+  const sourceRoot = payload.nodes.find((node) => node.id === payload.rootId);
+  if (!sourceRoot) return { ok: false, issues: [{ code: "invalid_parent", message: "The copied composition object is incomplete." }] };
+  const idMap = new Map(payload.nodes.map((node) => [node.id, `${node.compositionKind === "container" ? "container" : "module"}-${nanoid(8)}`]));
+  const groupMap = new Map(payload.groups.map((group) => [group.id, `group-${nanoid(8)}`]));
+  const maxZ = block.nodes.reduce((maximum, node) => Math.max(maximum, node.zIndex), 0);
+  let current: CreativeCompositionBlock = block;
+  for (const [offset, source] of payload.nodes.entries()) {
+    const isRoot = source.id === payload.rootId;
+    const targetParentId = isRoot ? parentId : source.parentId ? idMap.get(source.parentId) ?? parentId : parentId;
+    const copied: CreativeCompositionNode = {
+      ...structuredClone(source),
+      id: idMap.get(source.id)!,
+      parentId: targetParentId,
+      siblingOrder: isRoot ? insertionIndex ?? compositionChildren(current, parentId).length : source.siblingOrder,
+      zIndex: maxZ + offset + 1,
+      locked: false,
+      groupId: source.groupId ? groupMap.get(source.groupId) ?? null : source.groupId,
+      name: isRoot ? `${source.name || (source.compositionKind === "container" ? "Container" : "Module")} copy` : source.name,
+      props: duplicateNodeProps(source.props),
+      moduleComposition: source.moduleComposition ? duplicateHostedComposition(source.moduleComposition) : undefined,
+    };
+    const added = copied.compositionKind === "container"
+      ? insertCompositionContainer(current, copied, isRoot ? insertionIndex : undefined)
+      : insertCompositionModule(current, copied, targetParentId, isRoot ? insertionIndex : undefined);
+    if (!added.ok) return added;
+    current = added.block;
+  }
+  const groups = payload.groups.map((group) => ({
+    ...structuredClone(group),
+    id: groupMap.get(group.id)!,
+    parentId: group.parentId ? idMap.get(group.parentId) ?? parentId : parentId,
+    name: `${group.name || "Group"} copy`,
+    locked: false,
+  }));
+  const result = commit({ ...current, groups: [...(current.groups ?? []), ...groups] });
+  return result.ok ? { ...result, selectedNodeId: idMap.get(payload.rootId) } : result;
 }
 
 export function insertCompositionModule(

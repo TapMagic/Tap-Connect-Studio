@@ -7,7 +7,7 @@ import { createHash } from "node:crypto";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 
-export type PublicationSubjectType = "campaign" | "card";
+export type PublicationSubjectType = "campaign" | "card" | "experience";
 
 export type CampaignPublishManifest = {
   kind: "campaign";
@@ -31,7 +31,15 @@ export type CardPublishManifest = {
   sourceCardPublicationId?: string;
 };
 
-export type PublishManifest = CampaignPublishManifest | CardPublishManifest;
+export type ExperiencePublishManifest = {
+  kind: "experience";
+  document: unknown;
+  label: string;
+  sourceDraftRevision: number;
+  comparisonSummary?: unknown;
+};
+
+export type PublishManifest = CampaignPublishManifest | CardPublishManifest | ExperiencePublishManifest;
 
 export type SnapshotRow = {
   id: string;
@@ -65,7 +73,7 @@ export function hashPublishManifest(manifest: PublishManifest): string {
 
 function asManifest(raw: unknown): PublishManifest {
   const m = raw as PublishManifest;
-  if (m?.kind === "campaign" || m?.kind === "card") return m;
+  if (m?.kind === "campaign" || m?.kind === "card" || m?.kind === "experience") return m;
   throw new Error("Invalid publication manifest");
 }
 

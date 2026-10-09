@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CreditCard, Layers3, Mail, Wallet } from "lucide-react";
+import { ArrowRight, CreditCard, FolderKanban, Layers3, Mail, Wallet } from "lucide-react";
 import { StudioHubSections } from "@/components/studio/hub-sections";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
 import { CardRelationshipAnchor } from "@/components/fusion/card/card-relationship-anchor";
@@ -134,9 +134,17 @@ export default async function ExperiencesHubPage() {
         </p>
         <div className="flex flex-wrap gap-2 pt-1">
           <Link
+            href="/dashboard/experiences/library"
+            data-testid="experiences-cta-library"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+          >
+            <FolderKanban className="h-4 w-4" aria-hidden />
+            Open Experience Library
+          </Link>
+          <Link
             href="/dashboard/card"
             data-testid="experiences-cta-card"
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/90 hover:border-primary/40"
           >
             <CreditCard className="h-4 w-4" aria-hidden />
             Open Card

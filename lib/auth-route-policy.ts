@@ -37,4 +37,6 @@ export const PUBLIC_ROUTE_PATTERNS = [
   "/preview/(.*)",
   // Published fan Experiences are anonymous delivery surfaces, not Host UI.
   "/everencore/(.*)",
+  // Opaque QR credentials are validated and redeemed server-side.
+  "/x/(.*)",
 ];

@@ -24,13 +24,16 @@ export const dynamic = "force-dynamic";
 export default async function TapCardEditPage({
   searchParams,
 }: {
-  searchParams: Promise<{ returnTo?: string }>;
+  searchParams: Promise<{ returnTo?: string; experience?: string }>;
 }) {
   const { user, business } =
     await requireBusinessCapability("card.draft.edit");
   const query = await searchParams;
-  const doneHref =
-    query.returnTo === "/onboarding" ? "/onboarding?stage=card" : "/dashboard/card";
+  const doneHref = query.returnTo === "/onboarding"
+    ? "/onboarding?stage=card"
+    : query.returnTo === "/dashboard/experiences/library"
+      ? query.returnTo
+      : "/dashboard/card";
   const overrides = await listFeatureOverrides();
   const freeformEnabled = isFeatureEnabled("card.builder.freeform", {
     overrides,
@@ -42,7 +45,10 @@ export default async function TapCardEditPage({
     subject: { userId: user.id, businessId: business.id },
   });
   const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
-  const cardCreativeDocuments = await prisma.cardCreativeDocument.findMany({ where: { businessId: business.id }, orderBy: { updatedAt: "desc" } });
+  const cardCreativeDocuments = await prisma.cardCreativeDocument.findMany({ where: { businessId: business.id, archivedAt: null }, orderBy: { updatedAt: "desc" } });
+  const initialActiveDocumentId = cardCreativeDocuments.some((document) => document.id === query.experience && !document.archivedAt)
+    ? query.experience
+    : "main-card";
   const profile = parseBrandContactProfile(brandKit?.socialLinks);
   const safeFallback = buildFirstCardDraft({
     businessName: business.name,
@@ -179,6 +185,7 @@ export default async function TapCardEditPage({
   const builderProps = {
     initialConfig: config,
     initialDraftRevision: draftState.tapCardDraftRevision,
+    initialActiveDocumentId,
     initialOpenDocuments: cardCreativeDocuments.map((document) => ({
       id: document.id,
       name: document.name,
@@ -191,6 +198,9 @@ export default async function TapCardEditPage({
         reviewUrl: business.googleReviewUrl,
       }),
       revision: document.draftRevision,
+      clientName: document.clientName,
+      experienceType: document.experienceType,
+      experienceStatus: document.experienceStatus,
     })),
     profile: {
       ...profile,

@@ -574,6 +574,8 @@ model Business {
   emailDocuments            EmailDocument[]
   emailLifecycleEvents      EmailLifecycleEvent[]
   cardCreativeDocuments     CardCreativeDocument[]
+  experiencePublicDestinations ExperiencePublicDestination[]
+  experienceAccessCredentials ExperienceAccessCredential[]
 
   @@index([workspaceKind, lifecycleState])
   @@index([lifecycleState, deletionScheduledAt])
@@ -1198,18 +1200,77 @@ model BrandKit {
  * retained PublicationSnapshot; BrandKit.tapCard is a compatibility projection.
  */
 model CardCreativeDocument {
-  id            String   @id @default(cuid())
-  businessId    String
-  name          String
-  documentType  String   @default("CARD_VARIATION")
-  draft         Json
-  draftRevision Int      @default(1)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id                           String   @id @default(cuid())
+  businessId                   String
+  name                         String
+  documentType                 String   @default("CARD_VARIATION")
+  /** Experience Library metadata; the draft remains the canonical TapConnect Card / Experience document. */
+  clientName                   String   @default("Unassigned")
+  experienceType               String   @default("DEMO")
+  experienceStatus             String   @default("DRAFT")
+  coverUrl                     String?
+  sourceDocumentId             String?
+  previewedAt                  DateTime?
+  publishedAt                  DateTime?
+  archivedAt                   DateTime?
+  publicationActive            Boolean  @default(false)
+  currentPublicationSnapshotId String?  @unique
+  draft                        Json
+  draftRevision                Int      @default(1)
+  createdAt                    DateTime @default(now())
+  updatedAt                    DateTime @updatedAt
 
-  business Business @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  business          Business                     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  publicDestination ExperiencePublicDestination?
 
-  @@index([businessId, updatedAt])
+  @@index([businessId, archivedAt, updatedAt])
+  @@index([businessId, clientName, updatedAt])
+  @@index([businessId, experienceType, experienceStatus])
+}
+
+/** Stable visitor destination. It is not a draft, revision, or QR credential. */
+model ExperiencePublicDestination {
+  id           String   @id @default(cuid())
+  businessId   String
+  experienceId String   @unique
+  slug         String   @unique
+  accessActive Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  business    Business                     @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  experience  CardCreativeDocument         @relation(fields: [experienceId], references: [id], onDelete: Cascade)
+  credentials ExperienceAccessCredential[]
+
+  @@index([businessId, accessActive])
+}
+
+/**
+ * Server-enforced QR/access credential. Only a SHA-256 token digest is stored;
+ * the credential points at the stable destination and never identifies the
+ * Experience itself.
+ */
+model ExperienceAccessCredential {
+  id              String    @id @default(cuid())
+  businessId      String
+  destinationId   String
+  tokenHash       String    @unique
+  tokenHint       String
+  credentialType  String    @default("PERMANENT")
+  status          String    @default("ACTIVE")
+  redemptionLimit Int?
+  redemptionCount Int       @default(0)
+  expiresAt       DateTime?
+  lastUsedAt      DateTime?
+  revokedAt       DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  business    Business                    @relation(fields: [businessId], references: [id], onDelete: Cascade)
+  destination ExperiencePublicDestination @relation(fields: [destinationId], references: [id], onDelete: Cascade)
+
+  @@index([businessId, status, createdAt])
+  @@index([destinationId, status, createdAt])
 }
 
 model CardPublication {

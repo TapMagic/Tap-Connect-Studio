@@ -39,6 +39,7 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
   const customActions = useMemo(() => normalizeMapLocationActions(props).filter((item) => item.visible), [props]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapActive, setMapActive] = useState(false);
+  const [failedEmbedHref, setFailedEmbedHref] = useState<string | null>(null);
   const primary = locations.find((item) => item.primary) || locations[0];
   const selected = locations.find((item) => item.locationId === selectedId) || primary;
   const display = readMapLocationDisplay(props);
@@ -53,7 +54,7 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
 
   if (!selected) return <MapFallback props={props} editMode={editMode} />;
 
-  const embedHref = buildMapEmbedHref(selected);
+  const embedHref = buildMapEmbedHref(selected, typeof props.zoom === "number" ? props.zoom : undefined);
   const directionsHref = buildLocationItemHref(selected, props.mapOpenApp || "default");
   const map = showMap ? <div
     className="relative min-h-[140px] overflow-hidden rounded-[inherit] bg-[#d8dfd2]"
@@ -61,7 +62,7 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
     data-map-layer="base-map"
     data-map-interaction={mapActive ? "active" : "scroll-safe"}
   >
-    {embedHref ? <iframe
+    {embedHref && failedEmbedHref !== embedHref ? <iframe
       key={embedHref}
       src={embedHref}
       title={`Map showing ${selected.name}`}
@@ -69,8 +70,10 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
       loading="lazy"
       referrerPolicy="no-referrer-when-downgrade"
       style={{ pointerEvents: mapActive && !editMode ? "auto" : "none" }}
+      onLoad={() => setFailedEmbedHref((current) => current === embedHref ? null : current)}
+      onError={() => setFailedEmbedHref(embedHref)}
       data-testid="map-location-embed"
-    /> : <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_50%_34%,#e7ede3,#b9c7b4)] p-6 text-center text-[#1c2a20]"><div><MapPin className="mx-auto h-8 w-8" /><p className="mt-2 text-xs font-semibold">Map unavailable for this address</p></div></div>}
+    /> : <MapProviderFallback item={selected} href={directionsHref} editMode={editMode} />}
     {display.marker ? <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full" data-map-layer="location-markers"><span className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#f4d38b] bg-[#2b1a0c] text-[#f4d38b] shadow-xl"><PremiumIcon icon={locationIcon(selected)} sizePx={18} /></span>{display.markerLabels ? <span className="mt-1 block whitespace-nowrap rounded bg-black/75 px-2 py-1 text-[9px] font-semibold text-white">{selected.name}</span> : null}</div> : null}
     {!editMode && !mapActive ? <button type="button" className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/40 via-transparent to-transparent pb-3 text-[10px] font-semibold text-white" onClick={() => setMapActive(true)} data-testid="map-activate-interaction"><span className="rounded-full bg-black/72 px-3 py-2 shadow-lg">Tap to explore map</span></button> : null}
     {display.recenterControl && mapActive ? <button type="button" className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full border border-white/50 bg-black/72 text-white shadow-lg" onClick={() => { setMapActive(false); window.setTimeout(() => setMapActive(true), 0); }} aria-label="Recenter map"><LocateFixed className="h-4 w-4" /></button> : null}
@@ -105,6 +108,10 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
       {second}
     </div>
   </section>;
+}
+
+function MapProviderFallback({ item, href, editMode }: { item: MapLocationItem; href?: string; editMode: boolean }) {
+  return <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_50%_34%,#e7ede3,#b9c7b4)] p-5 text-center text-[#1c2a20]" data-testid="map-provider-fallback" data-map-error="provider-unavailable"><div><MapPin className="mx-auto h-8 w-8" /><p className="mt-2 text-xs font-semibold">Map provider unavailable</p><p className="mt-1 text-[10px]">{item.name}{item.address ? ` · ${item.address}` : ""}</p>{href ? <a href={editMode ? undefined : href} onClick={(event) => { if (editMode) event.preventDefault(); }} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#1c2a20] px-4 text-[10px] font-semibold text-white"><Navigation className="h-3.5 w-3.5" />Open directions</a> : null}</div></div>;
 }
 
 function LocationTiles({ items, activeId, mapApp, editMode, onSelect }: { items: MapLocationItem[]; activeId: string; mapApp: NonNullable<MapElementProps["mapOpenApp"]>; editMode: boolean; onSelect: (id: string) => void }) {
