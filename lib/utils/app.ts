@@ -25,6 +25,18 @@ function normalizeBaseUrl(raw: string): string {
   return `https://${trimmed}`;
 }
 
+function parseHttpOrigin(raw: string | null | undefined): string | null {
+  const value = raw?.split(",", 1)[0]?.trim();
+  if (!value) return null;
+  try {
+    const parsed = new URL(value.includes("://") ? value : `https://${value}`);
+    if (parsed.protocol !== "http:" && parsed.protocol !== "https:") return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
 /**
  * Public site origin for tap/QR links.
  * Production Studio domain: https://studio.tapthemagic.com
@@ -49,6 +61,32 @@ export function getAppUrl(): string {
   }
 
   return "http://localhost:3000";
+}
+
+/**
+ * Resolve the browser-visible origin for URLs returned by a Route Handler.
+ *
+ * Railway terminates TLS at its proxy and may present an internal
+ * `http://localhost:<port>` request URL to Next.js. Same-origin browser POSTs
+ * carry the real public Origin header; non-browser callers fall back through
+ * standard proxy headers and the configured application URL.
+ */
+export function getRequestPublicOrigin(request: Request): string {
+  const browserOrigin = parseHttpOrigin(request.headers.get("origin"));
+  if (browserOrigin) return browserOrigin;
+
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  if (forwardedHost) {
+    const forwardedProto =
+      request.headers.get("x-forwarded-proto")?.split(",", 1)[0]?.trim() || "https";
+    const forwardedOrigin = parseHttpOrigin(`${forwardedProto}://${forwardedHost}`);
+    if (forwardedOrigin) return forwardedOrigin;
+  }
+
+  const directOrigin = parseHttpOrigin(request.url);
+  if (directOrigin && !directOrigin.includes("localhost")) return directOrigin;
+
+  return parseHttpOrigin(getAppUrl()) ?? directOrigin ?? "http://localhost:3000";
 }
 
 export function getDeviceUrl(deviceCode: string): string {

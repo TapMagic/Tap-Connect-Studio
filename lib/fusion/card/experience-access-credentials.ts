@@ -71,6 +71,33 @@ export async function rotateExperienceCredential(input: {
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
+export async function revokeExperienceCredential(input: {
+  businessId: string;
+  experienceId: string;
+  credentialId: string;
+}) {
+  const credential = await prisma.experienceAccessCredential.findFirst({
+    where: {
+      id: input.credentialId,
+      businessId: input.businessId,
+      destination: { experienceId: input.experienceId },
+    },
+  });
+  if (!credential) throw new ExperienceLibraryError("QR credential not found.", "not_found", 404);
+  if (credential.status !== "ACTIVE") return { credential, changed: false };
+  const revokedAt = new Date();
+  const result = await prisma.experienceAccessCredential.updateMany({
+    where: { id: credential.id, businessId: input.businessId, status: "ACTIVE" },
+    data: { status: "REVOKED", revokedAt },
+  });
+  return {
+    credential: result.count
+      ? { ...credential, status: "REVOKED", revokedAt }
+      : await prisma.experienceAccessCredential.findUniqueOrThrow({ where: { id: credential.id } }),
+    changed: result.count === 1,
+  };
+}
+
 export async function redeemExperienceCredential(token: string) {
   const tokenHash = hashExperienceCredential(token);
   return prisma.$transaction(async (tx) => {

@@ -11,6 +11,7 @@ import {
 } from "@/lib/fusion/card/experience-library";
 import {
   redeemExperienceCredential,
+  revokeExperienceCredential,
   rotateExperienceCredential,
 } from "@/lib/fusion/card/experience-access-credentials";
 import {
@@ -103,6 +104,15 @@ describe("Experience publication/access/QR lifecycle — isolated PostgreSQL", {
       });
       assert.equal((await redeemExperienceCredential(firstQr.token)).state, "valid");
       assert.equal((await redeemExperienceCredential(keptQr.token)).state, "valid");
+
+      const manuallyRevoked = await revokeExperienceCredential({
+        businessId: business.id,
+        experienceId: document.id,
+        credentialId: keptQr.credential.id,
+      });
+      assert.equal(manuallyRevoked.changed, true);
+      assert.equal((await redeemExperienceCredential(firstQr.token)).state, "valid");
+      assert.equal((await redeemExperienceCredential(keptQr.token)).state, "revoked");
 
       const replacementQr = await rotateExperienceCredential({
         businessId: business.id,

@@ -2,9 +2,10 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
-import { EXPERIENCE_CREDENTIAL_TYPES, rotateExperienceCredential } from "@/lib/fusion/card/experience-access-credentials";
+import { EXPERIENCE_CREDENTIAL_TYPES, revokeExperienceCredential, rotateExperienceCredential } from "@/lib/fusion/card/experience-access-credentials";
 import { ExperienceLibraryError } from "@/lib/fusion/card/experience-library";
 import { appendAuditEvent } from "@/lib/control/audit";
+import { getRequestPublicOrigin } from "@/lib/utils/app";
 
 export const runtime = "nodejs";
 
@@ -14,6 +15,8 @@ const rotateSchema = z.object({
   redemptionLimit: z.number().int().positive().max(1_000_000).nullable().optional(),
   expiresAt: z.string().datetime().nullable().optional(),
 });
+
+const revokeSchema = z.object({ credentialId: z.string().min(1) });
 
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const { business } = await requireBusinessCapability("card.draft.edit");
@@ -78,7 +81,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         newValue: { experienceId: id, replacementResourceId: result.credential.id, status: "REVOKED" },
       });
     }
-    const origin = new URL(request.url).origin;
+    const origin = getRequestPublicOrigin(request);
     return NextResponse.json({
       credential: {
         id: result.credential.id,
@@ -94,5 +97,35 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     if (error instanceof z.ZodError) return NextResponse.json({ error: "Invalid QR credential options." }, { status: 400 });
     console.error("Experience credential rotation failed:", error);
     return NextResponse.json({ error: "QR credential could not be generated." }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { business, user } = await requireBusinessCapability("card.publish");
+    const { id } = await params;
+    const input = revokeSchema.parse(await request.json());
+    const result = await revokeExperienceCredential({
+      businessId: business.id,
+      experienceId: id,
+      credentialId: input.credentialId,
+    });
+    if (result.changed) {
+      await appendAuditEvent({
+        actorId: user.id,
+        businessId: business.id,
+        action: "studio.experience.credential_revoked",
+        permissionUsed: "card.publish",
+        resourceType: "ExperienceAccessCredential",
+        resourceId: result.credential.id,
+        newValue: { experienceId: id, status: "REVOKED", reason: "manual" },
+      });
+    }
+    return NextResponse.json({ credential: { id: result.credential.id, status: result.credential.status }, changed: result.changed });
+  } catch (error) {
+    if (error instanceof ExperienceLibraryError) return NextResponse.json({ error: error.message }, { status: error.status });
+    if (error instanceof z.ZodError) return NextResponse.json({ error: "Invalid QR credential selection." }, { status: 400 });
+    console.error("Experience credential revocation failed:", error);
+    return NextResponse.json({ error: "QR credential could not be revoked." }, { status: 500 });
   }
 }
