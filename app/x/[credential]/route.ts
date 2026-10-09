@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { redeemExperienceCredential } from "@/lib/fusion/card/experience-access-credentials";
+import { getRequestPublicOrigin } from "@/lib/utils/app";
 
 export const runtime = "nodejs";
 
@@ -14,5 +15,5 @@ export async function GET(request: Request, { params }: { params: Promise<{ cred
   const { credential } = await params;
   const result = await redeemExperienceCredential(credential).catch(() => ({ state: "invalid" as const }));
   if (result.state !== "valid") return unavailable(result.state);
-  return NextResponse.redirect(new URL(`/everencore/${result.slug}`, request.url), 307);
+  return NextResponse.redirect(new URL(`/everencore/${result.slug}`, getRequestPublicOrigin(request)), 307);
 }
