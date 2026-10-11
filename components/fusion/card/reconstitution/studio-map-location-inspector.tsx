@@ -23,7 +23,7 @@ const areaClass = "mt-1 min-h-16 w-full rounded-lg border border-white/12 bg-bla
 const buttonClass = "min-h-10 rounded-xl border border-white/12 bg-white/[.04] px-3 text-[10px] font-semibold text-white/78 disabled:opacity-25 aria-pressed:border-[#b8ff2c]/55 aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#dfff9b]";
 
 const DISPLAY_OPTIONS: Array<[keyof MapLocationDisplay, string]> = [
-  ["map", "Map"], ["name", "Location name"], ["address", "Address"],
+  ["map", "Show map"], ["name", "Location name"], ["address", "Address"],
   ["marker", "Location marker"], ["markerLabels", "Marker labels"],
   ["locationTiles", "Location tiles"], ["description", "Description"],
   ["image", "Image"], ["timeNote", "Date / time note"],

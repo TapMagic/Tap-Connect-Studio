@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import { Globe2, LocateFixed, MapPin, Navigation, Phone } from "lucide-react";
 import { PremiumIcon } from "@/components/design/premium-icon";
@@ -39,41 +39,32 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
   const customActions = useMemo(() => normalizeMapLocationActions(props).filter((item) => item.visible), [props]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mapActive, setMapActive] = useState(false);
-  const [failedEmbedHref, setFailedEmbedHref] = useState<string | null>(null);
   const primary = locations.find((item) => item.primary) || locations[0];
   const selected = locations.find((item) => item.locationId === selectedId) || primary;
   const display = readMapLocationDisplay(props);
   const layout = props.mapLayout || "map_details_below";
   const mapHeight = mapLocationHeight(props);
-  const showMap = display.map && !["directions_only", "pin_only", "text_link", "location_card"].includes(String(props.mapDisplayMode));
+  // Show Map is the canonical authored visibility control. Legacy presentation
+  // modes are interpreted by readMapLocationDisplay only when no explicit
+  // mapDisplay.map value exists.
+  const showMap = display.map;
   const showTiles = display.locationTiles && locations.length > 1 && layout.includes("tiles");
   const showDetails = layout !== "map_only";
   const mapFirst = !layout.startsWith("details_") && !layout.startsWith("tiles_");
   const split = layout === "map_left_details_right" || layout === "details_left_map_right";
   const surface = props.mapSurfaceTreatment || "glass";
+  const embedHref = selected ? buildMapEmbedHref(selected, typeof props.zoom === "number" ? props.zoom : undefined) : undefined;
+  const directionsHref = selected ? buildLocationItemHref(selected, props.mapOpenApp || "default") : undefined;
 
   if (!selected) return <MapFallback props={props} editMode={editMode} />;
 
-  const embedHref = buildMapEmbedHref(selected, typeof props.zoom === "number" ? props.zoom : undefined);
-  const directionsHref = buildLocationItemHref(selected, props.mapOpenApp || "default");
   const map = showMap ? <div
-    className="relative min-h-[140px] overflow-hidden rounded-[inherit] bg-[#d8dfd2]"
+    className="relative w-full min-w-0 min-h-[140px] overflow-hidden rounded-[inherit] bg-[#d8dfd2]"
     style={{ height: mapHeight }}
     data-map-layer="base-map"
     data-map-interaction={mapActive ? "active" : "scroll-safe"}
   >
-    {embedHref && failedEmbedHref !== embedHref ? <iframe
-      key={embedHref}
-      src={embedHref}
-      title={`Map showing ${selected.name}`}
-      className="absolute inset-0 h-full w-full border-0"
-      loading="lazy"
-      referrerPolicy="no-referrer-when-downgrade"
-      style={{ pointerEvents: mapActive && !editMode ? "auto" : "none" }}
-      onLoad={() => setFailedEmbedHref((current) => current === embedHref ? null : current)}
-      onError={() => setFailedEmbedHref(embedHref)}
-      data-testid="map-location-embed"
-    /> : <MapProviderFallback item={selected} href={directionsHref} editMode={editMode} />}
+    {embedHref ? <MapProviderFrame key={embedHref} embedHref={embedHref} item={selected} directionsHref={directionsHref} editMode={editMode} interactive={mapActive && !editMode} /> : <MapProviderFallback item={selected} href={directionsHref} editMode={editMode} reason="missing-location" />}
     {display.marker ? <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-full" data-map-layer="location-markers"><span className="grid h-9 w-9 place-items-center rounded-full border-2 border-[#f4d38b] bg-[#2b1a0c] text-[#f4d38b] shadow-xl"><PremiumIcon icon={locationIcon(selected)} sizePx={18} /></span>{display.markerLabels ? <span className="mt-1 block whitespace-nowrap rounded bg-black/75 px-2 py-1 text-[9px] font-semibold text-white">{selected.name}</span> : null}</div> : null}
     {!editMode && !mapActive ? <button type="button" className="absolute inset-0 flex items-end justify-center bg-gradient-to-t from-black/40 via-transparent to-transparent pb-3 text-[10px] font-semibold text-white" onClick={() => setMapActive(true)} data-testid="map-activate-interaction"><span className="rounded-full bg-black/72 px-3 py-2 shadow-lg">Tap to explore map</span></button> : null}
     {display.recenterControl && mapActive ? <button type="button" className="absolute right-2 top-2 grid h-10 w-10 place-items-center rounded-full border border-white/50 bg-black/72 text-white shadow-lg" onClick={() => { setMapActive(false); window.setTimeout(() => setMapActive(true), 0); }} aria-label="Recenter map"><LocateFixed className="h-4 w-4" /></button> : null}
@@ -98,6 +89,7 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
     data-map-presentation={props.mapDisplayMode || "map_directions"}
     data-map-layout={layout}
     data-map-height-preset={props.mapHeightPreset || "standard"}
+    data-map-visible={showMap ? "true" : "false"}
     data-map-location-count={locations.length}
     data-map-primary-location={primary?.locationId}
     data-map-selected-location={selected.locationId}
@@ -110,8 +102,38 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
   </section>;
 }
 
-function MapProviderFallback({ item, href, editMode }: { item: MapLocationItem; href?: string; editMode: boolean }) {
-  return <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_50%_34%,#e7ede3,#b9c7b4)] p-5 text-center text-[#1c2a20]" data-testid="map-provider-fallback" data-map-error="provider-unavailable"><div><MapPin className="mx-auto h-8 w-8" /><p className="mt-2 text-xs font-semibold">Map provider unavailable</p><p className="mt-1 text-[10px]">{item.name}{item.address ? ` · ${item.address}` : ""}</p>{href ? <a href={editMode ? undefined : href} onClick={(event) => { if (editMode) event.preventDefault(); }} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#1c2a20] px-4 text-[10px] font-semibold text-white"><Navigation className="h-3.5 w-3.5" />Open directions</a> : null}</div></div>;
+function MapProviderFrame({ embedHref, item, directionsHref, editMode, interactive }: { embedHref: string; item: MapLocationItem; directionsHref?: string; editMode: boolean; interactive: boolean }) {
+  const [providerState, setProviderState] = useState<"loading" | "ready" | "error">("loading");
+  const [retryRevision, setRetryRevision] = useState(0);
+
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setProviderState((current) => current === "loading" ? "error" : current), 12_000);
+    return () => window.clearTimeout(timeout);
+  }, [retryRevision]);
+
+  return <div className="absolute inset-0" data-map-provider-state={providerState}>
+    {providerState !== "error" ? <iframe
+      key={`${embedHref}:${retryRevision}`}
+      src={embedHref}
+      title={`Map showing ${item.name}`}
+      className="absolute inset-0 block h-full w-full border-0"
+      loading="lazy"
+      referrerPolicy="no-referrer-when-downgrade"
+      style={{ pointerEvents: interactive ? "auto" : "none" }}
+      onLoad={() => setProviderState("ready")}
+      onError={() => setProviderState("error")}
+      data-testid="map-location-embed"
+    /> : <MapProviderFallback item={item} href={directionsHref} editMode={editMode} reason="provider-unavailable" onRetry={() => {
+      setProviderState("loading");
+      setRetryRevision((revision) => revision + 1);
+    }} />}
+    {editMode && providerState === "loading" ? <span className="pointer-events-none absolute left-2 top-2 rounded bg-black/75 px-2 py-1 text-[9px] font-semibold text-white" role="status" data-testid="map-provider-loading">Loading map…</span> : null}
+  </div>;
+}
+
+function MapProviderFallback({ item, href, editMode, reason, onRetry }: { item: MapLocationItem; href?: string; editMode: boolean; reason: "missing-location" | "provider-unavailable"; onRetry?: () => void }) {
+  const missingLocation = reason === "missing-location";
+  return <div className="absolute inset-0 grid place-items-center bg-[radial-gradient(circle_at_50%_34%,#e7ede3,#b9c7b4)] p-5 text-center text-[#1c2a20]" data-testid="map-provider-fallback" data-map-error={reason} role={editMode ? "alert" : undefined}><div><MapPin className="mx-auto h-8 w-8" /><p className="mt-2 text-xs font-semibold">{missingLocation ? (editMode ? "Add an address to show the map" : "Location unavailable") : (editMode ? "Map could not load in Studio" : "Map provider unavailable")}</p><p className="mt-1 text-[10px]">{!missingLocation && editMode ? "Check the connection and try again. " : ""}{item.name}{item.address ? ` · ${item.address}` : ""}</p>{editMode && onRetry ? <button type="button" onClick={onRetry} className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#1c2a20] px-4 text-[10px] font-semibold text-white">Retry map</button> : href ? <a href={editMode ? undefined : href} onClick={(event) => { if (editMode) event.preventDefault(); }} target={href.startsWith("http") ? "_blank" : undefined} rel={href.startsWith("http") ? "noopener noreferrer" : undefined} className="mt-3 inline-flex min-h-10 items-center gap-1.5 rounded-full bg-[#1c2a20] px-4 text-[10px] font-semibold text-white"><Navigation className="h-3.5 w-3.5" />Open directions</a> : null}</div></div>;
 }
 
 function LocationTiles({ items, activeId, mapApp, editMode, onSelect }: { items: MapLocationItem[]; activeId: string; mapApp: NonNullable<MapElementProps["mapOpenApp"]>; editMode: boolean; onSelect: (id: string) => void }) {

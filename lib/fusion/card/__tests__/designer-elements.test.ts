@@ -30,10 +30,11 @@ test("designer button defaults are universal, accessible, and presentation-ready
   assert.equal(directions.reducedMotionFallback, "none");
 });
 
-test("Map defaults never create an unexplained empty provider rectangle", () => {
+test("Map defaults request the real map while retaining explicit location setup", () => {
   const defaults = mapElementDefaults();
   assert.equal(defaults.mapSourceMode, "workspace_default");
-  assert.equal(defaults.mapDisplayMode, "location_card");
+  assert.equal(defaults.mapDisplayMode, "map_directions");
+  assert.deepEqual(defaults.locationItems, []);
   assert.equal(defaults.mapOpenApp, "default");
   assert.equal(defaults.mapOpenAction, "directions");
 });

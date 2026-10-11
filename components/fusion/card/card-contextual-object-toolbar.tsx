@@ -433,7 +433,7 @@ function MapLocationSetupControls({ node, locations, patchProps, notify }: {
     directionsIntent: "directions",
   }], "Added Map location");
   const displayOptions: Array<[keyof typeof DEFAULT_MAP_LOCATION_DISPLAY, string]> = [
-    ["map", "Map"], ["name", "Venue / location name"], ["address", "Address"], ["marker", "Location marker"],
+    ["map", "Show map"], ["name", "Venue / location name"], ["address", "Address"], ["marker", "Location marker"],
     ["markerLabels", "Location labels"], ["locationTiles", "Location list / tiles"], ["description", "Description"],
     ["image", "Image"], ["timeNote", "Date / time note"], ["directions", "Directions"], ["phone", "Phone"],
     ["website", "Website"], ["customButtons", "Custom Buttons"], ["zoomControls", "Zoom controls"], ["recenterControl", "Recenter control"],

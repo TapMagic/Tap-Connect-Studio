@@ -261,7 +261,9 @@ export function mapElementDefaults(): MapElementProps {
   return {
     elementKind: "map",
     mapSourceMode: "workspace_default",
-    mapDisplayMode: "location_card",
+    // A newly-added Map is a visual map by default. `location_card` is a
+    // legacy no-map presentation and must not silently override Show Map.
+    mapDisplayMode: "map_directions",
     mapOpenApp: "default",
     mapOpenAction: "directions",
     marker: true,
@@ -355,9 +357,14 @@ export function normalizeMapLocationActions(props: MapElementProps): MapLocation
 
 export function readMapLocationDisplay(props: MapElementProps): MapLocationDisplay {
   const authored = props.mapDisplay && typeof props.mapDisplay === "object" ? props.mapDisplay : {};
+  const legacyMapVisible = !["directions_only", "pin_only", "text_link", "location_card"].includes(String(props.mapDisplayMode));
   return Object.fromEntries(Object.entries(DEFAULT_MAP_LOCATION_DISPLAY).map(([key, fallback]) => [
     key,
-    typeof (authored as Record<string, unknown>)[key] === "boolean" ? (authored as Record<string, boolean>)[key] : fallback,
+    typeof (authored as Record<string, unknown>)[key] === "boolean"
+      ? (authored as Record<string, boolean>)[key]
+      : key === "map"
+        ? legacyMapVisible
+        : fallback,
   ])) as MapLocationDisplay;
 }
 

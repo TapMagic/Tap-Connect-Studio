@@ -62,6 +62,13 @@ describe("Map / Location Container authority", () => {
     assert.equal(mapLocationHeight({ mapHeightPreset: "custom", mapCustomHeightPx: 333 }), 333);
   });
 
+  it("treats Show Map as canonical while preserving legacy no-map state", () => {
+    assert.equal(mapElementDefaults().mapDisplayMode, "map_directions");
+    assert.equal(readMapLocationDisplay({ mapDisplayMode: "location_card" }).map, false);
+    assert.equal(readMapLocationDisplay({ mapDisplayMode: "location_card", mapDisplay: { map: true } }).map, true);
+    assert.equal(readMapLocationDisplay({ mapDisplayMode: "map_directions", mapDisplay: { map: false } }).map, false);
+  });
+
   it("uses the shared eight-handle layered resize authority instead of a map-specific drag engine", () => {
     const mapNode: CreativeCompositionNode = {
       id: "map", primitive: "image", compositionKind: "module", parentId: null, siblingOrder: 0,

@@ -6,10 +6,15 @@ test("adds a new Map and copies it between Experience Pages with phone parity", 
   test.skip(!enabled, "Set MAP_ADD_CLIPBOARD_ACCEPTANCE=1 for the deterministic Studio proof");
   test.setTimeout(180_000);
   await page.setViewportSize({ width: 1440, height: 960 });
+  await page.route("https://maps.google.com/**", async (route) => route.fulfill({
+    contentType: "text/html",
+    body: "<main style='height:100%;background:#dce7d7;padding:1rem'>Geographic map provider proof</main>",
+  }));
   await page.goto("/review/studio", { waitUntil: "domcontentloaded" });
   await expect(page).toHaveURL(/\/dashboard\/experiences\/library$/);
   const loveCard = page.locator('[data-testid^="experience-card-"]').filter({ hasText: "Love & Theft Sales Demo" });
   await loveCard.getByRole("link", { name: "Open" }).click();
+  await expect(page).toHaveURL(/\/dashboard\/card\/edit\?experience=/);
   const experienceId = new URL(page.url()).searchParams.get("experience")!;
   const baselineResponse = await page.request.get(`/api/experiences/${experienceId}`);
   expect(baselineResponse.ok()).toBeTruthy();
@@ -28,6 +33,26 @@ test("adds a new Map and copies it between Experience Pages with phone parity", 
     const location = controls.locator('[data-testid^="map-location-editor-"]').first();
     await location.getByLabel("Display name").fill("Tour Venue");
     await location.getByLabel("Display address").fill("123 Music Way, Nashville, TN");
+
+    const authoredMap = page.getByTestId("map-location-container").last();
+    await expect(authoredMap).toHaveAttribute("data-map-visible", "true");
+    await expect(authoredMap.getByTestId("map-location-embed")).toBeVisible();
+    await expect(authoredMap.locator('[data-map-layer="base-map"]')).toHaveCSS("height", "260px");
+
+    await controls.getByRole("checkbox", { name: "Show map", exact: true }).setChecked(false, { force: true });
+    await expect(authoredMap).toHaveAttribute("data-map-visible", "false");
+    await expect(authoredMap.getByTestId("map-location-embed")).toHaveCount(0);
+    await expect(authoredMap.getByText("Tour Venue", { exact: true })).toBeVisible();
+    await controls.getByRole("checkbox", { name: "Show map", exact: true }).setChecked(true, { force: true });
+    await expect(authoredMap.getByTestId("map-location-embed")).toBeVisible();
+
+    await controls.getByLabel("Height").selectOption("compact");
+    await expect(authoredMap.locator('[data-map-layer="base-map"]')).toHaveCSS("height", "180px");
+    await controls.getByLabel("Height").selectOption("tall");
+    await expect(authoredMap.locator('[data-map-layer="base-map"]')).toHaveCSS("height", "360px");
+    await controls.getByLabel("Height").selectOption("custom");
+    await controls.getByLabel("Custom map height").fill("333");
+    await expect(authoredMap.locator('[data-map-layer="base-map"]')).toHaveCSS("height", "333px");
     await page.getByRole("button", { name: "Close Inspector" }).click();
 
     await expect(page.getByTestId("studio-copy-selection")).toBeEnabled();
