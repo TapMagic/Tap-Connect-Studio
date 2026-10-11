@@ -102,7 +102,7 @@ test("proves Phase 2 Compact Action Grid and Love & Theft navigation presentatio
     await page.getByTestId("experience-bottom-navigation").screenshot({path:path.join(evidence,"14-nav-three-visible.png")});
     await page.getByTestId("studio-page-row-page-exclusives").click(); await page.getByTestId("studio-page-nav-visible").check();
     await page.getByTestId("studio-page-row-page-profile").click(); await page.getByTestId("studio-page-nav-visible").check();
-    await page.getByTestId("studio-page-row-page-music").click(); await page.getByTestId("studio-page-nav-label").fill("Tracks"); await page.getByTestId("studio-page-nav-label").press("Tab"); await page.getByTestId("studio-page-nav-icon").selectOption("star"); await page.getByTestId("studio-page-settings").getByRole("button",{name:"Move up"}).click();
+    await page.getByTestId("studio-page-row-page-music").click(); await page.getByTestId("studio-page-nav-label").fill("Tracks"); await page.getByTestId("studio-page-nav-label").press("Tab"); await page.getByTestId("studio-page-nav-visual-library").getByTestId("studio-visual-choice-LT-PICK-FAVORITE").click(); await page.getByTestId("studio-page-settings").getByRole("button",{name:"Move up"}).click();
     await expect(page.getByTestId("experience-bottom-navigation")).toHaveAttribute("data-pick-size-tier","compact");
     await page.getByTestId("experience-bottom-navigation").screenshot({path:path.join(evidence,"15-nav-five-renamed-reordered-icon.png")});
     await page.getByRole("button",{name:"Close Pages"}).click();

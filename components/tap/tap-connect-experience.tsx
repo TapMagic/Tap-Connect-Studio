@@ -13,6 +13,7 @@ import {
 } from "@/lib/fusion/card/experience-pages";
 import { cn } from "@/lib/utils";
 import { LoveAndTheftPickVisual } from "@/components/tap/compact-action-grid";
+import { resolveNavigationVisualRef } from "@/lib/fusion/creative-studio/navigation-visual-library";
 import {
   destinationPolicyForElement,
   ensureExperienceSession,
@@ -274,7 +275,8 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
 function NavIcon({ iconRef, presentation, active, standardIconSizePx, familyArtworkScale }: { iconRef?: string; presentation?: NonNullable<TapConnectCardConfig["experience"]>["navigation"]["itemPresentation"]; active?: boolean; standardIconSizePx: number; familyArtworkScale: number }) {
   const value = iconRef || "circle";
   if (presentation === "everencore-love-and-theft-mini-pick") {
-    return <span className="grid h-full w-full place-items-center" style={{ transform: `scale(${familyArtworkScale})` }} data-navigation-artwork="love-and-theft-pick"><LoveAndTheftPickVisual iconAssetRef={value.includes(":") ? value : `lucide:${value}`} active={active} compact className="h-full w-full" /></span>;
+    const visualRef = resolveNavigationVisualRef(presentation, value);
+    return <span className="grid h-full w-full place-items-center" style={{ transform: `scale(${familyArtworkScale})` }} data-navigation-artwork="love-and-theft-pick" data-navigation-visual-ref={visualRef}><LoveAndTheftPickVisual iconAssetRef={visualRef} active={active} compact className="h-full w-full" /></span>;
   }
   if (/^(?:https?:\/\/|\/)/.test(value)) {
     // eslint-disable-next-line @next/next/no-img-element

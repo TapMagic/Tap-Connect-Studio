@@ -11,10 +11,15 @@ import {
   findExperiencePageReferences,
   normalizeExperiencePageOrder,
 } from "@/lib/fusion/card/experience-pages";
+import {
+  navigationVisualLibraryForPresentation,
+  resolveNavigationVisualRef,
+} from "@/lib/fusion/creative-studio/navigation-visual-library";
 import { cn } from "@/lib/utils";
+import { StudioIconDiscovery } from "./studio-icon-discovery";
 import { StudioInternalPagePicker } from "./studio-internal-page-picker";
 
-const ICONS = ["house", "music", "calendar-days", "ticket", "lock", "user", "star", "sparkles", "video", "shopping-bag"];
+const STANDARD_ICONS = ["house", "music", "calendar-days", "ticket", "lock", "user", "star", "sparkles", "video", "shopping-bag"];
 
 export function StudioPagesManager({ model, onClose }: { model: CardEditorLiveModel; onClose: () => void }) {
   const experience = model.experience;
@@ -24,6 +29,8 @@ export function StudioPagesManager({ model, onClose }: { model: CardEditorLiveMo
   if (!active) return null;
   const activeAccess = active.access ?? { state: "public" as const };
   const lockedBehavior = activeAccess.lockedBehavior ?? { mode: "none" as const };
+  const navigationVisualLibrary = navigationVisualLibraryForPresentation(experience.navigation.itemPresentation);
+  const resolvedNavigationVisualRef = resolveNavigationVisualRef(experience.navigation.itemPresentation, active.navIconRef);
 
   const commit = (next: TapExperienceConfig, label: string, nextActivePageId?: string) => model.mutateExperience?.(normalizeExperiencePageOrder(next), label, nextActivePageId);
   const patchPage = (pageId: string, patch: Partial<TapExperiencePage>, label: string) => commit({
@@ -74,7 +81,20 @@ export function StudioPagesManager({ model, onClose }: { model: CardEditorLiveMo
         <div><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-white/38">Editing Page</p><p className="mt-1 font-semibold">{active.title}</p><p className="mt-0.5 font-mono text-[8px] text-white/28">Stable ID · {active.pageId}</p></div>
         <Field label="Page name"><input defaultValue={active.title} onBlur={(event) => { const value = event.target.value.trim(); if (value && value !== active.title) patchPage(active.pageId, { title: value }, "Renamed Experience Page"); }} className={fieldClass} data-testid="studio-page-title" /></Field>
         <Field label="Bottom nav label"><input defaultValue={active.navLabel} onBlur={(event) => { const value = event.target.value.trim(); if (value && value !== active.navLabel) patchPage(active.pageId, { navLabel: value.slice(0, 24) }, "Renamed Page navigation label"); }} className={fieldClass} data-testid="studio-page-nav-label" /></Field>
-        <Field label="Navigation icon"><select value={active.navIconRef || "star"} onChange={(event) => patchPage(active.pageId, { navIconRef: event.target.value }, "Changed Page navigation icon")} className={fieldClass} data-testid="studio-page-nav-icon">{ICONS.map((icon) => <option key={icon} value={icon}>{icon.replaceAll("-", " ")}</option>)}</select></Field>
+        {navigationVisualLibrary ? <div className="rounded-xl border border-white/8 bg-black/15 p-2" data-testid="studio-page-nav-visual-library" data-navigation-visual-library={navigationVisualLibrary.id}>
+          <StudioIconDiscovery
+            currentIcon={resolvedNavigationVisualRef}
+            intentQuery={active.navLabel}
+            approvedAssets={navigationVisualLibrary.assets}
+            allowBlank={navigationVisualLibrary.allowBlank}
+            blankPreviewRef={navigationVisualLibrary.blankPreviewRef}
+            onSelectBlank={() => patchPage(active.pageId, { navIconRef: navigationVisualLibrary.blankId }, "Changed Page navigation visual to Blank / Custom")}
+            onSelect={(asset) => patchPage(active.pageId, { navIconRef: asset.canonicalId }, `Changed Page navigation visual to ${asset.accessibleLabel || asset.iconName}`)}
+            label={`Icon / Visual · ${navigationVisualLibrary.label}`}
+            description="Certified source masters · scales the complete authored pick only"
+            sourceLabelForAsset={(asset) => `${asset.catalogCategory || "Love & Theft"} · Certified master`}
+          />
+        </div> : <Field label="Navigation icon"><select value={active.navIconRef || "star"} onChange={(event) => patchPage(active.pageId, { navIconRef: event.target.value }, "Changed Page navigation icon")} className={fieldClass} data-testid="studio-page-nav-icon">{STANDARD_ICONS.map((icon) => <option key={icon} value={icon}>{icon.replaceAll("-", " ")}</option>)}</select></Field>}
         <Field label="Navigation destination"><StudioInternalPagePicker pages={experience.pages} value={active.navDestinationPageId || active.pageId} onChange={(pageId) => patchPage(active.pageId, { navDestinationPageId: pageId }, "Changed navigation Page destination")} testId="studio-page-nav-destination" /></Field>
         <Toggle label="Show in bottom navigation" detail="Off-nav Pages remain reachable through internal Buttons." checked={active.navVisible} onChange={(checked) => patchPage(active.pageId, { navVisible: checked }, `${checked ? "Added" : "Removed"} Page ${checked ? "to" : "from"} navigation`)} testId="studio-page-nav-visible" />
         <Toggle label="Page available" detail="Turning this off removes the Page from normal fan navigation." checked={active.pageVisible} onChange={(checked) => {

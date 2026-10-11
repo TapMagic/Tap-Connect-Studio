@@ -53,7 +53,7 @@ test("proves Phase 1 Experience Pages, internal routing, persistent nav, and sig
     await page.screenshot({ path: path.join(evidence, "E-pages-manager-hidden-reordered.png"), fullPage: true });
     await expect(page.getByTestId("studio-page-add")).toBeVisible();
     await expect(page.getByTestId("studio-page-duplicate")).toBeVisible();
-    await expect(page.getByTestId("studio-page-nav-icon")).toBeVisible();
+    await expect(page.getByTestId("studio-page-nav-visual-library")).toHaveAttribute("data-navigation-visual-library", "everencore-love-and-theft-pick-masters");
     await expect(page.getByTestId("studio-page-nav-destination")).toBeVisible();
     await page.getByRole("button", { name: "Close Pages" }).click();
 

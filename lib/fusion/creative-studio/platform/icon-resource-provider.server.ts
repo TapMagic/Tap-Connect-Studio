@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { nativeIconAsset, createIconAsset, type IconAsset } from "@/lib/fusion/creative-studio/icon-asset";
+import { loveAndTheftPickMasterAsset } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 import { fetchIconSvg } from "@/lib/fusion/creative-studio/providers/iconify";
 import type { StudioResourceProvider } from "./resource-provider-registry.server";
 
@@ -13,6 +14,10 @@ function parseIconId(resourceId: string) {
 }
 
 async function resolveAsset(provider: "native" | "iconify", resourceId: string): Promise<IconAsset | null> {
+  if (provider === "native") {
+    const certifiedMaster = loveAndTheftPickMasterAsset(resourceId);
+    if (certifiedMaster) return certifiedMaster;
+  }
   const parsed = parseIconId(resourceId);
   if (!parsed) return null;
   if (provider === "native") return nativeIconAsset(parsed.name);
