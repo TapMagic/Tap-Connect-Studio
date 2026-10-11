@@ -63,6 +63,16 @@ describe("Experience Page authority", () => {
     assert.equal(committed.rootComposition, undefined);
   });
 
+  it("creates a genuinely blank Page without authored Containers, Modules, or Sections", () => {
+    const converted = createExperienceFromLegacyCard(card());
+    const blank = createBlankExperiencePage(converted.experience!, "Blank");
+    assert.deepEqual(blank.composition.sections, []);
+    assert.deepEqual(blank.composition.rootComposition?.nodes, []);
+    assert.equal(blank.composition.rootComposition?.parentAuthority?.layout, "flow");
+    assert.equal(blank.composition.rootComposition?.background?.kind, "none");
+    assert.equal(blank.navVisible, false);
+  });
+
   it("duplicates with new page, composition, component, and analytics identities", () => {
     const converted = createExperienceFromLegacyCard(card());
     const source = converted.experience!.pages[0]!;

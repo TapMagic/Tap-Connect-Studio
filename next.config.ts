@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import { detectLanBaseUrl } from "./lib/fusion/creative-studio/preview/url";
+import { MAX_UPLOAD_REQUEST_BYTES } from "./lib/media/upload-policy";
 
 function liveDeviceDevOrigins(): string[] {
   const origins = new Set(["127.0.0.1", "localhost"]);
@@ -23,6 +24,11 @@ function liveDeviceDevOrigins(): string[] {
 }
 
 const nextConfig: NextConfig = {
+  experimental: {
+    // Proxy buffers request bodies before Route Handlers. Keep this narrowly
+    // above the 32 MB source-image contract so multipart uploads are complete.
+    proxyClientMaxBodySize: MAX_UPLOAD_REQUEST_BYTES,
+  },
   // The framework's bottom-left dev badge covers the phone Studio Add job.
   // Compile/runtime errors still surface when the route indicator is hidden.
   devIndicators: false,

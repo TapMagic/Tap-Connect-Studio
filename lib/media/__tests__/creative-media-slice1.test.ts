@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { after, beforeEach, describe, it } from "node:test";
 import { nanoid } from "nanoid";
+import sharp from "sharp";
 import { prisma } from "@/lib/db";
 import {
   signExternalCandidate,
@@ -23,6 +24,8 @@ import {
 import {
   canApproveBrandMedia,
   importProviderCandidate,
+  mediaStorageError,
+  prepareUploadedImage,
   recordMediaRecent,
   recordSavedDocumentAssetUsage,
   resolveApprovedBrandLogo,
@@ -30,6 +33,12 @@ import {
   setMediaFavorite,
   type MediaImportDependencies,
 } from "@/lib/media/service";
+import {
+  MAX_UPLOAD_SOURCE_BYTES,
+  MAX_UPLOAD_SOURCE_MEGABYTES,
+  RUNTIME_IMAGE_MAX_EDGE_PX,
+  uploadImageFileError,
+} from "@/lib/media/upload-policy";
 import {
   deleteMediaObject,
   localMediaStorageEnabled,
@@ -68,18 +77,31 @@ const pexelsCandidate: ProviderCandidate = {
 describe("provider candidate signing", () => {
   it("binds short-lived provider and URL candidates to one business", () => {
     const token = signProviderCandidate("business-a", pexelsCandidate);
-    assert.equal(verifyProviderCandidate(token, "business-a").candidate.provider, "pexels");
-    assert.throws(() => verifyProviderCandidate(token, "business-b"), /another business/);
+    assert.equal(
+      verifyProviderCandidate(token, "business-a").candidate.provider,
+      "pexels",
+    );
     assert.throws(
-      () => verifyProviderCandidate(`${token.slice(0, -1)}x`, "business-a"),
-      /Invalid candidate token/
+      () => verifyProviderCandidate(token, "business-b"),
+      /another business/,
+    );
+    assert.throws(
+      () =>
+        verifyProviderCandidate(
+          `${token[0] === "a" ? "b" : "a"}${token.slice(1)}`,
+          "business-a",
+        ),
+      /Invalid candidate token/,
     );
     const expired = signProviderCandidate(
       "business-a",
       pexelsCandidate,
-      Date.now() - 6 * 60 * 1000
+      Date.now() - 6 * 60 * 1000,
     );
-    assert.throws(() => verifyProviderCandidate(expired, "business-a"), /expired/);
+    assert.throws(
+      () => verifyProviderCandidate(expired, "business-a"),
+      /expired/,
+    );
 
     const urlToken = signExternalCandidate("business-a", {
       url: "https://cdn.example.com/image.png",
@@ -89,7 +111,7 @@ describe("provider candidate signing", () => {
     });
     assert.equal(
       verifyExternalCandidate(urlToken, "business-a").url,
-      "https://cdn.example.com/image.png"
+      "https://cdn.example.com/image.png",
     );
   });
 });
@@ -99,11 +121,19 @@ describe("deterministic media providers", () => {
     const success = await new PexelsProvider({
       fixture: true,
       fixtureScenario: "success",
-    }).search({ query: "cafe", page: 1, orientation: "landscape", color: "#22c55e" });
+    }).search({
+      query: "cafe",
+      page: 1,
+      orientation: "landscape",
+      color: "#22c55e",
+    });
     assert.equal(success.ok, true);
     if (!success.ok) return;
     assert.equal(success.candidates[0].licenseCode, "PEXELS");
-    assert.equal(success.candidates[0].creatorName, "TapConnect Fixture Studio");
+    assert.equal(
+      success.candidates[0].creatorName,
+      "TapConnect Fixture Studio",
+    );
     assert.equal(success.nextPage, 2);
 
     const pageTwo = await new PexelsProvider({
@@ -186,7 +216,10 @@ describe("remote image limits", () => {
     assert.equal(isPublicIpAddress("::1"), false);
     assert.equal(isPublicIpAddress("2001:db8::1"), false);
     assert.equal(isPublicIpAddress("8.8.8.8"), true);
-    assert.equal(parseSafeRemoteUrl("https://images.example.com/photo.png").protocol, "https:");
+    assert.equal(
+      parseSafeRemoteUrl("https://images.example.com/photo.png").protocol,
+      "https:",
+    );
     for (const unsafeUrl of [
       "not a URL",
       "http://images.example.com/photo.png",
@@ -196,7 +229,7 @@ describe("remote image limits", () => {
       assert.throws(
         () => parseSafeRemoteUrl(unsafeUrl),
         (error: unknown) =>
-          error instanceof RemoteMediaError && error.code === "invalid_url"
+          error instanceof RemoteMediaError && error.code === "invalid_url",
       );
     }
     assert.equal(REMOTE_MEDIA_TIMEOUT_MS, 12_000);
@@ -209,14 +242,14 @@ describe("remote image limits", () => {
         declaredMime: "image/png",
         declaredSize: png.length,
       }),
-      "image/png"
+      "image/png",
     );
     assert.throws(
       () => validateRemoteImageBytes({ bytes: png, declaredMime: "text/html" }),
       (error: unknown) =>
         error instanceof RemoteMediaError &&
         error.code === "unsupported_mime" &&
-        error.status === 415
+        error.status === 415,
     );
     assert.throws(
       () =>
@@ -228,7 +261,93 @@ describe("remote image limits", () => {
       (error: unknown) =>
         error instanceof RemoteMediaError &&
         error.code === "too_large" &&
-        error.status === 413
+        error.status === 413,
+    );
+  });
+});
+
+describe("owner upload preparation", () => {
+  it("reports the exact source limit before upload", () => {
+    assert.equal(MAX_UPLOAD_SOURCE_MEGABYTES, 32);
+    assert.match(
+      uploadImageFileError({
+        name: "hero.jpg",
+        type: "image/jpeg",
+        size: MAX_UPLOAD_SOURCE_BYTES + 1,
+      }) || "",
+      /32 MB/,
+    );
+    assert.match(
+      uploadImageFileError({
+        name: "hero.pdf",
+        type: "application/pdf",
+        size: 100,
+      }) || "",
+      /JPG, PNG, WebP, GIF, or SVG/,
+    );
+    assert.equal(
+      uploadImageFileError({
+        name: "hero.webp",
+        type: "image/webp",
+        size: 100,
+      }),
+      null,
+    );
+    assert.match(
+      uploadImageFileError({
+        name: "iphone-photo.heic",
+        type: "image/heic",
+        size: 100,
+      }) || "",
+      /HEIC is not supported yet/,
+    );
+  });
+
+  it("turns the production object-store denial into an actionable Owner error", () => {
+    const error = mediaStorageError({
+      name: "AccessDenied",
+      Code: "AccessDenied",
+      $metadata: { httpStatusCode: 403 },
+    });
+    assert.equal(error.code, "storage_access_denied");
+    assert.equal(error.status, 503);
+    assert.match(error.message, /object-write permission/);
+  });
+
+  it("rejects HEIC server-side with the same explicit conversion guidance", async () => {
+    await assert.rejects(
+      () =>
+        prepareUploadedImage({
+          bytes: Buffer.from("not-heic"),
+          declaredMimeType: "image/heic",
+          filename: "iphone.heic",
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        /HEIC\/HEIF images are not supported yet/.test(error.message),
+    );
+  });
+
+  it("preserves the source while producing a bounded runtime WebP for a large photo", async () => {
+    const source = await sharp({
+      create: { width: 4000, height: 3000, channels: 3, background: "#765432" },
+    })
+      .jpeg({ quality: 96 })
+      .toBuffer();
+    const prepared = await prepareUploadedImage({
+      bytes: source,
+      declaredMimeType: "image/jpeg",
+    });
+    assert.equal(prepared.originalBytes.equals(source), true);
+    assert.equal(prepared.originalMimeType, "image/jpeg");
+    assert.equal(prepared.optimized, true);
+    assert.equal(prepared.runtimeMimeType, "image/webp");
+    assert.ok(
+      Math.max(prepared.width || 0, prepared.height || 0) <=
+        RUNTIME_IMAGE_MAX_EDGE_PX,
+    );
+    assert.ok(
+      prepared.runtimeBytes.byteLength < prepared.originalBytes.byteLength,
     );
   });
 });
@@ -298,14 +417,20 @@ describe("fixture local storage", () => {
 describe("Owner-facing usage labels", () => {
   it("keeps raw document paths out of primary labels", () => {
     assert.equal(
-      ownerMediaUsageLabel("CARD", "$.tapCard.sections[0].composition.nodes[0]"),
-      "Card composition"
+      ownerMediaUsageLabel(
+        "CARD",
+        "$.tapCard.sections[0].composition.nodes[0]",
+      ),
+      "Card composition",
     );
     assert.equal(
       ownerMediaUsageLabel("EMAIL", "$.formSettings.emailResponse.blocks[0]"),
-      "Email hero"
+      "Email hero",
     );
-    assert.equal(ownerMediaUsageLabel("CAMPAIGN", "$.contentBlocks[0]"), "Campaign creative");
+    assert.equal(
+      ownerMediaUsageLabel("CAMPAIGN", "$.contentBlocks[0]"),
+      "Campaign creative",
+    );
   });
 });
 
@@ -313,7 +438,11 @@ const databaseAvailable = Boolean(process.env.DATABASE_URL);
 
 describe(
   "durable tenant media truth",
-  { skip: databaseAvailable ? false : "DATABASE_URL is required for integration proof" },
+  {
+    skip: databaseAvailable
+      ? false
+      : "DATABASE_URL is required for integration proof",
+  },
   () => {
     let businessId = "";
     let otherBusinessId = "";
@@ -364,13 +493,13 @@ describe(
         await prisma.mediaAssetFavorite.count({
           where: { businessId, userId, mediaAssetId: asset.id },
         }),
-        1
+        1,
       );
       assert.equal(
         await prisma.mediaAssetRecent.count({
           where: { businessId, userId, mediaAssetId: asset.id },
         }),
-        1
+        1,
       );
       await assert.rejects(
         setMediaFavorite({
@@ -379,7 +508,7 @@ describe(
           mediaAssetId: asset.id,
           favorite: true,
         }),
-        /not found/
+        /not found/,
       );
 
       await recordSavedDocumentAssetUsage({
@@ -387,7 +516,9 @@ describe(
         userId,
         surface: "CARD",
         subjectId: "card-brand-kit",
-        usages: [{ mediaAssetId: asset.id, documentPath: "$.tapCard.sections[0]" }],
+        usages: [
+          { mediaAssetId: asset.id, documentPath: "$.tapCard.sections[0]" },
+        ],
       });
       await recordSavedDocumentAssetUsage({
         businessId,
@@ -402,18 +533,27 @@ describe(
       });
       assert.deepEqual(
         usages.map((usage) => usage.surface),
-        ["CARD", "EMAIL"]
+        ["CARD", "EMAIL"],
       );
 
-      await assert.rejects(resolveApprovedBrandLogo(businessId, asset.id), /Approve/);
+      await assert.rejects(
+        resolveApprovedBrandLogo(businessId, asset.id),
+        /Approve/,
+      );
       await setMediaApproval({
         businessId,
         userId,
         mediaAssetId: asset.id,
         approved: true,
       });
-      assert.equal((await resolveApprovedBrandLogo(businessId, asset.id)).id, asset.id);
-      await assert.rejects(resolveApprovedBrandLogo(otherBusinessId, asset.id), /Approve/);
+      assert.equal(
+        (await resolveApprovedBrandLogo(businessId, asset.id)).id,
+        asset.id,
+      );
+      await assert.rejects(
+        resolveApprovedBrandLogo(otherBusinessId, asset.id),
+        /Approve/,
+      );
 
       const sessionUser = await prisma.user.findUniqueOrThrow({
         where: { id: userId },
@@ -437,7 +577,7 @@ describe(
       };
       const payload = verifyProviderCandidate(
         signProviderCandidate(businessId, pexelsCandidate),
-        businessId
+        businessId,
       );
       const imported = await importProviderCandidate(payload, dependencies);
       assert.equal(imported.businessId, businessId);
@@ -446,7 +586,10 @@ describe(
       assert.equal(imported.creatorName, "Fixture Photographer");
       assert.equal(imported.licenseCode, "PEXELS");
       assert.equal(imported.approvalStatus, "UNREVIEWED");
-      assert.match(imported.storageKey || "", new RegExp(`^${businessId}/imports/pexels/`));
+      assert.match(
+        imported.storageKey || "",
+        new RegExp(`^${businessId}/imports/pexels/`),
+      );
 
       const failedCandidate = {
         ...pexelsCandidate,
@@ -457,7 +600,7 @@ describe(
       };
       const failedPayload = verifyProviderCandidate(
         signProviderCandidate(businessId, failedCandidate),
-        businessId
+        businessId,
       );
       await assert.rejects(
         importProviderCandidate(failedPayload, {
@@ -466,7 +609,7 @@ describe(
             throw new RemoteMediaError("invalid MIME", "unsupported_mime", 415);
           },
         }),
-        /invalid MIME/
+        /invalid MIME/,
       );
       assert.equal(
         await prisma.mediaAsset.count({
@@ -476,7 +619,7 @@ describe(
             providerAssetId: "fixture-failed",
           },
         }),
-        0
+        0,
       );
     });
 
@@ -493,7 +636,7 @@ describe(
         };
         const payload = verifyProviderCandidate(
           signProviderCandidate(businessId, candidate),
-          businessId
+          businessId,
         );
         const imported = await importProviderCandidate(payload);
         storageKey = imported.storageKey;
@@ -504,9 +647,10 @@ describe(
       } finally {
         if (storageKey) await deleteMediaObject(storageKey);
         setNodeEnv(originalNodeEnv);
-        if (originalMode === undefined) delete process.env.CREATIVE_PROVIDER_MODE;
+        if (originalMode === undefined)
+          delete process.env.CREATIVE_PROVIDER_MODE;
         else process.env.CREATIVE_PROVIDER_MODE = originalMode;
       }
     });
-  }
+  },
 );

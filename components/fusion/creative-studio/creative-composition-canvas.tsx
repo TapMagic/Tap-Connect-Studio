@@ -120,7 +120,7 @@ import { readStudioVideoState, videoAspectRatio, videoEmbedUrl } from "@/lib/fus
 import { readCardEdgeMode, readContainerEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
 import { allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, layeredResizePolicy, moveLayeredNode, reorderLayeredNodeZ, snapLayeredNode, snapLayeredResize, type StudioRectangularResizeHandle } from "@/lib/fusion/creative-studio/platform/layered-region";
 import { readCardSurfaceDensity, readContainerDensity } from "@/lib/fusion/creative-studio/platform/composition-density";
-import { cardSurfaceImageLayerStyle } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
+import { cardSurfaceImageLayerStyle, cardSurfaceImagePresentation } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 import { STANDARD_BUTTON_APPEARANCE_CONTRACT, readStandardButtonAppearance } from "@/lib/fusion/creative-studio/reconstitution/standard-button-appearance";
 import { readCompactActionGrid } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import { CompactActionGrid } from "@/components/tap/compact-action-grid";
@@ -2659,6 +2659,8 @@ export function CreativeCompositionCanvas({
   // Material page backgrounds resolve fill + texture/highlight via shared authority.
   // Non-Material Visual Plane paths keep pattern/image/solid/gradient as before.
   const imageLayerStyle = cardSurfaceImageLayerStyle(block.background);
+  const imagePresentation = cardSurfaceImagePresentation(block.background);
+  const ambientImageStyle = imagePresentation === "ambient_extend" ? cardSurfaceImageLayerStyle(block.background, "ambient") : null;
   const backgroundStyle = pageMaterial
     ? {
         background: pageMaterial.background,
@@ -2679,14 +2681,15 @@ export function CreativeCompositionCanvas({
     <div
       className="pointer-events-none absolute inset-0 overflow-hidden"
       style={{
-        ...backgroundStyle,
-        ...backgroundTreatmentStyle,
+        ...(ambientImageStyle ? {} : backgroundStyle),
+        ...(ambientImageStyle ? {} : backgroundTreatmentStyle),
         inset: cardEdgeInset,
         borderRadius: cardEdgeMode === "full_bleed" ? 0 : cardEdgeMode === "contained" ? 16 : 22,
-        opacity: imageLayerStyle?.opacity ?? block.background?.opacity ?? 1,
-        filter: imageLayerStyle?.filter || `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`,
+        opacity: ambientImageStyle ? undefined : imageLayerStyle?.opacity ?? block.background?.opacity ?? 1,
+        filter: ambientImageStyle ? undefined : imageLayerStyle?.filter || `saturate(${block.background?.saturation ?? 1}) brightness(${block.background?.brightness ?? 1}) contrast(${block.background?.contrast ?? 1})`,
       }}
       data-testid="composition-background-renderer"
+      data-image-presentation={block.background?.kind === "image" ? imagePresentation : undefined}
       data-edge-mode={cardEdgeMode}
       data-background-opacity={String(block.background?.opacity ?? 1)}
       data-material-preset={block.background?.materialPreset || undefined}
@@ -2696,6 +2699,7 @@ export function CreativeCompositionCanvas({
       data-surface-texture={pageMaterial?.textureToken || undefined}
       aria-hidden
     >
+      {ambientImageStyle && imageLayerStyle ? <><div className="absolute inset-0" style={ambientImageStyle} data-card-surface-image-ambient="true" /><div className="absolute inset-0" style={imageLayerStyle} data-card-surface-image-primary="true" /></> : null}
       {pageMaterial ? (
         <MaterialSurfaceLayers surface={pageMaterial} testIdPrefix="page-background" />
       ) : null}

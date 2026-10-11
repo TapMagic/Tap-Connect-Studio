@@ -585,6 +585,10 @@ export function CardStudioReconstitutionWorkspace({
     setAssemblyInspectorOpen(false);
     setCompositionInspectorOpen(true);
   };
+  const openCardSurfaceAppearance = () => {
+    liveModel?.selectCardRoot?.();
+    openCompositionInspector("tune-selection");
+  };
   const closeContextualSurface = () => {
     setInspectorOpen(false);
     setAssemblyInspectorOpen(false);
@@ -629,6 +633,7 @@ export function CardStudioReconstitutionWorkspace({
   // must render the phone canvas rather than preserve an unreachable desktop mode.
   const effectiveViewport: PreviewViewport = workspaceWidth < 640 ? "phone" : viewport;
   const canvasMaxWidth = effectiveViewport === "phone" ? 390 : effectiveViewport === "tablet" ? 768 : undefined;
+  const activePageTitle = liveModel?.experiencePages?.find((page) => page.pageId === liveModel.activeExperiencePageId)?.title || "Card";
   const semanticStyles = {
     "--studio-semantic-active": STUDIO_SEMANTIC_UI.active.color,
     "--studio-semantic-structure": STUDIO_SEMANTIC_UI.structure.color,
@@ -664,8 +669,9 @@ export function CardStudioReconstitutionWorkspace({
     >
       <header className="flex min-h-14 shrink-0 items-center gap-2 bg-[#090e16]/96 px-2 shadow-[0_1px_0_rgba(255,255,255,.05)] backdrop-blur-xl md:px-3" data-testid="studio-shell-header">
         <button type="button" onClick={async () => { if (status.dirty && !(await apiRef.current?.save())) return; router.push(doneHref); }} className="grid h-10 w-10 place-items-center rounded-lg hover:bg-white/7" aria-label="Close editor"><X className="h-5 w-5" /></button>
-        <div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold"><span>{status.clientName}</span><span className="text-white/42"> / </span><span>{status.cardName || builderProps.businessName}</span>{liveModel?.experiencePages?.find((page) => page.pageId === liveModel.activeExperiencePageId)?.title ? <span className="text-white/58"> · {liveModel.experiencePages.find((page) => page.pageId === liveModel.activeExperiencePageId)!.title}</span> : null}</p><p className="text-[10px] text-white/45">{status.saveState === "saved" ? "Saved" : status.saving ? "Saving…" : status.saveState === "conflict" ? "Recovery needs review" : status.saveState === "failed" ? "Save needs attention" : "Unsaved changes"}</p></div>
+        <div className="min-w-0 flex-1" data-testid="studio-context"><div className="grid min-w-0 grid-cols-3 gap-2"><p className="min-w-0"><span className="block truncate text-[8px] font-semibold uppercase tracking-[.12em] text-white/35">Client / Artist</span><strong className="block truncate text-[11px] font-semibold" data-testid="studio-context-client">{status.clientName}</strong></p><p className="min-w-0"><span className="block truncate text-[8px] font-semibold uppercase tracking-[.12em] text-white/35">Experience</span><strong className="block truncate text-[11px] font-semibold" data-testid="studio-context-experience">{status.cardName || builderProps.businessName}</strong></p><p className="min-w-0"><span className="block truncate text-[8px] font-semibold uppercase tracking-[.12em] text-white/35">Current Page</span><strong className="block truncate text-[11px] font-semibold text-white/72" data-testid="studio-context-page">{activePageTitle}</strong></p></div><p className="mt-0.5 text-[9px] text-white/38">{status.saveState === "saved" ? "Saved" : status.saving ? "Saving…" : status.saveState === "conflict" ? "Recovery needs review" : status.saveState === "failed" ? "Save needs attention" : "Unsaved changes"}</p></div>
         <button type="button" onClick={() => { if (!liveModel?.experience) liveModel?.ensureExperience?.(); setPagesOpen(true); }} className={headerButton} aria-label="Pages" aria-expanded={pagesOpen} data-testid="studio-pages-open"><FileText className="h-4 w-4" /><span className="hidden lg:inline">Pages</span></button>
+        <button type="button" disabled={!liveModel} onClick={openCardSurfaceAppearance} className={headerButton} aria-label="Open Card Surface appearance" data-testid="studio-card-surface-open"><Layers3 className="h-4 w-4" /><span className="hidden lg:inline">Surface</span></button>
         <button type="button" disabled={!selectedCanonicalNode || !selectedBlock} onClick={copySelectedComposition} className={headerButton} aria-label="Copy selected Module or Container" title="Copy selected (⌘C)" data-testid="studio-copy-selection"><Copy className="h-4 w-4" /><span className="hidden xl:inline">Copy</span></button>
         <button type="button" disabled={!compositionClipboard || !liveModel?.config.rootComposition} onClick={pasteCopiedComposition} className={headerButton} aria-label="Paste copied Module or Container" title="Paste into this Page (⌘V)" data-testid="studio-paste-selection"><ClipboardPaste className="h-4 w-4" /><span className="hidden xl:inline">Paste</span></button>
         <button type="button" disabled={!status.canUndo} onClick={() => apiRef.current?.undo()} className={headerButton} aria-label="Undo"><Undo2 className="h-4 w-4" /></button>
@@ -706,6 +712,7 @@ export function CardStudioReconstitutionWorkspace({
               onDelete={() => { if (selectedCanonicalNode) liveModel?.onDeleteCompositionNode?.(selectedCanonicalNode.id); else { const sectionId = liveModel?.selectedObject?.sectionId ?? liveModel?.selected?.id; if (sectionId) liveModel?.deleteSection(sectionId); } }}
             /> : selectedCanonicalNode ? <CompositionObjectToolbar
               label={selectedCanonicalNode.name || (selectedCanonicalNode.compositionKind === "container" ? "Container" : String(selectedCanonicalNode.props.elementKind || selectedCanonicalNode.primitive))}
+              editLabel={selectedCanonicalNode.compositionKind === "container" ? "Appearance · Container" : undefined}
               onEdit={() => { if (selectedCanonicalNode.primitive === "button") openInspector("content"); else openCompositionInspector("refine-selection"); }}
               onArrange={() => openCompositionInspector("arrange-card")}
               onCopy={copySelectedComposition}
@@ -794,8 +801,9 @@ function CompositionGroupToolbar({ count, onEdit, onLock, onUngroup }: { count: 
   return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-group-toolbar"><span className="px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-[#d8ff82]">Group · {count} Modules</span><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">Move / Resize</button><button type="button" onClick={onEdit} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Layer</button><button type="button" onClick={onLock} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Lock</button><button type="button" onClick={onUngroup} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Ungroup</button></div>;
 }
 
-function CompositionObjectToolbar({ label, onEdit, onArrange, onCopy, onDuplicate, onDelete }: {
+function CompositionObjectToolbar({ label, editLabel, onEdit, onArrange, onCopy, onDuplicate, onDelete }: {
   label: string;
+  editLabel?: string;
   onEdit: () => void;
   onArrange: () => void;
   onCopy: () => void;
@@ -803,7 +811,7 @@ function CompositionObjectToolbar({ label, onEdit, onArrange, onCopy, onDuplicat
   onDelete: () => void;
 }) {
   const iconButton = "grid h-9 w-9 place-items-center rounded-full text-white/62 transition hover:bg-white/8 hover:text-white";
-  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">Edit · {label}</button><button type="button" onClick={onArrange} className={iconButton} aria-label="Open Position"><Move className="h-4 w-4" /></button><StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
+  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">{editLabel || `Edit · ${label}`}</button><button type="button" onClick={onArrange} className={iconButton} aria-label="Open Position"><Move className="h-4 w-4" /></button><StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
 }
 
 function PhoneTool({ icon: Icon, label, onClick, disabled = false }: { icon: typeof Plus; label: string; onClick: () => void; disabled?: boolean }) {

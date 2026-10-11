@@ -4,7 +4,7 @@ import { parseCreativeComposition } from "@/lib/fusion/creative-studio/compositi
 import { materialPropsFromCompositionBackground } from "@/lib/fusion/creative-studio/material-engine";
 import { resolveMaterialSurfaceFromProps } from "@/lib/fusion/creative-studio/material-surface";
 import { readCardEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
-import { cardSurfaceImageLayerStyle } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
+import { cardSurfaceImageLayerStyle, cardSurfaceImagePresentation, cardSurfaceImageUsesViewportAnchor } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 import { surfacePatternStyle } from "@/lib/fusion/creative-studio/patterns";
 
 /** One full-viewport visual plane. Content safe-area geometry lives above it. */
@@ -12,13 +12,33 @@ export function CardSurfaceViewportBackdrop({ config, viewportFixed = false }: {
   const root = parseCreativeComposition(config.rootComposition);
   if (!root || readCardEdgeMode(root) !== "full_bleed" || !root.background || root.background.kind === "none") return null;
   const imageStyle = cardSurfaceImageLayerStyle(root.background);
+  const imagePresentation = cardSurfaceImagePresentation(root.background);
+  const ambientStyle = imagePresentation === "ambient_extend" ? cardSurfaceImageLayerStyle(root.background, "ambient") : null;
   const materialProps = materialPropsFromCompositionBackground(root.background);
   const material = materialProps ? resolveMaterialSurfaceFromProps(materialProps, "generic") : null;
-  const patternStyle = (root.background.kind === "pattern" || root.background.kind === "texture") && root.background.pattern
-    ? surfacePatternStyle(root.background.pattern)
-    : null;
-  const style = imageStyle || (material
-    ? { background: material.background, backgroundSize: material.backgroundSize, opacity: root.background.opacity ?? 1 }
-    : patternStyle || { background: root.background.value || config.surfaceColor || "#0b0f19", opacity: root.background.opacity ?? 1 });
-  return <div className={`pointer-events-none inset-0 overflow-hidden ${viewportFixed ? "fixed" : "absolute"}`} data-card-surface-viewport-backdrop="true" data-edge-mode="full_bleed" style={style} aria-hidden>{material ? <MaterialSurfaceLayers surface={material} testIdPrefix="viewport-background" /> : null}</div>;
+  const patternStyle = (root.background.kind === "pattern" || root.background.kind === "texture") && root.background.pattern ? surfacePatternStyle(root.background.pattern) : null;
+  const style =
+    imageStyle ||
+    (material
+      ? {
+          background: material.background,
+          backgroundSize: material.backgroundSize,
+          opacity: root.background.opacity ?? 1,
+        }
+      : patternStyle || {
+          background: root.background.value || config.surfaceColor || "#0b0f19",
+          opacity: root.background.opacity ?? 1,
+        });
+  const anchored = viewportFixed && cardSurfaceImageUsesViewportAnchor(root.background);
+  return (
+    <div className={`pointer-events-none inset-0 overflow-hidden ${anchored ? "fixed" : "absolute"}`} data-card-surface-viewport-backdrop="true" data-edge-mode="full_bleed" data-image-presentation={root.background.kind === "image" ? imagePresentation : undefined} style={ambientStyle ? undefined : style} aria-hidden>
+      {ambientStyle && imageStyle ? (
+        <>
+          <div className="absolute inset-0" style={ambientStyle} data-card-surface-image-ambient="true" />
+          <div className="absolute inset-0" style={imageStyle} data-card-surface-image-primary="true" />
+        </>
+      ) : null}
+      {material ? <MaterialSurfaceLayers surface={material} testIdPrefix="viewport-background" /> : null}
+    </div>
+  );
 }

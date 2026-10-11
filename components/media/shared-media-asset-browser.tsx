@@ -23,6 +23,11 @@ import type {
   MediaAssetSource,
   MediaOrientation,
 } from "@/lib/media/asset-browser";
+import {
+  MAX_UPLOAD_SOURCE_MEGABYTES,
+  uploadImageFileError,
+  uploadMediaFile,
+} from "@/lib/media/upload-policy";
 import { cn } from "@/lib/utils";
 
 type BrowserTab =
@@ -365,17 +370,25 @@ export function SharedMediaAssetBrowser({
 
   async function uploadFile(file: File) {
     setBusy("upload");
-    setStatus(null);
+    const validationError = uploadImageFileError(file);
+    if (validationError) {
+      setStatus(`${validationError} Nothing was inserted.`);
+      setBusy(null);
+      return;
+    }
+    setStatus(`${file.name}: preparing upload…`);
     try {
-      const form = new FormData();
-      form.set("file", file);
-      const response = await fetch("/api/media/upload", { method: "POST", body: form });
-      const data = await response.json();
-      if (!response.ok || !data.asset) throw new Error(data.error || "Upload failed");
+      const data = await uploadMediaFile<ApiAsset>(file, ({ phase, percent }) => {
+        setStatus(phase === "uploading"
+          ? `${file.name}: uploading ${percent}%`
+          : `${file.name}: upload complete; preparing the Studio rendition…`);
+      });
       const candidate = libraryCandidate(data.asset);
       setLibrary((current) => [candidate, ...current.filter((item) => item.id !== candidate.id)]);
       setSelected(candidate);
-      setStatus("Upload stored in Studio and ready to insert.");
+      setStatus(data.processing?.optimized
+        ? "Upload complete. The original is preserved, the optimized runtime image is selected, and it is ready to insert."
+        : "Upload stored in Assets, selected, and ready to insert.");
     } catch (error) {
       setStatus(`${error instanceof Error ? error.message : "Upload failed"} Nothing was inserted.`);
     } finally {
@@ -703,7 +716,7 @@ export function SharedMediaAssetBrowser({
                 <div className="max-w-md space-y-4 text-center">
                   <Upload className="mx-auto h-9 w-9 text-white/50" />
                   <p className="font-medium">Upload to TapConnect media storage</p>
-                  <p className="text-xs text-white/50">PNG, JPEG, WebP, or GIF up to 8MB.</p>
+                  <p className="text-xs text-white/50">JPG, PNG, WebP, GIF, or SVG up to {MAX_UPLOAD_SOURCE_MEGABYTES} MB and 80 megapixels. Large photos are optimized after upload.</p>
                   <input
                     ref={fileRef}
                     type="file"
@@ -720,7 +733,7 @@ export function SharedMediaAssetBrowser({
                     onClick={() => fileRef.current?.click()}
                     disabled={!mediaUploadReady || busy === "upload"}
                   >
-                    {busy === "upload" ? "Uploading…" : "Choose image"}
+                    {busy === "upload" ? "Uploading / processing…" : "Choose image"}
                   </Button>
                   {!mediaUploadReady ? (
                     <p className="text-xs text-amber-200" role="status">

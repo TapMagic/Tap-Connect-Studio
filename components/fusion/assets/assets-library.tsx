@@ -21,6 +21,11 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
+import {
+  MAX_UPLOAD_SOURCE_MEGABYTES,
+  uploadImageFileError,
+  uploadMediaFile,
+} from "@/lib/media/upload-policy";
 
 export type AssetSource = "upload" | "stock" | "url" | "bg-remove" | string;
 
@@ -141,6 +146,8 @@ export function AssetsLibrary({
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<string | null>(null);
+  const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Keep grid in sync when parent smart-view / collection filters change.
@@ -193,20 +200,28 @@ export function AssetsLibrary({
         return;
       }
       setUploadError(null);
+      setUploadSuccess(null);
       setUploading(true);
       try {
         for (const file of Array.from(files)) {
-          const form = new FormData();
-          form.append("file", file);
-          const res = await fetch("/api/media/upload", { method: "POST", body: form });
-          const data = await res.json().catch(() => ({}));
-          if (!res.ok || !data?.asset) {
-            setUploadError(
-              (data && (data.error as string)) ||
-                "Upload failed — the provider did not accept this file."
-            );
+          const validationError = uploadImageFileError(file);
+          if (validationError) {
+            setUploadError(validationError);
             continue;
           }
+          const data = await uploadMediaFile<{
+            id: string;
+            url: string;
+            filename: string | null;
+            mimeType: string;
+            sizeBytes: number;
+            source: string;
+            createdAt: string;
+          }>(file, ({ phase, percent }) => {
+            setUploadProgress(phase === "uploading"
+              ? `${file.name}: uploading ${percent}%`
+              : `${file.name}: upload complete; preparing the Studio rendition…`);
+          });
           const a = data.asset as {
             id: string;
             url: string;
@@ -241,11 +256,16 @@ export function AssetsLibrary({
             },
             ...prev.filter((p) => p.id !== a.id),
           ]);
+          setUploadSuccess(data.processing?.optimized
+            ? `${file.name} is ready. The original was preserved and an optimized runtime image was added to Assets.`
+            : `${file.name} is ready in Assets and Studio visual pickers.`);
         }
-      } catch {
-        setUploadError("Upload failed — network or provider error.");
+      } catch (error) {
+        setUploadError(error instanceof Error ? error.message : "Upload failed — network or storage provider error.");
       } finally {
+        setUploadProgress(null);
         setUploading(false);
+        if (inputRef.current) inputRef.current.value = "";
       }
     },
     [mediaUploadReady]
@@ -345,11 +365,10 @@ export function AssetsLibrary({
               >
                 browse
               </button>
-              {uploading ? " · uploading…" : ""}
+              {uploading ? " · working…" : ""}
             </p>
             <p className="mt-1 text-[11px] text-white/40">
-              PNG, JPEG, WebP, or GIF up to 8MB. Files land in your library and can be reused across the Card
-              and campaigns.
+              JPG, PNG, WebP, GIF, or SVG up to {MAX_UPLOAD_SOURCE_MEGABYTES} MB and 80 megapixels. Large photos are optimized for runtime while the original is preserved.
             </p>
           </>
         ) : (
@@ -373,6 +392,8 @@ export function AssetsLibrary({
             {uploadError}
           </p>
         ) : null}
+        {uploadProgress ? <p className="mt-2 text-xs text-[#c9efff]" role="status" data-testid="assets-upload-progress">{uploadProgress}</p> : null}
+        {uploadSuccess ? <p className="mt-2 text-xs text-[#d8ff82]" role="status" data-testid="assets-upload-success">{uploadSuccess}</p> : null}
       </div>
 
       {/* Library grid */}

@@ -788,7 +788,7 @@ test("authors the layered Card through the actual Studio Add, drag, group, Text 
     const nestedId = await nested.getAttribute("data-composition-node");
     expect(nestedId).toBeTruthy();
     await expect(nested).toHaveAttribute("data-position-mode", "absolute");
-    await page.getByTestId("studio-container-layout-mode").getByRole("button", { name: "layered", exact: true }).click();
+    await page.getByTestId("studio-container-layout-mode").getByRole("button", { name: "Layered", exact: true }).click();
     await closePanels();
     await openAdd();
     await expect(page.getByTestId("studio-add-target")).toContainText("Transparent Container");

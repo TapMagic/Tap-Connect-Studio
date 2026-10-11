@@ -390,6 +390,8 @@ export type CreativeCompositionBlock = {
       blendMode?: "normal" | "multiply" | "screen" | "overlay" | "soft-light";
       decorative?: boolean;
       alt?: string;
+      /** Root image-environment behavior. Legacy documents omit this field. */
+      presentationMode?: "cover_page" | "viewport_immersive" | "focal_cover" | "ambient_extend" | "tile";
     };
   };
   mobileFallback: "stack" | "scale" | "hide_decorative";

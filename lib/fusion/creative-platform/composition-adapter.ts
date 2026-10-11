@@ -90,6 +90,7 @@ export function creativeFillToCompositionBackground(
       blendMode: fill.treatment.blendMode,
       decorative: fill.treatment.decorative,
       alt: fill.treatment.altText,
+      presentationMode: fill.treatment.repeat === "no-repeat" ? "cover_page" : "tile",
     },
   };
 }

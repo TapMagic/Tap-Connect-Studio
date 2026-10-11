@@ -9,7 +9,7 @@ import {
   resolveMaterialSurfaceFromProps,
   resolveMaterialSurfaceFromRecipe,
 } from "@/lib/fusion/creative-studio/material-surface";
-import { cardSurfaceImageLayerStyle } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
+import { CARD_SURFACE_IMAGE_PRESENTATIONS, cardSurfaceImageLayerStyle, cardSurfaceImagePresentation, cardSurfaceImageUsesViewportAnchor } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 
 test("texture-bearing page Materials retain texture + fill through composition adapter", () => {
   for (const id of ["paper", "linen", "grain", "brushed_metal"] as const) {
@@ -75,4 +75,22 @@ test("Worn Saddle Leather remains an immutable source master with adjustable ful
   assert.match(String(style?.backgroundImage), /SURFACE-LEATHER-001_worn-saddle-leather\.png/);
   assert.match(String(style?.filter), /brightness\(0\.76\).*contrast\(1\.3\).*saturate\(0\.72\)/);
   assert.equal(style?.transform, "scale(1.35)");
+});
+
+test("root image presentation modes keep cover treatments seam-free and Tile explicit", () => {
+  const background = compositionBackgroundFromMaterialRecipe(getMaterialRecipe("worn_saddle_leather")!);
+  assert.equal(CARD_SURFACE_IMAGE_PRESENTATIONS.length, 5);
+  for (const mode of CARD_SURFACE_IMAGE_PRESENTATIONS.map((item) => item.id)) {
+    const candidate = { ...background, image: { ...background.image!, presentationMode: mode, repeat: mode === "tile" ? "repeat" as const : "no-repeat" as const } };
+    const primary = cardSurfaceImageLayerStyle(candidate);
+    assert.equal(cardSurfaceImagePresentation(candidate), mode);
+    assert.equal(primary?.backgroundRepeat, mode === "tile" ? "repeat" : "no-repeat");
+    assert.equal(cardSurfaceImageUsesViewportAnchor(candidate), mode === "viewport_immersive");
+    if (mode === "ambient_extend") {
+      const ambient = cardSurfaceImageLayerStyle(candidate, "ambient");
+      assert.equal(primary?.backgroundSize, "contain");
+      assert.equal(ambient?.backgroundSize, "cover");
+      assert.match(String(ambient?.filter), /blur\(24px\)/);
+    }
+  }
 });
