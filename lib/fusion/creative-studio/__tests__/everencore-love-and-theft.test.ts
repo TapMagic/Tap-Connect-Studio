@@ -27,6 +27,7 @@ import {
   EVERENCORE_LOVE_AND_THEFT_FAMILY_ID,
   EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS,
   EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS,
+  EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG,
   EVERENCORE_LOVE_AND_THEFT_VISUAL_ACCEPTANCE,
 } from "../signature-assets/everencore-love-and-theft";
 import { validateCuratedFamilyVisualAcceptance } from "../signature-assets/visual-acceptance";
@@ -109,7 +110,9 @@ test("certified pick masters retain their distinct approved insert constructions
   assert.deepEqual(EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.map((option)=>option.label), ["Direct Engrave","Recessed Medallion","Secondary Insert / Cutout"]);
   assert.equal(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS["simple-icons:spotify"],"recessed-medallion");
   assert.equal(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS["simple-icons:instagram"],"direct-engrave");
-  assert.equal(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS["simple-icons:apple-music"],"secondary-insert");
+  assert.equal(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS["simple-icons:apple-music"],"recessed-medallion");
+  assert.equal(EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.length,24);
+  assert.ok(EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.every((master)=>master.sourceAsset.includes("/v2/03-pick-masters/")));
   assert.equal(Object.keys(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS).length,Object.keys((SIGNATURE_ASSETS.find((asset)=>asset.familyId===EVERENCORE_LOVE_AND_THEFT_FAMILY_ID&&asset.normalizedContract?.componentId==="EELT-PICK-AGED-BRASS")?.semanticSourceVariants)??{}).length);
 });
 
@@ -269,9 +272,9 @@ test("the shared authoring contract exposes optional plug mode and persists body
   assert.ok(capability.groups.flatMap((group)=>group.controls).some((control)=>control.id==="plug-mode"));
   assert.ok(capability.groups.flatMap((group)=>group.controls).some((control)=>control.id==="background-reflection"&&control.type==="precision"));
   const insertControl=capability.groups.flatMap((group)=>group.controls).find((control)=>control.id==="semantic-icon");
-  assert.equal(insertControl?.label,"Icon / Insert");
-  assert.ok(insertControl?.options?.some((option)=>option.id==="__blank__"&&option.label==="Blank"));
-  assert.ok(insertControl?.options?.some((option)=>option.id==="lucide:library-big"&&option.label==="More Music / Music Library"));
+  assert.equal(insertControl?.label,"Icon / Insert · Love & Theft Pick Library");
+  assert.ok(insertControl?.options?.some((option)=>option.id==="__blank__"&&option.label==="Blank / Custom"&&option.previewRef?.endsWith("LT-PICK-BLANK_blank.png")));
+  assert.ok(insertControl?.options?.some((option)=>option.id==="LT-PICK-PLAYLIST"&&option.label==="Playlist / More Music"&&option.previewRef?.endsWith("LT-PICK-PLAYLIST_more-music.png")));
   const mutation=curatedCommandPayloadToMutation("curated.action.update",{actionId:hero.input.actions[0].id,controlId:"plug-mode",value:"body-only"},descriptor!);
   assert.ok(mutation);
   const result=applySignatureAssemblyMutation(compiled.composition.block,mutation!);

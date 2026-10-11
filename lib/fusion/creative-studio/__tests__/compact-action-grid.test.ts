@@ -9,10 +9,9 @@ import {
 } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import {
   EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID,
-  EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS,
-  EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS,
+  EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG,
   EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS,
-  loveAndTheftFallbackInsertConstruction,
+  loveAndTheftPickMasterDefinition,
   loveAndTheftMasteredPickSource,
   loveAndTheftPickInsertResolution,
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
@@ -47,41 +46,35 @@ describe("Compact Action Tile / Grid authority", () => {
     assert.equal(tile.lockedBehavior?.mode, "cta");
   });
 
-  it("resolves mastered artwork first, approved family constructions second, and everything else to blank", () => {
+  it("resolves exact certified source masters and sends every unknown semantic to the certified blank", () => {
     assert.deepEqual(loveAndTheftPickInsertResolution("simple-icons:spotify"), {
-      kind: "mastered", sourceAsset: loveAndTheftMasteredPickSource("simple-icons:spotify"), construction: "recessed-medallion",
+      kind: "mastered", sourceAsset: loveAndTheftMasteredPickSource("simple-icons:spotify"), construction: "circular-recessed", canonicalId: "LT-PICK-SPOTIFY",
     });
-    assert.equal(loveAndTheftPickInsertResolution("lucide:library-big").kind, "engraved-fallback");
-    assert.equal(loveAndTheftPickInsertResolution("lucide:library-big").construction, "secondary-insert");
-    assert.equal(loveAndTheftPickInsertResolution("lucide:heart").construction, "direct-engrave");
-    assert.equal(loveAndTheftPickInsertResolution("lucide:globe").construction, "recessed-medallion");
-    assert.equal(loveAndTheftPickInsertResolution("lucide:heart", "secondary-insert").construction, "secondary-insert");
+    assert.deepEqual(loveAndTheftPickInsertResolution("lucide:library-big"), {
+      kind: "mastered", sourceAsset: loveAndTheftMasteredPickSource("lucide:library-big"), construction: "open-face-engraved", canonicalId: "LT-PICK-PLAYLIST",
+    });
+    assert.equal(loveAndTheftPickInsertResolution("lucide:heart").kind, "blank");
+    assert.equal(loveAndTheftPickInsertResolution("lucide:globe").kind, "blank");
     assert.equal(loveAndTheftPickInsertResolution("iconify:cheap-generic-badge").kind, "blank");
     assert.equal(loveAndTheftPickInsertResolution(EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID).kind, "blank");
   });
 
-  it("preserves the three certified master construction families and semantic-fit defaults", () => {
-    assert.deepEqual(EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.map((option) => option.id), ["direct-engrave", "recessed-medallion", "secondary-insert"]);
-    assert.deepEqual(Object.values(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS).sort(), [
-      "direct-engrave", "direct-engrave", "direct-engrave", "direct-engrave",
-      "recessed-medallion", "recessed-medallion", "recessed-medallion",
-      "secondary-insert", "secondary-insert", "secondary-insert", "secondary-insert", "secondary-insert", "secondary-insert",
-    ].sort());
-    assert.equal(loveAndTheftFallbackInsertConstruction("lucide:disc-3"), "recessed-medallion");
-    assert.equal(loveAndTheftFallbackInsertConstruction("lucide:map-pin"), "direct-engrave");
-    assert.equal(loveAndTheftFallbackInsertConstruction("lucide:album"), "secondary-insert");
+  it("preserves every authored face construction as metadata without rebuilding it", () => {
+    const constructions = new Set(EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.map((master) => master.faceConstruction));
+    assert.deepEqual([...constructions].sort(), ["artist-identity", "blank-master", "circular-recessed", "open-face-engraved", "secondary-shaped"]);
+    assert.equal(loveAndTheftPickMasterDefinition("simple-icons:spotify")?.faceConstruction, "circular-recessed");
+    assert.equal(loveAndTheftPickMasterDefinition("simple-icons:instagram")?.faceConstruction, "open-face-engraved");
+    assert.equal(loveAndTheftPickMasterDefinition("simple-icons:youtube")?.faceConstruction, "secondary-shaped");
   });
 
-  it("offers the complete approved Pick Insert library with More Music represented by a library, not a star", () => {
+  it("offers all 24 unique masters once, including blank, with More Music represented by the playlist master", () => {
     const ids = EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.map((asset) => asset.canonicalId);
-    for (const id of [
-      "simple-icons:spotify", "simple-icons:apple-music", "lucide:music-2", "lucide:play",
-      "simple-icons:instagram", "simple-icons:facebook", "simple-icons:bandsintown", "lucide:microphone",
-      "lucide:lock", "lucide:calendar-days", "lucide:shirt", "lucide:ticket", "lucide:library-big",
-      "lucide:album", "lucide:disc-3", "lucide:map-pin", "lucide:globe", "lucide:phone",
-      "lucide:star", "lucide:heart",
-    ]) assert.ok(ids.includes(id), id);
-    assert.equal(EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.find((asset) => asset.canonicalId === "lucide:library-big")?.accessibleLabel, "More Music / Music Library");
-    assert.notEqual(ids.indexOf("lucide:library-big"), ids.indexOf("lucide:star"));
+    assert.equal(EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.length, 24);
+    assert.equal(EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.length, 23);
+    assert.equal(new Set(ids).size, 23);
+    assert.ok(ids.includes("LT-PICK-PLAYLIST"));
+    assert.equal(EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.find((asset) => asset.canonicalId === "LT-PICK-PLAYLIST")?.accessibleLabel, "Playlist / More Music");
+    assert.notEqual(ids.indexOf("LT-PICK-PLAYLIST"), ids.indexOf("LT-PICK-FAVORITE"));
+    assert.ok(EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.every((asset) => asset.rasterMasterSource?.endsWith(".png") && asset.sourceMasterSha256?.length === 64));
   });
 });

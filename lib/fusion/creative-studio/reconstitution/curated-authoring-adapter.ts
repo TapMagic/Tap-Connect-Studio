@@ -8,6 +8,7 @@ import {
 import type { StudioCuratedAssemblyMutation, StudioStructuredAssemblyDescriptor } from "../platform/structured-assembly";
 import type { StudioSemanticResource } from "../platform/semantic-resource-slot";
 import { assertStudioAuthoringCompleteness, declaredAuthoringCapability } from "../platform/authoring-completeness";
+import { EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE, EVERENCORE_LOVE_AND_THEFT_FAMILY_ID } from "../signature-assets/everencore-love-and-theft";
 
 export const CURATED_AUTHORING_COMMANDS = {
   setLayout: "curated.layout.set",
@@ -329,8 +330,8 @@ export function createCuratedAuthoringCapability(
             options: assembly.compatiblePlugs.map((plug) => ({ id: plug.componentId, label: plug.label, previewRef: plug.previewSrc, availability: "enabled" as const, compatibilityTags: [assembly.recipeId] })),
           }]:[]),
           ...(capabilities.supportsSemanticIcon&&plugActive?[{
-            id:"semantic-icon",label:"Icon / Insert",description:"Choose a semantic insert directly. An exact family master wins; approved fallback artwork uses the family construction derived for its semantic and presentation; Blank remains intentional.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId??"__blank__",commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
-            options:[{id:"__blank__",label:"Blank",availability:"enabled" as const},...compatibleSemanticIcons.map((icon)=>({id:icon.canonicalId,label:icon.accessibleLabel??icon.iconName,previewRef:icon.body,availability:"enabled" as const,compatibilityTags:icon.compatibility}))],
+            id:"semantic-icon",label:assembly.familyId===EVERENCORE_LOVE_AND_THEFT_FAMILY_ID?"Icon / Insert · Love & Theft Pick Library":"Icon / Insert",description:assembly.familyId===EVERENCORE_LOVE_AND_THEFT_FAMILY_ID?"Choose an exact certified PNG master by meaning or category. Missing semantics remain on the certified blank; Studio does not synthesize pick artwork.":"Choose an approved semantic insert.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId??"__blank__",commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
+            options:[{id:"__blank__",label:"Blank / Custom",previewRef:assembly.familyId===EVERENCORE_LOVE_AND_THEFT_FAMILY_ID?EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE:undefined,availability:"enabled" as const,metadata:{category:"Love & Theft",sourceAuthority:"certified-master"}},...compatibleSemanticIcons.map((icon)=>({id:icon.canonicalId,label:icon.accessibleLabel??icon.iconName,description:icon.catalogCategory?`${icon.catalogCategory} · Certified source master`:undefined,previewRef:icon.rasterMasterSource??icon.body,availability:"enabled" as const,compatibilityTags:icon.compatibility,metadata:{category:icon.catalogCategory??"Approved",sourceAuthority:icon.rasterMasterSource?"certified-master":"approved-icon"}}))],
           }]:[]),
           ...(capabilities.plugSide==="authorable"&&plugActive&&!capabilities.plugOptional?[{
             id:"plug-side",label:"Plug side",type:"segmented" as const,value:active.plugSide??capabilities.allowedPlugSides?.[0]??"left",commandId:CURATED_AUTHORING_COMMANDS.updateAction,

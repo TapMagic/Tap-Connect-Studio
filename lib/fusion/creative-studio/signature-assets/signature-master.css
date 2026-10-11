@@ -113,26 +113,6 @@
 }
 @container (max-width:210px){.signature-master[data-signature-family="everencore-love-and-theft"][data-signature-type-density="single-stack"] .signature-master__description{display:none}}
 @container (max-width:188px){.signature-master[data-signature-family="everencore-love-and-theft"][data-signature-type-density="compact"] .signature-master__description{display:none}}
-.signature-master[data-signature-family="everencore-love-and-theft"][data-signature-role="semantic-plug"] .signature-master__depth{
-  inset:10% 7% 2%;
-  border-radius:42% 42% 54% 54%;
-  box-shadow:0 3px 4px rgba(0,0,0,.74),0 8px 13px rgba(0,0,0,.34);
-}
-.signature-master[data-signature-family="everencore-love-and-theft"][data-signature-role="semantic-plug"] .signature-master__semantic-icon{
-  box-sizing:border-box;
-  border:0;
-  border-radius:0;
-  background:none;
-  box-shadow:none;
-  opacity:.94;
-  padding:0;
-  filter:drop-shadow(0 2px 1px rgba(246,208,128,.56)) drop-shadow(0 -2px 1px rgba(22,8,2,.96));
-  mix-blend-mode:multiply;
-}
-.signature-master[data-signature-family="everencore-love-and-theft"][data-signature-role="semantic-plug"] .signature-master__semantic-icon svg{
-  stroke-width:1.85;
-  filter:drop-shadow(0 1px 0 rgba(229,184,95,.45)) drop-shadow(0 -1px 0 rgba(0,0,0,.95));
-}
 .signature-master[data-signature-family="everencore-love-and-theft"] .signature-master__cue{
   left:auto;
   right:7.6%;

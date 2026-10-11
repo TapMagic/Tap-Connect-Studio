@@ -8,13 +8,15 @@ import {
 } from "./types";
 import { SIGNATURE_ASSEMBLY_CONTRACT_IDS, type SignatureAssemblyRecipe, type SignaturePresentationContract } from "./layout-recipes";
 import type { CuratedFamilyVisualAcceptanceContract, CuratedWholeObjectCheck } from "./visual-acceptance";
-import { CANONICAL_SEMANTIC_ICON_ASSETS, canonicalIconAsset, type IconAsset } from "../icon-asset";
+import type { IconAsset } from "../icon-asset";
 
 export const EVERENCORE_LOVE_AND_THEFT_FAMILY_ID = "everencore-love-and-theft";
 export const EVERENCORE_LOVE_AND_THEFT_VERSION = "1.0.0" as const;
 export const EVERENCORE_LOVE_AND_THEFT_ROOT = "/visual-parts/signature/everencore/love-and-theft";
 export const EVERENCORE_LOVE_AND_THEFT_V1_ROOT = `${EVERENCORE_LOVE_AND_THEFT_ROOT}/v1`;
-export const EVERENCORE_LOVE_AND_THEFT_MANIFEST = `${EVERENCORE_LOVE_AND_THEFT_V1_ROOT}/asset-intake-manifest.json`;
+export const EVERENCORE_LOVE_AND_THEFT_MASTER_LIBRARY_ROOT = `${EVERENCORE_LOVE_AND_THEFT_ROOT}/v2`;
+export const EVERENCORE_LOVE_AND_THEFT_MASTER_LIBRARY_MANIFEST = `${EVERENCORE_LOVE_AND_THEFT_MASTER_LIBRARY_ROOT}/asset-intake-manifest.json`;
+export const EVERENCORE_LOVE_AND_THEFT_MANIFEST = EVERENCORE_LOVE_AND_THEFT_MASTER_LIBRARY_MANIFEST;
 export const EVERENCORE_LOVE_AND_THEFT_GEOMETRY = `${EVERENCORE_LOVE_AND_THEFT_V1_ROOT}/geometry.json`;
 export const EVERENCORE_LOVE_AND_THEFT_FINISH = "everencore-aged-brass-dark-glass@1.0.0";
 export const EVERENCORE_LOVE_AND_THEFT_ENTITLEMENT_KEY = "signature.family.everencore_love_and_theft" as const;
@@ -26,102 +28,133 @@ const BAR_MASTER_VARIANTS = {
   frosted_charcoal:{sourceAsset:`${BAR_MASTER_ROOT}/EE-LT-BAR-003_frosted-charcoal.png`,sourceSha256:"a17a7e04b7c736970378265fa03fdb8700c49384a9d44bf7b0792e6af28148ba"},
   deep_blue_glass:{sourceAsset:`${BAR_MASTER_ROOT}/EE-LT-BAR-004_deep-blue-glass.png`,sourceSha256:"fbf82e28a9c50766cfabc2037aaf1b0539198ca52133e2054b8c0d09be11fb85"},
 } as const;
-const PICK_MASTER_ROOT = `${EVERENCORE_LOVE_AND_THEFT_V1_ROOT}/03-pick-plugs`;
-export const EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE = `${PICK_MASTER_ROOT}/EE-LT-PICK-000_blank.png`;
-export const EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID = "tapconnect:blank" as const;
+const PICK_MASTER_ROOT = `${EVERENCORE_LOVE_AND_THEFT_MASTER_LIBRARY_ROOT}/03-pick-masters`;
+export const EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE = `${PICK_MASTER_ROOT}/LT-PICK-BLANK_blank.png`;
+export const EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID = "LT-PICK-BLANK" as const;
 export type LoveAndTheftPickInsertConstruction = "direct-engrave" | "recessed-medallion" | "secondary-insert";
-export const EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS: readonly { id: LoveAndTheftPickInsertConstruction; label: string; description: string }[] = [
-  { id: "direct-engrave", label: "Direct Engrave", description: "Open-face engraved semantic, matching the microphone, calendar, Instagram, and Bandsintown masters." },
-  { id: "recessed-medallion", label: "Recessed Medallion", description: "Circular darkened inset with an aged-brass semantic, matching Spotify, Facebook, and Merch." },
-  { id: "secondary-insert", label: "Secondary Insert / Cutout", description: "Shaped recessed plate for dense or rectilinear semantics, matching Music, Play, Lock, and Ticket." },
+export const EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS: readonly { id: LoveAndTheftPickInsertConstruction; label: string }[] = [
+  { id: "direct-engrave", label: "Direct Engrave" },
+  { id: "recessed-medallion", label: "Recessed Medallion" },
+  { id: "secondary-insert", label: "Secondary Insert / Cutout" },
 ] as const;
-export const EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS = {
-  "simple-icons:spotify":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-002_spotify.png`,sourceSha256:"f0bcee3bd22e4658db0541d1896280262b6e12acb9b292775cb64cbf80831cfa"},
-  "simple-icons:apple-music":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-003_music-note.png`,sourceSha256:"bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50"},
-  "simple-icons:youtube":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-004_play.png`,sourceSha256:"2188d3052fa6c83441f8fba4869cb101f0c8a30105ebb107ab1e836223c20b69"},
-  "simple-icons:instagram":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-005_instagram.png`,sourceSha256:"c4af93f0a6d241cded5b369ea0aac9491a469eb41a757079d1db11fc8a75df0d"},
-  "simple-icons:facebook":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-006_facebook.png`,sourceSha256:"60b75ee4b25b743fb4d97453cee3d0c06beffae99484623acaaff81bed902be7"},
-  "simple-icons:bandsintown":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-007_bandsintown.png`,sourceSha256:"fcc5b7fa569706ff684bf346d837d2b15e110cb948d01a6b93e6ae7f067d7a5b"},
-  "lucide:microphone":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-008_microphone.png`,sourceSha256:"b480cf75d94a4107b09fa23b6b2cc9bfe1215a8abf94bc65fed64a7540d5f465"},
-  "lucide:lock":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-009_lock.png`,sourceSha256:"d56efb5fb5a310c4d7b836ae73fb02c67aca0625394bd30b746cd43f7bd1393f"},
-  "lucide:calendar-days":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-010_calendar.png`,sourceSha256:"b85c493ce0413e2acfacf2c2c9eb08d62160578088df8cdd525fd1de2fb85617"},
-  "lucide:shirt":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-011_merch.png`,sourceSha256:"5961ad223428a93a704dd04617fdec1e51cd1c8f9d4149a297a9905713fda4b1"},
-  "lucide:ticket":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-015_ticket.png`,sourceSha256:"d1878231e3eb2a582edcfdb6440709fb1d389c0c78790f594f53d9f6778c6e8f"},
-  "lucide:play":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-004_play.png`,sourceSha256:"2188d3052fa6c83441f8fba4869cb101f0c8a30105ebb107ab1e836223c20b69"},
-  "lucide:music-2":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-003_music-note.png`,sourceSha256:"bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50"},
-} as const;
+export type LoveAndTheftPickCategory = "Love & Theft" | "Music & Media" | "Social" | "Live & Events" | "Commerce / Access" | "Contact / Utility" | "Brand";
+export type LoveAndTheftPickFaceConstruction = "blank-master" | "open-face-engraved" | "circular-recessed" | "secondary-shaped" | "artist-identity";
+export type LoveAndTheftPickMasterDefinition = Readonly<{
+  canonicalId: string;
+  displayLabel: string;
+  semanticRole: string;
+  category: LoveAndTheftPickCategory;
+  sourceAsset: string;
+  sourceSha256: string;
+  faceConstruction: LoveAndTheftPickFaceConstruction;
+  sourceFilename: string;
+  aliases: readonly string[];
+  approvedContexts: readonly ("compact-tile" | "button" | "curated-action" | "nav-opt-in")[];
+}>;
 
-export const EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS = {
-  "simple-icons:spotify": "recessed-medallion",
-  "simple-icons:apple-music": "secondary-insert",
-  "simple-icons:youtube": "secondary-insert",
-  "simple-icons:instagram": "direct-engrave",
-  "simple-icons:facebook": "recessed-medallion",
-  "simple-icons:bandsintown": "direct-engrave",
-  "lucide:microphone": "direct-engrave",
-  "lucide:lock": "secondary-insert",
-  "lucide:calendar-days": "direct-engrave",
-  "lucide:shirt": "recessed-medallion",
-  "lucide:ticket": "secondary-insert",
-  "lucide:play": "secondary-insert",
-  "lucide:music-2": "secondary-insert",
-} as const satisfies Readonly<Record<keyof typeof EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS, LoveAndTheftPickInsertConstruction>>;
+const pickMaster = (canonicalId: string, displayLabel: string, semanticRole: string, category: LoveAndTheftPickCategory, filename: string, sourceFilename: string, sourceSha256: string, faceConstruction: LoveAndTheftPickFaceConstruction, aliases: readonly string[] = [], approvedContexts: LoveAndTheftPickMasterDefinition["approvedContexts"] = ["compact-tile", "button", "curated-action"]): LoveAndTheftPickMasterDefinition => ({
+  canonicalId, displayLabel, semanticRole, category, sourceAsset: `${PICK_MASTER_ROOT}/${filename}`, sourceFilename, sourceSha256, faceConstruction, aliases, approvedContexts,
+});
 
-const LOVE_AND_THEFT_FALLBACK_CONSTRUCTION_BY_ICON: Readonly<Record<string, LoveAndTheftPickInsertConstruction>> = {
-  "lucide:library-big": "secondary-insert",
-  "lucide:album": "secondary-insert",
-  "lucide:disc-3": "recessed-medallion",
-  "lucide:map-pin": "direct-engrave",
-  "lucide:globe": "recessed-medallion",
-  "lucide:phone": "direct-engrave",
-  "lucide:star": "recessed-medallion",
-  "lucide:heart": "direct-engrave",
-};
+/** Product Owner-supplied PNGs. Each definition is a complete manufactured object. */
+export const EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG: readonly LoveAndTheftPickMasterDefinition[] = [
+  pickMaster("LT-PICK-LOVE-THEFT", "Love & Theft", "artist identity", "Love & Theft", "LT-PICK-LOVE-THEFT_artist-identity.png", "Pasted 2026-10-11 at 2.46.28 PM.png", "a081867c96a3206c21e15abb9fb88e20122044b131fe2d08b74fa3c4d52d5dc0", "artist-identity"),
+  pickMaster("LT-PICK-BLANK", "Blank / Custom", "blank manufacturing master", "Love & Theft", "LT-PICK-BLANK_blank.png", "Blank Pick.png", "27c3d77589451c06b3b3e9ee64702ef810988f6aef0d3b7cb7f5c024182793c7", "blank-master", ["tapconnect:blank"]),
+  pickMaster("LT-PICK-SPOTIFY", "Spotify", "spotify", "Music & Media", "LT-PICK-SPOTIFY_spotify.png", "Spotify Pick.png", "f0bcee3bd22e4658db0541d1896280262b6e12acb9b292775cb64cbf80831cfa", "circular-recessed", ["simple-icons:spotify"]),
+  pickMaster("LT-PICK-MUSIC", "Apple Music / Music", "music note", "Music & Media", "LT-PICK-MUSIC_music-note.png", "Music Pick.png", "bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50", "circular-recessed", ["simple-icons:apple-music", "lucide:music-2"]),
+  pickMaster("LT-PICK-PLAYLIST", "Playlist / More Music", "music library and playlist", "Music & Media", "LT-PICK-PLAYLIST_more-music.png", "Unknown 4.png", "aee8849fdba25e12176087707c8980ef393a389a780d1bdc535f32afdb9fbd67", "open-face-engraved", ["lucide:library-big", "lucide:album", "lucide:disc-3"]),
+  pickMaster("LT-PICK-MUSIC-PLUS", "Add Music", "add music", "Music & Media", "LT-PICK-MUSIC-PLUS_music-add.png", "Unknown 10.png", "9c0cab4f6dfa3382373af128c56a75fb30019360ff8c87a4fc450c112c4ae55d", "open-face-engraved"),
+  pickMaster("LT-PICK-PLAY", "Play / Video", "play video", "Music & Media", "LT-PICK-PLAY_play-video.png", "Play Pick.png", "2188d3052fa6c83441f8fba4869cb101f0c8a30105ebb107ab1e836223c20b69", "secondary-shaped", ["simple-icons:youtube", "lucide:play"]),
+  pickMaster("LT-PICK-MICROPHONE", "Microphone", "microphone", "Music & Media", "LT-PICK-MICROPHONE_microphone.png", "Mic Pick.png", "b480cf75d94a4107b09fa23b6b2cc9bfe1215a8abf94bc65fed64a7540d5f465", "open-face-engraved", ["lucide:microphone"]),
+  pickMaster("LT-PICK-BANDSINTOWN", "Bandsintown", "tour platform", "Music & Media", "LT-PICK-BANDSINTOWN_bandsintown.png", "BandsInTown Poick.png", "fcc5b7fa569706ff684bf346d837d2b15e110cb948d01a6b93e6ae7f067d7a5b", "secondary-shaped", ["simple-icons:bandsintown"]),
+  pickMaster("LT-PICK-INSTAGRAM", "Instagram", "instagram", "Social", "LT-PICK-INSTAGRAM_instagram.png", "Instagram Pick.png", "c4af93f0a6d241cded5b369ea0aac9491a469eb41a757079d1db11fc8a75df0d", "open-face-engraved", ["simple-icons:instagram"]),
+  pickMaster("LT-PICK-FACEBOOK", "Facebook", "facebook", "Social", "LT-PICK-FACEBOOK_facebook.png", "Facebook Pick.png", "60b75ee4b25b743fb4d97453cee3d0c06beffae99484623acaaff81bed902be7", "circular-recessed", ["simple-icons:facebook"]),
+  pickMaster("LT-PICK-CALENDAR", "Calendar / Tour Dates", "calendar", "Live & Events", "LT-PICK-CALENDAR_calendar.png", "Calendar Pick.png", "b85c493ce0413e2acfacf2c2c9eb08d62160578088df8cdd525fd1de2fb85617", "open-face-engraved", ["lucide:calendar-days"]),
+  pickMaster("LT-PICK-TICKET-ANGLED", "Tickets · Angled", "ticket", "Live & Events", "LT-PICK-TICKET-ANGLED_ticket-angled.png", "Ticket Pick.png", "d1878231e3eb2a582edcfdb6440709fb1d389c0c78790f594f53d9f6778c6e8f", "secondary-shaped", ["lucide:ticket"]),
+  pickMaster("LT-PICK-TICKET-CLASSIC", "Tickets · Classic", "ticket alternate", "Live & Events", "LT-PICK-TICKET-CLASSIC_ticket-classic.png", "Unknown 3.png", "3a34d335730827ff0ef0e4a992f5e30b396b36f9e026a62fc1822e65a87301d0", "open-face-engraved"),
+  pickMaster("LT-PICK-MAP", "Map / Directions", "map and location", "Live & Events", "LT-PICK-MAP_location.png", "Location.png", "ee5444476a5c9f543ea243199e5770e7bdfbaf786858e8b9cfb8c04ddf637412", "open-face-engraved", ["lucide:map-pin"]),
+  pickMaster("LT-PICK-COWBOY-HAT", "Cowboy Hat", "country identity", "Live & Events", "LT-PICK-COWBOY-HAT_cowboy-hat.png", "Unknown 5.png", "577678f858807edf940c53b300794531c18625f9f7c8a36a30546c070065d8fd", "open-face-engraved"),
+  pickMaster("LT-PICK-MERCH", "Merch", "merchandise", "Commerce / Access", "LT-PICK-MERCH_merch.png", "Merch Pick.png", "5961ad223428a93a704dd04617fdec1e51cd1c8f9d4149a297a9905713fda4b1", "circular-recessed", ["lucide:shirt"]),
+  pickMaster("LT-PICK-LOCK", "Lock / VIP", "locked access", "Commerce / Access", "LT-PICK-LOCK_lock.png", "Lock Pick.png", "d56efb5fb5a310c4d7b836ae73fb02c67aca0625394bd30b746cd43f7bd1393f", "circular-recessed", ["lucide:lock"]),
+  pickMaster("LT-PICK-FAVORITE", "Favorite / Featured", "favorite", "Commerce / Access", "LT-PICK-FAVORITE_star.png", "Star.png", "7aa6a3c7c5094ab2b82480df010171c4b3a174c1b0a07f4864764a5e855ab11a", "open-face-engraved", ["lucide:star"]),
+  pickMaster("LT-PICK-CALL", "Call / Phone", "telephone", "Contact / Utility", "LT-PICK-CALL_phone.png", "Call.png", "3d8802715cd7511af83186e3e02b81403909b71e43a6c1771ef9ca219fb69710", "open-face-engraved", ["lucide:phone"]),
+  pickMaster("LT-PICK-MESSAGE", "Message / Chat", "message", "Contact / Utility", "LT-PICK-MESSAGE_chat.png", "Unknown 6.png", "262782c5cc04154c88cc0930be264bbe878869901f2dbfb79f3a9c025b6a4224", "secondary-shaped"),
+  pickMaster("LT-PICK-SHARE", "Share", "share", "Contact / Utility", "LT-PICK-SHARE_share.png", "Unknown 2.png", "98d430bc6ee758d17c85853c51ac62f72bb9301ef7de6770fae3aa114ef30eb5", "open-face-engraved"),
+  pickMaster("LT-PICK-PHOTOS", "Photos / Gallery", "photo gallery", "Contact / Utility", "LT-PICK-PHOTOS_gallery.png", "Images.png", "d0d6f54fcf66dc127cd26816766d47932b38c8012cf07d81074ec31865e6a11d", "secondary-shaped"),
+  pickMaster("LT-PICK-EVERENCORE", "EverEncore Pick", "EverEncore identity", "Brand", "LT-PICK-EVERENCORE_infinity-music.png", "Unknown.png", "fb1506eb173eaaf68d7b3d32c3b9a8b6078497b1a473d8e482d97be38fe215d8", "artist-identity"),
+] as const;
 
-export function loveAndTheftMasteredPickConstruction(iconAssetRef: string): LoveAndTheftPickInsertConstruction | null {
-  const normalized = iconAssetRef.includes(":") ? iconAssetRef : `lucide:${iconAssetRef}`;
-  return EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS[
-    normalized as keyof typeof EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS
-  ] ?? null;
+const PICK_MASTER_BY_ID = new Map(EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.map((master) => [master.canonicalId, master]));
+const PICK_MASTER_ALIAS_TO_ID = new Map(EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.flatMap((master) => master.aliases.map((alias) => [alias, master.canonicalId] as const)));
+
+export function loveAndTheftPickMasterDefinition(iconAssetRef: string): LoveAndTheftPickMasterDefinition | null {
+  const normalized = PICK_MASTER_BY_ID.has(iconAssetRef) ? iconAssetRef : PICK_MASTER_ALIAS_TO_ID.get(iconAssetRef.includes(":") ? iconAssetRef : `lucide:${iconAssetRef}`);
+  return normalized ? PICK_MASTER_BY_ID.get(normalized) ?? null : null;
 }
 
-export function loveAndTheftFallbackInsertConstruction(iconAssetRef: string): LoveAndTheftPickInsertConstruction {
-  const normalized = iconAssetRef.includes(":") ? iconAssetRef : `lucide:${iconAssetRef}`;
-  return LOVE_AND_THEFT_FALLBACK_CONSTRUCTION_BY_ICON[normalized] ?? "direct-engrave";
+export const EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS: Readonly<Record<string, { sourceAsset: string; sourceSha256: string }>> = Object.freeze(Object.fromEntries(
+  EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.flatMap((master) => [master.canonicalId, ...master.aliases].map((id) => [id, { sourceAsset: master.sourceAsset, sourceSha256: master.sourceSha256 }] as const)),
+));
+
+export function loveAndTheftMasteredPickConstruction(iconAssetRef: string): LoveAndTheftPickFaceConstruction | null {
+  return loveAndTheftPickMasterDefinition(iconAssetRef)?.faceConstruction ?? null;
 }
 
-/** Artist-presentation adapter only. Generic Compact Action state stores IconAsset refs, never family artwork. */
+function legacyConstruction(face: LoveAndTheftPickFaceConstruction): LoveAndTheftPickInsertConstruction {
+  if (face === "circular-recessed") return "recessed-medallion";
+  if (face === "secondary-shaped") return "secondary-insert";
+  return "direct-engrave";
+}
+
+/** Authored construction metadata only; never used to rebuild source artwork. */
+export const EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS: Readonly<Record<string, LoveAndTheftPickInsertConstruction>> = Object.freeze(Object.fromEntries(
+  EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG.flatMap((master) => [master.canonicalId, ...master.aliases].map((id) => [id, legacyConstruction(master.faceConstruction)] as const)),
+));
+
+/** Artist-presentation adapter only. The returned PNG is the complete manufactured object. */
 export function loveAndTheftMasteredPickSource(iconAssetRef: string): string | null {
-  const normalized = iconAssetRef.includes(":") ? iconAssetRef : `lucide:${iconAssetRef}`;
-  return EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS[
-    normalized as keyof typeof EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS
-  ]?.sourceAsset ?? null;
+  return loveAndTheftPickMasterDefinition(iconAssetRef)?.sourceAsset ?? null;
 }
 
-const LOVE_AND_THEFT_INSERT_ORDER = [
-  "simple-icons:spotify", "simple-icons:apple-music", "lucide:music-2", "lucide:play", "simple-icons:youtube",
-  "simple-icons:instagram", "simple-icons:facebook", "simple-icons:bandsintown", "lucide:microphone", "lucide:lock",
-  "lucide:calendar-days", "lucide:shirt", "lucide:ticket", "lucide:library-big", "lucide:album", "lucide:disc-3",
-  "lucide:map-pin", "lucide:globe", "lucide:phone", "lucide:star", "lucide:heart",
-] as const;
+function masterSelector(master: LoveAndTheftPickMasterDefinition): IconAsset {
+  return Object.freeze({
+    provider: "native" as const,
+    collection: "love-and-theft-pick-masters",
+    iconName: master.canonicalId.toLowerCase(),
+    canonicalId: master.canonicalId,
+    body: "",
+    viewBox: "0 0 1254 1254",
+    width: 1254,
+    height: 1254,
+    renderMode: "multicolor" as const,
+    source: master.sourceAsset,
+    fetchedAt: "2026-10-11T00:00:00.000Z",
+    accessibleLabel: master.displayLabel,
+    canonicalReference: master.canonicalId,
+    compatibility: ["curated-semantic-icon", "love-and-theft-certified-master", ...master.approvedContexts],
+    attribution: `Product Owner-supplied certified master: ${master.sourceFilename}`,
+    rasterMasterSource: master.sourceAsset,
+    catalogCategory: master.category,
+    sourceMasterSha256: master.sourceSha256,
+    selectionAliases: master.aliases,
+  });
+}
 
-/** Approved semantic inserts, ordered with Love & Theft mastered variants before engraved fallbacks. */
-export const EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS: readonly IconAsset[] = LOVE_AND_THEFT_INSERT_ORDER.flatMap(
-  (canonicalId) => CANONICAL_SEMANTIC_ICON_ASSETS.find((asset) => asset.canonicalId === canonicalId) ?? [],
-);
+export function loveAndTheftPickMasterAsset(iconAssetRef: string): IconAsset | null {
+  const master = loveAndTheftPickMasterDefinition(iconAssetRef);
+  return master && master.canonicalId !== EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID ? masterSelector(master) : null;
+}
 
-export function loveAndTheftPickInsertResolution(iconAssetRef: string, requestedConstruction?: LoveAndTheftPickInsertConstruction):
-  | { kind: "mastered"; sourceAsset: string; construction: LoveAndTheftPickInsertConstruction }
-  | { kind: "engraved-fallback"; icon: IconAsset; construction: LoveAndTheftPickInsertConstruction }
+/** Certified, non-blank source masters exposed to Compact Tile, Button, and Curated authoring. */
+export const EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS: readonly IconAsset[] = EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG
+  .filter((master) => master.canonicalId !== EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID)
+  .map(masterSelector);
+
+export function loveAndTheftPickInsertResolution(iconAssetRef: string):
+  | { kind: "mastered"; sourceAsset: string; construction: LoveAndTheftPickFaceConstruction; canonicalId: string }
   | { kind: "blank"; sourceAsset: typeof EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE } {
-  const mastered = loveAndTheftMasteredPickSource(iconAssetRef);
-  const masteredConstruction = loveAndTheftMasteredPickConstruction(iconAssetRef);
-  if (mastered && masteredConstruction) return { kind: "mastered", sourceAsset: mastered, construction: masteredConstruction };
-  const approved = canonicalIconAsset(iconAssetRef);
-  if (approved && EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.some((asset) => asset.canonicalId === approved.canonicalId)) {
-    const validRequest = EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.some((option) => option.id === requestedConstruction);
-    return { kind: "engraved-fallback", icon: approved, construction: validRequest ? requestedConstruction! : loveAndTheftFallbackInsertConstruction(approved.canonicalId) };
-  }
+  const master = loveAndTheftPickMasterDefinition(iconAssetRef);
+  if (master && master.canonicalId !== EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID) return { kind: "mastered", sourceAsset: master.sourceAsset, construction: master.faceConstruction, canonicalId: master.canonicalId };
   return { kind: "blank", sourceAsset: EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE };
 }
 const FAN_REFLECTION = {sourceAsset:`${EVERENCORE_LOVE_AND_THEFT_ROOT}/source/fan-reflection.svg`,sourceSha256:"1e6156471e4261d55678aef5f71b81dd18cec8f6ad5e2abf90e5489bbf13d621",defaultIntensity:48,minIntensity:0,maxIntensity:100} as const;

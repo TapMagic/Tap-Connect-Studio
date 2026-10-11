@@ -8,9 +8,9 @@ const proof = createCompactActionGrid({
   columns: 3,
   density: "standard",
   tiles: [
-    createCompactActionTile({ componentId: "proof-spotify", label: "Spotify", sublabel: "Listen", iconAssetRef: "simple-icons:spotify" }),
-    createCompactActionTile({ componentId: "proof-apple-music", label: "Apple Music", sublabel: "Stream", iconAssetRef: "simple-icons:apple-music" }),
-    createCompactActionTile({ componentId: "proof-more-music", label: "More Music", sublabel: "Library", iconAssetRef: "lucide:library-big" }),
+    createCompactActionTile({ componentId: "proof-spotify", label: "Spotify", sublabel: "Listen", iconAssetRef: "LT-PICK-SPOTIFY" }),
+    createCompactActionTile({ componentId: "proof-apple-music", label: "Apple Music", sublabel: "Stream", iconAssetRef: "LT-PICK-MUSIC" }),
+    createCompactActionTile({ componentId: "proof-more-music", label: "More Music", sublabel: "Library", iconAssetRef: "LT-PICK-PLAYLIST" }),
   ],
 });
 

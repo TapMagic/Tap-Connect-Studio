@@ -3,22 +3,22 @@
 import { useState, type CSSProperties } from "react";
 import { LockKeyhole, Sparkles } from "lucide-react";
 import { PremiumIcon } from "@/components/design/premium-icon";
-import { LoveAndTheftFallbackPickInsert } from "@/components/tap/love-and-theft-fallback-pick-insert";
 import type { CompactActionGridState, CompactActionTile } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import {
   EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE,
+  EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID,
   loveAndTheftPickInsertResolution,
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 import { cn } from "@/lib/utils";
 
-export function LoveAndTheftPickVisual({ iconAssetRef, insertConstruction, active = false, compact = false, className }: {
+export function LoveAndTheftPickVisual({ iconAssetRef, active = false, className }: {
   iconAssetRef: string;
   insertConstruction?: CompactActionTile["insertConstruction"];
   active?: boolean;
   compact?: boolean;
   className?: string;
 }) {
-  const insert = loveAndTheftPickInsertResolution(iconAssetRef, insertConstruction);
+  const insert = loveAndTheftPickInsertResolution(iconAssetRef);
   const mastered = insert.kind === "mastered" ? insert.sourceAsset : null;
   return <span
     className={cn("relative block aspect-square overflow-visible", className)}
@@ -26,6 +26,7 @@ export function LoveAndTheftPickVisual({ iconAssetRef, insertConstruction, activ
     data-mastered-pick={mastered ? "true" : "false"}
     data-pick-insert-kind={insert.kind}
     data-pick-insert-construction={insert.kind === "blank" ? "blank" : insert.construction}
+    data-pick-master-id={insert.kind === "mastered" ? insert.canonicalId : EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID}
     data-pick-active={active ? "true" : "false"}
   >
     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -34,15 +35,8 @@ export function LoveAndTheftPickVisual({ iconAssetRef, insertConstruction, activ
       alt=""
       draggable={false}
       className="absolute inset-0 h-full w-full select-none object-contain"
-      style={{ filter: active ? "brightness(1.13) saturate(1.08) drop-shadow(0 4px 8px rgba(0,0,0,.72))" : "brightness(.88) saturate(.84) drop-shadow(0 4px 7px rgba(0,0,0,.68))" }}
+      data-certified-source-master="true"
     />
-    {insert.kind === "engraved-fallback" ? <LoveAndTheftFallbackPickInsert
-      canonicalIconId={insert.icon.canonicalId}
-      construction={insert.construction}
-      iconSvg={insert.icon.body}
-      renderMode={insert.icon.renderMode}
-      compact={compact}
-    /> : null}
   </span>;
 }
 

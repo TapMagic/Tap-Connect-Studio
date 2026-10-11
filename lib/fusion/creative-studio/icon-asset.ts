@@ -23,6 +23,14 @@ export type IconAsset = Readonly<{
   canonicalReference?: string;
   compatibility?: readonly string[];
   attribution?: string;
+  /** Exact, immutable raster artwork used by governed family catalogs. */
+  rasterMasterSource?: string;
+  /** Human-facing drawer category for governed family catalogs. */
+  catalogCategory?: string;
+  /** Source checksum carried with a certified raster master. */
+  sourceMasterSha256?: string;
+  /** Historical persisted references that resolve to this canonical master. */
+  selectionAliases?: readonly string[];
 }>;
 
 const FORBIDDEN_SVG =
