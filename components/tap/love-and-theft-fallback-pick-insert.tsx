@@ -27,12 +27,15 @@ const brassEdge: CSSProperties = {
     "0 -1px 1px rgba(255,226,157,.58),0 3px 4px rgba(0,0,0,.86),inset 0 1px 1px rgba(255,235,178,.58),inset 0 -2px 2px rgba(20,7,2,.9)",
 };
 
-function EngravedIcon({ canonicalIconId, iconSvg, renderMode, iconScale, iconOffsetY, className }: Pick<LoveAndTheftFallbackPickInsertProps, "canonicalIconId" | "iconSvg" | "renderMode" | "iconScale" | "iconOffsetY"> & { className: string }) {
+function EngravedIcon({ canonicalIconId, iconSvg, renderMode, iconScale, iconOffsetY, className, restrained = false }: Pick<LoveAndTheftFallbackPickInsertProps, "canonicalIconId" | "iconSvg" | "renderMode" | "iconScale" | "iconOffsetY"> & { className: string; restrained?: boolean }) {
   return <span
-    className={cn("absolute left-1/2 top-1/2 grid place-items-center text-[#b98239] [&_svg]:block [&_svg]:h-full [&_svg]:w-full [&_svg]:overflow-visible", className)}
+    className={cn("absolute left-1/2 top-1/2 grid place-items-center [&_svg]:block [&_svg]:h-full [&_svg]:w-full [&_svg]:overflow-visible", className)}
     style={{
+      color: restrained ? "#98652c" : "#b98239",
       transform: `translate(-50%,-50%) translateY(${iconOffsetY ?? 0}%) scale(${iconScale ?? 1})`,
-      filter: "drop-shadow(0 -1px 0 rgba(255,216,132,.48)) drop-shadow(0 2px 1px rgba(10,3,1,.96))",
+      filter: restrained
+        ? "drop-shadow(0 -.5px 0 rgba(235,190,103,.3)) drop-shadow(0 1px .75px rgba(10,3,1,.88))"
+        : "drop-shadow(0 -1px 0 rgba(255,216,132,.48)) drop-shadow(0 2px 1px rgba(10,3,1,.96))",
     }}
     data-love-and-theft-engraved-icon="true"
     data-signature-icon={canonicalIconId}
@@ -60,6 +63,20 @@ export function LoveAndTheftFallbackPickInsert({
     iconScale,
     iconOffsetY,
   };
+  // More Music uses the blank master's existing recessed field. Do not stack
+  // another panel, medallion, or chassis inside that manufactured face.
+  if (construction === "secondary-insert" && canonicalIconId === "lucide:library-big") {
+    return <span
+      className={cn("absolute left-1/2 top-[40.5%] z-[2] block h-[30%] w-[30%] -translate-x-1/2 -translate-y-1/2", className)}
+      data-love-and-theft-fallback-insert="true"
+      data-family-insert-construction="secondary-insert"
+      data-family-insert-presentation="integrated-master-recess"
+      data-family-recess-authority="blank-master"
+      aria-hidden
+    >
+      <EngravedIcon {...shared} className="h-full w-full" restrained />
+    </span>;
+  }
   if (construction === "direct-engrave") {
     return <span
       className={cn("absolute left-1/2 top-[41%] z-[2] block h-[39%] w-[39%] -translate-x-1/2 -translate-y-1/2", className)}
@@ -78,7 +95,7 @@ export function LoveAndTheftFallbackPickInsert({
     data-family-insert-construction={construction}
     aria-hidden
   >
-    <span className={cn("absolute", medallion ? "inset-[6%] rounded-full" : "inset-[7%] rounded-[18%]")} style={darkAgedFace}>
+    <span className={cn("absolute", medallion ? "inset-[6%] rounded-full" : "inset-[7%] rounded-[18%]")} style={darkAgedFace} data-love-and-theft-fallback-recess-layer="true">
       <EngravedIcon {...shared} className={medallion ? "h-[54%] w-[54%]" : "h-[58%] w-[58%]"} />
     </span>
   </span>;
