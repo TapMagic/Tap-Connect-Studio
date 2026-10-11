@@ -23,6 +23,7 @@ import { isClerkConfigured } from "@/lib/utils/app";
 import { ensurePlatformAdminUsers } from "@/lib/services/admins";
 import { listLandingUseCases } from "@/lib/services/landing-use-cases";
 import { listLandingDemoSlots } from "@/lib/services/landing-demos";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 
 export const dynamic = "force-dynamic";
 
@@ -223,7 +224,7 @@ export default async function AdminDashboardPage() {
               <PenTool className="mr-2 h-4 w-4" />
               Campaign Workbench
             </Link>
-            <Link href="/dashboard/card" className={buttonVariants({ variant: "outline" })}>
+            <Link href={CARD_STUDIO_AUTHORING_PATH} className={buttonVariants({ variant: "outline" })}>
               <Zap className="mr-2 h-4 w-4" />
               Landing demo card
             </Link>

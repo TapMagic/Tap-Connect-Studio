@@ -1,3 +1,5 @@
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
+
 /**
  * V1 parity surface inventory — code-level checklist (not browser OWNER-READY).
  * Maps charter V1 floor routes that must remain reachable in fusion.
@@ -11,7 +13,7 @@ export type V1ParityItem = {
 };
 
 export const V1_PARITY_SURFACES: V1ParityItem[] = [
-  { id: "v1-builder", route: "/dashboard/card", label: "Card Builder", pillar: "Experiences" },
+  { id: "v1-builder", route: CARD_STUDIO_AUTHORING_PATH, label: "Card Builder", pillar: "Experiences" },
   { id: "v1-campaigns", route: "/dashboard/campaigns", label: "Campaigns", pillar: "Experiences" },
   { id: "v1-groups", route: "/dashboard/groups", label: "Campaign Groups", pillar: "Experiences" },
   { id: "v1-scan", route: "/dashboard/scan", label: "Scan Mode", pillar: "Tap Points" },
@@ -28,7 +30,7 @@ export function assertV1ParityInventoryComplete(): { ok: true; count: number } {
   }
   const routes = new Set(V1_PARITY_SURFACES.map((s) => s.route));
   for (const required of [
-    "/dashboard/card",
+    CARD_STUDIO_AUTHORING_PATH,
     "/dashboard/campaigns",
     "/dashboard/scan",
     "/t/[deviceCode]",

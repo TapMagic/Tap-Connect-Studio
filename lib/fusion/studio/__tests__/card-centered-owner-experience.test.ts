@@ -16,6 +16,7 @@ import {
   CARD_RELATIONSHIP_ROLE_COPY,
   detectPersistedCard,
 } from "@/lib/fusion/studio/card-relationship";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 import {
   buildIntegrationMaturityCatalog,
   MATURITY_GROUP_META,
@@ -84,6 +85,9 @@ describe("card relationship + next action", () => {
     assert.equal(ctx.publicState, "missing");
     assert.equal(ctx.nextAction.id, "create_card");
     assert.equal(ctx.cardName, "Demo Cafe");
+    assert.equal(ctx.openHref, CARD_STUDIO_AUTHORING_PATH);
+    assert.equal(ctx.editHref, CARD_STUDIO_AUTHORING_PATH);
+    assert.equal(ctx.returnToCardHref, CARD_STUDIO_AUTHORING_PATH);
   });
 
   it("prioritizes needs-attention over other next actions", () => {

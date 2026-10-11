@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 import { z } from "zod";
 import type { FontStyle } from "@prisma/client";
 import { prisma } from "@/lib/db";
@@ -207,7 +208,7 @@ export async function POST(request: Request) {
       where: { id: business.id },
       data: { cardFirstOnboardingCompletedAt: new Date() },
     });
-    return NextResponse.json({ completed: true, redirectTo: "/dashboard/card" });
+    return NextResponse.json({ completed: true, redirectTo: CARD_STUDIO_AUTHORING_PATH });
   } catch (error) {
     return errorResponse(error);
   }

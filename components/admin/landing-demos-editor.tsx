@@ -12,6 +12,7 @@ import {
   type LandingDemoSlotRow,
 } from "@/lib/marketing/landing-demo-types";
 import { cn } from "@/lib/utils";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 
 type CampaignOption = {
   id: string;
@@ -185,7 +186,7 @@ export function LandingDemosEditor({
                 )}
               </Button>
               {current.mode === "card" ? (
-                <Link href="/dashboard/card">
+                <Link href={CARD_STUDIO_AUTHORING_PATH}>
                   <Button type="button" size="sm" variant="outline">
                     <ExternalLink className="mr-1 h-3.5 w-3.5" />
                     Open Tap Card Builder

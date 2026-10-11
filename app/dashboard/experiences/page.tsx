@@ -7,6 +7,7 @@ import { requireBusiness } from "@/lib/auth";
 import { prisma } from "@/lib/db";
 import { loadCardRelationshipContext } from "@/lib/fusion/studio/load-card-relationship";
 import { getEmptyState } from "@/lib/fusion/studio/empty-states";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,7 @@ const PRIMARY = [
   {
     id: "card",
     label: "Card",
-    href: "/dashboard/card",
+    href: CARD_STUDIO_AUTHORING_PATH,
     description: "The living customer relationship hub",
     testId: "experiences-primary-card",
     icon: CreditCard,
@@ -142,7 +143,7 @@ export default async function ExperiencesHubPage() {
             Open Experience Library
           </Link>
           <Link
-            href="/dashboard/card"
+            href={CARD_STUDIO_AUTHORING_PATH}
             data-testid="experiences-cta-card"
             className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-4 text-sm font-medium text-white/90 hover:border-primary/40"
           >

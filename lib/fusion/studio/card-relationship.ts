@@ -5,6 +5,7 @@
 
 import { parseTapConnectCard, type TapConnectCardConfig } from "@/lib/brand/tap-card";
 import { findPrimarySpotlightSection } from "@/lib/fusion/card/offer";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 import type { StudioZoneId } from "@/lib/fusion/studio/zone-tokens";
 
 export type CardPublicState = "missing" | "draft" | "ready_unpublished" | "published" | "retired";
@@ -293,8 +294,11 @@ export function buildCardRelationshipFromParts(input: {
     }
   }
 
-  const openHref = "/dashboard/card";
-  const editHref = "/dashboard/card/edit";
+  // Open and Edit are two labels for the same production authoring authority.
+  // The separate `/dashboard/card` route is an assembly/readiness surface, not
+  // an editor, and must never be reached through an authoring-labeled action.
+  const openHref = CARD_STUDIO_AUTHORING_PATH;
+  const editHref = CARD_STUDIO_AUTHORING_PATH;
   const hero = config.sections?.find((s) => s.type === "hero");
   const cardName = hero?.title?.trim() || input.businessName;
 

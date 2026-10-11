@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 import {
   Check,
   ChevronDown,
@@ -549,7 +550,7 @@ export function CardFirstOnboardingWorkspace({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ action: "complete" }),
       });
-      router.push(data.redirectTo || "/dashboard/card");
+      router.push(data.redirectTo || CARD_STUDIO_AUTHORING_PATH);
       router.refresh();
     } catch (caught) {
       setError(

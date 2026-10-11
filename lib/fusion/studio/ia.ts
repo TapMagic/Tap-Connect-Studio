@@ -7,6 +7,7 @@
  */
 
 import { CREATE_RECIPES } from "@/lib/fusion/studio/create-recipes";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 
 export type StudioMaturity =
   | "owner_ready"
@@ -734,7 +735,7 @@ export const CREATE_ACTIONS: CreateAction[] = [
   {
     id: "card",
     label: "Build my customer Card",
-    href: "/dashboard/card",
+    href: CARD_STUDIO_AUTHORING_PATH,
     description: "Create or improve the Card relationship hub",
     maturity: "owner_ready",
     group: "Primary",

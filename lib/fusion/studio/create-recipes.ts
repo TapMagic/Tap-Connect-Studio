@@ -1,3 +1,5 @@
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
+
 /**
  * Outcome-oriented Create recipes — plain-language intents that route into
  * real authoring surfaces. Card-first hierarchy; may imply multi-step journeys
@@ -22,7 +24,7 @@ export const CREATE_RECIPES: CreateRecipe[] = [
     id: "recipe_card",
     label: "Build my customer Card",
     description: "Create or improve the living relationship hub people see when they tap.",
-    href: "/dashboard/card",
+    href: CARD_STUDIO_AUTHORING_PATH,
     nextSteps: [
       "Add your logo and contact actions",
       "Preview on the phone frame",

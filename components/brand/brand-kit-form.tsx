@@ -26,6 +26,7 @@ import {
 } from "@/lib/brand/contact-profile";
 import { defaultEndExperience, parseEndExperience, type EndExperience } from "@/lib/end-experience";
 import { cn } from "@/lib/utils";
+import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 
 export type BrandLinkItem = {
   id: string;
@@ -279,7 +280,7 @@ export function BrandKitForm({
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <a href="/dashboard/card">
+          <a href={CARD_STUDIO_AUTHORING_PATH}>
             <Button type="button" variant="outline" size="sm">
               Edit Tap Card
             </Button>
