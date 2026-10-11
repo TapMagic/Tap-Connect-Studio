@@ -1,4 +1,3 @@
-import { CardAuthoringWorkspace } from "@/components/fusion/card/card-authoring-workspace";
 import { CardStudioReconstitutionWorkspace } from "@/components/fusion/card/reconstitution/card-studio-reconstitution-workspace";
 import { isPlatformAdmin } from "@/lib/auth";
 import { parseBrandContactProfile } from "@/lib/brand/contact-profile";
@@ -38,11 +37,6 @@ export default async function TapCardEditPage({
   const freeformEnabled = isFeatureEnabled("card.builder.freeform", {
     overrides,
     internalOperator: isPlatformAdmin(user),
-  });
-  const reconstitutedStudioEnabled = isFeatureEnabled("card.studio.reconstitution_v1", {
-    overrides,
-    internalOperator: isPlatformAdmin(user),
-    subject: { userId: user.id, businessId: business.id },
   });
   const brandKit = await prisma.brandKit.findUnique({ where: { businessId: business.id } });
   const cardCreativeDocuments = await prisma.cardCreativeDocument.findMany({ where: { businessId: business.id, archivedAt: null }, orderBy: { updatedAt: "desc" } });
@@ -242,31 +236,31 @@ export default async function TapCardEditPage({
     doneHref,
   };
 
-  if (reconstitutedStudioEnabled) {
-    const fontFamily = brandKit?.fontStyle === "PREMIUM" || brandKit?.fontStyle === "CLASSIC"
-      ? '"Playfair Display", Georgia, serif'
-      : brandKit?.fontStyle === "PLAYFUL"
-        ? '"Montserrat", ui-sans-serif, system-ui, sans-serif'
-        : '"Inter", ui-sans-serif, system-ui, sans-serif';
-    return (
-      <CardStudioReconstitutionWorkspace
-        {...workspaceProps}
-        buttonFamilyCatalog={buildStudioButtonFamilyCatalog(signatureEntitlementKeys)}
-        brandPreviewContext={{
-          businessName: business.name,
-          logoUrl: business.logoUrl,
-          primaryColor: brandKit?.primaryColor,
-          secondaryColor: brandKit?.secondaryColor,
-          accentColor: brandKit?.accentColor,
-          backgroundColor: brandKit?.backgroundColor,
-          textColor: brandKit?.textColor,
-          headingFontFamily: fontFamily,
-          bodyFontFamily: fontFamily,
-          contactPhone: profile.phone || business.phone,
-        }}
-      />
-    );
-  }
+  const fontFamily = brandKit?.fontStyle === "PREMIUM" || brandKit?.fontStyle === "CLASSIC"
+    ? '"Playfair Display", Georgia, serif'
+    : brandKit?.fontStyle === "PLAYFUL"
+      ? '"Montserrat", ui-sans-serif, system-ui, sans-serif'
+      : '"Inter", ui-sans-serif, system-ui, sans-serif';
 
-  return <CardAuthoringWorkspace {...workspaceProps} />;
+  // The reconstituted cockpit is the canonical production Experience editor.
+  // Keep document selection and persistence production-backed; never fall back
+  // to the legacy shell when an instance-local rollout override disappears.
+  return (
+    <CardStudioReconstitutionWorkspace
+      {...workspaceProps}
+      buttonFamilyCatalog={buildStudioButtonFamilyCatalog(signatureEntitlementKeys)}
+      brandPreviewContext={{
+        businessName: business.name,
+        logoUrl: business.logoUrl,
+        primaryColor: brandKit?.primaryColor,
+        secondaryColor: brandKit?.secondaryColor,
+        accentColor: brandKit?.accentColor,
+        backgroundColor: brandKit?.backgroundColor,
+        textColor: brandKit?.textColor,
+        headingFontFamily: fontFamily,
+        bodyFontFamily: fontFamily,
+        contactPhone: profile.phone || business.phone,
+      }}
+    />
+  );
 }

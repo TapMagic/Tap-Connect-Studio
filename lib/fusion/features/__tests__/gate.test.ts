@@ -58,37 +58,38 @@ describe("feature gate helpers", () => {
 });
 
 describe("feature gate: deterministic scoped overrides", () => {
+  const scopedFeatureId = "journey.tapflow";
   const overrides = [
-    { featureId: "card.studio.reconstitution_v1", enabled: true, scope: "global" },
-    { featureId: "card.studio.reconstitution_v1", enabled: false, scope: "business:biz-1" },
-    { featureId: "card.studio.reconstitution_v1", enabled: true, scope: "cohort:pilot" },
-    { featureId: "card.studio.reconstitution_v1", enabled: false, scope: "user:user-1" },
+    { featureId: scopedFeatureId, enabled: true, scope: "global" },
+    { featureId: scopedFeatureId, enabled: false, scope: "business:biz-1" },
+    { featureId: scopedFeatureId, enabled: true, scope: "cohort:pilot" },
+    { featureId: scopedFeatureId, enabled: false, scope: "user:user-1" },
   ];
 
   it("uses user then cohort then business then global precedence", () => {
     assert.equal(
-      isFeatureEnabled("card.studio.reconstitution_v1", {
+      isFeatureEnabled(scopedFeatureId, {
         overrides,
         subject: { userId: "user-1", businessId: "biz-1", cohortIds: ["pilot"] },
       }),
       false
     );
     assert.equal(
-      isFeatureEnabled("card.studio.reconstitution_v1", {
+      isFeatureEnabled(scopedFeatureId, {
         overrides,
         subject: { userId: "user-2", businessId: "biz-1", cohortIds: ["pilot"] },
       }),
       true
     );
     assert.equal(
-      isFeatureEnabled("card.studio.reconstitution_v1", {
+      isFeatureEnabled(scopedFeatureId, {
         overrides,
         subject: { userId: "user-2", businessId: "biz-1" },
       }),
       false
     );
     assert.equal(
-      isFeatureEnabled("card.studio.reconstitution_v1", {
+      isFeatureEnabled(scopedFeatureId, {
         overrides,
         subject: { userId: "user-2", businessId: "biz-2" },
       }),
@@ -96,9 +97,9 @@ describe("feature gate: deterministic scoped overrides", () => {
     );
   });
 
-  it("is default-off when no matching scoped override exists", () => {
+  it("uses the registered default when no matching scoped override exists", () => {
     assert.equal(
-      isFeatureEnabled("card.studio.reconstitution_v1", {
+      isFeatureEnabled(scopedFeatureId, {
         overrides: overrides.filter((override) => override.scope !== "global"),
         subject: { userId: "other", businessId: "other" },
       }),
@@ -108,8 +109,8 @@ describe("feature gate: deterministic scoped overrides", () => {
 
   it("ignores an unrelated scoped override instead of treating it as global", () => {
     assert.equal(
-      isFeatureEnabled("card.studio.reconstitution_v1", {
-        overrides: [{ featureId: "card.studio.reconstitution_v1", enabled: true, scope: "user:someone-else" }],
+      isFeatureEnabled(scopedFeatureId, {
+        overrides: [{ featureId: scopedFeatureId, enabled: true, scope: "user:someone-else" }],
         subject: { userId: "user-1" },
       }),
       false
