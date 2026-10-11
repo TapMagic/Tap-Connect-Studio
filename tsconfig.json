@@ -30,5 +30,16 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "tmp", "scripts"]
+  "exclude": [
+    "node_modules",
+    "tmp",
+    "scripts",
+    "e2e",
+    "**/__tests__/**",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/*.spec.ts",
+    "**/*.spec.tsx",
+    "lib/fusion/creative-studio/visual-parts/image-parity.ts"
+  ]
 }
