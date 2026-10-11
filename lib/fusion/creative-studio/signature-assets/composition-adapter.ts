@@ -208,6 +208,7 @@ function nodeForInstance(
         iconViewBox:instance.semanticIconRef.viewBox,
         iconRenderMode:instance.semanticIconRef.renderMode,
         iconAccessibleLabel:instance.semanticIconRef.accessibleLabel,
+        signatureIconCompatibility:instance.semanticIconRef.compatibility,
         signatureIconTreatment:instance.iconTreatment,
       }:{}),
     },

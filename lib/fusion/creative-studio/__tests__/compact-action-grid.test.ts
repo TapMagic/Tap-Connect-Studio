@@ -7,7 +7,12 @@ import {
   createCompactActionTile,
   readCompactActionGrid,
 } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
-import { loveAndTheftMasteredPickSource } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
+import {
+  EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID,
+  EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS,
+  loveAndTheftMasteredPickSource,
+  loveAndTheftPickInsertResolution,
+} from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 
 describe("Compact Action Tile / Grid authority", () => {
   it("supports only 2, 3, or 4 columns and never creates a five-column Grid", () => {
@@ -37,5 +42,25 @@ describe("Compact Action Tile / Grid authority", () => {
     assert.equal(tile.locked, true);
     assert.equal(tile.new, true);
     assert.equal(tile.lockedBehavior?.mode, "cta");
+  });
+
+  it("resolves mastered artwork first, approved engraved semantics second, and everything else to blank", () => {
+    assert.equal(loveAndTheftPickInsertResolution("simple-icons:spotify").kind, "mastered");
+    assert.equal(loveAndTheftPickInsertResolution("lucide:library-big").kind, "engraved-fallback");
+    assert.equal(loveAndTheftPickInsertResolution("iconify:cheap-generic-badge").kind, "blank");
+    assert.equal(loveAndTheftPickInsertResolution(EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID).kind, "blank");
+  });
+
+  it("offers the complete approved Pick Insert library with More Music represented by a library, not a star", () => {
+    const ids = EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.map((asset) => asset.canonicalId);
+    for (const id of [
+      "simple-icons:spotify", "simple-icons:apple-music", "lucide:music-2", "lucide:play",
+      "simple-icons:instagram", "simple-icons:facebook", "simple-icons:bandsintown", "lucide:microphone",
+      "lucide:lock", "lucide:calendar-days", "lucide:shirt", "lucide:ticket", "lucide:library-big",
+      "lucide:album", "lucide:disc-3", "lucide:map-pin", "lucide:globe", "lucide:phone",
+      "lucide:star", "lucide:heart",
+    ]) assert.ok(ids.includes(id), id);
+    assert.equal(EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.find((asset) => asset.canonicalId === "lucide:library-big")?.accessibleLabel, "More Music / Music Library");
+    assert.notEqual(ids.indexOf("lucide:library-big"), ids.indexOf("lucide:star"));
   });
 });

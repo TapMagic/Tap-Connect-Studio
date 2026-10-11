@@ -6,7 +6,7 @@ import { PremiumIcon } from "@/components/design/premium-icon";
 import type { CompactActionGridState, CompactActionTile } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import {
   EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE,
-  loveAndTheftMasteredPickSource,
+  loveAndTheftPickInsertResolution,
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 import { cn } from "@/lib/utils";
 
@@ -16,12 +16,13 @@ export function LoveAndTheftPickVisual({ iconAssetRef, active = false, compact =
   compact?: boolean;
   className?: string;
 }) {
-  const mastered = loveAndTheftMasteredPickSource(iconAssetRef);
-  const fallbackIcon = iconAssetRef.includes(":") ? iconAssetRef.split(":").at(-1)! : iconAssetRef;
+  const insert = loveAndTheftPickInsertResolution(iconAssetRef);
+  const mastered = insert.kind === "mastered" ? insert.sourceAsset : null;
   return <span
     className={cn("relative block aspect-square overflow-visible", className)}
     data-love-and-theft-pick="true"
     data-mastered-pick={mastered ? "true" : "false"}
+    data-pick-insert-kind={insert.kind}
     data-pick-active={active ? "true" : "false"}
   >
     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -32,11 +33,12 @@ export function LoveAndTheftPickVisual({ iconAssetRef, active = false, compact =
       className="absolute inset-0 h-full w-full select-none object-contain"
       style={{ filter: active ? "brightness(1.13) saturate(1.08) drop-shadow(0 4px 8px rgba(0,0,0,.72))" : "brightness(.88) saturate(.84) drop-shadow(0 4px 7px rgba(0,0,0,.68))" }}
     />
-    {!mastered ? <span
-      className="absolute left-1/2 top-[43%] grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-[#27190b]"
+    {insert.kind === "engraved-fallback" ? <span
+      className="absolute left-1/2 top-[43%] grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-[#27190b] [&_svg]:h-full [&_svg]:w-full"
       style={{ width: compact ? "32%" : "34%", height: compact ? "32%" : "34%", filter: "drop-shadow(0 1px 0 rgba(255,224,148,.42))" }}
       aria-hidden
-    ><PremiumIcon icon={fallbackIcon} sizePx={compact ? 13 : 20} /></span> : null}
+      dangerouslySetInnerHTML={{ __html: insert.icon.body }}
+    /> : null}
   </span>;
 }
 

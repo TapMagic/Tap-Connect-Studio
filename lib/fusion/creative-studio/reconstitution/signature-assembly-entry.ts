@@ -11,6 +11,10 @@ import { CANONICAL_SEMANTIC_ICON_ASSETS } from "../icon-asset";
 import { reconcileActionIntent } from "@/lib/fusion/card/action-intent-presentation";
 import { createIdentityVisualResourceFitContract, createStudioSemanticResourceSlot, type StudioSemanticResource } from "../platform/semantic-resource-slot";
 import { compatibleFamilyAppearanceOptions } from "../platform/family-appearance";
+import {
+  EVERENCORE_LOVE_AND_THEFT_FAMILY_ID,
+  EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS,
+} from "../signature-assets/everencore-love-and-theft";
 
 function semanticResource(
   value: SignatureAssemblyAuthoringState["identityContent"],
@@ -185,7 +189,11 @@ export function selectedStructuredAssembly(
       previewSrc: plug.sourceAsset,
       previewAlt: `${plug.label} plug preview`,
     })),
-    compatibleSemanticIcons: activePresentation?.capabilities?.semanticIcon?.supported?CANONICAL_SEMANTIC_ICON_ASSETS:[],
+    compatibleSemanticIcons: activePresentation?.capabilities?.semanticIcon?.supported
+      ? state.input.familyId === EVERENCORE_LOVE_AND_THEFT_FAMILY_ID
+        ? EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS
+        : CANONICAL_SEMANTIC_ICON_ASSETS
+      : [],
     outputOwnership: "recipe-governed",
     compiler: "deterministic",
     mutationReadiness: "ready",

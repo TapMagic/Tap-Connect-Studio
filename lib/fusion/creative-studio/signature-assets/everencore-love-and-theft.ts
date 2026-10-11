@@ -8,6 +8,7 @@ import {
 } from "./types";
 import { SIGNATURE_ASSEMBLY_CONTRACT_IDS, type SignatureAssemblyRecipe, type SignaturePresentationContract } from "./layout-recipes";
 import type { CuratedFamilyVisualAcceptanceContract, CuratedWholeObjectCheck } from "./visual-acceptance";
+import { CANONICAL_SEMANTIC_ICON_ASSETS, canonicalIconAsset, type IconAsset } from "../icon-asset";
 
 export const EVERENCORE_LOVE_AND_THEFT_FAMILY_ID = "everencore-love-and-theft";
 export const EVERENCORE_LOVE_AND_THEFT_VERSION = "1.0.0" as const;
@@ -27,6 +28,7 @@ const BAR_MASTER_VARIANTS = {
 } as const;
 const PICK_MASTER_ROOT = `${EVERENCORE_LOVE_AND_THEFT_V1_ROOT}/03-pick-plugs`;
 export const EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE = `${PICK_MASTER_ROOT}/EE-LT-PICK-000_blank.png`;
+export const EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID = "tapconnect:blank" as const;
 export const EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS = {
   "simple-icons:spotify":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-002_spotify.png`,sourceSha256:"f0bcee3bd22e4658db0541d1896280262b6e12acb9b292775cb64cbf80831cfa"},
   "simple-icons:apple-music":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-003_music-note.png`,sourceSha256:"bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50"},
@@ -40,6 +42,7 @@ export const EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS = {
   "lucide:shirt":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-011_merch.png`,sourceSha256:"5961ad223428a93a704dd04617fdec1e51cd1c8f9d4149a297a9905713fda4b1"},
   "lucide:ticket":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-015_ticket.png`,sourceSha256:"d1878231e3eb2a582edcfdb6440709fb1d389c0c78790f594f53d9f6778c6e8f"},
   "lucide:play":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-004_play.png`,sourceSha256:"2188d3052fa6c83441f8fba4869cb101f0c8a30105ebb107ab1e836223c20b69"},
+  "lucide:music-2":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-003_music-note.png`,sourceSha256:"bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50"},
 } as const;
 
 /** Artist-presentation adapter only. Generic Compact Action state stores IconAsset refs, never family artwork. */
@@ -48,6 +51,31 @@ export function loveAndTheftMasteredPickSource(iconAssetRef: string): string | n
   return EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS[
     normalized as keyof typeof EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS
   ]?.sourceAsset ?? null;
+}
+
+const LOVE_AND_THEFT_INSERT_ORDER = [
+  "simple-icons:spotify", "simple-icons:apple-music", "lucide:music-2", "lucide:play", "simple-icons:youtube",
+  "simple-icons:instagram", "simple-icons:facebook", "simple-icons:bandsintown", "lucide:microphone", "lucide:lock",
+  "lucide:calendar-days", "lucide:shirt", "lucide:ticket", "lucide:library-big", "lucide:album", "lucide:disc-3",
+  "lucide:map-pin", "lucide:globe", "lucide:phone", "lucide:star", "lucide:heart",
+] as const;
+
+/** Approved semantic inserts, ordered with Love & Theft mastered variants before engraved fallbacks. */
+export const EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS: readonly IconAsset[] = LOVE_AND_THEFT_INSERT_ORDER.flatMap(
+  (canonicalId) => CANONICAL_SEMANTIC_ICON_ASSETS.find((asset) => asset.canonicalId === canonicalId) ?? [],
+);
+
+export function loveAndTheftPickInsertResolution(iconAssetRef: string):
+  | { kind: "mastered"; sourceAsset: string }
+  | { kind: "engraved-fallback"; icon: IconAsset }
+  | { kind: "blank"; sourceAsset: typeof EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE } {
+  const mastered = loveAndTheftMasteredPickSource(iconAssetRef);
+  if (mastered) return { kind: "mastered", sourceAsset: mastered };
+  const approved = canonicalIconAsset(iconAssetRef);
+  if (approved && EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.some((asset) => asset.canonicalId === approved.canonicalId)) {
+    return { kind: "engraved-fallback", icon: approved };
+  }
+  return { kind: "blank", sourceAsset: EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE };
 }
 const FAN_REFLECTION = {sourceAsset:`${EVERENCORE_LOVE_AND_THEFT_ROOT}/source/fan-reflection.svg`,sourceSha256:"1e6156471e4261d55678aef5f71b81dd18cec8f6ad5e2abf90e5489bbf13d621",defaultIntensity:48,minIntensity:0,maxIntensity:100} as const;
 

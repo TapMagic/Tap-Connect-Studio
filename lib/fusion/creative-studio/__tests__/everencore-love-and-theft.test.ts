@@ -97,6 +97,9 @@ test("the shared semantic catalog combines approved Lucide semantics with all si
   assert.equal(CANONICAL_PLATFORM_ICON_ASSETS.length,6);
   assert.ok(CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.some((asset)=>asset.canonicalId==="lucide:shirt"));
   assert.ok(CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.some((asset)=>asset.canonicalId==="lucide:calendar-days"));
+  assert.ok(CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.some((asset)=>asset.canonicalId==="lucide:library-big"&&asset.accessibleLabel==="More Music / Music Library"));
+  assert.ok(CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.some((asset)=>asset.canonicalId==="lucide:album"));
+  assert.ok(CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.some((asset)=>asset.canonicalId==="lucide:disc-3"));
   assert.equal(CANONICAL_SEMANTIC_ICON_ASSETS.length,CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.length+6);
 });
 
@@ -255,6 +258,10 @@ test("the shared authoring contract exposes optional plug mode and persists body
   const capability=createCuratedAuthoringCapability(descriptor!,hero.input.actions[0].id);
   assert.ok(capability.groups.flatMap((group)=>group.controls).some((control)=>control.id==="plug-mode"));
   assert.ok(capability.groups.flatMap((group)=>group.controls).some((control)=>control.id==="background-reflection"&&control.type==="precision"));
+  const insertControl=capability.groups.flatMap((group)=>group.controls).find((control)=>control.id==="semantic-icon");
+  assert.equal(insertControl?.label,"Icon / Insert");
+  assert.ok(insertControl?.options?.some((option)=>option.id==="__blank__"&&option.label==="Blank"));
+  assert.ok(insertControl?.options?.some((option)=>option.id==="lucide:library-big"&&option.label==="More Music / Music Library"));
   const mutation=curatedCommandPayloadToMutation("curated.action.update",{actionId:hero.input.actions[0].id,controlId:"plug-mode",value:"body-only"},descriptor!);
   assert.ok(mutation);
   const result=applySignatureAssemblyMutation(compiled.composition.block,mutation!);
@@ -269,6 +276,8 @@ test("the shared authoring contract exposes optional plug mode and persists body
   const reflectedResult=applySignatureAssemblyMutation(result.block,reflected!);
   assert.equal(reflectedResult.ok,true);
   if (reflectedResult.ok) assert.equal(readSignatureAssemblyAuthoringState(reflectedResult.block)?.input.actions[0].backgroundReflectionIntensity,82);
+  const blanked=curatedCommandPayloadToMutation("curated.action.update",{actionId:hero.input.actions[0].id,controlId:"semantic-icon",value:"__blank__"},descriptor!);
+  assert.deepEqual(blanked,{type:"update-action",actionId:hero.input.actions[0].id,patch:{semanticIconRef:undefined}});
 });
 
 test("label, sublabel, accessible label, semantic icon, plug side, and treatment survive stored-state reload", () => {

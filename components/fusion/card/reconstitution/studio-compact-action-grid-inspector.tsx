@@ -15,6 +15,11 @@ import {
 import type { ButtonInspectorSection } from "./studio-selection-toolbar";
 import { StudioIconDiscovery } from "./studio-icon-discovery";
 import { StudioInternalPagePicker } from "./studio-internal-page-picker";
+import {
+  EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID,
+  EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS,
+  loveAndTheftMasteredPickSource,
+} from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 
 const SECTIONS: Array<{ id: ButtonInspectorSection; label: string }> = [
   { id: "content", label: "Tiles" }, { id: "action", label: "Action" }, { id: "appearance", label: "Look" },
@@ -72,7 +77,7 @@ function ContentEditor({ state, selected, commit, updateTile, onSelect }: { stat
     <Field label="Label"><input value={selected.label} onChange={(event) => updateTile({ label: event.target.value }, "Changed Compact Action Tile label")} className={fieldClass} data-testid="compact-tile-label" /></Field>
     <Field label="Optional sublabel"><input value={selected.sublabel || ""} onChange={(event) => updateTile({ sublabel: event.target.value || undefined }, "Changed Compact Action Tile sublabel")} className={fieldClass} data-testid="compact-tile-sublabel" /></Field>
     <div className="grid grid-cols-2 gap-2"><button type="button" disabled={index <= 0} onClick={() => { const tiles=[...state.tiles]; const [m]=tiles.splice(index,1); tiles.splice(index-1,0,m!); commit({...state,tiles},"Moved Compact Action Tile up"); }} className={buttonClass}><ArrowUp className="h-3.5 w-3.5" />Earlier</button><button type="button" disabled={index >= state.tiles.length - 1} onClick={() => { const tiles=[...state.tiles]; const [m]=tiles.splice(index,1); tiles.splice(index+1,0,m!); commit({...state,tiles},"Moved Compact Action Tile down"); }} className={buttonClass}><ArrowDown className="h-3.5 w-3.5" />Later</button></div>
-    <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => { const tile=createCompactActionTile({label:"New action",iconAssetRef:"lucide:star",destinationRef:"https://example.com"}); onSelect(tile.componentId); commit({...state,tiles:[...state.tiles,tile]},"Added Compact Action Tile"); }} className={buttonClass}><Plus className="h-3.5 w-3.5" />Add Tile</button><button type="button" disabled={state.tiles.length <= 1} onClick={() => { const tiles=state.tiles.filter((tile)=>tile.componentId!==selected.componentId); onSelect(tiles[Math.min(index,tiles.length-1)]?.componentId || ""); commit({...state,tiles},"Removed Compact Action Tile"); }} className={`${buttonClass} text-rose-200`}><Trash2 className="h-3.5 w-3.5" />Remove</button></div>
+    <div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => { const tile=createCompactActionTile({label:"New action",iconAssetRef:state.presentation === "everencore-love-and-theft-pick" ? EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID : "lucide:star",destinationRef:"https://example.com"}); onSelect(tile.componentId); commit({...state,tiles:[...state.tiles,tile]},"Added Compact Action Tile"); }} className={buttonClass}><Plus className="h-3.5 w-3.5" />Add Tile</button><button type="button" disabled={state.tiles.length <= 1} onClick={() => { const tiles=state.tiles.filter((tile)=>tile.componentId!==selected.componentId); onSelect(tiles[Math.min(index,tiles.length-1)]?.componentId || ""); commit({...state,tiles},"Removed Compact Action Tile"); }} className={`${buttonClass} text-rose-200`}><Trash2 className="h-3.5 w-3.5" />Remove</button></div>
   </div>;
 }
 
@@ -87,8 +92,19 @@ function ActionEditor({ model, selected, updateTile }: { model: CardEditorLiveMo
 }
 
 function AppearanceEditor({ state, commit, selected, updateTile }: { state: CompactActionGridState; commit: (next: CompactActionGridState, label: string) => void; selected: CompactActionTile | null; updateTile: (patch: Partial<CompactActionTile>, label: string) => void }) {
+  const loveAndTheft = state.presentation === "everencore-love-and-theft-pick";
   return <div className="space-y-3"><Field label="Presentation"><select value={state.presentation} onChange={(event) => commit({ ...state, presentation: event.target.value === "neutral-icon" ? "neutral-icon" : "everencore-love-and-theft-pick" }, "Changed Compact Action Grid presentation")} className={fieldClass}><option value="everencore-love-and-theft-pick">Love & Theft mastered pick</option><option value="neutral-icon">Neutral icon tile</option></select></Field>
-    {selected ? <><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-white/38">Selected Tile icon</p><StudioIconDiscovery currentIcon={selected.iconAssetRef} intentQuery={selected.actionType} onSelect={(asset) => updateTile({ iconAssetRef: asset.canonicalId }, `Changed ${selected.label} icon`)} /></> : null}
+    {selected ? <StudioIconDiscovery
+      currentIcon={selected.iconAssetRef}
+      intentQuery={selected.actionType}
+      approvedAssets={loveAndTheft ? EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS : undefined}
+      allowBlank={loveAndTheft}
+      onSelectBlank={loveAndTheft ? () => updateTile({ iconAssetRef: EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID }, `Changed ${selected.label} insert to blank`) : undefined}
+      label={loveAndTheft ? "Icon / Insert" : "Selected Tile icon"}
+      description={loveAndTheft ? "Search mastered picks and approved engraved semantic inserts." : undefined}
+      sourceLabelForAsset={loveAndTheft ? (asset) => loveAndTheftMasteredPickSource(asset.canonicalId) ? "Love & Theft master" : "Engraved fallback" : undefined}
+      onSelect={(asset) => updateTile({ iconAssetRef: asset.canonicalId }, `Changed ${selected.label} icon`)}
+    /> : null}
     <Field label="Label font"><input value={state.labelFontFamily} onChange={(event) => commit({ ...state, labelFontFamily: event.target.value }, "Changed Compact Action Grid typography")} className={fieldClass} /></Field>
     <div className="grid grid-cols-2 gap-2"><Field label="Label size"><input type="number" min={9} max={28} value={state.labelFontSizePx} onChange={(event) => commit({ ...state, labelFontSizePx: Number(event.target.value) }, "Changed Compact Action Grid label size")} className={fieldClass} /></Field><Field label="Weight"><input type="number" min={300} max={900} step={100} value={state.labelFontWeight} onChange={(event) => commit({ ...state, labelFontWeight: Number(event.target.value) }, "Changed Compact Action Grid label weight")} className={fieldClass} /></Field></div>
   </div>;

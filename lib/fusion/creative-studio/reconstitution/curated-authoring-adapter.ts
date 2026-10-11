@@ -329,8 +329,8 @@ export function createCuratedAuthoringCapability(
             options: assembly.compatiblePlugs.map((plug) => ({ id: plug.componentId, label: plug.label, previewRef: plug.previewSrc, availability: "enabled" as const, compatibilityTags: [assembly.recipeId] })),
           }]:[]),
           ...(capabilities.supportsSemanticIcon&&plugActive?[{
-            id:"semantic-icon",label:"Semantic icon",description:"Canonical shared artwork; the family presentation owns its treatment.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId,commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
-            options:compatibleSemanticIcons.map((icon)=>({id:icon.canonicalId,label:icon.accessibleLabel??icon.iconName,previewRef:icon.body,availability:"enabled" as const,compatibilityTags:icon.compatibility})),
+            id:"semantic-icon",label:"Icon / Insert",description:"Choose a semantic insert directly. An exact family master wins; approved artwork receives the family engraved treatment; Blank remains intentional.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId??"__blank__",commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
+            options:[{id:"__blank__",label:"Blank",availability:"enabled" as const},...compatibleSemanticIcons.map((icon)=>({id:icon.canonicalId,label:icon.accessibleLabel??icon.iconName,previewRef:icon.body,availability:"enabled" as const,compatibilityTags:icon.compatibility}))],
           }]:[]),
           ...(capabilities.plugSide==="authorable"&&plugActive&&!capabilities.plugOptional?[{
             id:"plug-side",label:"Plug side",type:"segmented" as const,value:active.plugSide??capabilities.allowedPlugSides?.[0]??"left",commandId:CURATED_AUTHORING_COMMANDS.updateAction,
@@ -436,7 +436,7 @@ export function curatedCommandPayloadToMutation(
                       : payload.value==="plug" ? {plugEnabled:true}
                         : null
                 : payload.controlId === "plug" || payload.controlId === "plug-presentation" ? assembly?.capabilities?.supportsSemanticIcon ? { plugPresentationId: payload.value } : { plugComponentId: payload.value }
-                  : payload.controlId === "semantic-icon" && assembly?.capabilities?.supportsSemanticIcon ? { semanticIconRef: assembly.compatibleSemanticIcons?.find((icon)=>icon.canonicalId===payload.value) }
+                  : payload.controlId === "semantic-icon" && assembly?.capabilities?.supportsSemanticIcon ? { semanticIconRef: payload.value === "__blank__" ? undefined : assembly.compatibleSemanticIcons?.find((icon)=>icon.canonicalId===payload.value) }
                     : payload.controlId === "plug-side" && assembly?.capabilities?.plugSide==="authorable" && (payload.value==="left"||payload.value==="right") ? { plugSide:payload.value as "left"|"right" }
                   : null;
     return patch ? { type: "update-action", actionId: payload.actionId, patch } : null;
