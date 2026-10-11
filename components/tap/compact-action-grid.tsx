@@ -3,6 +3,7 @@
 import { useState, type CSSProperties } from "react";
 import { LockKeyhole, Sparkles } from "lucide-react";
 import { PremiumIcon } from "@/components/design/premium-icon";
+import { LoveAndTheftFallbackPickInsert } from "@/components/tap/love-and-theft-fallback-pick-insert";
 import type { CompactActionGridState, CompactActionTile } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import {
   EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE,
@@ -10,19 +11,21 @@ import {
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 import { cn } from "@/lib/utils";
 
-export function LoveAndTheftPickVisual({ iconAssetRef, active = false, compact = false, className }: {
+export function LoveAndTheftPickVisual({ iconAssetRef, insertConstruction, active = false, compact = false, className }: {
   iconAssetRef: string;
+  insertConstruction?: CompactActionTile["insertConstruction"];
   active?: boolean;
   compact?: boolean;
   className?: string;
 }) {
-  const insert = loveAndTheftPickInsertResolution(iconAssetRef);
+  const insert = loveAndTheftPickInsertResolution(iconAssetRef, insertConstruction);
   const mastered = insert.kind === "mastered" ? insert.sourceAsset : null;
   return <span
     className={cn("relative block aspect-square overflow-visible", className)}
     data-love-and-theft-pick="true"
     data-mastered-pick={mastered ? "true" : "false"}
     data-pick-insert-kind={insert.kind}
+    data-pick-insert-construction={insert.kind === "blank" ? "blank" : insert.construction}
     data-pick-active={active ? "true" : "false"}
   >
     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -33,11 +36,12 @@ export function LoveAndTheftPickVisual({ iconAssetRef, active = false, compact =
       className="absolute inset-0 h-full w-full select-none object-contain"
       style={{ filter: active ? "brightness(1.13) saturate(1.08) drop-shadow(0 4px 8px rgba(0,0,0,.72))" : "brightness(.88) saturate(.84) drop-shadow(0 4px 7px rgba(0,0,0,.68))" }}
     />
-    {insert.kind === "engraved-fallback" ? <span
-      className="absolute left-1/2 top-[43%] grid -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full text-[#27190b] [&_svg]:h-full [&_svg]:w-full"
-      style={{ width: compact ? "32%" : "34%", height: compact ? "32%" : "34%", filter: "drop-shadow(0 1px 0 rgba(255,224,148,.42))" }}
-      aria-hidden
-      dangerouslySetInnerHTML={{ __html: insert.icon.body }}
+    {insert.kind === "engraved-fallback" ? <LoveAndTheftFallbackPickInsert
+      canonicalIconId={insert.icon.canonicalId}
+      construction={insert.construction}
+      iconSvg={insert.icon.body}
+      renderMode={insert.icon.renderMode}
+      compact={compact}
     /> : null}
   </span>;
 }
@@ -107,7 +111,7 @@ function CompactActionTileView({ tile, state, editMode, expanded, onLocked }: {
   const body = <>
     <span className="relative block overflow-visible" style={{ width: pickSize, maxWidth: "100%" }}>
       {state.presentation === "everencore-love-and-theft-pick"
-        ? <LoveAndTheftPickVisual iconAssetRef={locked ? "lucide:lock" : tile.iconAssetRef} active={tile.active} compact={state.columns === 4} className="w-full" />
+        ? <LoveAndTheftPickVisual iconAssetRef={locked ? "lucide:lock" : tile.iconAssetRef} insertConstruction={locked ? undefined : tile.insertConstruction} active={tile.active} compact={state.columns === 4} className="w-full" />
         : <span className={cn("mx-auto grid aspect-square place-items-center rounded-[30%] border text-white shadow-[inset_0_1px_0_rgba(255,255,255,.24),0_8px_18px_rgba(0,0,0,.34)]", tile.active ? "border-amber-200/65 bg-[linear-gradient(145deg,#d7ad58,#6f4519)]" : "border-white/18 bg-[linear-gradient(145deg,#263244,#080b10)]")} style={{ width: neutralIconSize }} aria-hidden><PremiumIcon icon={locked ? "lock" : tile.iconAssetRef.split(":").at(-1) || tile.iconAssetRef} sizePx={state.columns === 4 ? 20 : 24} /></span>}
       {tile.new ? <span className="absolute right-0 top-0 z-[2] rounded-full border border-[#f5d68c]/55 bg-[#26190c]/94 px-1.5 py-0.5 text-[7px] font-black tracking-[.12em] text-[#ffe8ac] shadow-md">NEW</span> : null}
       {locked ? <span className="absolute bottom-[6%] right-[4%] z-[2] grid h-5 w-5 place-items-center rounded-full border border-[#f5d68c]/45 bg-[#1b1209]/94 text-[#f5d68c] shadow"><LockKeyhole className="h-2.5 w-2.5" /></span> : null}

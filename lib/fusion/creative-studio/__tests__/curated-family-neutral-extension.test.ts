@@ -129,6 +129,8 @@ test("Curated material roles project through the shared Material engine and cano
   assert.match(renderer,/curatedMaterialSurfaceStyle\(surfaceRole\?\.materialId\)/);
   assert.match(renderer,/signature-master__material-surface/);
   assert.match(renderer,/signature-master__semantic-icon/);
+  assert.match(renderer,/LoveAndTheftFallbackPickInsert/);
+  assert.match(renderer,/everencore-love-and-theft/);
   assert.match(renderer,/approvedSemanticIcon&&iconSvg/);
 });
 

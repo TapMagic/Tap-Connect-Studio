@@ -17,7 +17,10 @@ import { StudioIconDiscovery } from "./studio-icon-discovery";
 import { StudioInternalPagePicker } from "./studio-internal-page-picker";
 import {
   EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID,
+  EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS,
   EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS,
+  loveAndTheftFallbackInsertConstruction,
+  loveAndTheftMasteredPickConstruction,
   loveAndTheftMasteredPickSource,
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 
@@ -101,10 +104,11 @@ function AppearanceEditor({ state, commit, selected, updateTile }: { state: Comp
       allowBlank={loveAndTheft}
       onSelectBlank={loveAndTheft ? () => updateTile({ iconAssetRef: EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID }, `Changed ${selected.label} insert to blank`) : undefined}
       label={loveAndTheft ? "Icon / Insert" : "Selected Tile icon"}
-      description={loveAndTheft ? "Search mastered picks and approved engraved semantic inserts." : undefined}
-      sourceLabelForAsset={loveAndTheft ? (asset) => loveAndTheftMasteredPickSource(asset.canonicalId) ? "Love & Theft master" : "Engraved fallback" : undefined}
-      onSelect={(asset) => updateTile({ iconAssetRef: asset.canonicalId }, `Changed ${selected.label} icon`)}
+      description={loveAndTheft ? "Search certified masters and approved family fallback semantics." : undefined}
+      sourceLabelForAsset={loveAndTheft ? (asset) => loveAndTheftMasteredPickSource(asset.canonicalId) ? "Love & Theft master" : "Family fallback" : undefined}
+      onSelect={(asset) => updateTile({ iconAssetRef: asset.canonicalId, insertConstruction: undefined }, `Changed ${selected.label} icon`)}
     /> : null}
+    {selected && loveAndTheft && selected.iconAssetRef !== EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID ? loveAndTheftMasteredPickSource(selected.iconAssetRef) ? <div className="rounded-xl border border-[#d7ad58]/20 bg-[#d7ad58]/[.06] p-3 text-[10px] leading-4 text-[#ead59f]"><strong className="block text-white/78">Certified construction</strong>{EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.find((option) => option.id === loveAndTheftMasteredPickConstruction(selected.iconAssetRef))?.label}. The immutable master remains unchanged.</div> : <Field label="Insert construction"><select value={selected.insertConstruction ?? loveAndTheftFallbackInsertConstruction(selected.iconAssetRef)} onChange={(event) => updateTile({ insertConstruction: event.target.value as CompactActionTile["insertConstruction"] }, `Changed ${selected.label} insert construction`)} className={fieldClass} data-testid="compact-tile-insert-construction">{EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</select><span className="mt-1 block text-[9px] leading-4 text-white/35">Defaults are derived from semantic fit; choose another certified family construction when the presentation calls for it.</span></Field> : null}
     <Field label="Label font"><input value={state.labelFontFamily} onChange={(event) => commit({ ...state, labelFontFamily: event.target.value }, "Changed Compact Action Grid typography")} className={fieldClass} /></Field>
     <div className="grid grid-cols-2 gap-2"><Field label="Label size"><input type="number" min={9} max={28} value={state.labelFontSizePx} onChange={(event) => commit({ ...state, labelFontSizePx: Number(event.target.value) }, "Changed Compact Action Grid label size")} className={fieldClass} /></Field><Field label="Weight"><input type="number" min={300} max={900} step={100} value={state.labelFontWeight} onChange={(event) => commit({ ...state, labelFontWeight: Number(event.target.value) }, "Changed Compact Action Grid label weight")} className={fieldClass} /></Field></div>
   </div>;

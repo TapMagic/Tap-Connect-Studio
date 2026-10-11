@@ -1,5 +1,6 @@
 import { nanoid } from "nanoid";
 import type { StandardButtonActionIntent } from "@/lib/fusion/card/action-intent-presentation";
+import type { LoveAndTheftPickInsertConstruction } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 
 export const COMPACT_ACTION_GRID_CONTRACT = "compactActionGrid@1.0.0" as const;
 export const COMPACT_ACTION_TILE_CONTRACT = "compactActionTile@1.0.0" as const;
@@ -16,6 +17,7 @@ export type CompactActionTile = {
   label: string;
   sublabel?: string;
   iconAssetRef: string;
+  insertConstruction?: LoveAndTheftPickInsertConstruction;
   actionType: StandardButtonActionIntent;
   destinationRef: string;
   new?: boolean;
@@ -63,6 +65,7 @@ export function createCompactActionTile(input: Partial<CompactActionTile> & Pick
     label: input.label,
     sublabel: input.sublabel,
     iconAssetRef: input.iconAssetRef || "lucide:star",
+    insertConstruction: input.insertConstruction === "direct-engrave" || input.insertConstruction === "recessed-medallion" || input.insertConstruction === "secondary-insert" ? input.insertConstruction : undefined,
     actionType: input.actionType || "website",
     destinationRef: input.destinationRef || "https://example.com",
     new: input.new,

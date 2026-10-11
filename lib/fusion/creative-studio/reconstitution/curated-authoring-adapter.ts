@@ -329,7 +329,7 @@ export function createCuratedAuthoringCapability(
             options: assembly.compatiblePlugs.map((plug) => ({ id: plug.componentId, label: plug.label, previewRef: plug.previewSrc, availability: "enabled" as const, compatibilityTags: [assembly.recipeId] })),
           }]:[]),
           ...(capabilities.supportsSemanticIcon&&plugActive?[{
-            id:"semantic-icon",label:"Icon / Insert",description:"Choose a semantic insert directly. An exact family master wins; approved artwork receives the family engraved treatment; Blank remains intentional.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId??"__blank__",commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
+            id:"semantic-icon",label:"Icon / Insert",description:"Choose a semantic insert directly. An exact family master wins; approved fallback artwork uses the family construction derived for its semantic and presentation; Blank remains intentional.",type:"visual-grid" as const,value:active.semanticIconRef?.canonicalId??"__blank__",commandId:CURATED_AUTHORING_COMMANDS.updateAction,searchable:true,initialVisibleCount:8,
             options:[{id:"__blank__",label:"Blank",availability:"enabled" as const},...compatibleSemanticIcons.map((icon)=>({id:icon.canonicalId,label:icon.accessibleLabel??icon.iconName,previewRef:icon.body,availability:"enabled" as const,compatibilityTags:icon.compatibility}))],
           }]:[]),
           ...(capabilities.plugSide==="authorable"&&plugActive&&!capabilities.plugOptional?[{

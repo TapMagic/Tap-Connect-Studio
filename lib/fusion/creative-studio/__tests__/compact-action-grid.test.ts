@@ -9,7 +9,10 @@ import {
 } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import {
   EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID,
+  EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS,
+  EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS,
   EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS,
+  loveAndTheftFallbackInsertConstruction,
   loveAndTheftMasteredPickSource,
   loveAndTheftPickInsertResolution,
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
@@ -23,7 +26,7 @@ describe("Compact Action Tile / Grid authority", () => {
   });
 
   it("preserves stable Tile, Action, analytics, and destination identities through serialization", () => {
-    const tile = createCompactActionTile({ componentId:"tile-one", actionId:"action-one", analyticsId:"analytics-one", label:"Music", iconAssetRef:"simple-icons:spotify", actionType:"internal_page", destinationRef:"page-music", new:true, active:true });
+    const tile = createCompactActionTile({ componentId:"tile-one", actionId:"action-one", analyticsId:"analytics-one", label:"Music", iconAssetRef:"simple-icons:spotify", insertConstruction:"recessed-medallion", actionType:"internal_page", destinationRef:"page-music", new:true, active:true });
     const state = createCompactActionGrid({ componentId:"grid-one", analyticsId:"grid-analytics", tiles:[tile] });
     const read = readCompactActionGrid(compactActionGridNodeProps(state))!;
     assert.equal(read.componentId, "grid-one");
@@ -44,11 +47,29 @@ describe("Compact Action Tile / Grid authority", () => {
     assert.equal(tile.lockedBehavior?.mode, "cta");
   });
 
-  it("resolves mastered artwork first, approved engraved semantics second, and everything else to blank", () => {
-    assert.equal(loveAndTheftPickInsertResolution("simple-icons:spotify").kind, "mastered");
+  it("resolves mastered artwork first, approved family constructions second, and everything else to blank", () => {
+    assert.deepEqual(loveAndTheftPickInsertResolution("simple-icons:spotify"), {
+      kind: "mastered", sourceAsset: loveAndTheftMasteredPickSource("simple-icons:spotify"), construction: "recessed-medallion",
+    });
     assert.equal(loveAndTheftPickInsertResolution("lucide:library-big").kind, "engraved-fallback");
+    assert.equal(loveAndTheftPickInsertResolution("lucide:library-big").construction, "secondary-insert");
+    assert.equal(loveAndTheftPickInsertResolution("lucide:heart").construction, "direct-engrave");
+    assert.equal(loveAndTheftPickInsertResolution("lucide:globe").construction, "recessed-medallion");
+    assert.equal(loveAndTheftPickInsertResolution("lucide:heart", "secondary-insert").construction, "secondary-insert");
     assert.equal(loveAndTheftPickInsertResolution("iconify:cheap-generic-badge").kind, "blank");
     assert.equal(loveAndTheftPickInsertResolution(EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID).kind, "blank");
+  });
+
+  it("preserves the three certified master construction families and semantic-fit defaults", () => {
+    assert.deepEqual(EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.map((option) => option.id), ["direct-engrave", "recessed-medallion", "secondary-insert"]);
+    assert.deepEqual(Object.values(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS).sort(), [
+      "direct-engrave", "direct-engrave", "direct-engrave", "direct-engrave",
+      "recessed-medallion", "recessed-medallion", "recessed-medallion",
+      "secondary-insert", "secondary-insert", "secondary-insert", "secondary-insert", "secondary-insert", "secondary-insert",
+    ].sort());
+    assert.equal(loveAndTheftFallbackInsertConstruction("lucide:disc-3"), "recessed-medallion");
+    assert.equal(loveAndTheftFallbackInsertConstruction("lucide:map-pin"), "direct-engrave");
+    assert.equal(loveAndTheftFallbackInsertConstruction("lucide:album"), "secondary-insert");
   });
 
   it("offers the complete approved Pick Insert library with More Music represented by a library, not a star", () => {

@@ -4,10 +4,12 @@ import type { CSSProperties } from "react";
 import { buildButtonHref } from "@/lib/fusion/card/designer-elements";
 import { StudioVisualResourceProjection } from "@/components/fusion/creative-studio/studio-visual-resource-projection";
 import { MaterialSurfaceLayers } from "@/components/fusion/creative-studio/material-surface-layers";
+import { LoveAndTheftFallbackPickInsert } from "@/components/tap/love-and-theft-fallback-pick-insert";
 import { createIdentityVisualResourceFitContract, type StudioVisualResourceMetadata } from "@/lib/fusion/creative-studio/platform/semantic-resource-slot";
 import { getSignatureAsset } from "./registry";
 import { getMaterialRecipe } from "../material-engine";
 import { curatedMaterialRoles, curatedMaterialSurface, curatedMaterialSurfaceStyle } from "./curated-material-projection";
+import { loveAndTheftFallbackInsertConstruction } from "./everencore-love-and-theft";
 import type { SignatureMaterialSurfaceGeometry } from "./types";
 import "./signature-master.css";
 
@@ -160,7 +162,7 @@ export function SignatureMasterBridge({ props, editMode = false }: { props: Reco
       {/* Immutable source artwork: containment only; never cropped, filtered, recolored, or reconstructed. */}
       <img className="signature-master__asset" src={source} width={asset.width} height={asset.height} alt="" aria-hidden draggable={false} />
       {reflectionSource&&reflectionIntensity>0?<img className="signature-master__environment-reflection" src={reflectionSource} alt="" aria-hidden draggable={false} style={{opacity:reflectionIntensity/100}} />:null}
-      {!masteredChassis&&approvedSemanticIcon&&iconSvg && text(props.signatureRole)==="semantic-plug" && !semanticSource ? <span className="signature-master__semantic-icon" style={{inset:`${iconInset}%`,color:iconTreatment?.color??iconRecipe?.artworkFill??iconRecipe?.textColor??"currentColor",transform:`translateY(${iconTreatment?.offsetY??0}%) scale(${iconTreatment?.scale??1})`}} data-signature-icon={text(props.signatureSemanticIcon)} data-signature-icon-render-mode={text(props.iconRenderMode,"stroke")} data-signature-icon-treatment={iconTreatment?.mode} data-signature-icon-material={iconMaterial} aria-hidden dangerouslySetInnerHTML={{__html:iconSvg}} /> : null}
+      {!masteredChassis&&approvedSemanticIcon&&iconSvg && text(props.signatureRole)==="semantic-plug" && !semanticSource ? asset.familyId === "everencore-love-and-theft" ? <LoveAndTheftFallbackPickInsert canonicalIconId={text(props.signatureSemanticIcon)} construction={loveAndTheftFallbackInsertConstruction(text(props.signatureSemanticIcon))} iconSvg={iconSvg} renderMode={text(props.iconRenderMode,"stroke")} iconScale={iconTreatment?.scale} iconOffsetY={iconTreatment?.offsetY} /> : <span className="signature-master__semantic-icon" style={{inset:`${iconInset}%`,color:iconTreatment?.color??iconRecipe?.artworkFill??iconRecipe?.textColor??"currentColor",transform:`translateY(${iconTreatment?.offsetY??0}%) scale(${iconTreatment?.scale??1})`}} data-signature-icon={text(props.signatureSemanticIcon)} data-signature-icon-render-mode={text(props.iconRenderMode,"stroke")} data-signature-icon-treatment={iconTreatment?.mode} data-signature-icon-material={iconMaterial} aria-hidden dangerouslySetInnerHTML={{__html:iconSvg}} /> : null}
       {asset.assetKind === "action" ? <>
         {asset.socketContract.identity ? <span className="signature-master__identity">{text(props.iconMediaUrl, text(props.logoUrl, text(props.imageUrl))) ? <img src={text(props.iconMediaUrl, text(props.logoUrl, text(props.imageUrl)))} alt="" aria-hidden draggable={false} /> : null}</span> : null}
         {asset.socketContract.eyebrow || asset.socketContract.title || asset.socketContract.description ? <span className="signature-master__copy" style={liveTypeStyle(asset,props)}>

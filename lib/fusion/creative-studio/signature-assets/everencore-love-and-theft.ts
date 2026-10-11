@@ -29,6 +29,12 @@ const BAR_MASTER_VARIANTS = {
 const PICK_MASTER_ROOT = `${EVERENCORE_LOVE_AND_THEFT_V1_ROOT}/03-pick-plugs`;
 export const EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE = `${PICK_MASTER_ROOT}/EE-LT-PICK-000_blank.png`;
 export const EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID = "tapconnect:blank" as const;
+export type LoveAndTheftPickInsertConstruction = "direct-engrave" | "recessed-medallion" | "secondary-insert";
+export const EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS: readonly { id: LoveAndTheftPickInsertConstruction; label: string; description: string }[] = [
+  { id: "direct-engrave", label: "Direct Engrave", description: "Open-face engraved semantic, matching the microphone, calendar, Instagram, and Bandsintown masters." },
+  { id: "recessed-medallion", label: "Recessed Medallion", description: "Circular darkened inset with an aged-brass semantic, matching Spotify, Facebook, and Merch." },
+  { id: "secondary-insert", label: "Secondary Insert / Cutout", description: "Shaped recessed plate for dense or rectilinear semantics, matching Music, Play, Lock, and Ticket." },
+] as const;
 export const EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS = {
   "simple-icons:spotify":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-002_spotify.png`,sourceSha256:"f0bcee3bd22e4658db0541d1896280262b6e12acb9b292775cb64cbf80831cfa"},
   "simple-icons:apple-music":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-003_music-note.png`,sourceSha256:"bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50"},
@@ -44,6 +50,45 @@ export const EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS = {
   "lucide:play":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-004_play.png`,sourceSha256:"2188d3052fa6c83441f8fba4869cb101f0c8a30105ebb107ab1e836223c20b69"},
   "lucide:music-2":{sourceAsset:`${PICK_MASTER_ROOT}/EE-LT-PICK-003_music-note.png`,sourceSha256:"bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50"},
 } as const;
+
+export const EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS = {
+  "simple-icons:spotify": "recessed-medallion",
+  "simple-icons:apple-music": "secondary-insert",
+  "simple-icons:youtube": "secondary-insert",
+  "simple-icons:instagram": "direct-engrave",
+  "simple-icons:facebook": "recessed-medallion",
+  "simple-icons:bandsintown": "direct-engrave",
+  "lucide:microphone": "direct-engrave",
+  "lucide:lock": "secondary-insert",
+  "lucide:calendar-days": "direct-engrave",
+  "lucide:shirt": "recessed-medallion",
+  "lucide:ticket": "secondary-insert",
+  "lucide:play": "secondary-insert",
+  "lucide:music-2": "secondary-insert",
+} as const satisfies Readonly<Record<keyof typeof EVERENCORE_LOVE_AND_THEFT_PICK_SEMANTIC_VARIANTS, LoveAndTheftPickInsertConstruction>>;
+
+const LOVE_AND_THEFT_FALLBACK_CONSTRUCTION_BY_ICON: Readonly<Record<string, LoveAndTheftPickInsertConstruction>> = {
+  "lucide:library-big": "secondary-insert",
+  "lucide:album": "secondary-insert",
+  "lucide:disc-3": "recessed-medallion",
+  "lucide:map-pin": "direct-engrave",
+  "lucide:globe": "recessed-medallion",
+  "lucide:phone": "direct-engrave",
+  "lucide:star": "recessed-medallion",
+  "lucide:heart": "direct-engrave",
+};
+
+export function loveAndTheftMasteredPickConstruction(iconAssetRef: string): LoveAndTheftPickInsertConstruction | null {
+  const normalized = iconAssetRef.includes(":") ? iconAssetRef : `lucide:${iconAssetRef}`;
+  return EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS[
+    normalized as keyof typeof EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS
+  ] ?? null;
+}
+
+export function loveAndTheftFallbackInsertConstruction(iconAssetRef: string): LoveAndTheftPickInsertConstruction {
+  const normalized = iconAssetRef.includes(":") ? iconAssetRef : `lucide:${iconAssetRef}`;
+  return LOVE_AND_THEFT_FALLBACK_CONSTRUCTION_BY_ICON[normalized] ?? "direct-engrave";
+}
 
 /** Artist-presentation adapter only. Generic Compact Action state stores IconAsset refs, never family artwork. */
 export function loveAndTheftMasteredPickSource(iconAssetRef: string): string | null {
@@ -65,15 +110,17 @@ export const EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS: readonly IconAsset[] 
   (canonicalId) => CANONICAL_SEMANTIC_ICON_ASSETS.find((asset) => asset.canonicalId === canonicalId) ?? [],
 );
 
-export function loveAndTheftPickInsertResolution(iconAssetRef: string):
-  | { kind: "mastered"; sourceAsset: string }
-  | { kind: "engraved-fallback"; icon: IconAsset }
+export function loveAndTheftPickInsertResolution(iconAssetRef: string, requestedConstruction?: LoveAndTheftPickInsertConstruction):
+  | { kind: "mastered"; sourceAsset: string; construction: LoveAndTheftPickInsertConstruction }
+  | { kind: "engraved-fallback"; icon: IconAsset; construction: LoveAndTheftPickInsertConstruction }
   | { kind: "blank"; sourceAsset: typeof EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE } {
   const mastered = loveAndTheftMasteredPickSource(iconAssetRef);
-  if (mastered) return { kind: "mastered", sourceAsset: mastered };
+  const masteredConstruction = loveAndTheftMasteredPickConstruction(iconAssetRef);
+  if (mastered && masteredConstruction) return { kind: "mastered", sourceAsset: mastered, construction: masteredConstruction };
   const approved = canonicalIconAsset(iconAssetRef);
   if (approved && EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS.some((asset) => asset.canonicalId === approved.canonicalId)) {
-    return { kind: "engraved-fallback", icon: approved };
+    const validRequest = EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.some((option) => option.id === requestedConstruction);
+    return { kind: "engraved-fallback", icon: approved, construction: validRequest ? requestedConstruction! : loveAndTheftFallbackInsertConstruction(approved.canonicalId) };
   }
   return { kind: "blank", sourceAsset: EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE };
 }

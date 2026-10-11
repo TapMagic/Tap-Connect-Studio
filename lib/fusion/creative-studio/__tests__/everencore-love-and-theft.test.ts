@@ -25,6 +25,8 @@ import {
   EVERENCORE_LOVE_AND_THEFT_ASSEMBLY_RECIPES,
   EVERENCORE_LOVE_AND_THEFT_FAMILY,
   EVERENCORE_LOVE_AND_THEFT_FAMILY_ID,
+  EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS,
+  EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS,
   EVERENCORE_LOVE_AND_THEFT_VISUAL_ACCEPTANCE,
 } from "../signature-assets/everencore-love-and-theft";
 import { validateCuratedFamilyVisualAcceptance } from "../signature-assets/visual-acceptance";
@@ -101,6 +103,14 @@ test("the shared semantic catalog combines approved Lucide semantics with all si
   assert.ok(CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.some((asset)=>asset.canonicalId==="lucide:album"));
   assert.ok(CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.some((asset)=>asset.canonicalId==="lucide:disc-3"));
   assert.equal(CANONICAL_SEMANTIC_ICON_ASSETS.length,CANONICAL_NATIVE_SEMANTIC_ICON_ASSETS.length+6);
+});
+
+test("certified pick masters retain their distinct approved insert constructions", () => {
+  assert.deepEqual(EVERENCORE_LOVE_AND_THEFT_INSERT_CONSTRUCTIONS.map((option)=>option.label), ["Direct Engrave","Recessed Medallion","Secondary Insert / Cutout"]);
+  assert.equal(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS["simple-icons:spotify"],"recessed-medallion");
+  assert.equal(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS["simple-icons:instagram"],"direct-engrave");
+  assert.equal(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS["simple-icons:apple-music"],"secondary-insert");
+  assert.equal(Object.keys(EVERENCORE_LOVE_AND_THEFT_MASTER_INSERT_CONSTRUCTIONS).length,Object.keys((SIGNATURE_ASSETS.find((asset)=>asset.familyId===EVERENCORE_LOVE_AND_THEFT_FAMILY_ID&&asset.normalizedContract?.componentId==="EELT-PICK-AGED-BRASS")?.semanticSourceVariants)??{}).length);
 });
 
 test("all seven presentations compile with optional plug separation and canonical appearance", () => {
