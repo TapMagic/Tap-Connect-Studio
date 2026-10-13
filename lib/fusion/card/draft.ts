@@ -4,7 +4,10 @@ import { prisma } from "@/lib/db";
 
 type DraftClient = Pick<PrismaClient, "brandKit">;
 
-const MAX_DRAFT_BYTES = 2_000_000;
+// Multi-Page Experience drafts carry the complete durable composition for each
+// Page. Keep a bounded server-side guard, but leave enough room for production
+// authoring without forcing Hosts to delete valid content just to save it.
+const MAX_DRAFT_BYTES = 8_000_000;
 const MAX_SECTIONS = 100;
 
 export class CardDraftError extends Error {
