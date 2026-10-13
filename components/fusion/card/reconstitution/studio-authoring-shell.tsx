@@ -26,7 +26,7 @@ import type {
   StudioAuthoringSelectionContext,
 } from "@/lib/fusion/creative-studio/platform/authoring-contract";
 import { createStudioAuthoringCommand } from "@/lib/fusion/creative-studio/platform/authoring-contract";
-import { validateActionDestination, type StandardButtonActionIntent } from "@/lib/fusion/card/action-intent-presentation";
+import { actionProps, standardButtonActions, validateActionDestination, type StandardButtonActionIntent } from "@/lib/fusion/card/action-intent-presentation";
 import { cn } from "@/lib/utils";
 import { StudioTransientVisualBrowser } from "./studio-transient-visual-browser";
 import { StudioPrecisionControl } from "./studio-precision-control";
@@ -125,7 +125,15 @@ export function StudioAuthoringShell({
       {selection.level === "module" && firstInternalId ? <div className="shrink-0 px-3 pt-3"><button type="button" onClick={() => onSelectInternal(firstInternalId)} className="flex min-h-10 w-full items-center justify-center gap-2 rounded-xl bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a]" data-testid="studio-authoring-edit-contents">Edit Contents <ChevronRight className="h-4 w-4" /></button></div> : null}
 
       <div className={cn("min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 pb-[max(24px,env(safe-area-inset-bottom))]", sheetSize === "peek" && "max-xl:hidden")}>
-        {groups.map((group) => <section key={group.id} className="mt-3 rounded-xl border border-[#8bdcff]/10 bg-[#101824]/70 p-2.5" aria-labelledby={`studio-authoring-group-${group.id}`}><h3 id={`studio-authoring-group-${group.id}`} className="text-[8px] font-semibold uppercase tracking-[.16em] text-[#a9e7ff]/70">{group.label}</h3><div className="mt-2 space-y-2.5">{group.controls.map((control) => <PurposeBuiltControl key={`${selection.internalId || "module"}:${control.id}:${control.type === "action-destination" ? control.actionType : ""}`} control={control} selection={selection} onDispatch={dispatch} onPreviewDispatch={previewDispatch} onBeginLiveAdjustment={onBeginLiveAdjustment} onCommitLiveAdjustment={onCommitLiveAdjustment} onCancelLiveAdjustment={onCancelLiveAdjustment} onSelectInternal={onSelectInternal} transientTaskLifecycle={transientTaskLifecycle} mediaUploadReady={mediaUploadReady} stockReady={stockReady} experiencePages={experiencePages} />)}</div></section>)}
+        {groups.map((group) => {
+          const actionIntent = group.controls.find((control): control is Extract<StudioAuthoringControl, { type: "action-intent" }> => control.type === "action-intent");
+          const actionDestination = group.controls.find((control): control is Extract<StudioAuthoringControl, { type: "action-destination" }> => control.type === "action-destination");
+          return <section key={group.id} className="mt-3 rounded-xl border border-[#8bdcff]/10 bg-[#101824]/70 p-2.5" aria-labelledby={`studio-authoring-group-${group.id}`}><h3 id={`studio-authoring-group-${group.id}`} className="text-[8px] font-semibold uppercase tracking-[.16em] text-[#a9e7ff]/70">{group.label}</h3><div className="mt-2 space-y-2.5">{group.controls.map((control) => {
+            if (control.type === "action-destination" && actionIntent) return null;
+            if (control.type === "action-intent" && actionDestination) return <ActionDestinationControls key={`${selection.internalId || "module"}:action-destination:${control.value}:${actionDestination.value}`} intentControl={control} destinationControl={actionDestination} selection={selection} onDispatch={dispatch} experiencePages={experiencePages} />;
+            return <PurposeBuiltControl key={`${selection.internalId || "module"}:${control.id}:${control.type === "action-destination" ? control.actionType : ""}`} control={control} selection={selection} onDispatch={dispatch} onPreviewDispatch={previewDispatch} onBeginLiveAdjustment={onBeginLiveAdjustment} onCommitLiveAdjustment={onCommitLiveAdjustment} onCancelLiveAdjustment={onCancelLiveAdjustment} onSelectInternal={onSelectInternal} transientTaskLifecycle={transientTaskLifecycle} mediaUploadReady={mediaUploadReady} stockReady={stockReady} experiencePages={experiencePages} />;
+          })}</div></section>;
+        })}
       </div>
     </div>
   </aside>;
@@ -287,6 +295,42 @@ function DestinationControl({ control, selection, onDispatch, experiencePages }:
   const error = validateActionDestination(control.actionType as StandardButtonActionIntent, value);
   if (control.actionType === "internal_page") return <ControlFrame control={{ ...control, label: "Destination Page" }}><StudioInternalPagePicker pages={experiencePages} value={value} onChange={(next) => { setValue(next); if (next !== control.value) onDispatch(control, { controlId: control.id, value: next, actionId: selection.internalId }, "Mapped Curated action to Experience Page"); }} testId={`studio-authoring-${control.id}`} /></ControlFrame>;
   return <ControlFrame control={control}><input value={value} onChange={(event) => setValue(event.target.value)} onBlur={() => { if (value !== control.value && !error) onDispatch(control, { controlId: control.id, value, actionId: selection.internalId }, `Edited ${control.label}`); }} inputMode={control.inputMode} placeholder={control.placeholder} aria-invalid={Boolean(error)} aria-describedby={error ? `studio-authoring-${control.id}-error` : undefined} className={fieldClass} data-testid={`studio-authoring-${control.id}`} />{error ? <p id={`studio-authoring-${control.id}-error`} className="mt-1.5 text-[9px] text-amber-200" role="status">{error}</p> : null}</ControlFrame>;
+}
+
+function ActionDestinationControls({ intentControl, destinationControl, selection, onDispatch, experiencePages }: {
+  intentControl: Extract<StudioAuthoringControl, { type: "action-intent" }>;
+  destinationControl: Extract<StudioAuthoringControl, { type: "action-destination" }>;
+  selection: StudioAuthoringSelectionContext;
+  onDispatch: (control: StudioAuthoringControl, payload: unknown, label: string) => void;
+  experiencePages: readonly TapExperiencePage[];
+}) {
+  const actions = standardButtonActions();
+  const canonicalKind = actions.some((action) => action.kind === intentControl.value)
+    ? intentControl.value as StandardButtonActionIntent
+    : "website";
+  const [kind, setKind] = useState<StandardButtonActionIntent>(canonicalKind);
+  const [destination, setDestination] = useState(destinationControl.value);
+  const presentation = actions.find((action) => action.kind === kind)!;
+  const error = destination ? validateActionDestination(kind, destination) : null;
+  const chooseKind = (next: StandardButtonActionIntent) => {
+    setKind(next);
+    setDestination(validateActionDestination(next, destinationControl.value) ? "" : destinationControl.value);
+  };
+  const commitDestination = (next: string) => {
+    if (validateActionDestination(kind, next)) return;
+    const props = actionProps(kind, next);
+    const storedDestination = kind === "internal_page" ? String(props.internalPageId || "") : String(props.href || "");
+    onDispatch(destinationControl, {
+      actionId: selection.internalId,
+      patch: { actionType: kind, destination: storedDestination },
+    }, kind === "internal_page" ? "Mapped Curated action to Experience Page" : `Changed Action to ${presentation.label}`);
+  };
+  return <>
+    <ControlFrame control={intentControl}>
+      <div className="grid grid-cols-2 gap-1.5">{intentControl.options.map((option) => <button key={option.id} type="button" disabled={option.availability !== "enabled"} aria-pressed={kind === option.id} onClick={() => chooseKind(option.id as StandardButtonActionIntent)} className={cn("min-h-10 rounded-xl bg-white/[.045] px-2 text-left text-[10px] text-white/62 transition hover:bg-white/[.08] disabled:cursor-not-allowed disabled:opacity-35 aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#e7ffc2] aria-pressed:ring-1 aria-pressed:ring-[#b8ff2c]/45")}><strong>{option.label}</strong><span className="mt-0.5 block text-[8px] text-white/30">{option.description}</span></button>)}</div>
+    </ControlFrame>
+    {kind === "internal_page" ? <ControlFrame control={{ ...destinationControl, label: "Destination Page" }}><StudioInternalPagePicker pages={experiencePages} value={destination} onChange={(next) => { setDestination(next); if (next) commitDestination(next); }} testId={`studio-authoring-${destinationControl.id}`} /></ControlFrame> : <ControlFrame control={{ ...destinationControl, label: presentation.fieldLabel }}><input value={destination} onChange={(event) => setDestination(event.target.value)} onBlur={() => commitDestination(destination)} onKeyDown={(event) => { if (event.key === "Enter") { commitDestination(destination); event.currentTarget.blur(); } }} inputMode={presentation.inputMode} placeholder={presentation.placeholder} aria-invalid={Boolean(error)} aria-describedby={error ? `studio-authoring-${destinationControl.id}-error` : undefined} className={fieldClass} data-testid={`studio-authoring-${destinationControl.id}`} />{error ? <p id={`studio-authoring-${destinationControl.id}-error`} className="mt-1.5 text-[9px] text-amber-200" role="status">{error}</p> : null}</ControlFrame>}
+  </>;
 }
 
 function ActionRoster({ control, onDispatch, onSelectInternal }: { control: Extract<StudioAuthoringControl, { type: "action-roster" }>; onDispatch: (control: StudioAuthoringControl, payload: unknown, label: string) => void; onSelectInternal: (id: string) => void }) {

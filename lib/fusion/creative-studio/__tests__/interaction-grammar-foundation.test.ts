@@ -86,6 +86,7 @@ test("Curated text precision is numeric and compiles to one action mutation", ()
   assert.equal(control?.type, "precision");
   assert.deepEqual(curatedCommandPayloadToMutation("curated.action.update", { controlId: "text-size", value: 15, actionId: "a" }, assembly), { type: "update-action", actionId: "a", patch: { textSizePx: 15 } });
   assert.deepEqual(curatedCommandPayloadToMutation("curated.action.update", { controlId: "action-intent", value: "call", actionId: "a" }, assembly), { type: "update-action", actionId: "a", patch: { actionType: "call", destination: "tel:" } });
+  assert.deepEqual(curatedCommandPayloadToMutation("curated.action.update", { actionId: "a", patch: { actionType: "internal_page", destination: "page-music" } }, assembly), { type: "update-action", actionId: "a", patch: { actionType: "internal_page", destination: "page-music" } });
   const inferred = curatedCommandPayloadToMutation("curated.action.update", { controlId: "destination", value: "tel:+13525550123", actionId: "a" }, {
     ...assembly,
     slots: [{ ...assembly.slots[0]!, actionType: "website" }],
