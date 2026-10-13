@@ -10,6 +10,7 @@ import {
   loveAndTheftPickInsertResolution,
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 import { cn } from "@/lib/utils";
+import { ActionPresentationEffects } from "@/components/fusion/creative-studio/action-presentation-effects";
 
 export function LoveAndTheftPickVisual({ iconAssetRef, active = false, className }: {
   iconAssetRef: string;
@@ -133,8 +134,9 @@ function CompactActionTileView({ tile, state, editMode, expanded, onLocked }: {
     ? <button type="button" className={shared} onClick={(event) => { event.preventDefault(); if (!editMode) onLocked(); }} aria-expanded={expanded} aria-label={`${tile.label} (locked)`} {...attrs}>{body}</button>
     : <a href={editMode ? undefined : href} className={shared} onClick={(event) => { if (editMode || (!href && !internalPageId)) event.preventDefault(); }} aria-label={tile.sublabel ? `${tile.label}: ${tile.sublabel}` : tile.label} {...attrs}>{body}</a>;
   const policy = tile.lockedBehavior;
+  const effectFamily = state.presentation === "everencore-love-and-theft-pick" ? "everencore-love-and-theft-pick" : "compact-neutral";
   return <div className="relative min-w-0 overflow-visible" data-compact-action-tile-shell="true">
-    {control}
+    <ActionPresentationEffects family={effectFamily} value={tile.presentationEffects ?? {}} active={!editMode}>{control}</ActionPresentationEffects>
     {expanded && policy && (policy.mode === "message" || policy.mode === "cta") ? <div className="relative z-10 mx-auto mt-1 w-[min(180px,calc(100vw-28px))] rounded-xl border border-[#d7ad58]/35 bg-[#100c08]/96 p-2 text-center text-[9px] leading-4 text-[#f4e5c3] shadow-2xl" role="status" data-testid={`compact-locked-message-${tile.componentId}`}>
       <Sparkles className="mx-auto mb-1 h-3 w-3 text-[#d7ad58]" aria-hidden />
       {policy.message || "This action requires additional access."}

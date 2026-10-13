@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createCompositionNode, createEmptyCreativeComposition } from "../composition";
 import { readCardEdgeMode, readContainerEdgeMode, setCardEdgeMode, setContainerEdgeMode } from "../platform/edge-layout";
-import { allowedLayeredResizeHandles, isCardSurfaceLayered, layeredResizePolicy, moveLayeredNode, placeNodeInCompositionParent, reorderLayeredNodeZ, resolveLayeredGeometry, setCardSurfaceCompositionMode, setContainerCompositionMode, snapLayeredNode, snapLayeredResize } from "../platform/layered-region";
+import { allowedLayeredResizeHandles, isCardSurfaceLayered, layeredBoundsPolicy, layeredResizePolicy, moveLayeredNode, placeNodeInCompositionParent, reorderLayeredNodeZ, resolveLayeredGeometry, setCardSurfaceCompositionMode, setContainerCompositionMode, snapLayeredNode, snapLayeredResize } from "../platform/layered-region";
 import { readCardSurfaceDensity, readContainerDensity, setCardSurfaceDensity, setContainerDensity } from "../platform/composition-density";
 import { applyStudioVideoPlayback, applyStudioVideoSource, identifyVideoSource, readStudioVideoState, videoAspectRatio, videoEmbedUrl, videoFeatureDefaults } from "../platform/media-module";
 import { applyStandardButtonAppearancePreset, readStandardButtonAppearance } from "../reconstitution/standard-button-appearance";
@@ -36,6 +36,17 @@ test("layering stays bounded inside one Container and never replaces Card Flow",
   assert.equal(text.y, 0);
   assert.equal(text.zIndex, 6);
   assert.equal(text.siblingOrder, 0);
+});
+
+test("Layered overflow is explicit per parent and preserves authored out-of-bounds geometry", () => {
+  const layered = setCardSurfaceCompositionMode(flowFixture(), "layered");
+  assert.equal(layeredBoundsPolicy(layered, null), "constrain");
+  const overflow = { ...layered, compositionMode: { ...layered.compositionMode!, bounds: "allow-overflow" as const } };
+  const moved = moveLayeredNode(overflow, "container", { x: -.125, y: .92, width: .6, height: .4 });
+  const container = moved.nodes.find((node) => node.id === "container")!;
+  assert.equal(container.x, -.125);
+  assert.equal(container.y, .92);
+  assert.equal(layeredBoundsPolicy(moved, null), "allow-overflow");
 });
 
 test("Add geometry is resolved inside the actual layered destination parent", () => {
@@ -131,12 +142,16 @@ test("rectangular resize grammar distinguishes auto Text, fixed Text, media, Con
   const croppedImage = createCompositionNode("image", { props: { elementKind: "image", fit: "cover", focalX: .5, focalY: .5 } });
   const map = createCompositionNode("image", { props: { elementKind: "map" } });
   const container = createCompositionNode("group", { compositionKind: "container", props: { elementKind: "container" } });
+  const video = createCompositionNode("video", { props: { elementKind: "video", aspectLocked: false } });
+  const button = createCompositionNode("button", { props: { elementKind: "button" } });
   assert.deepEqual(allowedLayeredResizeHandles(autoText), ["e", "w"]);
   assert.deepEqual(allowedLayeredResizeHandles(fixedText), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
   assert.deepEqual(allowedLayeredResizeHandles(image), ["nw", "ne", "se", "sw"]);
   assert.deepEqual(allowedLayeredResizeHandles(croppedImage), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
   assert.deepEqual(allowedLayeredResizeHandles(map), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
   assert.deepEqual(allowedLayeredResizeHandles(container), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
+  assert.deepEqual(allowedLayeredResizeHandles(video), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
+  assert.deepEqual(allowedLayeredResizeHandles(button), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
 });
 
 test("resize edges snap to sibling and safe-area guides without changing membership", () => {

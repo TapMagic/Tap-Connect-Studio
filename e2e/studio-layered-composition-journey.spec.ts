@@ -251,7 +251,7 @@ test("composes and preserves the Product Owner layered mobile journey", async ({
   page.setDefaultTimeout(15_000);
   mkdirSync(proofRoot, { recursive: true });
   await page.setViewportSize({ width: 1440, height: 960 });
-  await page.goto("/review/studio", { waitUntil: "networkidle" });
+  await page.goto("/dashboard/card/edit", { waitUntil: "networkidle" });
   await expect(page).toHaveURL(/\/dashboard\/card\/edit$/);
   const baselineResponse = await page.request.get("/api/card/draft");
   expect(baselineResponse.ok()).toBeTruthy();
@@ -490,7 +490,7 @@ test("composes and preserves the Product Owner layered mobile journey", async ({
     expect(new Set(visualOrder.map((value) => Math.round(value))).size).toBeGreaterThan(2);
     const proof = {
       contract: "studioLayeredCompositionJourney@1.0.0",
-      route: "http://127.0.0.1:3050/review/studio",
+      route: "http://127.0.0.1:3050/dashboard/card/edit",
       viewport: { width: 390, height: 844 },
       parent: { widthPx: surfaceBox.width, heightPx: surfaceBox.height },
       density: persistedAfterRoot.compositionDensity,
@@ -516,7 +516,7 @@ test("renders nested responsive regions with a persisted compact Group at phone 
   page.setDefaultTimeout(15_000);
   mkdirSync(proofRoot, { recursive: true });
   await page.setViewportSize({ width: 1440, height: 960 });
-  await page.goto("/review/studio", { waitUntil: "networkidle" });
+  await page.goto("/dashboard/card/edit", { waitUntil: "networkidle" });
   const baselineResponse = await page.request.get("/api/card/draft");
   expect(baselineResponse.ok()).toBeTruthy();
   const baseline = await baselineResponse.json() as { draft: TapConnectCardConfig; revision: number };
@@ -607,7 +607,7 @@ test("renders nested responsive regions with a persisted compact Group at phone 
     const persistedHero = afterReloadRoot.nodes.find((candidate) => candidate.id === "nested-proof-hero");
     writeFileSync(path.join(proofRoot, "nested-responsive-geometry-proof.json"), `${JSON.stringify({
       contract: "studioNestedResponsiveComposition@1.0.0",
-      route: "http://127.0.0.1:3050/review/studio",
+      route: "http://127.0.0.1:3050/dashboard/card/edit",
       viewport: { width: 390, height: 844 },
       parent: { widthPx: rightBox.width, heightPx: rightBox.height },
       initialGroup: { x: .01, y: .02, width: .97, height: .56, scaleMode: "full" },
@@ -637,7 +637,7 @@ test("authors the layered Card through the actual Studio Add, drag, group, Text 
   page.setDefaultTimeout(18_000);
   mkdirSync(proofRoot, { recursive: true });
   await page.setViewportSize({ width: 1440, height: 960 });
-  await page.goto("/review/studio", { waitUntil: "domcontentloaded" });
+  await page.goto("/dashboard/card/edit", { waitUntil: "domcontentloaded" });
   const baselineResponse = await page.request.get("/api/card/draft");
   expect(baselineResponse.ok()).toBeTruthy();
   const baseline = await baselineResponse.json() as { draft: TapConnectCardConfig; revision: number };
@@ -782,6 +782,22 @@ test("authors the layered Card through the actual Studio Add, drag, group, Text 
     expect(afterMove && Math.abs(afterMove.x - beforeMove.x) + Math.abs(afterMove.y - beforeMove.y)).toBeGreaterThan(12);
 
     await openAdd();
+    await page.getByTestId("studio-add-buttons").click();
+    await page.getByTestId("studio-button-family-standard").click();
+    await page.getByTestId("standard-button-preset-icon-label").last().click();
+    const standardButton = page.locator('[data-composition-kind="module"][data-primitive="button"][data-selected="true"]');
+    const standardButtonId = await standardButton.getAttribute("data-composition-node");
+    expect(standardButtonId).toBeTruthy();
+    await page.getByTestId("studio-inspector-tab-layout").click();
+    await expect(page.getByTestId("studio-inspector-layout")).toHaveAttribute("data-position-authority", "layered-parent-relative");
+    await page.getByTestId("studio-position-x").fill("47");
+    await page.getByTestId("studio-position-y").fill("8");
+    await page.getByTestId("studio-position-width").fill("34");
+    await page.getByTestId("studio-position-height").fill("12");
+    await expect(standardButton).toHaveAttribute("data-position-mode", "absolute");
+    await closePanels();
+
+    await openAdd();
     await page.getByTestId("studio-add-container").click();
     await page.getByTestId("studio-add-container-transparent").click();
     const nested = page.locator('[data-composition-kind="container"][data-selected="true"]');
@@ -911,7 +927,7 @@ test("authors the layered Card through the actual Studio Add, drag, group, Text 
     await phone.screenshot({ path: path.join(proofRoot, "17-actual-authoring-live-device-390.png"), fullPage: true });
     writeFileSync(path.join(proofRoot, "actual-authoring-dom-audit.json"), `${JSON.stringify({
       contract: "studioActualLayeredAuthoringJourney@1.0.0",
-      route: "http://127.0.0.1:3050/review/studio",
+      route: "http://127.0.0.1:3050/dashboard/card/edit",
       viewport: { width: 390, height: 844 },
       parentMode: "layered",
       flowGapApplied: false,

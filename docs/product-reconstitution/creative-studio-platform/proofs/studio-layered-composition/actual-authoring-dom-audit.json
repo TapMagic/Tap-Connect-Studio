@@ -1,6 +1,6 @@
 {
   "contract": "studioActualLayeredAuthoringJourney@1.0.0",
-  "route": "http://127.0.0.1:3050/review/studio",
+  "route": "http://127.0.0.1:3050/dashboard/card/edit",
   "viewport": {
     "width": 390,
     "height": 844
@@ -9,7 +9,7 @@
   "flowGapApplied": false,
   "nodes": [
     {
-      "id": "node-9oJlpl",
+      "id": "node-RIPen3",
       "parentId": "card-surface",
       "x": "0.03",
       "y": "0.03",
@@ -20,18 +20,18 @@
       "flowWrapper": "false"
     },
     {
-      "id": "node-MZBypR",
+      "id": "node-BpqEF3",
       "parentId": "card-surface",
       "x": "0.08",
       "y": "0.08",
       "width": "0.44",
       "height": "0.07105263157894737",
-      "z": "10",
+      "z": "11",
       "position": "absolute",
       "flowWrapper": "false"
     },
     {
-      "id": "node-ryTzpi",
+      "id": "node-dmO-RS",
       "parentId": "card-surface",
       "x": "0.52",
       "y": "0.08",
@@ -42,7 +42,7 @@
       "flowWrapper": "false"
     },
     {
-      "id": "module-dpsEYkG8",
+      "id": "module-HLtp_s19",
       "parentId": "card-surface",
       "x": "0.08102564102564083",
       "y": "0.24947368421052635",
@@ -53,7 +53,7 @@
       "flowWrapper": "false"
     },
     {
-      "id": "module-0temZbup",
+      "id": "module-SSgucRnd",
       "parentId": "card-surface",
       "x": "0.5482051282051281",
       "y": "0.24947368421052635",
@@ -64,7 +64,7 @@
       "flowWrapper": "false"
     },
     {
-      "id": "module-ps3A9DfT",
+      "id": "module-4HXvWwMV",
       "parentId": "card-surface",
       "x": "0.08102564102564083",
       "y": "0.3126315789473684",
@@ -75,7 +75,7 @@
       "flowWrapper": "false"
     },
     {
-      "id": "module-Dcvuo805",
+      "id": "module-JTJfON59",
       "parentId": "card-surface",
       "x": "0.5482051282051281",
       "y": "0.3126315789473684",
@@ -86,7 +86,7 @@
       "flowWrapper": "false"
     },
     {
-      "id": "module-LpQtPMV9",
+      "id": "module-ZogHnZvX",
       "parentId": "card-surface",
       "x": "0.08102564102564083",
       "y": "0.37578947368421056",
@@ -97,7 +97,7 @@
       "flowWrapper": "false"
     },
     {
-      "id": "module-N5Pvw1Gi",
+      "id": "module-En2efM7T",
       "parentId": "card-surface",
       "x": "0.5482051282051281",
       "y": "0.37578947368421056",
@@ -108,19 +108,30 @@
       "flowWrapper": "false"
     },
     {
-      "id": "container-dW7hJTOJ",
+      "id": "node-4QfazI",
+      "parentId": "card-surface",
+      "x": "0.43999999999999995",
+      "y": "0.08",
+      "width": "0.34",
+      "height": "0.12",
+      "z": "9",
+      "position": "absolute",
+      "flowWrapper": "false"
+    },
+    {
+      "id": "container-oPli8ZSB",
       "parentId": "card-surface",
       "x": "0.03",
       "y": "0.45",
       "width": "0.46",
       "height": "0.2894736842105263",
-      "z": "9",
+      "z": "10",
       "position": "absolute",
       "flowWrapper": "false"
     }
   ],
   "group": {
-    "id": "group-usGhvh",
+    "id": "group-rhLBv_",
     "parentId": "card-surface",
     "layout": "grid",
     "density": "dense",
@@ -133,8 +144,8 @@
     "flowWrapper": "false"
   },
   "nestedChild": {
-    "id": "node-CAe56U",
-    "parentId": "container-dW7hJTOJ",
+    "id": "node-uoVLQM",
+    "parentId": "container-oPli8ZSB",
     "x": "0.03",
     "y": "0.03",
     "width": "0.48",

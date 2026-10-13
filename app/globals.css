@@ -616,10 +616,27 @@ a[aria-disabled="true"] .studio-standard-button {
 }
 
 /* Governed Card motion presets. They render only when the canvas marks motion active. */
-.tc-card-motion { will-change: transform, opacity, filter; }
-@keyframes tc-motion-subtle-pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.035) } }
-@keyframes tc-motion-glow-pulse { 0%,100% { filter: drop-shadow(0 0 0 currentColor) } 50% { filter: drop-shadow(0 0 12px currentColor) } }
-@keyframes tc-motion-soft-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+.tc-card-motion,
+.tc-action-effects[data-action-effects-enabled="true"],
+.tc-action-motion { will-change: transform, opacity, filter; }
+.tc-action-effects { transform: translateZ(0); }
+.tc-action-effects[data-action-glow="true"] { filter: drop-shadow(0 0 var(--tc-action-effect-glow, 10px) color-mix(in srgb, currentColor 52%, transparent)); }
+.tc-action-effects[data-action-interaction="hover-lift"],
+.tc-action-effects[data-action-interaction="lift-press"] { transition: transform 140ms ease, filter 140ms ease; }
+.tc-action-effects[data-action-interaction="hover-lift"]:hover,
+.tc-action-effects[data-action-interaction="lift-press"]:hover { transform: translateY(calc(-1px - 3px * var(--tc-action-effect-intensity, .4))); }
+.tc-action-effects[data-action-interaction="press"],
+.tc-action-effects[data-action-interaction="lift-press"] { transition: transform 110ms ease, filter 110ms ease; }
+.tc-action-effects[data-action-interaction="press"]:active,
+.tc-action-effects[data-action-interaction="lift-press"]:active { transform: translateY(calc(1px + 2px * var(--tc-action-effect-intensity, .4))) scale(calc(1 - .018 * var(--tc-action-effect-intensity, .4))); filter: brightness(.96); }
+.tc-action-effects[data-motion-trigger="hover"] { animation-play-state: paused !important; }
+.tc-action-effects[data-motion-trigger="hover"] .tc-action-motion { animation-play-state: paused !important; }
+.tc-action-effects[data-motion-trigger="hover"]:hover .tc-action-motion { animation-play-state: running !important; }
+.tc-action-effects[data-motion-trigger="tap"] .tc-action-motion { animation-play-state: paused !important; }
+.tc-action-effects[data-motion-trigger="tap"]:active .tc-action-motion { animation-play-state: running !important; }
+@keyframes tc-motion-subtle-pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(calc(1 + .035 * var(--tc-action-effect-intensity, 1))) } }
+@keyframes tc-motion-glow-pulse { 0%,100% { filter: drop-shadow(0 0 0 currentColor) } 50% { filter: drop-shadow(0 0 calc(12px * var(--tc-action-effect-intensity, 1)) currentColor) } }
+@keyframes tc-motion-soft-float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(calc(-6px * var(--tc-action-effect-intensity, 1))) } }
 @keyframes tc-motion-gentle-bounce { 0%,100% { transform: translateY(0) } 45% { transform: translateY(-8px) } 65% { transform: translateY(-2px) } }
 @keyframes tc-motion-wiggle { 0%,100% { transform: rotate(0) } 25% { transform: rotate(-3deg) } 75% { transform: rotate(3deg) } }
 @keyframes tc-motion-ripple { 0%,100% { box-shadow: 0 0 0 0 currentColor } 55% { box-shadow: 0 0 0 12px transparent } }
@@ -636,13 +653,21 @@ a[aria-disabled="true"] .studio-standard-button {
 @keyframes tc-motion-slow-rotation { from { transform: rotate(0) } to { transform: rotate(360deg) } }
 
 @media (prefers-reduced-motion: reduce) {
-  .tc-card-motion { animation: none !important; transform: none !important; }
+  .tc-card-motion,
+  .tc-action-effects,
+  .tc-action-motion { animation: none !important; transform: none !important; transition: none !important; }
+  .tc-action-effects[data-reduced-motion-fallback="static_glow"] { filter: drop-shadow(0 0 calc(var(--tc-action-effect-glow, 10px) * .65) color-mix(in srgb, currentColor 44%, transparent)); }
+  .tc-action-effects[data-reduced-motion-fallback="static_highlight"] { filter: brightness(1.08); }
 }
 
 [data-reduced-motion-simulation="true"] .tc-card-motion {
   animation: none !important;
   transform: none !important;
 }
+[data-reduced-motion-simulation="true"] .tc-action-effects,
+[data-reduced-motion-simulation="true"] .tc-action-motion { animation: none !important; transform: none !important; transition: none !important; }
+[data-reduced-motion-simulation="true"] .tc-action-effects[data-reduced-motion-fallback="static_glow"] { filter: drop-shadow(0 0 calc(var(--tc-action-effect-glow, 10px) * .65) color-mix(in srgb, currentColor 44%, transparent)); }
+[data-reduced-motion-simulation="true"] .tc-action-effects[data-reduced-motion-fallback="static_highlight"] { filter: brightness(1.08); }
 
 /* Visual Parts — pointer-driven interaction (not perpetual motion). */
 .vp-interaction-quiet {

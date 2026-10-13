@@ -124,6 +124,7 @@ import { cardSurfaceImageLayerStyle, cardSurfaceImagePresentation } from "@/lib/
 import { STANDARD_BUTTON_APPEARANCE_CONTRACT, readStandardButtonAppearance } from "@/lib/fusion/creative-studio/reconstitution/standard-button-appearance";
 import { readCompactActionGrid } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import { CompactActionGrid } from "@/components/tap/compact-action-grid";
+import { ActionPresentationEffects } from "@/components/fusion/creative-studio/action-presentation-effects";
 import { MapLocationContainer } from "@/components/tap/map-location-container";
 
 export type CreativeCompositionCanvasProps = {
@@ -263,6 +264,9 @@ function ElementIcon({ name, size = 20 }: { name: string; size?: number }) {
 }
 
 function MotionVisual({ node, active, children }: { node: CreativeCompositionNode; active: boolean; children: ReactNode }) {
+  if (node.primitive === "button") {
+    return <ActionPresentationEffects family="standard-button" value={node.props} active={active}>{children}</ActionPresentationEffects>;
+  }
   const preset = str(node.props.motionPreset, "none");
   const enabled = active && preset !== "none";
   return (
@@ -3267,7 +3271,7 @@ export function CreativeCompositionCanvas({
     return (
       <div
         ref={surfaceRef}
-        className={cn("relative w-full rounded-xl", editMode ? "overflow-visible" : "overflow-hidden", className)}
+        className={cn("relative w-full rounded-xl", editMode || (rootLayered && block.compositionMode?.bounds === "allow-overflow") ? "overflow-visible" : "overflow-hidden", className)}
         style={{ minHeight: minHeightPx, padding: block.safeAreaPaddingPx ?? 12 }}
         data-testid="creative-composition-canvas"
         data-composition-surface="true"
@@ -3444,7 +3448,7 @@ export function CreativeCompositionCanvas({
       className={cn(
         "relative w-full",
         isGovernedSignatureAssembly ? "overflow-visible border-0 rounded-none" : "rounded-xl border border-white/10",
-        !isGovernedSignatureAssembly && (editMode ? "overflow-visible" : "overflow-hidden"),
+        !isGovernedSignatureAssembly && (editMode || block.compositionMode?.bounds === "allow-overflow" ? "overflow-visible" : "overflow-hidden"),
         editMode && "touch-none",
         className
       )}

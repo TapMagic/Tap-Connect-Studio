@@ -418,31 +418,34 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
             <p className="mt-2 text-[9px] text-white/35">{isCardSurfaceLayered(root) ? `${Math.round(density.snapGrid * 100)}% placement rhythm` : `${density.rowGapPx}px row gap · ${density.columnGapPx}px column gap`}</p>
           )}
           {isCardSurfaceLayered(root) ? (
-            <label className="mt-3 block text-[9px] text-white/55">
-              Layered region height
-              <input
-                type="number"
-                min={240}
-                max={1600}
-                step={10}
-                value={root.compositionMode?.layeredHeightPx ?? 620}
-                onChange={(event) =>
-                  patchRoot(
-                    {
-                      ...root,
-                      compositionMode: {
-                        ...root.compositionMode!,
-                        version: 1,
-                        mode: "layered",
-                        layeredHeightPx: Math.max(240, Math.min(1600, Number(event.target.value))),
+            <div className="mt-3 space-y-3">
+              <label className="block text-[9px] text-white/55">
+                Layered region height
+                <input
+                  type="number"
+                  min={240}
+                  max={1600}
+                  step={10}
+                  value={root.compositionMode?.layeredHeightPx ?? 620}
+                  onChange={(event) =>
+                    patchRoot(
+                      {
+                        ...root,
+                        compositionMode: {
+                          ...root.compositionMode!,
+                          version: 1,
+                          mode: "layered",
+                          layeredHeightPx: Math.max(240, Math.min(1600, Number(event.target.value))),
+                        },
                       },
-                    },
-                    "Changed Card layered region height",
-                  )
-                }
-                className="mt-1.5 h-10 w-full rounded-lg bg-white/5 px-3"
-              />
-            </label>
+                      "Changed Card layered region height",
+                    )
+                  }
+                  className="mt-1.5 h-10 w-full rounded-lg bg-white/5 px-3"
+                />
+              </label>
+              <label className="flex min-h-10 items-center justify-between rounded-xl bg-white/4 px-3 text-[9px]"><span><strong className="block font-medium">Allow authored overflow</strong><small className="text-white/35">Off constrains children to Card Surface bounds.</small></span><input type="checkbox" checked={root.compositionMode?.bounds === "allow-overflow"} onChange={(event) => patchRoot({ ...root, compositionMode: { ...root.compositionMode!, bounds: event.target.checked ? "allow-overflow" : "constrain" } }, `Changed Card layered bounds to ${event.target.checked ? "allow overflow" : "constrain"}`)} /></label>
+            </div>
           ) : null}
         </section>
       </div>

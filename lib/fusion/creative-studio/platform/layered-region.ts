@@ -5,6 +5,7 @@ import { compositionChildren } from "../../card/composition-parent-authority";
 export const STUDIO_LAYERED_REGION_CONTRACT = "studioLayeredRegion@1.0.0" as const;
 export type StudioContainerCompositionMode = "flow" | "layered";
 export type StudioLayeredResizePolicy = "free" | "width-only" | "governed-aspect";
+export type StudioLayeredBoundsPolicy = "constrain" | "allow-overflow";
 
 export function layeredResizePolicy(node: CreativeCompositionNode): StudioLayeredResizePolicy {
   if (node.moduleComposition?.signatureAssembly) return "governed-aspect";
@@ -18,8 +19,9 @@ export function layeredResizePolicy(node: CreativeCompositionNode): StudioLayere
     const fit = String(node.props.fit || node.props.imageFit || "contain");
     return fit === "cover" || fit === "fill" || node.props.cropEnabled === true ? "free" : "governed-aspect";
   }
-  if (node.primitive === "video") return "governed-aspect";
-  if (node.primitive === "button" || kind === "divider") return "width-only";
+  if (node.primitive === "video") return node.props.aspectLocked === false ? "free" : "governed-aspect";
+  if (node.primitive === "button") return node.props.aspectLocked === true ? "governed-aspect" : "free";
+  if (kind === "divider") return "width-only";
   return "free";
 }
 
@@ -47,6 +49,12 @@ export function isCardSurfaceLayered(block: CreativeCompositionBlock): boolean {
 export function isLayeredCompositionParent(block: CreativeCompositionBlock, parentId: string | null): boolean {
   if (parentId === null) return isCardSurfaceLayered(block);
   return isLayeredContainer(block.nodes.find((node) => node.id === parentId));
+}
+
+export function layeredBoundsPolicy(block: CreativeCompositionBlock, parentId: string | null): StudioLayeredBoundsPolicy {
+  if (parentId === null) return block.compositionMode?.bounds === "allow-overflow" ? "allow-overflow" : "constrain";
+  const parent = block.nodes.find((candidate) => candidate.id === parentId);
+  return parent?.props.layeredBounds === "allow-overflow" ? "allow-overflow" : "constrain";
 }
 
 export type StudioPlacementFrame = { x?: number; y?: number; width: number; height: number };
@@ -109,6 +117,7 @@ export function setCardSurfaceCompositionMode(
       mode,
       layeredHeightPx: heightPx,
       layeredPlacementInitialized: initialized || mode === "layered",
+      bounds: block.compositionMode?.bounds ?? "constrain",
     },
     nodes: mode === "flow" ? block.nodes : block.nodes.map((node) => {
       if (node.parentId !== null) return node;
@@ -153,7 +162,7 @@ export function setContainerCompositionMode(
     ...block,
     nodes: block.nodes.map((node) => {
       if (node.id === containerId) {
-        return { ...node, props: { ...node.props, layout: mode, layeredHeightPx: heightPx, layeredPlacementInitialized: initialized || mode === "layered" } };
+        return { ...node, props: { ...node.props, layout: mode, layeredHeightPx: heightPx, layeredPlacementInitialized: initialized || mode === "layered", layeredBounds: node.props.layeredBounds === "allow-overflow" ? "allow-overflow" : "constrain" } };
       }
       if (mode !== "layered" || node.parentId !== containerId) return node;
       if (!initialized) return { ...node, ...seeded.get(node.id), zIndex: Math.max(1, node.zIndex || 1) };
@@ -181,14 +190,15 @@ export function moveLayeredNode(
   if (!node || !(isLayeredContainer(parent) || (node.parentId === null && isCardSurfaceLayered(block)))) return block;
   const width = clamp(patch.width ?? node.width, .08, 1);
   const height = clamp(patch.height ?? node.height, .04, 1);
+  const allowOverflow = layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow";
   return {
     ...block,
     nodes: block.nodes.map((candidate) => candidate.id === nodeId ? {
       ...candidate,
       width,
       height,
-      x: clamp(patch.x ?? node.x, 0, 1 - width),
-      y: clamp(patch.y ?? node.y, 0, 1 - height),
+      x: allowOverflow ? clamp(patch.x ?? node.x, -1, 2) : clamp(patch.x ?? node.x, 0, 1 - width),
+      y: allowOverflow ? clamp(patch.y ?? node.y, -1, 2) : clamp(patch.y ?? node.y, 0, 1 - height),
       zIndex: Math.max(1, Math.round(patch.zIndex ?? node.zIndex)),
     } : candidate),
   };
@@ -274,10 +284,18 @@ export function snapLayeredResize(input: {
       guides.push({ axis: "y", value: match.target, kind: match.kind });
     }
   }
-  x = Math.max(0, Math.min(1 - width, x));
-  y = Math.max(0, Math.min(1 - height, y));
-  width = Math.max(.02, Math.min(1 - x, width));
-  height = Math.max(.02, Math.min(1 - y, height));
+  const allowOverflow = layeredBoundsPolicy(input.block, node.parentId ?? null) === "allow-overflow";
+  if (allowOverflow) {
+    x = Math.max(-1, Math.min(2, x));
+    y = Math.max(-1, Math.min(2, y));
+    width = Math.max(.02, Math.min(2, width));
+    height = Math.max(.02, Math.min(2, height));
+  } else {
+    x = Math.max(0, Math.min(1 - width, x));
+    y = Math.max(0, Math.min(1 - height, y));
+    width = Math.max(.02, Math.min(1 - x, width));
+    height = Math.max(.02, Math.min(1 - y, height));
+  }
   return { frame: { x, y, width, height }, guides };
 }
 

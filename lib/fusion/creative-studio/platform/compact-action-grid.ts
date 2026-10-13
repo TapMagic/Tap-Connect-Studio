@@ -1,6 +1,7 @@
 import { nanoid } from "nanoid";
 import type { StandardButtonActionIntent } from "@/lib/fusion/card/action-intent-presentation";
 import type { LoveAndTheftPickInsertConstruction } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
+import type { ActionPresentationEffectSettings } from "@/lib/fusion/creative-studio/action-presentation-effects";
 
 export const COMPACT_ACTION_GRID_CONTRACT = "compactActionGrid@1.0.0" as const;
 export const COMPACT_ACTION_TILE_CONTRACT = "compactActionTile@1.0.0" as const;
@@ -22,6 +23,7 @@ export type CompactActionTile = {
   destinationRef: string;
   new?: boolean;
   active?: boolean;
+  presentationEffects?: ActionPresentationEffectSettings;
   hidden?: boolean;
   locked?: boolean;
   lockedBehavior?: {
@@ -70,6 +72,18 @@ export function createCompactActionTile(input: Partial<CompactActionTile> & Pick
     destinationRef: input.destinationRef || "https://example.com",
     new: input.new,
     active: input.active,
+    presentationEffects: input.presentationEffects ? {
+      enabled: input.presentationEffects.enabled === true,
+      glow: input.presentationEffects.glow === true,
+      interaction: input.presentationEffects.interaction,
+      motion: input.presentationEffects.motion,
+      intensity: number(input.presentationEffects.intensity, 40, 0, 100),
+      durationSeconds: number(input.presentationEffects.durationSeconds, 2.4, .4, 12),
+      delaySeconds: number(input.presentationEffects.delaySeconds, 0, 0, 12),
+      play: input.presentationEffects.play,
+      trigger: input.presentationEffects.trigger,
+      reducedMotionFallback: input.presentationEffects.reducedMotionFallback,
+    } : undefined,
     hidden: input.hidden,
     locked: input.locked,
     lockedBehavior: input.lockedBehavior ? { ...input.lockedBehavior } : undefined,

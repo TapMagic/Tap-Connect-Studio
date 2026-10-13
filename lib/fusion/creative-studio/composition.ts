@@ -342,6 +342,8 @@ export type CreativeCompositionBlock = {
     layeredHeightPx: number;
     /** Once seeded, Flow may hide placement without destroying it. */
     layeredPlacementInitialized?: boolean;
+    /** Explicit parent-bound policy for direct-authored Layered geometry. */
+    bounds?: "constrain" | "allow-overflow";
   };
   /** Parent-level rhythm; Flow consumes gaps, Layered consumes snap rhythm. */
   compositionDensity?: {
@@ -578,6 +580,7 @@ export function parseCreativeComposition(
             mode: (o.compositionMode as Record<string, unknown>).mode as "flow" | "layered",
             layeredHeightPx: Math.max(240, Math.min(1600, Number((o.compositionMode as Record<string, unknown>).layeredHeightPx) || 620)),
             layeredPlacementInitialized: (o.compositionMode as Record<string, unknown>).layeredPlacementInitialized === true,
+            bounds: (o.compositionMode as Record<string, unknown>).bounds === "allow-overflow" ? "allow-overflow" : "constrain",
           }
         : undefined,
     compositionDensity:
