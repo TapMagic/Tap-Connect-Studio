@@ -6,6 +6,7 @@ import { allowedLayeredResizeHandles, isCardSurfaceLayered, layeredBoundsPolicy,
 import { readCardSurfaceDensity, readContainerDensity, setCardSurfaceDensity, setContainerDensity } from "../platform/composition-density";
 import { applyStudioVideoPlayback, applyStudioVideoSource, identifyVideoSource, readStudioVideoState, videoAspectRatio, videoEmbedUrl, videoFeatureDefaults } from "../platform/media-module";
 import { applyStandardButtonAppearancePreset, readStandardButtonAppearance } from "../reconstitution/standard-button-appearance";
+import { compactActionGridNodeProps, createCompactActionGrid, createCompactActionTile, readCompactActionGrid } from "../platform/compact-action-grid";
 
 function flowFixture() {
   const container = createCompositionNode("group", { id: "container", compositionKind: "container", parentId: null, siblingOrder: 0, props: { componentKind: "container" } });
@@ -148,15 +149,16 @@ test("Layered action frames separate tight visual geometry from touch targets", 
   });
   const block = { ...setCardSurfaceCompositionMode(createEmptyCreativeComposition("home"), "layered"), nodes: [curated] };
   assert.equal(readLayeredPlacementFrameHeightMode(curated), "tight");
-  assert.equal(tightLayeredPlacementHeight(block, curated), 20 / 620);
+  const expectedTightHeight = (.5 * (390 - 24) * (40 / 390)) / 620;
+  assert.equal(tightLayeredPlacementHeight(block, curated), expectedTightHeight);
   const tight = setLayeredPlacementFrameHeightMode(block, curated.id, "tight");
-  assert.equal(tight.nodes[0].height, 20 / 620);
+  assert.equal(tight.nodes[0].height, expectedTightHeight);
   assert.notEqual(tight.nodes[0].height, 72 / 620, "touch target must not become placement geometry");
   const custom = setLayeredPlacementFrameHeightMode(tight, curated.id, "custom");
   assert.equal(layeredResizePolicy(custom.nodes[0]), "free");
   assert.deepEqual(allowedLayeredResizeHandles(custom.nodes[0]), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
   const projected = resolveTightLayeredPlacementFrames(block);
-  assert.equal(projected.nodes[0].height, 20 / 620, "legacy saved height projects to the tight authored footprint");
+  assert.equal(projected.nodes[0].height, expectedTightHeight, "legacy saved height projects to the tight authored footprint");
   assert.equal(projected.nodes[0].props.placementFrameHeightMode, "tight");
 });
 
@@ -167,6 +169,33 @@ test("new Standard Buttons default to Fit content but can opt into a custom heig
   const block = { ...setCardSurfaceCompositionMode(createEmptyCreativeComposition("button-home"), "layered"), nodes: [button] };
   const custom = setLayeredPlacementFrameHeightMode(block, button.id, "custom");
   assert.equal(layeredResizePolicy(custom.nodes[0]), "free");
+});
+
+test("Layered Compact Action Grids use content height and preserve custom frame width independently", () => {
+  const grid = createCompactActionGrid({
+    columns: 2,
+    tileSizePx: 96,
+    widthMode: "custom",
+    customWidthPx: 240,
+    tiles: [createCompactActionTile({ label: "Instagram" }), createCompactActionTile({ label: "Facebook" })],
+  });
+  const node = createCompositionNode("button", {
+    id: "compact-grid",
+    compositionKind: "module",
+    parentId: null,
+    width: .62,
+    height: .5,
+    props: compactActionGridNodeProps(grid),
+  });
+  const block = setCardSurfaceCompositionMode({ ...createEmptyCreativeComposition("compact-grid"), nodes: [node] }, "layered");
+  const projected = resolveTightLayeredPlacementFrames(block);
+  const projectedNode = projected.nodes[0];
+  assert.equal(readLayeredPlacementFrameHeightMode(projectedNode), "tight");
+  assert.equal(layeredResizePolicy(projectedNode), "width-only");
+  assert.ok(projectedNode.height < .3, "one-row Grid must not retain the legacy half-page frame");
+  const resized = moveLayeredNode(projected, node.id, { width: .7 });
+  assert.equal(readCompactActionGrid(resized.nodes[0].props)?.tileSizePx, 96, "resizing the frame must not resize the Tile master");
+  assert.equal(readCompactActionGrid(resized.nodes[0].props)?.customWidthPx, 256);
 });
 
 test("rectangular resize grammar distinguishes auto Text, fixed Text, media, Container, and future Map", () => {

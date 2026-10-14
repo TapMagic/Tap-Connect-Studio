@@ -3,15 +3,17 @@
 import { useMemo, useState, type DragEvent } from "react";
 import { ArrowDown, ArrowUp, Plus, Trash2, X } from "lucide-react";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
-import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import { standardButtonActions, type StandardButtonActionIntent } from "@/lib/fusion/card/action-intent-presentation";
 import {
   compactActionGridNodeProps,
+  compactActionGridLayoutMetrics,
   createCompactActionTile,
   readCompactActionGrid,
   type CompactActionGridState,
   type CompactActionTile,
 } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
+import { isLayeredCompositionParent, layeredCompositionParentSizePx } from "@/lib/fusion/creative-studio/platform/layered-region";
 import type { ButtonInspectorSection } from "./studio-selection-toolbar";
 import { StudioIconDiscovery } from "./studio-icon-discovery";
 import { StudioInternalPagePicker } from "./studio-internal-page-picker";
@@ -39,7 +41,11 @@ export function StudioCompactActionGridInspector({ model, node, section, onSecti
   const [selectedTileId, setSelectedTileId] = useState(state?.tiles[0]?.componentId || "");
   if (!state) return null;
   const selected = state.tiles.find((tile) => tile.componentId === selectedTileId) ?? state.tiles[0] ?? null;
-  const commit = (next: CompactActionGridState, label: string) => model.patchSelection(model.selectionRef, { props: { ...node.props, ...compactActionGridNodeProps(next) } }, label);
+  const commit = (next: CompactActionGridState, label: string, options?: { forceAlignment?: boolean }) => model.patchSelection(
+    model.selectionRef,
+    compactActionGridPlacementPatch(model, node, state, next, options),
+    label,
+  );
   const updateTile = (patch: Partial<CompactActionTile>, label: string) => {
     if (!selected) return;
     commit({ ...state, tiles: state.tiles.map((tile) => tile.componentId === selected.componentId ? { ...tile, ...patch } : tile) }, label);
@@ -72,7 +78,7 @@ function TileStrip({ state, selectedTileId, onSelect, onReorder }: { state: Comp
   return <div><p className="mb-2 text-[9px] font-semibold uppercase tracking-[.14em] text-white/38">Tile order</p><div className="flex gap-1 overflow-x-auto pb-1">{state.tiles.map((tile, index) => <button key={tile.componentId} type="button" draggable onDragStart={() => setDragIndex(index)} onDragOver={(event) => event.preventDefault()} onDrop={(event) => drop(event, index)} onClick={() => onSelect(tile.componentId)} aria-pressed={tile.componentId === selectedTileId} className="min-h-10 shrink-0 rounded-xl border border-white/8 bg-white/[.035] px-2 text-[9px] text-white/55 aria-pressed:border-[#b8ff2c]/55 aria-pressed:bg-[#b8ff2c]/10 aria-pressed:text-white" data-testid={`compact-inspector-tile-${tile.componentId}`}>{index + 1}. {tile.label}</button>)}</div></div>;
 }
 
-function ContentEditor({ state, selected, commit, updateTile, onSelect }: { state: CompactActionGridState; selected: CompactActionTile | null; commit: (next: CompactActionGridState, label: string) => void; updateTile: (patch: Partial<CompactActionTile>, label: string) => void; onSelect: (id: string) => void }) {
+function ContentEditor({ state, selected, commit, updateTile, onSelect }: { state: CompactActionGridState; selected: CompactActionTile | null; commit: (next: CompactActionGridState, label: string, options?: { forceAlignment?: boolean }) => void; updateTile: (patch: Partial<CompactActionTile>, label: string) => void; onSelect: (id: string) => void }) {
   if (!selected) return <button type="button" onClick={() => { const tile = createCompactActionTile({ label: "New action" }); onSelect(tile.componentId); commit({ ...state, tiles: [tile] }, "Added first Compact Action Tile"); }} className={buttonClass}><Plus className="h-3.5 w-3.5" />Add first Tile</button>;
   const index = state.tiles.findIndex((tile) => tile.componentId === selected.componentId);
   return <div className="space-y-3">
@@ -93,7 +99,7 @@ function ActionEditor({ model, selected, updateTile }: { model: CardEditorLiveMo
   </div>;
 }
 
-function AppearanceEditor({ state, commit, selected, updateTile }: { state: CompactActionGridState; commit: (next: CompactActionGridState, label: string) => void; selected: CompactActionTile | null; updateTile: (patch: Partial<CompactActionTile>, label: string) => void }) {
+function AppearanceEditor({ state, commit, selected, updateTile }: { state: CompactActionGridState; commit: (next: CompactActionGridState, label: string, options?: { forceAlignment?: boolean }) => void; selected: CompactActionTile | null; updateTile: (patch: Partial<CompactActionTile>, label: string) => void }) {
   const loveAndTheft = state.presentation === "everencore-love-and-theft-pick";
   const family = loveAndTheft ? "everencore-love-and-theft-pick" : "compact-neutral";
   const capability = actionPresentationEffectCapability(family);
@@ -124,12 +130,54 @@ function CertifiedMasterStatus({ iconAssetRef }: { iconAssetRef: string }) {
   return <div className="rounded-xl border border-[#d7ad58]/20 bg-[#d7ad58]/[.06] p-3 text-[10px] leading-4 text-[#ead59f]" data-testid="love-theft-certified-master-status"><strong className="block text-white/78">Certified source master</strong>{master ? `${master.displayLabel} · ${master.category} · ${master.faceConstruction.replaceAll("-", " ")}. The supplied PNG renders unchanged.` : "No registered semantic master. The certified Blank / Custom pick renders unchanged."}</div>;
 }
 
-function LayoutEditor({ state, commit }: { state: CompactActionGridState; commit: (next: CompactActionGridState, label: string) => void }) {
+function LayoutEditor({ state, commit }: { state: CompactActionGridState; commit: (next: CompactActionGridState, label: string, options?: { forceAlignment?: boolean }) => void }) {
   return <div className="space-y-3"><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-white/38">Columns · never five</p><div className="grid grid-cols-3 gap-1">{([2,3,4] as const).map((columns) => <button key={columns} type="button" aria-pressed={state.columns===columns} onClick={() => commit({...state,columns},`Changed Compact Action Grid to ${columns} columns`)} className="min-h-10 rounded-xl bg-white/5 text-xs aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{columns}</button>)}</div>
+    <Field label="Grid width"><div className="grid grid-cols-3 gap-1">{([ ["full","Full width"], ["fit_content","Fit content"], ["custom","Custom"] ] as const).map(([widthMode,label]) => <button key={widthMode} type="button" aria-pressed={state.widthMode===widthMode} onClick={() => commit({...state,widthMode},`Changed Compact Action Grid width to ${label}`)} className="min-h-10 rounded-xl bg-white/5 px-1 text-[9px] aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]" data-testid={`compact-grid-width-${widthMode}`}>{label}</button>)}</div></Field>
+    {state.widthMode === "custom" ? <Field label="Custom frame width"><input type="number" min={44} max={1200} value={state.customWidthPx} onChange={(event) => commit({...state,customWidthPx:Number(event.target.value)},"Changed Compact Action Grid custom width")} className={fieldClass} data-testid="compact-grid-custom-width" /></Field> : null}
+    <Field label="Tile / pick size"><input type="number" min={44} max={180} value={state.tileSizePx} onChange={(event) => commit({...state,tileSizePx:Number(event.target.value)},"Changed Compact Action Grid tile size")} className={fieldClass} data-testid="compact-grid-tile-size" /></Field>
     <Field label="Density"><select value={state.density} onChange={(event) => commit({...state,density:event.target.value as CompactActionGridState["density"]},"Changed Compact Action Grid density")} className={fieldClass}><option value="compact">Compact</option><option value="standard">Standard</option><option value="roomy">Roomy</option></select></Field>
-    <div className="grid grid-cols-2 gap-2"><Field label="Column gap"><input type="number" min={0} max={40} value={state.columnGapPx} onChange={(event) => commit({...state,columnGapPx:Number(event.target.value)},"Changed Compact Action Grid column gap")} className={fieldClass} /></Field><Field label="Row gap"><input type="number" min={0} max={48} value={state.rowGapPx} onChange={(event) => commit({...state,rowGapPx:Number(event.target.value)},"Changed Compact Action Grid row gap")} className={fieldClass} /></Field></div>
+    <div className="grid grid-cols-2 gap-2"><Field label="Column gap"><input type="number" min={0} max={64} value={state.columnGapPx} onChange={(event) => commit({...state,columnGapPx:Number(event.target.value)},"Changed Compact Action Grid column gap")} className={fieldClass} data-testid="compact-grid-column-gap" /></Field><Field label="Row gap"><input type="number" min={0} max={64} value={state.rowGapPx} onChange={(event) => commit({...state,rowGapPx:Number(event.target.value)},"Changed Compact Action Grid row gap")} className={fieldClass} /></Field></div>
+    <Field label="Grid alignment"><div className="grid grid-cols-3 gap-1">{(["left","center","right"] as const).map((gridAlignment) => <button key={gridAlignment} type="button" aria-pressed={state.gridAlignment===gridAlignment} onClick={() => commit({...state,gridAlignment},`Aligned Compact Action Grid ${gridAlignment}`,{forceAlignment:true})} className="min-h-10 rounded-xl bg-white/5 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]" data-testid={`compact-grid-align-${gridAlignment}`}>{gridAlignment}</button>)}</div></Field>
     <Field label="Label alignment"><select value={state.labelAlign} onChange={(event)=>commit({...state,labelAlign:event.target.value as CompactActionGridState["labelAlign"]},"Changed Compact Action Grid alignment")} className={fieldClass}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></Field>
   </div>;
+}
+
+function compositionBlockForNode(model: CardEditorLiveModel, nodeId: string): CreativeCompositionBlock | null {
+  const blocks = [model.config.rootComposition, ...model.config.sections.map((section) => section.composition)].filter((block): block is CreativeCompositionBlock => Boolean(block));
+  return blocks.find((block) => block.nodes.some((candidate) => candidate.id === nodeId)) ?? null;
+}
+
+function compactActionGridPlacementPatch(
+  model: CardEditorLiveModel,
+  node: CreativeCompositionNode,
+  current: CompactActionGridState,
+  next: CompactActionGridState,
+  options?: { forceAlignment?: boolean },
+): Partial<CreativeCompositionNode> {
+  const props = { ...node.props, ...compactActionGridNodeProps(next) };
+  const block = compositionBlockForNode(model, node.id);
+  if (!block || !isLayeredCompositionParent(block, node.parentId ?? null)) return { props };
+  const parentSize = layeredCompositionParentSizePx(block, node.parentId ?? null);
+  const parentWidthPx = parentSize.widthPx;
+  const parentHeightPx = parentSize.heightPx;
+  const metrics = compactActionGridLayoutMetrics(next);
+  const widthAffectingChange = current.widthMode !== next.widthMode
+    || current.columns !== next.columns
+    || current.tileSizePx !== next.tileSizePx
+    || current.columnGapPx !== next.columnGapPx
+    || current.customWidthPx !== next.customWidthPx
+    || current.tiles.filter((tile) => !tile.hidden && tile.lockedBehavior?.mode !== "hidden").length !== metrics.visibleTiles.length;
+  let width = node.width;
+  if (next.widthMode === "full") width = 1;
+  else if (next.widthMode === "fit_content") width = Math.max(.08, Math.min(1, metrics.contentWidthPx / parentWidthPx));
+  else if (current.widthMode !== "custom" || current.customWidthPx !== next.customWidthPx) width = Math.max(.08, Math.min(1, next.customWidthPx / parentWidthPx));
+  let x = node.x;
+  if (next.widthMode === "full") x = 0;
+  else if (options?.forceAlignment || widthAffectingChange || current.gridAlignment !== next.gridAlignment) {
+    x = next.gridAlignment === "left" ? 0 : next.gridAlignment === "right" ? 1 - width : (1 - width) / 2;
+  }
+  const height = Math.max(.015, Math.min(.9, metrics.contentHeightPx / parentHeightPx));
+  return { props, width, height, x: Math.max(0, Math.min(1 - width, x)) };
 }
 
 function StateEditor({ model, selected, updateTile }: { model: CardEditorLiveModel; selected: CompactActionTile | null; updateTile: (patch: Partial<CompactActionTile>, label: string) => void }) {

@@ -8,6 +8,8 @@ export const COMPACT_ACTION_TILE_CONTRACT = "compactActionTile@1.0.0" as const;
 
 export type CompactActionGridPresentation = "neutral-icon" | "everencore-love-and-theft-pick";
 export type CompactActionGridDensity = "compact" | "standard" | "roomy";
+export type CompactActionGridWidthMode = "full" | "fit_content" | "custom";
+export type CompactActionGridAlignment = "left" | "center" | "right";
 export type CompactActionTileLockMode = "none" | "hidden" | "message" | "cta";
 
 export type CompactActionTile = {
@@ -41,6 +43,10 @@ export type CompactActionGridState = {
   analyticsId: string;
   presentation: CompactActionGridPresentation;
   columns: 2 | 3 | 4;
+  tileSizePx: number;
+  widthMode: CompactActionGridWidthMode;
+  customWidthPx: number;
+  gridAlignment: CompactActionGridAlignment;
   density: CompactActionGridDensity;
   columnGapPx: number;
   rowGapPx: number;
@@ -56,6 +62,10 @@ export type CompactActionGridState = {
 
 const number = (value: unknown, fallback: number, min: number, max: number) =>
   typeof value === "number" && Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : fallback;
+
+function legacyTileSizeForColumns(columns: CompactActionGridState["columns"]) {
+  return columns === 2 ? 114 : columns === 4 ? 74 : 92;
+}
 
 export function createCompactActionTile(input: Partial<CompactActionTile> & Pick<CompactActionTile, "label">): CompactActionTile {
   const componentId = input.componentId || `compact-tile-${nanoid(9)}`;
@@ -92,15 +102,22 @@ export function createCompactActionTile(input: Partial<CompactActionTile> & Pick
 
 export function createCompactActionGrid(input: Partial<CompactActionGridState> = {}): CompactActionGridState {
   const componentId = input.componentId || `compact-grid-${nanoid(9)}`;
+  const columns = input.columns === 2 || input.columns === 4 ? input.columns : 3;
+  const tileSizePx = number(input.tileSizePx, legacyTileSizeForColumns(columns), 44, 180);
+  const columnGapPx = number(input.columnGapPx, 10, 0, 64);
   return {
     contractId: COMPACT_ACTION_GRID_CONTRACT,
     componentId,
     analyticsId: input.analyticsId || `compact-grid:${componentId}`,
     presentation: input.presentation === "neutral-icon" ? "neutral-icon" : "everencore-love-and-theft-pick",
-    columns: input.columns === 2 || input.columns === 4 ? input.columns : 3,
+    columns,
+    tileSizePx,
+    widthMode: input.widthMode === "fit_content" || input.widthMode === "custom" ? input.widthMode : "full",
+    customWidthPx: number(input.customWidthPx, tileSizePx * columns + columnGapPx * Math.max(0, columns - 1), 44, 1200),
+    gridAlignment: input.gridAlignment === "left" || input.gridAlignment === "right" ? input.gridAlignment : "center",
     density: input.density === "compact" || input.density === "roomy" ? input.density : "standard",
-    columnGapPx: number(input.columnGapPx, 10, 0, 40),
-    rowGapPx: number(input.rowGapPx, 14, 0, 48),
+    columnGapPx,
+    rowGapPx: number(input.rowGapPx, 14, 0, 64),
     labelFontFamily: input.labelFontFamily || "Cormorant Garamond, Georgia, serif",
     labelFontSizePx: number(input.labelFontSizePx, 14, 9, 28),
     labelFontWeight: number(input.labelFontWeight, 700, 300, 900),
@@ -110,6 +127,28 @@ export function createCompactActionGrid(input: Partial<CompactActionGridState> =
     sublabelColor: input.sublabelColor || "#d8c18d",
     tiles: Array.isArray(input.tiles) ? input.tiles.map((tile) => createCompactActionTile(tile)) : [],
   };
+}
+
+export function compactActionGridVisibleTiles(state: CompactActionGridState) {
+  return state.tiles.filter((tile) => !tile.hidden && tile.lockedBehavior?.mode !== "hidden");
+}
+
+/**
+ * Canonical visual metrics for Compact Action Grid layout and placement.
+ * Columns arrange fixed-size Tiles; they never select the artwork scale.
+ */
+export function compactActionGridLayoutMetrics(state: CompactActionGridState) {
+  const visibleTiles = compactActionGridVisibleTiles(state);
+  const occupiedColumns = Math.max(1, Math.min(state.columns, visibleTiles.length || 1));
+  const rows = Math.max(1, Math.ceil(visibleTiles.length / state.columns));
+  const densityScale = (state.density === "compact" ? .86 : state.density === "roomy" ? 1.12 : 1) * (state.columns === 4 ? .76 : 1);
+  const labelLinePx = state.labelFontSizePx * densityScale * 1.04;
+  const hasSublabel = state.columns < 4 && visibleTiles.some((tile) => Boolean(tile.sublabel));
+  const sublabelLinePx = hasSublabel ? 4 + state.sublabelFontSizePx * densityScale * 1.15 : 0;
+  const tileHeightPx = Math.ceil(12 + state.tileSizePx + 4 + labelLinePx + sublabelLinePx);
+  const contentWidthPx = state.tileSizePx * occupiedColumns + state.columnGapPx * Math.max(0, occupiedColumns - 1);
+  const contentHeightPx = tileHeightPx * rows + state.rowGapPx * Math.max(0, rows - 1);
+  return { visibleTiles, occupiedColumns, rows, tileHeightPx, contentWidthPx, contentHeightPx } as const;
 }
 
 export function readCompactActionGrid(props: Record<string, unknown>): CompactActionGridState | null {
@@ -128,7 +167,7 @@ export function compactActionGridNodeProps(state: CompactActionGridState): Recor
     label: "Compact Action Grid",
     accessibleLabel: "Compact Action Grid",
     flowWidthPercent: 100,
-    flowAlignment: "stretch",
+    flowAlignment: state.gridAlignment === "left" ? "start" : state.gridAlignment === "right" ? "end" : "center",
     minimumTouchTargetPx: 44,
     contentEditing: false,
   };

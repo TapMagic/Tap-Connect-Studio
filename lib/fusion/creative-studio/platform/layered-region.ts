@@ -1,6 +1,7 @@
 import type { CreativeCompositionBlock, CreativeCompositionNode } from "../composition";
 import { snapCompositionNodes, type CompositionGuide } from "../composition-snap";
 import { compositionChildren } from "../../card/composition-parent-authority";
+import { compactActionGridLayoutMetrics, compactActionGridNodeProps, readCompactActionGrid } from "./compact-action-grid";
 
 export const STUDIO_LAYERED_REGION_CONTRACT = "studioLayeredRegion@1.0.0" as const;
 export type StudioContainerCompositionMode = "flow" | "layered";
@@ -8,11 +9,19 @@ export type StudioLayeredResizePolicy = "free" | "width-only" | "governed-aspect
 export type StudioLayeredBoundsPolicy = "constrain" | "allow-overflow";
 export type StudioPlacementFrameHeightMode = "tight" | "custom";
 
+function compactGrid(node: CreativeCompositionNode) {
+  return readCompactActionGrid(node.props);
+}
+
 export function supportsLayeredPlacementFrameHeight(node: CreativeCompositionNode): boolean {
-  return Boolean(node.moduleComposition?.signatureAssembly || node.primitive === "button");
+  return !compactGrid(node) && Boolean(node.moduleComposition?.signatureAssembly || node.primitive === "button");
 }
 
 export function readLayeredPlacementFrameHeightMode(node: CreativeCompositionNode): StudioPlacementFrameHeightMode {
+  // Compact Action Grids own their visual height through tile size, row count,
+  // labels, and gaps. Ignore any legacy generic frame-height value so an old
+  // Custom setting cannot leave an invisible placement box around the grid.
+  if (compactGrid(node)) return "tight";
   if (node.props.placementFrameHeightMode === "custom") return "custom";
   if (node.props.placementFrameHeightMode === "tight") return "tight";
   // Certified/mastered CTA compositions are intrinsically sized. Older plain
@@ -22,6 +31,7 @@ export function readLayeredPlacementFrameHeightMode(node: CreativeCompositionNod
 }
 
 export function layeredResizePolicy(node: CreativeCompositionNode): StudioLayeredResizePolicy {
+  if (compactGrid(node)) return "width-only";
   if (node.moduleComposition?.signatureAssembly) return readLayeredPlacementFrameHeightMode(node) === "custom" ? "free" : "governed-aspect";
   const kind = String(node.props.elementKind || node.primitive);
   if (node.primitive === "text") return String(node.props.textHeightMode || "auto") === "auto" ? "width-only" : "free";
@@ -43,13 +53,14 @@ export function layeredResizePolicy(node: CreativeCompositionNode): StudioLayere
 }
 
 export function tightLayeredPlacementHeight(block: CreativeCompositionBlock, node: CreativeCompositionNode): number {
-  const parent = node.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
-  const parentWidthPx = parent ? Math.max(80, 390 * parent.width) : 390;
-  const parentHeightPx = parent
-    ? Math.max(120, Number(parent.props.layeredHeightPx) || 360)
-    : Math.max(240, block.compositionMode?.layeredHeightPx ?? 620);
+  const parentSize = layeredCompositionParentSizePx(block, node.parentId ?? null);
+  const parentWidthPx = parentSize.widthPx;
+  const parentHeightPx = parentSize.heightPx;
   const nestedHeightPx = Number(node.moduleComposition?.pageHeightPx);
-  const visualHeightPx = node.moduleComposition?.signatureAssembly && Number.isFinite(nestedHeightPx)
+  const grid = compactGrid(node);
+  const visualHeightPx = grid
+    ? compactActionGridLayoutMetrics(grid).contentHeightPx
+    : node.moduleComposition?.signatureAssembly && Number.isFinite(nestedHeightPx)
     ? node.width * parentWidthPx * (nestedHeightPx / 390)
     : Math.max(20, Number(node.props.visualHeightPx) || Number(node.minHeightPx) || 44);
   return clamp(visualHeightPx / parentHeightPx, .015, .9);
@@ -84,7 +95,7 @@ export function setLayeredPlacementFrameHeightMode(
 export function resolveTightLayeredPlacementFrames(block: CreativeCompositionBlock): CreativeCompositionBlock {
   let changed = false;
   const nodes = block.nodes.map((node) => {
-    if (!supportsLayeredPlacementFrameHeight(node)
+    if (!(compactGrid(node) || supportsLayeredPlacementFrameHeight(node))
       || readLayeredPlacementFrameHeightMode(node) !== "tight"
       || !isLayeredCompositionParent(block, node.parentId ?? null)) return node;
     const height = tightLayeredPlacementHeight(block, node);
@@ -122,6 +133,20 @@ export function isLayeredCompositionParent(block: CreativeCompositionBlock, pare
   return isLayeredContainer(block.nodes.find((node) => node.id === parentId));
 }
 
+/** Phone-authoritative content box for normalized Layered geometry. */
+export function layeredCompositionParentSizePx(block: CreativeCompositionBlock, parentId: string | null): { widthPx: number; heightPx: number } {
+  const rootWidthPx = Math.max(80, 390 - Math.max(0, block.safeAreaPaddingPx ?? 12) * 2);
+  if (parentId === null) return { widthPx: rootWidthPx, heightPx: Math.max(240, block.compositionMode?.layeredHeightPx ?? 620) };
+  const parent = block.nodes.find((candidate) => candidate.id === parentId);
+  if (!parent) return { widthPx: rootWidthPx, heightPx: 360 };
+  const ancestor = layeredCompositionParentSizePx(block, parent.parentId ?? null);
+  const padding = Math.max(0, Number(parent.props.padding) || 0);
+  return {
+    widthPx: Math.max(80, ancestor.widthPx * parent.width - padding * 2),
+    heightPx: Math.max(120, Number(parent.props.layeredHeightPx) || 360),
+  };
+}
+
 export function layeredBoundsPolicy(block: CreativeCompositionBlock, parentId: string | null): StudioLayeredBoundsPolicy {
   if (parentId === null) return block.compositionMode?.bounds === "allow-overflow" ? "allow-overflow" : "constrain";
   const parent = block.nodes.find((candidate) => candidate.id === parentId);
@@ -142,11 +167,10 @@ export function placeNodeInCompositionParent(
   requested?: StudioPlacementFrame,
 ): CreativeCompositionNode {
   if (!isLayeredCompositionParent(block, parentId)) return { ...node, parentId };
-  const parent = parentId ? block.nodes.find((candidate) => candidate.id === parentId) : null;
-  const parentHeightPx = parent ? Math.max(180, Number(parent.props.layeredHeightPx) || 360) : Math.max(240, block.compositionMode?.layeredHeightPx ?? 620);
-  const fallback = layeredDefaultSize(node, parentHeightPx);
+  const parentSize = layeredCompositionParentSizePx(block, parentId);
+  const fallback = layeredDefaultSize(node, parentSize.heightPx, parentSize.widthPx);
   const width = clamp(requested?.width ?? fallback.width, .08, .96);
-  const height = clamp(requested?.height ?? fallback.height, supportsLayeredPlacementFrameHeight(node) ? .015 : .04, .9);
+  const height = clamp(requested?.height ?? fallback.height, compactGrid(node) || supportsLayeredPlacementFrameHeight(node) ? .015 : .04, .9);
   const siblings = compositionChildren(block, parentId).filter((candidate) => candidate.visible !== false);
   const explicit = typeof requested?.x === "number" && typeof requested?.y === "number";
   const placement = explicit
@@ -172,11 +196,12 @@ export function setCardSurfaceCompositionMode(
   const roots = block.nodes.filter((node) => node.parentId === null).sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
   const initialized = block.compositionMode?.layeredPlacementInitialized === true;
   const heightPx = block.compositionMode?.layeredHeightPx ?? 620;
+  const widthPx = layeredCompositionParentSizePx(block, null).widthPx;
   const seeded = new Map<string, Pick<CreativeCompositionNode, "x" | "y" | "width" | "height" | "anchor">>();
   if (mode === "layered" && !initialized) {
     const occupied: CreativeCompositionNode[] = [];
     for (const node of roots) {
-      const frame = spatialSeed(node, heightPx, occupied);
+      const frame = spatialSeed(node, heightPx, occupied, widthPx);
       seeded.set(node.id, frame);
       occupied.push({ ...node, ...frame });
     }
@@ -220,11 +245,12 @@ export function setContainerCompositionMode(
     .sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
   const initialized = container.props.layeredPlacementInitialized === true;
   const heightPx = Number(container.props.layeredHeightPx) || 360;
+  const widthPx = layeredCompositionParentSizePx(block, containerId).widthPx;
   const seeded = new Map<string, Pick<CreativeCompositionNode, "x" | "y" | "width" | "height" | "anchor">>();
   if (mode === "layered" && !initialized) {
     const occupied: CreativeCompositionNode[] = [];
     for (const child of children) {
-      const frame = spatialSeed(child, heightPx, occupied);
+      const frame = spatialSeed(child, heightPx, occupied, widthPx);
       seeded.set(child.id, frame);
       occupied.push({ ...child, ...frame });
     }
@@ -260,12 +286,18 @@ export function moveLayeredNode(
   const parent = node?.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
   if (!node || !(isLayeredContainer(parent) || (node.parentId === null && isCardSurfaceLayered(block)))) return block;
   const width = clamp(patch.width ?? node.width, .08, 1);
-  const height = clamp(patch.height ?? node.height, supportsLayeredPlacementFrameHeight(node) ? .015 : .04, 1);
+  const height = clamp(patch.height ?? node.height, compactGrid(node) || supportsLayeredPlacementFrameHeight(node) ? .015 : .04, 1);
   const allowOverflow = layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow";
+  const grid = compactGrid(node);
+  const parentWidthPx = layeredCompositionParentSizePx(block, node.parentId ?? null).widthPx;
+  const resizedGridProps = grid && grid.widthMode === "custom" && typeof patch.width === "number"
+    ? { ...node.props, ...compactActionGridNodeProps({ ...grid, customWidthPx: Math.round(width * parentWidthPx) }) }
+    : node.props;
   return {
     ...block,
     nodes: block.nodes.map((candidate) => candidate.id === nodeId ? {
       ...candidate,
+      props: resizedGridProps,
       width,
       height,
       x: allowOverflow ? clamp(patch.x ?? node.x, -1, 2) : clamp(patch.x ?? node.x, 0, 1 - width),
@@ -407,27 +439,32 @@ export function resolveLayeredGeometry(
   } as const;
 }
 
-function layeredDefaultSize(node: CreativeCompositionNode, parentHeightPx: number) {
+function layeredDefaultSize(node: CreativeCompositionNode, parentHeightPx: number, parentWidthPx = 390) {
   const kind = String(node.props.elementKind || node.primitive);
-  const width = node.moduleComposition?.signatureAssembly ? clamp(Number(node.props.flowWidthPercent ?? 92) / 100, .42, .94)
+  const grid = compactGrid(node);
+  const gridMetrics = grid ? compactActionGridLayoutMetrics(grid) : null;
+  const width = grid
+    ? grid.widthMode === "full" ? .94 : clamp((grid.widthMode === "fit_content" ? gridMetrics!.contentWidthPx : grid.customWidthPx) / parentWidthPx, .08, .94)
+    : node.moduleComposition?.signatureAssembly ? clamp(Number(node.props.flowWidthPercent ?? 92) / 100, .42, .94)
     : node.compositionKind === "container" ? .46
       : kind === "image" || kind === "video" ? .46
         : kind === "text" ? .48
           : kind === "divider" ? .9
             : kind === "button" ? .48
               : clamp(node.width || .46, .2, .94);
-  const heightPx = node.compositionKind === "container" ? 220
+  const heightPx = gridMetrics ? gridMetrics.contentHeightPx
+    : node.compositionKind === "container" ? 220
     : node.moduleComposition?.signatureAssembly ? width * 390 * (Math.max(1, Number(node.moduleComposition.pageHeightPx) || Number(node.minHeightPx) || 56) / 390)
       : kind === "image" || kind === "video" ? 180
         : kind === "text" ? Math.max(44, Number(node.props.textMinHeightPx) || 72)
           : kind === "divider" ? 24
             : 64;
-  const height = clamp(heightPx / Math.max(240, parentHeightPx), supportsLayeredPlacementFrameHeight(node) ? .015 : .04, .82);
+  const height = clamp(heightPx / Math.max(240, parentHeightPx), compactGrid(node) || supportsLayeredPlacementFrameHeight(node) ? .015 : .04, .82);
   return { width, height };
 }
 
-function spatialSeed(node: CreativeCompositionNode, parentHeightPx: number, occupied: CreativeCompositionNode[]) {
-  const { width, height } = layeredDefaultSize(node, parentHeightPx);
+function spatialSeed(node: CreativeCompositionNode, parentHeightPx: number, occupied: CreativeCompositionNode[], parentWidthPx = 390) {
+  const { width, height } = layeredDefaultSize(node, parentHeightPx, parentWidthPx);
   const placement = findLayeredOpening(width, height, occupied);
   return { ...placement, width, height, anchor: node.anchor ?? "top-left" } as const;
 }

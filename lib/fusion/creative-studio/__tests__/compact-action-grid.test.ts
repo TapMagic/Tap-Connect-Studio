@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   compactActionGridNodeProps,
+  compactActionGridLayoutMetrics,
   compactActionGridProofFixture,
   createCompactActionGrid,
   createCompactActionTile,
@@ -22,6 +23,36 @@ describe("Compact Action Tile / Grid authority", () => {
     assert.equal(createCompactActionGrid({ columns: 3 }).columns, 3);
     assert.equal(createCompactActionGrid({ columns: 4 }).columns, 4);
     assert.equal(createCompactActionGrid({ columns: 5 as never }).columns, 3);
+  });
+
+  it("keeps authored Tile size independent from the column arrangement", () => {
+    const threeAcross = createCompactActionGrid({ columns: 3, tileSizePx: 96, columnGapPx: 12 });
+    const twoAcross = createCompactActionGrid({ ...threeAcross, columns: 2 });
+    assert.equal(threeAcross.tileSizePx, 96);
+    assert.equal(twoAcross.tileSizePx, 96);
+  });
+
+  it("fits the frame to occupied columns without reserving an empty track", () => {
+    const state = createCompactActionGrid({
+      columns: 3,
+      tileSizePx: 96,
+      columnGapPx: 12,
+      widthMode: "fit_content",
+      tiles: [createCompactActionTile({ label: "Instagram" }), createCompactActionTile({ label: "Facebook" })],
+    });
+    const metrics = compactActionGridLayoutMetrics(state);
+    assert.equal(metrics.occupiedColumns, 2);
+    assert.equal(metrics.contentWidthPx, 204);
+    assert.equal(metrics.rows, 1);
+  });
+
+  it("preserves explicit width mode, Grid alignment, custom width, and the approved 64px gap range", () => {
+    const state = createCompactActionGrid({ widthMode: "custom", customWidthPx: 280, gridAlignment: "right", columnGapPx: 64, rowGapPx: 64 });
+    assert.equal(state.widthMode, "custom");
+    assert.equal(state.customWidthPx, 280);
+    assert.equal(state.gridAlignment, "right");
+    assert.equal(state.columnGapPx, 64);
+    assert.equal(state.rowGapPx, 64);
   });
 
   it("preserves stable Tile, Action, analytics, and destination identities through serialization", () => {

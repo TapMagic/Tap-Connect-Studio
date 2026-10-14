@@ -122,7 +122,7 @@ import { allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, 
 import { readCardSurfaceDensity, readContainerDensity } from "@/lib/fusion/creative-studio/platform/composition-density";
 import { cardSurfaceImageLayerStyle, cardSurfaceImagePresentation } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 import { STANDARD_BUTTON_APPEARANCE_CONTRACT, readStandardButtonAppearance } from "@/lib/fusion/creative-studio/reconstitution/standard-button-appearance";
-import { readCompactActionGrid } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
+import { compactActionGridLayoutMetrics, readCompactActionGrid } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import { CompactActionGrid } from "@/components/tap/compact-action-grid";
 import { ActionPresentationEffects } from "@/components/fusion/creative-studio/action-presentation-effects";
 import { MapLocationContainer } from "@/components/tap/map-location-container";
@@ -2751,6 +2751,18 @@ export function CreativeCompositionCanvas({
     const rootDensity = readCardSurfaceDensity(flowBlock);
     const moduleFrame = (node: CreativeCompositionNode): CSSProperties => {
       const width = Math.max(20, Math.min(100, num(node.props.flowWidthPercent, 100)));
+      const compactGrid = readCompactActionGrid(node.props);
+      if (compactGrid) {
+        const metrics = compactActionGridLayoutMetrics(compactGrid);
+        const authoredWidthPx = compactGrid.widthMode === "fit_content" ? metrics.contentWidthPx : compactGrid.customWidthPx;
+        return {
+          minHeight: metrics.contentHeightPx,
+          width: compactGrid.widthMode === "full" ? `min(${width}%, 100%)` : `min(${authoredWidthPx}px, 100%)`,
+          alignSelf: compactGrid.gridAlignment === "left" ? "flex-start" : compactGrid.gridAlignment === "right" ? "flex-end" : "center",
+          marginTop: Math.max(0, num(node.props.spacingAbovePx, 0)),
+          marginBottom: Math.max(0, num(node.props.spacingBelowPx, 0)),
+        };
+      }
       const isCuratedAssembly = Boolean(node.moduleComposition?.signatureAssembly);
       const nativeModuleHeight = node.moduleComposition?.pageHeightPx ?? 56;
       const responsiveModuleHeight = isCuratedAssembly ? nativeModuleHeight * (width / 100) : nativeModuleHeight;
@@ -3031,6 +3043,11 @@ export function CreativeCompositionCanvas({
       const localY = groupFrame ? (node.y - groupFrame.y) / Math.max(.02, groupFrame.height) : node.y;
       const localWidth = groupFrame ? node.width / Math.max(.02, groupFrame.width) : node.width;
       const localHeight = groupFrame ? node.height / Math.max(.02, groupFrame.height) : node.height;
+      const compactGrid = readCompactActionGrid(node.props);
+      const compactMetrics = compactGrid ? compactActionGridLayoutMetrics(compactGrid) : null;
+      const compactAuthoredWidthPx = compactGrid?.widthMode === "fit_content" ? compactMetrics?.contentWidthPx : compactGrid?.widthMode === "custom" ? compactGrid.customWidthPx : null;
+      const compactCanonicalCenter = Boolean(compactGrid && compactGrid.widthMode !== "full" && compactGrid.gridAlignment === "center" && Math.abs(localX - (1 - localWidth) / 2) < .002);
+      const compactCanonicalRight = Boolean(compactGrid && compactGrid.widthMode !== "full" && compactGrid.gridAlignment === "right" && Math.abs(localX - (1 - localWidth)) < .002);
       const parentSelected = Boolean(groupParentSelection && activeGroupId && node.groupId === activeGroupId);
       return (
       <div
@@ -3043,10 +3060,12 @@ export function CreativeCompositionCanvas({
         style={{
           ...(layered ? {
             position: "absolute" as const,
-            left: `${localX * 100}%`,
+            left: compactCanonicalCenter ? "50%" : compactCanonicalRight ? undefined : `${localX * 100}%`,
+            right: compactCanonicalRight ? 0 : undefined,
             top: `${localY * 100}%`,
-            width: `${localWidth * 100}%`,
-            height: `${localHeight * 100}%`,
+            width: compactAuthoredWidthPx != null ? `${compactAuthoredWidthPx}px` : `${localWidth * 100}%`,
+            height: compactMetrics ? `${compactMetrics.contentHeightPx}px` : `${localHeight * 100}%`,
+            transform: compactCanonicalCenter ? "translateX(-50%)" : undefined,
             minHeight: 0,
             ["--studio-action-layout-min-height" as string]: "0px",
             zIndex: editMode && selectedSet.has(node.id) && selectedNodeIds.length === 1 ? 3800 : node.zIndex,

@@ -3,7 +3,11 @@
 import { useState, type CSSProperties } from "react";
 import { LockKeyhole, Sparkles } from "lucide-react";
 import { PremiumIcon } from "@/components/design/premium-icon";
-import type { CompactActionGridState, CompactActionTile } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
+import {
+  compactActionGridLayoutMetrics,
+  type CompactActionGridState,
+  type CompactActionTile,
+} from "@/lib/fusion/creative-studio/platform/compact-action-grid";
 import {
   EVERENCORE_LOVE_AND_THEFT_BLANK_PICK_SOURCE,
   EVERENCORE_LOVE_AND_THEFT_BLANK_INSERT_ID,
@@ -56,11 +60,15 @@ export function CompactActionGrid({ state, editMode = false }: { state: CompactA
   // Four columns are a governed compact presentation, not browser zoom. The
   // optical type reduction keeps the longest admitted platform labels intact.
   const densityScale = authoredDensityScale * (state.columns === 4 ? .76 : 1);
-  const visibleTiles = state.tiles.filter((tile) => !tile.hidden && tile.lockedBehavior?.mode !== "hidden");
+  const { visibleTiles, occupiedColumns } = compactActionGridLayoutMetrics(state);
+  const fixedTracks = state.widthMode !== "full";
   const style = {
-    gridTemplateColumns: `repeat(${state.columns}, minmax(0, 1fr))`,
+    gridTemplateColumns: fixedTracks
+      ? `repeat(${occupiedColumns}, ${state.tileSizePx}px)`
+      : `repeat(${occupiedColumns}, minmax(0, 1fr))`,
     columnGap: state.columnGapPx,
     rowGap: state.rowGapPx,
+    justifyContent: state.gridAlignment === "left" ? "start" : state.gridAlignment === "right" ? "end" : "center",
     "--compact-grid-density": densityScale,
     "--compact-grid-label-font": state.labelFontFamily,
     "--compact-grid-label-size": `${state.labelFontSizePx}px`,
@@ -70,13 +78,17 @@ export function CompactActionGrid({ state, editMode = false }: { state: CompactA
     "--compact-grid-sublabel-color": state.sublabelColor,
   } as CSSProperties;
   return <div
-    className="grid h-auto min-h-full w-full overflow-visible"
+    className="grid h-auto w-full overflow-visible"
     style={style}
     data-testid="compact-action-grid"
     data-compact-action-contract={state.contractId}
     data-compact-action-component-id={state.componentId}
     data-compact-action-presentation={state.presentation}
     data-compact-action-columns={state.columns}
+    data-compact-action-occupied-columns={occupiedColumns}
+    data-compact-action-tile-size={state.tileSizePx}
+    data-compact-action-width-mode={state.widthMode}
+    data-compact-action-alignment={state.gridAlignment}
     data-compact-action-density={state.density}
   >
     {visibleTiles.map((tile) => <CompactActionTileView
@@ -101,13 +113,13 @@ function CompactActionTileView({ tile, state, editMode, expanded, onLocked }: {
   const internalPageId = tile.actionType === "internal_page" && !locked ? tile.destinationRef : undefined;
   const href = !locked ? tileHref(tile) : undefined;
   const labelAlign = state.labelAlign === "left" ? "items-start text-left" : state.labelAlign === "right" ? "items-end text-right" : "items-center text-center";
-  const pickSize = state.columns === 2 ? "clamp(76px,26vw,114px)" : state.columns === 3 ? "clamp(64px,20vw,92px)" : "clamp(52px,16vw,74px)";
-  const neutralIconSize = state.columns === 4 ? 42 : state.columns === 3 ? 52 : 62;
+  const pickSize = state.tileSizePx;
+  const neutralIconSize = state.tileSizePx;
   const body = <>
-    <span className="relative block overflow-visible" style={{ width: pickSize, maxWidth: "100%" }}>
+    <span className="relative block overflow-visible" style={{ width: pickSize }}>
       {state.presentation === "everencore-love-and-theft-pick"
         ? <LoveAndTheftPickVisual iconAssetRef={locked ? "lucide:lock" : tile.iconAssetRef} insertConstruction={locked ? undefined : tile.insertConstruction} active={tile.active} compact={state.columns === 4} className="w-full" />
-        : <span className={cn("mx-auto grid aspect-square place-items-center rounded-[30%] border text-white shadow-[inset_0_1px_0_rgba(255,255,255,.24),0_8px_18px_rgba(0,0,0,.34)]", tile.active ? "border-amber-200/65 bg-[linear-gradient(145deg,#d7ad58,#6f4519)]" : "border-white/18 bg-[linear-gradient(145deg,#263244,#080b10)]")} style={{ width: neutralIconSize }} aria-hidden><PremiumIcon icon={locked ? "lock" : tile.iconAssetRef.split(":").at(-1) || tile.iconAssetRef} sizePx={state.columns === 4 ? 20 : 24} /></span>}
+        : <span className={cn("mx-auto grid aspect-square place-items-center rounded-[30%] border text-white shadow-[inset_0_1px_0_rgba(255,255,255,.24),0_8px_18px_rgba(0,0,0,.34)]", tile.active ? "border-amber-200/65 bg-[linear-gradient(145deg,#d7ad58,#6f4519)]" : "border-white/18 bg-[linear-gradient(145deg,#263244,#080b10)]")} style={{ width: neutralIconSize }} aria-hidden><PremiumIcon icon={locked ? "lock" : tile.iconAssetRef.split(":").at(-1) || tile.iconAssetRef} sizePx={Math.max(18, Math.round(state.tileSizePx * .32))} /></span>}
       {tile.new ? <span className="absolute right-0 top-0 z-[2] rounded-full border border-[#f5d68c]/55 bg-[#26190c]/94 px-1.5 py-0.5 text-[7px] font-black tracking-[.12em] text-[#ffe8ac] shadow-md">NEW</span> : null}
       {locked ? <span className="absolute bottom-[6%] right-[4%] z-[2] grid h-5 w-5 place-items-center rounded-full border border-[#f5d68c]/45 bg-[#1b1209]/94 text-[#f5d68c] shadow"><LockKeyhole className="h-2.5 w-2.5" /></span> : null}
     </span>
