@@ -977,6 +977,7 @@ export function createCompositionNode(
           fill: "#22c55e",
           textColor: "#0b0f19",
           href: "",
+          placementFrameHeightMode: "tight",
         },
       },
       group: {

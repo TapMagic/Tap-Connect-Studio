@@ -29,6 +29,17 @@
   transition: transform 160ms ease, filter 160ms ease;
 }
 
+/* Accessibility hit slop belongs to the action, never to Layered geometry. */
+.studio-action-hit-target::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: max(100%, 44px);
+  height: max(100%, 44px);
+  transform: translate(-50%, -50%);
+}
+
 a:hover .studio-standard-button-face {
   filter: brightness(1.06);
 }

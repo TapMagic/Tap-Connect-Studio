@@ -6,9 +6,23 @@ export const STUDIO_LAYERED_REGION_CONTRACT = "studioLayeredRegion@1.0.0" as con
 export type StudioContainerCompositionMode = "flow" | "layered";
 export type StudioLayeredResizePolicy = "free" | "width-only" | "governed-aspect";
 export type StudioLayeredBoundsPolicy = "constrain" | "allow-overflow";
+export type StudioPlacementFrameHeightMode = "tight" | "custom";
+
+export function supportsLayeredPlacementFrameHeight(node: CreativeCompositionNode): boolean {
+  return Boolean(node.moduleComposition?.signatureAssembly || node.primitive === "button");
+}
+
+export function readLayeredPlacementFrameHeightMode(node: CreativeCompositionNode): StudioPlacementFrameHeightMode {
+  if (node.props.placementFrameHeightMode === "custom") return "custom";
+  if (node.props.placementFrameHeightMode === "tight") return "tight";
+  // Certified/mastered CTA compositions are intrinsically sized. Older plain
+  // Buttons predate this authority, so retain their authored frame until the
+  // Host explicitly chooses Fit content.
+  return node.moduleComposition?.signatureAssembly ? "tight" : "custom";
+}
 
 export function layeredResizePolicy(node: CreativeCompositionNode): StudioLayeredResizePolicy {
-  if (node.moduleComposition?.signatureAssembly) return "governed-aspect";
+  if (node.moduleComposition?.signatureAssembly) return readLayeredPlacementFrameHeightMode(node) === "custom" ? "free" : "governed-aspect";
   const kind = String(node.props.elementKind || node.primitive);
   if (node.primitive === "text") return String(node.props.textHeightMode || "auto") === "auto" ? "width-only" : "free";
   if (node.primitive === "image" && kind !== "map") {
@@ -20,9 +34,66 @@ export function layeredResizePolicy(node: CreativeCompositionNode): StudioLayere
     return fit === "cover" || fit === "fill" || node.props.cropEnabled === true ? "free" : "governed-aspect";
   }
   if (node.primitive === "video") return node.props.aspectLocked === false ? "free" : "governed-aspect";
-  if (node.primitive === "button") return node.props.aspectLocked === true ? "governed-aspect" : "free";
+  if (node.primitive === "button") {
+    if (readLayeredPlacementFrameHeightMode(node) === "tight") return "width-only";
+    return node.props.aspectLocked === true ? "governed-aspect" : "free";
+  }
   if (kind === "divider") return "width-only";
   return "free";
+}
+
+export function tightLayeredPlacementHeight(block: CreativeCompositionBlock, node: CreativeCompositionNode): number {
+  const parent = node.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
+  const parentWidthPx = parent ? Math.max(80, 390 * parent.width) : 390;
+  const parentHeightPx = parent
+    ? Math.max(120, Number(parent.props.layeredHeightPx) || 360)
+    : Math.max(240, block.compositionMode?.layeredHeightPx ?? 620);
+  const nestedHeightPx = Number(node.moduleComposition?.pageHeightPx);
+  const visualHeightPx = node.moduleComposition?.signatureAssembly && Number.isFinite(nestedHeightPx)
+    ? node.width * parentWidthPx * (nestedHeightPx / 390)
+    : Math.max(20, Number(node.props.visualHeightPx) || Number(node.minHeightPx) || 44);
+  return clamp(visualHeightPx / parentHeightPx, .015, .9);
+}
+
+export function setLayeredPlacementFrameHeightMode(
+  block: CreativeCompositionBlock,
+  nodeId: string,
+  mode: StudioPlacementFrameHeightMode,
+): CreativeCompositionBlock {
+  const node = block.nodes.find((candidate) => candidate.id === nodeId);
+  if (!node || !supportsLayeredPlacementFrameHeight(node)) return block;
+  const height = mode === "tight" ? tightLayeredPlacementHeight(block, node) : node.height;
+  return {
+    ...block,
+    nodes: block.nodes.map((candidate) => candidate.id === nodeId ? {
+      ...candidate,
+      height,
+      y: layeredBoundsPolicy(block, candidate.parentId ?? null) === "allow-overflow"
+        ? candidate.y
+        : clamp(candidate.y, 0, 1 - height),
+      props: { ...candidate.props, placementFrameHeightMode: mode },
+    } : candidate),
+  };
+}
+
+/**
+ * Resolves legacy Layered action frames through the current placement recipe.
+ * This is intentionally a geometry projection: it neither changes the nested
+ * visual master nor lets its accessibility target become layout size.
+ */
+export function resolveTightLayeredPlacementFrames(block: CreativeCompositionBlock): CreativeCompositionBlock {
+  let changed = false;
+  const nodes = block.nodes.map((node) => {
+    if (!supportsLayeredPlacementFrameHeight(node)
+      || readLayeredPlacementFrameHeightMode(node) !== "tight"
+      || !isLayeredCompositionParent(block, node.parentId ?? null)) return node;
+    const height = tightLayeredPlacementHeight(block, node);
+    const y = layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow" ? node.y : clamp(node.y, 0, 1 - height);
+    if (Math.abs(node.height - height) < .000001 && node.props.placementFrameHeightMode === "tight" && y === node.y) return node;
+    changed = true;
+    return { ...node, height, y, props: { ...node.props, placementFrameHeightMode: "tight" } };
+  });
+  return changed ? { ...block, nodes } : block;
 }
 
 export type StudioRectangularResizeHandle = "nw" | "n" | "ne" | "e" | "se" | "s" | "sw" | "w";
@@ -75,7 +146,7 @@ export function placeNodeInCompositionParent(
   const parentHeightPx = parent ? Math.max(180, Number(parent.props.layeredHeightPx) || 360) : Math.max(240, block.compositionMode?.layeredHeightPx ?? 620);
   const fallback = layeredDefaultSize(node, parentHeightPx);
   const width = clamp(requested?.width ?? fallback.width, .08, .96);
-  const height = clamp(requested?.height ?? fallback.height, .04, .9);
+  const height = clamp(requested?.height ?? fallback.height, supportsLayeredPlacementFrameHeight(node) ? .015 : .04, .9);
   const siblings = compositionChildren(block, parentId).filter((candidate) => candidate.visible !== false);
   const explicit = typeof requested?.x === "number" && typeof requested?.y === "number";
   const placement = explicit
@@ -189,7 +260,7 @@ export function moveLayeredNode(
   const parent = node?.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
   if (!node || !(isLayeredContainer(parent) || (node.parentId === null && isCardSurfaceLayered(block)))) return block;
   const width = clamp(patch.width ?? node.width, .08, 1);
-  const height = clamp(patch.height ?? node.height, .04, 1);
+  const height = clamp(patch.height ?? node.height, supportsLayeredPlacementFrameHeight(node) ? .015 : .04, 1);
   const allowOverflow = layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow";
   return {
     ...block,
@@ -346,12 +417,12 @@ function layeredDefaultSize(node: CreativeCompositionNode, parentHeightPx: numbe
             : kind === "button" ? .48
               : clamp(node.width || .46, .2, .94);
   const heightPx = node.compositionKind === "container" ? 220
-    : node.moduleComposition?.signatureAssembly ? Math.max(44, Number(node.minHeightPx) || Number(node.props.minimumTouchTargetPx) || 72)
+    : node.moduleComposition?.signatureAssembly ? width * 390 * (Math.max(1, Number(node.moduleComposition.pageHeightPx) || Number(node.minHeightPx) || 56) / 390)
       : kind === "image" || kind === "video" ? 180
         : kind === "text" ? Math.max(44, Number(node.props.textMinHeightPx) || 72)
           : kind === "divider" ? 24
             : 64;
-  const height = clamp(heightPx / Math.max(240, parentHeightPx), .04, .82);
+  const height = clamp(heightPx / Math.max(240, parentHeightPx), supportsLayeredPlacementFrameHeight(node) ? .015 : .04, .82);
   return { width, height };
 }
 

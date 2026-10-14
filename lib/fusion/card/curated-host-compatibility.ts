@@ -70,6 +70,7 @@ export function adaptLegacyRootCuratedAssembly(root: CreativeCompositionBlock): 
       elementKind: "curated-system",
       curatedFamilyId: assembly.input.familyId,
       curatedLayoutMode: assembly.input.layoutMode,
+      placementFrameHeightMode: "tight",
     },
     moduleComposition: nested,
   };

@@ -135,7 +135,7 @@ function composedRoot(previous: CreativeCompositionBlock): CreativeCompositionBl
       props: { componentKind: "text", elementKind: "text", text: "Music brings us closer. Two voices, one road, and a night worth remembering.", textRole: "body", color: "#ead7b7", fontSize: 12, fontWeight: 500, lineHeight: 1.45, align: "left" },
     },
     curatedNode({ id: "composition-proof-listen", name: "Medium Listen Now", presentationId: "everencore-love-and-theft-standard-left", labels: ["Listen Now"], parentId: null, siblingOrder: 3, x: .39, y: .255, width: .59, height: .16, zIndex: 5, anchor: "right", treatment: LOVE_AND_THEFT_APPEARANCE_OPTION_IDS.burgundyPlum }),
-    curatedNode({ id: "composition-proof-watch", name: "Compact Watch Now", presentationId: "everencore-love-and-theft-standard-utility", labels: ["Watch Now"], parentId: null, siblingOrder: 4, x: .025, y: .335, width: .48, height: .13, zIndex: 4, anchor: "left", treatment: LOVE_AND_THEFT_APPEARANCE_OPTION_IDS.deepBlue }),
+    curatedNode({ id: "composition-proof-watch", name: "More Videos", presentationId: "everencore-love-and-theft-standard-utility", labels: ["More Videos"], parentId: null, siblingOrder: 4, x: .025, y: .335, width: .48, height: .13, zIndex: 4, anchor: "left", treatment: LOVE_AND_THEFT_APPEARANCE_OPTION_IDS.deepBlue }),
     curatedNode({ id: "composition-proof-website", name: "Utility Website", presentationId: "everencore-love-and-theft-standard-body", labels: ["Website"], parentId: null, siblingOrder: 5, x: .52, y: .425, width: .455, height: .105, zIndex: 4, anchor: "right", treatment: LOVE_AND_THEFT_APPEARANCE_OPTION_IDS.frostedCharcoal }),
     {
       id: lowerContainerId, primitive: "frame", compositionKind: "container", parentId: null, siblingOrder: 6,
@@ -297,6 +297,33 @@ test("composes and preserves the Product Owner layered mobile journey", async ({
     await page.getByTestId("studio-layer-unlock-composition-proof-image").click();
     await page.getByTestId("studio-layer-composition-proof-listen").getByRole("button").first().click();
     await page.getByTestId("studio-rail-layers").click();
+
+    const moreVideos = page.locator('[data-composition-node="composition-proof-watch"]');
+    await moreVideos.click();
+    const tightFrameBox = await moreVideos.boundingBox();
+    const tightArtBox = await moreVideos.locator('[data-module-fit="contain"] > div').boundingBox();
+    if (!tightFrameBox || !tightArtBox) throw new Error("More Videos tight placement geometry is unavailable.");
+    expect(Math.abs(tightFrameBox.height - tightArtBox.height)).toBeLessThanOrEqual(4);
+    await page.getByTestId("card-preview-phone").screenshot({ path: path.join(proofRoot, "24-more-videos-tight-frame.png") });
+    await editNode(moreVideos);
+    const positionInspector = page.getByTestId("studio-composition-inspector");
+    await expect(positionInspector.getByRole("button", { name: "tight", exact: true })).toHaveAttribute("aria-pressed", "true");
+    await positionInspector.getByRole("button", { name: "custom", exact: true }).click();
+    await expect(page.getByTestId("studio-layered-height")).toBeEnabled();
+    await page.getByTestId("studio-layered-height").fill("11");
+    await page.getByTestId("studio-layered-width").fill("54");
+    const originalY = Number(await page.getByTestId("studio-layered-y").inputValue());
+    await page.getByTestId("studio-layered-y").fill(String(originalY + 5));
+    await page.getByTestId("studio-layered-y").fill(String(originalY - 2));
+    await page.getByRole("button", { name: "Close Inspector" }).click();
+    const customFrameBox = await moreVideos.boundingBox();
+    const customArtBox = await moreVideos.locator('[data-module-fit="contain"] > div').boundingBox();
+    if (!customFrameBox || !customArtBox) throw new Error("More Videos custom placement geometry is unavailable.");
+    expect(customFrameBox.height).toBeGreaterThan(customArtBox.height);
+    expect(Math.abs((customArtBox.y + customArtBox.height / 2) - (customFrameBox.y + customFrameBox.height / 2))).toBeLessThanOrEqual(2);
+    const authoredAspect = 390 / 91;
+    expect(Math.abs((customArtBox.width / customArtBox.height) - authoredAspect)).toBeLessThan(.08);
+    await page.getByTestId("card-preview-phone").screenshot({ path: path.join(proofRoot, "23-more-videos-tight-custom-frame.png") });
 
     const heading = page.locator('[data-composition-node="composition-proof-heading"]');
     await heading.click();

@@ -1728,6 +1728,7 @@ export function TapCardBuilder({
         curatedFamilyId: familyId,
         curatedLayoutMode: state.input.layoutMode,
         curatedPresentationId: state.input.presentationId,
+        placementFrameHeightMode: "tight",
         ...(density ? {
           curatedDensityMode: density.mode,
           flowWidthPercent: density.preferredFlowWidthPercent,

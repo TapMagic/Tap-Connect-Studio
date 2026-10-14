@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { createCompositionNode, createEmptyCreativeComposition } from "../composition";
 import { readCardEdgeMode, readContainerEdgeMode, setCardEdgeMode, setContainerEdgeMode } from "../platform/edge-layout";
-import { allowedLayeredResizeHandles, isCardSurfaceLayered, layeredBoundsPolicy, layeredResizePolicy, moveLayeredNode, placeNodeInCompositionParent, reorderLayeredNodeZ, resolveLayeredGeometry, setCardSurfaceCompositionMode, setContainerCompositionMode, snapLayeredNode, snapLayeredResize } from "../platform/layered-region";
+import { allowedLayeredResizeHandles, isCardSurfaceLayered, layeredBoundsPolicy, layeredResizePolicy, moveLayeredNode, placeNodeInCompositionParent, readLayeredPlacementFrameHeightMode, reorderLayeredNodeZ, resolveLayeredGeometry, resolveTightLayeredPlacementFrames, setCardSurfaceCompositionMode, setContainerCompositionMode, setLayeredPlacementFrameHeightMode, snapLayeredNode, snapLayeredResize, tightLayeredPlacementHeight } from "../platform/layered-region";
 import { readCardSurfaceDensity, readContainerDensity, setCardSurfaceDensity, setContainerDensity } from "../platform/composition-density";
 import { applyStudioVideoPlayback, applyStudioVideoSource, identifyVideoSource, readStudioVideoState, videoAspectRatio, videoEmbedUrl, videoFeatureDefaults } from "../platform/media-module";
 import { applyStandardButtonAppearancePreset, readStandardButtonAppearance } from "../reconstitution/standard-button-appearance";
@@ -135,6 +135,40 @@ test("layered transform policy protects governed Curated proportions and resolve
   assert.deepEqual(resolveLayeredGeometry(curated, { widthPx: 390, heightPx: 800 }), { xPx: 156, yPx: 208, widthPx: 222.29999999999998, heightPx: 104, anchor: "right", zIndex: 5 });
 });
 
+test("Layered action frames separate tight visual geometry from touch targets", () => {
+  const nested = { ...createEmptyCreativeComposition("more-videos"), pageHeightPx: 40, signatureAssembly: {} as NonNullable<ReturnType<typeof createEmptyCreativeComposition>["signatureAssembly"]> };
+  const curated = createCompositionNode("frame", {
+    id: "more-videos",
+    compositionKind: "module",
+    parentId: null,
+    width: .5,
+    height: .3,
+    props: { minimumTouchTargetPx: 72 },
+    moduleComposition: nested,
+  });
+  const block = { ...setCardSurfaceCompositionMode(createEmptyCreativeComposition("home"), "layered"), nodes: [curated] };
+  assert.equal(readLayeredPlacementFrameHeightMode(curated), "tight");
+  assert.equal(tightLayeredPlacementHeight(block, curated), 20 / 620);
+  const tight = setLayeredPlacementFrameHeightMode(block, curated.id, "tight");
+  assert.equal(tight.nodes[0].height, 20 / 620);
+  assert.notEqual(tight.nodes[0].height, 72 / 620, "touch target must not become placement geometry");
+  const custom = setLayeredPlacementFrameHeightMode(tight, curated.id, "custom");
+  assert.equal(layeredResizePolicy(custom.nodes[0]), "free");
+  assert.deepEqual(allowedLayeredResizeHandles(custom.nodes[0]), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
+  const projected = resolveTightLayeredPlacementFrames(block);
+  assert.equal(projected.nodes[0].height, 20 / 620, "legacy saved height projects to the tight authored footprint");
+  assert.equal(projected.nodes[0].props.placementFrameHeightMode, "tight");
+});
+
+test("new Standard Buttons default to Fit content but can opt into a custom height", () => {
+  const button = createCompositionNode("button", { compositionKind: "module", parentId: null });
+  assert.equal(readLayeredPlacementFrameHeightMode(button), "tight");
+  assert.equal(layeredResizePolicy(button), "width-only");
+  const block = { ...setCardSurfaceCompositionMode(createEmptyCreativeComposition("button-home"), "layered"), nodes: [button] };
+  const custom = setLayeredPlacementFrameHeightMode(block, button.id, "custom");
+  assert.equal(layeredResizePolicy(custom.nodes[0]), "free");
+});
+
 test("rectangular resize grammar distinguishes auto Text, fixed Text, media, Container, and future Map", () => {
   const autoText = createCompositionNode("text", { props: { elementKind: "text", textHeightMode: "auto" } });
   const fixedText = createCompositionNode("text", { props: { elementKind: "text", textHeightMode: "fixed", textOverflow: "scroll" } });
@@ -151,7 +185,7 @@ test("rectangular resize grammar distinguishes auto Text, fixed Text, media, Con
   assert.deepEqual(allowedLayeredResizeHandles(map), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
   assert.deepEqual(allowedLayeredResizeHandles(container), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
   assert.deepEqual(allowedLayeredResizeHandles(video), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
-  assert.deepEqual(allowedLayeredResizeHandles(button), ["nw", "n", "ne", "e", "se", "s", "sw", "w"]);
+  assert.deepEqual(allowedLayeredResizeHandles(button), ["e", "w"]);
 });
 
 test("resize edges snap to sibling and safe-area guides without changing membership", () => {

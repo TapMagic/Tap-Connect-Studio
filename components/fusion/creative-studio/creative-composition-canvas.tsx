@@ -118,7 +118,7 @@ import { readStudioSurfaceState } from "@/lib/fusion/creative-studio/platform/su
 import { studioModuleActivationMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
 import { readStudioVideoState, videoAspectRatio, videoEmbedUrl } from "@/lib/fusion/creative-studio/platform/media-module";
 import { readCardEdgeMode, readContainerEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
-import { allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, layeredResizePolicy, moveLayeredNode, reorderLayeredNodeZ, snapLayeredNode, snapLayeredResize, type StudioRectangularResizeHandle } from "@/lib/fusion/creative-studio/platform/layered-region";
+import { allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, layeredResizePolicy, moveLayeredNode, reorderLayeredNodeZ, resolveTightLayeredPlacementFrames, snapLayeredNode, snapLayeredResize, type StudioRectangularResizeHandle } from "@/lib/fusion/creative-studio/platform/layered-region";
 import { readCardSurfaceDensity, readContainerDensity } from "@/lib/fusion/creative-studio/platform/composition-density";
 import { cardSurfaceImageLayerStyle, cardSurfaceImagePresentation } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 import { STANDARD_BUTTON_APPEARANCE_CONTRACT, readStandardButtonAppearance } from "@/lib/fusion/creative-studio/reconstitution/standard-button-appearance";
@@ -1743,7 +1743,7 @@ function NodeVisual({
             : "relative inline-flex h-full w-full shrink-0 items-center justify-center overflow-visible"
         )}
         style={{
-          minHeight: 44,
+          minHeight: "var(--studio-action-layout-min-height, 44px)",
           background: surfaceBackground,
           backgroundSize: materialSurface.backgroundSize ?? (surfaceKind === "texture" ? "8px 8px" : undefined),
           color: str(node.props.iconColor, str(node.props.textColor, "#0b0f19")),
@@ -1837,7 +1837,7 @@ function NodeVisual({
         style={{
           width: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
           height: circle ? Math.max(44, num(node.props.touchTargetPx, 52)) : "100%",
-          minHeight: 44,
+          minHeight: "var(--studio-action-layout-min-height, 44px)",
           ["--vp-motion-intensity" as string]: String(motionIntensity / 100),
           ["--standard-button-elevation" as string]: `${standardAppearance.faceElevationPx}px`,
         }}
@@ -1855,7 +1855,7 @@ function NodeVisual({
         href={editMode ? undefined : actionHref}
         aria-disabled={!actionHref}
         onClick={(event) => { if (editMode || !actionHref) event.preventDefault(); }}
-        className="flex h-full w-full flex-col items-center justify-center text-center"
+        className="studio-action-hit-target relative flex h-full w-full flex-col items-center justify-center overflow-visible text-center"
         style={{
           color: str(node.props.textColor, "#0b0f19"),
           fontFamily: str(node.props.fontFamily, "Inter, system-ui, sans-serif"),
@@ -1894,6 +1894,40 @@ function NodeVisual({
   }
 
   return null;
+}
+
+function FittedModuleComposition({
+  node,
+  forceMobileFallback,
+  previewMotion,
+  reducedMotionSimulation,
+}: {
+  node: CreativeCompositionNode;
+  forceMobileFallback: boolean;
+  previewMotion: boolean;
+  reducedMotionSimulation: boolean;
+}) {
+  const hostRef = useRef<HTMLDivElement>(null);
+  const [fittedWidth, setFittedWidth] = useState<number | null>(null);
+  const aspect = 390 / Math.max(1, node.moduleComposition?.pageHeightPx ?? 56);
+  useEffect(() => {
+    const host = hostRef.current;
+    if (!host) return;
+    const update = () => {
+      const bounds = host.getBoundingClientRect();
+      setFittedWidth(Math.max(1, Math.min(bounds.width, bounds.height * aspect)));
+    };
+    update();
+    const observer = new ResizeObserver(update);
+    observer.observe(host);
+    return () => observer.disconnect();
+  }, [aspect]);
+  if (!node.moduleComposition) return null;
+  return <div ref={hostRef} className="flex h-full w-full items-center justify-center overflow-visible" data-module-fit="contain">
+    <div className="shrink-0" style={{ width: fittedWidth ?? "100%" }}>
+      <CreativeCompositionCanvas block={node.moduleComposition} editMode={false} forceMobileFallback={forceMobileFallback} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} aspectRatio={aspect} />
+    </div>
+  </div>;
 }
 
 export function CreativeCompositionCanvas({
@@ -2712,7 +2746,7 @@ export function CreativeCompositionCanvas({
 
   const structured = useStack || layoutMode !== "free";
   if (hasCompositionParentAuthority(block)) {
-    const flowBlock = draftNodes ? { ...block, nodes: draftNodes } : block;
+    const flowBlock = resolveTightLayeredPlacementFrames(draftNodes ? { ...block, nodes: draftNodes } : block);
     const rootLayered = isCardSurfaceLayered(flowBlock);
     const rootDensity = readCardSurfaceDensity(flowBlock);
     const moduleFrame = (node: CreativeCompositionNode): CSSProperties => {
@@ -3013,7 +3047,8 @@ export function CreativeCompositionCanvas({
             top: `${localY * 100}%`,
             width: `${localWidth * 100}%`,
             height: `${localHeight * 100}%`,
-            minHeight: node.moduleComposition?.signatureAssembly ? Math.max(44, num(node.props.minimumTouchTargetPx, 44)) : 0,
+            minHeight: 0,
+            ["--studio-action-layout-min-height" as string]: "0px",
             zIndex: editMode && selectedSet.has(node.id) && selectedNodeIds.length === 1 ? 3800 : node.zIndex,
             pointerEvents: editMode && node.locked === true ? "none" : editMode || node.props.clickThrough !== true ? "auto" : "none",
           } : { ...moduleFrame(node), pointerEvents: editMode && node.locked === true ? "none" : editMode || node.props.clickThrough !== true ? "auto" : "none" }),
@@ -3089,8 +3124,10 @@ export function CreativeCompositionCanvas({
           ["nw","-left-2 -top-2 cursor-nwse-resize"],["n","left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize"],["ne","-right-2 -top-2 cursor-nesw-resize"],["e","-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],["se","-bottom-2 -right-2 cursor-nwse-resize"],["s","left-1/2 -bottom-2 -translate-x-1/2 cursor-ns-resize"],["sw","-bottom-2 -left-2 cursor-nesw-resize"],["w","-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
         ] as const).filter(([handle]) => allowedLayeredResizeHandles(node).includes(handle)).map(([handle, position]) => <button key={handle} type="button" className={cn("absolute z-30 h-5 w-5 touch-none rounded-sm border border-[#b8ff2c] bg-[#0b111b] shadow-lg", position)} aria-label={`Resize ${node.name || "Module"} ${handle}`} data-testid={`studio-layer-resize-${node.id}-${handle}`} data-resize-axis={handle.length === 1 ? handle === "n" || handle === "s" ? "height" : "width" : "both"} onPointerDown={(event) => startLayeredPointer(event, node, "resize", handle)} />)}</> : null}
         {node.moduleComposition ? (
-          <div className={cn("w-full", editMode && "pointer-events-none")} data-module-composition={node.moduleComposition.id}>
-            <CreativeCompositionCanvas block={node.moduleComposition} editMode={false} forceMobileFallback={forceMobileFallback} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} aspectRatio={390 / Math.max(1, node.moduleComposition.pageHeightPx ?? 56)} />
+          <div className={cn(layered ? "h-full w-full" : "w-full", editMode && "pointer-events-none")} data-module-composition={node.moduleComposition.id}>
+            {layered
+              ? <FittedModuleComposition node={node} forceMobileFallback={forceMobileFallback} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} />
+              : <CreativeCompositionCanvas block={node.moduleComposition} editMode={false} forceMobileFallback={forceMobileFallback} previewMotion={previewMotion} reducedMotionSimulation={reducedMotionSimulation} aspectRatio={390 / Math.max(1, node.moduleComposition.pageHeightPx ?? 56)} />}
           </div>
         ) : <ActionVisual node={node} editMode={editMode}>
           <MotionVisual node={node} active={(!editMode || previewMotion) && !reducedMotionSimulation}>
