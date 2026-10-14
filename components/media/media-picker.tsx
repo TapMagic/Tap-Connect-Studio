@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ImageIcon, X } from "lucide-react";
+import { Eraser, ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { BackgroundTool } from "@/components/media/background-tool";
 import { SharedMediaAssetBrowser } from "@/components/media/shared-media-asset-browser";
 import { useSharedMediaBrowser } from "@/components/media/shared-media-browser-provider";
 import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
@@ -23,6 +24,9 @@ interface MediaPickerProps {
   selectionLabel?: string;
   preview?: ReactNode;
   openRequestToken?: number;
+  placementBackgroundColor?: string;
+  currentPageColor?: string;
+  onPlacementBackgroundChange?: (color: string | undefined) => void;
 }
 
 export function MediaPicker({
@@ -39,8 +43,12 @@ export function MediaPicker({
   selectionLabel,
   preview,
   openRequestToken,
+  placementBackgroundColor,
+  currentPageColor,
+  onPlacementBackgroundChange,
 }: MediaPickerProps) {
   const [browserOpen, setBrowserOpen] = useState(false);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
   const sharedBrowser = useSharedMediaBrowser();
   const handledOpenRequest = useRef(openRequestToken);
 
@@ -93,6 +101,18 @@ export function MediaPicker({
               </p>
             </div>
             <div className="flex shrink-0 gap-2">
+              {valueAssetId ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBackgroundOpen(true)}
+                  data-testid="media-background-tool-open"
+                >
+                  <Eraser className="mr-1 h-3.5 w-3.5" />
+                  Background
+                </Button>
+              ) : null}
               <Button
                 type="button"
                 size="sm"
@@ -140,6 +160,21 @@ export function MediaPicker({
           mediaUploadReady={mediaUploadReady}
           stockReady={stockReady}
           selectionKind={label.toLowerCase().includes("logo") ? "logo" : "any"}
+        />
+      ) : null}
+
+      {valueAssetId && value ? (
+        <BackgroundTool
+          open={backgroundOpen}
+          asset={{ id: valueAssetId, mediaAssetId: valueAssetId, url: value, label: selectionLabel || label }}
+          onClose={() => setBackgroundOpen(false)}
+          onApply={(asset) => {
+            chooseAsset(asset);
+            setBackgroundOpen(false);
+          }}
+          placementBackgroundColor={placementBackgroundColor}
+          currentPageColor={currentPageColor}
+          onPlacementBackgroundChange={onPlacementBackgroundChange}
         />
       ) : null}
     </div>

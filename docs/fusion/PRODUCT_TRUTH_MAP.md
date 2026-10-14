@@ -83,7 +83,7 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 | **Classification** | functioning (structured) · verified local workflow · V1 regressions D-015–D-024 **FIXED** · freeform = architecture/scaffold only · stock/bg-remove live = credential-blocked · **not** independently verified |
 | **Engineering state** | AUTOMATED ACCEPTANCE PASSED (builder tipped proofs @ ancestry incl. tip `9965c8a`) · OWNER ACCEPTANCE PENDING |
 | **Real user outcome** | Author Card/Campaign with WYSIWYG preview; save/publish; public matches editor |
-| **Current** | Shared renderers (`CampaignPageRenderer`, `TapConnectCard`); Format + icon placement; Finish None; Esc/focus exits; Remove Background **local-mock**; exploratory dead-controls sweep PASS |
+| **Current** | Shared renderers (`CampaignPageRenderer`, `TapConnectCard`); Format + icon placement; Finish None; Esc/focus exits; durable Background variants; exploratory dead-controls sweep PASS |
 | **Intended** | Premium Pages-style Format; freeform canvas; durable session undo across refresh; live stock/logo/bg-remove vendors |
 | **V1** | Floor restored for interaction parity (see continuity map) |
 | **Shared deps** | Brand Kit, MediaPicker, R2/UploadThing, Feature `card.builder.*`, public CSS |
@@ -252,9 +252,9 @@ Prefer targeted proofs per journey; expensive full local gates only at integrate
 
 | Field | Record |
 |-------|--------|
-| **Classification** | Brand Kit + media upload = functioning · stock/logo live search = credential-blocked · bg-remove local-mock verified · rights/packs/marketplace scaffold · where-used partial |
+| **Classification** | Brand Kit + media upload = functioning · stock/logo live search = credential-blocked · durable Background tool verified · rights/packs/marketplace scaffold · where-used partial |
 | **Engineering state** | AUTOMATED ACCEPTANCE PASSED (builder media + keywords pack) · OWNER ACCEPTANCE PENDING |
-| **Evidence** | MediaPicker proofs; Brand Kit; `P-builder-remove-background` |
+| **Evidence** | MediaPicker proofs; Brand Kit; `media-background-tool.spec.ts` |
 | **Remaining** | Live Pexels/Unsplash/Logo.dev; asset lifecycle where-used; block packs |
 
 ---

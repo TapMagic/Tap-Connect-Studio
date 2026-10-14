@@ -540,13 +540,16 @@
       "category": "Live & Events",
       "sourceMasterStatus": "certified-source-master",
       "duplicateStatus": "unique",
-      "runtimePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/LT-PICK-TICKET-CLASSIC_ticket-classic.png",
-      "sha256": "3a34d335730827ff0ef0e4a992f5e30b396b36f9e026a62fc1822e65a87301d0",
+      "runtimePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/derived-transparent/LT-PICK-TICKET-CLASSIC_ticket-classic.transparent.png",
+      "sha256": "7d3499b6d279f83511f22b9dfe7d4610e28f34f596e38f38139214223eca0690",
+      "originalSourcePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/LT-PICK-TICKET-CLASSIC_ticket-classic.png",
+      "originalSha256": "3a34d335730827ff0ef0e4a992f5e30b396b36f9e026a62fc1822e65a87301d0",
+      "cleanupMethod": "certified-blank-silhouette-alpha-only",
       "dimensions": {
         "width": 1254,
         "height": 1254
       },
-      "alpha": false,
+      "alpha": true,
       "authoredConstruction": "open-face-engraved",
       "approvedContexts": [
         "compact-tile",
@@ -562,13 +565,16 @@
       "category": "Live & Events",
       "sourceMasterStatus": "certified-source-master",
       "duplicateStatus": "unique",
-      "runtimePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/LT-PICK-COWBOY-HAT_cowboy-hat.png",
-      "sha256": "577678f858807edf940c53b300794531c18625f9f7c8a36a30546c070065d8fd",
+      "runtimePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/derived-transparent/LT-PICK-COWBOY-HAT_cowboy-hat.transparent.png",
+      "sha256": "d1ccae4701fa1a0a5f2fff854f0d53381d86c45d25ecdddc89f8af5f6b409f50",
+      "originalSourcePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/LT-PICK-COWBOY-HAT_cowboy-hat.png",
+      "originalSha256": "577678f858807edf940c53b300794531c18625f9f7c8a36a30546c070065d8fd",
+      "cleanupMethod": "certified-blank-silhouette-alpha-only",
       "dimensions": {
         "width": 1254,
         "height": 1254
       },
-      "alpha": false,
+      "alpha": true,
       "authoredConstruction": "open-face-engraved",
       "approvedContexts": [
         "compact-tile",
@@ -585,8 +591,11 @@
       "category": "Love & Theft",
       "sourceMasterStatus": "certified-source-master",
       "duplicateStatus": "unique",
-      "runtimePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/LT-PICK-LOVE-THEFT_artist-identity.png",
-      "sha256": "a081867c96a3206c21e15abb9fb88e20122044b131fe2d08b74fa3c4d52d5dc0",
+      "runtimePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/derived-transparent/LT-PICK-LOVE-THEFT_artist-identity.transparent.png",
+      "sha256": "6eec6cd094590b765190dc516abd52f84b8734c608f573d4a7456cb92155729a",
+      "originalSourcePath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/LT-PICK-LOVE-THEFT_artist-identity.png",
+      "originalSha256": "a081867c96a3206c21e15abb9fb88e20122044b131fe2d08b74fa3c4d52d5dc0",
+      "cleanupMethod": "certified-blank-silhouette-alpha-only",
       "dimensions": {
         "width": 1254,
         "height": 1254

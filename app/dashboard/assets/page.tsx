@@ -134,6 +134,9 @@ export default async function AssetsHubPage() {
       createdAt: asset.createdAt.toISOString(),
       usedIn: durableUsage.length ? durableUsage : usage.get(asset.url) ?? [],
       isBrandLogo: Boolean(business.logoUrl && asset.url === business.logoUrl),
+      parentAssetId: asset.parentAssetId,
+      renditionKind: asset.renditionKind,
+      derivationRecipe: asset.derivationRecipe,
     };
   });
 

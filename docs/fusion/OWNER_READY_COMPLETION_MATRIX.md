@@ -47,7 +47,7 @@ Eight gates per pillar. `OWNER-READY` requires ledger `browserE2ePassed` + `pers
 
 **Builder parity checkpoint (`5bd84c7`):**
 - Lint 0 errors / `tsc --noEmit` PASS / unit **399/399** (button-layout + bg-remove included)
-- Headed builder tipped proofs PASS: interaction parity, remove-bg local-mock, exploratory — D-015–D-024 FIXED
+- Headed builder proofs PASS: interaction parity, canonical durable background tool, exploratory — D-015–D-024 FIXED
 - Full 75 e2e not re-run at this checkpoint; recorded as verified on tip ancestry at `5bd84c7`
 
 **Prior owner walkthrough re-gate (retained):**

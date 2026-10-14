@@ -174,7 +174,7 @@ J28 PO VO/OS zoom · J27 staging · J26 landing last · production only with exp
 ## Existing code reused (do not rebuild)
 
 - Shared renderers + Format / button layout  
-- MediaPicker + bg-remove local-mock  
+- MediaPicker + durable background treatment authority
 - Campaign Groups + public resolver  
 - TapPoint bridge + Scan  
 - TapSave/MyTap/Wallet mock  

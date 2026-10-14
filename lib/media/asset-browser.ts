@@ -6,6 +6,7 @@ export type MediaAssetSource =
   | "favorite"
   | "pexels"
   | "logo_dev"
+  | "bg-remove"
   | "url";
 
 export type MediaOrientation = "all" | "landscape" | "portrait" | "square";
@@ -35,6 +36,9 @@ export type MediaAssetCandidate = {
   recentAt?: string;
   candidateToken?: string;
   importKind?: "provider" | "external_url";
+  parentAssetId?: string;
+  renditionKind?: string;
+  derivationRecipe?: unknown;
 };
 
 export type MediaProviderStatus = {
@@ -43,4 +47,3 @@ export type MediaProviderStatus = {
   message?: string;
   retryAfterSeconds?: number;
 };
-

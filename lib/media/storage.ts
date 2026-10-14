@@ -1,5 +1,6 @@
 import {
   DeleteObjectCommand,
+  GetObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -79,6 +80,21 @@ export async function readLocalMediaObject(storageKey: string): Promise<Buffer> 
     throw new Error("Local media storage is disabled");
   }
   return readFile(localMediaPath(storageKey));
+}
+
+/** Read source bytes from the configured durable media authority. */
+export async function readMediaObject(storageKey: string): Promise<Buffer> {
+  requireMediaStorage();
+  if (localMediaStorageEnabled()) return readLocalMediaObject(storageKey);
+
+  const response = await r2Client().send(
+    new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME!,
+      Key: storageKey,
+    }),
+  );
+  if (!response.Body) throw new Error("Media object returned an empty body");
+  return Buffer.from(await response.Body.transformToByteArray());
 }
 
 export async function putMediaObject(input: {

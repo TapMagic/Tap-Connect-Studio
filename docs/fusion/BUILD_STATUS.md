@@ -304,10 +304,10 @@ Railway untouched. No push / merge / deploy during this pass.
 | Proven locally (headed, isolated DB) | Status |
 |--------------------------------------|--------|
 | Interaction parity (icon placement, layout, Finish None, Esc/focus exits, WYSIWYG↔public) | PASS — D-015–D-024 **FIXED** in defect log |
-| Remove Background (local-mock adapter + panel + provenance/restore) | PASS — `P-builder-remove-background` / `P-builder-exits-bg-remove` |
+| Background tool (durable variants + provenance/restore) | PASS — `media-background-tool.spec.ts` |
 | Exploratory / dead-controls sweep | PASS — `P-builder-exploratory-controls` + `P-builder-exploratory-audit` |
 
-**OPEN residuals (keep IMPLEMENTED BUT NOT OWNER-READY):** freeform canvas scaffold (`card.builder.freeform`), live stock/logo credentials (Pexels/Unsplash), session undo lost on full refresh, true VoiceOver/NVDA (platform D-001). Live bg-remove vendor = credentials residual (local-mock only).
+**OPEN residuals (keep IMPLEMENTED BUT NOT OWNER-READY):** freeform canvas scaffold (`card.builder.freeform`), live stock/logo credentials (Pexels/Unsplash), session undo lost on full refresh, true VoiceOver/NVDA (platform D-001).
 
 **Quick gate at checkpoint:** `npm run lint` → **0 errors** (4 img warnings); `tsc --noEmit` PASS; unit button-layout + bg-remove PASS inside `npm test` (**399/399**). Full 75 e2e suite not re-run here — tip headed builder proofs verified at `5bd84c7`.
 

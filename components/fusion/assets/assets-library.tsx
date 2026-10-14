@@ -20,6 +20,8 @@ import {
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { BackgroundTool } from "@/components/media/background-tool";
+import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
 import { TruthfulEmptyStatePanel } from "@/components/studio/truthful-empty-state";
 import {
   MAX_UPLOAD_SOURCE_MEGABYTES,
@@ -56,6 +58,9 @@ export type LibraryAsset = {
     developerPath?: string;
   }[];
   isBrandLogo: boolean;
+  parentAssetId: string | null;
+  renditionKind: string | null;
+  derivationRecipe: unknown;
 };
 
 type SourceFilter = "all" | "upload" | "stock" | "generated" | "url";
@@ -142,6 +147,8 @@ export function AssetsLibrary({
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<SourceFilter>("all");
   const [selected, setSelected] = useState<LibraryAsset | null>(null);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [backgroundMode, setBackgroundMode] = useState<"auto" | "solid-color">("auto");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -149,6 +156,7 @@ export function AssetsLibrary({
   const [uploadProgress, setUploadProgress] = useState<string | null>(null);
   const [uploadSuccess, setUploadSuccess] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const lastDerivedRef = useRef<LibraryAsset | null>(null);
 
   // Keep grid in sync when parent smart-view / collection filters change.
   useEffect(() => {
@@ -180,6 +188,7 @@ export function AssetsLibrary({
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
     return assets.filter((a) => {
+      if (filter !== "generated" && a.parentAssetId) return false;
       if (!matchesFilter(a.source, filter)) return false;
       if (!q) return true;
       return (
@@ -231,8 +240,7 @@ export function AssetsLibrary({
             source: string;
             createdAt: string;
           };
-          setAssets((prev) => [
-            {
+          const uploaded: LibraryAsset = {
               id: a.id,
               url: a.url,
               filename: a.filename,
@@ -253,9 +261,12 @@ export function AssetsLibrary({
               createdAt: a.createdAt ?? new Date().toISOString(),
               usedIn: [],
               isBrandLogo: false,
-            },
-            ...prev.filter((p) => p.id !== a.id),
-          ]);
+              parentAssetId: null,
+              renditionKind: null,
+              derivationRecipe: null,
+            };
+          setAssets((prev) => [uploaded, ...prev.filter((p) => p.id !== a.id)]);
+          setSelected(uploaded);
           setUploadSuccess(data.processing?.optimized
             ? `${file.name} is ready. The original was preserved and an optimized runtime image was added to Assets.`
             : `${file.name} is ready in Assets and Studio visual pickers.`);
@@ -440,6 +451,7 @@ export function AssetsLibrary({
           {filtered.map((asset) => {
             const meta = sourceMeta(asset.source);
             const isImage = asset.mimeType.startsWith("image/");
+            const variantCount = assets.filter((candidate) => candidate.parentAssetId === asset.id).length;
             return (
               <li key={asset.id} className="relative">
                 <label className="absolute left-2 top-2 z-10 inline-flex items-center">
@@ -505,6 +517,11 @@ export function AssetsLibrary({
                         Used ×{asset.usedIn.length}
                       </span>
                     ) : null}
+                    {variantCount > 0 ? (
+                      <span className="absolute bottom-1.5 right-1.5 rounded-full border border-white/20 bg-black/65 px-1.5 py-0.5 text-[9px] text-white/70">
+                        {variantCount} variant{variantCount === 1 ? "" : "s"}
+                      </span>
+                    ) : null}
                   </div>
                   <div className="min-w-0 px-2.5 py-2">
                     <p className="truncate text-xs text-white/80">
@@ -561,6 +578,43 @@ export function AssetsLibrary({
                 </div>
               )}
             </div>
+
+            {selected.mimeType.startsWith("image/") ? (
+              <div className="mt-3 space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3" data-testid="asset-background-actions">
+                <p className="text-xs font-medium text-white/80">Background</p>
+                <p className="text-[10px] text-white/45">Create a reusable derivative. This source Asset and its existing uses remain unchanged.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button type="button" className="min-h-9 rounded-md border border-white/15 px-2 text-xs text-white/75" onClick={() => { setBackgroundMode("auto"); setBackgroundOpen(true); }}>
+                    Remove background
+                  </button>
+                  <button type="button" className="min-h-9 rounded-md border border-white/15 px-2 text-xs text-white/75" onClick={() => { setBackgroundMode("solid-color"); setBackgroundOpen(true); }}>
+                    Remove color
+                  </button>
+                </div>
+              </div>
+            ) : null}
+
+            {selected.parentAssetId ? (
+              <button
+                type="button"
+                className="mt-3 text-xs text-white/65 underline underline-offset-2"
+                onClick={() => setSelected(assets.find((asset) => asset.id === selected.parentAssetId) || null)}
+              >
+                View original Asset
+              </button>
+            ) : null}
+            {!selected.parentAssetId && assets.some((asset) => asset.parentAssetId === selected.id) ? (
+              <div className="mt-3 space-y-2" data-testid="asset-derived-variants">
+                <p className="text-xs font-medium text-white/70">Background variants</p>
+                {assets.filter((asset) => asset.parentAssetId === selected.id).map((variant) => (
+                  <button key={variant.id} type="button" className="flex w-full items-center gap-2 rounded-lg border border-white/10 p-2 text-left" onClick={() => setSelected(variant)}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={variant.url} alt="" className="h-10 w-10 rounded bg-[linear-gradient(45deg,#333_25%,transparent_25%),linear-gradient(-45deg,#333_25%,transparent_25%)] object-contain" />
+                    <span className="min-w-0 truncate text-xs text-white/70">{variant.filename || "Background variant"}</span>
+                  </button>
+                ))}
+              </div>
+            ) : null}
 
             <dl className="mt-4 space-y-3 text-xs">
               <div>
@@ -690,6 +744,40 @@ export function AssetsLibrary({
               </div>
             </dl>
           </div>
+          <BackgroundTool
+            open={backgroundOpen}
+            asset={{ id: selected.id, mediaAssetId: selected.id, url: selected.url, label: selected.filename || "Asset" }}
+            initialMode={backgroundMode}
+            onClose={() => setBackgroundOpen(false)}
+            onVariantCreated={(variant: MediaAssetCandidate, original: MediaAssetCandidate) => {
+              const source = assets.find((item) => item.id === original.id) || selected;
+              const derived: LibraryAsset = {
+                ...source,
+                id: variant.id,
+                url: variant.url,
+                filename: variant.label,
+                mimeType: variant.mimeType || "image/png",
+                source: "bg-remove",
+                provider: "tapconnect-background",
+                sourcePageUrl: null,
+                createdAt: new Date().toISOString(),
+                usedIn: [],
+                isBrandLogo: false,
+                parentAssetId: variant.parentAssetId || original.id,
+                renditionKind: variant.renditionKind || "background-transparent",
+                derivationRecipe: variant.derivationRecipe || null,
+              };
+              lastDerivedRef.current = derived;
+              setAssets((current) => [derived, ...current.filter((item) => item.id !== derived.id)]);
+            }}
+            onApply={(variant) => {
+              const next = lastDerivedRef.current?.id === variant.id
+                ? lastDerivedRef.current
+                : assets.find((item) => item.id === variant.id);
+              if (next) setSelected(next);
+              setBackgroundOpen(false);
+            }}
+          />
         </div>
       ) : null}
     </section>

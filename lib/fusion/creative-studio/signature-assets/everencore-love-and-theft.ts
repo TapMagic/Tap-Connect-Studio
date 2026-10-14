@@ -46,19 +46,32 @@ export type LoveAndTheftPickMasterDefinition = Readonly<{
   category: LoveAndTheftPickCategory;
   sourceAsset: string;
   sourceSha256: string;
+  originalSourceAsset: string;
+  originalSourceSha256: string;
   faceConstruction: LoveAndTheftPickFaceConstruction;
   sourceFilename: string;
   aliases: readonly string[];
   approvedContexts: readonly ("compact-tile" | "button" | "curated-action" | "nav-opt-in")[];
 }>;
 
-const pickMaster = (canonicalId: string, displayLabel: string, semanticRole: string, category: LoveAndTheftPickCategory, filename: string, sourceFilename: string, sourceSha256: string, faceConstruction: LoveAndTheftPickFaceConstruction, aliases: readonly string[] = [], approvedContexts: LoveAndTheftPickMasterDefinition["approvedContexts"] = ["compact-tile", "button", "curated-action"]): LoveAndTheftPickMasterDefinition => ({
-  canonicalId, displayLabel, semanticRole, category, sourceAsset: `${PICK_MASTER_ROOT}/${filename}`, sourceFilename, sourceSha256, faceConstruction, aliases, approvedContexts,
+const pickMaster = (canonicalId: string, displayLabel: string, semanticRole: string, category: LoveAndTheftPickCategory, filename: string, sourceFilename: string, originalSourceSha256: string, faceConstruction: LoveAndTheftPickFaceConstruction, aliases: readonly string[] = [], approvedContexts: LoveAndTheftPickMasterDefinition["approvedContexts"] = ["compact-tile", "button", "curated-action"], cleanedRuntime?: { filename: string; sha256: string }): LoveAndTheftPickMasterDefinition => ({
+  canonicalId,
+  displayLabel,
+  semanticRole,
+  category,
+  sourceAsset: cleanedRuntime ? `${PICK_MASTER_ROOT}/derived-transparent/${cleanedRuntime.filename}` : `${PICK_MASTER_ROOT}/${filename}`,
+  sourceFilename,
+  sourceSha256: cleanedRuntime?.sha256 ?? originalSourceSha256,
+  originalSourceAsset: `${PICK_MASTER_ROOT}/${filename}`,
+  originalSourceSha256,
+  faceConstruction,
+  aliases,
+  approvedContexts,
 });
 
 /** Product Owner-supplied PNGs. Each definition is a complete manufactured object. */
 export const EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG: readonly LoveAndTheftPickMasterDefinition[] = [
-  pickMaster("LT-PICK-LOVE-THEFT", "Love & Theft", "artist identity", "Love & Theft", "LT-PICK-LOVE-THEFT_artist-identity.png", "Pasted 2026-10-11 at 2.46.28 PM.png", "a081867c96a3206c21e15abb9fb88e20122044b131fe2d08b74fa3c4d52d5dc0", "artist-identity"),
+  pickMaster("LT-PICK-LOVE-THEFT", "Love & Theft", "artist identity", "Love & Theft", "LT-PICK-LOVE-THEFT_artist-identity.png", "Pasted 2026-10-11 at 2.46.28 PM.png", "a081867c96a3206c21e15abb9fb88e20122044b131fe2d08b74fa3c4d52d5dc0", "artist-identity", [], undefined, { filename: "LT-PICK-LOVE-THEFT_artist-identity.transparent.png", sha256: "6eec6cd094590b765190dc516abd52f84b8734c608f573d4a7456cb92155729a" }),
   pickMaster("LT-PICK-BLANK", "Blank / Custom", "blank manufacturing master", "Love & Theft", "LT-PICK-BLANK_blank.png", "Blank Pick.png", "27c3d77589451c06b3b3e9ee64702ef810988f6aef0d3b7cb7f5c024182793c7", "blank-master", ["tapconnect:blank"]),
   pickMaster("LT-PICK-SPOTIFY", "Spotify", "spotify", "Music & Media", "LT-PICK-SPOTIFY_spotify.png", "Spotify Pick.png", "f0bcee3bd22e4658db0541d1896280262b6e12acb9b292775cb64cbf80831cfa", "circular-recessed", ["simple-icons:spotify"]),
   pickMaster("LT-PICK-MUSIC", "Apple Music / Music", "music note", "Music & Media", "LT-PICK-MUSIC_music-note.png", "Music Pick.png", "bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50", "circular-recessed", ["simple-icons:apple-music", "lucide:music-2"]),
@@ -71,9 +84,9 @@ export const EVERENCORE_LOVE_AND_THEFT_PICK_MASTER_CATALOG: readonly LoveAndThef
   pickMaster("LT-PICK-FACEBOOK", "Facebook", "facebook", "Social", "LT-PICK-FACEBOOK_facebook.png", "Facebook Pick.png", "60b75ee4b25b743fb4d97453cee3d0c06beffae99484623acaaff81bed902be7", "circular-recessed", ["simple-icons:facebook"]),
   pickMaster("LT-PICK-CALENDAR", "Calendar / Tour Dates", "calendar", "Live & Events", "LT-PICK-CALENDAR_calendar.png", "Calendar Pick.png", "b85c493ce0413e2acfacf2c2c9eb08d62160578088df8cdd525fd1de2fb85617", "open-face-engraved", ["lucide:calendar-days"]),
   pickMaster("LT-PICK-TICKET-ANGLED", "Tickets · Angled", "ticket", "Live & Events", "LT-PICK-TICKET-ANGLED_ticket-angled.png", "Ticket Pick.png", "d1878231e3eb2a582edcfdb6440709fb1d389c0c78790f594f53d9f6778c6e8f", "secondary-shaped", ["lucide:ticket"]),
-  pickMaster("LT-PICK-TICKET-CLASSIC", "Tickets · Classic", "ticket alternate", "Live & Events", "LT-PICK-TICKET-CLASSIC_ticket-classic.png", "Unknown 3.png", "3a34d335730827ff0ef0e4a992f5e30b396b36f9e026a62fc1822e65a87301d0", "open-face-engraved"),
+  pickMaster("LT-PICK-TICKET-CLASSIC", "Tickets · Classic", "ticket alternate", "Live & Events", "LT-PICK-TICKET-CLASSIC_ticket-classic.png", "Unknown 3.png", "3a34d335730827ff0ef0e4a992f5e30b396b36f9e026a62fc1822e65a87301d0", "open-face-engraved", [], undefined, { filename: "LT-PICK-TICKET-CLASSIC_ticket-classic.transparent.png", sha256: "7d3499b6d279f83511f22b9dfe7d4610e28f34f596e38f38139214223eca0690" }),
   pickMaster("LT-PICK-MAP", "Map / Directions", "map and location", "Live & Events", "LT-PICK-MAP_location.png", "Location.png", "ee5444476a5c9f543ea243199e5770e7bdfbaf786858e8b9cfb8c04ddf637412", "open-face-engraved", ["lucide:map-pin"]),
-  pickMaster("LT-PICK-COWBOY-HAT", "Cowboy Hat", "country identity", "Live & Events", "LT-PICK-COWBOY-HAT_cowboy-hat.png", "Unknown 5.png", "577678f858807edf940c53b300794531c18625f9f7c8a36a30546c070065d8fd", "open-face-engraved"),
+  pickMaster("LT-PICK-COWBOY-HAT", "Cowboy Hat", "country identity", "Live & Events", "LT-PICK-COWBOY-HAT_cowboy-hat.png", "Unknown 5.png", "577678f858807edf940c53b300794531c18625f9f7c8a36a30546c070065d8fd", "open-face-engraved", [], undefined, { filename: "LT-PICK-COWBOY-HAT_cowboy-hat.transparent.png", sha256: "d1ccae4701fa1a0a5f2fff854f0d53381d86c45d25ecdddc89f8af5f6b409f50" }),
   pickMaster("LT-PICK-MERCH", "Merch", "merchandise", "Commerce / Access", "LT-PICK-MERCH_merch.png", "Merch Pick.png", "5961ad223428a93a704dd04617fdec1e51cd1c8f9d4149a297a9905713fda4b1", "circular-recessed", ["lucide:shirt"]),
   pickMaster("LT-PICK-LOCK", "Lock / VIP", "locked access", "Commerce / Access", "LT-PICK-LOCK_lock.png", "Lock Pick.png", "d56efb5fb5a310c4d7b836ae73fb02c67aca0625394bd30b746cd43f7bd1393f", "circular-recessed", ["lucide:lock"]),
   pickMaster("LT-PICK-FAVORITE", "Favorite / Featured", "favorite", "Commerce / Access", "LT-PICK-FAVORITE_star.png", "Star.png", "7aa6a3c7c5094ab2b82480df010171c4b3a174c1b0a07f4864764a5e855ab11a", "open-face-engraved", ["lucide:star"]),

@@ -93,6 +93,7 @@ export type StudioSemanticResourceSource =
   | "favorite"
   | "pexels"
   | "logo_dev"
+  | "bg-remove"
   | "url"
   | "legacy";
 

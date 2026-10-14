@@ -194,20 +194,6 @@ test.describe("Builder exploratory controls", () => {
       notes.push("button_layout_absent_honest");
     }
 
-    // Media + bg-remove panel open/close (no trap)
-    await selectCampaignBlock(page, "campaign-block-hero");
-    await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: 10_000 });
-    await page.getByTestId("bg-remove-open").click();
-    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
-    await page.getByTestId("bg-remove-open").click();
-    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
-    // Prefer Esc — Close can sit under the checkerboard preview and intercept clicks
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
-    notes.push("bg_panel_exit_ok");
-
     // Side tabs Esc → Content (bounded sample)
     for (const side of ["qr", "schedule"] as const) {
       const tab = page.getByTestId(`campaign-tab-${side}`);
@@ -302,7 +288,7 @@ test.describe("Builder exploratory controls", () => {
       id: "P-builder-exploratory-controls",
       route: `/dashboard/campaigns/${campaignId}`,
       workflow:
-        "Bounded exploratory sweep — toolbar, Format sample, bg-remove exits, save/reload, publish/public, undo, no traps",
+        "Bounded exploratory sweep — toolbar, Format sample, save/reload, publish/public, undo, no traps",
       passed: blockers.length === 0,
       browserE2ePassed: blockers.length === 0,
       persistencePassed: notes.includes("save_reload_ok"),

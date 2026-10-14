@@ -38,7 +38,7 @@ Live proof IDs (headed): `P-builder-icon-placement`, `P-builder-wysiwyg-public`,
 | Finish picker with honest None | `FinishPicker` `allowNone` | Yes | Yes | N/A | PARITY | D-017 FIXED |
 | Media upload / paste / drop | `MediaPicker` | Yes | Library | Esc gallery | PARITY | D-018 FIXED |
 | Stock / logo galleries | MediaPicker galleries | On select | Library | Esc + focus return | PARITY | D-018 FIXED |
-| Remove Background | `BgRemovePanel` + adapter | Preview → apply | Provenance + restore | Esc + focus return | PARITY (local-mock) | D-019 FIXED |
+| Background | shared `BackgroundTool` + durable server authority | Preview → save/apply | Parent provenance + reset | Esc + focus return | PARITY | D-019 FIXED |
 | Undo / redo / save / publish / versions | Toolbar testids | Yes | Yes | N/A | PARITY | — |
 | QR / schedule / email panels | Side tabs | N/A | Partial | Esc → Content + focus return | PARITY | D-020 FIXED |
 | Dead / decorative controls | Audited in exploratory | — | — | — | HONEST_DISABLED or wired | D-021 FIXED |
@@ -54,7 +54,7 @@ Live proof IDs (headed): `P-builder-icon-placement`, `P-builder-wysiwyg-public`,
 | Finish / shell / tile | `FinishPicker` (shell/tile disallow empty) | Yes | Yes | PARITY | — |
 | Text format on labels | `TextFormatControls` | Yes | Yes | PARITY | — |
 | Media / icon / logo pickers | MediaPicker + IconPicker | Yes | Yes | PARITY | — |
-| Remove Background on media | Same panel | Yes | Provenance | PARITY (local-mock) | D-019 FIXED |
+| Background on media | Same shared tool | Yes | Durable parent provenance | PARITY | D-019 FIXED |
 | Composition polish (long labels, icon-only, wrap, mobile) | CSS + wrap + stress e2e | Yes | Yes | PARITY | D-016 / D-022 FIXED |
 | Freeform canvas | Feature-flagged | — | — | HONEST_DISABLED until flag | residual MEDIUM |
 
@@ -80,7 +80,7 @@ Live proof IDs (headed): `P-builder-icon-placement`, `P-builder-wysiwyg-public`,
 
 | Step | Behavior | Status |
 |------|----------|--------|
-| Provider adapter | `lib/media/bg-remove` — `local-mock` default; swap-ready | PARITY (mock OK) |
+| Derivation authority | `lib/media/background-treatment.ts` + `/api/media/background` | PARITY |
 | Preview cutout | Canvas chroma-key; light/dark/checker | PARITY |
 | Apply derived | New asset URL; original remembered | PARITY |
 | Restore original | Non-destructive restore | PARITY |
@@ -110,7 +110,7 @@ Live proof IDs (headed): `P-builder-icon-placement`, `P-builder-wysiwyg-public`,
 | D-016 | Rough layout / misalignment / wrap stress | FIXED (local headed; exploratory) |
 | D-017 | Finish picker lied as metallic when empty | FIXED |
 | D-018 | Gallery / picker exits + paste focus | FIXED |
-| D-019 | Remove Background incomplete / destructive | FIXED (local-mock adapter) |
+| D-019 | Background cleanup incomplete / destructive | FIXED (durable server-derived variants) |
 | D-020 | Side tabs lack Esc | FIXED (Esc → Content + focus) |
 | D-021 | Dead controls / not WYSIWYG | FIXED (single Format mount; exploratory) |
 | D-022 | Incomplete Card Builder composition | FIXED (local; freeform residual) |

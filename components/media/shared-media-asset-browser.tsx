@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { BackgroundTool } from "@/components/media/background-tool";
 import type {
   MediaAssetCandidate,
   MediaAssetSource,
@@ -80,6 +81,9 @@ type ApiAsset = {
   defaultAltText?: string | null;
   isFavorite?: boolean;
   recent?: { lastUsedAt: string; useCount: number } | null;
+  parentAssetId?: string | null;
+  renditionKind?: string | null;
+  derivationRecipe?: unknown;
 };
 
 type ProviderHit = {
@@ -117,6 +121,8 @@ function libraryCandidate(asset: ApiAsset): MediaAssetCandidate {
       ? "logo_dev"
       : asset.source === "upload"
         ? "upload"
+        : asset.source === "bg-remove"
+          ? "bg-remove"
         : asset.source === "url"
           ? "url"
           : "studio";
@@ -143,6 +149,9 @@ function libraryCandidate(asset: ApiAsset): MediaAssetCandidate {
     isBrandApproved: asset.approvalStatus === "APPROVED",
     isFavorite: Boolean(asset.isFavorite),
     recentAt: asset.recent?.lastUsedAt,
+    parentAssetId: asset.parentAssetId || undefined,
+    renditionKind: asset.renditionKind || undefined,
+    derivationRecipe: asset.derivationRecipe,
   };
 }
 
@@ -198,6 +207,9 @@ export function SharedMediaAssetBrowser({
   const [library, setLibrary] = useState<MediaAssetCandidate[]>([]);
   const [results, setResults] = useState<MediaAssetCandidate[]>([]);
   const [selected, setSelected] = useState<MediaAssetCandidate | null>(null);
+  const [backgroundOpen, setBackgroundOpen] = useState(false);
+  const [backgroundMode, setBackgroundMode] = useState<"auto" | "solid-color">("auto");
+  const [justUploadedId, setJustUploadedId] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [orientation, setOrientation] = useState<MediaOrientation>("all");
   const [color, setColor] = useState("");
@@ -386,6 +398,7 @@ export function SharedMediaAssetBrowser({
       const candidate = libraryCandidate(data.asset);
       setLibrary((current) => [candidate, ...current.filter((item) => item.id !== candidate.id)]);
       setSelected(candidate);
+      setJustUploadedId(candidate.id);
       setStatus(data.processing?.optimized
         ? "Upload complete. The original is preserved, the optimized runtime image is selected, and it is ready to insert."
         : "Upload stored in Assets, selected, and ready to insert.");
@@ -924,6 +937,23 @@ export function SharedMediaAssetBrowser({
                     Approve for Brand
                   </Button>
                 ) : null}
+                {selected.mediaAssetId ? (
+                  <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-2" data-testid="media-background-offer">
+                    <p className="text-[11px] font-medium text-white/70">Background</p>
+                    {justUploadedId === selected.id ? (
+                      <p className="text-[10px] text-white/45">Keep the original, or create a reusable cleaned variant now. Upload is already complete.</p>
+                    ) : null}
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => { setBackgroundMode("auto"); setBackgroundOpen(true); }}>
+                        Remove background
+                      </Button>
+                      <Button type="button" size="sm" variant="outline" onClick={() => { setBackgroundMode("solid-color"); setBackgroundOpen(true); }}>
+                        Remove solid color
+                      </Button>
+                    </div>
+                    {justUploadedId === selected.id ? <p className="text-[10px] text-white/40">Keep original: no action needed.</p> : null}
+                  </div>
+                ) : null}
                 <Button
                   type="button"
                   className="min-h-11 w-full"
@@ -955,6 +985,23 @@ export function SharedMediaAssetBrowser({
             ) : null}
           </aside>
         </div>
+        {selected?.mediaAssetId ? (
+          <BackgroundTool
+            open={backgroundOpen}
+            asset={selected}
+            initialMode={backgroundMode}
+            onClose={() => setBackgroundOpen(false)}
+            onVariantCreated={(variant) => {
+              setLibrary((current) => [variant, ...current.filter((item) => item.id !== variant.id)]);
+            }}
+            onApply={(variant) => {
+              setLibrary((current) => [variant, ...current.filter((item) => item.id !== variant.id)]);
+              setSelected(variant);
+              setBackgroundOpen(false);
+              setStatus("Background variant selected. Insert when ready; the original remains in Assets.");
+            }}
+          />
+        ) : null}
       </section>
     </div>,
     document.body

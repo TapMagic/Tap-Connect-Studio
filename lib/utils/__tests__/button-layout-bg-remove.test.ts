@@ -8,8 +8,6 @@ import {
   normalizeIconPlacement,
   resolveAppearance,
 } from "@/lib/design/button-layout";
-import { chromaKeyImageData } from "@/lib/media/bg-remove/local-mock";
-import { findBgRemoveWhereUsed, type BgRemoveProvenance } from "@/lib/media/bg-remove";
 
 describe("button layout matrix", () => {
   it("keeps left/right as first-class placements", () => {
@@ -67,52 +65,5 @@ describe("button layout matrix", () => {
     });
     assert.equal(iconSizePx("sm"), 14);
     assert.equal(iconSizePx("lg"), 24);
-  });
-});
-
-describe("bg-remove local mock", () => {
-  it("keys near-corner background toward transparent", () => {
-    const w = 8;
-    const h = 8;
-    const data = new Uint8ClampedArray(w * h * 4);
-    for (let i = 0; i < data.length; i += 4) {
-      data[i] = 240;
-      data[i + 1] = 240;
-      data[i + 2] = 240;
-      data[i + 3] = 255;
-    }
-    const cx = (3 * w + 3) * 4;
-    data[cx] = 10;
-    data[cx + 1] = 10;
-    data[cx + 2] = 10;
-    data[cx + 3] = 255;
-
-    const imageData = {
-      data,
-      width: w,
-      height: h,
-      colorSpace: "srgb" as const,
-    } as ImageData;
-
-    const keyed = chromaKeyImageData(imageData, 40, false);
-    assert.ok(keyed.data[3] < 40);
-    assert.equal(keyed.data[cx + 3], 255);
-  });
-
-  it("reports where-used for original + derived", () => {
-    const p: BgRemoveProvenance = {
-      provider: "local-mock",
-      originalUrl: "https://example.com/a.png",
-      derivedUrl: "data:image/png;base64,abc",
-      createdAt: new Date().toISOString(),
-      refined: false,
-    };
-    const hits = findBgRemoveWhereUsed(p, [
-      { imageUrl: p.originalUrl },
-      { hero: p.derivedUrl },
-      { other: "nope" },
-    ]);
-    assert.equal(hits.find((h) => h.url === p.originalUrl)?.count, 1);
-    assert.equal(hits.find((h) => h.url === p.derivedUrl)?.count, 1);
   });
 });

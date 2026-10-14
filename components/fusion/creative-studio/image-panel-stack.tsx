@@ -193,6 +193,11 @@ export function ImagePanelStack({
             }
             mediaUploadReady={mediaUploadReady}
             stockReady={stockReady}
+            placementBackgroundColor={selected?.backgroundColor}
+            currentPageColor={selected?.backgroundColor || "#111827"}
+            onPlacementBackgroundChange={selected ? (color) =>
+              patchSelected({ backgroundColor: color }, color ? "Changed image background" : "Reset image background")
+            : undefined}
             onChange={setMediaUrl}
             onAssetChange={(asset) => {
               if (!selected) return;

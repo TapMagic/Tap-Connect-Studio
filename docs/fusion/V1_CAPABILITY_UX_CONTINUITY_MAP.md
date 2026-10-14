@@ -31,7 +31,7 @@
 | Icon / button layout | V1 placements | Full placement matrix | PARITY | D-015–D-016 FIXED |
 | Finish picker | None allowed | Honest None | PARITY | D-017 FIXED (was metallic lie) |
 | Media / galleries | Upload + stock | MediaPicker + Esc/focus | PARITY | D-018 FIXED; stock live credential-blocked |
-| Remove Background | V1 expectation | local-mock non-destructive | PARITY (mock) | D-019 FIXED; live vendor HONEST_DISABLED |
+| Remove Background | V1 expectation | durable server-derived variants | PARITY | D-019 superseded by canonical MediaAsset background authority |
 | WYSIWYG → public | Same render | Shared renderer + dedicated proof device | PARITY | D-023/D-024 FIXED |
 | Campaign Groups / schedule | Slots | Preserved + `?at=` | PARITY | Studio time-travel UI PARTIAL |
 | Devices / Scan | CRUD + claim | Preserved + TapPoint bridge | PARITY / PARTIAL | Fleet depth incomplete |
@@ -60,7 +60,7 @@ Authoritative matrix: `V1_BUILDER_INTERACTION_PARITY_MATRIX.md`.
 | Layout polish / wrap | D-016 / D-022 | FIXED — PARITY / BETTER |
 | Finish None | D-017 | FIXED — PARITY |
 | Panel Esc / focus | D-018 / D-020 | FIXED — BETTER consistency |
-| Remove Background | D-019 | FIXED (local-mock) |
+| Remove Background | D-019 | FIXED (durable server-derived variants) |
 | Dead controls | D-021 | FIXED — HONEST_DISABLED or wired |
 | Editor↔public layout | D-023 / D-024 | FIXED — PARITY |
 

@@ -1,7 +1,7 @@
 /**
  * Builder interaction parity — exploratory control audit + WYSIWYG proofs.
  *
- * Covers: icon placement matrix, text-only Look, Escape/focus exits, bg-remove
+ * Covers: icon placement matrix, text-only Look, and Escape/focus exits.
  * local workflow, editor↔public DOM parity, save/reopen persistence.
  *
  * Usage:
@@ -346,7 +346,7 @@ test.describe("Builder interaction parity", () => {
     expect(blockers.length).toBe(0);
   });
 
-  test("P-builder-exits-bg-remove: Escape gallery + bg-remove panel workflow", async ({
+  test("P-builder-exits: Escape gallery + focus workflow", async ({
     page,
   }) => {
     const { consoleErrors, pageErrors } = attachConsole(page);
@@ -388,52 +388,10 @@ test.describe("Builder interaction parity", () => {
     await page.reload({ waitUntil: "domcontentloaded" });
     await selectCampaignBlock(page, "campaign-block-hero_bg");
     await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: 15_000 });
-    await expect(page.getByTestId("bg-remove-open")).toBeVisible();
-
     // Paste focus control
     await page.getByTestId("media-paste-focus").click();
     await expect(page.getByTestId("media-picker-message")).toContainText(/Paste/i);
     notes.push("paste_focus_message");
-
-    // Bg-remove panel open / Escape close / focus return
-    await page.getByTestId("bg-remove-open").click();
-    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
-    notes.push("bg_remove_escape_close");
-
-    await page.getByTestId("bg-remove-open").click();
-    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
-    // Light / dark / checker preview surfaces
-    for (const mode of ["light", "dark", "checker"] as const) {
-      await page.getByTestId(`bg-preview-${mode}`).click();
-      notes.push(`preview_mode_${mode}`);
-    }
-    await page.getByLabel("Edge refinement").check();
-    await page.getByLabel("Soft shadow").check();
-    await page.getByLabel("Crop margins (focal center)").check();
-    await page.getByTestId("bg-remove-preview-btn").click();
-    await page.waitForTimeout(1000);
-    // Tiny solid PNG should chroma-key; apply must enable when preview succeeds
-    const previewMsg = await page.getByTestId("bg-remove-panel").innerText();
-    notes.push(`bg_preview=${previewMsg.slice(0, 100).replace(/\s+/g, " ")}`);
-    await expect(page.getByTestId("bg-remove-where-used")).toBeVisible();
-    await expect(page.getByTestId("bg-remove-undo-hint")).toBeVisible();
-    const apply = page.getByTestId("bg-remove-apply");
-    if (await apply.isEnabled()) {
-      await expect(page.getByTestId("bg-remove-provenance")).toBeVisible();
-      await apply.click();
-      notes.push("bg_remove_applied");
-      // Re-open → restore original (non-destructive)
-      await page.getByTestId("bg-remove-open").click();
-      await page.getByTestId("bg-remove-restore").click();
-      await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
-      notes.push("bg_remove_restored");
-    } else {
-      await page.getByRole("button", { name: /^Close$/i }).first().click();
-      notes.push("bg_remove_preview_only");
-      blockers.push("bg_remove_apply_disabled_after_preview");
-    }
 
     // Logo gallery Escape + focus return (opens even on empty/error — honest panel)
     await page.getByPlaceholder(/Brand or domain/i).fill("nike");
@@ -477,9 +435,9 @@ test.describe("Builder interaction parity", () => {
     await page.getByTestId("campaign-drawer-collapse").first().click().catch(() => undefined);
 
     writeProof({
-      id: "P-builder-exits-bg-remove",
+      id: "P-builder-exits",
       route: `/dashboard/campaigns/${SEED.campaignId}`,
-      workflow: "Escape/focus exits + bg-remove panel + paste focus + FinishPicker honesty",
+      workflow: "Escape/focus exits + paste focus + FinishPicker honesty",
       passed: blockers.length === 0 && pageErrors.length === 0,
       browserE2ePassed: blockers.length === 0,
       persistencePassed: true,
@@ -675,19 +633,6 @@ test.describe("Builder interaction parity", () => {
       });
     });
     notes.push(`preview_overflow_probe=${overflow}`);
-
-    // Media panel open → close → reopen (exit + no trap)
-    await selectCampaignBlock(page, "campaign-block-hero");
-    await expect(page.getByTestId("media-picker")).toBeVisible({ timeout: 10_000 });
-    await page.getByTestId("bg-remove-open").click();
-    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
-    await page.getByTestId("bg-remove-open").click();
-    await expect(page.getByTestId("bg-remove-panel")).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(page.getByTestId("bg-remove-panel")).toHaveCount(0);
-    notes.push("media_bg_panel_close_reopen");
 
     // Save → reload persistence
     await page.getByTestId("campaign-save").click();

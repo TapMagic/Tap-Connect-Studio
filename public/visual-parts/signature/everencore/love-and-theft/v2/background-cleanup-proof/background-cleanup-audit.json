@@ -1,0 +1,275 @@
+{
+  "generatedAt": "2026-10-14T18:37:45.933Z",
+  "report": [
+    {
+      "sourceFilename": "LT-PICK-BANDSINTOWN_bandsintown.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "fcc5b7fa569706ff684bf346d837d2b15e110cb948d01a6b93e6ae7f067d7a5b",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-BLANK_blank.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "27c3d77589451c06b3b3e9ee64702ef810988f6aef0d3b7cb7f5c024182793c7",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-CALENDAR_calendar.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "b85c493ce0413e2acfacf2c2c9eb08d62160578088df8cdd525fd1de2fb85617",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-CALL_phone.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "3d8802715cd7511af83186e3e02b81403909b71e43a6c1771ef9ca219fb69710",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-COWBOY-HAT_cowboy-hat.png",
+      "blackExteriorBackground": true,
+      "originalSha256": "577678f858807edf940c53b300794531c18625f9f7c8a36a30546c070065d8fd",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "transparent-cleaned-derivative-created",
+      "derivedFilename": "LT-PICK-COWBOY-HAT_cowboy-hat.transparent.png",
+      "derivedPath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/derived-transparent/LT-PICK-COWBOY-HAT_cowboy-hat.transparent.png",
+      "derivedSha256": "d1ccae4701fa1a0a5f2fff854f0d53381d86c45d25ecdddc89f8af5f6b409f50",
+      "dimensionsAfter": {
+        "width": 1254,
+        "height": 1254
+      },
+      "changedAlphaPixels": 1572051,
+      "changedRgbPixels": 0,
+      "alphaAuthority": "LT-PICK-BLANK_blank.png certified outer silhouette"
+    },
+    {
+      "sourceFilename": "LT-PICK-EVERENCORE_infinity-music.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "fb1506eb173eaaf68d7b3d32c3b9a8b6078497b1a473d8e482d97be38fe215d8",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-FACEBOOK_facebook.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "60b75ee4b25b743fb4d97453cee3d0c06beffae99484623acaaff81bed902be7",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-FAVORITE_star.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "7aa6a3c7c5094ab2b82480df010171c4b3a174c1b0a07f4864764a5e855ab11a",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-INSTAGRAM_instagram.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "c4af93f0a6d241cded5b369ea0aac9491a469eb41a757079d1db11fc8a75df0d",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-LOCK_lock.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "d56efb5fb5a310c4d7b836ae73fb02c67aca0625394bd30b746cd43f7bd1393f",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-LOVE-THEFT_artist-identity.png",
+      "blackExteriorBackground": true,
+      "originalSha256": "a081867c96a3206c21e15abb9fb88e20122044b131fe2d08b74fa3c4d52d5dc0",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "transparent-cleaned-derivative-created",
+      "derivedFilename": "LT-PICK-LOVE-THEFT_artist-identity.transparent.png",
+      "derivedPath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/derived-transparent/LT-PICK-LOVE-THEFT_artist-identity.transparent.png",
+      "derivedSha256": "6eec6cd094590b765190dc516abd52f84b8734c608f573d4a7456cb92155729a",
+      "dimensionsAfter": {
+        "width": 1254,
+        "height": 1254
+      },
+      "changedAlphaPixels": 1572051,
+      "changedRgbPixels": 0,
+      "alphaAuthority": "LT-PICK-BLANK_blank.png certified outer silhouette"
+    },
+    {
+      "sourceFilename": "LT-PICK-MAP_location.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "ee5444476a5c9f543ea243199e5770e7bdfbaf786858e8b9cfb8c04ddf637412",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-MERCH_merch.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "5961ad223428a93a704dd04617fdec1e51cd1c8f9d4149a297a9905713fda4b1",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-MESSAGE_chat.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "262782c5cc04154c88cc0930be264bbe878869901f2dbfb79f3a9c025b6a4224",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-MICROPHONE_microphone.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "b480cf75d94a4107b09fa23b6b2cc9bfe1215a8abf94bc65fed64a7540d5f465",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-MUSIC-PLUS_music-add.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "9c0cab4f6dfa3382373af128c56a75fb30019360ff8c87a4fc450c112c4ae55d",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-MUSIC_music-note.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "bc7d0e4ed58bbd77dee5e47b4978b017c70e31c331210ab34a9c75ea3ccd7e50",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-PHOTOS_gallery.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "d0d6f54fcf66dc127cd26816766d47932b38c8012cf07d81074ec31865e6a11d",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-PLAYLIST_more-music.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "aee8849fdba25e12176087707c8980ef393a389a780d1bdc535f32afdb9fbd67",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-PLAY_play-video.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "2188d3052fa6c83441f8fba4869cb101f0c8a30105ebb107ab1e836223c20b69",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-SHARE_share.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "98d430bc6ee758d17c85853c51ac62f72bb9301ef7de6770fae3aa114ef30eb5",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-SPOTIFY_spotify.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "f0bcee3bd22e4658db0541d1896280262b6e12acb9b292775cb64cbf80831cfa",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-TICKET-ANGLED_ticket-angled.png",
+      "blackExteriorBackground": false,
+      "originalSha256": "d1878231e3eb2a582edcfdb6440709fb1d389c0c78790f594f53d9f6778c6e8f",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "unchanged-already-transparent"
+    },
+    {
+      "sourceFilename": "LT-PICK-TICKET-CLASSIC_ticket-classic.png",
+      "blackExteriorBackground": true,
+      "originalSha256": "3a34d335730827ff0ef0e4a992f5e30b396b36f9e026a62fc1822e65a87301d0",
+      "dimensionsBefore": {
+        "width": 1254,
+        "height": 1254
+      },
+      "action": "transparent-cleaned-derivative-created",
+      "derivedFilename": "LT-PICK-TICKET-CLASSIC_ticket-classic.transparent.png",
+      "derivedPath": "/visual-parts/signature/everencore/love-and-theft/v2/03-pick-masters/derived-transparent/LT-PICK-TICKET-CLASSIC_ticket-classic.transparent.png",
+      "derivedSha256": "7d3499b6d279f83511f22b9dfe7d4610e28f34f596e38f38139214223eca0690",
+      "dimensionsAfter": {
+        "width": 1254,
+        "height": 1254
+      },
+      "changedAlphaPixels": 1572051,
+      "changedRgbPixels": 0,
+      "alphaAuthority": "LT-PICK-BLANK_blank.png certified outer silhouette"
+    }
+  ]
+}

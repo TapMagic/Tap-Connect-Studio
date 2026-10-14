@@ -1815,6 +1815,7 @@ model MediaAsset {
   defaultAltText  String?
   parentAssetId   String?
   renditionKind   String?
+  derivationRecipe Json?
   importedAt      DateTime?
   createdAt       DateTime            @default(now())
 

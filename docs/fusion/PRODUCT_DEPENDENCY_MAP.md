@@ -108,7 +108,7 @@ flowchart TB
 | Campaign content blocks | `lib/services/normalize-content-blocks.ts` + renderer | Workbench, public `/t` | One renderer path |
 | Card sections | `lib/brand/tap-card.ts` + `TapConnectCard` | Builder, MyTap Keep, public | One renderer path |
 | Button layout attrs | `ButtonLayoutControls` + CSS | Campaign `.tap-btn`, Card `.tcc-pill` | Parity proved |
-| Media / bg-remove | `MediaPicker`, `lib/media/bg-remove` | Builders | local-mock default |
+| Media / background treatment | `MediaPicker`, `BackgroundTool`, `/api/media/background` | Builders | durable server-derived variants |
 | Brand vocabulary | `BrandVocabularyTerm` + `/api/ai/keywords` | Brand Kit, Canvas bind | Gate `ai.keywords` |
 | TapPoint address | `TapPoint` / `TapPointAddress` | Devices, public | Permanent opaque |
 | Publication | `PublicationSnapshot` | Resolver | Immutable publish intent |
@@ -167,7 +167,7 @@ Do **not** block foundation journeys on these:
 | Wallet live | Apple/Google certs | Mock wallet |
 | AI enhance / trends | `OPENAI_*`, trend vendor | Grounded Keywords; Autopilot mock |
 | Stock search | Pexels/Unsplash/Logo.dev | Upload / local library |
-| Bg-remove live vendor | Vendor key | `local-mock` adapter |
+| Background treatment | Durable media storage | canonical server authority; no third-party vendor required |
 | Stripe | `sk_test_` / live | Commerce mock + readiness UI |
 | Productivity OAuth | monday/Asana/Slack/… | Mock closeout 18/18 |
 | Email live | Resend + DNS | Email mock |
