@@ -8,6 +8,7 @@ import { standardButtonActions, type StandardButtonActionIntent } from "@/lib/fu
 import {
   compactActionGridNodeProps,
   compactActionGridLayoutMetrics,
+  compactActionGridRequiredRowWidthPx,
   createCompactActionTile,
   readCompactActionGrid,
   type CompactActionGridState,
@@ -131,13 +132,20 @@ function CertifiedMasterStatus({ iconAssetRef }: { iconAssetRef: string }) {
 }
 
 function LayoutEditor({ state, commit }: { state: CompactActionGridState; commit: (next: CompactActionGridState, label: string, options?: { forceAlignment?: boolean }) => void }) {
-  return <div className="space-y-3"><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-white/38">Columns · never five</p><div className="grid grid-cols-3 gap-1">{([2,3,4] as const).map((columns) => <button key={columns} type="button" aria-pressed={state.columns===columns} onClick={() => commit({...state,columns},`Changed Compact Action Grid to ${columns} columns`)} className="min-h-10 rounded-xl bg-white/5 text-xs aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{columns}</button>)}</div>
+  const requiredRowWidthPx = compactActionGridRequiredRowWidthPx(state);
+  const availableWidthPx = state.widthMode === "custom" ? state.customWidthPx : 366;
+  const fixedOverflow = state.tileSizing === "fixed" && requiredRowWidthPx > availableWidthPx;
+  return <div className="space-y-3"><p className="text-[9px] font-semibold uppercase tracking-[.14em] text-white/38">Columns · 1–4</p><div className="grid grid-cols-4 gap-1">{([1,2,3,4] as const).map((columns) => <button key={columns} type="button" aria-pressed={state.columns===columns} onClick={() => commit({...state,columns},`Changed Compact Action Grid to ${columns} columns`)} className="min-h-10 rounded-xl bg-white/5 text-xs aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]" data-testid={`compact-grid-columns-${columns}`}>{columns}</button>)}</div>
+    <Field label="Tile sizing"><div className="grid grid-cols-2 gap-1">{([ ["auto_fill","Auto Fill"], ["fixed","Fixed Tile Size"] ] as const).map(([tileSizing,label]) => <button key={tileSizing} type="button" aria-pressed={state.tileSizing===tileSizing} onClick={() => commit({...state,tileSizing},`Changed Compact Action Grid tile sizing to ${label}`)} className="min-h-10 rounded-xl bg-white/5 px-2 text-[9px] aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]" data-testid={`compact-grid-tile-sizing-${tileSizing}`}>{label}</button>)}</div></Field>
+    <p className="text-[10px] leading-4 text-white/38">{state.tileSizing === "auto_fill" ? "Tiles adapt to the available track width." : "The authored pick size stays constant when columns, frame width, or gap change."}</p>
     <Field label="Grid width"><div className="grid grid-cols-3 gap-1">{([ ["full","Full width"], ["fit_content","Fit content"], ["custom","Custom"] ] as const).map(([widthMode,label]) => <button key={widthMode} type="button" aria-pressed={state.widthMode===widthMode} onClick={() => commit({...state,widthMode},`Changed Compact Action Grid width to ${label}`)} className="min-h-10 rounded-xl bg-white/5 px-1 text-[9px] aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]" data-testid={`compact-grid-width-${widthMode}`}>{label}</button>)}</div></Field>
     {state.widthMode === "custom" ? <Field label="Custom frame width"><input type="number" min={44} max={1200} value={state.customWidthPx} onChange={(event) => commit({...state,customWidthPx:Number(event.target.value)},"Changed Compact Action Grid custom width")} className={fieldClass} data-testid="compact-grid-custom-width" /></Field> : null}
-    <Field label="Tile / pick size"><input type="number" min={44} max={180} value={state.tileSizePx} onChange={(event) => commit({...state,tileSizePx:Number(event.target.value)},"Changed Compact Action Grid tile size")} className={fieldClass} data-testid="compact-grid-tile-size" /></Field>
+    {state.tileSizing === "fixed" ? <Field label="Tile / pick size"><input type="number" min={44} max={180} value={state.tileSizePx} onChange={(event) => commit({...state,tileSizePx:Number(event.target.value)},"Changed Compact Action Grid tile size")} className={fieldClass} data-testid="compact-grid-tile-size" /></Field> : null}
+    {fixedOverflow ? <p className="rounded-xl border border-amber-300/25 bg-amber-300/[.07] p-3 text-[10px] leading-4 text-amber-100" role="status" data-testid="compact-grid-fixed-overflow-warning">This fixed row needs {requiredRowWidthPx}px, but the {state.widthMode === "custom" ? "custom frame" : "390px phone canvas"} provides {availableWidthPx}px. Tile size will be preserved; reduce size or gap, or expect overflow.</p> : null}
     <Field label="Density"><select value={state.density} onChange={(event) => commit({...state,density:event.target.value as CompactActionGridState["density"]},"Changed Compact Action Grid density")} className={fieldClass}><option value="compact">Compact</option><option value="standard">Standard</option><option value="roomy">Roomy</option></select></Field>
     <div className="grid grid-cols-2 gap-2"><Field label="Column gap"><input type="number" min={0} max={64} value={state.columnGapPx} onChange={(event) => commit({...state,columnGapPx:Number(event.target.value)},"Changed Compact Action Grid column gap")} className={fieldClass} data-testid="compact-grid-column-gap" /></Field><Field label="Row gap"><input type="number" min={0} max={64} value={state.rowGapPx} onChange={(event) => commit({...state,rowGapPx:Number(event.target.value)},"Changed Compact Action Grid row gap")} className={fieldClass} /></Field></div>
     <Field label="Grid alignment"><div className="grid grid-cols-3 gap-1">{(["left","center","right"] as const).map((gridAlignment) => <button key={gridAlignment} type="button" aria-pressed={state.gridAlignment===gridAlignment} onClick={() => commit({...state,gridAlignment},`Aligned Compact Action Grid ${gridAlignment}`,{forceAlignment:true})} className="min-h-10 rounded-xl bg-white/5 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]" data-testid={`compact-grid-align-${gridAlignment}`}>{gridAlignment}</button>)}</div></Field>
+    <Field label="Last row alignment"><div className="grid grid-cols-2 gap-1">{([ ["left","Left"], ["center","Center"], ["right","Right"], ["space_between","Space Between"] ] as const).map(([lastRowAlignment,label]) => <button key={lastRowAlignment} type="button" aria-pressed={state.lastRowAlignment===lastRowAlignment} onClick={() => commit({...state,lastRowAlignment},`Aligned Compact Action Grid last row ${label}`)} className="min-h-10 rounded-xl bg-white/5 px-2 text-[9px] aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]" data-testid={`compact-grid-last-row-${lastRowAlignment}`}>{label}</button>)}</div></Field>
     <Field label="Label alignment"><select value={state.labelAlign} onChange={(event)=>commit({...state,labelAlign:event.target.value as CompactActionGridState["labelAlign"]},"Changed Compact Action Grid alignment")} className={fieldClass}><option value="left">Left</option><option value="center">Center</option><option value="right">Right</option></select></Field>
   </div>;
 }
@@ -162,6 +170,7 @@ function compactActionGridPlacementPatch(
   const parentHeightPx = parentSize.heightPx;
   const metrics = compactActionGridLayoutMetrics(next);
   const widthAffectingChange = current.widthMode !== next.widthMode
+    || current.tileSizing !== next.tileSizing
     || current.columns !== next.columns
     || current.tileSizePx !== next.tileSizePx
     || current.columnGapPx !== next.columnGapPx

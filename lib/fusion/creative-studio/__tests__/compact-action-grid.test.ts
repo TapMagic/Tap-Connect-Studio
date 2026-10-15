@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import {
   compactActionGridNodeProps,
   compactActionGridLayoutMetrics,
+  compactActionGridRequiredRowWidthPx,
+  compactActionGridTileColumn,
   compactActionGridProofFixture,
   createCompactActionGrid,
   createCompactActionTile,
@@ -18,18 +20,56 @@ import {
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 
 describe("Compact Action Tile / Grid authority", () => {
-  it("supports only 2, 3, or 4 columns and never creates a five-column Grid", () => {
+  it("supports the governed 1–4 column range and never creates a five-column Grid", () => {
+    assert.equal(createCompactActionGrid({ columns: 1 }).columns, 1);
     assert.equal(createCompactActionGrid({ columns: 2 }).columns, 2);
     assert.equal(createCompactActionGrid({ columns: 3 }).columns, 3);
     assert.equal(createCompactActionGrid({ columns: 4 }).columns, 4);
     assert.equal(createCompactActionGrid({ columns: 5 as never }).columns, 3);
   });
 
-  it("keeps authored Tile size independent from the column arrangement", () => {
-    const threeAcross = createCompactActionGrid({ columns: 3, tileSizePx: 96, columnGapPx: 12 });
+  it("keeps Fixed Tile Size independent from the column arrangement", () => {
+    const threeAcross = createCompactActionGrid({ columns: 3, tileSizing: "fixed", tileSizePx: 96, columnGapPx: 12 });
     const twoAcross = createCompactActionGrid({ ...threeAcross, columns: 2 });
+    assert.equal(threeAcross.tileSizing, "fixed");
     assert.equal(threeAcross.tileSizePx, 96);
     assert.equal(twoAcross.tileSizePx, 96);
+  });
+
+  it("retains responsive Auto Fill while migrating legacy bounded grids to fixed sizing", () => {
+    assert.equal(createCompactActionGrid({ widthMode: "full" }).tileSizing, "auto_fill");
+    assert.equal(createCompactActionGrid({ widthMode: "fit_content" }).tileSizing, "fixed");
+    assert.equal(createCompactActionGrid({ widthMode: "custom" }).tileSizing, "fixed");
+    assert.equal(createCompactActionGrid({ widthMode: "full", tileSizing: "fixed" }).tileSizing, "fixed");
+  });
+
+  it("centers a two-item final row beneath four fixed-size tracks in one Grid", () => {
+    const state = createCompactActionGrid({
+      columns: 4,
+      tileSizing: "fixed",
+      tileSizePx: 84,
+      columnGapPx: 8,
+      lastRowAlignment: "center",
+      tiles: Array.from({ length: 6 }, (_, index) => createCompactActionTile({ label: `Tile ${index + 1}` })),
+    });
+    const metrics = compactActionGridLayoutMetrics(state);
+    assert.equal(metrics.rows, 2);
+    assert.equal(metrics.finalRowCount, 2);
+    assert.equal(metrics.trackColumns, 4);
+    assert.equal(compactActionGridRequiredRowWidthPx(state), 360);
+    assert.equal(compactActionGridTileColumn(state, 3), undefined);
+    assert.equal(compactActionGridTileColumn(state, 4), 2);
+    assert.equal(compactActionGridTileColumn(state, 5), 3);
+  });
+
+  it("supports left, right, and space-between final-row placement without changing size or gap", () => {
+    const tiles = Array.from({ length: 6 }, (_, index) => createCompactActionTile({ label: `Tile ${index + 1}` }));
+    const base = createCompactActionGrid({ columns: 4, tileSizing: "fixed", tileSizePx: 84, columnGapPx: 8, tiles });
+    assert.deepEqual([4, 5].map((index) => compactActionGridTileColumn({ ...base, lastRowAlignment: "left" }, index)), [1, 2]);
+    assert.deepEqual([4, 5].map((index) => compactActionGridTileColumn({ ...base, lastRowAlignment: "right" }, index)), [3, 4]);
+    assert.deepEqual([4, 5].map((index) => compactActionGridTileColumn({ ...base, lastRowAlignment: "space_between" }, index)), [1, 4]);
+    assert.equal(base.tileSizePx, 84);
+    assert.equal(base.columnGapPx, 8);
   });
 
   it("fits the frame to occupied columns without reserving an empty track", () => {

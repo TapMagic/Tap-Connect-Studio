@@ -5,6 +5,8 @@ import { LockKeyhole, Sparkles } from "lucide-react";
 import { PremiumIcon } from "@/components/design/premium-icon";
 import {
   compactActionGridLayoutMetrics,
+  compactActionGridRequiredRowWidthPx,
+  compactActionGridTileColumn,
   type CompactActionGridState,
   type CompactActionTile,
 } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
@@ -60,12 +62,13 @@ export function CompactActionGrid({ state, editMode = false }: { state: CompactA
   // Four columns are a governed compact presentation, not browser zoom. The
   // optical type reduction keeps the longest admitted platform labels intact.
   const densityScale = authoredDensityScale * (state.columns === 4 ? .76 : 1);
-  const { visibleTiles, occupiedColumns } = compactActionGridLayoutMetrics(state);
-  const fixedTracks = state.widthMode !== "full";
+  const { visibleTiles, occupiedColumns, trackColumns } = compactActionGridLayoutMetrics(state);
+  const fixedTracks = state.tileSizing === "fixed";
+  const requiredRowWidthPx = compactActionGridRequiredRowWidthPx(state);
   const style = {
     gridTemplateColumns: fixedTracks
-      ? `repeat(${occupiedColumns}, ${state.tileSizePx}px)`
-      : `repeat(${occupiedColumns}, minmax(0, 1fr))`,
+      ? `repeat(${trackColumns}, ${state.tileSizePx}px)`
+      : `repeat(${trackColumns}, minmax(0, 1fr))`,
     columnGap: state.columnGapPx,
     rowGap: state.rowGapPx,
     justifyContent: state.gridAlignment === "left" ? "start" : state.gridAlignment === "right" ? "end" : "center",
@@ -86,35 +89,41 @@ export function CompactActionGrid({ state, editMode = false }: { state: CompactA
     data-compact-action-presentation={state.presentation}
     data-compact-action-columns={state.columns}
     data-compact-action-occupied-columns={occupiedColumns}
+    data-compact-action-track-columns={trackColumns}
+    data-compact-action-tile-sizing={state.tileSizing}
     data-compact-action-tile-size={state.tileSizePx}
     data-compact-action-width-mode={state.widthMode}
     data-compact-action-alignment={state.gridAlignment}
+    data-compact-action-last-row-alignment={state.lastRowAlignment}
     data-compact-action-density={state.density}
+    data-compact-action-overflow-warning={state.tileSizing === "fixed" && requiredRowWidthPx > 366 ? "true" : "false"}
   >
-    {visibleTiles.map((tile) => <CompactActionTileView
+    {visibleTiles.map((tile, index) => <CompactActionTileView
       key={tile.componentId}
       tile={tile}
       state={state}
       editMode={editMode}
       expanded={lockedTileId === tile.componentId}
+      gridColumnStart={compactActionGridTileColumn(state, index, visibleTiles.length)}
       onLocked={() => setLockedTileId((current) => current === tile.componentId ? null : tile.componentId)}
     />)}
   </div>;
 }
 
-function CompactActionTileView({ tile, state, editMode, expanded, onLocked }: {
+function CompactActionTileView({ tile, state, editMode, expanded, gridColumnStart, onLocked }: {
   tile: CompactActionTile;
   state: CompactActionGridState;
   editMode: boolean;
   expanded: boolean;
+  gridColumnStart?: number;
   onLocked: () => void;
 }) {
   const locked = tile.locked === true;
   const internalPageId = tile.actionType === "internal_page" && !locked ? tile.destinationRef : undefined;
   const href = !locked ? tileHref(tile) : undefined;
   const labelAlign = state.labelAlign === "left" ? "items-start text-left" : state.labelAlign === "right" ? "items-end text-right" : "items-center text-center";
-  const pickSize = state.tileSizePx;
-  const neutralIconSize = state.tileSizePx;
+  const pickSize = state.tileSizing === "fixed" ? state.tileSizePx : "100%";
+  const neutralIconSize = state.tileSizing === "fixed" ? state.tileSizePx : "100%";
   const body = <>
     <span className="relative block overflow-visible" style={{ width: pickSize }}>
       {state.presentation === "everencore-love-and-theft-pick"
@@ -128,7 +137,7 @@ function CompactActionTileView({ tile, state, editMode, expanded, onLocked }: {
       {tile.sublabel && state.columns < 4 ? <span className="mt-1 max-w-full text-balance uppercase tracking-[.12em]" style={{ color: "var(--compact-grid-sublabel-color)", fontSize: "calc(var(--compact-grid-sublabel-size) * var(--compact-grid-density))", lineHeight: 1.15 }}>{tile.sublabel}</span> : null}
     </span>
   </>;
-  const shared = "group relative flex min-h-11 min-w-0 flex-col items-center justify-start overflow-visible rounded-2xl px-1 py-1.5 no-underline transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5d68c]";
+  const shared = "group relative flex min-h-11 w-full min-w-0 flex-col items-center justify-start overflow-visible rounded-2xl px-1 py-1.5 no-underline transition-transform focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f5d68c]";
   const attrs = {
     "data-testid": `compact-action-tile-${tile.componentId}`,
     "data-compact-tile-contract": tile.contractId,
@@ -147,7 +156,7 @@ function CompactActionTileView({ tile, state, editMode, expanded, onLocked }: {
     : <a href={editMode ? undefined : href} className={shared} onClick={(event) => { if (editMode || (!href && !internalPageId)) event.preventDefault(); }} aria-label={tile.sublabel ? `${tile.label}: ${tile.sublabel}` : tile.label} {...attrs}>{body}</a>;
   const policy = tile.lockedBehavior;
   const effectFamily = state.presentation === "everencore-love-and-theft-pick" ? "everencore-love-and-theft-pick" : "compact-neutral";
-  return <div className="relative min-w-0 overflow-visible" data-compact-action-tile-shell="true">
+  return <div className="relative min-w-0 overflow-visible" style={{ gridColumnStart }} data-compact-action-tile-shell="true" data-grid-column={gridColumnStart}>
     <ActionPresentationEffects family={effectFamily} value={tile.presentationEffects ?? {}} active={!editMode}>{control}</ActionPresentationEffects>
     {expanded && policy && (policy.mode === "message" || policy.mode === "cta") ? <div className="relative z-10 mx-auto mt-1 w-[min(180px,calc(100vw-28px))] rounded-xl border border-[#d7ad58]/35 bg-[#100c08]/96 p-2 text-center text-[9px] leading-4 text-[#f4e5c3] shadow-2xl" role="status" data-testid={`compact-locked-message-${tile.componentId}`}>
       <Sparkles className="mx-auto mb-1 h-3 w-3 text-[#d7ad58]" aria-hidden />

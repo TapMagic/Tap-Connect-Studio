@@ -22,7 +22,7 @@ function gridNode(id: string, name: string, state: CompactActionGridState, y: nu
     primitive: "button",
     compositionKind: "module",
     parentId: null,
-    siblingOrder: id.endsWith("top") ? 1 : 2,
+    siblingOrder: 1,
     x,
     y,
     width,
@@ -46,36 +46,26 @@ function stayConnectedRoot(previous: CreativeCompositionBlock): CreativeComposit
     actionType: "website",
     destinationRef: "https://example.com/",
   });
-  const top = createCompactActionGrid({
-    componentId: "stay-connected-top-grid",
-    analyticsId: "proof:stay-connected:top",
+  const grid = createCompactActionGrid({
+    componentId: "stay-connected-grid",
+    analyticsId: "proof:stay-connected",
     presentation: "everencore-love-and-theft-pick",
-    columns: 3,
-    tileSizePx: 96,
-    widthMode: "fit_content",
-    gridAlignment: "center",
-    columnGapPx: 12,
-    tiles: [
-      tile("stay-spotify", "Spotify", "simple-icons:spotify"),
-      tile("stay-instagram", "Instagram", "simple-icons:instagram"),
-      tile("stay-facebook", "Facebook", "simple-icons:facebook"),
-    ],
-  });
-  const bottom = createCompactActionGrid({
-    componentId: "stay-connected-bottom-grid",
-    analyticsId: "proof:stay-connected:bottom",
-    presentation: "everencore-love-and-theft-pick",
-    columns: 3,
-    tileSizePx: 96,
+    columns: 4,
+    tileSizing: "auto_fill",
+    tileSizePx: 84,
     widthMode: "full",
     gridAlignment: "left",
-    columnGapPx: 12,
+    lastRowAlignment: "left",
+    columnGapPx: 8,
     tiles: [
+      tile("stay-spotify", "Spotify", "simple-icons:spotify"),
+      tile("stay-apple", "Apple Music", "simple-icons:apple-music"),
+      tile("stay-instagram", "Instagram", "simple-icons:instagram"),
+      tile("stay-facebook", "Facebook", "simple-icons:facebook"),
       tile("stay-bandsintown", "Bandsintown", "simple-icons:bandsintown"),
       tile("stay-call", "Call", "lucide:phone"),
     ],
   });
-  const topWidth = compactActionGridLayoutMetrics(top).contentWidthPx / (390 - 24);
   const heading: CreativeCompositionNode = {
     id: "stay-connected-heading", primitive: "text", compositionKind: "module", parentId: null, siblingOrder: 0,
     x: .08, y: .03, width: .84, height: .08, zIndex: 2, name: "Stay Connected heading", visible: true, locked: false,
@@ -87,8 +77,7 @@ function stayConnectedRoot(previous: CreativeCompositionBlock): CreativeComposit
     label: "Stay Connected · Compact Action Grid sizing proof",
     nodes: [
       heading,
-      gridNode("stay-connected-grid-top", "Stay Connected · top row", top, .16, topWidth, (1 - topWidth) / 2),
-      gridNode("stay-connected-grid-bottom", "Stay Connected · bottom row", bottom, .48, .94, .03),
+      gridNode("stay-connected-grid-node", "Stay Connected · 4 + 2 grid", grid, .16, .94, .03),
     ],
     parentAuthority: { version: 1, layout: "flow", cardGapPx: 12 },
     compositionMode: { version: 1, mode: "layered", layeredHeightPx: 620, layeredPlacementInitialized: true },
@@ -111,7 +100,7 @@ async function openGridInspector(page: Page, componentId: string) {
   return inspector;
 }
 
-test("builds a fixed-size centered 3-over-2 Compact Action Grid composition", async ({ page }) => {
+test("builds a fixed-size centered 4-over-2 composition in one Compact Action Grid", async ({ page }) => {
   test.skip(!enabled, "Set COMPACT_ACTION_GRID_SIZING_ACCEPTANCE=1 for the deterministic local acceptance fixture");
   test.setTimeout(150_000);
   mkdirSync(proofRoot, { recursive: true });
@@ -130,78 +119,88 @@ test("builds a fixed-size centered 3-over-2 Compact Action Grid composition", as
     expect(seeded.ok()).toBeTruthy();
     await page.reload({ waitUntil: "networkidle" });
 
-    const topGrid = page.locator('[data-compact-action-component-id="stay-connected-top-grid"]');
-    const bottomGrid = page.locator('[data-compact-action-component-id="stay-connected-bottom-grid"]');
-    await expect(topGrid).toBeVisible();
-    await expect(bottomGrid).toBeVisible();
+    const grid = page.locator('[data-compact-action-component-id="stay-connected-grid"]');
+    await expect(grid).toBeVisible();
 
-    const inspector = await openGridInspector(page, "stay-connected-bottom-grid");
-    await inspector.getByRole("button", { name: "2", exact: true }).click();
-    await inspector.getByTestId("compact-grid-tile-size").fill("96");
+    const inspector = await openGridInspector(page, "stay-connected-grid");
+    await inspector.getByTestId("compact-grid-columns-4").click();
+    await inspector.getByTestId("compact-grid-tile-sizing-fixed").click();
+    await inspector.getByTestId("compact-grid-tile-size").fill("100");
     await inspector.getByTestId("compact-grid-tile-size").press("Enter");
+    await expect(inspector.getByTestId("compact-grid-fixed-overflow-warning")).toContainText("Tile size will be preserved");
+    await inspector.getByTestId("compact-grid-tile-size").fill("84");
+    await inspector.getByTestId("compact-grid-tile-size").press("Enter");
+    await inspector.getByTestId("compact-grid-column-gap").fill("8");
+    await inspector.getByTestId("compact-grid-column-gap").press("Enter");
+    await expect(inspector.getByTestId("compact-grid-fixed-overflow-warning")).toHaveCount(0);
     await inspector.getByTestId("compact-grid-width-fit_content").click();
     await inspector.getByTestId("compact-grid-align-center").click();
+    await inspector.getByTestId("compact-grid-last-row-center").click();
 
-    await expect(bottomGrid).toHaveAttribute("data-compact-action-columns", "2");
-    await expect(bottomGrid).toHaveAttribute("data-compact-action-occupied-columns", "2");
-    await expect(bottomGrid).toHaveAttribute("data-compact-action-width-mode", "fit_content");
-    await expect(topGrid).toHaveAttribute("data-compact-action-tile-size", "96");
-    await expect(bottomGrid).toHaveAttribute("data-compact-action-tile-size", "96");
+    await expect(grid).toHaveAttribute("data-compact-action-columns", "4");
+    await expect(grid).toHaveAttribute("data-compact-action-track-columns", "4");
+    await expect(grid).toHaveAttribute("data-compact-action-tile-sizing", "fixed");
+    await expect(grid).toHaveAttribute("data-compact-action-last-row-alignment", "center");
+    await expect(grid).toHaveAttribute("data-compact-action-width-mode", "fit_content");
+    await expect(grid).toHaveAttribute("data-compact-action-tile-size", "84");
 
-    const topPick = await box(topGrid.locator('[data-love-and-theft-pick="true"]').first());
-    const bottomPick = await box(bottomGrid.locator('[data-love-and-theft-pick="true"]').first());
-    expect(Math.abs(topPick.width - bottomPick.width)).toBeLessThan(1);
-    expect(Math.abs(topPick.width - 96)).toBeLessThan(1);
-    const topBox = await box(topGrid);
-    const bottomBox = await box(bottomGrid);
-    expect(Math.abs(topBox.width - 312)).toBeLessThan(2);
-    expect(Math.abs(bottomBox.width - 204)).toBeLessThan(2);
-    expect(Math.abs((topBox.x + topBox.width / 2) - (bottomBox.x + bottomBox.width / 2))).toBeLessThan(2);
+    const picks = grid.locator('[data-love-and-theft-pick="true"]');
+    await expect(picks).toHaveCount(6);
+    const pickBoxes = await Promise.all(Array.from({ length: 6 }, (_, index) => box(picks.nth(index))));
+    expect(pickBoxes.every((pickBox) => Math.abs(pickBox.width - 84) < 1)).toBeTruthy();
+    const gridBox = await box(grid);
+    expect(Math.abs(gridBox.width - 360)).toBeLessThan(2);
+    expect(Math.abs(pickBoxes[4]!.x - pickBoxes[1]!.x)).toBeLessThan(2);
+    expect(Math.abs(pickBoxes[5]!.x - pickBoxes[2]!.x)).toBeLessThan(2);
 
-    const bottomModule = page.locator('[data-composition-node="stay-connected-grid-bottom"]');
-    const selectedBox = await box(bottomModule);
-    expect(Math.abs(selectedBox.width - bottomBox.width)).toBeLessThan(2);
-    await page.screenshot({ path: path.join(proofRoot, "01-stay-connected-3-over-2-edit.png"), fullPage: true });
+    const gridModule = page.locator('[data-composition-node="stay-connected-grid-node"]');
+    const selectedBox = await box(gridModule);
+    expect(Math.abs(selectedBox.width - gridBox.width)).toBeLessThan(2);
+    await page.screenshot({ path: path.join(proofRoot, "01-stay-connected-4-over-2-edit.png"), fullPage: true });
 
     await inspector.getByTestId("compact-grid-width-custom").click();
-    const customBefore = await box(bottomModule);
-    const customPickBefore = await box(bottomGrid.locator('[data-love-and-theft-pick="true"]').first());
-    const resizeHandle = page.getByTestId("studio-layer-resize-stay-connected-grid-bottom-e");
+    await inspector.getByTestId("compact-grid-custom-width").fill("320");
+    await inspector.getByTestId("compact-grid-custom-width").press("Enter");
+    const customBefore = await box(gridModule);
+    const customPickBefore = await box(grid.locator('[data-love-and-theft-pick="true"]').first());
+    const resizeHandle = page.getByTestId("studio-layer-resize-stay-connected-grid-node-e");
     const resizeBox = await box(resizeHandle);
     await page.mouse.move(resizeBox.x + resizeBox.width / 2, resizeBox.y + resizeBox.height / 2);
     await page.mouse.down();
     await page.mouse.move(resizeBox.x + resizeBox.width / 2 + 24, resizeBox.y + resizeBox.height / 2, { steps: 4 });
     await page.mouse.up();
-    expect((await box(bottomModule)).width).toBeGreaterThan(customBefore.width + 10);
-    expect(Math.abs((await box(bottomGrid.locator('[data-love-and-theft-pick="true"]').first())).width - customPickBefore.width)).toBeLessThan(1);
+    expect((await box(gridModule)).width).toBeGreaterThan(customBefore.width + 10);
+    expect(Math.abs((await box(grid.locator('[data-love-and-theft-pick="true"]').first())).width - customPickBefore.width)).toBeLessThan(1);
     await inspector.getByTestId("compact-grid-width-fit_content").click();
     await inspector.getByTestId("compact-grid-align-center").click();
 
-    const beforeX = Number(await bottomModule.getAttribute("data-layer-x"));
-    const moveHandle = page.getByTestId("studio-canvas-handle-stay-connected-grid-bottom");
+    const beforeX = Number(await gridModule.getAttribute("data-layer-x"));
+    const moveHandle = page.getByTestId("studio-canvas-handle-stay-connected-grid-node");
     const handleBox = await box(moveHandle);
     await page.mouse.move(handleBox.x + handleBox.width / 2, handleBox.y + handleBox.height / 2);
     await page.mouse.down();
     await page.mouse.move(handleBox.x + handleBox.width / 2 + 18, handleBox.y + handleBox.height / 2, { steps: 4 });
     await page.mouse.up();
-    const movedX = Number(await bottomModule.getAttribute("data-layer-x"));
-    expect(Math.abs(movedX - beforeX)).toBeGreaterThan(.01);
+    const movedX = Number(await gridModule.getAttribute("data-layer-x"));
+    expect(Math.abs(movedX - beforeX)).toBeGreaterThan(.005);
 
     await inspector.getByTestId("compact-grid-align-center").click();
     if (await page.getByTestId("studio-save").isEnabled()) await page.getByTestId("studio-save").click();
     await page.reload({ waitUntil: "networkidle" });
-    await expect(page.locator('[data-compact-action-component-id="stay-connected-bottom-grid"]')).toHaveAttribute("data-compact-action-width-mode", "fit_content");
-    await expect(page.locator('[data-compact-action-component-id="stay-connected-bottom-grid"]')).toHaveAttribute("data-compact-action-tile-size", "96");
+    await expect(page.locator('[data-compact-action-component-id="stay-connected-grid"]')).toHaveAttribute("data-compact-action-width-mode", "fit_content");
+    await expect(page.locator('[data-compact-action-component-id="stay-connected-grid"]')).toHaveAttribute("data-compact-action-tile-sizing", "fixed");
+    await expect(page.locator('[data-compact-action-component-id="stay-connected-grid"]')).toHaveAttribute("data-compact-action-tile-size", "84");
+    await expect(page.locator('[data-compact-action-component-id="stay-connected-grid"]')).toHaveAttribute("data-compact-action-last-row-alignment", "center");
 
     await page.getByTestId("studio-preview").click();
     await page.setViewportSize({ width: 390, height: 844 });
-    const previewTop = page.locator('[data-compact-action-component-id="stay-connected-top-grid"]');
-    const previewBottom = page.locator('[data-compact-action-component-id="stay-connected-bottom-grid"]');
-    const previewTopBox = await box(previewTop);
-    const previewBottomBox = await box(previewBottom);
-    expect(Math.abs((previewTopBox.x + previewTopBox.width / 2) - (previewBottomBox.x + previewBottomBox.width / 2))).toBeLessThan(2);
-    expect(Math.abs((await box(previewTop.locator('[data-love-and-theft-pick="true"]').first())).width - (await box(previewBottom.locator('[data-love-and-theft-pick="true"]').first())).width)).toBeLessThan(1);
-    await page.screenshot({ path: path.join(proofRoot, "02-stay-connected-3-over-2-preview-390.png"), fullPage: true });
+    const previewGrid = page.locator('[data-compact-action-component-id="stay-connected-grid"]');
+    const previewPicks = previewGrid.locator('[data-love-and-theft-pick="true"]');
+    const previewBoxes = await Promise.all(Array.from({ length: 6 }, (_, index) => box(previewPicks.nth(index))));
+    expect(previewBoxes.every((pickBox) => Math.abs(pickBox.width - 84) < 1)).toBeTruthy();
+    expect(Math.abs(previewBoxes[4]!.x - previewBoxes[1]!.x)).toBeLessThan(2);
+    expect(Math.abs(previewBoxes[5]!.x - previewBoxes[2]!.x)).toBeLessThan(2);
+    await page.screenshot({ path: path.join(proofRoot, "02-stay-connected-4-over-2-preview-390.png"), fullPage: true });
   } finally {
     const currentResponse = await page.request.get("/api/card/draft");
     if (currentResponse.ok()) {
