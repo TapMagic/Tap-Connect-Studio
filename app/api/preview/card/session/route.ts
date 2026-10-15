@@ -12,6 +12,7 @@ import {
 } from "@/lib/fusion/creative-studio/preview/url";
 import { inspectPreviewVisualResourcePortability } from "@/lib/fusion/creative-studio/preview/visual-resources";
 import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
+import { getSavedPhonePreviewDraft } from "@/lib/fusion/creative-studio/preview/saved-draft";
 
 export const runtime = "nodejs";
 
@@ -55,6 +56,7 @@ export async function POST(req: Request) {
     reviewUrl?: string | null;
     revision?: number;
     mode?: "follow" | "freeze";
+    documentId?: string;
   };
   try {
     body = await req.json();
@@ -66,7 +68,7 @@ export async function POST(req: Request) {
     );
   }
 
-  if (!body.snapshot || !body.profile) {
+  if (!body.profile || (!body.documentId && !body.snapshot)) {
     return ownerFacingError(
       "Preview draft was missing",
       "Phone preview was not created.",
@@ -74,7 +76,21 @@ export async function POST(req: Request) {
     );
   }
 
-  if (inspectPreviewVisualResourcePortability({ snapshot: body.snapshot, profile: body.profile, logoUrl: body.logoUrl }).length > 0) {
+  const saved = body.documentId
+    ? await getSavedPhonePreviewDraft({ businessId, documentId: body.documentId })
+    : null;
+  if (body.documentId && !saved) {
+    return ownerFacingError(
+      "Saved Experience draft was unavailable",
+      "Phone preview was not created.",
+      "Save the Experience, then reopen Phone Preview.",
+      404
+    );
+  }
+  const snapshot = saved?.config ?? body.snapshot;
+  const revision = saved?.revision ?? body.revision ?? 1;
+
+  if (inspectPreviewVisualResourcePortability({ snapshot, profile: body.profile, logoUrl: body.logoUrl }).length > 0) {
     return ownerFacingError(
       "A committed image is not portable to Live Device",
       "Phone preview was not created because the image exists only in this browser or machine.",
@@ -91,14 +107,15 @@ export async function POST(req: Request) {
   const session = createPreviewSession({
     businessId,
     brandKitId: body.brandKitId || "local",
-    cardName: body.cardName || body.businessName || "Card",
+    cardName: saved?.documentName || body.cardName || body.businessName || "Card",
     businessName: body.businessName || "Business",
-    snapshotJson: JSON.stringify(body.snapshot),
+    snapshotJson: JSON.stringify(snapshot),
     profileJson: JSON.stringify(body.profile),
     logoUrl: body.logoUrl,
     reviewUrl: body.reviewUrl,
-    revision: body.revision ?? 1,
+    revision,
     mode: body.mode === "freeze" ? "freeze" : "follow",
+    documentId: body.documentId,
   });
   const reviewPath = isLocalDevAuthEnabled() ? `${session.path}?debug=1` : session.path;
   const { url } = buildPreviewAbsoluteUrl(reviewPath, assessment);
@@ -120,6 +137,7 @@ export async function POST(req: Request) {
     guidance: assessment.guidance,
     expiresAt: new Date(session.record.exp).toISOString(),
     lastSaveTime: session.record.lastSaveTime,
+    documentId: session.record.documentId,
   });
 }
 
@@ -152,19 +170,11 @@ export async function PATCH(req: Request) {
       "Try Update phone preview again."
     );
   }
-  if (!body.token || !body.snapshot) {
+  if (!body.token) {
     return ownerFacingError(
       "Preview session missing",
       "Phone was not updated.",
       "Generate a new Live device QR, then try again."
-    );
-  }
-  if (inspectPreviewVisualResourcePortability({ snapshot: body.snapshot, profile: body.profile }).length > 0) {
-    return ownerFacingError(
-      "A committed image is not portable to Live Device",
-      "Phone preview was not updated because the image exists only in this browser or machine.",
-      "Choose or upload the Asset through Studio so it receives a canonical MediaAsset reference, then try again.",
-      422
     );
   }
   const existing = getPreviewSession(body.token);
@@ -176,11 +186,38 @@ export async function PATCH(req: Request) {
       403
     );
   }
+  const saved = existing.record.documentId
+    ? await getSavedPhonePreviewDraft({ businessId, documentId: existing.record.documentId })
+    : null;
+  if (existing.record.documentId && !saved) {
+    return ownerFacingError(
+      "Saved Experience draft was unavailable",
+      "Phone still shows the previous saved Draft.",
+      "Save the Experience, then refresh Phone Preview.",
+      404
+    );
+  }
+  const snapshot = saved?.config ?? body.snapshot;
+  if (!snapshot) {
+    return ownerFacingError(
+      "Preview draft was missing",
+      "Phone was not updated.",
+      "Save the Experience, then refresh Phone Preview."
+    );
+  }
+  if (inspectPreviewVisualResourcePortability({ snapshot, profile: body.profile }).length > 0) {
+    return ownerFacingError(
+      "A committed image is not portable to Live Device",
+      "Phone preview was not updated because the image exists only in this browser or machine.",
+      "Choose or upload the Asset through Studio so it receives a canonical MediaAsset reference, then try again.",
+      422
+    );
+  }
   const result = updatePreviewSession(body.token, {
-    snapshotJson: body.snapshot ? JSON.stringify(body.snapshot) : undefined,
+    snapshotJson: JSON.stringify(snapshot),
     profileJson: body.profile ? JSON.stringify(body.profile) : undefined,
-    revision: body.revision ?? Date.now(),
-    cardName: body.cardName,
+    revision: saved?.revision ?? body.revision ?? existing.record.revision,
+    cardName: saved?.documentName || body.cardName,
     mode: body.mode,
   });
   if (!result.ok) {
@@ -231,5 +268,6 @@ export async function PATCH(req: Request) {
     physicallyVerified: false,
     isLocalhost: assessment.isLocalhost || !phoneSafeUrl,
     guidance: assessment.guidance,
+    documentId: existing.record.documentId,
   });
 }

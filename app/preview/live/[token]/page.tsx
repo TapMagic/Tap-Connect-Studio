@@ -10,10 +10,10 @@ export default async function PreviewLivePage({
   searchParams,
 }: {
   params: Promise<{ token: string }>;
-  searchParams: Promise<{ debug?: string | string[] }>;
+  searchParams: Promise<{ debug?: string | string[]; page?: string | string[] }>;
 }) {
   const { token } = await params;
-  const { debug } = await searchParams;
+  const { debug, page } = await searchParams;
   const debugEnabled = process.env.NODE_ENV !== "production" && isLocalDevAuthEnabled() && debug === "1";
-  return <LiveDevicePreviewPage token={token} debug={debugEnabled} />;
+  return <LiveDevicePreviewPage token={token} debug={debugEnabled} directPageRef={typeof page === "string" ? page : undefined} />;
 }

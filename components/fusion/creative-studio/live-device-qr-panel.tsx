@@ -11,6 +11,7 @@ import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import type { PreviewUrlCandidateKind } from "@/lib/fusion/creative-studio/preview/url";
 import { resolveLiveDeviceSessionActivation } from "@/lib/fusion/creative-studio/preview/session-activation";
+import { phonePreviewEntryUrl, type PhonePreviewPageContext } from "@/lib/fusion/creative-studio/preview/entry-target";
 
 export type LiveDeviceQrPanelProps = {
   config: TapConnectCardConfig;
@@ -21,6 +22,9 @@ export type LiveDeviceQrPanelProps = {
   logoUrl?: string | null;
   reviewUrl?: string | null;
   revision: number;
+  documentId?: string;
+  currentPage?: PhonePreviewPageContext | null;
+  draftSaved?: boolean;
   activationKey?: number;
   className?: string;
 };
@@ -42,6 +46,7 @@ type SessionResponse = {
   recovery?: string;
   mode?: "follow" | "freeze";
   token?: string;
+  documentId?: string | null;
 };
 
 function candidacyCopy(kind: PreviewUrlCandidateKind | null | undefined): string {
@@ -68,6 +73,9 @@ export function LiveDeviceQrPanel({
   logoUrl,
   reviewUrl,
   revision,
+  documentId,
+  currentPage,
+  draftSaved = true,
   activationKey = 1,
   className,
 }: LiveDeviceQrPanelProps) {
@@ -79,6 +87,7 @@ export function LiveDeviceQrPanel({
   const [guidance, setGuidance] = useState<string | null>(null);
   const [sessionRevision, setSessionRevision] = useState(revision);
   const [token, setToken] = useState<string | null>(null);
+  const [sessionDocumentId, setSessionDocumentId] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<"idle" | "creating" | "ready" | "error">(
     "idle"
@@ -87,12 +96,13 @@ export function LiveDeviceQrPanel({
   const [expiresAt, setExpiresAt] = useState<string | null>(null);
   const [updatedAt, setUpdatedAt] = useState(() => new Date().toISOString());
   const [followMode, setFollowMode] = useState<"follow" | "freeze">("follow");
+  const [entryTarget, setEntryTarget] = useState<"home" | "current">("current");
   const lastActivation = useRef(0);
   const stale = revision > sessionRevision;
 
   const payload = useMemo(
     () => ({
-      snapshot: config,
+      ...(documentId ? { documentId } : { snapshot: config }),
       profile,
       businessName,
       cardName,
@@ -102,8 +112,13 @@ export function LiveDeviceQrPanel({
       revision,
       mode: followMode,
     }),
-    [config, profile, businessName, cardName, brandKitId, logoUrl, reviewUrl, revision, followMode]
+    [config, documentId, profile, businessName, cardName, brandKitId, logoUrl, reviewUrl, revision, followMode]
   );
+
+  const targetedPreviewUrl = useMemo(() => {
+    if (!previewUrl) return null;
+    return phonePreviewEntryUrl(previewUrl, entryTarget, currentPage);
+  }, [currentPage, entryTarget, previewUrl]);
 
   const createOrUpdate = useCallback(
     async (mode: "create" | "update") => {
@@ -131,6 +146,7 @@ export function LiveDeviceQrPanel({
           return;
         }
         if (data.token) setToken(data.token);
+        setSessionDocumentId(data.documentId ?? documentId ?? null);
         const resolvedPreviewUrl = data.qrUrl || data.url || null;
         setPreviewUrl(resolvedPreviewUrl);
         const kind = data.candidateKind || (data.reachableForPhone ? "lan_candidate" : "invalid");
@@ -144,12 +160,6 @@ export function LiveDeviceQrPanel({
         setUpdatedAt(new Date().toISOString());
         if (data.expiresAt) setExpiresAt(data.expiresAt);
         if (resolvedPreviewUrl && data.reachableForPhone) {
-          const png = await QRCode.toDataURL(resolvedPreviewUrl, {
-            margin: 1,
-            width: 240,
-            errorCorrectionLevel: "M",
-          });
-          setQrDataUrl(png);
           setStatus("ready");
         } else {
           // Fail closed: never present a normal successful QR when the phone
@@ -177,18 +187,35 @@ export function LiveDeviceQrPanel({
         setBusy(false);
       }
     },
-    [payload, revision, token]
+    [documentId, payload, revision, token]
   );
+
+  useEffect(() => {
+    if (status !== "ready" || !targetedPreviewUrl || !phoneAttemptCandidate) return;
+    let cancelled = false;
+    void QRCode.toDataURL(targetedPreviewUrl, {
+      margin: 1,
+      width: 240,
+      errorCorrectionLevel: "M",
+    }).then((png) => {
+      if (!cancelled) setQrDataUrl(png);
+    }).catch(() => {
+      if (!cancelled) setQrDataUrl(null);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [phoneAttemptCandidate, status, targetedPreviewUrl]);
 
   // Opening Live Device reuses a still-valid session. A missing, revoked, or
   // expired session is regenerated without requiring Host recovery steps.
   useEffect(() => {
     if (lastActivation.current === activationKey) return;
     lastActivation.current = activationKey;
-    const action = resolveLiveDeviceSessionActivation({ status, token, previewUrl, expiresAt, revision, sessionRevision });
+    const action = resolveLiveDeviceSessionActivation({ status, token, previewUrl, expiresAt, revision, sessionRevision, documentId, sessionDocumentId });
     if (action === "reuse") return;
     window.queueMicrotask(() => void createOrUpdate(action));
-  }, [activationKey, createOrUpdate, expiresAt, previewUrl, revision, sessionRevision, status, token]);
+  }, [activationKey, createOrUpdate, documentId, expiresAt, previewUrl, revision, sessionDocumentId, sessionRevision, status, token]);
 
   useEffect(() => {
     if (status !== "ready" || !expiresAt) return;
@@ -226,6 +253,7 @@ export function LiveDeviceQrPanel({
     setPreviewUrl(null);
     setQrDataUrl(null);
     setToken(null);
+    setSessionDocumentId(null);
     setExpiresAt(null);
     await createOrUpdate("create");
   }, [createOrUpdate, token]);
@@ -247,11 +275,14 @@ export function LiveDeviceQrPanel({
         <Smartphone className="h-4 w-4 text-white/70" aria-hidden />
         <div>
           <p className="text-sm font-medium text-white">
-            {STUDIO_WORDING.openLiveDevice}
+            Phone Preview QR
           </p>
           <p className="text-[11px] text-white/75" data-testid="preview-qr-card-name">
-            {cardName} · {STUDIO_WORDING.draftPreview} ·{" "}
+            {cardName} · Saved Draft ·{" "}
             {STUDIO_WORDING.previewOnlyNotPublished}
+          </p>
+          <p className="text-[10px] text-white/58" data-testid="preview-current-page">
+            Opens {entryTarget === "current" ? currentPage?.title || "current Page" : currentPage?.homeTitle || "Experience Home"}
           </p>
           <p className="text-[10px] text-white/75" data-testid="preview-qr-meta">
             Updated {new Date(updatedAt).toLocaleString()}
@@ -308,6 +339,26 @@ export function LiveDeviceQrPanel({
           ) : null}
         </div>
       </div>
+
+      <div className="rounded-lg border border-lime-300/20 bg-lime-300/[.06] px-3 py-2 text-xs text-lime-50" data-testid="phone-preview-explainer">
+        Scan this to see the current saved Draft on your phone. This temporary QR is not the public or permanent Experience QR.
+      </div>
+
+      {!draftSaved ? (
+        <p className="rounded-md border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-100" data-testid="phone-preview-save-warning" role="status">
+          Unsaved editor changes are not included. Save, then refresh this preview.
+        </p>
+      ) : null}
+
+      {currentPage ? (
+        <fieldset className="space-y-1.5" data-testid="phone-preview-entry-target">
+          <legend className="text-[10px] font-semibold uppercase tracking-[.1em] text-white/48">Open at</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <button type="button" aria-pressed={entryTarget === "home"} onClick={() => setEntryTarget("home")} className="min-h-10 rounded-lg border border-white/12 px-3 text-left text-xs text-white/72 aria-pressed:border-lime-300/45 aria-pressed:bg-lime-300/10 aria-pressed:text-lime-50" data-testid="phone-preview-entry-home">Experience Home<span className="block truncate text-[9px] opacity-60">{currentPage.homeTitle}</span></button>
+            <button type="button" aria-pressed={entryTarget === "current"} onClick={() => setEntryTarget("current")} className="min-h-10 rounded-lg border border-white/12 px-3 text-left text-xs text-white/72 aria-pressed:border-lime-300/45 aria-pressed:bg-lime-300/10 aria-pressed:text-lime-50" data-testid="phone-preview-entry-current">Current Page<span className="block truncate text-[9px] opacity-60">{currentPage.title}</span></button>
+          </div>
+        </fieldset>
+      ) : null}
 
       {stale ? (
         <p
@@ -382,16 +433,16 @@ export function LiveDeviceQrPanel({
         </div>
       )}
 
-      {previewUrl ? (
+      {targetedPreviewUrl ? (
         <div className="space-y-2">
           <a
-            href={previewUrl}
+            href={targetedPreviewUrl}
             target="_blank"
             rel="noreferrer"
             className="block break-all text-[11px] text-lime-200 underline decoration-lime-300/40 underline-offset-4"
             data-testid="preview-url-text"
           >
-            {previewUrl}
+            {targetedPreviewUrl}
           </a>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -399,7 +450,7 @@ export function LiveDeviceQrPanel({
               variant="outline"
               className="min-h-10"
               data-testid="preview-copy-link"
-              onClick={() => void navigator.clipboard.writeText(previewUrl)}
+              onClick={() => void navigator.clipboard.writeText(targetedPreviewUrl)}
             >
               <Copy className="mr-1 h-3.5 w-3.5" />
               Copy preview link
@@ -412,7 +463,7 @@ export function LiveDeviceQrPanel({
               onClick={() => void createOrUpdate(token ? "update" : "create")}
             >
               <RefreshCw className="mr-1 h-3.5 w-3.5" />
-              {STUDIO_WORDING.updatePhonePreview}
+              Refresh saved Draft
             </Button>
             <Button
               type="button"
@@ -470,6 +521,7 @@ export function LiveDeviceQrPanel({
                   setPreviewUrl(null);
                   setQrDataUrl(null);
                   setToken(null);
+                  setSessionDocumentId(null);
                   setCandidateKind(null);
                   setPhysicallyVerified(false);
                   setPhoneAttemptCandidate(false);
@@ -481,7 +533,7 @@ export function LiveDeviceQrPanel({
                 }
               }}
             >
-              Revoke
+              End preview session
             </Button>
             <Button
               type="button"
@@ -489,7 +541,7 @@ export function LiveDeviceQrPanel({
               className="min-h-10"
               data-testid="preview-open-tab"
               onClick={() =>
-                window.open(previewUrl, "_blank", "noopener,noreferrer")
+                window.open(targetedPreviewUrl, "_blank", "noopener,noreferrer")
               }
             >
               Open preview
@@ -499,9 +551,9 @@ export function LiveDeviceQrPanel({
       ) : null}
 
       {status === "ready" &&
-      previewUrl &&
+      targetedPreviewUrl &&
       candidateKind === "lan_candidate" ? (
-        <LanPreviewReachability url={previewUrl} />
+        <LanPreviewReachability url={targetedPreviewUrl} />
       ) : null}
     </div>
   );

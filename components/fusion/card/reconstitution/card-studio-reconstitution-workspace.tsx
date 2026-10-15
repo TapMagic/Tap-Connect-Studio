@@ -166,7 +166,7 @@ export function CardStudioReconstitutionWorkspace({
   const selectedSectionId = liveModel?.selected?.id ?? null;
   const placementContext = useMemo(() => resolveStudioPlacementContext(liveModel?.config.rootComposition, liveModel?.selectedCompositionNode), [liveModel?.config.rootComposition, liveModel?.selectedCompositionNode]);
   const choreography = useMemo(() => resolveStudioWorkspaceChoreography(adaptiveWorkspace, workspaceWidth), [adaptiveWorkspace, workspaceWidth]);
-  const devicePreviewRevision = (liveModel?.revision ?? builderProps.initialDraftRevision ?? 1) + (status.dirty ? 1 : 0);
+  const devicePreviewRevision = liveModel?.revision ?? builderProps.initialDraftRevision ?? 1;
   const contextSource = {
     activeCatalogAdapterId,
     activeTaskId: adaptiveWorkspace.activeTaskId,
@@ -634,6 +634,18 @@ export function CardStudioReconstitutionWorkspace({
   const effectiveViewport: PreviewViewport = workspaceWidth < 640 ? "phone" : viewport;
   const canvasMaxWidth = effectiveViewport === "phone" ? 390 : effectiveViewport === "tablet" ? 768 : undefined;
   const activePageTitle = liveModel?.experiencePages?.find((page) => page.pageId === liveModel.activeExperiencePageId)?.title || "Card";
+  const phonePreviewPage = liveModel?.experience && liveModel.activeExperiencePageId
+    ? {
+        pageId: liveModel.activeExperiencePageId,
+        title: activePageTitle,
+        homePageId: liveModel.experience.defaultPageId,
+        homeTitle: liveModel.experience.pages.find((page) => page.pageId === liveModel.experience?.defaultPageId)?.title || "Home",
+      }
+    : null;
+  const phonePreviewExperienceName = liveModel?.documentId && liveModel.documentId !== "main-card"
+    ? builderProps.initialOpenDocuments?.find((document) => document.id === liveModel.documentId)?.name
+      ?? status.cardName
+    : status.cardName;
   const semanticStyles = {
     "--studio-semantic-active": STUDIO_SEMANTIC_UI.active.color,
     "--studio-semantic-structure": STUDIO_SEMANTIC_UI.structure.color,
@@ -681,7 +693,7 @@ export function CardStudioReconstitutionWorkspace({
         <div className="hidden items-center rounded-lg border border-white/10 p-0.5 sm:flex" role="group" aria-label="Preview size">
           {([['desktop',Monitor],['tablet',Tablet],['phone',Smartphone]] as const).map(([id, Icon]) => <button key={id} type="button" aria-pressed={viewport === id} onClick={() => setViewport(id)} className="grid h-8 w-8 place-items-center rounded aria-pressed:bg-white/10" aria-label={`${id} preview`}><Icon className="h-3.5 w-3.5" /></button>)}
         </div>
-        <button type="button" onClick={openLiveDevice} className={headerButton} data-testid="preview-live-device" aria-expanded={liveDeviceOpen} aria-controls="studio-live-device-panel"><QrCode className="h-4 w-4" /><span className="hidden lg:inline">View on phone</span></button>
+        <button type="button" onClick={openLiveDevice} className={headerButton} data-testid="preview-live-device" aria-label="Phone Preview" title="Phone Preview" aria-expanded={liveDeviceOpen} aria-controls="studio-live-device-panel"><QrCode className="h-4 w-4" /><span className="hidden md:inline">Phone Preview</span></button>
         <button type="button" onClick={() => { if (studioMode === "edit") { beginTask("preview-card"); setStudioMode("preview"); } else { setStudioMode("edit"); finishTask(); } }} className={headerButton} data-testid="studio-preview"><Eye className="h-4 w-4" /><span className="hidden lg:inline">{studioMode === "edit" ? "Preview" : "Edit"}</span></button>
         <button type="button" disabled={!status.canPublish || status.dirty} onClick={() => void apiRef.current?.publish()} className="min-h-9 rounded-lg bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a] disabled:cursor-not-allowed disabled:opacity-40" data-testid="studio-publish">Publish</button>
       </header>
@@ -760,7 +772,7 @@ export function CardStudioReconstitutionWorkspace({
           <StudioSelectionInspector model={liveModel} node={selectedButton} section={inspectorSection} onSectionChange={setInspectorSection} brandPrimary={brandPreviewContext.primaryColor || brandPreviewContext.accentColor || "#b8ff2c"} onClose={closeContextualSurface} />
         ) : null}
 
-        {liveDeviceInitialized ? <div className={cn("absolute inset-0 z-[3200] justify-end bg-black/58 backdrop-blur-[2px]", liveDeviceOpen ? "flex" : "hidden")} data-testid="live-device-dock" aria-hidden={!liveDeviceOpen} onPointerDown={(event) => { if (event.target === event.currentTarget) { setLiveDeviceOpen(false); finishTask(); } }}><section id="studio-live-device-panel" role="dialog" aria-modal="true" aria-labelledby="studio-live-device-title" className="flex h-full w-[min(430px,calc(100vw-12px))] flex-col overflow-hidden border-l border-white/10 bg-[#090e16] shadow-[-24px_0_70px_rgba(0,0,0,.5)]" data-testid="studio-live-device-panel"><header className="flex min-h-14 items-center gap-3 border-b border-white/8 px-4"><div className="min-w-0 flex-1"><h2 id="studio-live-device-title" className="text-sm font-semibold">Live Device Preview</h2><p className="text-[10px] text-white/48">Scan once. Reopen to reuse an active preview.</p></div><button type="button" onClick={() => { setLiveDeviceOpen(false); finishTask(); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Live Device Preview"><X className="h-4 w-4" /></button></header><div className="min-h-0 flex-1 overflow-y-auto"><LiveDeviceQrPanel config={liveModel?.experience ? canonicalizeExperienceConfig(liveModel.config, liveModel.activeExperiencePageId) : liveModel?.config || builderProps.initialConfig} profile={builderProps.profile} businessName={builderProps.businessName} cardName={status.cardName} brandKitId={builderProps.brandKitId} logoUrl={builderProps.logoUrl} reviewUrl={builderProps.reviewUrl} revision={devicePreviewRevision} activationKey={liveDeviceActivation} /></div></section></div> : null}
+        {liveDeviceInitialized ? <div className={cn("absolute inset-0 z-[3200] justify-end bg-black/58 backdrop-blur-[2px]", liveDeviceOpen ? "flex" : "hidden")} data-testid="live-device-dock" aria-hidden={!liveDeviceOpen} onPointerDown={(event) => { if (event.target === event.currentTarget) { setLiveDeviceOpen(false); finishTask(); } }}><section id="studio-live-device-panel" role="dialog" aria-modal="true" aria-labelledby="studio-live-device-title" className="flex h-full w-[min(430px,calc(100vw-12px))] flex-col overflow-hidden border-l border-white/10 bg-[#090e16] shadow-[-24px_0_70px_rgba(0,0,0,.5)]" data-testid="studio-live-device-panel"><header className="flex min-h-14 items-center gap-3 border-b border-white/8 px-4"><div className="min-w-0 flex-1"><h2 id="studio-live-device-title" className="text-sm font-semibold">Phone Preview</h2><p className="text-[10px] text-white/48">Temporary saved-Draft QR · separate from the permanent public QR</p></div><button type="button" onClick={() => { setLiveDeviceOpen(false); finishTask(); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Live Device Preview"><X className="h-4 w-4" /></button></header><div className="min-h-0 flex-1 overflow-y-auto"><LiveDeviceQrPanel config={liveModel?.experience ? canonicalizeExperienceConfig(liveModel.config, liveModel.activeExperiencePageId) : liveModel?.config || builderProps.initialConfig} profile={builderProps.profile} businessName={builderProps.businessName} cardName={phonePreviewExperienceName} brandKitId={builderProps.brandKitId} logoUrl={builderProps.logoUrl} reviewUrl={builderProps.reviewUrl} revision={devicePreviewRevision} documentId={liveModel?.documentId} currentPage={phonePreviewPage} draftSaved={!status.dirty && !status.saving} activationKey={liveDeviceActivation} /></div></section></div> : null}
       </div>
 
       {studioMode === "edit" ? (

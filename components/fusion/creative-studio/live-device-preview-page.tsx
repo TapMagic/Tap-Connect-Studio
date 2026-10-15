@@ -8,6 +8,7 @@ import { getCardDraft, isTapConnectCardDraft } from "@/lib/fusion/card/draft";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import type { BrandContactProfile } from "@/lib/brand/contact-profile";
 import { STUDIO_WORDING } from "@/lib/fusion/creative-studio/wording";
+import { getSavedPhonePreviewDraft } from "@/lib/fusion/creative-studio/preview/saved-draft";
 import {
   inspectPreviewVisualResourcePortability,
   resolvePreviewVisualResources,
@@ -25,7 +26,7 @@ const ERROR_COPY: Record<string, [string, string, string]> = {
   preview_tenant_mismatch: ["Preview link is not valid", "This preview does not belong to the expected business.", "Scan a fresh QR from TapConnect Studio."],
 };
 
-export async function LiveDevicePreviewPage({ token, debug = false, pageTestId = "preview-live-page", errorTestId = "preview-live-error" }: { token: string; debug?: boolean; pageTestId?: string; errorTestId?: string }) {
+export async function LiveDevicePreviewPage({ token, debug = false, directPageRef, pageTestId = "preview-live-page", errorTestId = "preview-live-error" }: { token: string; debug?: boolean; directPageRef?: string; pageTestId?: string; errorTestId?: string }) {
   const result = getPreviewSession(decodeURIComponent(token));
   if (!result.ok) {
     const [title, consequence, recovery] = ERROR_COPY[result.reason] || ["Preview unavailable", "The draft could not be shown.", "Generate a new Live Device Preview from Studio."];
@@ -45,11 +46,20 @@ export async function LiveDevicePreviewPage({ token, debug = false, pageTestId =
     profile = JSON.parse(record.profileJson) as BrandContactProfile;
     if (record.mode === "follow") {
       try {
-        const latest = await getCardDraft(record.businessId);
-        if (isTapConnectCardDraft(latest.tapCardDraft) && latest.tapCardDraftRevision >= effectiveRevision) {
-          config = latest.tapCardDraft;
-          effectiveRevision = latest.tapCardDraftRevision;
-          effectiveUpdatedAt = latest.tapCardDraftUpdatedAt?.toISOString() || effectiveUpdatedAt;
+        const saved = record.documentId
+          ? await getSavedPhonePreviewDraft({ businessId: record.businessId, documentId: record.documentId })
+          : null;
+        if (saved && saved.revision >= effectiveRevision) {
+          config = saved.config;
+          effectiveRevision = saved.revision;
+          effectiveUpdatedAt = saved.updatedAt;
+        } else if (!record.documentId) {
+          const latest = await getCardDraft(record.businessId);
+          if (isTapConnectCardDraft(latest.tapCardDraft) && latest.tapCardDraftRevision >= effectiveRevision) {
+            config = latest.tapCardDraft;
+            effectiveRevision = latest.tapCardDraftRevision;
+            effectiveUpdatedAt = latest.tapCardDraftUpdatedAt?.toISOString() || effectiveUpdatedAt;
+          }
         }
       } catch {
         // The signed session snapshot remains a safe read-only fallback.
@@ -79,7 +89,7 @@ export async function LiveDevicePreviewPage({ token, debug = false, pageTestId =
         <p className="text-sm font-medium">{record.cardName || record.businessName}</p><p className="text-xs opacity-90">{STUDIO_WORDING.workingDraft}</p><p className="text-xs opacity-80">Updated {new Date(effectiveUpdatedAt).toLocaleString()}</p><p className="text-xs opacity-80">{STUDIO_WORDING.previewOnlyNotPublished}</p><LiveDeviceRefresh />
       </div>
       <CardViewportSurface environment="runtime" testId="live-device-card-viewport" className="relative z-[1]">
-        <div data-testid="preview-card-composition-host"><TapConnectExperience config={resolvedConfig} profile={resolvedProfile} businessName={record.businessName} logoUrl={resolvedLogoUrl} reviewUrl={record.reviewUrl} forceExpanded interactionMode="preview" previewSafe compositionForceMobile={false} externalFullBleedSurface routingMode="history" viewportBackdrop /></div>
+        <div data-testid="preview-card-composition-host"><TapConnectExperience config={resolvedConfig} profile={resolvedProfile} businessName={record.businessName} logoUrl={resolvedLogoUrl} reviewUrl={record.reviewUrl} forceExpanded interactionMode="preview" previewSafe compositionForceMobile={false} externalFullBleedSurface routingMode="history" directPageRef={directPageRef} viewportBackdrop /></div>
       </CardViewportSurface>
       <p className="relative z-[1] mx-3 mt-6 text-center text-[11px] text-white/35 sm:mx-auto sm:max-w-md">Powered by Tap The Magic · Temporary draft preview</p>
       {debug ? <LiveDeviceDebugEvidence cardId={record.brandKitId} revision={effectiveRevision} snapshotRevision={record.revision} sessionId={record.sid} sessionCreatedAt={record.createdAt} followMode={record.mode || "follow"} /> : null}

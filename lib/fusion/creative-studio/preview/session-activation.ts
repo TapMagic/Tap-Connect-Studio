@@ -5,6 +5,8 @@ export type LiveDeviceSessionActivationInput = {
   expiresAt: string | null;
   revision: number;
   sessionRevision: number;
+  documentId?: string | null;
+  sessionDocumentId?: string | null;
   now?: number;
 };
 
@@ -16,7 +18,8 @@ export type LiveDeviceSessionActivationInput = {
  */
 export function resolveLiveDeviceSessionActivation(input: LiveDeviceSessionActivationInput): "create" | "update" | "reuse" {
   const expiry = input.expiresAt ? Date.parse(input.expiresAt) : Number.POSITIVE_INFINITY;
-  const valid = input.status === "ready" && Boolean(input.token && input.previewUrl) && expiry > (input.now ?? Date.now());
+  const sameDocument = (input.documentId ?? null) === (input.sessionDocumentId ?? null);
+  const valid = input.status === "ready" && Boolean(input.token && input.previewUrl) && sameDocument && expiry > (input.now ?? Date.now());
   if (!valid) return "create";
   return input.revision !== input.sessionRevision ? "update" : "reuse";
 }

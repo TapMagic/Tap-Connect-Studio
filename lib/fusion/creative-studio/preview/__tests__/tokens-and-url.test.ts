@@ -23,6 +23,7 @@ test("signed preview tokens verify, expire, and revoke", () => {
     businessName: "Demo Co",
     snapshotJson: JSON.stringify({ version: 1 }),
     profileJson: JSON.stringify({ displayName: "Demo" }),
+    documentId: "experience-demo",
     mode: "follow",
   });
   assert.match(session.path, /^\/preview\/live\//);
@@ -32,6 +33,7 @@ test("signed preview tokens verify, expire, and revoke", () => {
   assert.equal(verified.payload.mode, "follow");
   const got = getPreviewSession(session.token);
   assert.equal(got.ok, true);
+  if (got.ok) assert.equal(got.record.documentId, "experience-demo");
   assert.equal(revokePreviewSession(session.token).ok, true);
   const revoked = getPreviewSession(session.token);
   assert.equal(revoked.ok, false);

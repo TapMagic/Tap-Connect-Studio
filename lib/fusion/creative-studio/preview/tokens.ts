@@ -29,6 +29,8 @@ export type PreviewSessionRecord = PreviewSessionPayload & {
   businessName: string;
   logoUrl?: string | null;
   reviewUrl?: string | null;
+  /** Durable Studio document followed by this temporary session. */
+  documentId?: string | null;
   updatedAt: string;
   lastSaveTime?: string;
 };
@@ -123,6 +125,7 @@ export function createPreviewSession(input: {
   profileJson: string;
   logoUrl?: string | null;
   reviewUrl?: string | null;
+  documentId?: string | null;
   revision?: number;
   mode?: PreviewFollowMode;
 }): { token: string; record: PreviewSessionRecord; path: string } {
@@ -149,6 +152,7 @@ export function createPreviewSession(input: {
     businessName: input.businessName,
     logoUrl: input.logoUrl ?? null,
     reviewUrl: input.reviewUrl ?? null,
+    documentId: input.documentId ?? null,
     updatedAt: now.toISOString(),
     lastSaveTime: now.toISOString(),
   };

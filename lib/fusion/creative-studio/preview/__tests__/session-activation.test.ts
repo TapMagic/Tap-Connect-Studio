@@ -9,6 +9,8 @@ const ready = {
   expiresAt: "2030-01-01T00:00:00.000Z",
   revision: 12,
   sessionRevision: 12,
+  documentId: "experience-love-and-theft",
+  sessionDocumentId: "experience-love-and-theft",
   now: Date.parse("2029-01-01T00:00:00.000Z"),
 };
 
@@ -21,4 +23,5 @@ test("reuses only a current valid Live Device session", () => {
 test("creates a new session when delivery authority is absent or expired", () => {
   assert.equal(resolveLiveDeviceSessionActivation({ ...ready, token: null }), "create");
   assert.equal(resolveLiveDeviceSessionActivation({ ...ready, now: Date.parse("2031-01-01T00:00:00.000Z") }), "create");
+  assert.equal(resolveLiveDeviceSessionActivation({ ...ready, documentId: "experience-other" }), "create");
 });
