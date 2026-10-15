@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, useState } from "react";
-import { Eraser, RotateCcw, Sparkles, X } from "lucide-react";
+import { ArrowLeftRight, Eraser, RotateCcw, Sparkles, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
 import type {
@@ -262,7 +262,7 @@ function BackgroundToolInner({
               <img src={shown.url} alt="Background treatment preview" className="max-h-[420px] max-w-full select-none object-contain" draggable={false} />
               {refining ? (
                 <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/70 px-2 py-1 text-[10px] text-white">
-                  Paint {refineIntent === "keep" ? "Keep" : "Remove"}
+                  Brush {refineIntent === "keep" ? "Keep Subject" : "Remove Background"}
                 </span>
               ) : null}
             </div>
@@ -288,10 +288,39 @@ function BackgroundToolInner({
               <Button type="button" variant={recipe.mode === "auto" ? "default" : "outline"} onClick={() => patchRecipe({ mode: "auto", targetColor: undefined })} data-testid="remove-background-mode">
                 <Sparkles className="mr-1.5 h-4 w-4" /> Remove background
               </Button>
-              <Button type="button" variant={recipe.mode === "solid-color" ? "default" : "outline"} onClick={() => patchRecipe({ mode: "solid-color", targetColor: recipe.targetColor || "#ffffff" })} data-testid="remove-color-mode">
+              <Button
+                type="button"
+                variant={recipe.mode === "solid-color" ? "default" : "outline"}
+                onClick={() => patchRecipe({
+                  mode: "solid-color",
+                  targetColor: recipe.targetColor || "#ffffff",
+                  invertSelection: undefined,
+                })}
+                data-testid="remove-color-mode"
+              >
                 <Eraser className="mr-1.5 h-4 w-4" /> Remove color
               </Button>
             </div>
+
+            {recipe.mode === "auto" ? (
+              <div className="space-y-2 rounded-lg border border-white/10 bg-white/[0.02] p-3">
+                <p className="text-xs leading-relaxed text-white/60">
+                  Automatic removal keeps the primary subject and makes the surrounding background transparent.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={recipe.invertSelection ? "default" : "outline"}
+                  aria-pressed={Boolean(recipe.invertSelection)}
+                  onClick={() => patchRecipe({
+                    invertSelection: recipe.invertSelection ? undefined : true,
+                  })}
+                  data-testid="background-invert-selection"
+                >
+                  <ArrowLeftRight className="mr-1.5 h-4 w-4" /> Invert selection
+                </Button>
+              </div>
+            ) : null}
 
             {recipe.mode === "solid-color" ? (
               <label className="flex items-center justify-between gap-3 rounded-lg border border-white/10 p-2 text-xs text-white/70">
@@ -309,12 +338,18 @@ function BackgroundToolInner({
               </Button>
               {refining ? (
                 <>
-                  <Button type="button" size="sm" variant={refineIntent === "keep" ? "default" : "outline"} onClick={() => setRefineIntent("keep")}>Keep</Button>
-                  <Button type="button" size="sm" variant={refineIntent === "remove" ? "default" : "outline"} onClick={() => setRefineIntent("remove")}>Remove</Button>
+                  <Button type="button" size="sm" variant={refineIntent === "keep" ? "default" : "outline"} onClick={() => setRefineIntent("keep")}>Keep Subject</Button>
+                  <Button type="button" size="sm" variant={refineIntent === "remove" ? "default" : "outline"} onClick={() => setRefineIntent("remove")}>Remove Background</Button>
                   <Button type="button" size="sm" variant="ghost" disabled={!recipe.strokes.length} onClick={() => patchRecipe({ strokes: recipe.strokes.slice(0, -1) })}>Undo stroke</Button>
                 </>
               ) : null}
             </div>
+            {refining ? (
+              <div className="space-y-1 text-[11px] leading-relaxed text-white/55" data-testid="background-refine-help">
+                <p>Brush Keep Subject over anything that should remain.</p>
+                <p>Brush Remove Background over anything that should become transparent.</p>
+              </div>
+            ) : null}
 
             <button type="button" className="text-xs text-white/55 underline underline-offset-2" onClick={() => setAdvanced((value) => !value)} aria-expanded={advanced}>
               {advanced ? "Hide" : "More"} edge controls

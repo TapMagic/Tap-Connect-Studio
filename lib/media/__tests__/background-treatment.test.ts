@@ -63,6 +63,49 @@ describe("durable background treatment", () => {
     assert.deepEqual(source, sourceHash);
   });
 
+  it("inverts automatic foreground/background classification before applying explicit brushes", async () => {
+    const inverted = await renderBackgroundVariant(await fixture(), {
+      mode: "auto",
+      invertSelection: true,
+      tolerance: 25,
+      featherPx: 0,
+      edgeCleanup: 0,
+      colorDecontamination: 0,
+      transparencyThreshold: 8,
+      strokes: [
+        { intent: "keep", radius: 0.08, points: [{ x: 4 / 11, y: 4 / 11 }] },
+        { intent: "remove", radius: 0.08, points: [{ x: 0, y: 0 }] },
+      ],
+    });
+    const decoded = await sharp(inverted.bytes)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    assert.equal(decoded.data[3], 0, "Remove Background remains transparent after inversion");
+    assert.equal(
+      decoded.data[(4 * decoded.info.width + 4) * 4 + 3],
+      255,
+      "Keep Subject remains opaque after inversion",
+    );
+    assert.equal(
+      decoded.data[(7 * decoded.info.width + 7) * 4 + 3],
+      0,
+      "unrefined subject pixels follow the inverted selection",
+    );
+  });
+
+  it("keeps solid-color removal separate from automatic inversion", () => {
+    const solid = normalizeBackgroundRecipe({
+      mode: "solid-color",
+      targetColor: "#FFFFFF",
+      invertSelection: true,
+    });
+    assert.equal(solid.mode, "solid-color");
+    assert.equal(solid.targetColor, "#ffffff");
+    assert.equal(solid.invertSelection, undefined);
+  });
+
   it("normalizes recipes and produces stable cache identities", () => {
     const recipe = normalizeBackgroundRecipe({ mode: "auto", tolerance: 36 });
     const asset = { id: "asset-1", contentHash: "source-hash" };
@@ -70,6 +113,10 @@ describe("durable background treatment", () => {
     assert.notEqual(
       backgroundRecipeCacheKey(asset, recipe),
       backgroundRecipeCacheKey(asset, { ...recipe, tolerance: 37 }),
+    );
+    assert.notEqual(
+      backgroundRecipeCacheKey(asset, recipe),
+      backgroundRecipeCacheKey(asset, { ...recipe, invertSelection: true }),
     );
   });
 });

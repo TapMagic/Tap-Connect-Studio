@@ -18,6 +18,33 @@ test.describe("shared durable background tool", () => {
     const tool = page.getByTestId("background-tool");
     await expect(tool).toBeVisible();
     await expect(tool).toContainText("the original Asset is always preserved");
+    await expect(tool.getByTestId("background-invert-selection")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
+    await tool.getByTestId("background-invert-selection").click();
+    await expect(tool.getByTestId("background-invert-selection")).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await tool.getByTestId("background-refine").click();
+    await expect(tool.getByRole("button", { name: "Keep Subject", exact: true })).toBeVisible();
+    await expect(
+      tool.getByRole("button", { name: "Remove Background", exact: true }),
+    ).toBeVisible();
+    await expect(tool.getByTestId("background-refine-help")).toContainText(
+      "anything that should remain",
+    );
+    await expect(tool.getByTestId("background-refine-help")).toContainText(
+      "anything that should become transparent",
+    );
+    await tool.getByTestId("remove-color-mode").click();
+    await expect(tool.getByTestId("background-invert-selection")).toBeHidden();
+    await tool.getByTestId("remove-background-mode").click();
+    await expect(tool.getByTestId("background-invert-selection")).toHaveAttribute(
+      "aria-pressed",
+      "false",
+    );
     await tool.getByTestId("background-create-variant").click();
     await expect(tool.getByText(/Saved a reusable|Reused the matching/)).toBeVisible({ timeout: 30_000 });
     await expect(tool.getByTestId("background-apply-variant")).toBeEnabled();

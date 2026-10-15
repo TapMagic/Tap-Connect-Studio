@@ -17,6 +17,8 @@ export type BackgroundRefinementStroke = {
 
 export type BackgroundTreatmentRecipe = {
   mode: "auto" | "solid-color";
+  /** Flips automatic foreground/background classification before manual refinement. */
+  invertSelection?: boolean;
   targetColor?: string;
   tolerance: number;
   featherPx: number;
@@ -88,8 +90,10 @@ export function normalizeBackgroundRecipe(
       })
     : [];
 
+  const mode = value?.mode === "solid-color" ? "solid-color" : "auto";
   return {
-    mode: value?.mode === "solid-color" ? "solid-color" : "auto",
+    mode,
+    ...(mode === "auto" && value?.invertSelection ? { invertSelection: true } : {}),
     targetColor: normalizeColor(value?.targetColor),
     tolerance: clamp(value?.tolerance, 0, 100, DEFAULT_RECIPE.tolerance),
     featherPx: clamp(value?.featherPx, 0, 24, DEFAULT_RECIPE.featherPx),
@@ -268,6 +272,12 @@ export async function renderBackgroundVariant(
         .raw()
         .toBuffer(),
     );
+  }
+  if (recipe.mode === "auto" && recipe.invertSelection) {
+    for (let pixel = 0; pixel < alpha.length; pixel += 1) {
+      const originalAlpha = pixels[pixel * 4 + 3];
+      alpha[pixel] = Math.max(0, originalAlpha - alpha[pixel]);
+    }
   }
   applyRefinementStrokes(alpha, width, height, recipe.strokes);
 
