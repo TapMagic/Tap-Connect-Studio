@@ -27,6 +27,22 @@ async function fixture(): Promise<Buffer> {
   return sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
 }
 
+async function complexPhotoFixture(): Promise<Buffer> {
+  const width = 20;
+  const height = 20;
+  const data = Buffer.alloc(width * height * 4, 255);
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      const offset = (y * width + x) * 4;
+      const borderBand = x < 3 || x > 16 || y < 3 || y > 16;
+      data[offset] = borderBand ? (x * 31 + y * 7) % 255 : 42;
+      data[offset + 1] = borderBand ? (x * 11 + y * 29) % 255 : 52;
+      data[offset + 2] = borderBand ? (x * 19 + y * 13) % 255 : 62;
+    }
+  }
+  return sharp(data, { raw: { width, height, channels: 4 } }).png().toBuffer();
+}
+
 describe("durable background treatment", () => {
   it("removes only border-connected background in automatic mode", async () => {
     const result = await renderBackgroundVariant(await fixture(), {
@@ -92,6 +108,29 @@ describe("durable background treatment", () => {
       decoded.data[(7 * decoded.info.width + 7) * 4 + 3],
       0,
       "unrefined subject pixels follow the inverted selection",
+    );
+  });
+
+  it("protects the centered primary subject when a complex photo mask becomes destructive", async () => {
+    const result = await renderBackgroundVariant(await complexPhotoFixture(), {
+      mode: "auto",
+      tolerance: 100,
+      featherPx: 0,
+      edgeCleanup: 0,
+      colorDecontamination: 0,
+      transparencyThreshold: 8,
+      strokes: [],
+    });
+    const decoded = await sharp(result.bytes)
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true });
+
+    assert.ok(decoded.data[3] < 220, "surrounding background remains removable");
+    assert.equal(
+      decoded.data[(10 * decoded.info.width + 10) * 4 + 3],
+      255,
+      "the centered primary subject is preserved",
     );
   });
 

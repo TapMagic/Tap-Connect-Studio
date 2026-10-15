@@ -161,6 +161,58 @@ function estimateBorderColor(
   return middle;
 }
 
+function borderColorComplexity(
+  data: Buffer,
+  width: number,
+  height: number,
+  target: [number, number, number],
+): number {
+  let total = 0;
+  let count = 0;
+  const step = Math.max(1, Math.floor(Math.min(width, height) / 80));
+  const add = (x: number, y: number) => {
+    const index = (y * width + x) * 4;
+    if (data[index + 3] < 24) return;
+    total += colorDistance(data[index], data[index + 1], data[index + 2], target);
+    count += 1;
+  };
+  for (let x = 0; x < width; x += step) {
+    add(x, 0);
+    add(x, height - 1);
+  }
+  for (let y = step; y < height - step; y += step) {
+    add(0, y);
+    add(width - 1, y);
+  }
+  return count ? total / count : 0;
+}
+
+function protectPrimarySubject(
+  alpha: Uint8Array,
+  pixels: Buffer,
+  width: number,
+  height: number,
+  borderComplexity: number,
+) {
+  if (borderComplexity < 24) return;
+
+  // Complex photographs do not have one reliable border color. If that
+  // approximation reaches into the primary subject, preserve a feathered
+  // center-safe area before exposing the reversible mask to the Host.
+  for (let y = 0; y < height; y += 1) {
+    const normalizedY = (y / Math.max(1, height - 1) - 0.53) / 0.58;
+    for (let x = 0; x < width; x += 1) {
+      const normalizedX = (x / Math.max(1, width - 1) - 0.5) / 0.4;
+      const distance = Math.sqrt(normalizedX ** 2 + normalizedY ** 2);
+      if (distance >= 1) continue;
+      const protection = Math.max(0, Math.min(1, (1 - distance) / 0.18));
+      const pixel = y * width + x;
+      const originalAlpha = pixels[pixel * 4 + 3];
+      alpha[pixel] = Math.max(alpha[pixel], Math.round(originalAlpha * protection));
+    }
+  }
+}
+
 function connectedBackgroundMask(
   candidates: Uint8Array,
   width: number,
@@ -273,6 +325,15 @@ export async function renderBackgroundVariant(
         .toBuffer(),
     );
   }
+  if (recipe.mode === "auto") {
+    protectPrimarySubject(
+      alpha,
+      pixels,
+      width,
+      height,
+      borderColorComplexity(pixels, width, height, target),
+    );
+  }
   if (recipe.mode === "auto" && recipe.invertSelection) {
     for (let pixel = 0; pixel < alpha.length; pixel += 1) {
       const originalAlpha = pixels[pixel * 4 + 3];
@@ -315,7 +376,10 @@ export function backgroundRecipeCacheKey(
   recipe: BackgroundTreatmentRecipe,
 ): string {
   return createHash("sha256")
-    .update(`${asset.contentHash || asset.id}:${JSON.stringify(recipe)}`)
+    // Version the renderer as part of the durable cache identity. This keeps
+    // a corrected automatic mask from reusing a derivative rendered by an
+    // older algorithm while preserving every prior derivative as evidence.
+    .update(`v2:${asset.contentHash || asset.id}:${JSON.stringify(recipe)}`)
     .digest("hex");
 }
 
