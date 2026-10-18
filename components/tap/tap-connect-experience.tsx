@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
 import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { TapConnectCard, type TapConnectCardProps } from "@/components/tap/tap-connect-card";
 import { CardSurfaceViewportBackdrop } from "@/components/tap/card-surface-viewport-backdrop";
@@ -26,6 +26,9 @@ import {
   resolveExperienceNavigationComposition,
   resolveLoveAndTheftNavigationArtwork,
 } from "@/lib/fusion/card/experience-navigation-presentation";
+import { EXPERIENCE_SHELL_LAYERS } from "@/lib/fusion/card/experience-shell-layers";
+import { AccessNoticeOverlay } from "@/components/tap/access-notice-overlay";
+import { accessNoticeContent } from "@/lib/fusion/card/access-notice";
 
 export type TapConnectExperienceProps = Omit<TapConnectCardProps, "config" | "onInternalPageNavigate"> & {
   config: TapConnectCardConfig;
@@ -40,12 +43,6 @@ export type TapConnectExperienceProps = Omit<TapConnectCardProps, "config" | "on
   /** Experience-level furniture rendered above the persistent Page navigation. */
   persistentContent?: ReactNode;
 };
-
-const EXPERIENCE_SHELL_LAYERS = {
-  content: 1,
-  persistent: 20,
-  navigation: 1200,
-} as const;
 
 export function TapConnectExperience({
   config,
@@ -71,6 +68,9 @@ export function TapConnectExperience({
     return experience.defaultPageId;
   }, [controlledPageId, directPageRef, experience, routingMode]);
   const [uncontrolledPageId, setUncontrolledPageId] = useState(initialPageId);
+  const [accessNoticePageId, setAccessNoticePageId] = useState<string | null>(null);
+  const accessNoticeTriggerRef = useRef<HTMLElement | null>(null);
+  const closeAccessNotice = useCallback(() => setAccessNoticePageId(null), []);
   const requestedPageId = controlledPageId ?? uncontrolledPageId;
   const activePage = experience ? resolveExperiencePage(experience, requestedPageId) : null;
   const pageConfig = experience && activePage ? projectExperiencePage(config, activePage.pageId) : config;
@@ -95,12 +95,31 @@ export function TapConnectExperience({
     && priorPage.access?.lockedBehavior?.mode !== "hidden"
     ? priorPage.pageId
     : experience?.defaultPageId;
+  const accessNoticePage = experience?.pages.find((page) => page.pageId === accessNoticePageId) ?? null;
+  const accessNoticePolicy = accessNoticePage?.access?.lockedBehavior;
+  const accessNotice = accessNoticePage ? accessNoticeContent({
+    actionLabel: accessNoticePage.title,
+    title: accessNoticePolicy?.title,
+    message: accessNoticePolicy?.message,
+  }) : null;
+  const accessNoticeCtaDestination = accessNoticePolicy?.ctaDestinationRef?.trim();
+  const accessNoticeCta = accessNoticePolicy?.mode === "cta" && accessNoticePolicy.ctaLabel?.trim() && accessNoticeCtaDestination ? {
+    label: accessNoticePolicy.ctaLabel.trim(),
+    internalPageId: accessNoticePolicy.ctaDestinationType === "internal_page" ? accessNoticeCtaDestination : undefined,
+    href: accessNoticePolicy.ctaDestinationType !== "internal_page" ? accessNoticeCtaDestination : undefined,
+  } : undefined;
 
-  const selectPage = useCallback((pageId: string, source: "nav" | "action" | "cta" = "nav") => {
+  const selectPage = useCallback((pageId: string, source: "nav" | "action" | "cta" = "nav", trigger?: HTMLElement | null) => {
     if (!experience) return;
     const target = experience.pages.find((page) => page.pageId === pageId || page.slug === pageId);
     if (!target || !target.pageVisible || target.access?.lockedBehavior?.mode === "hidden") {
       onNotify?.("That Page is not available in this Experience.");
+      return;
+    }
+    const lockedMode = target.access?.lockedBehavior?.mode;
+    if (target.access?.state === "locked" && (lockedMode === "message" || lockedMode === "cta")) {
+      accessNoticeTriggerRef.current = trigger ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null);
+      setAccessNoticePageId(target.pageId);
       return;
     }
     const nextPageId = target.pageId;
@@ -183,7 +202,7 @@ export function TapConnectExperience({
       if (!destination) return;
       event.preventDefault();
       event.stopPropagation();
-      selectPage(destination, "action");
+      selectPage(destination, "action", element);
       return;
     }
     preserveExperienceReturnContext({
@@ -208,6 +227,7 @@ export function TapConnectExperience({
         "--experience-shell-content-z": EXPERIENCE_SHELL_LAYERS.content,
         "--experience-shell-persistent-z": EXPERIENCE_SHELL_LAYERS.persistent,
         "--experience-shell-navigation-z": EXPERIENCE_SHELL_LAYERS.navigation,
+        "--experience-shell-access-notice-z": EXPERIENCE_SHELL_LAYERS.accessNotice,
       } as CSSProperties : undefined}
       data-testid="tap-experience-renderer"
       data-experience-id={experience.experienceId}
@@ -235,8 +255,16 @@ export function TapConnectExperience({
         pages={navPages}
         activePageId={activePage.pageId}
         config={experience.navigation}
-        onSelect={(page) => selectPage(page.navDestinationPageId || page.pageId, "nav")}
+        onSelect={(page, trigger) => selectPage(page.navDestinationPageId || page.pageId, "nav", trigger)}
       /> : null}
+      <AccessNoticeOverlay
+        open={Boolean(accessNotice && accessNoticePolicy && (accessNoticePolicy.mode === "message" || accessNoticePolicy.mode === "cta"))}
+        title={accessNotice?.title || "Access Required"}
+        message={accessNotice?.message || "This content requires additional access."}
+        cta={accessNoticeCta}
+        onClose={closeAccessNotice}
+        returnFocusRef={accessNoticeTriggerRef}
+      />
     </div>
   );
 }
@@ -245,7 +273,7 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
   pages: TapExperiencePage[];
   activePageId: string;
   config: NonNullable<TapConnectCardConfig["experience"]>["navigation"];
-  onSelect: (page: TapExperiencePage) => void;
+  onSelect: (page: TapExperiencePage, trigger: HTMLElement) => void;
 }) {
   const loveAndTheft = config.itemPresentation === "everencore-love-and-theft-mini-pick";
   const composition = resolveExperienceNavigationComposition(pages.length);
@@ -288,7 +316,7 @@ function ExperienceBottomNavigation({ pages, activePageId, config, onSelect }: {
         return <button
           key={page.pageId}
           type="button"
-          onClick={() => onSelect(page)}
+          onClick={(event) => onSelect(page, event.currentTarget)}
           aria-current={active ? "page" : undefined}
           aria-label={`${page.navLabel}${locked ? " (locked)" : ""}`}
           className={cn("group flex min-h-12 min-w-0 flex-col items-center justify-center gap-0.5 rounded-xl px-1 text-[9px] font-medium tracking-[.01em] text-[var(--experience-nav-text)] transition-colors aria-[current=page]:text-[var(--experience-nav-active)]", !loveAndTheft && "aria-[current=page]:bg-white/[.07]", loveAndTheft && "min-h-[68px]")}

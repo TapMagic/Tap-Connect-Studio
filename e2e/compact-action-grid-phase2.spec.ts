@@ -75,8 +75,9 @@ test("proves Phase 2 Compact Action Grid and Love & Theft navigation presentatio
     await previewAt390(page);
     await grid(page,"review-compact-music-grid").screenshot({path:path.join(evidence,"05-song-music-grid.png")});
     await page.getByRole("button",{name:"Exclusive (locked)"}).click();
-    await expect(page.getByTestId("compact-locked-message-review-exclusive-tile")).toBeVisible();
-    await grid(page,"review-compact-locked-grid").screenshot({path:path.join(evidence,"06-locked-tile-message-cta.png")});
+    await expect(page.getByTestId("experience-access-notice")).toBeVisible();
+    await page.screenshot({path:path.join(evidence,"06-locked-tile-message-cta.png")});
+    await page.keyboard.press("Escape");
     await grid(page,"review-compact-new-grid").screenshot({path:path.join(evidence,"07-new-tile-four-column.png")});
     await page.screenshot({path:path.join(evidence,"08-preview-390.png")});
     await grid(page,"review-compact-social-grid").locator('[data-component-id="review-social-tile-1"]').screenshot({path:path.join(evidence,"09-no-clipping-close-up.png")});

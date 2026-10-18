@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, type CSSProperties } from "react";
-import { LockKeyhole, Sparkles } from "lucide-react";
+import { useCallback, useRef, useState, type CSSProperties } from "react";
+import { LockKeyhole } from "lucide-react";
 import { PremiumIcon } from "@/components/design/premium-icon";
 import {
   compactActionGridLayoutMetrics,
@@ -17,6 +17,8 @@ import {
 } from "@/lib/fusion/creative-studio/signature-assets/everencore-love-and-theft";
 import { cn } from "@/lib/utils";
 import { ActionPresentationEffects } from "@/components/fusion/creative-studio/action-presentation-effects";
+import { AccessNoticeOverlay } from "@/components/tap/access-notice-overlay";
+import { accessNoticeContent } from "@/lib/fusion/card/access-notice";
 
 export function LoveAndTheftPickVisual({ iconAssetRef, active = false, className }: {
   iconAssetRef: string;
@@ -58,6 +60,22 @@ function tileHref(tile: CompactActionTile): string | undefined {
 
 export function CompactActionGrid({ state, editMode = false }: { state: CompactActionGridState; editMode?: boolean }) {
   const [lockedTileId, setLockedTileId] = useState<string | null>(null);
+  const lockedTriggerRef = useRef<HTMLElement | null>(null);
+  const closeAccessNotice = useCallback(() => setLockedTileId(null), []);
+  const activeLockedTile = state.tiles.find((tile) => tile.componentId === lockedTileId && tile.locked);
+  const activeLockedPolicy = activeLockedTile?.lockedBehavior;
+  const activeNotice = activeLockedTile ? accessNoticeContent({
+    actionLabel: activeLockedTile.label,
+    title: activeLockedPolicy?.title,
+    message: activeLockedPolicy?.message,
+  }) : null;
+  const activeCtaDestination = activeLockedPolicy?.ctaDestinationRef?.trim();
+  const activeCta = activeLockedPolicy?.mode === "cta" && activeLockedPolicy.ctaLabel?.trim() && activeCtaDestination ? {
+    label: activeLockedPolicy.ctaLabel.trim(),
+    internalPageId: activeLockedPolicy.ctaDestinationType === "internal_page" ? activeCtaDestination : undefined,
+    href: activeLockedPolicy.ctaDestinationType !== "internal_page" ? activeCtaDestination : undefined,
+    actionId: activeLockedTile?.actionId,
+  } : undefined;
   const authoredDensityScale = state.density === "compact" ? .86 : state.density === "roomy" ? 1.12 : 1;
   // Four columns are a governed compact presentation, not browser zoom. The
   // optical type reduction keeps the longest admitted platform labels intact.
@@ -80,7 +98,7 @@ export function CompactActionGrid({ state, editMode = false }: { state: CompactA
     "--compact-grid-sublabel-size": `${state.sublabelFontSizePx}px`,
     "--compact-grid-sublabel-color": state.sublabelColor,
   } as CSSProperties;
-  return <div
+  return <><div
     className="grid h-auto w-full overflow-visible"
     style={style}
     data-testid="compact-action-grid"
@@ -105,9 +123,20 @@ export function CompactActionGrid({ state, editMode = false }: { state: CompactA
       editMode={editMode}
       expanded={lockedTileId === tile.componentId}
       gridColumnStart={compactActionGridTileColumn(state, index, visibleTiles.length)}
-      onLocked={() => setLockedTileId((current) => current === tile.componentId ? null : tile.componentId)}
+      onLocked={(trigger) => {
+        lockedTriggerRef.current = trigger;
+        setLockedTileId(tile.lockedBehavior?.mode === "message" || tile.lockedBehavior?.mode === "cta" ? tile.componentId : null);
+      }}
     />)}
-  </div>;
+  </div>
+  <AccessNoticeOverlay
+    open={Boolean(activeNotice && activeLockedPolicy && (activeLockedPolicy.mode === "message" || activeLockedPolicy.mode === "cta"))}
+    title={activeNotice?.title || "Access Required"}
+    message={activeNotice?.message || "This content requires additional access."}
+    cta={activeCta}
+    onClose={closeAccessNotice}
+    returnFocusRef={lockedTriggerRef}
+  /></>;
 }
 
 function CompactActionTileView({ tile, state, editMode, expanded, gridColumnStart, onLocked }: {
@@ -116,7 +145,7 @@ function CompactActionTileView({ tile, state, editMode, expanded, gridColumnStar
   editMode: boolean;
   expanded: boolean;
   gridColumnStart?: number;
-  onLocked: () => void;
+  onLocked: (trigger: HTMLElement) => void;
 }) {
   const locked = tile.locked === true;
   const internalPageId = tile.actionType === "internal_page" && !locked ? tile.destinationRef : undefined;
@@ -152,19 +181,10 @@ function CompactActionTileView({ tile, state, editMode, expanded, gridColumnStar
     "data-tile-active": tile.active ? "true" : "false",
   };
   const control = locked
-    ? <button type="button" className={shared} onClick={(event) => { event.preventDefault(); if (!editMode) onLocked(); }} aria-expanded={expanded} aria-label={`${tile.label} (locked)`} {...attrs}>{body}</button>
+    ? <button type="button" className={shared} onClick={(event) => { event.preventDefault(); if (!editMode) onLocked(event.currentTarget); }} aria-haspopup="dialog" aria-expanded={expanded} aria-label={`${tile.label} (locked)`} {...attrs}>{body}</button>
     : <a href={editMode ? undefined : href} className={shared} onClick={(event) => { if (editMode || (!href && !internalPageId)) event.preventDefault(); }} aria-label={tile.sublabel ? `${tile.label}: ${tile.sublabel}` : tile.label} {...attrs}>{body}</a>;
-  const policy = tile.lockedBehavior;
   const effectFamily = state.presentation === "everencore-love-and-theft-pick" ? "everencore-love-and-theft-pick" : "compact-neutral";
   return <div className="relative min-w-0 overflow-visible" style={{ gridColumnStart }} data-compact-action-tile-shell="true" data-grid-column={gridColumnStart}>
     <ActionPresentationEffects family={effectFamily} value={tile.presentationEffects ?? {}} active={!editMode}>{control}</ActionPresentationEffects>
-    {expanded && policy && (policy.mode === "message" || policy.mode === "cta") ? <div className="relative z-10 mx-auto mt-1 w-[min(180px,calc(100vw-28px))] rounded-xl border border-[#d7ad58]/35 bg-[#100c08]/96 p-2 text-center text-[9px] leading-4 text-[#f4e5c3] shadow-2xl" role="status" data-testid={`compact-locked-message-${tile.componentId}`}>
-      <Sparkles className="mx-auto mb-1 h-3 w-3 text-[#d7ad58]" aria-hidden />
-      {policy.message || "This action requires additional access."}
-      {policy.mode === "cta" && policy.ctaLabel ? policy.ctaDestinationType === "internal_page"
-        ? <button type="button" className="mt-2 min-h-8 rounded-full bg-[#d7ad58] px-3 font-semibold text-[#1b1209]" data-internal-page-id={policy.ctaDestinationRef}>{policy.ctaLabel}</button>
-        : <a className="mt-2 inline-flex min-h-8 items-center rounded-full bg-[#d7ad58] px-3 font-semibold text-[#1b1209]" href={policy.ctaDestinationRef}>{policy.ctaLabel}</a>
-        : null}
-    </div> : null}
   </div>;
 }

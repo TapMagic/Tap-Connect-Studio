@@ -32,6 +32,7 @@ export type CompactActionTile = {
   locked?: boolean;
   lockedBehavior?: {
     mode: CompactActionTileLockMode;
+    title?: string;
     message?: string;
     ctaLabel?: string;
     ctaDestinationType?: "internal_page" | "external";

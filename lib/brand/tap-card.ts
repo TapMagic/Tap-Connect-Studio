@@ -379,6 +379,7 @@ export type CardPropertySources = Partial<
 
 export type TapExperienceLockedBehavior = {
   mode: "none" | "message" | "cta" | "hidden";
+  title?: string;
   message?: string;
   ctaLabel?: string;
   ctaDestinationType?: "external" | "internal_page";
@@ -984,6 +985,7 @@ function parseTapExperience(raw: unknown): TapExperienceConfig | undefined {
         ruleRef: typeof accessValue.ruleRef === "string" ? accessValue.ruleRef : undefined,
         lockedBehavior: lockedValue ? {
           mode: lockedMode,
+          title: typeof lockedValue.title === "string" ? lockedValue.title : undefined,
           message: typeof lockedValue.message === "string" ? lockedValue.message : undefined,
           ctaLabel: typeof lockedValue.ctaLabel === "string" ? lockedValue.ctaLabel : undefined,
           ctaDestinationType: lockedValue.ctaDestinationType === "internal_page" ? "internal_page" : "external",
