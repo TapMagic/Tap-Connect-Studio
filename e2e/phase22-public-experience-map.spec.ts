@@ -70,12 +70,17 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
   });
   const musicReturnContext = await page.evaluate(() => JSON.parse(sessionStorage.getItem("tapconnect.experience.return:everencore-love-and-theft") || "null"));
   expect(musicReturnContext?.pageId).toBe("page-music");
+  expect(musicReturnContext?.actionId).toBe("ee-listen-action");
+  const spotifyAction = page.locator('[data-analytics-id="everencore:music:spotify"] a, a[data-analytics-id="everencore:music:spotify"]').first();
+  await expect(spotifyAction).toHaveAttribute("target", "_blank");
+  await expect(spotifyAction).toHaveAttribute("rel", "noopener noreferrer");
   await page.screenshot({ path: path.join(evidence, "02-public-music-video-390.png"), fullPage: true });
 
   await page.getByTestId("compact-action-tile-ee-backstage").click();
   await expect(page).toHaveURL(/\/everencore\/love-and-theft\/backstage$/);
   await expect(page.getByTestId("experience-bottom-navigation")).toBeVisible();
   await expect(page.getByTestId("tap-experience-renderer")).toHaveAttribute("data-active-page-id", "page-backstage");
+  await expect(page.getByTestId("experience-return-home")).toBeVisible();
   await page.goBack();
   await expect(page).toHaveURL(/\/everencore\/love-and-theft\/music$/);
   await expect(page.getByTestId("tap-experience-renderer")).toHaveAttribute("data-active-page-id", "page-music");
@@ -109,9 +114,15 @@ test("proves the 390px public Experience shell, direct Pages, history, return co
   const parkingReturnContext = await page.evaluate(() => JSON.parse(sessionStorage.getItem("tapconnect.experience.return:everencore-love-and-theft") || "null"));
   expect(parkingReturnContext?.pageId).toBe("page-live");
   expect(parkingReturnContext?.selectedContentId).toBe("wec-parking");
+  expect(parkingReturnContext?.selectedLocationId).toBe("wec-parking");
   expect(parkingReturnContext?.sessionId).toBe(sessionId);
   await page.evaluate(() => window.dispatchEvent(new PageTransitionEvent("pageshow", { persisted: true })));
   await expect(page.getByTestId("tap-experience-renderer")).toHaveAttribute("data-active-page-id", "page-live");
+  await expect(map).toHaveAttribute("data-map-selected-location", "wec-parking");
+  await page.getByTestId("experience-nav-page-home").click();
+  await page.goBack();
+  await expect(page.getByTestId("tap-experience-renderer")).toHaveAttribute("data-active-page-id", "page-live");
+  await expect(page.getByTestId("map-location-container")).toHaveAttribute("data-map-selected-location", "wec-parking");
   await expectPersistentViewportNavigation();
   await page.getByTestId("map-activate-interaction").click();
   expect(await page.getByTestId("map-location-embed").evaluate((element) => getComputedStyle(element).pointerEvents)).toBe("auto");

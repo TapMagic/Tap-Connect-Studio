@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
-import { EXPERIENCE_CREDENTIAL_TYPES, revokeExperienceCredential, rotateExperienceCredential } from "@/lib/fusion/card/experience-access-credentials";
+import { EXPERIENCE_CREDENTIAL_TYPES, experienceCredentialAccessPath, revokeExperienceCredential, rotateExperienceCredential } from "@/lib/fusion/card/experience-access-credentials";
 import { ExperienceLibraryError } from "@/lib/fusion/card/experience-library";
 import { appendAuditEvent } from "@/lib/control/audit";
 import { getRequestPublicOrigin } from "@/lib/utils/app";
@@ -18,7 +18,7 @@ const rotateSchema = z.object({
 
 const revokeSchema = z.object({ credentialId: z.string().min(1) });
 
-export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { business } = await requireBusinessCapability("card.draft.edit");
   const { id } = await params;
   const destination = await prisma.experiencePublicDestination.findFirst({
@@ -26,10 +26,16 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
     include: { credentials: { orderBy: { createdAt: "desc" } } },
   });
   if (!destination) return NextResponse.json({ error: "Publish this Experience before generating a QR." }, { status: 409 });
+  const origin = getRequestPublicOrigin(request);
+  const currentCredentialId = destination.credentials.find((credential) => credential.status === "ACTIVE" && credential.credentialType === "PERMANENT")?.id
+    ?? destination.credentials.find((credential) => credential.status === "ACTIVE")?.id
+    ?? null;
   return NextResponse.json({
     destination: { slug: destination.slug, accessActive: destination.accessActive },
     credentials: destination.credentials.map((credential) => ({
       id: credential.id,
+      accessUrl: `${origin}${experienceCredentialAccessPath(credential)}`,
+      isCurrent: credential.id === currentCredentialId,
       tokenHint: credential.tokenHint,
       credentialType: credential.credentialType,
       status: credential.status,
@@ -87,7 +93,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
         id: result.credential.id,
         credentialType: result.credential.credentialType,
         status: result.credential.status,
-        accessUrl: `${origin}/x/${result.token}`,
+        accessUrl: `${origin}${experienceCredentialAccessPath(result.credential)}`,
         tokenHint: result.credential.tokenHint,
       },
       previousCredentialsRevoked: input.previousBehavior === "revoke",

@@ -8,8 +8,12 @@ export type ExperienceReturnContext = {
   url: string;
   scrollY: number;
   selectedContentId?: string;
+  selectedLocationId?: string;
+  actionId?: string;
   updatedAt: string;
 };
+
+export const EXPERIENCE_RETURN_CONTEXT_EVENT = "tapconnect:experience-return-context";
 
 const SESSION_PREFIX = "tapconnect.experience.session";
 const RETURN_PREFIX = "tapconnect.experience.return";
@@ -36,7 +40,7 @@ export function ensureExperienceSession(experienceId: string): string {
   return id;
 }
 
-export function preserveExperienceReturnContext(context: Omit<ExperienceReturnContext, "sessionId" | "url" | "scrollY" | "updatedAt"> & Partial<Pick<ExperienceReturnContext, "url" | "scrollY" | "selectedContentId">>): ExperienceReturnContext | null {
+export function preserveExperienceReturnContext(context: Omit<ExperienceReturnContext, "sessionId" | "url" | "scrollY" | "updatedAt"> & Partial<Pick<ExperienceReturnContext, "url" | "scrollY" | "selectedContentId" | "selectedLocationId" | "actionId">>): ExperienceReturnContext | null {
   if (typeof window === "undefined") return null;
   const value: ExperienceReturnContext = {
     experienceId: context.experienceId,
@@ -46,6 +50,8 @@ export function preserveExperienceReturnContext(context: Omit<ExperienceReturnCo
     url: context.url || window.location.href,
     scrollY: context.scrollY ?? window.scrollY,
     selectedContentId: context.selectedContentId,
+    selectedLocationId: context.selectedLocationId,
+    actionId: context.actionId,
     updatedAt: new Date().toISOString(),
   };
   window.sessionStorage.setItem(`${RETURN_PREFIX}:${context.experienceId}`, JSON.stringify(value));
@@ -62,6 +68,17 @@ export function readExperienceReturnContext(experienceId: string): ExperienceRet
   } catch {
     return null;
   }
+}
+
+export function validExperienceReturnContext(experienceId: string): ExperienceReturnContext | null {
+  const value = readExperienceReturnContext(experienceId);
+  if (!value) return null;
+  return value.sessionId === ensureExperienceSession(experienceId) ? value : null;
+}
+
+export function announceExperienceReturnContext(context: ExperienceReturnContext): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent<ExperienceReturnContext>(EXPERIENCE_RETURN_CONTEXT_EVENT, { detail: context }));
 }
 
 export function prepareExternalAnchor(anchor: HTMLAnchorElement): void {

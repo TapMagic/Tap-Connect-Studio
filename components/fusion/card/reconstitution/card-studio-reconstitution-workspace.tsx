@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { ClipboardPaste, Copy, Eye, FileText, Layers3, ListChecks, MoreHorizontal, Move, Plus, QrCode, Redo2, Save, Smartphone, Tablet, Monitor, Trash2, Undo2, X } from "lucide-react";
 import { TapCardBuilder, type CardBuilderShellApi, type CardBuilderShellStatus } from "@/components/card/tap-card-builder";
 import { LiveDeviceQrPanel } from "@/components/fusion/creative-studio/live-device-qr-panel";
+import { PublicQrCredentialPanel } from "@/components/fusion/card/public-qr-credential-panel";
 import { getCardEditorLive, subscribeCardEditorLive } from "@/components/fusion/card/card-editor-live";
 import type { CardAuthoringWorkspaceProps } from "@/components/fusion/card/card-authoring-workspace";
 import { StudioEditorRail } from "./studio-editor-rail";
@@ -88,6 +89,7 @@ export function CardStudioReconstitutionWorkspace({
   const [compositionInspectorOpen, setCompositionInspectorOpen] = useState(false);
   const [compositionSelectionMode, setCompositionSelectionMode] = useState<"single" | "multiple">("single");
   const [liveDeviceOpen, setLiveDeviceOpen] = useState(false);
+  const [devicePanelTab, setDevicePanelTab] = useState<"preview" | "public">("preview");
   const [pagesOpen, setPagesOpen] = useState(false);
   const [liveDeviceInitialized, setLiveDeviceInitialized] = useState(false);
   const [liveDeviceActivation, setLiveDeviceActivation] = useState(0);
@@ -307,9 +309,17 @@ export function CardStudioReconstitutionWorkspace({
 
   const openLiveDevice = useCallback(() => {
     beginTask("live-device");
+    setDevicePanelTab("preview");
     setViewport("phone");
     setLiveDeviceInitialized(true);
     setLiveDeviceActivation((activation) => activation + 1);
+    setLiveDeviceOpen(true);
+  }, [beginTask]);
+
+  const openPublicQr = useCallback(() => {
+    beginTask("live-device");
+    setDevicePanelTab("public");
+    setLiveDeviceInitialized(true);
     setLiveDeviceOpen(true);
   }, [beginTask]);
 
@@ -693,7 +703,8 @@ export function CardStudioReconstitutionWorkspace({
         <div className="hidden items-center rounded-lg border border-white/10 p-0.5 sm:flex" role="group" aria-label="Preview size">
           {([['desktop',Monitor],['tablet',Tablet],['phone',Smartphone]] as const).map(([id, Icon]) => <button key={id} type="button" aria-pressed={viewport === id} onClick={() => setViewport(id)} className="grid h-8 w-8 place-items-center rounded aria-pressed:bg-white/10" aria-label={`${id} preview`}><Icon className="h-3.5 w-3.5" /></button>)}
         </div>
-        <button type="button" onClick={openLiveDevice} className={headerButton} data-testid="preview-live-device" aria-label="Phone Preview" title="Phone Preview" aria-expanded={liveDeviceOpen} aria-controls="studio-live-device-panel"><QrCode className="h-4 w-4" /><span className="hidden md:inline">Phone Preview</span></button>
+        <button type="button" onClick={openLiveDevice} className={headerButton} data-testid="preview-live-device" aria-label="Phone Preview" title="Temporary saved-Draft Phone Preview" aria-expanded={liveDeviceOpen && devicePanelTab === "preview"} aria-controls="studio-live-device-panel"><Smartphone className="h-4 w-4" /><span className="hidden md:inline">Phone Preview</span></button>
+        <button type="button" onClick={openPublicQr} className={headerButton} data-testid="studio-public-qr" aria-label="Public QR" title="Permanent published Experience QR" aria-expanded={liveDeviceOpen && devicePanelTab === "public"} aria-controls="studio-live-device-panel"><QrCode className="h-4 w-4" /><span className="hidden md:inline">Public QR</span></button>
         <button type="button" onClick={() => { if (studioMode === "edit") { beginTask("preview-card"); setStudioMode("preview"); } else { setStudioMode("edit"); finishTask(); } }} className={headerButton} data-testid="studio-preview"><Eye className="h-4 w-4" /><span className="hidden lg:inline">{studioMode === "edit" ? "Preview" : "Edit"}</span></button>
         <button type="button" disabled={!status.canPublish || status.dirty} onClick={() => void apiRef.current?.publish()} className="min-h-9 rounded-lg bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a] disabled:cursor-not-allowed disabled:opacity-40" data-testid="studio-publish">Publish</button>
       </header>
@@ -772,7 +783,7 @@ export function CardStudioReconstitutionWorkspace({
           <StudioSelectionInspector model={liveModel} node={selectedButton} section={inspectorSection} onSectionChange={setInspectorSection} brandPrimary={brandPreviewContext.primaryColor || brandPreviewContext.accentColor || "#b8ff2c"} onClose={closeContextualSurface} />
         ) : null}
 
-        {liveDeviceInitialized ? <div className={cn("absolute inset-0 z-[3200] justify-end bg-black/58 backdrop-blur-[2px]", liveDeviceOpen ? "flex" : "hidden")} data-testid="live-device-dock" aria-hidden={!liveDeviceOpen} onPointerDown={(event) => { if (event.target === event.currentTarget) { setLiveDeviceOpen(false); finishTask(); } }}><section id="studio-live-device-panel" role="dialog" aria-modal="true" aria-labelledby="studio-live-device-title" className="flex h-full w-[min(430px,calc(100vw-12px))] flex-col overflow-hidden border-l border-white/10 bg-[#090e16] shadow-[-24px_0_70px_rgba(0,0,0,.5)]" data-testid="studio-live-device-panel"><header className="flex min-h-14 items-center gap-3 border-b border-white/8 px-4"><div className="min-w-0 flex-1"><h2 id="studio-live-device-title" className="text-sm font-semibold">Phone Preview</h2><p className="text-[10px] text-white/48">Temporary saved-Draft QR · separate from the permanent public QR</p></div><button type="button" onClick={() => { setLiveDeviceOpen(false); finishTask(); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Live Device Preview"><X className="h-4 w-4" /></button></header><div className="min-h-0 flex-1 overflow-y-auto"><LiveDeviceQrPanel config={liveModel?.experience ? canonicalizeExperienceConfig(liveModel.config, liveModel.activeExperiencePageId) : liveModel?.config || builderProps.initialConfig} profile={builderProps.profile} businessName={builderProps.businessName} cardName={phonePreviewExperienceName} brandKitId={builderProps.brandKitId} logoUrl={builderProps.logoUrl} reviewUrl={builderProps.reviewUrl} revision={devicePreviewRevision} documentId={liveModel?.documentId} currentPage={phonePreviewPage} draftSaved={!status.dirty && !status.saving} activationKey={liveDeviceActivation} /></div></section></div> : null}
+        {liveDeviceInitialized ? <div className={cn("absolute inset-0 z-[3200] justify-end bg-black/58 backdrop-blur-[2px]", liveDeviceOpen ? "flex" : "hidden")} data-testid="live-device-dock" aria-hidden={!liveDeviceOpen} onPointerDown={(event) => { if (event.target === event.currentTarget) { setLiveDeviceOpen(false); finishTask(); } }}><section id="studio-live-device-panel" role="dialog" aria-modal="true" aria-labelledby="studio-live-device-title" className="flex h-full w-[min(430px,calc(100vw-12px))] flex-col overflow-hidden border-l border-white/10 bg-[#090e16] shadow-[-24px_0_70px_rgba(0,0,0,.5)]" data-testid="studio-live-device-panel"><header className="border-b border-white/8 px-4 py-3"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><h2 id="studio-live-device-title" className="text-sm font-semibold">Phone / QR</h2><p className="text-[10px] text-white/48">Draft preview and public credential are separate authorities</p></div><button type="button" onClick={() => { setLiveDeviceOpen(false); finishTask(); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Phone and QR panel"><X className="h-4 w-4" /></button></div><div className="mt-3 grid grid-cols-2 gap-1 rounded-xl border border-white/8 bg-black/20 p-1" role="tablist" aria-label="Phone and QR modes"><button type="button" role="tab" aria-selected={devicePanelTab === "preview"} onClick={() => { setDevicePanelTab("preview"); setViewport("phone"); setLiveDeviceActivation((activation) => activation + 1); }} className="min-h-9 rounded-lg px-3 text-xs text-white/55 aria-selected:bg-white/10 aria-selected:text-white" data-testid="studio-phone-preview-tab">Phone Preview<span className="block text-[8px] opacity-55">Temporary Draft</span></button><button type="button" role="tab" aria-selected={devicePanelTab === "public"} onClick={() => setDevicePanelTab("public")} className="min-h-9 rounded-lg px-3 text-xs text-white/55 aria-selected:bg-[#b8ff2c]/10 aria-selected:text-[#d9ff8e]" data-testid="studio-public-qr-tab">Public QR<span className="block text-[8px] opacity-55">Permanent / published</span></button></div></header><div className="min-h-0 flex-1 overflow-y-auto">{devicePanelTab === "preview" ? <LiveDeviceQrPanel config={liveModel?.experience ? canonicalizeExperienceConfig(liveModel.config, liveModel.activeExperiencePageId) : liveModel?.config || builderProps.initialConfig} profile={builderProps.profile} businessName={builderProps.businessName} cardName={phonePreviewExperienceName} brandKitId={builderProps.brandKitId} logoUrl={builderProps.logoUrl} reviewUrl={builderProps.reviewUrl} revision={devicePreviewRevision} documentId={liveModel?.documentId} currentPage={phonePreviewPage} draftSaved={!status.dirty && !status.saving} activationKey={liveDeviceActivation} /> : <PublicQrCredentialPanel experienceId={liveModel?.documentId ?? status.activeDocumentId} experienceName={phonePreviewExperienceName} />}</div></section></div> : null}
       </div>
 
       {studioMode === "edit" ? (

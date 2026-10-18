@@ -10,6 +10,7 @@ import {
   unpublishExperience,
 } from "@/lib/fusion/card/experience-library";
 import {
+  persistedExperienceCredentialToken,
   redeemExperienceCredential,
   revokeExperienceCredential,
   rotateExperienceCredential,
@@ -69,6 +70,10 @@ describe("Experience publication/access/QR lifecycle — isolated PostgreSQL", {
 
       assert.equal((await resolveEverEncoreDestination(stableSlug)).state, "live");
       assert.equal((await redeemExperienceCredential(firstQr.token)).state, "valid");
+      const persistedQrToken = persistedExperienceCredentialToken(firstQr.credential);
+      const credentialCountBeforeView = await prisma.experienceAccessCredential.count({ where: { destinationId: firstQr.destination.id } });
+      assert.equal((await redeemExperienceCredential(persistedQrToken)).state, "valid");
+      assert.equal(await prisma.experienceAccessCredential.count({ where: { destinationId: firstQr.destination.id } }), credentialCountBeforeView);
 
       await setExperienceAccessActive(business.id, document.id, false);
       const dormant = await resolveEverEncoreDestination(stableSlug);
@@ -113,6 +118,7 @@ describe("Experience publication/access/QR lifecycle — isolated PostgreSQL", {
       assert.equal(manuallyRevoked.changed, true);
       assert.equal((await redeemExperienceCredential(firstQr.token)).state, "valid");
       assert.equal((await redeemExperienceCredential(keptQr.token)).state, "revoked");
+      assert.equal((await redeemExperienceCredential(persistedExperienceCredentialToken(keptQr.credential))).state, "revoked");
 
       const replacementQr = await rotateExperienceCredential({
         businessId: business.id,

@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState, type CSSProperties, type MouseEvent, type ReactNode } from "react";
-import { LockKeyhole } from "lucide-react";
+import { ArrowLeft, LockKeyhole } from "lucide-react";
 import { TapConnectCard, type TapConnectCardProps } from "@/components/tap/tap-connect-card";
 import { CardSurfaceViewportBackdrop } from "@/components/tap/card-surface-viewport-backdrop";
 import { PremiumIcon } from "@/components/design/premium-icon";
@@ -17,9 +17,10 @@ import { resolveNavigationVisualRef } from "@/lib/fusion/creative-studio/navigat
 import {
   destinationPolicyForElement,
   ensureExperienceSession,
+  announceExperienceReturnContext,
   prepareExternalAnchor,
   preserveExperienceReturnContext,
-  readExperienceReturnContext,
+  validExperienceReturnContext,
 } from "@/lib/fusion/card/destination-opening-policy";
 import {
   resolveExperienceNavigationComposition,
@@ -83,6 +84,7 @@ export function TapConnectExperience({
     : navigationIsFloating
       ? "calc(4.75rem + env(safe-area-inset-bottom, 0px))"
       : "calc(4rem + env(safe-area-inset-bottom, 0px))";
+  const activePageHasNavEntry = navPages.some((page) => (page.navDestinationPageId || page.pageId) === activePage?.pageId);
 
   const selectPage = useCallback((pageId: string, source: "nav" | "action" | "cta" = "nav") => {
     if (!experience) return;
@@ -120,7 +122,15 @@ export function TapConnectExperience({
       if (!target) return;
       if (controlledPageId == null) setUncontrolledPageId(target.pageId);
       onActivePageChange?.(target.pageId);
-      window.setTimeout(() => window.scrollTo({ top: Number(event.state?.tapScrollY) || 0, behavior: "instant" }), 0);
+      window.setTimeout(() => {
+        const saved = validExperienceReturnContext(experience.experienceId);
+        if (saved && saved.pageId === target.pageId && saved.url === window.location.href) {
+          announceExperienceReturnContext(saved);
+          window.scrollTo({ top: saved.scrollY, behavior: "instant" });
+          return;
+        }
+        window.scrollTo({ top: Number(event.state?.tapScrollY) || 0, behavior: "instant" });
+      }, 0);
     };
     window.addEventListener("popstate", onPopState);
     return () => window.removeEventListener("popstate", onPopState);
@@ -129,14 +139,22 @@ export function TapConnectExperience({
   useEffect(() => {
     if (!experience) return;
     ensureExperienceSession(experience.experienceId);
-    const onPageShow = () => {
-      const saved = readExperienceReturnContext(experience.experienceId);
+    const restoreReturnContext = () => {
+      const saved = validExperienceReturnContext(experience.experienceId);
       if (saved && saved.pageId === activePage?.pageId && saved.url === window.location.href) {
+        announceExperienceReturnContext(saved);
         window.scrollTo({ top: saved.scrollY, behavior: "instant" });
       }
     };
-    window.addEventListener("pageshow", onPageShow);
-    return () => window.removeEventListener("pageshow", onPageShow);
+    const onVisibilityChange = () => { if (document.visibilityState === "visible") restoreReturnContext(); };
+    window.addEventListener("pageshow", restoreReturnContext);
+    window.addEventListener("focus", restoreReturnContext);
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => {
+      window.removeEventListener("pageshow", restoreReturnContext);
+      window.removeEventListener("focus", restoreReturnContext);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+    };
   }, [activePage?.pageId, experience]);
 
   const handleDestinationCapture = useCallback((event: MouseEvent<HTMLDivElement>) => {
@@ -157,6 +175,8 @@ export function TapConnectExperience({
       pageId: activePage.pageId,
       pageSlug: activePage.slug,
       selectedContentId: element.dataset.locationId || element.dataset.actionId || element.dataset.immersiveContentId,
+      selectedLocationId: element.dataset.locationId,
+      actionId: element.dataset.actionId || element.dataset.mapAssociatedAction || element.dataset.immersiveContentId,
     });
     if (policy === "external" && element instanceof HTMLAnchorElement) prepareExternalAnchor(element);
   }, [activePage, experience, selectPage]);
@@ -185,6 +205,7 @@ export function TapConnectExperience({
       onClickCapture={handleDestinationCapture}
     >
       {viewportBackdrop ? <CardSurfaceViewportBackdrop config={pageConfig} viewportFixed /> : null}
+      {activePage.pageId !== experience.defaultPageId && !activePageHasNavEntry ? <button type="button" onClick={() => selectPage(experience.defaultPageId, "nav")} className="fixed left-3 z-[1190] inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/14 bg-[#080b10]/88 px-3 text-[10px] font-semibold text-white/78 shadow-xl backdrop-blur-xl" style={{ bottom: `calc(${navigationClearance} + .5rem)` }} data-testid="experience-return-home"><ArrowLeft className="h-3.5 w-3.5" />Back to Experience</button> : null}
       <div className="relative z-[var(--experience-shell-content-z)]" key={activePage.pageId} data-testid={`experience-page-${activePage.pageId}`} data-page-transition="instant-preserve-session">
         {locked ? <LockedPage page={activePage} onNavigate={(pageId) => selectPage(pageId, "cta")} /> : <TapConnectCard
           config={pageConfig}

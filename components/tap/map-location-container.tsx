@@ -18,6 +18,7 @@ import {
   type MapLocationItem,
 } from "@/lib/fusion/card/designer-elements";
 import { cn } from "@/lib/utils";
+import { EXPERIENCE_RETURN_CONTEXT_EVENT, type ExperienceReturnContext } from "@/lib/fusion/card/destination-opening-policy";
 
 const CATEGORY_ICON: Record<MapLocationCategory, string> = {
   venue: "map",
@@ -55,6 +56,16 @@ export function MapLocationContainer({ props, editMode = false }: { props: MapEl
   const surface = props.mapSurfaceTreatment || "glass";
   const embedHref = selected ? buildMapEmbedHref(selected, typeof props.zoom === "number" ? props.zoom : undefined) : undefined;
   const directionsHref = selected ? buildLocationItemHref(selected, props.mapOpenApp || "default") : undefined;
+
+  useEffect(() => {
+    const restoreSelection = (event: Event) => {
+      const context = (event as CustomEvent<ExperienceReturnContext>).detail;
+      const locationId = context?.selectedLocationId || context?.selectedContentId;
+      if (locationId && locations.some((item) => item.locationId === locationId)) setSelectedId(locationId);
+    };
+    window.addEventListener(EXPERIENCE_RETURN_CONTEXT_EVENT, restoreSelection);
+    return () => window.removeEventListener(EXPERIENCE_RETURN_CONTEXT_EVENT, restoreSelection);
+  }, [locations]);
 
   if (!selected) return <MapFallback props={props} editMode={editMode} />;
 
@@ -199,6 +210,7 @@ function MapAssociatedAction({ action, editMode }: { action: ReturnType<typeof n
     data-internal-page-id={internalPageId}
     data-destination-policy={internalPageId ? "internal" : "external"}
     data-map-associated-action={action.actionId}
+    data-action-id={action.actionId}
     data-analytics-id={action.analyticsId || action.actionId}
     target={!internalPageId && href?.startsWith("http") ? "_blank" : undefined}
     rel={!internalPageId && href?.startsWith("http") ? "noopener noreferrer" : undefined}
