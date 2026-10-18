@@ -85,6 +85,16 @@ export function TapConnectExperience({
       ? "calc(4.75rem + env(safe-area-inset-bottom, 0px))"
       : "calc(4rem + env(safe-area-inset-bottom, 0px))";
   const activePageHasNavEntry = navPages.some((page) => (page.navDestinationPageId || page.pageId) === activePage?.pageId);
+  const priorPageRef = typeof window !== "undefined" && typeof window.history.state?.tapExperiencePreviousPageId === "string"
+    ? window.history.state.tapExperiencePreviousPageId
+    : null;
+  const priorPage = experience ? resolveExperiencePage(experience, priorPageRef) : null;
+  const returnPageId = priorPage
+    && priorPage.pageId !== activePage?.pageId
+    && priorPage.pageVisible
+    && priorPage.access?.lockedBehavior?.mode !== "hidden"
+    ? priorPage.pageId
+    : experience?.defaultPageId;
 
   const selectPage = useCallback((pageId: string, source: "nav" | "action" | "cta" = "nav") => {
     if (!experience) return;
@@ -105,7 +115,13 @@ export function TapConnectExperience({
         url.searchParams.delete("page");
       } else if (nextPageId === experience.defaultPageId) url.searchParams.delete("page");
       else url.searchParams.set("page", nextPageId);
-      window.history.pushState({ ...(window.history.state ?? {}), tapExperiencePageId: nextPageId, tapScrollY: 0, source }, "", url);
+      window.history.pushState({
+        ...(window.history.state ?? {}),
+        tapExperiencePageId: nextPageId,
+        tapExperiencePreviousPageId: activePage?.pageId,
+        tapScrollY: 0,
+        source,
+      }, "", url);
       window.scrollTo({ top: 0, behavior: "instant" });
     }
   }, [activePage?.pageId, controlledPageId, experience, onActivePageChange, onNotify, routeBasePath, routingMode]);
@@ -205,7 +221,7 @@ export function TapConnectExperience({
       onClickCapture={handleDestinationCapture}
     >
       {viewportBackdrop ? <CardSurfaceViewportBackdrop config={pageConfig} viewportFixed /> : null}
-      {activePage.pageId !== experience.defaultPageId && !activePageHasNavEntry ? <button type="button" onClick={() => selectPage(experience.defaultPageId, "nav")} className="fixed left-3 z-[1190] inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/14 bg-[#080b10]/88 px-3 text-[10px] font-semibold text-white/78 shadow-xl backdrop-blur-xl" style={{ bottom: `calc(${navigationClearance} + .5rem)` }} data-testid="experience-return-home"><ArrowLeft className="h-3.5 w-3.5" />Back to Experience</button> : null}
+      {activePage.pageId !== experience.defaultPageId && !activePageHasNavEntry ? <button type="button" onClick={() => selectPage(returnPageId || experience.defaultPageId, "nav")} className="fixed left-3 z-[1190] inline-flex min-h-10 items-center gap-1.5 rounded-full border border-white/14 bg-[#080b10]/88 px-3 text-[10px] font-semibold text-white/78 shadow-xl backdrop-blur-xl" style={{ bottom: `calc(${navigationClearance} + .5rem)` }} data-testid="experience-return-home" data-return-page-id={returnPageId || experience.defaultPageId}><ArrowLeft className="h-3.5 w-3.5" />Back to Experience</button> : null}
       <div className="relative z-[var(--experience-shell-content-z)]" key={activePage.pageId} data-testid={`experience-page-${activePage.pageId}`} data-page-transition="instant-preserve-session">
         {locked ? <LockedPage page={activePage} onNavigate={(pageId) => selectPage(pageId, "cta")} /> : <TapConnectCard
           config={pageConfig}

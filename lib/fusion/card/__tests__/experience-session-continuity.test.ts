@@ -20,6 +20,8 @@ describe("Experience session continuity", () => {
 
   it("keeps internal routing, external safety, and hidden-Page recovery in one Experience shell", () => {
     assert.match(experienceSource, /window\.history\.pushState/);
+    assert.match(experienceSource, /tapExperiencePreviousPageId: activePage\?\.pageId/);
+    assert.match(experienceSource, /data-return-page-id=\{returnPageId \|\| experience\.defaultPageId\}/);
     assert.match(experienceSource, /prepareExternalAnchor\(element\)/);
     assert.match(experienceSource, /Back to Experience/);
     assert.match(publicSource, /<TapConnectCardPublic/);
