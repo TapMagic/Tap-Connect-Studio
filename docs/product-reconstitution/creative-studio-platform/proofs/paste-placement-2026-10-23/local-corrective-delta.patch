@@ -1,0 +1,439 @@
+--- a/lib/fusion/card/composition-parent-authority.ts
++++ b/lib/fusion/card/composition-parent-authority.ts
+@@ -1,3 +1,5 @@
++import { expandSelectionToGroups } from "../creative-studio/composition";
++import { isGroupContentScope } from "../creative-studio/group-authority";
+ import { nanoid } from "nanoid";
+ import { isLayeredCompositionParent, layeredCompositionParentSizePx, layeredParentRotation } from "../creative-studio/platform/layered-region";
+ import type {
+@@ -266,7 +268,7 @@
+   version: 1;
+   rootId: string;
+   rootIds?: string[];
+-  sourceParent?: { widthPx: number; heightPx: number; rotationDeg: number; layered: boolean };
++  sourceParent?: { id?: string | null; blockId?: string; widthPx: number; heightPx: number; rotationDeg: number; layered: boolean };
+   label: string;
+   nodes: CreativeCompositionNode[];
+   groups: CreativeCompositionGroup[];
+@@ -280,8 +282,14 @@
+   renderedFrames?: Record<string, { widthPx: number; heightPx: number }>,
+ ): CompositionNodeClipboardPayload | null {
+   if (!hasCompositionParentAuthority(block)) return null;
+-  const requested = new Set(Array.isArray(nodeId) ? nodeId : [nodeId]);
++  const ids = Array.isArray(nodeId) ? nodeId : [nodeId];
++  const parentScopeIds = ids.filter((id) => {
++    const node = block.nodes.find((candidate) => candidate.id === id);
++    return node && !node.props.groupContentEditing && !isGroupContentScope(block.nodes, node.groupId);
++  });
++  const requested = new Set([...ids, ...expandSelectionToGroups(block.nodes, parentScopeIds)]);
+   const roots = block.nodes.filter((node) => requested.has(node.id) && !(() => { let id = node.parentId; while (id) { if (requested.has(id)) return true; id = block.nodes.find((n) => n.id === id)?.parentId; } return false; })());
++  roots.sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
+   const root = roots[0];
+   if (!root || roots.some((node) => node.parentId !== root.parentId)) return null;
+   const included = new Set<string>(roots.map((node) => node.id));
+@@ -299,7 +307,7 @@
+     version: 1,
+     rootId: root.id,
+     rootIds: roots.map((node) => node.id),
+-    sourceParent: { ...(parentSize ?? layeredCompositionParentSizePx(block, root.parentId ?? null)), rotationDeg: layeredParentRotation(block, root.parentId ?? null), layered: isLayeredCompositionParent(block, root.parentId ?? null) },
++    sourceParent: { id: root.parentId ?? null, blockId: block.id, ...(parentSize ?? layeredCompositionParentSizePx(block, root.parentId ?? null)), rotationDeg: layeredParentRotation(block, root.parentId ?? null), layered: isLayeredCompositionParent(block, root.parentId ?? null) },
+     label: roots.length > 1 ? `${roots.length} objects` : root.name || (root.compositionKind === "container" ? "Container" : "Module"),
+     nodes: structuredClone(ordered.map((node) => {
+       const frame = renderedFrames?.[node.id];
+@@ -324,6 +332,7 @@
+   if (!sourceRoot) return { ok: false, issues: [{ code: "invalid_parent", message: "The copied composition object is incomplete." }] };
+   const rootIds = new Set(payload.rootIds ?? [payload.rootId]);
+   const roots = payload.nodes.filter((node) => rootIds.has(node.id));
++  if (!roots.length || roots.some((node) => ![node.x, node.y, node.width, node.height].every(Number.isFinite) || node.width <= 0 || node.height <= 0)) return { ok: false, issues: [{ code: "invalid_parent", message: "The copied selection has invalid geometry. Copy it again before pasting." }] };
+   const notices: string[] = [];
+   const size = destinationSize ?? layeredCompositionParentSizePx(block, parentId);
+   const sourceSize = payload.sourceParent ?? size;
+@@ -333,14 +342,22 @@
+   const frames = roots.map((node) => {
+     const cx = (node.x + node.width / 2) * sourceSize.widthPx, cy = (node.y + node.height / 2) * sourceSize.heightPx;
+     const width = node.width * sourceSize.widthPx, height = node.height * sourceSize.heightPx;
+-    return { id: node.id, x: cx * Math.cos(angle) - cy * Math.sin(angle) - width / 2, y: cx * Math.sin(angle) + cy * Math.cos(angle) - height / 2, width, height };
++    const x = cx * Math.cos(angle) - cy * Math.sin(angle) - width / 2;
++    const y = cx * Math.sin(angle) + cy * Math.cos(angle) - height / 2;
++    const localAngle = destinationLayered ? ((payload.sourceParent?.layered === false ? 0 : node.rotationDeg || 0) + rotation) * Math.PI / 180 : 0;
++    const boundsWidth = Math.max(width, Math.abs(width * Math.cos(localAngle)) + Math.abs(height * Math.sin(localAngle)));
++    const boundsHeight = Math.max(height, Math.abs(width * Math.sin(localAngle)) + Math.abs(height * Math.cos(localAngle)));
++    return { id: node.id, x, y, width, height, left: x + (width - boundsWidth) / 2, top: y + (height - boundsHeight) / 2, right: x + (width + boundsWidth) / 2, bottom: y + (height + boundsHeight) / 2 };
+   });
+-  const left = Math.min(...frames.map((f) => f.x)), top = Math.min(...frames.map((f) => f.y));
+-  const width = Math.max(...frames.map((f) => f.x + f.width)) - left;
+-  const height = Math.max(...frames.map((f) => f.y + f.height)) - top;
++  const left = Math.min(...frames.map((f) => f.left)), top = Math.min(...frames.map((f) => f.top));
++  const width = Math.max(...frames.map((f) => f.right)) - left;
++  const height = Math.max(...frames.map((f) => f.bottom)) - top;
+   const fit = destinationLayered ? Math.min(1, size.widthPx / width, size.heightPx / height) : Math.min(1, size.widthPx / width);
+-  const originX = Math.max(0, Math.min(size.widthPx - width * fit, left + 12));
+-  const originY = Math.max(0, Math.min(size.heightPx - height * fit, top + 12));
++  const sameParent = payload.sourceParent?.blockId === block.id && payload.sourceParent.id === parentId;
++  // A new destination has its own origin. Never interpret a source page Y as
++  // destination placement. Repeated paste uses the immutable payload, not the last copy.
++  const originX = Math.max(0, Math.min(size.widthPx - width * fit, sameParent ? left + 12 : 12));
++  const originY = Math.max(0, Math.min(size.heightPx - height * fit, sameParent ? top + 12 : 12));
+   if (fit < 1) notices.push(`Pasted at ${Math.round(fit * 100)}% to fit this parent; relative sizes and spacing were scaled together. Resize the parent for more space.`);
+   if (!destinationLayered && payload.sourceParent?.layered) notices.push("Pasted into Flow: layout order controls positioning; Layered placement is retained for a reversible return.");
+   const idMap = new Map(payload.nodes.map((node) => [node.id, `${node.compositionKind === "container" ? "container" : "module"}-${nanoid(8)}`]));
+@@ -369,8 +386,10 @@
+       Object.assign(copied, { x: (originX + (frame.x - left) * fit) / size.widthPx, y: (originY + (frame.y - top) * fit) / size.heightPx,
+         width: frame.width * fit / size.widthPx, height: frame.height * fit / size.heightPx, rotationDeg: (payload.sourceParent?.layered === false ? 0 : source.rotationDeg || 0) + rotation });
+     }
+-    if (isRoot && frame && !destinationLayered && copied.primitive === "image") {
+-      copied.props = { ...copied.props, flowWidthPercent: frame.width * fit / size.widthPx * 100, flowAlignment: "start" };
++    if (isRoot && frame && !destinationLayered) {
++      const percent = frame.width * fit / size.widthPx * 100;
++      copied.props = { ...copied.props, flowWidthPercent: percent, flowAlignment: "start",
++        ...(copied.compositionKind === "container" ? { widthPercent: percent } : {}) };
+       copied.minHeightPx = frame.height * fit;
+     }
+     const added = copied.compositionKind === "container"
+@@ -703,3 +722,52 @@
+     },
+   };
+ }
++
++/** Explicit fit command for Flow content inside a bounded Placement frame.
++ * Renderer observations supply required height; parent authority owns the mutation.
++ * Grow ancestor planes while retaining every existing child's physical placement.
++ */
++export function expandFlowPasteDestination(
++  block: CreativeCompositionBlock,
++  parentId: string,
++  requiredOuterHeightPx: number,
++  sizeOf: (parentId: string | null) => { widthPx: number; heightPx: number },
++): CompositionAuthorityResult {
++  let next = block;
++  let id: string | null = parentId;
++  let required = Math.ceil(requiredOuterHeightPx);
++  while (id !== null) {
++    const node = next.nodes.find((candidate) => candidate.id === id);
++    if (!node || node.compositionKind !== "container" || node.locked) return { ok: false, issues: [{ code: "invalid_parent", message: "Resize or unlock the destination Container before pasting." }] };
++    const parent = node.parentId ?? null;
++    const size = sizeOf(parent);
++    const absolute = isLayeredCompositionParent(next, parent);
++    const oldContent = sizeOf(node.id).heightPx;
++    const padding = Math.max(0, Number(node.props.padding) || 0) * 2;
++    const oldHeight = absolute ? node.height * size.heightPx : oldContent + padding;
++    const height = Math.max(oldHeight, required);
++    const newContent = Math.max(1, height - padding);
++    next = { ...next, nodes: next.nodes.map((candidate) => candidate.id === id
++      ? absolute ? { ...candidate, height: height / size.heightPx } : { ...candidate, props: { ...candidate.props, ...(candidate.props.contentFit === "fixed" ? { heightPx: height } : { minHeightPx: height }) } }
++      : candidate.parentId === id && isLayeredCompositionParent(next, id)
++        ? { ...candidate, y: candidate.y * oldContent / newContent, height: candidate.height * oldContent / newContent }
++        : candidate) };
++    if (!absolute) break; // Auto Flow ancestors participate in native reflow.
++    const angle = (Number(node.rotationDeg) || 0) * Math.PI / 180;
++    const rotatedHeight = Math.abs(node.width * size.widthPx * Math.sin(angle)) + Math.abs(height * Math.cos(angle));
++    const bottom = node.y * size.heightPx + height / 2 + rotatedHeight / 2;
++    if (bottom <= size.heightPx) break;
++    if (parent === null) {
++      const newHeight = Math.ceil(bottom + 12);
++      if (newHeight > 1600) return { ok: false, issues: [{ code: "invalid_parent", message: "This paste would exceed the 1600px Layered page limit. Choose another Container or reduce the copied selection." }] };
++      next = { ...next, compositionMode: { ...next.compositionMode!, layeredHeightPx: newHeight },
++        explicitMinimumHeightPx: Math.max(next.explicitMinimumHeightPx ?? 0, newHeight + (next.safeAreaPaddingPx ?? 12) * 2),
++        nodes: next.nodes.map((candidate) => candidate.parentId == null ? { ...candidate, y: candidate.y * size.heightPx / newHeight, height: candidate.height * size.heightPx / newHeight } : candidate) };
++      break;
++    }
++    const ancestor = next.nodes.find((candidate) => candidate.id === parent)!;
++    required = bottom + Math.max(0, Number(ancestor.props.padding) || 0) * 2;
++    id = parent;
++  }
++  return commit(next);
++}
+--- a/lib/fusion/creative-studio/platform/layered-region.ts
++++ b/lib/fusion/creative-studio/platform/layered-region.ts
+@@ -63,7 +63,7 @@
+     : node.moduleComposition?.signatureAssembly && Number.isFinite(nestedHeightPx)
+     ? node.width * parentWidthPx * (nestedHeightPx / 390)
+     : Math.max(20, Number(node.props.visualHeightPx) || Number(node.minHeightPx) || 44);
+-  return clamp(visualHeightPx / parentHeightPx, .015, .9);
++  return clamp(visualHeightPx / parentHeightPx, .015, 1);
+ }
+ 
+ export function setLayeredPlacementFrameHeightMode(
+--- a/components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx
++++ b/components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx
+@@ -1,6 +1,6 @@
+ "use client";
+ 
+-import { readRenderedCompositionFrames, readRenderedLayeredParentSize } from "@/components/fusion/creative-studio/use-layered-parent-size";
++import { readFlowPasteOverflow, revealCompositionSelection, readRenderedCompositionFrames, readRenderedLayeredParentSize } from "@/components/fusion/creative-studio/use-layered-parent-size";
+ import { editableControlOwnsKeyboard, studioEditableOwner } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
+ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
+ import { useRouter } from "next/navigation";
+@@ -47,7 +47,7 @@
+ import { studioAddCatalogAdapter } from "@/lib/fusion/creative-studio/reconstitution/studio-catalog-adapters";
+ import { useSharedMediaBrowser } from "@/components/media/shared-media-browser-provider";
+ import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
+-import { compositionChildren, copyCompositionNodeSubtree, pasteCompositionNodeSubtree, type CompositionNodeClipboardPayload } from "@/lib/fusion/card/composition-parent-authority";
++import { expandFlowPasteDestination, compositionChildren, copyCompositionNodeSubtree, pasteCompositionNodeSubtree, type CompositionNodeClipboardPayload } from "@/lib/fusion/card/composition-parent-authority";
+ import { expandSelectionToGroups, type AlignMode, type CreativeCompositionBlock } from "@/lib/fusion/creative-studio/composition";
+ import { synchronizeCompositionGroups, groupCompositionBlock, groupMembers, resolveActiveGroupId, ungroupCompositionBlock } from "@/lib/fusion/creative-studio/group-authority";
+ import { StudioPagesManager } from "./studio-pages-manager";
+@@ -104,6 +104,13 @@
+   const [sessionRestored, setSessionRestored] = useState(false);
+   const [pendingPostInsert, setPendingPostInsert] = useState<{ id: string; refine: "button" | "composition" | "curated" } | null>(null);
+   const [compositionClipboard, setCompositionClipboard] = useState<CompositionNodeClipboardPayload | null>(null);
++  const [pasteReview, setPasteReview] = useState<null | {
++    result: Extract<ReturnType<typeof pasteCompositionNodeSubtree>, { ok: true }>;
++    parentId: string | null; targetLabel: string; label: string; previousIds: string[];
++    expansion?: ReturnType<typeof expandFlowPasteDestination>; explanation?: string;
++  }>(null);
++  const pasteDialog = useRef<HTMLDialogElement | null>(null);
++  const lastPaste = useRef<{ parentId: string | null; ids: string[] } | null>(null);
+   const [workspaceWidth, setWorkspaceWidth] = useState(1440);
+   const consumedCatalogBoundary = useRef<"open" | "close" | null>(null);
+   const sharedMediaBrowser = useSharedMediaBrowser();
+@@ -312,21 +319,63 @@
+     }
+     setCompositionClipboard(payload);
+     void navigator.clipboard?.writeText(`tapconnect-studio-selection:${payload.rootIds?.join(",") ?? payload.rootId}`).catch(() => liveModel.notify?.("Clipboard permission unavailable. Use the Studio Paste button."));
+-    liveModel.notify?.(`Copied ${payload.label}. Open another Page and choose Paste.`);
+-  };
++    lastPaste.current = null;
++    liveModel.notify?.(`Copied ${payload.label}. Select a destination Container or a sibling, then Paste.`);
++  };
++
++  const finishPaste = (review: NonNullable<typeof pasteReview>, expand = false) => {
++    if (!liveModel) return;
++    const candidate = expand && review.expansion?.ok ? review.expansion.block : review.result.block;
++    liveModel.previewCompositionBlock?.(synchronizeCompositionGroups(candidate));
++    liveModel.commitLiveAdjustment?.(`Pasted ${review.label}${expand ? " and expanded destination" : ""}`);
++    const ids = review.result.selectedNodeIds ?? [];
++    liveModel.setSelectedId(null);
++    liveModel.setSelectedCompositionNodeIds?.(ids);
++    lastPaste.current = { parentId: review.parentId, ids };
++    setPasteReview(null);
++    liveModel.notify?.(`Pasted ${review.label} into ${review.targetLabel}. ${expand ? "Container and required ancestor bounds expanded. " : ""}${(review.result.notices ?? []).join(" ")}`);
++    requestAnimationFrame(() => revealCompositionSelection(candidate.id, ids));
++  };
++  const cancelPaste = () => {
++    pasteDialog.current?.close();
++    liveModel?.cancelLiveAdjustment?.();
++    liveModel?.setSelectedCompositionNodeIds?.(pasteReview?.previousIds ?? []);
++    setPasteReview(null);
++    liveModel?.notify?.("Paste cancelled. Choose a different Container or adjust its Position bounds before pasting.");
++  };
++  useLayoutEffect(() => {
++    if (!pasteReview || !liveModel?.config.rootComposition) return;
++    if (pasteReview.explanation) { pasteDialog.current?.showModal(); return; }
++    const block = liveModel.config.rootComposition;
++    if (!pasteReview.result.selectedNodeIds?.every((id) => block.nodes.some((node) => node.id === id))) return;
++    const overflow = readFlowPasteOverflow(block, pasteReview.parentId);
++    if (!overflow) { finishPaste(pasteReview); return; }
++    const expansion = expandFlowPasteDestination(block, overflow.parentId, overflow.requiredHeightPx, (id) => readRenderedLayeredParentSize(block, id));
++    liveModel.cancelLiveAdjustment?.();
++    setPasteReview({ ...pasteReview, expansion, explanation: `${overflow.name} uses Flow inside a ${Math.round(overflow.heightPx)}px Placement frame. Its content needs ${Math.ceil(overflow.requiredHeightPx)}px after this paste. Expand the Container and required ancestor bounds to keep it visible, or cancel and choose another destination. Existing objects retain their physical size and placement.` });
++  // The candidate is measured only after the canonical preview reaches the renderer.
++  // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [pasteReview, liveModel?.config.rootComposition]);
+ 
+   const pasteCopiedComposition = () => {
+     const root = liveModel?.config.rootComposition;
+-    if (!liveModel || !root || !compositionClipboard || !placementContext) return;
+-    const result = pasteCompositionNodeSubtree(root, compositionClipboard, placementContext.parentId, placementContext.insertionIndex, readRenderedLayeredParentSize(root, placementContext.parentId));
+-    if (!result.ok) {
+-      liveModel.notify?.(result.issues.map((issue) => issue.message).join(" "));
++    if (!liveModel || !root || !compositionClipboard || pasteReview) return;
++    const parents = new Set(selectedCompositionIds.map((id) => root.nodes.find((node) => node.id === id)?.parentId ?? null));
++    if (!placementContext || parents.size > 1 || selectedCompositionIds.some((id) => !root.nodes.some((node) => node.id === id)) || liveModel.selectedObject?.type === "section") {
++      liveModel.notify?.("Choose one destination: select a Container to paste inside it, a child to paste after it, or Card Surface for the page.");
++      dispatch({ type: "OPEN_RAIL", railId: "layers" });
+       return;
+     }
+-    liveModel.patchConfig({ rootComposition: synchronizeCompositionGroups(result.block) }, `Pasted ${compositionClipboard.label}`);
+-    liveModel.setSelectedId(null);
+-    liveModel.setSelectedCompositionNodeIds?.(result.selectedNodeIds ?? (result.selectedNodeId ? [result.selectedNodeId] : []));
+-    liveModel.notify?.(`Pasted ${compositionClipboard.label} into ${placementContext.targetLabel}. ${(result.notices ?? []).join(" ")}`);
++    const repeat = lastPaste.current && selectedCompositionIds.length === lastPaste.current.ids.length && selectedCompositionIds.every((id) => lastPaste.current!.ids.includes(id));
++    const parentId = repeat ? lastPaste.current!.parentId : placementContext.parentId;
++    const siblings = compositionChildren(root, parentId);
++    const insertionIndex = repeat ? Math.max(...selectedCompositionIds.map((id) => siblings.findIndex((node) => node.id === id))) + 1 : placementContext.insertionIndex;
++    const targetLabel = parentId ? root.nodes.find((node) => node.id === parentId)?.name || "Container" : "Card Surface";
++    const result = pasteCompositionNodeSubtree(root, compositionClipboard, parentId, insertionIndex, readRenderedLayeredParentSize(root, parentId));
++    if (!result.ok) { liveModel.notify?.(result.issues.map((issue) => issue.message).join(" ")); return; }
++    liveModel.beginLiveAdjustment?.();
++    liveModel.previewCompositionBlock?.(synchronizeCompositionGroups(result.block));
++    setPasteReview({ result, parentId, targetLabel, label: compositionClipboard.label, previousIds: [...selectedCompositionIds] });
+   };
+ 
+   const openLiveDevice = useCallback(() => {
+@@ -685,6 +734,7 @@
+     "--studio-semantic-destructive": STUDIO_SEMANTIC_UI.destructive.color,
+   } as CSSProperties;
+   const handleClipboardShortcut = (event: ReactKeyboardEvent<HTMLDivElement>) => {
++    if (pasteReview) return;
+     if (studioMode !== "edit" || !(event.metaKey || event.ctrlKey) || event.altKey) return;
+     if (editableControlOwnsKeyboard(event.nativeEvent)) return;
+     if (event.key.toLowerCase() === "c" && selectedCanonicalNode) {
+@@ -706,7 +756,7 @@
+       data-task-surface={choreography.taskSurface}
+       onKeyDownCapture={handleClipboardShortcut}
+       onPasteCapture={(event) => {
+-        if (studioMode !== "edit" || studioEditableOwner(event.target) || !compositionClipboard) return;
++        if (pasteReview || studioMode !== "edit" || studioEditableOwner(event.target) || !compositionClipboard) return;
+         if ([...event.clipboardData.items].some((item) => item.type.startsWith("image/"))) return;
+         const token = `tapconnect-studio-selection:${compositionClipboard.rootIds?.join(",") ?? compositionClipboard.rootId}`;
+         if (event.clipboardData.getData("text/plain") !== token) return;
+@@ -720,7 +770,7 @@
+         <button type="button" onClick={() => { if (!liveModel?.experience) liveModel?.ensureExperience?.(); setPagesOpen(true); }} className={headerButton} aria-label="Pages" aria-expanded={pagesOpen} data-testid="studio-pages-open"><FileText className="h-4 w-4" /><span className="hidden lg:inline">Pages</span></button>
+         <button type="button" disabled={!liveModel} onClick={openCardSurfaceAppearance} className={headerButton} aria-label="Open Card Surface appearance" data-testid="studio-card-surface-open"><Layers3 className="h-4 w-4" /><span className="hidden lg:inline">Surface</span></button>
+         <button type="button" disabled={!selectedCanonicalNode || !selectedBlock} onClick={copySelectedComposition} className={headerButton} aria-label="Copy selected Module or Container" title="Copy selected (⌘C)" data-testid="studio-copy-selection"><Copy className="h-4 w-4" /><span className="hidden xl:inline">Copy</span></button>
+-        <button type="button" disabled={!compositionClipboard || !liveModel?.config.rootComposition} onClick={pasteCopiedComposition} className={headerButton} aria-label="Paste copied Module or Container" title="Paste into this Page (⌘V)" data-testid="studio-paste-selection"><ClipboardPaste className="h-4 w-4" /><span className="hidden xl:inline">Paste</span></button>
++        <button type="button" disabled={!compositionClipboard || !liveModel?.config.rootComposition} onClick={pasteCopiedComposition} className={headerButton} aria-label="Paste copied Module or Container" title={`Paste into ${placementContext?.targetLabel ?? "selected destination"} (⌘V)`} data-testid="studio-paste-selection"><ClipboardPaste className="h-4 w-4" /><span className="hidden xl:inline">Paste</span></button>
+         <button type="button" disabled={!status.canUndo} onClick={() => apiRef.current?.undo()} className={headerButton} aria-label="Undo"><Undo2 className="h-4 w-4" /></button>
+         <button type="button" disabled={!status.canRedo} onClick={() => apiRef.current?.redo()} className={headerButton} aria-label="Redo"><Redo2 className="h-4 w-4" /></button>
+         <button type="button" aria-label={compositionSelectionMode === "multiple" ? `Cancel Select Multiple · ${selectedCompositionIds.length} selected` : "Select multiple"} aria-pressed={compositionSelectionMode === "multiple"} onClick={() => compositionSelectionMode === "multiple" ? cancelMultipleSelection() : setCompositionSelectionMode("multiple")} className={cn(headerButton, "hidden md:inline-flex", compositionSelectionMode === "multiple" && "bg-[#8bdcff]/14 text-[#c9efff]")} data-testid="studio-select-multiple"><ListChecks className="h-4 w-4" /><span>{compositionSelectionMode === "multiple" ? `${selectedCompositionIds.length} selected` : "Select multiple"}</span></button>
+@@ -811,6 +861,15 @@
+           <StudioSelectionInspector model={liveModel} node={selectedButton} section={inspectorSection} onSectionChange={setInspectorSection} brandPrimary={brandPreviewContext.primaryColor || brandPreviewContext.accentColor || "#b8ff2c"} onClose={closeContextualSurface} />
+         ) : null}
+ 
++        <dialog ref={pasteDialog} onCancel={(event) => { event.preventDefault(); cancelPaste(); }} aria-labelledby="paste-destination-title" className="fixed inset-0 m-auto max-h-[85dvh] w-[min(440px,calc(100vw-24px))] overflow-auto rounded-2xl border border-white/20 bg-[#0b111b] p-5 text-white shadow-2xl backdrop:bg-black/70" onKeyDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
++          <h2 id="paste-destination-title" className="text-base font-semibold">Make room in {pasteReview?.targetLabel}</h2>
++          <p className="my-4 text-sm leading-relaxed text-white/75">{pasteReview?.explanation}</p>
++          {pasteReview?.expansion && !pasteReview.expansion.ok ? <p role="alert" className="mb-4 text-sm text-amber-200">{pasteReview.expansion.issues.map((issue) => issue.message).join(" ")}</p> : null}
++          <div className="flex flex-wrap justify-end gap-2">
++            <button type="button" onClick={() => { pasteDialog.current?.close(); cancelPaste(); }} className="min-h-11 rounded-lg border border-white/20 px-4">Cancel paste</button>
++            <button type="button" disabled={!pasteReview?.expansion?.ok} onClick={() => { if (pasteReview) { finishPaste(pasteReview, true); pasteDialog.current?.close(); } }} className="min-h-11 rounded-lg bg-[#b8ff2c] px-4 font-semibold text-black disabled:opacity-40">Expand and paste</button>
++          </div>
++        </dialog>
+         {liveDeviceInitialized ? <div className={cn("absolute inset-0 z-[3200] justify-end bg-black/58 backdrop-blur-[2px]", liveDeviceOpen ? "flex" : "hidden")} data-testid="live-device-dock" aria-hidden={!liveDeviceOpen} onPointerDown={(event) => { if (event.target === event.currentTarget) { setLiveDeviceOpen(false); finishTask(); } }}><section id="studio-live-device-panel" role="dialog" aria-modal="true" aria-labelledby="studio-live-device-title" className="flex h-full w-[min(430px,calc(100vw-12px))] flex-col overflow-hidden border-l border-white/10 bg-[#090e16] shadow-[-24px_0_70px_rgba(0,0,0,.5)]" data-testid="studio-live-device-panel"><header className="border-b border-white/8 px-4 py-3"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><h2 id="studio-live-device-title" className="text-sm font-semibold">Phone / QR</h2><p className="text-[10px] text-white/48">Draft preview and public credential are separate authorities</p></div><button type="button" onClick={() => { setLiveDeviceOpen(false); finishTask(); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Phone and QR panel"><X className="h-4 w-4" /></button></div><div className="mt-3 grid grid-cols-2 gap-1 rounded-xl border border-white/8 bg-black/20 p-1" role="tablist" aria-label="Phone and QR modes"><button type="button" role="tab" aria-selected={devicePanelTab === "preview"} onClick={() => { setDevicePanelTab("preview"); setViewport("phone"); setLiveDeviceActivation((activation) => activation + 1); }} className="min-h-9 rounded-lg px-3 text-xs text-white/55 aria-selected:bg-white/10 aria-selected:text-white" data-testid="studio-phone-preview-tab">Phone Preview<span className="block text-[8px] opacity-55">Temporary Draft</span></button><button type="button" role="tab" aria-selected={devicePanelTab === "public"} onClick={() => setDevicePanelTab("public")} className="min-h-9 rounded-lg px-3 text-xs text-white/55 aria-selected:bg-[#b8ff2c]/10 aria-selected:text-[#d9ff8e]" data-testid="studio-public-qr-tab">Public QR<span className="block text-[8px] opacity-55">Permanent / published</span></button></div></header><div className="min-h-0 flex-1 overflow-y-auto">{devicePanelTab === "preview" ? <LiveDeviceQrPanel config={liveModel?.experience ? canonicalizeExperienceConfig(liveModel.config, liveModel.activeExperiencePageId) : liveModel?.config || builderProps.initialConfig} profile={builderProps.profile} businessName={builderProps.businessName} cardName={phonePreviewExperienceName} brandKitId={builderProps.brandKitId} logoUrl={builderProps.logoUrl} reviewUrl={builderProps.reviewUrl} revision={devicePreviewRevision} documentId={liveModel?.documentId} currentPage={phonePreviewPage} draftSaved={!status.dirty && !status.saving} activationKey={liveDeviceActivation} /> : <PublicQrCredentialPanel experienceId={liveModel?.documentId ?? status.activeDocumentId} experienceName={phonePreviewExperienceName} />}</div></section></div> : null}
+       </div>
+ 
+--- a/components/fusion/creative-studio/use-layered-parent-size.ts
++++ b/components/fusion/creative-studio/use-layered-parent-size.ts
+@@ -23,7 +23,9 @@
+     .find((element) => element.dataset.compositionId === block.id);
+   const region = canvas && [...canvas.querySelectorAll<HTMLElement>('[data-layered-region="true"]')]
+     .find((element) => element.dataset.layeredRegionId === (parentId ?? "card-surface"));
+-  return region ? renderedLayeredParentSize(region) : layeredCompositionParentSizePx(block, parentId);
++  const flow = parentId === null ? canvas?.querySelector<HTMLElement>('[data-card-surface-flow="true"]')
++    : [...(canvas?.querySelectorAll<HTMLElement>('[data-composition-node]') ?? [])].find((element) => element.dataset.compositionNode === parentId)?.querySelector<HTMLElement>(':scope > [data-container-content]');
++  return region ? renderedLayeredParentSize(region) : flow ? renderedLayeredParentSize(flow) : layeredCompositionParentSizePx(block, parentId);
+ }
+ 
+ export function useLayeredParentSize(block: CreativeCompositionBlock, parentId: string | null) {
+@@ -55,3 +57,29 @@
+     return [element.dataset.compositionNode!, { widthPx: parseFloat(style.width), heightPx: parseFloat(style.height) }];
+   }));
+ }
++
++/** Observe the active destination chain after a canonical paste preview. */
++export function readFlowPasteOverflow(block: CreativeCompositionBlock, parentId: string | null) {
++  const canvas = [...document.querySelectorAll<HTMLElement>('[data-composition-surface="true"][data-edit-mode="true"]')].find((element) => element.dataset.compositionId === block.id);
++  let id = parentId;
++  while (id) {
++    const node = block.nodes.find((candidate) => candidate.id === id);
++    const outer = [...(canvas?.querySelectorAll<HTMLElement>('[data-composition-node]') ?? [])].find((element) => element.dataset.compositionNode === id);
++    const content = outer?.querySelector<HTMLElement>(':scope > [data-container-content]');
++    if (outer && content && content.dataset.containerLayout !== "layered") {
++      const style = getComputedStyle(outer);
++      const height = parseFloat(style.height);
++      const required = Math.max(content.offsetHeight, content.scrollHeight);
++      if (required > height + 1) return { parentId: id, name: node?.name || "Container", heightPx: height, requiredHeightPx: required };
++    }
++    id = node?.parentId ?? null;
++  }
++  return null;
++}
++
++export function revealCompositionSelection(blockId: string, ids: string[]) {
++  const canvas = [...document.querySelectorAll<HTMLElement>('[data-composition-surface="true"][data-edit-mode="true"]')].find((element) => element.dataset.compositionId === blockId);
++  const element = [...(canvas?.querySelectorAll<HTMLElement>('[data-composition-node]') ?? [])].find((element) => ids.includes(element.dataset.compositionNode!));
++  element?.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
++  element?.focus({ preventScroll: true });
++}
+--- a/components/fusion/creative-studio/creative-composition-canvas.tsx
++++ b/components/fusion/creative-studio/creative-composition-canvas.tsx
+@@ -2835,7 +2835,7 @@
+     const rootLayered = isCardSurfaceLayered(flowBlock);
+     const rootDensity = readCardSurfaceDensity(flowBlock);
+     const moduleFrame = (node: CreativeCompositionNode): CSSProperties => {
+-      const width = Math.max(20, Math.min(100, num(node.props.flowWidthPercent, 100)));
++      const width = Math.max(.1, Math.min(100, num(node.props.flowWidthPercent, 100)));
+       const compactGrid = readCompactActionGrid(node.props);
+       if (compactGrid) {
+         const metrics = compactActionGridLayoutMetrics(compactGrid);
+@@ -2852,7 +2852,7 @@
+       const nativeModuleHeight = node.moduleComposition?.pageHeightPx ?? 56;
+       const responsiveModuleHeight = isCuratedAssembly ? nativeModuleHeight * (width / 100) : nativeModuleHeight;
+       const minimumTouchTarget = Math.max(44, num(node.props.minimumTouchTargetPx, 44));
+-      const minHeight = node.moduleComposition ? Math.max(isCuratedAssembly ? minimumTouchTarget : 52, responsiveModuleHeight)
++      const minHeight = node.moduleComposition ? isCuratedAssembly ? minimumTouchTarget : Math.max(52, responsiveModuleHeight)
+         : node.primitive === "text" ? Math.max(32, num(node.props.textMinHeightPx, 40))
+           : node.primitive === "image" ? Math.max(1, node.minHeightPx ?? 180)
+             : node.primitive === "border" ? 12
+@@ -2864,7 +2864,7 @@
+       return {
+         minHeight,
+         height: fixedTextHeight,
+-        aspectRatio: videoAspect,
++        aspectRatio: isCuratedAssembly ? 390 / Math.max(1, nativeModuleHeight) : videoAspect,
+         width: `min(${width}%, calc(100% - ${inset * 2}px))`,
+         alignSelf: alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
+         marginTop: Math.max(0, num(node.props.spacingAbovePx, 0)),
+--- /dev/null
++++ b/lib/fusion/creative-studio/__tests__/paste-placement.test.ts
+@@ -0,0 +1,59 @@
++import assert from 'node:assert/strict';
++import { test } from 'node:test';
++import type { CreativeCompositionBlock, CreativeCompositionNode } from '../composition';
++import { copyCompositionNodeSubtree, pasteCompositionNodeSubtree, expandFlowPasteDestination } from '../../card/composition-parent-authority';
++import { tightLayeredPlacementHeight } from "../platform/layered-region";
++import { resolveStudioPlacementContext } from '../platform/add-discover';
++import { createEditorHistory, pushEditorHistory, undoEditorHistory, redoEditorHistory } from '../../../utils/editor-history';
++const size = { widthPx: 400, heightPx: 760 };
++const node: CreativeCompositionNode = {id:'buttons',name:'Styled set',compositionKind:'module',primitive:'frame',parentId:null,siblingOrder:1,x:.3,y:.62,width:.4,height:.2,zIndex:1,props:{elementKind:'curated-system',flowWidthPercent:84,materialPreset:'brass',action:{href:'https://example.com'}}};
++const parent: CreativeCompositionNode = {id:'container',name:'Destination',compositionKind:'container',primitive:'frame',parentId:null,siblingOrder:0,x:.1,y:.8,width:.8,height:.15,zIndex:2,props:{layout:'flow',padding:16,contentFit:'fit_content'}};
++const block: CreativeCompositionBlock = {version:1,id:'root',label:'Paste regression',parentAuthority:{version:1,layout:'flow',cardGapPx:12},compositionMode:{version:1,mode:'layered',layeredHeightPx:760},nodes:[node,parent]};
++const near=(a:number,b:number)=>assert.ok(Math.abs(a-b)<1e-7,`${a} != ${b}`);
++test('explicit Container wins; selected nested child inserts after that child; leaving selects root',()=>{
++ assert.equal(resolveStudioPlacementContext(block,parent)?.parentId,parent.id);
++ const child={...node,id:'child',parentId:parent.id,siblingOrder:0};const b={...block,nodes:[...block.nodes,child]};
++ assert.deepEqual(resolveStudioPlacementContext(b,child),{parentId:parent.id,insertionIndex:1,targetLabel:'Destination',reason:'selected-sibling'});
++ assert.equal(resolveStudioPlacementContext(block,null)?.parentId,null);
++});
++test('PO Flow scenario preserves displayed width and never uses source Y for Flow positioning',()=>{
++ const payload=copyCompositionNodeSubtree(block,node.id,size)!;
++ const result=pasteCompositionNodeSubtree(block,payload,parent.id,0,{widthPx:288,heightPx:82});assert.ok(result.ok);
++ const copy=result.block.nodes.find(n=>n.id===result.selectedNodeId)!;
++ assert.equal(copy.parentId,parent.id);near(Number(copy.props.flowWidthPercent)/100*288,160);
++ assert.deepEqual(copy.props.action,node.props.action);assert.equal(copy.props.materialPreset,'brass');assert.equal(copy.siblingOrder,0);
++ assert.deepEqual(result.block.nodes.find(n=>n.id===node.id),node);
++});
++test('cross-parent Layered placement starts inside destination; repeated paste is bounded, never cumulative',()=>{
++ const destination={...parent,props:{...parent.props,layout:'layered'},rotationDeg:20};
++ let b={...block,nodes:[node,destination]};const payload=copyCompositionNodeSubtree(b,node.id,size)!;
++ let first: CreativeCompositionNode|undefined;
++ for(let i=0;i<12;i++) {const result=pasteCompositionNodeSubtree(b,payload,parent.id,undefined,{widthPx:300,heightPx:250});assert.ok(result.ok);b=result.block;const copy=b.nodes.find(n=>n.id===result.selectedNodeId)!;first??=copy;near(copy.x,first.x);near(copy.y,first.y);near(copy.width*300,160);near(copy.rotationDeg!,-20);assert.ok(copy.x>=0&&copy.y>=0&&copy.x+copy.width<=1&&copy.y+copy.height<=1);}
++});
++test('clipboard sibling order follows authored order even when node storage differs',()=>{
++ const second={...node,id:'second',siblingOrder:0,x:.1,y:.5};const b={...block,nodes:[node,second,parent]};const p=copyCompositionNodeSubtree(b,[node.id,second.id],size)!;assert.deepEqual(p.rootIds,['second','buttons']);
++});
++test('explicit Flow expansion grows root without stretching originals or nested descendants',()=>{
++ const p=copyCompositionNodeSubtree(block,node.id,size)!;const pasted=pasteCompositionNodeSubtree(block,p,parent.id,0,{widthPx:288,heightPx:82});assert.ok(pasted.ok);
++ const grown=expandFlowPasteDestination(pasted.block,parent.id,450,id=>id===null?size:{widthPx:288,heightPx:82});assert.ok(grown.ok);
++ const h=grown.block.compositionMode!.layeredHeightPx;assert.equal(h,1070);
++ const original=grown.block.nodes.find(n=>n.id===node.id)!;near(original.y*h,node.y*760);near(original.height*h,node.height*760);
++ const container=grown.block.nodes.find(n=>n.id===parent.id)!;near(container.height*h,450);near(container.y*h,608);
++ const history=pushEditorHistory(createEditorHistory(block),grown.block);assert.deepEqual(undoEditorHistory(history).present,block);assert.deepEqual(redoEditorHistory(undoEditorHistory(history)).present,grown.block);
++});
++test('Layered page limit rejects expansion rather than silently normalizing and clipping',()=>{
++ const result=expandFlowPasteDestination(block,parent.id,1100,()=>size);assert.equal(result.ok,false);if(!result.ok)assert.match(result.issues[0].message,/1600px/);
++});
++test('Group anchor selection copies all members; Edit Contents copies only the chosen child',()=>{
++ const a={...node,id:'a',groupId:'g',siblingOrder:0};const b={...node,id:'b',groupId:'g',siblingOrder:1,x:.6};
++ const group={id:'g',name:'Buttons',parentId:null,layout:'layered',density:'standard',rowGapPx:12,columnGapPx:12,internalGapPx:0,scaleMode:'proportional',x:.3,y:.62,width:.7,height:.2} as NonNullable<CreativeCompositionBlock['groups']>[number];
++ const grouped={...block,nodes:[a,b],groups:[group]};const p=copyCompositionNodeSubtree(grouped,'a',size)!;assert.deepEqual(p.rootIds,['a','b']);assert.equal(p.groups.length,1);
++ const content={...grouped,nodes:[{...a,props:{...a.props,groupContentScope:true,groupContentEditing:true}},b]};const child=copyCompositionNodeSubtree(content,'a',size)!;assert.deepEqual(child.rootIds,['a']);assert.equal(child.groups.length,0);
++});
++
++test('tight governed frames may use the full fitted parent height without a hidden 90 percent shrink',()=>{
++ const source={...node,width:1,height:1,moduleComposition:{version:1,id:'assembly',label:'Assembly',nodes:[],pageHeightPx:760,signatureAssembly:{input:{actions:[]}}} as unknown as CreativeCompositionBlock};
++ const root={...block,safeAreaPaddingPx:0,nodes:[source]};
++ // A 390px wide governed frame with native height 760 fills its 760px parent.
++ near(tightLayeredPlacementHeight(root,source),1);
++});

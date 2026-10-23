@@ -235,3 +235,8 @@ Planning only. Each of the twelve existing workflows answers all fourteen revise
 ## Final Slice 1 interaction corrective candidate
 
 The authorized clipboard/body-drag/resize/nudge pass and evidence are recorded in [the final interaction review](SLICE1_FINAL_INTERACTION_REVIEW_2026-10-23.md). Layered 1px/10px nudging is now implemented locally through canonical transactions. Native Shift-drag and physical touch remain unverified; Slice 1 remains OPEN, Slice 2 gated, and production hash verification BLOCKED. The remote handoff contains documentation and an exact local source delta, not an application release commit.
+
+
+## October 23 — clipboard placement corrective evidence
+
+See [Clipboard placement correction](SLICE1_CLIPBOARD_PLACEMENT_CORRECTION_2026-10-23.md) for the demonstrated Flow overflow/size causes, canonical destination and explicit expansion behavior, native regression matrix, 111 passing focused tests, source delta and local review fixture. Slice 1 remains OPEN; Slice 2 remains gated. The separately referenced Product Owner screenshot is not yet supplied; exact image matching is BLOCKED. Production and the prior fixture remain unchanged.

@@ -1,0 +1,32 @@
+[
+  {
+    "path": "lib/fusion/card/composition-parent-authority.ts",
+    "sha256": "4ceabe99bd1a3cf8baa57b3d168c4260b74dc6dc957b29a974dc6083c123e096",
+    "baselineSha256": "5d8c050b20323f0288b8b5b1d0aef14cccd20c6e15368d9eac091ae901cbe053"
+  },
+  {
+    "path": "lib/fusion/creative-studio/platform/layered-region.ts",
+    "sha256": "f3622aff5674145eb60f29a642d3bc4dacf0c5949a2b67d585890eae705fd36a",
+    "baselineSha256": "8b9d7e9a853f833dbf683195ff081e70c5c84016ded8c0fa2116eee9c1aa1292"
+  },
+  {
+    "path": "components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx",
+    "sha256": "deba5d7ab4ba2ee615e725d3bd3a0e4ba26aab20f9ae22140e2209f8a5b81661",
+    "baselineSha256": "06690111e07013567f9f552e4a9dca1168eb85ae9a8234d35ff1b471a53c2663"
+  },
+  {
+    "path": "components/fusion/creative-studio/use-layered-parent-size.ts",
+    "sha256": "d842d36936bcc9af3c8ba2677deb0149ec78ba102367d3a1f30dfa083fc4edb3",
+    "baselineSha256": "ade7a9b35198e80ff376e6ebd20f10bafdb49a70a5209a20c428b56120a23a2b"
+  },
+  {
+    "path": "components/fusion/creative-studio/creative-composition-canvas.tsx",
+    "sha256": "97f03cc9fd01c8205b918d0454239350fa56dd3fd3c73fa3e4dda05051847911",
+    "baselineSha256": "a9bfeaf3e047d1ed55ede3059bbf22599ff660bd8cfbcda966c6392d4888d554"
+  },
+  {
+    "path": "lib/fusion/creative-studio/__tests__/paste-placement.test.ts",
+    "sha256": "f7a7bdd2681790ad4a48a3276d028060ae3ca7c65e11d9d63a874f813d1ddac1",
+    "baselineSha256": null
+  }
+]
