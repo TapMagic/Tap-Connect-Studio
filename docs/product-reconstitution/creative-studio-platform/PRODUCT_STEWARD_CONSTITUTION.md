@@ -303,3 +303,7 @@ Direct canvas editing and Inspector editing must write the same canonical value 
 ## Small Excellent Set Rule
 
 A launch catalog earns visibility through a small, excellent, meaningfully differentiated set. Five credible choices are better than a large field of filler. Each visible choice must have a clear job, an honest preview made from the applied authority, a usable canonical default, strong phone behavior, and a complete path into Refine. Infrastructure capacity, legacy variants, or trivial parameter differences do not justify exposing more choices.
+
+## Standing Studio UX requirements
+
+Follow [Studio canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md): familiar controls with explicit keyboard ownership, canonical Undo/Redo for ordinary creative work, and the same capability foundation for manual and future tApIt-assisted creation. Current interface presentation is redesignable; shared authoring authorities and approval gates remain protected. This requirement does not authorize speculative AI or business-domain implementation.

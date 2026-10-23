@@ -1,0 +1,247 @@
+{
+  "checks": [
+    {
+      "check": "root native resize",
+      "before": {
+        "width": 80.52,
+        "height": 121.6
+      },
+      "after": {
+        "width": 117.12,
+        "height": 151.6
+      },
+      "rendered": {
+        "width": 117.1171875,
+        "height": 151.59375
+      },
+      "result": "pass"
+    },
+    {
+      "check": "Undo/Redo root resize",
+      "values": [
+        80.52,
+        117.12
+      ],
+      "result": "pass"
+    },
+    {
+      "check": "nested native resize under rotated padded Container at 50% zoom",
+      "parent": {
+        "width": 236.242,
+        "height": 193.352,
+        "padding": 16,
+        "rotation": 20
+      },
+      "before": {
+        "width": 40.8438,
+        "height": 32.2656
+      },
+      "after": {
+        "width": 89.8594,
+        "height": 46.7891
+      },
+      "inspector": {
+        "width": 89.87,
+        "height": 46.79
+      },
+      "result": "pass"
+    },
+    {
+      "check": "native alignment/distribution",
+      "x": [
+        0.08,
+        0.08,
+        0.08
+      ],
+      "verticalGaps": [
+        0.0302631578947369,
+        0.0302631578947369
+      ],
+      "result": "pass"
+    },
+    {
+      "check": "Group rotation",
+      "before": 25,
+      "after": 45,
+      "method": "native pointer",
+      "result": "pass"
+    },
+    {
+      "check": "edit/Preview geometry parity",
+      "equal": true,
+      "edit": [
+        {
+          "height": "91.1953px",
+          "id": "precision-text",
+          "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+          "width": "91.4922px"
+        },
+        {
+          "height": "151.594px",
+          "id": "precision-image",
+          "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+          "width": "129.992px"
+        },
+        {
+          "height": "83.5938px",
+          "id": "precision-button",
+          "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+          "width": "73.1953px"
+        },
+        {
+          "height": "193.352px",
+          "id": "precision-nested-container",
+          "transform": "matrix(0.939693, 0.34202, -0.34202, 0.939693, 0, 0)",
+          "width": "236.242px"
+        },
+        {
+          "height": "32.2656px",
+          "id": "precision-nested-text",
+          "transform": "none",
+          "width": "51.0547px"
+        },
+        {
+          "height": "46.7891px",
+          "id": "precision-nested-image",
+          "transform": "none",
+          "width": "89.8594px"
+        },
+        {
+          "height": "32.2656px",
+          "id": "precision-nested-button",
+          "transform": "none",
+          "width": "40.8438px"
+        }
+      ],
+      "preview": [
+        {
+          "height": "91.1953px",
+          "id": "precision-text",
+          "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+          "width": "91.4922px"
+        },
+        {
+          "height": "151.594px",
+          "id": "precision-image",
+          "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+          "width": "129.992px"
+        },
+        {
+          "height": "83.5938px",
+          "id": "precision-button",
+          "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+          "width": "73.1953px"
+        },
+        {
+          "height": "193.352px",
+          "id": "precision-nested-container",
+          "transform": "matrix(0.939693, 0.34202, -0.34202, 0.939693, 0, 0)",
+          "width": "236.242px"
+        },
+        {
+          "height": "32.2656px",
+          "id": "precision-nested-text",
+          "transform": "none",
+          "width": "51.0547px"
+        },
+        {
+          "height": "46.7891px",
+          "id": "precision-nested-image",
+          "transform": "none",
+          "width": "89.8594px"
+        },
+        {
+          "height": "32.2656px",
+          "id": "precision-nested-button",
+          "transform": "none",
+          "width": "40.8438px"
+        }
+      ]
+    },
+    {
+      "check": "save/reload geometry",
+      "equal": true
+    },
+    {
+      "check": "390px numeric control",
+      "fieldHeight": 44,
+      "before": "82.48",
+      "edit": 80,
+      "undo": "82.48",
+      "result": "pass",
+      "physicalTouch": false
+    },
+    {
+      "check": "Layered placement with internal Flow",
+      "outerWidth": 249.992,
+      "requested": 250,
+      "childModes": [
+        "flow",
+        "flow",
+        "flow"
+      ],
+      "result": "pass"
+    },
+    {
+      "check": "two exact edits produce exactly two Undo steps",
+      "historyBefore": {
+        "w": "153.64",
+        "h": "165"
+      },
+      "undoOne": {
+        "w": "120",
+        "h": "165"
+      },
+      "undoTwo": {
+        "w": "153.64",
+        "h": "165"
+      }
+    },
+    {
+      "check": "Escape cancels exact edit and preserves Redo",
+      "cancelledWidth": "153.64",
+      "redoOne": "120",
+      "redoTwo": "130"
+    },
+    {
+      "check": "native rotated child resize in Flow-positioned Layered Container",
+      "parentContent": {
+        "width": 334,
+        "height": 220
+      },
+      "before": {
+        "width": 120,
+        "height": 130
+      },
+      "mixedMeasured": {
+        "height": "151.586px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "163.055px"
+      },
+      "mixedInspector": {
+        "width": "163.06",
+        "height": "151.59"
+      },
+      "result": "pass"
+    },
+    {
+      "check": "original local fixture protection",
+      "beforeRevision": 5579,
+      "afterRevision": 5579,
+      "draftUnchanged": true
+    }
+  ],
+  "automationFailures": [
+    "Initial pointer drag missed the handle while using a viewport override; no mutation occurred. Retested successfully at native viewport size.",
+    "Mixed-layout scripted measurement initially requested a Layered input while the Container was still Flow; corrected through native controls before retesting.",
+    "Final screenshot capture timed out three times, including after resetting the viewport. Earlier successful screenshots are retained; no final screenshot pass claimed.",
+    "The replacement mobile screenshot was malformed (scaled/cropped) on visual inspection; retained as 06-mobile-capture-INVALID.jpg and excluded from passing visual evidence. Native DOM measurement still confirmed a 390px viewport, 390px Inspector and 44px numeric fields."
+  ],
+  "physicalTouch": "Not tested; desktop pointer and 390px viewport tested.",
+  "localFixture": {
+    "url": "http://127.0.0.1:3050/dashboard/card/edit?experience=cmvkcynh504ty9x9k3mzi91js",
+    "savedRevision": 24,
+    "publicationActive": false,
+    "snapshot": null
+  }
+}

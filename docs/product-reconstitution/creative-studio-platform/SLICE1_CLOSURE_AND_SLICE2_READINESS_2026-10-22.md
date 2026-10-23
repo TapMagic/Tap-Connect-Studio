@@ -240,3 +240,7 @@ Read-only public UI journey completed in Chrome:
 - Returning to the authenticated Library still showed Draft v1896, Published v21, Access ON and PERMANENT Active QR.
 
 These checks passed at the existing browser viewport. They are not a responsive matrix or cryptographic regression pass. Draft/publication hashes, full credential usage state, a trustworthy historical baseline and Rich's Slice 1 fixture acceptance remain outstanding. No production content or lifecycle mutation was requested or performed; no QR redemption, publication, deployment or Slice 2 implementation occurred.
+
+## 2026-10-23 corrective candidate update
+
+Select and Resize with Confidence has a local implementation candidate and [review evidence](SLICE1_SELECT_RESIZE_CORRECTIVE_REVIEW_2026-10-23.md). This does not close Slice 1. Physical touch and final visual-capture limitations are explicit; application source remains uncommitted with a published delta against pre-pass local snapshots. Text Editing Truth stays gated. Production hash verification remains BLOCKED. [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) now govern familiar controls, keyboard ownership, fearless editing, interface redesign freedom, and the shared foundation for future tApIt workflows without expanding AI scope.

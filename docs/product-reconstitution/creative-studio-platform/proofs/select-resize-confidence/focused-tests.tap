@@ -1,0 +1,369 @@
+TAP version 13
+# Subtest: creative composition operations
+    # Subtest: includes shirt mask and starter layering
+    ok 1 - includes shirt mask and starter layering
+      ---
+      duration_ms: 1.429125
+      type: 'test'
+      ...
+    # Subtest: reorders layers with bring/send helpers
+    ok 2 - reorders layers with bring/send helpers
+      ---
+      duration_ms: 0.517792
+      type: 'test'
+      ...
+    # Subtest: groups, locks, aligns, and distributes
+    ok 3 - groups, locks, aligns, and distributes
+      ---
+      duration_ms: 0.803083
+      type: 'test'
+      ...
+    # Subtest: expands group selection and translates as a unit
+    ok 4 - expands group selection and translates as a unit
+      ---
+      duration_ms: 0.777375
+      type: 'test'
+      ...
+    # Subtest: preserves accessible reading order independent of zIndex
+    ok 5 - preserves accessible reading order independent of zIndex
+      ---
+      duration_ms: 0.095834
+      type: 'test'
+      ...
+    # Subtest: uses Curated recipe rows before optical placement offsets
+    ok 6 - uses Curated recipe rows before optical placement offsets
+      ---
+      duration_ms: 0.190333
+      type: 'test'
+      ...
+    # Subtest: preserves off-Card geometry so edit can expose it and preview can clip it
+    ok 7 - preserves off-Card geometry so edit can expose it and preview can clip it
+      ---
+      duration_ms: 0.056084
+      type: 'test'
+      ...
+    # Subtest: applies mobile fallback only when explicitly forced
+    ok 8 - applies mobile fallback only when explicitly forced
+      ---
+      duration_ms: 0.060792
+      type: 'test'
+      ...
+    # Subtest: duplicates and deletes selected nodes
+    ok 9 - duplicates and deletes selected nodes
+      ---
+      duration_ms: 6.6655
+      type: 'test'
+      ...
+    1..9
+ok 1 - creative composition operations
+  ---
+  duration_ms: 11.32375
+  type: 'suite'
+  ...
+# Subtest: composition precision snapping
+    # Subtest: snaps moving edges to nearby sibling edges
+    ok 1 - snaps moving edges to nearby sibling edges
+      ---
+      duration_ms: 0.555625
+      type: 'test'
+      ...
+    # Subtest: snaps a group as one unit and emits grid guides
+    ok 2 - snaps a group as one unit and emits grid guides
+      ---
+      duration_ms: 0.112875
+      type: 'test'
+      ...
+    # Subtest: does not jump when all targets are outside threshold
+    ok 3 - does not jump when all targets are outside threshold
+      ---
+      duration_ms: 0.208792
+      type: 'test'
+      ...
+    # Subtest: emits Section center, safe-margin, and equal-spacing guides
+    ok 4 - emits Section center, safe-margin, and equal-spacing guides
+      ---
+      duration_ms: 0.420042
+      type: 'test'
+      ...
+    1..4
+ok 2 - composition precision snapping
+  ---
+  duration_ms: 1.755708
+  type: 'suite'
+  ...
+# Subtest: group parent selection resolves shared groupId and union bounds
+ok 3 - group parent selection resolves shared groupId and union bounds
+  ---
+  duration_ms: 0.8675
+  type: 'test'
+  ...
+# Subtest: group move keeps relative placement
+ok 4 - group move keeps relative placement
+  ---
+  duration_ms: 0.115292
+  type: 'test'
+  ...
+# Subtest: group resize and rotate transform both members
+ok 5 - group resize and rotate transform both members
+  ---
+  duration_ms: 0.228875
+  type: 'test'
+  ...
+# Subtest: canonical sibling Modules form one persisted Group without creating a second parent hierarchy
+ok 6 - canonical sibling Modules form one persisted Group without creating a second parent hierarchy
+  ---
+  duration_ms: 0.150042
+  type: 'test'
+  ...
+# Subtest: canonical Group record persists responsive transform, scale mode, and local z-order
+ok 7 - canonical Group record persists responsive transform, scale mode, and local z-order
+  ---
+  duration_ms: 0.629458
+  type: 'test'
+  ...
+# Subtest: Group density and layout reflow are canonical member state and keep readable Text height
+ok 8 - Group density and layout reflow are canonical member state and keep readable Text height
+  ---
+  duration_ms: 0.265209
+  type: 'test'
+  ...
+# Subtest: dense Group reflow removes phantom Curated wrapper height while preserving a 44px target
+ok 9 - dense Group reflow removes phantom Curated wrapper height while preserving a 44px target
+  ---
+  duration_ms: 0.101541
+  type: 'test'
+  ...
+# Subtest: Grid Group reflow fits full-width parent-authority actions inside one bounded plane
+ok 10 - Grid Group reflow fits full-width parent-authority actions inside one bounded plane
+  ---
+  duration_ms: 0.139459
+  type: 'test'
+  ...
+# Subtest: capability fan-out applies color to all text and reports mixed
+ok 11 - capability fan-out applies color to all text and reports mixed
+  ---
+  duration_ms: 0.250292
+  type: 'test'
+  ...
+# Subtest: per-descendant effect adapter does not clone primary surface keys onto text
+ok 12 - per-descendant effect adapter does not clone primary surface keys onto text
+  ---
+  duration_ms: 0.173958
+  type: 'test'
+  ...
+# Subtest: fill and border fan-out target surface-compatible descendants
+ok 13 - fill and border fan-out target surface-compatible descendants
+  ---
+  duration_ms: 0.088958
+  type: 'test'
+  ...
+# Subtest: inferFanOutCapability classifies appearance patches
+ok 14 - inferFanOutCapability classifies appearance patches
+  ---
+  duration_ms: 0.063833
+  type: 'test'
+  ...
+# Subtest: group edit contents enters and exits without destroying membership
+ok 15 - group edit contents enters and exits without destroying membership
+  ---
+  duration_ms: 0.093667
+  type: 'test'
+  ...
+# Subtest: named effects produce distinguishable CSS signatures
+ok 16 - named effects produce distinguishable CSS signatures
+  ---
+  duration_ms: 0.217083
+  type: 'test'
+  ...
+# Subtest: appearance categories are semantic and not a fixed count
+ok 17 - appearance categories are semantic and not a fixed count
+  ---
+  duration_ms: 0.065833
+  type: 'test'
+  ...
+# Subtest: coupon layouts are structurally different with matching thumbnails
+ok 18 - coupon layouts are structurally different with matching thumbnails
+  ---
+  duration_ms: 0.529584
+  type: 'test'
+  ...
+# Subtest: magic write parser preserves separate targets
+ok 19 - magic write parser preserves separate targets
+  ---
+  duration_ms: 0.07375
+  type: 'test'
+  ...
+# Subtest: creative-studio history labels
+    # Subtest: describes button label and destination changes
+    ok 1 - describes button label and destination changes
+      ---
+      duration_ms: 0.606291
+      type: 'test'
+      ...
+    # Subtest: describes font and point size changes
+    ok 2 - describes font and point size changes
+      ---
+      duration_ms: 0.074875
+      type: 'test'
+      ...
+    # Subtest: pushes labeled undo for config snapshots
+    ok 3 - pushes labeled undo for config snapshots
+      ---
+      duration_ms: 0.16275
+      type: 'test'
+      ...
+    # Subtest: labels config color changes
+    ok 4 - labels config color changes
+      ---
+      duration_ms: 0.067125
+      type: 'test'
+      ...
+    1..4
+ok 20 - creative-studio history labels
+  ---
+  duration_ms: 1.286917
+  type: 'suite'
+  ...
+# Subtest: Layered precision and selection truth
+    # Subtest: declares exact Layered position, rotation, layer, bounds, and visibility capabilities
+    ok 1 - declares exact Layered position, rotation, layer, bounds, and visibility capabilities
+      ---
+      duration_ms: 0.373917
+      type: 'test'
+      ...
+    # Subtest: derives px from the active parent and round-trips without a second stored truth
+    ok 2 - derives px from the active parent and round-trips without a second stored truth
+      ---
+      duration_ms: 0.426541
+      type: 'test'
+      ...
+    # Subtest: limits operations to compatible siblings and keeps root and nested scopes independent
+    ok 3 - limits operations to compatible siblings and keeps root and nested scopes independent
+      ---
+      duration_ms: 0.194583
+      type: 'test'
+      ...
+    # Subtest: does not offer Layered arrange operations inside a Flow parent
+    ok 4 - does not offer Layered arrange operations inside a Flow parent
+      ---
+      duration_ms: 0.039625
+      type: 'test'
+      ...
+    # Subtest: aligns and distributes placement frames without visual overflow influencing the math
+    ok 5 - aligns and distributes placement frames without visual overflow influencing the math
+      ---
+      duration_ms: 0.12575
+      type: 'test'
+      ...
+    # Subtest: exposes every canonical toolbar operation and emits one stable history label per command
+    ok 6 - exposes every canonical toolbar operation and emits one stable history label per command
+      ---
+      duration_ms: 0.354709
+      type: 'test'
+      ...
+    # Subtest: supports mixed compatible siblings without changing semantic identity or parent scope
+    ok 7 - supports mixed compatible siblings without changing semantic identity or parent scope
+      ---
+      duration_ms: 0.099416
+      type: 'test'
+      ...
+    # Subtest: reports governed resize incompatibility instead of distorting mastered or intrinsic content
+    ok 8 - reports governed resize incompatibility instead of distorting mastered or intrinsic content
+      ---
+      duration_ms: 0.082041
+      type: 'test'
+      ...
+    # Subtest: projects distinct placement, visual, and touch frames without persisting either derivative
+    ok 9 - projects distinct placement, visual, and touch frames without persisting either derivative
+      ---
+      duration_ms: 0.181708
+      type: 'test'
+      ...
+    # Subtest: rotates a Group without changing member identity, actions, content, or parent membership
+    ok 10 - rotates a Group without changing member identity, actions, content, or parent membership
+      ---
+      duration_ms: 0.217042
+      type: 'test'
+      ...
+    # Subtest: keeps the complete authority reachable in the canonical desktop and phone Studio shell
+    ok 11 - keeps the complete authority reachable in the canonical desktop and phone Studio shell
+      ---
+      duration_ms: 0.722125
+      type: 'test'
+      ...
+    1..11
+ok 21 - Layered precision and selection truth
+  ---
+  duration_ms: 3.250542
+  type: 'suite'
+  ...
+# Subtest: Flow-placed Layered Containers use Flow width and the renderer's default padding
+ok 22 - Flow-placed Layered Containers use Flow width and the renderer's default padding
+  ---
+  duration_ms: 0.376208
+  type: 'test'
+  ...
+# Subtest: nested padding is subtracted once; decorative borders never reduce content geometry
+ok 23 - nested padding is subtracted once; decorative borders never reduce content geometry
+  ---
+  duration_ms: 0.085625
+  type: 'test'
+  ...
+# Subtest: exact aspect-constrained resizing scales both dimensions and respects locked/content-owned frames
+ok 24 - exact aspect-constrained resizing scales both dimensions and respects locked/content-owned frames
+  ---
+  duration_ms: 0.230167
+  type: 'test'
+  ...
+# Subtest: pointer resize preserves the opposite rotated corner in physical parent coordinates
+ok 25 - pointer resize preserves the opposite rotated corner in physical parent coordinates
+  ---
+  duration_ms: 0.115041
+  type: 'test'
+  ...
+# Subtest: parent constraints stop a resize without shifting the anchored corner
+ok 26 - parent constraints stop a resize without shifting the anchored corner
+  ---
+  duration_ms: 0.078083
+  type: 'test'
+  ...
+# Subtest: fractional pixel display and transient measured diagnostics retain authored geometry
+ok 27 - fractional pixel display and transient measured diagnostics retain authored geometry
+  ---
+  duration_ms: 0.125625
+  type: 'test'
+  ...
+# Subtest: returning from Flow preserves existing Layered placement even without a legacy initialization flag
+ok 28 - returning from Flow preserves existing Layered placement even without a legacy initialization flag
+  ---
+  duration_ms: 0.357833
+  type: 'test'
+  ...
+# Subtest: editor-history
+    # Subtest: pushes, undoes, and redoes block snapshots
+    ok 1 - pushes, undoes, and redoes block snapshots
+      ---
+      duration_ms: 0.360625
+      type: 'test'
+      ...
+    # Subtest: skips duplicate snapshots
+    ok 2 - skips duplicate snapshots
+      ---
+      duration_ms: 0.049958
+      type: 'test'
+      ...
+    1..2
+ok 29 - editor-history
+  ---
+  duration_ms: 0.741875
+  type: 'suite'
+  ...
+1..29
+# tests 54
+# suites 5
+# pass 54
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 182.4845

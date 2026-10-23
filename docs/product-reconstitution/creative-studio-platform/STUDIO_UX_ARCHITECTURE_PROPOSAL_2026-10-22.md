@@ -1,5 +1,7 @@
 # TapConnect Studio UX architecture proposal
 
+**Standing interaction requirements:** [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) govern familiar keyboard/focus behavior, fearless editing, shared tApIt foundations and freedom to redesign interface presentation. Target behaviors are requirements, not verified implementation claims. Current Slice 1 authorization and later approval gates remain unchanged.
+
 Prepared for Rich, Product Owner. Investigation: October 22, 2026 ET, October 23 UTC. Revised against the October 22 Master UX, Visual Authoring & Interaction Architecture Directive. Status: **planning direction provisionally approved; Select and Resize with Confidence approved for local implementation only; Slice 1 hands-on acceptance remains open**.
 
 Studio should make the Experience Surface and its independently styled Containers the visible foundation of authoring. Selection, task intent, editing mode and declared capabilities should determine the relevant controls. Today, too much of the interface follows the shape of the implementation: generic Module inspectors, competing layout controls, provider tabs, and technical explanations precede ordinary editing. The recommendation is to make the existing shared authorities determine the interface consistently, then deliver complete workflows in small increments.

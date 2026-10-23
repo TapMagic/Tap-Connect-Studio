@@ -1,5 +1,7 @@
 # Studio implementation prompt — master UX revision
 
+**Standing interaction requirements:** [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) govern familiar keyboard/focus behavior, fearless editing, shared tApIt foundations and freedom to redesign interface presentation. Target behaviors are requirements, not verified implementation claims. Current Slice 1 authorization and later approval gates remain unchanged.
+
 **Current authorization: Select and Resize with Confidence is approved for local implementation only.** Slice 1 remains NOT ACCEPTED pending Rich's hands-on review. No Text Editing Truth, responsive authoring, unrelated UX redesign, production change or deployment is authorized. Later increments below remain plans requiring their applicable approval gates. Documentation synchronization and review do not expand implementation scope.
 
 The approved candidate must cover root/nested Layered resize, padding/borders/rotation and mixed parent/child layout; agreement between direct and exact dimensions; visible constraints with an appropriate adjustment path; restrained marks with usable mouse/touch targets; discoverable selection/Position; accurate Placement/Visual/Touch diagnostics; Group/alignment/snapping/history/persistence/Preview regressions; and actual visual/interaction evidence. Return a usable isolated local fixture for PO review.
@@ -106,3 +108,7 @@ Capture and personally inspect desktop and 390px whole-workspace before/after sc
 Every temporary task needs entry, preview, apply, cancel, failure and usable return. The next natural edit after finishing must work. Record native config/resource identities and only the expected field changes. Public baseline remains unchanged and hashes BLOCKED unless a separately authorized straightforward read-only verification supplies evidence.
 
 Return outcome, root causes, exact files changed, test commands/results, before/after visual evidence, interaction demonstrations, persistence/Preview results, remaining limitations and newly discovered risks. Provide the exact local review URL and a short hands-on checklist. Label the candidate ready for PO review only when applicable evidence supports it; only Rich records acceptance. Stop at the approved increment boundary.
+
+## Current corrective evidence
+
+Review [Select and Resize with Confidence](SLICE1_SELECT_RESIZE_CORRECTIVE_REVIEW_2026-10-23.md) before continuing. Its source is local and uncommitted; the documentation push includes an inspectable corrective delta and fingerprints, not a standalone application release SHA. Resolve that source-integration boundary and missing final capture evidence before treating the candidate as a release handoff. Preserve the PO acceptance gate.

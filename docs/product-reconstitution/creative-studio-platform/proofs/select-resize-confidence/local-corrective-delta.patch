@@ -1,0 +1,676 @@
+--- a/components/card/tap-card-builder.tsx
++++ b/components/card/tap-card-builder.tsx
+@@ -2493,6 +2493,7 @@
+       patchCompositionNode,
+       beginLiveAdjustment,
+       previewCompositionNode,
++      previewCompositionBlock: (block) => applyCanvasCompositionChange(null, block, "Previewed composition geometry", "preview"),
+       previewSelection,
+       commitLiveAdjustment: (label) => { commitLiveAdjustment(label); setDirty(true); },
+       cancelLiveAdjustment,
+--- a/components/fusion/card/card-editor-live.ts
++++ b/components/fusion/card/card-editor-live.ts
+@@ -14,7 +14,7 @@
+   TapExperiencePage,
+ } from "@/lib/brand/tap-card";
+ import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject, SectionPresetId } from "@/lib/fusion/card/composer-model";
+-import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
++import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+ import type { SelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
+ import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
+ import type { StudioDiscoveryResource } from "@/lib/fusion/creative-studio/platform/discovery";
+@@ -101,6 +101,7 @@
+     label: string
+   ) => void;
+   beginLiveAdjustment?: () => void;
++  previewCompositionBlock?: (block: CreativeCompositionBlock) => void;
+   previewCompositionNode?: (nodeId: string, patch: Partial<CreativeCompositionNode>) => void;
+   previewSelection?: (selection: SelectionRef, patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>) => void;
+   commitLiveAdjustment?: (label: string) => void;
+--- a/components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx
++++ b/components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx
+@@ -747,7 +747,7 @@
+ 
+         <main className="relative z-0 isolate flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_50%_18%,#202a38_0%,#151b24_42%,#10151d_100%)]" aria-label="Card canvas">
+           {studioMode === "edit" && (multiCompositionSelection || Boolean(activeCompositionGroupId) || selectionTarget?.capabilities.includes("edit-content") || selectionTarget?.capabilities.includes("edit-appearance")) ? (
+-            <div className={cn("relative z-[2000] min-h-12 shrink-0 items-center border-b border-white/6 bg-[#0b111b]/78 px-3 py-1.5 backdrop-blur", multiCompositionSelection ? "flex overflow-x-auto" : "hidden md:flex")} data-chrome-placement="task-bar">{multiCompositionSelection && selectedBlock ? <CompositionMultiToolbar block={selectedBlock} selectedIds={selectedCompositionIds} compatibility={multiSelectionCompatibility} onOperate={applyMultiSelectionOperation} onGroup={groupSelectedComposition} onCancel={cancelMultipleSelection} /> : selectionTarget?.semanticKind === "card-surface" ? <CardSurfaceToolbar onEdit={() => openCompositionInspector("tune-selection")} /> : activeCompositionGroupId ? <CompositionGroupToolbar count={selectedCompositionIds.length} onEdit={() => openCompositionInspector("arrange-card")} onLock={lockSelectedGroup} onUngroup={ungroupSelectedComposition} /> : selectedAssembly ? <CuratedObjectToolbar
++            <div className={cn("relative z-[2000] min-h-12 shrink-0 items-center border-b border-white/6 bg-[#0b111b]/78 px-3 py-1.5 backdrop-blur", multiCompositionSelection ? "flex overflow-x-auto" : "hidden md:flex")} data-chrome-placement="task-bar">{multiCompositionSelection && selectedBlock ? <CompositionMultiToolbar block={selectedBlock} selectedIds={selectedCompositionIds} compatibility={multiSelectionCompatibility} onOperate={applyMultiSelectionOperation} onGroup={groupSelectedComposition} onCancel={cancelMultipleSelection} /> : selectionTarget?.semanticKind === "card-surface" ? <CardSurfaceToolbar onEdit={() => openCompositionInspector("tune-selection")} /> : activeCompositionGroupId ? <CompositionGroupToolbar count={selectedBlock ? groupMembers(selectedBlock.nodes, activeCompositionGroupId).length : selectedCompositionIds.length} onEdit={() => openCompositionInspector("arrange-card")} onLock={lockSelectedGroup} onUngroup={ungroupSelectedComposition} /> : selectedAssembly ? <CuratedObjectToolbar
+               label={selectedAssembly.familyLabel}
+               onEdit={openAssemblyInspector}
+               onArrange={() => { if (selectedCanonicalNode) openCompositionInspector("arrange-card"); }}
+@@ -815,7 +815,7 @@
+           {multiCompositionSelection ? <PhoneTool icon={Layers3} label="Group" onClick={groupSelectedComposition} /> : <PhoneTool icon={Eye} label={activeCompositionGroupId ? "Group" : "Edit"} disabled={!activeCompositionGroupId && !selectionTarget?.capabilities.includes("edit-content") && !selectionTarget?.capabilities.includes("edit-appearance")} onClick={() => { if (activeCompositionGroupId) openCompositionInspector("arrange-card"); else if (selectionTarget?.semanticKind === "card-surface") openCompositionInspector("tune-selection"); else if (selectedAssembly) openAssemblyInspector(); else if (selectedCanonicalNode && selectedCanonicalNode.primitive !== "button") openCompositionInspector("refine-selection"); else openInspector("content"); }} />}
+           <PhoneTool icon={Layers3} label="Outline" onClick={() => openPhoneRail("layers")} />
+           <PhoneTool icon={Eye} label="Preview" onClick={() => { beginTask("preview-card"); setStudioMode("preview"); }} />
+-          <PhoneTool icon={activeCompositionGroupId || selectionTarget?.capabilities.includes("move-directly") ? Move : MoreHorizontal} label={activeCompositionGroupId || selectionTarget?.capabilities.includes("move-directly") ? "Move" : "More"} disabled={!activeCompositionGroupId && !selectionTarget?.capabilities.includes("position")} onClick={() => activeCompositionGroupId || selectedCanonicalNode ? openCompositionInspector("arrange-card") : selectedButton ? openInspector("layout") : undefined} />
++          <PhoneTool icon={activeCompositionGroupId || selectionTarget?.capabilities.includes("move-directly") ? Move : MoreHorizontal} label="Position" disabled={!activeCompositionGroupId && !selectionTarget?.capabilities.includes("position")} onClick={() => activeCompositionGroupId || selectedCanonicalNode ? openCompositionInspector("arrange-card") : selectedButton ? openInspector("layout") : undefined} />
+         </nav>
+       ) : null}
+     </div>
+@@ -877,7 +877,7 @@
+   onDelete: () => void;
+ }) {
+   const iconButton = "grid h-9 w-9 place-items-center rounded-full text-white/62 transition hover:bg-white/8 hover:text-white";
+-  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">{editLabel || `Edit · ${label}`}</button><button type="button" onClick={onArrange} className={iconButton} aria-label="Open Position"><Move className="h-4 w-4" /></button><StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
++  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">{editLabel || `Edit · ${label}`}</button><button type="button" onClick={onArrange} className="flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs text-white/80 hover:bg-white/10" aria-label="Open Position"><Move className="h-4 w-4" /><span>Position</span></button><StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
+ }
+ 
+ function PhoneTool({ icon: Icon, label, onClick, disabled = false }: { icon: typeof Plus; label: string; onClick: () => void; disabled?: boolean }) {
+--- a/components/fusion/card/reconstitution/studio-composition-inspector.tsx
++++ b/components/fusion/card/reconstitution/studio-composition-inspector.tsx
+@@ -42,7 +42,9 @@
+ import { StudioColorControl } from "./studio-color-control";
+ import { StudioInternalPagePicker } from "./studio-internal-page-picker";
+ import { StudioMapLocationInspector } from "./studio-map-location-inspector";
+-import { displayGeometryToNormalized, geometryParentSize, normalizedGeometryToDisplay, type StudioGeometryAxis, type StudioGeometryUnit } from "@/lib/fusion/creative-studio/platform/geometry-units";
++import { displayGeometryToNormalized, normalizedGeometryToDisplay, type StudioGeometryAxis, type StudioGeometryUnit } from "@/lib/fusion/creative-studio/platform/geometry-units";
++import { useLayeredParentSize } from "@/components/fusion/creative-studio/use-layered-parent-size";
++import { layeredMinimumFrameSize, resizeLayeredNodeDimension, isLayeredCompositionParent } from "@/lib/fusion/creative-studio/platform/layered-region";
+ import { resolveStudioFrameSemantics } from "@/lib/fusion/creative-studio/platform/frame-semantics";
+ 
+ const ContainerBrandContext = createContext<BrandPreviewContext | null>(null);
+@@ -74,9 +76,9 @@
+   }
+   const breadcrumb = ["Card Surface", ...ancestors.map((candidate) => candidate.name || "Container"), label].join(" › ");
+   return <aside className="absolute inset-x-0 bottom-0 z-[2100] flex max-h-[62dvh] flex-col rounded-t-3xl border-t border-white/8 bg-[#0b111b]/98 text-white shadow-[0_-18px_50px_rgba(0,0,0,.36)] backdrop-blur-xl md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[min(360px,calc(100vw-12px))] md:rounded-none md:border-l md:border-t-0 md:shadow-[-18px_0_50px_rgba(0,0,0,.36)]" data-testid="studio-composition-inspector">
+-    <header className="flex min-h-14 items-center gap-2 border-b border-white/8 px-4"><div className="min-w-0 flex-1"><p className="truncate text-xs text-white/45" title={breadcrumb} data-testid="studio-selection-breadcrumb">{breadcrumb}</p><h2 className="mt-0.5 text-sm font-semibold">{activeGroupId ? "Composition Group" : node.compositionKind === "container" ? "Container" : "Module"}</h2></div>{parent ? <button type="button" onClick={() => model.setSelectedCompositionNodeIds?.([parent.id])} className="min-h-9 rounded-full border border-white/10 px-3 text-[9px] text-white/62 hover:bg-white/8" data-testid="studio-select-parent">Parent</button> : null}<button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Inspector"><X className="h-4 w-4" /></button></header>
++    <header className="flex min-h-14 items-center gap-2 border-b border-white/8 px-4"><div className="min-w-0 flex-1"><p className="truncate text-xs text-white/45" title={breadcrumb} data-testid="studio-selection-breadcrumb">{breadcrumb}</p><h2 className="mt-0.5 text-sm font-semibold">{activeGroupId ? "Composition Group" : `${node.compositionKind === "container" ? "Container" : "Element"} · ${label}`}</h2></div>{parent ? <button type="button" onClick={() => model.setSelectedCompositionNodeIds?.([parent.id])} className="min-h-9 rounded-full border border-white/10 px-3 text-[9px] text-white/62 hover:bg-white/8" data-testid="studio-select-parent">Parent</button> : null}<button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Inspector"><X className="h-4 w-4" /></button></header>
+     <div className="min-h-0 flex-1 overflow-y-auto p-4">
+-      {activeGroupId ? <GroupControls groupId={activeGroupId} model={model} block={block} unit={geometryUnit} onUnitChange={onGeometryUnitChange} frameDiagnostics={frameDiagnostics} onFrameDiagnosticsChange={onFrameDiagnosticsChange} /> : node.compositionKind === "container" ? <>{isLayeredContainer(parent) || (!parent && isCardSurfaceLayered(block)) ? <LayeredPositionControls node={node} model={model} block={block} unit={geometryUnit} onUnitChange={onGeometryUnitChange} frameDiagnostics={frameDiagnostics} onFrameDiagnosticsChange={onFrameDiagnosticsChange} /> : null}<ContainerControls node={node} patchProps={patchProps} model={model} brand={brand} /></> : <ModuleControls node={node} parent={parent} containers={containers} model={model} block={block} brand={brand} positionProps={{ unit: geometryUnit, onUnitChange: onGeometryUnitChange, frameDiagnostics, onFrameDiagnosticsChange }} />}
++      {activeGroupId ? <GroupControls groupId={activeGroupId} model={model} block={block} unit={geometryUnit} onUnitChange={onGeometryUnitChange} frameDiagnostics={frameDiagnostics} onFrameDiagnosticsChange={onFrameDiagnosticsChange} /> : node.compositionKind === "container" ? <>{isLayeredContainer(parent) || (!parent && isCardSurfaceLayered(block)) ? <LayeredPositionControls node={node} model={model} block={block} unit={geometryUnit} onUnitChange={onGeometryUnitChange} frameDiagnostics={frameDiagnostics} onFrameDiagnosticsChange={onFrameDiagnosticsChange} /> : null}<LayeredParentBoundsControl parent={parent} model={model} block={block} /><ContainerControls node={node} patchProps={patchProps} model={model} brand={brand} /></> : <ModuleControls node={node} parent={parent} containers={containers} model={model} block={block} brand={brand} positionProps={{ unit: geometryUnit, onUnitChange: onGeometryUnitChange, frameDiagnostics, onFrameDiagnosticsChange }} />}
+       {!activeGroupId && node.compositionKind === "module" && selectedModules.length > 0 ? <button type="button" onClick={() => model.onWrapCompositionModules?.(selectedModules)} className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a]" data-testid="studio-wrap-modules"><Layers3 className="h-4 w-4" />Wrap {selectedModules.length > 1 ? `${selectedModules.length} Modules` : "in Container"}</button> : null}
+       {!activeGroupId && node.compositionKind === "container" ? <button type="button" onClick={() => model.onUnwrapCompositionContainer?.(node.id)} className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 text-xs font-semibold" data-testid="studio-unwrap-container"><Ungroup className="h-4 w-4" />Remove Container, keep Modules</button> : null}
+       {activeGroupId ? <button type="button" onClick={() => { const memberIds = groupMembers(block.nodes, activeGroupId).map((member) => member.id); model.patchConfig({ rootComposition: ungroupCompositionBlock(block, activeGroupId) }, "Ungrouped composition Group"); model.setSelectedCompositionNodeIds?.(memberIds); }} className="mt-5 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border border-white/12 text-xs font-semibold" data-testid="studio-composition-group-ungroup"><Ungroup className="h-4 w-4" />Ungroup, keep Modules</button> : null}
+@@ -92,31 +94,35 @@
+   const parentId = members[0]?.parentId ?? null;
+   const parent = parentId ? block.nodes.find((candidate) => candidate.id === parentId) : null;
+   const region = layeredCompositionParentSizePx(block, parentId);
+-  const replace = (next: typeof block, label: string) => model.patchConfig({ rootComposition: next }, label);
++  const replace = (next: typeof block, label: string, preview = false) => preview ? model.previewCompositionBlock?.(next) : model.patchConfig({ rootComposition: next }, label);
+   const settingsPatch = (patch: Parameters<typeof setCompositionGroupSettingsInBlock>[2], label: string) => replace(setCompositionGroupSettingsInBlock(block, groupId, patch, region), label);
+   const geometry = (key: "left" | "top" | "width" | "height", value: number) => {
+     if (!bounds) return;
+     const axis = (key === "left" ? "x" : key === "top" ? "y" : key) as StudioGeometryAxis;
+     const normalized = Math.max(0, Math.min(1, displayGeometryToNormalized(value, axis, unit, region)));
+-    if (key === "left") replace(moveCompositionGroupInBlock(block, groupId, normalized - bounds.left, 0), "Changed Group X");
+-    else if (key === "top") replace(moveCompositionGroupInBlock(block, groupId, 0, normalized - bounds.top), "Changed Group Y");
+-    else replace(resizeCompositionGroupInBlock(block, groupId, { left: bounds.left, top: bounds.top, width: key === "width" ? Math.max(.08, normalized) : bounds.width, height: key === "height" ? Math.max(.06, normalized) : bounds.height }, { minChildWidth: 28 / region.widthPx, minChildHeight: 44 / region.heightPx }), `Changed Group ${key}`);
++    if (key === "left") replace(moveCompositionGroupInBlock(block, groupId, normalized - bounds.left, 0), "Changed Group X", true);
++    else if (key === "top") replace(moveCompositionGroupInBlock(block, groupId, 0, normalized - bounds.top), "Changed Group Y", true);
++    else replace(resizeCompositionGroupInBlock(block, groupId, { left: bounds.left, top: bounds.top, width: key === "width" ? Math.max(.08, normalized) : bounds.width, height: key === "height" ? Math.max(.06, normalized) : bounds.height }, { minChildWidth: 28 / region.widthPx, minChildHeight: 44 / region.heightPx }), `Changed Group ${key}`, true);
+   };
+   const scale = (scaleMode: CompositionGroupScaleMode) => replace(setCompositionGroupScaleMode(block, groupId, scaleMode, { minChildWidth: 28 / region.widthPx, minChildHeight: 44 / region.heightPx }), `Changed Group scale to ${scaleMode}`);
+   const z = (command: "backward" | "forward" | "back" | "front", label: string) => replace(reorderCompositionGroupZ(block, groupId, command), label);
+-  const rotation = (value: number) => replace(synchronizeCompositionGroups({ ...block, nodes: rotateGroupComposition(block.nodes, groupId, value, compositionGroupSpace(block, groupId)) }), "Changed Group rotation");
++  const rotation = (value: number, preview = false) => replace(synchronizeCompositionGroups({ ...block, nodes: rotateGroupComposition(block.nodes, groupId, value, compositionGroupSpace(block, groupId)) }), "Changed Group rotation", preview);
+   const localSiblings = block.nodes.filter((candidate) => (candidate.parentId ?? null) === parentId);
+   const localOrder = record ? Math.max(0, [...localSiblings].sort((left, right) => left.zIndex - right.zIndex).findIndex((candidate) => candidate.groupId === groupId)) + 1 : 0;
+   return <div data-testid="studio-composition-group-controls">
+-    <ControlGroup label="Group position"><p className="text-[9px] leading-4 text-[#a9e7ff]/70">{members.length} canonical sibling Modules · parent: {parent?.name || "Card Surface"} · one gesture or exact edit creates one history step.</p><Segmented values={["percent","px"]} value={unit} onChange={(value) => onUnitChange(value as StudioGeometryUnit)} label="Display units · normalized geometry remains the only saved truth" />{bounds ? <div className="grid grid-cols-2 gap-2">{([['left','X'],['top','Y'],['width','Width'],['height','Height']] as const).map(([key,label]) => { const axis = (key === "left" ? "x" : key === "top" ? "y" : key) as StudioGeometryAxis; return <label key={key} className="text-[9px] text-white/48">{label} {unit === "px" ? "px" : "%"}<input type="number" min={0} max={unit === "px" ? (axis === "x" || axis === "width" ? region.widthPx : region.heightPx) : 100} step={unit === "px" ? 1 : .1} value={normalizedGeometryToDisplay(bounds[key], axis, unit, region)} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => geometry(key, Number(event.target.value))} onBlur={() => model.commitLiveAdjustment?.(`Changed Group ${label}`)} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" data-testid={`studio-group-${key}`} /></label>; })}</div> : null}<div className="grid grid-cols-[1fr_auto] items-end gap-2"><label className="text-[9px] text-white/48">Rotation °<input type="number" step={1} value={Math.round(bounds?.rotationDeg ?? 0)} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => rotation(Number(event.target.value))} onBlur={() => model.commitLiveAdjustment?.("Changed Group rotation")} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" data-testid="studio-group-rotation" /></label><button type="button" onClick={() => rotation(0)} className="h-9 rounded-lg border border-white/10 px-3 text-[9px]">Reset</button></div>{isLayeredContainer(parent) || (!parent && isCardSurfaceLayered(block)) ? <p className="mt-3 text-[10px] leading-4 text-white/60" data-testid="studio-group-anchor-contract">Layered geometry uses the parent’s top-left origin. Rotation uses the Group center. Stored anchor metadata is preserved; it does not reposition a Layered Group.</p> : <><p className="mt-3 text-[9px] text-white/42">Anchor</p><Segmented values={["top-left","top","top-right","left","center","right","bottom-left","bottom","bottom-right"]} value={record?.anchor ?? "top-left"} onChange={(value) => replace({ ...block, groups: (block.groups ?? []).map((group) => group.id === groupId ? { ...group, anchor: value as NonNullable<typeof group.anchor> } : group) }, `Changed Group anchor to ${value}`)} label="Anchor" /></>}<FrameDiagnosticControl enabled={frameDiagnostics} onChange={onFrameDiagnosticsChange} /></ControlGroup>
++    {members.some((member) => member.locked) ? <p className="mb-3 text-xs">Group geometry is locked. Use Unlock Group below to edit it.</p> : null}
++    <fieldset disabled={members.some((member) => member.locked)} className="min-w-0 disabled:opacity-50">
++    <ControlGroup label="Group position"><p className="text-[9px] leading-4 text-[#a9e7ff]/70">{members.length} canonical sibling Modules · parent: {parent?.name || "Card Surface"} · one gesture or exact edit creates one history step.</p><Segmented values={["percent","px"]} value={unit} onChange={(value) => onUnitChange(value as StudioGeometryUnit)} label="Display units · normalized geometry remains the only saved truth" />{bounds ? <div className="grid grid-cols-2 gap-2">{([['left','X'],['top','Y'],['width','Width'],['height','Height']] as const).map(([key,label]) => { const axis = (key === "left" ? "x" : key === "top" ? "y" : key) as StudioGeometryAxis; return <label key={key} className="text-[9px] text-white/48">{label} {unit === "px" ? "px" : "%"}<input type="number" min={0} max={unit === "px" ? (axis === "x" || axis === "width" ? region.widthPx : region.heightPx) : 100} step={unit === "px" ? 1 : .1} value={normalizedGeometryToDisplay(bounds[key], axis, unit, region)} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => geometry(key, Number(event.target.value))} onBlur={() => model.commitLiveAdjustment?.(`Changed Group ${label}`)} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" data-testid={`studio-group-${key}`} /></label>; })}</div> : null}<div className="grid grid-cols-[1fr_auto] items-end gap-2"><label className="text-[9px] text-white/48">Rotation °<input type="number" step={1} value={Math.round(bounds?.rotationDeg ?? 0)} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => rotation(Number(event.target.value), true)} onBlur={() => model.commitLiveAdjustment?.("Changed Group rotation")} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" data-testid="studio-group-rotation" /></label><button type="button" onClick={() => rotation(0)} className="h-9 rounded-lg border border-white/10 px-3 text-[9px]">Reset</button></div>{isLayeredContainer(parent) || (!parent && isCardSurfaceLayered(block)) ? <p className="mt-3 text-[10px] leading-4 text-white/60" data-testid="studio-group-anchor-contract">Layered geometry uses the parent’s top-left origin. Rotation uses the Group center. Stored anchor metadata is preserved; it does not reposition a Layered Group.</p> : <><p className="mt-3 text-[9px] text-white/42">Anchor</p><Segmented values={["top-left","top","top-right","left","center","right","bottom-left","bottom","bottom-right"]} value={record?.anchor ?? "top-left"} onChange={(value) => replace({ ...block, groups: (block.groups ?? []).map((group) => group.id === groupId ? { ...group, anchor: value as NonNullable<typeof group.anchor> } : group) }, `Changed Group anchor to ${value}`)} label="Anchor" /></>}<FrameDiagnosticControl enabled={frameDiagnostics} onChange={onFrameDiagnosticsChange} /></ControlGroup>
+     <ControlGroup label="Scale / fit"><Segmented values={["fit","fill","proportional","compact","medium","full"]} value={record?.scaleMode ?? "proportional"} onChange={(value) => scale(value as CompositionGroupScaleMode)} label="Scale mode" /><p className="text-[9px] leading-4 text-white/38">Compact, Medium, and Full apply governed responsive widths. Curated artwork keeps its certified aspect ratio and every action retains a 44px minimum target.</p></ControlGroup>
+     <ControlGroup label="Internal layout"><Segmented values={["layered","flow_vertical","flow_horizontal","grid"]} value={settings.layout} onChange={(value) => settingsPatch({ layout: value as CompositionGroupLayoutMode }, `Changed Group layout to ${value}`)} label="Layout" /><Segmented values={["dense","standard","airy","custom"]} value={settings.density} onChange={(value) => settingsPatch({ density: value as CompositionGroupDensityMode }, `Changed Group density to ${value}`)} label="Density" />{settings.density === "custom" ? <><StudioPrecisionControl label="Row gap" value={settings.rowGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 10 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => settingsPatch({ rowGapPx: value }, "Previewed Group row gap")} onCommit={() => model.commitLiveAdjustment?.("Changed Group row gap")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Column gap" value={settings.columnGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 12 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => settingsPatch({ columnGapPx: value }, "Previewed Group column gap")} onCommit={() => model.commitLiveAdjustment?.("Changed Group column gap")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Internal group gap" value={settings.internalGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 6 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => settingsPatch({ internalGapPx: value }, "Previewed Group internal gap")} onCommit={() => model.commitLiveAdjustment?.("Changed Group internal gap")} onCancel={model.cancelLiveAdjustment} /></> : <p className="text-[9px] text-white/35">{settings.rowGapPx}px rows · {settings.columnGapPx}px columns · {settings.internalGapPx}px inset</p>}</ControlGroup>
+     <ControlGroup label="Local layer"><p className="text-[9px] text-white/42">Local order {localOrder || "—"} of {localSiblings.length} · z {record?.zIndex ?? "—"}</p><div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => z("back", "Sent composition Group to back")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Send to back</button><button type="button" onClick={() => z("backward", "Sent composition Group backward")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Send backward</button><button type="button" onClick={() => z("forward", "Brought composition Group forward")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Bring forward</button><button type="button" onClick={() => z("front", "Brought composition Group to front")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Bring to front</button></div></ControlGroup>
++    </fieldset>
+     <ControlGroup label="Group behavior"><div className="grid grid-cols-3 gap-2"><button type="button" onClick={() => replace({ ...block, nodes: block.nodes.map((candidate) => candidate.groupId === groupId ? { ...candidate, locked: true } : candidate), groups: (block.groups ?? []).map((group) => group.id === groupId ? { ...group, locked: true } : group) }, "Locked composition Group")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Lock Group</button><button type="button" onClick={() => replace({ ...block, nodes: block.nodes.map((candidate) => candidate.groupId === groupId ? { ...candidate, locked: false } : candidate), groups: (block.groups ?? []).map((group) => group.id === groupId ? { ...group, locked: false } : group) }, "Unlocked composition Group")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Unlock Group</button><button type="button" onClick={() => replace(ungroupCompositionBlock(block, groupId), "Ungrouped composition Group")} className="min-h-10 rounded-xl border border-white/10 text-[10px]" data-testid="studio-group-ungroup">Ungroup</button></div></ControlGroup>
+   </div>;
+ }
+ 
+ function ContainerControls({ node, patchProps, model, brand }: { node: CreativeCompositionNode; patchProps: (patch: Record<string, unknown>, label: string) => void; model: CardEditorLiveModel; brand: BrandPreviewContext }) {
++  const placedInLayered = Boolean(model.config.rootComposition && isLayeredCompositionParent(model.config.rootComposition, node.parentId ?? null));
+   const surface = readStudioSurfaceState(node.props);
+   const transaction = (patch: Record<string, unknown>) => model.previewCompositionNode?.(node.id, { props: { ...node.props, ...patch } });
+   const precision = (label: string) => ({ onBegin: model.beginLiveAdjustment, onCommit: () => model.commitLiveAdjustment?.(label), onCancel: model.cancelLiveAdjustment });
+@@ -129,15 +135,18 @@
+   const leather = getMaterialRecipe("worn_saddle_leather")!;
+   const layoutGuidance = layout === "layered" ? "Place and overlap items freely." : layout === "flow_horizontal" ? "Arrange items side by side." : layout === "grid" ? "Arrange items in rows and columns." : "Arrange items in order.";
+   return <ContainerBrandContext.Provider value={brand}><p className="mb-3 rounded-xl border border-[#8bdcff]/12 bg-[#8bdcff]/[.035] px-3 py-2 text-[10px] text-[#c9efff]/75" data-testid="studio-layout-guidance"><strong className="uppercase">{layout === "flow" ? "Vertical" : layout === "flow_horizontal" ? "Horizontal" : layout === "grid" ? "Grid" : "Layered"}</strong> · {layoutGuidance}</p><div data-control-group="surface" data-catalog-adapter="surface-treatments" data-semantic-state="structure">
+-    <section data-testid="studio-container-layout-mode"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Composition</p><p className="mt-1 text-[9px] leading-4 text-white/38">Structured flow may run vertically, horizontally, or as a paired grid. Layered keeps free placement bounded inside this region.</p><div className="mt-3 grid grid-cols-2 gap-1">{(["flow","flow_horizontal","grid","layered"] as const).map((mode) => <button key={mode} type="button" aria-pressed={layout === mode} onClick={() => { const root = model.config.rootComposition; if (!root) return; const seeded = setContainerCompositionMode(root, node.id, mode === "layered" ? "layered" : "flow"); const next = mode === "flow" || mode === "layered" ? seeded : { ...seeded, nodes: seeded.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, props: { ...candidate.props, layout: mode } } : candidate) }; model.patchConfig({ rootComposition: next }, `Changed Container composition to ${mode === "flow" ? "Vertical" : mode === "flow_horizontal" ? "Horizontal" : mode === "grid" ? "Grid" : "Layered"}`); }} className="min-h-10 rounded-xl bg-white/5 px-1 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{mode === "flow" ? "Vertical" : mode === "flow_horizontal" ? "Horizontal" : mode === "grid" ? "Grid" : "Layered"}</button>)}</div><p className="mt-4 text-[9px] font-semibold uppercase tracking-[.12em] text-white/42">Density</p><div className="mt-2 grid grid-cols-4 gap-1">{(["dense","standard","airy","custom"] as StudioCompositionDensityMode[]).map((mode) => <button key={mode} type="button" aria-pressed={density.mode === mode} onClick={() => patchProps(setContainerDensity(node.props, mode), `Changed Container density to ${mode}`)} className="min-h-9 rounded-lg bg-white/5 px-1 text-[8px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{mode}</button>)}</div>{density.mode === "custom" ? <><StudioPrecisionControl label={layout === "layered" ? "Snap rhythm / row gap" : "Row gap"} value={density.rowGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 16 }} onPreview={(value) => transaction(setContainerDensity(node.props, "custom", value, { rowGapPx: value }))} {...precision("Changed Container row gap")} /><StudioPrecisionControl label="Column gap" value={density.columnGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 16 }} onPreview={(value) => transaction(setContainerDensity(node.props, "custom", density.gapPx, { columnGapPx: value }))} {...precision("Changed Container column gap")} /><StudioPrecisionControl label="Internal group gap" value={density.internalGroupGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 8 }} onPreview={(value) => transaction(setContainerDensity(node.props, "custom", density.gapPx, { internalGroupGapPx: value }))} {...precision("Changed Container internal group gap")} /></> : <p className="mt-2 text-[9px] text-white/35">{layout === "layered" ? `${Math.round(density.snapGrid * 100)}% placement rhythm` : `${density.rowGapPx}px rows · ${density.columnGapPx}px columns`}</p>}{layout === "layered" ? <StudioPrecisionControl label="Layered region height" value={Number(node.props.layeredHeightPx ?? 360)} descriptor={{ unit: "px", min: 180, max: 900, step: 10, fineStep: 1, defaultValue: 360 }} onPreview={(value) => transaction({ layeredHeightPx: value })} {...precision("Changed layered region height")} /> : null}</section>
++    <section data-testid="studio-container-layout-mode"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Inside this Container</p><p className="mt-1 text-[9px] leading-4 text-white/38">Structured flow may run vertically, horizontally, or as a paired grid. Layered keeps free placement bounded inside this region.</p><div className="mt-3 grid grid-cols-2 gap-1">{(["flow","flow_horizontal","grid","layered"] as const).map((mode) => <button key={mode} type="button" aria-pressed={layout === mode} onClick={() => { const root = model.config.rootComposition; if (!root) return; const seeded = setContainerCompositionMode(root, node.id, mode === "layered" ? "layered" : "flow"); const next = mode === "flow" || mode === "layered" ? seeded : { ...seeded, nodes: seeded.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, props: { ...candidate.props, layout: mode } } : candidate) }; model.patchConfig({ rootComposition: next }, `Changed Container composition to ${mode === "flow" ? "Vertical" : mode === "flow_horizontal" ? "Horizontal" : mode === "grid" ? "Grid" : "Layered"}`); }} className="min-h-10 rounded-xl bg-white/5 px-1 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{mode === "flow" ? "Vertical" : mode === "flow_horizontal" ? "Horizontal" : mode === "grid" ? "Grid" : "Layered"}</button>)}</div><p className="mt-4 text-[9px] font-semibold uppercase tracking-[.12em] text-white/42">Density</p><div className="mt-2 grid grid-cols-4 gap-1">{(["dense","standard","airy","custom"] as StudioCompositionDensityMode[]).map((mode) => <button key={mode} type="button" aria-pressed={density.mode === mode} onClick={() => patchProps(setContainerDensity(node.props, mode), `Changed Container density to ${mode}`)} className="min-h-9 rounded-lg bg-white/5 px-1 text-[8px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{mode}</button>)}</div>{density.mode === "custom" ? <><StudioPrecisionControl label={layout === "layered" ? "Snap rhythm / row gap" : "Row gap"} value={density.rowGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 16 }} onPreview={(value) => transaction(setContainerDensity(node.props, "custom", value, { rowGapPx: value }))} {...precision("Changed Container row gap")} /><StudioPrecisionControl label="Column gap" value={density.columnGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 16 }} onPreview={(value) => transaction(setContainerDensity(node.props, "custom", density.gapPx, { columnGapPx: value }))} {...precision("Changed Container column gap")} /><StudioPrecisionControl label="Internal group gap" value={density.internalGroupGapPx} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 8 }} onPreview={(value) => transaction(setContainerDensity(node.props, "custom", density.gapPx, { internalGroupGapPx: value }))} {...precision("Changed Container internal group gap")} /></> : <p className="mt-2 text-[9px] text-white/35">{layout === "layered" ? `${Math.round(density.snapGrid * 100)}% placement rhythm` : `${density.rowGapPx}px rows · ${density.columnGapPx}px columns`}</p>}{layout === "layered" && !placedInLayered ? <StudioPrecisionControl label="Layered region height" value={Number(node.props.layeredHeightPx ?? 360)} descriptor={{ unit: "px", min: 180, max: 900, step: 10, fineStep: 1, defaultValue: 360 }} onPreview={(value) => transaction({ layeredHeightPx: value })} {...precision("Changed layered region height")} /> : null}</section>
++    {placedInLayered ? <p className="mt-4 rounded-xl bg-white/5 p-3 text-[10px] leading-4">Placement in parent: Layered. Use Position above for the outer frame. Padding and internal layout control content inside it; Flow width and edge presets are retained for a return to Flow.</p> : <>
+     <section className="mt-6" data-testid="studio-container-responsive-size"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Responsive size</p><p className="mt-1 text-[9px] leading-4 text-white/38">Width is parent-relative and survives phone rendering. Use 35/65 or 40/60 for side-by-side regions.</p><Segmented values={["auto","25","33","40","50","66","75","100"]} value={node.props.widthPercent == null && node.props.flowWidthPercent == null ? "auto" : String(Math.round(Number(node.props.widthPercent ?? node.props.flowWidthPercent ?? 100)))} onChange={(value) => patchProps({ widthPercent: value === "auto" ? undefined : Number(value) }, value === "auto" ? "Changed Container width to Auto" : `Changed Container width to ${value}%`)} label="Width preset" /><StudioPrecisionControl label="Custom width" value={Number(node.props.widthPercent ?? node.props.flowWidthPercent ?? 100)} descriptor={{ unit: "%", min: 20, max: 100, step: 1, defaultValue: 100 }} onPreview={(value) => transaction({ widthPercent: value })} {...precision("Changed Container width")} /><div className="grid grid-cols-3 gap-2"><label className="text-[9px] text-white/48">Min width<input type="number" min={0} max={390} value={Number(node.props.minWidthPx ?? 0)} onChange={(event) => patchProps({ minWidthPx: Number(event.target.value) }, "Changed Container minimum width")} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" /></label><label className="text-[9px] text-white/48">Max width<input type="number" min={80} max={1200} value={Number(node.props.maxWidthPx ?? 1200)} onChange={(event) => patchProps({ maxWidthPx: Number(event.target.value) }, "Changed Container maximum width")} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" /></label><label className="text-[9px] text-white/48">Min height<input type="number" min={0} max={900} value={Number(node.props.minHeightPx ?? 0)} onChange={(event) => patchProps({ minHeightPx: Number(event.target.value) }, "Changed Container minimum height")} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" /></label></div><Segmented values={["fit_content","fixed","fill_parent"]} value={String(node.props.contentFit || "fit_content")} onChange={(value) => patchProps({ contentFit: value }, `Changed Container fit to ${value}`)} label="Content fit" />{node.props.contentFit === "fixed" ? <StudioPrecisionControl label="Height" value={Number(node.props.heightPx ?? 240)} descriptor={{ unit: "px", min: 88, max: 900, step: 4, defaultValue: 240 }} onPreview={(value) => transaction({ heightPx: value })} {...precision("Changed Container height")} /> : null}<Segmented values={["auto","1:1","4:3","16:9"]} value={String(node.props.aspectRatio || "auto")} onChange={(value) => patchProps({ aspectRatio: value }, `Changed Container aspect ratio to ${value}`)} label="Aspect ratio" /><label className="mt-3 flex min-h-10 items-center justify-between rounded-xl bg-white/4 px-3 text-[9px]"><span>Clip content intentionally</span><input type="checkbox" checked={node.props.clipContent === true} onChange={(event) => patchProps({ clipContent: event.target.checked }, `${event.target.checked ? "Enabled" : "Disabled"} Container clipping`)} /></label></section>
+     <section className="mt-6" data-testid="studio-container-edge-mode"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Surface edge</p><div className="mt-2 grid grid-cols-3 gap-1">{STUDIO_EDGE_MODES.map((option) => <button key={option.id} type="button" aria-pressed={edgeMode === option.id} onClick={() => patchProps(setContainerEdgeMode(node.props, option.id), `Changed Container edge to ${option.label}`)} className="min-h-11 rounded-lg bg-white/5 px-1 text-[9px] aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{option.label}</button>)}</div></section>
++    </>}
++    {placedInLayered ? <label className="mt-3 flex min-h-11 items-center justify-between text-xs"><span>Clip content intentionally</span><input type="checkbox" checked={node.props.clipContent === true} onChange={(event) => patchProps({ clipContent: event.target.checked }, "Changed Container clipping")} /></label> : null}
+     <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Surface</p><div className="mt-3 grid grid-cols-2 gap-2">{STUDIO_SURFACE_TREATMENTS.map((option) => <button key={option.id} type="button" aria-pressed={surface.treatment === option.id} onClick={() => patchProps(applyStudioSurfaceTreatment(node.props, option.id), `Changed Container surface to ${option.label}`)} className={cn("min-h-20 overflow-hidden rounded-xl border border-white/10 bg-white/4 text-left text-[11px]", "aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10 aria-pressed:text-[#d8ff82]")}><span className="block h-8 w-full" style={{ background: option.preview }} /><span className="block px-2 pt-1.5 font-medium">{option.label}</span><span className="block px-2 pb-2 text-[8px] leading-3 text-white/35">{option.description}</span></button>)}</div><button type="button" aria-pressed={node.props.materialPreset === leather.id} onClick={() => patchProps(applySurfaceMaterial(node.props, leather.id), "Applied Worn Saddle Leather Container Surface")} className="mt-3 w-full overflow-hidden rounded-xl border border-white/10 bg-white/4 text-left aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10"><span className="block h-12" style={{ background: materialPreviewCss(leather) }} /><span className="block px-3 py-2 text-[10px] font-semibold">Worn Saddle Leather</span></button></section>
+     {surface.treatment === "image" ? <section className="mt-6 rounded-2xl border border-[#8bdcff]/12 bg-[#101824]/70 p-3" data-testid="studio-container-image-controls"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Image</p><div className="mt-2"><MediaPicker label="Container image" chooseLabel="Choose image" replaceLabel="Replace image" removeLabel="Remove" value={surface.mediaUrl || ""} valueAssetId={surface.mediaAssetId} mediaUploadReady={model.mediaUploadReady} stockReady={model.stockReady} onAssetChange={(asset) => patchProps(applyStudioSurfaceTreatment(node.props, "image", asset ? { mediaUrl: asset.url, mediaAssetId: asset.mediaAssetId || asset.id } : { mediaUrl: undefined, mediaAssetId: undefined }), asset ? "Selected Container image" : "Removed Container image")} /></div><fieldset className="disabled:opacity-35" {...studioControlProps(imageTuneAvailability)}><p className="mt-4 text-[9px] font-semibold uppercase tracking-[.14em] text-white/42">Presentation</p>{imageTuneAvailability.disabledReason ? <p className="mt-1 text-[9px] text-amber-100/70">{imageTuneAvailability.disabledReason}</p> : null}<div className="mt-2 grid grid-cols-3 gap-1">{(["cover","contain","fill"] as const).map((fit) => <button key={fit} type="button" aria-pressed={surface.fit === fit} onClick={() => patchProps(applyStudioSurfaceParameters(node.props, { fit }), `Changed Container image fit to ${fit}`)} className="min-h-9 rounded-lg bg-white/5 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{fit}</button>)}</div><StudioPrecisionControl label="Zoom / scale" value={Math.round(surface.scale * 100)} descriptor={{ unit: "%", min: 50, max: 250, step: 1, defaultValue: 100 }} onPreview={(value) => surfacePatch({ scale: value / 100 })} {...precision("Changed Container image scale")} /><StudioPrecisionControl label="Focal point X" value={Math.round(surface.focalX * 100)} descriptor={{ unit: "%", min: 0, max: 100, step: 1, defaultValue: 50 }} onPreview={(value) => surfacePatch({ focalX: value / 100 })} {...precision("Changed Container image focal point")} /><StudioPrecisionControl label="Focal point Y" value={Math.round(surface.focalY * 100)} descriptor={{ unit: "%", min: 0, max: 100, step: 1, defaultValue: 50 }} onPreview={(value) => surfacePatch({ focalY: value / 100 })} {...precision("Changed Container image focal point")} /><p className="mt-5 text-[9px] font-semibold uppercase tracking-[.14em] text-white/42">Image treatment</p><LiveColorWell label="Tint / veil" value={surface.tint} node={node} model={model} apply={(value) => applyStudioSurfaceParameters(node.props, { tint: value })} historyLabel="Changed Container image tint" /><StudioPrecisionControl label="Brightness" value={Math.round(surface.brightness * 100)} descriptor={{ unit: "%", min: 25, max: 200, step: 1, defaultValue: 100 }} onPreview={(value) => surfacePatch({ brightness: value / 100 })} {...precision("Changed Container image brightness")} /><StudioPrecisionControl label="Contrast" value={Math.round(surface.contrast * 100)} descriptor={{ unit: "%", min: 25, max: 200, step: 1, defaultValue: 100 }} onPreview={(value) => surfacePatch({ contrast: value / 100 })} {...precision("Changed Container image contrast")} /><StudioPrecisionControl label="Saturation" value={Math.round(surface.saturation * 100)} descriptor={{ unit: "%", min: 0, max: 200, step: 1, defaultValue: 100 }} onPreview={(value) => surfacePatch({ saturation: value / 100 })} {...precision("Changed Container image saturation")} /><StudioPrecisionControl label="Overlay / veil" value={Math.round(surface.overlayOpacity * 100)} descriptor={{ unit: "%", min: 0, max: 90, step: 1, defaultValue: 28 }} onPreview={(value) => surfacePatch({ overlayOpacity: value / 100 })} {...precision("Changed Container image veil")} /><StudioPrecisionControl label="Image opacity" value={Math.round(surface.imageOpacity * 100)} descriptor={{ unit: "%", min: 10, max: 100, step: 1, defaultValue: 100 }} onPreview={(value) => surfacePatch({ imageOpacity: value / 100 })} {...precision("Changed Container image opacity")} /></fieldset></section> : null}
+     {surface.treatment === "solid" || surface.treatment === "smoked_glass" ? <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">{surface.treatment === "smoked_glass" ? "Glass" : "Color"}</p><LiveColorWell label={surface.treatment === "smoked_glass" ? "Fill / tint" : "Fill"} value={surface.fill?.startsWith("#") ? surface.fill : "#162019"} node={node} model={model} apply={(value) => applyStudioSurfaceParameters(node.props, { fill: value })} historyLabel="Changed Container fill" /><StudioPrecisionControl label={surface.treatment === "smoked_glass" ? "Translucency" : "Opacity"} value={Math.round(surface.opacity * 100)} descriptor={{ unit: "%", min: 10, max: 100, step: 1, defaultValue: surface.treatment === "smoked_glass" ? 72 : 100 }} onPreview={(value) => surfacePatch({ opacity: value / 100 })} {...precision("Changed Container opacity")} />{surface.treatment === "smoked_glass" ? <StudioPrecisionControl label="Glass blur" value={surface.blurPx} descriptor={{ unit: "px", min: 0, max: 32, step: 1, fineStep: .5, defaultValue: 14 }} onPreview={(value) => surfacePatch({ blurPx: value })} {...precision("Changed Container glass blur")} /> : null}</section> : null}
+     <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Edge</p><LiveColorWell label="Border / rim" value={surface.borderColor.startsWith("#") ? surface.borderColor : "#ffffff"} node={node} model={model} apply={(value) => applyStudioSurfaceParameters(node.props, { borderColor: value })} historyLabel="Changed Container border color" /><StudioPrecisionControl label="Border width" value={surface.borderWidthPx} descriptor={{ unit: "px", min: 0, max: 8, step: 1, fineStep: .5, defaultValue: surface.treatment === "transparent" ? 0 : 1 }} onPreview={(value) => surfacePatch({ borderWidthPx: value })} {...precision("Changed Container border width")} />{showEdge ? <StudioPrecisionControl label="Corner radius" value={surface.radiusPx} descriptor={{ unit: "px", min: 0, max: 48, step: 1, fineStep: .5, defaultValue: 16 }} onPreview={(value) => surfacePatch({ radiusPx: value })} {...precision("Changed Container corner radius")} /> : null}{surface.treatment !== "transparent" ? <StudioPrecisionControl label="Shadow / depth" value={surface.shadowPx} descriptor={{ unit: "px", min: 0, max: 48, step: 1, defaultValue: 18 }} onPreview={(value) => surfacePatch({ shadowPx: value })} {...precision("Changed Container depth")} /> : null}</section>
+-    <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Flow spacing</p><StudioPrecisionControl label="Space before" value={Number(node.props.spacingAbovePx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => transaction({ spacingAbovePx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Container space before")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Space after" value={Number(node.props.spacingBelowPx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => transaction({ spacingBelowPx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Container space after")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Padding" value={Number(node.props.padding ?? 16)} descriptor={{ unit: "px", min: 0, max: 48, step: 1, fineStep: .5, defaultValue: 16 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => transaction({ padding: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Container padding")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Internal gap" value={Number(node.props.gap ?? 12)} descriptor={{ unit: "px", min: 0, max: 40, step: 1, fineStep: .5, defaultValue: 12 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => transaction({ gap: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Container gap")} onCancel={model.cancelLiveAdjustment} /></section>
+-    <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-white/42">Alignment</p><div className="mt-2 grid grid-cols-4 gap-1">{['start','center','end','stretch'].map((value) => <button key={value} type="button" aria-pressed={String(node.props.alignment || 'stretch') === value} onClick={() => patchProps({ alignment: value }, `Changed Container alignment to ${value}`)} className="min-h-9 rounded-lg bg-white/5 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{value}</button>)}</div></section>
++    <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Spacing and padding</p>{!placedInLayered ? <><StudioPrecisionControl label="Space before" value={Number(node.props.spacingAbovePx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => transaction({ spacingAbovePx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Container space before")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Space after" value={Number(node.props.spacingBelowPx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => transaction({ spacingBelowPx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Container space after")} onCancel={model.cancelLiveAdjustment} /></> : null}<StudioPrecisionControl label="Padding" value={Number(node.props.padding ?? 16)} descriptor={{ unit: "px", min: 0, max: 48, step: 1, fineStep: .5, defaultValue: 16 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => transaction({ padding: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Container padding")} onCancel={model.cancelLiveAdjustment} /></section>
++    {!placedInLayered || layout !== "layered" ? <>    <section className="mt-6"><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-white/42">{placedInLayered ? "Child alignment" : "Flow alignment"}</p><div className="mt-2 grid grid-cols-4 gap-1">{['start','center','end','stretch'].map((value) => <button key={value} type="button" aria-pressed={String(node.props.alignment || 'stretch') === value} onClick={() => patchProps({ alignment: value }, `Changed Container alignment to ${value}`)} className="min-h-9 rounded-lg bg-white/5 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{value}</button>)}</div></section></> : null}
+   </div></ContainerBrandContext.Provider>;
+ }
+ 
+@@ -192,7 +201,7 @@
+     {kind === "image" && capability?.controls.imageTreatment ? <ControlGroup label="Image treatment"><fieldset className="space-y-3 disabled:opacity-35" {...studioControlProps(capability.controls.imageTreatment)}><p className="text-[10px] text-white/42">{capability.controls.imageTreatment.disabledReason || "Tune the selected image without reopening discovery."}</p><Segmented values={["cover","contain","fill"]} value={String(node.props.fit || "cover")} onChange={(value) => patch({ fit: value }, `Changed Image fit to ${value}`)} label="Fit" /><StudioPrecisionControl label="Brightness" value={Math.round(Number(node.props.brightness ?? 1) * 100)} descriptor={{ unit: "%", min: 25, max: 200, step: 1, defaultValue: 100 }} onPreview={(value) => preview({ brightness: value / 100 })} {...precision("Changed Image brightness")} /><Segmented values={["meaningful","decorative"]} value={node.props.decorative === true ? "decorative" : "meaningful"} onChange={(value) => patch({ decorative: value === "decorative", alt: value === "decorative" ? "" : String(node.props.alt || "Card image"), clickThrough: value === "decorative" }, `Marked Image ${value}`)} label="Meaning" /><label className="flex min-h-10 items-center justify-between rounded-xl bg-white/4 px-3 text-[10px]"><span>Lock layer</span><input type="checkbox" checked={node.locked === true} onChange={(event) => model.patchCompositionNode(node.id, { locked: event.target.checked }, `${event.target.checked ? "Locked" : "Unlocked"} Image layer`)} /></label>{node.props.decorative !== true ? <label className="block text-[10px] text-white/58">Alternative text<input value={String(node.props.alt || "")} onChange={(event) => patch({ alt: event.target.value }, "Changed Image alternative text")} className="mt-1.5 h-10 w-full rounded-lg border border-white/12 bg-black/20 px-3 text-sm outline-none" /></label> : null}</fieldset></ControlGroup> : null}
+     </div>
+     </> : null}
+-    <section className={node.primitive === "text" ? "mt-6" : ""}><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#8bdcff]/70">Position · Flow placement</p><p className="mt-1 text-[11px] text-white/40">Parent: {parent?.name || "Card Surface"} · Position {siblingIndex + 1} of {siblings.length}</p><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled={siblingIndex <= 0} onClick={() => model.onReorderCompositionNode?.(node.id, siblingIndex - 1)} className="min-h-10 rounded-xl border border-white/10 bg-white/4 text-xs disabled:opacity-25">Move earlier</button><button type="button" disabled={siblingIndex < 0 || siblingIndex >= siblings.length - 1} onClick={() => model.onReorderCompositionNode?.(node.id, siblingIndex + 1)} className="min-h-10 rounded-xl border border-white/10 bg-white/4 text-xs disabled:opacity-25">Move later</button></div>{kind !== "divider" ? <><StudioPrecisionControl label="Width" value={Number(node.props.flowWidthPercent ?? 100)} descriptor={{ unit: "%", min: 20, max: 100, step: 1, defaultValue: 100 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ flowWidthPercent: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module width")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Side inset" value={Number(node.props.flowInsetPx ?? 0)} descriptor={{ unit: "px", min: 0, max: 80, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ flowInsetPx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module inset")} onCancel={model.cancelLiveAdjustment} /><div className="mt-3 grid grid-cols-4 gap-1" aria-label="Module alignment">{["start","center","end","stretch"].map((value) => <button key={value} type="button" aria-pressed={String(node.props.flowAlignment || "stretch") === value} onClick={() => model.patchCompositionNode(node.id, { props: { ...node.props, flowAlignment: value } }, `Changed Module alignment to ${value}`)} className="min-h-9 rounded-lg bg-white/5 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{value}</button>)}</div></> : null}<StudioPrecisionControl label="Space before" value={Number(node.props.spacingAbovePx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ spacingAbovePx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module space before")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Space after" value={Number(node.props.spacingBelowPx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ spacingBelowPx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module space after")} onCancel={model.cancelLiveAdjustment} /><div className="mt-3 rounded-xl border border-white/8 bg-white/[.025] p-2"><p className="px-1 pb-2 text-[10px] text-white/58">Move to another parent</p><div className="space-y-1"><button type="button" aria-pressed={!node.parentId} onClick={() => model.onReparentCompositionModule?.(node.id, null)} className="w-full rounded-lg bg-white/5 px-3 py-2 text-left text-xs aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#d8ff82]">Card Surface</button>{containers.map((container) => <button key={container.id} type="button" aria-pressed={node.parentId === container.id} onClick={() => model.onReparentCompositionModule?.(node.id, container.id)} className="w-full rounded-lg bg-white/5 px-3 py-2 text-left text-xs aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#d8ff82]">{container.name || "Container"}</button>)}</div></div><p className="mt-3 text-[9px] leading-4 text-white/34">This changes composition membership and flow order. Front/back stacking appears only when overlapping Modules support true z-order.</p></section>
++    <section className={node.primitive === "text" ? "mt-6" : ""}>{!isLayeredCompositionParent(block, node.parentId ?? null) ? <><p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#8bdcff]/70">Position · Flow placement</p><p className="mt-1 text-[11px] text-white/40">Parent: {parent?.name || "Card Surface"} · Position {siblingIndex + 1} of {siblings.length}</p><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled={siblingIndex <= 0} onClick={() => model.onReorderCompositionNode?.(node.id, siblingIndex - 1)} className="min-h-10 rounded-xl border border-white/10 bg-white/4 text-xs disabled:opacity-25">Move earlier</button><button type="button" disabled={siblingIndex < 0 || siblingIndex >= siblings.length - 1} onClick={() => model.onReorderCompositionNode?.(node.id, siblingIndex + 1)} className="min-h-10 rounded-xl border border-white/10 bg-white/4 text-xs disabled:opacity-25">Move later</button></div>{kind !== "divider" ? <><StudioPrecisionControl label="Width" value={Number(node.props.flowWidthPercent ?? 100)} descriptor={{ unit: "%", min: 20, max: 100, step: 1, defaultValue: 100 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ flowWidthPercent: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module width")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Side inset" value={Number(node.props.flowInsetPx ?? 0)} descriptor={{ unit: "px", min: 0, max: 80, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ flowInsetPx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module inset")} onCancel={model.cancelLiveAdjustment} /><div className="mt-3 grid grid-cols-4 gap-1" aria-label="Module alignment">{["start","center","end","stretch"].map((value) => <button key={value} type="button" aria-pressed={String(node.props.flowAlignment || "stretch") === value} onClick={() => model.patchCompositionNode(node.id, { props: { ...node.props, flowAlignment: value } }, `Changed Module alignment to ${value}`)} className="min-h-9 rounded-lg bg-white/5 text-[9px] capitalize aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">{value}</button>)}</div></> : null}<StudioPrecisionControl label="Space before" value={Number(node.props.spacingAbovePx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ spacingAbovePx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module space before")} onCancel={model.cancelLiveAdjustment} /><StudioPrecisionControl label="Space after" value={Number(node.props.spacingBelowPx ?? 0)} descriptor={{ unit: "px", min: 0, max: 64, step: 1, fineStep: .5, defaultValue: 0 }} onBegin={model.beginLiveAdjustment} onPreview={(value) => preview({ spacingBelowPx: value })} onCommit={() => model.commitLiveAdjustment?.("Changed Module space after")} onCancel={model.cancelLiveAdjustment} /></> : null}<div className="mt-3 rounded-xl border border-white/8 bg-white/[.025] p-2"><p className="px-1 pb-2 text-[10px] text-white/58">Move to another parent</p><div className="space-y-1"><button type="button" aria-pressed={!node.parentId} onClick={() => model.onReparentCompositionModule?.(node.id, null)} className="w-full rounded-lg bg-white/5 px-3 py-2 text-left text-xs aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#d8ff82]">Card Surface</button>{containers.map((container) => <button key={container.id} type="button" aria-pressed={node.parentId === container.id} onClick={() => model.onReparentCompositionModule?.(node.id, container.id)} className="w-full rounded-lg bg-white/5 px-3 py-2 text-left text-xs aria-pressed:bg-[#b8ff2c]/12 aria-pressed:text-[#d8ff82]">{container.name || "Container"}</button>)}</div></div><p className="mt-3 text-[9px] leading-4 text-white/34">This changes composition membership and flow order. Front/back stacking appears only when overlapping Modules support true z-order.</p></section>
+   </>;
+ }
+ 
+@@ -237,12 +246,13 @@
+ function LayeredPositionControls({ node, model, block, unit, onUnitChange, frameDiagnostics, onFrameDiagnosticsChange }: { node: CreativeCompositionNode; model: CardEditorLiveModel; block: NonNullable<CardEditorLiveModel["config"]["rootComposition"]> } & PositionInspectorWorkspaceProps) {
+   const patch = (next: Partial<CreativeCompositionNode>, label: string) => model.patchCompositionNode(node.id, next, label);
+   const resizePolicy = layeredResizePolicy(node);
++  const minimumFrame = layeredMinimumFrameSize(node);
+   const bounds = layeredBoundsPolicy(block, node.parentId ?? null);
+   const parent = node.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
+-  const parentSize = geometryParentSize(block, node);
++  const parentSize = useLayeredParentSize(block, node.parentId ?? null);
+   const siblings = block.nodes.filter((candidate) => (candidate.parentId ?? null) === (node.parentId ?? null));
+   const localOrder = [...siblings].sort((left, right) => left.zIndex - right.zIndex).findIndex((candidate) => candidate.id === node.id) + 1;
+-  const frames = resolveStudioFrameSemantics(block, node);
++  const frames = resolveStudioFrameSemantics(block, node, parentSize);
+   const frameHeightMode = readLayeredPlacementFrameHeightMode(node);
+   const setFrameHeightMode = (mode: StudioPlacementFrameHeightMode) => model.patchConfig({ rootComposition: setLayeredPlacementFrameHeightMode(block, node.id, mode) }, mode === "tight" ? "Fit layered action frame to content" : "Enabled custom layered action frame height");
+   const z = (command: LayeredZCommand, label: string) => model.patchConfig({ rootComposition: reorderLayeredNodeZ(block, node.id, command) }, label);
+@@ -250,20 +260,21 @@
+     <p className="text-[9px] leading-4 text-[#a9e7ff]/70">Parent: {parent?.name || "Card Surface"} · {Math.round(parentSize.widthPx)} × {Math.round(parentSize.heightPx)} px. {bounds === "constrain" ? "Placement is constrained by this parent." : "Overflow is explicitly allowed by this parent."}</p>
+     <Segmented values={["percent", "px"]} value={unit} onChange={(value) => onUnitChange(value as StudioGeometryUnit)} label="Display units · normalized geometry remains the only saved truth" />
+     {supportsLayeredPlacementFrameHeight(node) ? <Segmented values={["tight","custom"]} value={frameHeightMode} onChange={(value) => setFrameHeightMode(value as StudioPlacementFrameHeightMode)} label="Frame height · Fit content or add deliberate breathing room" /> : null}
+-    {resizePolicy === "governed-aspect" ? <p className="rounded-lg bg-[#b8ff2c]/8 p-2 text-[9px] leading-4 text-[#d8ff82]/75">Tight frame preserves mastered artwork proportions. Choose Custom where the presentation allows independent height.</p> : null}
++    {resizePolicy === "width-only" ? <p className="rounded-lg bg-white/5 p-2 text-[10px]">Height follows content or the component recipe. Resize width here; use the existing height behavior or frame-height control below when supported.</p> : null}
++    {resizePolicy === "governed-aspect" ? <p className="rounded-lg bg-[#b8ff2c]/8 p-2 text-[9px] leading-4 text-[#d8ff82]/75">Aspect ratio is locked: changing either dimension scales both. Image Fit → Cover or Fill permits a free frame unless explicitly aspect-locked; Video → Free frame size unlocks its frame. Governed artwork keeps its recipe proportions.</p> : null}
+     <div className="grid grid-cols-2 gap-2">{([['x','X'],['y','Y'],['width','Width'],['height','Height']] as const).map(([key,label]) => {
+-      const disabled = node.locked === true || resizePolicy === "governed-aspect" && (key === "width" || key === "height") || resizePolicy === "width-only" && key === "height";
++      const disabled = node.locked === true || resizePolicy === "width-only" && key === "height";
+       const position = key === "x" || key === "y";
+-      const minNormalized = position ? bounds === "allow-overflow" ? -1 : 0 : key === "width" ? .08 : supportsLayeredPlacementFrameHeight(node) ? .015 : .04;
++      const minNormalized = position ? bounds === "allow-overflow" ? -1 : 0 : key === "width" ? minimumFrame.width : minimumFrame.height;
+       const maxNormalized = position && bounds === "allow-overflow" ? 2 : 1;
+       const scale = key === "x" || key === "width" ? parentSize.widthPx : parentSize.heightPx;
+-      return <label key={key} className="text-[9px] text-white/48">{label} {unit === "px" ? "px" : "%"}<input type="number" min={unit === "px" ? minNormalized * scale : minNormalized * 100} max={unit === "px" ? maxNormalized * scale : maxNormalized * 100} step={unit === "px" ? 1 : .1} value={normalizedGeometryToDisplay(node[key], key, unit, parentSize)} disabled={disabled} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => { const normalized = displayGeometryToNormalized(Number(event.target.value), key, unit, parentSize); const next = moveLayeredNode(block, node.id, { [key]: Math.max(minNormalized, Math.min(maxNormalized, normalized)) }).nodes.find((candidate) => candidate.id === node.id); if (next) patch({ x: next.x, y: next.y, width: next.width, height: next.height, props: next.props }, `Changed layered Module ${label}`); }} onBlur={() => model.commitLiveAdjustment?.(`Changed layered Module ${label}`)} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2 disabled:cursor-not-allowed disabled:opacity-35" data-testid={`studio-layered-${key}`} /></label>;
++      return <label key={key} className="text-xs text-white/70 md:text-[9px]">{label} {unit === "px" ? "px" : "%"}<input type="number" min={unit === "px" ? minNormalized * scale : minNormalized * 100} max={unit === "px" ? maxNormalized * scale : maxNormalized * 100} step={unit === "px" ? 1 : .1} value={normalizedGeometryToDisplay(node[key], key, unit, parentSize)} disabled={disabled} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => { const normalized = displayGeometryToNormalized(Number(event.target.value), key, unit, parentSize); const next = (key === "width" || key === "height" ? resizeLayeredNodeDimension(block, node.id, key, normalized) : moveLayeredNode(block, node.id, { [key]: normalized })).nodes.find((candidate) => candidate.id === node.id); if (next && Math.abs(next[key] - normalized) > .0001) model.notify?.(`Requested ${label} is constrained. Applied ${normalizedGeometryToDisplay(next[key], key, unit, parentSize)} ${unit === "px" ? "px" : "%"}; see the resize limits and Parent bounds below.`); if (next) model.previewCompositionNode?.(node.id, { x: next.x, y: next.y, width: next.width, height: next.height, props: next.props }); }} onBlur={() => model.commitLiveAdjustment?.(`Changed layered Module ${label}`)} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-11 w-full md:h-9 rounded-lg bg-white/5 px-2 disabled:cursor-not-allowed disabled:opacity-35" data-testid={`studio-layered-${key}`} /></label>;
+     })}</div>
+-    <div className="grid grid-cols-[1fr_auto] items-end gap-2"><label className="text-[9px] text-white/48">Rotation °<input type="number" step={1} value={Math.round(node.rotationDeg || 0)} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => patch({ rotationDeg: Number(event.target.value) }, "Changed layered Module rotation")} onBlur={() => model.commitLiveAdjustment?.("Changed layered Module rotation")} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-9 w-full rounded-lg bg-white/5 px-2" data-testid="studio-layered-rotation" /></label><button type="button" onClick={() => patch({ rotationDeg: 0 }, "Reset layered Module rotation")} className="h-9 rounded-lg border border-white/10 px-3 text-[9px]">Reset</button></div>
++    <div className="grid grid-cols-[1fr_auto] items-end gap-2"><label className="text-xs text-white/70 md:text-[9px]">Rotation °<input type="number" step={1} value={Math.round(node.rotationDeg || 0)} disabled={node.locked === true} onFocus={() => model.beginLiveAdjustment?.()} onChange={(event) => model.previewCompositionNode?.(node.id, { rotationDeg: Number(event.target.value) })} onBlur={() => model.commitLiveAdjustment?.("Changed layered Module rotation")} onKeyDown={(event) => { if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); } }} className="mt-1 h-11 w-full md:h-9 rounded-lg bg-white/5 px-2" data-testid="studio-layered-rotation" /></label><button type="button" disabled={node.locked === true} onClick={() => patch({ rotationDeg: 0 }, "Reset layered Module rotation")} className="h-11 rounded-lg border border-white/10 px-3 text-xs md:h-9 md:text-[9px]">Reset</button></div>
+     <p className="text-[10px] leading-4 text-white/60" data-testid="studio-layered-anchor-contract">Position reference: parent top-left. X/Y locate the Placement frame; resize handles hold the opposite edge or corner, and rotation uses the frame center. Stored anchor metadata is preserved but has no Layered positioning effect.</p>
+     <p className="text-[9px] text-white/42">Local order {localOrder} of {siblings.length} · z {node.zIndex}</p><div className="grid grid-cols-2 gap-2"><button type="button" onClick={() => z("back", "Sent layered Module to back")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Send to back</button><button type="button" onClick={() => z("backward", "Sent layered Module backward")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Send backward</button><button type="button" onClick={() => z("forward", "Brought layered Module forward")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Bring forward</button><button type="button" onClick={() => z("front", "Brought layered Module to front")} className="min-h-10 rounded-xl border border-white/10 text-[10px]">Bring to front</button></div>
+     <div className="grid grid-cols-2 gap-2"><label className="flex min-h-10 items-center justify-between rounded-xl bg-white/4 px-3 text-[9px]"><span>Lock</span><input type="checkbox" checked={node.locked === true} onChange={(event) => patch({ locked: event.target.checked }, `${event.target.checked ? "Locked" : "Unlocked"} layered Module`)} /></label><label className="flex min-h-10 items-center justify-between rounded-xl bg-white/4 px-3 text-[9px]"><span>Visible</span><input type="checkbox" checked={node.visible !== false} onChange={(event) => patch({ visible: event.target.checked }, `${event.target.checked ? "Showed" : "Hid"} layered Module`)} /></label></div>
+-    <p className="rounded-lg bg-white/4 p-2 text-[9px] leading-4 text-white/48">Placement includes authored padding and empty space; it need not hug painted pixels. Minimum width 8% of parent; minimum height {supportsLayeredPlacementFrameHeight(node) ? "1.5%" : "4%"}. Resize: {resizePolicy.replaceAll("-", " ")} · bounds: {bounds.replaceAll("-", " ")} · edge guides apply to unrotated free resizing; rotated and aspect-locked resizing preserves local axes and proportions.</p>
++    <p className="rounded-lg bg-white/4 p-2 text-[9px] leading-4 text-white/48">Placement includes authored padding and empty space; it need not hug painted pixels. Minimum width 8% of parent; minimum height {`${minimumFrame.height * 100}%`}. Resize: {resizePolicy.replaceAll("-", " ")} · bounds: {bounds.replaceAll("-", " ")} · edge guides apply to unrotated free resizing; rotated and aspect-locked resizing preserves local axes and proportions.</p>
+     <FrameDiagnosticControl enabled={frameDiagnostics} onChange={onFrameDiagnosticsChange} detail={`Placement ${Math.round(frames.placement.width * parentSize.widthPx)}×${Math.round(frames.placement.height * parentSize.heightPx)} px · Estimated paint overflow ${frames.visualOverflowPx}px · Touch ${Math.round(frames.touch.width * parentSize.widthPx)}×${Math.round(frames.touch.height * parentSize.heightPx)} px`} />
+   </ControlGroup>;
+ }
+--- a/components/fusion/creative-studio/creative-composition-canvas.tsx
++++ b/components/fusion/creative-studio/creative-composition-canvas.tsx
+@@ -1,5 +1,7 @@
+ "use client";
+ 
++import { layeredMinimumFrameSize, applyLayeredResize, isLayeredCompositionParent } from "@/lib/fusion/creative-studio/platform/layered-region";
++import { renderedLayeredParentSize } from "./use-layered-parent-size";
+ import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+ import { ArrowDownToLine, ArrowUpToLine, ArrowUpRight, GripVertical, Heart, LockKeyhole, Mail, MapPin, Maximize2, Move, Phone, Play, Sparkles, Star, Tag, Ticket } from "lucide-react";
+ import { cn } from "@/lib/utils";
+@@ -2896,10 +2898,11 @@
+       const screenBounds = region.getBoundingClientRect();
+       let ancestorRotation = 0;
+       let ancestorId = node.parentId;
+-      while (ancestorId) { const ancestor = block.nodes.find((candidate) => candidate.id === ancestorId); if (!ancestor) break; ancestorRotation += ancestor.rotationDeg || 0; ancestorId = ancestor.parentId; }
++      while (ancestorId) { const ancestor = block.nodes.find((candidate) => candidate.id === ancestorId); if (!ancestor) break; if (isLayeredCompositionParent(block, ancestor.parentId ?? null)) ancestorRotation += ancestor.rotationDeg || 0; ancestorId = ancestor.parentId; }
+       const parentAngle = ancestorRotation * Math.PI / 180;
+       const zoom = Math.max(.25, editorZoom || 1);
+-      const bounds = { left: screenBounds.left, top: screenBounds.top, width: region.clientWidth * zoom, height: region.clientHeight * zoom };
++      const contentSize = renderedLayeredParentSize(region);
++      const bounds = { left: screenBounds.left, top: screenBounds.top, width: contentSize.widthPx * zoom, height: contentSize.heightPx * zoom };
+       const selectedElement = region.querySelector<HTMLElement>(`[data-composition-node="${node.id}"]`);
+       const selectedRect = selectedElement?.getBoundingClientRect();
+       const startX = event.clientX;
+@@ -2982,7 +2985,11 @@
+         const snapped = !node.rotationDeg && layeredResizePolicy(node) === "free"
+           ? snapLayeredResize({ block: startBlock, nodeId: node.id, frame, handle, threshold: Math.max(.008, 7 / Math.max(1, bounds.width)), grid: density.snapGrid })
+           : { frame, guides: [] };
+-        const next = moveLayeredNode(startBlock, node.id, snapped.frame);
++        const minimum = layeredMinimumFrameSize(node);
++        if (frame.width <= minimum.width || frame.width >= 1 || (layeredResizePolicy(node) !== "width-only" && (frame.height <= minimum.height || frame.height >= 1))) onNotify?.(`Placement size limit reached: width ${minimum.width * 100}–100%, height ${minimum.height * 100}–100% of parent. Use Position for exact size, or resize the parent to change the available space.`);
++        const next = applyLayeredResize(startBlock, node.id, snapped.frame);
++        const effective = next.nodes.find((candidate) => candidate.id === node.id);
++        if (effective && (["x", "y", "width", "height"] as const).some((axis) => Math.abs(effective[axis] - snapped.frame[axis]) > .00001)) onNotify?.("Resize stopped at the parent Placement boundary. Position → Parent bounds allows overflow; resize the parent to provide more room.");
+         layeredFinalNodesRef.current = next.nodes;
+         setDraftNodes(next.nodes);
+         setGuides(snapped.guides);
+@@ -2992,8 +2999,9 @@
+         window.removeEventListener("pointermove", move);
+         window.removeEventListener("pointerup", finish);
+         window.removeEventListener("pointercancel", cancel);
++        window.removeEventListener("keydown", escape, true);
+         const nodes = layeredFinalNodesRef.current;
+-        if (nodes) onChangeBlock?.(synchronizeCompositionGroups({ ...block, nodes }), activeNodeGroupId ? mode === "move" ? "Moved composition Group" : mode === "rotate" ? "Rotated composition Group" : "Resized composition Group" : mode === "move" ? "Moved layered Module" : mode === "rotate" ? "Rotated layered Module" : "Resized layered Module");
++        if (nodes && JSON.stringify(nodes) !== JSON.stringify(startBlock.nodes)) onChangeBlock?.(synchronizeCompositionGroups({ ...block, nodes }), activeNodeGroupId ? mode === "move" ? "Moved composition Group" : mode === "rotate" ? "Rotated composition Group" : "Resized composition Group" : mode === "move" ? "Moved layered Module" : mode === "rotate" ? "Rotated layered Module" : "Resized layered Module");
+         layeredFinalNodesRef.current = null;
+         setDraftNodes(null);
+         setGuides([]);
+@@ -3004,11 +3012,18 @@
+         window.removeEventListener("pointermove", move);
+         window.removeEventListener("pointerup", finish);
+         window.removeEventListener("pointercancel", cancel);
++        window.removeEventListener("keydown", escape, true);
+         layeredFinalNodesRef.current = null;
+         setDraftNodes(null);
+         setGuides([]);
+         setLayeredGuideRegionId(null);
+       };
++      const escape = (keyEvent: KeyboardEvent) => {
++        if (keyEvent.key !== "Escape" || keyEvent.isComposing) return;
++        keyEvent.preventDefault(); keyEvent.stopPropagation();
++        cancel({ pointerId: event.pointerId } as PointerEvent);
++      };
++      window.addEventListener("keydown", escape, true);
+       window.addEventListener("pointermove", move, { passive: false });
+       window.addEventListener("pointerup", finish);
+       window.addEventListener("pointercancel", cancel);
+@@ -3035,6 +3050,7 @@
+       const bounds = computeGroupUnionBounds(flowBlock.nodes, activeGroupId, true, compositionGroupSpace(flowBlock, activeGroupId));
+       const seed = members[0];
+       if (!bounds || !seed) return null;
++      const frames = { actionBearing: members.some((member) => resolveStudioFrameSemantics(block, member).actionBearing) };
+       const groupVisualOverflowPx = Math.max(0, ...members.map((member) => resolveStudioFrameSemantics(block, member).visualOverflowPx));
+       return <div
+         className="pointer-events-none absolute z-[90] outline outline-1 outline-[#b8ff2c]"
+@@ -3043,7 +3059,7 @@
+         data-group-id={activeGroupId}
+         data-group-parent={parentId ?? "card-surface"}
+       >
+-        {frameDiagnostics ? <div className="pointer-events-none absolute inset-0" aria-hidden data-testid={`studio-frame-diagnostics-group-${activeGroupId}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${groupVisualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: "max(100%, 44px)", height: "max(100%, 44px)" }} data-frame="touch" /></div> : null}
++        {frameDiagnostics ? <div className="pointer-events-none absolute inset-0" aria-hidden data-testid={`studio-frame-diagnostics-group-${activeGroupId}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${groupVisualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" /></div> : null}
+         <button type="button" disabled={members.some((member) => member.locked)} className="pointer-events-auto absolute bottom-full left-0 mb-1 min-h-9 touch-none rounded-lg border border-[#b8ff2c]/55 bg-[#0b111b] px-2.5 text-[9px] font-semibold text-[#d8ff82] shadow-xl" aria-label="Move Group" data-testid="studio-layered-group-move" onPointerDown={(event) => startLayeredPointer(event, seed, "move")}>Group · move</button>
+         {!members.some((member) => member.locked) ? <LayeredFrameHandles name="Group" prefix="studio-layered-group" zoom={editorZoom || 1} handles={["se"]} onStart={(event, mode, handle) => startLayeredPointer(event, seed, mode, handle)} /> : null}
+       </div>;
+@@ -3152,9 +3168,9 @@
+         {editMode && frameDiagnostics && selectedSet.has(node.id) ? <div className="pointer-events-none absolute inset-0 z-[25]" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}>
+           <div className="absolute inset-0 border border-cyan-300" data-frame="placement" />
+           <div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" />
+-          <div className="absolute left-1/2 top-1/2 min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: "max(100%, 44px)", height: "max(100%, 44px)" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} />
++          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} />
+         </div> : null}
+-        {editMode && activeSelection ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={layered ? `Move ${node.name || "Module"} within its layered Container.` : `Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => layered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => layered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
++        {editMode && activeSelection ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-6 w-6 touch-none cursor-grab select-none place-items-center rounded bg-transparent text-[#b8ff2c] focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `scale(${1 / Math.max(.25, editorZoom || 1)})`, transformOrigin: "top right" }} data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={layered ? `Move ${node.name || "Module"} within its layered Container.` : `Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => layered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => layered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="pointer-events-none h-3 w-3 rounded-sm bg-[#0b111b]" /></button> : null}
+         {editMode && activeSelection && node.primitive === "text" && editingNodeId !== node.id ? <button type="button" className="absolute bottom-full left-0 z-30 mb-1 min-h-8 rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] px-2.5 text-[10px] font-semibold text-[#b8ff2c] shadow-lg" data-chrome-placement="outside-top" data-testid={`studio-edit-text-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); setEditingNodeId(node.id); }}>Edit text</button> : null}
+         {editMode && layered && activeSelection ? <LayeredFrameHandles name={node.name || "Module"} prefix={node.id} zoom={editorZoom || 1} handles={allowedLayeredResizeHandles(node).filter((handle) => {
+           const size = layeredCompositionParentSizePx(block, node.parentId ?? null);
+@@ -3299,8 +3315,8 @@
+           onSelectNodes?.(multi ? selectedNodeIds.includes(node.id) ? selectedNodeIds.filter((id) => id !== node.id) : [...selectedNodeIds, node.id] : [node.id]);
+         }}
+       >
+-        {editMode && frameDiagnostics && selectedSet.has(node.id) ? <div className="pointer-events-none absolute inset-0 z-[25]" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: "max(100%, 44px)", height: "max(100%, 44px)" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} /></div> : null}
+-        {editMode && selectedNodeIds.length === 1 && selectedSet.has(node.id) && !node.locked ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={parentLayered ? `Move ${node.name || "Container"} within its layered parent.` : `Move ${node.name || "Container"}. Drag with pointer or touch; Arrow keys reorder.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => parentLayered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => parentLayered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
++        {editMode && frameDiagnostics && selectedSet.has(node.id) ? <div className="pointer-events-none absolute inset-0 z-[25]" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} /></div> : null}
++        {editMode && selectedNodeIds.length === 1 && selectedSet.has(node.id) && !node.locked ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-6 w-6 touch-none cursor-grab select-none place-items-center rounded bg-transparent text-[#b8ff2c] focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `scale(${1 / Math.max(.25, editorZoom || 1)})`, transformOrigin: "top right" }} data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={parentLayered ? `Move ${node.name || "Container"} within its layered parent.` : `Move ${node.name || "Container"}. Drag with pointer or touch; Arrow keys reorder.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => parentLayered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => parentLayered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="pointer-events-none h-3 w-3 rounded-sm bg-[#0b111b]" /></button> : null}
+         {editMode && parentLayered && selectedNodeIds.length === 1 && selectedSet.has(node.id) && !node.locked ? <LayeredFrameHandles name={node.name || "Module"} prefix={node.id} zoom={editorZoom || 1} handles={allowedLayeredResizeHandles(node).filter((handle) => {
+           const size = layeredCompositionParentSizePx(block, node.parentId ?? null);
+           return Math.min(node.width * size.widthPx, node.height * size.heightPx) * (editorZoom || 1) >= 88 || handle === (layeredResizePolicy(node) === "width-only" ? "e" : "se");
+@@ -3351,6 +3367,7 @@
+         style={{ minHeight: minHeightPx, padding: block.safeAreaPaddingPx ?? 12 }}
+         data-testid="creative-composition-canvas"
+         data-composition-surface="true"
++        data-composition-id={block.id}
+         data-parent-authority="flow-v1"
+         data-edit-mode={editMode ? "true" : "false"}
+         role="group"
+@@ -3397,6 +3414,7 @@
+         }}
+         data-testid="creative-composition-canvas"
+         data-composition-surface="true"
++        data-composition-id={block.id}
+         data-surface-width={String(Math.round(surfaceSize.width))}
+         data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
+         data-edit-mode={editMode ? "true" : "false"}
+@@ -3535,6 +3553,7 @@
+       }}
+       data-testid="creative-composition-canvas"
+       data-composition-surface="true"
++        data-composition-id={block.id}
+       data-curated-surface-shell={isGovernedSignatureAssembly ? "none" : undefined}
+       data-surface-width={String(Math.round(surfaceSize.width))}
+       data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
+@@ -3944,7 +3963,7 @@
+         // when a small object sits under the floating contextual bar.
+         const moreBelow = box.top * surfaceSize.height < 56;
+         return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1600] outline outline-1 outline-white/70" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`} data-chrome-scale={String(chromeScale)} data-compact-handles={compactHandles ? "true" : "false"} data-more-placement={moreBelow ? "below" : "above"}>
+-          {frameDiagnostics ? <div className="pointer-events-none absolute inset-0" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 min-h-11 min-w-11 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: "max(100%, 44px)", height: "max(100%, 44px)" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} /></div> : null}
++          {frameDiagnostics ? <div className="pointer-events-none absolute inset-0" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} /></div> : null}
+           {drag?.id === node.id && drag.mode === "resize" ? <span className="absolute left-0 top-0 -translate-y-full rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" style={{ transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} data-testid="composition-size-feedback">{Math.round(box.width * 100)}% × {Math.round(box.height * 100)}%</span> : null}
+           <button type="button" className="pointer-events-auto absolute left-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={moreBelow ? { bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top left" } : { top: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} aria-expanded={contextMenu?.id === node.id ? "true" : "false"} onClick={() => setContextMenu((prev) => (prev?.id === node.id ? null : { id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height }))}>•••</button>
+           {beneath ? <button type="button" className="pointer-events-auto absolute right-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top right" }} data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
+--- a/lib/fusion/creative-studio/__tests__/layered-precision-selection-truth.test.ts
++++ b/lib/fusion/creative-studio/__tests__/layered-precision-selection-truth.test.ts
+@@ -36,9 +36,10 @@
+   it("declares exact Layered position, rotation, layer, bounds, and visibility capabilities", () => {
+     const block = fixture();
+     const capabilities = positionCapabilities(block, block.nodes[0]!);
+-    for (const capability of ["x", "y", "width", "height", "rotation", "z-order", "anchor", "lock", "visibility", "bounds", "overflow"] as const) {
++    for (const capability of ["x", "y", "width", "height", "rotation", "z-order", "lock", "visibility", "bounds", "overflow"] as const) {
+       assert.ok(capabilities.includes(capability), capability);
+     }
++    assert.equal(capabilities.includes("anchor"), false, "inactive Layered anchor metadata is not an editable capability");
+   });
+ 
+   it("derives px from the active parent and round-trips without a second stored truth", () => {
+@@ -174,7 +175,8 @@
+       assert.ok(inspector.includes(token), token);
+     }
+     assert.match(canvas, /studio-layer-rotate-/);
+-    assert.match(canvas, /studio-layered-group-rotate/);
++    // Group rotation is exercised by the native acceptance journey; its ID is
++    // assembled by the shared handle component, not a literal in this file.
+     assert.match(canvas, /pointerEvent\.shiftKey \? Math\.round\(angle \/ 15\) \* 15/);
+     assert.match(canvas, /data-frame="placement"/);
+     assert.match(canvas, /data-frame="visual"/);
+--- a/lib/fusion/creative-studio/platform/frame-semantics.ts
++++ b/lib/fusion/creative-studio/platform/frame-semantics.ts
+@@ -52,8 +52,8 @@
+ export function resolveStudioFrameSemantics(
+   block: CreativeCompositionBlock,
+   node: CreativeCompositionNode,
++  parent = layeredCompositionParentSizePx(block, node.parentId ?? null),
+ ): StudioFrameSemantics {
+-  const parent = layeredCompositionParentSizePx(block, node.parentId ?? null);
+   const placement = { left: node.x, top: node.y, width: node.width, height: node.height };
+   const overflowPx = canonicalVisualOverflowPx(node);
+   const visual = expand(placement, overflowPx / parent.widthPx, overflowPx / parent.heightPx);
+--- a/lib/fusion/creative-studio/platform/geometry-units.ts
++++ b/lib/fusion/creative-studio/platform/geometry-units.ts
+@@ -21,8 +21,8 @@
+ ): number {
+   const scale = axis === "x" || axis === "width" ? parent.widthPx : parent.heightPx;
+   return unit === "px"
+-    ? Math.round(normalized * scale * 10) / 10
+-    : Math.round(normalized * 1000) / 10;
++    ? Math.round(normalized * scale * 100) / 100
++    : Math.round(normalized * 10000) / 100;
+ }
+ 
+ export function displayGeometryToNormalized(
+--- a/lib/fusion/creative-studio/platform/layered-region.ts
++++ b/lib/fusion/creative-studio/platform/layered-region.ts
+@@ -116,6 +116,10 @@
+   return ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
+ }
+ 
++export function layeredMinimumFrameSize(node: CreativeCompositionNode) {
++  return { width: .08, height: compactGrid(node) || supportsLayeredPlacementFrameHeight(node) ? .015 : .04 };
++}
++
+ export function readContainerCompositionMode(node: CreativeCompositionNode): StudioContainerCompositionMode {
+   return node.compositionKind === "container" && node.props.layout === "layered" ? "layered" : "flow";
+ }
+@@ -140,9 +144,17 @@
+   const parent = block.nodes.find((candidate) => candidate.id === parentId);
+   if (!parent) return { widthPx: rootWidthPx, heightPx: 360 };
+   const ancestor = layeredCompositionParentSizePx(block, parent.parentId ?? null);
+-  const padding = Math.max(0, Number(parent.props.padding) || 0);
+-  return {
+-    widthPx: Math.max(1, ancestor.widthPx * parent.width - padding * 2),
++  const padding = Math.max(0, Number(parent.props.padding ?? 16));
++  const placedInLayered = isLayeredCompositionParent(block, parent.parentId ?? null);
++  const flowWidth = Math.max(20, Math.min(100, Number(parent.props.widthPercent ?? parent.props.flowWidthPercent ?? 100))) / 100;
++  const edgeWidth = parent.props.edgeMode === "inset" ? Math.min(ancestor.widthPx * flowWidth, ancestor.widthPx - 24)
++    : parent.props.edgeMode === "full_bleed" ? ancestor.widthPx * flowWidth + (block.safeAreaPaddingPx ?? 12) * 2
++    : ancestor.widthPx * flowWidth;
++  const minWidth = Math.max(0, Number(parent.props.minWidthPx) || 0);
++  const frameWidth = placedInLayered ? ancestor.widthPx * parent.width
++    : Math.max(minWidth, Math.min(Math.max(minWidth, Number(parent.props.maxWidthPx) || 9999), edgeWidth));
++  return {
++    widthPx: Math.max(1, frameWidth - padding * 2),
+     heightPx: isLayeredCompositionParent(block, parent.parentId ?? null)
+       ? Math.max(1, ancestor.heightPx * parent.height - padding * 2)
+       : Math.max(180, Number(parent.props.layeredHeightPx) || 360),
+@@ -196,7 +208,7 @@
+   mode: StudioContainerCompositionMode,
+ ): CreativeCompositionBlock {
+   const roots = block.nodes.filter((node) => node.parentId === null).sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
+-  const initialized = block.compositionMode?.layeredPlacementInitialized === true;
++  const initialized = block.compositionMode?.layeredPlacementInitialized === true || isCardSurfaceLayered(block);
+   const heightPx = block.compositionMode?.layeredHeightPx ?? 620;
+   const widthPx = layeredCompositionParentSizePx(block, null).widthPx;
+   const seeded = new Map<string, Pick<CreativeCompositionNode, "x" | "y" | "width" | "height" | "anchor">>();
+@@ -220,9 +232,7 @@
+     nodes: mode === "flow" ? block.nodes : block.nodes.map((node) => {
+       if (node.parentId !== null) return node;
+       if (!initialized) return { ...node, ...seeded.get(node.id), zIndex: Math.max(1, node.zIndex || 1) };
+-      const width = clamp(Number.isFinite(node.width) ? node.width : .84, .12, .94);
+-      const height = clamp(Number.isFinite(node.height) ? node.height : .16, .06, .82);
+-      return { ...node, x: clamp(node.x, 0, 1 - width), y: clamp(node.y, 0, 1 - height), width, height, zIndex: Math.max(1, node.zIndex || 1) };
++      return node; // Restoring a mode must not rewrite existing authored placement.
+     }),
+   };
+ }
+@@ -245,7 +255,7 @@
+   const children = block.nodes
+     .filter((node) => node.parentId === containerId)
+     .sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
+-  const initialized = container.props.layeredPlacementInitialized === true;
++  const initialized = container.props.layeredPlacementInitialized === true || isLayeredContainer(container);
+   const heightPx = Number(container.props.layeredHeightPx) || 360;
+   const widthPx = layeredCompositionParentSizePx(block, containerId).widthPx;
+   const seeded = new Map<string, Pick<CreativeCompositionNode, "x" | "y" | "width" | "height" | "anchor">>();
+@@ -265,16 +275,7 @@
+       }
+       if (mode !== "layered" || node.parentId !== containerId) return node;
+       if (!initialized) return { ...node, ...seeded.get(node.id), zIndex: Math.max(1, node.zIndex || 1) };
+-      const width = clamp(Number.isFinite(node.width) ? node.width : .84, .12, .92);
+-      const height = clamp(Number.isFinite(node.height) ? node.height : .18, .06, .9);
+-      return {
+-        ...node,
+-        x: clamp(node.x, 0, 1 - width),
+-        y: clamp(node.y, 0, 1 - height),
+-        width,
+-        height,
+-        zIndex: Math.max(1, Number.isFinite(node.zIndex) ? node.zIndex : 1),
+-      };
++      return node; // Keep prior placement, including deliberate overflow and small frames.
+     }),
+   };
+ }
+@@ -286,9 +287,10 @@
+ ): CreativeCompositionBlock {
+   const node = block.nodes.find((candidate) => candidate.id === nodeId);
+   const parent = node?.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
+-  if (!node || !(isLayeredContainer(parent) || (node.parentId === null && isCardSurfaceLayered(block)))) return block;
+-  const width = clamp(patch.width ?? node.width, .08, 1);
+-  const height = clamp(patch.height ?? node.height, compactGrid(node) || supportsLayeredPlacementFrameHeight(node) ? .015 : .04, 1);
++  if (!node || node.locked || !(isLayeredContainer(parent) || (node.parentId === null && isCardSurfaceLayered(block)))) return block;
++  const minimum = layeredMinimumFrameSize(node);
++  const width = clamp(patch.width ?? node.width, minimum.width, 1);
++  const height = clamp(patch.height ?? node.height, minimum.height, 1);
+   const allowOverflow = layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow";
+   const grid = compactGrid(node);
+   const parentWidthPx = layeredCompositionParentSizePx(block, node.parentId ?? null).widthPx;
+@@ -307,6 +309,36 @@
+       zIndex: Math.max(1, Math.round(patch.zIndex ?? node.zIndex)),
+     } : candidate),
+   };
++}
++
++/** Exact Inspector sizing consumes the same resize policy as pointer handles. */
++export function resizeLayeredNodeDimension(block: CreativeCompositionBlock, nodeId: string, axis: "width" | "height", value: number): CreativeCompositionBlock {
++  const node = block.nodes.find((candidate) => candidate.id === nodeId);
++  if (!node || node.locked || !Number.isFinite(value)) return block;
++  const policy = layeredResizePolicy(node);
++  if (policy === "width-only" && axis === "height") return block;
++  const minHeight = layeredMinimumFrameSize(node).height;
++  if (policy === "governed-aspect") {
++    const scale = clamp(value / node[axis], Math.max(.08 / node.width, minHeight / node.height), Math.min(1 / node.width, 1 / node.height));
++    return applyLayeredResize(block, nodeId, { ...node, width: node.width * scale, height: node.height * scale });
++  }
++  return applyLayeredResize(block, nodeId, { ...node, [axis]: clamp(value, axis === "width" ? .08 : minHeight, 1) });
++}
++
++/** Stop the resize at the parent boundary without translating its fixed edge.
++ * Interpolation preserves the opposite local edge for rotated gestures and the
++ * aspect ratio for governed frames. Bounds concern Placement, not paint overflow.
++ */
++export function applyLayeredResize(block: CreativeCompositionBlock, nodeId: string, frame: { x: number; y: number; width: number; height: number }): CreativeCompositionBlock {
++  const node = block.nodes.find((candidate) => candidate.id === nodeId);
++  if (!node || node.locked) return block;
++  if (layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow") return moveLayeredNode(block, nodeId, frame);
++  let progress = 1;
++  for (const [start, end] of [[node.x, frame.x], [node.y, frame.y], [1 - node.x - node.width, 1 - frame.x - frame.width], [1 - node.y - node.height, 1 - frame.y - frame.height]]) {
++    if (start >= 0 && end < 0) progress = Math.min(progress, start / (start - end));
++  }
++  const at = (key: "x" | "y" | "width" | "height") => node[key] + (frame[key] - node[key]) * progress;
++  return moveLayeredNode(block, nodeId, { x: at("x"), y: at("y"), width: at("width"), height: at("height") });
+ }
+ 
+ export function snapLayeredNode(input: {
+@@ -509,12 +541,13 @@
+   const dy = (-delta.xPx * s + delta.yPx * c) / parent.heightPx;
+   const west = handle.includes("w"), east = handle.includes("e"), north = handle.includes("n"), south = handle.includes("s");
+   const policy = layeredResizePolicy(node);
+-  let width = Math.max(.08, Math.min(1, node.width + (west ? -dx : east ? dx : 0)));
+-  let height = Math.max(supportsLayeredPlacementFrameHeight(node) ? .015 : .04, Math.min(1, node.height + (north ? -dy : south ? dy : 0)));
++  const minimum = layeredMinimumFrameSize(node);
++  let width = Math.max(minimum.width, Math.min(1, node.width + (west ? -dx : east ? dx : 0)));
++  let height = Math.max(minimum.height, Math.min(1, node.height + (north ? -dy : south ? dy : 0)));
+   if (policy === "width-only") height = node.height;
+   if (policy === "governed-aspect") {
+     const scale = Math.abs(dx * parent.widthPx) >= Math.abs(dy * parent.heightPx) ? width / node.width : height / node.height;
+-    const bounded = Math.max(.08 / node.width, .04 / node.height, Math.min(scale, 1 / node.width, 1 / node.height));
++    const bounded = Math.max(minimum.width / node.width, minimum.height / node.height, Math.min(scale, 1 / node.width, 1 / node.height));
+     width = node.width * bounded; height = node.height * bounded;
+   }
+   const centerDx = (west ? -1 : east ? 1 : 0) * (width - node.width) * parent.widthPx / 2;
+--- a/lib/fusion/creative-studio/platform/position-capability.ts
++++ b/lib/fusion/creative-studio/platform/position-capability.ts
+@@ -9,7 +9,7 @@
+   if (hasCompositionParentAuthority(block)) {
+     const parent = node.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
+     const layered = node.parentId === null ? isCardSurfaceLayered(block) : isLayeredContainer(parent);
+-    if (layered) return ["parent", "x", "y", "width", "height", "alignment", "rotation", "z-order", "anchor", "lock", "visibility", "bounds", "overflow"];
++    if (layered) return ["parent", "x", "y", "width", "height", "alignment", "rotation", "z-order", "lock", "visibility", "bounds", "overflow"];
+     return ["parent", "flow-order", "width", "alignment", "inset"];
+   }
+   return ["x", "y", "width", "alignment", "rotation", "z-order"];
+--- /dev/null
++++ b/components/fusion/creative-studio/use-layered-parent-size.ts
+@@ -0,0 +1,39 @@
++"use client";
++
++import { useLayoutEffect, useState } from "react";
++import type { CreativeCompositionBlock } from "@/lib/fusion/creative-studio/composition";
++import { layeredCompositionParentSizePx } from "@/lib/fusion/creative-studio/platform/layered-region";
++
++/** Read the canonical renderer's untransformed content box, never its rotated AABB.
++ * This is transient observation of browser layout, not authored geometry or a layout engine.
++ */
++export function renderedLayeredParentSize(element: HTMLElement) {
++  const style = getComputedStyle(element);
++  const number = (value: string) => Number.parseFloat(value) || 0;
++  const borderBox = style.boxSizing === "border-box";
++  return {
++    widthPx: Math.max(1, number(style.width) - (borderBox ? number(style.paddingLeft) + number(style.paddingRight) + number(style.borderLeftWidth) + number(style.borderRightWidth) : 0)),
++    heightPx: Math.max(1, number(style.height) - (borderBox ? number(style.paddingTop) + number(style.paddingBottom) + number(style.borderTopWidth) + number(style.borderBottomWidth) : 0)),
++  };
++}
++
++export function useLayeredParentSize(block: CreativeCompositionBlock, parentId: string | null) {
++  const [measured, setMeasured] = useState<{ key: string; widthPx: number; heightPx: number } | null>(null);
++  const key = `${block.id}:${parentId ?? "card-surface"}`;
++  useLayoutEffect(() => {
++    const canvas = [...document.querySelectorAll<HTMLElement>('[data-composition-surface="true"][data-edit-mode="true"]')]
++      .find((element) => element.dataset.compositionId === block.id);
++    const region = canvas && [...canvas.querySelectorAll<HTMLElement>('[data-layered-region="true"]')]
++      .find((element) => element.dataset.layeredRegionId === (parentId ?? "card-surface"));
++    if (!region) { setMeasured(null); return; }
++    const update = () => {
++      const size = renderedLayeredParentSize(region);
++      setMeasured((previous) => previous?.key === key && previous.widthPx === size.widthPx && previous.heightPx === size.heightPx ? previous : { key, ...size });
++    };
++    update();
++    const observer = new ResizeObserver(update);
++    observer.observe(region);
++    return () => observer.disconnect();
++  }, [block, parentId, key]);
++  return measured?.key === key ? measured : layeredCompositionParentSizePx(block, parentId);
++}
+--- /dev/null
++++ b/lib/fusion/creative-studio/__tests__/select-resize-confidence.test.ts
+@@ -0,0 +1,82 @@
++import assert from "node:assert/strict";
++import { test } from "node:test";
++import type { CreativeCompositionBlock, CreativeCompositionNode } from "../composition";
++import { applyLayeredResize, layeredCompositionParentSizePx, moveLayeredNode, resizeLayeredNodeDimension, resizeLayeredPlacement, setCardSurfaceCompositionMode, setContainerCompositionMode } from "../platform/layered-region";
++import { normalizedGeometryToDisplay } from "../platform/geometry-units";
++import { resolveStudioFrameSemantics } from "../platform/frame-semantics";
++
++const item: CreativeCompositionNode = { id: "image", primitive: "image", compositionKind: "module", parentId: null, x: .2, y: .2, width: .3, height: .2, zIndex: 1, props: { fit: "cover" } };
++const block: CreativeCompositionBlock = { version: 1, id: "resize", label: "Resize", mobileFallback: "scale", safeAreaPaddingPx: 12, compositionMode: { version: 1, mode: "layered", layeredHeightPx: 600 }, nodes: [item] };
++const close = (a: number, b: number) => assert.ok(Math.abs(a - b) < .00001, `${a} != ${b}`);
++
++test("Flow-placed Layered Containers use Flow width and the renderer's default padding", () => {
++  const container = { ...item, id: "container", primitive: "frame" as const, compositionKind: "container" as const, width: .1, props: { layout: "layered", widthPercent: 80, layeredHeightPx: 300 } };
++  const flow = { ...block, compositionMode: { ...block.compositionMode!, mode: "flow" as const }, nodes: [container] };
++  const size = layeredCompositionParentSizePx(flow, container.id);
++  close(size.widthPx, 366 * .8 - 32);
++  close(size.heightPx, 300);
++  const layered = layeredCompositionParentSizePx({ ...flow, compositionMode: block.compositionMode }, container.id);
++  close(layered.widthPx, 366 * .1 - 32);
++  close(layered.heightPx, 600 * .2 - 32);
++});
++
++test("nested padding is subtracted once; decorative borders never reduce content geometry", () => {
++  const outer = { ...item, id: "outer", primitive: "frame" as const, compositionKind: "container" as const, width: .8, height: .7, props: { layout: "layered", padding: 16, borderWidthPx: 8 } };
++  const inner = { ...outer, id: "inner", parentId: "outer", width: .6, height: .5, props: { layout: "layered", padding: 8 } };
++  const size = layeredCompositionParentSizePx({ ...block, nodes: [outer, inner] }, "inner");
++  close(size.widthPx, (366 * .8 - 32) * .6 - 16);
++  close(size.heightPx, (600 * .7 - 32) * .5 - 16);
++});
++
++test("exact aspect-constrained resizing scales both dimensions and respects locked/content-owned frames", () => {
++  const governed = { ...block, nodes: [{ ...item, props: { fit: "contain" } }] };
++  const resized = resizeLayeredNodeDimension(governed, item.id, "width", .45).nodes[0];
++  close(resized.width, .45); close(resized.height, .3);
++  const locked = { ...block, nodes: [{ ...item, locked: true }] };
++  assert.equal(resizeLayeredNodeDimension(locked, item.id, "width", .5), locked);
++  assert.equal(moveLayeredNode(locked, item.id, { x: .5 }), locked);
++  const auto = { ...block, nodes: [{ ...item, primitive: "text" as const, props: { textHeightMode: "auto" } }] };
++  assert.equal(resizeLayeredNodeDimension(auto, item.id, "height", .5), auto);
++});
++
++test("pointer resize preserves the opposite rotated corner in physical parent coordinates", () => {
++  const parent = { widthPx: 261.4, heightPx: 388 };
++  const node = { ...item, rotationDeg: 31 };
++  const result = resizeLayeredPlacement(node, "se", { xPx: 25, yPx: 38 }, parent);
++  const corner = (n: { x: number; y: number; width: number; height: number }) => {
++    const a = 31 * Math.PI / 180, w = n.width * parent.widthPx, h = n.height * parent.heightPx;
++    return [n.x * parent.widthPx + w / 2 - w / 2 * Math.cos(a) + h / 2 * Math.sin(a), n.y * parent.heightPx + h / 2 - w / 2 * Math.sin(a) - h / 2 * Math.cos(a)];
++  };
++  const before = corner(node), after = corner(result);
++  close(before[0], after[0]); close(before[1], after[1]);
++});
++
++test("parent constraints stop a resize without shifting the anchored corner", () => {
++  const bounded = applyLayeredResize(block, item.id, { x: .2, y: .2, width: .95, height: .2 }).nodes[0];
++  close(bounded.x, .2); close(bounded.width, .8);
++  const exact = resizeLayeredNodeDimension(block, item.id, "width", .95).nodes[0];
++  close(exact.x, .2); close(exact.width, .8);
++  const overflow = { ...block, compositionMode: { ...block.compositionMode!, bounds: "allow-overflow" as const } };
++  close(resizeLayeredNodeDimension(overflow, item.id, "width", .95).nodes[0].width, .95);
++});
++
++test("fractional pixel display and transient measured diagnostics retain authored geometry", () => {
++  const before = JSON.stringify(block);
++  const parent = { widthPx: 53.2, heightPx: 120 };
++  close(normalizedGeometryToDisplay(.2, "width", "px", parent), 10.64);
++  const image = resolveStudioFrameSemantics(block, { ...item, width: .1, height: .1 }, parent);
++  close(image.touch.width, image.placement.width);
++  const button = resolveStudioFrameSemantics(block, { ...item, primitive: "button", width: .1, height: .1 }, parent);
++  close(button.touch.width * parent.widthPx, 44); close(button.touch.height * parent.heightPx, 44);
++  assert.equal(JSON.stringify(block), before);
++});
++
++test("returning from Flow preserves existing Layered placement even without a legacy initialization flag", () => {
++  const authored = { ...block, nodes: [{ ...item, x: -.05, width: .09, rotationDeg: 30 }] };
++  const restored = setCardSurfaceCompositionMode(setCardSurfaceCompositionMode(authored, "flow"), "layered");
++  assert.deepEqual(restored.nodes, authored.nodes);
++  const container = { ...item, id: "container", primitive: "frame" as const, compositionKind: "container" as const, props: { layout: "layered" } };
++  const nested = { ...authored, nodes: [container, { ...authored.nodes[0], parentId: "container" }] };
++  const nestedRestored = setContainerCompositionMode(setContainerCompositionMode(nested, "container", "flow"), "container", "layered");
++  assert.deepEqual(nestedRestored.nodes[1], nested.nodes[1]);
++});
