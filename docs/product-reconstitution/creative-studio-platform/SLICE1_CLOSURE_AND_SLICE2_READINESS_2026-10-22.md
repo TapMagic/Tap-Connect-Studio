@@ -244,3 +244,7 @@ These checks passed at the existing browser viewport. They are not a responsive 
 ## 2026-10-23 corrective candidate update
 
 Select and Resize with Confidence has a local implementation candidate and [review evidence](SLICE1_SELECT_RESIZE_CORRECTIVE_REVIEW_2026-10-23.md). This does not close Slice 1. Physical touch and final visual-capture limitations are explicit; application source remains uncommitted with a published delta against pre-pass local snapshots. Text Editing Truth stays gated. Production hash verification remains BLOCKED. [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) now govern familiar controls, keyboard ownership, fearless editing, interface redesign freedom, and the shared foundation for future tApIt workflows without expanding AI scope.
+
+## Final Slice 1 interaction corrective candidate
+
+The authorized clipboard/body-drag/resize/nudge pass and evidence are recorded in [the final interaction review](SLICE1_FINAL_INTERACTION_REVIEW_2026-10-23.md). Layered 1px/10px nudging is now implemented locally through canonical transactions. Native Shift-drag and physical touch remain unverified; Slice 1 remains OPEN, Slice 2 gated, and production hash verification BLOCKED. The remote handoff contains documentation and an exact local source delta, not an application release commit.

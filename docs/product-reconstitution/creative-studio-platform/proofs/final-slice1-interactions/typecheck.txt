@@ -1,0 +1,3 @@
+tsc --noEmit --incremental false
+Exit status: 0
+No TypeScript diagnostics.

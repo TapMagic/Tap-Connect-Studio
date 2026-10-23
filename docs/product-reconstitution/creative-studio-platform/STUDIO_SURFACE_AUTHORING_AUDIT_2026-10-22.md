@@ -112,3 +112,7 @@ Existing `prisma/schema.prisma` contains Contact and Campaign models, and the ed
 | Campaigns, scheduled promotions, personalization and conditions | Preserve node identity and external bindings through style/layout changes. Contextual appearance can display readiness without taking over Campaign ownership. | Scheduling/rules engine or Campaign editor inside Inspector. |
 | Wallet/retained connections, external fan stack, attribution/analytics | Preserve semantic action IDs and provider provenance; editing a frame does not silently replace tracking or relationship targets. | Integrations, tracking redesign or wallet passes. |
 | EverEncore, TapStay and other offerings | Same editor, capability adapters and resource authority; product-specific governance expressed through existing declarations. | Forked editors or generic hypothetical plugin frameworks. |
+
+## Final Slice 1 interaction corrective candidate
+
+The authorized clipboard/body-drag/resize/nudge pass and evidence are recorded in [the final interaction review](SLICE1_FINAL_INTERACTION_REVIEW_2026-10-23.md). Layered 1px/10px nudging is now implemented locally through canonical transactions. Native Shift-drag and physical touch remain unverified; Slice 1 remains OPEN, Slice 2 gated, and production hash verification BLOCKED. The remote handoff contains documentation and an exact local source delta, not an application release commit.

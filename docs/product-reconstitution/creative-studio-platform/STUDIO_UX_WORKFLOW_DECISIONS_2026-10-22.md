@@ -231,3 +231,7 @@ Planning only. Each of the twelve existing workflows answers all fourteen revise
 | 12. Existing authority to reuse | AI proposal, selection authority, protected-field validation, Text transactions, Material and asset adapters. |
 | 13. Architectural implications | C: real assistance after manual paths are reliable. B foundations must have current manual consumers; shallow protected-field checks alone do not certify nested patches. |
 | 14. Future functionality to preserve | Rewrite/fit, generated native surface recipes and future contextual Experience assistance; membership, commerce and publication changes remain excluded. |
+
+## Final Slice 1 interaction corrective candidate
+
+The authorized clipboard/body-drag/resize/nudge pass and evidence are recorded in [the final interaction review](SLICE1_FINAL_INTERACTION_REVIEW_2026-10-23.md). Layered 1px/10px nudging is now implemented locally through canonical transactions. Native Shift-drag and physical touch remain unverified; Slice 1 remains OPEN, Slice 2 gated, and production hash verification BLOCKED. The remote handoff contains documentation and an exact local source delta, not an application release commit.

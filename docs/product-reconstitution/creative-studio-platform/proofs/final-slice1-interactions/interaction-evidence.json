@@ -1,0 +1,2341 @@
+[
+  {
+    "check": "root nudge 1px/10px",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778036",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 688.010498046875,
+          "y": 320.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.64",
+        "y": "0.04275506697900779"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778036",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 689.010498046875,
+          "y": 330.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.6427322404371585",
+        "y": "0.0559129617158499"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "internal paste preserves width height rotation",
+    "source": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778036",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 688.010498046875,
+          "y": 320.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.64",
+        "y": "0.04275506697900779"
+      }
+    ],
+    "paste": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778033",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 701.010498046875,
+          "y": 342.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.6755191256830602",
+        "y": "0.07170243540006044"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "selected image body drag",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778033",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 701.010498046875,
+          "y": 339.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.6755191256830602",
+        "y": "0.07170243540006044"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778033",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 644.088623046875,
+          "y": 366.1586608886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.52",
+        "y": "0.10670766105184537"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "east edge diagonal pointer only changes width",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778033",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 644.088623046875,
+          "y": 366.1586608886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.52",
+        "y": "0.10670766105184537"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "130.078px",
+        "h": "0.18579992498778033",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 143.4517822265625,
+          "width": 132.522705078125,
+          "x": 644.0902099609375,
+          "y": 365.7819213867187
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5199954885919646",
+        "y": "0.10645870584993787"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "north edge diagonal pointer only changes height",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "130.078px",
+        "h": "0.18579992498778033",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 143.4517822265625,
+          "width": 132.522705078125,
+          "x": 644.0902099609375,
+          "y": 365.7819213867187
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5199954885919646",
+        "y": "0.10645870584993787"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.078px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 163.19879150390625,
+          "width": 132.8673095703125,
+          "x": 643.7460327148438,
+          "y": 346.0334167480469
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5195245449360102",
+        "y": "0.08047039531949098"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "text input owns arrows",
+    "before": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.078px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 163.19879150390625,
+          "width": 132.8673095703125,
+          "x": 643.7460327148438,
+          "y": 346.0334167480469
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5195245449360102",
+        "y": "0.08047039531949098"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.078px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 163.19879150390625,
+          "width": 132.8673095703125,
+          "x": 643.7460327148438,
+          "y": 290.0334167480469
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5195245449360102",
+        "y": "0.08047039531949098"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "external clipboard image native 100x60",
+    "after": [
+      {
+        "cssHeight": "60px",
+        "cssWidth": "100px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 60,
+          "width": 100,
+          "x": 467,
+          "y": 243.5
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.03278688524590164",
+        "y": "0.015789473684210527"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "Container body drag and nudges at 50%",
+    "before": [
+      {
+        "cssHeight": "172.109px",
+        "cssWidth": "327.359px",
+        "h": "0.22646009131578873",
+        "id": "precision-nested-container",
+        "rect": {
+          "height": 88.898193359375,
+          "width": 165.1566162109375,
+          "x": 555.8552856445312,
+          "y": 406.4766845703125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.8944312373742034",
+        "x": "0.05516320421808815",
+        "y": "0.48"
+      }
+    ],
+    "afterDrag": [
+      {
+        "cssHeight": "172.109px",
+        "cssWidth": "327.359px",
+        "h": "0.22646009131578873",
+        "id": "precision-nested-container",
+        "rect": {
+          "height": 88.898193359375,
+          "width": 165.1566162109375,
+          "x": 560.3982543945312,
+          "y": 378.2540283203125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.8944312373742034",
+        "x": "0.08",
+        "y": "0.40573334152355917"
+      }
+    ],
+    "afterNudge": [
+      {
+        "cssHeight": "172.109px",
+        "cssWidth": "327.359px",
+        "h": "0.22646009131578873",
+        "id": "precision-nested-container",
+        "rect": {
+          "height": 88.898193359375,
+          "width": 165.1566162109375,
+          "x": 560.8982543945312,
+          "y": 373.2540283203125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.8944312373742034",
+        "x": "0.08273224043715847",
+        "y": "0.3925754467867171"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "multi-selection nudge",
+    "before": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.078px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.599365234375,
+          "width": 66.43365478515625,
+          "x": 640.8729858398438,
+          "y": 305.0167236328125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5195245449360102",
+        "y": "0.08047039531949098"
+      },
+      {
+        "cssHeight": "60px",
+        "cssWidth": "100px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 30,
+          "width": 50,
+          "x": 552.5,
+          "y": 281
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.03278688524590164",
+        "y": "0.015789473684210527"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.078px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.599365234375,
+          "width": 66.43365478515625,
+          "x": 645.8729858398438,
+          "y": 305.0167236328125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5468469493075949",
+        "y": "0.08047039531949098"
+      },
+      {
+        "cssHeight": "60px",
+        "cssWidth": "100px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 30,
+          "width": 50,
+          "x": 557.5,
+          "y": 281
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.060109289617486336",
+        "y": "0.015789473684210527"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "Group body drag then Arrow/Shift+Arrow",
+    "before": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 645.8729858398438,
+          "y": 305.0128173828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5468469493075949",
+        "y": "0.08047039531949098"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 557.5,
+          "y": 281
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.060109289617486336",
+        "y": "0.015789473684210527"
+      }
+    ],
+    "afterDrag": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 637.2987670898438,
+          "y": 326.0440673828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5",
+        "y": "0.13581777933276257"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 548.92578125,
+          "y": 302.03125
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.013262340309891416",
+        "y": "0.07113685769748213"
+      }
+    ],
+    "afterNudge": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 637.7987670898438,
+          "y": 331.0440673828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 549.42578125,
+          "y": 307.03125
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "five rapid nudges one Undo",
+    "before": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 637.7987670898438,
+          "y": 331.0440673828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 549.42578125,
+          "y": 307.03125
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 640.2987670898438,
+          "y": 331.0440673828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5163934426229508",
+        "y": "0.14897567406960466"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 551.92578125,
+          "y": 307.03125
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.029655782932842233",
+        "y": "0.08429475243432423"
+      }
+    ],
+    "undo": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 637.7987670898438,
+          "y": 331.0440673828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 549.42578125,
+          "y": 307.03125
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "Group copy/paste",
+    "source": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.2117902147417354",
+        "id": "module-UmN5uJd7",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 640.2987670898438,
+          "y": 331.0440673828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.35540581358738776",
+        "x": "0.5163934426229508",
+        "y": "0.14897567406960466"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "node-lLCUmr",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 551.92578125,
+          "y": 307.03125
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.029655782932842233",
+        "y": "0.08429475243432423"
+      }
+    ],
+    "pasted": [
+      {
+        "cssHeight": "160.953px",
+        "cssWidth": "130.07px",
+        "h": "0.21179021474173537",
+        "id": "module-X5aCb5oC",
+        "rect": {
+          "height": 81.59933471679688,
+          "width": 66.42974853515625,
+          "x": 646.2987670898438,
+          "y": 337.0440673828125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.3554058135873878",
+        "x": "0.5491803278688525",
+        "y": "0.1647651477538152"
+      },
+      {
+        "cssHeight": "59.9922px",
+        "cssWidth": "99.9922px",
+        "h": "0.07894736842105263",
+        "id": "module-XOc6BM6N",
+        "rect": {
+          "height": 29.99609375,
+          "width": 49.99609375,
+          "x": 557.92578125,
+          "y": 313.03125
+        },
+        "transform": "none",
+        "w": "0.273224043715847",
+        "x": "0.062442668178743874",
+        "y": "0.10008422611853476"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "external 800x200 fit",
+    "after": [
+      {
+        "cssHeight": "91.5px",
+        "cssWidth": "366px",
+        "h": "0.12039473684210526",
+        "id": "node--B8_fe",
+        "rect": {
+          "height": 45.75,
+          "width": 183,
+          "x": 546.5,
+          "y": 289
+        },
+        "transform": "none",
+        "w": "1",
+        "x": "0",
+        "y": "0.015789473684210527"
+      }
+    ],
+    "feedback": [],
+    "status": "MEASURED"
+  },
+  {
+    "check": "paste into differently sized rotated Container",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778036",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 71.53662109375,
+          "width": 55.419189453125,
+          "x": 826.5052490234375,
+          "y": 303.778564453125
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.6427322404371585",
+        "y": "0.0559129617158499"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "140.109px",
+        "cssWidth": "107.547px",
+        "h": "1",
+        "id": "module-vt_PSvu_",
+        "rect": {
+          "height": 70.98248291015625,
+          "width": 54.9879150390625,
+          "x": 825.9246826171875,
+          "y": 471.89251708984375
+        },
+        "transform": "none",
+        "w": "0.36414138645850574",
+        "x": "0.6358586135414943",
+        "y": "0"
+      }
+    ],
+    "feedback": [
+      "Pasted Nested Image copy into Nested Layered Container. Pasted at 99% to fit this parent; relative sizes and spacing were scaled together. Resize the parent for more space.",
+      "Pasted Nested Image copy into Nested Layered Container. Pasted at 99% to fit this parent; relative sizes and spacing were scaled together. Resize the parent for more space."
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "nested rotated-parent 1px left nudge",
+    "before": [
+      {
+        "cssHeight": "140.109px",
+        "cssWidth": "107.547px",
+        "h": "1",
+        "id": "module-vt_PSvu_",
+        "rect": {
+          "height": 70.98248291015625,
+          "width": 54.9879150390625,
+          "x": 662.9246826171875,
+          "y": 438.89251708984375
+        },
+        "transform": "none",
+        "w": "0.36414138645850574",
+        "x": "0.6358586135414943",
+        "y": "0"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "140.109px",
+        "cssWidth": "107.547px",
+        "h": "1",
+        "id": "module-vt_PSvu_",
+        "rect": {
+          "height": 70.98248291015625,
+          "width": 54.9879150390625,
+          "x": 662.9246826171875,
+          "y": 370.39251708984375
+        },
+        "transform": "none",
+        "w": "0.36414138645850574",
+        "x": "0.6358586135414943",
+        "y": "0"
+      }
+    ],
+    "status": "CONSTRAINED",
+    "reason": "Full-height pasted image at parent top edge cannot follow screen-left vector under ancestor rotation without crossing parent top. No authored geometry changed; constraint feedback was visible."
+  },
+  {
+    "check": "nested image under rotated parent 1px nudge",
+    "before": [
+      {
+        "cssHeight": "83.7266px",
+        "cssWidth": "56.6641px",
+        "h": "0.5976417735659656",
+        "id": "precision-nested-image",
+        "rect": {
+          "height": 49.27142333984375,
+          "width": 49.93927001953125,
+          "x": 617.1072998046875,
+          "y": 331.9478759765625
+        },
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "0.191876937563403",
+        "x": "0.39571124308062",
+        "y": "0.07069379658354152"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "83.7266px",
+        "cssWidth": "56.6641px",
+        "h": "0.5976417735659656",
+        "id": "precision-nested-image",
+        "rect": {
+          "height": 49.27142333984375,
+          "width": 49.93927001953125,
+          "x": 617.6073608398438,
+          "y": 344.44696044921875
+        },
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "0.191876937563403",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "390px numeric control owns arrows",
+    "before": [
+      {
+        "cssHeight": "83.7266px",
+        "cssWidth": "52.2031px",
+        "h": "0.5976417735659656",
+        "id": "precision-nested-image",
+        "rect": {
+          "height": 47.640167236328125,
+          "width": 48.41807556152344,
+          "x": 175.0378875732422,
+          "y": 369.2615661621094
+        },
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "0.191876937563403",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "83.7266px",
+        "cssWidth": "52.2031px",
+        "h": "0.5976417735659656",
+        "id": "precision-nested-image",
+        "rect": {
+          "height": 47.640167236328125,
+          "width": 48.41807556152344,
+          "x": 175.0378875732422,
+          "y": 369.2615661621094
+        },
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "0.191876937563403",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      }
+    ],
+    "control": {
+      "height": 44,
+      "viewport": 390
+    },
+    "status": "MEASURED"
+  },
+  {
+    "check": "free corner resize two axes",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778036",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 689.010498046875,
+          "y": 330.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.6427322404371585",
+        "y": "0.0559129617158499"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "162.938px",
+        "cssWidth": "93.0078px",
+        "h": "0.2143984291942032",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 164.535888671875,
+          "width": 95.8372802734375,
+          "x": 689.0149536132812,
+          "y": 330.8258056640625
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.2541375776678916",
+        "x": "0.6432536453127953",
+        "y": "0.0560873938231648"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "Shift corner native modifier attempt",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778036",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 689.010498046875,
+          "y": 330.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.6427322404371585",
+        "y": "0.0559129617158499"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "162.938px",
+        "cssWidth": "93.0078px",
+        "h": "0.2143984291942032",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 164.535888671875,
+          "width": 95.8372802734375,
+          "x": 689.0149536132812,
+          "y": 330.8258056640625
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.2541375776678916",
+        "x": "0.6432536453127953",
+        "y": "0.0560873938231648"
+      }
+    ],
+    "status": "UNVERIFIED",
+    "reason": "Native automation did not hold Shift through drag; observed result was free resizing. Shared solver Shift unit tests pass, but this is not native modifier evidence."
+  },
+  {
+    "check": "governed aspect corner native drag",
+    "before": [
+      {
+        "cssHeight": "141.203px",
+        "cssWidth": "108.391px",
+        "h": "0.18579992498778036",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 143.07330322265625,
+          "width": 110.83837890625,
+          "x": 689.010498046875,
+          "y": 330.5570983886719
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.29616399397654214",
+        "x": "0.6427322404371585",
+        "y": "0.0559129617158499"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "161.375px",
+        "cssWidth": "123.875px",
+        "h": "0.21234134336607075",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 163.5123291015625,
+          "width": 126.6724853515625,
+          "x": 689.0153198242188,
+          "y": 330.28289794921875
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.33847085967217605",
+        "x": "0.6432099487651413",
+        "y": "0.05573315202179513"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "external fit explicit feedback",
+    "feedback": [
+      "Fit to parent: clipboard.png: 366 \u00d7 92px (46% of native size). Resize the parent for more space.",
+      "Fit to parent: clipboard.png: 366 \u00d7 92px (46% of native size). Resize the parent for more space."
+    ],
+    "after": [
+      {
+        "cssHeight": "91.5px",
+        "cssWidth": "366px",
+        "h": "0.12039473684210526",
+        "id": "node-rRN2nu",
+        "rect": {
+          "height": 91.5,
+          "width": 366,
+          "x": 455,
+          "y": 334
+        },
+        "transform": "none",
+        "w": "1",
+        "x": "0",
+        "y": "0.015789473684210527"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "save/reload and Preview parity",
+    "edit": [
+      {
+        "h": "114px",
+        "id": "container-6LdXfbkn",
+        "transform": "none",
+        "w": "296.453px",
+        "x": "0.09737882290518987",
+        "y": "0.8"
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "172.867px",
+        "id": "module-DsLLLeMu",
+        "transform": "none",
+        "w": "167.289px",
+        "x": "0.09737882290518984",
+        "y": "0.6261485402960525"
+      },
+      {
+        "h": "161.375px",
+        "id": "module-oTQgyvBo",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "123.875px",
+        "x": "0.6432099487651413",
+        "y": "0.05573315202179513"
+      },
+      {
+        "h": "160.953px",
+        "id": "module-UmN5uJd7",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "130.07px",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "h": "59.9922px",
+        "id": "node-lLCUmr",
+        "transform": "none",
+        "w": "99.9922px",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      },
+      {
+        "h": "81.8125px",
+        "id": "node-YqZzon",
+        "transform": "none",
+        "w": "145.445px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-button",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "53.0781px",
+        "x": "0.1746169978111375",
+        "y": "0.3478386046814539"
+      },
+      {
+        "h": "62.5703px",
+        "id": "precision-image",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "w": "94.2656px",
+        "x": "0.24480139936593134",
+        "y": "0.2658472543500351"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-button",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "0.21261906130803204"
+      },
+      {
+        "h": "172.109px",
+        "id": "precision-nested-container",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "327.359px",
+        "x": "0.08273224043715847",
+        "y": "0.3925754467867171"
+      },
+      {
+        "h": "83.7266px",
+        "id": "precision-nested-image",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "56.6641px",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-text",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "-0.017360682480027294"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-text",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "66.3438px",
+        "x": "0.32015150970782436",
+        "y": "0.19960762354573552"
+      }
+    ],
+    "preview": [
+      {
+        "h": "114px",
+        "id": "container-6LdXfbkn",
+        "transform": "none",
+        "w": "296.453px",
+        "x": "0.09737882290518987",
+        "y": "0.8"
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "172.867px",
+        "id": "module-DsLLLeMu",
+        "transform": "none",
+        "w": "167.289px",
+        "x": "0.09737882290518984",
+        "y": "0.6261485402960525"
+      },
+      {
+        "h": "161.375px",
+        "id": "module-oTQgyvBo",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "123.875px",
+        "x": "0.6432099487651413",
+        "y": "0.05573315202179513"
+      },
+      {
+        "h": "160.953px",
+        "id": "module-UmN5uJd7",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "130.07px",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "h": "59.9922px",
+        "id": "node-lLCUmr",
+        "transform": "none",
+        "w": "99.9922px",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      },
+      {
+        "h": "81.8125px",
+        "id": "node-YqZzon",
+        "transform": "none",
+        "w": "145.445px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-button",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "53.0781px",
+        "x": "0.1746169978111375",
+        "y": "0.3478386046814539"
+      },
+      {
+        "h": "62.5703px",
+        "id": "precision-image",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "w": "94.2656px",
+        "x": "0.24480139936593134",
+        "y": "0.2658472543500351"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-button",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "0.21261906130803204"
+      },
+      {
+        "h": "172.109px",
+        "id": "precision-nested-container",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "327.359px",
+        "x": "0.08273224043715847",
+        "y": "0.3925754467867171"
+      },
+      {
+        "h": "83.7266px",
+        "id": "precision-nested-image",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "56.6641px",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-text",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "-0.017360682480027294"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-text",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "66.3438px",
+        "x": "0.32015150970782436",
+        "y": "0.19960762354573552"
+      }
+    ],
+    "reload": [
+      {
+        "h": "114px",
+        "id": "container-6LdXfbkn",
+        "transform": "none",
+        "w": "296.453px",
+        "x": "0.09737882290518987",
+        "y": "0.8"
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "172.867px",
+        "id": "module-DsLLLeMu",
+        "transform": "none",
+        "w": "167.289px",
+        "x": "0.09737882290518984",
+        "y": "0.6261485402960525"
+      },
+      {
+        "h": "161.375px",
+        "id": "module-oTQgyvBo",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "123.875px",
+        "x": "0.6432099487651413",
+        "y": "0.05573315202179513"
+      },
+      {
+        "h": "160.953px",
+        "id": "module-UmN5uJd7",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "130.07px",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "h": "59.9922px",
+        "id": "node-lLCUmr",
+        "transform": "none",
+        "w": "99.9922px",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      },
+      {
+        "h": "81.8125px",
+        "id": "node-YqZzon",
+        "transform": "none",
+        "w": "145.445px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-button",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "53.0781px",
+        "x": "0.1746169978111375",
+        "y": "0.3478386046814539"
+      },
+      {
+        "h": "62.5703px",
+        "id": "precision-image",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "w": "94.2656px",
+        "x": "0.24480139936593134",
+        "y": "0.2658472543500351"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-button",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "0.21261906130803204"
+      },
+      {
+        "h": "172.109px",
+        "id": "precision-nested-container",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "327.359px",
+        "x": "0.08273224043715847",
+        "y": "0.3925754467867171"
+      },
+      {
+        "h": "83.7266px",
+        "id": "precision-nested-image",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "56.6641px",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-text",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "-0.017360682480027294"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-text",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "66.3438px",
+        "x": "0.32015150970782436",
+        "y": "0.19960762354573552"
+      }
+    ],
+    "previewMatches": true,
+    "reloadMatches": true,
+    "status": "MEASURED"
+  },
+  {
+    "check": "390px selected-body drag",
+    "before": [
+      {
+        "cssHeight": "161.375px",
+        "cssWidth": "115.078px",
+        "h": "0.21234134336607075",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 163.35882568359375,
+          "width": 117.87696838378906,
+          "x": 242.28807067871097,
+          "y": 323.8596496582031
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.33847085967217605",
+        "x": "0.6432099487651413",
+        "y": "0.05573315202179513"
+      }
+    ],
+    "after": [
+      {
+        "cssHeight": "161.375px",
+        "cssWidth": "115.078px",
+        "h": "0.21234134336607075",
+        "id": "module-oTQgyvBo",
+        "rect": {
+          "height": 163.35882568359375,
+          "width": 117.87696838378906,
+          "x": 236.51463317871097,
+          "y": 343.8049621582031
+        },
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "0.33847085967217605",
+        "x": "0.6262350226807651",
+        "y": "0.08"
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "mouse handle hit targets versus visible marks",
+    "targets": [
+      {
+        "height": 24.415191650390625,
+        "kind": "resize",
+        "mark": 6.10382080078125,
+        "width": 24.4151611328125
+      },
+      {
+        "height": 24.415191650390625,
+        "kind": "resize",
+        "mark": 6.10382080078125,
+        "width": 24.41522216796875
+      },
+      {
+        "height": 24.41522216796875,
+        "kind": "resize",
+        "mark": 6.103759765625,
+        "width": 24.41522216796875
+      },
+      {
+        "height": 24.415191650390625,
+        "kind": "resize",
+        "mark": 6.103759765625,
+        "width": 24.41522216796875
+      },
+      {
+        "height": 24.41522216796875,
+        "kind": "resize",
+        "mark": 6.10382080078125,
+        "width": 24.4151611328125
+      },
+      {
+        "height": 24.4151611328125,
+        "kind": "resize",
+        "mark": 6.10382080078125,
+        "width": 24.41522216796875
+      },
+      {
+        "height": 24.41522216796875,
+        "kind": "resize",
+        "mark": 6.103759765625,
+        "width": 24.41522216796875
+      },
+      {
+        "height": 24.415191650390625,
+        "kind": "resize",
+        "mark": 6.10382080078125,
+        "width": 24.41522216796875
+      },
+      {
+        "height": 24.415191650390625,
+        "kind": "rotate",
+        "mark": 8.13836669921875,
+        "width": 24.41522216796875
+      }
+    ],
+    "status": "MEASURED"
+  },
+  {
+    "check": "final review fixture Preview and reload",
+    "edit": [
+      {
+        "h": "114px",
+        "id": "container-6LdXfbkn",
+        "transform": "none",
+        "w": "296.453px",
+        "x": "0.09737882290518987",
+        "y": "0.8"
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "172.867px",
+        "id": "module-DsLLLeMu",
+        "transform": "none",
+        "w": "167.289px",
+        "x": "0.09737882290518984",
+        "y": "0.6261485402960525"
+      },
+      {
+        "h": "161.375px",
+        "id": "module-oTQgyvBo",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "123.875px",
+        "x": "0.6262350226807651",
+        "y": "0.08"
+      },
+      {
+        "h": "160.953px",
+        "id": "module-UmN5uJd7",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "130.078px",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "h": "60px",
+        "id": "node-lLCUmr",
+        "transform": "none",
+        "w": "100px",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      },
+      {
+        "h": "81.8125px",
+        "id": "node-YqZzon",
+        "transform": "none",
+        "w": "145.445px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-button",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "53.0781px",
+        "x": "0.1746169978111375",
+        "y": "0.3478386046814539"
+      },
+      {
+        "h": "62.5703px",
+        "id": "precision-image",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "w": "94.2656px",
+        "x": "0.24480139936593134",
+        "y": "0.2658472543500351"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-button",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "0.21261906130803204"
+      },
+      {
+        "h": "172.109px",
+        "id": "precision-nested-container",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "327.359px",
+        "x": "0.08273224043715847",
+        "y": "0.3925754467867171"
+      },
+      {
+        "h": "83.7266px",
+        "id": "precision-nested-image",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "56.6641px",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-text",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "-0.017360682480027294"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-text",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "66.3438px",
+        "x": "0.32015150970782436",
+        "y": "0.19960762354573552"
+      }
+    ],
+    "preview": [
+      {
+        "h": "114px",
+        "id": "container-6LdXfbkn",
+        "transform": "none",
+        "w": "296.453px",
+        "x": "0.09737882290518987",
+        "y": "0.8"
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "172.867px",
+        "id": "module-DsLLLeMu",
+        "transform": "none",
+        "w": "167.289px",
+        "x": "0.09737882290518984",
+        "y": "0.6261485402960525"
+      },
+      {
+        "h": "161.375px",
+        "id": "module-oTQgyvBo",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "123.875px",
+        "x": "0.6262350226807651",
+        "y": "0.08"
+      },
+      {
+        "h": "160.953px",
+        "id": "module-UmN5uJd7",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "130.078px",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "h": "60px",
+        "id": "node-lLCUmr",
+        "transform": "none",
+        "w": "100px",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      },
+      {
+        "h": "81.8125px",
+        "id": "node-YqZzon",
+        "transform": "none",
+        "w": "145.445px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-button",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "53.0781px",
+        "x": "0.1746169978111375",
+        "y": "0.3478386046814539"
+      },
+      {
+        "h": "62.5703px",
+        "id": "precision-image",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "w": "94.2656px",
+        "x": "0.24480139936593134",
+        "y": "0.2658472543500351"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-button",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "0.21261906130803204"
+      },
+      {
+        "h": "172.109px",
+        "id": "precision-nested-container",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "327.359px",
+        "x": "0.08273224043715847",
+        "y": "0.3925754467867171"
+      },
+      {
+        "h": "83.7266px",
+        "id": "precision-nested-image",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "56.6641px",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-text",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "-0.017360682480027294"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-text",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "66.3438px",
+        "x": "0.32015150970782436",
+        "y": "0.19960762354573552"
+      }
+    ],
+    "reload": [
+      {
+        "h": "114px",
+        "id": "container-6LdXfbkn",
+        "transform": "none",
+        "w": "296.453px",
+        "x": "0.09737882290518987",
+        "y": "0.8"
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "transform": "none",
+        "w": "37.6328px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "39.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "transform": "none",
+        "w": "167.289px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "172.867px",
+        "id": "module-DsLLLeMu",
+        "transform": "none",
+        "w": "167.289px",
+        "x": "0.09737882290518984",
+        "y": "0.6261485402960525"
+      },
+      {
+        "h": "161.375px",
+        "id": "module-oTQgyvBo",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "123.875px",
+        "x": "0.6262350226807651",
+        "y": "0.08"
+      },
+      {
+        "h": "160.953px",
+        "id": "module-UmN5uJd7",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "130.078px",
+        "x": "0.5027322404371585",
+        "y": "0.14897567406960466"
+      },
+      {
+        "h": "60px",
+        "id": "node-lLCUmr",
+        "transform": "none",
+        "w": "100px",
+        "x": "0.015994580747049885",
+        "y": "0.08429475243432423"
+      },
+      {
+        "h": "81.8125px",
+        "id": "node-YqZzon",
+        "transform": "none",
+        "w": "145.445px",
+        "x": null,
+        "y": null
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-button",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "53.0781px",
+        "x": "0.1746169978111375",
+        "y": "0.3478386046814539"
+      },
+      {
+        "h": "62.5703px",
+        "id": "precision-image",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "w": "94.2656px",
+        "x": "0.24480139936593134",
+        "y": "0.2658472543500351"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-button",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "0.21261906130803204"
+      },
+      {
+        "h": "172.109px",
+        "id": "precision-nested-container",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "w": "327.359px",
+        "x": "0.08273224043715847",
+        "y": "0.3925754467867171"
+      },
+      {
+        "h": "83.7266px",
+        "id": "precision-nested-image",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "w": "56.6641px",
+        "x": "0.3990964376917759",
+        "y": "0.07081835964827886"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-nested-text",
+        "transform": "none",
+        "w": "85.0547px",
+        "x": "0.03338519461115591",
+        "y": "-0.017360682480027294"
+      },
+      {
+        "h": "43.9922px",
+        "id": "precision-text",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "w": "66.3438px",
+        "x": "0.32015150970782436",
+        "y": "0.19960762354573552"
+      }
+    ],
+    "previewMatches": true,
+    "reloadMatches": true,
+    "status": "MEASURED"
+  }
+]

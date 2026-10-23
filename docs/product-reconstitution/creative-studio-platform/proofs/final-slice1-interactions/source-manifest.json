@@ -1,0 +1,42 @@
+[
+  {
+    "path": "components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx",
+    "sha256": "06690111e07013567f9f552e4a9dca1168eb85ae9a8234d35ff1b471a53c2663",
+    "baselineSha256": "489f822d83ea2b60603cb250a1be3543137f5ea81d2b68f67924ea66ae98d722"
+  },
+  {
+    "path": "components/fusion/card/reconstitution/studio-composition-inspector.tsx",
+    "sha256": "7666f94dc70a2870de59df9523626aea5cd8d60ad0e279c6346bbe301314250a",
+    "baselineSha256": "9d1170d5cd61269acff9cd01c31b94e7719182d6bd3dbea2e128741c987c1c7d"
+  },
+  {
+    "path": "components/fusion/creative-studio/creative-composition-canvas.tsx",
+    "sha256": "a9bfeaf3e047d1ed55ede3059bbf22599ff660bd8cfbcda966c6392d4888d554",
+    "baselineSha256": "8d1983fd6ab6c8f06f9dd810890953aec946a230f3b7e67fbc9805853b10b8f8"
+  },
+  {
+    "path": "components/fusion/creative-studio/use-layered-parent-size.ts",
+    "sha256": "ade7a9b35198e80ff376e6ebd20f10bafdb49a70a5209a20c428b56120a23a2b",
+    "baselineSha256": "fe5f03044481bd431b77bd70abf9f931447b5e8bea8d08a9b0ddae48f9c10bed"
+  },
+  {
+    "path": "components/tap/tap-connect-card.tsx",
+    "sha256": "9d5d7b6eff4dc194f40e431c614d2abee329120679c041cccd2a93945d437780",
+    "baselineSha256": "481d87b7f227471c12f1067170c9154a29527e28f548e5509fd1043c20f62f1d"
+  },
+  {
+    "path": "lib/fusion/card/composition-parent-authority.ts",
+    "sha256": "5d8c050b20323f0288b8b5b1d0aef14cccd20c6e15368d9eac091ae901cbe053",
+    "baselineSha256": "7a7fe18e0dc2a80753985b8a874095800dcc67a0f9a8883ce92cebfddcc27965"
+  },
+  {
+    "path": "lib/fusion/creative-studio/__tests__/familiar-interactions.test.ts",
+    "sha256": "efa619c47c61ddebab3be01f6dbc37bcf746c0e1d3becd7fd6d58cf184a3a591",
+    "baselineSha256": null
+  },
+  {
+    "path": "lib/fusion/creative-studio/platform/layered-region.ts",
+    "sha256": "8b9d7e9a853f833dbf683195ff081e70c5c84016ded8c0fa2116eee9c1aa1292",
+    "baselineSha256": "78eba57d27db1551d2bd11cb62ee2dc1f1222af6a617843e24c2266c03d18080"
+  }
+]

@@ -112,3 +112,7 @@ Return outcome, root causes, exact files changed, test commands/results, before/
 ## Current corrective evidence
 
 Review [Select and Resize with Confidence](SLICE1_SELECT_RESIZE_CORRECTIVE_REVIEW_2026-10-23.md) before continuing. Its source is local and uncommitted; the documentation push includes an inspectable corrective delta and fingerprints, not a standalone application release SHA. Resolve that source-integration boundary and missing final capture evidence before treating the candidate as a release handoff. Preserve the PO acceptance gate.
+
+## Final Slice 1 interaction corrective candidate
+
+The authorized clipboard/body-drag/resize/nudge pass and evidence are recorded in [the final interaction review](SLICE1_FINAL_INTERACTION_REVIEW_2026-10-23.md). Layered 1px/10px nudging is now implemented locally through canonical transactions. Native Shift-drag and physical touch remain unverified; Slice 1 remains OPEN, Slice 2 gated, and production hash verification BLOCKED. The remote handoff contains documentation and an exact local source delta, not an application release commit.
