@@ -1,5 +1,7 @@
 # Permanent native visual authoring acceptance reference
 
+**October 23 implementation update:** The approved Frame and Page Truth local candidate is documented with measured evidence and exact source handoff in [the implementation report](SLICE1_FRAME_PAGE_TRUTH_IMPLEMENTATION_2026-10-23.md). Slice 1 remains OPEN; Text Editing Truth remains gated. Earlier audit/specification statements below describe their original stage, not a claim that implementation acceptance is complete.
+
 **Standing interaction requirements:** [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) govern familiar keyboard/focus behavior, fearless editing, shared tApIt foundations and freedom to redesign interface presentation. Target behaviors are requirements, not verified implementation claims. Current Slice 1 authorization and later approval gates remain unchanged.
 
 Status: **specification only; fixture construction requires implementation approval**. The PO described a reference but did not attach its image. Exact visual comparison is **BLOCKED**, not PASSED. This document preserves the described composition as a permanent acceptance journey without inventing the missing pixels. Do not alter the existing Slice 1 fixture to create it.

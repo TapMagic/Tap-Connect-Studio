@@ -1,10 +1,11 @@
 {
   "prePassFiles": 2382,
-  "unchanged": 2365,
+  "unchanged": 2361,
   "changedExistingFiles": 15,
   "newSourceFiles": 1,
   "missing": [],
   "applicationFilesCommitted": false,
-  "note": "Existing source outside the 15 named corrective files and 3 intended documents matches its pre-pass hash; one new test. Prior unrelated application changes and fixture artifacts remain intact.",
-  "changedDocumentationFiles": 3
+  "note": "Pre-existing files outside the 15 named corrective source files and 6 intended documentation updates match their pre-pass hashes. One new test and one new implementation report were added; unrelated WIP remains intact.",
+  "changedDocumentationFiles": 6,
+  "newDocumentationFiles": 1
 }

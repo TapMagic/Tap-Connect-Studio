@@ -104,7 +104,7 @@ The checkout already contained substantial tracked and untracked Slice 1 work an
 - [Exact current-pass patch](proofs/frame-page-truth-2026-10-23/local-corrective-delta.patch), against the pre-pass local files.
 - [Complete before/after affected source archive](proofs/frame-page-truth-2026-10-23/affected-source-before-after.tar.gz), including the new tests.
 - [Per-file SHA-256 manifest](proofs/frame-page-truth-2026-10-23/source-manifest.json).
-- [Preservation audit](proofs/frame-page-truth-2026-10-23/preservation.json): 2,364 pre-existing files unchanged; 15 named source corrections and three intended documentation updates; one new test file; no missing files. Unrelated application changes and earlier acceptance artifacts remain intact.
+- [Preservation audit](proofs/frame-page-truth-2026-10-23/preservation.json): 2,361 pre-existing files unchanged; 15 named source corrections and six intended existing-document updates plus this new report; one new test file; no missing files. Unrelated application changes and earlier acceptance artifacts remain intact.
 
 A clean integration of the existing local Slice 1 baseline and this verified delta is still required before a remotely reproducible build or staging/release. No branch switch, reset, history rewrite, force-push, merge, migration or deployment was performed.
 

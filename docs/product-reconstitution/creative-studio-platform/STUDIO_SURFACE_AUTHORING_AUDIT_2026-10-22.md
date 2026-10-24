@@ -1,5 +1,7 @@
 # Surface authoring: evidence, capability gaps and research
 
+**October 23 implementation update:** The approved Frame and Page Truth local candidate is documented with measured evidence and exact source handoff in [the implementation report](SLICE1_FRAME_PAGE_TRUTH_IMPLEMENTATION_2026-10-23.md). Slice 1 remains OPEN; Text Editing Truth remains gated. Earlier audit/specification statements below describe their original stage, not a claim that implementation acceptance is complete.
+
 **Standing interaction requirements:** [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) govern familiar keyboard/focus behavior, fearless editing, shared tApIt foundations and freedom to redesign interface presentation. Target behaviors are requirements, not verified implementation claims. Current Slice 1 authorization and later approval gates remain unchanged.
 
 October 22, 2026 ET. Companion to the [revised architecture](STUDIO_UX_ARCHITECTURE_PROPOSAL_2026-10-22.md). Planning only. Evidence refers to the current dirty working tree, not a released product. No source changes or production operations were made for this follow-up. The prior local UI audit and its eleven screenshots are linked in the main proposal. Chrome was unavailable for fresh follow-up interactions; current action timings and successful mutation counts are therefore not established.

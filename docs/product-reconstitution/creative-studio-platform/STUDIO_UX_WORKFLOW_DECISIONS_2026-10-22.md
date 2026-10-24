@@ -1,5 +1,7 @@
 # Studio workflow decisions — revised master directive
 
+**October 23 implementation update:** The approved Frame and Page Truth local candidate is documented with measured evidence and exact source handoff in [the implementation report](SLICE1_FRAME_PAGE_TRUTH_IMPLEMENTATION_2026-10-23.md). Slice 1 remains OPEN; Text Editing Truth remains gated. Earlier audit/specification statements below describe their original stage, not a claim that implementation acceptance is complete.
+
 **Standing interaction requirements:** [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) govern familiar keyboard/focus behavior, fearless editing, shared tApIt foundations and freedom to redesign interface presentation. Target behaviors are requirements, not verified implementation claims. Current Slice 1 authorization and later approval gates remain unchanged.
 
 Planning only. Each of the twelve existing workflows answers all fourteen revised PO questions. Current-state assertions distinguish observed UI, source inspection and unverified behavior. Reference patterns are documented, not hands-on competitor tests; sources and evidence are in the [Surface audit](STUDIO_SURFACE_AUTHORING_AUDIT_2026-10-22.md) and [architecture proposal](STUDIO_UX_ARCHITECTURE_PROPOSAL_2026-10-22.md). A/B/C classifications follow the proposal and never grant implementation authorization.

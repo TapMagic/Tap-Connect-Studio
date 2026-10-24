@@ -1,8 +1,10 @@
 # TapConnect Studio UX architecture proposal
 
+**October 23 implementation update:** The approved Frame and Page Truth local candidate is documented with measured evidence and exact source handoff in [the implementation report](SLICE1_FRAME_PAGE_TRUTH_IMPLEMENTATION_2026-10-23.md). Slice 1 remains OPEN; Text Editing Truth remains gated. Earlier audit/specification statements below describe their original stage, not a claim that implementation acceptance is complete.
+
 **Standing interaction requirements:** [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) govern familiar keyboard/focus behavior, fearless editing, shared tApIt foundations and freedom to redesign interface presentation. Target behaviors are requirements, not verified implementation claims. Current Slice 1 authorization and later approval gates remain unchanged.
 
-Prepared for Rich, Product Owner. Investigation: October 22, 2026 ET, October 23 UTC. Revised against the October 22 Master UX, Visual Authoring & Interaction Architecture Directive. Status: **planning direction provisionally approved; Select and Resize with Confidence approved for local implementation only; Slice 1 hands-on acceptance remains open**.
+Prepared for Rich, Product Owner. Investigation: October 22, 2026 ET, October 23 UTC. Revised against the October 22 Master UX, Visual Authoring & Interaction Architecture Directive. Status: **planning direction provisionally approved; bounded Frame and Page Truth correction implemented locally for review; Slice 1 hands-on acceptance remains open**.
 
 Studio should make the Experience Surface and its independently styled Containers the visible foundation of authoring. Selection, task intent, editing mode and declared capabilities should determine the relevant controls. Today, too much of the interface follows the shape of the implementation: generic Module inspectors, competing layout controls, provider tabs, and technical explanations precede ordinary editing. The recommendation is to make the existing shared authorities determine the interface consistently, then deliver complete workflows in small increments.
 
