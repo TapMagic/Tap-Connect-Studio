@@ -1,0 +1,2527 @@
+[
+  {
+    "step": "before Container resize",
+    "frames": [
+      {
+        "height": "43.9922px",
+        "id": "precision-text",
+        "left": "58.0469px",
+        "name": "Precision Text Module",
+        "top": "7.83594px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "66.3438px"
+      },
+      {
+        "height": "62.5703px",
+        "id": "precision-image",
+        "left": "30.4688px",
+        "name": "Precision Image Module",
+        "top": "58.1719px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "94.2656px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-button",
+        "left": "4.78906px",
+        "name": "Precision Button Module",
+        "top": "120.484px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "53.0781px"
+      },
+      {
+        "height": "172.109px",
+        "id": "precision-nested-container",
+        "left": "20.1875px",
+        "name": "Nested Layered Container",
+        "top": "364.797px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "327.359px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "name": "Nested Text Module",
+        "top": "0px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "name": "Nested Image Module",
+        "top": "12.3516px",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "name": "Nested Button Module",
+        "top": "32.2188px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "141.203px",
+        "id": "module-oTQgyvBo",
+        "left": "234.234px",
+        "name": "Nested Image copy Module",
+        "top": "32.4922px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "108.391px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "name": "Image-backed Container",
+        "top": "608px",
+        "transform": "none",
+        "width": "296.453px"
+      },
+      {
+        "height": "81.8125px",
+        "id": "node-YqZzon",
+        "left": "0px",
+        "name": "Video Module",
+        "top": "0px",
+        "transform": "none",
+        "width": "145.445px"
+      },
+      {
+        "height": "172.867px",
+        "id": "module-DsLLLeMu",
+        "left": "35.6406px",
+        "name": "Love & Theft Bound Single Stack Curated System",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "167.289px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "name": null,
+        "top": "47.9453px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "name": null,
+        "top": "126.008px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "8.91406px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "name": null,
+        "top": "86.9766px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "8.91406px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "47.9453px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "86.9766px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "126.008px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "0px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "162.812px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "9.05469px",
+        "name": null,
+        "top": "9.61719px",
+        "transform": "none",
+        "width": "37.6328px"
+      },
+      {
+        "height": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "9.05469px",
+        "name": null,
+        "top": "87.6797px",
+        "transform": "none",
+        "width": "37.6328px"
+      }
+    ]
+  },
+  {
+    "step": "Inspector height 172 to 272",
+    "frames": [
+      {
+        "height": "43.9922px",
+        "id": "precision-text",
+        "left": "58.0469px",
+        "name": "Precision Text Module",
+        "top": "7.83594px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "66.3438px"
+      },
+      {
+        "height": "62.5703px",
+        "id": "precision-image",
+        "left": "30.4688px",
+        "name": "Precision Image Module",
+        "top": "58.1719px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "94.2656px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-button",
+        "left": "4.78906px",
+        "name": "Precision Button Module",
+        "top": "120.484px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "53.0781px"
+      },
+      {
+        "height": "272px",
+        "id": "precision-nested-container",
+        "left": "20.1875px",
+        "name": "Nested Layered Container",
+        "top": "364.797px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "327.359px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "name": "Nested Text Module",
+        "top": "0px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "name": "Nested Image Module",
+        "top": "12.3516px",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "name": "Nested Button Module",
+        "top": "32.2188px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "141.203px",
+        "id": "module-oTQgyvBo",
+        "left": "234.234px",
+        "name": "Nested Image copy Module",
+        "top": "32.4922px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "108.391px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "name": "Image-backed Container",
+        "top": "608px",
+        "transform": "none",
+        "width": "296.453px"
+      },
+      {
+        "height": "81.8125px",
+        "id": "node-YqZzon",
+        "left": "0px",
+        "name": "Video Module",
+        "top": "0px",
+        "transform": "none",
+        "width": "145.445px"
+      },
+      {
+        "height": "172.867px",
+        "id": "module-DsLLLeMu",
+        "left": "35.6406px",
+        "name": "Love & Theft Bound Single Stack Curated System",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "167.289px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "name": null,
+        "top": "47.9453px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "name": null,
+        "top": "126.008px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "8.91406px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "name": null,
+        "top": "86.9766px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "8.91406px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "47.9453px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "86.9766px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "126.008px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "0px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "name": null,
+        "top": "162.812px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "9.05469px",
+        "name": null,
+        "top": "9.61719px",
+        "transform": "none",
+        "width": "37.6328px"
+      },
+      {
+        "height": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "9.05469px",
+        "name": null,
+        "top": "87.6797px",
+        "transform": "none",
+        "width": "37.6328px"
+      }
+    ]
+  },
+  {
+    "step": "native south edge drag -50 screen px",
+    "frames": [
+      {
+        "height": "43.9922px",
+        "id": "precision-text",
+        "left": "58.0469px",
+        "top": "7.83594px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "66.3438px"
+      },
+      {
+        "height": "62.5703px",
+        "id": "precision-image",
+        "left": "30.4688px",
+        "top": "58.1719px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "94.2656px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-button",
+        "left": "4.78906px",
+        "top": "120.484px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "53.0781px"
+      },
+      {
+        "height": "222px",
+        "id": "precision-nested-container",
+        "left": "19.75px",
+        "top": "364.797px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "327.359px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "top": "12.3516px",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "top": "32.2188px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "141.203px",
+        "id": "module-oTQgyvBo",
+        "left": "234.234px",
+        "top": "32.4922px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "108.391px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "top": "608px",
+        "transform": "none",
+        "width": "296.453px"
+      },
+      {
+        "height": "81.8125px",
+        "id": "node-YqZzon",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "145.445px"
+      },
+      {
+        "height": "172.867px",
+        "id": "module-DsLLLeMu",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "167.289px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "47.9453px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "126.008px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "8.91406px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "86.9766px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "8.91406px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "47.9453px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "86.9766px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "39.0234px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "126.008px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "13.375px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "10.0312px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "162.812px",
+        "transform": "none",
+        "width": "167.281px"
+      },
+      {
+        "height": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "9.05469px",
+        "top": "9.61719px",
+        "transform": "none",
+        "width": "37.6328px"
+      },
+      {
+        "height": "37.6328px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "9.05469px",
+        "top": "87.6797px",
+        "transform": "none",
+        "width": "37.6328px"
+      }
+    ]
+  },
+  {
+    "step": "Curated label native numeric edits",
+    "measurements": [
+      {
+        "requested": 11,
+        "glyphs": [
+          {
+            "size": "11px",
+            "tag": "SPAN",
+            "text": "Website"
+          }
+        ]
+      },
+      {
+        "requested": 13,
+        "glyphs": [
+          {
+            "size": "13px",
+            "tag": "SPAN",
+            "text": "Website"
+          }
+        ]
+      },
+      {
+        "requested": 15,
+        "glyphs": [
+          {
+            "size": "15px",
+            "tag": "SPAN",
+            "text": "Website"
+          }
+        ]
+      },
+      {
+        "requested": 16,
+        "glyphs": [
+          {
+            "size": "16px",
+            "tag": "SPAN",
+            "text": "Website"
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "step": "Curated proportional 240px width and exact 0/45/90/180/270 rotation",
+    "frames": [
+      {
+        "angle": "position: absolute; left: 9.73788%; top: 62.6149%; width: 65.5738%; height: 32.6316%; min-height: 0px; --studio-action-layout-min-height: 0px; z-index: 3800; pointer-events: auto;",
+        "height": "248px",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "angle": "position: absolute; left: 9.73788%; top: 62.6149%; width: 65.5738%; height: 32.6316%; min-height: 0px; --studio-action-layout-min-height: 0px; z-index: 3800; pointer-events: auto; transform: rotate(45deg);",
+        "height": "248px",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "240px"
+      },
+      {
+        "angle": "position: absolute; left: 9.73788%; top: 62.6149%; width: 65.5738%; height: 32.6316%; min-height: 0px; --studio-action-layout-min-height: 0px; z-index: 3800; pointer-events: auto; transform: rotate(90deg);",
+        "height": "248px",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "matrix(0, 1, -1, 0, 0, 0)",
+        "width": "240px"
+      },
+      {
+        "angle": "position: absolute; left: 9.73788%; top: 62.6149%; width: 65.5738%; height: 32.6316%; min-height: 0px; --studio-action-layout-min-height: 0px; z-index: 3800; pointer-events: auto; transform: rotate(180deg);",
+        "height": "248px",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "matrix(-1, 0, 0, -1, 0, 0)",
+        "width": "240px"
+      },
+      {
+        "angle": "position: absolute; left: 9.73788%; top: 62.6149%; width: 65.5738%; height: 32.6316%; min-height: 0px; --studio-action-layout-min-height: 0px; z-index: 3800; pointer-events: auto; transform: rotate(270deg);",
+        "height": "248px",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "matrix(0, -1, 1, 0, 0, 0)",
+        "width": "240px"
+      }
+    ]
+  },
+  {
+    "step": "Fit trims minimum900 and plane760 to748/724 without scaling",
+    "frames": [
+      {
+        "height": "43.9922px",
+        "id": "precision-text",
+        "left": "58.0469px",
+        "top": "14.6484px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "66.3438px"
+      },
+      {
+        "height": "62.5703px",
+        "id": "precision-image",
+        "left": "30.4688px",
+        "top": "64.9844px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "94.2656px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-button",
+        "left": "4.78906px",
+        "top": "127.297px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "53.0781px"
+      },
+      {
+        "height": "272px",
+        "id": "precision-nested-container",
+        "left": "20.1875px",
+        "top": "364.797px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "327.359px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "top": "12.3516px",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "top": "32.2188px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "141.203px",
+        "id": "module-oTQgyvBo",
+        "left": "234.234px",
+        "top": "32.4922px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "108.391px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "top": "607.992px",
+        "transform": "none",
+        "width": "296.453px"
+      },
+      {
+        "height": "81.8125px",
+        "id": "node-YqZzon",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "145.445px"
+      },
+      {
+        "height": "248px",
+        "id": "module-DsLLLeMu",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "19.1953px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "14.3984px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "233.594px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "12.9922px",
+        "top": "13.7969px",
+        "transform": "none",
+        "width": "54px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "12.9922px",
+        "top": "125.797px",
+        "transform": "none",
+        "width": "54px"
+      }
+    ]
+  },
+  {
+    "step": "Fit undo/redo",
+    "undo": "900",
+    "redo": "748"
+  },
+  {
+    "step": "native create Horizontal Container,12px gap, repeated Paste,45% widths",
+    "measurement": {
+      "children": [
+        {
+          "h": "155.305px",
+          "id": "module-DfAgu3ry",
+          "rect": {
+            "bottom": 392.3046875,
+            "height": 155.3046875,
+            "left": 471,
+            "right": 621.296875,
+            "top": 237,
+            "width": 150.296875,
+            "x": 471,
+            "y": 237
+          },
+          "w": "150.297px"
+        },
+        {
+          "h": "155.305px",
+          "id": "module-Sflo6ErS",
+          "rect": {
+            "bottom": 392.3046875,
+            "height": 155.3046875,
+            "left": 637.296875,
+            "right": 787.59375,
+            "top": 237,
+            "width": 150.296875,
+            "x": 637.296875,
+            "y": 237
+          },
+          "w": "150.297px"
+        }
+      ],
+      "contents": [
+        {
+          "gap": "16px",
+          "width": "366px"
+        }
+      ],
+      "frame": {
+        "bottom": 511,
+        "height": 290,
+        "left": 455,
+        "right": 821,
+        "top": 221,
+        "width": 366,
+        "x": 455,
+        "y": 221
+      }
+    }
+  },
+  {
+    "step": "Flow pointer width drag -16px",
+    "before": {
+      "width": 150.297,
+      "height": 155.305
+    },
+    "after": {
+      "width": 134.297,
+      "height": 138.773
+    },
+    "mouseTarget": 24,
+    "visibleHandle": 6
+  },
+  {
+    "step": "Flow ArrowUp reorder",
+    "order": [
+      "module-Sflo6ErS",
+      "module-DfAgu3ry"
+    ]
+  },
+  {
+    "step": "390px native Position width40%, Undo45%",
+    "controls": {
+      "input": {
+        "bottom": 459.4765625,
+        "height": 16.5,
+        "left": 257.78125,
+        "right": 305.78125,
+        "top": 442.9765625,
+        "width": 48,
+        "x": 257.78125,
+        "y": 442.9765625
+      },
+      "label": {
+        "bottom": 473.2265625,
+        "height": 44,
+        "left": 248.78125,
+        "right": 326,
+        "top": 429.2265625,
+        "width": 77.21875,
+        "x": 248.78125,
+        "y": 429.2265625
+      },
+      "range": {
+        "bottom": 523.2265625,
+        "height": 44,
+        "left": 16,
+        "right": 374,
+        "top": 479.2265625,
+        "width": 358,
+        "x": 16,
+        "y": 479.2265625
+      }
+    },
+    "restored": "45",
+    "physicalTouch": "not tested"
+  },
+  {
+    "step": "save/full reload",
+    "exactMatch": true,
+    "before": [
+      {
+        "height": "43.9922px",
+        "id": "precision-text",
+        "left": "58.0469px",
+        "top": "7.83594px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "66.3438px"
+      },
+      {
+        "height": "62.5703px",
+        "id": "precision-image",
+        "left": "30.4688px",
+        "top": "58.1719px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "94.2656px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-button",
+        "left": "4.78906px",
+        "top": "120.484px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "53.0781px"
+      },
+      {
+        "height": "272px",
+        "id": "precision-nested-container",
+        "left": "20.1875px",
+        "top": "364.797px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "327.359px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "top": "12.3516px",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "top": "32.2188px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "141.203px",
+        "id": "module-oTQgyvBo",
+        "left": "234.234px",
+        "top": "32.4922px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "108.391px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "top": "608px",
+        "transform": "none",
+        "width": "296.453px"
+      },
+      {
+        "height": "81.8125px",
+        "id": "node-YqZzon",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "145.445px"
+      },
+      {
+        "height": "248px",
+        "id": "module-DsLLLeMu",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "19.1953px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "14.3984px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "233.594px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "12.9922px",
+        "top": "13.7969px",
+        "transform": "none",
+        "width": "54px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "12.9922px",
+        "top": "125.797px",
+        "transform": "none",
+        "width": "54px"
+      },
+      {
+        "height": "290px",
+        "id": "container-HQA15uV5",
+        "left": "0px",
+        "top": "780px",
+        "transform": "none",
+        "width": "366px"
+      },
+      {
+        "height": "155.305px",
+        "id": "module-DfAgu3ry",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "12.0234px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "9.01562px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "146.281px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "8.14062px",
+        "top": "8.64062px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "8.14062px",
+        "top": "78.7734px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "155.305px",
+        "id": "module-Sflo6ErS",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "12.0234px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "9.01562px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "146.281px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "8.14062px",
+        "top": "8.64062px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "8.14062px",
+        "top": "78.7734px",
+        "transform": "none",
+        "width": "33.8125px"
+      }
+    ],
+    "after": [
+      {
+        "height": "43.9922px",
+        "id": "precision-text",
+        "left": "58.0469px",
+        "top": "7.83594px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "66.3438px"
+      },
+      {
+        "height": "62.5703px",
+        "id": "precision-image",
+        "left": "30.4688px",
+        "top": "58.1719px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "94.2656px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-button",
+        "left": "4.78906px",
+        "top": "120.484px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "53.0781px"
+      },
+      {
+        "height": "272px",
+        "id": "precision-nested-container",
+        "left": "20.1875px",
+        "top": "364.797px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "327.359px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "top": "12.3516px",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "top": "32.2188px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "141.203px",
+        "id": "module-oTQgyvBo",
+        "left": "234.234px",
+        "top": "32.4922px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "108.391px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "top": "608px",
+        "transform": "none",
+        "width": "296.453px"
+      },
+      {
+        "height": "81.8125px",
+        "id": "node-YqZzon",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "145.445px"
+      },
+      {
+        "height": "248px",
+        "id": "module-DsLLLeMu",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "19.1953px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "14.3984px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "233.594px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "12.9922px",
+        "top": "13.7969px",
+        "transform": "none",
+        "width": "54px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "12.9922px",
+        "top": "125.797px",
+        "transform": "none",
+        "width": "54px"
+      },
+      {
+        "height": "290px",
+        "id": "container-HQA15uV5",
+        "left": "0px",
+        "top": "780px",
+        "transform": "none",
+        "width": "366px"
+      },
+      {
+        "height": "155.305px",
+        "id": "module-DfAgu3ry",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "12.0234px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "9.01562px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "146.281px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "8.14062px",
+        "top": "8.64062px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "8.14062px",
+        "top": "78.7734px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "155.305px",
+        "id": "module-Sflo6ErS",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "12.0234px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "9.01562px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "146.281px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "8.14062px",
+        "top": "8.64062px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "8.14062px",
+        "top": "78.7734px",
+        "transform": "none",
+        "width": "33.8125px"
+      }
+    ]
+  },
+  {
+    "step": "canonical Preview",
+    "exactMatch": true,
+    "frames": [
+      {
+        "height": "43.9922px",
+        "id": "precision-text",
+        "left": "58.0469px",
+        "top": "7.83594px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "66.3438px"
+      },
+      {
+        "height": "62.5703px",
+        "id": "precision-image",
+        "left": "30.4688px",
+        "top": "58.1719px",
+        "transform": "matrix(0.707107, 0.707107, -0.707107, 0.707107, 0, 0)",
+        "width": "94.2656px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-button",
+        "left": "4.78906px",
+        "top": "120.484px",
+        "transform": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+        "width": "53.0781px"
+      },
+      {
+        "height": "272px",
+        "id": "precision-nested-container",
+        "left": "20.1875px",
+        "top": "364.797px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "327.359px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "top": "12.3516px",
+        "transform": "matrix(0.694658, -0.71934, 0.71934, 0.694658, 0, 0)",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "top": "32.2188px",
+        "transform": "none",
+        "width": "85.0547px"
+      },
+      {
+        "height": "141.203px",
+        "id": "module-oTQgyvBo",
+        "left": "234.234px",
+        "top": "32.4922px",
+        "transform": "matrix(0.999848, -0.0174524, 0.0174524, 0.999848, 0, 0)",
+        "width": "108.391px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "top": "608px",
+        "transform": "none",
+        "width": "296.453px"
+      },
+      {
+        "height": "81.8125px",
+        "id": "node-YqZzon",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "145.445px"
+      },
+      {
+        "height": "248px",
+        "id": "module-DsLLLeMu",
+        "left": "35.6406px",
+        "top": "475.867px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "12.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "68.7969px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "124.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "56px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "180.797px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "19.1953px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "14.3984px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "233.594px",
+        "transform": "none",
+        "width": "240px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "12.9922px",
+        "top": "13.7969px",
+        "transform": "none",
+        "width": "54px"
+      },
+      {
+        "height": "54px",
+        "id": "everencore-love-and-theft:everencore-love-and-theft-standard-utility:1:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "12.9922px",
+        "top": "125.797px",
+        "transform": "none",
+        "width": "54px"
+      },
+      {
+        "height": "290px",
+        "id": "container-HQA15uV5",
+        "left": "0px",
+        "top": "780px",
+        "transform": "none",
+        "width": "366px"
+      },
+      {
+        "height": "155.305px",
+        "id": "module-DfAgu3ry",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "12.0234px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "9.01562px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "146.281px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "8.14062px",
+        "top": "8.64062px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-N8-82Q_p:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "8.14062px",
+        "top": "78.7734px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "155.305px",
+        "id": "module-Sflo6ErS",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:1:0:1",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-body:3:0:3",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:standard-action:eelt-standard-l:2:0:2",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:0:0:0",
+        "left": "0px",
+        "top": "8.01562px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:1:0:0",
+        "left": "0px",
+        "top": "43.0781px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:2:0:0",
+        "left": "0px",
+        "top": "78.1484px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "35.0625px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-chassis:eelt-single-chassis:3:0:0",
+        "left": "0px",
+        "top": "113.219px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "12.0234px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-crown:eelt-single-crown:1:0:0",
+        "left": "0px",
+        "top": "0px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "9.01562px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:single-stack-termination:eelt-single-cap:5:0:0",
+        "left": "0px",
+        "top": "146.281px",
+        "transform": "none",
+        "width": "150.297px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:0:0:0",
+        "left": "8.14062px",
+        "top": "8.64062px",
+        "transform": "none",
+        "width": "33.8125px"
+      },
+      {
+        "height": "33.8125px",
+        "id": "composition-xYmPbT25:everencore-love-and-theft:everencore-love-and-theft-single-stack:semantic-plug:eelt-pick-aged-brass:2:0:2",
+        "left": "8.14062px",
+        "top": "78.7734px",
+        "transform": "none",
+        "width": "33.8125px"
+      }
+    ]
+  },
+  {
+    "step": "Group native width120 and Undo",
+    "before": "133.07",
+    "effective": "122.73",
+    "restored": "133.07"
+  },
+  {
+    "step": "standard Text native size20 then Undo18",
+    "glyphs": [
+      {
+        "size": "16px",
+        "tag": "DIV"
+      },
+      {
+        "size": "20px",
+        "tag": "DIV"
+      },
+      {
+        "size": "20px",
+        "tag": "SPAN"
+      }
+    ]
+  },
+  {
+    "step": "standard Button label18 then Undo14",
+    "glyphs": [
+      {
+        "size": "16px",
+        "tag": "SPAN"
+      },
+      {
+        "size": "16px",
+        "tag": "SPAN"
+      },
+      {
+        "size": "18px",
+        "tag": "A"
+      },
+      {
+        "size": "18px",
+        "tag": "SPAN"
+      },
+      {
+        "size": "18px",
+        "tag": "SPAN"
+      },
+      {
+        "size": "18px",
+        "tag": "SPAN"
+      },
+      {
+        "size": "18px",
+        "tag": "SPAN"
+      },
+      {
+        "size": "18px",
+        "tag": "SPAN"
+      }
+    ]
+  },
+  {
+    "step": "native Match Width, reference Image-backed Container",
+    "frames": [
+      {
+        "height": "272px",
+        "id": "precision-nested-container",
+        "left": "20.1875px",
+        "top": "364.797px",
+        "width": "296.453px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "top": "0px",
+        "width": "85.0547px"
+      },
+      {
+        "height": "83.7266px",
+        "id": "precision-nested-image",
+        "left": "108.008px",
+        "top": "12.3516px",
+        "width": "56.6641px"
+      },
+      {
+        "height": "43.9922px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "top": "32.2188px",
+        "width": "85.0547px"
+      },
+      {
+        "height": "114px",
+        "id": "container-6LdXfbkn",
+        "left": "35.6406px",
+        "top": "608px",
+        "width": "296.453px"
+      }
+    ],
+    "disabled": "Height and Both reject child-preservation conflict"
+  },
+  {
+    "step": "native Horizontal→Layered→Horizontal→Layered→Horizontal",
+    "states": [
+      {
+        "mode": "Layered",
+        "frames": [
+          {
+            "h": "155.305px",
+            "id": "module-DfAgu3ry",
+            "w": "150.297px",
+            "x": "0.03",
+            "y": "0.03"
+          },
+          {
+            "h": "155.305px",
+            "id": "module-Sflo6ErS",
+            "w": "150.297px",
+            "x": "0.51",
+            "y": "0.03"
+          }
+        ]
+      },
+      {
+        "mode": "Horizontal",
+        "frames": [
+          {
+            "h": "155.305px",
+            "id": "module-DfAgu3ry",
+            "w": "150.297px",
+            "x": null,
+            "y": null
+          },
+          {
+            "h": "155.305px",
+            "id": "module-Sflo6ErS",
+            "w": "150.297px",
+            "x": null,
+            "y": null
+          }
+        ]
+      },
+      {
+        "mode": "Layered",
+        "frames": [
+          {
+            "h": "155.305px",
+            "id": "module-DfAgu3ry",
+            "w": "150.297px",
+            "x": "0.03",
+            "y": "0.03"
+          },
+          {
+            "h": "155.305px",
+            "id": "module-Sflo6ErS",
+            "w": "150.297px",
+            "x": "0.51",
+            "y": "0.03"
+          }
+        ]
+      },
+      {
+        "mode": "Horizontal",
+        "frames": [
+          {
+            "h": "155.305px",
+            "id": "module-DfAgu3ry",
+            "w": "150.297px",
+            "x": null,
+            "y": null
+          },
+          {
+            "h": "155.305px",
+            "id": "module-Sflo6ErS",
+            "w": "150.297px",
+            "x": null,
+            "y": null
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "step": "plane shrink500 constrained by visible child frames",
+    "effective": "1070"
+  },
+  {
+    "step": "page edge native +240 starts at visible1124",
+    "minimum": "1364"
+  },
+  {
+    "step": "native page edge drag +48 screen px at100%",
+    "minimum": "1144"
+  },
+  {
+    "step": "Flow parent / Layered child width100→75%,plane220→300",
+    "before": [],
+    "after": [],
+    "status": "INVALID MEASUREMENT: direct-child selector missed Group wrappers; repeated below with node identities"
+  },
+  {
+    "step": "Corrected mixed-layout measurement with Group descendants",
+    "before": [
+      {
+        "height": "40.3281px",
+        "id": "precision-nested-text",
+        "left": "0px",
+        "top": "0px",
+        "width": "96.1797px"
+      },
+      {
+        "height": "76.75px",
+        "id": "precision-nested-image",
+        "left": "122.141px",
+        "top": "11.3203px",
+        "width": "64.0781px"
+      },
+      {
+        "height": "40.3281px",
+        "id": "precision-nested-button",
+        "left": "0px",
+        "top": "29.5312px",
+        "width": "96.1797px"
+      }
+    ],
+    "after": [
+      {
+        "height": "40.3281px",
+        "id": "precision-nested-text",
+        "left": "2.74219px",
+        "top": "0.8125px",
+        "width": "96.1797px"
+      },
+      {
+        "height": "76.75px",
+        "id": "precision-nested-image",
+        "left": "124.891px",
+        "top": "12.1406px",
+        "width": "64.0781px"
+      },
+      {
+        "height": "40.3281px",
+        "id": "precision-nested-button",
+        "left": "2.74219px",
+        "top": "30.3516px",
+        "width": "96.1797px"
+      }
+    ]
+  },
+  {
+    "step": "Mixed-layout Group descendants relative to content-plane origin",
+    "before": [
+      {
+        "h": 40.328125,
+        "id": "precision-nested-text",
+        "w": 96.1796875,
+        "x": 10.015625,
+        "y": -2.2421875
+      },
+      {
+        "h": 99.40899658203124,
+        "id": "precision-nested-image",
+        "w": 99.7216796875,
+        "x": 114.33447265625,
+        "y": -2.251373291015625
+      },
+      {
+        "h": 40.328125,
+        "id": "precision-nested-button",
+        "w": 96.1796875,
+        "x": 10.015625,
+        "y": 27.2890625
+      }
+    ],
+    "after": [
+      {
+        "h": 40.328125,
+        "id": "precision-nested-text",
+        "w": 96.1796875,
+        "x": 10.015625,
+        "y": -2.2421875
+      },
+      {
+        "h": 99.40899658203124,
+        "id": "precision-nested-image",
+        "w": 99.7216796875,
+        "x": 114.34228515625,
+        "y": -2.243560791015625
+      },
+      {
+        "h": 40.328125,
+        "id": "precision-nested-button",
+        "w": 96.1796875,
+        "x": 10.015625,
+        "y": 27.296875
+      }
+    ]
+  },
+  {
+    "step": "FINAL save/reload/Preview after all changes",
+    "frames": 50,
+    "reload": true,
+    "preview": true
+  }
+]

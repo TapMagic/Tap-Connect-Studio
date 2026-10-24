@@ -1,0 +1,87 @@
+{
+  "baseHead": "2d9258aea4c7291792c23603b8aeb4a7fdbad4f2",
+  "branch": "codex/studio-reconstitution-slice-1",
+  "files": [
+    {
+      "path": "components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx",
+      "beforeSha256": "deba5d7ab4ba2ee615e725d3bd3a0e4ba26aab20f9ae22140e2209f8a5b81661",
+      "afterSha256": "122f645d50a5f01e36940858ac692a025a549479083ea31092146c767d1fb75d"
+    },
+    {
+      "path": "components/fusion/card/reconstitution/studio-card-surface-inspector.tsx",
+      "beforeSha256": "273a8d464eaf3f170a46bcaa7a1b94cbdf31ad2a803eb03e6d1a5b6197c0411a",
+      "afterSha256": "1be6c4f098cb4a6e99142545179b5095ebb72f05ccb26b7b54924320b7dc9982"
+    },
+    {
+      "path": "components/fusion/card/reconstitution/studio-composition-inspector.tsx",
+      "beforeSha256": "7666f94dc70a2870de59df9523626aea5cd8d60ad0e279c6346bbe301314250a",
+      "afterSha256": "53696c843912595bb9d5bc600ed11880d3e21d1a0feae71101293f6c2724e860"
+    },
+    {
+      "path": "components/fusion/card/reconstitution/studio-precision-control.tsx",
+      "beforeSha256": "fa77f4d51ac4ad0b3179e5c89097d976d27a65752a8fcf571e59293afb2dd5a4",
+      "afterSha256": "5f46323c38a15fa7b2b26acb3a636699fc3c103f29a8e2b38cf56268c869257d"
+    },
+    {
+      "path": "components/fusion/creative-studio/creative-composition-canvas.tsx",
+      "beforeSha256": "97f03cc9fd01c8205b918d0454239350fa56dd3fd3c73fa3e4dda05051847911",
+      "afterSha256": "d6048f02de4492eea49c7da9a97ab2df561378931b8e7389a16bc7c8345dfc1c"
+    },
+    {
+      "path": "components/fusion/creative-studio/use-layered-parent-size.ts",
+      "beforeSha256": "d842d36936bcc9af3c8ba2677deb0149ec78ba102367d3a1f30dfa083fc4edb3",
+      "afterSha256": "5e99e4b61e0de10070fae2065df7c72f55f1c7824492e967d246ca24b62ff145"
+    },
+    {
+      "path": "components/tap/tap-connect-card.tsx",
+      "beforeSha256": "9d5d7b6eff4dc194f40e431c614d2abee329120679c041cccd2a93945d437780",
+      "afterSha256": "32371a408f1e2e04df39c4fb2948f21452cf5a8143a9c3f52aa5be0296931bc9"
+    },
+    {
+      "path": "lib/fusion/card/composition-parent-authority.ts",
+      "beforeSha256": "4ceabe99bd1a3cf8baa57b3d168c4260b74dc6dc957b29a974dc6083c123e096",
+      "afterSha256": "bfcd970325790d5eebbd209d905110083e7628ca5689d79f761fac146968d1d6"
+    },
+    {
+      "path": "lib/fusion/creative-studio/__tests__/layered-precision-selection-truth.test.ts",
+      "beforeSha256": "9eb4f3a5a74a0d86c394591f1cbb4ce29e195248822ee65bcc31198eb8ac557a",
+      "afterSha256": "e4e6d8885e4d2e79a05cd6c75f3b3b3fff6d77fa7106158b8a372cae13febd2e"
+    },
+    {
+      "path": "lib/fusion/creative-studio/container-resize.ts",
+      "beforeSha256": "7aad9bb11b0304e4d5b0d5135c40d546c6621f7c2391a658a4101d606995d972",
+      "afterSha256": "feb8a36803d3dff13ef23dbddfbd692236a5c1f0645a9c284f50b46e09061ba2"
+    },
+    {
+      "path": "lib/fusion/creative-studio/platform/card-extent.ts",
+      "beforeSha256": "09b2e566958a1d6cf8e99d04b8a86e76b45275018d7d647171dfe7339bb71339",
+      "afterSha256": "09a0daeca1d8dbea56e6ab1148cb6d040081bcc92d3430e0399106210ed90bcb"
+    },
+    {
+      "path": "lib/fusion/creative-studio/platform/layered-region.ts",
+      "beforeSha256": "f3622aff5674145eb60f29a642d3bc4dacf0c5949a2b67d585890eae705fd36a",
+      "afterSha256": "36fb4ca1ed91035b4b791d1e13531eaba38afc1fab3058491812ea0b464a2ef0"
+    },
+    {
+      "path": "lib/fusion/creative-studio/platform/selection-geometry.ts",
+      "beforeSha256": "b96179e9bd13aa2cb436c57554ec904ede8e12f495d2ba47b465f3ee71f03e9a",
+      "afterSha256": "a8978ee875f439b604d924de6f4dc6e08354ec7a6b3d2b55691bce2eacbd1cfa"
+    },
+    {
+      "path": "lib/fusion/creative-studio/reconstitution/curated-authoring-adapter.ts",
+      "beforeSha256": "b155bea66b51963ba233e4a541e058617b983e5312013d68cba74e29dd56d892",
+      "afterSha256": "01b3995b4d302b37399b313b1170d4764c6a02db635f98d075b0c05c1e51eac4"
+    },
+    {
+      "path": "lib/fusion/creative-studio/signature-assets/SignatureMasterBridge.tsx",
+      "beforeSha256": "6532ec9b9b264542b7f1c41531b7fcb0032004d67ce65ae1b2db867ef596cd35",
+      "afterSha256": "ff695b37d4f02370919e73efd9f58dbcf61f5b969ea845b7eb43ee1bba65790d"
+    },
+    {
+      "path": "lib/fusion/creative-studio/__tests__/frame-page-truth.test.ts",
+      "beforeSha256": null,
+      "afterSha256": "71ac68b8e34de43366b1624e4eecddec8fb4f038f03fcd2574fa7b99e39772da"
+    }
+  ],
+  "handoff": "Patch against pre-pass local source, not repository HEAD. Archive contains exact before/after source. Application files remain uncommitted because they contain pre-existing Slice 1 work; this evidence commit is not a standalone buildable application revision."
+}

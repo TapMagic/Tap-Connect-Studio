@@ -1,0 +1,45 @@
+{
+  "fixtures": [
+    {
+      "id": "cmvlqtmjb01fodf9kz8q2eml7",
+      "revision": 24,
+      "publicationActive": false,
+      "nodes": 14,
+      "minimum": 1094,
+      "plane": 1070,
+      "compositionSha256": "37569c0bd0c1b78a999ae6068010a6b279e47988afcc398ec8a00121709426b7"
+    },
+    {
+      "id": "cmvkcynh504ty9x9k3mzi91js",
+      "revision": 110,
+      "publicationActive": false,
+      "nodes": 11,
+      "minimum": 900,
+      "plane": 760,
+      "compositionSha256": "ce78cb409dc5608eb42587ff9ccd4ec8ac7162148b08930b658a998198a39225"
+    },
+    {
+      "id": "cmvkg7e2v059im59k0ss0nf6f",
+      "revision": 46,
+      "publicationActive": false,
+      "nodes": 15,
+      "minimum": 696,
+      "plane": 760,
+      "compositionSha256": "5c9ccbc4ec615bfd7c8437eb99828ff31386f27b6e95dbaf6015aa3512f65122"
+    },
+    {
+      "id": "cmvkhax9y093dm59kypc94dwn",
+      "revision": 75,
+      "publicationActive": false,
+      "nodes": 26,
+      "minimum": 488,
+      "plane": 1600,
+      "compositionSha256": "ab95669141880c8db749776aa52a22cad679bdbaf08d09cdd6242e0fd7ff83b6"
+    }
+  ],
+  "notes": [
+    "Original PO fixtures remain at recorded revisions 110 and 46.",
+    "Clipboard review fixture observed read-only at revision75; its earlier report captured15. No current-pass preimage was available, so byte-for-byte preservation of that later user-edited draft is not asserted.",
+    "Only the new cmvlqtmjb01fodf9kz8q2eml7 fixture received writes in this pass."
+  ]
+}

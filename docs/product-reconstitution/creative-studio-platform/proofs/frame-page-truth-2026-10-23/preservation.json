@@ -1,0 +1,10 @@
+{
+  "prePassFiles": 2382,
+  "unchanged": 2365,
+  "changedExistingFiles": 15,
+  "newSourceFiles": 1,
+  "missing": [],
+  "applicationFilesCommitted": false,
+  "note": "Existing source outside the 15 named corrective files and 3 intended documents matches its pre-pass hash; one new test. Prior unrelated application changes and fixture artifacts remain intact.",
+  "changedDocumentationFiles": 3
+}

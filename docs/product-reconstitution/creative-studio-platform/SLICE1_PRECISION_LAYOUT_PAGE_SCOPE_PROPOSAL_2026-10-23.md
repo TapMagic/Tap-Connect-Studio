@@ -1,6 +1,8 @@
 # Slice 1 — Precision, layout independence, and page sizing
 
-**Status: investigation and proposed scope only; implementation awaits Product Owner approval.**
+**Status: Product Owner approved local implementation on October 23, 2026. Local candidate delivered for review; Slice 1 remains OPEN.**
+
+[Implementation, native evidence and source handoff](SLICE1_FRAME_PAGE_TRUTH_IMPLEMENTATION_2026-10-23.md). The investigation below records the pre-implementation baseline.
 
 Slice 1 remains OPEN. Slice 2 Text Editing Truth remains gated. No application source or saved Experience was changed during this investigation. Production, Love & Theft publication, Access, credentials, QR identities, and business-domain infrastructure are outside this work. Production hash verification remains BLOCKED.
 
@@ -54,7 +56,7 @@ The smallest coherent Slice 1 correction is to repair the shared frame operation
 - **1600px** is a real limitation for a single long-form Layered plane, not proof that all Experiences are limited to 1600px. A future bounded change should centralize the mode-specific limit policy, then raise the approved Layered maximum consistently in validation, normalization, renderer, Inspector, clipboard fitting, and tests. Preserve fractions using the same resize semantics and verify scrolling/performance. No new document engine or migration is justified solely to remove this limit.
 - **tApIt** can eventually discover the same permitted operations, preview their complete result, receive constraint explanations, and execute through the same commands/history. No AI UI, service, planner, or separate mutation path is proposed.
 
-## Expected implementation footprint (not changed yet)
+## Approved implementation footprint
 
 | Existing authority / consumers | Intended work |
 | --- | --- |
@@ -85,8 +87,8 @@ All dimensional comparisons below use unzoomed CSS pixels. Allow **0.5px** displ
 11. **Parity:** compare Canvas, Inspector, serialized saved document and Preview at the same viewport after each operation and reload. Public rendering authority remains shared; production is not used as a test target. Invalid/unsupported operations cannot appear effective or save partial changes.
 12. **Desktop and 390px:** complete the same supported native-control paths at desktop and 390px. Controls remain reachable, focused fields retain keyboard ownership, and IME composition is not hijacked. Inspect computed pointer/touch targets separately from visible handles; report physical-touch testing separately from emulation. Capture before/after screenshots plus interaction steps and measured geometry. Automation failures are BLOCKED/FAILED evidence, never passes.
 
-## Approval requested
+## Approval record
 
-Approve **Frame and Page Truth** as the bounded Slice 1 correction above. Keep general Text Editing Truth gated, and defer new wrapping, cross-parent matching, general Scale Contents, expanded page limits and new fixed-page clipping modes. Rotation preset buttons and Match Rotation may be separately added to the authorized scope; this proposal does not assume that authorization.
+The Product Owner approved **Frame and Page Truth** as the bounded Slice 1 correction above. Keep general Text Editing Truth gated, and defer new wrapping, cross-parent matching, general Scale Contents, expanded page limits and new fixed-page clipping modes. Rotation preset buttons and Match Rotation may be separately added to the authorized scope; this proposal does not assume that authorization.
 
-No construction starts until the Product Owner approves this scope. The existing review sequence remains: local development → automated verification → documentation and visual evidence → development-branch push → independent review → PO hands-on acceptance → separately authorized staging/release.
+Local construction was authorized; acceptance and release gates remain separate. The existing review sequence remains: local development → automated verification → documentation and visual evidence → development-branch push → independent review → PO hands-on acceptance → separately authorized staging/release.

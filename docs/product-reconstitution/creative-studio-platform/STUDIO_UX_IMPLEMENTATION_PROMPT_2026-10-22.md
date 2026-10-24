@@ -121,3 +121,10 @@ The authorized clipboard/body-drag/resize/nudge pass and evidence are recorded i
 ## October 23 — clipboard placement corrective evidence
 
 See [Clipboard placement correction](SLICE1_CLIPBOARD_PLACEMENT_CORRECTION_2026-10-23.md) for the demonstrated Flow overflow/size causes, canonical destination and explicit expansion behavior, native regression matrix, 111 passing focused tests, source delta and local review fixture. Slice 1 remains OPEN; Slice 2 remains gated. The separately referenced Product Owner screenshot is not yet supplied; exact image matching is BLOCKED. Production and the prior fixture remain unchanged.
+
+
+## Frame and Page Truth candidate — October 23
+
+The Product Owner authorized the bounded [Frame and Page Truth scope](SLICE1_PRECISION_LAYOUT_PAGE_SCOPE_PROPOSAL_2026-10-23.md). The [local implementation report](SLICE1_FRAME_PAGE_TRUTH_IMPLEMENTATION_2026-10-23.md) supplies measured native evidence, focused regression results, source snapshots and an exact incremental patch. Shared frame rebasing preserves local children during authoring; viewport responsiveness, declared relative sizing, Flow reflow and Group scaling retain their existing ownership. Minimum page extent, measured required extent and Layered plane remain distinct. Surface and Container Materials still consume the existing shared authority.
+
+This candidate does not close Slice 1 or authorize Text Editing Truth. The application checkout contains pre-existing uncommitted work; the evidence/source handoff commit is not a standalone buildable application revision. Independent source review and Product Owner hands-on acceptance remain required before clean integration and any separately authorized staging/release. Manual and future guided/tApIt operations must continue sharing document, geometry, selection, validation, commands/history, Materials and publishing authorities. No speculative AI or business-domain construction is authorized.

@@ -1,0 +1,1 @@
+Applied local-corrective-delta.patch to isolated pre-pass source copies. All 16 resulting SHA-256 hashes match source-manifest.json.
