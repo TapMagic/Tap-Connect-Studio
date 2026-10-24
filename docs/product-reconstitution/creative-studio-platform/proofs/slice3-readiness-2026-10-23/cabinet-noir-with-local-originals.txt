@@ -1,0 +1,16 @@
+✔ Cabinet Noir resolves as one production family through the canonical Signature registry (0.343208ms)
+✔ all 44 canonical production assets are certified runtime authorities (0.13975ms)
+✔ immutable public assets match the refreshed manifest and handoff bytes (83.277041ms)
+✔ reference presets and Folder 99 audit records cannot become runtime authorities (0.25425ms)
+✔ approved sockets, live text, repeat geometry, and phone metadata are registry data (0.111209ms)
+✔ Standalone, Single-Stack, and Twin-Rail recipe instances validate without one-off runtime behavior (0.368833ms)
+✔ every launch Curated presentation has a family-neutral whole-object golden gate (0.142792ms)
+✔ entitlement states remain independent and do not name marketing plans (0.110584ms)
+ℹ tests 8
+ℹ suites 0
+ℹ pass 8
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 185.863875

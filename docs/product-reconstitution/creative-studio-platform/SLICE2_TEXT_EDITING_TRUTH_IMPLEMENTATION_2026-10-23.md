@@ -1,5 +1,7 @@
 # Slice 2 — Text Editing Truth implementation and review candidate
 
+> **Subsequent Product Owner decision:** Slice 2 desktop interaction quality is accepted. See the [acceptance record](SLICE2_DESKTOP_ACCEPTANCE_2026-10-23.md). Device/accessibility/browser and full release checks remain open. The original candidate evidence and limitations below are retained as history; this acceptance does not authorize Slice 3 implementation or deployment.
+
 ## Authority and status
 
 Rich accepted Slice 1 **desktop interaction quality** on October 23, 2026, explicitly leaving physical-touch and other unverified release gates open. The integrated, pushed Slice 1 baseline is [`3bda89b502e629e867cd5daa6b13050a0f4bcb3c`](https://github.com/TapMagic/Tap-Connect-Studio/commit/3bda89b502e629e867cd5daa6b13050a0f4bcb3c), on `codex/studio-reconstitution-slice-1` in `TapMagic/Tap-Connect-Studio`. [Acceptance and verification record](SLICE1_DESKTOP_ACCEPTANCE_SOURCE_BASELINE_2026-10-23.md).

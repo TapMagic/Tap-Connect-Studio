@@ -1,0 +1,42 @@
+{
+  "source": "existing accepted fixture; selection/navigation only",
+  "rootSurfaceEntryActions": 1,
+  "containerInspectionSequence": [
+    "Outline",
+    "Select named Container",
+    "Appearance"
+  ],
+  "mutationCommands": 0,
+  "observations": {
+    "controls": 72,
+    "headings": [
+      {
+        "text": "Tap Card · Device / QR",
+        "top": 0
+      },
+      {
+        "text": "Container · Nested Layered · padded",
+        "top": 131.5
+      },
+      {
+        "text": "Make room in ",
+        "top": 0
+      }
+    ],
+    "surfaceSections": [
+      {
+        "text": "Surface edgeContainedInsetFull bleed",
+        "top": 1169
+      },
+      {
+        "text": "SurfaceTransparentLet the Card surface show through.SolidA clear Brand-backed plane.Smoked glassTranslucent de",
+        "top": 1260
+      }
+    ],
+    "viewport": {
+      "height": 565,
+      "width": 1200
+    }
+  },
+  "note": "This navigation trace is not a full construction time benchmark. Recovery banner was already present and was not acted on."
+}

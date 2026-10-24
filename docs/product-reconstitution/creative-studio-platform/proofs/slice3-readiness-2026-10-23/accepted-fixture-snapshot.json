@@ -1,0 +1,17 @@
+{
+  "readOnly": true,
+  "fixtures": [
+    {
+      "id": "cmvlsjkq7093adf9k2mzgqf7i",
+      "revision": 66,
+      "published": false,
+      "draftHash": "a2002ca28ddfe6d670c4799c56d925c737c8d5cca66a1c65fdc0331a2a969ac2"
+    },
+    {
+      "id": "cmvlqtmjb01fodf9kz8q2eml7",
+      "revision": 49,
+      "published": false,
+      "draftHash": "44a7a26da7644d78eb6361b91808d5aa4951c6b4f2ce1711edfe6f60ed52deeb"
+    }
+  ]
+}

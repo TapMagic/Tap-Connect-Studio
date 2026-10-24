@@ -1,0 +1,29 @@
+▶ Experience Page authority
+  ✔ converts a legacy Card without duplicating the canonical root and projects it for the existing editor (1.630167ms)
+  ✔ keeps page composition isolated and commits only the active projection (0.157542ms)
+  ✔ creates a genuinely blank Page without authored Containers, Modules, or Sections (0.072209ms)
+  ✔ duplicates with new page, composition, component, and analytics identities (0.219667ms)
+  ✔ separates Page visibility, nav visibility, locked-hidden behavior, and five-slot capacity (0.129375ms)
+  ✔ finds and clears internal references before Page deletion (0.2305ms)
+  ✔ stores INTERNAL PAGE destinations by stable Page ID rather than URL (0.285334ms)
+  ✔ tracks, clears, and re-identifies internal destinations nested in Compact Action Grids (0.31275ms)
+✔ Experience Page authority (3.475125ms)
+✔ texture-bearing page Materials retain texture + fill through composition adapter (0.878958ms)
+✔ gradient page Materials keep multi-stop authority via materialPreset rehydrate (0.187292ms)
+✔ page Material preview cannot flatten away brushed_metal texture (0.076125ms)
+✔ Worn Saddle Leather remains an immutable source master with adjustable full-bleed treatment (0.201584ms)
+✔ root image presentation modes keep cover treatments seam-free and Tile explicit (0.193292ms)
+✔ preview and applied Button surfaces share identical Material parity keys (1.602666ms)
+✔ multi-stop Materials preserve full gradientFill authority (not two-stop collapse) (0.13425ms)
+✔ highlight and shine layers survive apply → resolve for premium finishes (0.081166ms)
+✔ Material apply does not mutate Button Action / Icon identity / label wording (0.052667ms)
+✔ Material reset clears stale surface layers (0.065209ms)
+✔ catalog overload note: near-duplicate glass/metal pairs remain but are distinguishable (0.043375ms)
+ℹ tests 19
+ℹ suites 1
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 79.18425

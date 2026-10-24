@@ -1,0 +1,146 @@
+{
+  "docs/product-reconstitution/creative-studio-platform/STUDIO_CANONICAL_CONSOLIDATION_BLUEPRINT.md": {
+    "before": "741fd12ba0260ade4af588a14c94b518069885fb2490dcc347ba7a3fb27a3d8c",
+    "after": "741fd12ba0260ade4af588a14c94b518069885fb2490dcc347ba7a3fb27a3d8c"
+  },
+  "docs/product-reconstitution/creative-studio-platform/STUDIO_CAPABILITY_CONSOLIDATION_AUDIT_2026-10-20.md": {
+    "before": "1461e6db4b5db03e6dcc9c13a3eb3c62a4c289a76673d8a107101c1a72a9ff24",
+    "after": "1461e6db4b5db03e6dcc9c13a3eb3c62a4c289a76673d8a107101c1a72a9ff24"
+  },
+  "docs/product-reconstitution/creative-studio-platform/STUDIO_CONSOLIDATION_PHASE1_IMPLEMENTATION_PLAN.md": {
+    "before": "761adf452036f14cb9f57964e8210c2eb401ecb30195bd76bb1e1370f095a6e2",
+    "after": "761adf452036f14cb9f57964e8210c2eb401ecb30195bd76bb1e1370f095a6e2"
+  },
+  "docs/product-reconstitution/creative-studio-platform/STUDIO_PRODUCT_OWNER_DECISION_SHEET.md": {
+    "before": "60e4351cda66aa0d6b408c17dff4c0f2ab7a6f1e39689e3672200f473a9f77d0",
+    "after": "60e4351cda66aa0d6b408c17dff4c0f2ab7a6f1e39689e3672200f473a9f77d0"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/01-desktop-multiselect-toolbar.png": {
+    "before": "f56467916abc5c21401be4d92dc96f155a81cc94796c13e372a5efb3e05eea22",
+    "after": "f56467916abc5c21401be4d92dc96f155a81cc94796c13e372a5efb3e05eea22"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/02-phone-multiselect-visible.png": {
+    "before": "0d5d34ef649edde8cea195c67ed0260d174b573fb259e3e19f7e13e2d2006be7",
+    "after": "0d5d34ef649edde8cea195c67ed0260d174b573fb259e3e19f7e13e2d2006be7"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/closure-input-manifest.json": {
+    "before": "695cb2fb128befabdd14dc4fce0864a7b75d9fbdf4493f3ce509014176e0c2b0",
+    "after": "695cb2fb128befabdd14dc4fce0864a7b75d9fbdf4493f3ce509014176e0c2b0"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/production-functional-baseline.json": {
+    "before": "f75e8b0f9b5f50a3b751d3cb7d693c46f52e446893efe1e91e331366edf6a642",
+    "after": "f75e8b0f9b5f50a3b751d3cb7d693c46f52e446893efe1e91e331366edf6a642"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/01-desktop-entry.jpg": {
+    "before": "9a35a84fb2bb2bf8cf4b40d6f3cbaefc56fcabdeda976f03d3f621dc96992d72",
+    "after": "9a35a84fb2bb2bf8cf4b40d6f3cbaefc56fcabdeda976f03d3f621dc96992d72"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/02-add-discovery.jpg": {
+    "before": "732decad2e02715e0c6cd16823546001e4ad69c0eecab7ca25313e5c74b2dcbf",
+    "after": "732decad2e02715e0c6cd16823546001e4ad69c0eecab7ca25313e5c74b2dcbf"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/03-text-inspector.jpg": {
+    "before": "93cbe8abfe55fb1a748e888ecea3fa6e1fa300e7906b5a15790010319c677471",
+    "after": "93cbe8abfe55fb1a748e888ecea3fa6e1fa300e7906b5a15790010319c677471"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/04-mobile-editor.jpg": {
+    "before": "ba3fdcf00764d9e87d039814b6bc4bd92cb50c8e7573b28487786bb6407379e6",
+    "after": "ba3fdcf00764d9e87d039814b6bc4bd92cb50c8e7573b28487786bb6407379e6"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/05-mobile-inspector.jpg": {
+    "before": "7a51fd3fbd5e024c42b4e674258bf3f9879fa4f3d48b14e759adcc5fb1d80dd4",
+    "after": "7a51fd3fbd5e024c42b4e674258bf3f9879fa4f3d48b14e759adcc5fb1d80dd4"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/06-image-inspector.jpg": {
+    "before": "e76aaddcb1ed1e6a23eed334006022468a4c3c290cc0af1f9ced74b01152293e",
+    "after": "e76aaddcb1ed1e6a23eed334006022468a4c3c290cc0af1f9ced74b01152293e"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/07-media-browser.jpg": {
+    "before": "82ffbcdb39fc777da166b11c9dfa3b6410b672f1a0bca82991ddc6b33d867a8d",
+    "after": "82ffbcdb39fc777da166b11c9dfa3b6410b672f1a0bca82991ddc6b33d867a8d"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/08-surface-inspector.jpg": {
+    "before": "109d6d9e0aa476709aa359fb0190a0b5640f96e3ec212829dd61b37dcc2581b3",
+    "after": "109d6d9e0aa476709aa359fb0190a0b5640f96e3ec212829dd61b37dcc2581b3"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/09-draft-preview.jpg": {
+    "before": "a808ae341ba5930acea94f915d56f461520e823771836e80c45a599a7282e28f",
+    "after": "a808ae341ba5930acea94f915d56f461520e823771836e80c45a599a7282e28f"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/10-new-experience.jpg": {
+    "before": "306e0516ece3a20bada203955f7848ce35f612aea373378fc7a6cd100078e025",
+    "after": "306e0516ece3a20bada203955f7848ce35f612aea373378fc7a6cd100078e025"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/11-restored-local-surface-after-reload.jpg": {
+    "before": "109d6d9e0aa476709aa359fb0190a0b5640f96e3ec212829dd61b37dcc2581b3",
+    "after": "109d6d9e0aa476709aa359fb0190a0b5640f96e3ec212829dd61b37dcc2581b3"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/manifest.json": {
+    "before": "ed4f8e5458cd0be9748917dda335b388dfa8fda44be56e67d2741cc5763bf027",
+    "after": "ed4f8e5458cd0be9748917dda335b388dfa8fda44be56e67d2741cc5763bf027"
+  },
+  "pnpm-lock.yaml": {
+    "before": "91d14cfdeaa6cce33088b1d65c025a7ea464b8b5b7f131b349e39af5afd6c2db",
+    "after": "91d14cfdeaa6cce33088b1d65c025a7ea464b8b5b7f131b349e39af5afd6c2db"
+  },
+  "pnpm-workspace.yaml": {
+    "before": "c7ab3ee940a07c92649b6df4212965190eb50f7608f5a6be8923fcf2f0e0fd5c",
+    "after": "c7ab3ee940a07c92649b6df4212965190eb50f7608f5a6be8923fcf2f0e0fd5c"
+  },
+  "app/api/experiences/route.ts": {
+    "before": "c34a0a78c2f31db3e95f0d1b6c1030d103b6edc1aaee28dbdeaf2ef7b1e316cb",
+    "after": "c34a0a78c2f31db3e95f0d1b6c1030d103b6edc1aaee28dbdeaf2ef7b1e316cb"
+  },
+  "app/dashboard/experiences/library/page.tsx": {
+    "before": "d24f725c2cbdb117a04185d4de9773320d5b0594fa821880a78610c4e05283dd",
+    "after": "d24f725c2cbdb117a04185d4de9773320d5b0594fa821880a78610c4e05283dd"
+  },
+  "components/fusion/card/experience-library.tsx": {
+    "before": "08a04a4ed20ed2124fe94762512edaeea657416f36b330c744df0697088c3316",
+    "after": "08a04a4ed20ed2124fe94762512edaeea657416f36b330c744df0697088c3316"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/01-public-home-390.png": {
+    "before": "7bb8913fdf85540f08a97593d3afeb30cd4eff4b84f751483f6e27e15ca78abf",
+    "after": "7bb8913fdf85540f08a97593d3afeb30cd4eff4b84f751483f6e27e15ca78abf"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/02-public-music-video-390.png": {
+    "before": "5f61b491c3975a17db5bfc37ef835a33feba8c1b302b26c000333043dd625871",
+    "after": "5f61b491c3975a17db5bfc37ef835a33feba8c1b302b26c000333043dd625871"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/03-public-live-map-390.png": {
+    "before": "40f4adde48bb42efa5f434c5cb7afee60771b1d23c3e8c4fdbd9eb08299d4c10",
+    "after": "40f4adde48bb42efa5f434c5cb7afee60771b1d23c3e8c4fdbd9eb08299d4c10"
+  },
+  "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/04-direct-locked-page-390.png": {
+    "before": "eaca3a7218b9b3fbd8c83875988a61d851cac3ebef32ec84e35c022090dc646a",
+    "after": "eaca3a7218b9b3fbd8c83875988a61d851cac3ebef32ec84e35c022090dc646a"
+  },
+  "lib/fusion/card/__tests__/experience-library.test.ts": {
+    "before": "529c6aaae6ccdeb3d4d9de44c5482f7b47db1834e943a294d3bc7d5b93cc61c2",
+    "after": "529c6aaae6ccdeb3d4d9de44c5482f7b47db1834e943a294d3bc7d5b93cc61c2"
+  },
+  "lib/fusion/card/experience-library.ts": {
+    "before": "a1cdf8842b7e5f79c762de061dda948035885b8faf7c8f7e28da63517a00f5fb",
+    "after": "a1cdf8842b7e5f79c762de061dda948035885b8faf7c8f7e28da63517a00f5fb"
+  },
+  "lib/fusion/creative-studio/__tests__/add-discover-map.test.ts": {
+    "before": "0f8cbe5ad4674d5c5d6eabc60df2aa6f0b83358ecf20f8e0a0c4f4f8e0e47ad6",
+    "after": "0f8cbe5ad4674d5c5d6eabc60df2aa6f0b83358ecf20f8e0a0c4f4f8e0e47ad6"
+  },
+  "lib/fusion/creative-studio/platform/add-discover.ts": {
+    "before": "a1c54fdbac21d304931eb56827aff999ea2252c3fe6453eb7b6aaf4157864e21",
+    "after": "a1c54fdbac21d304931eb56827aff999ea2252c3fe6453eb7b6aaf4157864e21"
+  },
+  "lib/fusion/studio/__tests__/ia-honesty.test.ts": {
+    "before": "e8aa7873b21557bfa9e9c50bcd1e9c73090f9ba02f12771cf61f0b2c5f3327ac",
+    "after": "e8aa7873b21557bfa9e9c50bcd1e9c73090f9ba02f12771cf61f0b2c5f3327ac"
+  },
+  "lib/fusion/studio/ia.ts": {
+    "before": "998267bb18ecffeb3b16bed8f8245d2e30a0f174ff77c4d7d29c22e01e7693e6",
+    "after": "998267bb18ecffeb3b16bed8f8245d2e30a0f174ff77c4d7d29c22e01e7693e6"
+  },
+  "tsconfig.json": {
+    "before": "dd0a762bdb5ff634f8970d8e859c92e79a25fbb66b9514378960db52b216097f",
+    "after": "dd0a762bdb5ff634f8970d8e859c92e79a25fbb66b9514378960db52b216097f"
+  }
+}

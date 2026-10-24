@@ -1,0 +1,85 @@
+{
+  "kind": "read-only source probes; not native interaction acceptance",
+  "clone": {
+    "sourceCount": 1,
+    "canonicalCount": 1,
+    "legacyCloneCount": 0,
+    "canonicalCloneCount": 0,
+    "sourceUnchanged": true,
+    "pureInsertAfterEmptyClone": 1,
+    "insertionIdentity": 1
+  },
+  "material": {
+    "metal": {
+      "material": "gunmetal",
+      "treatment": "transparent",
+      "gradient": "linear-gradient(120deg,#111827,#64748b,#1f2937)",
+      "border": 0,
+      "radius": 24,
+      "shadow": 18,
+      "rendered": "linear-gradient(120deg,#111827,#64748b,#1f2937)"
+    },
+    "solid": {
+      "material": "gunmetal",
+      "treatment": "solid",
+      "plane": "solid",
+      "fill": "#123456",
+      "gradient": "linear-gradient(120deg,#111827,#64748b,#1f2937)",
+      "border": 0,
+      "radius": 24,
+      "shadow": 18,
+      "rendered": "linear-gradient(120deg,#111827,#64748b,#1f2937)"
+    },
+    "image": {
+      "material": "gunmetal",
+      "treatment": "image",
+      "plane": "image",
+      "fill": "transparent",
+      "gradient": "linear-gradient(120deg,#111827,#64748b,#1f2937)",
+      "border": 0,
+      "radius": 24,
+      "shadow": 18,
+      "rendered": "linear-gradient(120deg,#111827,#64748b,#1f2937)"
+    },
+    "transparent": {
+      "material": "gunmetal",
+      "treatment": "transparent",
+      "plane": "none",
+      "fill": "transparent",
+      "gradient": "linear-gradient(120deg,#111827,#64748b,#1f2937)",
+      "border": 0,
+      "radius": 24,
+      "shadow": 18,
+      "rendered": "linear-gradient(120deg,#111827,#64748b,#1f2937)"
+    },
+    "borderOnly": {
+      "material": "gunmetal",
+      "treatment": "transparent",
+      "plane": "none",
+      "fill": "transparent",
+      "gradient": "linear-gradient(120deg,#111827,#64748b,#1f2937)",
+      "border": 2,
+      "radius": 24,
+      "opacity": 1,
+      "shadow": 18,
+      "rendered": "linear-gradient(120deg,#111827,#64748b,#1f2937)"
+    },
+    "richValueBorderOnly": {
+      "treatment": "transparent",
+      "plane": "none",
+      "fill": "#123456",
+      "border": 2,
+      "radius": 48,
+      "opacity": 0.1,
+      "shadow": 0,
+      "rendered": "#123456"
+    }
+  },
+  "cabinetNoir": {
+    "registeredAssets": 48,
+    "originalBytes": 79604029,
+    "missing": [],
+    "mismatch": [],
+    "gunmetalExists": true
+  }
+}
