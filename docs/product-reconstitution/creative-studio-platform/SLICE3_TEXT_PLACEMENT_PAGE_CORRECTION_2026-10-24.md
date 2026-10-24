@@ -1,8 +1,8 @@
 # Slice 3 corrective handoff — Text, placement and page extension
 
-**Status: engineering candidate; Slice 3 affected functional review OPEN pending Product Owner hands-on acceptance.** The October 24 corrective directive supersedes the earlier acceptance for these behaviors. No deployment, release, or broader Slice 4 implementation is authorized by this handoff.
+**Current status: Product Owner desktop functional acceptance recorded on October 24, 2026, for integrated source `f8de7b70c03c5aadebfc85b31a4509b827762e6f`.** See the [acceptance record](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md). The engineering evidence below is preserved; historical pending-review language is superseded only for desktop functional acceptance. Physical-device, visual-fidelity, accessibility and release gates remain open. No deployment, release, or broader Slice 4 implementation is authorized by this handoff.
 
-Repository: `TapMagic/Tap-Connect-Studio`. Development branch: `codex/studio-reconstitution-slice-1`. Source parent: `62d7804d112f29c1302e4397643dfb7cb6e4085c`. This handoff and its source are committed together; the commit containing this file is the inspectable candidate. No main merge, history rewrite, migrations, production access, or deployment occurred.
+Repository: `TapMagic/Tap-Connect-Studio`. Development branch: `codex/studio-reconstitution-slice-1`. Source parent: `62d7804d112f29c1302e4397643dfb7cb6e4085c`. The original handoff and source were committed together as `f8de7b70c03c5aadebfc85b31a4509b827762e6f`; later documentation-only acceptance updates do not change that source baseline. No main merge, history rewrite, migrations, production access, or deployment occurred.
 
 ## Reproduction and demonstrated causes
 

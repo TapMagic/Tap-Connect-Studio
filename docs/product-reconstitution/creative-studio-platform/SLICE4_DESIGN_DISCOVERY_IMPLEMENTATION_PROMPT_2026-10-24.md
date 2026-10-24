@@ -1,80 +1,58 @@
-# Self-authored implementation prompt — Select, Style, Make It Yours
+# Self-authored implementation prompt — Slice 4A: Start and Refine
 
-October 24, 2026 · **DRAFT FOR PRODUCT OWNER APPROVAL. Do not execute this prompt until the proposed scope is explicitly approved.**
+**Status: proposal, not execution authorization.** Run this prompt only after Rich explicitly approves the revised Slice 4A scope. Latest accepted integrated source: `f8de7b70c03c5aadebfc85b31a4509b827762e6f`, on `codex/studio-reconstitution-slice-1`. Read the [scope](SLICE4_DESIGN_DISCOVERY_SCOPE_PROPOSAL_2026-10-24.md), [readiness evidence](SLICE4_EFFORTLESS_DESIGN_READINESS_2026-10-24.md), and [acceptance record](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md) together. This replaces the earlier three-look/two-section prompt.
 
-## Mission
+## Assignment
 
-Implement only the approved bounds of [Design Discovery, Professional Presets & Native Visual Quality](SLICE4_DESIGN_DISCOVERY_SCOPE_PROPOSAL_2026-10-24.md). Make the everyday path from a native starting composition to a personally refined, functional Experience obvious and forgiving.
+Deliver one coherent local authoring journey: **start with an attractive native introduction section; make its content yours; refine its appearance; Preview; Save; return and continue editing.** Improve direct interaction and discovery together. Preserve powerful precise editing without making beginners traverse engineering controls first.
 
-Slice 1, Slice 2 and Slice 3 desktop functional acceptance are protected. Preserve their source and hands-on fixtures. Accepted Slice 3 source is `8d50ad75eeb2ac9efb8197df2bf0f5bc4d6750cb`; review documentation baseline is `4fe073f9b51a1211ec4c557392ec5c01c02ee504`. Read the new acceptance record and current Git state; do not assume HEAD, branches or local WIP are unchanged.
+Follow AGENTS.md, Product Steward Constitution, canonical interaction principles and binding reconstitution interaction specification. Read relevant installed Next.js documentation before code. Inspect repository root, branch, HEAD, remote, staged/unstaged/untracked files. Preserve all unrelated WIP and accepted fixtures. Do not switch/reset/force-push/rewrite history. Establish an exact accepted-source comparison rather than silently including Library/Map/Video WIP.
 
-## Before changing code
+## Scope
 
-1. Read AGENTS.md, Product Steward Constitution, canonical interaction principles and binding reconstitution interaction specification. Read the installed Next.js guide relevant to any code changes.
-2. Record root, branch, HEAD, remote/tracking state and intended work. Fingerprint unrelated modified/untracked files. Use the existing appropriate development branch. Do not reset, discard, force-push, rewrite history or mix unrelated WIP into commits.
-3. Read the Slice 4 evidence and shared source paths. Reproduce nested Text click/double-click failure in a native disposable clone. Trace actual hit target, pointer-down, pre-threshold visual state, click/double-click and selection commit. Verify the hypothesis that Flow drag visual state makes the child pointer-ineligible too early. Do not patch only the pictured heading or declare a root cause solely from source similarity.
-4. Use only a verified local database/server. Preserve all accepted fixtures, including Slice 3 revision63. No production, publication, Access, credential or QR operations.
+1. Reorder existing Text/Image/Button contextual tasks around content: Text content/core type; Image Replace/Fit/alt; Button Label/Action/appearance. Keep exact Position immediately accessible as a sibling task and preserve all deeper capability. Use existing selection, task routing, keyboard ownership, transactions and Inspector. Do not create another edit surface authority.
+2. Improve target clarity using authored names first and concise derived labels otherwise. Show parent context; preserve identities and authored names. Accepted nested click/double-click, body drag and keyboard behavior are regression requirements, not a new pointer rewrite.
+3. Add one ordinary native Flow introduction Container with heading, body and standard CTA, in two quality-gated looks: Clean Minimal and Dark Cinematic. Show Designed/Blank inside existing Add → Containers, with an empty-canvas shortcut to the same path. No new permanent navigation or template backend. No-photo defaults must look finished; optional image addition uses existing Add/Media controls.
+4. Offer compatible appearance-only variants in existing root/Container Surface tasks. They may change declared Surface fields only. Never change children, text, actions, asset identity, layout, geometry, root frame mode or page extents. Show target and affected scope; preview the real output. Existing content may need contrast adjustment, which must not happen silently.
+5. Complete the native customize/Preview/Save/reopen journey on a disposable, unambiguous local Blank Experience. Do not use the protected acceptance documents or cloning as a workaround. Preserve current recovery versions. If accepted-source identity/recovery behavior blocks this outcome, document reproduction and request a separately bounded correction; do not silently implement a recovery engine change.
 
-## Increment A — Selection and immediate refinement
+## Architecture
 
-Repair the demonstrated pointer/selection defect through the existing shared authority. Click-only pointer sequences must select without movement/history. Do not activate drag hit-test changes before the existing threshold. Preserve body dragging, snapping, capture/cancel behavior, parent constraints and one-gesture history. Cover mouse and touch thresholds, zoom, rotation, Flow/Layered parent combinations and keyboard ownership.
+Use shared discovery resource/version/readiness/compatibility and activity. Compose existing parent, native insertion, layout, Material/Surface, Text, Button/action and validation authorities. Add only a thin pure native-composition adapter if needed: resource+target+document → validated candidate+affected identities/fields → one existing command/history commit. No new geometry, rendering, template registry, persistence or AI authority.
 
-Ordinary native child clicks select that child; Container padding/background selects the Container. Text double-click/Enter/Edit text reaches the canonical text transaction. True Groups and certified Curated internals retain their governed selection scope. Reuse existing scope/selection references rather than introducing another nested-editing state machine. If the existing contract cannot support the required interaction without a locked change, stop and present the conflict.
+Use true parentId/compositionKind, never legacy props.containerId pseudo-parent insertion. Container placement in its parent is independent of its internal Flow. Insertion respects Flow order or Layered positioning and existing crowding/page-extension behavior. Never silently grow/reparent/scale unrelated content. Curated Systems retain certified internal geometry and permitted edits.
 
-Use the existing contextual toolbar, Inspector/task surface and Outline:
+Use existing Inter and supported weights. Coordinate padding/gap/margins intentionally. Preview cards must render the actual canonical props; no polished static mock that differs after insertion. No new remote assets required by defaults. An unconfigured CTA must be clearly marked and editable; configure a real local test destination for acceptance, never fabricate a business action.
 
-- Text: Edit text and Typeface are directly discoverable; preserve exact underlying content and presentation-only case transforms.
-- Image: Replace and Fit lead the content task. Keep aspect lock visible. Position opens exact geometry separately; do not lead content editing with diagnostics/tint.
-- Button: Label, Action and Appearance use existing authorities; styling preserves content/action.
-- Root/Container: Surface controls appearance, Placement controls a Container in its parent, Contents controls its internal layout. Keep that distinction visible.
-- Derive meaningful fallback Outline/selection labels from content/role/alt when an authored name is absent or generic. Never rewrite authored names or identities just to display a helpful label.
-- Hide unready rail destinations using the existing readiness registry. Do not add a permanent navigation system or remove functioning advanced controls.
+All tasks define entry, active target, Apply, Cancel, exit/focus restoration and invalid-target fallback. Retarget explicitly or cancel stale proposals. Text and numeric inputs own keys; IME is protected. Ordinary edits, insertion, style changes and image replacement use canonical history. Source text/case is exact; appearance is not a content rewrite. Future tApIt/guided consumers must be able to use this same data/command path without a separate editor; build no AI feature now.
 
-Review native desktop and390px interactions before expanding discovery. Use readable controls and44px primary touch targets; preserve compact visible manipulation marks. No modifier remapping that breaks current multi-selection, no shortcuts during IME or active text/numeric editing.
+## Construction checkpoints
 
-## Increment B — Three compatible, editable looks
+A. Record baseline screenshots and native task steps. Verify actual viewport dimensions. Investigate any blocking identity/recovery issue before claiming a reproducible journey. Preserve baseline tests and known failures.
 
-Qualify exactly three starter looks: Clean Minimal, Editorial, Dark Cinematic. Use only existing Material, Surface, Text/font and Standard Button capabilities. Keep current advanced approved choices accessible. Do not ship additional families merely because the catalog can hold them.
+B. Implement and demonstrate content-first task routing on existing Text/Image/Button nodes, including nested and locked contexts. Confirm Position access, direct Text entry, media Apply/Cancel return, stale selection protection and narrow-panel focus.
 
-Represent look resources using the existing discovery resource reference/version, compatibility, governance/readiness and preview contracts. Root/Container chooser and previews must consume shared Material/Visual Plane rendering. Do not add CSS-only thumbnail treatments that application cannot reproduce.
+C. Build the pure native section candidate and canonical previews; insert each look through native Add controls. Validate parent, children, identities, style scope and one-history-entry behavior. Refine each inserted child using ordinary controls. Reject weak visual choices rather than filling catalog slots.
 
-A Surface application affects only its declared appearance fields on the explicit current target. Preserve child content/styles, IDs, parentage, actions, asset provenance, layout mode, geometry, clipping, root frame mode and page extent. Capture/validate selection identity when opening and applying; cancel or visibly retarget stale selections. One accepted application produces one canonical history entry. Hover/browse must not mutate the document. Undo restores exact prior state.
+D. Run focused and relevant broader tests/typecheck/production build, native desktop and 390px journeys, save/reopen and Preview. Keep physical touch/keyboard, actual IME, Safari, AT and delayed-font checks explicitly unverified when not actually run. Do not convert automation errors into pass evidence.
 
-Typeface/style operations use canonical Text fields and loading. Do not reuse a full role reset when only a typeface was requested. Use actual supported font weights; report failure/fallback rather than silently certifying a substituted font. Reject a proposed treatment if its result cannot be refined honestly through existing native controls.
+## Required evidence
 
-No global theme application, shared style-token cascade, reusable preset persistence, remote catalog service, new effects or AI generation.
+- Before/after task paths, deliberate clicks, unrelated panel transitions, scrolls, errors, time and help requests. Targets: content visible in one Edit action without geometry scrolling; direct Replace one action; Designed section at most three clicks from closed drawer; Surface then look two actions. Preserve one-action root Surface. These are targets, not preclaimed gains.
+- Native creation, styling, selection, text editing, CTA configuration, optional image addition/replacement, dragging, alignment, resizing, rotation, copy/duplicate/grouping where eligible, Undo/Redo, Preview and save/reload. Test root and nested Flow/Layered, padding/rotation and incompatible/locked/Curated destinations.
+- Exact identity preservation on Undo/Redo; appearance-only invariant checks; no unintended geometry/page or content mutations; direct and Inspector dimensions agree; no arbitrary Flow offsets.
+- Preview versus Canvas versus reload at output 320/390/512px, editor desktop/390px and zoom75/100. Actual renderer screenshots; long heading/double body copy/no-photo cases. Clear type hierarchy, spacing, restrained depth, clean fit, no clipping/overlap. Product targets: normal text contrast4.5:1, large text3:1, primary touch controls44×44; qualify real backgrounds, not assumed flat colors.
+- A small 3–5 novice formative trial if available, target useful Preview within5minutes without coaching and zero destructive wrong-target edits. Mark unperformed trials unverified.
+- Existing Cabinet Noir clean-checkout missing asset and lint debt remain reported; never weaken tests to hide them. Original reference comparison remains open until evaluated. Production hashes BLOCKED.
 
-## Increment C — One native starting composition
+## Handoff and rollback
 
-Add one Introduction & Feature structural recipe, with the three looks, through the existing Add drawer. A Blank empty-canvas shortcut may open that same drawer route. No new Templates destination/service.
+Produce exact source branch/SHA, changed files/modules, tests with failures and exclusions, screenshots/native interaction evidence, local fixture URL/instructions, remaining risks, scope differences and recommended next step. Preserve a usable native fixture. Commit only intended source/tests/docs and push development branch; verify GitHub remote contents independently. Do not treat a local commit as synchronization. Preserve all unrelated WIP.
 
-Construct a Flow root with introduction Container (heading/body/CTA) and feature Container (optional native image/caption). Use current canonical Container/Module creation and parent insertion helpers, not legacy root-plane pseudo-Containers with `props.containerId`. Use typed resource data and a small pure construction adapter; no alternate document schema or template engine.
+Keep reviewable milestone commits. Revert unaccepted source through normal history-preserving operations or existing catalog readiness gating; native created documents remain editable with ordinary nodes. Never reset working files. Workflow: local development → automated verification → documentation/evidence → development push → independent architecture/product review → Product Owner acceptance → separately authorized staging/release.
 
-Build the entire candidate in memory, validate it through current authorities and commit once with canonical history. Do not call stateful UI insertion callbacks repeatedly to assemble a partially committed result. Undo removes the full insertion; Redo restores its identities. Starting composition insertion is restricted to a genuinely empty eligible root; on a populated page offer existing Add operations, never replace user work implicitly.
+## Exclusions and stop conditions
 
-Use explicit coordinated defaults from the proposal: Flow sizing, Auto Text,24px Container padding,16px gap and controlled child margins; adapt using current native semantics. Preserve percentage/stretch intent. No fixed-height hacks, breakpoint overrides or new Scale Contents feature.
+No complete Experience starter in4A; propose4B separately. No six-family catalog, new font/crop/asset browser, global theme, new responsive authoring, wrapping/Scale Contents, cross-parent matching, Surface redesign, business-domain infrastructure, EverEncore editor or tApIt implementation. No source change before explicit scope approval. No main merge, staging, Railway/deployment, migration, production, publication, Access, credential or QR mutation.
 
-Use an approved rights-safe sample Asset or a deliberately complete no-photo variant. Never use production artist imagery as a generic default. Replacement writes through the shared Media browser and keeps frame/identity intent. Initial CTA action is explicit and unconfigured until the user selects a legitimate destination; clearly expose that next step. Do not invent business facts or silently turn a decorative starter into a live action.
-
-After insertion, show the native composition and target; put Replace text, Replace/Add image and Set action within the existing contextual workflow. These cues are presentation of canonical operations, not a parallel guided editor. Future tApIt may use the same resource refs, validation, scoped proposal and commands; build no AI machinery now.
-
-## Evidence and completion requirements
-
-Execute every native acceptance scenario in the approved scope proposal. At minimum:
-
-- Reproduced then corrected nested selection, threshold click-versus-drag, text input ownership, Groups/locks/Curated protection.
-- Content-first Image replacement, direct Text editing and scoped root/Container styling.
-- All three starter looks constructed and refined through native controls; no seeded JSON or flattened images as authoring proof.
-- Exact source-content/action/identity/geometry preservation under appearance changes; one-operation history; save/reload and Preview parity.
-- Long-copy and no-image cases; output widths320/390/512 and editor390px; focus/controls accessible and no unintended overflow.
-- Preview cards matched with applied canonical rendering, readable contrast, font-load behavior, coherent spacing and editable depth. Use the proposed quality thresholds, not a subjective screenshot-only pass.
-- Existing manipulation regressions: root/nested Layered resizing, child physical-size preservation, Flow reflow, alignment, grouping, rotation, clipboard and page fitting.
-- Focused tests, relevant broader tests and production build on intended source isolated from unrelated WIP. Do not alter Cabinet Noir integrity checks; explicitly report missing-original failure if it persists.
-
-Record before/after screenshots and interaction traces. Keep automation failures and unverified checks visible. Action-count and timing targets are hypotheses until measured with the same tasks. A formative novice study is separate evidence, not automatic certification.
-
-After each coherent increment, commit source/evidence to the existing development branch and independently verify remote content. No main merge or deploy. Final handoff must include exact branch/source SHA, files, root causes, tests/build, native fixture URL, screenshots, measured outcomes, limitations, architectural compatibility and any proposed scope change.
-
-Do not mark physical-device touch/keyboard/IME, Safari/WebKit, accessibility, exact visual-reference comparison, signed Live Device/public runtime, Cabinet Noir reproducibility or full release verification passed without actual evidence. Production hash verification remains BLOCKED. No staging/production release without separate authorization.
-
-Stop for Product Owner review at the completed bounded candidate. No business-domain infrastructure, unrelated typography redesign, new responsive authoring, Surface rewrite, migration or speculative tApIt scope.
+If a locked shared contract must change, provide the demonstrated conflict and minimum proposal for approval. If dependencies block the journey, report them rather than certifying partial output. Engineering evidence never substitutes for Product Owner acceptance.

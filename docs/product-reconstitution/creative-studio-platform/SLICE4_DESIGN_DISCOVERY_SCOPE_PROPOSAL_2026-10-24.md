@@ -1,188 +1,131 @@
-# Design Discovery, Professional Presets & Native Visual Quality
+# Slice 4 — Effortless Professional Design
 
-October 24, 2026 · **Proposed bounded Slice 4 — planning only; implementation awaits Product Owner approval.**
+October 24, 2026 · **Revised proposal: Start and Refine. Planning only. Explicit scope approval required before application code.**
 
-[Slice 3 desktop functional acceptance](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md) is recorded. The accepted baseline is source `8d50ad75eeb2ac9efb8197df2bf0f5bc4d6750cb`, documentation `4fe073f9b51a1211ec4c557392ec5c01c02ee504`. All earlier acceptance and release distinctions remain intact.
+[Readiness assessment and evidence](SLICE4_EFFORTLESS_DESIGN_READINESS_2026-10-24.md) · [Self-authored implementation prompt](SLICE4_DESIGN_DISCOVERY_IMPLEMENTATION_PROMPT_2026-10-24.md) · [Slice 3 desktop acceptance](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md).
 
-## Recommendation
+Accepted integrated source is `f8de7b70c03c5aadebfc85b31a4509b827762e6f`. This revision supersedes the previous three-look/two-Container proposal and its already-fixed Flow pointer work. Preserve the accepted pointer, Text, page and geometry behavior.
 
-Deliver one complete journey: **Start with a native composition → replace content → select exactly what you mean → apply a compatible look → refine → Undo → Preview.**
+## Smallest coherent outcome
 
-The smallest coherent slice is **Select, Style, Make It Yours**: repair the reproduced nested-selection obstruction; make content replacement and Surface refinement lead from selection; provide three quality-gated looks over one native Flow starter. Do not begin a global editor redesign, large Material catalog, reusable-template service, or responsive-authoring project.
+A beginner starts with one attractive, native introduction section, changes the words and CTA, optionally adds an image, refines its Surface and previews the result without learning normalized geometry. An expert retains exact Position, layout, Material and component controls. **One native Designed Container in two intentional looks: Clean Minimal and Dark Cinematic.** No global editor reskin or large catalog.
 
-The slice has three reviewable increments, all inside that one proposed scope:
+Two construction milestones within the proposed 4A scope:
 
-1. **Selection and refinement truth:** fix the reproduced Flow child interaction; show meaningful selection labels and immediate Text/Image/Button actions using existing toolbars, Outline and task surfaces.
-2. **Three excellent looks:** Clean Minimal, Editorial, Dark Cinematic, backed by existing Material and typography properties. Apply Surface appearance to the selected target only; creation presets may compose those properties across their newly created native nodes.
-3. **One useful starting composition:** a Flow introduction-and-feature layout available from the existing Add drawer and an empty-canvas shortcut to that same entry. Three looks, one structural recipe, no new permanent rail or template engine. Preserve Blank as an equally valid choice.
+1. **Refine what I selected:** content-first Text/Image/Button tasks, target labels, reliable task return and reachable exact Position. Demonstrable on existing native content before any catalog work.
+2. **Start with a finished section:** one editable Flow Container recipe in two quality-gated looks, native preview, appearance-only Surface equivalents, atomic insertion and complete customize/save/return evidence.
 
-This is a scope recommendation, not authorization to construct it. If a locked contract must change, stop with the demonstrated conflict and request approval.
+Neither milestone is authorized by this document. A complete two-Container Experience starting point is proposed as **4B, separately scoped and approved after 4A**. Do not label a section as a complete Experience or silently replace the current page.
 
-## Investigation and evidence
+## Three distinct operations
 
-Fresh read-only UI inspection used the accepted local Slice 3 document at revision 63 on Chrome. Selection, drawer/Inspector navigation and Preview were exercised; no properties, content, geometry or publication state were changed. Source inspection covered the accepted source and the existing checkout. The checkout contains unrelated Map/Video discovery and Library WIP; those visible additions are not dependencies or included work. A 36-file fingerprint records that WIP separately.
-
-[Current native UI evidence](proofs/slice4-discovery-planning-2026-10-24/): 01 Add discovery, 02 Container choices, 03 root Surface, 04 Image refinement, 05 reproduced nested selection, 06 accepted native visual example. These are actual application screenshots, not mockups of proposed features. The existing Slice 3 desktop/390px evidence remains relevant; no new physical-device testing was performed.
-
-| Priority / evidence | Current limitation | Available capability versus missing work |
+| Operation | Allowed mutation | Explicitly preserved |
 | --- | --- | --- |
-| P0, fresh reproduction + source | Double-clicking the visible heading in Flow Container A selected the Container and did not open a textbox. DOM hit-testing identified the actual text span, not a covered pixel. Outline plus Edit text works. | Text entry exists. Source-supported cause to verify: `startFlowPointerMove` sets `flowPointerVisual` immediately on pointer-down; the selected Flow child then receives `pointerEvents:none` before the 3px mouse / 6px touch movement threshold. That can retarget the click to its parent. Confirm event sequence before changing the shared pointer path. |
-| P1, fresh UI + source | Image **Edit** opens Position, normalized units, diagnostics and tint before Replace/Fit. | Replacement, fit, aspect lock and brightness exist. The task route/order is wrong for content editing; do not add another Inspector. |
-| P1, fresh UI | Root and Container Material chooser presents Gunmetal and Worn Saddle Leather. Container insertion offers four surface categories rather than useful finished compositions. | Shared catalog includes flat/matte, glass/acrylic, metallic and depth recipes; catalog existence is not proof each is visually ready. Expose only certified combinations. |
-| P1, fresh UI + source | Templates, Text, Design, Brand and Assets rail entries are disabled while Add contains working content discovery. | Existing readiness registry can hide unready destinations. Keep Add and Outline; use contextual tasks for styling. Do not enable a destination without its complete workflow. |
-| P1, fresh UI | Repeated “Text” names and preset-derived Container names do not tell users what they are selecting. | Existing identity, hierarchy and selection state suffice. Derive fallback labels from role/content/alt text; preserve authored names and node IDs. |
-| P1, source + prior native evidence | Creation defaults are separate choices: Container surface, text role, image, Button, padding and geometry. There is no certified complete starter in the current native Add path. | Native node creation, parent insertion, geometry initialization and history exist. One composition factory is justified; a reusable-template persistence service is not. |
-| P1, source | Older `insertRootContainerPreset` puts children as peers on a root plane with `props.containerId`, unlike current canonical `parentId` / `compositionKind`. | Reuse design intentions only. Never wire that legacy insertion route into new discovery. Build the one starter through `composition-parent-authority` and validate the result. |
-| P2, source | Typeface discovery has six recommended family IDs, recents and an 18-result search cap; font-loading failures are not visibly explained. Some preset registries contain expressive effect intent not certified in this editor path. | Font catalog/loader and Text roles exist. Use a small verified pairing set; surface loading/failure state for proposed presets. Defer general font-browser expansion and unsupported text effects. |
-| P2, source + current UI | Root/Container image surfaces expose focal controls; native Image renderer has crop/focal properties, but the Image Inspector exposes Fit rather than a complete direct crop workflow. | Fitting is supported, full crop UX is not demonstrated. Bring existing Replace/Fit forward; expose canonical focal values only if round-trip/parity is proven. No new crop interaction engine in this slice. |
-| P2, prior observed warning | Complex shadows can render but a single numeric control does not fully describe them; background shorthand/size transitions have logged a warning. | Avoid presets whose effects cannot be understood/refined natively. Fix only a reproduced shared adapter defect that blocks a selected look; otherwise defer and report. |
-| P2, source + UI | Multiple child spacing sources can compound (Container gap plus Text margins); changing Text role can reset box styling while preserving content. | Define authored defaults in the starter and an explicit changed-field list for appearance operations. Do not apply an entire role object when the user asks to change only typeface or visual treatment. |
-| Existing limit | Preview context buttons do not create breakpoint-specific layouts; Layered geometry uses its authored parent plane. | Build the starter with Flow, flexible widths and Auto Text. Test current behavior at actual output widths; do not promise breakpoint overrides or new responsive authoring. |
+| Surface treatment | Selected root/Container appearance: declared fill, edge, radius, depth/Material fields | Children, text, actions, images, parent identity, internal layout, placement, page extents; root Inset/full-bleed mode |
+| Designed Container insertion | New native Container plus heading, body and standard CTA children with authored composition and new IDs | Existing nodes, page identity, existing sibling relationships and content; insertion follows canonical destination/placement rules |
+| Experience starting point (deferred) | New independent document with complete native composition through existing creation authority | Source document, publication/access/QR and domain identity rules; never a hidden current-page restyle |
 
-The selection failure is a reproduced obstacle, not a reason to reopen every accepted geometry feature. The early drag-state mechanism is a source-supported hypothesis, not a completed runtime event trace.
+A Designed Container is ordinary editable composition, not a governed Curated System or a Group. Outer placement within its parent and internal Flow layout are independent. It may be inserted into Flow or Layered destinations using existing parent/insertion authorities without converting the destination's mode. Nested governed/locked/incompatible destinations explain why insertion is unavailable and offer a valid parent explicitly; no silent reparenting.
 
-## Reusable authorities
+## Interaction architecture
 
-| Authority | Reuse and boundary |
+- Existing Add → Containers shows **Designed** and **Blank** choices within the same drawer. A blank-canvas prompt opens that same destination. No additional permanent navigation. Keep existing blank choices and native Add options reachable.
+- Display a rendered preview, short purpose and target context. Selection of the finished section inserts once, selects it and brings it into view. Existing intelligent insertion/explicit extension handles crowding; no new positioning solver.
+- Direct Text entry continues via accepted canvas controls. Edit Text leads with content and core type settings; Image leads with Replace/Fit/alt; Button leads with Label/Action and familiar appearance. Existing Position remains a sibling contextual action, never buried or duplicated. Preserve exact dimension controls and advanced typography without adding new semantics.
+- Root/Container **Surface** leads with two appearance-only choices and existing refine controls. **Placement** edits the frame relative to its parent; **Contents** edits internal Flow/Layered layout. A look never doubles as layout switching.
+- Use authored names first; otherwise derive short Text content, Image alt/name and Button label for Outline and breadcrumbs. Keep node kind and parent context visible. No persisted identity/name rewrite. Curated names/locks remain authoritative.
+- All task exits restore the exact target and relevant controls. Cancel leaves document/history unchanged. Apply uses canonical history and returns to editable state with Preview/Save/Undo available. If target or source generation changed, invalidate or explicitly retarget; never apply to stale selection.
+- At narrow widths reuse the adaptive single-task surface; no stacked drawer/Inspector/modal collision. Returning from media selection restores the Image task and focus. Hover is not required. No new keyboard authority.
+- Clarify labels on the touched paths: “Replace image,” “Fit,” “Alt text,” “Label,” “Action,” “Surface,” “Position.” Preserve deeper controls rather than removing capability. Rail-wide restructuring and new font/media browsers remain deferred.
+
+## Native design contract
+
+Both versions contain heading, body and one standard CTA. The default is intentionally complete without external photography, avoiding a new rights/asset dependency. Users can add an Image with existing controls. The CTA initially has no fabricated external action: show the existing unconfigured-action state and make Set action easy; the acceptance workflow configures a real local test destination before Preview. Do not present an inert CTA as functional completion.
+
+Proposed starting values: 24px padding, 16px gap, coordinated zero/explicit child margins, 32px/1.15 heading, 16px/1.5 body, CTA at least 44px high. Use the existing Inter family and supported weights; no additional font family or effect in 4A. Flow children use existing flexible-width/Auto-height behavior. These are recipe defaults, not new universal restrictions or responsive overrides.
+
+Clean Minimal emphasizes open whitespace, neutral light fill and restrained edge. Dark Cinematic emphasizes a strong light heading, darker hierarchy, deliberate contrast and controlled depth/accent. Refine with existing Material/Text/Button properties. Both must be meaningfully different and visually defensible; colors alone do not establish two excellent designs. Qualify concrete values using the real renderer during authorized construction; this is not a certified visual mockup.
+
+Appearance-only variants reuse the same scoped Surface fields but never recolor descendants. On existing light/dark text, show an honest target preview and affected-field explanation. Use existing readability diagnostics where available; otherwise state that content contrast needs checking. Never invent a universal contrast pass or automatically change child text to compensate. Creation may initialize coordinated text colors on its own new children.
+
+## Existing authorities and minimal foundation
+
+| Authority | Use |
 | --- | --- |
-| `platform/discovery.ts` + reconstitution drawer/catalog adapter | Versioned resource refs, compatibility, readiness, approval, previews, search/paging. New look/starter entries are resource data and a thin application adapter; no parallel registry with conflicting readiness. |
-| `material-engine.ts`, `material-surface.ts`, Material surface layers, Visual Plane, `platform/surface-capability.ts` | All preview/apply/refine paths consume these same recipes and effective values. Root frame mode and Container internal layout are not appearance properties. |
-| `composition-parent-authority.ts` + existing placement authority | Create true native Containers and Modules; initialize placement for the actual parent; validate hierarchy. Do not use legacy flat Container membership or repurpose true Groups. |
-| Builder `setConfigHistory`, live adjustment and validation | Build proposed starter in memory using pure shared operations, validate, then one command/history commit. Avoid a sequence of stateful UI insertion callbacks that could partially commit or use stale state. |
-| Canonical selection references/targets, pointer/keyboard ownership, task return stack | One selected identity and current task across Canvas, Outline, Inspector, future assistance. Preserve locked/Curated boundaries; stale or changed selection cancels an outstanding operation. |
-| `platform/text-authoring.ts`, font catalog/loading/activity | Existing role defaults and actual supported font variants; source text unchanged by appearance. No separate typography semantics. |
-| Standard Button catalog/appearance + action authority | Existing editable presentation with preserved label/action when restyling. Starting CTA requires an explicit real destination; no invented phone number or silent business action. |
-| Shared Media browser + provenance | Replace the existing image in place. Preserve crop/geometry unless the user explicitly changes fit/frame. Existing asset rights and tenant ownership apply. |
-| Canonical rendering, persistence, publication | Same native output in editor and Preview; save/reopen; no changes to publishing, Access, identities or QR. |
+| `lib/fusion/creative-studio/platform/discovery.ts` | Existing versioned resource identity, readiness, compatibility and preview contract. No second registry/service. |
+| `lib/fusion/card/composition-parent-authority.ts`, canonical composer operations and `platform/layered-region.ts` | True parentId/compositionKind, insertion, sizing and page constraints. Legacy pseudo-container `props.containerId` insertion is not a compatible implementation path. |
+| `platform/surface-capability.ts`, `material-engine.ts`, `material-surface.ts`, Visual Plane and Material surface layers | Same root/Container preview, application and render truth. No preview-only CSS look. |
+| `platform/text-authoring.ts`, existing typography and standard Button authorities | Exact content, Text transactions, supported type/appearance/action state. |
+| `platform/studio-selection-target.ts`, existing selection/pointer/keyboard/task state | One target/scope/ownership and return context across all consumers. |
+| Builder canonical command/history, validation, persistence and renderer | Validate full candidate then commit once; existing save/reload/Preview path. |
+| Shared Media browser, asset provenance and activity | Existing Replace/Add and recent resources; no scattered new localStorage or asset backend. |
 
-## Simplified workflows
+The only proposed foundational addition is a **small pure native-composition adapter** beside existing catalog adapters: take resource ref/version, target context and current canonical document; build through existing native operations; validate; return a candidate plus affected identities/fields; commit once through existing commands. It must not own layout, rendering, history or persistence. If current pure insertion helpers already support this, compose them without a new contract. No future AI operation framework is justified.
 
-| Intent | Proposed native path and result |
-| --- | --- |
-| Start something polished | Blank → **Start with a layout** (existing Add drawer) → Introduction & Feature → choose one of three looks → Add. All nodes appear selected/visible in one undoable operation. The empty-canvas shortcut opens this same route. |
-| Edit words | Select text / double-click visible words → caret. A selected Text exposes **Edit text** and **Typeface** directly. Text remains exact; Escape cancels, Done commits one edit. |
-| Replace image | Select image → **Replace**. Existing browser returns to the same selected image; **Fit** and aspect lock remain adjacent. Position is a separate task, not the opening content screen. |
-| Change a Container look | Select its background/padding → **Surface** → choose a compatible preview → immediate one-command apply → refine color, border, corners and depth. Target name and affected properties remain clear. |
-| Change root appearance | Root Surface selection → same Surface choices with root compatibility filtering. Appearance never changes full-bleed/inset, page height, child styling or parent layout. |
-| Edit Button | Select Button → **Label / Action / Appearance** within existing editing surface. Preview the real chosen action. An unset action gets a clear completion cue; styling never invents or replaces it. |
-| Reach a nested object | Ordinary native child click selects that child; Container padding selects Container. Double-click Text edits it. True Group semantics remain intact: use existing Enter/edit-contents to reach members. Breadcrumb Parent and Outline are visible alternatives, not mandatory workarounds. |
-| Position precisely | Selected applicable target → Position → X/Y/W/H, rotation, alignment/order as supported by its parent. Flow uses reorder/alignment; Layered uses geometry. Preserve accepted manipulation semantics. |
-| Experiment safely | A look click commits one named appearance operation; Undo restores it exactly. Browsing, hovering, opening panels and changing selection do not save draft changes. No implicit hover application. |
+Risks to verify: legacy pseudo-parent helpers; partial sequential insertion/history; stale targets; accidental appearance scope expansion; nested normalized geometry; duplicate child spacing; default fixed heights; missing assets/font fallback; unconfigured CTA; thumbnail/apply drift; recovery of the wrong document. Repair only a demonstrated shared defect necessary for this scope. A locked-contract conflict or new service/schema requires a separate proposal.
 
-On desktop, one contextual surface shows content first and precision on request. At 390px, use the existing task sheet and bottom tools, keep the selected name and primary action visible, and preserve Back to editing. Hide unready permanent destinations through the existing readiness policy. No new permanent navigation taxonomy or keyboard modifier is required. Do not steal Command/Ctrl-click from existing multi-selection to imitate another editor.
+## Journey and objective measurements
 
-Selection-only changes must not create creative history entries or alter authored hierarchy. If an existing content-mode contract persists state, reuse it and isolate the specific inconsistency; do not silently replace it with a new selection engine.
+Native journey: New Experience → Blank → Add/Containers → choose Designed look → edit heading/body → set CTA action → optionally Add/Replace Image → Surface refine → Preview → Save → leave → reopen the same identity → continue editing. Do not use a source-code-generated screenshot or API-only insertion as the customer journey evidence. Separate read-only document assertions may corroborate the UI.
 
-## Preset strategy and evaluated families
-
-A **look** is a versioned, compatibility-filtered recipe of existing native properties. A **starting composition** is a native document construction recipe. Keep these separate: appearance application changes only the selected target’s declared styling fields; starter construction initializes new children and layout. No hidden linked style cascade is introduced.
-
-| Candidate | Existing ingredients | Recommendation / visual risk |
+| Task | Current observation | Proposed acceptance target (unmeasured) |
 | --- | --- | --- |
-| Clean Minimal | Solid/flat Surface, restrained border, Inter, generous Flow spacing, Clean Flat Button | Include. Quiet hierarchy is useful without photography or advanced effects. |
-| Editorial | Opaque paper-like color, Playfair/Source Serif and Inter pair from existing font catalog, fine rules, native Text | Include after font-load/variant and long-copy checks. No simulated print texture or outlined type effect required. |
-| Dark Cinematic | Opaque dark Surface, restrained highlight/gradient, existing image/focal/veil properties, high-contrast text and CTA | Include. Builds on the accepted native example, but do not reuse artist imagery as a generic starter asset. |
-| Glass / Acrylic | Existing glass/acrylic Material recipes and Surface opacity/blur | Defer from first certified starter set. Backdrop dependence, text contrast and platform rendering need qualification on multiple backgrounds. Do not label an opaque gradient as transparent glass. |
-| Metallic | Gunmetal and existing metal recipes / Standard Button appearances | Retain existing available choices; defer a new full starter family. Require believable highlights and readable edges, not merely a gray gradient. |
-| Soft Dimensional | Soft-raised recipe, radius and shadow, existing tactile Buttons | Defer fourth starter look to keep first certification small. Do not duplicate Minimal with only a shadow adjustment. |
+| Open root Surface | 1 header action | Preserve 1 action |
+| Reach Container choices | Add then Containers: 2 actions | Preserve 2; select a look in the third action |
+| Reach Text/Image content from selected target | 1 Edit action, then geometry precedes content and requires scrolling | 1 contextual action, primary content visible without scrolling past unrelated geometry |
+| Reach font search | Edit, scroll, Browse fonts | Same canonical browser, common type controls immediately visible; no new catalog target |
+| Reach Replace from selected Image | Edit, scroll, Replace | Direct Replace entry in 1 contextual action; browser return to same image |
+| Start a finished section | Not offered in inspected Add path | At most 3 deliberate clicks from closed drawer, excluding New dialog fields |
+| Apply Surface look | Current appearance controls; no two-look set | Surface then choose: 2 actions from selected target, with scope visible |
+| Beginner useful Preview | Not timed | 3–5 novice formative trials; each completes primary journey without coaching, zero wrong-target/destructive edits, useful Preview within 5 minutes |
 
-Proposed art direction (values to validate in native rendering; not certified output):
+Record actual clicks, unrelated panel transitions, scrolls, wrong turns, time, help requests and failures on identical pre/post tasks. Counts above are observed route counts or explicit targets, not measured improvements. A small formative trial is not statistical usability certification. If no participants are available, mark novice criteria unverified; engineering automation cannot substitute.
 
-| Look | Palette and hierarchy | Native composition treatment |
-| --- | --- | --- |
-| Clean Minimal | Root `#F3F5F7`, Container `#FFFFFF`, Text `#17212B`, CTA `#17212B` with white label; Inter heading700/body400 | 16px corners,1px quiet border, no decorative depth; image optional; strong alignment and negative space |
-| Editorial | Root `#F2EEE6`, Container `#FFFDF8`, Text `#24211D`, accent `#69523B`; Playfair Display heading600 with Inter body400 | 4px corners, thin divider, generous24px padding; typography supplies character rather than texture |
-| Dark Cinematic | Root `#0B1014`, Container `#192329`, Text `#F4F6F8`, CTA `#E7D7B8` with `#15191C` label; Inter heading700/body400 | 20px corners, restrained existing depth, optional photograph with separate readable caption surface; no translucent text fade |
+## Visual and interaction acceptance
 
-These palettes belong to authored content, not a mandatory editor chrome redesign. Light Experiences remain valid inside dark TapConnect chrome. Brand adoption is explicit and subject to actual contrast review.
+- Inspect native output at 320/390/512px and editor at 390px plus desktop. Verify actual innerWidth; failed viewport automation is not evidence. No unintended clipping, horizontal overflow, overlapping controls or detached CTA with long heading and twice normal body copy.
+- Deliberate hierarchy, spacing scale 4/8/12/16/24/32, aligned edges within 1 CSS px at 100% except documented optical choices. No compounded gap/margin surprise.
+- Proposed product contrast targets: normal text 4.5:1; large text 3:1. Measure actual rendered combinations, especially when users change backgrounds. No automatic accessibility certification. Primary touch actions target 44×44 CSS px separately from small visible manipulation marks.
+- Native preview and applied result use the same renderer, fonts and props. Canvas/Preview/reload match borders, corners, material depth, clipping, text and image fit at 75%/100% zoom. No rasterized text/section substitutes. Original reference comparison stays open until the proper reference is evaluated.
+- Exercise direct edit, caret, Escape, Delete, arrows 1px/Shift10px where Layered permits, Shift selection, paste, rotate, resize, groups, alignment and history. Fields/IME own keys. No arbitrary Flow offsets.
+- Insert into root/nested Flow/Layered; pad/rotate destination; reject locked/Curated targets appropriately. Preserve unrelated children, all parent identities and authored responsive intent. No Scale Contents.
+- Appearance apply must leave text/action/asset IDs/geometry/internal layout/page extents unchanged. One insertion Undo removes the whole section; Redo restores its identities. Refinement operations use existing transaction semantics. Do not promise history across reload beyond the established contract.
+- Browse/Cancel, stale-target change, media return, Preview return, save failure/retry and reopen must leave a coherent editable state. New → Save → Return must be verified on an unambiguous disposable local draft before claiming completion.
+- Physical phone keyboard/caret/touch, actual IME, Safari and AT remain independent gates; report every unexecuted case. Desktop acceptance does not waive them.
 
-Initial catalog ceiling: **one structural starter, three looks**. Existing approved choices remain reachable; the proposal does not remove advanced capabilities. Candidate families are not promised launch content until they pass native visual review.
+## Dependencies, regression and rollback
 
-Starter structure: Flow root → introduction Container (heading, body, CTA) → feature Container (optional native image, caption). Text uses Auto height; widths follow current Flow semantics. The image comes from an approved bundled sample with verified rights or the user’s chosen Asset. If no suitable sample is available, the no-photo layout must be intentionally designed and complete; do not fill it with an unrelated artist’s image or an empty broken frame. The feature can accept an image later through Replace/Add.
+Prerequisites: explicit PO scope approval; deterministic disposable Blank fixture; available canonical font/assets; baseline dependency classification. No Cabinet Noir assets are needed for the selected no-photo designs, but its existing integrity failure remains visible. Cloning defect and recovery/version ambiguity are separate high-priority issues; if either blocks the chosen journey, stop at that dependency and obtain bounded approval instead of expanding into infrastructure.
 
-Starting defaults: 24px Container padding; 16px sibling gap; Text margins explicitly coordinated so spacing is not doubled; 32px/1.15 heading, 16px/1.5 body, 13px/1.4 optional caption; native Button target at least44px high. These are proposed starter values, not universal constraints on user documents. Validate the recipe at narrow widths before certification.
+Use focused discovery compatibility, Surface field isolation, native parent/hierarchy/placement, Text ownership, history and persistence tests. Run relevant Studio/Card regression suites, typecheck and production build after source changes. Report the known Cabinet Noir failure and lint baseline separately; no skipping or weakening existing checks. Native controls and visual inspection are mandatory alongside tests. Retain accepted fixtures; create a new local hands-on fixture through supported controls.
 
-For existing targets, show Surface-only variants derived from the same look definitions. Typography changes require selecting Text and an explicit type style operation; no silent recoloring of descendants. Creation can initialize a coordinated palette across its own new nodes. Do not offer “Apply to entire Experience” in this slice. This avoids overwriting user-approved work while retaining a future extension path for an explicitly reviewed multi-target command.
+Keep milestones as reviewable development-branch commits. Roll back an unaccepted candidate through a normal revert or disabling its new discovery entries through existing readiness rules, preserving documents already created as ordinary native nodes. Never rewrite history, reset unrelated WIP or create a permanent parallel legacy editor. No release flag service is needed. Independent review → PO acceptance → separately authorized staging/release remains the sequence.
 
-Brand colors/fonts are opt-in or used only when their actual output passes the same contrast/load checks. If the Brand palette conflicts, show a named neutral fallback and retain source provenance; never claim that an arbitrary Brand palette is accessible.
+## Exact expected files and boundaries
 
-## Visual-quality standards
+Paths are repository-relative and denote proposed changes only. Preserve any unrelated existing hunks, especially discovery WIP.
 
-These are proposed acceptance targets, not completed measurements:
-
-- At actual output widths320/390/512px, no unintended horizontal overflow, clipped text, overlapping controls, or detached CTA. Test editor chrome at390px separately from output width.
-- One obvious primary heading and CTA; at most two font families in a starter. Use supported weights, visible font-load/fallback status and no synthetic unsupported effect claims.
-- Baseline body text16px; headings28–36px after fitting; optional nonessential captions13–14px. Long titles, two-times body copy and missing optional image still yield a coherent Flow layout without manual geometry repair.
-- Deliberate spacing scale4/8/12/16/24/32px; aligned text/CTA edges within1 CSS px at100% zoom, except intentional optical offsets recorded in the recipe. No unexplained gap from combined margin/gap defaults.
-- Text contrast at least4.5:1, or3:1 for qualifying large text. Measure against the rendered background; photographs, translucency and gradients are not passed by a flat-color heuristic. [W3C contrast guidance](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum.html).
-- TapConnect product target:44×44px minimum primary touch controls, with smaller visible manipulation marks inside separate targets. This is stricter than WCAG2.2 AA’s24px minimum with exceptions; do not conflate them. [W3C target-size guidance](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum.html).
-- Borders, corners and shadows agree in preview thumbnails, applied Canvas, reload and Preview. No photo flattening of editable text/materials. Preview cards are rendered using the same canonical props and renderer as application.
-- Default Surface opacity remains1 where fading children would reduce readability. Distinguish fill translucency from whole-object opacity.
-- Shadows remain visible without changing authored frame size; clipping remains explicit. Every exposed treatment must have a truthful adjustment path; reject an attractive but uneditable preset.
-- The original visual reference is absent. These standards and native examples are independent quality criteria; exact reference fidelity remains BLOCKED.
-
-## Native acceptance tests and measurements
-
-Run on a disposable native clone/new document, not the accepted fixtures. Every scenario includes screenshots and observable selection/Inspector state, not only API results.
-
-1. Reproduce the nested Text issue, trace pointer-down → movement threshold → click/double-click ownership, then prove ordinary click, double-click and Enter behave for root/Flow/nested Layered Text. Test Container padding drag, image body drag, true Groups, locked and Curated nodes, controls, caret input and IME ownership. No click-only move/history entry.
-2. Select nested Image and reach Replace in at most one explicit contextual action without scrolling past geometry. Return from the media browser to the same target. Existing X/Y/W/H, parent, action, image identity semantics and unrelated styles persist.
-3. Reach root/Container look chooser within one contextual action; apply a look with the next action. Borders/corners/depth are visible in Surface without entering Placement or Contents. Exact fields and handles still agree.
-4. From native Blank, add the starter in each of the three looks. One commit inserts valid parent/child identities and sibling order. Undo removes the entire insertion; Redo restores the same inserted IDs. No stateful multi-command partial construction.
-5. Edit heading/body; replace optional image; set a real local CTA destination. Test no-image and long-copy cases. All content is native and separately selectable; no rasterized substitute.
-6. Apply Surface-only style to an existing rotated/padded Container containing custom Text, Image and a configured Button. Assert content, action, asset identity, hierarchy, geometry, page bounds, Flow/Layered mode and unrelated props are unchanged. Include root Inset/full-bleed preservation and all four parent/child layout combinations.
-7. Change a Text type style; source characters, case, line breaks, box surface and intended dimensions remain unchanged unless specifically declared. Test loading/failure/fallback and correct available font variants.
-8. Browse without applying, change selection while a chooser is open, then attempt apply. Retarget explicitly or cancel with visible destination truth; never apply a stale operation to the previous object.
-9. Compare native preview swatch versus actual applied result, Canvas versus Preview at100% and75%, then Save/reload. Record renderer/asset/font differences as failures, not approximations silently accepted.
-10. Repeat Undo/Redo across starter, appearance, content replacement, movement and save/reload boundaries according to canonical history’s existing persistence contract. Do not promise history survives reload unless it currently does.
-11. At390px, keyboard focus and primary actions remain visible; scrollable panels do not manipulate the canvas. Test touch alternatives to hover. Physical phone/IME and Safari/WebKit remain separate gates until actually executed.
-12. Focused shared-authority regressions, broader Studio/Card suites and production build; retain unchanged Cabinet Noir integrity check and report its missing-original dependency separately. Keep a native hands-on fixture and immutable source/evidence commit.
-
-Measured now: current Material chooser has2 entries; current rail has5 disabled destinations; native nested double-click failed to enter text while hit-testing reached its text span. Prior phone target measurements are in the Slice3 handoff. **No task-time improvement or novice success rate has been measured.**
-
-Evaluation plan after construction: repeat the same tasks before/after and record deliberate clicks, unrelated panel transitions, wrong-target edits, time, and help requests. Recruit3–5 first-time users for a formative check; goal is completion without coaching, zero destructive wrong-target changes, and first useful Preview within5minutes. These are proposed targets, not statistical certification or current performance claims. Report every failure and use it to revise the bounded candidate.
-
-## Expected source changes and constraints
-
-| Expected module | Bounded responsibility |
+| Expected path | Responsibility |
 | --- | --- |
-| `components/fusion/creative-studio/creative-composition-canvas.tsx` | Correct shared drag threshold/hit ownership after tracing; consistent child edit affordance; no geometry rewrite |
-| `lib/fusion/creative-studio/selection-ref.ts`, `selection-mode.ts`, `platform/studio-selection-target.ts` | Reuse identity/scope; change only if reproduction demonstrates a shared authority defect |
-| `components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx` | Existing task routing and target capture; direct Replace/Text/Surface entry points |
-| `studio-composition-inspector.tsx`, `studio-card-surface-inspector.tsx`, `studio-surface-materials.tsx` | Content-first Image task, compatible look chooser and common Surface adjustments |
-| `studio-discovery-drawer.tsx`, `reconstitution/studio-rail-registry.ts` | Starter entry in existing drawer; hide unready nav; descriptive Outline fallback labels |
-| `lib/fusion/creative-studio/platform/discovery.ts`, existing catalog/activity adapters | Use current resource/compatibility/readiness contract; no new remote catalog, schema or personal-template persistence |
-| A small `reconstitution/native-starting-compositions.ts` consumer beside existing catalogs (proposed) | Typed versioned data and pure composition builder using existing node/parent/Material/Text helpers; not a new template engine |
-| `components/card/tap-card-builder.tsx` | One canonical command integration for validated starter result, with existing history/dirty/save behavior |
-| Existing `material-engine.ts`, Surface and Text adapters | Only demonstrated apply/refine parity fixes required for chosen three looks; no new effects or taxonomy |
-| Existing focused tests plus native evidence documents | Pointer/selection regression, style-field isolation, composition validity, history and native visual acceptance |
+| `components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx` | Content-first contextual routing and clear target return; empty-canvas shortcut to existing drawer |
+| `components/fusion/card/reconstitution/studio-composition-inspector.tsx` | Text/Image/Button task ordering and labels, precision as sibling task |
+| `components/fusion/card/reconstitution/studio-card-surface-inspector.tsx` | Root appearance-only look entry |
+| `components/fusion/card/reconstitution/studio-surface-materials.tsx` | Canonical look preview/apply/refine for root and Container |
+| `components/fusion/card/reconstitution/studio-discovery-drawer.tsx` | Designed/Blank choices and meaningful derived Outline labels where owned here |
+| `lib/fusion/creative-studio/reconstitution/studio-catalog-adapters.ts` | Native resource registration and compatibility mapping |
+| `lib/fusion/creative-studio/reconstitution/native-starting-compositions.ts` (new, proposed) | Small typed recipe consumer/pure adapter; use existing authority helpers |
+| `components/card/tap-card-builder.tsx` | One validated command integration with existing history/selection/dirty handling |
+| `lib/fusion/creative-studio/__tests__/native-starting-compositions.test.ts` (new, proposed) | Native identity/hierarchy, insertion atomicity and scope invariants |
+| `lib/fusion/creative-studio/__tests__/surface-authoring-truth.test.ts` | Appearance-field isolation and parity regressions |
+| `lib/fusion/creative-studio/__tests__/studio-selection-target.test.ts` | Target/context validity and derived labeling tests if shared helper changes |
+| `docs/product-reconstitution/creative-studio-platform/SLICE4_*` and a new proof directory | Evidence, changed-file manifest, fixture instructions, independent review handoff |
 
-Final file list may narrow after the initial trace. Any new persistence/schema contract, renderer, layout engine, full font/media browser redesign, or new business capability is outside this proposal and requires separate approval.
+Consume `platform/discovery.ts`, `surface-capability.ts`, `studio-selection-target.ts`, parent/geometry/Text authorities without changes by default. Modify an authority only if a demonstrated blocker requires a minimal shared correction and report it explicitly. No planned edits to the geometry engine, pointer engine, publishing/API/schema, recovery engine or asset backend. If actual Outline label ownership differs, identify the existing owner in the implementation handoff; do not build another hierarchy representation.
 
-## Architecture, dependencies and future compatibility
+## Deliberate deferrals and extension path
 
-The demonstrated small foundation is an **atomic composition application adapter**: construct using existing pure native operations, validate and commit once. The existing generic resource contract supplies identity/version/readiness/compatibility. A second foundation is unnecessary unless implementation proves otherwise; do not prebuild an AI operation registry, style-token cascade or template synchronization service.
+Defer complete Experience starters to 4B; Editorial/glass/metal/soft families until qualified; personal saved templates, synchronized resources, global restyling, advanced typography/font-browser overhaul, new crop modes, responsive overrides, wrapping, Scale Contents, cross-parent matching and business domains.
 
-Principal risks: legacy pseudo-Containers masquerading as native parents; preset application overwriting manual styles or actions; stale target refs while browsing; font fallback changing layout; image rights/missing assets; translucent material contrast; early drag activation breaking click/caret behavior; preview-only styles; preset defaults embedding fixed heights that break Flow growth. The tests above address those risks at their shared authorities.
+Future manual/guided/tApIt consumers should select the same versioned resources, inspect compatible operations/affected fields, preview a validated candidate and commit through the same commands. Newly created nodes remain manually editable. This slice establishes no AI prompts, execution service, entitlement system, membership, collectible, commerce or Campaign infrastructure. Artist/operator reuse follows the same document/asset ownership and requires the separately tracked cloning defect to be verified.
 
-Manual and future tApIt/guided creation must use the same resource compatibility checks, document/parent/geometry/Material/Text projection, validation, commands/history and publishing boundaries. A future assistant can propose the same versioned resource and scope, preview a validated candidate, preserve user-approved fields and execute the same command. No AI execution, prompt infrastructure, memberships, fan relations, collectibles, commerce or Campaigns is implemented now.
-
-Dependencies: Product Owner scope approval; existing local dev environment; approved sample Asset or deliberately designed no-photo default; catalog fonts available or visibly handled; successful shared-pointer trace; rights-safe preview resources. No migration or new service required by the proposed design. If one becomes necessary, stop and present the conflict.
-
-Keep open: nested selection until corrected/accepted; exact reference comparison; physical touch/keyboard/IME; Safari/WebKit; assistive technology and accessibility testing; Cabinet Noir original-asset reproducibility; signed Live Device/public-runtime end-to-end and full staging/release verification; production hashes BLOCKED. Acceptance of this proposal would authorize local construction only, never production changes, main merge, migrations or Railway deployment.
-
-## Research rationale and visual example
-
-Canva’s current documented flow places palette/font combinations behind selection of the page and its Edit task. That supports contextual visual choices without a second permanent rail. Studio should borrow the scoped workflow, not silently apply global styles. [Canva guidance](https://www.canva.com/en_au/help/color-and-font-combinations/).
-
-Figma documents Canvas and layer-panel selection, nested navigation through double-click/Enter, and explicit parent/child traversal. Studio should make scope visible and preserve its existing multi-selection modifiers; the goal is predictable ownership, not copying shortcuts that conflict with current contracts. [Figma guidance](https://help.figma.com/hc/en-us/articles/360040449873-Select-layers-and-objects).
-
-![Existing editable native composition; not a proposed-preset rendering or exact-reference comparison](proofs/slice4-discovery-planning-2026-10-24/06-accepted-native-visual-example.png)
-
-This accepted functional example proves native ingredients are usable; it does not certify the proposed three looks. No new prototype composition or application code was created during this planning pass. The next visual proof must be built through native controls and the approved application adapter, with editable components and truthful screenshots.
-
-## Review decision requested
-
-Approve or revise **Select, Style, Make It Yours** as bounded above: nested-selection correction, contextual content/Surface access, one Flow starter with three quality-gated looks. Recommended exclusions: global theme application, full template service, new crop engine, responsive overrides, six-family catalog, broad navigation redesign and speculative platform work.
-
-The implementation prompt is [here](SLICE4_DESIGN_DISCOVERY_IMPLEMENTATION_PROMPT_2026-10-24.md). Until explicit approval, application code remains unchanged.
+Approval sought is **local construction of Start and Refine 4A only**. No staging, deployment, main merge, migration, publication, Access, credentials, permanent QR or production changes. Production hashes remain BLOCKED. All release gates in the acceptance record remain open.

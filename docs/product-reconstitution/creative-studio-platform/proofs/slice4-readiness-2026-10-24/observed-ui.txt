@@ -1,0 +1,616 @@
+Read-only UI excerpts; October 24, 2026. Current local checkout includes unrelated Library/Map WIP. Not release certification.
+
+TEXT TASK
+  - complementary:
+    - paragraph: Card Surface › Smoked Glass Container › Text
+    - heading "Element · Text" [level=2]
+    - button "Parent"
+    - button "Close Inspector":
+    - paragraph: Position · Local layer
+    - paragraph: "Parent: Smoked Glass Container · 286 × 350 px. Placement is constrained by this parent."
+    - paragraph: Display units · normalized geometry remains the only saved truth
+    - button "percent" [pressed]
+    - button "px"
+    - paragraph: Height follows content or the component recipe. Resize width here; use the existing height behavior or frame-height control below when supported.
+    - text: X %
+    - spinbutton "X %": "4.2"
+    - text: Y %
+    - spinbutton "Y %": "62.26"
+    - text: Width %
+    - spinbutton "Width %": "87.8"
+    - text: Height %
+    - spinbutton "Height %" [disabled]: "18.31"
+    - text: Rotation °
+    - spinbutton "Rotation °": "0"
+    - button "Reset"
+    - paragraph: "Position reference: parent top-left. X/Y locate the Placement frame; resize handles hold the opposite edge or corner, and rotation uses the frame center. Stored anchor metadata is preserved but has no Layered positioning effect."
+    - paragraph: Local order 2 of 2 · z 2
+    - button "Send to back"
+    - button "Send backward"
+    - button "Bring forward"
+    - button "Bring to front"
+    - generic: Lock
+    - checkbox "Lock"
+    - generic: Visible
+    - checkbox "Visible" [checked]
+    - paragraph: "Placement includes authored padding and empty space; it need not hug painted pixels. Minimum width 8% of parent; minimum height 4%. Resize: width only · bounds: constrain · edge guides apply to unrotated free resizing; rotated and aspect-locked resizing preserves local axes and proportions."
+    - paragraph: Selection 251 × 101 px · auto Text height. Content layout controls this frame; stored Placement height is not rewritten by wrapping or font loading.
+    - strong: Frame diagnostics
+    - text: Placement is authored layout. Text Visual uses the measured text box plus an estimated effect envelope; other Visual bounds are estimated. Overlays are never saved.
+    - checkbox "Frame diagnostics Placement is authored layout. Text Visual uses the measured text box plus an estimated effect envelope; other Visual bounds are estimated. Overlays are never saved."
+    - paragraph: Placement 251×64 px · Estimated paint overflow 0px · Touch 251×101 px
+    - generic: □ Placement
+    - generic: □ Visual
+    - generic: □ Touch
+    - paragraph: Parent bounds
+    - generic: Allow authored overflow
+    - checkbox "Allow authored overflow"
+    - paragraph: Off keeps this layer within its Container. On preserves authored geometry beyond that boundary.
+    - paragraph: Content
+    - text: Text
+    - textbox "Edit Text content": Stories worth staying for.
+    - generic: Escape cancels · Enter finishes · Undo restores a completed edit.
+    - paragraph: Role
+    - button "Heading Text Box A decisive primary idea.":
+      - strong: Heading Text Box
+      - generic: A decisive primary idea.
+    - button "Subheading Text Box A supporting promise or section lead." [pressed]:
+      - strong: Subheading Text Box
+      - generic: A supporting promise or section lead.
+    - button "Body Text Box Comfortable reading for useful detail.":
+      - strong: Body Text Box
+      - generic: Comfortable reading for useful detail.
+    - button "Caption / Label Compact context, category, or eyebrow copy.":
+      - strong: Caption / Label
+      - generic: Compact context, category, or eyebrow copy.
+    - button "Quote Text Box An expressive testimonial or statement.":
+      - strong: Quote Text Box
+      - generic: An expressive testimonial or statement.
+    - button "Free Text Box Unstyled copy ready for direct placement.":
+      - strong: Free Text Box
+      - generic: Unstyled copy ready for direct placement.
+    - paragraph: Typeface
+    - paragraph: Inter
+    - paragraph: From Brand
+    - button "Browse fonts"
+    - paragraph: Letter case
+    - paragraph: Presentation only
+    - button "none" [pressed]
+    - button "uppercase"
+    - button "lowercase"
+    - button "capitalize"
+    - paragraph: Changes appearance only. Your original characters remain editable.
+    - paragraph: Typography
+    - generic: Size
+    - generic: Size exact value
+    - spinbutton "Size exact value px": "32"
+    - generic: px
+    - button "Reset Size":
+    - slider "Size": "32"
+    - generic: Weight
+    - generic: Weight exact value
+    - spinbutton "Weight exact value": "650"
+    - button "Reset Weight":
+    - slider "Weight": "650"
+    - generic: Line height
+    - generic: Line height exact value
+    - spinbutton "Line height exact value": "1.2"
+    - button "Reset Line height":
+    - slider "Line height": "1.2"
+    - generic: Letter spacing
+    - generic: Letter spacing exact value
+    - spinbutton "Letter spacing exact value": "-0.01"
+    - button "Reset Letter spacing":
+    - slider "Letter spacing": "-0.01"
+    - paragraph: Alignment
+    - button "left"
+    - button "center" [pressed]
+    - button "right"
+    - paragraph: Color
+    - paragraph: From Brand
+    - generic: Choose Text color
+    - textbox "Choose Text color": "#f59e0b"
+    - text: Text color
+    - textbox "Text color": "#F59E0B"
+    - paragraph: Source · custom
+    - generic: Document
+    - 'button "Use Document color #FFFFFF"'
+    - 'button "Use Document color #F8FAFC"'
+    - 'button "Use Document color #111827"'
+    - 'button "Use Document color #000000"'
+    - button "Reset":
+      - text: Reset
+    - generic "Brand colors":
+      - 'button "Use Brand color #f8fafc"'
+      - 'button "Use Brand color #22c55e"'
+      - 'button "Use Brand color #0ea5e9"'
+      - 'button "Use Brand color #f59e0b"'
+    - paragraph: Text Box
+    - paragraph: The box surface stays independent from editable glyphs and uses the same canonical Text renderer in Studio, Preview, Live Device, and public Card.
+    - paragraph: Surface
+    - button "transparent"
+    - button "filled" [pressed]
+    - button "outlined"
+    - generic: Choose Box fill
+    - textbox "Choose Box fill": "#111827"
+    - text: Box fill
+    - textbox "Box fill": "#111827"
+    - paragraph: Source · custom
+    - generic: Document
+    - 'button "Use Document color #FFFFFF"'
+    - 'button "Use Document color #F8FAFC"'
+    - 'button "Use Document color #111827"'
+    - 'button "Use Document color #000000"'
+    - button "Reset":
+      - text: Reset
+    - generic: Fill opacity
+    - generic: Fill opacity exact value
+    - spinbutton "Fill opacity exact value": "1"
+    - button "Reset Fill opacity":
+    - slider "Fill opacity": "1"
+    - generic: Choose Border color
+    - textbox "Choose Border color": "#ffffff"
+    - text: Border color
+    - textbox "Border color": "#FFFFFF"
+    - paragraph: Source · custom
+    - generic: Document
+    - 'button "Use Document color #FFFFFF"'
+    - 'button "Use Document color #F8FAFC"'
+    - 'button "Use Document color #111827"'
+    - 'button "Use Document color #000000"'
+    - button "Reset":
+      - text: Reset
+    - generic: Border width
+    - generic: Border width exact value
+    - spinbutton "Border width exact value px": "0"
+    - generic: px
+    - button "Reset Border width":
+    - slider "Border width": "0"
+    - generic: Corner radius
+    - generic: Corner radius exact value
+    - spinbutton "Corner radius exact value px": "12"
+    - generic: px
+    - button "Reset Corner radius":
+    - slider "Corner radius": "12"
+    - generic: Padding
+    - generic: Padding exact value
+    - spinbutton "Padding exact value px": "12"
+    - generic: px
+    - button "Reset Padding":
+    - slider "Padding": "12"
+    - generic: Shadow
+    - generic: Shadow exact value
+    - spinbutton "Shadow exact value px": "0"
+    - generic: px
+    - button "Reset Shadow":
+    - slider "Shadow": "0"
+    - generic: Overall opacity
+    - generic: Overall opacity exact value
+    - spinbutton "Overall opacity exact value": "1"
+    - button "Reset Overall opacity":
+    - slider "Overall opacity": "1"
+    - paragraph: Text Box height
+    - paragraph: Height behavior
+    - button "auto" [pressed]
+    - button "minimum"
+    - button "fixed"
+    - paragraph: Auto grows with content. Minimum grows but never below the authored minimum. Fixed uses an explicit height and overflow choice.
+    - paragraph: Accessibility
+    - generic: Content
+    - strong: Pass
+    - paragraph: Present
+    - generic: Phone readability
+    - strong: Pass
+    - paragraph: Comfortable size
+    - generic: Contrast
+    - strong: Check in Preview
+    - paragraph: Contrast cannot be verified against a transparent or layered surface. Check it in Preview.
+    - paragraph: Move to another parent
+    - button "Card Surface"
+    - button "Brand Container"
+    - button "Smoked Glass Container" [pressed]
+    - paragraph: This changes composition membership and flow order. Front/back stacking appears only when overlapping Modules support true z-order.
+    - button "Wrap in Container":
+      - text: Wrap in Container
+- alert
+
+FONT DISCOVERY
+  - complementary:
+    - paragraph: Card Surface › Smoked Glass Container › Text
+    - heading "Element · Text" [level=2]
+    - button "Parent"
+    - button "Close Inspector":
+    - paragraph: Position · Local layer
+    - paragraph: "Parent: Smoked Glass Container · 286 × 350 px. Placement is constrained by this parent."
+    - paragraph: Display units · normalized geometry remains the only saved truth
+    - button "percent" [pressed]
+    - button "px"
+    - paragraph: Height follows content or the component recipe. Resize width here; use the existing height behavior or frame-height control below when supported.
+    - text: X %
+    - spinbutton "X %": "4.2"
+    - text: Y %
+    - spinbutton "Y %": "62.26"
+    - text: Width %
+    - spinbutton "Width %": "87.8"
+    - text: Height %
+    - spinbutton "Height %" [disabled]: "18.31"
+    - text: Rotation °
+    - spinbutton "Rotation °": "0"
+    - button "Reset"
+    - paragraph: "Position reference: parent top-left. X/Y locate the Placement frame; resize handles hold the opposite edge or corner, and rotation uses the frame center. Stored anchor metadata is preserved but has no Layered positioning effect."
+    - paragraph: Local order 2 of 2 · z 2
+    - button "Send to back"
+    - button "Send backward"
+    - button "Bring forward"
+    - button "Bring to front"
+    - generic: Lock
+    - checkbox "Lock"
+    - generic: Visible
+    - checkbox "Visible" [checked]
+    - paragraph: "Placement includes authored padding and empty space; it need not hug painted pixels. Minimum width 8% of parent; minimum height 4%. Resize: width only · bounds: constrain · edge guides apply to unrotated free resizing; rotated and aspect-locked resizing preserves local axes and proportions."
+    - paragraph: Selection 251 × 101 px · auto Text height. Content layout controls this frame; stored Placement height is not rewritten by wrapping or font loading.
+    - strong: Frame diagnostics
+    - text: Placement is authored layout. Text Visual uses the measured text box plus an estimated effect envelope; other Visual bounds are estimated. Overlays are never saved.
+    - checkbox "Frame diagnostics Placement is authored layout. Text Visual uses the measured text box plus an estimated effect envelope; other Visual bounds are estimated. Overlays are never saved."
+    - paragraph: Placement 251×64 px · Estimated paint overflow 0px · Touch 251×101 px
+    - generic: □ Placement
+    - generic: □ Visual
+    - generic: □ Touch
+    - paragraph: Parent bounds
+    - generic: Allow authored overflow
+    - checkbox "Allow authored overflow"
+    - paragraph: Off keeps this layer within its Container. On preserves authored geometry beyond that boundary.
+    - paragraph: Content
+    - text: Text
+    - textbox "Edit Text content": Stories worth staying for.
+    - generic: Escape cancels · Enter finishes · Undo restores a completed edit.
+    - paragraph: Role
+    - button "Heading Text Box A decisive primary idea.":
+      - strong: Heading Text Box
+      - generic: A decisive primary idea.
+    - button "Subheading Text Box A supporting promise or section lead." [pressed]:
+      - strong: Subheading Text Box
+      - generic: A supporting promise or section lead.
+    - button "Body Text Box Comfortable reading for useful detail.":
+      - strong: Body Text Box
+      - generic: Comfortable reading for useful detail.
+    - button "Caption / Label Compact context, category, or eyebrow copy.":
+      - strong: Caption / Label
+      - generic: Compact context, category, or eyebrow copy.
+    - button "Quote Text Box An expressive testimonial or statement.":
+      - strong: Quote Text Box
+      - generic: An expressive testimonial or statement.
+    - button "Free Text Box Unstyled copy ready for direct placement.":
+      - strong: Free Text Box
+      - generic: Unstyled copy ready for direct placement.
+    - paragraph: Typeface
+    - paragraph: Inter
+    - paragraph: From Brand
+    - button "Browse fonts" [active]
+    - textbox:
+      - /placeholder: Search open-source fonts
+    - paragraph: Recent and recommended
+    - button "Playfair Display editorial":
+      - generic: Playfair Display
+      - generic: editorial
+    - button "Space Grotesk geometric":
+      - generic: Space Grotesk
+      - generic: geometric
+    - button "Source Serif 4 serif":
+      - generic: Source Serif 4
+      - generic: serif
+    - button "Inter sans-serif":
+      - generic: Inter
+      - generic: sans-serif
+    - button "Manrope sans-serif":
+      - generic: Manrope
+      - generic: sans-serif
+    - button "Lexend sans-serif":
+      - generic: Lexend
+      - generic: sans-serif
+    - paragraph: Letter case
+    - paragraph: Presentation only
+    - button "none" [pressed]
+    - button "uppercase"
+    - button "lowercase"
+    - button "capitalize"
+    - paragraph: Changes appearance only. Your original characters remain editable.
+    - paragraph: Typography
+    - generic: Size
+    - generic: Size exact value
+    - spinbutton "Size exact value px": "32"
+    - generic: px
+    - button "Reset Size":
+    - slider "Size": "32"
+    - generic: Weight
+    - generic: Weight exact value
+    - spinbutton "Weight exact value": "650"
+    - button "Reset Weight":
+    - slider "Weight": "650"
+    - generic: Line height
+    - generic: Line height exact value
+    - spinbutton "Line height exact value": "1.2"
+    - button "Reset Line height":
+    - slider "Line height": "1.2"
+    - generic: Letter spacing
+    - generic: Letter spacing exact value
+    - spinbutton "Letter spacing exact value": "-0.01"
+    - button "Reset Letter spacing":
+    - slider "Letter spacing": "-0.01"
+    - paragraph: Alignment
+    - button "left"
+    - button "center" [pressed]
+    - button "right"
+    - paragraph: Color
+    - paragraph: From Brand
+    - generic: Choose Text color
+    - textbox "Choose Text color": "#f59e0b"
+    - text: Text color
+    - textbox "Text color": "#F59E0B"
+    - paragraph: Source · custom
+    - generic: Document
+    - 'button "Use Document color #FFFFFF"'
+    - 'button "Use Document color #F8FAFC"'
+    - 'button "Use Document color #111827"'
+    - 'button "Use Document color #000000"'
+    - button "Reset":
+      - text: Reset
+    - generic "Brand colors":
+      - 'button "Use Brand color #f8fafc"'
+      - 'button "Use Brand color #22c55e"'
+      - 'button "Use Brand color #0ea5e9"'
+      - 'button "Use Brand color #f59e0b"'
+    - paragraph: Text Box
+    - paragraph: The box surface stays independent from editable glyphs and uses the same canonical Text renderer in Studio, Preview, Live Device, and public Card.
+    - paragraph: Surface
+    - button "transparent"
+    - button "filled" [pressed]
+    - button "outlined"
+    - generic: Choose Box fill
+    - textbox "Choose Box fill": "#111827"
+    - text: Box fill
+    - textbox "Box fill": "#111827"
+    - paragraph: Source · custom
+    - generic: Document
+    - 'button "Use Document color #FFFFFF"'
+    - 'button "Use Document color #F8FAFC"'
+    - 'button "Use Document color #111827"'
+    - 'button "Use Document color #000000"'
+    - button "Reset":
+      - text: Reset
+    - generic: Fill opacity
+    - generic: Fill opacity exact value
+    - spinbutton "Fill opacity exact value": "1"
+    - button "Reset Fill opacity":
+    - slider "Fill opacity": "1"
+    - generic: Choose Border color
+    - textbox "Choose Border color": "#ffffff"
+    - text: Border color
+    - textbox "Border color": "#FFFFFF"
+    - paragraph: Source · custom
+    - generic: Document
+    - 'button "Use Document color #FFFFFF"'
+    - 'button "Use Document color #F8FAFC"'
+    - 'button "Use Document color #111827"'
+    - 'button "Use Document color #000000"'
+    - button "Reset":
+      - text: Reset
+    - generic: Border width
+    - generic: Border width exact value
+    - spinbutton "Border width exact value px": "0"
+    - generic: px
+    - button "Reset Border width":
+    - slider "Border width": "0"
+    - generic: Corner radius
+    - generic: Corner radius exact value
+    - spinbutton "Corner radius exact value px": "12"
+    - generic: px
+    - button "Reset Corner radius":
+    - slider "Corner radius": "12"
+    - generic: Padding
+    - generic: Padding exact value
+    - spinbutton "Padding exact value px": "12"
+    - generic: px
+    - button "Reset Padding":
+    - slider "Padding": "12"
+    - generic: Shadow
+    - generic: Shadow exact value
+    - spinbutton "Shadow exact value px": "0"
+    - generic: px
+    - button "Reset Shadow":
+    - slider "Shadow": "0"
+    - generic: Overall opacity
+    - generic: Overall opacity exact value
+    - spinbutton "Overall opacity exact value": "1"
+    - button "Reset Overall opacity":
+    - slider "Overall opacity": "1"
+    - paragraph: Text Box height
+    - paragraph: Height behavior
+    - button "auto" [pressed]
+    - button "minimum"
+    - button "fixed"
+    - paragraph: Auto grows with content. Minimum grows but never below the authored minimum. Fixed uses an explicit height and overflow choice.
+    - paragraph: Accessibility
+    - generic: Content
+    - strong: Pass
+    - paragraph: Present
+    - generic: Phone readability
+    - strong: Pass
+    - paragraph: Comfortable size
+    - generic: Contrast
+    - strong: Check in Preview
+    - paragraph: Contrast cannot be verified against a transparent or layered surface. Check it in Preview.
+    - paragraph: Move to another parent
+    - button "Card Surface"
+    - button "Brand Container"
+    - button "Smoked Glass Container" [pressed]
+    - paragraph: This changes composition membership and flow order. Front/back stacking appears only when overlapping Modules support true z-order.
+    - button "Wrap in Container":
+      - text: Wrap in Container
+- alert
+
+CONTAINERS
+- link "Skip to main content":
+  - /url: "#main-content"
+- main:
+  - button "Close editor":
+  - paragraph:
+    - generic: Client / Artist
+    - strong: Local acceptance
+  - paragraph:
+    - generic: Experience
+    - strong: Slice 3 · Native Surface Studio
+  - paragraph:
+    - generic: Current Page
+    - strong: Home
+  - paragraph: Recovery needs review
+  - button "Pages":
+    - generic: Pages
+  - button "Open Card Surface appearance":
+    - generic: Surface
+  - button "Copy selected Module or Container":
+  - button "Paste copied Module or Container" [disabled]:
+  - button "Undo" [disabled]:
+  - button "Redo" [disabled]:
+  - button "Select multiple":
+    - generic: Select multiple
+  - button "Save" [disabled]:
+    - generic: Save
+  - group "Preview size":
+    - button "desktop preview" [pressed]:
+    - button "tablet preview":
+    - button "phone preview":
+  - button "Phone Preview":
+    - generic: Phone Preview
+  - button "Public QR":
+    - generic: Public QR
+  - button "Preview":
+    - generic: Preview
+  - button "Publish"
+  - status:
+    - generic: A local recovery copy predates the saved Card. Choose which version to continue with.
+    - button "Restore local copy"
+    - button "Discard local copy"
+  - navigation "Editor tools":
+    - button "Templates" [disabled]:
+      - generic: Templates
+    - button "Add" [pressed]:
+      - generic: Add
+    - button "Text" [disabled]:
+      - generic: Text
+    - button "Design" [disabled]:
+      - generic: Design
+    - button "Brand" [disabled]:
+      - generic: Brand
+    - button "Assets" [disabled]:
+      - generic: Assets
+    - button "Outline":
+      - generic: Outline
+  - complementary "Containers drawer":
+    - button "Back":
+    - paragraph: Containers
+    - paragraph: Add / Containers
+    - button "Close drawer":
+    - paragraph: Optional flow regions
+    - paragraph: Containers group Modules or give a region its own surface. They are never required.
+    - button "Transparent":
+      - strong: Transparent
+    - button "Brand Color":
+      - strong: Brand Color
+    - button "Smoked Glass":
+      - strong: Smoked Glass
+    - button "Image-backed":
+      - strong: Image-backed
+  - main "Card canvas":
+    - button "Edit · Image"
+    - button "Open Position":
+      - generic: Position
+    - button "More actions for Image": •••
+    - generic: Owner Private Demo ms8jfzoi
+    - generic: Active
+    - generic: 1 Tap Point
+    - generic: No Campaign Spotlight
+    - generic: TapSave on
+    - generic: Brand Kit
+    - generic: Saved draft · Draft changes not published
+    - generic: Published revision 1
+    - button "Publish":
+      - text: Publish
+    - link "Open public Card":
+      - /url: /t/arcemberphone01?public=1
+    - button "Fit"
+    - button "Zoom out": −
+    - generic: Canvas zoom
+    - combobox "Canvas zoom":
+      - option "Fit" [selected]
+      - option "50%"
+      - option "75%"
+      - option "100%"
+      - option "150%"
+      - option "200%"
+    - button "Zoom in": +
+    - generic "More view controls": •••
+    - group "Home composition":
+      - list:
+        - listitem: "text: A quiet kind of extraordinary."
+        - listitem: "image: Farm Truck.jpeg"
+        - listitem: "text: An intimate collection of moments, made to be explored. Slow down. Stay curious."
+        - listitem: "text: Stories worth staying for."
+        - listitem: "frame: module-M2-V8lau"
+        - listitem: "button: Explore the collection"
+      - group "Brand Container":
+        - button "Text Module":
+          - generic: A quiet kind of extraordinary.
+        - button "Text Module":
+          - generic: An intimate collection of moments, made to be explored. Slow down. Stay curious.
+        - group "Button Module":
+          - generic "Explore the collection":
+            - generic: Explore the collection
+      - group "Smoked Glass Container":
+        - button "Image Module":
+          - button "Move Image within its layered Container.":
+          - button "Resize Image nw"
+          - button "Resize Image n"
+          - button "Resize Image ne"
+          - button "Resize Image e"
+          - button "Resize Image se"
+          - button "Resize Image s"
+          - button "Resize Image sw"
+          - button "Resize Image w"
+          - button "Rotate Image. Hold Shift for 15 degree increments."
+          - img "Farm Truck.jpeg"
+        - button "Text Module":
+          - generic: Stories worth staying for.
+      - group "Love & Theft Bound Single Stack Curated System":
+        - group "Love & Theft Bound Single Stack":
+          - list:
+            - listitem: "Curated System: Love & Theft Bound Single Stack"
+          - link "Watch Love & Theft on YouTube":
+            - /url: https://youtube.com/
+            - generic: Watch Now
+            - generic: Videos & live sessions
+            - generic: →
+          - link "Listen to Love & Theft on Spotify":
+            - /url: https://open.spotify.com/
+            - generic: Listen Now
+            - generic: New music & official releases
+            - generic: →
+    - button "Drag to extend Card page": ↕ Extend page · drag or click +240
+    - generic: Minimum 1003px
+    - generic: Minimum page height
+    - spinbutton "Minimum Card page height": "1003"
+    - button "Fit to content"
+    - generic: "Required content 1003px · Effective root 1003px · Layered plane 979px. Minimum preserves blank space. Extend page adds usable room; Fit trims unused space. Layered limit: 1,600px."
+    - generic "Card utilities":
+      - button "Keep this Card":
+        - text: Keep this Card
+      - button "Ask a Question":
+        - text: Ask a Question
+    - navigation "Experience pages":
+      - button "Home":
+        - generic: Home
+- alert
+
+Responsive attempt: requested 390 x 844; inspected fixture DOM remained 1200 x 565. Screenshot 07 is desktop, not mobile evidence. Viewport override reset.
+
+Recovery banner was left untouched. No Save/Restore/Discard/Publish/Create operation performed.

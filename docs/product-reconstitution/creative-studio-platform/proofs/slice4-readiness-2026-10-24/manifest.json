@@ -1,0 +1,16 @@
+{
+  "accepted_source": "f8de7b70c03c5aadebfc85b31a4509b827762e6f",
+  "capture_type": "current desktop UI, not proposed design",
+  "mobile_check": "UNVERIFIED: requested override did not affect inspected tab",
+  "files_sha256": {
+    "01-text-task.png": "6ba862c6ede49ef446fce88ed6957692b09fec38989c4fe7c2a65394dbde260b",
+    "02-font-discovery.png": "db8287bfae8341e916d69c51c9a8fc2d28b62b2d4ef64fcf7cfc70dc55d62827",
+    "03-image-task.png": "5aaea1d695b6067976a75eae6de7fe6960ac00cca265bc68fbb251f333404337",
+    "04-asset-discovery.png": "5a97754eb247828598076599d90001b34a4c59fa3fa23af6c1695be091dc52dd",
+    "05-surface-task.png": "337f092f4a2b1c982b5978d429d18ce6547777f0187954426305452a6bcb7e33",
+    "06-container-choices.png": "63b45ec55538668e421881e3827345e79f0f5e408952e388684c6650b1963d61",
+    "07-surface-desktop.png": "3b4966277735d9ccf9387ffb632bbc436729550a80fe9809db4603ab1108c9b4",
+    "README.md": "1036fdb0185305c7b975bc84310bb516a6629fea5cb680f7492bcb34257c0d60",
+    "observed-ui.txt": "71344b9b98a0d4bd0b916d3251d50cabe0c97176ee38bd49e459e67bf5560952"
+  }
+}
