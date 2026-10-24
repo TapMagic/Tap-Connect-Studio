@@ -1,0 +1,30 @@
+[
+  {
+    "id": "cmvlsjkq7093adf9k2mzgqf7i",
+    "name": "Slice 2 \u00b7 Text Editing Truth",
+    "draftRevision": 69,
+    "publicationActive": false,
+    "sha256": "96f1d311a1f1e9e5a6d79af464d61d57071d1255e9a8e9115e4c158573030df8"
+  },
+  {
+    "id": "cmvlw4h0l07ffto9k723tgcsu",
+    "name": "Slice 3 \u00b7 Layout and clipboard companion",
+    "draftRevision": 13,
+    "publicationActive": false,
+    "sha256": "01338b6e4aa43ef98278f082c26f19fbfa65f1569a9b493754e03d68f2e9944f"
+  },
+  {
+    "id": "cmvlqtmjb01fodf9kz8q2eml7",
+    "name": "Slice 1 \u00b7 Frame and Page Truth",
+    "draftRevision": 49,
+    "publicationActive": false,
+    "sha256": "44a7a26da7644d78eb6361b91808d5aa4951c6b4f2ce1711edfe6f60ed52deeb"
+  },
+  {
+    "id": "cmvlvb1b502e7to9k6hzzalc4",
+    "name": "Slice 3 \u00b7 Native Surface Studio",
+    "draftRevision": 63,
+    "publicationActive": false,
+    "sha256": "17b01f431ab58d189a17b827f2744456bb73fdcd26c70c86090743da29a9dfc5"
+  }
+]

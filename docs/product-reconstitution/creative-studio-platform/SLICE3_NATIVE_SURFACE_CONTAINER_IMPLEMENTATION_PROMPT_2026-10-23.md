@@ -1,5 +1,7 @@
 # Self-authored construction directive — Slice 3
 
+> **Subsequent Product Owner decision — October 24, 2026:** [Slice 3 desktop functional acceptance](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md) is recorded. The remaining visual, device, accessibility and release gates remain open. This document preserves its original checkpoint wording; the [next construction proposal](SLICE4_DESIGN_DISCOVERY_SCOPE_PROPOSAL_2026-10-24.md) is planning only until explicitly approved.
+
 **PROPOSAL ONLY. Do not execute this directive until Rich explicitly approves the bounded Slice 3 scope.** This document is complete enough to hand to an implementer; its presence in GitHub is not authorization.
 
 ## Objective and inherited authority

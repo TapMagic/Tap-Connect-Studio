@@ -1,5 +1,7 @@
 # Slice 3 readiness — Native Surface/Container Visual Authoring
 
+> **Subsequent Product Owner decision — October 24, 2026:** [Slice 3 desktop functional acceptance](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md) is recorded. The remaining visual, device, accessibility and release gates remain open. This document preserves its original checkpoint wording; the [next construction proposal](SLICE4_DESIGN_DISCOVERY_SCOPE_PROPOSAL_2026-10-24.md) is planning only until explicitly approved.
+
 **Status: proposal for Product Owner and independent architecture review. No Slice 3 application implementation is authorized or included.**
 
 [Slice 2 desktop acceptance](SLICE2_DESKTOP_ACCEPTANCE_2026-10-23.md) records the accepted source `a7e3dc1e1f722038d737a8239b0ff31662fc6d79`, building on Slice 1 `3bda89b502e629e867cd5daa6b13050a0f4bcb3c`. Repository root is `/Users/rcs/Development/tap-connect-studio`, origin `https://github.com/TapMagic/Tap-Connect-Studio.git`, existing development branch `codex/studio-reconstitution-slice-1`; do not merge into main. The working tree has unrelated Library/classification, discovery/navigation, map screenshots, planning files and generated outputs. Preserve them; committed source is the review baseline, not an assumption that the entire local tree is clean.
