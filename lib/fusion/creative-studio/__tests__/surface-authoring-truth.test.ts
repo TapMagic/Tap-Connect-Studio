@@ -50,3 +50,12 @@ it('source-backed recipes produce a renderable canonical Visual Plane', async ()
   const style = visualPlaneToStyle(plane);
   assert.match(String(style.backgroundImage), /url/);
 });
+
+it('source-backed recipe parameters agree with rendered props after glass', () => {
+  const props = applySurfaceMaterial({ opacity: .72, borderWidth: 3, radius: 28, backdropBlur: 14 }, 'worn_saddle_leather');
+  const state = readStudioSurfaceState(props);
+  assert.equal(state.opacity, props.opacity);
+  assert.equal(state.borderWidthPx, props.borderWidth);
+  assert.equal(state.radiusPx, props.radius);
+  assert.equal(state.shadowPx, props.boxShadow);
+});

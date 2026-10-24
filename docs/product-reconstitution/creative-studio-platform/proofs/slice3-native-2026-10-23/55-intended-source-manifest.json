@@ -1,0 +1,67 @@
+[
+  {
+    "path": "app/api/experiences/route.ts",
+    "sha256": "cbf190634c1da5c2b6d2d085bc074cff66033eeb52879ee16be564a7a0580b9a",
+    "gitBlob": "4f9bad183a06cf14d4c2fa4678af42cfd4ec794b"
+  },
+  {
+    "path": "components/fusion/card/experience-library.tsx",
+    "sha256": "2e3be0cff5ca49394a4b3d6847e2810f53fc7215a6be4d302e19bb3abd3ab074",
+    "gitBlob": "0a6841d9e5a7480590cf97793f3b0f4c102b2e42"
+  },
+  {
+    "path": "components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx",
+    "sha256": "d09df2d6d46d9677901aee66cb111a1bbd38d4c866e9fddd651aafbb97039cad",
+    "gitBlob": "f5ad84bfec7dcae0d0c8a58a83c5b6c0a176675b"
+  },
+  {
+    "path": "components/fusion/card/reconstitution/studio-card-surface-inspector.tsx",
+    "sha256": "93650edc4736f90e8a77d65d195d2dc3a44f274369b17fb16ec1e173112e8bb1",
+    "gitBlob": "c0eb48ac9df9f5635b312c66aebc5838435879b2"
+  },
+  {
+    "path": "components/fusion/card/reconstitution/studio-composition-inspector.tsx",
+    "sha256": "0b27430c46d7b2594913bc8cbc236e8f976299dd2f0b028c0260cbb22b1fc900",
+    "gitBlob": "8783ab4f7e938cddc47af39eef3e7f33466aa6af"
+  },
+  {
+    "path": "components/fusion/card/reconstitution/studio-surface-materials.tsx",
+    "sha256": "3af82947d6ced49ec8f9a639506cce7dd1bee8e79a4e14c337b9b612159cdc87",
+    "gitBlob": "5b80d1d6c489ae66ccac8ef450acb5e923b52db2"
+  },
+  {
+    "path": "components/fusion/creative-studio/creative-composition-canvas.tsx",
+    "sha256": "8b95c96ced5dcb7bdeb0531d63652628e4e8e46306a6fd771d17177f5b357502",
+    "gitBlob": "d99468d1c28c78f81133624570408615e698a12d"
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/slice3-readiness-2026-10-23/authority-probes.ts",
+    "sha256": "ef58379fdbff77900978ad576f8b67df2dc1b8ba7e891603638f8c8200335a89",
+    "gitBlob": "891530b6d9843e83b162390c37bedabbbdf1a567"
+  },
+  {
+    "path": "lib/fusion/card/__tests__/experience-pages.test.ts",
+    "sha256": "6bcf8f33215ccf3a110d7bd9a5d83293b6b1394eadea7e9633513a6c2eebc740",
+    "gitBlob": "c219cb046771704e140d8d28a68f4b333d551e91"
+  },
+  {
+    "path": "lib/fusion/card/experience-pages.ts",
+    "sha256": "61b9dc50a62f411cfb1e0acca55c209ddd8c2f245c1b6cc0f4289b87db1d1914",
+    "gitBlob": "925bd2d63f76e828b37f997eae7dfbd28adfab39"
+  },
+  {
+    "path": "lib/fusion/creative-studio/__tests__/surface-authoring-truth.test.ts",
+    "sha256": "be100b6d757541454c427f12c34630f33d34d9c42b50de65fe3baf30b76043c5",
+    "gitBlob": "1f623e0a86c0dd82a4ade5dcbc5654419d5031f1"
+  },
+  {
+    "path": "lib/fusion/creative-studio/material-engine.ts",
+    "sha256": "aef2e655c43ca72910f6e2e806e1039bc897da62d38e5dd447aeb317d5b4d047",
+    "gitBlob": "7b59ea96068fc9c861191a105afda368a3673a9c"
+  },
+  {
+    "path": "lib/fusion/creative-studio/platform/surface-capability.ts",
+    "sha256": "32b3366dae51f57da23c581251ee1beea8d96ff4e170eac4738d7bfaa2c2e292",
+    "gitBlob": "a1fa9c806532c3e7b0c7f2b7ed23af3772126d03"
+  }
+]

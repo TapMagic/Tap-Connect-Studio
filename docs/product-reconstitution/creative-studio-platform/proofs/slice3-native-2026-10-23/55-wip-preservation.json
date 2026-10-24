@@ -1,0 +1,182 @@
+[
+  {
+    "path": "app/api/experiences/route.ts",
+    "check": "residual WIP added/removed lines",
+    "unchanged": true
+  },
+  {
+    "path": "app/dashboard/experiences/library/page.tsx",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "components/fusion/card/experience-library.tsx",
+    "check": "residual WIP added/removed lines",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/01-public-home-390.png",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/02-public-music-video-390.png",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/03-public-live-map-390.png",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase22-public-experience-map/04-direct-locked-page-390.png",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "lib/fusion/card/__tests__/experience-library.test.ts",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "lib/fusion/card/experience-library.ts",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "lib/fusion/creative-studio/__tests__/add-discover-map.test.ts",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "lib/fusion/creative-studio/platform/add-discover.ts",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "lib/fusion/studio/__tests__/ia-honesty.test.ts",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "lib/fusion/studio/ia.ts",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "tsconfig.json",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/STUDIO_CANONICAL_CONSOLIDATION_BLUEPRINT.md",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/STUDIO_CAPABILITY_CONSOLIDATION_AUDIT_2026-10-20.md",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/STUDIO_CONSOLIDATION_PHASE1_IMPLEMENTATION_PLAN.md",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/STUDIO_PRODUCT_OWNER_DECISION_SHEET.md",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/01-desktop-multiselect-toolbar.png",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/02-phone-multiselect-visible.png",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/closure-input-manifest.json",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/phase1-slice1-layered-precision/production-functional-baseline.json",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/01-desktop-entry.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/02-add-discovery.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/03-text-inspector.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/04-mobile-editor.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/05-mobile-inspector.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/06-image-inspector.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/07-media-browser.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/08-surface-inspector.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/09-draft-preview.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/10-new-experience.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/11-restored-local-surface-after-reload.jpg",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "docs/product-reconstitution/creative-studio-platform/proofs/ux-architecture-audit-2026-10-23/manifest.json",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "pnpm-lock.yaml",
+    "check": "SHA-256",
+    "unchanged": true
+  },
+  {
+    "path": "pnpm-workspace.yaml",
+    "check": "SHA-256",
+    "unchanged": true
+  }
+]

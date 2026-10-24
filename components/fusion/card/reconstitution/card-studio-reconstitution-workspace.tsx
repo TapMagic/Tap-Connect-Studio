@@ -883,7 +883,12 @@ export function CardStudioReconstitutionWorkspace({
           <PhoneTool icon={Eye} label="Preview" onClick={() => { beginTask("preview-card"); setStudioMode("preview"); }} />
           <PhoneTool icon={activeCompositionGroupId || selectionTarget?.capabilities.includes("move-directly") ? Move : MoreHorizontal} label="Position" disabled={!activeCompositionGroupId && !selectionTarget?.capabilities.includes("position")} onClick={() => activeCompositionGroupId || selectedCanonicalNode ? openCompositionInspector("arrange-card") : selectedButton ? openInspector("layout") : undefined} />
         </nav>
-      ) : null}
+      ) : (
+        <nav className="z-50 flex h-16 shrink-0 items-center justify-between gap-3 border-t border-white/10 bg-[#0b111b] px-3 md:hidden" aria-label="Phone preview tools">
+          <span className="text-xs text-white/55">Draft Preview</span>
+          <button type="button" onClick={() => { setStudioMode("edit"); finishTask(); }} className="min-h-11 rounded-xl bg-white/10 px-4 text-sm font-semibold text-white hover:bg-white/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-[#b8ff2c]" data-testid="studio-phone-exit-preview">Back to editing</button>
+        </nav>
+      )}
     </div>
   );
 }

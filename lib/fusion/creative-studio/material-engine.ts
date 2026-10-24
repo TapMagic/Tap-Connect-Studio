@@ -544,6 +544,12 @@ export function applyMaterialRecipe(
   if (recipe.sourceMaster) {
     const source = recipe.sourceMaster;
     const visualPlane = photographyVisualPlane({ url: source.src, fit: source.fit, focalX: source.focalX, focalY: source.focalY, opacity: 1, scale: source.scale, tint: source.overlayColor, overlayOpacity: source.overlayOpacity });
+    next.opacity = recipe.opacity ?? 1;
+    next.radius = recipe.radius ?? props.radius ?? 16;
+    next.borderWidth = recipe.borderWidth ?? 0;
+    next.borderColor = recipe.borderColor ?? "transparent";
+    next.borderStyle = recipe.borderStyle ?? "solid";
+    next.boxShadow = recipe.outerShadow ?? 0;
     next.materialPreset = recipe.id;
     next.backgroundImageUrl = source.src;
     next.backgroundFit = source.fit;
@@ -568,11 +574,11 @@ export function applyMaterialRecipe(
       focalX: source.focalX,
       focalY: source.focalY,
       blurPx: 0,
-      radiusPx: Number(props.radius ?? 16),
-      borderWidthPx: Number(props.borderWidth ?? 0),
-      borderColor: String(props.borderColor ?? "transparent"),
-      opacity: Number(props.opacity ?? 1),
-      shadowPx: Number(props.boxShadow ?? 0),
+      radiusPx: Number(next.radius),
+      borderWidthPx: Number(next.borderWidth),
+      borderColor: String(next.borderColor),
+      opacity: Number(next.opacity),
+      shadowPx: Number(next.boxShadow),
       visualPlane,
     };
     return next;
