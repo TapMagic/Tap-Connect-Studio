@@ -9,7 +9,7 @@ Repository: `TapMagic/Tap-Connect-Studio`. Root: `/Users/rcs/Development/tap-con
 - Approved planning baseline: `3797f717f0d2637d898cf60789c36febd1425561`.
 - 3.0 Start-Document Truth: [`3fac3a8cc922384b468dffd31290a98c991a5988`](https://github.com/TapMagic/Tap-Connect-Studio/commit/3fac3a8cc922384b468dffd31290a98c991a5988). [Checkpoint](SLICE3_START_DOCUMENT_TRUTH_CHECKPOINT_2026-10-23.md).
 - 3.1 Surface Styling and Contextual Tasks: [`65bf47da30c49d8a0f43d5c24319507cc3fc76bd`](https://github.com/TapMagic/Tap-Connect-Studio/commit/65bf47da30c49d8a0f43d5c24319507cc3fc76bd). [Checkpoint](SLICE3_SURFACE_TASKS_CHECKPOINT_2026-10-24.md).
-- 3.2 completion: the commit containing this handoff; exact final commit and remote verification returned with the delivery. [Source manifest](proofs/slice3-native-2026-10-23/55-intended-source-manifest.json) pins the tested intended source independently of documentation commits.
+- 3.2 source completion: [`8d50ad75eeb2ac9efb8197df2bf0f5bc4d6750cb`](https://github.com/TapMagic/Tap-Connect-Studio/commit/8d50ad75eeb2ac9efb8197df2bf0f5bc4d6750cb); subsequent documentation-only synchronization does not change the tested source. [Source manifest](proofs/slice3-native-2026-10-23/55-intended-source-manifest.json) pins the tested intended source independently of documentation commits.
 
 No new schema, geometry, Material, clipboard, pointer, keyboard, task, history, or rendering engine. No deployment, production mutation, main merge, migration, or business-domain/AI implementation.
 
@@ -93,7 +93,7 @@ No timed novice study was performed. No percentage improvement or task-speed est
 - Commands: `node --import tsx --test lib/fusion/creative-studio/__tests__/*.test.ts lib/fusion/card/__tests__/*.test.ts`; `npm run build -- --webpack`. Build targeted the verified local development database. Do not reuse production connection settings.
 - Export was made from3.1 plus the four intended3.2 source files. Dependencies were supplied from the installed workspace; this verifies source isolation, not a fresh package installation or independent machine.
 - Local fixture data/assets are not packaged as a new seeding subsystem. A clean checkout needs normal local configuration and existing local acceptance data, or the documented native Blank journey.
--36 unrelated tracked/untracked WIP checks preserved; shared-file residual added/removed lines compared with the initial patch. [Manifest](proofs/slice3-native-2026-10-23/55-wip-preservation.json).
+- 36 unrelated tracked/untracked WIP checks preserved; shared-file residual added/removed lines compared with the initial patch. [Manifest](proofs/slice3-native-2026-10-23/55-wip-preservation.json).
 - Accepted Slice1 remains revision49/hash44a7a26d…; accepted Slice2 remains revision69/hash96f1d311…; exact hashes unchanged in the saved-fixture snapshot.
 - Love & Theft production was not changed or reverified. Its previously verified functional baseline remains protected; production hash verification remains **BLOCKED**, not passed.
 
@@ -119,12 +119,12 @@ Recommended next step: Product Owner hands-on review using both fixtures, then a
 
 Continue: local development → automated verification → documentation/evidence → development-branch push → independent architecture/product review → Product Owner acceptance → separately authorized staging/release.
 
-The following previously requested documents were independently fetched from GitHub at3.1 and their Git blob hashes matched the intended local versions; final synchronization is rechecked at delivery:
+The following previously requested documents were independently fetched from GitHub at 3.1 and at the 3.2 source commit. Their current authority headers are now reconciled with Slice 3 construction approval and pending hands-on acceptance. Final remote hashes are checked again at delivery:
 
-| Document | Immutable GitHub version |
+| Document | Document at this handoff revision |
 | --- | --- |
-| UX architecture proposal | [STUDIO_UX_ARCHITECTURE_PROPOSAL_2026-10-22.md](https://github.com/TapMagic/Tap-Connect-Studio/blob/65bf47da30c49d8a0f43d5c24319507cc3fc76bd/docs/product-reconstitution/creative-studio-platform/STUDIO_UX_ARCHITECTURE_PROPOSAL_2026-10-22.md) |
-| Surface authoring audit | [STUDIO_SURFACE_AUTHORING_AUDIT_2026-10-22.md](https://github.com/TapMagic/Tap-Connect-Studio/blob/65bf47da30c49d8a0f43d5c24319507cc3fc76bd/docs/product-reconstitution/creative-studio-platform/STUDIO_SURFACE_AUTHORING_AUDIT_2026-10-22.md) |
-| Workflow decisions | [STUDIO_UX_WORKFLOW_DECISIONS_2026-10-22.md](https://github.com/TapMagic/Tap-Connect-Studio/blob/65bf47da30c49d8a0f43d5c24319507cc3fc76bd/docs/product-reconstitution/creative-studio-platform/STUDIO_UX_WORKFLOW_DECISIONS_2026-10-22.md) |
-| Native visual acceptance | [STUDIO_NATIVE_VISUAL_ACCEPTANCE_2026-10-22.md](https://github.com/TapMagic/Tap-Connect-Studio/blob/65bf47da30c49d8a0f43d5c24319507cc3fc76bd/docs/product-reconstitution/creative-studio-platform/STUDIO_NATIVE_VISUAL_ACCEPTANCE_2026-10-22.md) |
-| Implementation prompt | [STUDIO_UX_IMPLEMENTATION_PROMPT_2026-10-22.md](https://github.com/TapMagic/Tap-Connect-Studio/blob/65bf47da30c49d8a0f43d5c24319507cc3fc76bd/docs/product-reconstitution/creative-studio-platform/STUDIO_UX_IMPLEMENTATION_PROMPT_2026-10-22.md) |
+| UX architecture proposal | [STUDIO_UX_ARCHITECTURE_PROPOSAL_2026-10-22.md](STUDIO_UX_ARCHITECTURE_PROPOSAL_2026-10-22.md) |
+| Surface authoring audit | [STUDIO_SURFACE_AUTHORING_AUDIT_2026-10-22.md](STUDIO_SURFACE_AUTHORING_AUDIT_2026-10-22.md) |
+| Workflow decisions | [STUDIO_UX_WORKFLOW_DECISIONS_2026-10-22.md](STUDIO_UX_WORKFLOW_DECISIONS_2026-10-22.md) |
+| Native visual acceptance | [STUDIO_NATIVE_VISUAL_ACCEPTANCE_2026-10-22.md](STUDIO_NATIVE_VISUAL_ACCEPTANCE_2026-10-22.md) |
+| Implementation prompt | [STUDIO_UX_IMPLEMENTATION_PROMPT_2026-10-22.md](STUDIO_UX_IMPLEMENTATION_PROMPT_2026-10-22.md) |

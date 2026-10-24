@@ -31,9 +31,9 @@ Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
   Finished TypeScript in 16.8s ...
   Collecting page data using 9 workers ...
   Generating static pages using 9 workers (0/100) ...
-  Generating static pages using 9 workers (25/100) 
-  Generating static pages using 9 workers (50/100) 
-  Generating static pages using 9 workers (75/100) 
+  Generating static pages using 9 workers (25/100)
+  Generating static pages using 9 workers (50/100)
+  Generating static pages using 9 workers (75/100)
 ✓ Generating static pages using 9 workers (100/100) in 331ms
   Finalizing page optimization ...
   Collecting build traces ...
@@ -252,4 +252,3 @@ Route (app)
 
 ○  (Static)   prerendered as static content
 ƒ  (Dynamic)  server-rendered on demand
-

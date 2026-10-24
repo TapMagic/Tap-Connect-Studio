@@ -1,0 +1,86 @@
+{
+  "repository": "TapMagic/Tap-Connect-Studio",
+  "branch": "codex/studio-reconstitution-slice-1",
+  "sourceCommit": "8d50ad75eeb2ac9efb8197df2bf0f5bc4d6750cb",
+  "verification": "Independent GitHub connector fetch; Git blob SHA comparison to clean intended-source export",
+  "files": [
+    {
+      "path": "app/api/experiences/route.ts",
+      "remoteSha": "4f9bad183a06cf14d4c2fa4678af42cfd4ec794b",
+      "expected": "4f9bad183a06cf14d4c2fa4678af42cfd4ec794b",
+      "match": true
+    },
+    {
+      "path": "components/fusion/card/experience-library.tsx",
+      "remoteSha": "0a6841d9e5a7480590cf97793f3b0f4c102b2e42",
+      "expected": "0a6841d9e5a7480590cf97793f3b0f4c102b2e42",
+      "match": true
+    },
+    {
+      "path": "components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx",
+      "remoteSha": "f5ad84bfec7dcae0d0c8a58a83c5b6c0a176675b",
+      "expected": "f5ad84bfec7dcae0d0c8a58a83c5b6c0a176675b",
+      "match": true
+    },
+    {
+      "path": "components/fusion/card/reconstitution/studio-card-surface-inspector.tsx",
+      "remoteSha": "c0eb48ac9df9f5635b312c66aebc5838435879b2",
+      "expected": "c0eb48ac9df9f5635b312c66aebc5838435879b2",
+      "match": true
+    },
+    {
+      "path": "components/fusion/card/reconstitution/studio-composition-inspector.tsx",
+      "remoteSha": "8783ab4f7e938cddc47af39eef3e7f33466aa6af",
+      "expected": "8783ab4f7e938cddc47af39eef3e7f33466aa6af",
+      "match": true
+    },
+    {
+      "path": "components/fusion/card/reconstitution/studio-surface-materials.tsx",
+      "remoteSha": "5b80d1d6c489ae66ccac8ef450acb5e923b52db2",
+      "expected": "5b80d1d6c489ae66ccac8ef450acb5e923b52db2",
+      "match": true
+    },
+    {
+      "path": "components/fusion/creative-studio/creative-composition-canvas.tsx",
+      "remoteSha": "d99468d1c28c78f81133624570408615e698a12d",
+      "expected": "d99468d1c28c78f81133624570408615e698a12d",
+      "match": true
+    },
+    {
+      "path": "docs/product-reconstitution/creative-studio-platform/proofs/slice3-readiness-2026-10-23/authority-probes.ts",
+      "remoteSha": "891530b6d9843e83b162390c37bedabbbdf1a567",
+      "expected": "891530b6d9843e83b162390c37bedabbbdf1a567",
+      "match": true
+    },
+    {
+      "path": "lib/fusion/card/__tests__/experience-pages.test.ts",
+      "remoteSha": "c219cb046771704e140d8d28a68f4b333d551e91",
+      "expected": "c219cb046771704e140d8d28a68f4b333d551e91",
+      "match": true
+    },
+    {
+      "path": "lib/fusion/card/experience-pages.ts",
+      "remoteSha": "925bd2d63f76e828b37f997eae7dfbd28adfab39",
+      "expected": "925bd2d63f76e828b37f997eae7dfbd28adfab39",
+      "match": true
+    },
+    {
+      "path": "lib/fusion/creative-studio/__tests__/surface-authoring-truth.test.ts",
+      "remoteSha": "1f623e0a86c0dd82a4ade5dcbc5654419d5031f1",
+      "expected": "1f623e0a86c0dd82a4ade5dcbc5654419d5031f1",
+      "match": true
+    },
+    {
+      "path": "lib/fusion/creative-studio/material-engine.ts",
+      "remoteSha": "7b59ea96068fc9c861191a105afda368a3673a9c",
+      "expected": "7b59ea96068fc9c861191a105afda368a3673a9c",
+      "match": true
+    },
+    {
+      "path": "lib/fusion/creative-studio/platform/surface-capability.ts",
+      "remoteSha": "a1fa9c806532c3e7b0c7f2b7ed23af3772126d03",
+      "expected": "a1fa9c806532c3e7b0c7f2b7ed23af3772126d03",
+      "match": true
+    }
+  ]
+}
