@@ -1,0 +1,12 @@
+{
+  "components/fusion/creative-studio/creative-composition-canvas.tsx": "549488eeb5af6854d7bb0e8b217a1ac81716b0106a3fee49ff8a9d7e52b80478",
+  "components/fusion/creative-studio/studio-text-entry.tsx": "9b40c43ce6204019220e3fb6f3f11db3f7f8d5febd00eb5efe37db625a064b00",
+  "components/fusion/creative-studio/studio-frame-diagnostics.tsx": "13ea54885ddcbaf3e9fdc8cefee4c36b7377e1f532610d7f2fcefb674eac79ae",
+  "components/fusion/creative-studio/use-layered-parent-size.ts": "aa2426d62a269e5240e16e66b6a919d922345ef20dad171ca6d314372ae8f4db",
+  "components/fusion/card/reconstitution/studio-composition-inspector.tsx": "412b183be5a6a3f28ac0d806d6eb5a79b2a96545ebea4998f51e3dfb20ae71e8",
+  "lib/fusion/creative-studio/platform/text-edit-transaction.ts": "9b94cd722f1d4b1946cebc4cc6bf61a84e855abf87930b4866b9e2d40954266d",
+  "lib/fusion/creative-studio/platform/text-authoring.ts": "6338b686b62beb706019fdc1bbc4d418a08d20ed6acb2ab55355e64a2b6ad827",
+  "lib/fusion/creative-studio/platform/layered-region.ts": "fca7e9749075969d74313e415eca378203fbe215cd43c3ea435403150349b615",
+  "lib/fusion/creative-studio/__tests__/text-editing-truth.test.ts": "50680db1590c6ff867905dac2bd13d94f1282fa4259fa8556c6ca838dd46990d",
+  "e2e/fixtures/studio-text-editing-truth.ts": "e6895b5170b5aab29e4a2f39c0f1eb849a3718c793773cb09661ebd53d753530"
+}

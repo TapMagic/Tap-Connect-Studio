@@ -1,0 +1,176 @@
+{
+  "acceptedFixture": {
+    "id": "cmvlqtmjb01fodf9kz8q2eml7",
+    "beforeRevision": 49,
+    "afterRevision": 49,
+    "unchanged": true,
+    "draftHashBefore": "44a7a26da7644d78eb6361b91808d5aa4951c6b4f2ce1711edfe6f60ed52deeb",
+    "draftHashAfter": "44a7a26da7644d78eb6361b91808d5aa4951c6b4f2ce1711edfe6f60ed52deeb"
+  },
+  "textFixture": {
+    "id": "cmvlsjkq7093adf9k2mzgqf7i",
+    "revision": 10,
+    "published": false,
+    "pages": [
+      {
+        "id": "page-mBrkwq-UY_",
+        "title": "Flow Text",
+        "nodes": [
+          {
+            "id": "flow-Auto",
+            "x": 0.05,
+            "y": 0.02,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\nThird line\n",
+            "textTransform": "uppercase",
+            "textHeightMode": "auto",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "flow-Minimum",
+            "x": 0.05,
+            "y": 0.17,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "minimum",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "flow-Fixed",
+            "x": 0.05,
+            "y": 0.34,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "fixed",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "flow-container",
+            "x": 0.05,
+            "y": 0.48,
+            "width": 0.9,
+            "height": 0.48
+          },
+          {
+            "id": "flow-Nested-Auto",
+            "x": 0.05,
+            "y": 0.02,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "auto",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "flow-Nested-Minimum",
+            "x": 0.05,
+            "y": 0.3,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "minimum",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "flow-Nested-Fixed",
+            "x": 0.05,
+            "y": 0.7,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "fixed",
+            "textOverflow": "visible"
+          }
+        ]
+      },
+      {
+        "id": "text-truth-layered-page",
+        "title": "Layered Text",
+        "nodes": [
+          {
+            "id": "layer-Auto",
+            "x": 0.05,
+            "y": 0.02,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 15,
+            "text": "Layered  Text 🙂\nLine two\nLine three\nLine four\nLine five\n",
+            "textHeightMode": "auto",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "layer-Minimum",
+            "x": 0.05,
+            "y": 0.17,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "minimum",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "layer-Fixed",
+            "x": 0.05,
+            "y": 0.34,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "fixed",
+            "textOverflow": "scroll"
+          },
+          {
+            "id": "layer-container",
+            "x": 0.05,
+            "y": 0.48,
+            "width": 0.9,
+            "height": 0.48
+          },
+          {
+            "id": "layer-Nested-Auto",
+            "x": 0.05,
+            "y": 0.02,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "Inspector  exact 🙂\nnew line\n",
+            "textHeightMode": "auto",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "layer-Nested-Minimum",
+            "x": 0.05,
+            "y": 0.3,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "minimum",
+            "textOverflow": "visible"
+          },
+          {
+            "id": "layer-Nested-Fixed",
+            "x": 0.05,
+            "y": 0.7,
+            "width": 0.9,
+            "height": 0.08,
+            "rotation": 0,
+            "text": "MiXeD  Case\t🙂\nSecond line\n",
+            "textHeightMode": "fixed",
+            "textOverflow": "visible"
+          }
+        ]
+      }
+    ]
+  }
+}

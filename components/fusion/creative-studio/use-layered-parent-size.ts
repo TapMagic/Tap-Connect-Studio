@@ -18,7 +18,17 @@ export function measureCompositionContentExtent(canvas: HTMLElement, block: Crea
     const node = block.nodes.find(candidate => candidate.id === element.dataset.compositionNode);
     if (!node || node.visible === false || getComputedStyle(element).display === "none") continue;
     const rect = element.getBoundingClientRect();
-    let extent = rect.bottom + canonicalVisualOverflowPx(node) * scale;
+    let visibleBottom = rect.bottom;
+    if (node.primitive === "text") {
+      const textBox = element.querySelector<HTMLElement>('[data-text-height-mode]');
+      if (textBox) {
+        visibleBottom = textBox.getBoundingClientRect().bottom;
+        if (textBox.dataset.textOverflow === "visible") {
+          for (const glyph of textBox.querySelectorAll("[data-inline-editing]")) visibleBottom = Math.max(visibleBottom, glyph.getBoundingClientRect().bottom);
+        }
+      }
+    }
+    let extent = visibleBottom + canonicalVisualOverflowPx(node) * scale;
     let ancestor = element.parentElement;
     while (ancestor && ancestor !== canvas) {
       if (ancestor.hasAttribute('data-composition-node') && ['hidden', 'clip'].includes(getComputedStyle(ancestor).overflowY)) extent = Math.min(extent, ancestor.getBoundingClientRect().bottom);

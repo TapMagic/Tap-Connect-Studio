@@ -1,0 +1,297 @@
+[
+  {
+    "step": "initial Flow and nested Layered heights",
+    "frames": [
+      {
+        "height": "80.7812px",
+        "mode": "auto",
+        "parent": "flow-Auto",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "96px",
+        "mode": "minimum",
+        "parent": "flow-Minimum",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "48px",
+        "mode": "fixed",
+        "parent": "flow-Fixed",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "80.7812px",
+        "mode": "auto",
+        "parent": "flow-Nested-Auto",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "96px",
+        "mode": "minimum",
+        "parent": "flow-Nested-Minimum",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "48px",
+        "mode": "fixed",
+        "parent": "flow-Nested-Fixed",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      }
+    ]
+  },
+  {
+    "step": "Escape + blur",
+    "text": "MiXeD  Case\t🙂\nSecond line\n",
+    "undoEnabled": false
+  },
+  {
+    "step": "direct edit committed",
+    "text": "MiXeD  Case\t🙂\nSecond line\nThird line\n"
+  },
+  {
+    "step": "single Undo",
+    "text": "MiXeD  Case\t🙂\nSecond line\n",
+    "undoEnabled": false
+  },
+  {
+    "step": "uppercase presentation",
+    "source": "MiXeD  Case\t🙂\nSecond line\nThird line\n",
+    "rendered": "MiXeD  Case\t🙂\nSecond line\nThird line\n",
+    "transform": "uppercase"
+  },
+  {
+    "step": "Inspector Escape",
+    "source": "MiXeD  Case\t🙂\nSecond line\nThird line\n"
+  },
+  {
+    "step": "editing under uppercase retains raw source",
+    "value": "MiXeD  Case\t🙂\nSecond line\nThird line\n",
+    "transform": "none"
+  },
+  {
+    "step": "native clipboard paste",
+    "value": "  Paste\tExact 🙂\nline two\n"
+  },
+  {
+    "step": "native Undo owns editing",
+    "value": "  Paste\tExact 🙂\nline two\n",
+    "stillEditing": true
+  },
+  {
+    "step": "Auto shrinks",
+    "height": "37.5938px"
+  },
+  {
+    "step": "native typed characters",
+    "value": "MiXeD  Case\t🙂\nSecond line\nThird line\n abc"
+  },
+  {
+    "step": "native Undo retest",
+    "value": "MiXeD  Case\t🙂\nSecond line\nThird line\n ab",
+    "stillEditing": true
+  },
+  {
+    "step": "Layered authored before",
+    "geometry": {
+      "height": "0.08",
+      "width": "0.9",
+      "x": "0.05",
+      "y": "0.02"
+    }
+  },
+  {
+    "step": "Layered measured growth preserves authored frame",
+    "data": {
+      "basis": "measured-text-box-plus-effect-estimate",
+      "boxHeight": "145.562px",
+      "height": "0.08",
+      "placementHeight": "80px",
+      "visualHeight": "146px",
+      "width": "0.9",
+      "x": "0.05",
+      "y": "0.02"
+    }
+  },
+  {
+    "step": "Fixed clipped",
+    "style": {
+      "height": "48px",
+      "overflow": "hidden"
+    }
+  },
+  {
+    "step": "Fixed scroll",
+    "style": {
+      "client": 48,
+      "height": "48px",
+      "overflow": "auto",
+      "scroll": 81
+    }
+  },
+  {
+    "step": "Preview Layered",
+    "frames": [
+      {
+        "height": "145.562px",
+        "mode": "auto",
+        "overflow": "visible",
+        "parent": "layer-Auto",
+        "text": "Layered  Text 🙂\nLine two\nLine three\nLine four\nLine five\n"
+      },
+      {
+        "height": "96px",
+        "mode": "minimum",
+        "overflow": "visible",
+        "parent": "layer-Minimum",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "48px",
+        "mode": "fixed",
+        "overflow": "auto",
+        "parent": "layer-Fixed",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "80.7812px",
+        "mode": "auto",
+        "overflow": "visible",
+        "parent": "layer-Nested-Auto",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "96px",
+        "mode": "minimum",
+        "overflow": "visible",
+        "parent": "layer-Nested-Minimum",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      },
+      {
+        "height": "48px",
+        "mode": "fixed",
+        "overflow": "visible",
+        "parent": "layer-Nested-Fixed",
+        "text": "MiXeD  Case\t🙂\nSecond line\n"
+      }
+    ]
+  },
+  {
+    "step": "390px direct controls",
+    "data": {
+      "controls": [
+        {
+          "height": "44px",
+          "text": "Done",
+          "width": "56px"
+        },
+        {
+          "height": "44px",
+          "text": "Cancel",
+          "width": "61.3594px"
+        }
+      ],
+      "focus": "text-entry",
+      "input": {
+        "bottom": 346.904296875,
+        "height": 137.84268188476562,
+        "left": 46.39972686767578,
+        "right": 343.34146881103516,
+        "top": 209.0616149902344,
+        "width": 296.9417419433594,
+        "x": 46.39972686767578,
+        "y": 209.0616149902344
+      },
+      "width": 390
+    }
+  },
+  {
+    "step": "390px Cancel",
+    "text": "Layered  Text 🙂\nLine two\nLine three\nLine four\nLine five\n"
+  },
+  {
+    "step": "390px nested Done and caret ownership",
+    "data": {
+      "height": "0.08",
+      "text": "Nested  Text 🙂\ninside padding\n",
+      "width": "0.9",
+      "x": "0.05",
+      "y": "0.02"
+    }
+  },
+  {
+    "step": "before reload nested committed",
+    "text": "Inspector  exact 🙂\nnew line\n"
+  },
+  {
+    "step": "save/reload",
+    "text": "Inspector  exact 🙂\nnew line\n"
+  },
+  {
+    "step": "single click selects",
+    "editingCount": 0
+  },
+  {
+    "step": "Enter deliberately edits",
+    "editingCount": 1
+  },
+  {
+    "step": "macOS Chrome native paste Undo",
+    "value": " Native  paste 🙂\n\tTabs\n",
+    "expected": " Native  paste 🙂\n\tTabs\n",
+    "method": "Google Chrome native app paste and Command+Z"
+  },
+  {
+    "step": "macOS Chrome native paste Redo",
+    "value": "",
+    "expected": "Actual native paste  🙂\nfinal line\n"
+  },
+  {
+    "step": "final Cancel exit",
+    "editingCount": 0,
+    "source": "MiXeD  Case\t🙂\nSecond line\nThird line\n"
+  },
+  {
+    "step": "fresh native-only paste Undo",
+    "value": "MiXeD  Case\t🙂\nSecond line\nThird line\n"
+  },
+  {
+    "step": "fresh native-only paste Redo",
+    "value": ""
+  },
+  {
+    "check": "Plain HTML native paste Undo/Redo control",
+    "result": "PASS",
+    "before": "Probe native redo",
+    "paste": "Native app probe",
+    "undo": "Probe native redo",
+    "redo": "Native app probe"
+  },
+  {
+    "check": "Final native Canvas paste/Undo/Redo",
+    "result": "PASS",
+    "source": "Studio native redo probe",
+    "paste": "Exact  tabs\t🙂\nNative redo\n",
+    "undo": "Studio native redo probe",
+    "redo": "Exact  tabs\t🙂\nNative redo\n",
+    "method": "Native Chrome coordinate click after AX click failed to focus reliably; native Cmd+A/paste/Cmd+Z/Cmd+Shift+Z with AX state after each"
+  },
+  {
+    "check": "Final manual Save",
+    "result": "NOT EXECUTED",
+    "reason": "Save already disabled after autosave; verify reload and Preview instead"
+  },
+  {
+    "check": "Final committed Studio history and persistence",
+    "result": "PASS",
+    "undo": "Studio native redo probe",
+    "redo": "Exact  tabs\t🙂\nNative redo\n",
+    "reload": "Exact  tabs\t🙂\nNative redo\n",
+    "preview": "Exact  tabs\t🙂\nNative redo\n"
+  },
+  {
+    "check": "Settled final Preview",
+    "result": "PASS",
+    "note": "Initial click occurred during hydration and left Preview button visible; repeated after settled state, verified Edit toggle and noninteractive shared renderer."
+  }
+]

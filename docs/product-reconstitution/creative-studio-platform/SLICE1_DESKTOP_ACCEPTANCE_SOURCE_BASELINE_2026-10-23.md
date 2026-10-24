@@ -16,7 +16,7 @@ The accepted canonical geometry, parent/clipboard, group, selection, pointer/key
 
 Unrelated Experience Library/family classification, discovery labels, navigation, existing map proof images, planning WIP, generated acceptance output, local TypeScript output-directory additions and pnpm files are excluded and preserved in the working tree. The committed npm lockfile remains the dependency authority.
 
-Verification uses a clean export of the committed starting tree overlaid only with the intended source files, without local environment files or unrelated WIP. Results and reproduction instructions will be appended before handoff.
+Verification uses a clean export of the committed starting tree overlaid only with the intended source files, without local environment files or unrelated WIP. Results and reproduction instructions are below.
 
 ## Separate high-priority defect
 
@@ -38,3 +38,7 @@ No font-browser expansion, unrelated typography, responsive authoring, Surface r
 - Source SHA-256 manifest and logs: [verification evidence](proofs/slice1-source-baseline-2026-10-23/). All unrelated input WIP files remain byte-identical.
 
 To reproduce, check out the baseline commit in a separate directory, run `npm ci`, set only local development/build environment, run the ten focused test files listed in the focused log / prior Frame and Page Truth report, then `npm run build -- --webpack`. No `.next-*`, environment files or database content form part of the source baseline. The desktop fixture and earlier native screenshots remain available through the Frame and Page Truth report.
+
+## Verified GitHub baseline
+
+Integrated baseline commit: [`3bda89b502e629e867cd5daa6b13050a0f4bcb3c`](https://github.com/TapMagic/Tap-Connect-Studio/commit/3bda89b502e629e867cd5daa6b13050a0f4bcb3c). The remote branch SHA and all five planning documents were independently fetched and matched their intended local Git blob hashes. The later [Slice 2 candidate report](SLICE2_TEXT_EDITING_TRUTH_IMPLEMENTATION_2026-10-23.md) records the separate implementation and remaining review gates.

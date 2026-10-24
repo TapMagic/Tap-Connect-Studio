@@ -1,0 +1,1 @@
+Production build tested the same executable source. After the build, a two-line explanatory comment in studio-text-entry.tsx was softened to avoid claiming an isolated browser root cause. No executable changes followed the final build.

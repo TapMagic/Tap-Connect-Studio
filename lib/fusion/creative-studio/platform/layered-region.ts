@@ -352,6 +352,12 @@ export function applyLayeredResize(block: CreativeCompositionBlock, nodeId: stri
   }
   const at = (key: "x" | "y" | "width" | "height") => node[key] + (frame[key] - node[key]) * progress;
   const moved = moveLayeredNode(block, nodeId, { x: at("x"), y: at("y"), width: at("width"), height: at("height") });
+  if (node.primitive === "text" && frame.height !== node.height && (node.props.textHeightMode === "fixed" || node.props.textHeightMode === "minimum")) {
+    const property = node.props.textHeightMode === "fixed" ? "textFixedHeightPx" : "textMinHeightPx";
+    return { ...moved, nodes: moved.nodes.map(candidate => candidate.id === nodeId ? {
+      ...candidate, props: { ...candidate.props, [property]: candidate.height * parentSize.heightPx },
+    } : candidate) };
+  }
   if (!oldContent) return moved;
   const next = moved.nodes.find(candidate => candidate.id === nodeId)!;
   const newContent = {

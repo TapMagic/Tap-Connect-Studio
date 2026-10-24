@@ -132,6 +132,9 @@ import { compactActionGridLayoutMetrics, readCompactActionGrid } from "@/lib/fus
 import { CompactActionGrid } from "@/components/tap/compact-action-grid";
 import { ActionPresentationEffects } from "@/components/fusion/creative-studio/action-presentation-effects";
 import { MapLocationContainer } from "@/components/tap/map-location-container";
+import { StudioFrameDiagnostics } from "./studio-frame-diagnostics";
+import { StudioTextEntry } from "./studio-text-entry";
+import { studioTextBoxStyle } from "@/lib/fusion/creative-studio/platform/text-authoring";
 import { resolveStudioFrameSemantics } from "@/lib/fusion/creative-studio/platform/frame-semantics";
 
 export type CreativeCompositionCanvasProps = {
@@ -313,93 +316,13 @@ function LayeredFrameHandles({ name, prefix, handles, zoom, onStart }: {
   </>;
 }
 
-function InlineEditableText({
-  nodeId,
-  value,
-  editing,
-  style,
-  onCommit,
-  onFinish,
-  multiline = true,
-}: {
-  nodeId: string;
-  value: string;
-  editing: boolean;
-  style: CSSProperties;
+function InlineEditableText({ nodeId, value, editing, style, onCommit, onFinish, multiline = true }: {
+  nodeId: string; value: string; editing: boolean; style: CSSProperties;
   onCommit?: (value: string, phase: "preview" | "commit" | "cancel") => void;
-  onFinish?: () => void;
-  multiline?: boolean;
+  onFinish?: () => void; multiline?: boolean;
 }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  const valueAtEditStart = useRef(value);
-  const cancelled = useRef(false);
-
-  useEffect(() => {
-    if (!ref.current || editing) return;
-    if (ref.current.innerText !== value) ref.current.innerText = value;
-    valueAtEditStart.current = value;
-  }, [editing, value]);
-
-  useEffect(() => {
-    if (!editing) return;
-    cancelled.current = false;
-    const element = ref.current;
-    if (!element) return;
-    if (element.innerText !== value) element.innerText = value;
-    element.focus({ preventScroll: true });
-    const selection = window.getSelection();
-    const range = document.createRange();
-    range.selectNodeContents(element);
-    range.collapse(false);
-    selection?.removeAllRanges();
-    selection?.addRange(range);
-  }, [editing]);
-
-  const commit = () => {
-    const next = ref.current?.innerText ?? value;
-    if (!cancelled.current) onCommit?.(next, "commit");
-    cancelled.current = false;
-    onFinish?.();
-  };
-
-  return (
-    <span
-      ref={ref}
-      className="w-full whitespace-pre-wrap leading-tight outline-none"
-      style={style}
-      dir="ltr"
-      contentEditable={editing}
-      role={editing ? "textbox" : undefined}
-      aria-multiline={editing ? multiline : undefined}
-      spellCheck={editing}
-      suppressContentEditableWarning
-      data-testid={`composition-inline-text-${nodeId}`}
-      data-inline-editing={editing ? "true" : "false"}
-      data-studio-keyboard-owner={editing ? "text-entry" : undefined}
-      onPointerDown={(event) => {
-        if (editing) event.stopPropagation();
-      }}
-      onInput={(event) => {
-        onCommit?.(event.currentTarget.innerText, "preview");
-      }}
-      onBlur={commit}
-      onKeyDown={(event) => {
-        if (event.nativeEvent.isComposing) return;
-        if (event.key === "Enter" && !multiline) {
-          event.preventDefault();
-          event.currentTarget.blur();
-        } else if (event.key === "Escape") {
-          event.preventDefault();
-          cancelled.current = true;
-          if (ref.current) ref.current.innerText = valueAtEditStart.current;
-          onCommit?.(valueAtEditStart.current, "cancel");
-          ref.current?.blur();
-        }
-      }}
-    >
-      {editing ? null : value}
-    </span>
-  );
+  return editing ? <StudioTextEntry key={nodeId} value={value} onChange={onCommit} onFinish={onFinish} inline multiline={multiline} testId={`composition-inline-text-${nodeId}`} />
+    : <span className="block w-full whitespace-pre-wrap outline-none" style={{ ...style, overflowWrap: "anywhere", minHeight: "1lh" }} data-testid={`composition-inline-text-${nodeId}`} data-inline-editing="false">{value}{value.endsWith("\n") ? <br aria-hidden /> : null}</span>;
 }
 
 function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMode?: boolean }) {
@@ -791,7 +714,7 @@ function NodeVisual({
     }
     return (
       <div
-        className={cn("flex w-full items-center px-1", heightMode === "fixed" ? "h-full" : "h-auto min-h-full")}
+        className="flex w-full items-start"
         data-text-box-background={node.props.boxGradient || (node.props.boxFill && str(node.props.boxFill) !== "transparent") ? "filled" : "transparent"}
         data-glyph-effect={str(node.props.effectPreset, str(node.props.glyphEffect, node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"))}
         data-glyph-gradient={node.props.gradientFill ? "true" : "false"}
@@ -833,7 +756,7 @@ function NodeVisual({
           border: num(node.props.boxBorderWidth, node.props.boxBorder ? 1 : 0) > 0 ? `${num(node.props.boxBorderWidth, 1)}px solid ${str(node.props.boxBorder, "transparent")}` : undefined,
           borderRadius: node.props.boxRadius != null ? num(node.props.boxRadius, 0) : undefined,
           padding: node.props.boxPadding != null ? num(node.props.boxPadding, 0) : undefined,
-          minHeight: Math.max(0, num(node.props.textMinHeightPx, 0)) || undefined,
+          ...studioTextBoxStyle(node.props),
           overflowY: heightMode !== "fixed" || overflowMode === "visible" ? "visible" : overflowMode === "scroll" ? "auto" : "hidden",
           opacity: num(node.props.opacity, 1),
           boxShadow: effectLayersCss("text_box", {
@@ -2054,7 +1977,7 @@ export function CreativeCompositionCanvas({
     measure();
     const observer = new ResizeObserver(measure);
     observer.observe(canvas);
-    canvas.querySelectorAll<HTMLElement>('[data-composition-node]').forEach(element => observer.observe(element));
+    canvas.querySelectorAll<HTMLElement>('[data-composition-node], [data-text-height-mode], [data-inline-editing]').forEach(element => observer.observe(element));
     return () => observer.disconnect();
   }, [block, draftNodes, onContentExtentChange]);
 
@@ -2871,13 +2794,13 @@ export function CreativeCompositionCanvas({
       const responsiveModuleHeight = isCuratedAssembly ? nativeModuleHeight * (width / 100) : nativeModuleHeight;
       const minimumTouchTarget = Math.max(44, num(node.props.minimumTouchTargetPx, 44));
       const minHeight = node.moduleComposition ? isCuratedAssembly ? minimumTouchTarget : Math.max(52, responsiveModuleHeight)
-        : node.primitive === "text" ? Math.max(32, num(node.props.textMinHeightPx, 40))
+        : node.primitive === "text" ? studioTextBoxStyle(node.props).minHeight ?? 0
           : node.primitive === "image" ? Math.max(1, node.minHeightPx ?? 180)
             : node.primitive === "border" ? 12
               : Math.max(52, node.minHeightPx ?? 56);
       const inset = Math.max(0, Math.min(80, num(node.props.flowInsetPx, 0)));
       const alignment = str(node.props.flowAlignment, "stretch");
-      const fixedTextHeight = node.primitive === "text" && str(node.props.textHeightMode, "auto") === "fixed" ? Math.max(minHeight, num(node.props.textFixedHeightPx, minHeight)) : undefined;
+      const fixedTextHeight = node.primitive === "text" && str(node.props.textHeightMode, "auto") === "fixed" ? studioTextBoxStyle(node.props).height : undefined;
       const videoAspect = node.primitive === "video" ? videoAspectRatio(readStudioVideoState(node.props).aspect) : undefined;
       return {
         flexShrink: 0,
@@ -3208,7 +3131,6 @@ export function CreativeCompositionCanvas({
       const compactCanonicalRight = Boolean(compactGrid && compactGrid.widthMode !== "full" && compactGrid.gridAlignment === "right" && Math.abs(localX - (1 - localWidth)) < .002);
       const parentSelected = Boolean(groupParentSelection && activeGroupId && node.groupId === activeGroupId);
       const activeSelection = selectedNodeIds.length === 1 && selectedSet.has(node.id) && !parentSelected && !node.locked;
-      const frames = resolveStudioFrameSemantics(block, node);
       return (
       <div
         key={node.id}
@@ -3287,7 +3209,8 @@ export function CreativeCompositionCanvas({
             commitNodes(activateGroupContentChild(block.nodes, node.groupId, node.id), "Selected Group child");
             return;
           }
-          if (selectionMode !== "multiple" && !event.metaKey && !event.ctrlKey && !event.shiftKey && node.primitive === "text" && selectedSet.has(node.id)) setEditingNodeId(node.id);
+          // Pointer selection may update between pointerdown and click. Enter
+          // caret mode deliberately through double-click, Enter, or Edit text.
         }}
         onDoubleClick={(event) => {
           if (!editMode || node.primitive !== "text") return;
@@ -3301,20 +3224,17 @@ export function CreativeCompositionCanvas({
           if (!studioModuleActivationMayRun(event.nativeEvent, event.currentTarget)) return;
           event.preventDefault();
           onSelectNodes?.([node.id]);
+          if (event.key === "Enter" && node.primitive === "text" && selectedSet.has(node.id)) setEditingNodeId(node.id);
         }}
       >
-        {editMode && frameDiagnostics && selectedSet.has(node.id) ? <div className="pointer-events-none absolute inset-0 z-[25]" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}>
-          <div className="absolute inset-0 border border-cyan-300" data-frame="placement" />
-          <div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" />
-          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} />
-        </div> : null}
+        {editMode && frameDiagnostics && selectedSet.has(node.id) ? <StudioFrameDiagnostics node={node} /> : null}
         {editMode && activeSelection ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-6 w-6 touch-none cursor-grab select-none place-items-center rounded bg-transparent text-[#b8ff2c] focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `scale(${1 / Math.max(.25, editorZoom || 1)})`, transformOrigin: "top right" }} data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={layered ? `Move ${node.name || "Module"} within its layered Container.` : `Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (!layered && !editableControlOwnsKeyboard(event.nativeEvent)) handleFlowKey(event, node); }} onPointerDown={(event) => layered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="pointer-events-none h-3 w-3 rounded-sm bg-[#0b111b]" /></button> : null}
-        {editMode && activeSelection && node.primitive === "text" && editingNodeId !== node.id ? <button type="button" className="absolute bottom-full left-0 z-30 mb-1 min-h-8 rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] px-2.5 text-[10px] font-semibold text-[#b8ff2c] shadow-lg" data-chrome-placement="outside-top" data-testid={`studio-edit-text-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); setEditingNodeId(node.id); }}>Edit text</button> : null}
-        {editMode && layered && activeSelection ? <LayeredFrameHandles name={node.name || "Module"} prefix={node.id} zoom={editorZoom || 1} handles={allowedLayeredResizeHandles(node).filter((handle) => {
+        {editMode && activeSelection && node.primitive === "text" && editingNodeId !== node.id ? <button type="button" className="absolute bottom-full left-0 z-30 mb-1 min-h-11 rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] px-2.5 text-[10px] font-semibold text-[#b8ff2c] shadow-lg" data-chrome-placement="outside-top" data-testid={`studio-edit-text-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); setEditingNodeId(node.id); }}>Edit text</button> : null}
+        {editMode && layered && activeSelection && editingNodeId !== node.id ? <LayeredFrameHandles name={node.name || "Module"} prefix={node.id} zoom={editorZoom || 1} handles={allowedLayeredResizeHandles(node).filter((handle) => {
           const size = layeredCompositionParentSizePx(block, node.parentId ?? null);
           return Math.min(node.width * size.widthPx, node.height * size.heightPx) * (editorZoom || 1) >= 88 || handle === (layeredResizePolicy(node) === "width-only" ? "e" : "se");
         })} onStart={(event, mode, handle) => startLayeredPointer(event, node, mode, handle)} /> : null}
-        {editMode && !layered && activeSelection ? <button type="button" aria-label={`Resize ${node.name || "Module"} width in Flow`} data-testid={`studio-flow-resize-${node.id}`} className="absolute -right-3 top-1/2 z-30 h-6 w-6 touch-none cursor-ew-resize bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:-translate-y-1/2 after:bg-white [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `translateY(-50%) scale(${1 / Math.max(.25, editorZoom || 1)})` }} onPointerDown={event => startLayeredPointer(event, node, "resize", "e")} onClick={event => event.stopPropagation()} /> : null}
+        {editMode && !layered && activeSelection && editingNodeId !== node.id ? <button type="button" aria-label={`Resize ${node.name || "Module"} width in Flow`} data-testid={`studio-flow-resize-${node.id}`} className="absolute -right-3 top-1/2 z-30 h-6 w-6 touch-none cursor-ew-resize bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:-translate-y-1/2 after:bg-white [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `translateY(-50%) scale(${1 / Math.max(.25, editorZoom || 1)})` }} onPointerDown={event => startLayeredPointer(event, node, "resize", "e")} onClick={event => event.stopPropagation()} /> : null}
         {node.moduleComposition ? (
           <div className={cn(layered ? "h-full w-full" : "w-full", editMode && "pointer-events-none")} data-module-composition={node.moduleComposition.id}>
             {layered
@@ -3328,7 +3248,7 @@ export function CreativeCompositionCanvas({
               editMode={editMode}
               textEditing={editingNodeId === node.id}
               onEditText={(value, phase) => onEditNodeText?.(node.id, value, phase)}
-              onFinishTextEdit={() => setEditingNodeId(null)}
+              onFinishTextEdit={() => { setEditingNodeId(null); surfaceRef.current?.querySelector<HTMLElement>(`[data-composition-node="${CSS.escape(node.id)}"]`)?.focus({ preventScroll: true }); }}
             />
           </MotionVisual>
         </ActionVisual>}
@@ -3679,7 +3599,7 @@ export function CreativeCompositionCanvas({
                   editMode={editMode}
                   textEditing={editingNodeId === node.id}
                   onEditText={(value, phase) => onEditNodeText?.(node.id, value, phase)}
-                  onFinishTextEdit={() => setEditingNodeId(null)}
+                  onFinishTextEdit={() => { setEditingNodeId(null); surfaceRef.current?.querySelector<HTMLElement>(`[data-composition-node="${CSS.escape(node.id)}"]`)?.focus({ preventScroll: true }); }}
                 />
               </MotionVisual>
             </ActionVisual>
@@ -3978,7 +3898,7 @@ export function CreativeCompositionCanvas({
                   editMode={editMode}
                   textEditing={editingNodeId === node.id}
                   onEditText={(value, phase) => onEditNodeText?.(node.id, value, phase)}
-                  onFinishTextEdit={() => setEditingNodeId(null)}
+                  onFinishTextEdit={() => { setEditingNodeId(null); surfaceRef.current?.querySelector<HTMLElement>(`[data-composition-node="${CSS.escape(node.id)}"]`)?.focus({ preventScroll: true }); }}
                 />
               </MotionVisual>
             </ActionVisual>
