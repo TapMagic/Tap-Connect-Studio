@@ -1,5 +1,7 @@
 "use client";
 
+import { readFlowPasteOverflow, revealCompositionSelection, readRenderedCompositionFrames, readRenderedLayeredParentSize } from "@/components/fusion/creative-studio/use-layered-parent-size";
+import { editableControlOwnsKeyboard, studioEditableOwner } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useRouter } from "next/navigation";
 import { ClipboardPaste, Copy, Eye, FileText, Layers3, ListChecks, MoreHorizontal, Move, Plus, QrCode, Redo2, Save, Smartphone, Tablet, Monitor, Trash2, Undo2, X } from "lucide-react";
@@ -45,12 +47,14 @@ import { resolveStudioPlacementContext } from "@/lib/fusion/creative-studio/plat
 import { studioAddCatalogAdapter } from "@/lib/fusion/creative-studio/reconstitution/studio-catalog-adapters";
 import { useSharedMediaBrowser } from "@/components/media/shared-media-browser-provider";
 import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
-import { compositionChildren, copyCompositionNodeSubtree, pasteCompositionNodeSubtree, type CompositionNodeClipboardPayload } from "@/lib/fusion/card/composition-parent-authority";
-import { expandSelectionToGroups } from "@/lib/fusion/creative-studio/composition";
-import { groupCompositionBlock, groupMembers, resolveActiveGroupId, ungroupCompositionBlock } from "@/lib/fusion/creative-studio/group-authority";
+import { expandFlowPasteDestination, compositionChildren, copyCompositionNodeSubtree, pasteCompositionNodeSubtree, type CompositionNodeClipboardPayload } from "@/lib/fusion/card/composition-parent-authority";
+import { expandSelectionToGroups, type AlignMode, type CreativeCompositionBlock } from "@/lib/fusion/creative-studio/composition";
+import { synchronizeCompositionGroups, groupCompositionBlock, groupMembers, resolveActiveGroupId, ungroupCompositionBlock } from "@/lib/fusion/creative-studio/group-authority";
 import { StudioPagesManager } from "./studio-pages-manager";
 import { canonicalizeExperienceConfig } from "@/lib/fusion/card/experience-pages";
 import { compactActionGridNodeProps, compactActionGridProofFixture } from "@/lib/fusion/creative-studio/platform/compact-action-grid";
+import { applySelectionGeometryOperation, selectionGeometryCompatibility, selectionOperationAvailability, selectionOperationHistoryLabel, type StudioSelectionGeometryOperation } from "@/lib/fusion/creative-studio/platform/selection-geometry";
+import type { StudioGeometryUnit } from "@/lib/fusion/creative-studio/platform/geometry-units";
 
 type Props = CardAuthoringWorkspaceProps & {
   brandPreviewContext: BrandPreviewContext;
@@ -88,6 +92,8 @@ export function CardStudioReconstitutionWorkspace({
   const [assemblyInspectorOpen, setAssemblyInspectorOpen] = useState(false);
   const [compositionInspectorOpen, setCompositionInspectorOpen] = useState(false);
   const [compositionSelectionMode, setCompositionSelectionMode] = useState<"single" | "multiple">("single");
+  const [geometryUnit, setGeometryUnit] = useState<StudioGeometryUnit>("percent");
+  const [frameDiagnostics, setFrameDiagnostics] = useState(false);
   const [liveDeviceOpen, setLiveDeviceOpen] = useState(false);
   const [devicePanelTab, setDevicePanelTab] = useState<"preview" | "public">("preview");
   const [pagesOpen, setPagesOpen] = useState(false);
@@ -98,6 +104,13 @@ export function CardStudioReconstitutionWorkspace({
   const [sessionRestored, setSessionRestored] = useState(false);
   const [pendingPostInsert, setPendingPostInsert] = useState<{ id: string; refine: "button" | "composition" | "curated" } | null>(null);
   const [compositionClipboard, setCompositionClipboard] = useState<CompositionNodeClipboardPayload | null>(null);
+  const [pasteReview, setPasteReview] = useState<null | {
+    result: Extract<ReturnType<typeof pasteCompositionNodeSubtree>, { ok: true }>;
+    parentId: string | null; targetLabel: string; label: string; previousIds: string[];
+    expansion?: ReturnType<typeof expandFlowPasteDestination>; explanation?: string;
+  }>(null);
+  const pasteDialog = useRef<HTMLDialogElement | null>(null);
+  const lastPaste = useRef<{ parentId: string | null; ids: string[] } | null>(null);
   const [workspaceWidth, setWorkspaceWidth] = useState(1440);
   const consumedCatalogBoundary = useRef<"open" | "close" | null>(null);
   const sharedMediaBrowser = useSharedMediaBrowser();
@@ -126,6 +139,9 @@ export function CardStudioReconstitutionWorkspace({
   const selectedBlockSection = liveModel?.sorted.find((section) => section.composition && selectedCompositionIds.some((id) => section.composition!.nodes.some((node) => node.id === id))) ?? null;
   const activeCompositionGroupId = selectedBlock ? resolveActiveGroupId(selectedBlock.nodes, selectedCompositionIds) : null;
   const multiCompositionSelection = Boolean(selectedBlock && !activeCompositionGroupId && selectedCompositionIds.length > 1);
+  const multiSelectionCompatibility = selectedBlock
+    ? selectionGeometryCompatibility(selectedBlock, selectedCompositionIds)
+    : { compatible: false, reason: "Select sibling objects inside one Layered parent.", nodes: [], parentId: null };
   const replaceSelectedBlock = (next: NonNullable<typeof selectedBlock>, label: string) => {
     if (!liveModel) return;
     if (selectedBlockSection) liveModel.patchSection(selectedBlockSection.id, { composition: next }, label);
@@ -141,6 +157,18 @@ export function CardStudioReconstitutionWorkspace({
     replaceSelectedBlock(next, "Grouped Elements");
     liveModel.setSelectedCompositionNodeIds?.(expandSelectionToGroups(next.nodes, selectedCompositionIds));
     setCompositionSelectionMode("single");
+  };
+  const applyMultiSelectionOperation = (operation: StudioSelectionGeometryOperation) => {
+    if (!selectedBlock || !liveModel) return;
+    const availability = selectionOperationAvailability(selectedBlock, selectedCompositionIds, operation);
+    if (!availability.enabled) {
+      liveModel.notify?.(availability.reason || "That operation is not available for this selection.");
+      return;
+    }
+    const next = applySelectionGeometryOperation(selectedBlock, selectedCompositionIds, operation, id => readRenderedLayeredParentSize(selectedBlock, id));
+    if (next === selectedBlock) return;
+    replaceSelectedBlock(next, selectionOperationHistoryLabel(operation));
+    liveModel.setSelectedCompositionNodeIds?.([...selectedCompositionIds]);
   };
   const cancelMultipleSelection = () => {
     liveModel?.setSelectedCompositionNodeIds?.([]);
@@ -284,27 +312,70 @@ export function CardStudioReconstitutionWorkspace({
 
   const copySelectedComposition = () => {
     if (!liveModel || !selectedBlock || !selectedCanonicalNode) return;
-    const payload = copyCompositionNodeSubtree(selectedBlock, selectedCanonicalNode.id);
+    const payload = copyCompositionNodeSubtree(selectedBlock, selectedCompositionIds.length ? selectedCompositionIds : [selectedCanonicalNode.id], readRenderedLayeredParentSize(selectedBlock, selectedCanonicalNode.parentId ?? null), readRenderedCompositionFrames(selectedBlock));
     if (!payload) {
-      liveModel.notify?.("Select a canonical Module or Container to copy.");
+      liveModel.notify?.("Select sibling objects in one parent to copy; Container children are included automatically.");
       return;
     }
     setCompositionClipboard(payload);
-    liveModel.notify?.(`Copied ${payload.label}. Open another Page and choose Paste.`);
+    void navigator.clipboard?.writeText(`tapconnect-studio-selection:${payload.rootIds?.join(",") ?? payload.rootId}`).catch(() => liveModel.notify?.("Clipboard permission unavailable. Use the Studio Paste button."));
+    lastPaste.current = null;
+    liveModel.notify?.(`Copied ${payload.label}. Select a destination Container or a sibling, then Paste.`);
   };
+
+  const finishPaste = (review: NonNullable<typeof pasteReview>, expand = false) => {
+    if (!liveModel) return;
+    const candidate = expand && review.expansion?.ok ? review.expansion.block : review.result.block;
+    liveModel.previewCompositionBlock?.(synchronizeCompositionGroups(candidate));
+    liveModel.commitLiveAdjustment?.(`Pasted ${review.label}${expand ? " and expanded destination" : ""}`);
+    const ids = review.result.selectedNodeIds ?? [];
+    liveModel.setSelectedId(null);
+    liveModel.setSelectedCompositionNodeIds?.(ids);
+    lastPaste.current = { parentId: review.parentId, ids };
+    setPasteReview(null);
+    liveModel.notify?.(`Pasted ${review.label} into ${review.targetLabel}. ${expand ? "Container and required ancestor bounds expanded. " : ""}${(review.result.notices ?? []).join(" ")}`);
+    requestAnimationFrame(() => revealCompositionSelection(candidate.id, ids));
+  };
+  const cancelPaste = () => {
+    pasteDialog.current?.close();
+    liveModel?.cancelLiveAdjustment?.();
+    liveModel?.setSelectedCompositionNodeIds?.(pasteReview?.previousIds ?? []);
+    setPasteReview(null);
+    liveModel?.notify?.("Paste cancelled. Choose a different Container or adjust its Position bounds before pasting.");
+  };
+  useLayoutEffect(() => {
+    if (!pasteReview || !liveModel?.config.rootComposition) return;
+    if (pasteReview.explanation) { pasteDialog.current?.showModal(); return; }
+    const block = liveModel.config.rootComposition;
+    if (!pasteReview.result.selectedNodeIds?.every((id) => block.nodes.some((node) => node.id === id))) return;
+    const overflow = readFlowPasteOverflow(block, pasteReview.parentId);
+    if (!overflow) { finishPaste(pasteReview); return; }
+    const expansion = expandFlowPasteDestination(block, overflow.parentId, overflow.requiredHeightPx, (id) => readRenderedLayeredParentSize(block, id));
+    liveModel.cancelLiveAdjustment?.();
+    setPasteReview({ ...pasteReview, expansion, explanation: `${overflow.name} uses Flow inside a ${Math.round(overflow.heightPx)}px Placement frame. Its content needs ${Math.ceil(overflow.requiredHeightPx)}px after this paste. Expand the Container and required ancestor bounds to keep it visible, or cancel and choose another destination. Existing objects retain their physical size and placement.` });
+  // The candidate is measured only after the canonical preview reaches the renderer.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pasteReview, liveModel?.config.rootComposition]);
 
   const pasteCopiedComposition = () => {
     const root = liveModel?.config.rootComposition;
-    if (!liveModel || !root || !compositionClipboard || !placementContext) return;
-    const result = pasteCompositionNodeSubtree(root, compositionClipboard, placementContext.parentId, placementContext.insertionIndex);
-    if (!result.ok) {
-      liveModel.notify?.(result.issues.map((issue) => issue.message).join(" "));
+    if (!liveModel || !root || !compositionClipboard || pasteReview) return;
+    const parents = new Set(selectedCompositionIds.map((id) => root.nodes.find((node) => node.id === id)?.parentId ?? null));
+    if (!placementContext || parents.size > 1 || selectedCompositionIds.some((id) => !root.nodes.some((node) => node.id === id)) || liveModel.selectedObject?.type === "section") {
+      liveModel.notify?.("Choose one destination: select a Container to paste inside it, a child to paste after it, or Card Surface for the page.");
+      dispatch({ type: "OPEN_RAIL", railId: "layers" });
       return;
     }
-    liveModel.patchConfig({ rootComposition: result.block }, `Pasted ${compositionClipboard.label}`);
-    liveModel.setSelectedId(null);
-    liveModel.setSelectedCompositionNodeIds?.(result.selectedNodeId ? [result.selectedNodeId] : []);
-    liveModel.notify?.(`Pasted ${compositionClipboard.label} into ${placementContext.targetLabel}.`);
+    const repeat = lastPaste.current && selectedCompositionIds.length === lastPaste.current.ids.length && selectedCompositionIds.every((id) => lastPaste.current!.ids.includes(id));
+    const parentId = repeat ? lastPaste.current!.parentId : placementContext.parentId;
+    const siblings = compositionChildren(root, parentId);
+    const insertionIndex = repeat ? Math.max(...selectedCompositionIds.map((id) => siblings.findIndex((node) => node.id === id))) + 1 : placementContext.insertionIndex;
+    const targetLabel = parentId ? root.nodes.find((node) => node.id === parentId)?.name || "Container" : "Card Surface";
+    const result = pasteCompositionNodeSubtree(root, compositionClipboard, parentId, insertionIndex, readRenderedLayeredParentSize(root, parentId));
+    if (!result.ok) { liveModel.notify?.(result.issues.map((issue) => issue.message).join(" ")); return; }
+    liveModel.beginLiveAdjustment?.();
+    liveModel.previewCompositionBlock?.(synchronizeCompositionGroups(result.block));
+    setPasteReview({ result, parentId, targetLabel, label: compositionClipboard.label, previousIds: [...selectedCompositionIds] });
   };
 
   const openLiveDevice = useCallback(() => {
@@ -663,17 +734,14 @@ export function CardStudioReconstitutionWorkspace({
     "--studio-semantic-destructive": STUDIO_SEMANTIC_UI.destructive.color,
   } as CSSProperties;
   const handleClipboardShortcut = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    if (pasteReview) return;
     if (studioMode !== "edit" || !(event.metaKey || event.ctrlKey) || event.altKey) return;
-    const target = event.target;
-    if (target instanceof HTMLElement && (target.isContentEditable || target.matches("input, textarea, select"))) return;
+    if (editableControlOwnsKeyboard(event.nativeEvent)) return;
     if (event.key.toLowerCase() === "c" && selectedCanonicalNode) {
       event.preventDefault();
       copySelectedComposition();
     }
-    if (event.key.toLowerCase() === "v" && compositionClipboard) {
-      event.preventDefault();
-      pasteCopiedComposition();
-    }
+
   };
 
   return (
@@ -687,6 +755,13 @@ export function CardStudioReconstitutionWorkspace({
       data-card-visibility={choreography.cardVisibility}
       data-task-surface={choreography.taskSurface}
       onKeyDownCapture={handleClipboardShortcut}
+      onPasteCapture={(event) => {
+        if (pasteReview || studioMode !== "edit" || studioEditableOwner(event.target) || !compositionClipboard) return;
+        if ([...event.clipboardData.items].some((item) => item.type.startsWith("image/"))) return;
+        const token = `tapconnect-studio-selection:${compositionClipboard.rootIds?.join(",") ?? compositionClipboard.rootId}`;
+        if (event.clipboardData.getData("text/plain") !== token) return;
+        event.preventDefault(); event.stopPropagation(); pasteCopiedComposition();
+      }}
       style={semanticStyles}
     >
       <header className="flex min-h-14 shrink-0 items-center gap-2 bg-[#090e16]/96 px-2 shadow-[0_1px_0_rgba(255,255,255,.05)] backdrop-blur-xl md:px-3" data-testid="studio-shell-header">
@@ -695,10 +770,10 @@ export function CardStudioReconstitutionWorkspace({
         <button type="button" onClick={() => { if (!liveModel?.experience) liveModel?.ensureExperience?.(); setPagesOpen(true); }} className={headerButton} aria-label="Pages" aria-expanded={pagesOpen} data-testid="studio-pages-open"><FileText className="h-4 w-4" /><span className="hidden lg:inline">Pages</span></button>
         <button type="button" disabled={!liveModel} onClick={openCardSurfaceAppearance} className={headerButton} aria-label="Open Card Surface appearance" data-testid="studio-card-surface-open"><Layers3 className="h-4 w-4" /><span className="hidden lg:inline">Surface</span></button>
         <button type="button" disabled={!selectedCanonicalNode || !selectedBlock} onClick={copySelectedComposition} className={headerButton} aria-label="Copy selected Module or Container" title="Copy selected (⌘C)" data-testid="studio-copy-selection"><Copy className="h-4 w-4" /><span className="hidden xl:inline">Copy</span></button>
-        <button type="button" disabled={!compositionClipboard || !liveModel?.config.rootComposition} onClick={pasteCopiedComposition} className={headerButton} aria-label="Paste copied Module or Container" title="Paste into this Page (⌘V)" data-testid="studio-paste-selection"><ClipboardPaste className="h-4 w-4" /><span className="hidden xl:inline">Paste</span></button>
+        <button type="button" disabled={!compositionClipboard || !liveModel?.config.rootComposition} onClick={pasteCopiedComposition} className={headerButton} aria-label="Paste copied Module or Container" title={`Paste into ${placementContext?.targetLabel ?? "selected destination"} (⌘V)`} data-testid="studio-paste-selection"><ClipboardPaste className="h-4 w-4" /><span className="hidden xl:inline">Paste</span></button>
         <button type="button" disabled={!status.canUndo} onClick={() => apiRef.current?.undo()} className={headerButton} aria-label="Undo"><Undo2 className="h-4 w-4" /></button>
         <button type="button" disabled={!status.canRedo} onClick={() => apiRef.current?.redo()} className={headerButton} aria-label="Redo"><Redo2 className="h-4 w-4" /></button>
-        <button type="button" aria-pressed={compositionSelectionMode === "multiple"} onClick={() => compositionSelectionMode === "multiple" ? cancelMultipleSelection() : setCompositionSelectionMode("multiple")} className={cn(headerButton, "hidden md:flex", compositionSelectionMode === "multiple" && "bg-[#8bdcff]/14 text-[#c9efff]")} data-testid="studio-select-multiple"><ListChecks className="h-4 w-4" /><span>{compositionSelectionMode === "multiple" ? `${selectedCompositionIds.length} selected` : "Select multiple"}</span></button>
+        <button type="button" aria-label={compositionSelectionMode === "multiple" ? `Cancel Select Multiple · ${selectedCompositionIds.length} selected` : "Select multiple"} aria-pressed={compositionSelectionMode === "multiple"} onClick={() => compositionSelectionMode === "multiple" ? cancelMultipleSelection() : setCompositionSelectionMode("multiple")} className={cn(headerButton, "hidden md:inline-flex", compositionSelectionMode === "multiple" && "bg-[#8bdcff]/14 text-[#c9efff]")} data-testid="studio-select-multiple"><ListChecks className="h-4 w-4" /><span>{compositionSelectionMode === "multiple" ? `${selectedCompositionIds.length} selected` : "Select multiple"}</span></button>
         <button type="button" disabled={status.saving || !status.dirty} onClick={() => void apiRef.current?.save()} className={headerButton} aria-label="Save" data-testid="studio-save"><Save className="h-4 w-4" /><span className="hidden lg:inline">Save</span></button>
         <div className="hidden items-center rounded-lg border border-white/10 p-0.5 sm:flex" role="group" aria-label="Preview size">
           {([['desktop',Monitor],['tablet',Tablet],['phone',Smartphone]] as const).map(([id, Icon]) => <button key={id} type="button" aria-pressed={viewport === id} onClick={() => setViewport(id)} className="grid h-8 w-8 place-items-center rounded aria-pressed:bg-white/10" aria-label={`${id} preview`}><Icon className="h-3.5 w-3.5" /></button>)}
@@ -708,6 +783,8 @@ export function CardStudioReconstitutionWorkspace({
         <button type="button" onClick={() => { if (studioMode === "edit") { beginTask("preview-card"); setStudioMode("preview"); } else { setStudioMode("edit"); finishTask(); } }} className={headerButton} data-testid="studio-preview"><Eye className="h-4 w-4" /><span className="hidden lg:inline">{studioMode === "edit" ? "Preview" : "Edit"}</span></button>
         <button type="button" disabled={!status.canPublish || status.dirty} onClick={() => void apiRef.current?.publish()} className="min-h-9 rounded-lg bg-[#b8ff2c] px-3 text-xs font-semibold text-[#07100a] disabled:cursor-not-allowed disabled:opacity-40" data-testid="studio-publish">Publish</button>
       </header>
+
+      {studioMode === "edit" ? <div className="flex min-h-10 shrink-0 items-center justify-between border-b border-white/6 bg-[#0b111b]/88 px-3 md:hidden" data-testid="studio-mobile-selection-strip"><button type="button" aria-pressed={compositionSelectionMode === "multiple"} onClick={() => compositionSelectionMode === "multiple" ? cancelMultipleSelection() : setCompositionSelectionMode("multiple")} className={cn("inline-flex min-h-8 items-center gap-2 rounded-lg px-3 text-[10px] font-semibold", compositionSelectionMode === "multiple" ? "bg-[#8bdcff]/14 text-[#c9efff]" : "text-white/64")} data-testid="studio-select-multiple-mobile"><ListChecks className="h-4 w-4" />{compositionSelectionMode === "multiple" ? `${selectedCompositionIds.length} selected` : "Select multiple"}</button>{compositionSelectionMode === "multiple" ? <button type="button" onClick={cancelMultipleSelection} className="min-h-8 rounded-lg px-3 text-[10px] text-white/58">Cancel</button> : <span className="text-[9px] text-white/32">Canvas + Outline</span>}</div> : null}
 
       {studioMode === "edit" && status.recoveryState !== "none" ? (
         <div className="flex shrink-0 flex-wrap items-center gap-2 border-b border-amber-300/20 bg-amber-300/[.08] px-4 py-2 text-[11px] text-amber-50" role="status" data-testid="studio-recovery-banner">
@@ -726,7 +803,7 @@ export function CardStudioReconstitutionWorkspace({
 
         <main className="relative z-0 isolate flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_50%_18%,#202a38_0%,#151b24_42%,#10151d_100%)]" aria-label="Card canvas">
           {studioMode === "edit" && (multiCompositionSelection || Boolean(activeCompositionGroupId) || selectionTarget?.capabilities.includes("edit-content") || selectionTarget?.capabilities.includes("edit-appearance")) ? (
-            <div className="relative z-[2000] hidden min-h-12 shrink-0 items-center border-b border-white/6 bg-[#0b111b]/78 px-3 py-1.5 backdrop-blur md:flex" data-chrome-placement="task-bar">{multiCompositionSelection ? <CompositionMultiToolbar count={selectedCompositionIds.length} onGroup={groupSelectedComposition} onCancel={cancelMultipleSelection} /> : selectionTarget?.semanticKind === "card-surface" ? <CardSurfaceToolbar onEdit={() => openCompositionInspector("tune-selection")} /> : activeCompositionGroupId ? <CompositionGroupToolbar count={selectedCompositionIds.length} onEdit={() => openCompositionInspector("arrange-card")} onLock={lockSelectedGroup} onUngroup={ungroupSelectedComposition} /> : selectedAssembly ? <CuratedObjectToolbar
+            <div className={cn("relative z-[2000] min-h-12 shrink-0 items-center border-b border-white/6 bg-[#0b111b]/78 px-3 py-1.5 backdrop-blur", multiCompositionSelection ? "flex overflow-x-auto" : "hidden md:flex")} data-chrome-placement="task-bar">{multiCompositionSelection && selectedBlock ? <CompositionMultiToolbar block={selectedBlock} selectedIds={selectedCompositionIds} compatibility={multiSelectionCompatibility} onOperate={applyMultiSelectionOperation} onGroup={groupSelectedComposition} onCancel={cancelMultipleSelection} /> : selectionTarget?.semanticKind === "card-surface" ? <CardSurfaceToolbar onEdit={() => openCompositionInspector("tune-selection")} /> : activeCompositionGroupId ? <CompositionGroupToolbar count={selectedBlock ? groupMembers(selectedBlock.nodes, activeCompositionGroupId).length : selectedCompositionIds.length} onEdit={() => openCompositionInspector("arrange-card")} onLock={lockSelectedGroup} onUngroup={ungroupSelectedComposition} /> : selectedAssembly ? <CuratedObjectToolbar
               label={selectedAssembly.familyLabel}
               onEdit={openAssemblyInspector}
               onArrange={() => { if (selectedCanonicalNode) openCompositionInspector("arrange-card"); }}
@@ -760,6 +837,7 @@ export function CardStudioReconstitutionWorkspace({
                 shellHosted
                 interactionMode={studioMode}
                 compositionSelectionMode={compositionSelectionMode}
+                compositionFrameDiagnostics={frameDiagnostics}
                 compositionForceMobile={effectiveViewport === "phone"}
                 shellFocusMode={studioMode === "preview"}
                 onShellApi={(api) => { apiRef.current = api; }}
@@ -770,7 +848,7 @@ export function CardStudioReconstitutionWorkspace({
           </div>
         </main>
 
-        {studioMode === "edit" && compositionInspectorOpen && selectionTarget?.semanticKind === "card-surface" && liveModel ? <StudioCardSurfaceInspector model={liveModel} brand={brandPreviewContext} onClose={closeContextualSurface} /> : studioMode === "edit" && compositionInspectorOpen && selectedCanonicalNode && liveModel ? <StudioCompositionInspector model={liveModel} node={selectedCanonicalNode} brand={brandPreviewContext} onClose={closeContextualSurface} /> : studioMode === "edit" && assemblyInspectorOpen && selectedAssembly && selectedNode ? <StudioAssemblyInspector assembly={selectedAssembly} selectedNodeId={selectedNode.id} mediaUploadReady={liveModel?.mediaUploadReady} stockReady={liveModel?.stockReady} experiencePages={liveModel?.experiencePages} transientTaskLifecycle={transientTaskLifecycle} onBeginLiveAdjustment={liveModel?.beginLiveAdjustment} onCommitLiveAdjustment={(label) => liveModel?.commitLiveAdjustment?.(label)} onCancelLiveAdjustment={liveModel?.cancelLiveAdjustment} onPreviewCommand={(command, mutation) => {
+        {studioMode === "edit" && compositionInspectorOpen && selectionTarget?.semanticKind === "card-surface" && liveModel ? <StudioCardSurfaceInspector model={liveModel} brand={brandPreviewContext} onClose={closeContextualSurface} /> : studioMode === "edit" && compositionInspectorOpen && selectedCanonicalNode && liveModel ? <StudioCompositionInspector model={liveModel} node={selectedCanonicalNode} brand={brandPreviewContext} geometryUnit={geometryUnit} onGeometryUnitChange={setGeometryUnit} frameDiagnostics={frameDiagnostics} onFrameDiagnosticsChange={setFrameDiagnostics} onClose={closeContextualSurface} /> : studioMode === "edit" && assemblyInspectorOpen && selectedAssembly && selectedNode ? <StudioAssemblyInspector assembly={selectedAssembly} selectedNodeId={selectedNode.id} mediaUploadReady={liveModel?.mediaUploadReady} stockReady={liveModel?.stockReady} experiencePages={liveModel?.experiencePages} transientTaskLifecycle={transientTaskLifecycle} onBeginLiveAdjustment={liveModel?.beginLiveAdjustment} onCommitLiveAdjustment={(label) => liveModel?.commitLiveAdjustment?.(label)} onCancelLiveAdjustment={liveModel?.cancelLiveAdjustment} onPreviewCommand={(command, mutation) => {
           if (!liveModel || !selectedNode) return;
           const result = liveModel.previewCuratedAssembly?.(selectedNode.id, mutation);
           if (result && !result.ok) liveModel.notify?.(result.message);
@@ -783,6 +861,15 @@ export function CardStudioReconstitutionWorkspace({
           <StudioSelectionInspector model={liveModel} node={selectedButton} section={inspectorSection} onSectionChange={setInspectorSection} brandPrimary={brandPreviewContext.primaryColor || brandPreviewContext.accentColor || "#b8ff2c"} onClose={closeContextualSurface} />
         ) : null}
 
+        <dialog ref={pasteDialog} onCancel={(event) => { event.preventDefault(); cancelPaste(); }} aria-labelledby="paste-destination-title" className="fixed inset-0 m-auto max-h-[85dvh] w-[min(440px,calc(100vw-24px))] overflow-auto rounded-2xl border border-white/20 bg-[#0b111b] p-5 text-white shadow-2xl backdrop:bg-black/70" onKeyDown={(event) => event.stopPropagation()} onPointerDown={(event) => event.stopPropagation()}>
+          <h2 id="paste-destination-title" className="text-base font-semibold">Make room in {pasteReview?.targetLabel}</h2>
+          <p className="my-4 text-sm leading-relaxed text-white/75">{pasteReview?.explanation}</p>
+          {pasteReview?.expansion && !pasteReview.expansion.ok ? <p role="alert" className="mb-4 text-sm text-amber-200">{pasteReview.expansion.issues.map((issue) => issue.message).join(" ")}</p> : null}
+          <div className="flex flex-wrap justify-end gap-2">
+            <button type="button" onClick={() => { pasteDialog.current?.close(); cancelPaste(); }} className="min-h-11 rounded-lg border border-white/20 px-4">Cancel paste</button>
+            <button type="button" disabled={!pasteReview?.expansion?.ok} onClick={() => { if (pasteReview) { finishPaste(pasteReview, true); pasteDialog.current?.close(); } }} className="min-h-11 rounded-lg bg-[#b8ff2c] px-4 font-semibold text-black disabled:opacity-40">Expand and paste</button>
+          </div>
+        </dialog>
         {liveDeviceInitialized ? <div className={cn("absolute inset-0 z-[3200] justify-end bg-black/58 backdrop-blur-[2px]", liveDeviceOpen ? "flex" : "hidden")} data-testid="live-device-dock" aria-hidden={!liveDeviceOpen} onPointerDown={(event) => { if (event.target === event.currentTarget) { setLiveDeviceOpen(false); finishTask(); } }}><section id="studio-live-device-panel" role="dialog" aria-modal="true" aria-labelledby="studio-live-device-title" className="flex h-full w-[min(430px,calc(100vw-12px))] flex-col overflow-hidden border-l border-white/10 bg-[#090e16] shadow-[-24px_0_70px_rgba(0,0,0,.5)]" data-testid="studio-live-device-panel"><header className="border-b border-white/8 px-4 py-3"><div className="flex items-center gap-3"><div className="min-w-0 flex-1"><h2 id="studio-live-device-title" className="text-sm font-semibold">Phone / QR</h2><p className="text-[10px] text-white/48">Draft preview and public credential are separate authorities</p></div><button type="button" onClick={() => { setLiveDeviceOpen(false); finishTask(); }} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Phone and QR panel"><X className="h-4 w-4" /></button></div><div className="mt-3 grid grid-cols-2 gap-1 rounded-xl border border-white/8 bg-black/20 p-1" role="tablist" aria-label="Phone and QR modes"><button type="button" role="tab" aria-selected={devicePanelTab === "preview"} onClick={() => { setDevicePanelTab("preview"); setViewport("phone"); setLiveDeviceActivation((activation) => activation + 1); }} className="min-h-9 rounded-lg px-3 text-xs text-white/55 aria-selected:bg-white/10 aria-selected:text-white" data-testid="studio-phone-preview-tab">Phone Preview<span className="block text-[8px] opacity-55">Temporary Draft</span></button><button type="button" role="tab" aria-selected={devicePanelTab === "public"} onClick={() => setDevicePanelTab("public")} className="min-h-9 rounded-lg px-3 text-xs text-white/55 aria-selected:bg-[#b8ff2c]/10 aria-selected:text-[#d9ff8e]" data-testid="studio-public-qr-tab">Public QR<span className="block text-[8px] opacity-55">Permanent / published</span></button></div></header><div className="min-h-0 flex-1 overflow-y-auto">{devicePanelTab === "preview" ? <LiveDeviceQrPanel config={liveModel?.experience ? canonicalizeExperienceConfig(liveModel.config, liveModel.activeExperiencePageId) : liveModel?.config || builderProps.initialConfig} profile={builderProps.profile} businessName={builderProps.businessName} cardName={phonePreviewExperienceName} brandKitId={builderProps.brandKitId} logoUrl={builderProps.logoUrl} reviewUrl={builderProps.reviewUrl} revision={devicePreviewRevision} documentId={liveModel?.documentId} currentPage={phonePreviewPage} draftSaved={!status.dirty && !status.saving} activationKey={liveDeviceActivation} /> : <PublicQrCredentialPanel experienceId={liveModel?.documentId ?? status.activeDocumentId} experienceName={phonePreviewExperienceName} />}</div></section></div> : null}
       </div>
 
@@ -793,7 +880,7 @@ export function CardStudioReconstitutionWorkspace({
           {multiCompositionSelection ? <PhoneTool icon={Layers3} label="Group" onClick={groupSelectedComposition} /> : <PhoneTool icon={Eye} label={activeCompositionGroupId ? "Group" : "Edit"} disabled={!activeCompositionGroupId && !selectionTarget?.capabilities.includes("edit-content") && !selectionTarget?.capabilities.includes("edit-appearance")} onClick={() => { if (activeCompositionGroupId) openCompositionInspector("arrange-card"); else if (selectionTarget?.semanticKind === "card-surface") openCompositionInspector("tune-selection"); else if (selectedAssembly) openAssemblyInspector(); else if (selectedCanonicalNode && selectedCanonicalNode.primitive !== "button") openCompositionInspector("refine-selection"); else openInspector("content"); }} />}
           <PhoneTool icon={Layers3} label="Outline" onClick={() => openPhoneRail("layers")} />
           <PhoneTool icon={Eye} label="Preview" onClick={() => { beginTask("preview-card"); setStudioMode("preview"); }} />
-          <PhoneTool icon={activeCompositionGroupId || selectionTarget?.capabilities.includes("move-directly") ? Move : MoreHorizontal} label={activeCompositionGroupId || selectionTarget?.capabilities.includes("move-directly") ? "Move" : "More"} disabled={!activeCompositionGroupId && !selectionTarget?.capabilities.includes("position")} onClick={() => activeCompositionGroupId || selectedCanonicalNode ? openCompositionInspector("arrange-card") : selectedButton ? openInspector("layout") : undefined} />
+          <PhoneTool icon={activeCompositionGroupId || selectionTarget?.capabilities.includes("move-directly") ? Move : MoreHorizontal} label="Position" disabled={!activeCompositionGroupId && !selectionTarget?.capabilities.includes("position")} onClick={() => activeCompositionGroupId || selectedCanonicalNode ? openCompositionInspector("arrange-card") : selectedButton ? openInspector("layout") : undefined} />
         </nav>
       ) : null}
     </div>
@@ -809,15 +896,36 @@ function CuratedObjectToolbar({ label, onEdit, onArrange, onCopy, onDuplicate, o
   onDelete: () => void;
 }) {
   const iconButton = "grid h-9 w-9 place-items-center rounded-full text-white/62 transition hover:bg-white/8 hover:text-white";
-  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-curated-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]" data-testid="studio-curated-selection-identity">Edit Contents · {label}</button><button type="button" onClick={onArrange} className={iconButton} aria-label="Move Curated System"><Move className="h-4 w-4" /></button><StudioTransientMenu label="More Curated System actions">{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-curated-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
+  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-curated-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]" data-testid="studio-curated-selection-identity">Edit Contents · {label}</button><button type="button" onClick={onArrange} className="flex min-h-11 items-center gap-2 rounded-full px-3 text-xs text-white/80 hover:bg-white/8" aria-label="Position and size Curated System"><Move className="h-4 w-4" />Position / Size</button><StudioTransientMenu label="More Curated System actions">{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-curated-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
 }
 
 function CardSurfaceToolbar({ onEdit }: { onEdit: () => void }) {
   return <div className="flex items-center gap-2 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-card-surface-toolbar"><span className="px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-white/48">Card Surface</span><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">Refine surface</button></div>;
 }
 
-function CompositionMultiToolbar({ count, onGroup, onCancel }: { count: number; onGroup: () => void; onCancel: () => void }) {
-  return <div className="flex items-center gap-2 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-multi-toolbar"><span className="px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-[#a9e7ff]">{count} Modules selected</span><button type="button" onClick={onGroup} disabled={count < 2} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a] disabled:opacity-35" data-testid="studio-composition-group-selected"><Layers3 className="mr-1 inline h-3.5 w-3.5" />Group</button><button type="button" onClick={onCancel} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Cancel selection</button></div>;
+function CompositionMultiToolbar({ block, selectedIds, compatibility, onOperate, onGroup, onCancel }: { block: CreativeCompositionBlock; selectedIds: string[]; compatibility: ReturnType<typeof selectionGeometryCompatibility>; onOperate: (operation: StudioSelectionGeometryOperation) => void; onGroup: () => void; onCancel: () => void }) {
+  const count = selectedIds.length;
+  const operation = (value: StudioSelectionGeometryOperation) => ({
+    ...selectionOperationAvailability(block, selectedIds, value),
+    run: () => onOperate(value),
+  });
+  const groupable = compatibility.compatible && compatibility.nodes.every((node) => node.compositionKind !== "container" && node.props.componentKind !== "container" && !node.props.containerId);
+  const groupReason = groupable ? null : compatibility.reason || "Groups can contain compatible sibling Modules, not Containers or descendants.";
+  const menuButton = "flex min-h-9 w-full items-center rounded-lg px-3 text-left text-xs hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-35";
+  const alignModes: Array<{ mode: AlignMode; label: string }> = [
+    { mode: "left", label: "Left" }, { mode: "center", label: "Center" }, { mode: "right", label: "Right" },
+    { mode: "top", label: "Top" }, { mode: "middle", label: "Middle" }, { mode: "bottom", label: "Bottom" },
+  ];
+  return <div className="flex min-w-max items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-multi-toolbar">
+    <span className="px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-[#a9e7ff]" role="status" aria-live="polite">{count} selected · Reference: {block.nodes.find(n => n.id === selectedIds[0])?.name || selectedIds[0]}</span>
+    <StudioTransientMenu label="Align selection">{(close) => <>{alignModes.map(({ mode, label }) => { const action = operation({ kind: "align", mode }); return <button key={mode} type="button" role="menuitem" disabled={!action.enabled} title={action.reason || `Align ${label} using selection placement bounds`} onClick={() => { close(); action.run(); }} className={menuButton} data-testid={`studio-multi-align-${mode}`}>{label}</button>; })}</>}</StudioTransientMenu>
+    <StudioTransientMenu label="Distribute selection">{(close) => <>{(["horizontal", "vertical"] as const).map((axis) => { const action = operation({ kind: "distribute", axis }); return <button key={axis} type="button" role="menuitem" disabled={!action.enabled} title={action.reason || undefined} onClick={() => { close(); action.run(); }} className={menuButton} data-testid={`studio-multi-distribute-${axis}`}>{axis === "horizontal" ? "Horizontal" : "Vertical"}</button>; })}</>}</StudioTransientMenu>
+    <StudioTransientMenu label="Match selection size">{(close) => <>{(["width", "height", "both"] as const).map((mode) => { const action = operation({ kind: "match", mode }); return <button key={mode} type="button" role="menuitem" disabled={!action.enabled} title={action.reason || undefined} onClick={() => { close(); action.run(); }} className={menuButton} data-testid={`studio-multi-match-${mode}`}>{mode === "both" ? "Width & height" : mode[0].toUpperCase() + mode.slice(1)}</button>; })}</>}</StudioTransientMenu>
+    <StudioTransientMenu label="More selection actions">{(close) => <>{alignModes.map(({ mode, label }) => { const action = operation({ kind: "align-parent", mode }); return <button key={`parent-${mode}`} type="button" role="menuitem" disabled={!action.enabled} title={action.reason || `Align ${label} to the active parent`} onClick={() => { close(); action.run(); }} className={menuButton} data-testid={`studio-multi-align-parent-${mode}`}>Parent · {label}</button>; })}{(() => { const action = operation({ kind: "tidy" }); return <button type="button" role="menuitem" disabled={!action.enabled} title={action.reason || undefined} onClick={() => { close(); action.run(); }} className={menuButton} data-testid="studio-multi-tidy">Tidy</button>; })()}</>}</StudioTransientMenu>
+    <button type="button" onClick={onGroup} disabled={!groupable} title={groupReason || undefined} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a] disabled:opacity-35" data-testid="studio-composition-group-selected"><Layers3 className="mr-1 inline h-3.5 w-3.5" />Group</button>
+    <button type="button" onClick={onCancel} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Cancel</button>
+    {!compatibility.compatible ? <span className="max-w-52 px-2 text-[9px] text-amber-200/80" data-testid="studio-multi-selection-reason">{compatibility.reason}</span> : null}
+  </div>;
 }
 
 function CompositionGroupToolbar({ count, onEdit, onLock, onUngroup }: { count: number; onEdit: () => void; onLock: () => void; onUngroup: () => void }) {
@@ -834,7 +942,7 @@ function CompositionObjectToolbar({ label, editLabel, onEdit, onArrange, onCopy,
   onDelete: () => void;
 }) {
   const iconButton = "grid h-9 w-9 place-items-center rounded-full text-white/62 transition hover:bg-white/8 hover:text-white";
-  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">{editLabel || `Edit · ${label}`}</button><button type="button" onClick={onArrange} className={iconButton} aria-label="Open Position"><Move className="h-4 w-4" /></button><StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
+  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">{editLabel || `Edit · ${label}`}</button><button type="button" onClick={onArrange} className="flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs text-white/80 hover:bg-white/10" aria-label="Open Position"><Move className="h-4 w-4" /><span>Position</span></button><StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
 }
 
 function PhoneTool({ icon: Icon, label, onClick, disabled = false }: { icon: typeof Plus; label: string; onClick: () => void; disabled?: boolean }) {

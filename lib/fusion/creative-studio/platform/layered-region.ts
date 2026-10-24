@@ -2,6 +2,7 @@ import type { CreativeCompositionBlock, CreativeCompositionNode } from "../compo
 import { snapCompositionNodes, type CompositionGuide } from "../composition-snap";
 import { compositionChildren } from "../../card/composition-parent-authority";
 import { compactActionGridLayoutMetrics, compactActionGridNodeProps, readCompactActionGrid } from "./compact-action-grid";
+import { requiredChildContentSize, rebaseParentRelativeChildren, type ContentBoxSize } from "../container-resize";
 
 export const STUDIO_LAYERED_REGION_CONTRACT = "studioLayeredRegion@1.0.0" as const;
 export type StudioContainerCompositionMode = "flow" | "layered";
@@ -63,7 +64,7 @@ export function tightLayeredPlacementHeight(block: CreativeCompositionBlock, nod
     : node.moduleComposition?.signatureAssembly && Number.isFinite(nestedHeightPx)
     ? node.width * parentWidthPx * (nestedHeightPx / 390)
     : Math.max(20, Number(node.props.visualHeightPx) || Number(node.minHeightPx) || 44);
-  return clamp(visualHeightPx / parentHeightPx, .015, .9);
+  return clamp(visualHeightPx / parentHeightPx, .015, 1);
 }
 
 export function setLayeredPlacementFrameHeightMode(
@@ -116,6 +117,10 @@ export function allowedLayeredResizeHandles(node: CreativeCompositionNode): read
   return ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 }
 
+export function layeredMinimumFrameSize(node: CreativeCompositionNode) {
+  return { width: .08, height: compactGrid(node) || supportsLayeredPlacementFrameHeight(node) ? .015 : .04 };
+}
+
 export function readContainerCompositionMode(node: CreativeCompositionNode): StudioContainerCompositionMode {
   return node.compositionKind === "container" && node.props.layout === "layered" ? "layered" : "flow";
 }
@@ -134,16 +139,26 @@ export function isLayeredCompositionParent(block: CreativeCompositionBlock, pare
 }
 
 /** Phone-authoritative content box for normalized Layered geometry. */
-export function layeredCompositionParentSizePx(block: CreativeCompositionBlock, parentId: string | null): { widthPx: number; heightPx: number } {
+export function layeredCompositionParentSizePx(block: CreativeCompositionBlock, parentId: string | null, measuredAncestor?: ContentBoxSize): { widthPx: number; heightPx: number } {
   const rootWidthPx = Math.max(80, 390 - Math.max(0, block.safeAreaPaddingPx ?? 12) * 2);
   if (parentId === null) return { widthPx: rootWidthPx, heightPx: Math.max(240, block.compositionMode?.layeredHeightPx ?? 620) };
   const parent = block.nodes.find((candidate) => candidate.id === parentId);
   if (!parent) return { widthPx: rootWidthPx, heightPx: 360 };
-  const ancestor = layeredCompositionParentSizePx(block, parent.parentId ?? null);
-  const padding = Math.max(0, Number(parent.props.padding) || 0);
+  const ancestor = measuredAncestor ?? layeredCompositionParentSizePx(block, parent.parentId ?? null);
+  const padding = Math.max(0, Number(parent.props.padding ?? 16));
+  const placedInLayered = isLayeredCompositionParent(block, parent.parentId ?? null);
+  const flowWidth = Math.max(20, Math.min(100, Number(parent.props.widthPercent ?? parent.props.flowWidthPercent ?? 100))) / 100;
+  const edgeWidth = parent.props.edgeMode === "inset" ? Math.min(ancestor.widthPx * flowWidth, ancestor.widthPx - 24)
+    : parent.props.edgeMode === "full_bleed" ? ancestor.widthPx * flowWidth + (block.safeAreaPaddingPx ?? 12) * 2
+    : ancestor.widthPx * flowWidth;
+  const minWidth = Math.max(0, Number(parent.props.minWidthPx) || 0);
+  const frameWidth = placedInLayered ? ancestor.widthPx * parent.width
+    : Math.max(minWidth, Math.min(Math.max(minWidth, Number(parent.props.maxWidthPx) || 9999), edgeWidth));
   return {
-    widthPx: Math.max(80, ancestor.widthPx * parent.width - padding * 2),
-    heightPx: Math.max(120, Number(parent.props.layeredHeightPx) || 360),
+    widthPx: Math.max(1, frameWidth - padding * 2),
+    heightPx: isLayeredCompositionParent(block, parent.parentId ?? null)
+      ? Math.max(1, ancestor.heightPx * parent.height - padding * 2)
+      : Math.max(180, Number(parent.props.layeredHeightPx) || 360),
   };
 }
 
@@ -194,7 +209,7 @@ export function setCardSurfaceCompositionMode(
   mode: StudioContainerCompositionMode,
 ): CreativeCompositionBlock {
   const roots = block.nodes.filter((node) => node.parentId === null).sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
-  const initialized = block.compositionMode?.layeredPlacementInitialized === true;
+  const initialized = block.compositionMode?.layeredPlacementInitialized === true || isCardSurfaceLayered(block);
   const heightPx = block.compositionMode?.layeredHeightPx ?? 620;
   const widthPx = layeredCompositionParentSizePx(block, null).widthPx;
   const seeded = new Map<string, Pick<CreativeCompositionNode, "x" | "y" | "width" | "height" | "anchor">>();
@@ -218,9 +233,7 @@ export function setCardSurfaceCompositionMode(
     nodes: mode === "flow" ? block.nodes : block.nodes.map((node) => {
       if (node.parentId !== null) return node;
       if (!initialized) return { ...node, ...seeded.get(node.id), zIndex: Math.max(1, node.zIndex || 1) };
-      const width = clamp(Number.isFinite(node.width) ? node.width : .84, .12, .94);
-      const height = clamp(Number.isFinite(node.height) ? node.height : .16, .06, .82);
-      return { ...node, x: clamp(node.x, 0, 1 - width), y: clamp(node.y, 0, 1 - height), width, height, zIndex: Math.max(1, node.zIndex || 1) };
+      return node; // Restoring a mode must not rewrite existing authored placement.
     }),
   };
 }
@@ -243,7 +256,7 @@ export function setContainerCompositionMode(
   const children = block.nodes
     .filter((node) => node.parentId === containerId)
     .sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
-  const initialized = container.props.layeredPlacementInitialized === true;
+  const initialized = container.props.layeredPlacementInitialized === true || isLayeredContainer(container);
   const heightPx = Number(container.props.layeredHeightPx) || 360;
   const widthPx = layeredCompositionParentSizePx(block, containerId).widthPx;
   const seeded = new Map<string, Pick<CreativeCompositionNode, "x" | "y" | "width" | "height" | "anchor">>();
@@ -263,16 +276,7 @@ export function setContainerCompositionMode(
       }
       if (mode !== "layered" || node.parentId !== containerId) return node;
       if (!initialized) return { ...node, ...seeded.get(node.id), zIndex: Math.max(1, node.zIndex || 1) };
-      const width = clamp(Number.isFinite(node.width) ? node.width : .84, .12, .92);
-      const height = clamp(Number.isFinite(node.height) ? node.height : .18, .06, .9);
-      return {
-        ...node,
-        x: clamp(node.x, 0, 1 - width),
-        y: clamp(node.y, 0, 1 - height),
-        width,
-        height,
-        zIndex: Math.max(1, Number.isFinite(node.zIndex) ? node.zIndex : 1),
-      };
+      return node; // Keep prior placement, including deliberate overflow and small frames.
     }),
   };
 }
@@ -284,9 +288,10 @@ export function moveLayeredNode(
 ): CreativeCompositionBlock {
   const node = block.nodes.find((candidate) => candidate.id === nodeId);
   const parent = node?.parentId ? block.nodes.find((candidate) => candidate.id === node.parentId) : null;
-  if (!node || !(isLayeredContainer(parent) || (node.parentId === null && isCardSurfaceLayered(block)))) return block;
-  const width = clamp(patch.width ?? node.width, .08, 1);
-  const height = clamp(patch.height ?? node.height, compactGrid(node) || supportsLayeredPlacementFrameHeight(node) ? .015 : .04, 1);
+  if (!node || node.locked || !(isLayeredContainer(parent) || (node.parentId === null && isCardSurfaceLayered(block)))) return block;
+  const minimum = layeredMinimumFrameSize(node);
+  const width = clamp(patch.width ?? node.width, Math.min(minimum.width, node.width), Math.max(1, node.width));
+  const height = clamp(patch.height ?? node.height, Math.min(minimum.height, node.height), Math.max(1, node.height));
   const allowOverflow = layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow";
   const grid = compactGrid(node);
   const parentWidthPx = layeredCompositionParentSizePx(block, node.parentId ?? null).widthPx;
@@ -305,6 +310,92 @@ export function moveLayeredNode(
       zIndex: Math.max(1, Math.round(patch.zIndex ?? node.zIndex)),
     } : candidate),
   };
+}
+
+/** Exact Inspector sizing consumes the same resize policy as pointer handles. */
+export function resizeLayeredNodeDimension(block: CreativeCompositionBlock, nodeId: string, axis: "width" | "height", value: number, sizeOf?: (parentId: string | null) => ContentBoxSize): CreativeCompositionBlock {
+  const node = block.nodes.find((candidate) => candidate.id === nodeId);
+  if (!node || node.locked || !Number.isFinite(value)) return block;
+  const policy = layeredResizePolicy(node);
+  if (policy === "width-only" && axis === "height") return block;
+  const minHeight = layeredMinimumFrameSize(node).height;
+  if (policy === "governed-aspect") {
+    const scale = clamp(value / node[axis], Math.max(.08 / node.width, minHeight / node.height), Math.min(1 / node.width, 1 / node.height));
+    return applyLayeredResize(block, nodeId, { ...node, width: node.width * scale, height: node.height * scale }, sizeOf);
+  }
+  return applyLayeredResize(block, nodeId, { ...node, [axis]: clamp(value, axis === "width" ? .08 : minHeight, 1) }, sizeOf);
+}
+
+/** Stop the resize at the parent boundary without translating its fixed edge.
+ * Interpolation preserves the opposite local edge for rotated gestures and the
+ * aspect ratio for governed frames. Bounds concern Placement, not paint overflow.
+ */
+export function applyLayeredResize(block: CreativeCompositionBlock, nodeId: string, frame: { x: number; y: number; width: number; height: number }, sizeOf: (parentId: string | null) => ContentBoxSize = id => layeredCompositionParentSizePx(block, id)): CreativeCompositionBlock {
+  const node = block.nodes.find((candidate) => candidate.id === nodeId);
+  if (!node || node.locked) return block;
+  const preserveChildren = isLayeredContainer(node);
+  const parentSize = sizeOf(node.parentId ?? null);
+  const oldContent = preserveChildren ? sizeOf(node.id) : null;
+  let progress = 1;
+  if (oldContent && node.props.clipContent !== true && layeredBoundsPolicy(block, node.id) === "constrain") {
+    const required = requiredChildContentSize(block.nodes, node.id, oldContent);
+    for (const [available, requested, needed] of [
+      [oldContent.widthPx, oldContent.widthPx + (frame.width - node.width) * parentSize.widthPx, required.widthPx],
+      [oldContent.heightPx, oldContent.heightPx + (frame.height - node.height) * parentSize.heightPx, required.heightPx],
+    ]) {
+      const floor = Math.min(available, needed);
+      if (requested < floor) progress = Math.min(progress, (available - floor) / Math.max(.00001, available - requested));
+    }
+  }
+  for (const [start, end] of layeredBoundsPolicy(block, node.parentId ?? null) === "allow-overflow" ? [] : [[node.x, frame.x], [node.y, frame.y], [1 - node.x - node.width, 1 - frame.x - frame.width], [1 - node.y - node.height, 1 - frame.y - frame.height]]) {
+    if (start >= -1e-9 && end < 0) progress = Math.min(progress, Math.max(0, start) / (start - end));
+  }
+  const at = (key: "x" | "y" | "width" | "height") => node[key] + (frame[key] - node[key]) * progress;
+  const moved = moveLayeredNode(block, nodeId, { x: at("x"), y: at("y"), width: at("width"), height: at("height") });
+  if (!oldContent) return moved;
+  const next = moved.nodes.find(candidate => candidate.id === nodeId)!;
+  const newContent = {
+    widthPx: Math.max(1, oldContent.widthPx + (next.width - node.width) * parentSize.widthPx),
+    heightPx: Math.max(1, oldContent.heightPx + (next.height - node.height) * parentSize.heightPx),
+  };
+  return { ...moved, nodes: rebaseParentRelativeChildren(moved.nodes, nodeId, oldContent, newContent) };
+}
+
+/** Explicit Flow-width editing changes the frame while retaining its responsive percentage. */
+export function resizeFlowContainerWidth(block: CreativeCompositionBlock, id: string, widthPercent: number | undefined,
+  sizeOf: (parentId: string | null) => ContentBoxSize = parentId => layeredCompositionParentSizePx(block, parentId)): CreativeCompositionBlock {
+  const node = block.nodes.find(candidate => candidate.id === id);
+  if (!node || node.locked || !isLayeredContainer(node) || isLayeredCompositionParent(block, node.parentId ?? null)) return block;
+  const next = { ...block, nodes: block.nodes.map(candidate => candidate.id === id ? { ...candidate, props: { ...candidate.props, widthPercent } } : candidate) };
+  const before = sizeOf(id);
+  const after = { ...before, widthPx: layeredCompositionParentSizePx(next, id, sizeOf(node.parentId ?? null)).widthPx };
+  if (node.props.clipContent !== true && layeredBoundsPolicy(block, id) === "constrain"
+    && after.widthPx < Math.min(before.widthPx, requiredChildContentSize(block.nodes, id, before).widthPx) - .01) return block;
+  return { ...next, nodes: rebaseParentRelativeChildren(next.nodes, id, before, after) };
+}
+
+/** A Layered Container in Flow owns an explicit internal plane, not its dormant frame. */
+export function resizeContainerLayeredPlane(block: CreativeCompositionBlock, id: string, heightPx: number,
+  sizeOf: (parentId: string | null) => ContentBoxSize = parentId => layeredCompositionParentSizePx(block, parentId)): CreativeCompositionBlock {
+  const node = block.nodes.find(candidate => candidate.id === id);
+  if (!node || node.locked || !isLayeredContainer(node) || isLayeredCompositionParent(block, node.parentId ?? null) || !Number.isFinite(heightPx)) return block;
+  const before = sizeOf(id);
+  const minimum = node.props.clipContent !== true && layeredBoundsPolicy(block, id) === "constrain"
+    ? Math.min(before.heightPx, requiredChildContentSize(block.nodes, id, before).heightPx) : 180;
+  const after = { ...before, heightPx: Math.max(minimum, clamp(heightPx, 180, 900)) };
+  const nodes = block.nodes.map(candidate => candidate.id === id ? { ...candidate, props: { ...candidate.props, layeredHeightPx: after.heightPx } } : candidate);
+  return { ...block, nodes: rebaseParentRelativeChildren(nodes, id, before, after) };
+}
+
+/** Resize the authored root plane, independently of the public-page minimum. */
+export function resizeLayeredPlane(block: CreativeCompositionBlock, heightPx: number): CreativeCompositionBlock {
+  if (!isCardSurfaceLayered(block) || !Number.isFinite(heightPx)) return block;
+  const before = layeredCompositionParentSizePx(block, null);
+  const minimum = layeredBoundsPolicy(block, null) === "constrain"
+    ? Math.min(before.heightPx, Math.ceil(requiredChildContentSize(block.nodes, null, before).heightPx)) : 240;
+  const after = { ...before, heightPx: Math.max(minimum, clamp(Math.round(heightPx), 240, 1600)) };
+  return { ...block, compositionMode: { ...block.compositionMode!, layeredHeightPx: after.heightPx },
+    nodes: rebaseParentRelativeChildren(block.nodes, null, before, after) };
 }
 
 export function snapLayeredNode(input: {
@@ -496,4 +587,85 @@ function findLayeredOpening(width: number, height: number, occupied: CreativeCom
     if (area < bestArea) { best = candidate; bestArea = area; }
   }
   return best;
+}
+
+/** Resize the authored frame in its rotated local axes, keeping the opposite edge fixed. */
+export function resizeLayeredPlacement(node: CreativeCompositionNode, handle: StudioRectangularResizeHandle,
+  delta: { xPx: number; yPx: number }, parent: { widthPx: number; heightPx: number }, preserveAspect = false) {
+  const angle = (node.rotationDeg || 0) * Math.PI / 180;
+  const c = Math.cos(angle), s = Math.sin(angle);
+  const dx = (delta.xPx * c + delta.yPx * s) / parent.widthPx;
+  const dy = (-delta.xPx * s + delta.yPx * c) / parent.heightPx;
+  const west = handle.includes("w"), east = handle.includes("e"), north = handle.includes("n"), south = handle.includes("s");
+  const policy = layeredResizePolicy(node);
+  const minimum = layeredMinimumFrameSize(node);
+  let width = west || east ? Math.max(Math.min(minimum.width, node.width), Math.min(1, node.width + (west ? -dx : dx))) : node.width;
+  let height = north || south ? Math.max(Math.min(minimum.height, node.height), Math.min(1, node.height + (north ? -dy : dy))) : node.height;
+  if (policy === "width-only") height = node.height;
+  if (policy === "governed-aspect" || (preserveAspect && policy === "free" && (west || east) && (north || south))) {
+    const scale = Math.abs(dx * parent.widthPx) >= Math.abs(dy * parent.heightPx) ? width / node.width : height / node.height;
+    const bounded = Math.max(minimum.width / node.width, minimum.height / node.height, Math.min(scale, 1 / node.width, 1 / node.height));
+    width = node.width * bounded; height = node.height * bounded;
+  }
+  const centerDx = (west ? -1 : east ? 1 : 0) * (width - node.width) * parent.widthPx / 2;
+  const centerDy = (north ? -1 : south ? 1 : 0) * (height - node.height) * parent.heightPx / 2;
+  return {
+    x: node.x + node.width / 2 + (centerDx * c - centerDy * s) / parent.widthPx - width / 2,
+    y: node.y + node.height / 2 + (centerDx * s + centerDy * c) / parent.heightPx - height / 2,
+    width, height,
+  };
+}
+
+/** Rotation of the parent coordinate system; dormant Flow rotation is not applied. */
+export function layeredParentRotation(block: CreativeCompositionBlock, parentId: string | null): number {
+  let rotation = 0;
+  const visited = new Set<string>();
+  while (parentId && !visited.has(parentId)) {
+    visited.add(parentId);
+    const parent = block.nodes.find((node) => node.id === parentId);
+    if (!parent) break;
+    if (isLayeredCompositionParent(block, parent.parentId ?? null)) rotation += parent.rotationDeg || 0;
+    parentId = parent.parentId ?? null;
+  }
+  return rotation;
+}
+
+export function layeredScreenVector(block: CreativeCompositionBlock, parentId: string | null,
+  delta: { xPx: number; yPx: number }, size: { widthPx: number; heightPx: number }) {
+  const angle = layeredParentRotation(block, parentId) * Math.PI / 180;
+  return { x: (delta.xPx * Math.cos(angle) + delta.yPx * Math.sin(angle)) / size.widthPx,
+    y: (-delta.xPx * Math.sin(angle) + delta.yPx * Math.cos(angle)) / size.heightPx };
+}
+
+/** Move eligible roots together. One common constraint fraction preserves relative placement. */
+export function translateLayeredSelection(block: CreativeCompositionBlock, ids: readonly string[],
+  delta: { xPx: number; yPx: number },
+  parentSize: (id: string | null) => { widthPx: number; heightPx: number } = (id) => layeredCompositionParentSizePx(block, id)) {
+  const selected = new Set(ids);
+  const roots = block.nodes.filter((node) => selected.has(node.id) && !node.locked
+    && isLayeredCompositionParent(block, node.parentId ?? null)
+    && !(node.groupId && block.nodes.some((other) => other.groupId === node.groupId && other.locked))
+    && !(() => { let id = node.parentId; while (id) { if (selected.has(id)) return true; id = block.nodes.find((n) => n.id === id)?.parentId; } return false; })());
+  let fraction = 1;
+  const vectors = new Map(roots.map((node) => {
+    const vector = layeredScreenVector(block, node.parentId ?? null, delta, parentSize(node.parentId ?? null));
+    if (layeredBoundsPolicy(block, node.parentId ?? null) === "constrain") {
+      for (const [position, extent, amount] of [[node.x, node.width, vector.x], [node.y, node.height, vector.y]]) {
+        if (amount > 0) fraction = Math.min(fraction, Math.max(0, 1 - position - extent) / amount);
+        if (amount < 0) fraction = Math.min(fraction, Math.max(0, position) / -amount);
+      }
+    }
+    return [node.id, vector] as const;
+  }));
+  if (!vectors.size || fraction === 0 || (!delta.xPx && !delta.yPx)) return block;
+  return { ...block, nodes: block.nodes.map((node) => {
+    const vector = vectors.get(node.id);
+    return vector ? { ...node, x: node.x + vector.x * fraction, y: node.y + vector.y * fraction } : node;
+  }) };
+}
+
+/** External pixels are CSS pixels at 100%; only down-fit when the destination needs it. */
+export function fitNativeImageSize(native: { widthPx: number; heightPx: number }, parent: { widthPx: number; heightPx: number }) {
+  const scale = Math.min(1, parent.widthPx / native.widthPx, parent.heightPx / native.heightPx);
+  return { width: native.widthPx * scale / parent.widthPx, height: native.heightPx * scale / parent.heightPx, scale };
 }

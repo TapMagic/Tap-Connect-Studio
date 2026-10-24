@@ -26,6 +26,37 @@ export type ContainerFrame = {
   height: number;
 };
 
+export type ContentBoxSize = { widthPx: number; heightPx: number };
+
+/** Required child Placement envelope in the existing local content plane. */
+export function requiredChildContentSize(nodes: CreativeCompositionNode[], parentId: string | null, size: ContentBoxSize): ContentBoxSize {
+  return nodes.filter(child => (child.parentId ?? null) === parentId && child.visible !== false).reduce((extent, child) => {
+    const angle = (child.rotationDeg ?? 0) * Math.PI / 180;
+    const w = child.width * size.widthPx, h = child.height * size.heightPx;
+    return { widthPx: Math.max(extent.widthPx, child.x * size.widthPx + w / 2 + (Math.abs(w * Math.cos(angle)) + Math.abs(h * Math.sin(angle))) / 2),
+      heightPx: Math.max(extent.heightPx, child.y * size.heightPx + h / 2 + (Math.abs(w * Math.sin(angle)) + Math.abs(h * Math.cos(angle))) / 2) };
+  }, { widthPx: 1, heightPx: 1 });
+}
+
+/** Authoring-time change of a parent coordinate plane. Rendering never calls this.
+ * Immediate children use parent-relative coordinates; deeper descendants keep
+ * their own unchanged coordinate spaces. Explicit percentage sizing stays relative.
+ */
+export function rebaseParentRelativeChildren(
+  nodes: CreativeCompositionNode[], parentId: string | null,
+  before: ContentBoxSize, after: ContentBoxSize,
+): CreativeCompositionNode[] {
+  if (before.widthPx === after.widthPx && before.heightPx === after.heightPx) return nodes;
+  const sx = before.widthPx / Math.max(1, after.widthPx);
+  const sy = before.heightPx / Math.max(1, after.heightPx);
+  return nodes.map(node => (node.parentId ?? null) !== parentId ? node : {
+    ...node,
+    x: node.x * sx, y: node.y * sy,
+    width: node.widthPct != null ? node.width : node.width * sx,
+    height: node.heightPct != null ? node.height : node.height * sy,
+  });
+}
+
 function clamp(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }

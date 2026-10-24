@@ -1,5 +1,7 @@
 # Studio implementation prompt — master UX revision
 
+> **Superseding Product Owner decision, October 23:** Slice 1 desktop interaction quality is accepted. Physical-touch and explicitly unverified release checks remain open; production hashes remain BLOCKED. Text Editing Truth may proceed only after the reproducible source baseline is verified. See [desktop acceptance and source baseline](SLICE1_DESKTOP_ACCEPTANCE_SOURCE_BASELINE_2026-10-23.md). Historical OPEN/gated statements below describe the earlier review state. No deployment is authorized.
+
 **Standing interaction requirements:** [Canonical interaction principles](STUDIO_CANONICAL_INTERACTION_PRINCIPLES.md) govern familiar keyboard/focus behavior, fearless editing, shared tApIt foundations and freedom to redesign interface presentation. Target behaviors are requirements, not verified implementation claims. Current Slice 1 authorization and later approval gates remain unchanged.
 
 **Current authorization: Frame and Page Truth is approved for local implementation only; its candidate is ready for review.** Slice 1 remains NOT ACCEPTED pending Rich's hands-on review. No Text Editing Truth, responsive authoring, unrelated UX redesign, production change or deployment is authorized. Later increments below remain plans requiring their applicable approval gates. Documentation synchronization and review do not expand implementation scope.

@@ -1,5 +1,7 @@
 # Slice 1 closure and Slice 2 readiness — 2026-10-22
 
+> **Superseding Product Owner decision, October 23:** Slice 1 desktop interaction quality is accepted. Physical-touch and explicitly unverified release checks remain open; production hashes remain BLOCKED. Text Editing Truth may proceed only after the reproducible source baseline is verified. See [desktop acceptance and source baseline](SLICE1_DESKTOP_ACCEPTANCE_SOURCE_BASELINE_2026-10-23.md). Historical OPEN/gated statements below describe the earlier review state. No deployment is authorized.
+
 Status: **Slice 1 remains NOT ACCEPTED. Select and Resize with Confidence is approved for local implementation only. Production functional regression is accepted by Rich; hash verification remains BLOCKED. Slice 2 retains its approved Text Editing Truth scope but remains gated and is excluded from the current implementation. No production changes or deployment authorized.**
 
 This report preserves historical evidence below. Current scope and execution guidance are in [the revised implementation prompt](STUDIO_UX_IMPLEMENTATION_PROMPT_2026-10-22.md). GitHub synchronization does not close any acceptance gate. Historical source counts, server availability and test results are dated observations, not current certification. The later corrective run reported 35 passed and 2 failed (nested geometry unit round-trip and a source-based handle assertion); those results were not rerun during documentation synchronization.

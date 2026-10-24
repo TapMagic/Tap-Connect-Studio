@@ -1,0 +1,244 @@
+
+> tap-connect-studio@0.1.0 build
+> prisma generate && next build --webpack
+
+Loaded Prisma config from prisma.config.ts.
+
+Prisma schema loaded from prisma/schema.prisma.
+
+✔ Generated Prisma Client (v7.9.1) to ./../../../Users/rcs/Development/tap-connect-studio/node_modules/.pnpm/@prisma+client@7.9.1_prisma@7.9.1_@types+react-dom@19.2.4_@types+react@19.2.18__@types+_67bc0995a3261772182106c738044e58/node_modules/@prisma/client in 457ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+
+▲ Next.js 16.2.10 (webpack)
+- Experiments (use with caution):
+  · proxyClientMaxBodySize: 35651584
+
+  Creating an optimized production build ...
+✓ Compiled successfully in 9.0s
+  Running TypeScript ...
+  Finished TypeScript in 11.5s ...
+  Collecting page data using 9 workers ...
+  Generating static pages using 9 workers (0/100) ...
+  Generating static pages using 9 workers (25/100)
+  Generating static pages using 9 workers (50/100)
+  Generating static pages using 9 workers (75/100)
+✓ Generating static pages using 9 workers (100/100) in 228ms
+  Finalizing page optimization ...
+  Collecting build traces ...
+
+Route (app)
+┌ ○ /
+├ ○ /_not-found
+├ ƒ /admin
+├ ƒ /admin/platform
+├ ƒ /admin/platform/audit
+├ ƒ /admin/platform/contacts
+├ ƒ /admin/platform/devices
+├ ƒ /admin/platform/leads
+├ ƒ /admin/platform/outbox
+├ ƒ /admin/platform/overrides
+├ ƒ /api/admin/features
+├ ƒ /api/admin/landing-demo
+├ ƒ /api/admin/landing-demos
+├ ƒ /api/admin/landing-use-cases
+├ ƒ /api/ai/autopilot/budget
+├ ƒ /api/ai/generate
+├ ƒ /api/ai/keywords
+├ ƒ /api/ai/knowledge
+├ ƒ /api/ai/proposals
+├ ƒ /api/audience/consent
+├ ƒ /api/audience/contacts
+├ ƒ /api/autopilot/live
+├ ƒ /api/autopilot/live/interrupt
+├ ƒ /api/brand
+├ ƒ /api/brand/decisions
+├ ƒ /api/business
+├ ƒ /api/business/knowledge
+├ ƒ /api/business/knowledge/website
+├ ƒ /api/campaigns
+├ ƒ /api/campaigns/actions
+├ ƒ /api/campaigns/assign
+├ ƒ /api/campaigns/command
+├ ƒ /api/canvas
+├ ƒ /api/card/documents
+├ ƒ /api/card/documents/[id]
+├ ƒ /api/card/draft
+├ ƒ /api/card/offer/bind
+├ ƒ /api/card/offer/convert
+├ ƒ /api/card/offer/distribution
+├ ƒ /api/card/offer/group
+├ ƒ /api/card/publication
+├ ƒ /api/commerce
+├ ƒ /api/comms/suppression
+├ ƒ /api/connectors/productivity
+├ ƒ /api/control
+├ ƒ /api/control/invitations/accept
+├ ƒ /api/creative-resources
+├ ƒ /api/creative-resources/[id]
+├ ƒ /api/creative-resources/[id]/approve
+├ ƒ /api/creative-resources/[id]/duplicate
+├ ƒ /api/creative-resources/[id]/favorite
+├ ƒ /api/creative-resources/[id]/revisions
+├ ƒ /api/creative-resources/[id]/usages
+├ ƒ /api/creative-resources/[id]/used
+├ ƒ /api/creative/fonts
+├ ƒ /api/creative/icons
+├ ƒ /api/creative/magic-write
+├ ƒ /api/crm/leads
+├ ƒ /api/devices
+├ ƒ /api/devices/update
+├ ƒ /api/email
+├ ƒ /api/email-replies
+├ ƒ /api/email-replies/verify
+├ ƒ /api/email/send
+├ ƒ /api/experiences
+├ ƒ /api/experiences/[id]
+├ ƒ /api/experiences/[id]/credentials
+├ ƒ /api/experiences/[id]/publication
+├ ƒ /api/groups
+├ ƒ /api/groups/[id]
+├ ƒ /api/groups/[id]/slots
+├ ƒ /api/health
+├ ƒ /api/inbox
+├ ƒ /api/insights/export
+├ ƒ /api/integrations/status
+├ ƒ /api/journeys/draft
+├ ƒ /api/journeys/live
+├ ƒ /api/journeys/simulate
+├ ƒ /api/keywords
+├ ƒ /api/leads
+├ ƒ /api/logos/image
+├ ƒ /api/logos/search
+├ ƒ /api/loyalty/adjust
+├ ƒ /api/loyalty/award
+├ ƒ /api/loyalty/enroll
+├ ƒ /api/loyalty/insights
+├ ƒ /api/loyalty/ledger
+├ ƒ /api/loyalty/members
+├ ƒ /api/loyalty/programs
+├ ƒ /api/loyalty/redeem
+├ ƒ /api/loyalty/reverse
+├ ƒ /api/media
+├ ƒ /api/media/[id]/approve
+├ ƒ /api/media/[id]/favorite
+├ ƒ /api/media/[id]/reject
+├ ƒ /api/media/[id]/used
+├ ƒ /api/media/background
+├ ƒ /api/media/collections
+├ ƒ /api/media/collections/[id]
+├ ƒ /api/media/collections/[id]/members
+├ ƒ /api/media/import
+├ ƒ /api/media/local
+├ ƒ /api/media/providers/status
+├ ƒ /api/media/upload
+├ ƒ /api/media/url/import
+├ ƒ /api/media/url/probe
+├ ƒ /api/mytap/wallet
+├ ƒ /api/outbox
+├ ƒ /api/preview/card/asset/[token]
+├ ƒ /api/preview/card/revoke
+├ ƒ /api/preview/card/session
+├ ƒ /api/public/card/offer
+├ ƒ /api/public/card/support
+├ ƒ /api/public/demo-card/[slotKey]
+├ ƒ /api/public/landing-demo
+├ ƒ /api/public/offer/checkout
+├ ƒ /api/public/offer/verify
+├ ƒ /api/public/tapflow/trigger
+├ ƒ /api/public/vcard
+├ ƒ /api/public/vcard-photo
+├ ƒ /api/public/vcard/[id]
+├ ƒ /api/publication
+├ ƒ /api/qr
+├ ƒ /api/save-icon
+├ ƒ /api/scan/claim
+├ ƒ /api/scan/sessions
+├ ƒ /api/scan/sessions/[id]
+├ ƒ /api/schedule
+├ ƒ /api/stock/search
+├ ƒ /api/studio/activity
+├ ƒ /api/tap/click
+├ ƒ /api/tapcast
+├ ƒ /api/tapcast/tiktok
+├ ƒ /api/tapsave
+├ ƒ /api/tapsave/keep
+├ ƒ /api/tapsave/preferences
+├ ƒ /api/tapsave/status
+├ ƒ /api/upload
+├ ƒ /api/wallet
+├ ƒ /api/webhooks/resend/inbound
+├ ƒ /api/workspace/context
+├ ○ /apple-icon.png
+├ ƒ /auth/continue
+├ ƒ /control
+├ ƒ /control/invitations/accept
+├ ○ /control/unauthorized
+├ ƒ /dashboard
+├ ƒ /dashboard/analytics
+├ ƒ /dashboard/assets
+├ ƒ /dashboard/audience
+├ ƒ /dashboard/audience/cases
+├ ƒ /dashboard/audience/inbox
+├ ƒ /dashboard/audience/wallet
+├ ƒ /dashboard/billing
+├ ƒ /dashboard/brand
+├ ƒ /dashboard/brand/edit
+├ ƒ /dashboard/campaigns
+├ ƒ /dashboard/campaigns/[id]
+├ ƒ /dashboard/campaigns/[id]/email
+├ ƒ /dashboard/card
+├ ƒ /dashboard/card/edit
+├ ƒ /dashboard/card/preview
+├ ƒ /dashboard/card/preview/qr
+├ ƒ /dashboard/devices
+├ ƒ /dashboard/devices/[id]
+├ ƒ /dashboard/email
+├ ƒ /dashboard/experiences
+├ ƒ /dashboard/experiences/[id]/preview
+├ ƒ /dashboard/experiences/canvas
+├ ƒ /dashboard/experiences/journeys
+├ ƒ /dashboard/experiences/library
+├ ƒ /dashboard/experiences/orders
+├ ƒ /dashboard/experiences/tapcast
+├ ƒ /dashboard/experiences/tapcast/tiktok
+├ ƒ /dashboard/groups
+├ ƒ /dashboard/groups/[id]
+├ ƒ /dashboard/insights
+├ ƒ /dashboard/integrations
+├ ƒ /dashboard/leads
+├ ƒ /dashboard/pulse
+├ ƒ /dashboard/scan
+├ ƒ /dashboard/schedule
+├ ƒ /dashboard/settings
+├ ƒ /dashboard/tap-points
+├ ƒ /dashboard/tap-trace
+├ ƒ /dashboard/workbench
+├ ○ /dev/cosmic-glass-specimen
+├ ○ /dev/signature-assembly-specimen
+├ ○ /dev/topshelf-specimen
+├ ƒ /everencore/[experienceSlug]/[[...pageSlug]]
+├ ○ /icon.png
+├ ƒ /mytap/[relationshipId]
+├ ƒ /offer/[slug]
+├ ○ /offer/checkout/simulate
+├ ○ /offer/return
+├ ƒ /onboarding
+├ ƒ /preview/card/[token]
+├ ƒ /preview/live/[token]
+├ ○ /pricing
+├ ○ /pulse
+├ ○ /review/love-theft-picks
+├ ƒ /review/studio
+├ ƒ /scan/[accessCode]
+├ ƒ /sign-in/[[...sign-in]]
+├ ƒ /sign-up/[[...sign-up]]
+├ ƒ /t/[deviceCode]
+└ ƒ /x/[credential]
+
+
+ƒ Proxy (Middleware)
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

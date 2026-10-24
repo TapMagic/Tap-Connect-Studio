@@ -8,7 +8,7 @@ import { GRADIENT_PRESETS } from "@/lib/fusion/creative-studio/gradient";
 import { compositionBackgroundFromMaterialRecipe, getMaterialRecipe, materialPreviewCss } from "@/lib/fusion/creative-studio/material-engine";
 import { CARD_SURFACE_IMAGE_PRESENTATIONS, cardSurfaceImagePresentation, type CardSurfaceImagePresentation } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 import { readCardEdgeMode, setCardEdgeMode, STUDIO_EDGE_MODES, type StudioEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
-import { isCardSurfaceLayered, setCardSurfaceCompositionMode } from "@/lib/fusion/creative-studio/platform/layered-region";
+import { isCardSurfaceLayered, resizeLayeredPlane, setCardSurfaceCompositionMode } from "@/lib/fusion/creative-studio/platform/layered-region";
 import { readCardSurfaceDensity, setCardSurfaceDensity, type StudioCompositionDensityMode } from "@/lib/fusion/creative-studio/platform/composition-density";
 import type { BrandPreviewContext } from "@/lib/fusion/creative-studio/reconstitution/standard-button-catalog";
 import { creativeFillToCompositionBackground } from "@/lib/fusion/creative-platform/composition-adapter";
@@ -420,27 +420,26 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
           {isCardSurfaceLayered(root) ? (
             <div className="mt-3 space-y-3">
               <label className="block text-[9px] text-white/55">
-                Layered region height
+                Layered coordinate plane · px (children keep their size)
                 <input
                   type="number"
                   min={240}
                   max={1600}
                   step={10}
                   value={root.compositionMode?.layeredHeightPx ?? 620}
-                  onChange={(event) =>
-                    patchRoot(
-                      {
-                        ...root,
-                        compositionMode: {
-                          ...root.compositionMode!,
-                          version: 1,
-                          mode: "layered",
-                          layeredHeightPx: Math.max(240, Math.min(1600, Number(event.target.value))),
-                        },
-                      },
-                      "Changed Card layered region height",
-                    )
-                  }
+                  onFocus={() => model.beginLiveAdjustment?.()}
+                  onChange={(event) => {
+                    const requested = Number(event.target.value);
+                    const next = resizeLayeredPlane(root, requested);
+                    if (next.compositionMode?.layeredHeightPx !== requested) model.notify?.(`Plane constrained to ${next.compositionMode?.layeredHeightPx}px by content or the existing 240–1600px range. Move content or enable authored overflow to reduce the plane further.`);
+                    model.previewCompositionBlock?.(next);
+                  }}
+                  onBlur={() => model.commitLiveAdjustment?.("Changed Card layered coordinate plane")}
+                  onKeyDown={(event) => {
+                    if (event.nativeEvent.isComposing) return;
+                    if (event.key === "Escape") { model.cancelLiveAdjustment?.(); event.currentTarget.blur(); }
+                    else if (event.key === "Enter") event.currentTarget.blur();
+                  }}
                   className="mt-1.5 h-10 w-full rounded-lg bg-white/5 px-3"
                 />
               </label>

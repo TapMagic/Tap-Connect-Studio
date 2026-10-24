@@ -65,7 +65,7 @@ export function createCuratedAuthoringCapability(
   const textSizeControls: StudioAuthoringControl[] = precision || availableTextSizes.length > 1 ? [{
     id: "text-size",
     label: "Text size",
-    description: "Exact phone-scale label size. Certified preset assemblies remain compatible.",
+    description: "Label size in local CSS pixels. Whole-module placement and certified size limits remain authoritative.",
     type: "precision",
     value: activePx,
     unit: "px",

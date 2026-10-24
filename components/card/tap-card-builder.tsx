@@ -285,6 +285,7 @@ type Props = {
   interactionMode?: "edit" | "preview";
   compositionForceMobile?: boolean;
   compositionSelectionMode?: "single" | "multiple";
+  compositionFrameDiagnostics?: boolean;
   previewMotion?: boolean;
   reducedMotionSimulation?: boolean;
   motionRevision?: number;
@@ -461,6 +462,7 @@ export function TapCardBuilder({
   interactionMode = "edit",
   compositionForceMobile = false,
   compositionSelectionMode = "single",
+  compositionFrameDiagnostics = false,
   previewMotion = false,
   reducedMotionSimulation = false,
   motionRevision = 0,
@@ -2491,6 +2493,7 @@ export function TapCardBuilder({
       patchCompositionNode,
       beginLiveAdjustment,
       previewCompositionNode,
+      previewCompositionBlock: (block) => applyCanvasCompositionChange(null, block, "Previewed composition geometry", "preview"),
       previewSelection,
       commitLiveAdjustment: (label) => { commitLiveAdjustment(label); setDirty(true); },
       cancelLiveAdjustment,
@@ -3807,6 +3810,7 @@ export function TapCardBuilder({
                   onNotify={(message) => setMessage?.(message)}
                   compositionForceMobile={compositionForceMobile}
                   compositionSelectionMode={compositionSelectionMode}
+                  compositionFrameDiagnostics={compositionFrameDiagnostics}
                   editorZoom={typeof renderedPreviewZoom === "number" ? renderedPreviewZoom : 1}
                   previewMotion={previewMotion}
                   reducedMotionSimulation={reducedMotionSimulation}

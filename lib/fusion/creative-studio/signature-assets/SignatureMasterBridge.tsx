@@ -74,11 +74,11 @@ function liveTypeStyle(asset: ReturnType<typeof getSignatureAsset>, props: Recor
     boxSizing:"border-box",
     paddingInlineStart:responsive?`${responsive.safeAreaPaddingPx}px`:undefined,
     paddingInlineEnd:responsive?`${responsive.safeAreaPaddingPx+responsive.affordanceReservePx}px`:undefined,
-    fontSize:titleSize??(requestedPx?`${requestedPx}px`:fontPreset?`${fontPreset}px`:font?`clamp(${font[0]}px, 3.85cqw, ${font[1]}px)`:undefined),
+    fontSize:requestedPx?`${requestedPx}px`:titleSize??(fontPreset?`${fontPreset}px`:font?`clamp(${font[0]}px, 3.85cqw, ${font[1]}px)`:undefined),
     lineHeight:responsive?responsive.title.lineHeight:(requestedPx?`${Math.round(requestedPx*1.22)}px`:linePreset?`${linePreset}px`:line?`clamp(${line[0]}px, 4.9cqw, ${line[1]}px)`:undefined),
     transform:geometry.opticalCenterOffsetEm?`translateY(${geometry.opticalCenterOffsetEm}em)`:undefined,
     ...(responsive?{
-      "--signature-title-size":titleSize,
+      "--signature-title-size":requestedPx ? `${requestedPx}px` : titleSize,
       "--signature-title-line-height":String(responsive.title.lineHeight),
       "--signature-title-tracking":`${responsive.title.trackingEm??0}em`,
       "--signature-sublabel-size":sublabelSize,

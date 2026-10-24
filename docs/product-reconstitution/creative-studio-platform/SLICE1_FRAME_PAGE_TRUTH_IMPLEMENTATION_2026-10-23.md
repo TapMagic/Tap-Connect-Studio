@@ -1,5 +1,7 @@
 # Slice 1 — Frame and Page Truth: local corrective candidate
 
+> **Superseding Product Owner decision, October 23:** Slice 1 desktop interaction quality is accepted. Physical-touch and explicitly unverified release checks remain open; production hashes remain BLOCKED. Text Editing Truth may proceed only after the reproducible source baseline is verified. See [desktop acceptance and source baseline](SLICE1_DESKTOP_ACCEPTANCE_SOURCE_BASELINE_2026-10-23.md). Historical OPEN/gated statements below describe the earlier review state. No deployment is authorized.
+
 **Implemented locally; Slice 1 OPEN pending Product Owner hands-on acceptance. Slice 2 Text Editing Truth remains gated.**
 
 This report implements the Product Owner-approved [bounded scope](SLICE1_PRECISION_LAYOUT_PAGE_SCOPE_PROPOSAL_2026-10-23.md). It does not authorize staging, merge, release, or production changes.

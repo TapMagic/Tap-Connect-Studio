@@ -1,5 +1,7 @@
 "use client";
 
+import { fitNativeImageSize, layeredParentRotation, translateLayeredSelection, layeredMinimumFrameSize, applyLayeredResize, isLayeredCompositionParent } from "@/lib/fusion/creative-studio/platform/layered-region";
+import { measureCompositionContentExtent, renderedLayeredParentSize } from "./use-layered-parent-size";
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { ArrowDownToLine, ArrowUpToLine, ArrowUpRight, GripVertical, Heart, LockKeyhole, Mail, MapPin, Maximize2, Move, Phone, Play, Sparkles, Star, Tag, Ticket } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -40,13 +42,16 @@ import {
 import { buildButtonHref, type MapElementProps } from "@/lib/fusion/card/designer-elements";
 import {
   compositionChildren,
+  copyCompositionNodeSubtree,
+  pasteCompositionNodeSubtree,
+  insertCompositionModule,
   deleteCompositionNode,
-  duplicateCompositionNode,
   hasCompositionParentAuthority,
   reparentCompositionNode,
   reorderCompositionNode,
 } from "@/lib/fusion/card/composition-parent-authority";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
+import { resolveStudioPlacementContext } from "@/lib/fusion/creative-studio/platform/add-discover";
 import { resolveFlowDropTarget } from "@/lib/fusion/creative-studio/platform/flow-drop-target";
 import { copyCompositionNodes, copyCompositionNodeStyle, hasCompositionClipboard, hasCompositionStyleClipboard, pasteCompositionNodes, pasteCompositionNodeStyle } from "@/lib/fusion/creative-studio/composition-clipboard";
 import { buttonContent, buttonContentNode } from "@/lib/fusion/creative-studio/button-composition";
@@ -66,6 +71,7 @@ import {
   activateGroupContentChild,
   compositionGroupRecord,
   computeGroupUnionBounds,
+  compositionGroupSpace,
   exitGroupContentEditing,
   groupCompositionBlock,
   isGroupContentEditing,
@@ -115,10 +121,10 @@ import { isArcEmberPristineMasterProps } from "@/lib/fusion/creative-studio/visu
 import { ARC_EMBER_STAGE_ID, isSignatureAssetProps, layoutArcEmberStages, requiredArcEmberSurfaceHeightPx, SignatureMasterBridge } from "@/lib/fusion/creative-studio/signature-assets";
 import { curatedCompoundObjectForNode, curatedCompoundObjects } from "@/lib/fusion/creative-studio/platform/curated-compound-object";
 import { readStudioSurfaceState } from "@/lib/fusion/creative-studio/platform/surface-capability";
-import { studioModuleActivationMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
+import { editableControlOwnsKeyboard, studioEditableOwner, studioModuleActivationMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
 import { readStudioVideoState, videoAspectRatio, videoEmbedUrl } from "@/lib/fusion/creative-studio/platform/media-module";
 import { readCardEdgeMode, readContainerEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
-import { allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, layeredResizePolicy, moveLayeredNode, reorderLayeredNodeZ, resolveTightLayeredPlacementFrames, snapLayeredNode, snapLayeredResize, type StudioRectangularResizeHandle } from "@/lib/fusion/creative-studio/platform/layered-region";
+import { layeredCompositionParentSizePx, resizeLayeredPlacement, allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, layeredResizePolicy, moveLayeredNode, reorderLayeredNodeZ, resolveTightLayeredPlacementFrames, snapLayeredNode, snapLayeredResize, type StudioRectangularResizeHandle } from "@/lib/fusion/creative-studio/platform/layered-region";
 import { readCardSurfaceDensity, readContainerDensity } from "@/lib/fusion/creative-studio/platform/composition-density";
 import { cardSurfaceImageLayerStyle, cardSurfaceImagePresentation } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 import { STANDARD_BUTTON_APPEARANCE_CONTRACT, readStandardButtonAppearance } from "@/lib/fusion/creative-studio/reconstitution/standard-button-appearance";
@@ -126,6 +132,7 @@ import { compactActionGridLayoutMetrics, readCompactActionGrid } from "@/lib/fus
 import { CompactActionGrid } from "@/components/tap/compact-action-grid";
 import { ActionPresentationEffects } from "@/components/fusion/creative-studio/action-presentation-effects";
 import { MapLocationContainer } from "@/components/tap/map-location-container";
+import { resolveStudioFrameSemantics } from "@/lib/fusion/creative-studio/platform/frame-semantics";
 
 export type CreativeCompositionCanvasProps = {
   block: CreativeCompositionBlock;
@@ -133,8 +140,11 @@ export type CreativeCompositionCanvasProps = {
   selectedNodeIds?: string[];
   /** Explicit touch-safe selection mode. Modifier keys remain an optional shortcut. */
   selectionMode?: "single" | "multiple";
+  /** Workspace-only overlays. Never persisted into the composition block. */
+  frameDiagnostics?: boolean;
   onSelectNodes?: (ids: string[]) => void;
-  onChangeBlock?: (next: CreativeCompositionBlock, label?: string) => void;
+  onContentExtentChange?: (heightPx: number) => void;
+  onChangeBlock?: (next: CreativeCompositionBlock, label?: string, phase?: "preview" | "commit" | "cancel") => void;
   /** Force mobile fallback layout (narrow preview). */
   forceMobileFallback?: boolean;
   previewMotion?: boolean;
@@ -241,7 +251,7 @@ function ActionVisual({ node, editMode, children }: { node: CreativeCompositionN
       href={editMode ? undefined : href}
       aria-disabled={editMode || undefined}
       aria-label={str(node.props.accessibleLabel, str(node.props.text, str(node.props.alt, node.name || "Open")))}
-      className="block h-full w-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8ff2c]"
+      className="relative block h-full w-full before:absolute before:left-1/2 before:top-1/2 before:h-full before:min-h-11 before:w-full before:min-w-11 before:-translate-x-1/2 before:-translate-y-1/2 before:content-[''] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#b8ff2c]"
       data-element-action={str(node.props.actionType)}
       onClick={(event) => { if (editMode) event.preventDefault(); }}
     >
@@ -288,6 +298,19 @@ function MotionVisual({ node, active, children }: { node: CreativeCompositionNod
       {children}
     </div>
   );
+}
+
+/** Screen-sized interaction targets are independent of the small visible marks. */
+function LayeredFrameHandles({ name, prefix, handles, zoom, onStart }: {
+  name: string; prefix: string; handles: readonly StudioRectangularResizeHandle[]; zoom: number;
+  onStart: (event: React.PointerEvent<HTMLButtonElement>, mode: "resize" | "rotate", handle?: StudioRectangularResizeHandle) => void;
+}) {
+  const scale = 1 / Math.max(.25, zoom || 1);
+  const positions = { nw: [0,0], n: [50,0], ne: [100,0], e: [100,50], se: [100,100], s: [50,100], sw: [0,100], w: [0,50] };
+  const target = "pointer-events-auto absolute z-30 grid h-6 w-6 touch-none place-items-center rounded-sm border-0 bg-transparent p-0 outline-none focus-visible:ring-2 focus-visible:ring-white [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11";
+  return <>{handles.map((handle) => <button key={handle} type="button" className={target} style={{ left: `${positions[handle][0]}%`, top: `${positions[handle][1]}%`, transform: `translate(-50%, -50%) scale(${scale})`, cursor: `${handle}-resize` }} aria-label={`Resize ${name} ${handle}`} data-testid={prefix === "studio-layered-group" ? `${prefix}-resize` : `studio-layer-resize-${prefix}-${handle}`} data-handle-target="resize" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => onStart(event, "resize", handle)}><span data-handle-mark="resize" className="pointer-events-none h-1.5 w-1.5 rounded-[1px] border border-white bg-[#b8ff2c]" /></button>)}
+    <button type="button" className={target} style={{ left: "50%", top: -32 * scale, transform: `translate(-50%, -50%) scale(${scale})`, cursor: "grab" }} aria-label={`Rotate ${name}. Hold Shift for 15 degree increments.`} data-testid={prefix === "studio-layered-group" ? `${prefix}-rotate` : `studio-layer-rotate-${prefix}`} data-handle-target="rotate" onClick={(event) => event.stopPropagation()} onPointerDown={(event) => onStart(event, "rotate")}><span data-handle-mark="rotate" className="pointer-events-none h-2 w-2 rounded-full border border-white bg-[#b8ff2c]" /></button>
+  </>;
 }
 
 function InlineEditableText({
@@ -1914,8 +1937,8 @@ function FittedModuleComposition({
     const host = hostRef.current;
     if (!host) return;
     const update = () => {
-      const bounds = host.getBoundingClientRect();
-      setFittedWidth(Math.max(1, Math.min(bounds.width, bounds.height * aspect)));
+      const size = renderedLayeredParentSize(host);
+      setFittedWidth(Math.max(1, Math.min(size.widthPx, size.heightPx * aspect)));
     };
     update();
     const observer = new ResizeObserver(update);
@@ -1935,8 +1958,10 @@ export function CreativeCompositionCanvas({
   editMode = false,
   selectedNodeIds = [],
   selectionMode = "single",
+  frameDiagnostics = false,
   onSelectNodes,
   onChangeBlock,
+  onContentExtentChange,
   forceMobileFallback = false,
   previewMotion = false,
   reducedMotionSimulation = false,
@@ -1956,6 +1981,7 @@ export function CreativeCompositionCanvas({
 }: CreativeCompositionCanvasProps) {
   const chromeScale = 1 / Math.max(0.25, Math.min(4, editorZoom || 1));
   const surfaceRef = useRef<HTMLDivElement>(null);
+  const [contentExtent, setContentExtent] = useState(0);
   const [narrow, setNarrow] = useState(false);
   const [surfaceSize, setSurfaceSize] = useState({ width: 180, height: 220 });
   const [draftNodes, setDraftNodes] = useState<CreativeCompositionNode[] | null>(
@@ -2003,7 +2029,7 @@ export function CreativeCompositionCanvas({
       return first?.groupId && isGroupContentScope(block.nodes, first.groupId) ? first.groupId : null;
     })();
   const groupContentScopeActive = Boolean(activeGroupId && isGroupContentScope(block.nodes, activeGroupId));
-  const groupBounds = activeGroupId ? computeGroupUnionBounds(block.nodes, activeGroupId, true) : null;
+  const groupBounds = activeGroupId ? computeGroupUnionBounds(block.nodes, activeGroupId, true, compositionGroupSpace(block, activeGroupId)) : null;
 
   useEffect(() => {
     const el = surfaceRef.current;
@@ -2016,6 +2042,21 @@ export function CreativeCompositionCanvas({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  useEffect(() => {
+    const canvas = surfaceRef.current;
+    if (!canvas || !hasCompositionParentAuthority(block)) return;
+    const measure = () => {
+      const height = measureCompositionContentExtent(canvas, draftNodes ? { ...block, nodes: draftNodes } : block);
+      setContentExtent(previous => previous === height ? previous : height);
+      onContentExtentChange?.(height);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(canvas);
+    canvas.querySelectorAll<HTMLElement>('[data-composition-node]').forEach(element => observer.observe(element));
+    return () => observer.disconnect();
+  }, [block, draftNodes, onContentExtentChange]);
 
   const selectedSet = useMemo(() => new Set(selectedNodeIds), [selectedNodeIds]);
   const selectedCuratedCompound = useMemo(
@@ -2108,6 +2149,34 @@ export function CreativeCompositionCanvas({
     () => accessibleReadingOrder(visibleNodes),
     [visibleNodes]
   );
+  const latestBlockRef = useRef(block);
+  useEffect(() => { latestBlockRef.current = block; }, [block]);
+  const nudgeRef = useRef<{ block: CreativeCompositionBlock; timer: ReturnType<typeof setTimeout> } | null>(null);
+  const changeBlockRef = useRef(onChangeBlock);
+  useEffect(() => { changeBlockRef.current = onChangeBlock; }, [onChangeBlock]);
+  const finishNudge = useCallback(() => {
+    const pending = nudgeRef.current;
+    if (!pending) return;
+    clearTimeout(pending.timer);
+    nudgeRef.current = null;
+    changeBlockRef.current?.(pending.block, "Nudged selection", "commit");
+  }, []);
+  useEffect(() => {
+    const boundary = (event: Event) => {
+      if (event instanceof KeyboardEvent && /^Arrow/.test(event.key) && !editableControlOwnsKeyboard(event)) return;
+      finishNudge();
+    };
+    window.addEventListener("pointerdown", boundary, true);
+    window.addEventListener("keydown", boundary, true);
+    window.addEventListener("blur", finishNudge);
+    return () => { finishNudge(); window.removeEventListener("pointerdown", boundary, true); window.removeEventListener("keydown", boundary, true); window.removeEventListener("blur", finishNudge); };
+  }, [finishNudge]);
+  const measuredParentSize = (parentId: string | null) => {
+    const region = [...(surfaceRef.current?.querySelectorAll<HTMLElement>('[data-layered-region="true"]') ?? [])]
+      .find((element) => element.dataset.layeredRegionId === (parentId ?? "card-surface"));
+    return region ? renderedLayeredParentSize(region) : layeredCompositionParentSizePx(block, parentId);
+  };
+  const draggedBodyRef = useRef(false);
   const commitNodes = useCallback(
     (nodes: CreativeCompositionNode[], label: string) => {
       onChangeBlock?.(synchronizeCompositionGroups({ ...block, nodes }), label);
@@ -2133,11 +2202,23 @@ export function CreativeCompositionCanvas({
           ? `Placing ${images.length} images individually…`
           : "Importing image…"
       );
-      const uploaded: Array<{ url: string; mediaAssetId: string }> = [];
+      const selected = block.nodes.find((node) => node.id === selectedNodeIds[0]);
+      const destination = resolveStudioPlacementContext(block, selected);
+      const parentId = destination?.parentId ?? null;
+      const parent = measuredParentSize(parentId);
+      const uploaded: Array<{ url: string; mediaAssetId: string; widthPx: number; heightPx: number; name: string }> = [];
       for (const file of images) {
-        const asset = await uploadCanvasImageFile(file);
-        if (asset) uploaded.push(asset);
+        try {
+          const objectUrl = URL.createObjectURL(file);
+          const decoded = new Image();
+          decoded.src = objectUrl;
+          try { await decoded.decode(); } finally { URL.revokeObjectURL(objectUrl); }
+          if (!decoded.naturalWidth || !decoded.naturalHeight) throw new Error("No intrinsic dimensions");
+          const asset = await uploadCanvasImageFile(file);
+          if (asset) uploaded.push({ ...asset, widthPx: decoded.naturalWidth, heightPx: decoded.naturalHeight, name: file.name });
+        } catch { onNotify?.(`Could not import ${file.name || "clipboard image"}; no object was inserted for that image.`); }
       }
+      if (JSON.stringify(latestBlockRef.current) !== JSON.stringify(block)) { onNotify?.("The composition changed while importing. Your work was preserved; choose the imported image from Recent to place it."); return; }
       if (!uploaded.length) {
         onNotify?.("Could not import image — check upload permissions");
         return;
@@ -2166,39 +2247,43 @@ export function CreativeCompositionCanvas({
         return;
       }
       const maxZ = block.nodes.reduce((value, node) => Math.max(value, node.zIndex), 0);
-      const baseX = point ? Math.min(0.72, Math.max(0.04, point.x - 0.14)) : 0.12;
-      const baseY = point ? Math.min(0.72, Math.max(0.04, point.y - 0.12)) : 0.14;
-      const created = uploaded.map((asset, index) =>
-        createCompositionNode("image", {
-          x: Math.min(0.78, baseX + (index % 3) * 0.06),
-          y: Math.min(0.78, baseY + Math.floor(index / 3) * 0.08),
-          width: 0.28,
-          height: 0.22,
+      const fitted: string[] = [];
+      const created = uploaded.map((asset, index) => {
+        const frame = fitNativeImageSize(asset, parent);
+        if (frame.scale < 1) fitted.push(`${asset.name}: ${Math.round(asset.widthPx * frame.scale)} × ${Math.round(asset.heightPx * frame.scale)}px (${Math.round(frame.scale * 100)}% of native size)`);
+        return createCompositionNode("image", {
+          ...(destination ? { compositionKind: "module", parentId, siblingOrder: destination.insertionIndex + index } : {}),
+          name: asset.name || "Pasted image",
+          x: Math.max(0, Math.min(1 - frame.width, point ? point.x - frame.width / 2 : (12 + index * 12) / parent.widthPx)),
+          y: Math.max(0, Math.min(1 - frame.height, point ? point.y - frame.height / 2 : (12 + index * 12) / parent.heightPx)),
+          width: frame.width, height: frame.height,
+          minHeightPx: asset.heightPx * frame.scale,
           zIndex: maxZ + index + 1,
-          props: {
-            src: asset.url,
-            mediaAssetId: asset.mediaAssetId,
-            alt: images[index]?.name || "Image",
-            fit: "cover",
-            opacity: 1,
-            elementKind: "image",
-          },
-        })
-      );
-      commitNodes([...block.nodes, ...created], uploaded.length > 1 ? "Placed dropped images" : "Placed dropped image");
+          props: { src: asset.url, mediaAssetId: asset.mediaAssetId, alt: asset.name || "Image", fit: "contain", opacity: 1, elementKind: "image",
+            flowWidthPercent: frame.width * 100, flowAlignment: "start" },
+        });
+      });
+      let next = block;
+      for (const node of created) {
+        if (destination) {
+          const inserted = insertCompositionModule(next, node, parentId, node.siblingOrder);
+          if (!inserted.ok) { onNotify?.(inserted.issues[0]?.message || "Unable to paste into this parent."); return; }
+          next = inserted.block;
+        } else next = { ...next, nodes: [...next.nodes, node] };
+      }
+      commitNodes(next.nodes, uploaded.length > 1 ? "Pasted images" : "Pasted image");
       onSelectNodes?.(created.map((node) => node.id));
-      onNotify?.(null);
+      onNotify?.(fitted.length ? `Fit to parent: ${fitted.join("; ")}. Resize the parent for more space.` : "Pasted at native size (1 image pixel = 1 design pixel at 100% zoom).");
     },
-    [block.nodes, commitNodes, mediaUploadReady, onNotify, onSelectNodes]
+    [block, selectedNodeIds, commitNodes, mediaUploadReady, onNotify, onSelectNodes]
   );
 
   useEffect(() => {
     if (!editMode) return;
     function onKey(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null;
-      if (target?.closest?.("input, textarea, select, [contenteditable=true]")) {
-        return;
-      }
+      if (editableControlOwnsKeyboard(e)) return;
+      if (!surfaceRef.current?.contains(target)) return;
       if (e.key === "Escape") {
         // Composition More menu owns Escape before selection-clear / Exit layering.
         if (contextMenu) {
@@ -2323,19 +2408,17 @@ export function CreativeCompositionCanvas({
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "d") {
         e.preventDefault();
         if (hasCompositionParentAuthority(block)) {
-          let current: CreativeCompositionBlock = block;
-          const newIds: string[] = [];
-          for (const nodeId of selectedNodeIds) {
-            const result = duplicateCompositionNode(current, nodeId);
-            if (!result.ok) {
-              onNotify?.(result.issues[0]?.message || "Unable to duplicate this composition item.");
-              return;
-            }
-            current = result.block;
-            if (result.selectedNodeId) newIds.push(result.selectedNodeId);
-          }
-          commitNodes(current.nodes, "Duplicated composition items");
-          if (newIds.length) onSelectNodes?.(newIds);
+          const ids = isGroupParentSelection(block.nodes, selectedNodeIds) ? expandSelectionToGroups(block.nodes, selectedNodeIds) : selectedNodeIds;
+          const first = block.nodes.find((node) => node.id === ids[0]);
+          if (!first) return;
+          const size = measuredParentSize(first.parentId ?? null);
+          const payload = copyCompositionNodeSubtree(block, ids, size);
+          if (!payload) { onNotify?.("Select siblings in one parent to duplicate together."); return; }
+          const result = pasteCompositionNodeSubtree(block, payload, first.parentId ?? null, undefined, size);
+          if (!result.ok) { onNotify?.(result.issues[0]?.message || "Unable to duplicate selection."); return; }
+          onChangeBlock?.(synchronizeCompositionGroups(result.block), "Duplicated selection");
+          onSelectNodes?.(result.selectedNodeIds ?? []);
+          if (result.notices?.length) onNotify?.(result.notices.join(" "));
           return;
         }
         const { nodes, newIds } = duplicateNodes(block.nodes, selectedNodeIds);
@@ -2365,7 +2448,27 @@ export function CreativeCompositionCanvas({
         return;
       }
       // Arrow nudge — responsive relative units
-      if (hasCompositionParentAuthority(block)) return;
+      if (hasCompositionParentAuthority(block)) {
+        if (!/^Arrow(Left|Right|Up|Down)$/.test(e.key) || e.altKey || e.metaKey || e.ctrlKey) return;
+        e.preventDefault();
+        const ids = isGroupParentSelection(block.nodes, selectedNodeIds) ? expandSelectionToGroups(block.nodes, selectedNodeIds) : selectedNodeIds;
+        const current = nudgeRef.current?.block ?? block;
+        const step = e.shiftKey ? 10 : 1;
+        const next = translateLayeredSelection(current, ids, {
+          xPx: e.key === "ArrowLeft" ? -step : e.key === "ArrowRight" ? step : 0,
+          yPx: e.key === "ArrowUp" ? -step : e.key === "ArrowDown" ? step : 0,
+        }, measuredParentSize);
+        if (next === current) {
+          onNotify?.("Position is constrained. Flow objects use layout order; unlock objects or adjust Parent bounds in Position when needed.");
+          return;
+        }
+        if (nudgeRef.current) clearTimeout(nudgeRef.current.timer);
+        if (ids.some((id) => { const node = current.nodes.find((n) => n.id === id); return node && (node.locked || !isLayeredCompositionParent(current, node.parentId ?? null)); })) onNotify?.("Moved eligible Layered objects. Locked objects and Flow placement were preserved; use Outline order for Flow.");
+        const synchronized = synchronizeCompositionGroups(next);
+        nudgeRef.current = { block: synchronized, timer: setTimeout(finishNudge, 300) };
+        onChangeBlock?.(synchronized, "Nudged selection", "preview");
+        return;
+      }
       const rect = surfaceRef.current?.getBoundingClientRect();
       const stepPx = e.shiftKey ? 10 : 1;
       let dx = 0;
@@ -2399,7 +2502,7 @@ export function CreativeCompositionCanvas({
     }
     function onPaste(e: ClipboardEvent) {
       const target = e.target as HTMLElement | null;
-      if (target?.closest?.("input, textarea, select, [contenteditable=true]")) return;
+      if (e.defaultPrevented || studioEditableOwner(target) || !surfaceRef.current?.contains(target)) return;
       const imageFiles = Array.from(e.clipboardData?.files || []).filter((file) =>
         IMAGE_FILE_TYPES.has(file.type)
       );
@@ -2670,7 +2773,7 @@ export function CreativeCompositionCanvas({
       mode === "resize"
         ? "Resized composition item"
         : mode === "rotate"
-          ? "Rotated composition item"
+          ? drag.groupId ? "Rotated composition Group" : "Rotated composition item"
         : groupMove
           ? "Moved composition group"
           : "Moved composition item"
@@ -2750,7 +2853,7 @@ export function CreativeCompositionCanvas({
     const rootLayered = isCardSurfaceLayered(flowBlock);
     const rootDensity = readCardSurfaceDensity(flowBlock);
     const moduleFrame = (node: CreativeCompositionNode): CSSProperties => {
-      const width = Math.max(20, Math.min(100, num(node.props.flowWidthPercent, 100)));
+      const width = Math.max(.1, Math.min(100, num(node.props.flowWidthPercent, 100)));
       const compactGrid = readCompactActionGrid(node.props);
       if (compactGrid) {
         const metrics = compactActionGridLayoutMetrics(compactGrid);
@@ -2767,9 +2870,9 @@ export function CreativeCompositionCanvas({
       const nativeModuleHeight = node.moduleComposition?.pageHeightPx ?? 56;
       const responsiveModuleHeight = isCuratedAssembly ? nativeModuleHeight * (width / 100) : nativeModuleHeight;
       const minimumTouchTarget = Math.max(44, num(node.props.minimumTouchTargetPx, 44));
-      const minHeight = node.moduleComposition ? Math.max(isCuratedAssembly ? minimumTouchTarget : 52, responsiveModuleHeight)
+      const minHeight = node.moduleComposition ? isCuratedAssembly ? minimumTouchTarget : Math.max(52, responsiveModuleHeight)
         : node.primitive === "text" ? Math.max(32, num(node.props.textMinHeightPx, 40))
-          : node.primitive === "image" ? Math.max(140, node.minHeightPx ?? 180)
+          : node.primitive === "image" ? Math.max(1, node.minHeightPx ?? 180)
             : node.primitive === "border" ? 12
               : Math.max(52, node.minHeightPx ?? 56);
       const inset = Math.max(0, Math.min(80, num(node.props.flowInsetPx, 0)));
@@ -2777,9 +2880,10 @@ export function CreativeCompositionCanvas({
       const fixedTextHeight = node.primitive === "text" && str(node.props.textHeightMode, "auto") === "fixed" ? Math.max(minHeight, num(node.props.textFixedHeightPx, minHeight)) : undefined;
       const videoAspect = node.primitive === "video" ? videoAspectRatio(readStudioVideoState(node.props).aspect) : undefined;
       return {
+        flexShrink: 0,
         minHeight,
         height: fixedTextHeight,
-        aspectRatio: videoAspect,
+        aspectRatio: isCuratedAssembly ? 390 / Math.max(1, nativeModuleHeight) : videoAspect,
         width: `min(${width}%, calc(100% - ${inset * 2}px))`,
         alignSelf: alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
         marginTop: Math.max(0, num(node.props.spacingAbovePx, 0)),
@@ -2796,10 +2900,12 @@ export function CreativeCompositionCanvas({
       onChangeBlock?.(result.block, label);
       onSelectNodes?.([result.selectedNodeId ?? node.id]);
     };
-    const startFlowPointerMove = (event: React.PointerEvent<HTMLButtonElement>, node: CreativeCompositionNode) => {
-      if (event.button !== 0 || flowPointerRef.current !== null) return;
+    const startFlowPointerMove = (event: React.PointerEvent<HTMLElement>, node: CreativeCompositionNode, sameParentOnly = false) => {
+      if (event.button !== 0 || node.locked || flowPointerRef.current !== null) return;
       event.preventDefault();
       event.stopPropagation();
+      const startX = event.clientX, startY = event.clientY;
+      draggedBodyRef.current = false;
       flowPointerRef.current = event.pointerId;
       flowDropTargetRef.current = null;
       setFlowDragNodeId(node.id);
@@ -2807,6 +2913,9 @@ export function CreativeCompositionCanvas({
       onSelectNodes?.([node.id]);
       const move = (pointerEvent: PointerEvent) => {
         if (pointerEvent.pointerId !== flowPointerRef.current) return;
+        if (Math.hypot(pointerEvent.clientX - startX, pointerEvent.clientY - startY) < (event.pointerType === "touch" ? 6 : 3)) return;
+        draggedBodyRef.current = true;
+        pointerEvent.preventDefault();
         setFlowPointerVisual((current)=>current ? { ...current, x:pointerEvent.clientX, y:pointerEvent.clientY } : current);
         autoScrollForPointer(surfaceRef.current, pointerEvent.clientX, pointerEvent.clientY);
         const hit = document.elementFromPoint(pointerEvent.clientX, pointerEvent.clientY)?.closest<HTMLElement>("[data-flow-drop-parent][data-flow-drop-index]");
@@ -2814,7 +2923,7 @@ export function CreativeCompositionCanvas({
         const parentValue = hit.dataset.flowDropParent;
         const parentId = parentValue === "card-surface" ? null : parentValue ?? null;
         const index = Number(hit.dataset.flowDropIndex);
-        if (!Number.isInteger(index) || !resolveFlowDropTarget(block, node.id, parentId, index).ok) {
+        if ((sameParentOnly && parentId !== (node.parentId ?? null)) || !Number.isInteger(index) || !resolveFlowDropTarget(block, node.id, parentId, index).ok) {
           flowDropTargetRef.current = null;
           setFlowDropTarget(null);
           return;
@@ -2827,6 +2936,7 @@ export function CreativeCompositionCanvas({
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", finish);
         window.removeEventListener("pointercancel", cancel);
+        window.removeEventListener("keydown", escape, true);
         const target = flowDropTargetRef.current;
         if (target) commitFlowTarget(node, target.parentId, target.index, target.parentId ? "Moved Module into Container" : "Reordered Card flow");
         flowPointerRef.current = null;
@@ -2840,12 +2950,19 @@ export function CreativeCompositionCanvas({
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", finish);
         window.removeEventListener("pointercancel", cancel);
+        window.removeEventListener("keydown", escape, true);
         flowPointerRef.current = null;
         flowDropTargetRef.current = null;
         setFlowDropTarget(null);
         setFlowDragNodeId(null);
         setFlowPointerVisual(null);
       };
+      const escape = (keyEvent: KeyboardEvent) => {
+        if (keyEvent.key !== "Escape" || keyEvent.isComposing) return;
+        keyEvent.preventDefault(); keyEvent.stopPropagation();
+        cancel({ pointerId: event.pointerId } as PointerEvent);
+      };
+      window.addEventListener("keydown", escape, true);
       window.addEventListener("pointermove", move, { passive: false });
       window.addEventListener("pointerup", finish);
       window.addEventListener("pointercancel", cancel);
@@ -2869,42 +2986,85 @@ export function CreativeCompositionCanvas({
         if (target) { event.preventDefault(); commitFlowTarget(node, target.id, compositionChildren(block, target.id).length, "Moved Module into Container by keyboard"); }
       }
     };
-    const startLayeredPointer = (event: React.PointerEvent<HTMLButtonElement>, node: CreativeCompositionNode, mode: "move" | "resize", handle: StudioRectangularResizeHandle = "se") => {
+    const startLayeredPointer = (event: React.PointerEvent<HTMLElement>, node: CreativeCompositionNode, mode: "move" | "resize" | "rotate", handle: StudioRectangularResizeHandle = "se") => {
       if (event.button !== 0 || node.locked) return;
+      if (mode === "resize" && !isLayeredCompositionParent(block, node.parentId ?? null)) {
+        event.preventDefault(); event.stopPropagation();
+        const outer = event.currentTarget.closest<HTMLElement>('[data-composition-node]');
+        const flow = outer?.parentElement;
+        if (!outer || !flow) return;
+        const width = renderedLayeredParentSize(flow).widthPx;
+        const startWidth = parseFloat(getComputedStyle(outer).width);
+        const startX = event.clientX;
+        const parentAngle = layeredParentRotation(block, node.parentId ?? null) * Math.PI / 180;
+        const startY = event.clientY;
+        let finalNodes = block.nodes;
+        const move = (pointer: PointerEvent) => {
+          if (pointer.pointerId !== event.pointerId) return;
+          const delta = ((pointer.clientX - startX) * Math.cos(parentAngle) + (pointer.clientY - startY) * Math.sin(parentAngle)) / Math.max(.25, editorZoom || 1);
+          const percent = Math.max(.1, Math.min(100, (startWidth + delta) / width * 100));
+          finalNodes = block.nodes.map(candidate => candidate.id === node.id ? { ...candidate, props: { ...candidate.props, flowWidthPercent: percent } } : candidate);
+          setDraftNodes(finalNodes);
+        };
+        const clean = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", finish); window.removeEventListener("pointercancel", cancel); window.removeEventListener("keydown", escape, true); setDraftNodes(null); };
+        const finish = (pointer: PointerEvent) => { if (pointer.pointerId !== event.pointerId) return; clean(); if (finalNodes !== block.nodes) onChangeBlock?.({ ...block, nodes: finalNodes }, "Resized Flow Module"); };
+        const cancel = () => clean();
+        const escape = (key: KeyboardEvent) => { if (key.key === "Escape") { key.preventDefault(); key.stopPropagation(); cancel(); } };
+        window.addEventListener("pointermove", move); window.addEventListener("pointerup", finish); window.addEventListener("pointercancel", cancel); window.addEventListener("keydown", escape, true);
+        return;
+      }
       const region = event.currentTarget.closest<HTMLElement>("[data-layered-region]");
       if (!region) return;
       event.preventDefault();
       event.stopPropagation();
-      const bounds = region.getBoundingClientRect();
+      surfaceRef.current?.focus({ preventScroll: true });
+      const screenBounds = region.getBoundingClientRect();
+      const ancestorRotation = layeredParentRotation(block, node.parentId ?? null);
+      const parentAngle = ancestorRotation * Math.PI / 180;
+      const zoom = Math.max(.25, editorZoom || 1);
+      const contentSize = renderedLayeredParentSize(region);
+      const bounds = { left: screenBounds.left, top: screenBounds.top, width: contentSize.widthPx * zoom, height: contentSize.heightPx * zoom };
+      const selectedElement = region.querySelector<HTMLElement>(`[data-composition-node="${node.id}"]`);
+      const selectedRect = selectedElement?.getBoundingClientRect();
       const startX = event.clientX;
       const startY = event.clientY;
       const startBlock = { ...block, nodes: flowBlock.nodes };
+      const startSizes = new Map<string | null, { widthPx: number; heightPx: number }>([null, ...startBlock.nodes.filter(n => n.compositionKind === "container").map(n => n.id)].map(id => [id, measuredParentSize(id)]));
+      const startSizeOf = (id: string | null) => startSizes.get(id) ?? layeredCompositionParentSizePx(startBlock, id);
       const parent = node.parentId ? startBlock.nodes.find((candidate) => candidate.id === node.parentId) : null;
       const density = parent ? readContainerDensity(parent) : readCardSurfaceDensity(startBlock);
       const regionId = region.dataset.layeredRegionId || (node.parentId ?? "card-surface");
       const activeNodeGroupId = node.groupId && isTrueGroupMember(node) && isGroupParentSelection(startBlock.nodes, selectedNodeIds)
         ? node.groupId
         : null;
-      const groupStartBounds = activeNodeGroupId ? computeGroupUnionBounds(startBlock.nodes, activeNodeGroupId, true) : null;
+      const groupStartBounds = activeNodeGroupId ? computeGroupUnionBounds(startBlock.nodes, activeNodeGroupId, true, compositionGroupSpace(startBlock, activeNodeGroupId)) : null;
       const groupMemberIds = activeNodeGroupId
         ? startBlock.nodes.filter((candidate) => candidate.groupId === activeNodeGroupId && isTrueGroupMember(candidate)).map((candidate) => candidate.id)
         : [];
+      const moveIds = mode === "move" && selectedNodeIds.includes(node.id) ? isGroupParentSelection(block.nodes, selectedNodeIds) ? expandSelectionToGroups(block.nodes, selectedNodeIds) : selectedNodeIds : activeNodeGroupId ? groupMemberIds : [node.id];
+      if (moveIds.some((id) => startBlock.nodes.find((candidate) => candidate.id === id)?.locked)) return;
+      let crossedThreshold = mode !== "move";
+      draggedBodyRef.current = false;
       setLayeredGuideRegionId(regionId);
       layeredFinalNodesRef.current = startBlock.nodes;
-      onSelectNodes?.(activeNodeGroupId ? groupMemberIds : [node.id]);
+      onSelectNodes?.(mode === "move" ? moveIds : activeNodeGroupId ? groupMemberIds : [node.id]);
       const move = (pointerEvent: PointerEvent) => {
         if (pointerEvent.pointerId !== event.pointerId) return;
-        const dx = (pointerEvent.clientX - startX) / Math.max(1, bounds.width);
-        const dy = (pointerEvent.clientY - startY) / Math.max(1, bounds.height);
+        const screenDx = pointerEvent.clientX - startX, screenDy = pointerEvent.clientY - startY;
+        if (!crossedThreshold && Math.hypot(screenDx, screenDy) < (event.pointerType === "touch" ? 6 : 3)) return;
+        crossedThreshold = true;
+        if (mode === "move") draggedBodyRef.current = true;
+        pointerEvent.preventDefault();
+        const dx = (screenDx * Math.cos(parentAngle) + screenDy * Math.sin(parentAngle)) / Math.max(1, bounds.width);
+        const dy = (-screenDx * Math.sin(parentAngle) + screenDy * Math.cos(parentAngle)) / Math.max(1, bounds.height);
         if (mode === "move") {
-          if (activeNodeGroupId && groupStartBounds) {
-            const clampedDx = Math.max(-groupStartBounds.left, Math.min(1 - groupStartBounds.left - groupStartBounds.width, dx));
-            const clampedDy = Math.max(-groupStartBounds.top, Math.min(1 - groupStartBounds.top - groupStartBounds.height, dy));
-            const nextNodes = translateNodesOnPasteboard(startBlock.nodes, groupMemberIds, clampedDx, clampedDy);
-            layeredFinalNodesRef.current = nextNodes;
-            setDraftNodes(nextNodes);
-            setGuides([]);
-            return;
+          if (moveIds.length > 1) {
+            const peers = { ...startBlock, nodes: startBlock.nodes.filter((candidate) => candidate.id === node.id || !moveIds.includes(candidate.id)) };
+            const snap = snapLayeredNode({ block: peers, nodeId: node.id, patch: { x: node.x + dx, y: node.y + dy }, threshold: 7 / bounds.width, grid: density.snapGrid });
+            const anchor = snap.block.nodes.find((candidate) => candidate.id === node.id)!;
+            const px = (anchor.x - node.x) * contentSize.widthPx, py = (anchor.y - node.y) * contentSize.heightPx;
+            const next = translateLayeredSelection(startBlock, moveIds, { xPx: px * Math.cos(parentAngle) - py * Math.sin(parentAngle), yPx: px * Math.sin(parentAngle) + py * Math.cos(parentAngle) }, measuredParentSize);
+            layeredFinalNodesRef.current = next.nodes; setDraftNodes(next.nodes); setGuides(snap.guides); return;
           }
           const snapped = snapLayeredNode({
             block: startBlock,
@@ -2919,44 +3079,49 @@ export function CreativeCompositionCanvas({
           setGuides(snapped.guides);
           return;
         }
+        if (mode === "rotate") {
+          const centerX = !activeNodeGroupId && selectedRect ? selectedRect.left + selectedRect.width / 2 : bounds.left + (activeNodeGroupId && groupStartBounds ? groupStartBounds.left + groupStartBounds.width / 2 : node.x + node.width / 2) * bounds.width;
+          const centerY = !activeNodeGroupId && selectedRect ? selectedRect.top + selectedRect.height / 2 : bounds.top + (activeNodeGroupId && groupStartBounds ? groupStartBounds.top + groupStartBounds.height / 2 : node.y + node.height / 2) * bounds.height;
+          const initialAngle = Math.atan2(startY - centerY, startX - centerX);
+          const angle = (Math.atan2(pointerEvent.clientY - centerY, pointerEvent.clientX - centerX) - initialAngle) * 180 / Math.PI + (groupStartBounds?.rotationDeg ?? node.rotationDeg ?? 0);
+          const resolved = pointerEvent.shiftKey ? Math.round(angle / 15) * 15 : Math.round(angle);
+          const nextNodes = activeNodeGroupId
+            ? rotateGroupComposition(startBlock.nodes, activeNodeGroupId, resolved, compositionGroupSpace(startBlock, activeNodeGroupId))
+            : startBlock.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, rotationDeg: resolved } : candidate);
+          layeredFinalNodesRef.current = nextNodes;
+          setDraftNodes(nextNodes);
+          setGuides([]);
+          return;
+        }
         if (activeNodeGroupId && groupStartBounds) {
-          const targetWidth = Math.max(.08, Math.min(1 - groupStartBounds.left, groupStartBounds.width + dx));
-          const targetHeight = Math.max(.06, Math.min(1 - groupStartBounds.top, groupStartBounds.height + dy));
+          const envelope = { ...node, primitive: "frame" as const, props: {}, rotationDeg: 0, x: groupStartBounds.left, y: groupStartBounds.top, width: groupStartBounds.width, height: groupStartBounds.height };
+          const requested = resizeLayeredPlacement(envelope, handle, { xPx: dx * bounds.width, yPx: dy * bounds.height }, { widthPx: bounds.width, heightPx: bounds.height }, pointerEvent.shiftKey);
+          const targetWidth = Math.min(1 - groupStartBounds.left, requested.width);
+          const targetHeight = pointerEvent.shiftKey ? groupStartBounds.height * targetWidth / groupStartBounds.width : Math.min(1 - groupStartBounds.top, requested.height);
           const nextNodes = resizeGroupComposition(startBlock.nodes, activeNodeGroupId, {
             left: groupStartBounds.left,
             top: groupStartBounds.top,
             width: targetWidth,
             height: targetHeight,
           }, {
-            minChildWidth: 28 / Math.max(1, bounds.width),
-            minChildHeight: 44 / Math.max(1, bounds.height),
+            space: compositionGroupSpace(startBlock, activeNodeGroupId),
+            minChildWidth: 28 / contentSize.widthPx,
+            minChildHeight: 44 / contentSize.heightPx,
           });
           layeredFinalNodesRef.current = nextNodes;
           setDraftNodes(nextNodes);
           setGuides([]);
           return;
         }
-        const resizePolicy = layeredResizePolicy(node);
-        const west = handle.includes("w");
-        const east = handle.includes("e");
-        const north = handle.includes("n");
-        const south = handle.includes("s");
-        let x = west ? Math.min(node.x + node.width - .02, node.x + dx) : node.x;
-        let y = north ? Math.min(node.y + node.height - .02, node.y + dy) : node.y;
-        let width = west ? node.width + (node.x - x) : east ? node.width + dx : node.width;
-        let height = north ? node.height + (node.y - y) : south ? node.height + dy : node.height;
-        if (resizePolicy === "governed-aspect") {
-          const physicalAspect = (node.width * bounds.width) / Math.max(1, node.height * bounds.height);
-          if (Math.abs(dx * bounds.width) >= Math.abs(dy * bounds.height)) height = (width * bounds.width) / Math.max(.01, physicalAspect * bounds.height);
-          else width = (height * bounds.height * physicalAspect) / Math.max(1, bounds.width);
-          if (west) x = node.x + node.width - width;
-          if (north) y = node.y + node.height - height;
-        } else if (resizePolicy === "width-only") {
-          height = node.height;
-          y = node.y;
-        }
-        const snapped = snapLayeredResize({ block: startBlock, nodeId: node.id, frame: { x, y, width, height }, handle, threshold: Math.max(.008, 7 / Math.max(1, bounds.width)), grid: density.snapGrid, safeMargin: (block.safeAreaPaddingPx ?? 12) / Math.max(1, bounds.width) });
-        const next = moveLayeredNode(startBlock, node.id, snapped.frame);
+        const frame = resizeLayeredPlacement(node, handle, { xPx: dx * bounds.width, yPx: dy * bounds.height }, { widthPx: bounds.width, heightPx: bounds.height }, pointerEvent.shiftKey);
+        const snapped = !pointerEvent.shiftKey && !node.rotationDeg && layeredResizePolicy(node) === "free"
+          ? snapLayeredResize({ block: startBlock, nodeId: node.id, frame, handle, threshold: Math.max(.008, 7 / Math.max(1, bounds.width)), grid: density.snapGrid })
+          : { frame, guides: [] };
+        const minimum = layeredMinimumFrameSize(node);
+        if (frame.width <= minimum.width || frame.width >= 1 || (layeredResizePolicy(node) !== "width-only" && (frame.height <= minimum.height || frame.height >= 1))) onNotify?.(`Placement size limit reached: width ${minimum.width * 100}–100%, height ${minimum.height * 100}–100% of parent. Use Position for exact size, or resize the parent to change the available space.`);
+        const next = applyLayeredResize(startBlock, node.id, snapped.frame, startSizeOf);
+        const effective = next.nodes.find((candidate) => candidate.id === node.id);
+        if (effective && (["x", "y", "width", "height"] as const).some((axis) => Math.abs(effective[axis] - snapped.frame[axis]) > .00001)) onNotify?.("Resize stopped at the parent Placement boundary. Position → Parent bounds allows overflow; resize the parent to provide more room.");
         layeredFinalNodesRef.current = next.nodes;
         setDraftNodes(next.nodes);
         setGuides(snapped.guides);
@@ -2966,8 +3131,9 @@ export function CreativeCompositionCanvas({
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", finish);
         window.removeEventListener("pointercancel", cancel);
+        window.removeEventListener("keydown", escape, true);
         const nodes = layeredFinalNodesRef.current;
-        if (nodes) onChangeBlock?.(synchronizeCompositionGroups({ ...block, nodes }), activeNodeGroupId ? mode === "move" ? "Moved composition Group" : "Resized composition Group" : mode === "move" ? "Moved layered Module" : "Resized layered Module");
+        if (nodes && JSON.stringify(nodes) !== JSON.stringify(startBlock.nodes)) onChangeBlock?.(synchronizeCompositionGroups({ ...block, nodes }), activeNodeGroupId ? mode === "move" ? "Moved composition Group" : mode === "rotate" ? "Rotated composition Group" : "Resized composition Group" : mode === "move" ? "Moved layered Module" : mode === "rotate" ? "Rotated layered Module" : "Resized layered Module");
         layeredFinalNodesRef.current = null;
         setDraftNodes(null);
         setGuides([]);
@@ -2978,25 +3144,31 @@ export function CreativeCompositionCanvas({
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", finish);
         window.removeEventListener("pointercancel", cancel);
+        window.removeEventListener("keydown", escape, true);
         layeredFinalNodesRef.current = null;
         setDraftNodes(null);
         setGuides([]);
         setLayeredGuideRegionId(null);
       };
+      const escape = (keyEvent: KeyboardEvent) => {
+        if (keyEvent.key !== "Escape" || keyEvent.isComposing) return;
+        keyEvent.preventDefault(); keyEvent.stopPropagation();
+        cancel({ pointerId: event.pointerId } as PointerEvent);
+      };
+      window.addEventListener("keydown", escape, true);
       window.addEventListener("pointermove", move, { passive: false });
       window.addEventListener("pointerup", finish);
       window.addEventListener("pointercancel", cancel);
     };
-    const handleLayeredKey = (event: React.KeyboardEvent, node: CreativeCompositionNode) => {
-      const step = event.shiftKey ? .05 : .01;
-      const patch = event.key === "ArrowLeft" ? { x: node.x - step }
-        : event.key === "ArrowRight" ? { x: node.x + step }
-          : event.key === "ArrowUp" ? { y: node.y - step }
-            : event.key === "ArrowDown" ? { y: node.y + step }
-              : null;
-      if (!patch) return;
-      event.preventDefault();
-      onChangeBlock?.(moveLayeredNode(block, node.id, patch), "Moved layered Module by keyboard");
+    const startSelectedBodyMove = (event: React.PointerEvent<HTMLElement>, node: CreativeCompositionNode, layered: boolean) => {
+      if (!editMode || event.button !== 0 || node.locked || editingNodeId === node.id || studioEditableOwner(event.target)) return false;
+      const target = event.target as HTMLElement;
+      if (target.closest("[data-handle-target], [data-chrome-placement], [data-studio-pointer-owner], [data-crop-mode='true'], input, textarea, select")) return false;
+      if (target.closest("button, a, [role='button']") !== event.currentTarget && target.closest("button, a") && node.props.contentEditing === true) return false;
+      if (!selectedSet.has(node.id) || event.metaKey || event.ctrlKey || event.shiftKey) return false;
+      if (layered) { startLayeredPointer(event, node, "move"); return true; }
+      if (!node.groupId && selectedNodeIds.length === 1) { startFlowPointerMove(event, node, true); return true; }
+      return false;
     };
     const layeredGuides = (regionId: string) => editMode && layeredGuideRegionId === regionId
       ? guides.map((guide, index) => <div key={`${guide.axis}-${guide.value}-${index}`} className="pointer-events-none absolute z-[80] bg-[#b8ff2c] shadow-[0_0_6px_rgba(184,255,44,.65)]" style={guide.axis === "x" ? { left: `${guide.value * 100}%`, top: 0, bottom: 0, width: 1 } : { top: `${guide.value * 100}%`, left: 0, right: 0, height: 1 }} data-testid={`composition-guide-${guide.axis}`} data-guide-kind={guide.kind} aria-hidden />)
@@ -3006,9 +3178,11 @@ export function CreativeCompositionCanvas({
       if (!editMode || !groupParentSelection || !activeGroupId) return null;
       const members = flowBlock.nodes.filter((candidate) => candidate.groupId === activeGroupId && isTrueGroupMember(candidate));
       if (members.length < 2 || members.some((member) => (member.parentId ?? null) !== parentId)) return null;
-      const bounds = computeGroupUnionBounds(flowBlock.nodes, activeGroupId, true);
+      const bounds = computeGroupUnionBounds(flowBlock.nodes, activeGroupId, true, compositionGroupSpace(flowBlock, activeGroupId));
       const seed = members[0];
       if (!bounds || !seed) return null;
+      const frames = { actionBearing: members.some((member) => resolveStudioFrameSemantics(block, member).actionBearing) };
+      const groupVisualOverflowPx = Math.max(0, ...members.map((member) => resolveStudioFrameSemantics(block, member).visualOverflowPx));
       return <div
         className="pointer-events-none absolute z-[90] outline outline-1 outline-[#b8ff2c]"
         style={{ left: `${bounds.left * 100}%`, top: `${bounds.top * 100}%`, width: `${bounds.width * 100}%`, height: `${bounds.height * 100}%` }}
@@ -3016,28 +3190,12 @@ export function CreativeCompositionCanvas({
         data-group-id={activeGroupId}
         data-group-parent={parentId ?? "card-surface"}
       >
-        <button type="button" className="pointer-events-auto absolute bottom-full left-0 mb-1 min-h-9 touch-none rounded-lg border border-[#b8ff2c]/55 bg-[#0b111b] px-2.5 text-[9px] font-semibold text-[#d8ff82] shadow-xl" aria-label="Move Group" data-testid="studio-layered-group-move" onPointerDown={(event) => startLayeredPointer(event, seed, "move")}>Group · move</button>
-        <button type="button" className="pointer-events-auto absolute -bottom-2 -right-2 h-6 w-6 cursor-nwse-resize touch-none rounded-sm border border-[#b8ff2c] bg-[#0b111b] shadow-xl" aria-label="Resize Group" data-testid="studio-layered-group-resize" onPointerDown={(event) => startLayeredPointer(event, seed, "resize")} />
+        {frameDiagnostics ? <div className="pointer-events-none absolute inset-0" aria-hidden data-testid={`studio-frame-diagnostics-group-${activeGroupId}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${groupVisualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" /></div> : null}
+        <button type="button" disabled={members.some((member) => member.locked)} className="pointer-events-auto absolute bottom-full left-0 mb-1 min-h-9 touch-none rounded-lg border border-[#b8ff2c]/55 bg-[#0b111b] px-2.5 text-[9px] font-semibold text-[#d8ff82] shadow-xl" aria-label="Move Group" data-testid="studio-layered-group-move" onPointerDown={(event) => startLayeredPointer(event, seed, "move")}>Group · move</button>
+        {!members.some((member) => member.locked) ? <LayeredFrameHandles name="Group" prefix="studio-layered-group" zoom={editorZoom || 1} handles={["se"]} onStart={(event, mode, handle) => startLayeredPointer(event, seed, mode, handle)} /> : null}
       </div>;
     };
     /* eslint-enable react-hooks/refs */
-    const layeredQuickControls = (node: CreativeCompositionNode, parentSelected: boolean) => {
-      if (!editMode || node.locked || parentSelected || !selectedSet.has(node.id) || selectedNodeIds.length !== 1) return null;
-      const above = node.y > .72;
-      const layer = (command: "front" | "back") => {
-        const next = reorderLayeredNodeZ({ ...block, nodes: flowBlock.nodes }, node.id, command);
-        commitNodes(next.nodes, command === "front" ? "Brought layered Module to front" : "Sent layered Module to back");
-      };
-      const lock = () => commitNodes(flowBlock.nodes.map((candidate) => candidate.id === node.id ? { ...candidate, locked: true } : candidate), `Locked ${node.name || "Module"}`);
-      const itemClass = "flex min-h-8 items-center gap-1 rounded-md px-2 text-[9px] font-semibold text-white/72 hover:bg-white/9 hover:text-white";
-      return <div className={cn("pointer-events-auto absolute left-0 z-[95] flex max-w-[min(100%,320px)] items-center gap-0.5 rounded-lg border border-white/12 bg-[#0b111b]/96 p-1 shadow-2xl backdrop-blur-xl", above ? "bottom-full mb-1" : "top-full mt-1")} data-chrome-placement={above ? "outside-top" : "outside-bottom"} data-testid={`studio-layer-controls-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => event.stopPropagation()}>
-        <button type="button" className={itemClass} onPointerDown={(event) => startLayeredPointer(event, node, "move")}><Move className="h-3 w-3" />Move</button>
-        <button type="button" className={itemClass} onPointerDown={(event) => startLayeredPointer(event, node, "resize")}><Maximize2 className="h-3 w-3" />Resize</button>
-        <button type="button" className={itemClass} onClick={() => layer("front")}><ArrowUpToLine className="h-3 w-3" />Front</button>
-        <button type="button" className={itemClass} onClick={() => layer("back")}><ArrowDownToLine className="h-3 w-3" />Back</button>
-        <button type="button" className={itemClass} onClick={lock}><LockKeyhole className="h-3 w-3" />Lock</button>
-      </div>;
-    };
     const renderModule = (node: CreativeCompositionNode, layered = false, groupFrame?: CreativeCompositionGroup) => {
       const localX = groupFrame ? (node.x - groupFrame.x) / Math.max(.02, groupFrame.width) : node.x;
       const localY = groupFrame ? (node.y - groupFrame.y) / Math.max(.02, groupFrame.height) : node.y;
@@ -3049,13 +3207,16 @@ export function CreativeCompositionCanvas({
       const compactCanonicalCenter = Boolean(compactGrid && compactGrid.widthMode !== "full" && compactGrid.gridAlignment === "center" && Math.abs(localX - (1 - localWidth) / 2) < .002);
       const compactCanonicalRight = Boolean(compactGrid && compactGrid.widthMode !== "full" && compactGrid.gridAlignment === "right" && Math.abs(localX - (1 - localWidth)) < .002);
       const parentSelected = Boolean(groupParentSelection && activeGroupId && node.groupId === activeGroupId);
+      const activeSelection = selectedNodeIds.length === 1 && selectedSet.has(node.id) && !parentSelected && !node.locked;
+      const frames = resolveStudioFrameSemantics(block, node);
       return (
       <div
         key={node.id}
         className={cn(
           "relative w-full",
+          editMode && selectedSet.has(node.id) && editingNodeId !== node.id && "touch-none",
           editMode && "rounded-xl outline outline-1 outline-transparent hover:outline-white/25",
-          selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
+          selectedSet.has(node.id) && !parentSelected && "!outline-2 !outline-[#b8ff2c]",
         )}
         style={{
           ...(layered ? {
@@ -3065,7 +3226,7 @@ export function CreativeCompositionCanvas({
             top: `${localY * 100}%`,
             width: compactAuthoredWidthPx != null ? `${compactAuthoredWidthPx}px` : `${localWidth * 100}%`,
             height: compactMetrics ? `${compactMetrics.contentHeightPx}px` : `${localHeight * 100}%`,
-            transform: compactCanonicalCenter ? "translateX(-50%)" : undefined,
+            transform: `${compactCanonicalCenter ? "translateX(-50%)" : ""}${node.rotationDeg ? ` rotate(${node.rotationDeg}deg)` : ""}`.trim() || undefined,
             minHeight: 0,
             ["--studio-action-layout-min-height" as string]: "0px",
             zIndex: editMode && selectedSet.has(node.id) && selectedNodeIds.length === 1 ? 3800 : node.zIndex,
@@ -3096,11 +3257,15 @@ export function CreativeCompositionCanvas({
         data-flow-wrapper={layered ? "false" : undefined}
         data-curated-density={typeof node.props.curatedDensityMode === "string" ? node.props.curatedDensityMode : undefined}
         draggable={false}
+        onDragStart={(event) => { if (editMode) event.preventDefault(); }}
         role={editMode ? (node.moduleComposition || node.primitive === "button" || node.primitive === "video" || editingNodeId === node.id ? "group" : "button") : undefined}
         tabIndex={editMode ? 0 : undefined}
         aria-label={editMode ? node.moduleComposition?.signatureAssembly ? `${node.name || "Curated"} Curated System` : `${node.name || String(node.props.elementKind || node.primitive)} Module` : undefined}
         onPointerDown={(event) => {
           if (!editMode || event.button !== 0) return;
+          if (startSelectedBodyMove(event, node, layered)) return;
+          if (studioEditableOwner(event.target)) return;
+          event.currentTarget.focus({ preventScroll: true });
           event.stopPropagation();
           if (node.groupId && isGroupContentScope(block.nodes, node.groupId)) {
             onSelectNodes?.([node.id]);
@@ -3116,6 +3281,8 @@ export function CreativeCompositionCanvas({
         onClick={(event) => {
           if (!editMode) return;
           event.stopPropagation();
+          if (draggedBodyRef.current) { draggedBodyRef.current = false; return; }
+          if (studioEditableOwner(event.target)) return;
           if (node.groupId && isGroupContentScope(block.nodes, node.groupId)) {
             commitNodes(activateGroupContentChild(block.nodes, node.groupId, node.id), "Selected Group child");
             return;
@@ -3136,12 +3303,18 @@ export function CreativeCompositionCanvas({
           onSelectNodes?.([node.id]);
         }}
       >
-        {editMode && selectedSet.has(node.id) && !parentSelected ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={layered ? `Move ${node.name || "Module"} within its layered Container.` : `Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => layered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => layered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
-        {editMode && selectedSet.has(node.id) && node.primitive === "text" && editingNodeId !== node.id ? <button type="button" className="absolute bottom-full left-0 z-30 mb-1 min-h-8 rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] px-2.5 text-[10px] font-semibold text-[#b8ff2c] shadow-lg" data-chrome-placement="outside-top" data-testid={`studio-edit-text-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); setEditingNodeId(node.id); }}>Edit text</button> : null}
-        {layered ? layeredQuickControls(node, parentSelected) : null}
-        {editMode && layered && selectedSet.has(node.id) && !node.locked && !parentSelected ? <>{([
-          ["nw","-left-2 -top-2 cursor-nwse-resize"],["n","left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize"],["ne","-right-2 -top-2 cursor-nesw-resize"],["e","-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],["se","-bottom-2 -right-2 cursor-nwse-resize"],["s","left-1/2 -bottom-2 -translate-x-1/2 cursor-ns-resize"],["sw","-bottom-2 -left-2 cursor-nesw-resize"],["w","-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
-        ] as const).filter(([handle]) => allowedLayeredResizeHandles(node).includes(handle)).map(([handle, position]) => <button key={handle} type="button" className={cn("absolute z-30 h-5 w-5 touch-none rounded-sm border border-[#b8ff2c] bg-[#0b111b] shadow-lg", position)} aria-label={`Resize ${node.name || "Module"} ${handle}`} data-testid={`studio-layer-resize-${node.id}-${handle}`} data-resize-axis={handle.length === 1 ? handle === "n" || handle === "s" ? "height" : "width" : "both"} onPointerDown={(event) => startLayeredPointer(event, node, "resize", handle)} />)}</> : null}
+        {editMode && frameDiagnostics && selectedSet.has(node.id) ? <div className="pointer-events-none absolute inset-0 z-[25]" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}>
+          <div className="absolute inset-0 border border-cyan-300" data-frame="placement" />
+          <div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" />
+          <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} />
+        </div> : null}
+        {editMode && activeSelection ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-6 w-6 touch-none cursor-grab select-none place-items-center rounded bg-transparent text-[#b8ff2c] focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `scale(${1 / Math.max(.25, editorZoom || 1)})`, transformOrigin: "top right" }} data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={layered ? `Move ${node.name || "Module"} within its layered Container.` : `Move ${node.name || "Module"}. Drag with pointer or touch; Arrow keys reorder; Alt plus Left or Right changes parent.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (!layered && !editableControlOwnsKeyboard(event.nativeEvent)) handleFlowKey(event, node); }} onPointerDown={(event) => layered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="pointer-events-none h-3 w-3 rounded-sm bg-[#0b111b]" /></button> : null}
+        {editMode && activeSelection && node.primitive === "text" && editingNodeId !== node.id ? <button type="button" className="absolute bottom-full left-0 z-30 mb-1 min-h-8 rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] px-2.5 text-[10px] font-semibold text-[#b8ff2c] shadow-lg" data-chrome-placement="outside-top" data-testid={`studio-edit-text-${node.id}`} onPointerDown={(event) => event.stopPropagation()} onClick={(event) => { event.stopPropagation(); setEditingNodeId(node.id); }}>Edit text</button> : null}
+        {editMode && layered && activeSelection ? <LayeredFrameHandles name={node.name || "Module"} prefix={node.id} zoom={editorZoom || 1} handles={allowedLayeredResizeHandles(node).filter((handle) => {
+          const size = layeredCompositionParentSizePx(block, node.parentId ?? null);
+          return Math.min(node.width * size.widthPx, node.height * size.heightPx) * (editorZoom || 1) >= 88 || handle === (layeredResizePolicy(node) === "width-only" ? "e" : "se");
+        })} onStart={(event, mode, handle) => startLayeredPointer(event, node, mode, handle)} /> : null}
+        {editMode && !layered && activeSelection ? <button type="button" aria-label={`Resize ${node.name || "Module"} width in Flow`} data-testid={`studio-flow-resize-${node.id}`} className="absolute -right-3 top-1/2 z-30 h-6 w-6 touch-none cursor-ew-resize bg-transparent after:absolute after:left-1/2 after:top-1/2 after:h-1.5 after:w-1.5 after:-translate-x-1/2 after:-translate-y-1/2 after:bg-white [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `translateY(-50%) scale(${1 / Math.max(.25, editorZoom || 1)})` }} onPointerDown={event => startLayeredPointer(event, node, "resize", "e")} onClick={event => event.stopPropagation()} /> : null}
         {node.moduleComposition ? (
           <div className={cn(layered ? "h-full w-full" : "w-full", editMode && "pointer-events-none")} data-module-composition={node.moduleComposition.id}>
             {layered
@@ -3168,7 +3341,7 @@ export function CreativeCompositionCanvas({
       const layoutClass = group.layout === "grid" ? "grid grid-cols-2" : group.layout === "flow_horizontal" ? "flex flex-row flex-wrap" : group.layout === "flow_vertical" ? "flex flex-col" : "block";
       return <div
         key={group.id}
-        className={cn("relative min-w-0", layoutClass, editMode && selected && "outline outline-1 outline-[#b8ff2c]")}
+        className={cn("relative min-w-0", layoutClass, editMode && selected && !layered && "outline outline-1 outline-[#b8ff2c]")}
         style={layered ? {
           position: "absolute",
           left: `${group.x * 100}%`,
@@ -3185,6 +3358,10 @@ export function CreativeCompositionCanvas({
           padding: group.internalGapPx,
           alignSelf: group.anchor.includes("right") ? "flex-end" : group.anchor === "center" || group.anchor === "top" || group.anchor === "bottom" ? "center" : "flex-start",
           pointerEvents: lockedClickThrough ? "none" : undefined,
+        }}
+        onPointerDown={(event) => {
+          if (!editMode || !layered || !selected || group.locked || (event.target as HTMLElement).closest("[data-composition-node]")) return;
+          startLayeredPointer(event, members[0], "move");
         }}
         data-composition-group={group.id}
         data-group-parent={group.parentId ?? "card-surface"}
@@ -3209,7 +3386,6 @@ export function CreativeCompositionCanvas({
       const children = compositionChildren(flowBlock, node.id);
       const padding = Math.max(0, num(node.props.padding, 16));
       const containerDensity = readContainerDensity(node);
-      const gap = containerDensity.gapPx;
       const alignment = str(node.props.alignment, "stretch");
       const layered = isLayeredContainer(node);
       const layout = str(node.props.layout, "flow");
@@ -3224,11 +3400,13 @@ export function CreativeCompositionCanvas({
       const contentFit = str(node.props.contentFit, "fit_content");
       const fixedHeight = contentFit === "fixed" ? Math.max(minHeight || 120, num(node.props.heightPx, 240)) : undefined;
       const aspectRatio = str(node.props.aspectRatio, "auto");
+      const frames = resolveStudioFrameSemantics(block, node);
       const depth = (() => { let value = 1; let parentId = node.parentId; while (parentId) { value += 1; parentId = flowBlock.nodes.find((candidate) => candidate.id === parentId)?.parentId ?? null; } return value; })();
       return <div
         key={node.id}
         className={cn(
           "relative min-w-0",
+          editMode && selectedSet.has(node.id) && "touch-none",
           editMode ? "overflow-visible" : node.props.clipContent === true ? "overflow-hidden" : "overflow-visible",
           editMode && "outline outline-1 outline-dashed outline-white/25",
           selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
@@ -3238,7 +3416,7 @@ export function CreativeCompositionCanvas({
         data-parent-id={node.parentId ?? "card-surface"}
         data-container-depth={depth}
         data-sibling-order={node.siblingOrder}
-        data-container-auto-height={layered || fixedHeight ? "false" : "true"}
+        data-container-auto-height={parentLayered || layered || fixedHeight ? "false" : "true"}
         data-layered-container={layered ? "true" : undefined}
         data-selected={selectedSet.has(node.id) ? "true" : "false"}
         data-position-mode={parentLayered ? "absolute" : "flow"}
@@ -3249,8 +3427,17 @@ export function CreativeCompositionCanvas({
         data-layer-z={parentLayered ? String(node.zIndex) : undefined}
         data-flow-wrapper={parentLayered ? "false" : undefined}
         draggable={false}
+        tabIndex={editMode ? 0 : undefined}
+        role="group"
+        aria-label={node.name || "Container"}
+        onPointerDown={(event) => {
+          if (!editMode || (event.target as HTMLElement).closest("[data-composition-node]") !== event.currentTarget) return;
+          if (startSelectedBodyMove(event, node, parentLayered)) return;
+          event.stopPropagation(); event.currentTarget.focus({ preventScroll: true });
+        }}
         style={{
           position: parentLayered ? "absolute" : "relative",
+          padding: layered ? padding : undefined,
           left: parentLayered ? `${node.x * 100}%` : undefined,
           top: parentLayered ? `${node.y * 100}%` : undefined,
           height: parentLayered ? `${node.height * 100}%` : fixedHeight ?? (contentFit === "fill_parent" ? "100%" : undefined),
@@ -3260,12 +3447,13 @@ export function CreativeCompositionCanvas({
           maxWidth: parentLayered ? undefined : maxWidth < 9999 ? maxWidth : undefined,
           zIndex: parentLayered ? editMode && selectedSet.has(node.id) && selectedNodeIds.length === 1 ? 3800 : node.zIndex : undefined,
           width: parentLayered ? `${node.width * 100}%` : edgeMode === "inset" ? `min(${widthPercent}%, calc(100% - 24px))` : edgeMode === "full_bleed" ? `calc(${widthPercent}% + ${safeArea * 2}px)` : `${widthPercent}%`,
-          alignSelf: parentLayered ? undefined : alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch",
+          alignSelf: parentLayered ? undefined : String(node.props.placementAlignment ?? alignment) === "start" ? "flex-start" : String(node.props.placementAlignment ?? alignment) === "center" ? "center" : String(node.props.placementAlignment ?? alignment) === "end" ? "flex-end" : "stretch",
           marginLeft: parentLayered ? 0 : edgeMode === "inset" ? 12 : edgeMode === "full_bleed" ? -safeArea : 0,
           marginRight: parentLayered ? 0 : edgeMode === "inset" ? 12 : edgeMode === "full_bleed" ? -safeArea : 0,
           marginTop: parentLayered ? 0 : Math.max(0, num(node.props.spacingAbovePx, 0)),
           marginBottom: parentLayered ? 0 : Math.max(0, num(node.props.spacingBelowPx, 0)),
           pointerEvents: editMode && node.locked === true ? "none" : undefined,
+          transform: parentLayered && node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined,
           ...(flowPointerVisual?.nodeId === node.id ? {
             transform:`translate3d(${flowPointerVisual.x-flowPointerVisual.startX}px, ${flowPointerVisual.y-flowPointerVisual.startY}px, 0) scale(.985)`,
             zIndex:3900,opacity:.9,filter:"drop-shadow(0 18px 24px rgba(0,0,0,.45))",pointerEvents:"none" as const,
@@ -3274,25 +3462,26 @@ export function CreativeCompositionCanvas({
         onClick={(event) => {
           if (!editMode) return;
           event.stopPropagation();
+          if (draggedBodyRef.current) { draggedBodyRef.current = false; return; }
           const multi = selectionMode === "multiple" || event.metaKey || event.ctrlKey || event.shiftKey;
           onSelectNodes?.(multi ? selectedNodeIds.includes(node.id) ? selectedNodeIds.filter((id) => id !== node.id) : [...selectedNodeIds, node.id] : [node.id]);
         }}
       >
-        {editMode && selectedSet.has(node.id) ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-9 w-9 touch-none cursor-grab select-none place-items-center rounded-lg border border-[#b8ff2c]/45 bg-[#0b111b] text-[#b8ff2c] shadow-lg active:cursor-grabbing" data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={parentLayered ? `Move ${node.name || "Container"} within its layered parent.` : `Move ${node.name || "Container"}. Drag with pointer or touch; Arrow keys reorder.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => parentLayered ? handleLayeredKey(event, node) : handleFlowKey(event, node)} onPointerDown={(event) => parentLayered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="h-4 w-4" /></button> : null}
-        {editMode && parentLayered && selectedSet.has(node.id) && !node.locked ? <>{([
-          ["nw", "-left-2 -top-2 cursor-nwse-resize"], ["n", "left-1/2 -top-2 -translate-x-1/2 cursor-ns-resize"], ["ne", "-right-2 -top-2 cursor-nesw-resize"],
-          ["e", "-right-2 top-1/2 -translate-y-1/2 cursor-ew-resize"], ["se", "-bottom-2 -right-2 cursor-nwse-resize"], ["s", "-bottom-2 left-1/2 -translate-x-1/2 cursor-ns-resize"],
-          ["sw", "-bottom-2 -left-2 cursor-nesw-resize"], ["w", "-left-2 top-1/2 -translate-y-1/2 cursor-ew-resize"],
-        ] as const).filter(([handle]) => allowedLayeredResizeHandles(node).includes(handle)).map(([handle, position]) => <button key={handle} type="button" className={cn("absolute z-30 h-5 w-5 touch-none rounded-sm border border-[#b8ff2c] bg-[#0b111b] shadow-lg", position)} aria-label={`Resize ${node.name || "Container"} ${handle}`} data-testid={`studio-layer-resize-${node.id}-${handle}`} data-resize-axis={handle.length === 1 ? handle === "n" || handle === "s" ? "height" : "width" : "both"} onPointerDown={(event) => startLayeredPointer(event, node, "resize", handle)} />)}</> : null}
-        {parentLayered ? layeredQuickControls(node, false) : null}
+        {editMode && frameDiagnostics && selectedSet.has(node.id) ? <div className="pointer-events-none absolute inset-0 z-[25]" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} /></div> : null}
+        {editMode && selectedNodeIds.length === 1 && selectedSet.has(node.id) && !node.locked ? <button type="button" className="absolute right-full top-0 z-30 mr-1 grid h-6 w-6 touch-none cursor-grab select-none place-items-center rounded bg-transparent text-[#b8ff2c] focus-visible:ring-2 focus-visible:ring-white active:cursor-grabbing [@media(pointer:coarse)]:h-11 [@media(pointer:coarse)]:w-11" style={{ transform: `scale(${1 / Math.max(.25, editorZoom || 1)})`, transformOrigin: "top right" }} data-chrome-placement="outside-start" data-testid={`studio-canvas-handle-${node.id}`} aria-label={parentLayered ? `Move ${node.name || "Container"} within its layered parent.` : `Move ${node.name || "Container"}. Drag with pointer or touch; Arrow keys reorder.`} onClick={(event) => event.stopPropagation()} onKeyDown={(event) => { if (!parentLayered && !editableControlOwnsKeyboard(event.nativeEvent)) handleFlowKey(event, node); }} onPointerDown={(event) => parentLayered ? startLayeredPointer(event, node, "move") : startFlowPointerMove(event, node)}><GripVertical className="pointer-events-none h-3 w-3 rounded-sm bg-[#0b111b]" /></button> : null}
+        {editMode && parentLayered && selectedNodeIds.length === 1 && selectedSet.has(node.id) && !node.locked ? <LayeredFrameHandles name={node.name || "Module"} prefix={node.id} zoom={editorZoom || 1} handles={allowedLayeredResizeHandles(node).filter((handle) => {
+          const size = layeredCompositionParentSizePx(block, node.parentId ?? null);
+          return Math.min(node.width * size.widthPx, node.height * size.heightPx) * (editorZoom || 1) >= 88 || handle === (layeredResizePolicy(node) === "width-only" ? "e" : "se");
+        })} onStart={(event, mode, handle) => startLayeredPointer(event, node, mode, handle)} /> : null}
         <div className="pointer-events-none absolute inset-0"><NodeVisual node={node} editMode={editMode} /></div>
         <div
           className={cn("relative z-[1] w-full", layered ? "block" : grid ? "grid grid-cols-2" : horizontal ? "flex flex-row flex-nowrap" : "flex flex-col")}
           style={{
-            padding,
-            gap: layered ? undefined : gap,
-            height: layered ? Math.max(180, num(node.props.layeredHeightPx, 360)) : fixedHeight ? "100%" : undefined,
-            alignItems: !layered ? alignment === "start" ? "flex-start" : alignment === "center" ? "center" : alignment === "end" ? "flex-end" : "stretch" : undefined,
+            padding: layered ? 0 : padding,
+            rowGap: layered ? undefined : containerDensity.rowGapPx,
+            columnGap: layered ? undefined : containerDensity.columnGapPx,
+            height: layered ? parentLayered ? "100%" : Math.max(180, num(node.props.layeredHeightPx, 360)) : fixedHeight ? "100%" : undefined,
+            alignItems: !layered ? String(node.props.childAlignment ?? alignment) === "start" ? "flex-start" : String(node.props.childAlignment ?? alignment) === "center" ? "center" : String(node.props.childAlignment ?? alignment) === "end" ? "flex-end" : "stretch" : undefined,
           }}
           data-container-content="true"
           data-container-layout={layout}
@@ -3328,9 +3517,11 @@ export function CreativeCompositionCanvas({
       <div
         ref={surfaceRef}
         className={cn("relative w-full rounded-xl", editMode || (rootLayered && block.compositionMode?.bounds === "allow-overflow") ? "overflow-visible" : "overflow-hidden", className)}
-        style={{ minHeight: minHeightPx, padding: block.safeAreaPaddingPx ?? 12 }}
+        style={{ minHeight: Math.max(minHeightPx ?? 0, contentExtent), padding: block.safeAreaPaddingPx ?? 12 }}
         data-testid="creative-composition-canvas"
         data-composition-surface="true"
+        data-composition-id={block.id}
+        tabIndex={editMode ? 0 : undefined}
         data-parent-authority="flow-v1"
         data-edit-mode={editMode ? "true" : "false"}
         role="group"
@@ -3377,6 +3568,7 @@ export function CreativeCompositionCanvas({
         }}
         data-testid="creative-composition-canvas"
         data-composition-surface="true"
+        data-composition-id={block.id}
         data-surface-width={String(Math.round(surfaceSize.width))}
         data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
         data-edit-mode={editMode ? "true" : "false"}
@@ -3515,6 +3707,7 @@ export function CreativeCompositionCanvas({
       }}
       data-testid="creative-composition-canvas"
       data-composition-surface="true"
+        data-composition-id={block.id}
       data-curated-surface-shell={isGovernedSignatureAssembly ? "none" : undefined}
       data-surface-width={String(Math.round(surfaceSize.width))}
       data-reduced-motion-simulation={reducedMotionSimulation ? "true" : "false"}
@@ -3919,10 +4112,12 @@ export function CreativeCompositionCanvas({
         const boxPx = Math.min(box.width * surfaceSize.width, box.height * surfaceSize.height);
         const compactHandles = boxPx < 56;
         const handleHit = compactHandles ? "h-3 w-3" : "h-5 w-5";
+        const frames = resolveStudioFrameSemantics(block, node);
         // Selection chrome sits above the object toolbar (z-1550) so More/handles stay Owner-reachable
         // when a small object sits under the floating contextual bar.
         const moreBelow = box.top * surfaceSize.height < 56;
         return <div key={`selection-${node.id}`} className="pointer-events-none absolute z-[1600] outline outline-1 outline-white/70" style={{ left: `${box.left * 100}%`, top: `${box.top * 100}%`, width: `${box.width * 100}%`, height: `${box.height * 100}%`, transform: node.rotationDeg ? `rotate(${node.rotationDeg}deg)` : undefined }} data-testid={`composition-selection-overlay-${node.id}`} data-chrome-scale={String(chromeScale)} data-compact-handles={compactHandles ? "true" : "false"} data-more-placement={moreBelow ? "below" : "above"}>
+          {frameDiagnostics ? <div className="pointer-events-none absolute inset-0" aria-hidden data-testid={`studio-frame-diagnostics-${node.id}`}><div className="absolute inset-0 border border-cyan-300" data-frame="placement" /><div className="absolute border border-fuchsia-300" style={{ inset: `-${frames.visualOverflowPx}px` }} data-frame="visual" /><div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 border border-lime-300" style={{ width: frames.actionBearing ? "max(100%, 44px)" : "100%", height: frames.actionBearing ? "max(100%, 44px)" : "100%" }} data-frame="touch" data-action-bearing={frames.actionBearing ? "true" : "false"} /></div> : null}
           {drag?.id === node.id && drag.mode === "resize" ? <span className="absolute left-0 top-0 -translate-y-full rounded bg-black/80 px-1.5 py-0.5 text-[9px] text-white" style={{ transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} data-testid="composition-size-feedback">{Math.round(box.width * 100)}% × {Math.round(box.height * 100)}%</span> : null}
           <button type="button" className="pointer-events-auto absolute left-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={moreBelow ? { bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top left" } : { top: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "bottom left" }} aria-label={`More actions for ${node.name || node.primitive}`} data-testid={`composition-more-${node.id}`} aria-expanded={contextMenu?.id === node.id ? "true" : "false"} onClick={() => setContextMenu((prev) => (prev?.id === node.id ? null : { id: node.id, x: box.left * surfaceSize.width, y: box.top * surfaceSize.height }))}>•••</button>
           {beneath ? <button type="button" className="pointer-events-auto absolute right-0 min-h-5 rounded bg-black/80 px-1.5 text-[9px] text-white" style={{ bottom: `calc(-1.65rem * ${chromeScale})`, transform: `scale(${chromeScale})`, transformOrigin: "top right" }} data-testid={`composition-select-beneath-${node.id}`} onClick={() => onSelectNodes?.([beneath.id])}>Select beneath</button> : null}
