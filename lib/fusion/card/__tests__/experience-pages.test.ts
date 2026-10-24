@@ -4,6 +4,8 @@ import type { TapConnectCardConfig, TapExperienceConfig } from "@/lib/brand/tap-
 import { actionProps, reconcileActionIntent, validateActionDestination } from "@/lib/fusion/card/action-intent-presentation";
 import {
   canonicalizeExperienceConfig,
+  cloneExperienceDocument,
+  createBlankExperienceDocument,
   clearExperiencePageReferences,
   createBlankExperiencePage,
   createExperienceFromLegacyCard,
@@ -136,4 +138,47 @@ describe("Experience Page authority", () => {
     assert.notEqual(copiedGrid.tiles[0]!.componentId,sourceGrid.tiles[0]!.componentId);
     assert.notEqual(copiedGrid.tiles[0]!.actionId,sourceGrid.tiles[0]!.actionId);
   });
+});
+
+
+describe("Start-Document Truth", () => {
+  for (const canonical of [false, true]) it(`preserves a populated default page when cloning ${canonical ? "canonical" : "legacy"} input`, () => {
+    const source = canonical ? createExperienceFromLegacyCard(card()) : card();
+    const before = structuredClone(source);
+    const clone = cloneExperienceDocument(source, "Independent");
+    const projected = projectExperiencePage(clone);
+    assert.equal(projected.rootComposition?.nodes.length, 1);
+    assert.equal(projected.rootComposition?.nodes[0]?.props.text, "Legacy Home");
+    assert.notEqual(projected.rootComposition?.nodes[0]?.id, "legacy-title");
+    assert.equal(clone.rootComposition, undefined);
+    assert.deepEqual(source, before);
+    assert.deepEqual(createExperienceFromLegacyCard(clone), clone);
+  });
+
+  it("keeps intentional empty projected edits empty while preserving other pages", () => {
+    const source = createExperienceFromLegacyCard(card());
+    const blank = createBlankExperiencePage(source.experience!);
+    source.experience!.pages.push(blank);
+    const projected = projectExperiencePage(source);
+    const committed = canonicalizeExperienceConfig({ ...projected, rootComposition: undefined, sections: [] });
+    const clone = cloneExperienceDocument(committed, "Empty");
+    assert.equal(projectExperiencePage(clone).rootComposition, undefined);
+    assert.deepEqual(clone.experience!.pages[1]!.composition.rootComposition?.nodes, []);
+    assert.equal(source.experience!.pages[0]!.composition.rootComposition?.nodes.length, 1);
+  });
+});
+
+it("creates independent native Blank roots with a successful persisted first insertion", async () => {
+  const { insertObject } = await import("@/lib/fusion/card/object-kernel");
+  const blank = createBlankExperienceDocument("Native Blank");
+  const second = createBlankExperienceDocument("Native Blank");
+  const projected = projectExperiencePage(blank);
+  assert.deepEqual(projected.sections, []);
+  assert.deepEqual(projected.rootComposition?.nodes, []);
+  assert.equal(projected.rootComposition?.parentAuthority?.layout, "flow");
+  assert.notEqual(blank.experience?.experienceId, second.experience?.experienceId);
+  const inserted = insertObject({ config: projected, parentId: null, kind: "text" });
+  const saved = JSON.parse(JSON.stringify(canonicalizeExperienceConfig(inserted.config)));
+  assert.equal(projectExperiencePage(saved).rootComposition?.nodes.length, 1);
+  assert.deepEqual(projectExperiencePage(blank).rootComposition?.nodes, []);
 });

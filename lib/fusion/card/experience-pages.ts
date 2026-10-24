@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import { defaultTapConnectCard } from "@/lib/brand/tap-card";
 import type {
   TapConnectCardConfig,
   TapExperienceConfig,
@@ -113,7 +114,11 @@ export function resolveExperiencePage(experience: TapExperienceConfig, requested
 }
 
 export function createExperienceFromLegacyCard(config: TapConnectCardConfig, title = "Home"): TapConnectCardConfig {
-  if (config.experience) return canonicalizeExperienceConfig(config, config.experience.defaultPageId);
+  // Canonical documents have no legacy projection. Only commit an actual
+  // projection; absent root data must not erase a populated default page.
+  if (config.experience) return PAGE_COMPOSITION_KEYS.some((key) => Object.hasOwn(config, key)) || config.sections.length > 0
+    ? canonicalizeExperienceConfig(config, config.experience.defaultPageId)
+    : config;
   const experienceId = `experience-${nanoid(10)}`;
   const pageId = `page-${nanoid(10)}`;
   const now = new Date().toISOString();
@@ -185,6 +190,23 @@ export function createBlankExperiencePage(experience: TapExperienceConfig, title
         safeAreaPaddingPx: 12,
         pageHeightPx: 520,
       },
+    },
+  };
+}
+
+/** Native Blank uses the same page/root defaults as adding a Blank Page. */
+export function createBlankExperienceDocument(documentName: string): TapConnectCardConfig {
+  const defaults = defaultTapConnectCard({ businessName: documentName, accentColor: "#b8ff2c" });
+  const canonical = createExperienceFromLegacyCard({ ...defaults, sections: [], rootComposition: undefined });
+  const experience = canonical.experience!;
+  const page = createBlankExperiencePage({ ...experience, pages: [] }, "Home");
+  return {
+    ...canonical,
+    documentName,
+    experience: {
+      ...experience,
+      defaultPageId: page.pageId,
+      pages: [{ ...page, navVisible: true, navigationSlot: 0, navIconRef: "house" }],
     },
   };
 }
@@ -276,9 +298,7 @@ export function cloneExperienceDocument(
   source: TapConnectCardConfig,
   documentName: string,
 ): TapConnectCardConfig {
-  const canonicalSource = source.experience
-    ? canonicalizeExperienceConfig(source, source.experience.defaultPageId)
-    : createExperienceFromLegacyCard(source);
+  const canonicalSource = createExperienceFromLegacyCard(source);
   const sourceExperience = canonicalSource.experience!;
   const experienceId = `experience-${nanoid(10)}`;
   const pageIds = new Map(sourceExperience.pages.map((page) => [page.pageId, `page-${nanoid(10)}`]));
@@ -370,7 +390,7 @@ export function cloneExperienceDocument(
       updatedAt: now,
     } satisfies TapExperiencePage;
   });
-  return canonicalizeExperienceConfig({
+  return {
     ...structuredClone(canonicalSource),
     documentName,
     relatedSourceDocumentId: undefined,
@@ -384,7 +404,7 @@ export function cloneExperienceDocument(
       createdAt: now,
       updatedAt: now,
     },
-  }, pageIds.get(sourceExperience.defaultPageId));
+  };
 }
 
 export type ExperiencePageReference = {

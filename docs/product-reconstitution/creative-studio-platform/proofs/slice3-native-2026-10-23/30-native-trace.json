@@ -1,0 +1,18 @@
+{
+  "blank": "http://127.0.0.1:3050/dashboard/card/edit?experience=cmvlvb1b502e7to9k6hzzalc4&returnTo=%2Fdashboard%2Fexperiences%2Flibrary",
+  "clone": "http://127.0.0.1:3050/dashboard/card/edit?experience=cmvlvcf9402mwto9kyenm87rf&returnTo=%2Fdashboard%2Fexperiences%2Flibrary",
+  "operations": [
+    "Library New Experience → Blank (default)",
+    "Add → Text → Heading",
+    "Inspector content edit → Enter → Save",
+    "Add → Containers → Brand Color",
+    "Undo removes Container, Redo restores",
+    "Saved revision 4 → Reload → Preview retains Text and Container",
+    "Library Clone → new document",
+    "Edit cloned Text → Save → Reload → Preview retains independent edit"
+  ],
+  "automationLimitations": [
+    "3053 sign-in blocked by Chrome; reused already-authorized 3050 after verifying its isolated database",
+    "One Save click timed out because autosave had already completed; Saved and database revision confirmed"
+  ]
+}

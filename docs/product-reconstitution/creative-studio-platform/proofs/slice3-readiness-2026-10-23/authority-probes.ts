@@ -8,7 +8,7 @@ import { CABINET_NOIR_ASSETS } from '../../../../../lib/fusion/creative-studio/s
 import { readFileSync, statSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import type { TapConnectCardConfig } from '../../../../../lib/brand/tap-card';
-const card: TapConnectCardConfig = { version:3, accentColor:'#b8ff2c', surfaceColor:'#07100a',textColor:'#ffffff',headerEnergy:50,collapsible:false,defaultCollapsed:false,actionsLayout:'stack',defaultFinish:'soft',cardFinish:'soft',defaultShape:'rounded_md',sections:[],rootComposition:{version:1,id:'probe-root',nodes:[{id:'probe-title',primitive:'text',x:0,y:0,width:1,height:.1,zIndex:1,props:{text:'Preserve me'}}],mobileFallback:'scale'} };
+const card: TapConnectCardConfig = { version:3, accentColor:'#b8ff2c', surfaceColor:'#07100a',textColor:'#ffffff',headerEnergy:50,collapsible:false,defaultCollapsed:false,actionsLayout:'stack',defaultFinish:'soft',cardFinish:'soft',defaultShape:'rounded_md',sections:[],rootComposition:{version:1,id:'probe-root',label:'Read-only probe',nodes:[{id:'probe-title',primitive:'text',x:0,y:0,width:1,height:.1,zIndex:1,props:{text:'Preserve me'}}],mobileFallback:'scale'} };
 const canonical=createExperienceFromLegacyCard(card);
 const count=(c:TapConnectCardConfig)=>projectExperiencePage(c).rootComposition?.nodes.length??0;
 const legacyClone=cloneExperienceDocument(card,'Probe legacy');

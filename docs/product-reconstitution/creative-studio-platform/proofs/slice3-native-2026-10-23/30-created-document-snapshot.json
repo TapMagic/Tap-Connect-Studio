@@ -1,0 +1,54 @@
+[
+  {
+    "id": "cmvlvcf9402mwto9kyenm87rf",
+    "name": "Slice 3 · Clone regression",
+    "draftRevision": 2,
+    "publicationActive": false,
+    "sourceDocumentId": "cmvlvb1b502e7to9k6hzzalc4",
+    "experienceId": "experience-s0oDjFNA6P",
+    "pages": [
+      {
+        "pageId": "page-iHBpx2Viq0",
+        "rootId": "composition-zBrf4Lt7AK",
+        "nodes": [
+          {
+            "id": "qQYrfUKJot",
+            "name": "Text",
+            "text": "Independent clone, editable by design."
+          },
+          {
+            "id": "qeJvKmaC9X",
+            "name": "Brand Container"
+          }
+        ]
+      }
+    ],
+    "sha256": "9a6220dacf019d70d29931abb04dbfcd5793767d4340362d58e212374d635507"
+  },
+  {
+    "id": "cmvlvb1b502e7to9k6hzzalc4",
+    "name": "Slice 3 · Native Surface Studio",
+    "draftRevision": 4,
+    "publicationActive": false,
+    "sourceDocumentId": null,
+    "experienceId": "experience-_PKirRJwjN",
+    "pages": [
+      {
+        "pageId": "page-EYQJ551H34",
+        "rootId": "page-root-OO-KsHiX3",
+        "nodes": [
+          {
+            "id": "node-9Vl04K",
+            "name": "Text",
+            "text": "A quiet kind of extraordinary."
+          },
+          {
+            "id": "container--tveREgS",
+            "name": "Brand Container"
+          }
+        ]
+      }
+    ],
+    "sha256": "873519a271ea1ff4e591bbb4d84755c350366d61d6535a5e9195072a1548c01d"
+  }
+]
