@@ -1,0 +1,45 @@
+{
+  "status": "investigation only; no implementation or new functional acceptance claimed",
+  "experienceId": "cmvkcynh504ty9x9k3mzi91js",
+  "draftRevision": 110,
+  "publicationActive": false,
+  "text": {
+    "scope": "Action 1 / Website / Love & Theft Bound Single Stack",
+    "controlRequestedPx": 15,
+    "controlMinPx": 11,
+    "controlMaxPx": 16,
+    "controlStepPx": 0.5,
+    "computedTitlePx": 11,
+    "actionWidthPx": 167.289,
+    "css": "clamp(11px, calc(3.5000px + 3.5714cqw), 16px)",
+    "evidence": "read-only native-control inspection and DOM computed style; slider not changed"
+  },
+  "page": {
+    "displayedExactPx": 520,
+    "savedPageHeightPx": 520,
+    "savedExplicitMinimumPx": 900,
+    "savedLayeredRegionPx": 760,
+    "computedLayeredRegionPx": 760,
+    "computedRootWrapperPx": 936,
+    "note": "Wrapper includes layout; not claimed as exact public content extent."
+  },
+  "interaction": {
+    "propertyEdits": false,
+    "sourceEdits": false,
+    "savedExperienceEdits": false,
+    "selectedStackHandles": [
+      "nw",
+      "ne",
+      "se",
+      "sw",
+      "rotate"
+    ],
+    "flowHandles": "Absent by source guard; not exercised with a mode change in this investigation."
+  },
+  "limits": {
+    "newFunctionalTests": "NOT RUN \u2014 investigation/proposal stage",
+    "physicalTouch": "NOT TESTED",
+    "new390pxAcceptance": "NOT TESTED",
+    "productionHashes": "BLOCKED"
+  }
+}
