@@ -1,0 +1,35 @@
+{
+  "baseline": "8f038514d1fc4823304a11601c72d5791a6e0636",
+  "sourceFiles": {
+    "components/card/tap-card-builder.tsx": "ed3e3f0be860755e9d510c8977b08f9944a83c0822f3eedc19546bd92d11cc6b",
+    "components/fusion/card/card-editor-live.ts": "7e07a63581e83f316305f73b0126a05ce80e8dce2a2dfc34cb758e0750cf6462",
+    "components/fusion/card/reconstitution/card-studio-reconstitution-workspace.tsx": "229a999a932857d168bfc737cc8a51e811c4c3096e84b5c1654ed3ba3a0878e8",
+    "components/fusion/card/reconstitution/studio-card-surface-inspector.tsx": "1241b86346d638f3dfda77ad7e18c8bb280644b236c42ec3e057aa53501ab374",
+    "components/fusion/card/reconstitution/studio-composition-inspector.tsx": "791e31e96708558809df3ee657c978f8ede68e33d257bd6dcefca1bf9860280c",
+    "components/fusion/card/reconstitution/studio-discovery-drawer.tsx": "a235e4e5c56b2d12e6a1da1f1fd95302ccd34c02902edf50b7d7a20afdcc3b8c",
+    "components/fusion/card/reconstitution/studio-selection-inspector.tsx": "1686b13cbf08869cfdd25525380ff1341ac7ba4b7cb79d7aabf52408dd08385d",
+    "components/fusion/creative-studio/creative-composition-canvas.tsx": "cc31463f3d92bc4a25a9a5db122002cd41694859bdad9ca8172c836d12e1e77b",
+    "components/fusion/card/reconstitution/studio-designed-introductions.tsx": "62ed1d0b27f09ce700084080fe97dd46284663519eb60f0b8d492cd56fd7b126",
+    "components/fusion/card/reconstitution/studio-introduction-surfaces.tsx": "605b37827676a7fcb731306d386ea82bab12745af495796573db9508738a5370",
+    "lib/fusion/creative-studio/platform/studio-selection-target.ts": "cf92b9b1448927f6c5a27150e154643c7ac468bc4fed5bc082e8b34928dce58b",
+    "lib/fusion/creative-studio/reconstitution/native-starting-compositions.ts": "3a1ce9b570ffb32b0935af81adb361f5ea258b35925aeac4458f51f6dd726cf7",
+    "lib/fusion/creative-studio/__tests__/native-starting-compositions.test.ts": "a9db3809d97e4d8f36ea4798c701a29fd43a2e963953e13ecdcaa583db7de0d2",
+    "lib/fusion/creative-studio/__tests__/native-introduction-rendering.test.ts": "642c765e6ce2cd08226571592a04d913b9935a3e1d4caae6e2ef6afbdccee4e7"
+  },
+  "wipFilesPreserved": 37,
+  "typecheck": "PASS",
+  "focused": "16/16",
+  "isolatedRegression": {
+    "pass": 700,
+    "fail": 1,
+    "knownFailure": "Cabinet Noir untracked original asset"
+  },
+  "workingTreeRegression": {
+    "pass": 703,
+    "fail": 0
+  },
+  "build": "PASS",
+  "narrowHeaderRetest": "OPEN",
+  "productionHashes": "BLOCKED",
+  "deployment": "NOT AUTHORIZED"
+}

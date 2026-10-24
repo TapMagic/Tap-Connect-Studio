@@ -1,4 +1,5 @@
 "use client";
+import { insertIntroduction, type IntroductionLook } from "@/lib/fusion/creative-studio/reconstitution/native-starting-compositions";
 import { readRenderedCompositionFrames, revealCompositionSelection } from "@/components/fusion/creative-studio/use-layered-parent-size";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
@@ -1538,6 +1539,20 @@ export function TapCardBuilder({
     return container.id;
   }
 
+  function addDesignedIntroduction(look: IntroductionLook, parentId: string | null, insertionIndex?: number) {
+    const root = ensureRootComposition(config);
+    const result = insertIntroduction(root, look, parentId, insertionIndex, readRenderedCompositionFrames(root));
+    if (!result.ok) { setMessage(result.issues.map(issue => issue.message).join(" ")); return undefined; }
+    setConfigHistory({ ...config, rootComposition: result.block }, { label: `Added ${look === "clean-minimal" ? "Clean Minimal" : "Dark Cinematic"} introduction` });
+    setDirty(true);
+    setSelectedId(null);
+    setSelectedCompositionNodeIds(result.selectedNodeIds ?? []);
+    setMessage(result.notices?.join(" ") || "Introduction added.");
+    if (layeredSelectionOverlaps(result.block, result.selectedNodeIds ?? [])) setMessage("Introduction added. Space is crowded; use Make room below or move the selection. Set the Button’s Action before sharing.");
+    requestAnimationFrame(() => revealCompositionSelection(result.block.id, result.selectedNodeIds ?? []));
+    return result.selectedNodeId;
+  }
+
   function addCompositionModule(
     kind: "text" | "image" | "video" | "button" | "map" | "divider",
     parentId: string | null,
@@ -2540,6 +2555,7 @@ export function TapCardBuilder({
       previewCuratedAssembly,
       onEnableCompositionParentAuthority: enableCompositionParentAuthority,
       onAddCompositionContainer: addCompositionContainer,
+      onAddDesignedIntroduction: addDesignedIntroduction,
       onAddCompositionModule: addCompositionModule,
       onReparentCompositionModule: reparentComposition,
       onReorderCompositionNode: reorderComposition,

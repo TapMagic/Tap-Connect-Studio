@@ -1,5 +1,6 @@
 "use client";
 
+import { studioNodeDisplayLabel } from "@/lib/fusion/creative-studio/platform/studio-selection-target";
 import { readFlowPasteOverflow, revealCompositionSelection, readRenderedCompositionFrames, readRenderedLayeredParentSize } from "@/components/fusion/creative-studio/use-layered-parent-size";
 import { editableControlOwnsKeyboard, studioEditableOwner } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore, type CSSProperties, type KeyboardEvent as ReactKeyboardEvent } from "react";
@@ -616,6 +617,15 @@ export function CardStudioReconstitutionWorkspace({
     if (id) completePlacement(id, "composition");
   }, [completePlacement, liveModel]);
 
+  const placeDesignedIntroduction = (look: import("@/lib/fusion/creative-studio/reconstitution/native-starting-compositions").IntroductionLook) => {
+    if (!liveModel || !placementContext) return;
+    const id = liveModel.onAddDesignedIntroduction?.(look, placementContext.parentId, placementContext.insertionIndex);
+    if (id) {
+      void fetch("/api/studio/activity", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ resource: { provider: "studio", resourceId: `introduction:${look}`, version: 1 }, resourceKind: "designed-container", consumer: "card-composer", context: "designed-container", operation: "place" }) }).catch(() => undefined);
+      completePlacement(id, "composition");
+    }
+  };
+
   const placeCurated = useCallback((familyId: string, presentationId: string) => {
     if (!liveModel || !placementContext) return;
     const result = liveModel.onInsertCuratedAssembly?.(familyId, presentationId, placementContext.parentId, placementContext.insertionIndex);
@@ -666,6 +676,21 @@ export function CardStudioReconstitutionWorkspace({
     setAssemblyInspectorOpen(false);
     setCompositionInspectorOpen(true);
   };
+  const replaceSelectedImage = () => {
+    if (!selectedCanonicalNode || selectedCanonicalNode.primitive !== "image" || selectedCanonicalNode.locked || !sharedMediaBrowser) return;
+    const captured = selectedCanonicalNode;
+    openCompositionInspector("refine-selection");
+    sharedMediaBrowser.openBrowser({
+      mediaUploadReady: Boolean(liveModel?.mediaUploadReady), stockReady: Boolean(liveModel?.stockReady), selectionKind: "photo", title: `Replace ${studioNodeDisplayLabel(captured)}`,
+      onSelect: (asset) => {
+        const current = getCardEditorLive();
+        const target = current?.selectedCompositionNode;
+        if (!current || target?.id !== captured.id || target.locked || JSON.stringify(target.props) !== JSON.stringify(captured.props)) { current?.notify?.("Selection changed. Select the image and choose Replace again."); return; }
+        current.patchCompositionNode(target.id, { props: { ...target.props, src: asset.url, mediaSrc: asset.url, mediaAssetId: asset.mediaAssetId || asset.id, alt: asset.label || target.props.alt || "Card image" } }, "Replaced Image asset");
+      },
+    });
+  };
+
   const openCardSurfaceAppearance = () => {
     liveModel?.selectCardRoot?.();
     openCompositionInspector("tune-selection");
@@ -764,7 +789,7 @@ export function CardStudioReconstitutionWorkspace({
       }}
       style={semanticStyles}
     >
-      <header className="flex min-h-14 shrink-0 items-center gap-2 bg-[#090e16]/96 px-2 shadow-[0_1px_0_rgba(255,255,255,.05)] backdrop-blur-xl md:px-3" data-testid="studio-shell-header">
+      <header className="flex min-h-14 min-w-0 max-w-full shrink-0 items-center gap-2 overflow-x-auto bg-[#090e16]/96 px-2 shadow-[0_1px_0_rgba(255,255,255,.05)] backdrop-blur-xl md:px-3" data-testid="studio-shell-header">
         <button type="button" onClick={async () => { if (status.dirty && !(await apiRef.current?.save())) return; router.push(doneHref); }} className="grid h-10 w-10 place-items-center rounded-lg hover:bg-white/7" aria-label="Close editor"><X className="h-5 w-5" /></button>
         <div className="min-w-0 flex-1" data-testid="studio-context"><div className="grid min-w-0 grid-cols-3 gap-2"><p className="min-w-0"><span className="block truncate text-[8px] font-semibold uppercase tracking-[.12em] text-white/35">Client / Artist</span><strong className="block truncate text-[11px] font-semibold" data-testid="studio-context-client">{status.clientName}</strong></p><p className="min-w-0"><span className="block truncate text-[8px] font-semibold uppercase tracking-[.12em] text-white/35">Experience</span><strong className="block truncate text-[11px] font-semibold" data-testid="studio-context-experience">{status.cardName || builderProps.businessName}</strong></p><p className="min-w-0"><span className="block truncate text-[8px] font-semibold uppercase tracking-[.12em] text-white/35">Current Page</span><strong className="block truncate text-[11px] font-semibold text-white/72" data-testid="studio-context-page">{activePageTitle}</strong></p></div><p className="mt-0.5 text-[9px] text-white/38">{status.saveState === "saved" ? "Saved" : status.saving ? "Saving…" : status.saveState === "conflict" ? "Recovery needs review" : status.saveState === "failed" ? "Save needs attention" : "Unsaved changes"}</p></div>
         <button type="button" onClick={() => { if (!liveModel?.experience) liveModel?.ensureExperience?.(); setPagesOpen(true); }} className={headerButton} aria-label="Pages" aria-expanded={pagesOpen} data-testid="studio-pages-open"><FileText className="h-4 w-4" /><span className="hidden lg:inline">Pages</span></button>
@@ -799,7 +824,7 @@ export function CardStudioReconstitutionWorkspace({
       <div className="relative flex min-h-0 flex-1">
         {studioMode === "edit" && pagesOpen && liveModel?.experience ? <StudioPagesManager model={liveModel} onClose={() => setPagesOpen(false)} /> : null}
         {studioMode === "edit" ? <StudioEditorRail destinations={rail} activeId={activeRailId} onActivate={(id) => handleDrawerEvent({ type: "OPEN_RAIL", railId: id })} /> : null}
-        {studioMode === "edit" && !outlineYielding ? <StudioDiscoveryDrawer state={drawer} dispatch={handleDrawerEvent} model={liveModel} brand={brandPreviewContext} familyCatalog={buttonFamilyCatalog} recents={recents} recentsState={recentsState} onUseResource={applyResource} catalogAdapter={activeCatalogAdapter} workspaceComposition={choreography.composition} placementContext={placementContext} onPlaceOrdinary={placeOrdinaryModule} onChooseImage={chooseImageForPlacement} onPlaceContainer={placeContainer} onPlaceCurated={placeCurated} onPlaceCompactGrid={placeCompactGrid} selectMultipleMode={compositionSelectionMode === "multiple"} onToggleSelectMultiple={() => setCompositionSelectionMode((current) => current === "multiple" ? "single" : "multiple")} onCancelSelectMultiple={cancelMultipleSelection} /> : null}
+        {studioMode === "edit" && !outlineYielding ? <StudioDiscoveryDrawer state={drawer} dispatch={handleDrawerEvent} model={liveModel} brand={brandPreviewContext} familyCatalog={buttonFamilyCatalog} recents={recents} recentsState={recentsState} onUseResource={applyResource} catalogAdapter={activeCatalogAdapter} workspaceComposition={choreography.composition} placementContext={placementContext} onPlaceOrdinary={placeOrdinaryModule} onChooseImage={chooseImageForPlacement} onPlaceContainer={placeContainer} onPlaceDesignedIntroduction={placeDesignedIntroduction} onPlaceCurated={placeCurated} onPlaceCompactGrid={placeCompactGrid} selectMultipleMode={compositionSelectionMode === "multiple"} onToggleSelectMultiple={() => setCompositionSelectionMode((current) => current === "multiple" ? "single" : "multiple")} onCancelSelectMultiple={cancelMultipleSelection} /> : null}
 
         <main className="relative z-0 isolate flex min-w-0 flex-1 flex-col bg-[radial-gradient(circle_at_50%_18%,#202a38_0%,#151b24_42%,#10151d_100%)]" aria-label="Card canvas">
           {studioMode === "edit" && (multiCompositionSelection || Boolean(activeCompositionGroupId) || selectionTarget?.capabilities.includes("edit-content") || selectionTarget?.capabilities.includes("edit-appearance")) ? (
@@ -811,10 +836,11 @@ export function CardStudioReconstitutionWorkspace({
               onDuplicate={() => { if (selectedCanonicalNode) liveModel?.onDuplicateCompositionNode?.(selectedCanonicalNode.id); else { const sectionId = liveModel?.selectedObject?.sectionId ?? liveModel?.selected?.id; if (sectionId) liveModel?.duplicateSection(sectionId); } }}
               onDelete={() => { if (selectedCanonicalNode) liveModel?.onDeleteCompositionNode?.(selectedCanonicalNode.id); else { const sectionId = liveModel?.selectedObject?.sectionId ?? liveModel?.selected?.id; if (sectionId) liveModel?.deleteSection(sectionId); } }}
             /> : selectedCanonicalNode ? <CompositionObjectToolbar
-              label={selectedCanonicalNode.name || (selectedCanonicalNode.compositionKind === "container" ? "Container" : String(selectedCanonicalNode.props.elementKind || selectedCanonicalNode.primitive))}
+              label={studioNodeDisplayLabel(selectedCanonicalNode)}
               editLabel={selectedCanonicalNode.compositionKind === "container" ? "Surface" : undefined}
               onEdit={() => { if (selectedCanonicalNode.primitive === "button") openInspector("content"); else openCompositionInspector("refine-selection"); }}
               onArrange={() => openCompositionInspector("arrange-card")}
+              onReplace={selectedCanonicalNode.primitive === "image" && !selectedCanonicalNode.locked ? replaceSelectedImage : undefined}
               onContents={selectedCanonicalNode.compositionKind === "container" ? () => openCompositionInspector("edit-contents") : undefined}
               onCopy={copySelectedComposition}
               onDuplicate={() => liveModel?.onDuplicateCompositionNode?.(selectedCanonicalNode.id)}
@@ -827,6 +853,7 @@ export function CardStudioReconstitutionWorkspace({
               onPosition={positionSelection}
             /> : null}</div>
           ) : null}
+          {studioMode === "edit" && liveModel?.config.rootComposition?.nodes.length === 0 && drawer.mode === "closed" ? <div className="p-4 text-center"><button type="button" className="min-h-11 rounded-xl bg-[#b8ff2c] px-5 text-sm font-semibold text-[#07100a]" onClick={() => { liveModel.selectCardRoot?.(); handleDrawerEvent({ type: "OPEN_RAIL", railId: "add" }); dispatch({ type: "NAVIGATE", path: ["container"] }); }}>Start with a designed section</button><p className="mt-2 text-xs text-white/55">Or use Add to begin with any element.</p></div> : null}
           <div ref={canvasRef} className="flex min-h-0 flex-1 justify-center overflow-auto p-3 md:p-6" onDragOver={(event) => { if (event.dataTransfer.types.includes("application/x-tapconnect-studio-resource")) { event.preventDefault(); event.dataTransfer.dropEffect = "copy"; } }} onDrop={onDrop} data-testid="studio-canvas-drop-zone" data-card-visibility={choreography.cardVisibility}>
             <div className={cn("h-full min-h-[520px] w-full transition-[max-width]", effectiveViewport === "tablet" && "rounded-2xl border border-white/10 shadow-2xl")} style={{ maxWidth: canvasMaxWidth }} data-studio-viewport={effectiveViewport}>
               <TapCardBuilder
@@ -938,18 +965,19 @@ function CompositionGroupToolbar({ count, onEdit, onLock, onUngroup }: { count: 
   return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-group-toolbar"><span className="px-3 text-[10px] font-semibold uppercase tracking-[.12em] text-[#d8ff82]">Group · {count} Modules</span><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">Move / Resize</button><button type="button" onClick={onEdit} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Layer</button><button type="button" onClick={onLock} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Lock</button><button type="button" onClick={onUngroup} className="min-h-9 rounded-full px-3 text-xs text-white/68 hover:bg-white/8">Ungroup</button></div>;
 }
 
-function CompositionObjectToolbar({ label, editLabel, onEdit, onArrange, onContents, onCopy, onDuplicate, onDelete }: {
+function CompositionObjectToolbar({ label, editLabel, onEdit, onArrange, onReplace, onContents, onCopy, onDuplicate, onDelete }: {
   label: string;
   editLabel?: string;
   onEdit: () => void;
   onArrange: () => void;
+  onReplace?: () => void;
   onContents?: () => void;
   onCopy: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
 }) {
   const iconButton = "grid h-9 w-9 place-items-center rounded-full text-white/62 transition hover:bg-white/8 hover:text-white";
-  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">{editLabel || `Edit · ${label}`}</button><button type="button" onClick={onArrange} className="flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs text-white/80 hover:bg-white/10" aria-label={onContents ? "Open Placement" : "Open Position"}><Move className="h-4 w-4" /><span>{onContents ? "Placement" : "Position"}</span></button>{onContents ? <button type="button" onClick={onContents} className="min-h-11 rounded-full px-3 text-xs text-white/80 hover:bg-white/10">Contents</button> : null}<StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
+  return <div className="flex items-center gap-1 rounded-full bg-[#0b111b]/92 p-1.5 shadow-[0_12px_36px_rgba(0,0,0,.35)] ring-1 ring-white/8 backdrop-blur-xl" data-testid="studio-composition-object-toolbar"><button type="button" onClick={onEdit} className="min-h-9 rounded-full bg-[#b8ff2c] px-4 text-xs font-semibold text-[#07100a]">{editLabel || `Edit · ${label}`}</button>{onReplace ? <button type="button" onClick={onReplace} className="min-h-11 rounded-full px-3 text-xs text-white/80 hover:bg-white/10">Replace image</button> : null}<button type="button" onClick={onArrange} className="flex min-h-11 items-center gap-1.5 rounded-full px-3 text-xs text-white/80 hover:bg-white/10" aria-label={onContents ? "Open Placement" : "Open Position"}><Move className="h-4 w-4" /><span>{onContents ? "Placement" : "Position"}</span></button>{onContents ? <button type="button" onClick={onContents} className="min-h-11 rounded-full px-3 text-xs text-white/80 hover:bg-white/10">Contents</button> : null}<StudioTransientMenu label={`More actions for ${label}`}>{(close) => <><button type="button" role="menuitem" onClick={() => { close(); onCopy(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8" data-testid="studio-composition-copy"><Copy className="h-4 w-4" />Copy to another Page</button><button type="button" role="menuitem" onClick={() => { close(); onDuplicate(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs hover:bg-white/8"><Copy className="h-4 w-4" />Duplicate here</button><button type="button" role="menuitem" onClick={() => { close(); onDelete(); }} className="flex min-h-9 w-full items-center gap-2 rounded-lg px-3 text-left text-xs text-rose-200 hover:bg-rose-300/10"><Trash2 className="h-4 w-4" />Delete</button></>}</StudioTransientMenu></div>;
 }
 
 function PhoneTool({ icon: Icon, label, onClick, disabled = false }: { icon: typeof Plus; label: string; onClick: () => void; disabled?: boolean }) {

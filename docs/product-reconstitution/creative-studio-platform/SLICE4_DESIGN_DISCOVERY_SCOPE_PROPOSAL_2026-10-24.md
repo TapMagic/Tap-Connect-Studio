@@ -1,5 +1,8 @@
 # Slice 4 — Effortless Professional Design
 
+> **Subsequent Product Owner approval — October 24, 2026:** Bounded Slice4A local implementation was explicitly approved. [Implementation/evidence handoff](SLICE4A_START_AND_REFINE_HANDOFF_2026-10-24.md) records the candidate and remaining gates. The proposal wording below is retained as historical scope; Slice4B and release remain unauthorized.
+
+
 October 24, 2026 · **Revised proposal: Start and Refine. Planning only. Explicit scope approval required before application code.**
 
 [Readiness assessment and evidence](SLICE4_EFFORTLESS_DESIGN_READINESS_2026-10-24.md) · [Self-authored implementation prompt](SLICE4_DESIGN_DISCOVERY_IMPLEMENTATION_PROMPT_2026-10-24.md) · [Slice 3 desktop acceptance](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md).

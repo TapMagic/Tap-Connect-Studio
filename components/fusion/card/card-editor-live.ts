@@ -190,6 +190,7 @@ export type CardEditorLiveModel = {
   ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
   /** Canonical Card Surface → bounded nested Container → Module authority. */
   onEnableCompositionParentAuthority?: () => void;
+  onAddDesignedIntroduction?: (look: import("@/lib/fusion/creative-studio/reconstitution/native-starting-compositions").IntroductionLook, parentId: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image", parentId?: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionModule?: (
     kind: "text" | "image" | "video" | "button" | "map" | "divider",

@@ -94,3 +94,12 @@ function target(
     position: Object.freeze([...position]),
   });
 }
+
+/** Presentation only: retain authored names; enrich generic labels without changing identity. */
+export function studioNodeDisplayLabel(node: CreativeCompositionNode): string {
+  const name = node.name?.trim();
+  if (name && !/^(text|image|button|container)$/i.test(name)) return name;
+  const detail = node.primitive === 'text' ? node.props.text : node.primitive === 'image' ? node.props.alt : node.primitive === 'button' ? node.props.label : null;
+  const excerpt = String(detail || '').replace(/\s+/g, ' ').trim();
+  return excerpt ? `${name || node.primitive} · ${excerpt.length > 32 ? `${excerpt.slice(0, 31)}…` : excerpt}` : name || (node.compositionKind === 'container' ? 'Container' : node.primitive);
+}

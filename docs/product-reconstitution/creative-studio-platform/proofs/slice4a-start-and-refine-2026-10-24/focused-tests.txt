@@ -1,0 +1,24 @@
+✔ clean-minimal: native CTA exposes canonical page routing only outside editing (258.427833ms)
+✔ dark-cinematic: native CTA exposes canonical page routing only outside editing (2.358791ms)
+✔ clean-minimal: native hierarchy, stable serialization, fresh identities and editable content (2.489625ms)
+✔ clean-minimal: flow root / flow rotated padded nested destination preserves siblings (0.431583ms)
+✔ clean-minimal: flow root / layered rotated padded nested destination preserves siblings (0.37825ms)
+✔ clean-minimal: layered root / flow rotated padded nested destination preserves siblings (0.416375ms)
+✔ clean-minimal: layered root / layered rotated padded nested destination preserves siblings (0.327417ms)
+✔ dark-cinematic: native hierarchy, stable serialization, fresh identities and editable content (0.290125ms)
+✔ dark-cinematic: flow root / flow rotated padded nested destination preserves siblings (0.157958ms)
+✔ dark-cinematic: flow root / layered rotated padded nested destination preserves siblings (0.169583ms)
+✔ dark-cinematic: layered root / flow rotated padded nested destination preserves siblings (0.143084ms)
+✔ dark-cinematic: layered root / layered rotated padded nested destination preserves siblings (0.148667ms)
+✔ Surface treatment changes appearance without touching content, layout, actions, geometry or child asset references (0.136416ms)
+✔ Invalid or locked destinations reject the entire candidate, with no mutation (0.066333ms)
+✔ Labels enrich generic names without changing authored names or content (0.236916ms)
+✔ Button appearance and nested label use the same canonical values (0.163958ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 575.556833

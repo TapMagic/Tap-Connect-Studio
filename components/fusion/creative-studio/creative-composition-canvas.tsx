@@ -1485,6 +1485,7 @@ function NodeVisual({
     const circle = presentation === "circle" || presentation === "icon_circle" || presentation === "icon_label" || presentation === "icon_description";
     const labelBelow = presentation === "icon_label" || presentation === "icon_description";
     const actionHref = buildButtonHref(node.props);
+    const internalPageId = node.props.actionType === "internal_page" ? String(node.props.internalPageId || node.props.destinationRef || "").trim() || undefined : undefined;
     const standardAppearance = readStandardButtonAppearance(node.props);
 
     // Arc Ember hosting test — immutable PNG master plus live semantic overlays only.
@@ -1493,8 +1494,9 @@ function NodeVisual({
       const disabled = node.props.disabled === true;
       return (
         <a
-          href={editMode || disabled ? undefined : actionHref}
-          aria-disabled={disabled || !actionHref}
+          href={editMode || disabled ? undefined : internalPageId ? "#" : actionHref}
+          aria-disabled={disabled || (!actionHref && !internalPageId)}
+          data-internal-page-id={editMode || disabled ? undefined : internalPageId}
           onClick={(event) => {
             if (editMode || disabled || !actionHref) event.preventDefault();
           }}
@@ -1520,10 +1522,11 @@ function NodeVisual({
       const descriptionText = str(node.props.description, "");
       return (
         <a
-          href={editMode ? undefined : actionHref}
-          aria-disabled={!actionHref}
+          href={editMode ? undefined : internalPageId ? "#" : actionHref}
+          aria-disabled={!actionHref && !internalPageId}
+        data-internal-page-id={editMode ? undefined : internalPageId}
           onClick={(event) => {
-            if (editMode || !actionHref) event.preventDefault();
+            if (editMode || (!actionHref && !internalPageId)) event.preventDefault();
           }}
           className="block h-full w-full overflow-visible"
           style={{ opacity: num(node.props.opacity, 1), textDecoration: "none" }}
@@ -1548,10 +1551,11 @@ function NodeVisual({
       const descriptionText = str(node.props.description, "");
       return (
         <a
-          href={editMode ? undefined : actionHref}
-          aria-disabled={!actionHref}
+          href={editMode ? undefined : internalPageId ? "#" : actionHref}
+          aria-disabled={!actionHref && !internalPageId}
+        data-internal-page-id={editMode ? undefined : internalPageId}
           onClick={(event) => {
-            if (editMode || !actionHref) event.preventDefault();
+            if (editMode || (!actionHref && !internalPageId)) event.preventDefault();
           }}
           className="flex h-full w-full items-center justify-center"
           style={{ opacity: num(node.props.opacity, 1) }}
@@ -1799,9 +1803,10 @@ function NodeVisual({
     );
     return (
       <a
-        href={editMode ? undefined : actionHref}
-        aria-disabled={!actionHref}
-        onClick={(event) => { if (editMode || !actionHref) event.preventDefault(); }}
+        href={editMode ? undefined : internalPageId ? "#" : actionHref}
+        aria-disabled={!actionHref && !internalPageId}
+        data-internal-page-id={editMode ? undefined : internalPageId}
+        onClick={(event) => { if (editMode || (!actionHref && !internalPageId)) event.preventDefault(); }}
         className="studio-action-hit-target relative flex h-full w-full flex-col items-center justify-center overflow-visible text-center"
         style={{
           color: str(node.props.textColor, "#0b0f19"),

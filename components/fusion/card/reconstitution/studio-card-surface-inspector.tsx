@@ -1,5 +1,7 @@
 "use client";
 
+import { StudioIntroductionSurfaces } from "./studio-introduction-surfaces";
+import { applyIntroductionSurface } from "@/lib/fusion/creative-studio/reconstitution/native-starting-compositions";
 import { Layers3, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
@@ -239,6 +241,7 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root, task, onTask
       <nav aria-label="Root Surface tasks" className="grid shrink-0 grid-cols-2 gap-1 border-b border-white/8 p-2">{(["surface", "layout"] as const).map(value => <button type="button" key={value} aria-pressed={task === value} onClick={() => onTaskChange(value)} className="min-h-11 rounded-xl text-xs capitalize text-white/65 aria-pressed:bg-[#b8ff2c]/15 aria-pressed:text-[#d8ff82]">{value}</button>)}</nav>
       <div key={task} className="min-h-0 flex-1 overflow-y-auto p-4">
         {task === "surface" ? <>
+          <StudioIntroductionSurfaces root onApply={look => { setPendingImage(false); patchRoot({ ...root, background: creativeFillToCompositionBackground(solidVisualPlane(String(applyIntroductionSurface({}, look).fill))) }, `Applied ${look} root Surface treatment`); }} />
         <section data-card-surface-authority="root-composition" data-testid="studio-card-background-modes">
           <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Background</p>
           <div className="mt-3 grid grid-cols-4 gap-1">

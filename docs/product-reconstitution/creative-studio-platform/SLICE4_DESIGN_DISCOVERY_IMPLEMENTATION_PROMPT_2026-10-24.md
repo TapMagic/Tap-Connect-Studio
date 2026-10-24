@@ -1,5 +1,8 @@
 # Self-authored implementation prompt — Slice 4A: Start and Refine
 
+> **Subsequent Product Owner approval — October 24, 2026:** Bounded Slice4A local implementation was explicitly approved. [Implementation/evidence handoff](SLICE4A_START_AND_REFINE_HANDOFF_2026-10-24.md) records the candidate and remaining gates. The proposal wording below is retained as historical scope; Slice4B and release remain unauthorized.
+
+
 **Status: proposal, not execution authorization.** Run this prompt only after Rich explicitly approves the revised Slice 4A scope. Latest accepted integrated source: `f8de7b70c03c5aadebfc85b31a4509b827762e6f`, on `codex/studio-reconstitution-slice-1`. Read the [scope](SLICE4_DESIGN_DISCOVERY_SCOPE_PROPOSAL_2026-10-24.md), [readiness evidence](SLICE4_EFFORTLESS_DESIGN_READINESS_2026-10-24.md), and [acceptance record](SLICE3_DESKTOP_FUNCTIONAL_ACCEPTANCE_2026-10-24.md) together. This replaces the earlier three-look/two-section prompt.
 
 ## Assignment
