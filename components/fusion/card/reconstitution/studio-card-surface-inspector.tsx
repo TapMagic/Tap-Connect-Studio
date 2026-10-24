@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CardEditorLiveModel } from "@/components/fusion/card/card-editor-live";
 import { MediaPicker } from "@/components/media/media-picker";
 import { GRADIENT_PRESETS } from "@/lib/fusion/creative-studio/gradient";
-import { compositionBackgroundFromMaterialRecipe, getMaterialRecipe, materialPreviewCss } from "@/lib/fusion/creative-studio/material-engine";
+import { compositionBackgroundFromMaterialRecipe, type MaterialRecipe } from "@/lib/fusion/creative-studio/material-engine";
 import { CARD_SURFACE_IMAGE_PRESENTATIONS, cardSurfaceImagePresentation, type CardSurfaceImagePresentation } from "@/lib/fusion/creative-studio/platform/card-surface-rendering";
 import { readCardEdgeMode, setCardEdgeMode, STUDIO_EDGE_MODES, type StudioEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
 import { isCardSurfaceLayered, resizeLayeredPlane, setCardSurfaceCompositionMode } from "@/lib/fusion/creative-studio/platform/layered-region";
@@ -14,6 +14,9 @@ import type { BrandPreviewContext } from "@/lib/fusion/creative-studio/reconstit
 import { creativeFillToCompositionBackground } from "@/lib/fusion/creative-platform/composition-adapter";
 import { photographyVisualPlane, solidVisualPlane } from "@/lib/fusion/creative-studio/visual-plane";
 import { StudioColorControl } from "./studio-color-control";
+
+import { StudioSurfaceMaterials } from "./studio-surface-materials";
+import { StudioPrecisionControl } from "./studio-precision-control";
 
 type Root = NonNullable<CardEditorLiveModel["config"]["rootComposition"]>;
 type ImageBackground = NonNullable<NonNullable<Root["background"]>["image"]>;
@@ -41,13 +44,15 @@ function Range({ label, value, min, max, step = 1, suffix = "%", onChange }: { l
   );
 }
 
-export function StudioCardSurfaceInspector({ model, brand, onClose }: { model: CardEditorLiveModel; brand: BrandPreviewContext; onClose: () => void }) {
+type RootTaskProps = { task: "surface" | "layout"; onTaskChange: (task: "surface" | "layout") => void };
+
+export function StudioCardSurfaceInspector({ model, brand, onClose, task, onTaskChange }: { model: CardEditorLiveModel; brand: BrandPreviewContext; onClose: () => void } & RootTaskProps) {
   const root = model.config.rootComposition;
   if (!root) return null;
-  return <CardSurfaceInspectorContent model={model} brand={brand} onClose={onClose} root={root} />;
+  return <CardSurfaceInspectorContent model={model} brand={brand} onClose={onClose} root={root} task={task} onTaskChange={onTaskChange} />;
 }
 
-function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: CardEditorLiveModel; brand: BrandPreviewContext; onClose: () => void; root: Root }) {
+function CardSurfaceInspectorContent({ model, brand, onClose, root, task, onTaskChange }: { model: CardEditorLiveModel; brand: BrandPreviewContext; onClose: () => void; root: Root } & RootTaskProps) {
   const actualMode: BackgroundMode = root.background?.kind === "image" ? "image" : root.background?.kind === "gradient" ? "gradient" : root.background?.kind === "solid" ? "solid" : "none";
   const [pendingImage, setPendingImage] = useState(false);
   const backgroundMode = pendingImage ? "image" : actualMode;
@@ -61,7 +66,6 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
   const brandColor = brand.backgroundColor || model.config.surfaceColor || "#0b0f19";
   const value = authored || brandColor;
   const source = root.background?.source || (authored ? "local" : "brand");
-  const leather = getMaterialRecipe("worn_saddle_leather")!;
   const density = readCardSurfaceDensity(root);
 
   const patchRoot = (nextRoot: Root, label: string, batch = false) => model.patchConfig({ rootComposition: nextRoot }, label, batch);
@@ -210,14 +214,14 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
     patchRoot(nextRoot, `Changed image background to ${label}`);
   };
   const applyEdge = (mode: StudioEdgeMode) => patchRoot(setCardEdgeMode(root, mode), `Changed Card Surface edge to ${mode.replace("_", " ")}`);
-  const applyLeather = () => {
+  const applyMaterial = (recipe: MaterialRecipe) => {
     setPendingImage(false);
     patchRoot(
       {
-        ...setCardEdgeMode(root, "full_bleed"),
-        background: compositionBackgroundFromMaterialRecipe(leather),
+        ...root,
+        background: compositionBackgroundFromMaterialRecipe(recipe),
       },
-      "Applied Worn Saddle Leather Card Surface",
+      `Applied ${recipe.label} Card Surface`,
     );
   };
 
@@ -225,14 +229,16 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
     <aside className="absolute inset-x-0 bottom-0 z-[2100] flex max-h-[62dvh] flex-col rounded-t-3xl border-t border-white/8 bg-[#0b111b]/98 text-white shadow-[0_-18px_50px_rgba(0,0,0,.36)] backdrop-blur-xl md:inset-y-0 md:left-auto md:right-0 md:max-h-none md:w-[min(360px,calc(100vw-12px))] md:rounded-none md:border-l md:border-t-0" data-testid="studio-card-surface-inspector">
       <header className="flex min-h-14 items-center gap-2 border-b border-white/8 px-4">
         <div className="min-w-0 flex-1">
-          <p className="text-xs text-white/45">Card › Card / Background</p>
-          <h2 className="mt-0.5 text-sm font-semibold">Card / Background</h2>
+          <p className="text-xs text-white/45">Experience › Root Surface</p>
+          <h2 className="mt-0.5 text-sm font-semibold">Root Surface</h2>
         </div>
         <button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full hover:bg-white/8" aria-label="Close Inspector">
           <X className="h-4 w-4" />
         </button>
       </header>
-      <div className="min-h-0 flex-1 overflow-y-auto p-4">
+      <nav aria-label="Root Surface tasks" className="grid shrink-0 grid-cols-2 gap-1 border-b border-white/8 p-2">{(["surface", "layout"] as const).map(value => <button type="button" key={value} aria-pressed={task === value} onClick={() => onTaskChange(value)} className="min-h-11 rounded-xl text-xs capitalize text-white/65 aria-pressed:bg-[#b8ff2c]/15 aria-pressed:text-[#d8ff82]">{value}</button>)}</nav>
+      <div key={task} className="min-h-0 flex-1 overflow-y-auto p-4">
+        {task === "surface" ? <>
         <section data-card-surface-authority="root-composition" data-testid="studio-card-background-modes">
           <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Background</p>
           <div className="mt-3 grid grid-cols-4 gap-1">
@@ -286,17 +292,6 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
           ) : null}
         </section>
 
-        <section className="mt-5 rounded-2xl border border-[#b8ff2c]/14 bg-[#b8ff2c]/[.035] p-3" data-testid="studio-card-edge-controls">
-          <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#d8ff82]/75">Visual bleed</p>
-          <p className="mt-1 text-[9px] leading-4 text-white/48">The background can reach device glass while content keeps its own safe area.</p>
-          <div className="mt-3 grid grid-cols-3 gap-1">
-            {STUDIO_EDGE_MODES.map((option) => (
-              <button key={option.id} type="button" aria-pressed={readCardEdgeMode(root) === option.id} onClick={() => applyEdge(option.id)} className="min-h-12 rounded-xl bg-white/5 px-1 text-[9px] aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">
-                {option.label}
-              </button>
-            ))}
-          </div>
-        </section>
 
         <section className="mt-5">
           <div className="flex items-center gap-3 rounded-2xl bg-white/4 p-3">
@@ -314,12 +309,10 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
             </div>
           </div>
           <p className="mt-4 text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Surface materials</p>
-          <button type="button" aria-pressed={root.background?.materialPreset === leather.id} onClick={applyLeather} className="mt-2 w-full overflow-hidden rounded-xl border border-white/10 bg-white/4 text-left aria-pressed:border-[#b8ff2c] aria-pressed:bg-[#b8ff2c]/10">
-            <span className="block h-16 bg-cover bg-center" style={{ background: materialPreviewCss(leather) }} />
-            <span className="block px-3 py-2 text-[10px] font-semibold">Worn Saddle Leather</span>
-          </button>
+          <StudioSurfaceMaterials selected={root.background?.materialPreset} onApply={applyMaterial} />
         </section>
 
+        {!backgroundImage && root.background && root.background.kind !== "none" ? <StudioPrecisionControl label="Surface opacity" value={Math.round((root.background.opacity ?? 1) * 100)} descriptor={{ unit: "%", min: 0, max: 100, step: 1, defaultValue: 100 }} onBegin={model.beginLiveAdjustment} onPreview={opacity => model.previewCompositionBlock?.({ ...root, background: { ...root.background!, opacity: opacity / 100 } })} onCommit={() => model.commitLiveAdjustment?.("Changed Root Surface opacity")} onCancel={model.cancelLiveAdjustment} /> : null}
         {backgroundImage ? (
           <section className="mt-6 rounded-2xl border border-[#8bdcff]/12 bg-[#101824]/70 p-3" data-testid="studio-card-image-controls">
             <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Image presentation</p>
@@ -347,6 +340,19 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
             <Range label="Image opacity" value={Math.round((root.background?.opacity ?? 1) * 100)} min={10} max={100} onChange={(next) => patchImageBackground({ opacity: next / 100 }, "Changed Card Surface image opacity")} />
           </section>
         ) : null}
+
+        </> : <>
+        <section className="mt-5 rounded-2xl border border-[#b8ff2c]/14 bg-[#b8ff2c]/[.035] p-3" data-testid="studio-card-edge-controls">
+          <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#d8ff82]/75">Visual bleed</p>
+          <p className="mt-1 text-[9px] leading-4 text-white/48">The background can reach device glass while content keeps its own safe area.</p>
+          <div className="mt-3 grid grid-cols-3 gap-1">
+            {STUDIO_EDGE_MODES.map((option) => (
+              <button key={option.id} type="button" aria-pressed={readCardEdgeMode(root) === option.id} onClick={() => applyEdge(option.id)} className="min-h-12 rounded-xl bg-white/5 px-1 text-[9px] aria-pressed:bg-[#b8ff2c] aria-pressed:text-[#07100a]">
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </section>
 
         <section className="mt-6 border-t border-white/8 pt-4" data-testid="studio-card-composition-mode">
           <p className="text-[10px] font-semibold uppercase tracking-[.14em] text-[#a9e7ff]/70">Composition</p>
@@ -447,6 +453,7 @@ function CardSurfaceInspectorContent({ model, brand, onClose, root }: { model: C
             </div>
           ) : null}
         </section>
+        </>}
       </div>
     </aside>
   );

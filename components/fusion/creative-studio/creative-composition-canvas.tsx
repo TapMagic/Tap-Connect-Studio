@@ -541,7 +541,7 @@ function NodeVisual({
         ...planeStyle,
         border: `${num(node.props.borderWidth, 0)}px ${str(node.props.borderStyle, "solid")} ${str(node.props.borderColor, "transparent")}`,
         borderRadius: num(node.props.radius, 0),
-        boxShadow: num(node.props.boxShadow, 0) ? `0 10px ${num(node.props.boxShadow, 0)}px rgba(0,0,0,.35)` : undefined,
+        boxShadow: surfaceShadowCss(node.props),
         opacity: num(node.props.opacity, 1),
         filter: studioSurface.treatment === "image" ? `brightness(${studioSurface.brightness}) contrast(${studioSurface.contrast}) saturate(${studioSurface.saturation})` : undefined,
         backdropFilter: studioSurface.treatment === "smoked_glass" ? `blur(${studioSurface.blurPx}px)` : undefined,
@@ -3327,7 +3327,7 @@ export function CreativeCompositionCanvas({
         className={cn(
           "relative min-w-0",
           editMode && selectedSet.has(node.id) && "touch-none",
-          editMode ? "overflow-visible" : node.props.clipContent === true ? "overflow-hidden" : "overflow-visible",
+          "overflow-visible",
           editMode && "outline outline-1 outline-dashed outline-white/25",
           selectedSet.has(node.id) && "!outline-2 !outline-[#b8ff2c]",
         )}
@@ -3397,6 +3397,8 @@ export function CreativeCompositionCanvas({
         <div
           className={cn("relative z-[1] w-full", layered ? "block" : grid ? "grid grid-cols-2" : horizontal ? "flex flex-row flex-nowrap" : "flex flex-col")}
           style={{
+            overflow: node.props.clipContent === true ? "hidden" : "visible",
+            borderRadius: node.props.clipContent === true ? num(node.props.radius, 0) : undefined,
             padding: layered ? 0 : padding,
             rowGap: layered ? undefined : containerDensity.rowGapPx,
             columnGap: layered ? undefined : containerDensity.columnGapPx,

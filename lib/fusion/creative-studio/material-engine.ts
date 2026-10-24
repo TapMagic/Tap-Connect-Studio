@@ -9,6 +9,7 @@ import {
 } from "./material-surface";
 import { surfacePatternFromTextureToken } from "./patterns";
 import { DEFAULT_GRADIENT, normalizeGradient } from "./gradient";
+import { photographyVisualPlane } from "./visual-plane";
 import type { CreativeCompositionBlock } from "./composition";
 
 export { resolveMaterialSurfaceFromProps, resolveMaterialSurfaceFromRecipe, materialSurfaceParityKey } from "./material-surface";
@@ -526,6 +527,12 @@ export function applyMaterialRecipe(
 
   // surface (default)
   const next = clearKeys(props, SURFACE_KEYS);
+  // A recipe replaces its fill authority, not a stale authoring adapter.
+  next.surfaceTreatment = null;
+  next.containerTreatment = null;
+  next.backgroundImageUrl = null;
+  next.backgroundMediaAssetId = null;
+  next.visualPlane = null;
   if (options.asButtonSurface && props.opacity !== undefined) next.opacity = props.opacity;
   if (!materialId || materialId === "none") {
     next.materialPreset = undefined;
@@ -536,11 +543,7 @@ export function applyMaterialRecipe(
 
   if (recipe.sourceMaster) {
     const source = recipe.sourceMaster;
-    const visualPlane = {
-      kind: "image" as const,
-      image: { src: source.src, fit: source.fit, focalX: source.focalX, focalY: source.focalY, opacity: 1 },
-      overlay: { color: source.overlayColor, opacity: source.overlayOpacity },
-    };
+    const visualPlane = photographyVisualPlane({ url: source.src, fit: source.fit, focalX: source.focalX, focalY: source.focalY, opacity: 1, scale: source.scale, tint: source.overlayColor, overlayOpacity: source.overlayOpacity });
     next.materialPreset = recipe.id;
     next.backgroundImageUrl = source.src;
     next.backgroundFit = source.fit;
@@ -796,10 +799,10 @@ export function materialPropsFromCompositionBackground(
     if (recipe.sourceMaster) return null;
     return {
       materialPreset: recipe.id,
-      fill: recipe.fill,
-      gradientFill: recipe.gradient,
-      highlight: recipe.highlight ?? background.highlight,
-      shine: recipe.shine === true || background.shine === true,
+      fill: background.kind === "solid" ? background.value ?? recipe.fill : recipe.fill,
+      gradientFill: background.kind === "gradient" ? background.value ?? recipe.gradient : recipe.gradient,
+      highlight: background.highlight ?? recipe.highlight,
+      shine: background.shine ?? recipe.shine === true,
       texture: recipe.texture,
       borderWidth: recipe.borderWidth ?? 0,
       borderColor: recipe.borderColor,
@@ -808,7 +811,7 @@ export function materialPropsFromCompositionBackground(
       boxGlow: recipe.glow ?? 0,
       glowColor: recipe.glowColor,
       innerShadow: recipe.innerShadow,
-      opacity: recipe.opacity ?? 1,
+      opacity: background.opacity ?? recipe.opacity ?? 1,
       surfaceFillKind: recipe.gradient ? "gradient" : "solid",
       buttonSurfaceKind: recipe.gradient ? "gradient" : "solid",
     };
