@@ -1,0 +1,2242 @@
+{
+  "beforeExtension": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.04"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.4721951219512195"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.72"
+      }
+    ],
+    "plane": "height: 738px;"
+  },
+  "preview": {
+    "nodes": [],
+    "plane": "height:1087px"
+  },
+  "cancel": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.04"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.4721951219512195"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.72"
+      }
+    ],
+    "plane": "height: 738px;"
+  },
+  "applied": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.03150480256136606"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.37191035218783347"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8004226254002134"
+      }
+    ],
+    "plane": "height: 937px;"
+  },
+  "undo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.04"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.4721951219512195"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.72"
+      }
+    ],
+    "plane": "height: 738px;"
+  },
+  "redo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.03150480256136606"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.37191035218783347"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8004226254002134"
+      }
+    ],
+    "plane": "height: 937px;"
+  },
+  "beforeDrag": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.03150480256136606"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.37191035218783347"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8004226254002134"
+      }
+    ],
+    "plane": "height: 937px;"
+  },
+  "escape": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.03150480256136606"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.37191035218783347"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8004226254002134"
+      }
+    ],
+    "plane": "height: 937px;"
+  },
+  "dragApplied": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.827963201471941"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "dragUndo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.03150480256136606"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.37191035218783347"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8004226254002134"
+      }
+    ],
+    "plane": "height: 937px;"
+  },
+  "dragRedo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.117px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.827963201471941"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "textAuto": {
+    "boxHeight": 100.797,
+    "frameHeight": 100.797,
+    "glyphHeight": 76.7969,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.117
+  },
+  "textMinimumContent": {
+    "boxHeight": 100.797,
+    "frameHeight": 100.797,
+    "glyphHeight": 76.7969,
+    "mode": "minimum",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.117
+  },
+  "textMinimum160": {
+    "boxHeight": 160,
+    "frameHeight": 160,
+    "glyphHeight": 76.7969,
+    "mode": "minimum",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.117
+  },
+  "textFixedVisible": {
+    "boxHeight": 44,
+    "frameHeight": 44,
+    "glyphHeight": 76.7969,
+    "mode": "fixed",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.117
+  },
+  "textFixedClip": {
+    "boxHeight": 44,
+    "frameHeight": 44,
+    "glyphHeight": 76.7969,
+    "mode": "fixed",
+    "overflow": "clip",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.117
+  },
+  "textNarrow": {
+    "boxHeight": 216,
+    "frameHeight": 216,
+    "glyphHeight": 192,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 157.297
+  },
+  "textRotated": {
+    "boxHeight": 216,
+    "frameHeight": 216,
+    "glyphHeight": 192,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "matrix(0.965926, 0.258819, -0.258819, 0.965926, 0, 0)",
+    "text": "Stories worth staying for.",
+    "width": 157.297
+  },
+  "multiline": {
+    "boxHeight": 99.1875,
+    "frameHeight": 99.1875,
+    "glyphHeight": 99.1875,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "First line\nPasted second line\nSupercalifragilisticexpialidociousLongWordWithoutSpaces",
+    "width": 251.102
+  },
+  "beforeCaret": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.827963201471941"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "afterCaret": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.827963201471941"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "phoneText": {
+    "boxHeight": 101,
+    "frameHeight": 101,
+    "glyphHeight": 77,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "",
+    "width": 230.766
+  },
+  "phoneTargets": [
+    {
+      "rect": {
+        "bottom": 767,
+        "height": 44,
+        "left": 21,
+        "right": 151.6171875,
+        "top": 723,
+        "width": 130.6171875,
+        "x": 21,
+        "y": 723
+      },
+      "text": "Preview placement"
+    },
+    {
+      "rect": {
+        "bottom": 767,
+        "height": 44,
+        "left": 159.6171875,
+        "right": 269.53125,
+        "top": 723,
+        "width": 109.9140625,
+        "x": 159.6171875,
+        "y": 723
+      },
+      "text": "Extend & place"
+    },
+    {
+      "rect": {
+        "bottom": 767,
+        "height": 44,
+        "left": 277.53125,
+        "right": 341.625,
+        "top": 723,
+        "width": 64.09375,
+        "x": 277.53125,
+        "y": 723
+      },
+      "text": "Cancel"
+    }
+  ],
+  "beforeFit": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "fit": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "deleted": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "fitDeleted": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.04000000000000001"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.4721951219512195"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      }
+    ],
+    "plane": "height: 738px;"
+  },
+  "fitDeleteUndo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "inserted": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-iz0HT9Ja",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.03",
+        "y": "0.6900000000000002"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "insertPlaced": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.022954898911353036"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.27097978227060654"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.7097853810264386"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-iz0HT9Ja",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.03",
+        "y": "0.8545839813374805"
+      }
+    ],
+    "plane": "height: 1286px;"
+  },
+  "insertPlaceUndo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-iz0HT9Ja",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.03",
+        "y": "0.6900000000000002"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "insertPlaceRedo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.022954898911353036"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.27097978227060654"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.7097853810264386"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-iz0HT9Ja",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.03",
+        "y": "0.8545839813374805"
+      }
+    ],
+    "plane": "height: 1286px;"
+  },
+  "zoom75": {
+    "boxHeight": 100.797,
+    "frameHeight": 100.797,
+    "glyphHeight": 76.7969,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.102
+  },
+  "beforeFlow": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "flowText": {
+    "boxHeight": 100.797,
+    "frameHeight": 100.797,
+    "glyphHeight": 76.7969,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": null,
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 286
+  },
+  "flowUndo": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "beforeReload": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      }
+    ],
+    "plane": "height: 1087px;"
+  },
+  "textBeforeReload": {
+    "boxHeight": 100.797,
+    "frameHeight": 100.797,
+    "glyphHeight": 76.7969,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.102
+  },
+  "afterReload": {
+    "nodes": [
+      {
+        "height": "324.477px",
+        "id": "container--tveREgS",
+        "mode": "fixed",
+        "parent": "card-surface",
+        "text": "A quiet kind of extraordinary.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.027157313707451704"
+      },
+      {
+        "height": "59.7344px",
+        "id": "node-9Vl04K",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "A quiet kind of extraordinary.",
+        "width": "277.414px",
+        "x": "0.030000000000000027",
+        "y": "0.03"
+      },
+      {
+        "height": "79.6484px",
+        "id": "node-U8iAl4",
+        "mode": "fixed",
+        "parent": "container--tveREgS",
+        "text": "An intimate collection of moments, made to be explored. Slow down. Stay curious.",
+        "width": "286px",
+        "x": "0",
+        "y": "0.44000000000000006"
+      },
+      {
+        "height": "43.9922px",
+        "id": "node-2IpLPV",
+        "parent": "container--tveREgS",
+        "width": "246.82px",
+        "x": "0.07999999999999996",
+        "y": "0.8400000000000001"
+      },
+      {
+        "height": "389.516px",
+        "id": "container-QQTKcBej",
+        "mode": "auto",
+        "parent": "card-surface",
+        "text": "Stories worth staying for.",
+        "width": "326px",
+        "x": "0.054644808743169404",
+        "y": "0.320588776448942"
+      },
+      {
+        "height": "217.594px",
+        "id": "node-qZzd9E",
+        "parent": "container-QQTKcBej",
+        "width": "286px",
+        "x": "0",
+        "y": "0"
+      },
+      {
+        "height": "100.797px",
+        "id": "node-ZByICV",
+        "mode": "auto",
+        "parent": "container-QQTKcBej",
+        "text": "Stories worth staying for.",
+        "width": "251.102px",
+        "x": "0.041960334371414554",
+        "y": "0.6225680933852139"
+      },
+      {
+        "height": "174.211px",
+        "id": "module-M2-V8lau",
+        "parent": "card-surface",
+        "width": "307.438px",
+        "x": "0.1053551912568306",
+        "y": "0.8397276908923643"
+      }
+    ],
+    "plane": "height:1087px"
+  },
+  "textAfterReload": {
+    "boxHeight": 100.797,
+    "frameHeight": 100.797,
+    "glyphHeight": 76.7969,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.102
+  },
+  "textPreview": {
+    "boxHeight": 100.797,
+    "frameHeight": 100.797,
+    "glyphHeight": 76.7969,
+    "mode": "auto",
+    "overflow": "visible",
+    "placementHeight": "0.1831082627603571",
+    "rotation": "none",
+    "text": "Stories worth staying for.",
+    "width": 251.102
+  },
+  "previewFrames": [
+    {
+      "height": "324.477px",
+      "id": "container--tveREgS",
+      "parent": "card-surface",
+      "width": "326px"
+    },
+    {
+      "height": "59.7344px",
+      "id": "node-9Vl04K",
+      "parent": "container--tveREgS",
+      "width": "277.414px"
+    },
+    {
+      "height": "79.6484px",
+      "id": "node-U8iAl4",
+      "parent": "container--tveREgS",
+      "width": "286px"
+    },
+    {
+      "height": "43.9922px",
+      "id": "node-2IpLPV",
+      "parent": "container--tveREgS",
+      "width": "246.82px"
+    },
+    {
+      "height": "389.516px",
+      "id": "container-QQTKcBej",
+      "parent": "card-surface",
+      "width": "326px"
+    },
+    {
+      "height": "217.594px",
+      "id": "node-qZzd9E",
+      "parent": "container-QQTKcBej",
+      "width": "286px"
+    },
+    {
+      "height": "100.797px",
+      "id": "node-ZByICV",
+      "parent": "container-QQTKcBej",
+      "width": "251.102px"
+    },
+    {
+      "height": "174.211px",
+      "id": "module-M2-V8lau",
+      "parent": "card-surface",
+      "width": "307.438px"
+    }
+  ]
+}

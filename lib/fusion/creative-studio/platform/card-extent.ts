@@ -47,3 +47,9 @@ export function fitCardToContent(
     : block;
   return setExplicitCardMinimum(next, required);
 }
+
+/** Direct page-edge extension grows usable Layered space; minimum-only input stays separate. */
+export function extendCardPage(block: CreativeCompositionBlock, outerHeightPx: number): CreativeCompositionBlock {
+  if (!isCardSurfaceLayered(block)) return setExplicitCardMinimum(block, outerHeightPx);
+  return resizeLayeredPlane(block, outerHeightPx - (block.safeAreaPaddingPx ?? 12) * 2);
+}

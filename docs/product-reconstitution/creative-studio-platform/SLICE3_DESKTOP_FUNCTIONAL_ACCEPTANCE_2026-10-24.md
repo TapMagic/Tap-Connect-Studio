@@ -1,5 +1,7 @@
 # Slice 3 desktop functional acceptance — October 24, 2026
 
+> **Subsequent corrective review:** The October 24 Text Selection Truth, Intelligent Placement & Page Extension directive reopens Slice 3 functional review for these affected behaviors. The earlier desktop acceptance below remains historical; the corrective candidate requires another Product Owner hands-on decision. See [corrective handoff](SLICE3_TEXT_PLACEMENT_PAGE_CORRECTION_2026-10-24.md).
+
 Rich, Product Owner, explicitly reviewed the native Surface/Container implementation and found its desktop functionality satisfactory. **Slice 3 desktop functional acceptance is recorded.** This is a human decision, not inferred from automated tests.
 
 It does not constitute final visual-fidelity acceptance, novice usability certification, physical-device acceptance, accessibility certification, Safari/WebKit compatibility, or production release authorization.
@@ -27,7 +29,7 @@ Read-only local snapshot on October 24; all remain unpublished. No fixture was r
 | Slice 3 `cmvlvb1b502e7to9k6hzzalc4` | 63 | `17b01f431ab58d189a17b827f2744456bb73fdcd26c70c86090743da29a9dfc5` |
 | Slice 3 companion `cmvlw4h0l07ffto9k723tgcsu` | 13 | `01338b6e4aa43ef98278f082c26f19fbfa65f1569a9b493754e03d68f2e9944f` |
 
-Slice 3 revision 63 is the current hands-on review state; the prior engineering snapshot was revision 36. Preserve 63. Older Slice 2 records describe revision 66; preserve the later observed revision 69. These draft snapshots identify current local state, not production hashes or a new acceptance claim for every individual change made during review.
+At the time of this acceptance record, Slice 3 revision 63 was the hands-on review state; the prior engineering snapshot was revision 36. The subsequent corrective investigation observed and preserved revision 80; see the corrective handoff for its hash. Older Slice 2 records describe revision 66; preserve the later observed revision 69. These draft snapshots identify current local state, not production hashes or a new acceptance claim for every individual change made during review.
 
 ## Next gate
 

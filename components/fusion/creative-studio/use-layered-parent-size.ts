@@ -118,3 +118,17 @@ export function revealCompositionSelection(blockId: string, ids: string[]) {
   element?.scrollIntoView({ block: "center", inline: "nearest", behavior: "instant" });
   element?.focus({ preventScroll: true });
 }
+
+/** Selection geometry is browser layout. It never writes back to document geometry. */
+export function useRenderedCompositionFrame(block: CreativeCompositionBlock, nodeId: string) {
+  const [size, setSize] = useState<{widthPx:number;heightPx:number}|null>(null);
+  useLayoutEffect(() => {
+    const canvas = [...document.querySelectorAll<HTMLElement>('[data-composition-surface="true"][data-edit-mode="true"]')].find(el=>el.dataset.compositionId===block.id);
+    const node = [...(canvas?.querySelectorAll<HTMLElement>('[data-composition-node]') ?? [])].find(el=>el.dataset.compositionNode===nodeId);
+    if (!node) return;
+    const update = () => { const style=getComputedStyle(node); const next={widthPx:parseFloat(style.width),heightPx:parseFloat(style.height)}; setSize(old=>old?.widthPx===next.widthPx && old.heightPx===next.heightPx ? old : next); };
+    update(); const observer=new ResizeObserver(update); observer.observe(node);
+    return ()=>observer.disconnect();
+  }, [block,nodeId]);
+  return size;
+}

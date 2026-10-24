@@ -1,0 +1,35 @@
+
+/Users/rcs/Development/tap-connect-studio/components/fusion/creative-studio/creative-composition-canvas.tsx
+     7:10   warning  'ArrowDownToLine' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+     7:27   warning  'ArrowUpToLine' is defined but never used                                                                                                                                                                                                                                                @typescript-eslint/no-unused-vars
+     7:104  warning  'Maximize2' is defined but never used                                                                                                                                                                                                                                                    @typescript-eslint/no-unused-vars
+     7:115  warning  'Move' is defined but never used                                                                                                                                                                                                                                                         @typescript-eslint/no-unused-vars
+   128:158  warning  'moveLayeredNode' is defined but never used                                                                                                                                                                                                                                              @typescript-eslint/no-unused-vars
+   128:175  warning  'reorderLayeredNodeZ' is defined but never used                                                                                                                                                                                                                                          @typescript-eslint/no-unused-vars
+   394:35   warning  Unused eslint-disable directive (no problems were reported from '@next/next/no-img-element')
+   394:92   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+   408:551  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  1636:9    warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+  2220:5    warning  React Hook useCallback has a missing dependency: 'measuredParentSize'. Either include it or remove the dependency array                                                                                                                                                                  react-hooks/exhaustive-deps
+  2474:6    warning  React Hook useEffect has missing dependencies: 'finishNudge' and 'measuredParentSize'. Either include them or remove the dependency array                                                                                                                                                react-hooks/exhaustive-deps
+
+/Users/rcs/Development/tap-connect-studio/components/fusion/creative-studio/use-layered-parent-size.ts
+  74:20  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+/Users/rcs/Development/tap-connect-studio/components/fusion/creative-studio/use-layered-parent-size.ts:74:20
+  72 |     const region = canvas && [...canvas.querySelectorAll<HTMLElement>('[data-layered-region="true"]')]
+  73 |       .find((element) => element.dataset.layeredRegionId === (parentId ?? "card-surface"));
+> 74 |     if (!region) { setMeasured(null); return; }
+     |                    ^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  75 |     const update = () => {
+  76 |       const size = renderedLayeredParentSize(region);
+  77 |       setMeasured((previous) => previous?.key === key && previous.widthPx === size.widthPx && previous.heightPx === size.heightPx ? previous : { key, ...size });  react-hooks/set-state-in-effect
+
+✖ 13 problems (1 error, 12 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.

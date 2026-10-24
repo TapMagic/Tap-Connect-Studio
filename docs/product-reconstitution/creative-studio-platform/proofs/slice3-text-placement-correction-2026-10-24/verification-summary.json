@@ -1,0 +1,17 @@
+{
+  "cancel_restores_frames": true,
+  "extension_undo_restores_frames": true,
+  "extension_redo_restores_frames": true,
+  "drag_escape_restores_frames": true,
+  "drag_undo_restores_frames": true,
+  "drag_redo_restores_frames": true,
+  "fit_delete_undo_restores_frames": true,
+  "insert_placement_undo_restores_frames": true,
+  "insert_placement_redo_restores_frames": true,
+  "layout_switch_undo_restores_frames": true,
+  "reload_restores_node_frames": true,
+  "reload_restores_text": true,
+  "preview_matches_text": true,
+  "preview_matches_all_node_sizes_and_parents": true,
+  "phone_control_minimum_height": 44
+}

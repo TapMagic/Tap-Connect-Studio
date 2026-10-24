@@ -1,0 +1,11 @@
+{
+  "components/card/tap-card-builder.tsx": "156b787f8661a573d7321445a7231c5a4d1eb0215527c8ee97a3c9f104b4a168",
+  "components/fusion/creative-studio/creative-composition-canvas.tsx": "d534ae35635959cf76fda4ab479273c0cbf408650a88c6a92382971906b58bf0",
+  "components/fusion/creative-studio/studio-frame-diagnostics.tsx": "3168fccc3b3c875e6dd420c3564cf32da03a827da36a134d3985504333e91e47",
+  "components/fusion/creative-studio/use-layered-parent-size.ts": "a4932a32fbdb3a8b724b77fce703d5723363c36cc0d6063bccdd9c5b7a0a1857",
+  "components/fusion/card/reconstitution/studio-composition-inspector.tsx": "ee10c2bd38fa4f41132591f544bd2e83a9af82eddb6082b0f995c42e11000c73",
+  "components/tap/tap-connect-card.tsx": "4b0309abe2ef7227b75f1745ea2b7ed987b0071f36ce61bf569b1ac66d0f4884",
+  "lib/fusion/creative-studio/platform/layered-region.ts": "0d7599b627677e17fd4eb924ae783d7b21305d7786ed7517cb8b71688d47e675",
+  "lib/fusion/creative-studio/platform/card-extent.ts": "1dd0b31930d476b6bd6d4565af9f6cdf25751a94ff604950acec88ad155c4ae3",
+  "lib/fusion/creative-studio/__tests__/text-placement-page-correction.test.ts": "df42aa0486672ad65b18c31c8aa304e7da6f75bfb11fe42050f8fd50c1345c20"
+}

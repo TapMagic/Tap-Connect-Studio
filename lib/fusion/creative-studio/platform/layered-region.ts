@@ -1,3 +1,4 @@
+import { synchronizeCompositionGroups } from "../group-authority";
 import type { CreativeCompositionBlock, CreativeCompositionNode } from "../composition";
 import { snapCompositionNodes, type CompositionGuide } from "../composition-snap";
 import { compositionChildren } from "../../card/composition-parent-authority";
@@ -180,6 +181,7 @@ export function placeNodeInCompositionParent(
   node: CreativeCompositionNode,
   parentId: string | null,
   requested?: StudioPlacementFrame,
+  rendered?: RenderedPlacementSizes,
 ): CreativeCompositionNode {
   if (!isLayeredCompositionParent(block, parentId)) return { ...node, parentId };
   const parentSize = layeredCompositionParentSizePx(block, parentId);
@@ -190,7 +192,10 @@ export function placeNodeInCompositionParent(
   const explicit = typeof requested?.x === "number" && typeof requested?.y === "number";
   const placement = explicit
     ? { x: clamp(requested!.x!, 0, 1 - width), y: clamp(requested!.y!, 0, 1 - height) }
-    : findLayeredOpening(width, height, siblings);
+    : findLayeredOpening(width, height, siblings.map(sibling => {
+      const frame = layeredPlacementEnvelope(sibling,parentSize,rendered);
+      return {...sibling,x:frame.left/parentSize.widthPx,y:frame.top/parentSize.heightPx,width:frame.width/parentSize.widthPx,height:frame.height/parentSize.heightPx};
+    }));
   return {
     ...node,
     parentId,
@@ -400,8 +405,9 @@ export function resizeLayeredPlane(block: CreativeCompositionBlock, heightPx: nu
   const minimum = layeredBoundsPolicy(block, null) === "constrain"
     ? Math.min(before.heightPx, Math.ceil(requiredChildContentSize(block.nodes, null, before).heightPx)) : 240;
   const after = { ...before, heightPx: Math.max(minimum, clamp(Math.round(heightPx), 240, 1600)) };
-  return { ...block, compositionMode: { ...block.compositionMode!, layeredHeightPx: after.heightPx },
+  const resized = { ...block, compositionMode: { ...block.compositionMode!, layeredHeightPx: after.heightPx },
     nodes: rebaseParentRelativeChildren(block.nodes, null, before, after) };
+  return block.groups?.length ? synchronizeCompositionGroups(resized) : resized;
 }
 
 export function snapLayeredNode(input: {
@@ -551,7 +557,7 @@ function layeredDefaultSize(node: CreativeCompositionNode, parentHeightPx: numbe
               : clamp(node.width || .46, .2, .94);
   const heightPx = gridMetrics ? gridMetrics.contentHeightPx
     : node.compositionKind === "container" ? 220
-    : node.moduleComposition?.signatureAssembly ? width * 390 * (Math.max(1, Number(node.moduleComposition.pageHeightPx) || Number(node.minHeightPx) || 56) / 390)
+    : node.moduleComposition?.signatureAssembly ? width * parentWidthPx * (Math.max(1, Number(node.moduleComposition.pageHeightPx) || Number(node.minHeightPx) || 56) / 390)
       : kind === "image" || kind === "video" ? 180
         : kind === "text" ? Math.max(44, Number(node.props.textMinHeightPx) || 72)
           : kind === "divider" ? 24
@@ -566,14 +572,20 @@ function spatialSeed(node: CreativeCompositionNode, parentHeightPx: number, occu
   return { ...placement, width, height, anchor: node.anchor ?? "top-left" } as const;
 }
 
-function findLayeredOpening(width: number, height: number, occupied: CreativeCompositionNode[]) {
+export function findLayeredOpening(width: number, height: number, occupied: CreativeCompositionNode[]) {
   const maxX = Math.max(0, 1 - width);
   const maxY = Math.max(0, 1 - height);
   const candidates: Array<{ x: number; y: number }> = [];
+  // Try actual sibling edges as well as the coarse grid, so narrow valid gaps
+  // are not missed. Stable top-to-bottom, then left-to-right reading order.
+  const xs = [0, .03, maxX, ...occupied.map(n => n.x + n.width + .015)];
+  const ys = [0, .03, maxY, ...occupied.map(n => n.y + n.height + .015)];
+  const edgeCandidates: Array<{x:number;y:number}> = [];
+  for (const y of ys) for (const x of xs) if (x >= 0 && x <= maxX && y >= 0 && y <= maxY) edgeCandidates.push({x,y});
   for (let y = .03; y <= maxY + .001; y += .06) {
     for (let x = .03; x <= maxX + .001; x += .06) candidates.push({ x: clamp(x, 0, maxX), y: clamp(y, 0, maxY) });
   }
-  candidates.push({ x: 0, y: 0 });
+  candidates.push(...edgeCandidates.sort((a,b) => a.y - b.y || a.x - b.x));
   const overlap = (candidate: { x: number; y: number }, other: CreativeCompositionNode) => !(
     candidate.x + width + .015 <= other.x ||
     candidate.x >= other.x + other.width + .015 ||
@@ -674,4 +686,54 @@ export function translateLayeredSelection(block: CreativeCompositionBlock, ids: 
 export function fitNativeImageSize(native: { widthPx: number; heightPx: number }, parent: { widthPx: number; heightPx: number }) {
   const scale = Math.min(1, parent.widthPx / native.widthPx, parent.heightPx / native.heightPx);
   return { width: native.widthPx * scale / parent.widthPx, height: native.heightPx * scale / parent.heightPx, scale };
+}
+
+
+/** Transient renderer sizes can inform placement without becoming authored size. */
+export type RenderedPlacementSizes = Record<string, { widthPx: number; heightPx: number }>;
+export function layeredPlacementEnvelope(node: CreativeCompositionNode, size: ContentBoxSize, rendered?: RenderedPlacementSizes) {
+  const w = rendered?.[node.id]?.widthPx ?? node.width * size.widthPx;
+  const h = rendered?.[node.id]?.heightPx ?? node.height * size.heightPx;
+  const angle = (node.rotationDeg || 0) * Math.PI / 180;
+  const width = Math.abs(w * Math.cos(angle)) + Math.abs(h * Math.sin(angle));
+  const height = Math.abs(w * Math.sin(angle)) + Math.abs(h * Math.cos(angle));
+  return { left: node.x * size.widthPx + (w - width) / 2, top: node.y * size.heightPx + (h - height) / 2, width, height };
+}
+
+export function layeredSelectionOverlaps(block: CreativeCompositionBlock, ids: readonly string[], rendered?: RenderedPlacementSizes): boolean {
+  const roots = block.nodes.filter(n => ids.includes(n.id));
+  return roots.some(n => {
+    if (!isLayeredCompositionParent(block, n.parentId ?? null)) return false;
+    const size = layeredCompositionParentSizePx(block, n.parentId ?? null);
+    const a = layeredPlacementEnvelope(n, size, rendered);
+    return compositionChildren(block, n.parentId ?? null).some(other => {
+      if (ids.includes(other.id) || other.visible === false) return false;
+      const b = layeredPlacementEnvelope(other, size, rendered);
+      return a.left < b.left+b.width-.5 && a.left+a.width > b.left+.5 && a.top < b.top+b.height-.5 && a.top+a.height > b.top+.5;
+    });
+  });
+}
+
+/** A proposal, never a mutation. Reuses the accepted plane rebase and move authority.
+ * Root-only: a nested Container is an intentional frame, not permission to grow a page.
+ */
+export function planLayeredPagePlacement(block: CreativeCompositionBlock, ids: readonly string[], delta?: { xPx: number; yPx: number }, rendered?: RenderedPlacementSizes):
+  { ok: true; block: CreativeCompositionBlock; heightPx: number; extended: boolean } | { ok: false; reason: string } {
+  const roots = block.nodes.filter(n => ids.includes(n.id));
+  if (!isCardSurfaceLayered(block) || !roots.length || roots.some(n => n.parentId != null || n.locked)) return {ok:false, reason:"This selection is constrained by its Container. Select the Container to resize its frame; the page cannot override it."};
+  const before = layeredCompositionParentSizePx(block, null);
+  const envelopes = roots.map(n => layeredPlacementEnvelope(n, before, rendered));
+  const top = Math.min(...envelopes.map(r => r.top));
+  const otherBottom = Math.max(0, ...compositionChildren(block,null).filter(n=>!ids.includes(n.id) && n.visible !== false).map(n=>{const r=layeredPlacementEnvelope(n,before,rendered); return r.top+r.height;}));
+  const offset = delta ?? { xPx:0, yPx:Math.max(0, otherBottom + 12 - top) };
+  const required = Math.ceil(Math.max(...envelopes.map(r=>r.top+r.height+offset.yPx)) + 12);
+  if (required > 1600) return {ok:false, reason:"This placement needs more than the existing 1,600px Layered page limit. Move or resize content, or use Flow; the limit has not been changed."};
+  const heightPx = Math.max(before.heightPx, required);
+  const expanded = heightPx > before.heightPx ? resizeLayeredPlane(block, heightPx) : block;
+  let next = expanded;
+  for (const original of roots) {
+    const node = expanded.nodes.find(n=>n.id===original.id)!;
+    next = moveLayeredNode(next,node.id,{x:node.x+offset.xPx/before.widthPx,y:node.y+offset.yPx/heightPx});
+  }
+  return {ok:true,block:next,heightPx,extended:heightPx>before.heightPx};
 }

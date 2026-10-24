@@ -1,0 +1,18 @@
+✔ rendered Auto/Minimum/Fixed policies do not consume dormant placement height (0.698916ms)
+✔ insertion searches actual edges for a gap the coarse scan misses (0.175625ms)
+✔ Curated insertion height uses destination width, preserving the certified aspect (0.218292ms)
+✔ crowding is sibling-local and measured Text can occupy more than authored height (0.127875ms)
+✔ extension proposal preserves explicit minimum, unselected physical geometry, and native assembly (0.72775ms)
+✔ group and multi-selection preserve relative positions when extending (0.160834ms)
+✔ rotated and measured Text envelopes fit without saving the observation (0.091ms)
+✔ nested frames, locks, Flow and existing height limit reject expansion with reasons (0.097834ms)
+✔ page edge grows usable plane; minimum alone does not; Fit retains content geometry (0.133125ms)
+✔ page edge extension synchronizes persisted Group frames with rebased members (0.36275ms)
+ℹ tests 10
+ℹ suites 0
+ℹ pass 10
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 99.72925

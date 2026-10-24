@@ -1,4 +1,5 @@
 "use client";
+import { readRenderedCompositionFrames, revealCompositionSelection } from "@/components/fusion/creative-studio/use-layered-parent-size";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -145,7 +146,7 @@ import {
   unwrapCompositionContainer,
   wrapCompositionModules,
 } from "@/lib/fusion/card/composition-parent-authority";
-import { placeNodeInCompositionParent, type StudioPlacementFrame } from "@/lib/fusion/creative-studio/platform/layered-region";
+import { layeredSelectionOverlaps, placeNodeInCompositionParent, type StudioPlacementFrame } from "@/lib/fusion/creative-studio/platform/layered-region";
 import {
   createSelectionRef,
   type SelectionRef,
@@ -1473,7 +1474,7 @@ export function TapCardBuilder({
       const stagedNode = staged.config.rootComposition?.nodes.find((node) => node.id === addedId);
       if (!stagedNode || !addedId) return undefined;
       const destinationParentId = canonicalContainer?.id ?? null;
-      const destinationNode = placeNodeInCompositionParent(canonicalRoot, stagedNode, destinationParentId, frame);
+      const destinationNode = placeNodeInCompositionParent(canonicalRoot, stagedNode, destinationParentId, frame, readRenderedCompositionFrames(canonicalRoot));
       const result = insertCompositionModule(canonicalRoot, destinationNode, destinationParentId, insertionIndex);
       if (!result.ok) {
         setMessage(result.issues.map((issue) => issue.message).join(" "));
@@ -1483,6 +1484,8 @@ export function TapCardBuilder({
       setDirty(true);
       setSelectedId(null);
       setSelectedCompositionNodeIds([addedId]);
+      if (layeredSelectionOverlaps(result.block, [addedId])) setMessage("Added inside the selected parent. Space is crowded; use Make room below on the canvas, or move the selection.");
+      requestAnimationFrame(() => revealCompositionSelection(result.block.id, [addedId]));
       return addedId;
     }
     const location = kind === "map" ? (locations.find((item) => item.isDefault) || locations[0]) : null;
@@ -1520,7 +1523,7 @@ export function TapCardBuilder({
       treatment,
     );
     container.parentId = parentId;
-    const placedContainer = placeNodeInCompositionParent(root, container, parentId);
+    const placedContainer = placeNodeInCompositionParent(root, container, parentId, undefined, readRenderedCompositionFrames(root));
     const result = insertCompositionContainer(root, placedContainer, insertionIndex);
     if (!result.ok) {
       setMessage(result.issues.map((issue) => issue.message).join(" "));
@@ -1530,6 +1533,8 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(null);
     setSelectedCompositionNodeIds([container.id]);
+    if (layeredSelectionOverlaps(result.block, [container.id])) setMessage("Added inside the selected parent. Space is crowded; use Make room below on the canvas, or move the selection.");
+    requestAnimationFrame(() => revealCompositionSelection(result.block.id, [container.id]));
     return container.id;
   }
 
@@ -1740,7 +1745,7 @@ export function TapCardBuilder({
       },
       moduleComposition: compiled.composition.block,
     };
-    const placedOuterNode = placeNodeInCompositionParent(root, outerNode, parentId);
+    const placedOuterNode = placeNodeInCompositionParent(root, outerNode, parentId, undefined, readRenderedCompositionFrames(root));
     const inserted = insertCompositionModule(root, placedOuterNode, parentId, insertionIndex);
     if (!inserted.ok) {
       const message = inserted.issues.map((issue) => issue.message).join(" ");
@@ -1756,6 +1761,8 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(null);
     setSelectedCompositionNodeIds([outerNodeId]);
+    if (layeredSelectionOverlaps(inserted.block, [outerNodeId])) setMessage("Added inside the selected parent. Space is crowded; use Make room below on the canvas, or move the selection.");
+    requestAnimationFrame(() => revealCompositionSelection(inserted.block.id, [outerNodeId]));
     return { ok: true, selectedNodeId: outerNodeId };
   }
 
