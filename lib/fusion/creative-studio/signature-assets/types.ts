@@ -69,7 +69,7 @@ export type SignatureLiveContentGeometry = {
   /** Optical correction for font metrics inside the certified safe area. */
   opticalCenterOffsetEm?: number;
   presentationTypography?: Readonly<Record<"standalone" | "single-stack" | "twin-rail", SignatureTypographyRange>>;
-  textTreatment?: "raised-enamel";
+  textTreatment?: "raised-enamel" | "raised-metal";
 };
 
 export type SignatureCompactStackedGeometry = {
@@ -81,6 +81,8 @@ export type SignatureCompactStackedGeometry = {
 export type SignatureMaterialSurfaceGeometry = {
   inset?: SignatureSafeInsets;
   borderRadiusPercent?: number;
+  /** Source-space circular corner radius, scaled with the component width. */
+  cornerRadiusPx?: number;
   clipPolygon?: readonly SignatureNormalizedPoint[];
 };
 

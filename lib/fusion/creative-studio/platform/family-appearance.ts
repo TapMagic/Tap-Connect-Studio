@@ -29,7 +29,7 @@ export type FamilyAppearanceContract = {
   id: string;
   version: `${number}.${number}.${number}`;
   familyId: string;
-  roles: readonly { id: FamilyAppearanceRoleId; label: string; options: readonly FamilyAppearanceOption[] }[];
+  roles: readonly { id: FamilyAppearanceRoleId; label: string; options: readonly FamilyAppearanceOption[]; colorPicker?: { defaultColor: string; palette: readonly string[] } }[];
   defaults: Readonly<Record<string, string>>;
   certifiedCombinations: readonly { id: string; optionIds: readonly string[]; recommended?: boolean }[];
   accessibilityRules: readonly { id: string; description: string }[];

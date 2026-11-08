@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getPreviewSession } from "@/lib/fusion/creative-studio/preview/tokens";
 import { collectPreviewLocalMediaKeys } from "@/lib/fusion/creative-studio/preview/visual-resources";
-import { getCardDraft, isTapConnectCardDraft } from "@/lib/fusion/card/draft";
+import { getSavedPhonePreviewDraft } from "@/lib/fusion/creative-studio/preview/saved-draft";
 import {
   localMediaStorageEnabled,
   readLocalMediaObject,
@@ -55,9 +55,14 @@ export async function GET(
       logoUrl: session.record.logoUrl,
     })) referenced.add(key);
     if (session.record.mode === "follow") {
-      const latest = await getCardDraft(session.record.businessId);
-      if (isTapConnectCardDraft(latest.tapCardDraft)) {
-        for (const key of collectPreviewLocalMediaKeys(latest.tapCardDraft)) referenced.add(key);
+      // Follow the selected Experience, never an unrelated tenant main Card.
+      // A missing legacy Card must not strand otherwise valid signed assets.
+      const latest = await getSavedPhonePreviewDraft({
+        businessId: session.record.businessId,
+        documentId: session.record.documentId || "main-card",
+      }).catch(() => null);
+      if (latest) {
+        for (const key of collectPreviewLocalMediaKeys(latest.config)) referenced.add(key);
       }
     }
   } catch {

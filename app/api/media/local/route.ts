@@ -10,6 +10,8 @@ function mimeForKey(storageKey: string): string {
   if (extension === "png") return "image/png";
   if (extension === "webp") return "image/webp";
   if (extension === "gif") return "image/gif";
+  if (extension === "svg") return "image/svg+xml";
+  if (extension === "avif") return "image/avif";
   return "image/jpeg";
 }
 

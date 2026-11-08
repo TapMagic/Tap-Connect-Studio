@@ -1,0 +1,1005 @@
+{
+  "schema": "tapconnect.curated.parts-manifest@1.0.0",
+  "family": "bronze-standard",
+  "version": "1.0.0",
+  "scope": "One Standard round-plug presentation; one action per instance. Existing Studio Flow and arrangement remain authoritative.",
+  "certification": {
+    "geometry": "engineering-certified",
+    "visual": "candidate awaiting Product Owner visual acceptance",
+    "minimumRenderedWidthPx": 260,
+    "maximumLabelCharacters": {
+      "small": 22,
+      "medium": 16,
+      "large": 12
+    },
+    "optionalSublabelMaxLength": 28,
+    "phoneViewportPx": 390
+  },
+  "parts": [
+    {
+      "id": "master/bronze-standard/bs-001/v1",
+      "source": "/visual-parts/signature/bronze-standard/standard-frame.svg",
+      "sha256": "3efeaa51ec175334da796a3bbeb01d95f74c59a43dac481dbabf698ad3c7ac4d",
+      "width": 1200,
+      "height": 300,
+      "referenceOnly": false,
+      "contract": {
+        "familyId": "bronze-standard",
+        "familyVersion": "1.0.0",
+        "componentId": "BS-001",
+        "componentVersion": "1.0.0",
+        "role": "standard-action",
+        "side": "left",
+        "layoutCompatibility": [
+          "singleStackAssembly@1.0.0"
+        ],
+        "attachmentAnchors": [],
+        "sockets": [
+          {
+            "contractId": "semanticPlugSocket@1.0.0",
+            "ownership": "live-action",
+            "geometry": {
+              "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 0.25,
+                "height": 1
+              },
+              "safeArea": {
+                "x": 0.0625,
+                "y": 0.25,
+                "width": 0.125,
+                "height": 0.5
+              },
+              "center": {
+                "x": 0.125,
+                "y": 0.5
+              }
+            }
+          }
+        ],
+        "authority": "canonical",
+        "lifecycle": "production",
+        "runtimeEligibility": "runtime-eligible",
+        "certification": {
+          "state": "certified",
+          "geometryVersion": "1.0.0",
+          "evidence": [
+            "/visual-parts/signature/bronze-standard/recipe.json"
+          ]
+        },
+        "sourceSha256": "3efeaa51ec175334da796a3bbeb01d95f74c59a43dac481dbabf698ad3c7ac4d",
+        "finishId": "aged-bronze-mineral@1.0.0",
+        "entitlementKey": "signature.family.bronze_standard",
+        "accessibility": {
+          "furniture": "decorative",
+          "ariaHidden": true,
+          "interactive": false,
+          "liveContent": "socket-content",
+          "accessibleNameSource": "live-label"
+        },
+        "sourceGeometry": {
+          "widthPx": 1200,
+          "heightPx": 300
+        },
+        "materialSurfaceGeometry": {
+          "inset": {
+            "top": 0.135,
+            "right": 0.035,
+            "bottom": 0.135,
+            "left": 0.035
+          },
+          "cornerRadiusPx": 110
+        },
+        "liveContentGeometry": {
+          "safeArea": {
+            "x": 0.27,
+            "y": 0.19,
+            "width": 0.59,
+            "height": 0.62
+          },
+          "alignment": "center",
+          "allowedAlignments": [
+            "left",
+            "center",
+            "right"
+          ],
+          "fontSizePxAt390": [
+            14,
+            28
+          ],
+          "lineHeightPxAt390": [
+            16,
+            30
+          ],
+          "textSizePresetsPxAt390": {
+            "small": 17,
+            "medium": 23,
+            "large": 28
+          },
+          "lineHeightPresetsPxAt390": {
+            "small": 19,
+            "medium": 25,
+            "large": 30
+          },
+          "recommendedCharacterCounts": {
+            "small": 22,
+            "medium": 16,
+            "large": 12
+          },
+          "textTreatment": "raised-metal"
+        },
+        "provenance": {
+          "sourceAssetPath": "public/visual-parts/signature/bronze-standard/standard-frame.svg",
+          "authorityManifest": "/visual-parts/signature/bronze-standard/recipe.json",
+          "geometryAuthority": "/visual-parts/signature/bronze-standard/recipe.json",
+          "sourceMode": "styled-preserve",
+          "immutable": true
+        }
+      }
+    },
+    {
+      "id": "master/bronze-standard/bs-002/v1",
+      "source": "/visual-parts/signature/bronze-standard/round-plug.svg",
+      "sha256": "f910bc25f7262c63310a0e0c3c1e0b8517172fb9600b3f8e9e0806cf2c742152",
+      "width": 300,
+      "height": 300,
+      "referenceOnly": false,
+      "contract": {
+        "familyId": "bronze-standard",
+        "familyVersion": "1.0.0",
+        "componentId": "BS-002",
+        "componentVersion": "1.0.0",
+        "role": "semantic-plug",
+        "side": "none",
+        "layoutCompatibility": [
+          "singleStackAssembly@1.0.0"
+        ],
+        "attachmentAnchors": [],
+        "sockets": [
+          {
+            "contractId": "semanticPlugSocket@1.0.0",
+            "ownership": "component",
+            "geometry": {
+              "bounds": {
+                "x": 0,
+                "y": 0,
+                "width": 1,
+                "height": 1
+              },
+              "safeArea": {
+                "x": 0.25,
+                "y": 0.25,
+                "width": 0.5,
+                "height": 0.5
+              },
+              "center": {
+                "x": 0.5,
+                "y": 0.5
+              }
+            }
+          }
+        ],
+        "authority": "canonical",
+        "lifecycle": "production",
+        "runtimeEligibility": "runtime-eligible",
+        "certification": {
+          "state": "certified",
+          "geometryVersion": "1.0.0",
+          "evidence": [
+            "/visual-parts/signature/bronze-standard/recipe.json"
+          ]
+        },
+        "sourceSha256": "f910bc25f7262c63310a0e0c3c1e0b8517172fb9600b3f8e9e0806cf2c742152",
+        "finishId": "aged-bronze-mineral@1.0.0",
+        "entitlementKey": "signature.family.bronze_standard",
+        "accessibility": {
+          "furniture": "decorative",
+          "ariaHidden": true,
+          "interactive": false,
+          "liveContent": "none"
+        },
+        "sourceGeometry": {
+          "widthPx": 300,
+          "heightPx": 300
+        },
+        "materialSurfaceGeometry": {
+          "inset": {
+            "top": 0.14,
+            "right": 0.14,
+            "bottom": 0.14,
+            "left": 0.14
+          },
+          "cornerRadiusPx": 150
+        },
+        "provenance": {
+          "sourceAssetPath": "public/visual-parts/signature/bronze-standard/round-plug.svg",
+          "authorityManifest": "/visual-parts/signature/bronze-standard/recipe.json",
+          "geometryAuthority": "/visual-parts/signature/bronze-standard/recipe.json",
+          "sourceMode": "styled-preserve",
+          "immutable": true
+        }
+      }
+    },
+    {
+      "id": "reference/bronze-standard/preview/v1",
+      "source": "/visual-parts/signature/bronze-standard/preview.png",
+      "sha256": "6607fbfcf020bfd6f0d931f80a6cb9e3dcc548715a5e5cc1f0c9c638cfeecfeb",
+      "width": 380,
+      "height": 106,
+      "referenceOnly": true
+    }
+  ],
+  "recipe": {
+    "contractId": "singleStackAssembly@1.0.0",
+    "familyId": "bronze-standard",
+    "familyVersion": "1.0.0",
+    "recipeId": "bronze-standard-round",
+    "recipeVersion": "1.0.0",
+    "presentationMode": "standalone",
+    "presentation": {
+      "id": "bronze-standard-round",
+      "label": "Standard · Round Plug",
+      "description": "One native bronze and mineral-glass action.",
+      "previewAssetId": "reference/bronze-standard/preview/v1",
+      "density": {
+        "mode": "full",
+        "preferredFlowWidthPercent": 100,
+        "minimumFlowWidthPercent": 84,
+        "maximumFlowWidthPercent": 100,
+        "defaultFlowAlignment": "stretch",
+        "minimumTouchTargetPx": 60
+      },
+      "capabilities": {
+        "semanticIcon": {
+          "supported": true,
+          "defaultCanonicalIconId": "lucide:music-2",
+          "treatment": {
+            "mode": "embossed",
+            "safeInset": 0.27,
+            "scale": 1,
+            "materialId": "aged_brass"
+          }
+        },
+        "sublabel": {
+          "supported": true,
+          "maxLength": 28
+        },
+        "plugSide": {
+          "mode": "fixed",
+          "side": "left"
+        },
+        "plug": {
+          "supported": true,
+          "optional": false,
+          "defaultEnabled": true,
+          "visualMode": "composed",
+          "depthTreatment": "raised-contact",
+          "renderedSizePx": 300
+        },
+        "responsiveTypography": {
+          "density": "full",
+          "renderedWidthPx": {
+            "min": 260,
+            "max": 390
+          },
+          "title": {
+            "minPx": 17,
+            "maxPx": 28,
+            "defaultPx": 23,
+            "lineHeight": 1.05,
+            "trackingEm": 0.035
+          },
+          "sublabel": {
+            "minPx": 9,
+            "maxPx": 12,
+            "defaultPx": 11,
+            "lineHeight": 1.1,
+            "trackingEm": 0.1
+          },
+          "safeAreaPaddingPx": 0,
+          "affordanceReservePx": 0
+        }
+      },
+      "defaultActions": [
+        {
+          "label": "MUSIC",
+          "sublabel": "Stream Here",
+          "canonicalIconId": "lucide:music-2",
+          "semanticLabel": "Music",
+          "accessibilityLabel": "Music — Stream Here",
+          "destination": "https://example.com/music",
+          "actionType": "website",
+          "textAlign": "center"
+        }
+      ]
+    },
+    "fixedTop": [],
+    "actionUnit": {
+      "id": "standard-action",
+      "kind": "row",
+      "capacity": 1,
+      "masterStrategy": {
+        "mode": "single",
+        "master": {
+          "role": "standard-action",
+          "componentId": "BS-001",
+          "side": "left",
+          "ownsSockets": [
+            "semanticPlugSocket@1.0.0"
+          ]
+        }
+      },
+      "socketOwnership": "action-master"
+    },
+    "oddActionTreatment": {
+      "mode": "not-applicable"
+    },
+    "attachmentOrder": [
+      "standard-action"
+    ],
+    "certificationLimits": {
+      "minimumActions": 1,
+      "maximumLaunchCertifiedActions": 1,
+      "launchCertifiedActionCounts": [
+        1
+      ]
+    },
+    "geometry": {
+      "coordinateWidthPx": 1200,
+      "unitStridePx": 300,
+      "flowBox": {
+        "mode": "action-bar-owned",
+        "xPx": 0,
+        "widthPx": 1200,
+        "firstRowOffsetPx": 0,
+        "rowHeightPx": 300
+      },
+      "fixedTop": [],
+      "actionSlots": [
+        {
+          "role": "standard-action",
+          "side": "left",
+          "verticalReference": "unit-start",
+          "xPx": 0,
+          "yOffsetPx": 0,
+          "scale": 1,
+          "zOrder": 20
+        }
+      ],
+      "repeatComponents": []
+    }
+  },
+  "appearance": {
+    "contractId": "familyAppearance@1.0.0",
+    "id": "bronze-standard-appearance",
+    "version": "1.0.0",
+    "familyId": "bronze-standard",
+    "roles": [
+      {
+        "id": "text-bar-surface",
+        "label": "Button face · color and finish",
+        "options": [
+          {
+            "id": "text-bar-surface-midnight-glass",
+            "roleId": "text-bar-surface",
+            "label": "Midnight blue · Polished glass",
+            "preview": "material:mineral_midnight_glass",
+            "rendererValue": "mineral_midnight_glass",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_midnight_glass",
+              "target": "action-surface"
+            }
+          },
+          {
+            "id": "text-bar-surface-midnight-satin",
+            "roleId": "text-bar-surface",
+            "label": "Midnight blue · Satin mineral",
+            "preview": "material:mineral_midnight_satin",
+            "rendererValue": "mineral_midnight_satin",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_midnight_satin",
+              "target": "action-surface"
+            }
+          },
+          {
+            "id": "text-bar-surface-obsidian-glass",
+            "roleId": "text-bar-surface",
+            "label": "Obsidian · Polished glass",
+            "preview": "material:mineral_obsidian_glass",
+            "rendererValue": "mineral_obsidian_glass",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_obsidian_glass",
+              "target": "action-surface"
+            }
+          },
+          {
+            "id": "text-bar-surface-obsidian-satin",
+            "roleId": "text-bar-surface",
+            "label": "Obsidian · Satin mineral",
+            "preview": "material:mineral_obsidian_satin",
+            "rendererValue": "mineral_obsidian_satin",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_obsidian_satin",
+              "target": "action-surface"
+            }
+          },
+          {
+            "id": "text-bar-surface-petrol-glass",
+            "roleId": "text-bar-surface",
+            "label": "Petrol teal · Polished glass",
+            "preview": "material:mineral_petrol_glass",
+            "rendererValue": "mineral_petrol_glass",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_petrol_glass",
+              "target": "action-surface"
+            }
+          },
+          {
+            "id": "text-bar-surface-petrol-satin",
+            "roleId": "text-bar-surface",
+            "label": "Petrol teal · Satin mineral",
+            "preview": "material:mineral_petrol_satin",
+            "rendererValue": "mineral_petrol_satin",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_petrol_satin",
+              "target": "action-surface"
+            }
+          }
+        ],
+        "colorPicker": {
+          "defaultColor": "#091827",
+          "palette": [
+            "#091827",
+            "#13151b",
+            "#694620",
+            "#510b0c",
+            "#063b25",
+            "#3b0c58",
+            "#054653",
+            "#7d8791",
+            "#9b6816",
+            "#d3cbb9"
+          ]
+        }
+      },
+      {
+        "id": "plug-surface",
+        "label": "Round plug face · color and finish",
+        "options": [
+          {
+            "id": "plug-surface-midnight-glass",
+            "roleId": "plug-surface",
+            "label": "Midnight blue · Polished glass",
+            "preview": "material:mineral_midnight_glass",
+            "rendererValue": "mineral_midnight_glass",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_midnight_glass",
+              "target": "plug-surface"
+            }
+          },
+          {
+            "id": "plug-surface-midnight-satin",
+            "roleId": "plug-surface",
+            "label": "Midnight blue · Satin mineral",
+            "preview": "material:mineral_midnight_satin",
+            "rendererValue": "mineral_midnight_satin",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_midnight_satin",
+              "target": "plug-surface"
+            }
+          },
+          {
+            "id": "plug-surface-obsidian-glass",
+            "roleId": "plug-surface",
+            "label": "Obsidian · Polished glass",
+            "preview": "material:mineral_obsidian_glass",
+            "rendererValue": "mineral_obsidian_glass",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_obsidian_glass",
+              "target": "plug-surface"
+            }
+          },
+          {
+            "id": "plug-surface-obsidian-satin",
+            "roleId": "plug-surface",
+            "label": "Obsidian · Satin mineral",
+            "preview": "material:mineral_obsidian_satin",
+            "rendererValue": "mineral_obsidian_satin",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_obsidian_satin",
+              "target": "plug-surface"
+            }
+          },
+          {
+            "id": "plug-surface-petrol-glass",
+            "roleId": "plug-surface",
+            "label": "Petrol teal · Polished glass",
+            "preview": "material:mineral_petrol_glass",
+            "rendererValue": "mineral_petrol_glass",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_petrol_glass",
+              "target": "plug-surface"
+            }
+          },
+          {
+            "id": "plug-surface-petrol-satin",
+            "roleId": "plug-surface",
+            "label": "Petrol teal · Satin mineral",
+            "preview": "material:mineral_petrol_satin",
+            "rendererValue": "mineral_petrol_satin",
+            "certified": true,
+            "governance": "configurable",
+            "materialProjection": {
+              "materialId": "mineral_petrol_satin",
+              "target": "plug-surface"
+            }
+          }
+        ],
+        "colorPicker": {
+          "defaultColor": "#091827",
+          "palette": [
+            "#091827",
+            "#13151b",
+            "#694620",
+            "#510b0c",
+            "#063b25",
+            "#3b0c58",
+            "#054653",
+            "#7d8791",
+            "#9b6816",
+            "#d3cbb9"
+          ]
+        }
+      },
+      {
+        "id": "accent",
+        "label": "Raised emblem",
+        "options": [
+          {
+            "id": "bronze-emblem",
+            "roleId": "accent",
+            "label": "Dimensional aged brass",
+            "preview": "material:aged_brass",
+            "rendererValue": "aged_brass",
+            "certified": true,
+            "governance": "fixed",
+            "materialProjection": {
+              "materialId": "aged_brass",
+              "target": "icon-artwork"
+            }
+          }
+        ]
+      }
+    ],
+    "defaults": {
+      "text-bar-surface": "text-bar-surface-midnight-glass",
+      "plug-surface": "plug-surface-midnight-glass",
+      "accent": "bronze-emblem"
+    },
+    "certifiedCombinations": [
+      {
+        "id": "text-bar-surface-midnight-glass-plug-surface-midnight-glass",
+        "optionIds": [
+          "text-bar-surface-midnight-glass",
+          "plug-surface-midnight-glass",
+          "bronze-emblem"
+        ],
+        "recommended": true
+      },
+      {
+        "id": "text-bar-surface-midnight-glass-plug-surface-midnight-satin",
+        "optionIds": [
+          "text-bar-surface-midnight-glass",
+          "plug-surface-midnight-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-glass-plug-surface-obsidian-glass",
+        "optionIds": [
+          "text-bar-surface-midnight-glass",
+          "plug-surface-obsidian-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-glass-plug-surface-obsidian-satin",
+        "optionIds": [
+          "text-bar-surface-midnight-glass",
+          "plug-surface-obsidian-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-glass-plug-surface-petrol-glass",
+        "optionIds": [
+          "text-bar-surface-midnight-glass",
+          "plug-surface-petrol-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-glass-plug-surface-petrol-satin",
+        "optionIds": [
+          "text-bar-surface-midnight-glass",
+          "plug-surface-petrol-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-satin-plug-surface-midnight-glass",
+        "optionIds": [
+          "text-bar-surface-midnight-satin",
+          "plug-surface-midnight-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-satin-plug-surface-midnight-satin",
+        "optionIds": [
+          "text-bar-surface-midnight-satin",
+          "plug-surface-midnight-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-satin-plug-surface-obsidian-glass",
+        "optionIds": [
+          "text-bar-surface-midnight-satin",
+          "plug-surface-obsidian-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-satin-plug-surface-obsidian-satin",
+        "optionIds": [
+          "text-bar-surface-midnight-satin",
+          "plug-surface-obsidian-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-satin-plug-surface-petrol-glass",
+        "optionIds": [
+          "text-bar-surface-midnight-satin",
+          "plug-surface-petrol-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-midnight-satin-plug-surface-petrol-satin",
+        "optionIds": [
+          "text-bar-surface-midnight-satin",
+          "plug-surface-petrol-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-glass-plug-surface-midnight-glass",
+        "optionIds": [
+          "text-bar-surface-obsidian-glass",
+          "plug-surface-midnight-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-glass-plug-surface-midnight-satin",
+        "optionIds": [
+          "text-bar-surface-obsidian-glass",
+          "plug-surface-midnight-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-glass-plug-surface-obsidian-glass",
+        "optionIds": [
+          "text-bar-surface-obsidian-glass",
+          "plug-surface-obsidian-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-glass-plug-surface-obsidian-satin",
+        "optionIds": [
+          "text-bar-surface-obsidian-glass",
+          "plug-surface-obsidian-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-glass-plug-surface-petrol-glass",
+        "optionIds": [
+          "text-bar-surface-obsidian-glass",
+          "plug-surface-petrol-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-glass-plug-surface-petrol-satin",
+        "optionIds": [
+          "text-bar-surface-obsidian-glass",
+          "plug-surface-petrol-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-satin-plug-surface-midnight-glass",
+        "optionIds": [
+          "text-bar-surface-obsidian-satin",
+          "plug-surface-midnight-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-satin-plug-surface-midnight-satin",
+        "optionIds": [
+          "text-bar-surface-obsidian-satin",
+          "plug-surface-midnight-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-satin-plug-surface-obsidian-glass",
+        "optionIds": [
+          "text-bar-surface-obsidian-satin",
+          "plug-surface-obsidian-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-satin-plug-surface-obsidian-satin",
+        "optionIds": [
+          "text-bar-surface-obsidian-satin",
+          "plug-surface-obsidian-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-satin-plug-surface-petrol-glass",
+        "optionIds": [
+          "text-bar-surface-obsidian-satin",
+          "plug-surface-petrol-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-obsidian-satin-plug-surface-petrol-satin",
+        "optionIds": [
+          "text-bar-surface-obsidian-satin",
+          "plug-surface-petrol-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-glass-plug-surface-midnight-glass",
+        "optionIds": [
+          "text-bar-surface-petrol-glass",
+          "plug-surface-midnight-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-glass-plug-surface-midnight-satin",
+        "optionIds": [
+          "text-bar-surface-petrol-glass",
+          "plug-surface-midnight-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-glass-plug-surface-obsidian-glass",
+        "optionIds": [
+          "text-bar-surface-petrol-glass",
+          "plug-surface-obsidian-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-glass-plug-surface-obsidian-satin",
+        "optionIds": [
+          "text-bar-surface-petrol-glass",
+          "plug-surface-obsidian-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-glass-plug-surface-petrol-glass",
+        "optionIds": [
+          "text-bar-surface-petrol-glass",
+          "plug-surface-petrol-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-glass-plug-surface-petrol-satin",
+        "optionIds": [
+          "text-bar-surface-petrol-glass",
+          "plug-surface-petrol-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-satin-plug-surface-midnight-glass",
+        "optionIds": [
+          "text-bar-surface-petrol-satin",
+          "plug-surface-midnight-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-satin-plug-surface-midnight-satin",
+        "optionIds": [
+          "text-bar-surface-petrol-satin",
+          "plug-surface-midnight-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-satin-plug-surface-obsidian-glass",
+        "optionIds": [
+          "text-bar-surface-petrol-satin",
+          "plug-surface-obsidian-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-satin-plug-surface-obsidian-satin",
+        "optionIds": [
+          "text-bar-surface-petrol-satin",
+          "plug-surface-obsidian-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-satin-plug-surface-petrol-glass",
+        "optionIds": [
+          "text-bar-surface-petrol-satin",
+          "plug-surface-petrol-glass",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      },
+      {
+        "id": "text-bar-surface-petrol-satin-plug-surface-petrol-satin",
+        "optionIds": [
+          "text-bar-surface-petrol-satin",
+          "plug-surface-petrol-satin",
+          "bronze-emblem"
+        ],
+        "recommended": false
+      }
+    ],
+    "accessibilityRules": [
+      {
+        "id": "legible-copy",
+        "description": "Warm metallic live titles and ivory sublabels remain legible across the dark face palette."
+      }
+    ],
+    "migration": {
+      "unknownOption": "preserve-read-only",
+      "invalidExplicitChoice": "block-with-reason"
+    }
+  },
+  "text": {
+    "contractId": "familyTextTreatment@1.0.0",
+    "id": "bronze-standard-text",
+    "version": "1.0.0",
+    "familyId": "bronze-standard",
+    "options": [
+      {
+        "id": "raised",
+        "label": "Raised bronze",
+        "certified": true,
+        "rendererRecipe": "raised-metal",
+        "compatibleRoleIds": [
+          "text",
+          "subtext"
+        ],
+        "compatibleSizeIds": [
+          "small",
+          "medium",
+          "large"
+        ]
+      }
+    ],
+    "deterministicAuto": {
+      "enabled": false,
+      "inputs": [
+        "family",
+        "appearance",
+        "text-role",
+        "text-size",
+        "renderer-version"
+      ]
+    },
+    "migration": {
+      "unsupportedTreatment": "preserve-read-only"
+    }
+  },
+  "materials": {
+    "faces": [
+      "mineral_midnight_glass",
+      "mineral_midnight_satin",
+      "mineral_obsidian_glass",
+      "mineral_obsidian_satin",
+      "mineral_petrol_glass",
+      "mineral_petrol_satin"
+    ],
+    "emblem": "aged_brass",
+    "hardware": "Native SVG multi-band aged-bronze gradients, patina, bevel rims, rivets and recessed decorative cue; fixed finish.",
+    "colorPolicy": "Body and plug accept independent six-digit HEX pigments, reference-palette swatches, or native color picker. Pigment changes preserve Material highlights, grain, shadow and finish. Light pigments use dark-bronze live copy. Color swatches do not assert additional metal/enamel material certification."
+  },
+  "identity": {
+    "action": "Canonical action id, type, destination, accessible name, tracking name remain independent of appearance.",
+    "overrides": "An explicit action material option wins for the same role on its action and attached plug; unrelated actions retain assembly defaults. Inherit restores assembly pigment and material.",
+    "count": "Incompatible layout/presentation conversions are blocked with an explanation. No silent action removal or insertion."
+  },
+  "rendering": {
+    "authority": "SignatureMasterBridge / canonical composition renderer",
+    "parts": "Native SVG decorative furniture only; Material surfaces, semantic icon mask, title, sublabel and action target remain live.",
+    "preview": "preview.png is a reference-only capture from native runtime and is never used as the functional button."
+  },
+  "exclusions": [
+    "Hero presentations",
+    "new stacked recipe families",
+    "new renderer",
+    "new layout or action engine",
+    "deployment"
+  ]
+}

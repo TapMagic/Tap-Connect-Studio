@@ -107,7 +107,7 @@ export function MaterialSurfaceSwatch({
       data-material-texture={surface.textureToken || undefined}
       style={{
         background: surface.background,
-        backgroundSize: surface.backgroundSize,
+        ...(surface.backgroundSize ? { backgroundSize: surface.backgroundSize } : {}),
         boxShadow: surface.boxShadow,
         borderWidth: surface.borderWidth,
         borderStyle: surface.borderStyle as CSSProperties["borderStyle"],

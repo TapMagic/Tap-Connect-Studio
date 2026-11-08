@@ -126,3 +126,13 @@
   font-size:0;
   filter:drop-shadow(1px 1px 0 rgba(0,0,0,.9));
 }
+
+/* Governed raised-metal copy and emblems use the same Material response as previews. */
+.signature-master__embossed-icon{position:absolute;inset:0;filter:drop-shadow(0 -.45px 0 #fff2c4) drop-shadow(.6px 1px 0 #784215) drop-shadow(1px 2px 0 #432208) drop-shadow(1px 3px 1px #000c)}
+.signature-master__embossed-face{position:absolute;inset:0}
+.signature-master[data-signature-text-treatment="raised-metal"] .signature-master__title{color:#edcd85;background:linear-gradient(176deg,#fff6cf 0%,#f0d397 32%,#b87b32 51%,#f5d99e 70%,#b58948);background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;font-weight:700;font-size:var(--signature-title-size,inherit);line-height:var(--signature-title-line-height,inherit);letter-spacing:var(--signature-title-tracking,.04em);text-shadow:none;filter:drop-shadow(0 -.3px 0 #ffebad88) drop-shadow(.5px 1px 0 #60390d) drop-shadow(1px 2px 1px #000)}
+.signature-master[data-signature-text-treatment="raised-metal"] .signature-master__description{color:#f4e6c7;font-size:var(--signature-sublabel-size,10px);line-height:var(--signature-sublabel-line-height,1.1);letter-spacing:var(--signature-sublabel-tracking,.1em);margin-top:4px}
+.signature-master__action:focus-visible{outline:2px solid #e5c482;outline-offset:4px;border-radius:999px}
+
+.signature-master[data-signature-text-treatment="raised-metal"][data-signature-copy-contrast="dark"] .signature-master__title{background-image:linear-gradient(176deg,#68481c,#2e1909 51%,#785325);filter:drop-shadow(0 1px 0 #ffebad88)}
+.signature-master[data-signature-text-treatment="raised-metal"][data-signature-copy-contrast="dark"] .signature-master__description{color:#23180e;text-shadow:0 1px 0 #ffffff66}

@@ -16,6 +16,29 @@ const adapted=(layout:"single-stack"|"twin-rail",count:number,overrides:Partial<
   return {plan:resolved.plan,composition:result.composition};
 };
 
+test("an action appearance override follows its attached plug without recoloring sibling actions",()=>{
+  const input=request("single-stack",2);
+  input.actions=[{...input.actions[0],appearanceOptionIds:{"plug-surface":"teal"}},input.actions[1]];
+  const resolved=resolveSignatureAssembly(input);
+  const result=adaptSignatureAssemblyResult(resolved,{appearance:{
+    contractId:"fixture",contractVersion:"1.0.0",semanticOptionIds:{"plug-surface":"midnight"},
+    semanticRendererValues:{"plug-surface":"mineral_midnight_glass"},semanticColors:{"plug-surface":"#510b0c"},
+    semanticMaterialRoles:{"plug-surface":{materialId:"mineral_midnight_glass",target:"plug-surface"}},
+    optionsByRole:{"plug-surface":{teal:{rendererValue:"mineral_petrol_glass",materialProjection:{materialId:"mineral_petrol_glass",target:"plug-surface"}}}},
+  }});
+  assert.equal(result.ok,true);
+  if(!result.ok)return;
+  for(const actionId of ["action-1","action-2"]){
+    const attached=result.composition.block.nodes.filter((node)=>node.props.signatureActionId===actionId);
+    assert.equal(attached.length,2,"one action and its plug");
+    for(const node of attached){
+      const roles=node.props.signatureMaterialRoles as Record<string,{materialId:string}>;
+      assert.equal(roles["plug-surface"].materialId,actionId==="action-1"?"mineral_petrol_glass":"mineral_midnight_glass");
+      assert.deepEqual(node.props.signatureMaterialColors,actionId==="action-1"?{}:{"plug-surface":"#510b0c"});
+    }
+  }
+});
+
 test("adapter is deterministic and copies resolver geometry without recalculation",()=>{
   const resolved=resolveSignatureAssembly(request("single-stack",4));
   const first=adaptSignatureAssemblyResult(resolved);

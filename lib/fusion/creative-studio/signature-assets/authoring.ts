@@ -38,6 +38,7 @@ export type SignatureAssemblyAuthoringState = {
     contractId: string;
     contractVersion: string;
     semanticOptionIds: Readonly<Record<string, string>>;
+    semanticColors?: Readonly<Record<string, string>>;
   };
   textTreatment?: {
     contractId: string;
@@ -301,19 +302,15 @@ export function setSignatureActionCount(state: SignatureAssemblyAuthoringState, 
 export function setSignatureLayout(state: SignatureAssemblyAuthoringState, layoutMode: SignatureAssemblyLayoutMode, idFactory?: () => string) {
   const entry = familyEntry(state.input.familyId);
   const layout = entry?.layouts.find((candidate) => candidate.layoutMode === layoutMode);
-  if (!layout) return state;
-  const desiredCount = layout.launchCertifiedActionCounts.includes(state.input.requestedActionCount)
-    ? state.input.requestedActionCount
-    : layout.launchCertifiedActionCounts[0];
-  return withActionCount({ ...state, input: { ...state.input, layoutMode, recipeId: layout.recipeId, recipeVersion: layout.recipeVersion, presentationId: layout.presentationId } }, desiredCount, idFactory);
+  if (!layout?.launchCertifiedActionCounts.includes(state.input.requestedActionCount)) return state;
+  return withActionCount({ ...state, input: { ...state.input, layoutMode, recipeId: layout.recipeId, recipeVersion: layout.recipeVersion, presentationId: layout.presentationId } }, state.input.requestedActionCount, idFactory);
 }
 
 export function setSignaturePresentation(state: SignatureAssemblyAuthoringState, presentationId: string, idFactory?: () => string) {
   const entry=familyEntry(state.input.familyId);
   const layout=entry?.layouts.find((candidate)=>candidate.presentationId===presentationId);
-  if (!layout) return state;
-  const desiredCount=layout.launchCertifiedActionCounts.includes(state.input.requestedActionCount)?state.input.requestedActionCount:layout.launchCertifiedActionCounts[0];
-  return withActionCount({ ...state, input: { ...state.input, presentationId:layout.presentationId,layoutMode:layout.layoutMode,recipeId:layout.recipeId,recipeVersion:layout.recipeVersion } },desiredCount,idFactory);
+  if (!layout?.launchCertifiedActionCounts.includes(state.input.requestedActionCount)) return state;
+  return withActionCount({ ...state, input: { ...state.input, presentationId:layout.presentationId,layoutMode:layout.layoutMode,recipeId:layout.recipeId,recipeVersion:layout.recipeVersion } },state.input.requestedActionCount,idFactory);
 }
 
 export function reorderSignatureAction(state: SignatureAssemblyAuthoringState, from: number, to: number) {
@@ -372,7 +369,18 @@ export function setSignatureAppearanceOption(
   const semanticOptionIds = { ...contract.defaults, ...state.appearance.semanticOptionIds, [roleId]: optionId };
   const validation = validateFamilyAppearanceSelection(contract, contract.roles.map((candidate) => semanticOptionIds[candidate.id]));
   if (!validation.ok || state.appearance.semanticOptionIds[roleId] === optionId) return state;
-  return { ...state, appearance: { contractId: contract.id, contractVersion: contract.version, semanticOptionIds } };
+  const semanticColors = { ...state.appearance.semanticColors };
+  return { ...state, appearance: { contractId: contract.id, contractVersion: contract.version, semanticOptionIds, semanticColors } };
+}
+
+export function setSignatureAppearanceColor(state: SignatureAssemblyAuthoringState, roleId: string, color?: string) {
+  const role = familyAppearanceContract(state.input.familyId)?.roles.find((candidate) => candidate.id === roleId);
+  if (!role?.colorPicker || !state.appearance || (color !== undefined && !/^#[0-9a-f]{6}$/i.test(color))) return state;
+  const semanticColors = { ...state.appearance.semanticColors };
+  if (color === undefined) delete semanticColors[roleId];
+  else semanticColors[roleId] = color.toLowerCase();
+  if (JSON.stringify(semanticColors) === JSON.stringify(state.appearance.semanticColors ?? {})) return state;
+  return { ...state, appearance: { ...state.appearance, semanticColors } };
 }
 
 export function setSignatureComponentVariant(state: SignatureAssemblyAuthoringState, role: string, componentId: string) {
@@ -404,6 +412,10 @@ export function compileSignatureAuthoringState(
       contractId: appearanceContract.id,
       contractVersion: appearanceContract.version,
       semanticOptionIds,
+      semanticColors: Object.fromEntries(appearanceContract.roles.flatMap((role) => {
+        const color = normalizedState.appearance?.semanticColors?.[role.id];
+        return role.colorPicker && color && /^#[0-9a-f]{6}$/i.test(color) ? [[role.id, color]] : [];
+      })),
       semanticRendererValues: Object.fromEntries(appearanceContract.roles.map((role) => {
         const optionId = semanticOptionIds[role.id];
         const option = role.options.find((candidate) => candidate.id === optionId && candidate.certified);
@@ -519,6 +531,13 @@ export function applySignatureAssemblyMutation(
 ): { ok: true; block: CreativeCompositionBlock; selectedActionId?: string } | { ok: false; message: string } {
   const current = readSignatureAssemblyAuthoringState(block);
   if (!current) return { ok: false, message: "This Curated assembly no longer has valid canonical inputs." };
+  if (mutation.type === "set-layout" || mutation.type === "set-presentation") {
+    const target = familyEntry(current.input.familyId)?.layouts.find((layout) => mutation.type === "set-layout"
+      ? layout.layoutMode === mutation.layoutMode : layout.presentationId === mutation.presentationId);
+    if (target && !target.launchCertifiedActionCounts.includes(current.input.requestedActionCount)) {
+      return { ok: false, message: `This assembly contains ${current.input.requestedActionCount} actions. The requested presentation supports ${target.launchCertifiedActionCounts.join(", ")}. Your actions were kept. Choose a compatible presentation or explicitly change the action count first.` };
+    }
+  }
   if (mutation.type === "update-action") {
     const action = current.input.actions.find((candidate) => candidate.id === mutation.actionId);
     const size = mutation.patch.textSize ?? action?.textSize ?? "medium";
@@ -560,6 +579,8 @@ export function applySignatureAssemblyMutation(
           ? mutation.slotId === "identity" ? setSignatureIdentityContent(current, mutation.resource) : current
           : mutation.type === "set-appearance-option"
             ? setSignatureAppearanceOption(current, mutation.roleId, mutation.optionId)
+            : mutation.type === "set-appearance-color"
+              ? setSignatureAppearanceColor(current, mutation.roleId, mutation.color)
             : mutation.type === "set-presentation"
               ? setSignaturePresentation(current, mutation.presentationId)
               : setSignatureLayout(current, mutation.layoutMode);

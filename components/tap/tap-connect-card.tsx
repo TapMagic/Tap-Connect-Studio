@@ -61,7 +61,7 @@ import { recompileSignatureAssemblyTree } from "@/lib/fusion/creative-studio/sig
 import { isCardBlockLinkEligible } from "@/lib/fusion/card/block-model";
 import { fitRootCanvasToContent, rootCanvasAutoHeight, setRootPageHeightPreservingBounds } from "@/lib/fusion/card/composer-model";
 import { autoScrollForPointer } from "@/lib/fusion/creative-studio/autoscroll";
-import { explicitCardMinimum, setExplicitCardMinimum } from "@/lib/fusion/creative-studio/platform/card-extent";
+import { extendCardPage, explicitCardMinimum, setExplicitCardMinimum, resolveCardExtent, fitCardToContent } from "@/lib/fusion/creative-studio/platform/card-extent";
 import { hasCompositionParentAuthority } from "@/lib/fusion/card/composition-parent-authority";
 import { readCardEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
 import { internalPageDestination } from "@/lib/fusion/card/experience-pages";
@@ -88,6 +88,7 @@ export type TapConnectCardProps = {
   /** Composition node selection (Edit) when a Creative Composition section is active */
   selectedCompositionNodeIds?: string[];
   compositionSelectionMode?: "single" | "multiple";
+  compositionFrameDiagnostics?: boolean;
   onCompositionNodeSelect?: (sectionId: string | null, nodeIds: string[]) => void;
   onCompositionChange?: (
     sectionId: string | null,
@@ -171,6 +172,7 @@ export function TapConnectCard({
   onSectionSelect,
   selectedCompositionNodeIds = [],
   compositionSelectionMode = "single",
+  compositionFrameDiagnostics = false,
   onCompositionNodeSelect,
   onCompositionChange,
   onComposerDrop,
@@ -206,7 +208,10 @@ export function TapConnectCard({
   const [claimSectionId, setClaimSectionId] = useState<string | null>(null);
   const [sectionDropTargetId, setSectionDropTargetId] = useState<string | null>(null);
   const [sectionDragId, setSectionDragId] = useState<string | null>(null);
+  const [requiredRootHeight, setRequiredRootHeight] = useState(0);
+  const [rootPlanePreview, setRootPlanePreview] = useState(false);
   const [rootHeightDraft, setRootHeightDraft] = useState<number | null>(null);
+  const cancelHeightEditRef = useRef(false);
   const rootResizeRef = useRef<{ startY: number; startHeight: number; nextHeight: number; scale: number; moved: boolean } | null>(null);
   const suppressRootResizeClickRef = useRef(false);
 
@@ -238,7 +243,7 @@ export function TapConnectCard({
     ? `linear-gradient(${rootOverlay}${rootOverlayAlpha}, ${rootOverlay}${rootOverlayAlpha}), url("${rootImage.replaceAll('"', "%22")}")`
     : shellBackground;
 
-  function commitRootCanvasHeight(heightPx: number, label: string) {
+  function commitRootCanvasHeight(heightPx: number, label: string, extendPlane = false) {
     const root = parseRuntimeComposition(config.rootComposition) || {
       version: 1 as const,
       id: "card-root-composition",
@@ -248,8 +253,13 @@ export function TapConnectCard({
       mobileFallback: "scale" as const,
       safeAreaPaddingPx: config.rootCanvasPaddingPx ?? 12,
     };
+    if (hasCompositionParentAuthority(root)) {
+      const required = Math.max(requiredRootHeight, root.compositionMode?.mode === "layered" ? root.compositionMode.layeredHeightPx + (root.safeAreaPaddingPx ?? 12) * 2 : 0);
+      if (!extendPlane && heightPx < required) setToast(`Minimum saved. Visible content and the coordinate plane still require ${required}px. Use Fit to content to trim unused plane space.`);
+    }
+    if (extendPlane && root.compositionMode?.mode === "layered" && heightPx > 1600 + (root.safeAreaPaddingPx ?? 12)*2) setToast("Layered page limit: 1,600px. Use Flow for a longer scrolling composition; existing artwork is preserved.");
     onCompositionChange?.(null, hasCompositionParentAuthority(root)
-      ? setExplicitCardMinimum(root, heightPx)
+      ? extendPlane ? extendCardPage(root, heightPx) : setExplicitCardMinimum(root, heightPx)
       : setRootPageHeightPreservingBounds(root, heightPx, config.rootCanvasMinHeightPx ?? 520), label);
   }
 
@@ -259,6 +269,17 @@ export function TapConnectCard({
   const governedCardMinimum = cardExtentComposition && hasCardExtentAuthority
     ? explicitCardMinimum(cardExtentComposition, config.rootCanvasMinHeightPx ?? 420)
     : undefined;
+
+  const displayedMinimum = governedCardMinimum ?? rootCanvasAutoHeight(config);
+  const actualRootHeight = cardExtentComposition && hasCardExtentAuthority
+    ? resolveCardExtent(cardExtentComposition, Math.max(requiredRootHeight, (cardExtentComposition.compositionMode?.mode === "layered" ? cardExtentComposition.compositionMode.layeredHeightPx + (cardExtentComposition.safeAreaPaddingPx ?? 12) * 2 : 0))).actualHeightPx
+    : rootCanvasAutoHeight(config);
+  function fitPage() {
+    if (cardExtentComposition && hasCardExtentAuthority) {
+      if (!requiredRootHeight) { setToast("Content is still measuring. Try Fit again when it is visible."); return; }
+      onCompositionChange?.(null, fitCardToContent(cardExtentComposition, requiredRootHeight, 240), "Fit Card page to content");
+    } else commitRootCanvasHeight(fitRootCanvasToContent(config), "Fit Card page to content");
+  }
 
   const style = {
     "--tcc-accent": config.accentColor,
@@ -1196,6 +1217,7 @@ export function TapConnectCard({
               selectedSectionId === section.id ? selectedCompositionNodeIds : []
             }
             selectionMode={compositionSelectionMode}
+            frameDiagnostics={compositionFrameDiagnostics}
             forceMobileFallback={compositionForceMobile}
             editorZoom={editorZoom}
             previewMotion={previewMotion}
@@ -1204,8 +1226,8 @@ export function TapConnectCard({
               onSectionSelect?.(section.id);
               onCompositionNodeSelect?.(section.id, ids);
             }}
-            onChangeBlock={(next, label) =>
-              onCompositionChange?.(section.id, next, label)
+            onChangeBlock={(next, label, phase) =>
+              onCompositionChange?.(section.id, next, label, phase)
             }
             mediaUploadReady={mediaUploadReady}
             onNotify={onNotify}
@@ -1386,6 +1408,7 @@ export function TapConnectCard({
           editMode={editSelects}
           selectedNodeIds={selectedSectionId === section.id ? selectedCompositionNodeIds : []}
           selectionMode={compositionSelectionMode}
+          frameDiagnostics={compositionFrameDiagnostics}
           forceMobileFallback={compositionForceMobile}
           editorZoom={editorZoom}
           previewMotion={previewMotion}
@@ -1401,7 +1424,7 @@ export function TapConnectCard({
             onSectionSelect?.(section.id);
             onCompositionNodeSelect?.(section.id, ids);
           }}
-          onChangeBlock={(next, label) => onCompositionChange?.(section.id, next, label)}
+          onChangeBlock={(next, label, phase) => onCompositionChange?.(section.id, next, label, phase)}
               mediaUploadReady={mediaUploadReady}
               onNotify={onNotify}
           onEditNodeText={(nodeId, value, phase) => {
@@ -1815,6 +1838,7 @@ export function TapConnectCard({
                 // Live drag preview must use the same page-height authority as commit —
                 // growing minHeight alone stretches %-based children and looks like artwork scale.
                 if (rootHeightDraft == null) return root;
+                if (hasCompositionParentAuthority(root)) return rootPlanePreview ? extendCardPage(root, rootHeightDraft) : root;
                 return setRootPageHeightPreservingBounds(
                   root,
                   rootHeightDraft,
@@ -1824,11 +1848,13 @@ export function TapConnectCard({
               editMode={editSelects}
               selectedNodeIds={!selectedSectionId ? selectedCompositionNodeIds : []}
               selectionMode={compositionSelectionMode}
+              frameDiagnostics={compositionFrameDiagnostics}
               forceMobileFallback={compositionForceMobile}
               editorZoom={editorZoom}
               previewMotion={previewMotion}
               reducedMotionSimulation={reducedMotionSimulation}
               layoutMode="free"
+              onContentExtentChange={setRequiredRootHeight}
               minHeightPx={sections.length > 0 ? rootCanvasAutoHeight(config) : rootHeightDraft ?? (hasCompositionParentAuthority(parseRuntimeComposition(config.rootComposition)) ? explicitCardMinimum(parseRuntimeComposition(config.rootComposition)!, config.rootCanvasMinHeightPx ?? 420) : rootCanvasAutoHeight(config))}
               className="!rounded-none !border-0"
               suppressBackground={externalSurfaceOwnsBackground}
@@ -1836,7 +1862,7 @@ export function TapConnectCard({
                 onSectionSelect?.(null);
                 onCompositionNodeSelect?.(null, ids);
               }}
-              onChangeBlock={(next, label) => onCompositionChange?.(null, next, label)}
+              onChangeBlock={(next, label, phase) => onCompositionChange?.(null, next, label, phase)}
               mediaUploadReady={mediaUploadReady}
               onNotify={onNotify}
               onEditNodeText={(nodeId, value, phase) => {
@@ -1857,10 +1883,10 @@ export function TapConnectCard({
               }}
             />
             {editSelects ? (
-              <div className={cn("relative z-40 flex h-9 items-center justify-center gap-2 border-t border-dashed border-[#b8ff2c]/45 bg-[#07100a]/90 text-[10px] text-white/70", sections.length > 0 && "hidden")} data-testid="card-page-extension-controls">
+              <div className={cn("relative z-40 flex min-h-11 flex-wrap items-center justify-center gap-2 border-t border-dashed border-[#b8ff2c]/45 bg-[#07100a]/90 text-[10px] text-white/70", sections.length > 0 && "hidden")} data-testid="card-page-extension-controls">
                 <button
                   type="button"
-                  className="flex h-7 min-w-32 touch-none items-center justify-center rounded-md border border-[#b8ff2c]/55 bg-[#b8ff2c]/10 px-3 font-semibold text-[#dfff9a] cursor-ns-resize"
+                  className="flex min-h-11 min-w-32 touch-none items-center justify-center rounded-md border border-[#b8ff2c]/55 bg-[#b8ff2c]/10 px-3 font-semibold text-[#dfff9a] cursor-ns-resize"
                   aria-label="Drag to extend Card page"
                   data-testid="card-page-extension-handle"
                   onClick={() => {
@@ -1869,26 +1895,26 @@ export function TapConnectCard({
                       return;
                     }
                     rootResizeRef.current = null;
-                    const next = Math.min(2400, rootCanvasAutoHeight(config) + 240);
-                    commitRootCanvasHeight(next, "Extended Card page");
+                    const next = Math.min(hasCardExtentAuthority ? 4000 : 2400, Math.max(displayedMinimum, actualRootHeight) + 240);
+                    commitRootCanvasHeight(next, "Extended Card page", true);
                   }}
                   onKeyDown={(event) => {
                     if (event.key === "Escape" && rootResizeRef.current) {
                       event.preventDefault();
                       event.stopPropagation();
                       rootResizeRef.current = null;
-                      setRootHeightDraft(null);
+                      setRootHeightDraft(null); setRootPlanePreview(false);
                       try { event.currentTarget.releasePointerCapture(Number(event.currentTarget.dataset.pointerId)); } catch { /* capture may already be released */ }
                       return;
                     }
                     if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
                     event.preventDefault();
                     const delta = (event.shiftKey ? 96 : 24) * (event.key === "ArrowDown" ? 1 : -1);
-                    commitRootCanvasHeight(Math.max(240, Math.min(2400, rootCanvasAutoHeight(config) + delta)), event.key === "ArrowDown" ? "Extended Card page" : "Shortened Card page");
+                    commitRootCanvasHeight(Math.max(240, Math.min(hasCardExtentAuthority ? 4000 : 2400, Math.max(displayedMinimum, actualRootHeight) + delta)), event.key === "ArrowDown" ? "Extended Card page" : "Shortened Card page", true);
                   }}
                   onPointerDown={(event) => {
                     const root = event.currentTarget.closest<HTMLElement>('[data-card-root="true"]');
-                    const renderedHeight = rootHeightDraft ?? rootCanvasAutoHeight(config);
+                    const renderedHeight = rootHeightDraft ?? Math.max(displayedMinimum, actualRootHeight);
                     const scale = root ? Math.max(0.01, root.getBoundingClientRect().height / Math.max(1, root.offsetHeight)) : 1;
                     rootResizeRef.current = { startY: event.clientY, startHeight: renderedHeight, nextHeight: renderedHeight, scale, moved: false };
                     event.currentTarget.dataset.pointerId = String(event.pointerId);
@@ -1900,10 +1926,11 @@ export function TapConnectCard({
                     if (!drag || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
                     const delta = (event.clientY - drag.startY) / drag.scale;
                     if (Math.abs(delta) < 2) return;
-                    const raw = Math.max(240, Math.min(2400, drag.startHeight + delta));
+                    const raw = Math.max(240, Math.min(hasCardExtentAuthority ? 4000 : 2400, drag.startHeight + delta));
                     const next = Math.round(event.altKey ? raw : raw / 8) * (event.altKey ? 1 : 8);
                     drag.nextHeight = next;
                     drag.moved = true;
+                    setRootPlanePreview(true);
                     setRootHeightDraft(next);
                   }}
                   onPointerUp={(event) => {
@@ -1913,38 +1940,39 @@ export function TapConnectCard({
                     rootResizeRef.current = null;
                     if (!drag.moved) return;
                     suppressRootResizeClickRef.current = true;
-                    setRootHeightDraft(null);
-                    commitRootCanvasHeight(drag.nextHeight, drag.nextHeight >= drag.startHeight ? "Extended Card page" : "Shortened Card page");
+                    setRootHeightDraft(null); setRootPlanePreview(false);
+                    commitRootCanvasHeight(drag.nextHeight, drag.nextHeight >= drag.startHeight ? "Extended Card page" : "Shortened Card page", true);
                   }}
                   onPointerCancel={() => {
                     rootResizeRef.current = null;
-                    setRootHeightDraft(null);
+                    setRootHeightDraft(null); setRootPlanePreview(false);
                   }}
                 >
-                  ↕ Drag page edge · click +240
+                  ↕ Extend page · drag or click +240
                 </button>
-                <span className="min-w-12 tabular-nums" data-testid="card-page-height">{rootHeightDraft ?? rootCanvasAutoHeight(config)}px</span>
-                <label className="sr-only" htmlFor="card-page-exact-height">Exact page height</label>
+                <span className="min-w-12 tabular-nums" data-testid="card-page-height">{hasCardExtentAuthority ? "Minimum " : ""}{rootHeightDraft ?? displayedMinimum}px</span>
+                <label className="sr-only" htmlFor="card-page-exact-height">{hasCardExtentAuthority ? "Minimum page height" : "Exact page height"}</label>
                 <input
                   id="card-page-exact-height"
-                  aria-label="Exact Card page height"
+                  aria-label={hasCardExtentAuthority ? "Minimum Card page height" : "Exact Card page height"}
                   type="number"
                   min={240}
-                  max={2400}
+                  max={hasCardExtentAuthority ? 4000 : 2400}
                   step={8}
-                  value={rootHeightDraft ?? rootCanvasAutoHeight(config)}
-                  onChange={(event) => commitRootCanvasHeight(Number(event.target.value), "Changed exact Card page height")}
-                  className="h-7 w-16 rounded border border-white/15 bg-transparent px-1 tabular-nums"
+                  value={rootHeightDraft ?? displayedMinimum}
+                  onChange={(event) => setRootHeightDraft(Number(event.target.value))} onBlur={() => { if (cancelHeightEditRef.current) { cancelHeightEditRef.current = false; return; } if (rootHeightDraft != null) { commitRootCanvasHeight(rootHeightDraft, "Changed Card page minimum"); setRootHeightDraft(null); setRootPlanePreview(false); } }} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); if (event.key === "Escape") { cancelHeightEditRef.current = true; setRootHeightDraft(null); setRootPlanePreview(false); event.currentTarget.blur(); } }}
+                  className="h-11 w-20 rounded border border-white/15 bg-transparent px-1 tabular-nums"
                   data-testid="card-page-exact-height"
                 />
                 <button
                   type="button"
-                  className="h-7 rounded-md border border-white/15 px-2 hover:border-[#b8ff2c]/55"
-                  onClick={() => commitRootCanvasHeight(fitRootCanvasToContent(config), "Fit Card page to content")}
+                  className="min-h-11 rounded-md border border-white/15 px-2 hover:border-[#b8ff2c]/55"
+                  onClick={fitPage}
                   data-testid="card-page-fit-content"
                 >
                   Fit to content
                 </button>
+                {hasCardExtentAuthority ? <span className="basis-full px-2 pb-2 text-center text-[10px]" data-testid="card-effective-extent">Required content {requiredRootHeight}px · Effective root {actualRootHeight}px{cardExtentComposition?.compositionMode?.mode === "layered" ? ` · Layered plane ${cardExtentComposition.compositionMode.layeredHeightPx}px` : ""}. Minimum preserves blank space. Extend page adds usable room; Fit trims unused space. Layered limit: 1,600px.</span> : null}
               </div>
             ) : null}
           </div>
@@ -1974,7 +2002,7 @@ export function TapConnectCard({
                 if (!drag || !event.currentTarget.hasPointerCapture(event.pointerId)) return;
                 const delta = event.clientY - drag.startY;
                 if (Math.abs(delta) < 2) return;
-                drag.nextHeight = Math.round(Math.max(240, Math.min(2400, drag.startHeight + delta)) / 8) * 8;
+                drag.nextHeight = Math.round(Math.max(240, Math.min(hasCardExtentAuthority ? 4000 : 2400, drag.startHeight + delta)) / 8) * 8;
                 drag.moved = true;
                 setRootHeightDraft(drag.nextHeight);
               }}
@@ -1983,15 +2011,15 @@ export function TapConnectCard({
                 if (!drag) return;
                 if (event.currentTarget.hasPointerCapture(event.pointerId)) event.currentTarget.releasePointerCapture(event.pointerId);
                 rootResizeRef.current = null;
-                setRootHeightDraft(null);
+                setRootHeightDraft(null); setRootPlanePreview(false);
                 if (drag.moved) commitRootCanvasHeight(drag.nextHeight, "Changed intentional Card minimum height");
               }}
-              onPointerCancel={() => { rootResizeRef.current = null; setRootHeightDraft(null); }}
+              onPointerCancel={() => { rootResizeRef.current = null; setRootHeightDraft(null); setRootPlanePreview(false); }}
             >
               ↕ Card end
             </button>
             <span className="min-w-20 tabular-nums" data-testid="card-page-height">Minimum {rootHeightDraft ?? governedCardMinimum ?? rootCanvasAutoHeight(config)}px</span>
-            <button type="button" className="h-8 rounded-lg border border-white/15 px-3 hover:border-[#b8ff2c]/55" onClick={() => commitRootCanvasHeight(hasCardExtentAuthority ? 240 : fitRootCanvasToContent(config), "Fit Card to content")} data-testid="card-page-fit-content">Fit to content</button>
+            <button type="button" className="h-8 rounded-lg border border-white/15 px-3 hover:border-[#b8ff2c]/55" onClick={fitPage} data-testid="card-page-fit-content">Fit to content</button>
           </div>
         ) : null}
       </div>

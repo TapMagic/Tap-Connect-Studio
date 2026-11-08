@@ -23,12 +23,13 @@ function versionedSource(source: string, sha256: string): string {
 function rectStyle(rect: { x:number;y:number;width:number;height:number } | undefined): CSSProperties | undefined {
   return rect ? {left:`${rect.x*100}%`,top:`${rect.y*100}%`,width:`${rect.width*100}%`,height:`${rect.height*100}%`,right:"auto",bottom:"auto"} : undefined;
 }
-function materialGeometryStyle(geometry: SignatureMaterialSurfaceGeometry | undefined): CSSProperties | undefined {
+function materialGeometryStyle(geometry: SignatureMaterialSurfaceGeometry | undefined, sourceWidth = 1): CSSProperties | undefined {
   if (!geometry) return undefined;
   const inset=geometry.inset;
   return {
     ...(inset?{top:`${inset.top*100}%`,right:`${inset.right*100}%`,bottom:`${inset.bottom*100}%`,left:`${inset.left*100}%`}:{}),
     ...(geometry.borderRadiusPercent!=null?{borderRadius:`${geometry.borderRadiusPercent}%`}:{}),
+    ...(geometry.cornerRadiusPx!=null?{borderRadius:`${geometry.cornerRadiusPx/sourceWidth*100}cqw`,overflow:"hidden"}:{}),
     ...(geometry.clipPolygon?.length?{clipPath:`polygon(${geometry.clipPolygon.map((point)=>`${point.x*100}% ${point.y*100}%`).join(",")})`}:{}),
   };
 }
@@ -74,11 +75,11 @@ function liveTypeStyle(asset: ReturnType<typeof getSignatureAsset>, props: Recor
     boxSizing:"border-box",
     paddingInlineStart:responsive?`${responsive.safeAreaPaddingPx}px`:undefined,
     paddingInlineEnd:responsive?`${responsive.safeAreaPaddingPx+responsive.affordanceReservePx}px`:undefined,
-    fontSize:titleSize??(requestedPx?`${requestedPx}px`:fontPreset?`${fontPreset}px`:font?`clamp(${font[0]}px, 3.85cqw, ${font[1]}px)`:undefined),
+    fontSize:requestedPx?`${requestedPx}px`:titleSize??(fontPreset?`${fontPreset}px`:font?`clamp(${font[0]}px, 3.85cqw, ${font[1]}px)`:undefined),
     lineHeight:responsive?responsive.title.lineHeight:(requestedPx?`${Math.round(requestedPx*1.22)}px`:linePreset?`${linePreset}px`:line?`clamp(${line[0]}px, 4.9cqw, ${line[1]}px)`:undefined),
     transform:geometry.opticalCenterOffsetEm?`translateY(${geometry.opticalCenterOffsetEm}em)`:undefined,
     ...(responsive?{
-      "--signature-title-size":titleSize,
+      "--signature-title-size":requestedPx ? `${requestedPx}px` : titleSize,
       "--signature-title-line-height":String(responsive.title.lineHeight),
       "--signature-title-tracking":`${responsive.title.trackingEm??0}em`,
       "--signature-sublabel-size":sublabelSize,
@@ -93,6 +94,19 @@ function signatureActionHref(props: Record<string, unknown>) {
   if (/^tel:/i.test(destination)) return buildButtonHref({...props,actionType:"call"});
   if (/^mailto:/i.test(destination)) return buildButtonHref({...props,actionType:"email",href:destination.replace(/^mailto:/i,"")});
   return buildButtonHref(props);
+}
+
+/** Canonical semantic SVG as a mask over the shared Material surface, never a baked emblem. */
+function EmbossedSemanticIcon({ svg, materialId }: { svg: string; materialId?: string }) {
+  const surface = curatedMaterialSurface(materialId);
+  const mask = `url("data:image/svg+xml,${encodeURIComponent(svg.replaceAll("currentColor", "white"))}")`;
+  return <span className="signature-master__embossed-icon">
+    <span className="signature-master__embossed-face" style={{
+      ...curatedMaterialSurfaceStyle(materialId),
+      maskImage: mask, WebkitMaskImage: mask, maskSize: "contain", WebkitMaskSize: "contain",
+      maskRepeat: "no-repeat", WebkitMaskRepeat: "no-repeat", maskPosition: "center", WebkitMaskPosition: "center",
+    }}>{surface ? <MaterialSurfaceLayers surface={surface} testIdPrefix="signature-emblem-material" /> : null}</span>
+  </span>;
 }
 
 export function SignatureMasterBridge({ props, editMode = false }: { props: Record<string, unknown>; editMode?: boolean }) {
@@ -132,9 +146,12 @@ export function SignatureMasterBridge({ props, editMode = false }: { props: Reco
   const semanticSource=text(props.signatureRole)==="semantic-plug"?asset.semanticSourceVariants?.[text(props.signatureSemanticIcon)]:undefined;
   const sourceSha256=semanticSource?.sourceSha256??materialSource?.sourceSha256??asset.sourceSha256;
   const source=versionedSource(semanticSource?.sourceAsset??materialSource?.sourceAsset??asset.liveShellAsset??asset.sourceAsset,sourceSha256);
-  const surface=curatedMaterialSurface(surfaceRole?.materialId);
-  const surfaceStyle=curatedMaterialSurfaceStyle(surfaceRole?.materialId);
-  const surfaceGeometryStyle=materialGeometryStyle(normalized?.materialSurfaceGeometry);
+  const colorRoles = props.signatureMaterialColors && typeof props.signatureMaterialColors === "object" ? props.signatureMaterialColors as Record<string,string> : {};
+  const surfaceRoleId = Object.keys(projectedRoles).find((role) => projectedRoles[role].target === surfaceTarget);
+  const surfaceColor = surfaceRoleId ? colorRoles[surfaceRoleId] : undefined;
+  const surface=curatedMaterialSurface(surfaceRole?.materialId,surfaceColor);
+  const surfaceStyle=curatedMaterialSurfaceStyle(surfaceRole?.materialId,surfaceColor);
+  const surfaceGeometryStyle=materialGeometryStyle(normalized?.materialSurfaceGeometry,asset.width);
   const iconSvg=text(props.iconSvg);
   const iconTreatment=props.signatureIconTreatment&&typeof props.signatureIconTreatment==="object"?props.signatureIconTreatment as {mode?:string;safeInset?:number;scale?:number;offsetY?:number;color?:string;materialId?:string}:undefined;
   const iconMaterial=Object.values(projectedRoles).find((role)=>role.target==="icon-artwork")?.materialId??iconTreatment?.materialId;
@@ -154,13 +171,13 @@ export function SignatureMasterBridge({ props, editMode = false }: { props: Reco
   const masteredChassis=loveAndTheftCertifiedPick||(text(props.signatureRole)==="semantic-plug"&&plugVisualMode==="mastered-chassis"&&Boolean(semanticSource));
   const responsiveTypography=props.signatureResponsiveTypography&&typeof props.signatureResponsiveTypography==="object"?props.signatureResponsiveTypography as ResponsiveTypographyPolicy:undefined;
   const base = (
-    <span className="signature-master" data-signature-renderer-version={SIGNATURE_MASTER_RENDERER_VERSION} data-signature-asset-id={asset.id} data-signature-source-sha={sourceSha256} data-signature-family={asset.familyId} data-signature-family-version={text(props.signatureFamilyVersion)} data-signature-recipe-id={text(props.signatureRecipeId)} data-signature-recipe-version={text(props.signatureRecipeVersion)} data-signature-assembly-instance-id={text(props.signatureAssemblyInstanceId)} data-signature-part-instance-id={text(props.signaturePartInstanceId)} data-signature-parent-part-instance-id={text(props.signatureParentPartInstanceId)} data-signature-action-id={text(props.signatureActionId)} data-signature-kind={asset.assetKind} data-signature-role={asset.role} data-signature-state={state} data-signature-tint-mode={asset.tintMode} data-signature-energy-mode={asset.energyMode} data-signature-component-id={normalized?.componentId} data-signature-component-version={normalized?.componentVersion} data-signature-classification={text(props.signatureClassification)} data-signature-certification={text(props.signatureLayoutCertificationStatus)} data-signature-presentation={text(props.signaturePresentationMode,"standalone")} data-signature-presentation-id={text(props.signaturePresentationId)} data-signature-type-density={responsiveTypography?.density} data-signature-depth={text(props.signatureDepthTreatment)} data-signature-plug-visual-mode={plugVisualMode} data-signature-appearance-contract={text(props.signatureAppearanceContractId)} data-signature-appearance-options={appearanceOptions?JSON.stringify(appearanceOptions):undefined} data-signature-appearance-renderer-values={appearanceRendererValues?JSON.stringify(appearanceRendererValues):undefined} data-signature-material-source={materialSource?.sourceAsset} data-signature-semantic-icon={semanticSource?text(props.signatureSemanticIcon):undefined} data-signature-semantic-source={semanticSource?.sourceAsset} data-signature-background-reflection={String(reflectionIntensity)} data-signature-plug-face={appearanceOptions?.["plug-face"]} data-signature-plug-base={appearanceOptions?.["plug-base"]} data-signature-text-treatment={text(props.signatureTextTreatmentRecipe,normalized?.liveContentGeometry?.textTreatment)} data-signature-mirrored={props.signatureMirrored===true?"true":"false"} data-signature-overlap={String(typeof props.signatureCompensatingOverlapPx==="number"?props.signatureCompensatingOverlapPx:0)} aria-hidden={hasAccessibleLiveContent?undefined:true}>
+    <span className="signature-master" data-signature-renderer-version={SIGNATURE_MASTER_RENDERER_VERSION} data-signature-asset-id={asset.id} data-signature-source-sha={sourceSha256} data-signature-family={asset.familyId} data-signature-family-version={text(props.signatureFamilyVersion)} data-signature-recipe-id={text(props.signatureRecipeId)} data-signature-recipe-version={text(props.signatureRecipeVersion)} data-signature-assembly-instance-id={text(props.signatureAssemblyInstanceId)} data-signature-part-instance-id={text(props.signaturePartInstanceId)} data-signature-parent-part-instance-id={text(props.signatureParentPartInstanceId)} data-signature-action-id={text(props.signatureActionId)} data-signature-kind={asset.assetKind} data-signature-role={asset.role} data-signature-state={state} data-signature-tint-mode={asset.tintMode} data-signature-energy-mode={asset.energyMode} data-signature-component-id={normalized?.componentId} data-signature-component-version={normalized?.componentVersion} data-signature-classification={text(props.signatureClassification)} data-signature-certification={text(props.signatureLayoutCertificationStatus)} data-signature-presentation={text(props.signaturePresentationMode,"standalone")} data-signature-presentation-id={text(props.signaturePresentationId)} data-signature-type-density={responsiveTypography?.density} data-signature-copy-contrast={surfaceColor && /^#[0-9a-f]{6}$/i.test(surfaceColor) && [1,3,5].reduce((sum,index,i)=>sum+parseInt(surfaceColor.slice(index,index+2),16)*[.2126,.7152,.0722][i],0)>135?"dark":undefined} data-signature-depth={text(props.signatureDepthTreatment)} data-signature-plug-visual-mode={plugVisualMode} data-signature-appearance-contract={text(props.signatureAppearanceContractId)} data-signature-appearance-options={appearanceOptions?JSON.stringify(appearanceOptions):undefined} data-signature-appearance-renderer-values={appearanceRendererValues?JSON.stringify(appearanceRendererValues):undefined} data-signature-material-source={materialSource?.sourceAsset} data-signature-semantic-icon={semanticSource?text(props.signatureSemanticIcon):undefined} data-signature-semantic-source={semanticSource?.sourceAsset} data-signature-background-reflection={String(reflectionIntensity)} data-signature-plug-face={appearanceOptions?.["plug-face"]} data-signature-plug-base={appearanceOptions?.["plug-base"]} data-signature-text-treatment={text(props.signatureTextTreatmentRecipe,normalized?.liveContentGeometry?.textTreatment)} data-signature-mirrored={props.signatureMirrored===true?"true":"false"} data-signature-overlap={String(typeof props.signatureCompensatingOverlapPx==="number"?props.signatureCompensatingOverlapPx:0)} aria-hidden={hasAccessibleLiveContent?undefined:true}>
       {!masteredChassis&&text(props.signatureDepthTreatment) === "raised-contact" ? <span className="signature-master__depth" data-signature-depth-renderer="portable-layer-v1" aria-hidden /> : null}
-      {!masteredChassis&&(surfaceStyle||materialSource) ? <span className={`signature-master__material-surface${materialSource?" signature-master__material-surface--source-master":""}`} style={materialSource?surfaceGeometryStyle:{...surfaceStyle,...surfaceGeometryStyle}} data-signature-material-id={surfaceRole?.materialId} data-signature-material-target={surfaceTarget} data-signature-material-shape={normalized?.materialSurfaceGeometry?.clipPolygon?.length?"polygon":normalized?.materialSurfaceGeometry?.borderRadiusPercent!=null?"rounded":"rect"} data-material-fill-authority={materialSource?"production-master":surface?.fillAuthority} data-material-stop-count={materialSource?undefined:surface?String(surface.gradientStopCount):undefined} data-material-highlight={materialSource?"source-master":surface?.highlight?"true":"false"} data-surface-texture={materialSource?"production-master":surface?.textureToken??undefined} aria-hidden>{!materialSource&&surface?<MaterialSurfaceLayers surface={surface} testIdPrefix="signature-material" />:null}</span> : null}
+      {!masteredChassis&&(surfaceStyle||materialSource) ? <span className={`signature-master__material-surface${materialSource?" signature-master__material-surface--source-master":""}`} style={materialSource?surfaceGeometryStyle:{...surfaceStyle,...surfaceGeometryStyle}} data-signature-material-color={surfaceColor} data-signature-material-id={surfaceRole?.materialId} data-signature-material-target={surfaceTarget} data-signature-material-shape={normalized?.materialSurfaceGeometry?.clipPolygon?.length?"polygon":(normalized?.materialSurfaceGeometry?.borderRadiusPercent!=null||normalized?.materialSurfaceGeometry?.cornerRadiusPx!=null)?"rounded":"rect"} data-material-fill-authority={materialSource?"production-master":surface?.fillAuthority} data-material-stop-count={materialSource?undefined:surface?String(surface.gradientStopCount):undefined} data-material-highlight={materialSource?"source-master":surface?.highlight?"true":"false"} data-surface-texture={materialSource?"production-master":surface?.textureToken??undefined} aria-hidden>{!materialSource&&surface?<MaterialSurfaceLayers surface={surface} testIdPrefix="signature-material" />:null}</span> : null}
       {/* Immutable source artwork: containment only; never cropped, filtered, recolored, or reconstructed. */}
       <img className="signature-master__asset" src={source} width={asset.width} height={asset.height} alt="" aria-hidden draggable={false} />
       {!masteredChassis&&reflectionSource&&reflectionIntensity>0?<img className="signature-master__environment-reflection" src={reflectionSource} alt="" aria-hidden draggable={false} style={{opacity:reflectionIntensity/100}} />:null}
-      {!masteredChassis&&asset.familyId!=="everencore-love-and-theft"&&approvedSemanticIcon&&iconSvg && text(props.signatureRole)==="semantic-plug" && !semanticSource ? <span className="signature-master__semantic-icon" style={{inset:`${iconInset}%`,color:iconTreatment?.color??iconRecipe?.artworkFill??iconRecipe?.textColor??"currentColor",transform:`translateY(${iconTreatment?.offsetY??0}%) scale(${iconTreatment?.scale??1})`}} data-signature-icon={text(props.signatureSemanticIcon)} data-signature-icon-render-mode={text(props.iconRenderMode,"stroke")} data-signature-icon-treatment={iconTreatment?.mode} data-signature-icon-material={iconMaterial} aria-hidden dangerouslySetInnerHTML={{__html:iconSvg}} /> : null}
+      {!masteredChassis&&asset.familyId!=="everencore-love-and-theft"&&approvedSemanticIcon&&iconSvg && text(props.signatureRole)==="semantic-plug" && !semanticSource ? <span className="signature-master__semantic-icon" style={{inset:`${iconInset}%`,color:iconTreatment?.color??iconRecipe?.artworkFill??iconRecipe?.textColor??"currentColor",transform:`translateY(${iconTreatment?.offsetY??0}%) scale(${iconTreatment?.scale??1})`}} data-signature-icon={text(props.signatureSemanticIcon)} data-signature-icon-render-mode={text(props.iconRenderMode,"stroke")} data-signature-icon-treatment={iconTreatment?.mode} data-signature-icon-material={iconMaterial} aria-hidden>{iconTreatment?.mode === "embossed" ? <EmbossedSemanticIcon svg={iconSvg} materialId={iconMaterial} /> : <span style={{display:"contents"}} dangerouslySetInnerHTML={{__html:iconSvg}} />}</span> : null}
       {asset.assetKind === "action" ? <>
         {asset.socketContract.identity ? <span className="signature-master__identity">{text(props.iconMediaUrl, text(props.logoUrl, text(props.imageUrl))) ? <img src={text(props.iconMediaUrl, text(props.logoUrl, text(props.imageUrl)))} alt="" aria-hidden draggable={false} /> : null}</span> : null}
         {asset.socketContract.eyebrow || asset.socketContract.title || asset.socketContract.description ? <span className="signature-master__copy" style={liveTypeStyle(asset,props)}>
@@ -179,6 +196,7 @@ export function SignatureMasterBridge({ props, editMode = false }: { props: Reco
   );
   if (asset.assetKind !== "action") return base;
   const href = signatureActionHref(props);
+  const internalPageId = props.actionType === "internal_page" ? text(props.internalPageId, text(props.destinationRef)).trim() || undefined : undefined;
   const disabled = props.disabled === true;
-  return <a className="signature-master__action" href={editMode || disabled ? undefined : href} aria-disabled={disabled || !href} aria-label={text(props.accessibleLabel,text(props.label,asset.label))} onClick={(event)=>{ if(editMode || disabled || !href) event.preventDefault(); }}>{base}</a>;
+  return <a className="signature-master__action" data-internal-page-id={editMode || disabled ? undefined : internalPageId} href={editMode || disabled ? undefined : internalPageId ? "#" : href} aria-disabled={disabled || (!href && !internalPageId)} aria-label={text(props.accessibleLabel,text(props.label,asset.label))} onClick={(event)=>{ if(editMode || disabled || (!href && !internalPageId)) event.preventDefault(); }}>{base}</a>;
 }

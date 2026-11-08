@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import { isTapConnectCardDraft } from "@/lib/fusion/card/draft";
 import { normalizeExperienceType, prepareIndependentExperienceDraft } from "@/lib/fusion/card/experience-library";
+import { createBlankExperienceDocument } from "@/lib/fusion/card/experience-pages";
 import { appendAuditEvent } from "@/lib/control/audit";
 
 export const runtime = "nodejs";
@@ -13,6 +14,7 @@ const createSchema = z.object({
   name: z.string().trim().min(1).max(120),
   clientName: z.string().trim().min(1).max(120),
   experienceType: z.string().optional(),
+  startMode: z.enum(["blank", "clone"]).optional(),
   sourceId: z.string().trim().min(1).optional(),
 });
 
@@ -48,9 +50,11 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const { business, user } = await requireBusinessCapability("card.draft.edit");
   const input = createSchema.parse(await request.json());
+  // Existing sourceId clients keep cloning; a new request defaults to Blank.
+  const startMode = input.startMode ?? (input.sourceId ? "clone" : "blank");
   let source: unknown = null;
   let sourceDocumentId: string | null = null;
-  if (input.sourceId && input.sourceId !== "main-card") {
+  if (startMode === "clone" && input.sourceId && input.sourceId !== "main-card") {
     const sourceDocument = await prisma.cardCreativeDocument.findFirst({
       where: { id: input.sourceId, businessId: business.id },
       select: { id: true, draft: true },
@@ -58,17 +62,19 @@ export async function POST(request: Request) {
     if (!sourceDocument) return NextResponse.json({ error: "Source Experience not found." }, { status: 404 });
     source = sourceDocument.draft;
     sourceDocumentId = sourceDocument.id;
-  } else {
+  } else if (startMode === "clone") {
     const brandKit = await prisma.brandKit.findUnique({
       where: { businessId: business.id },
       select: { tapCardDraft: true, tapCard: true },
     });
     source = brandKit?.tapCardDraft ?? brandKit?.tapCard;
   }
-  if (!isTapConnectCardDraft(source)) {
+  if (startMode === "clone" && !isTapConnectCardDraft(source)) {
     return NextResponse.json({ error: "Create or save a valid Card before starting an Experience." }, { status: 409 });
   }
-  const draft = prepareIndependentExperienceDraft(source, input.name);
+  const draft = startMode === "blank"
+    ? createBlankExperienceDocument(input.name)
+    : prepareIndependentExperienceDraft(source as Parameters<typeof prepareIndependentExperienceDraft>[0], input.name);
   const document = await prisma.cardCreativeDocument.create({
     data: {
       businessId: business.id,

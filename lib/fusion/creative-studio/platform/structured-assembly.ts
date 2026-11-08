@@ -101,6 +101,7 @@ export type StudioStructuredAssemblyDescriptor = {
       optionLabel: string;
       preview: string;
       governed: boolean;
+      colorPicker?: { value: string; defaultColor: string; palette: readonly string[]; custom: boolean };
       options: readonly {
         id: string;
         label: string;
@@ -132,6 +133,7 @@ type StudioCuratedAssemblyMutationInput =
   | { type: "set-action-count"; count: number }
   | { type: "set-resource-slot"; slotId: string; resource?: import("./semantic-resource-slot").StudioSemanticResource }
   | { type: "set-appearance-option"; roleId: string; optionId: string }
+  | { type: "set-appearance-color"; roleId: string; color?: string }
   | { type: "set-layout"; layoutMode: "standalone" | "single-stack" | "twin-rail" }
   | { type: "set-presentation"; presentationId: string };
 

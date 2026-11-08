@@ -120,6 +120,26 @@ export function PublicQrCredentialPanel({
     return QRCode.toDataURL(url, { margin: 1, width: 480, errorCorrectionLevel: "M", color: { dark: "#070a10", light: "#ffffff" } });
   }
 
+  // Reopening Preview retrieves the persisted credential; rendering its QR
+  // must never rotate it or create a new public identity.
+  useEffect(() => {
+    let active = true;
+    setQrDataUrl(null);
+    setQrVisible(false);
+    if (selected) {
+      void QRCode.toDataURL(selected.accessUrl, { margin: 1, width: 480, errorCorrectionLevel: "M", color: { dark: "#070a10", light: "#ffffff" } })
+        .then((dataUrl) => {
+          if (!active) return;
+          setQrDataUrl(dataUrl);
+          setQrVisible(true);
+        })
+        .catch(() => {
+          if (active) setError("The QR image could not be rendered.");
+        });
+    }
+    return () => { active = false; };
+  }, [selected]);
+
   async function showQr() {
     if (!selected) return;
     setError(null);

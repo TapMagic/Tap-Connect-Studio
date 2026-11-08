@@ -11,6 +11,7 @@ import { CANONICAL_SEMANTIC_ICON_ASSETS } from "../icon-asset";
 import { reconcileActionIntent } from "@/lib/fusion/card/action-intent-presentation";
 import { createIdentityVisualResourceFitContract, createStudioSemanticResourceSlot, type StudioSemanticResource } from "../platform/semantic-resource-slot";
 import { compatibleFamilyAppearanceOptions } from "../platform/family-appearance";
+import { getMaterialRecipe } from "../material-engine";
 import {
   EVERENCORE_LOVE_AND_THEFT_FAMILY_ID,
   EVERENCORE_LOVE_AND_THEFT_PICK_INSERT_ASSETS,
@@ -171,14 +172,18 @@ export function selectedStructuredAssembly(
       roles: (appearanceContract?.roles??[]).map((role) => {
         const options = compatibleFamilyAppearanceOptions(appearanceContract!, selectedAppearance, role.id);
         const selected = options.find((option) => option.id === selectedAppearance[role.id]) ?? options[0];
+        const customColor = state.appearance?.semanticColors?.[role.id];
+        const materialColor = getMaterialRecipe(selected?.materialProjection?.materialId)?.fill ?? role.colorPicker?.defaultColor;
+        const preview = (source: string) => customColor && source.startsWith("material:") ? `${source}|${customColor}` : source;
         return {
           id: role.id,
           label: role.label,
           value: selectedAppearance[role.id],
           optionLabel: selected?.label ?? "Preserved legacy treatment",
-          preview: selected?.preview ?? "#111",
+          preview: preview(selected?.preview ?? "#111"),
           governed: options.filter((option) => option.availability === "enabled").length <= 1,
-          options,
+          colorPicker: role.colorPicker ? { ...role.colorPicker, value: customColor ?? materialColor!, custom: Boolean(customColor) } : undefined,
+          options: options.map((option) => ({ ...option, preview: preview(option.preview) })),
         };
       }),
       textTreatmentLabel: textContract?.options.find((option) => option.certified)?.label,

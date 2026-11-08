@@ -9,9 +9,16 @@ import { sanitizeSvg } from "@/lib/fusion/creative-studio/icon-asset";
 import { cn } from "@/lib/utils";
 import { StudioTransientOverlay } from "./studio-transient-overlay";
 import { studioCatalogBrowserEvent } from "@/lib/fusion/creative-studio/platform/catalog-browser";
+import { curatedMaterialSurface } from "@/lib/fusion/creative-studio/signature-assets/curated-material-projection";
+import { MaterialSurfaceSwatch } from "@/components/fusion/creative-studio/material-surface-layers";
 
 function VisualPreview({ source, className }: { source?: string; className: string }) {
   if (!source) return null;
+  if (source.startsWith("material:")) {
+    const [materialId, color] = source.slice("material:".length).split("|");
+    const surface = curatedMaterialSurface(materialId, color);
+    return surface ? <MaterialSurfaceSwatch surface={surface} className={`${className} rounded-lg`} /> : null;
+  }
   const svg=source.trim().startsWith("<svg")?sanitizeSvg(source):null;
   return svg
     ? <span className={`${className} [&>svg]:h-full [&>svg]:w-full`} aria-hidden dangerouslySetInnerHTML={{ __html: svg }} />

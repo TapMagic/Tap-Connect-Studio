@@ -1,4 +1,6 @@
 "use client";
+import { insertIntroduction, type IntroductionLook } from "@/lib/fusion/creative-studio/reconstitution/native-starting-compositions";
+import { readRenderedCompositionFrames, revealCompositionSelection } from "@/components/fusion/creative-studio/use-layered-parent-size";
 
 import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
@@ -145,7 +147,7 @@ import {
   unwrapCompositionContainer,
   wrapCompositionModules,
 } from "@/lib/fusion/card/composition-parent-authority";
-import { placeNodeInCompositionParent, type StudioPlacementFrame } from "@/lib/fusion/creative-studio/platform/layered-region";
+import { layeredSelectionOverlaps, placeNodeInCompositionParent, type StudioPlacementFrame } from "@/lib/fusion/creative-studio/platform/layered-region";
 import {
   createSelectionRef,
   type SelectionRef,
@@ -285,6 +287,7 @@ type Props = {
   interactionMode?: "edit" | "preview";
   compositionForceMobile?: boolean;
   compositionSelectionMode?: "single" | "multiple";
+  compositionFrameDiagnostics?: boolean;
   previewMotion?: boolean;
   reducedMotionSimulation?: boolean;
   motionRevision?: number;
@@ -461,6 +464,7 @@ export function TapCardBuilder({
   interactionMode = "edit",
   compositionForceMobile = false,
   compositionSelectionMode = "single",
+  compositionFrameDiagnostics = false,
   previewMotion = false,
   reducedMotionSimulation = false,
   motionRevision = 0,
@@ -1471,7 +1475,7 @@ export function TapCardBuilder({
       const stagedNode = staged.config.rootComposition?.nodes.find((node) => node.id === addedId);
       if (!stagedNode || !addedId) return undefined;
       const destinationParentId = canonicalContainer?.id ?? null;
-      const destinationNode = placeNodeInCompositionParent(canonicalRoot, stagedNode, destinationParentId, frame);
+      const destinationNode = placeNodeInCompositionParent(canonicalRoot, stagedNode, destinationParentId, frame, readRenderedCompositionFrames(canonicalRoot));
       const result = insertCompositionModule(canonicalRoot, destinationNode, destinationParentId, insertionIndex);
       if (!result.ok) {
         setMessage(result.issues.map((issue) => issue.message).join(" "));
@@ -1481,6 +1485,8 @@ export function TapCardBuilder({
       setDirty(true);
       setSelectedId(null);
       setSelectedCompositionNodeIds([addedId]);
+      if (layeredSelectionOverlaps(result.block, [addedId])) setMessage("Added inside the selected parent. Space is crowded; use Make room below on the canvas, or move the selection.");
+      requestAnimationFrame(() => revealCompositionSelection(result.block.id, [addedId]));
       return addedId;
     }
     const location = kind === "map" ? (locations.find((item) => item.isDefault) || locations[0]) : null;
@@ -1518,7 +1524,7 @@ export function TapCardBuilder({
       treatment,
     );
     container.parentId = parentId;
-    const placedContainer = placeNodeInCompositionParent(root, container, parentId);
+    const placedContainer = placeNodeInCompositionParent(root, container, parentId, undefined, readRenderedCompositionFrames(root));
     const result = insertCompositionContainer(root, placedContainer, insertionIndex);
     if (!result.ok) {
       setMessage(result.issues.map((issue) => issue.message).join(" "));
@@ -1528,7 +1534,23 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(null);
     setSelectedCompositionNodeIds([container.id]);
+    if (layeredSelectionOverlaps(result.block, [container.id])) setMessage("Added inside the selected parent. Space is crowded; use Make room below on the canvas, or move the selection.");
+    requestAnimationFrame(() => revealCompositionSelection(result.block.id, [container.id]));
     return container.id;
+  }
+
+  function addDesignedIntroduction(look: IntroductionLook, parentId: string | null, insertionIndex?: number) {
+    const root = ensureRootComposition(config);
+    const result = insertIntroduction(root, look, parentId, insertionIndex, readRenderedCompositionFrames(root));
+    if (!result.ok) { setMessage(result.issues.map(issue => issue.message).join(" ")); return undefined; }
+    setConfigHistory({ ...config, rootComposition: result.block }, { label: `Added ${look === "clean-minimal" ? "Clean Minimal" : "Dark Cinematic"} introduction` });
+    setDirty(true);
+    setSelectedId(null);
+    setSelectedCompositionNodeIds(result.selectedNodeIds ?? []);
+    setMessage(result.notices?.join(" ") || "Introduction added.");
+    if (layeredSelectionOverlaps(result.block, result.selectedNodeIds ?? [])) setMessage("Introduction added. Space is crowded; use Make room below or move the selection. Set the Button’s Action before sharing.");
+    requestAnimationFrame(() => revealCompositionSelection(result.block.id, result.selectedNodeIds ?? []));
+    return result.selectedNodeId;
   }
 
   function addCompositionModule(
@@ -1738,7 +1760,7 @@ export function TapCardBuilder({
       },
       moduleComposition: compiled.composition.block,
     };
-    const placedOuterNode = placeNodeInCompositionParent(root, outerNode, parentId);
+    const placedOuterNode = placeNodeInCompositionParent(root, outerNode, parentId, undefined, readRenderedCompositionFrames(root));
     const inserted = insertCompositionModule(root, placedOuterNode, parentId, insertionIndex);
     if (!inserted.ok) {
       const message = inserted.issues.map((issue) => issue.message).join(" ");
@@ -1754,6 +1776,8 @@ export function TapCardBuilder({
     setDirty(true);
     setSelectedId(null);
     setSelectedCompositionNodeIds([outerNodeId]);
+    if (layeredSelectionOverlaps(inserted.block, [outerNodeId])) setMessage("Added inside the selected parent. Space is crowded; use Make room below on the canvas, or move the selection.");
+    requestAnimationFrame(() => revealCompositionSelection(inserted.block.id, [outerNodeId]));
     return { ok: true, selectedNodeId: outerNodeId };
   }
 
@@ -2491,6 +2515,7 @@ export function TapCardBuilder({
       patchCompositionNode,
       beginLiveAdjustment,
       previewCompositionNode,
+      previewCompositionBlock: (block) => applyCanvasCompositionChange(null, block, "Previewed composition geometry", "preview"),
       previewSelection,
       commitLiveAdjustment: (label) => { commitLiveAdjustment(label); setDirty(true); },
       cancelLiveAdjustment,
@@ -2530,6 +2555,7 @@ export function TapCardBuilder({
       previewCuratedAssembly,
       onEnableCompositionParentAuthority: enableCompositionParentAuthority,
       onAddCompositionContainer: addCompositionContainer,
+      onAddDesignedIntroduction: addDesignedIntroduction,
       onAddCompositionModule: addCompositionModule,
       onReparentCompositionModule: reparentComposition,
       onReorderCompositionNode: reorderComposition,
@@ -3807,6 +3833,7 @@ export function TapCardBuilder({
                   onNotify={(message) => setMessage?.(message)}
                   compositionForceMobile={compositionForceMobile}
                   compositionSelectionMode={compositionSelectionMode}
+                  compositionFrameDiagnostics={compositionFrameDiagnostics}
                   editorZoom={typeof renderedPreviewZoom === "number" ? renderedPreviewZoom : 1}
                   previewMotion={previewMotion}
                   reducedMotionSimulation={reducedMotionSimulation}

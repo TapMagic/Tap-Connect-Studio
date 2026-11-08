@@ -1,4 +1,5 @@
 import type { CreativeCompositionBlock } from "../composition";
+import { isCardSurfaceLayered, resizeLayeredPlane } from "./layered-region";
 
 export const STUDIO_CARD_EXTENT_CONTRACT = "studioCardExtent@1.0.0" as const;
 
@@ -40,5 +41,15 @@ export function fitCardToContent(
   contentRequiredHeightPx: number,
   fallback = 420,
 ): CreativeCompositionBlock {
-  return setExplicitCardMinimum(block, Math.max(fallback, Math.ceil(contentRequiredHeightPx)));
+  const required = Math.max(fallback, Math.ceil(contentRequiredHeightPx));
+  const next = isCardSurfaceLayered(block)
+    ? resizeLayeredPlane(block, required - (block.safeAreaPaddingPx ?? 12) * 2)
+    : block;
+  return setExplicitCardMinimum(next, required);
+}
+
+/** Direct page-edge extension grows usable Layered space; minimum-only input stays separate. */
+export function extendCardPage(block: CreativeCompositionBlock, outerHeightPx: number): CreativeCompositionBlock {
+  if (!isCardSurfaceLayered(block)) return setExplicitCardMinimum(block, outerHeightPx);
+  return resizeLayeredPlane(block, outerHeightPx - (block.safeAreaPaddingPx ?? 12) * 2);
 }

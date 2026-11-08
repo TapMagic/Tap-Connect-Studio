@@ -21,10 +21,10 @@ import { ACTION_MOTION_OPTIONS, actionPresentationEffectCapability, actionPresen
 import { isCardSurfaceLayered, isLayeredContainer, layeredBoundsPolicy, moveLayeredNode, readLayeredPlacementFrameHeightMode, setLayeredPlacementFrameHeightMode, type StudioPlacementFrameHeightMode } from "@/lib/fusion/creative-studio/platform/layered-region";
 
 const SECTIONS: Array<{ id: ButtonInspectorSection; label: string }> = [
-  { id: "content", label: "Content" },
+  { id: "content", label: "Label" },
   { id: "action", label: "Action" },
   { id: "appearance", label: "Appearance" },
-  { id: "layout", label: "Layout" },
+  { id: "layout", label: "Position" },
   { id: "accessibility", label: "Accessibility" },
   { id: "advanced", label: "Advanced" },
 ];
@@ -50,9 +50,9 @@ export function StudioSelectionInspector({
   const patchProps = (props: Record<string, unknown>, label: string) => model.patchSelection(model.selectionRef, { props }, label);
   return (
     <aside className="absolute inset-x-0 bottom-0 z-40 max-h-[66vh] overflow-y-auto rounded-t-3xl bg-[#0b111b]/98 text-white shadow-2xl backdrop-blur-xl xl:relative xl:inset-auto xl:z-10 xl:max-h-none xl:w-[310px] xl:shrink-0 xl:rounded-none" aria-label="Button Inspector" data-testid="studio-button-inspector">
-      <header className="flex items-start gap-3 px-4 pb-2 pt-4"><div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[#b8ff2c]">Selected Button</p><h2 className="mt-1 text-base font-semibold tracking-tight">Edit Button</h2><p className="mt-1 text-[10px] text-white/38">Content, intent, and appearance stay with this Button.</p></div><button type="button" onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full text-white/55 hover:bg-white/8 hover:text-white" aria-label="Close Button Inspector"><X className="h-4 w-4" /></button></header>
+      <header className="flex items-start gap-3 px-4 pb-2 pt-4"><div className="min-w-0 flex-1"><p className="text-[9px] font-semibold uppercase tracking-[.16em] text-[#b8ff2c]">Selected Button</p><h2 className="mt-1 text-base font-semibold tracking-tight">Edit Button</h2><p className="mt-1 text-[10px] text-white/38">Content, intent, and appearance stay with this Button.</p></div><button type="button" onClick={onClose} className="grid h-11 w-11 place-items-center rounded-full text-white/55 hover:bg-white/8 hover:text-white" aria-label="Close Button Inspector"><X className="h-4 w-4" /></button></header>
       <nav className="flex gap-1 overflow-x-auto px-2 py-2 md:grid md:grid-cols-3" aria-label="Inspector sections">
-        {SECTIONS.map((item) => <button key={item.id} type="button" aria-pressed={section === item.id} onClick={() => onSectionChange(item.id)} className="min-h-9 shrink-0 rounded-xl px-2 text-[10px] text-white/48 hover:bg-white/6 aria-pressed:bg-white/9 aria-pressed:text-white" data-testid={`studio-inspector-tab-${item.id}`}>{item.label}</button>)}
+        {SECTIONS.map((item) => <button key={item.id} type="button" aria-pressed={section === item.id} onClick={() => onSectionChange(item.id)} className="min-h-11 shrink-0 rounded-xl px-2 text-[10px] text-white/48 hover:bg-white/6 aria-pressed:bg-white/9 aria-pressed:text-white" data-testid={`studio-inspector-tab-${item.id}`}>{item.label}</button>)}
       </nav>
       <div className="p-4">
         {section === "content" ? <ContentSection key={`${node.id}:${String(node.props.label || "")}:${String(node.props.description || "")}`} node={node} patchProps={patchProps} /> : null}

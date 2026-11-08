@@ -1,4 +1,8 @@
+import { rebaseParentRelativeChildren } from "../creative-studio/container-resize";
+import { expandSelectionToGroups } from "../creative-studio/composition";
+import { isGroupContentScope } from "../creative-studio/group-authority";
 import { nanoid } from "nanoid";
+import { isLayeredCompositionParent, layeredCompositionParentSizePx, layeredParentRotation } from "../creative-studio/platform/layered-region";
 import type {
   CreativeCompositionBlock,
   CreativeCompositionGroup,
@@ -42,7 +46,7 @@ export function compositionContainerDepth(
 }
 
 export type CompositionAuthorityResult =
-  | { ok: true; block: CreativeCompositionBlock; selectedNodeId?: string }
+  | { ok: true; block: CreativeCompositionBlock; selectedNodeId?: string; selectedNodeIds?: string[]; notices?: string[] }
   | { ok: false; issues: CompositionAuthorityIssue[] };
 
 export function hasCompositionParentAuthority(
@@ -264,6 +268,8 @@ function duplicateNodeProps(props: Record<string, unknown>): Record<string, unkn
 export type CompositionNodeClipboardPayload = {
   version: 1;
   rootId: string;
+  rootIds?: string[];
+  sourceParent?: { id?: string | null; blockId?: string; widthPx: number; heightPx: number; rotationDeg: number; layered: boolean };
   label: string;
   nodes: CreativeCompositionNode[];
   groups: CreativeCompositionGroup[];
@@ -272,13 +278,23 @@ export type CompositionNodeClipboardPayload = {
 /** Captures one canonical Module or a complete Container subtree for page-aware paste. */
 export function copyCompositionNodeSubtree(
   block: CreativeCompositionBlock,
-  nodeId: string,
+  nodeId: string | string[],
+  parentSize?: { widthPx: number; heightPx: number },
+  renderedFrames?: Record<string, { widthPx: number; heightPx: number }>,
 ): CompositionNodeClipboardPayload | null {
   if (!hasCompositionParentAuthority(block)) return null;
-  const root = block.nodes.find((node) => node.id === nodeId);
-  if (!root) return null;
-  const included = new Set<string>([root.id]);
-  const ordered: CreativeCompositionNode[] = [root];
+  const ids = Array.isArray(nodeId) ? nodeId : [nodeId];
+  const parentScopeIds = ids.filter((id) => {
+    const node = block.nodes.find((candidate) => candidate.id === id);
+    return node && !node.props.groupContentEditing && !isGroupContentScope(block.nodes, node.groupId);
+  });
+  const requested = new Set([...ids, ...expandSelectionToGroups(block.nodes, parentScopeIds)]);
+  const roots = block.nodes.filter((node) => requested.has(node.id) && !(() => { let id = node.parentId; while (id) { if (requested.has(id)) return true; id = block.nodes.find((n) => n.id === id)?.parentId; } return false; })());
+  roots.sort((a, b) => (a.siblingOrder ?? 0) - (b.siblingOrder ?? 0));
+  const root = roots[0];
+  if (!root || roots.some((node) => node.parentId !== root.parentId)) return null;
+  const included = new Set<string>(roots.map((node) => node.id));
+  const ordered: CreativeCompositionNode[] = [];
   const collect = (parentId: string) => {
     for (const child of compositionChildren(block, parentId)) {
       included.add(child.id);
@@ -286,14 +302,21 @@ export function copyCompositionNodeSubtree(
       if (child.compositionKind === "container") collect(child.id);
     }
   };
-  if (root.compositionKind === "container") collect(root.id);
+  for (const node of roots) { ordered.push(node); if (node.compositionKind === "container") collect(node.id); }
   const groupIds = new Set(ordered.flatMap((node) => node.groupId ? [node.groupId] : []));
   return {
     version: 1,
     rootId: root.id,
-    label: root.name || (root.compositionKind === "container" ? "Container" : "Module"),
-    nodes: structuredClone(ordered),
-    groups: structuredClone((block.groups ?? []).filter((group) => groupIds.has(group.id) && (group.parentId === null || included.has(group.parentId)))),
+    rootIds: roots.map((node) => node.id),
+    sourceParent: { id: root.parentId ?? null, blockId: block.id, ...(parentSize ?? layeredCompositionParentSizePx(block, root.parentId ?? null)), rotationDeg: layeredParentRotation(block, root.parentId ?? null), layered: isLayeredCompositionParent(block, root.parentId ?? null) },
+    label: roots.length > 1 ? `${roots.length} objects` : root.name || (root.compositionKind === "container" ? "Container" : "Module"),
+    nodes: structuredClone(ordered.map((node) => {
+      const frame = renderedFrames?.[node.id];
+      if (!frame || !roots.includes(node) || isLayeredCompositionParent(block, node.parentId ?? null)) return node;
+      const size = parentSize ?? layeredCompositionParentSizePx(block, node.parentId ?? null);
+      return { ...node, width: frame.widthPx / size.widthPx, height: frame.heightPx / size.heightPx };
+    })),
+    groups: structuredClone((block.groups ?? []).filter((group) => groupIds.has(group.id) && (group.parentId === root.parentId || included.has(group.parentId!)) && block.nodes.filter((node) => node.groupId === group.id).every((node) => included.has(node.id)))),
   };
 }
 
@@ -303,22 +326,55 @@ export function pasteCompositionNodeSubtree(
   payload: CompositionNodeClipboardPayload,
   parentId: CompositionParentId,
   insertionIndex?: number,
+  destinationSize?: { widthPx: number; heightPx: number },
 ): CompositionAuthorityResult {
   if (!hasCompositionParentAuthority(block)) return commit(block);
   const sourceRoot = payload.nodes.find((node) => node.id === payload.rootId);
   if (!sourceRoot) return { ok: false, issues: [{ code: "invalid_parent", message: "The copied composition object is incomplete." }] };
+  const rootIds = new Set(payload.rootIds ?? [payload.rootId]);
+  const roots = payload.nodes.filter((node) => rootIds.has(node.id));
+  if (!roots.length || roots.some((node) => ![node.x, node.y, node.width, node.height].every(Number.isFinite) || node.width <= 0 || node.height <= 0)) return { ok: false, issues: [{ code: "invalid_parent", message: "The copied selection has invalid geometry. Copy it again before pasting." }] };
+  const notices: string[] = [];
+  const size = destinationSize ?? layeredCompositionParentSizePx(block, parentId);
+  const sourceSize = payload.sourceParent ?? size;
+  const destinationLayered = isLayeredCompositionParent(block, parentId);
+  const rotation = (payload.sourceParent?.rotationDeg ?? 0) - layeredParentRotation(block, parentId);
+  const angle = rotation * Math.PI / 180;
+  const frames = roots.map((node) => {
+    const cx = (node.x + node.width / 2) * sourceSize.widthPx, cy = (node.y + node.height / 2) * sourceSize.heightPx;
+    const width = node.width * sourceSize.widthPx, height = node.height * sourceSize.heightPx;
+    const x = cx * Math.cos(angle) - cy * Math.sin(angle) - width / 2;
+    const y = cx * Math.sin(angle) + cy * Math.cos(angle) - height / 2;
+    const localAngle = destinationLayered ? ((payload.sourceParent?.layered === false ? 0 : node.rotationDeg || 0) + rotation) * Math.PI / 180 : 0;
+    const boundsWidth = Math.max(width, Math.abs(width * Math.cos(localAngle)) + Math.abs(height * Math.sin(localAngle)));
+    const boundsHeight = Math.max(height, Math.abs(width * Math.sin(localAngle)) + Math.abs(height * Math.cos(localAngle)));
+    return { id: node.id, x, y, width, height, left: x + (width - boundsWidth) / 2, top: y + (height - boundsHeight) / 2, right: x + (width + boundsWidth) / 2, bottom: y + (height + boundsHeight) / 2 };
+  });
+  const left = Math.min(...frames.map((f) => f.left)), top = Math.min(...frames.map((f) => f.top));
+  const width = Math.max(...frames.map((f) => f.right)) - left;
+  const height = Math.max(...frames.map((f) => f.bottom)) - top;
+  const fit = destinationLayered ? Math.min(1, size.widthPx / width, size.heightPx / height) : Math.min(1, size.widthPx / width);
+  const sameParent = payload.sourceParent?.blockId === block.id && payload.sourceParent.id === parentId;
+  // A new destination has its own origin. Never interpret a source page Y as
+  // destination placement. Repeated paste uses the immutable payload, not the last copy.
+  const originX = Math.max(0, Math.min(size.widthPx - width * fit, sameParent ? left + 12 : 12));
+  const originY = Math.max(0, Math.min(size.heightPx - height * fit, sameParent ? top + 12 : 12));
+  if (fit < 1) notices.push(`Pasted at ${Math.round(fit * 100)}% to fit this parent; relative sizes and spacing were scaled together. Resize the parent for more space.`);
+  if (!destinationLayered && payload.sourceParent?.layered) notices.push("Pasted into Flow: layout order controls positioning; Layered placement is retained for a reversible return.");
   const idMap = new Map(payload.nodes.map((node) => [node.id, `${node.compositionKind === "container" ? "container" : "module"}-${nanoid(8)}`]));
   const groupMap = new Map(payload.groups.map((group) => [group.id, `group-${nanoid(8)}`]));
   const maxZ = block.nodes.reduce((maximum, node) => Math.max(maximum, node.zIndex), 0);
   let current: CreativeCompositionBlock = block;
   for (const [offset, source] of payload.nodes.entries()) {
-    const isRoot = source.id === payload.rootId;
+    const isRoot = rootIds.has(source.id);
+    const rootIndex = [...rootIds].indexOf(source.id);
+    const at = isRoot && insertionIndex !== undefined ? insertionIndex + rootIndex : undefined;
     const targetParentId = isRoot ? parentId : source.parentId ? idMap.get(source.parentId) ?? parentId : parentId;
     const copied: CreativeCompositionNode = {
       ...structuredClone(source),
       id: idMap.get(source.id)!,
       parentId: targetParentId,
-      siblingOrder: isRoot ? insertionIndex ?? compositionChildren(current, parentId).length : source.siblingOrder,
+      siblingOrder: isRoot ? at ?? compositionChildren(current, parentId).length : source.siblingOrder,
       zIndex: maxZ + offset + 1,
       locked: false,
       groupId: source.groupId ? groupMap.get(source.groupId) ?? null : source.groupId,
@@ -326,9 +382,20 @@ export function pasteCompositionNodeSubtree(
       props: duplicateNodeProps(source.props),
       moduleComposition: source.moduleComposition ? duplicateHostedComposition(source.moduleComposition) : undefined,
     };
+    const frame = frames.find((entry) => entry.id === source.id);
+    if (isRoot && frame && destinationLayered) {
+      Object.assign(copied, { x: (originX + (frame.x - left) * fit) / size.widthPx, y: (originY + (frame.y - top) * fit) / size.heightPx,
+        width: frame.width * fit / size.widthPx, height: frame.height * fit / size.heightPx, rotationDeg: (payload.sourceParent?.layered === false ? 0 : source.rotationDeg || 0) + rotation });
+    }
+    if (isRoot && frame && !destinationLayered) {
+      const percent = frame.width * fit / size.widthPx * 100;
+      copied.props = { ...copied.props, flowWidthPercent: percent, flowAlignment: "start",
+        ...(copied.compositionKind === "container" ? { widthPercent: percent } : {}) };
+      copied.minHeightPx = frame.height * fit;
+    }
     const added = copied.compositionKind === "container"
-      ? insertCompositionContainer(current, copied, isRoot ? insertionIndex : undefined)
-      : insertCompositionModule(current, copied, targetParentId, isRoot ? insertionIndex : undefined);
+      ? insertCompositionContainer(current, copied, isRoot ? at : undefined)
+      : insertCompositionModule(current, copied, targetParentId, isRoot ? at : undefined);
     if (!added.ok) return added;
     current = added.block;
   }
@@ -340,7 +407,7 @@ export function pasteCompositionNodeSubtree(
     locked: false,
   }));
   const result = commit({ ...current, groups: [...(current.groups ?? []), ...groups] });
-  return result.ok ? { ...result, selectedNodeId: idMap.get(payload.rootId) } : result;
+  return result.ok ? { ...result, selectedNodeId: idMap.get(payload.rootId), selectedNodeIds: [...rootIds].map((id) => idMap.get(id)!), notices } : result;
 }
 
 export function insertCompositionModule(
@@ -655,4 +722,55 @@ export function createFlowContainerNode(
       borderColor: "rgba(255,255,255,.12)",
     },
   };
+}
+
+/** Explicit fit command for Flow content inside a bounded Placement frame.
+ * Renderer observations supply required height; parent authority owns the mutation.
+ * Grow ancestor planes while retaining every existing child's physical placement.
+ */
+export function expandFlowPasteDestination(
+  block: CreativeCompositionBlock,
+  parentId: string,
+  requiredOuterHeightPx: number,
+  sizeOf: (parentId: string | null) => { widthPx: number; heightPx: number },
+): CompositionAuthorityResult {
+  let next = block;
+  let id: string | null = parentId;
+  let required = Math.ceil(requiredOuterHeightPx);
+  while (id !== null) {
+    const node = next.nodes.find((candidate) => candidate.id === id);
+    if (!node || node.compositionKind !== "container" || node.locked) return { ok: false, issues: [{ code: "invalid_parent", message: "Resize or unlock the destination Container before pasting." }] };
+    const parent = node.parentId ?? null;
+    const size = sizeOf(parent);
+    const absolute = isLayeredCompositionParent(next, parent);
+    const oldContent = sizeOf(node.id).heightPx;
+    const padding = Math.max(0, Number(node.props.padding) || 0) * 2;
+    const oldHeight = absolute ? node.height * size.heightPx : oldContent + padding;
+    const height = Math.max(oldHeight, required);
+    const newContent = Math.max(1, height - padding);
+    next = { ...next, nodes: next.nodes.map((candidate) => candidate.id === id
+      ? absolute ? { ...candidate, height: height / size.heightPx } : { ...candidate, props: { ...candidate.props, ...(candidate.props.contentFit === "fixed" ? { heightPx: height } : { minHeightPx: height }) } }
+      : candidate) };
+    if (isLayeredCompositionParent(next, id)) {
+      const widthPx = sizeOf(id).widthPx;
+      next = { ...next, nodes: rebaseParentRelativeChildren(next.nodes, id, { widthPx, heightPx: oldContent }, { widthPx, heightPx: newContent }) };
+    }
+    if (!absolute) break; // Auto Flow ancestors participate in native reflow.
+    const angle = (Number(node.rotationDeg) || 0) * Math.PI / 180;
+    const rotatedHeight = Math.abs(node.width * size.widthPx * Math.sin(angle)) + Math.abs(height * Math.cos(angle));
+    const bottom = node.y * size.heightPx + height / 2 + rotatedHeight / 2;
+    if (bottom <= size.heightPx) break;
+    if (parent === null) {
+      const newHeight = Math.ceil(bottom + 12);
+      if (newHeight > 1600) return { ok: false, issues: [{ code: "invalid_parent", message: "This paste would exceed the 1600px Layered page limit. Choose another Container or reduce the copied selection." }] };
+      next = { ...next, compositionMode: { ...next.compositionMode!, layeredHeightPx: newHeight },
+        explicitMinimumHeightPx: Math.max(next.explicitMinimumHeightPx ?? 0, newHeight + (next.safeAreaPaddingPx ?? 12) * 2),
+        nodes: rebaseParentRelativeChildren(next.nodes, null, size, { ...size, heightPx: newHeight }) };
+      break;
+    }
+    const ancestor = next.nodes.find((candidate) => candidate.id === parent)!;
+    required = bottom + Math.max(0, Number(ancestor.props.padding) || 0) * 2;
+    id = parent;
+  }
+  return commit(next);
 }

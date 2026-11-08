@@ -9,6 +9,14 @@ export type StudioTextValueSource = "brand" | "local";
 export type StudioTextHeightMode = "auto" | "minimum" | "fixed";
 export type StudioTextOverflowMode = "visible" | "scroll" | "clip";
 
+/** One renderer policy in Flow and Layered. This never edits normalized placement. */
+export function studioTextBoxStyle(props: Record<string, unknown>): { height?: number; minHeight?: number } {
+  const minimum = Math.max(0, Number(props.textMinHeightPx) || 0);
+  if (props.textHeightMode === "fixed") return { height: Math.max(24, Number(props.textFixedHeightPx) || minimum || 44), minHeight: 0 };
+  if (props.textHeightMode === "minimum") return { minHeight: minimum };
+  return { minHeight: 0 };
+}
+
 export type StudioTextRole = Readonly<{
   id: StudioTextRoleId;
   label: string;

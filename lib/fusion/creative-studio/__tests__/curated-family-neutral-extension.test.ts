@@ -126,7 +126,7 @@ test("Curated material roles project through the shared Material engine and cano
   assert.match(String(style?.background),/rgba|gradient|#/);
   assert.equal(style?.borderStyle,"solid");
   const renderer=readFileSync(path.join(process.cwd(),"lib/fusion/creative-studio/signature-assets/SignatureMasterBridge.tsx"),"utf8");
-  assert.match(renderer,/curatedMaterialSurfaceStyle\(surfaceRole\?\.materialId\)/);
+  assert.match(renderer,/curatedMaterialSurfaceStyle\(surfaceRole\?\.materialId,surfaceColor\)/);
   assert.match(renderer,/signature-master__material-surface/);
   assert.match(renderer,/signature-master__semantic-icon/);
   assert.doesNotMatch(renderer,/LoveAndTheftFallbackPickInsert/);

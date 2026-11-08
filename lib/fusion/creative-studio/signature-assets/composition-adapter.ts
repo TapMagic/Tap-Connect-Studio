@@ -25,6 +25,7 @@ export type SignatureCompositionAdapterOptions = {
     contractId: string;
     contractVersion: string;
     semanticOptionIds: Readonly<Record<string, string>>;
+    semanticColors?: Readonly<Record<string, string>>;
     semanticRendererValues: Readonly<Record<string, string>>;
     semanticMaterialRoles?: Readonly<Record<string, { materialId: string; target: string }>>;
     optionsByRole?: Readonly<Record<string, Readonly<Record<string, { rendererValue: string; materialProjection?: { materialId: string; target: string } }>>>>;
@@ -69,14 +70,15 @@ function nodeForInstance(
   appearance?: SignatureCompositionAdapterOptions["appearance"],
 ): CreativeCompositionNode {
   const isAction=instance.classification==="live-action";
-  const owningActionId = instance.action?.id
+  const owningAction = instance.action
     ?? (instance.parentInstanceId
-      ? plan.instances.find((candidate) => candidate.instanceId === instance.parentInstanceId)?.action?.id
+      ? plan.instances.find((candidate) => candidate.instanceId === instance.parentInstanceId)?.action
       : undefined);
+  const owningActionId = owningAction?.id;
   const identity=instance.liveContentOwnership.identitySocket?fixtureContent?.identity:undefined;
   const recipe=SIGNATURE_ASSEMBLY_RECIPES.find((candidate)=>candidate.familyId===plan.familyId&&candidate.recipeId===plan.recipeId&&candidate.recipeVersion===plan.recipeVersion);
   const responsiveTypography=recipe?signaturePresentation(recipe).capabilities?.responsiveTypography:undefined;
-  const actionOverrides=instance.classification==="live-action"?instance.action?.appearanceOptionIds:undefined;
+  const actionOverrides=owningAction?.appearanceOptionIds;
   const effectiveAppearance=appearance&&actionOverrides?{
     ...appearance,
     semanticOptionIds:{...appearance.semanticOptionIds,...actionOverrides},
@@ -148,6 +150,7 @@ function nodeForInstance(
       signatureAppearanceOptionIds:effectiveAppearance?.semanticOptionIds,
       signatureAppearanceRendererValues:effectiveAppearance?.semanticRendererValues,
       signatureMaterialRoles:effectiveAppearance?.semanticMaterialRoles,
+      signatureMaterialColors:Object.fromEntries(Object.entries(appearance?.semanticColors ?? {}).filter(([role]) => !actionOverrides?.[role])),
       signatureTextTreatmentContractId:appearance?.textTreatmentContractId,
       signatureTextTreatmentContractVersion:appearance?.textTreatmentContractVersion,
       signatureTextTreatmentId:appearance?.textTreatmentId,

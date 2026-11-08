@@ -293,7 +293,7 @@ test("Curated mutation recompiles certified output while preserving canonical ac
 });
 
 test("shared authoring commands persist provenance and layout through canonical assembly state", () => {
-  const first = compileSignatureAuthoringState(create("single-stack"), { blockId: "curated-command" });
+  const first = compileSignatureAuthoringState(setSignatureActionCount(create("single-stack"), 2, idFactory), { blockId: "curated-command" });
   assert.equal(first.ok, true);
   if (!first.ok) return;
   const updated = applySignatureAssemblyMutation(first.composition.block, {
@@ -322,7 +322,11 @@ test("semantic identity replacement, removal, and layout changes preserve canoni
   assert.equal(standalone.ok, true);
   if (!standalone.ok) return;
   assert.deepEqual(standalone.block.signatureAssembly?.identityContent, replacement, "hidden Standalone identity remains canonical");
-  const twin = applySignatureAssemblyMutation(standalone.block, { type: "set-layout", layoutMode: "twin-rail" });
+  const backToStack = applySignatureAssemblyMutation(standalone.block, { type: "set-layout", layoutMode: "single-stack" });
+  assert.ok(backToStack.ok);
+  const added = applySignatureAssemblyMutation(backToStack.block, { type: "set-action-count", count: 2 });
+  assert.ok(added.ok);
+  const twin = applySignatureAssemblyMutation(added.block, { type: "set-layout", layoutMode: "twin-rail" });
   assert.equal(twin.ok, true);
   if (!twin.ok) return;
   assert.deepEqual(twin.block.signatureAssembly?.identityContent, replacement);
@@ -410,7 +414,7 @@ test("fresh, reset, save/reload, and layout changes share one typography authori
 
   const preserved = updateSignatureAction(create("single-stack"), "stable-1", { textSizePx: 15 });
   assert.equal(setSignatureLayout(preserved, "twin-rail", idFactory).input.actions[0].textSizePx, 15, "valid authored size survives a layout change");
-  const oversized = updateSignatureAction(create("standalone"), "stable-1", { textSizePx: 18 });
+  const oversized = updateSignatureAction(setSignatureActionCount(create("single-stack"), 2, idFactory), "stable-1", { textSizePx: 18 });
   assert.equal(setSignatureLayout(oversized, "twin-rail", idFactory).input.actions[0].textSizePx, 15, "invalid authored size clamps to the new certified range");
 });
 

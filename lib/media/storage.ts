@@ -101,13 +101,15 @@ export async function putMediaObject(input: {
   storageKey: string;
   bytes: Buffer;
   mimeType: string;
+  /** Operator transfers may insert new immutable objects, never overwrite. */
+  ifAbsent?: boolean;
 }): Promise<string> {
   requireMediaStorage();
   if (localMediaStorageEnabled()) {
     const filePath = localMediaPath(input.storageKey);
     await mkdir(path.dirname(filePath), { recursive: true });
     await writeFile(filePath, input.bytes, { flag: "wx", mode: 0o600 }).catch(async (error) => {
-      if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
+      if (input.ifAbsent || (error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
       await writeFile(filePath, input.bytes);
     });
     return publicMediaUrl(input.storageKey);
@@ -118,6 +120,7 @@ export async function putMediaObject(input: {
       Key: input.storageKey,
       Body: input.bytes,
       ContentType: input.mimeType,
+      ...(input.ifAbsent ? { IfNoneMatch: "*" } : {}),
     })
   );
   return publicMediaUrl(input.storageKey);

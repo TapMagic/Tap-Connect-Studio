@@ -9,6 +9,7 @@ import {
 } from "./material-surface";
 import { surfacePatternFromTextureToken } from "./patterns";
 import { DEFAULT_GRADIENT, normalizeGradient } from "./gradient";
+import { photographyVisualPlane } from "./visual-plane";
 import type { CreativeCompositionBlock } from "./composition";
 
 export { resolveMaterialSurfaceFromProps, resolveMaterialSurfaceFromRecipe, materialSurfaceParityKey } from "./material-surface";
@@ -148,6 +149,21 @@ function recipe(
 }
 
 export const MATERIAL_CATALOG: readonly MaterialRecipe[] = [
+  // Mineral faces share the complete Material response in swatches and Curated parts.
+  ...([
+    ["midnight", "Midnight blue", "#345267", "#091827", "#02070d"],
+    ["obsidian", "Obsidian", "#474b50", "#16191e", "#030405"],
+    ["petrol", "Petrol teal", "#345c60", "#0b2529", "#020b0e"],
+  ] as const).flatMap(([id, label, light, middle, dark]) => ["glass", "satin"].map((finish) => recipe(
+    `mineral_${id}_${finish}`, `${label} · ${finish === "glass" ? "Polished glass" : "Satin mineral"}`, "glass", {
+      fill: middle, gradient: `linear-gradient(165deg,${light} 0%,${middle} 24%,${dark} 68%,${middle} 100%)`,
+      highlight: finish === "glass"
+        ? "linear-gradient(176deg,#eff8ffad 0%,#d6e9ff47 3%,#ffffff08 10%,transparent 35%),radial-gradient(ellipse at 28% 0%,#d5e9ff42,transparent 55%)"
+        : "linear-gradient(165deg,#c5d2df20,transparent 60%)",
+      innerShadow: finish === "glass" ? "inset 0 2px 1px #eff8ff66,inset 0 -3px 3px #000c,inset 0 0 12px #0008" : "inset 0 1px 2px #fff3,inset 0 -2px 3px #0009",
+      borderWidth: 0, outerShadow: 0, texture: "mineral-veins", textColor: "#fff0cf", opacity: 1,
+    },
+  ))),
   // BASIC
   recipe("flat", "Flat", "basic", { fill: "#334155", borderWidth: 0, outerShadow: 0, opacity: 1 }),
   recipe("matte", "Matte", "basic", { fill: "#1e293b", outerShadow: 4, opacity: 1 }),
@@ -526,6 +542,12 @@ export function applyMaterialRecipe(
 
   // surface (default)
   const next = clearKeys(props, SURFACE_KEYS);
+  // A recipe replaces its fill authority, not a stale authoring adapter.
+  next.surfaceTreatment = null;
+  next.containerTreatment = null;
+  next.backgroundImageUrl = null;
+  next.backgroundMediaAssetId = null;
+  next.visualPlane = null;
   if (options.asButtonSurface && props.opacity !== undefined) next.opacity = props.opacity;
   if (!materialId || materialId === "none") {
     next.materialPreset = undefined;
@@ -536,11 +558,13 @@ export function applyMaterialRecipe(
 
   if (recipe.sourceMaster) {
     const source = recipe.sourceMaster;
-    const visualPlane = {
-      kind: "image" as const,
-      image: { src: source.src, fit: source.fit, focalX: source.focalX, focalY: source.focalY, opacity: 1 },
-      overlay: { color: source.overlayColor, opacity: source.overlayOpacity },
-    };
+    const visualPlane = photographyVisualPlane({ url: source.src, fit: source.fit, focalX: source.focalX, focalY: source.focalY, opacity: 1, scale: source.scale, tint: source.overlayColor, overlayOpacity: source.overlayOpacity });
+    next.opacity = recipe.opacity ?? 1;
+    next.radius = recipe.radius ?? props.radius ?? 16;
+    next.borderWidth = recipe.borderWidth ?? 0;
+    next.borderColor = recipe.borderColor ?? "transparent";
+    next.borderStyle = recipe.borderStyle ?? "solid";
+    next.boxShadow = recipe.outerShadow ?? 0;
     next.materialPreset = recipe.id;
     next.backgroundImageUrl = source.src;
     next.backgroundFit = source.fit;
@@ -565,11 +589,11 @@ export function applyMaterialRecipe(
       focalX: source.focalX,
       focalY: source.focalY,
       blurPx: 0,
-      radiusPx: Number(props.radius ?? 16),
-      borderWidthPx: Number(props.borderWidth ?? 0),
-      borderColor: String(props.borderColor ?? "transparent"),
-      opacity: Number(props.opacity ?? 1),
-      shadowPx: Number(props.boxShadow ?? 0),
+      radiusPx: Number(next.radius),
+      borderWidthPx: Number(next.borderWidth),
+      borderColor: String(next.borderColor),
+      opacity: Number(next.opacity),
+      shadowPx: Number(next.boxShadow),
       visualPlane,
     };
     return next;
@@ -796,10 +820,10 @@ export function materialPropsFromCompositionBackground(
     if (recipe.sourceMaster) return null;
     return {
       materialPreset: recipe.id,
-      fill: recipe.fill,
-      gradientFill: recipe.gradient,
-      highlight: recipe.highlight ?? background.highlight,
-      shine: recipe.shine === true || background.shine === true,
+      fill: background.kind === "solid" ? background.value ?? recipe.fill : recipe.fill,
+      gradientFill: background.kind === "gradient" ? background.value ?? recipe.gradient : recipe.gradient,
+      highlight: background.highlight ?? recipe.highlight,
+      shine: background.shine ?? recipe.shine === true,
       texture: recipe.texture,
       borderWidth: recipe.borderWidth ?? 0,
       borderColor: recipe.borderColor,
@@ -808,7 +832,7 @@ export function materialPropsFromCompositionBackground(
       boxGlow: recipe.glow ?? 0,
       glowColor: recipe.glowColor,
       innerShadow: recipe.innerShadow,
-      opacity: recipe.opacity ?? 1,
+      opacity: background.opacity ?? recipe.opacity ?? 1,
       surfaceFillKind: recipe.gradient ? "gradient" : "solid",
       buttonSurfaceKind: recipe.gradient ? "gradient" : "solid",
     };

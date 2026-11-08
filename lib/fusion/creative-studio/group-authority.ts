@@ -15,7 +15,15 @@ import {
 } from "./composition";
 import { objectFamilyForNode, type ObjectFamily } from "./capabilities";
 import { isTrueGroupMember } from "./selection-mode";
-import { layeredResizePolicy } from "./platform/layered-region";
+import { layeredCompositionParentSizePx, layeredResizePolicy } from "./platform/layered-region";
+
+export type GroupCoordinateSpace = { widthPx: number; heightPx: number };
+const UNIT_GROUP_SPACE: GroupCoordinateSpace = { widthPx: 1, heightPx: 1 };
+/** Rotation happens in physical parent coordinates, never in a normalized square. */
+export function compositionGroupSpace(block: CreativeCompositionBlock, groupId: string): GroupCoordinateSpace {
+  const member = block.nodes.find((node) => node.groupId === groupId);
+  return member?.compositionKind ? layeredCompositionParentSizePx(block, member.parentId ?? null) : UNIT_GROUP_SPACE;
+}
 
 export type GroupUnionBounds = {
   groupId: string;
@@ -98,7 +106,7 @@ function inferredGroupRecord(
   groupId: string,
 ): CreativeCompositionGroup | null {
   const members = groupMembers(block.nodes, groupId);
-  const bounds = computeGroupUnionBounds(block.nodes, groupId, true);
+  const bounds = computeGroupUnionBounds(block.nodes, groupId, true, compositionGroupSpace(block, groupId));
   if (!bounds || members.length < 2) return null;
   const settings = readCompositionGroupSettings(block.nodes, groupId);
   return {
@@ -196,7 +204,7 @@ export function moveCompositionGroupInBlock(
   dx: number,
   dy: number,
 ): CreativeCompositionBlock {
-  const bounds = computeGroupUnionBounds(block.nodes, groupId, true);
+  const bounds = computeGroupUnionBounds(block.nodes, groupId, true, compositionGroupSpace(block, groupId));
   if (!bounds) return block;
   const boundedDx = Math.max(-bounds.left, Math.min(1 - bounds.left - bounds.width, dx));
   const boundedDy = Math.max(-bounds.top, Math.min(1 - bounds.top - bounds.height, dy));
@@ -207,7 +215,7 @@ export function resizeCompositionGroupInBlock(
   block: CreativeCompositionBlock,
   groupId: string,
   next: { left: number; top: number; width: number; height: number },
-  options?: { minChildWidth?: number; minChildHeight?: number },
+  options?: { minChildWidth?: number; minChildHeight?: number; space?: GroupCoordinateSpace },
 ): CreativeCompositionBlock {
   const width = Math.max(.08, Math.min(1, next.width));
   const height = Math.max(.06, Math.min(1, next.height));
@@ -217,7 +225,7 @@ export function resizeCompositionGroupInBlock(
     width,
     height,
   };
-  return synchronizeCompositionGroups({ ...block, nodes: resizeGroupComposition(block.nodes, groupId, bounded, options) });
+  return synchronizeCompositionGroups({ ...block, nodes: resizeGroupComposition(block.nodes, groupId, bounded, { ...options, space: compositionGroupSpace(block, groupId) }) });
 }
 
 export function setCompositionGroupScaleMode(
@@ -226,7 +234,7 @@ export function setCompositionGroupScaleMode(
   scaleMode: CompositionGroupScaleMode,
   options: { minChildWidth: number; minChildHeight: number },
 ): CreativeCompositionBlock {
-  const bounds = computeGroupUnionBounds(block.nodes, groupId, true);
+  const bounds = computeGroupUnionBounds(block.nodes, groupId, true, compositionGroupSpace(block, groupId));
   if (!bounds) return block;
   // These are parent-relative authored widths. Compact must remain useful when
   // the Group itself lives in a 60–70% side region; over-shrinking here makes
@@ -488,7 +496,8 @@ export function activateGroupContentChild(
 export function computeGroupUnionBounds(
   nodes: readonly CreativeCompositionNode[],
   groupId: string,
-  allowPasteboardOverflow = true
+  allowPasteboardOverflow = true,
+  space: GroupCoordinateSpace = UNIT_GROUP_SPACE,
 ): GroupUnionBounds | null {
   const members = groupMembers(nodes, groupId).filter((node) => node.visible !== false);
   if (!members.length) return null;
@@ -511,8 +520,8 @@ export function computeGroupUnionBounds(
     const cy = box.top + box.height / 2;
     const cos = Math.abs(Math.cos(rot));
     const sin = Math.abs(Math.sin(rot));
-    const hw = (box.width * cos + box.height * sin) / 2;
-    const hh = (box.width * sin + box.height * cos) / 2;
+    const hw = (box.width * cos + box.height * space.heightPx / space.widthPx * sin) / 2;
+    const hh = (box.width * space.widthPx / space.heightPx * sin + box.height * cos) / 2;
     left = Math.min(left, cx - hw);
     top = Math.min(top, cy - hh);
     right = Math.max(right, cx + hw);
@@ -559,9 +568,9 @@ export function resizeGroupComposition(
   nodes: CreativeCompositionNode[],
   groupId: string,
   next: { left: number; top: number; width: number; height: number },
-  options?: { minChildWidth?: number; minChildHeight?: number }
+  options?: { minChildWidth?: number; minChildHeight?: number; space?: GroupCoordinateSpace }
 ): CreativeCompositionNode[] {
-  const bounds = computeGroupUnionBounds(nodes, groupId, true);
+  const bounds = computeGroupUnionBounds(nodes, groupId, true, options?.space);
   if (!bounds || bounds.width <= 0 || bounds.height <= 0) return nodes;
   const sx = next.width / bounds.width;
   const sy = next.height / bounds.height;
@@ -592,9 +601,10 @@ export function resizeGroupComposition(
 export function rotateGroupComposition(
   nodes: CreativeCompositionNode[],
   groupId: string,
-  absoluteDeg: number
+  absoluteDeg: number,
+  space: GroupCoordinateSpace = UNIT_GROUP_SPACE,
 ): CreativeCompositionNode[] {
-  const bounds = computeGroupUnionBounds(nodes, groupId, true);
+  const bounds = computeGroupUnionBounds(nodes, groupId, true, space);
   if (!bounds) return nodes;
   const memberSet = new Set(bounds.memberIds);
   const cx = bounds.left + bounds.width / 2;
@@ -608,14 +618,14 @@ export function rotateGroupComposition(
     if (!memberSet.has(node.id)) return node;
     const ncx = node.x + node.width / 2;
     const ncy = node.y + node.height / 2;
-    const dx = ncx - cx;
-    const dy = ncy - cy;
+    const dx = (ncx - cx) * space.widthPx;
+    const dy = (ncy - cy) * space.heightPx;
     const rx = dx * cos - dy * sin;
     const ry = dx * sin + dy * cos;
     return {
       ...node,
-      x: rx + cx - node.width / 2,
-      y: ry + cy - node.height / 2,
+      x: rx / space.widthPx + cx - node.width / 2,
+      y: ry / space.heightPx + cy - node.height / 2,
       rotationDeg: (node.rotationDeg || 0) + (absoluteDeg - baseAvg),
     };
   });

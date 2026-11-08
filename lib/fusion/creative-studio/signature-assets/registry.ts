@@ -1,4 +1,5 @@
 import type { CardElementKind } from "@/lib/fusion/card/composer-model";
+import { BRONZE_STANDARD_FAMILY, BRONZE_STANDARD_ASSETS, BRONZE_STANDARD_RECIPE } from "./bronze-standard";
 import type { SignatureAssetDefinition, SignatureAssetKind, SignatureFamilyDefinition, SignatureSubgroup } from "./types";
 import { CABINET_NOIR_ASSEMBLY_RECIPES, CABINET_NOIR_ASSETS, CABINET_NOIR_FAMILY, CABINET_NOIR_VISUAL_ACCEPTANCE } from "./cabinet-noir";
 import { EVERENCORE_LOVE_AND_THEFT_ASSEMBLY_RECIPES, EVERENCORE_LOVE_AND_THEFT_ASSETS, EVERENCORE_LOVE_AND_THEFT_FAMILY, EVERENCORE_LOVE_AND_THEFT_VISUAL_ACCEPTANCE } from "./everencore-love-and-theft";
@@ -39,6 +40,7 @@ export const SIGNATURE_FAMILIES: readonly SignatureFamilyDefinition[] = [
   { id: SIGNATURE_SYSTEM_V1_FAMILY_ID, slug: "signature-system-v1", label: "Signature System v1", lifecycle: "production", sortOrder: 20, discovery: { exposure: "hidden", category: "Curated", description: "Registered Signature component inventory.", sortOrder: 20 } },
   { ...CABINET_NOIR_FAMILY, discovery: { exposure: "active", category: "Curated", description: "Certified champagne-gold and blackened-gunmetal governed actions.", previewAssetId: "master/cabinet-noir/cn-006/v1", previewAlt: "Cabinet Noir governed assembly preview", sortOrder: 30 } },
   EVERENCORE_LOVE_AND_THEFT_FAMILY,
+  BRONZE_STANDARD_FAMILY,
   ...(FAMILY_NEUTRAL_RUNTIME_FIXTURE_ENABLED ? [FAMILY_NEUTRAL_RUNTIME_FIXTURE_FAMILY] : []),
 ] as const;
 
@@ -58,6 +60,7 @@ export const SIGNATURE_ASSEMBLY_RECIPES: readonly SignatureAssemblyRecipe[] = [
     },
   })),
   ...EVERENCORE_LOVE_AND_THEFT_ASSEMBLY_RECIPES,
+  BRONZE_STANDARD_RECIPE,
   ...(FAMILY_NEUTRAL_RUNTIME_FIXTURE_ENABLED ? FAMILY_NEUTRAL_RUNTIME_FIXTURE_RECIPES : []),
 ] as const;
 
@@ -164,6 +167,7 @@ export const SIGNATURE_ASSETS: readonly SignatureAssetDefinition[] = [
   signatureV1Asset({id:"reference/signature-system-v1/micro-part/toggle/v1",sourceNumber:24,label:"Small Toggle / On-Off",subgroup:"micro-parts",assetKind:"micro-part",role:"toggle",variant:"visual-authority",sourceAsset:`${SIGNATURE_V1_ROOT}/05_micro-parts/visual-authority/24_small-toggle-on-off.png`,sourceSha256:"e4b01b4b0270fb269491259ea5dee68c3e1247556384a7d7f339d4f95fac3043",width:2048,height:682,glowPadding:full,safeInsets:full,socketContract:{},layoutCapabilities:[],responsiveContract:{proportional:true,phoneSafe:false},stateContract:["default"],nestingCapabilities:{canContainChildren:false,acceptedChildKinds:[]},lifecycle:"reference",referenceOnly:true,sourceReadiness:"visual-authority-needs-state-implementation",blockerNote:"Composite knob and shell require approved state masters or a certified non-destructive split.",sortOrder:1950,tags:["visual-authority","blocked","needs-state-implementation"]}),
   ...CABINET_NOIR_ASSETS,
   ...EVERENCORE_LOVE_AND_THEFT_ASSETS,
+  ...BRONZE_STANDARD_ASSETS,
   ...(FAMILY_NEUTRAL_RUNTIME_FIXTURE_ENABLED ? FAMILY_NEUTRAL_RUNTIME_FIXTURE_ASSETS : []),
 ] as const;
 

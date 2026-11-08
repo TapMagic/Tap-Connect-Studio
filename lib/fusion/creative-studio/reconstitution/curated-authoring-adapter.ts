@@ -17,6 +17,7 @@ export const CURATED_AUTHORING_COMMANDS = {
   reorderAction: "curated.action.reorder",
   setResourceSlot: "curated.resource-slot.set",
   setAppearance: "curated.appearance.set",
+  setAppearanceColor: "curated.appearance.color",
 } as const;
 
 export type CuratedAuthoringCommandPayload =
@@ -65,7 +66,7 @@ export function createCuratedAuthoringCapability(
   const textSizeControls: StudioAuthoringControl[] = precision || availableTextSizes.length > 1 ? [{
     id: "text-size",
     label: "Text size",
-    description: "Exact phone-scale label size. Certified preset assemblies remain compatible.",
+    description: "Label size in local CSS pixels. Whole-module placement and certified size limits remain authoritative.",
     type: "precision",
     value: activePx,
     unit: "px",
@@ -150,7 +151,7 @@ export function createCuratedAuthoringCapability(
         semanticGroup: "appearance" as const,
         options: [
           { id: "__inherit__", label: `Use assembly default · ${role.optionLabel}`, previewRef: role.preview, availability: "enabled" as const, metadata: { roleId: role.id, inherited: true } },
-          ...role.options.map((option) => ({ id: option.id, label: option.label, previewRef: option.preview, availability: option.availability, disabledReason: option.disabledReason, recommended: option.recommended, metadata: { rendererValue: option.rendererValue, roleId: role.id } })),
+          ...role.options.map((option) => ({ id: option.id, label: option.label, previewRef: option.preview.startsWith("material:") ? option.preview.split("|")[0] : option.preview, availability: option.availability, disabledReason: option.disabledReason, recommended: option.recommended, metadata: { rendererValue: option.rendererValue, roleId: role.id } })),
         ],
       }))
     : [];
@@ -240,6 +241,11 @@ export function createCuratedAuthoringCapability(
           },
           roster,
           ...configurableAppearanceControls,
+          ...assembly.appearance.roles.flatMap((role): StudioAuthoringControl[] => role.colorPicker ? [{
+            id: `appearance-color:${role.id}`, label: `${role.id === "plug-surface" ? "Plug" : "Button"} face color`, type: "color", roleId: role.id,
+            value: role.colorPicker.value, defaultValue: role.colorPicker.defaultColor, palette: role.colorPicker.palette, custom: role.colorPicker.custom,
+            commandId: CURATED_AUTHORING_COMMANDS.setAppearanceColor, interactionClass: "choice", semanticGroup: "appearance",
+          }] : []),
           {
             id: "appearance",
             label: "Appearance",
@@ -394,6 +400,13 @@ export function curatedCommandPayloadToMutation(
     if (!("resource" in payload) || payload.resource == null) return { type: "set-resource-slot", slotId: payload.slotId };
     if (typeof payload.resource !== "object" || !("src" in payload.resource) || typeof payload.resource.src !== "string" || !("alt" in payload.resource) || typeof payload.resource.alt !== "string" || !("provenance" in payload.resource) || typeof payload.resource.provenance !== "string") return null;
     return { type: "set-resource-slot", slotId: payload.slotId, resource: payload.resource as StudioSemanticResource };
+  }
+  if (commandId === CURATED_AUTHORING_COMMANDS.setAppearanceColor) {
+    if (!("roleId" in payload) || typeof payload.roleId !== "string" || !("value" in payload)) return null;
+    const role = assembly?.appearance.roles.find((candidate) => candidate.id === payload.roleId && candidate.colorPicker);
+    const color = payload.value;
+    return role && (color === null || (typeof color === "string" && /^#[0-9a-f]{6}$/i.test(color)))
+      ? { type: "set-appearance-color", roleId: role.id, color: color === null ? undefined : color as string } : null;
   }
   if (commandId === CURATED_AUTHORING_COMMANDS.setAppearance) {
     if (!("roleId" in payload) || typeof payload.roleId !== "string" || !("value" in payload) || typeof payload.value !== "string") return null;

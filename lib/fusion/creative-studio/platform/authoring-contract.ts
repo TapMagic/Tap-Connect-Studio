@@ -49,6 +49,7 @@ type StudioAuthoringControlBase = {
 };
 
 export type StudioAuthoringControl =
+  | StudioAuthoringControlBase & { type: "color"; value: string; defaultValue: string; palette: readonly string[]; custom: boolean; roleId: string }
   | StudioAuthoringControlBase & { type: "visual-layout"; value: string; options: readonly StudioAuthoringVisualOption[] }
   | StudioAuthoringControlBase & { type: "count-stepper"; value: number; options: readonly number[] }
   | StudioAuthoringControlBase & { type: "action-roster"; activeId?: string; items: readonly { id: string; label: string; secondary?: string; previewRef?: string }[] }

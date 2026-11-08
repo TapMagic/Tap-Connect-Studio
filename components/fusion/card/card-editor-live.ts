@@ -14,7 +14,7 @@ import type {
   TapExperiencePage,
 } from "@/lib/brand/tap-card";
 import type { CardElementKind, CardSurfaceKind, ComposerSelectedObject, SectionPresetId } from "@/lib/fusion/card/composer-model";
-import type { CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
+import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import type { SelectionRef } from "@/lib/fusion/creative-studio/selection-ref";
 import type { SignatureEntitlementKey } from "@/lib/fusion/creative-studio/signature-assets/types";
 import type { StudioDiscoveryResource } from "@/lib/fusion/creative-studio/platform/discovery";
@@ -101,6 +101,7 @@ export type CardEditorLiveModel = {
     label: string
   ) => void;
   beginLiveAdjustment?: () => void;
+  previewCompositionBlock?: (block: CreativeCompositionBlock) => void;
   previewCompositionNode?: (nodeId: string, patch: Partial<CreativeCompositionNode>) => void;
   previewSelection?: (selection: SelectionRef, patch: Partial<CreativeCompositionNode> | Partial<TapCardSection>) => void;
   commitLiveAdjustment?: (label: string) => void;
@@ -189,6 +190,7 @@ export type CardEditorLiveModel = {
   ) => { ok: true; selectedNodeId: string } | { ok: false; message: string };
   /** Canonical Card Surface → bounded nested Container → Module authority. */
   onEnableCompositionParentAuthority?: () => void;
+  onAddDesignedIntroduction?: (look: import("@/lib/fusion/creative-studio/reconstitution/native-starting-compositions").IntroductionLook, parentId: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image", parentId?: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionModule?: (
     kind: "text" | "image" | "video" | "button" | "map" | "divider",

@@ -29,6 +29,7 @@ import { createStudioAuthoringCommand } from "@/lib/fusion/creative-studio/platf
 import { actionProps, standardButtonActions, validateActionDestination, type StandardButtonActionIntent } from "@/lib/fusion/card/action-intent-presentation";
 import { cn } from "@/lib/utils";
 import { StudioTransientVisualBrowser } from "./studio-transient-visual-browser";
+import { StudioColorControl } from "./studio-color-control";
 import { StudioPrecisionControl } from "./studio-precision-control";
 import { MediaPicker } from "@/components/media/media-picker";
 import type { MediaAssetCandidate } from "@/lib/media/asset-browser";
@@ -154,6 +155,7 @@ function PurposeBuiltControl({ control, selection, onDispatch, onPreviewDispatch
   experiencePages: readonly TapExperiencePage[];
 }) {
   if (control.type === "visual-layout") return <ControlFrame control={control}><div className={cn("grid gap-1.5", control.options.length >= 3 ? "grid-cols-3" : "grid-cols-2")}>{control.options.map((option) => <button key={option.id} type="button" disabled={option.availability !== "enabled"} aria-pressed={control.value === option.id} onClick={() => onDispatch(control, { controlId: control.id, value: option.id }, `Changed layout to ${option.label}`)} className={visualChoiceClass}><LayoutPreview layout={option.id} /><strong className="mt-1.5 block text-[9px]">{option.label}</strong><span className="mt-0.5 block text-[7px] leading-3 text-white/34">{option.description}</span>{control.value === option.id ? <Check className="absolute right-1.5 top-1.5 h-3 w-3 text-[#b8ff2c]" /> : null}</button>)}</div></ControlFrame>;
+  if (control.type === "color") return <ControlFrame control={control}><StudioColorControl label={control.label} value={control.value} source={control.custom ? "custom" : "default"} documentColors={control.palette} documentLabel="Reference" resetValue={control.defaultValue} resetLabel="Use material color" onChange={(value, source) => { if (source === "default" ? !control.custom : control.custom && value.toLowerCase() === control.value.toLowerCase()) return; onDispatch(control, { controlId: control.id, roleId: control.roleId, value: source === "default" ? null : value }, `Changed ${control.label}`); }} /></ControlFrame>;
   if (control.type === "count-stepper") {
     const currentIndex = control.options.indexOf(control.value);
     const previous = control.options[currentIndex - 1];

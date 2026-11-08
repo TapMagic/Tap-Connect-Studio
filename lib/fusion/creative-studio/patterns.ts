@@ -44,6 +44,17 @@ function scaled(value: number, base: number): string {
 
 export const SURFACE_PATTERN_CATALOG: SurfacePatternDefinition[] = [
   {
+    id: "mineral-veins",
+    label: "Gold mineral veins",
+    category: "Mineral",
+    kind: "texture",
+    css: (m) => ({
+      backgroundColor: m.background,
+      backgroundImage: `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="260" height="190" viewBox="0 0 260 190"><g fill="none" stroke="#c6944d" stroke-opacity="${m.opacity}" stroke-width=".65"><path d="M0 23l21 9 14-6 17 19 27-8 12 17 23-2 17 28 31-5 12 24 24-3 19 22 43-9M35 26l8-26m9 45-5 27 14 11-9 31 19 16-4 29 19 31M114 52l-6-26 16-9 3-17m4 80-12 25 12 26-7 23 21 36M174 99l-4 32 18 12-2 26 14 21M217 118l-4 24 24 17-5 31M0 151l24-3 15-20 13-14m15 45 25-5 14 12 18-12m62 15-21-9-20 30M162 75l12-20-5-27 20-13 2-15M260 31l-27 6-16-10-28-12M24 148l-8-27 7-26-6-27 18-42"/><path d="M79 37l-3-16 8-7M91 54l-4 19 8 9m36 49 21 7 13 22M198 96l-7-19 7-21m-11 87 21 4 5-5M0 23l5-11L0 0" stroke-width=".3"/></g><g fill="#c8a66a" fill-opacity="${m.opacity * .7}"><circle cx="35" cy="26" r="1.2"/><circle cx="174" cy="99" r="1"/><circle cx="52" cy="114" r="1.3"/></g></svg>`)}")`,
+      backgroundSize: `${scaled(m.scale, 78)} ${scaled(m.scale, 57)}`,
+    }),
+  },
+  {
     id: "subtle-grain",
     label: "Subtle Grain",
     category: "Brand-safe neutral",
