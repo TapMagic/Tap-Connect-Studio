@@ -119,3 +119,13 @@ export function resolvePreviewVisualResources<T>(value: T, token: string): T {
 
   return project(value) as T;
 }
+
+/** A saved Experience owns its logo; workspace chrome is only a fallback.
+ * Portability validation still applies to the returned source. */
+export function previewContextLogo(snapshot: unknown, fallback?: string | null): string | null {
+  if (snapshot && typeof snapshot === "object" && "headerLogoUrl" in snapshot) {
+    const own = (snapshot as { headerLogoUrl?: unknown }).headerLogoUrl;
+    if (typeof own === "string" && own.trim()) return own;
+  }
+  return fallback ?? null;
+}

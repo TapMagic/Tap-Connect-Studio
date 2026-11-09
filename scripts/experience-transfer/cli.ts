@@ -1,3 +1,4 @@
+import { existingWorkspaceEvidence, validateExistingApproval, fingerprint, type ExistingWorkspaceApproval } from './existing-workspace';
 import { appendAuditEvent } from '../../lib/control/audit';
 /** Operator-only selective transfer. Export is local-only; plan is read-only; apply requires a reviewed plan hash. */
 import { isPlatformAdminEmail } from '../../lib/config/admins';
@@ -14,9 +15,9 @@ import { Prisma, type MediaAsset } from '@prisma/client';
 import { prisma } from '../../lib/db';
 import { prepareUploadedImage } from '../../lib/media/service';
 import { putMediaObject, readMediaObject, deleteMediaObject } from '../../lib/media/storage';
-import { collectPreviewLocalMediaKeys, inspectPreviewVisualResourcePortability } from '../../lib/fusion/creative-studio/preview/visual-resources';
+import { collectPreviewLocalMediaKeys, inspectPreviewVisualResourcePortability, previewContextLogo } from '../../lib/fusion/creative-studio/preview/visual-resources';
 import { digest, validateBundle, projectBundle, jsonInput, type TransferBundle, type ObjectEntry } from './core';
-const { positionals, values: args } = parseArgs({ allowPositionals: true, options: { package: { type: 'string' }, experience: { type: 'string' }, tenant: { type: 'string' }, actor: { type: 'string' }, 'media-origin': { type: 'string' }, 'approved-plan': { type: 'string' }, execute: { type: 'boolean' }, 'local-test': { type: 'boolean' } } });
+const { positionals, values: args } = parseArgs({ allowPositionals: true, options: { package: { type: 'string' }, experience: { type: 'string' }, tenant: { type: 'string' }, actor: { type: 'string' }, 'media-origin': { type: 'string' }, 'existing-workspace-approval': { type: 'string' }, 'approved-plan': { type: 'string' }, execute: { type: 'boolean' }, 'local-test': { type: 'boolean' } } });
 const mode = positionals[0], dir = path.resolve(args.package || '');
 if (!args.package)
     throw new Error('--package directory required');
@@ -125,11 +126,14 @@ async function check(tx: Prisma.TransactionClient, b: TransferBundle) {
     const membership = await tx.businessUser.findUnique({ where: { businessId_userId: { businessId: args.tenant, userId: args.actor } }, include: { user: true, business: true } });
     if (!membership || membership.role !== 'OWNER' || membership.user.platformStatus !== 'ACTIVE' || membership.business.lifecycleState !== 'ACTIVE')
         throw new Error('Active target OWNER authorization required');
-    if (inspectPreviewVisualResourcePortability({ logoUrl: membership.business.logoUrl }).length)
-        throw new Error('Target tenant logo must first use canonical Assets');
-    if (await tx.cardCreativeDocument.count({ where: { businessId: args.tenant } }) || await tx.mediaAsset.count({ where: { businessId: args.tenant } }) || await tx.experiencePublicDestination.count({ where: { businessId: args.tenant } }))
-        throw new Error('Target must be a dedicated empty tenant; refusing shared customer data');
-    const collisions = [await tx.cardCreativeDocument.count({ where: { id: b.document.id } }), await tx.experiencePublicDestination.count({ where: { OR: [{ id: b.destination.id }, { slug: b.destination.slug }, { experienceId: b.document.id }] } }), await tx.experienceAccessCredential.count({ where: { OR: [{ id: { in: b.credentials.map(c => c.id) } }, { tokenHash: { in: b.credentials.map(c => c.tokenHash) } }] } }), await tx.mediaAsset.count({ where: { id: { in: b.media.map(m => m.id) } } }), await tx.publicationSnapshot.count({ where: { id: { in: b.snapshots.map(s => s.id) } } })];
+    if (inspectPreviewVisualResourcePortability({ logoUrl: previewContextLogo(projectBundle(b, args.tenant, 'https://media.invalid').document.draft, membership.business.logoUrl) }).length)
+        throw new Error('Effective Experience Preview logo must use canonical Assets');
+    if (args['existing-workspace-approval']) {
+        const approved = JSON.parse(await readFile(path.resolve(args['existing-workspace-approval']), 'utf8')) as ExistingWorkspaceApproval;
+        validateExistingApproval(approved, await existingWorkspaceEvidence(tx, args.tenant, args.actor));
+    } else if (await tx.cardCreativeDocument.count({ where: { businessId: args.tenant } }) || await tx.mediaAsset.count({ where: { businessId: args.tenant } }) || await tx.experiencePublicDestination.count({ where: { businessId: args.tenant } }))
+        throw new Error('Nonempty target requires an explicit existing-workspace approval');
+    const collisions = [await tx.cardCreativeDocument.count({ where: { id: b.document.id } }), await tx.experiencePublicDestination.count({ where: { OR: [{ id: b.destination.id }, { slug: b.destination.slug }, { experienceId: b.document.id }] } }), await tx.experienceAccessCredential.count({ where: { OR: [{ id: { in: b.credentials.map(c => c.id) } }, { tokenHash: { in: b.credentials.map(c => c.tokenHash) } }] } }), await tx.mediaAsset.count({ where: { OR: [{ id: { in: b.media.map(m => m.id) } }, { storageKey: { in: projectBundle(b, args.tenant!, 'https://media.invalid').objects.map(o => o.targetKey) } }] } }), await tx.publicationSnapshot.count({ where: { id: { in: b.snapshots.map(s => s.id) } } })];
     if (collisions.some(Boolean))
         throw new Error('Identity/slug/hash collision; no overwrite permitted');
     const keys = SIGNATURE_FAMILIES.flatMap(f => f.entitlement ? [f.entitlement.entitlementKey] : []);
@@ -169,7 +173,9 @@ async function targetPlan() {
         for (const [table, col] of [['CardCreativeDocument', 'draftRevision'], ['ExperienceAccessCredential', 'tokenHash'], ['MediaAsset', 'derivationRecipe'], ['PublicationSnapshot', 'manifest']])
             if (!columns.some(c => c.table_name === table && c.column_name === col))
                 throw new Error('Target schema mismatch: ' + table + '.' + col);
-        const plan = { bundleHash: hash, targetHost: new URL(process.env.DATABASE_URL!).hostname, database, tenant: args.tenant, actor: args.actor, release: execFileSync('git', ['-C', path.resolve(__dirname, '../..'), 'rev-parse', 'HEAD']).toString().trim(), mediaOrigin: origin, documentId: bundle.document.id, revision: bundle.document.draftRevision, credentialIds: bundle.credentials.map(c => c.id), objectKeys: projected.objects.map(o => o.targetKey), importedAsUnpublished: true };
+        const existingWorkspaceApproval = args['existing-workspace-approval'] ? JSON.parse(await readFile(path.resolve(args['existing-workspace-approval']), 'utf8')) as ExistingWorkspaceApproval : null;
+        const storageFingerprint = fingerprint({ origin, bucket: process.env.R2_BUCKET_NAME ?? null, account: process.env.R2_ACCOUNT_ID ?? null, local: loopback() });
+        const plan = { existingWorkspaceApproval, existingApprovalHash: existingWorkspaceApproval ? fingerprint(existingWorkspaceApproval) : null, storageFingerprint, bundleHash: hash, targetHost: new URL(process.env.DATABASE_URL!).hostname, database, tenant: args.tenant, actor: args.actor, release: execFileSync('git', ['-C', path.resolve(__dirname, '../..'), 'rev-parse', 'HEAD']).toString().trim(), mediaOrigin: origin, documentId: bundle.document.id, revision: bundle.document.draftRevision, credentialIds: bundle.credentials.map(c => c.id), objectKeys: projected.objects.map(o => o.targetKey), importedAsUnpublished: true };
         return { plan, planHash: digest(JSON.stringify(plan)), projected, bundle };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 30000 });
 }
@@ -213,6 +219,7 @@ async function apply() {
             await tx.experiencePublicDestination.create({ data: result.projected.destination });
             for (const c of result.projected.credentials)
                 await tx.experienceAccessCredential.create({ data: c });
+            if (result.plan.existingWorkspaceApproval) validateExistingApproval(result.plan.existingWorkspaceApproval, await existingWorkspaceEvidence(tx, args.tenant!, args.actor!, result.bundle));
             await appendAuditEvent({ client: tx, actorId: args.actor, businessId: args.tenant, action: 'studio.experience.imported', permissionUsed: 'card.draft.edit', resourceType: 'Experience', resourceId: result.bundle.document.id, newValue: { bundleHash: result.plan.bundleHash, revision: result.plan.revision, published: false }, metadata: { planHash: result.planHash } });
         }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable, timeout: 120000 });
         committed = true;
@@ -259,6 +266,9 @@ async function rollback() {
         const other = await tx.cardCreativeDocument.findMany({ where: { businessId: receipt.tenant, id: { not: d.id } }, select: { draft: true } });
         if (other.some(x => receipt.mediaIds.some((id: string) => JSON.stringify(x.draft).includes(id))))
             throw new Error('Imported media is reused');
+        const { bundle } = await loadBundle();
+        if (receipt.bundleHash !== digest(await readFile(path.join(dir, 'bundle.json')))) throw new Error('Rollback bundle mismatch');
+        if (receipt.existingWorkspaceApproval) validateExistingApproval(receipt.existingWorkspaceApproval, await existingWorkspaceEvidence(tx, receipt.tenant, receipt.actor, bundle));
         await tx.cardCreativeDocument.delete({ where: { id: d.id } });
         await tx.publicationSnapshot.deleteMany({ where: { id: { in: receipt.snapshotIds }, businessId: receipt.tenant, subjectId: d.id } });
         await tx.mediaAsset.deleteMany({ where: { id: { in: receipt.mediaIds }, businessId: receipt.tenant } });
@@ -275,7 +285,12 @@ async function rollback() {
     console.log('Only unchanged imported records and verified unused objects removed');
 }
 (async () => {
-    if (mode === 'export')
+    if (mode === 'inspect-existing') {
+        if (!args.tenant || !args.actor) throw new Error('--tenant and --actor required');
+        const evidence = await prisma.$transaction(async tx => { await tx.$executeRawUnsafe('SET TRANSACTION READ ONLY'); return existingWorkspaceEvidence(tx, args.tenant!, args.actor!); }, { isolationLevel: Prisma.TransactionIsolationLevel.RepeatableRead });
+        await save('existing-workspace-approval.json', evidence);
+        console.log(JSON.stringify({ preparedForReview: true, approvalHash: fingerprint(evidence) }));
+    } else if (mode === 'export')
         await exportBundle();
     else if (mode === 'plan') {
         const { plan, planHash } = await targetPlan();

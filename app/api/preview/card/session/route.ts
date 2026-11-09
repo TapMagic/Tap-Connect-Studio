@@ -10,7 +10,7 @@ import {
   portFromOrigin,
   resolvePreviewBaseUrl,
 } from "@/lib/fusion/creative-studio/preview/url";
-import { inspectPreviewVisualResourcePortability } from "@/lib/fusion/creative-studio/preview/visual-resources";
+import { inspectPreviewVisualResourcePortability, previewContextLogo } from "@/lib/fusion/creative-studio/preview/visual-resources";
 import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 import { getSavedPhonePreviewDraft } from "@/lib/fusion/creative-studio/preview/saved-draft";
 
@@ -90,7 +90,8 @@ export async function POST(req: Request) {
   const snapshot = saved?.config ?? body.snapshot;
   const revision = saved?.revision ?? body.revision ?? 1;
 
-  if (inspectPreviewVisualResourcePortability({ snapshot, profile: body.profile, logoUrl: body.logoUrl }).length > 0) {
+  const logoUrl = previewContextLogo(snapshot, body.logoUrl);
+  if (inspectPreviewVisualResourcePortability({ snapshot, profile: body.profile, logoUrl }).length > 0) {
     return ownerFacingError(
       "A committed image is not portable to Live Device",
       "Phone preview was not created because the image exists only in this browser or machine.",
@@ -111,7 +112,7 @@ export async function POST(req: Request) {
     businessName: body.businessName || "Business",
     snapshotJson: JSON.stringify(snapshot),
     profileJson: JSON.stringify(body.profile),
-    logoUrl: body.logoUrl,
+    logoUrl,
     reviewUrl: body.reviewUrl,
     revision,
     mode: body.mode === "freeze" ? "freeze" : "follow",

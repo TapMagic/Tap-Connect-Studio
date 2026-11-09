@@ -69,3 +69,14 @@ test("fails closed on browser-local, machine-local, and loopback-only visual sta
   ]);
   assert.ok(issues.every((issue) => issue.path.length > 0));
 });
+
+test('Experience Preview logo overrides legacy workspace chrome without weakening portability', async () => {
+  const { previewContextLogo } = await import('../visual-resources');
+  const legacy = 'data:image/png;base64,legacy-workspace-logo';
+  const own = 'https://media.example.test/approved-logo.webp';
+  assert.equal(previewContextLogo({ headerLogoUrl: own }, legacy), own);
+  assert.deepEqual(inspectPreviewVisualResourcePortability({ logoUrl: previewContextLogo({ headerLogoUrl: own }, legacy) }), []);
+  assert.equal(previewContextLogo({}, legacy), legacy);
+  assert.equal(inspectPreviewVisualResourcePortability({ logoUrl: previewContextLogo({}, legacy) }).length, 1);
+  assert.equal(inspectPreviewVisualResourcePortability({ logoUrl: previewContextLogo({ headerLogoUrl: legacy }, own) }).length, 1);
+});

@@ -57,3 +57,18 @@ Local rehearsal only: --local-test with --media-origin local-fixture requires a
 loopback DATABASE_URL and CREATIVE_PROVIDER_MODE=fixture; it cannot target production.
 Temporary signed previews remain expiring sessions; the printed credential is the
 persistent published Experience authority, independent of those sessions.
+
+EXPLICIT EXISTING-WORKSPACE EXCEPTION (operator tool only)
+The default still requires an empty target. To propose a reviewed nonempty target,
+run mode inspect-existing with --package, --tenant and --actor. This writes
+existing-workspace-approval.json privately; it is evidence for review, not production
+execution authorization. The target must have exactly one active Clerk-linked OWNER
+and no additional members. This avoids unintentionally sharing Forecast with others.
+Pass --existing-workspace-approval /absolute/private/path/to/that/file to plan/apply.
+The plan binds the approval hash, storage configuration and current candidate commit.
+Any change in existing documents, media, publication history, credentials, business
+configuration or membership invalidates it. Approval is for that exact workspace only.
+Apply remains insert-only and unpublished/access-off; rollback remains receipt-scoped.
+Existing customer rows are fingerprint-checked inside apply and before rollback.
+Do not regenerate a baseline to conceal unexpected changes; stop and obtain review.
+No Clerk account, workspace, membership, role, entitlement or paid resource is created.

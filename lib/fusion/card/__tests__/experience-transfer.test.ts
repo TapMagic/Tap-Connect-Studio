@@ -29,3 +29,13 @@ test('normalizes only the exact exported SVG reference, never arbitrary action d
   const source={headerLogoUrl:'inline-seeded-svg',href:'https://example.com/listen',actionId:'same'};
   assert.deepEqual(replaceStrings(source,new Map([['inline-seeded-svg','https://media.example.test/asset.svg']])),{headerLogoUrl:'https://media.example.test/asset.svg',href:'https://example.com/listen',actionId:'same'});
 });
+
+test('existing-workspace approval binds exact owner, membership and unchanged customer data', async () => {
+  const { validateExistingApproval, fingerprint } = await import('../../../../scripts/experience-transfer/existing-workspace');
+  const approved = { format: 'tapconnect-existing-workspace@1' as const, tenant: 'approved', actor: 'owner', membersHash: fingerprint(['owner']), baselineHash: fingerprint({ id: 'existing', draft: 'unchanged' }) };
+  assert.doesNotThrow(() => validateExistingApproval(approved, { ...approved }));
+  for (const change of [{ tenant: 'other' }, { actor: 'other' }, { membersHash: fingerprint(['owner', 'new-member']) }, { baselineHash: fingerprint({ id: 'existing', draft: 'changed' }) }]) {
+    assert.throws(() => validateExistingApproval(approved, { ...approved, ...change }), /mismatch|changed/);
+  }
+  assert.equal(fingerprint({ a: 1, b: { c: 2 } }), fingerprint({ b: { c: 2 }, a: 1 }));
+});
