@@ -135,7 +135,7 @@ import { ActionPresentationEffects } from "@/components/fusion/creative-studio/a
 import { MapLocationContainer } from "@/components/tap/map-location-container";
 import { StudioFrameDiagnostics } from "./studio-frame-diagnostics";
 import { StudioTextEntry } from "./studio-text-entry";
-import { studioTextBoxStyle } from "@/lib/fusion/creative-studio/platform/text-authoring";
+import { studioTextBoxStyle, usesAuthoredTextLayout } from "@/lib/fusion/creative-studio/platform/text-authoring";
 import { resolveStudioFrameSemantics } from "@/lib/fusion/creative-studio/platform/frame-semantics";
 
 export type CreativeCompositionCanvasProps = {
@@ -317,13 +317,13 @@ function LayeredFrameHandles({ name, prefix, handles, zoom, onStart }: {
   </>;
 }
 
-function InlineEditableText({ nodeId, value, editing, style, onCommit, onFinish, multiline = true }: {
+function InlineEditableText({ nodeId, value, editing, style, onCommit, onFinish, multiline = true, authoredLayout = false }: {
   nodeId: string; value: string; editing: boolean; style: CSSProperties;
   onCommit?: (value: string, phase: "preview" | "commit" | "cancel") => void;
-  onFinish?: () => void; multiline?: boolean;
+  onFinish?: () => void; multiline?: boolean; authoredLayout?: boolean;
 }) {
   return editing ? <StudioTextEntry key={nodeId} value={value} onChange={onCommit} onFinish={onFinish} inline multiline={multiline} testId={`composition-inline-text-${nodeId}`} />
-    : <span className="block w-full whitespace-pre-wrap outline-none" style={{ ...style, overflowWrap: "anywhere", minHeight: "1lh" }} data-testid={`composition-inline-text-${nodeId}`} data-inline-editing="false">{value}{value.endsWith("\n") ? <br aria-hidden /> : null}</span>;
+    : <span className={cn("w-full whitespace-pre-wrap outline-none", authoredLayout ? "block" : "leading-tight")} style={{ ...style, ...(authoredLayout ? { overflowWrap: "anywhere", minHeight: "1lh" } : {}) }} data-testid={`composition-inline-text-${nodeId}`} data-inline-editing="false">{value}{authoredLayout && value.endsWith("\n") ? <br aria-hidden /> : null}</span>;
 }
 
 function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMode?: boolean }) {
@@ -640,6 +640,7 @@ function NodeVisual({
   if (node.primitive === "text") {
     const text = str(node.props.text, "Text");
     const curve = str(node.props.textCurve, "none");
+    const authoredLayout = usesAuthoredTextLayout(node.props);
     const heightMode = str(node.props.textHeightMode, "auto");
     const overflowMode = str(node.props.textOverflow, "visible");
     const glyphStyle: CSSProperties = {
@@ -715,7 +716,7 @@ function NodeVisual({
     }
     return (
       <div
-        className="flex w-full items-start"
+        className={cn("flex w-full", authoredLayout ? "items-start" : ["items-center px-1", heightMode === "fixed" ? "h-full" : "h-auto min-h-full"])}
         data-text-box-background={node.props.boxGradient || (node.props.boxFill && str(node.props.boxFill) !== "transparent") ? "filled" : "transparent"}
         data-glyph-effect={str(node.props.effectPreset, str(node.props.glyphEffect, node.props.materialPreset ? String(node.props.materialPreset) : node.props.gradientFill ? "gradient" : node.props.glow ? "glow" : "none"))}
         data-glyph-gradient={node.props.gradientFill ? "true" : "false"}
@@ -775,6 +776,7 @@ function NodeVisual({
       >
         <InlineEditableText
           nodeId={node.id}
+          authoredLayout={authoredLayout}
           value={str(node.props.text, "Text")}
           editing={Boolean(editMode && textEditing)}
           style={glyphStyle}
@@ -2833,13 +2835,13 @@ export function CreativeCompositionCanvas({
       const responsiveModuleHeight = isCuratedAssembly ? nativeModuleHeight * (width / 100) : nativeModuleHeight;
       const minimumTouchTarget = Math.max(44, num(node.props.minimumTouchTargetPx, 44));
       const minHeight = node.moduleComposition ? isCuratedAssembly ? minimumTouchTarget : Math.max(52, responsiveModuleHeight)
-        : node.primitive === "text" ? studioTextBoxStyle(node.props).minHeight ?? 0
+        : node.primitive === "text" ? usesAuthoredTextLayout(node.props) ? studioTextBoxStyle(node.props).minHeight ?? 0 : Math.max(32, num(node.props.textMinHeightPx, 40))
           : node.primitive === "image" ? Math.max(1, node.minHeightPx ?? 180)
             : node.primitive === "border" ? 12
               : Math.max(52, node.minHeightPx ?? 56);
       const inset = Math.max(0, Math.min(80, num(node.props.flowInsetPx, 0)));
       const alignment = str(node.props.flowAlignment, "stretch");
-      const fixedTextHeight = node.primitive === "text" && str(node.props.textHeightMode, "auto") === "fixed" ? studioTextBoxStyle(node.props).height : undefined;
+      const fixedTextHeight = node.primitive === "text" && str(node.props.textHeightMode, "auto") === "fixed" ? usesAuthoredTextLayout(node.props) ? studioTextBoxStyle(node.props).height : Math.max(minHeight, num(node.props.textFixedHeightPx, minHeight)) : undefined;
       const videoAspect = node.primitive === "video" ? videoAspectRatio(readStudioVideoState(node.props).aspect) : undefined;
       return {
         flexShrink: 0,
@@ -3198,7 +3200,7 @@ export function CreativeCompositionCanvas({
             right: compactCanonicalRight ? 0 : undefined,
             top: `${localY * 100}%`,
             width: compactAuthoredWidthPx != null ? `${compactAuthoredWidthPx}px` : `${localWidth * 100}%`,
-            height: node.primitive === "text" && str(node.props.textCurve, "none") === "none" ? studioTextBoxStyle(node.props).height ?? "auto" : compactMetrics ? `${compactMetrics.contentHeightPx}px` : `${localHeight * 100}%`,
+            height: node.primitive === "text" && usesAuthoredTextLayout(node.props) && str(node.props.textCurve, "none") === "none" ? studioTextBoxStyle(node.props).height ?? "auto" : compactMetrics ? `${compactMetrics.contentHeightPx}px` : `${localHeight * 100}%`,
             transform: `${compactCanonicalCenter ? "translateX(-50%)" : ""}${node.rotationDeg ? ` rotate(${node.rotationDeg}deg)` : ""}`.trim() || undefined,
             minHeight: 0,
             ["--studio-action-layout-min-height" as string]: "0px",
@@ -3356,6 +3358,7 @@ export function CreativeCompositionCanvas({
     function renderContainer(node: CreativeCompositionNode, parentLayered: boolean) {
       const children = compositionChildren(flowBlock, node.id);
       const padding = Math.max(0, num(node.props.padding, 16));
+      const outerLayeredPadding = node.props.layeredPaddingPlacement === "outer";
       const containerDensity = readContainerDensity(node);
       const alignment = str(node.props.alignment, "stretch");
       const layered = isLayeredContainer(node);
@@ -3408,7 +3411,7 @@ export function CreativeCompositionCanvas({
         }}
         style={{
           position: parentLayered ? "absolute" : "relative",
-          padding: layered ? padding : undefined,
+          padding: layered && outerLayeredPadding ? padding : undefined,
           left: parentLayered ? `${node.x * 100}%` : undefined,
           top: parentLayered ? `${node.y * 100}%` : undefined,
           height: parentLayered ? `${node.height * 100}%` : fixedHeight ?? (contentFit === "fill_parent" ? "100%" : undefined),
@@ -3450,7 +3453,7 @@ export function CreativeCompositionCanvas({
           style={{
             overflow: node.props.clipContent === true ? "hidden" : "visible",
             borderRadius: node.props.clipContent === true ? num(node.props.radius, 0) : undefined,
-            padding: layered ? 0 : padding,
+            padding: layered && outerLayeredPadding ? 0 : padding,
             rowGap: layered ? undefined : containerDensity.rowGapPx,
             columnGap: layered ? undefined : containerDensity.columnGapPx,
             height: layered ? parentLayered ? "100%" : Math.max(180, num(node.props.layeredHeightPx, 360)) : fixedHeight ? "100%" : undefined,

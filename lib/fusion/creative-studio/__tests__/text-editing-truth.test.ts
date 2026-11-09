@@ -60,7 +60,7 @@ test("target teardown cancels once and rejects stale follow-up events", () => {
 });
 
 test("Auto ignores retained minimum, Minimum honors floor, Fixed has independent height; source is untouched", () => {
-  const props = { textHeightMode: "auto", textMinHeightPx: 140, textFixedHeightPx: 64 };
+  const props = { textLayoutVersion: 2, textHeightMode: "auto", textMinHeightPx: 140, textFixedHeightPx: 64 };
   const before = JSON.stringify(props);
   assert.deepEqual(studioTextBoxStyle(props), { minHeight: 0 });
   assert.deepEqual(studioTextBoxStyle({ ...props, textHeightMode: "minimum" }), { minHeight: 140 });

@@ -713,6 +713,7 @@ export function createFlowContainerNode(
       contentFit: "fit_content",
       clipContent: false,
       padding: 16,
+      layeredPaddingPlacement: "outer",
       gap: 12,
       alignment: "stretch",
       containerTreatment: treatment,

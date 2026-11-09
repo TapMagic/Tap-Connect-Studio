@@ -9,9 +9,16 @@ export type StudioTextValueSource = "brand" | "local";
 export type StudioTextHeightMode = "auto" | "minimum" | "fixed";
 export type StudioTextOverflowMode = "visible" | "scroll" | "clip";
 
+/** Saved, unversioned text retains the original runtime metrics. New/explicitly
+ * reapplied Text roles opt into authored line height and intrinsic box sizing. */
+export function usesAuthoredTextLayout(props: Readonly<Record<string, unknown>>): boolean {
+  return props.textLayoutVersion === 2;
+}
+
 /** One renderer policy in Flow and Layered. This never edits normalized placement. */
 export function studioTextBoxStyle(props: Record<string, unknown>): { height?: number; minHeight?: number } {
   const minimum = Math.max(0, Number(props.textMinHeightPx) || 0);
+  if (!usesAuthoredTextLayout(props)) return { minHeight: minimum || undefined };
   if (props.textHeightMode === "fixed") return { height: Math.max(24, Number(props.textFixedHeightPx) || minimum || 44), minHeight: 0 };
   if (props.textHeightMode === "minimum") return { minHeight: minimum };
   return { minHeight: 0 };
@@ -47,6 +54,7 @@ export function textRoleCanonicalProps(roleId: StudioTextRoleId, brand?: BrandPr
     : brand?.bodyFontFamily || '"Inter", ui-sans-serif, system-ui, sans-serif';
   return {
     elementKind: "text",
+    textLayoutVersion: 2,
     text: role.sample,
     textRole: role.id,
     textMinHeightPx: role.minHeightPx,
