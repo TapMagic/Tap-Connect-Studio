@@ -35,6 +35,9 @@ export const PUBLIC_ROUTE_PATTERNS = [
   "/api/tapsave/(.*)",
   "/api/mytap/(.*)",
   "/preview/(.*)",
+  // Signed media validates its session, referenced Asset and tenant in the handler.
+  // Session creation/update/revocation APIs remain protected by Studio auth.
+  "/api/preview/card/asset/(.*)",
   // Published fan Experiences are anonymous delivery surfaces, not Host UI.
   "/everencore/(.*)",
   // Opaque QR credentials are validated and redeemed server-side.
