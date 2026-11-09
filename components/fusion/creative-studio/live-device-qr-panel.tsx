@@ -140,7 +140,10 @@ export function LiveDeviceQrPanel({
         if (!res.ok || !data.ok) {
           setError(data.error || "Preview session unavailable");
           setGuidance(data.recovery || data.guidance || null);
-          setCandidateKind(data.candidateKind || "invalid");
+          // Content/auth failures do not establish a bad phone address.
+          setCandidateKind(data.candidateKind || null);
+          setPreviewUrl(null);
+          setQrDataUrl(null);
           setPhysicallyVerified(false);
           setStatus("error");
           return;
@@ -261,6 +264,8 @@ export function LiveDeviceQrPanel({
   const candidacyLabel =
     status === "idle" || status === "creating"
       ? STUDIO_WORDING.creatingPhonePreview
+      : status === "error" && !candidateKind
+        ? "Phone Preview unavailable — see the reason below"
       : candidacyCopy(candidateKind);
 
   return (
@@ -429,6 +434,8 @@ export function LiveDeviceQrPanel({
         >
           {busy
             ? STUDIO_WORDING.creatingPhonePreview
+            : status === "error"
+              ? "QR unavailable — resolve the Preview error above"
             : "QR unavailable until a phone-attempt candidate URL is available"}
         </div>
       )}

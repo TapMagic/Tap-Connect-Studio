@@ -56,6 +56,16 @@ test("signed preview asset route serves tenant media without a Studio auth sessi
     assert.equal(crossTenant.status, 200);
     assert.equal(crossTenant.headers.get("x-tapconnect-preview-resource"), "unavailable");
     assert.match(await crossTenant.text(), /Image unavailable in device preview/);
+    const unreferencedAsset = await GET(
+      new Request("http://phone.test/api/preview/card/asset/" + session.token + "?assetId=private-unreferenced-asset"),
+      { params: Promise.resolve({ token: session.token }) }
+    );
+    assert.equal(unreferencedAsset.headers.get("x-tapconnect-preview-resource"), "unavailable");
+    const unsigned = await GET(
+      new Request("http://phone.test/api/preview/card/asset/invalid?assetId=private-unreferenced-asset"),
+      { params: Promise.resolve({ token: "invalid" }) }
+    );
+    assert.equal(unsigned.status, 404);
   } finally {
     setNodeEnv("test");
     process.env.CREATIVE_PROVIDER_MODE = "fixture";

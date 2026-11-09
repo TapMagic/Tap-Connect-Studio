@@ -191,6 +191,7 @@ export function updatePreviewSession(
   patch: {
     snapshotJson?: string;
     profileJson?: string;
+    logoUrl?: string | null;
     revision?: number;
     cardName?: string;
     mode?: PreviewFollowMode;
@@ -213,6 +214,7 @@ export function updatePreviewSession(
     ...got.record,
     snapshotJson: patch.snapshotJson ?? got.record.snapshotJson,
     profileJson: patch.profileJson ?? got.record.profileJson,
+    logoUrl: patch.logoUrl === undefined ? got.record.logoUrl : patch.logoUrl,
     revision: patch.revision ?? got.record.revision,
     cardName: patch.cardName ?? got.record.cardName,
     mode: patch.mode ?? got.record.mode,

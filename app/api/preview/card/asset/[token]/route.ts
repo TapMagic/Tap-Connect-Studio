@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { getPreviewSession } from "@/lib/fusion/creative-studio/preview/tokens";
-import { collectPreviewLocalMediaKeys } from "@/lib/fusion/creative-studio/preview/visual-resources";
+import { collectPreviewLocalMediaKeys, collectPreviewMediaAssetIds } from "@/lib/fusion/creative-studio/preview/visual-resources";
+import { normalizePreviewMedia, readPreviewMediaAsset } from "@/lib/fusion/creative-studio/preview/canonical-media";
+import { prisma } from "@/lib/db";
 import { getSavedPhonePreviewDraft } from "@/lib/fusion/creative-studio/preview/saved-draft";
-import {
-  localMediaStorageEnabled,
-  readLocalMediaObject,
-} from "@/lib/media/storage";
+import { readMediaObject } from "@/lib/media/storage";
 
 export const runtime = "nodejs";
 
@@ -43,6 +42,33 @@ export async function GET(
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
+  const assetId = new URL(request.url).searchParams.get("assetId");
+  if (assetId) {
+    try {
+      const referenced = collectPreviewMediaAssetIds({
+        snapshot: JSON.parse(session.record.snapshotJson),
+        profile: JSON.parse(session.record.profileJson),
+        logoUrl: session.record.logoUrl,
+      });
+      if (session.record.mode === "follow") {
+        const latest = await getSavedPhonePreviewDraft({ businessId: session.record.businessId, documentId: session.record.documentId || "main-card" });
+        if (latest) {
+          const normalized = await normalizePreviewMedia(latest.config, session.record.businessId);
+          for (const id of normalized.assetIds) referenced.add(id);
+        }
+      }
+      if (!referenced.has(assetId)) return unavailableImage();
+      const asset = await prisma.mediaAsset.findFirst({ where: { id: assetId, businessId: session.record.businessId } });
+      if (!asset) return unavailableImage();
+      const { bytes, mimeType } = await readPreviewMediaAsset(asset, session.record.businessId);
+      return new Response(Uint8Array.from(bytes), { headers: {
+        "Content-Type": mimeType, "Content-Length": String(bytes.byteLength),
+        "Cache-Control": "private, no-store", "X-Content-Type-Options": "nosniff",
+        "X-TapConnect-Preview-Resource": "resolved",
+      } });
+    } catch { return unavailableImage(); }
+  }
+
   const storageKey = new URL(request.url).searchParams.get("key") || "";
   if (!storageKey.startsWith(`${session.record.businessId}/`)) {
     return unavailableImage();
@@ -69,10 +95,9 @@ export async function GET(
     return unavailableImage();
   }
   if (!referenced.has(storageKey)) return unavailableImage();
-  if (!localMediaStorageEnabled()) return unavailableImage();
 
   try {
-    const bytes = await readLocalMediaObject(storageKey);
+    const bytes = await readMediaObject(storageKey);
     return new Response(Uint8Array.from(bytes), {
       headers: {
         "Content-Type": mimeForKey(storageKey),

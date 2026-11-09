@@ -10,7 +10,8 @@ import {
   portFromOrigin,
   resolvePreviewBaseUrl,
 } from "@/lib/fusion/creative-studio/preview/url";
-import { inspectPreviewVisualResourcePortability, previewContextLogo } from "@/lib/fusion/creative-studio/preview/visual-resources";
+import { inspectPreviewVisualResourcePortability, previewContextLogo, previewPortabilityRecovery } from "@/lib/fusion/creative-studio/preview/visual-resources";
+import { normalizePreviewMedia } from "@/lib/fusion/creative-studio/preview/canonical-media";
 import { isLocalDevAuthEnabled } from "@/lib/config/local-dev";
 import { getSavedPhonePreviewDraft } from "@/lib/fusion/creative-studio/preview/saved-draft";
 
@@ -91,11 +92,12 @@ export async function POST(req: Request) {
   const revision = saved?.revision ?? body.revision ?? 1;
 
   const logoUrl = previewContextLogo(snapshot, body.logoUrl);
-  if (inspectPreviewVisualResourcePortability({ snapshot, profile: body.profile, logoUrl }).length > 0) {
+  const portable = await normalizePreviewMedia({ snapshot, profile: body.profile, logoUrl }, businessId);
+  if (inspectPreviewVisualResourcePortability(portable.value, portable.assetIds).length > 0) {
     return ownerFacingError(
       "A committed image is not portable to Live Device",
       "Phone preview was not created because the image exists only in this browser or machine.",
-      "Choose or upload the Asset through Studio so it receives a canonical MediaAsset reference, then try again.",
+      previewPortabilityRecovery(portable.value, portable.assetIds),
       422
     );
   }
@@ -110,9 +112,9 @@ export async function POST(req: Request) {
     brandKitId: body.brandKitId || "local",
     cardName: saved?.documentName || body.cardName || body.businessName || "Card",
     businessName: body.businessName || "Business",
-    snapshotJson: JSON.stringify(snapshot),
-    profileJson: JSON.stringify(body.profile),
-    logoUrl,
+    snapshotJson: JSON.stringify(portable.value.snapshot),
+    profileJson: JSON.stringify(portable.value.profile),
+    logoUrl: portable.value.logoUrl,
     reviewUrl: body.reviewUrl,
     revision,
     mode: body.mode === "freeze" ? "freeze" : "follow",
@@ -206,17 +208,23 @@ export async function PATCH(req: Request) {
       "Save the Experience, then refresh Phone Preview."
     );
   }
-  if (inspectPreviewVisualResourcePortability({ snapshot, profile: body.profile }).length > 0) {
+  const portable = await normalizePreviewMedia({
+    snapshot,
+    profile: body.profile ?? JSON.parse(existing.record.profileJson),
+    logoUrl: previewContextLogo(snapshot, existing.record.logoUrl),
+  }, businessId);
+  if (inspectPreviewVisualResourcePortability(portable.value, portable.assetIds).length > 0) {
     return ownerFacingError(
       "A committed image is not portable to Live Device",
       "Phone preview was not updated because the image exists only in this browser or machine.",
-      "Choose or upload the Asset through Studio so it receives a canonical MediaAsset reference, then try again.",
+      previewPortabilityRecovery(portable.value, portable.assetIds),
       422
     );
   }
   const result = updatePreviewSession(body.token, {
-    snapshotJson: JSON.stringify(snapshot),
-    profileJson: body.profile ? JSON.stringify(body.profile) : undefined,
+    snapshotJson: JSON.stringify(portable.value.snapshot),
+    profileJson: JSON.stringify(portable.value.profile),
+    logoUrl: portable.value.logoUrl,
     revision: saved?.revision ?? body.revision ?? existing.record.revision,
     cardName: saved?.documentName || body.cardName,
     mode: body.mode,

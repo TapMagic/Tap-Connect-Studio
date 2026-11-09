@@ -36,6 +36,8 @@ export function localMediaKey(value: string): string | null {
 
 function issueForVisualSource(value: string): PreviewVisualResourceIssueKind | null {
   const source = value.trim();
+  // This identifier is only projected after tenant-owned Asset resolution.
+  if (source.startsWith("media-asset:")) return "browser_local";
   if (!source || localMediaKey(source)) return null;
   if (/^(?:blob|data|file):/i.test(source)) return "browser_local";
   if (MACHINE_PATH.test(source)) return "machine_local";
@@ -51,13 +53,16 @@ function issueForVisualSource(value: string): PreviewVisualResourceIssueKind | n
 }
 
 export function inspectPreviewVisualResourcePortability(
-  value: unknown
+  value: unknown,
+  authorizedMediaAssetIds: ReadonlySet<string> = new Set()
 ): PreviewVisualResourceIssue[] {
   const issues: PreviewVisualResourceIssue[] = [];
 
   function visit(current: unknown, path: string, propertyName = ""): void {
     if (typeof current === "string") {
       if (!isVisualResourceProperty(propertyName)) return;
+      const assetId = previewMediaAssetId(current);
+      if (assetId && authorizedMediaAssetIds.has(assetId)) return;
       const kind = issueForVisualSource(current);
       if (kind) issues.push({ kind, path });
       return;
@@ -100,12 +105,17 @@ export function signedPreviewAssetUrl(token: string, storageKey: string): string
   return `/api/preview/card/asset/${encodeURIComponent(token)}?key=${encodeURIComponent(storageKey)}`;
 }
 
-export function resolvePreviewVisualResources<T>(value: T, token: string): T {
+export function previewMediaAssetSource(id: string): string { return "media-asset:" + encodeURIComponent(id); }
+export function previewMediaAssetId(source: string): string | null {
+  if (!source.startsWith("media-asset:")) return null;
+  try { return decodeURIComponent(source.slice("media-asset:".length)) || null; } catch { return null; }
+}
+
+export function mapPreviewVisualSources<T>(value: T, mapper: (source: string) => string): T {
   function project(current: unknown, propertyName = ""): unknown {
     if (typeof current === "string") {
       if (!isVisualResourceProperty(propertyName)) return current;
-      const storageKey = localMediaKey(current);
-      return storageKey ? signedPreviewAssetUrl(token, storageKey) : current;
+      return mapper(current);
     }
     if (Array.isArray(current)) return current.map((entry) => project(entry, propertyName));
     if (!current || typeof current !== "object") return current;
@@ -118,6 +128,43 @@ export function resolvePreviewVisualResources<T>(value: T, token: string): T {
   }
 
   return project(value) as T;
+}
+
+export function resolvePreviewVisualResources<T>(value: T, token: string): T {
+  return mapPreviewVisualSources(value, source => {
+    const assetId = previewMediaAssetId(source);
+    if (assetId) return "/api/preview/card/asset/" + encodeURIComponent(token) + "?assetId=" + encodeURIComponent(assetId);
+    const key = localMediaKey(source);
+    return key ? signedPreviewAssetUrl(token, key) : source;
+  });
+}
+
+export function collectPreviewMediaAssetIds(value: unknown): Set<string> {
+  const ids = new Set<string>();
+  mapPreviewVisualSources(value, source => { const id = previewMediaAssetId(source); if (id) ids.add(id); return source; });
+  return ids;
+}
+
+/** No image payloads, signed queries or secrets in user-facing diagnostics. */
+export function previewPortabilityRecovery(value: unknown, authorizedMediaAssetIds?: ReadonlySet<string>): string {
+  const issue = inspectPreviewVisualResourcePortability(value, authorizedMediaAssetIds)[0];
+  if (!issue) return "";
+  let current: unknown = value, page = "Workspace", component = "image";
+  for (const part of issue.path.match(/[^.[\]]+/g) || []) {
+    if (current && typeof current === "object") {
+      const node = current as Record<string, unknown>;
+      if (node.pageId && typeof node.title === "string") page = node.title;
+      if (node.id) component = String(node.name || node.label || node.primitive || node.id);
+      current = node[part];
+    }
+  }
+  if (issue.path === "profile.photoUrl") component = "contact photo / logo";
+  const reference = typeof current === "string" ? current.startsWith("data:")
+    ? current.slice(0, current.indexOf(",") + 1) + "[embedded image]"
+    : current.split("?")[0].replace(/\/\/[^/@]+@/, "//[redacted]@")
+      .replace(/\/preview\/live\/[^/]+/, "/preview/live/[redacted]").slice(0, 100) : issue.path;
+  return page + " → " + component + " (" + issue.path + "): " + reference
+    + ". This " + issue.kind.replaceAll("_", "-") + " reference has no usable authorized Asset. Choose it from Assets or upload it through Studio.";
 }
 
 /** A saved Experience owns its logo; workspace chrome is only a fallback.

@@ -1,4 +1,6 @@
 import { TapConnectExperience } from "@/components/tap/tap-connect-experience";
+import { normalizePreviewMedia } from "@/lib/fusion/creative-studio/preview/canonical-media";
+import { previewContextLogo, previewPortabilityRecovery } from "@/lib/fusion/creative-studio/preview/visual-resources";
 import { CardViewportSurface } from "@/components/tap/card-viewport-surface";
 import { CompositionFontLoader } from "@/components/fusion/creative-studio/composition-font-loader";
 import { LiveDeviceRefresh } from "@/components/fusion/creative-studio/live-device-refresh";
@@ -69,18 +71,19 @@ export async function LiveDevicePreviewPage({ token, debug = false, directPageRe
     return <PreviewError title="Preview draft was damaged" consequence="The temporary snapshot could not be read." recovery="Generate a new Live Device Preview from Studio." testId={errorTestId} />;
   }
 
-  const portabilityIssues = inspectPreviewVisualResourcePortability({
+  const portable = await normalizePreviewMedia({
     config,
     profile,
-    logoUrl: record.logoUrl,
-  });
+    logoUrl: previewContextLogo(config, record.logoUrl),
+  }, record.businessId);
+  const portabilityIssues = inspectPreviewVisualResourcePortability(portable.value, portable.assetIds);
   if (portabilityIssues.length > 0) {
-    return <PreviewError title="A committed image is not portable to Live Device" consequence="This preview contains an image that exists only in the Studio browser or on the editor machine." recovery="Choose or upload the Asset through Studio so it receives a canonical MediaAsset reference, then generate the preview again." testId={errorTestId} />;
+    return <PreviewError title="A committed image is not portable to Live Device" consequence="This preview contains an image without a usable authorized Asset reference." recovery={previewPortabilityRecovery(portable.value, portable.assetIds)} testId={errorTestId} />;
   }
 
-  const resolvedConfig = resolvePreviewVisualResources(config, token);
-  const resolvedProfile = resolvePreviewVisualResources(profile, token);
-  const resolvedLogoUrl = resolvePreviewVisualResources({ logoUrl: record.logoUrl }, token).logoUrl;
+  const resolvedConfig = resolvePreviewVisualResources(portable.value.config, token);
+  const resolvedProfile = resolvePreviewVisualResources(portable.value.profile, token);
+  const resolvedLogoUrl = resolvePreviewVisualResources({ logoUrl: portable.value.logoUrl }, token).logoUrl;
 
   return (
     <main className="relative isolate min-h-dvh overflow-hidden pb-[max(1.5rem,env(safe-area-inset-bottom))] pt-[max(.75rem,env(safe-area-inset-top))]" style={{ background: "linear-gradient(180deg,#12141a,#0b0f19)" }} data-testid={pageTestId} data-preview-revision={String(effectiveRevision)} data-preview-snapshot-revision={String(record.revision)} data-preview-mode={record.mode || "follow"} data-preview-session-id={record.sid} data-preview-card-id={record.brandKitId}>
