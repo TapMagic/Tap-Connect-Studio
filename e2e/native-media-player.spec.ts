@@ -76,6 +76,11 @@ test.describe("Studio native media delivery", () => {
           exact: true,
         })
         .click();
+      if (url === preview.path) {
+        // The preview credit must respect the Experience's navigation clearance,
+        // including when a visitor reaches the bottom of a long artwork page.
+        await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      }
       await page.getByRole("button", { name: /Song/ }).last().click();
       await expect(
         page.locator('[data-audio-variant="expanded"]'),

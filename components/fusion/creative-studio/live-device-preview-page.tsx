@@ -92,9 +92,8 @@ export async function LiveDevicePreviewPage({ token, debug = false, directPageRe
         <p className="text-sm font-medium">{record.cardName || record.businessName}</p><p className="text-xs opacity-90">{STUDIO_WORDING.workingDraft}</p><p className="text-xs opacity-80">Updated {new Date(effectiveUpdatedAt).toLocaleString()}</p><p className="text-xs opacity-80">{STUDIO_WORDING.previewOnlyNotPublished}</p><LiveDeviceRefresh />
       </div>
       <CardViewportSurface environment="runtime" testId="live-device-card-viewport" className="relative z-[1]">
-        <div data-testid="preview-card-composition-host"><TapConnectExperience config={resolvedConfig} profile={resolvedProfile} businessName={record.businessName} logoUrl={resolvedLogoUrl} reviewUrl={record.reviewUrl} forceExpanded interactionMode="preview" previewSafe compositionForceMobile={false} externalFullBleedSurface routingMode="history" directPageRef={directPageRef} viewportBackdrop /></div>
+        <div data-testid="preview-card-composition-host"><TapConnectExperience config={resolvedConfig} profile={resolvedProfile} businessName={record.businessName} logoUrl={resolvedLogoUrl} reviewUrl={record.reviewUrl} forceExpanded interactionMode="preview" previewSafe compositionForceMobile={false} externalFullBleedSurface routingMode="history" directPageRef={directPageRef} viewportBackdrop persistentContent={<p className="mx-3 mt-6 text-center text-[11px] text-white/35 sm:mx-auto sm:max-w-md">Powered by Tap The Magic · Temporary draft preview</p>} /></div>
       </CardViewportSurface>
-      <p className="relative z-[1] mx-3 mt-6 text-center text-[11px] text-white/35 sm:mx-auto sm:max-w-md">Powered by Tap The Magic · Temporary draft preview</p>
       {debug ? <LiveDeviceDebugEvidence cardId={record.brandKitId} revision={effectiveRevision} snapshotRevision={record.revision} sessionId={record.sid} sessionCreatedAt={record.createdAt} followMode={record.mode || "follow"} /> : null}
     </main>
   );

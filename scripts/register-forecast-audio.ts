@@ -68,4 +68,9 @@ async function main() {
   console.log(JSON.stringify({ ...result, businessId, bytes: bytes.byteLength, mimeType: "audio/mp4", copied: false }));
 }
 main().catch(error => { console.error(error instanceof Error && error.name === "Error" ? error.message : "Registration failed; no storage objects were modified."); process.exitCode = 1; })
-  .finally(async () => { await prisma.$disconnect(); });
+  .finally(async () => {
+    await prisma.$disconnect();
+    // The operator CLI owns this process; the shared externally supplied PG pool
+    // otherwise keeps it alive after its transaction and audit have completed.
+    process.exit(process.exitCode ?? 0);
+  });
