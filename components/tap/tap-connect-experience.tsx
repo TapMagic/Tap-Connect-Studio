@@ -11,6 +11,7 @@ import {
   resolveExperiencePage,
   visibleExperienceNavPages,
 } from "@/lib/fusion/card/experience-pages";
+import { ExperienceAudioProvider } from "@/components/fusion/media/native-audio-player";
 import { cn } from "@/lib/utils";
 import { LoveAndTheftPickVisual } from "@/components/tap/compact-action-grid";
 import { resolveNavigationVisualRef } from "@/lib/fusion/creative-studio/navigation-visual-library";
@@ -44,7 +45,11 @@ export type TapConnectExperienceProps = Omit<TapConnectCardProps, "config" | "on
   persistentContent?: ReactNode;
 };
 
-export function TapConnectExperience({
+export function TapConnectExperience(props: TapConnectExperienceProps) {
+  return <ExperienceAudioProvider key={props.config.experience?.experienceId || `card:${props.businessName}:${props.config.documentName || ""}`} persistent><TapConnectExperienceContent {...props} /></ExperienceAudioProvider>;
+}
+
+function TapConnectExperienceContent({
   config,
   activePageId: controlledPageId,
   onActivePageChange,

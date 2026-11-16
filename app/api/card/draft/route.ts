@@ -1,3 +1,4 @@
+import { assertStudioMediaBindings } from "@/lib/media/studio-media-binding.server";
 import { NextResponse } from "next/server";
 import { CARD_STUDIO_AUTHORING_PATH } from "@/lib/fusion/card/authoring-route";
 import { z } from "zod";
@@ -219,6 +220,7 @@ export async function PUT(request: Request) {
     const { business, user } =
       await requireBusinessCapability("card.draft.edit");
     const body = saveSchema.parse(await request.json());
+    try { await assertStudioMediaBindings(body.draft, business.id); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid native media Asset" }, { status: 400 }); }
     const kit = await saveCardDraft({
       businessId: business.id,
       draft: body.draft,

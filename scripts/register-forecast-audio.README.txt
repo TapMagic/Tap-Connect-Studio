@@ -1,0 +1,39 @@
+Existing Forecast audio: bounded operator registration
+
+This command only handles MAP-every-single-mile.m4a in the approved private
+tap-connect-studio-media bucket. It verifies the known size, content hash and
+container, requires an active OWNER in the explicit target tenant, and defaults
+to a read-only plan. It never uploads, renames, deletes or publishes anything.
+It is not a Host import workflow or public API.
+
+Environment: DATABASE_URL and the existing R2_ACCOUNT_ID, R2_ACCESS_KEY_ID,
+R2_SECRET_ACCESS_KEY, R2_BUCKET_NAME, R2_PUBLIC_URL, plus
+R2_PRIVATE_MEDIA_BUCKET_NAME=tap-connect-studio-media. Keep secrets outside Git.
+Do not use CREATIVE_PROVIDER_MODE=fixture for this command.
+
+Plan using the approved database environment and explicit owner identifiers:
+  node --env-file=/secure/path/environment --import tsx \
+    scripts/register-forecast-audio.ts --tenant BUSINESS_ID --actor OWNER_USER_ID
+
+After reviewing the target tenant and plan, repeat with --execute. This inserts
+one original MediaAsset and an audit event in one serializable transaction.
+The command is idempotent, rejects conflicting ownership, and makes no changes
+to existing images, Experiences or publication/access state.
+
+The actual storage key remains MAP-every-single-mile.m4a. Server-owned provenance
+binds that key to the approved bucket, tenant and content hash. Delivery remains
+/api/public/native-media/MEDIA_ASSET_ID, with existing Host, signed Preview and
+active referencing publication checks. The response MIME is audio/mp4.
+
+Future Host uploads use Add > Image, Video & Audio > Audio Player or Video,
+then the existing MediaAsset upload interface. The upload service selects the
+private bucket, creates the tenant-scoped object and Asset, and deduplicates
+an already registered original. Hosts never need Cloudflare access.
+
+Release sequence: reconcile from production; run unit/build/browser checks and
+actual private R2 integration tests; review the release branch; coordinate the
+new Railway private-bucket variable with release deployment; select this Asset,
+artwork and metadata in the intended Experience; preview and publish normally;
+verify the live URL on a physical iPhone. Do not claim local WebKit as device QA.
+
+No migration, credential rotation or public bucket access is required.

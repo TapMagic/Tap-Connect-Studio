@@ -15,6 +15,7 @@ export type CreativeCompositionPrimitive =
   | "text"
   | "button"
   | "image"
+  | "audio"
   | "video"
   | "frame"
   | "shape"
@@ -895,6 +896,7 @@ export function createCompositionNode(
         visible: true,
         props: { src: "", alt: "Image", fit: "cover", opacity: 1 },
       },
+      audio: { id, primitive: "audio", x: .08, y: .08, width: .84, height: .4, zIndex: 10, visible: true, props: { elementKind: "audio", audioVariant: "featured", audioTitle: "Audio track", aspectLocked: false } },
       video: {
         id,
         primitive: "video",

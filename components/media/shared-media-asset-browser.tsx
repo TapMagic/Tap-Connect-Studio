@@ -229,7 +229,7 @@ export function SharedMediaAssetBrowser({
   });
 
   const loadLibrary = useCallback(async () => {
-    const response = await fetch("/api/media");
+    const response = await fetch("/api/media?kind=image");
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Asset library unavailable");
     setLibrary((data.assets || []).map(libraryCandidate));

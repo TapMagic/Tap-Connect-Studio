@@ -559,7 +559,7 @@ export function CardStudioReconstitutionWorkspace({
     workspaceDispatch({ type: "COMPLETE_AUTHORING_TRANSACTION" });
   }, []);
 
-  const placeOrdinaryModule = useCallback((kind: "text" | "image" | "video" | "map" | "divider", initialProps: Record<string, unknown> = {}) => {
+  const placeOrdinaryModule = useCallback((kind: "text" | "image" | "audio" | "video" | "map" | "divider", initialProps: Record<string, unknown> = {}) => {
     if (!liveModel || !placementContext) return;
     const id = liveModel.onAddCompositionModule?.(kind, placementContext.parentId, initialProps, placementContext.insertionIndex);
     if (id) {

@@ -1,4 +1,5 @@
 "use client";
+import { readStudioMediaBehavior } from "@/lib/fusion/creative-studio/platform/media-behavior";
 
 import { layeredBoundsPolicy, planLayeredPagePlacement, layeredSelectionOverlaps, fitNativeImageSize, layeredParentRotation, translateLayeredSelection, layeredMinimumFrameSize, applyLayeredResize, isLayeredCompositionParent } from "@/lib/fusion/creative-studio/platform/layered-region";
 import { measureCompositionContentExtent, readRenderedCompositionFrames, revealCompositionSelection, renderedLayeredParentSize } from "./use-layered-parent-size";
@@ -123,6 +124,9 @@ import { ARC_EMBER_STAGE_ID, isSignatureAssetProps, layoutArcEmberStages, requir
 import { curatedCompoundObjectForNode, curatedCompoundObjects } from "@/lib/fusion/creative-studio/platform/curated-compound-object";
 import { readStudioSurfaceState } from "@/lib/fusion/creative-studio/platform/surface-capability";
 import { editableControlOwnsKeyboard, studioEditableOwner, studioModuleActivationMayRun } from "@/lib/fusion/creative-studio/platform/keyboard-ownership";
+import { claimPlaybackOwner, observePlaybackOwner } from "@/lib/fusion/creative-studio/platform/media-playback";
+import { NativeVideo } from "@/components/fusion/media/native-video";
+import { NativeAudioPlayer } from "@/components/fusion/media/native-audio-player";
 import { readStudioVideoState, videoAspectRatio, videoEmbedUrl } from "@/lib/fusion/creative-studio/platform/media-module";
 import { readCardEdgeMode, readContainerEdgeMode } from "@/lib/fusion/creative-studio/platform/edge-layout";
 import { layeredCompositionParentSizePx, resizeLayeredPlacement, allowedLayeredResizeHandles, isCardSurfaceLayered, isLayeredContainer, layeredResizePolicy, moveLayeredNode, reorderLayeredNodeZ, resolveTightLayeredPlacementFrames, snapLayeredNode, snapLayeredResize, type StudioRectangularResizeHandle } from "@/lib/fusion/creative-studio/platform/layered-region";
@@ -328,6 +332,8 @@ function InlineEditableText({ nodeId, value, editing, style, onCommit, onFinish,
 
 function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMode?: boolean }) {
   const state = readStudioVideoState(node.props);
+  const embedOwner = useRef({});
+  const [embedSuppressed, setEmbedSuppressed] = useState(false);
   const [activated, setActivated] = useState(false);
   const [reducedMotion, setReducedMotion] = useState(false);
   useEffect(() => {
@@ -337,9 +343,16 @@ function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMo
     query.addEventListener("change", sync);
     return () => query.removeEventListener("change", sync);
   }, []);
-  const autoplay = !editMode && !reducedMotion && state.playbackMode === "autoplay_muted";
+  const autoplay = !embedSuppressed && !editMode && !reducedMotion && state.playbackMode === "autoplay_muted";
   const embed = videoEmbedUrl(state, autoplay || activated);
   const shouldEmbed = Boolean(embed && (autoplay || activated));
+  useEffect(() => {
+    if (!shouldEmbed) return;
+    const owner = embedOwner.current;
+    const release = observePlaybackOwner(owner, document, () => { setActivated(false); setEmbedSuppressed(true); });
+    claimPlaybackOwner(owner, document);
+    return release;
+  }, [shouldEmbed]);
   const accessibleDescription = state.description ? `${state.title}. ${state.description}` : state.title;
   const hiddenLocked = state.locked && state.lockedBehavior?.mode === "hidden";
   const frameBackground = state.frameTreatment === "transparent" ? "transparent"
@@ -362,7 +375,12 @@ function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMo
   const playback = state.provider === "youtube" || state.provider === "vimeo" ? (
     shouldEmbed ? <iframe className="h-full w-full border-0" src={embed || undefined} title={state.title} allow="autoplay; encrypted-media; picture-in-picture" allowFullScreen /> : null
   ) : (
-    <video
+    <NativeVideo
+      interactive={!editMode}
+      userActivated={activated}
+      behavior={readStudioMediaBehavior({ mediaBehavior: { initialPlayback: autoplay || activated ? "autoplay" : "manual", loop: state.loop && !state.playOnce ? "current" : "off", startSeconds: state.startSeconds, completion: node.props.videoCompletion === "replay" ? "replay" : "stop" } })}
+      mediaSource={node.props.mediaAssetId ? { kind: "video", mediaAssetId: String(node.props.mediaAssetId), url: state.sourceUrl, mimeType: typeof node.props.mediaMimeType === "string" ? node.props.mediaMimeType : undefined } : undefined}
+      mimeType={typeof node.props.mediaMimeType === "string" ? node.props.mediaMimeType : undefined}
       className="h-full w-full bg-black object-contain"
       src={state.sourceUrl}
       poster={state.presentation === "standard" ? state.posterUrl : undefined}
@@ -380,7 +398,7 @@ function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMo
       onClick={(event) => { if (editMode) event.preventDefault(); }}
     >
       {state.captionsUrl ? <track kind="captions" src={state.captionsUrl} srcLang="en" label="English" default /> : null}
-    </video>
+    </NativeVideo>
   );
 
   if (state.presentation === "feature") {
@@ -390,7 +408,7 @@ function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMo
     return (
       <div className="relative h-full w-full overflow-hidden text-white" style={featureFrame} data-video-provider={state.provider} data-video-playback={state.playbackMode} data-video-presentation="feature" data-video-aspect={state.aspect} data-video-state={locked ? "locked" : playing ? "playing" : "poster"} data-analytics-id={state.analyticsId}>
         <div className="absolute inset-0 overflow-hidden" style={{ borderRadius: Math.max(0, state.frameRadiusPx - state.frameBorderPx) }}>
-          {playing && !locked ? playback : <button type="button" disabled={editMode || locked} className="group relative grid h-full w-full place-items-center overflow-hidden bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,.12),transparent_42%),#080b10] text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--video-accent)]" style={{ "--video-accent": state.frameAccent } as CSSProperties} aria-label={locked ? `${state.title} is locked` : `Play ${accessibleDescription}`} onClick={(event) => { event.preventDefault(); if (!editMode && !locked) setActivated(true); }}>
+          {playing && !locked ? playback : <button type="button" disabled={editMode || locked} className="group relative grid h-full w-full place-items-center overflow-hidden bg-[radial-gradient(circle_at_50%_20%,rgba(255,255,255,.12),transparent_42%),#080b10] text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--video-accent)]" style={{ "--video-accent": state.frameAccent } as CSSProperties} aria-label={locked ? `${state.title} is locked` : `Play ${accessibleDescription}`} onClick={(event) => { event.preventDefault(); if (!editMode && !locked) { setEmbedSuppressed(false); setActivated(true); } }}>
             {state.posterUrl ? <>{/* eslint-disable-next-line @next/next/no-img-element */}<img src={state.posterUrl} alt="" className={cn("absolute inset-0 h-full w-full", state.posterFit === "contain" ? "object-contain" : "object-cover")} style={{ objectPosition: `${state.posterFocalX * 100}% ${state.posterFocalY * 100}%` }} /></> : null}
             <span className="absolute inset-0 bg-gradient-to-t from-black/88 via-black/12 to-black/20" aria-hidden />
             <span className={cn("relative grid place-items-center transition-transform group-hover:scale-105", state.playPresentation === "minimal" ? "h-12 w-12" : "h-16 w-16 rounded-full border shadow-2xl", state.playPresentation === "accent" ? "border-white/40 bg-[var(--video-accent)] text-black" : state.playPresentation === "circle" ? "border-white/35 bg-black/62" : "bg-black/35")}><Play className="ml-1 h-6 w-6 fill-current" aria-hidden /></span>
@@ -405,7 +423,7 @@ function VideoVisual({ node, editMode }: { node: CreativeCompositionNode; editMo
       </div>
     );
   }
-  if (state.provider === "youtube" || state.provider === "vimeo") return <div className="relative h-full w-full overflow-hidden rounded-xl bg-black" data-video-provider={state.provider} data-video-playback={state.playbackMode} data-analytics-id={state.analyticsId}>{shouldEmbed ? playback : <button type="button" className="group relative grid h-full w-full place-items-center bg-[#0b111b] text-white" aria-label={`Play ${accessibleDescription}`} onClick={(event) => { event.preventDefault(); if (!editMode) setActivated(true); }}>{state.posterUrl ? <img src={state.posterUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-75" /> : null}<span className="relative grid h-14 w-14 place-items-center rounded-full border border-white/30 bg-black/65 shadow-xl"><Play className="ml-1 h-6 w-6 fill-current" /></span></button>}</div>;
+  if (state.provider === "youtube" || state.provider === "vimeo") return <div className="relative h-full w-full overflow-hidden rounded-xl bg-black" data-video-provider={state.provider} data-video-playback={state.playbackMode} data-analytics-id={state.analyticsId}>{shouldEmbed ? playback : <button type="button" className="group relative grid h-full w-full place-items-center bg-[#0b111b] text-white" aria-label={`Play ${accessibleDescription}`} onClick={(event) => { event.preventDefault(); if (!editMode) { setEmbedSuppressed(false); setActivated(true); } }}>{state.posterUrl ? <img src={state.posterUrl} alt="" className="absolute inset-0 h-full w-full object-cover opacity-75" /> : null}<span className="relative grid h-14 w-14 place-items-center rounded-full border border-white/30 bg-black/65 shadow-xl"><Play className="ml-1 h-6 w-6 fill-current" /></span></button>}</div>;
   return playback;
 }
 
@@ -930,6 +948,7 @@ function NodeVisual({
     );
   }
 
+  if (node.primitive === "audio") return <NativeAudioPlayer props={node.props} editMode={editMode} />;
   if (node.primitive === "video") return <VideoVisual node={node} editMode={editMode} />;
 
   if (node.primitive === "frame") {
@@ -3233,7 +3252,7 @@ export function CreativeCompositionCanvas({
         data-curated-density={typeof node.props.curatedDensityMode === "string" ? node.props.curatedDensityMode : undefined}
         draggable={false}
         onDragStart={(event) => { if (editMode) event.preventDefault(); }}
-        role={editMode ? (node.moduleComposition || node.primitive === "button" || node.primitive === "video" || editingNodeId === node.id ? "group" : "button") : undefined}
+        role={editMode ? (node.moduleComposition || node.primitive === "button" || node.primitive === "audio" || node.primitive === "video" || editingNodeId === node.id ? "group" : "button") : undefined}
         tabIndex={editMode ? 0 : undefined}
         aria-label={editMode ? node.moduleComposition?.signatureAssembly ? `${node.name || "Curated"} Curated System` : `${node.name || String(node.props.elementKind || node.primitive)} Module` : undefined}
         onPointerDown={(event) => {
