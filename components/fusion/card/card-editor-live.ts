@@ -193,7 +193,7 @@ export type CardEditorLiveModel = {
   onAddDesignedIntroduction?: (look: import("@/lib/fusion/creative-studio/reconstitution/native-starting-compositions").IntroductionLook, parentId: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionContainer?: (treatment?: "transparent" | "solid" | "smoked_glass" | "image", parentId?: string | null, insertionIndex?: number) => string | undefined;
   onAddCompositionModule?: (
-    kind: "text" | "image" | "video" | "button" | "map" | "divider",
+    kind: "text" | "image" | "audio" | "video" | "button" | "map" | "divider",
     parentId: string | null,
     initialProps?: Record<string, unknown>,
     insertionIndex?: number,

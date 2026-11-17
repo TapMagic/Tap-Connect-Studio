@@ -20,7 +20,7 @@ import {
 export type CardSurfaceKind = NonNullable<TapCardSection["surfaceKind"]>;
 export type CardElementKind =
   | "text" | "heading" | "subheading" | "business_name" | "address" | "hours" | "logo"
-  | "secondary_logo" | "image" | "thumbnail" | "image_gallery" | "video" | "icon" | "badge" | "button" | "map"
+  | "secondary_logo" | "image" | "thumbnail" | "image_gallery" | "audio" | "video" | "icon" | "badge" | "button" | "map"
   | "divider" | "offer_code" | "terms" | "coupon_artwork" | "ticket_artwork"
   | "decorative_graphic" | "qr_image"
   | "tapsave" | "contact_form" | "campaign" | "campaign_group" | "experience"
@@ -84,6 +84,7 @@ export const CARD_ELEMENT_LIBRARY: readonly ComposerLibraryItem[] = [
   ["hours", "Hours", "Opening hours"], ["logo", "Logo", "Brand or custom logo"],
   ["secondary_logo", "Secondary logo", "Partner, sponsor, or alternate logo"],
   ["image", "Image", "Foreground image"], ["thumbnail", "Product thumbnail", "Compact product image"], ["image_gallery", "Image gallery", "Responsive gallery"],
+  ["audio", "Audio Player", "Native track playback"],
   ["video", "Video", "Embedded video"], ["icon", "Icon", "Decorative or action icon"], ["badge", "Badge", "Editable promotional badge"],
   ["button", "Button", "Linked customer action"], ["map", "Map", "Location map"],
   ["divider", "Divider", "Visual separator"], ["offer_code", "Offer code", "Redeemable code"],
@@ -328,6 +329,7 @@ export function fitCardSurfaceToContent(section: TapCardSection): TapCardSection
 }
 
 function primitiveFor(kind: CardElementKind): CreativeCompositionPrimitive {
+  if (kind === "audio") return "audio";
   if (kind === "video") return "video";
   if (["logo", "secondary_logo", "image", "thumbnail", "image_gallery", "map", "qr_image"].includes(kind)) return "image";
   if (["button", "tapsave", "campaign", "campaign_group", "experience", "contact_form", "wallet_cta", "event_rsvp"].includes(kind)) return "button";

@@ -549,6 +549,7 @@ function layeredDefaultSize(node: CreativeCompositionNode, parentHeightPx: numbe
   const width = grid
     ? grid.widthMode === "full" ? .94 : clamp((grid.widthMode === "fit_content" ? gridMetrics!.contentWidthPx : grid.customWidthPx) / parentWidthPx, .08, .94)
     : node.moduleComposition?.signatureAssembly ? clamp(Number(node.props.flowWidthPercent ?? 92) / 100, .42, .94)
+    : kind === "audio" ? .94
     : node.compositionKind === "container" ? .46
       : kind === "image" || kind === "video" ? .46
         : kind === "text" ? .48
@@ -556,6 +557,7 @@ function layeredDefaultSize(node: CreativeCompositionNode, parentHeightPx: numbe
             : kind === "button" ? .48
               : clamp(node.width || .46, .2, .94);
   const heightPx = gridMetrics ? gridMetrics.contentHeightPx
+    : kind === "audio" ? node.props.audioVariant === "compact" ? 200 : node.props.audioVariant === "expanded" ? 620 : 320
     : node.compositionKind === "container" ? 220
     : node.moduleComposition?.signatureAssembly ? width * parentWidthPx * (Math.max(1, Number(node.moduleComposition.pageHeightPx) || Number(node.minHeightPx) || 56) / 390)
       : kind === "image" || kind === "video" ? 180

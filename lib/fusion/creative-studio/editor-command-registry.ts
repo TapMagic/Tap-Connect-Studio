@@ -55,13 +55,13 @@ export type EditorCommand = {
   analyticsEvent: string;
 };
 
-const families: readonly ObjectFamily[] = ["card_root", "text", "image", "logo", "icon", "shape", "divider", "badge", "button", "coupon", "ticket", "map", "gallery", "form", "container", "group", "qr", "video", "utility"];
+const families: readonly ObjectFamily[] = ["card_root", "text", "image", "logo", "icon", "shape", "divider", "badge", "button", "coupon", "ticket", "map", "gallery", "form", "container", "group", "qr", "audio", "video", "utility"];
 const command = (id: string, label: string, drawerSection: EditorDrawerSection | null, supportedObjectKinds: EditorCommand["supportedObjectKinds"] = "all", toolbarPriority = 50, mutation: EditorCommand["mutation"] = "open-drawer"): EditorCommand => ({ id, label, icon: id.split(".")[0], capability: id.split(".")[0], targetLevels: ["root", "parent", "child"], supportedObjectKinds, toolbarPriority, drawerSection, quickControl: mutation === "quick-mutation", mutation, analyticsEvent: `studio.editor.${id}` });
 
 const entries = [
   command("background.open", "Background", "background", ["card_root"]), command("pageSize.open", "Page size", "page-size", ["card_root"]), command("guides.open", "Guides", "guides", ["card_root"]),
   // Appearance / Material both open the shared Appearance IA host (not a legacy "effects" focus).
-  command("appearance.open", "Appearance", "appearance"), command("content.edit", "Edit", "content", ["text", "badge"]), command("font.open", "Font", "font", ["text"]),
+  command("appearance.open", "Appearance", "appearance"), command("content.edit", "Edit", "content", ["text", "badge", "audio"]), command("font.open", "Font", "font", ["text"]),
   command("fontSize.quick", "Font size", null, ["text"], 20, "quick-mutation"), command("bold.toggle", "Bold", null, ["text"], 21, "quick-mutation"), command("italic.toggle", "Italic", null, ["text"], 22, "quick-mutation"), command("underline.toggle", "Underline", null, ["text"], 23, "quick-mutation"),
   command("color.open", "Color", "color", ["text", "divider"]), command("material.open", "Material", "appearance", ["text", "badge", "button", "container", "coupon", "ticket", "form", "shape", "icon"]), command("icon.open", "Change Icon", "content", ["icon"]), command("icon.appearance", "Appearance", "appearance", ["icon"]),
   command("media.replace", "Replace", "media", ["image", "logo", "video"]), command("media.cropFit", "Crop / Fit", "crop", ["image", "logo", "video"]), command("media.adjust", "Adjust", "adjust", ["image", "logo"]),

@@ -1,3 +1,4 @@
+import { projectPublicExperienceMedia } from "@/lib/media/public-experience-media";
 import { defaultTapConnectCard, parseTapConnectCard, type TapConnectCardConfig, type TapExperiencePage } from "@/lib/brand/tap-card";
 import type { CreativeCompositionBlock, CreativeCompositionNode } from "@/lib/fusion/creative-studio/composition";
 import { parseBrandContactProfile, type BrandContactProfile } from "@/lib/brand/contact-profile";
@@ -182,7 +183,7 @@ export async function resolveEverEncoreDestination(stableSlug: string): Promise<
       return { state: "live", publication: {
         stableSlug,
         publishedRevision: String(snapshot.version),
-        config: parseTapConnectCard(manifest.document, {
+        config: parseTapConnectCard(projectPublicExperienceMedia(manifest.document, stableSlug), {
           businessName: document.business.name,
           profile,
           logoUrl: document.business.logoUrl,

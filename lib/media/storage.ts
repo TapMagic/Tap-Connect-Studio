@@ -1,6 +1,7 @@
 import {
   DeleteObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
 } from "@aws-sdk/client-s3";
@@ -12,7 +13,7 @@ let client: S3Client | null = null;
 const LOCAL_STORAGE_ROOT = path.join(
   process.cwd(),
   "tmp",
-  "creative-media-storage"
+  "creative-media-storage",
 );
 
 /**
@@ -68,14 +69,39 @@ export function extensionForMime(mimeType: string): string {
   return "jpg";
 }
 
+function mediaBucket(storageKey: string, privateNative = false): string {
+  if (privateNative || storageKey.includes("/private/native-media/")) {
+    const bucket = process.env.R2_PRIVATE_MEDIA_BUCKET_NAME?.trim();
+    if (!bucket || bucket === process.env.R2_BUCKET_NAME)
+      throw new Error(
+        "Private native media storage requires a separate R2_PRIVATE_MEDIA_BUCKET_NAME with public access disabled.",
+      );
+    return bucket;
+  }
+  return process.env.R2_BUCKET_NAME!;
+}
+
 export function publicMediaUrl(storageKey: string): string {
+  if (storageKey.includes("/private/native-media/")) return "";
   if (localMediaStorageEnabled()) {
     return `/api/media/local?key=${encodeURIComponent(storageKey)}`;
   }
   return `${process.env.R2_PUBLIC_URL!.replace(/\/$/, "")}/${storageKey}`;
 }
 
-export async function readLocalMediaObject(storageKey: string): Promise<Buffer> {
+/** Operator validation only; does not create or modify an object. */
+export async function privateMediaMetadata(storageKey: string) {
+  requireMediaStorage();
+  if (localMediaStorageEnabled()) throw new Error("Existing R2 registration cannot use fixture storage");
+  const result = await r2Client().send(new HeadObjectCommand({
+    Bucket: mediaBucket(storageKey, true), Key: storageKey,
+  }));
+  return { sizeBytes: result.ContentLength, mimeType: result.ContentType };
+}
+
+export async function readLocalMediaObject(
+  storageKey: string,
+): Promise<Buffer> {
   if (!localMediaStorageEnabled()) {
     throw new Error("Local media storage is disabled");
   }
@@ -83,13 +109,13 @@ export async function readLocalMediaObject(storageKey: string): Promise<Buffer> 
 }
 
 /** Read source bytes from the configured durable media authority. */
-export async function readMediaObject(storageKey: string): Promise<Buffer> {
+export async function readMediaObject(storageKey: string, options?: { privateNative: boolean }): Promise<Buffer> {
   requireMediaStorage();
   if (localMediaStorageEnabled()) return readLocalMediaObject(storageKey);
 
   const response = await r2Client().send(
     new GetObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
+      Bucket: mediaBucket(storageKey, options?.privateNative),
       Key: storageKey,
     }),
   );
@@ -116,7 +142,7 @@ export async function putMediaObject(input: {
   }
   await r2Client().send(
     new PutObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
+      Bucket: mediaBucket(input.storageKey),
       Key: input.storageKey,
       Body: input.bytes,
       ContentType: input.mimeType,
@@ -134,8 +160,8 @@ export async function deleteMediaObject(storageKey: string): Promise<void> {
   }
   await r2Client().send(
     new DeleteObjectCommand({
-      Bucket: process.env.R2_BUCKET_NAME!,
+      Bucket: mediaBucket(storageKey),
       Key: storageKey,
-    })
+    }),
   );
 }

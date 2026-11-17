@@ -1,4 +1,5 @@
 import { nanoid } from "nanoid";
+import { assertStudioMediaBindings } from "@/lib/media/studio-media-binding.server";
 import { Prisma } from "@prisma/client";
 import type { TapConnectCardConfig } from "@/lib/brand/tap-card";
 import { prisma } from "@/lib/db";
@@ -87,6 +88,7 @@ export async function publishExperience(input: {
     if (document.draftRevision !== input.expectedDraftRevision) {
       throw new ExperienceLibraryError("This Experience changed. Reload before publishing.", "revision_conflict", 409);
     }
+    await assertStudioMediaBindings(document.draft, input.businessId, tx);
     const validation = validateSignaturePublication(document.draft, input.signatureEntitlementKeys, undefined, "card.publish");
     if (!validation.ok) {
       throw new ExperienceLibraryError(validation.findings.map((item) => item.remediation.message).join(" "), "publication_blocked", 403);

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireBusinessCapability } from "@/lib/fusion/authz/business-capability";
 import { uploadMediaPlaceholder } from "@/lib/integrations/placeholders";
-import { MediaServiceError, storeUploadedImage } from "@/lib/media/service";
+import { MediaServiceError, storeUploadedImage, storeUploadedNativeMedia } from "@/lib/media/service";
 import {
   MAX_UPLOAD_REQUEST_BYTES,
   MAX_UPLOAD_SOURCE_MEGABYTES,
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     if (contentLength > MAX_UPLOAD_REQUEST_BYTES) {
       return NextResponse.json(
         {
-          error: `Upload request is too large. Source images may be at most ${MAX_UPLOAD_SOURCE_MEGABYTES} MB.`,
+          error: `Upload request is too large. Source media may be at most ${MAX_UPLOAD_SOURCE_MEGABYTES} MB.`,
           code: "request_too_large",
         },
         { status: 413 },
@@ -30,7 +30,8 @@ export async function POST(request: Request) {
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "file required" }, { status: 400 });
     }
-    const { asset, processing } = await storeUploadedImage({
+    const store = /\.(mp3|wav|aac|m4a|flac|ogg|opus|mp4|webm|mov)$/i.test(file.name) ? storeUploadedNativeMedia : storeUploadedImage;
+    const { asset, processing } = await store({
       businessId: business.id,
       filename: file.name,
       declaredMimeType: file.type,
@@ -61,7 +62,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         error:
-          "The server could not complete image processing. Nothing was saved; retry the file, then contact support if this exact file continues to fail.",
+          "The server could not complete media processing. Nothing was saved; retry the file, then contact support if this exact file continues to fail.",
         code: "unexpected_upload_failure",
       },
       { status: 500 },

@@ -7,7 +7,7 @@ export const STUDIO_ADD_DISCOVER_CONTRACT = "studioAddDiscover@1.0.0" as const;
 
 export type StudioAddCategoryId = "text" | "image" | "buttons" | "map" | "divider" | "container" | "curated";
 export type StudioAddReadiness = "ready" | "hidden";
-export type StudioAddPreviewKind = "text" | "image" | "video" | "button" | "map" | "divider" | "container" | "curated";
+export type StudioAddPreviewKind = "text" | "image" | "audio" | "video" | "button" | "map" | "divider" | "container" | "curated";
 
 export type StudioAddCategoryRegistration = {
   contractId: typeof STUDIO_ADD_DISCOVER_CONTRACT;
@@ -27,7 +27,7 @@ export type StudioOrdinaryModuleRegistration = {
   categoryId: Exclude<StudioAddCategoryId, "container" | "curated">;
   label: string;
   description: string;
-  moduleKind: "text" | "image" | "video" | "button" | "map" | "divider";
+  moduleKind: "text" | "image" | "audio" | "video" | "button" | "map" | "divider";
   previewKind: StudioAddPreviewKind;
   readiness: StudioAddReadiness;
   allowedParents: readonly ("card-surface" | "container")[];
@@ -53,7 +53,7 @@ export type StudioContainerRegistration = {
 
 export const STUDIO_ADD_CATEGORIES: readonly StudioAddCategoryRegistration[] = [
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "text", label: "Text", description: "Add editable copy", order: 10, readiness: "ready", previewKind: "text", catalogAdapterId: "studio-add", placementKind: "ordinary-module" },
-  { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "image", label: "Media", description: "Add an Image or Video", order: 20, readiness: "ready", previewKind: "image", catalogAdapterId: "canonical-assets", placementKind: "ordinary-module" },
+  { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "image", label: "Image, Video & Audio", description: "Assets, Video, and native Audio Players", order: 20, readiness: "ready", previewKind: "image", catalogAdapterId: "canonical-assets", placementKind: "ordinary-module" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "buttons", label: "Buttons", description: "Standard and Curated families", order: 30, readiness: "ready", previewKind: "button", catalogAdapterId: "button-families", placementKind: "ordinary-module" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "map", label: "Map", description: "Add locations and directions", order: 40, readiness: "ready", previewKind: "map", catalogAdapterId: "studio-add", placementKind: "ordinary-module" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "divider", label: "Divider", description: "Create visual rhythm", order: 50, readiness: "ready", previewKind: "divider", catalogAdapterId: "studio-add", placementKind: "ordinary-module" },
@@ -64,6 +64,7 @@ export const STUDIO_ADD_CATEGORIES: readonly StudioAddCategoryRegistration[] = [
 export const STUDIO_ORDINARY_MODULES: readonly StudioOrdinaryModuleRegistration[] = [
   ...STUDIO_TEXT_ROLES.map((role) => ({ contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: `text:${role.id}`, categoryId: "text" as const, label: role.label, description: role.description, moduleKind: "text" as const, previewKind: "text" as const, readiness: "ready" as const, allowedParents: ["card-surface", "container"] as const, defaultCanonicalState: textRoleCanonicalProps(role.id), refineEntry: "content" as const, capabilityGroups: ["content", "text", "spacing", "position", "accessibility"], governance: "host-editable" as const })),
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "image:asset", categoryId: "image", label: "Image from Assets", description: "Choose an uploaded, Brand, recent, favorite, or provider-backed Asset.", moduleKind: "image", previewKind: "image", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { elementKind: "image", fit: "cover", alt: "Card image" }, refineEntry: "asset", capabilityGroups: ["asset", "treatment", "position", "accessibility"], governance: "host-editable" },
+  { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "audio:module", categoryId: "image", label: "Audio Player", description: "Play a library track with artwork and accessible native audio controls.", moduleKind: "audio", previewKind: "audio", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { elementKind: "audio", audioVariant: "featured", audioTitle: "Audio track", aspectLocked: false, flowWidthPercent: 100, flowAlignment: "stretch" }, refineEntry: "content", capabilityGroups: ["source", "content", "playback", "poster", "surface", "position", "accessibility"], governance: "host-editable" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "video:module", categoryId: "image", label: "Video", description: "Add hosted media or a supported provider URL, then choose Standard or Feature presentation.", moduleKind: "video", previewKind: "video", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { elementKind: "video", videoUrl: "", videoProvider: "hosted", playbackMode: "play_on_tap", muted: false, controls: true, playsInline: true, loop: false, playOnce: false, videoTitle: "Featured video", videoPresentation: "standard", videoAspect: "16:9", videoFrameTreatment: "transparent", aspectLocked: true }, refineEntry: "asset", capabilityGroups: ["source", "playback", "poster", "position", "accessibility", "analytics"], governance: "host-editable" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "button:standard", categoryId: "buttons", label: "Standard Button", description: "A directly editable action using a customer-ready presentation.", moduleKind: "button", previewKind: "button", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { elementKind: "button" }, refineEntry: "action", capabilityGroups: ["content", "action", "appearance", "position", "accessibility"], governance: "host-editable" },
   { contractId: STUDIO_ADD_DISCOVER_CONTRACT, id: "map:location-container", categoryId: "map", label: "Map / Location Container", description: "Add one or more provider-neutral locations, map context, and phone-native Directions actions.", moduleKind: "map", previewKind: "map", readiness: "ready", allowedParents: ["card-surface", "container"], defaultCanonicalState: { ...mapElementDefaults(), componentKind: "map", mapTitle: "Locations", mapIntro: "Add a venue, parking, VIP entrance, or another destination.", resizePolicy: "free", aspectLocked: false, flowWidthPercent: 100, flowAlignment: "stretch" }, refineEntry: "content", capabilityGroups: ["content", "locations", "directions", "appearance", "position", "accessibility", "analytics"], governance: "host-editable" },

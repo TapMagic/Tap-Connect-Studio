@@ -9,7 +9,7 @@ export type CreativeCapability =
 export type ObjectFamily =
   | "card_root" | "text" | "image" | "logo" | "icon" | "shape" | "divider"
   | "badge" | "button" | "coupon" | "ticket" | "map" | "gallery" | "form"
-  | "container" | "group" | "qr" | "video" | "utility";
+  | "container" | "group" | "qr" | "audio" | "video" | "utility";
 
 export type ObjectCapabilityDefinition = {
   objectKind: ObjectFamily;
@@ -67,6 +67,7 @@ export const OBJECT_CAPABILITY_REGISTRY: Readonly<Record<ObjectFamily, ObjectCap
   container: definition("container", ["component.editChildren", "layout.open", "size.open", "appearance.open", "resizePolicy.open", "responsive.open", "transform.position", "more.open"], ["children", "layout", "surface", "resize_policy", ...COMMON], { contentEditor: "component", childSelection: true, targetLevels: ["parent", "child"], resizePolicies: ["reflow", "frame", "scale", "fit-content"], appearanceSections: ["fill", "gradient", "media", "pattern", "texture", "material", "border", "corners", "shadow", "glow", "opacity"], resetSupport: ["appearance", "resize-policy", "transform", "inserted-preset"] }),
   group: definition("group", ["component.editChildren", "appearance.open", "ungroup.open", "motion.open", "transform.position", "arrange.open", "more.open", "magicWrite.open"], ["children", "appearance", "action", "motion", ...COMMON], { childSelection: true, appearanceSections: ["color", "material", "effects"], contentEditor: "component" }),
   qr: definition("qr", ["setup.open", "appearance.open", "action.open", "transform.position", "more.open"], ["setup", "appearance", "action", ...COMMON], { appearanceSections: ["foreground", "background", "quiet-zone", "frame"] }),
+  audio: definition("audio", ["content.edit", "appearance.open", "transform.position", "more.open"], ["content", "media", "surface", ...COMMON], { contentEditor: "media", appearanceSections: ["fill", "gradient", "material", "border", "corners", "shadow", "opacity"] }),
   video: definition("video", ["media.replace", "media.cropFit", "appearance.open", "action.open", "motion.open", "transform.position", "more.open"], ["media", "appearance", "action", "motion", ...COMMON], { contentEditor: "media", appearanceSections: ["frame", "border", "corners", "opacity"] }),
   utility: definition("utility", ["setup.open", "visibility.open", "more.open"], ["setup", "visibility", "accessibility"], { resizePolicies: [], appearanceSections: [], resetSupport: ["setup"] }),
 };
@@ -85,6 +86,7 @@ export function objectFamilyForNode(node: Pick<CreativeCompositionNode, "primiti
   if (element === "badge") return "badge";
   if (element === "map") return "map";
   if (element === "qr_image") return "qr";
+  if (node.primitive === "audio" || element === "audio") return "audio";
   if (element === "video") return "video";
   if (node.primitive === "image" || node.primitive === "frame") return "image";
   return "shape";

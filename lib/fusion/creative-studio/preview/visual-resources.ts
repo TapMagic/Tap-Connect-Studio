@@ -1,3 +1,4 @@
+import { nativeMediaAssetId } from "@/lib/media/native-media-url";
 /**
  * Runtime projection for visual resources crossing the Studio -> Live Device
  * boundary. Persisted Card state keeps canonical MediaAsset references and the
@@ -132,6 +133,7 @@ export function mapPreviewVisualSources<T>(value: T, mapper: (source: string) =>
 
 export function resolvePreviewVisualResources<T>(value: T, token: string): T {
   return mapPreviewVisualSources(value, source => {
+    if (nativeMediaAssetId(source)) return `${source}?preview=${encodeURIComponent(token)}`;
     const assetId = previewMediaAssetId(source);
     if (assetId) return "/api/preview/card/asset/" + encodeURIComponent(token) + "?assetId=" + encodeURIComponent(assetId);
     const key = localMediaKey(source);

@@ -23,6 +23,7 @@ import {
   RUNTIME_IMAGE_WEBP_QUALITY,
 } from "./upload-policy";
 import { deleteMediaObject, extensionForMime, putMediaObject } from "./storage";
+import { isPrivateNativeAsset } from "./private-native-asset";
 
 export type MediaImportDependencies = {
   fetchRemoteImage: typeof fetchRemoteImage;
@@ -726,4 +727,83 @@ export async function recordSavedDocumentAssetUsage(input: {
     }
   }
   await prisma.$transaction(operations);
+}
+
+/** Store original native media through the existing tenant Asset/storage authorities. */
+export async function storeUploadedNativeMedia(input: {
+  businessId: string;
+  filename: string;
+  declaredMimeType: string;
+  bytes: Buffer;
+}): Promise<StoredUploadedImage> {
+  const { sniffNativeMedia } = await import("./native-media");
+  if (input.bytes.byteLength > MAX_UPLOAD_SOURCE_BYTES)
+    throw new MediaServiceError(
+      `Media exceeds the ${MAX_UPLOAD_SOURCE_MEGABYTES} MB upload limit.`,
+      413,
+      "source_too_large",
+    );
+  const format = sniffNativeMedia(input.bytes, input.filename);
+  if (!format)
+    throw new MediaServiceError(
+      "This is not a recognized native audio or video container. Choose a supported original media file.",
+      415,
+      "unsupported_media",
+    );
+  const contentHash = createHash("sha256").update(input.bytes).digest("hex");
+  const existing = await prisma.mediaAsset.findFirst({
+    where: { businessId: input.businessId, contentHash },
+  });
+  const processing = {
+    optimized: false,
+    originalSizeBytes: input.bytes.byteLength,
+    runtimeSizeBytes: input.bytes.byteLength,
+    width: null,
+    height: null,
+  };
+  if (existing && isPrivateNativeAsset(existing))
+    return { asset: existing, processing };
+  const id = nanoid(24);
+  const storageKey = `${input.businessId}/private/native-media/${id}/${contentHash}.${format.extension}`;
+  let url: string;
+  try {
+    await putMediaObject({
+      storageKey,
+      bytes: input.bytes,
+      mimeType: format.mimeType,
+    });
+    url = `/api/public/native-media/${id}`;
+  } catch (error) {
+    throw mediaStorageError(error);
+  }
+  try {
+    const asset = await prisma.mediaAsset.create({
+      data: {
+        id,
+        businessId: input.businessId,
+        filename: input.filename,
+        url,
+        sourceUrl: url,
+        storageKey,
+        contentHash,
+        mimeType: format.mimeType,
+        sizeBytes: input.bytes.byteLength,
+        source: "upload",
+        renditionKind: "original",
+        licenseCode: "OWNER_SUPPLIED",
+        rightsNote:
+          "Owner supplied media; owner is responsible for usage rights.",
+        approvalStatus: "UNREVIEWED",
+        importedAt: new Date(),
+      },
+    });
+    return { asset, processing };
+  } catch {
+    await deleteMediaObject(storageKey).catch(() => undefined);
+    throw new MediaServiceError(
+      "Media Asset could not be saved. Retry after database availability is restored.",
+      503,
+      "asset_persistence_failed",
+    );
+  }
 }

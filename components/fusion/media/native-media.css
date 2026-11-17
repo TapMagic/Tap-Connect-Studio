@@ -1,0 +1,10 @@
+@media (orientation: landscape) and (max-height: 600px) {
+  [data-audio-variant="expanded"] .studio-audio-main {
+    flex-direction: row;
+    align-items: center;
+  }
+  [data-audio-variant="expanded"] .studio-audio-main > div:first-child {
+    width: min(30vw, 180px);
+    flex-shrink: 0;
+  }
+}

@@ -65,8 +65,9 @@ export type MediaUploadResponse<TAsset = unknown> = {
 export function uploadMediaFile<TAsset = unknown>(
   file: File,
   onProgress?: (progress: MediaUploadProgress) => void,
+  kind: "image" | "audio" | "video" = "image",
 ): Promise<MediaUploadResponse<TAsset>> {
-  const validationError = uploadImageFileError(file);
+  const validationError = kind === "image" ? uploadImageFileError(file) : file.size > MAX_UPLOAD_SOURCE_BYTES ? `Media exceeds the ${MAX_UPLOAD_SOURCE_MEGABYTES} MB upload limit.` : null;
   if (validationError) return Promise.reject(new Error(validationError));
 
   return new Promise((resolve, reject) => {

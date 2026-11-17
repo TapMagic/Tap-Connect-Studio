@@ -1,3 +1,4 @@
+import { mediaByteRange, nativeMediaMimeForKey } from "@/lib/media/native-media";
 import { NextResponse } from "next/server";
 import { getPreviewSession } from "@/lib/fusion/creative-studio/preview/tokens";
 import { collectPreviewLocalMediaKeys, collectPreviewMediaAssetIds } from "@/lib/fusion/creative-studio/preview/visual-resources";
@@ -9,6 +10,8 @@ import { readMediaObject } from "@/lib/media/storage";
 export const runtime = "nodejs";
 
 function mimeForKey(storageKey: string): string {
+  const native = nativeMediaMimeForKey(storageKey);
+  if (native) return native;
   const extension = storageKey.split(".").pop()?.toLowerCase();
   if (extension === "png") return "image/png";
   if (extension === "webp") return "image/webp";
@@ -98,10 +101,16 @@ export async function GET(
 
   try {
     const bytes = await readMediaObject(storageKey);
-    return new Response(Uint8Array.from(bytes), {
+    const range = mediaByteRange(request.headers.get("range"), bytes.byteLength);
+    if (range === false) return new Response(null, { status: 416, headers: { "Content-Range": `bytes */${bytes.byteLength}` } });
+    const body = range ? bytes.subarray(range.start, range.end + 1) : bytes;
+    return new Response(Uint8Array.from(body), {
+      status: range ? 206 : 200,
       headers: {
         "Content-Type": mimeForKey(storageKey),
-        "Content-Length": String(bytes.byteLength),
+        "Content-Length": String(body.byteLength),
+        "Accept-Ranges": "bytes",
+        ...(range ? { "Content-Range": `bytes ${range.start}-${range.end}/${bytes.byteLength}` } : {}),
         "Cache-Control": "private, no-store",
         "X-Content-Type-Options": "nosniff",
         "X-TapConnect-Preview-Resource": "resolved",

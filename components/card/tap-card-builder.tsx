@@ -1554,7 +1554,7 @@ export function TapCardBuilder({
   }
 
   function addCompositionModule(
-    kind: "text" | "image" | "video" | "button" | "map" | "divider",
+    kind: "text" | "image" | "audio" | "video" | "button" | "map" | "divider",
     parentId: string | null,
     initialProps?: Record<string, unknown>,
     insertionIndex?: number,

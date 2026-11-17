@@ -43,6 +43,7 @@ export async function GET(request: Request) {
       prisma.mediaAsset.findMany({
         where: {
           businessId: business.id,
+          ...(["image", "audio", "video"].includes(params.get("kind") || "") ? { mimeType: { startsWith: `${params.get("kind")}/` } } : {}),
           ...(approval === "APPROVED" ||
           approval === "UNREVIEWED" ||
           approval === "REJECTED"

@@ -1,3 +1,4 @@
+import { assertStudioMediaBindings } from "@/lib/media/studio-media-binding.server";
 import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 import { z } from "zod";
@@ -14,6 +15,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   const { id } = await params;
   const input = saveSchema.parse(await request.json());
   if (!isTapConnectCardDraft(input.draft)) return NextResponse.json({ error: "Invalid Card document" }, { status: 400 });
+  try { await assertStudioMediaBindings(input.draft, business.id); } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid native media Asset" }, { status: 400 }); }
   const name = requireCreativeDocumentName(input.draft.documentName || "Untitled Card");
   const existing = await prisma.cardCreativeDocument.findFirst({
     where: { id, businessId: business.id, archivedAt: null },
